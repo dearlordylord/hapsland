@@ -1,3 +1,4 @@
+import { bunExecutable } from "../runtime/bun-runtime.ts"
 import { createInstallationPackageFixture } from "../test-support/installation-package.ts"
 import { ConfigProvider, Effect } from "effect"
 import { it as effectIt } from "@effect/vitest"
@@ -37,7 +38,7 @@ describe("offline installed integration doctor", () => {
       const root = mkdtempSync(join(tmpdir(), "doctor-provider-"))
       roots.push(root)
       const options = {
-        installation: { codexHome: root, codexExecutable: process.execPath },
+        installation: { codexHome: root, codexExecutable: bunExecutable() },
         repository: readyCheck("file-selection"),
         credential: readyCheck("credential-accessibility")
       }
@@ -80,7 +81,7 @@ describe("offline installed integration doctor", () => {
       { mode: 0o700 }
     )
     chmodSync(fakeCodex, 0o700)
-    setEnvironment("REVIEW_INSTALL_RUNTIME", process.execPath)
+    setEnvironment("REVIEW_INSTALL_RUNTIME", bunExecutable())
     setEnvironment("REVIEW_INSTALL_ENTRYPOINT", createInstallationPackageFixture(root))
     setEnvironment("REVIEW_RESIDENT_DIR", runtime)
 
@@ -95,7 +96,7 @@ describe("offline installed integration doctor", () => {
     const hooksBefore = readFileSync(join(codexHome, "hooks.json"), "utf8")
     const secret = "doctor-secret-must-not-appear"
     execFileSync("git", ["init", "--quiet", "--initial-branch=master", root])
-    const publicDoctor = spawnSync(process.execPath, ["src/cli.ts", "--doctor"], {
+    const publicDoctor = spawnSync(bunExecutable(), ["src/cli.ts", "--doctor"], {
       cwd: process.cwd(),
       input: JSON.stringify({ version: 1, operation: "doctor", cwd: root, ...request }),
       encoding: "utf8",
@@ -129,7 +130,7 @@ else console.log('{"version":1,"status":"available"}');
 `,
       { mode: 0o700 }
     )
-    const savedCredentialDoctor = spawnSync(process.execPath, ["src/cli.ts", "--doctor"], {
+    const savedCredentialDoctor = spawnSync(bunExecutable(), ["src/cli.ts", "--doctor"], {
       cwd: process.cwd(),
       input: JSON.stringify({ version: 1, operation: "doctor", cwd: root, ...request }),
       encoding: "utf8",

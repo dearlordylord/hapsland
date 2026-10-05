@@ -1,3 +1,4 @@
+import { bunExecutable } from "./runtime/bun-runtime.ts"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../scripts/test-harness/policy.mjs"
 import { spawnSync } from "../scripts/test-harness/process.mjs"
 import { rmSync, writeFileSync } from "node:fs"
@@ -10,7 +11,7 @@ afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 const status = (root: string, format?: "human") =>
-  spawnSync(process.execPath, ["src/cli.ts", "--status"], {
+  spawnSync(bunExecutable(), ["src/cli.ts", "--status"], {
     cwd: process.cwd(),
     encoding: "utf8",
     timeout: DEFAULT_CHILD_TIMEOUT_MS,

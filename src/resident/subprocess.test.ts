@@ -1,3 +1,4 @@
+import { bunExecutable } from "../runtime/bun-runtime.ts"
 import { runClient } from "../test-support/client-runtime.ts"
 import { afterEach, describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
@@ -125,7 +126,7 @@ describe("resident separate-process lifecycle", () => {
     const paths = residentPaths(join(temporary, "runtime"))
     await mkdir(paths.directory, { mode: 0o700 })
     await writeFile(paths.socket, "unowned endpoint\n", { mode: 0o600 })
-    const failed = spawn(process.execPath, ["src/resident/main.ts", paths.directory], {
+    const failed = spawn(bunExecutable(), ["src/resident/main.ts", paths.directory], {
       cwd: process.cwd(),
       stdio: "pipe"
     })
@@ -146,7 +147,7 @@ describe("resident separate-process lifecycle", () => {
     directories.push(temporary)
     const paths = residentPaths(join(temporary, "runtime"))
     const contenders = Array.from({ length: 3 }, () =>
-      spawn(process.execPath, ["src/resident/main.ts", paths.directory], {
+      spawn(bunExecutable(), ["src/resident/main.ts", paths.directory], {
         cwd: process.cwd(),
         stdio: ["ignore", "ignore", "pipe"]
       })
@@ -224,7 +225,7 @@ describe("resident separate-process lifecycle", () => {
     const gate = join(temporary, "backend.gate")
     const paths = residentPaths(join(temporary, "runtime"))
     const launched = spawn(
-      process.execPath,
+      bunExecutable(),
       [
         "--input-type=module",
         "-e",
@@ -283,7 +284,7 @@ describe("resident separate-process lifecycle", () => {
     const gate = join(temporary, "backend.gate")
     const paths = residentPaths(join(temporary, "runtime"))
     const launched = spawn(
-      process.execPath,
+      bunExecutable(),
       [
         "--input-type=module",
         "-e",
@@ -386,7 +387,7 @@ describe("resident separate-process lifecycle", () => {
     // runtime and armed stdin. Each then starts two concurrent ensure calls.
     const readyPaths = Array.from({ length: 3 }, (_, index) => join(temporary, `starter-${index}.ready`))
     const starters = readyPaths.map((readyPath) =>
-      spawn(process.execPath, ["--input-type=module", "-e", ensureScript, "2", readyPath], {
+      spawn(bunExecutable(), ["--input-type=module", "-e", ensureScript, "2", readyPath], {
         cwd: process.cwd(),
         env,
         stdio: ["pipe", "pipe", "pipe"]
@@ -433,7 +434,7 @@ describe("resident separate-process lifecycle", () => {
       `const path=${JSON.stringify(residentPaths(runtime).socket)};`,
       "const server=createServer();server.listen(path,()=>{chmodSync(path,0o600);console.log('ready')});"
     ].join("")
-    const stale = spawn(process.execPath, ["--input-type=module", "-e", staleScript], {
+    const stale = spawn(bunExecutable(), ["--input-type=module", "-e", staleScript], {
       cwd: process.cwd(),
       env,
       stdio: ["pipe", "pipe", "pipe"]
@@ -450,7 +451,7 @@ describe("resident separate-process lifecycle", () => {
       `const paths=${JSON.stringify(residentPaths(runtime))};`,
       "await runClient(ensureResident(paths,250));"
     ].join("")
-    const bounded = spawn(process.execPath, ["--input-type=module", "-e", boundedScript], {
+    const bounded = spawn(bunExecutable(), ["--input-type=module", "-e", boundedScript], {
       cwd: process.cwd(),
       env,
       stdio: ["pipe", "pipe", "pipe"]
@@ -484,7 +485,7 @@ describe("resident separate-process lifecycle", () => {
     ].join("")
     const admitGate = env.REVIEW_RESIDENT_ADMIT_RESPONSE_GATE_PATH
     await writeFile(`${admitGate}.enabled`, "enabled\n")
-    const admitting = spawn(process.execPath, ["--input-type=module", "-e", admissionScript], {
+    const admitting = spawn(bunExecutable(), ["--input-type=module", "-e", admissionScript], {
       cwd: process.cwd(),
       env,
       stdio: ["pipe", "pipe", "pipe"]
@@ -561,7 +562,7 @@ describe("resident separate-process lifecycle", () => {
       `const paths=${JSON.stringify(paths)};`,
       "await runClient(collectReady(root,advicee,dispatch,paths));"
     ].join("")
-    const disconnecting = spawn(process.execPath, ["--input-type=module", "-e", disconnectScript], {
+    const disconnecting = spawn(bunExecutable(), ["--input-type=module", "-e", disconnectScript], {
       cwd: process.cwd(),
       env,
       stdio: ["pipe", "pipe", "pipe"]
@@ -586,7 +587,7 @@ describe("resident separate-process lifecycle", () => {
       `const advice=${JSON.stringify(advice)};`,
       "await runClient(acknowledgeAdvice(advice));"
     ].join("")
-    const acknowledging = spawn(process.execPath, ["--input-type=module", "-e", ackScript], {
+    const acknowledging = spawn(bunExecutable(), ["--input-type=module", "-e", ackScript], {
       cwd: process.cwd(),
       env,
       stdio: ["pipe", "pipe", "pipe"]
@@ -629,7 +630,7 @@ describe("resident separate-process lifecycle", () => {
     }
     const script =
       "import {ensureResidentEffect as ensureResident} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));"
-    const child = spawn(process.execPath, ["--input-type=module", "-e", script], {
+    const child = spawn(bunExecutable(), ["--input-type=module", "-e", script], {
       cwd: process.cwd(),
       env,
       stdio: ["pipe", "pipe", "pipe"]
@@ -685,7 +686,7 @@ describe("resident separate-process lifecycle", () => {
     }
     const script =
       "import {ensureResidentEffect as ensureResident} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));"
-    const child = spawn(process.execPath, ["--input-type=module", "-e", script], {
+    const child = spawn(bunExecutable(), ["--input-type=module", "-e", script], {
       cwd: process.cwd(),
       env,
       stdio: ["pipe", "pipe", "pipe"]
@@ -746,7 +747,7 @@ describe("resident separate-process lifecycle", () => {
     const ensureScript =
       "import {ensureResidentEffect as ensureResident} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));"
     const start = async () => {
-      const child = spawn(process.execPath, ["--input-type=module", "-e", ensureScript], {
+      const child = spawn(bunExecutable(), ["--input-type=module", "-e", ensureScript], {
         cwd: process.cwd(),
         env,
         stdio: ["pipe", "pipe", "pipe"]
@@ -1012,7 +1013,7 @@ describe("resident separate-process lifecycle", () => {
       `const lifetime=${JSON.stringify(second.lifetime)};`,
       "console.log(JSON.stringify(await runClient(residentRequest(paths,{requestRoute:'shared',operation:'cleanup',lifetime}))));"
     ].join("")
-    const cleaning = spawn(process.execPath, ["--input-type=module", "-e", cleanupScript], {
+    const cleaning = spawn(bunExecutable(), ["--input-type=module", "-e", cleanupScript], {
       cwd: process.cwd(),
       env,
       stdio: ["pipe", "pipe", "pipe"]

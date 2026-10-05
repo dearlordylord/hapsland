@@ -27,14 +27,16 @@ export const prepareTestPackage = (): TestPackage => {
       artifact = join(artifacts, "reviewed-local.tgz")
       copyFileSync(suppliedArchive, artifact)
     } else {
-      execFileSync("npm", ["run", "build"], { cwd: process.cwd(), stdio: "pipe", timeout: 120_000 })
-      const packed = JSON.parse(
-        execFileSync("npm", ["pack", "--ignore-scripts=true", "--json", "--pack-destination", artifacts], {
+      const prepared = JSON.parse(
+        execFileSync(process.execPath, [join(process.cwd(), "scripts/prepare-package.mjs"), "--timeout-ms=120000"], {
+          cwd: process.cwd(),
           encoding: "utf8",
-          timeout: 120_000
+          stdio: ["ignore", "pipe", "pipe"],
+          timeout: 125000
         })
-      ) as { filename: string }[]
-      artifact = join(artifacts, packed[0]!.filename)
+      ) as { readonly archivePath: string }
+      artifact = join(artifacts, "reviewed-local.tgz")
+      copyFileSync(prepared.archivePath, artifact)
     }
     const installation = join(temporaryRoot, "installation")
     const packageRoot = join(installation, "node_modules/@hapsland/hapsland")

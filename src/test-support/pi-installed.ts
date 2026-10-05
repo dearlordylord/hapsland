@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from "node:child_process"
 import { execFileSync } from "../../scripts/test-harness/process.mjs"
 import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { dirname, join } from "node:path"
+import { join } from "node:path"
 import assert from "node:assert/strict"
 import { configuredRules, connectDefaultRuleFixture } from "./default-rules.ts"
 import { pathToFileURL } from "node:url"
@@ -11,25 +11,31 @@ import { residentPaths } from "../resident/paths.ts"
 import { prepareTestPackage, type TestPackage } from "./test-package.ts"
 import { runClient } from "./client-runtime.ts"
 import type { ResidentResponse } from "../resident/protocol.ts"
+import { commandEntrypoint, type RuntimeCommand } from "../runtime/package-runtime.ts"
+import { prepareTestSourceRuntime } from "./source-runtime.ts"
 
 let createPiExtension: (typeof import("../pi/extension.ts"))["createPiExtension"]
 export let installedCli: string
 export let installedCommand: readonly string[]
 let fixtureMode: "source" | "installed"
 let installedPackage: TestPackage | undefined
-let installedResident: string
+export let installedResidentCommand: RuntimeCommand
+let sourceEnvironment: Readonly<Record<string, string>> = {}
 let installedEnvironment: NodeJS.ProcessEnv
 export const setupInstalledPi = async (mode: "source" | "installed" = "installed") => {
   fixtureMode = mode
   if (mode === "source") {
-    installedCli = join(process.cwd(), "src/cli.ts")
-    installedCommand = [process.execPath, "--experimental-strip-types", installedCli]
+    const runtime = prepareTestSourceRuntime()
+    installedCli = commandEntrypoint(runtime.commands.cli)
+    installedCommand = [runtime.commands.cli.executable, ...runtime.commands.cli.args]
+    installedResidentCommand = runtime.commands.resident
+    sourceEnvironment = runtime.environment
     createPiExtension = (await import("../pi/extension.ts")).createPiExtension
     return
   }
   installedPackage = prepareTestPackage()
   installedCli = installedPackage.cli.executable
-  installedResident = installedPackage.resident.executable
+  installedResidentCommand = installedPackage.resident
   installedEnvironment = installedPackage.environment
   installedCommand = installedPackage.command
   try {
@@ -50,7 +56,7 @@ export const cleanupInstalledPi = () => {
 type Handler = (event: any, context: any) => Promise<any>
 const roots: string[] = []
 const preparedResidents = new Map<string, ChildProcess>()
-const residentMains = new Map<string, string>()
+const residentCommands = new Map<string, RuntimeCommand>()
 const fixtureOwnerPid = (path: string): number | undefined => {
   try {
     const { pid } = JSON.parse(readFileSync(path, "utf8")) as { pid: number }
@@ -59,38 +65,38 @@ const fixtureOwnerPid = (path: string): number | undefined => {
     return undefined
   }
 }
-export const fixtureCommandMatches = (args: readonly string[], main: string, directory: string): boolean => {
+export const fixtureCommandMatches = (
+  args: readonly string[],
+  expected: RuntimeCommand,
+  directory: string
+): boolean => {
   const command = args.filter((argument, index) => argument !== "" || index !== args.length - 1)
-  const standalone = !main.endsWith(".ts")
-  const entry = standalone ? 0 : 1
-  if (command.length !== entry + 2) return false
+  const tokens = [expected.executable, ...expected.args, directory]
+  if (command.length !== tokens.length) return false
   try {
-    return (
-      realpathSync(command[entry]!) === realpathSync(main) &&
-      realpathSync(command[entry + 1]!) === realpathSync(directory)
+    return tokens.every(
+      (token, index) => command[index] === token || realpathSync(command[index]!) === realpathSync(token)
     )
   } catch {
     return false
   }
 }
-const linuxFixtureProcess = (pid: number, main: string, directory: string) => {
-  if (!fixtureCommandMatches(readFileSync(`/proc/${pid}/cmdline`, "utf8").split("\0"), main, directory)) return false
-  const executable = main.endsWith(".ts") ? process.execPath : main
-  return realpathSync(`/proc/${pid}/exe`) === realpathSync(executable)
+const linuxFixtureProcess = (pid: number, command: RuntimeCommand, directory: string) => {
+  if (!fixtureCommandMatches(readFileSync(`/proc/${pid}/cmdline`, "utf8").split("\0"), command, directory)) return false
+  return realpathSync(`/proc/${pid}/exe`) === realpathSync(command.executable)
 }
-const fixtureProcessRunning = (pid: number, main: string, directory: string): boolean => {
+const fixtureProcessRunning = (pid: number, expected: RuntimeCommand, directory: string): boolean => {
   try {
-    if (process.platform === "linux") return linuxFixtureProcess(pid, main, directory)
+    if (process.platform === "linux") return linuxFixtureProcess(pid, expected, directory)
     const command = execFileSync("ps", ["-ww", "-p", String(pid), "-o", "command="], {
       encoding: "utf8",
       timeout: 1_000,
       stdio: ["ignore", "pipe", "ignore"]
     }).trim()
-    return [main, realpathSync(main)].some((entry) =>
-      [directory, realpathSync(directory)].some((root) =>
-        command.endsWith(main.endsWith(".ts") ? `node ${entry} ${root}` : `${entry} ${root}`)
-      )
-    )
+    return [
+      [expected.executable, ...expected.args, directory],
+      [expected.executable, ...expected.args, directory].map((token) => realpathSync(token))
+    ].some((tokens) => command === tokens.join(" "))
   } catch {
     return false
   }
@@ -102,13 +108,13 @@ const signalFixtureProcess = (pid: number, signal: NodeJS.Signals) => {
     if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error
   }
 }
-const waitForFixtureExit = async (pid: number, main: string, directory: string) => {
+const waitForFixtureExit = async (pid: number, main: RuntimeCommand, directory: string) => {
   const deadline = Date.now() + 3_000
   while (fixtureProcessRunning(pid, main, directory) && Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, 20))
   }
 }
-const stopFixtureProcess = async (pid: number, main: string, directory: string) => {
+const stopFixtureProcess = async (pid: number, main: RuntimeCommand, directory: string) => {
   if (!fixtureProcessRunning(pid, main, directory)) return
   signalFixtureProcess(pid, "SIGTERM")
   await waitForFixtureExit(pid, main, directory)
@@ -134,14 +140,14 @@ export const cleanupPiFixtures = async () => {
     preparedResidents.delete(root)
     if (prepared !== undefined) await stopPreparedResident(prepared)
     const directory = join(root, "runtime")
-    const main = residentMains.get(root)!
+    const main = residentCommands.get(root)!
     // The lock owner exists before the server publishes its endpoint owner.
     const pids = new Set([
       fixtureOwnerPid(join(directory, "owner.json")),
       fixtureOwnerPid(join(directory, "owner.lock", "owner.json"))
     ])
     for (const pid of pids) if (pid !== undefined) await stopFixtureProcess(pid, main, directory)
-    residentMains.delete(root)
+    residentCommands.delete(root)
     rmSync(root, { recursive: true, force: true })
   }
 }
@@ -174,16 +180,13 @@ export const fixture = (
 ) => {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "haps-pi-")))
   roots.push(root)
-  residentMains.set(
-    root,
-    fixtureMode === "source" ? join(dirname(installedCli), "resident/main.ts") : installedResident
-  )
+  residentCommands.set(root, installedResidentCommand)
   execFileSync("git", ["init", "--quiet", root])
   connectDefaultRuleFixture(root)
   const capturePath = join(root, "backend-calls")
   const handlers = new Map<string, Handler>()
   const environment = () => ({
-    ...(fixtureMode === "source" ? process.env : installedEnvironment),
+    ...(fixtureMode === "source" ? { ...process.env, ...sourceEnvironment } : installedEnvironment),
     REVIEW_RESIDENT_DIR: join(root, "runtime"),
     REVIEW_STATE_PATH: join(root, "state"),
     REVIEW_ACTIVITY_PATH: join(root, "activity"),
@@ -224,10 +227,8 @@ export const fixture = (
     // Opt-in healthy-resident precondition for lifecycle witnesses. Cold-start
     // and refusal tests still exercise their original first-event startup.
     const directory = join(root, "runtime")
-    const command =
-      fixtureMode === "source"
-        ? [process.execPath, join(dirname(installedCli), "resident", "main.ts"), directory]
-        : [installedResident, directory]
+    const resident = residentCommands.get(root)!
+    const command = [resident.executable, ...resident.args, directory]
     const child = spawn(command[0]!, command.slice(1), { env: environment(), stdio: "ignore" })
     preparedResidents.set(root, child)
     await new Promise<void>((resolve, reject) => {

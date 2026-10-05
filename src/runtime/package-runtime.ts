@@ -1,14 +1,16 @@
+import { BUN_VERSION, bunExecutable } from "./bun-runtime.ts"
 import { realpathSync } from "node:fs"
 import { dirname, extname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { CLI_NAME } from "./cli-names.ts"
+import { sourceRuntimeFromEntrypoint, sourceRuntimeCommand } from "./source-runtime-layout.ts"
+export { BUN_VERSION } from "./bun-runtime.ts"
 
 export interface RuntimeCommand {
   readonly executable: string
   readonly args: ReadonlyArray<string>
 }
 export type PackageRole = "cli" | "doctor" | "parser" | "resident"
-export const BUN_VERSION = "1.3.14"
 const roleNames: Readonly<Record<PackageRole, string>> = {
   cli: CLI_NAME,
   doctor: "hapsland-doctor",
@@ -23,6 +25,7 @@ const sourceEntries: Readonly<Record<PackageRole, string>> = {
 }
 const moduleUrl = import.meta.url
 export const standalone = moduleUrl.includes("/$bunfs/")
+const sourceRuntime = standalone ? undefined : sourceRuntimeFromEntrypoint(fileURLToPath(moduleUrl))
 const executablePath = (): string => {
   try {
     return realpathSync(process.execPath)
@@ -32,7 +35,7 @@ const executablePath = (): string => {
 }
 export const packageRoot = standalone
   ? resolve(dirname(executablePath()), "../../..")
-  : resolve(dirname(fileURLToPath(moduleUrl)), "../..")
+  : (sourceRuntime?.root ?? resolve(dirname(fileURLToPath(moduleUrl)), "../.."))
 export const packageAssetPath = (...segments: ReadonlyArray<string>): string => join(packageRoot, ...segments)
 export const standaloneCommand = (root: string, role: PackageRole): RuntimeCommand => ({
   executable: join(root, "dist", "bin", `${process.platform}-${process.arch}`, roleNames[role]),
@@ -44,33 +47,34 @@ export const commandFromEntrypoint = (runtime: string, entrypoint: string): Runt
     : { executable: resolve(entrypoint), args: [] }
 export const packageCommand = (role: PackageRole): RuntimeCommand => {
   if (standalone) return standaloneCommand(packageRoot, role)
+  if (sourceRuntime) return sourceRuntimeCommand(sourceRuntime, bunExecutable(), role)
   const suffix = moduleUrl.endsWith(".js") ? ".js" : ".ts"
   const directory = suffix === ".js" ? "dist" : "src"
-  return { executable: process.execPath, args: [join(packageRoot, directory, `${sourceEntries[role]}${suffix}`)] }
+  return { executable: bunExecutable(), args: [join(packageRoot, directory, `${sourceEntries[role]}${suffix}`)] }
 }
 export const currentCommand = (): RuntimeCommand => packageCommand("cli")
 export const commandEntrypoint = (command: RuntimeCommand): string => command.args[0] ?? command.executable
 export const packageRootFromEntrypoint = (entrypoint: string): string =>
-  [".ts", ".js", ".mjs"].includes(extname(entrypoint))
+  sourceRuntimeFromEntrypoint(entrypoint)?.root ??
+  ([".ts", ".js", ".mjs"].includes(extname(entrypoint))
     ? resolve(dirname(entrypoint), "..")
-    : resolve(dirname(entrypoint), "../../..")
+    : resolve(dirname(entrypoint), "../../.."))
 export const runtimeVersion = (): string => {
   const engine = (globalThis as { readonly Bun?: { readonly version?: string } }).Bun
-  return standalone ? (engine?.version ?? "unavailable") : process.version
+  return engine?.version ?? "unavailable"
 }
 export const runtimeProbeArguments = (runtime: string): ReadonlyArray<string> =>
   Object.values(roleNames).includes(runtime.split("/").at(-1) ?? "")
     ? ["--runtime-identity"]
     : [
         "-e",
-        "process.stdout.write(JSON.stringify({version:process.version,platform:process.platform,architecture:process.arch}))"
+        'process.stdout.write(JSON.stringify({version:globalThis.Bun?.version??"unavailable",platform:process.platform,architecture:process.arch}))'
       ]
 export const commandTokens = (runtime: string, entrypoint: string): ReadonlyArray<string> => {
   const command = commandFromEntrypoint(runtime, entrypoint)
   return [command.executable, ...command.args]
 }
-export const expectedRuntimeVersion = (entrypoint: string): string =>
-  [".ts", ".js", ".mjs"].includes(extname(entrypoint)) ? "v24.20.0" : BUN_VERSION
+export const expectedRuntimeVersion = (_entrypoint: string): string => BUN_VERSION
 export const observedRuntimeVersion = (output: string): string => {
   const trimmed = output.trim()
   if (!trimmed.startsWith("{")) return trimmed
@@ -83,4 +87,4 @@ export const observedRuntimeVersion = (output: string): string => {
 export const versionProbeArguments = (runtime: string, entrypoint: string): ReadonlyArray<string> =>
   commandFromEntrypoint(runtime, entrypoint).args.length === 0
     ? ["--runtime-identity"]
-    : ["-e", "process.stdout.write(process.version)"]
+    : ["-e", 'process.stdout.write(globalThis.Bun?.version??"unavailable")']

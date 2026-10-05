@@ -8,10 +8,18 @@ import {
 } from "../../scripts/test-harness/cleanup-owned-resident.mjs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { pathToFileURL } from "node:url"
+import { commandEntrypoint } from "../runtime/package-runtime.ts"
 import { afterEach, beforeAll, describe, expect, it } from "vitest"
-import { cleanupPiFixtures, fixture, fixtureCommandMatches, setupInstalledPi } from "./pi-installed.ts"
+import {
+  cleanupPiFixtures,
+  fixture,
+  fixtureCommandMatches,
+  setupInstalledPi,
+  installedResidentCommand
+} from "./pi-installed.ts"
 
-beforeAll(() => setupInstalledPi("source"))
+beforeAll(() => setupInstalledPi("source"), 120000)
 afterEach(cleanupPiFixtures)
 
 const waitFile = async (path: string) => {
@@ -43,9 +51,9 @@ describe("Pi fixture process ownership", { timeout: 15_000 }, () => {
     async (mode) => {
       const { root } = fixture()
       const directory = join(root, "runtime")
-      const preload = join(root, "bootstrap.cjs")
-      writeFileSync(preload, bootstrap)
-      const main = join(process.cwd(), "src/resident/main.ts")
+      const preload = join(root, "bootstrap.mjs")
+      writeFileSync(preload, `${bootstrap}\nawait new Promise(() => {});`)
+      const main = commandEntrypoint(installedResidentCommand)
       const mainAlias = mode === "symlink" ? join(root, "resident-main.ts") : main
       const directoryAlias = mode === "symlink" ? join(root, "runtime-alias") : directory
       if (mode === "symlink") {
@@ -53,8 +61,11 @@ describe("Pi fixture process ownership", { timeout: 15_000 }, () => {
         symlinkSync(main, mainAlias)
         symlinkSync(directory, directoryAlias)
       }
-      const child = spawn(process.execPath, [mainAlias, directoryAlias], {
-        env: { ...process.env, NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --require=${JSON.stringify(preload)}` },
+      const child = spawn(installedResidentCommand.executable, [mainAlias, directoryAlias], {
+        env: {
+          ...process.env,
+          BUN_OPTIONS: `${process.env.BUN_OPTIONS ?? ""} --preload=${pathToFileURL(preload).href}`
+        },
         stdio: "ignore"
       })
       const completion = closed(child)
@@ -98,14 +109,19 @@ it("limits resident cleanup to the exact standalone binary and runtime directory
       directory = join(root, "runtime")
     writeFileSync(binary, "fixture")
     mkdirSync(directory)
-    expect(fixtureCommandMatches([binary, directory, ""], binary, directory)).toBe(true)
-    expect(fixtureCommandMatches([process.execPath, binary, directory, ""], binary, directory)).toBe(false)
-    expect(fixtureCommandMatches([binary, root, ""], binary, directory)).toBe(false)
-    expect(fixtureCommandMatches([binary, directory, "unexpected", ""], binary, directory)).toBe(false)
-    const source = join(root, "main.ts")
-    writeFileSync(source, "fixture")
-    expect(fixtureCommandMatches([process.execPath, source, directory, ""], source, directory)).toBe(true)
-    expect(fixtureCommandMatches([source, directory, ""], source, directory)).toBe(false)
+    const standalone = { executable: binary, args: [] }
+    expect(fixtureCommandMatches([binary, directory, ""], standalone, directory)).toBe(true)
+    expect(fixtureCommandMatches([process.execPath, binary, directory, ""], standalone, directory)).toBe(false)
+    expect(fixtureCommandMatches([binary, root, ""], standalone, directory)).toBe(false)
+    expect(fixtureCommandMatches([binary, directory, "unexpected", ""], standalone, directory)).toBe(false)
+    for (const filename of ["main.ts", "main.mjs"]) {
+      const source = join(root, filename)
+      writeFileSync(source, "fixture")
+      const interpreted = { executable: process.execPath, args: [source] }
+      expect(fixtureCommandMatches([process.execPath, source, directory, ""], interpreted, directory)).toBe(true)
+      expect(fixtureCommandMatches([source, directory, ""], interpreted, directory)).toBe(false)
+      expect(fixtureCommandMatches([binary, source, directory, ""], interpreted, directory)).toBe(false)
+    }
   } finally {
     rmSync(root, { recursive: true, force: true })
   }

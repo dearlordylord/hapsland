@@ -1,5 +1,6 @@
 import { expect, it } from "vitest"
 import { join } from "node:path"
+import { sourceRuntimeLayout, sourceRuntimeCommand, sourceRuntimeFromEntrypoint } from "./source-runtime-layout.ts"
 import {
   BUN_VERSION,
   commandEntrypoint,
@@ -41,9 +42,21 @@ it("probes standalone identity without passing JavaScript to the embedded runtim
   expect(versionProbeArguments(process.execPath, "/package/hapsland")).toEqual(["--runtime-identity"])
   expect(versionProbeArguments(process.execPath, "/package/cli.js")[0]).toBe("-e")
   expect(expectedRuntimeVersion("/package/hapsland")).toBe(BUN_VERSION)
-  expect(expectedRuntimeVersion("/package/cli.ts")).toBe("v24.20.0")
+  expect(expectedRuntimeVersion("/package/cli.ts")).toBe(BUN_VERSION)
   expect(observedRuntimeVersion('{"version":"1.3.14"}')).toBe("1.3.14")
   expect(observedRuntimeVersion("v24.20.0\n")).toBe("v24.20.0")
   expect(observedRuntimeVersion("{malformed")).toBe("unavailable")
-  expect(runtimeVersion()).toBe(process.version)
+  expect(runtimeVersion()).toBe("unavailable")
+})
+it("keeps every prepared source role in one immutable runtime identity", () => {
+  const layout = sourceRuntimeLayout(packageRoot, "a".repeat(64))
+  for (const role of ["cli", "doctor", "parser", "resident"] as const) {
+    const command = sourceRuntimeCommand(layout, process.execPath, role)
+    expect(sourceRuntimeFromEntrypoint(command.args[0]!)).toEqual(layout)
+    expect(packageRootFromEntrypoint(command.args[0]!)).toBe(packageRoot)
+    expect(command.args).toEqual([join(layout.directory, `${role}.mjs`)])
+  }
+  expect(sourceRuntimeFromEntrypoint(join(packageRoot, ".test-runs/source-runtime/latest/cli.mjs"))).toBeUndefined()
+  expect(sourceRuntimeFromEntrypoint(join(layout.directory, "unknown.mjs"))).toBeUndefined()
+  expect(() => sourceRuntimeLayout(packageRoot, "../other")).toThrow("Invalid source runtime identity")
 })

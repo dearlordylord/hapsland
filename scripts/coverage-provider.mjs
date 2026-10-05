@@ -1,10 +1,17 @@
 import { existsSync } from "node:fs"
-import { readFile } from "node:fs/promises"
+import { createHash } from "node:crypto"
+import { readFile, readdir } from "node:fs/promises"
+import { pathToFileURL } from "node:url"
+import { join, resolve, relative } from "node:path"
 import { mergeScriptCovs } from "@bcoe/v8-coverage"
 import v8 from "@vitest/coverage-v8"
 import { V8CoverageProvider } from "@vitest/coverage-v8/dist/provider.js"
-import Parser from "tree-sitter"
-import TypeScript from "tree-sitter-typescript"
+import { configureNativeBindings } from "../src/runtime/native-bindings.ts"
+import { packageAssetPath } from "../src/runtime/package-runtime.ts"
+
+configureNativeBindings(packageAssetPath("native", "prebuilt", `${process.platform}-${process.arch}`))
+const { default: Parser } = await import("tree-sitter")
+const { default: TypeScript } = await import("tree-sitter-typescript")
 
 const functionKinds = new Set([
   "arrow_function",
@@ -137,7 +144,54 @@ export function mergeCoverageScripts(scripts, coverage) {
 // Vitest 5.0.1 merges worker and native Node ranges by URL before remapping.
 // Those contexts execute different transformed code, so their offsets cannot
 // be merged. Preserve that distinction until both have Istanbul source ranges.
+export async function mergeBunCoverage(coverageMap, directory, root) {
+  for (const name of (
+    await readdir(directory).catch((error) => {
+      if (error.code === "ENOENT") return []
+      throw error
+    })
+  ).filter((name) => name.endsWith(".json"))) {
+    const record = JSON.parse(await readFile(join(directory, name), "utf8"))
+    if (record.root !== resolve(root) || !record.coverage) throw new Error("Bun coverage provenance is invalid")
+    const isolated = new V8CoverageProvider().createCoverageMap()
+    for (const [path, data] of Object.entries(record.coverage)) {
+      let filename = path
+      if (path.startsWith("/hapsland-source/")) {
+        filename = resolve(root, path.slice("/hapsland-source/".length))
+      }
+      const local = relative(resolve(root, "src"), filename)
+      if (
+        local.startsWith("..") ||
+        data.path !== path ||
+        !path.endsWith(".ts") ||
+        path.endsWith(".test.ts") ||
+        path.endsWith(".d.ts")
+      )
+        throw new Error("Bun coverage contains a foreign source file")
+      if (filename !== path) {
+        const digest = record.sourceManifest?.[path]
+        const source = await readFile(filename)
+        if (!/^[a-f0-9]{64}$/.test(digest ?? "") || createHash("sha256").update(source).digest("hex") !== digest)
+          throw new Error("Bun bundle coverage source digest differs from the owned source")
+      }
+      isolated.merge({ [filename]: { ...data, path: filename } })
+    }
+    // Normalize the original source function ranges before merging contexts.
+    await mergeSourceFunctions(isolated)
+    coverageMap.merge(isolated)
+  }
+}
 class ContextAwareV8CoverageProvider extends V8CoverageProvider {
+  initialize(ctx) {
+    super.initialize(ctx)
+    this.bunCoverageDirectory = join(this.coverageFilesDirectory, "bun")
+    process.env.HAPSLAND_BUN_COVERAGE_DIRECTORY = this.bunCoverageDirectory
+    process.env.HAPSLAND_BUN_COVERAGE_ROOT = ctx.config.root
+    const preload = resolve(import.meta.dirname, "test-harness/bun-coverage-preload.mjs")
+    const flag = `--preload=${pathToFileURL(preload).href}`
+    const options = (process.env.BUN_OPTIONS ?? "").split(/\s+/).filter((option) => option && option !== flag)
+    process.env.BUN_OPTIONS = [...options, flag].join(" ")
+  }
   async generateCoverage({ allTestsRun }) {
     const coverageMap = this.createCoverageMap()
     const scripts = new Map()
@@ -157,6 +211,7 @@ class ContextAwareV8CoverageProvider extends V8CoverageProvider {
       },
       onDebug() {}
     })
+    await mergeBunCoverage(coverageMap, this.bunCoverageDirectory, this.ctx.config.root)
     if (this.options.include != null && (allTestsRun || !this.options.cleanOnRerun)) {
       const uncoveredMap = await this.getCoverageMapForUncoveredFiles(coverageMap.files())
       await mergeSourceFunctions(uncoveredMap)

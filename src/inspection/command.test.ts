@@ -1,3 +1,4 @@
+import { bunExecutable } from "../runtime/bun-runtime.ts"
 import { spawn } from "node:child_process"
 import { once } from "node:events"
 import { mkdtemp, readdir, rm, realpath, writeFile } from "node:fs/promises"
@@ -80,7 +81,7 @@ describe.each(["source", "package"] as const)("%s foreground inspection command"
     if (role === "package") packed = prepareTestPackage()
   }, 240000)
   afterAll(() => packed?.cleanup())
-  const command = () => (packed ? [packed.cli.executable, ...packed.cli.args] : [process.execPath, "src/cli.ts"])
+  const command = () => (packed ? [packed.cli.executable, ...packed.cli.args] : [bunExecutable(), "src/cli.ts"])
   const environment = () => packed?.environment ?? process.env
 
   it("prints its URL and exits on SIGINT without opting in or starting a resident", async () => {

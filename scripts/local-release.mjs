@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process"
 import { createHash } from "node:crypto"
-import { mkdtempSync, readFileSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { basename, join } from "node:path"
+import { readFileSync } from "node:fs"
+import { basename } from "node:path"
+import { ensurePackageArtifact } from "./artifact-store.mjs"
 import { validateReleaseCoordinates } from "./release-coordinates.mjs"
 
 if (process.argv.length > 2)
@@ -65,22 +65,19 @@ checked("mise", ["exec", manifest.packageManager, "--", "bun", "install", "--fro
   env: { ...process.env, CI: "true" }
 })
 if (!clean()) throw new Error("frozen dependency installation changed tracked or untracked files")
-checked("npm", ["run", "build"], { stdio: "inherit" })
+const artifact = await ensurePackageArtifact({
+  root: process.cwd(),
+  recipe: "release",
+  runStage: async ({ command, args }) => {
+    checked(command, args, { stdio: "inherit" })
+    return { exitCode: 0 }
+  }
+})
 checked("npm", ["run", "verify:release-native"], { stdio: "inherit" })
 if (!clean()) throw new Error("release build changed tracked or untracked files")
-
-const destination = mkdtempSync(join(tmpdir(), "hapsland-release-"))
-const packed = JSON.parse(output("npm", ["pack", "--ignore-scripts=true", "--json", "--pack-destination", destination]))
-if (
-  !Array.isArray(packed) ||
-  packed.length !== 1 ||
-  packed[0]?.name !== packageName ||
-  packed[0]?.version !== version ||
-  basename(packed[0]?.filename ?? "") !== releasePin.archiveFilename
-) {
-  throw new Error("npm pack did not produce the expected scoped archive")
-}
-const archive = join(destination, packed[0].filename)
+const archive = artifact.archivePath
+if (basename(archive) !== releasePin.archiveFilename)
+  throw new Error("packaging did not produce the pinned archive filename")
 const digest = sha256(readFileSync(archive))
 if (digest !== releasePin.archiveSha256) {
   throw new Error(`archive checksum differs from the reviewed release pin: ${digest}`)

@@ -6,6 +6,53 @@
 **Expected use:** Select the smallest relevant gate before a change, locate the current manual native integration runner, and distinguish source-checkout observations from package or platform support.
 **Lifecycle:** Update this matrix whenever a test scenario, runner, supported language or runtime profile, or evidence owner changes. Review it when a milestone retires or replaces a runner; delete obsolete instructions and retain evidence only while a current decision, claim, or open review needs its provenance.
 
+## Verification profiles
+
+Use `npm run verify -- --profile=PROFILE [explicit test files]`. Every run records
+its resolved plan and finite deadline under `.test-runs`; build and archive reuse
+never reuses test outcomes or coverage. The source package command and migrated CLI fixtures select pinned Bun;
+remaining fixture launchers are still being audited. Node runs the test harness. Coverage runs attach a Bun
+preload and merge original-source Istanbul counters with Vitest/V8 counters.
+The selected source files and CRAP thresholds remain unchanged. Killed fixtures
+retain conservative periodic snapshots; focused coverage is not a full gate.
+
+| Profile | Purpose | Selection |
+| --- | --- | --- |
+| `fast` | Typecheck, generated configuration, changed-file lint and selected component tests | Optional explicit files |
+| `boundary` | IPC, process, CLI, hooks and installation consumers | Required explicit files; package preparation follows the selected import closure |
+| `native` | Compiler checks or a real agent scenario | `--native-target=typescript\|rust\|bend` and compiler test files; or explicit `--host`, `--provider`, `--model`, `--scenario` |
+| `stress` | Long bounded saturation, seeded simulation or contention checks | Required explicit files; assertions and seeds stay unchanged |
+| `quality` | Existing full deterministic gate and fresh coverage/CRAP analysis | Complete inventory; filters are refused |
+
+`--timeout-ms=N` sets the finite run deadline. Compiler version preflight alone
+is not compiler validation; select the compiler tests for the changed owner.
+Agent profiles select the declared model; Pi requires its existing
+`openai/gpt-6-luna` profile. Pi checks its pinned runtime and confirms that model
+with one bounded, tool-free request before preparing a package. A receipt is
+reused only within the same owned run and unchanged profile; model response and
+credentials are not retained. Real agent runs remain explicit.
+
+Build outputs and local archives share `.git/hapsland-artifacts` across worktrees.
+Content identities include dirty/new/deleted inputs, dependency contents and actual
+toolchain versions. Shipped-document changes repack without compiling. Outputs
+and archives are checked against stored inventories and SHA-256 before reuse;
+changed inputs during preparation and corruption fail the run.
+Dependency hashing retains a filesystem-local digest memo. Every check still
+walks names and links and checks nanosecond file metadata; changed files are
+hashed through an open descriptor and checked again before publication. The
+memo assumes ordinary local filesystem metadata semantics and is not copied
+between filesystem namespaces. Invalid memo data causes fresh hashing.
+Atomic checkpoints retain completed file digests after interruption; they do
+not publish or validate an incomplete dependency fingerprint or build artifact.
+Prepared source roles share one immutable `.test-runs/source-runtime/<identity>` bundle set
+through the same artifact store; package compilation is a separate artifact.
+The materialized runtime is kept outside `dist` so production builds and package
+restoration cannot remove entrypoints used by a running CLI or resident.
+
+Run `npm run hooks:install` once per repository. The shared Git dispatcher invokes
+the current worktree's maintained `.husky/pre-commit`, including lint-staged and
+typechecking, for existing and newly created worktrees.
+
 ## Which gate to run
 
 The byte-bound preparation inputs `packages/monkey-business/src/preparation.ts` and
@@ -31,11 +78,11 @@ evidence before regenerating the scenario pages.
 | Pi inspector handoffs | `npm --prefix packages/agent-flow-viz run test:pi-inspection-browser`; [native fixture matrix](../src/pi/inspection-native.test.ts) | Existing native extension fixtures → freshly packed production command/resident → private journal → public HTTP/SSE → Chromium; actual edit and finish offers, exact copy, oversized absence, lost acknowledgement, original edit links, verified multi-source health, retained history after resident exit, identity filters, keyboard focus/button activation and 375 px layout. Native matrix additionally covers session switch, recording disabled, and unavailable serialization with the original native value preserved. | Native handler proposed output and resident replies remain distinct from completed writes or model visibility. One-rule edit fixture permits at most two later eligible comment mutations without starting unrelated classifier work, each with the existing short callback deadline; the extracted package boundary does not establish npm installation or other-platform support; no general latency or repair claim |
 | Repository documentation | `npm run docs:install` once; `npm run docs:check` | Local Markdown links, raw HTML images and links, and heading anchors in tracked and new non-ignored Markdown | Files and headings exist; no external URL requests or documentation-truth claim |
 | Code lint and formatting | `npm run lint:code`; `npm run lint:changed`; `npm run format` | Oxlint correctness and shared code rules; dprint/OXC formatting of authored code | Full or changed-file checks; Git pre-commit fixes staged formatting and rejects lint failures. Generated, vendor, fixture and evidence assets remain outside this selection. |
-| Lint workflow regression | `node --test scripts/quality-file-discovery.test.mjs scripts/quality-lint.test.mjs` | Git selection, failure propagation, real Husky/lint-staged formatting and commit rejection | Offline temporary-repository workflow; no build or agent invocation |
+| Lint workflow regression | `node --test scripts/quality-file-discovery.test.mjs scripts/quality-lint.test.mjs` | Git selection, failure propagation, shared worktree hooks, lint-staged formatting, preservation of unstaged edits and commit rejection | Offline temporary-repository workflow; no build or agent invocation |
 | Installed hook inventory | `npm run hooks:generate`; `npm run docs:check` | README table generated from the shared Codex, Claude Code and Pi hook catalog | Documentation matches registration definitions; no native lifecycle execution claim |
 | Comparison scenario documentation | `node scripts/generate-abide-scenario-pages.mjs --check` | Six generated reader pages, 36 linked input variants and helpers, measured fixture digest and frozen per-scenario results | Inline code and displayed scenario outcomes match their owners; offline, no new measurement |
 | Focused implementation checks | `npm run test:focused -- <test files>`; `npm run check:fast` | Explicit test files and typing/configuration checks; no full suite or proof chain | Changed owners only; does not qualify full source coverage |
-| Development snapshot cache and packing | `node --test scripts/dev-install-cache.test.mjs scripts/dev-pack.test.mjs` | Build-input changes, ignored tool caches, lock ownership, archive integrity, npm file selection and executable bins | Local dev archives use gzip level 1; npm release packing is unchanged. Installer UI and cache-management code do not invalidate compiled snapshots. |
+| Development snapshot cache and packing | `node --test scripts/artifact-store.test.mjs scripts/dev-pack.test.mjs scripts/test-harness/prepare-archive.test.mjs` | Build-input changes, ignored tool caches, lock ownership, archive integrity, npm file selection and executable bins | Local dev archives use gzip level 1; npm release packing is unchanged. Identical worktrees share content-addressed build outputs and archives. Corruption and in-flight input changes are rejected; each check still executes afresh. |
 | Routine deterministic gate | `npm test` | Bend artifact and authority checks, boundary scripts, Vitest tests for the reducer, adapters, resident, and CLI | Logic and controlled fixtures; no native agent or Jev call |
 | Process harness contention | `npm run test:contention`; `npm run test:harness:inventory` | Full deterministic gate under bounded Linux CPU pressure; transitive process/scenario inventory; hung-child cleanup probes | Declared scheduling profile and finite harness failure; no product deadline, latency, or arbitrary-starvation claim |
 | TypeScript quality gate | `npm run quality:check` | Full deterministic gate with fresh Istanbul coverage, then pinned crap4ts analysis of `src` | Per-function complexity and coverage policy; strict missing evidence; no correctness or assertion-quality guarantee |

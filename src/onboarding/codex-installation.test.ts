@@ -1,3 +1,4 @@
+import { bunExecutable } from "../runtime/bun-runtime.ts"
 import {
   createInstallationPackageFixture,
   installationPackageDeclaration
@@ -111,7 +112,7 @@ const invokeCli = (operation: Record<string, unknown>, env: NodeJS.ProcessEnv = 
     env.REVIEW_INSTALL_ENTRYPOINT !== undefined || typeof operation.codexHome !== "string"
       ? env
       : { ...env, REVIEW_INSTALL_ENTRYPOINT: createInstallationPackageFixture(dirname(operation.codexHome)) }
-  const child = spawnSync(process.execPath, ["src/cli.ts", `--${String(operation.operation)}`], {
+  const child = spawnSync(bunExecutable(), ["src/cli.ts", `--${String(operation.operation)}`], {
     cwd: process.cwd(),
     input: JSON.stringify({ version: 1, ...operation }),
     encoding: "utf8",
@@ -220,7 +221,7 @@ const waitFor = async <A>(read: () => A | undefined, timeout = 5_000): Promise<A
 }
 
 const spawnOperation = (operation: Record<string, unknown>, env: NodeJS.ProcessEnv) => {
-  const child = spawn(process.execPath, ["src/cli.ts", `--${String(operation.operation)}`], {
+  const child = spawn(bunExecutable(), ["src/cli.ts", `--${String(operation.operation)}`], {
     cwd: process.cwd(),
     env:
       env.REVIEW_INSTALL_ENTRYPOINT !== undefined || typeof operation.codexHome !== "string"
@@ -515,10 +516,10 @@ describe("public Codex installation operations", async () => {
     expect(preview.proposal).toMatchObject({
       ownedChanges: {
         runtime: {
-          executable: process.execPath,
+          executable: bunExecutable(),
           args: [quotedEntrypoint],
-          parser: { executable: process.execPath, args: [join(dirname(quotedEntrypoint), "parser-main.js")] },
-          resident: { executable: process.execPath, args: [join(dirname(quotedEntrypoint), "resident", "main.js")] },
+          parser: { executable: bunExecutable(), args: [join(dirname(quotedEntrypoint), "parser-main.js")] },
+          resident: { executable: bunExecutable(), args: [join(dirname(quotedEntrypoint), "resident", "main.js")] },
           observed: { version: process.version, platform: process.platform, architecture: process.arch }
         },
         feature: { file: join(home, "config.toml"), table: "features", key: "hooks", value: true },
@@ -537,7 +538,7 @@ describe("public Codex installation operations", async () => {
     const previewCommand = (preview.proposal as { ownedChanges: { hook: { handlers: Array<{ command: string }> } } })
       .ownedChanges.hook.handlers[0]?.command
     expect(previewCommand).toBe(
-      `${shellQuote(process.execPath)} ${shellQuote(quotedEntrypoint)} --codex-hook --controlled-writer --composed-edit-hook --review-tool-owned=codex-v1`
+      `${shellQuote(bunExecutable())} ${shellQuote(quotedEntrypoint)} --codex-hook --controlled-writer --composed-edit-hook --review-tool-owned=codex-v1`
     )
     expect(JSON.stringify((preview.proposal as { ownedChanges: unknown }).ownedChanges)).not.toContain("keep me")
     expect(readFileSync(join(home, "config.toml"), "utf8")).not.toContain("hooks = true")
@@ -946,7 +947,7 @@ responses_websockets_v2 = true`)
     const independent = {
       matcher: "^Bash$",
       hooks: [
-        { type: "command", command: `${shellQuote(process.execPath)} ${shellQuote(independentEntrypoint)}`, timeout: 5 }
+        { type: "command", command: `${shellQuote(bunExecutable())} ${shellQuote(independentEntrypoint)}`, timeout: 5 }
       ]
     }
     writeFileSync(join(home, "config.toml"), "# user setting\nmodel = 'gpt-6'\n")
@@ -1412,7 +1413,7 @@ describe("Codex update and explicit reinstall journeys", async () => {
     const entrypoint = localPackage(root, "0.1.0")
     const environment = {
       ...process.env,
-      REVIEW_INSTALL_RUNTIME: process.execPath,
+      REVIEW_INSTALL_RUNTIME: bunExecutable(),
       REVIEW_INSTALL_ENTRYPOINT: entrypoint
     }
     const request = { codexHome: home, codexExecutable: bin }
@@ -1452,7 +1453,7 @@ describe("Codex update and explicit reinstall journeys", async () => {
     const entrypoint = localPackage(root, "0.1.0")
     const environment = {
       ...process.env,
-      REVIEW_INSTALL_RUNTIME: process.execPath,
+      REVIEW_INSTALL_RUNTIME: bunExecutable(),
       REVIEW_INSTALL_ENTRYPOINT: entrypoint
     }
     const request = { codexHome: home, codexExecutable: bin }
@@ -1489,7 +1490,7 @@ describe("Codex update and explicit reinstall journeys", async () => {
     const entrypoint = localPackage(root, "0.1.0")
     const environment = {
       ...process.env,
-      REVIEW_INSTALL_RUNTIME: process.execPath,
+      REVIEW_INSTALL_RUNTIME: bunExecutable(),
       REVIEW_INSTALL_ENTRYPOINT: entrypoint
     }
     const request = { codexHome: home, codexExecutable: bin }

@@ -4,18 +4,20 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { test } from "node:test"
-import { prepareArchive, sourceIdentity } from "./prepare-archive.mjs"
+import { prepareArchive } from "./prepare-archive.mjs"
+import { sourceIdentity } from "./source-identity.mjs"
 
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), "hapsland-archive-stage-"))
   t.after(() => rm(root, { recursive: true, force: true }))
   execFileSync("git", ["init", "--quiet"], { cwd: root })
   await writeFile(join(root, ".gitignore"), "dist/\ncoverage/\n.test-runs/\n")
+  await writeFile(join(root, "package.json"), JSON.stringify({ files: ["src", "README.md"] }))
   await mkdir(join(root, "src"))
   await writeFile(join(root, "src/source.ts"), "before")
   execFileSync("git", ["add", "."], { cwd: root })
   const runDirectory = join(root, ".test-runs", "one")
-  return { root, runDirectory }
+  return { root, runDirectory, toolchain: { platform: process.platform, architecture: process.arch, fixture: true } }
 }
 
 test("source identity observes dirty, new and deleted verification inputs but excludes generated outputs", async (t) => {
@@ -34,12 +36,14 @@ test("source identity observes dirty, new and deleted verification inputs but ex
   assert.notEqual(await sourceIdentity(root), untracked)
 })
 
-test("builds and packs once, records archive evidence, never accepts an old output", async (t) => {
+test("builds and packs once, records fresh archive evidence, refuses an occupied run directory", async (t) => {
   const settings = await fixture(t)
   const calls = []
   const runStage = async (stage) => {
     calls.push(stage)
     if (stage.name === "package-build") {
+      await mkdir(join(settings.root, "dist"))
+      await writeFile(join(settings.root, "dist/main"), "built runtime")
       await mkdir(join(settings.root, "quint-specs"))
       await writeFile(join(settings.root, "quint-specs", "quint.lock"), "parallel survey")
     }
@@ -51,7 +55,8 @@ test("builds and packs once, records archive evidence, never accepts an old outp
     calls.map((stage) => stage.name),
     ["package-build", "package-pack"]
   )
-  assert.ok(calls[1].args.includes("--ignore-scripts=true"))
+  assert.equal(calls[1].command, process.execPath)
+  assert.equal(calls[1].args[0], join(settings.root, "scripts/dev-pack.mjs"))
   assert.equal(result.sourceDigest, await sourceIdentity(settings.root))
   assert.match(result.archiveDigest, /^[a-f0-9]{64}$/)
   assert.deepEqual(JSON.parse(await readFile(join(settings.runDirectory, "archive.json"), "utf8")), result)
@@ -71,7 +76,7 @@ test("source mutation during build rejects the archive before packing", async (t
         return { exitCode: 0 }
       }
     }),
-    /Source inputs changed/
+    /inputs changed/
   )
   assert.deepEqual(calls, ["package-build"])
 })

@@ -1,6 +1,12 @@
+import { resolveBunRuntime } from "./scripts/pinned-bun.mjs"
+import { join } from "node:path"
 import { defineConfig } from "vitest/config"
 import { inventoryTestHarness } from "./scripts/test-harness/inventory.mjs"
 import { UNIT_TEST_TIMEOUT_MS } from "./scripts/test-harness/policy.mjs"
+
+process.env.HAPSLAND_BUILD_BUN = resolveBunRuntime().executable
+// Keep runtime transpilation outside isolated product homes.
+process.env.BUN_RUNTIME_TRANSPILER_CACHE_PATH = join(import.meta.dirname, ".test-runs", "bun-transpiler-cache")
 
 const focusedSelection = process.env.HAPSLAND_FOCUSED_TEST_SELECTION
 const selectedFiles = focusedSelection ? JSON.parse(focusedSelection).files : undefined

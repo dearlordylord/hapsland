@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
+import { archiveInventory } from "./archive-inventory.mjs"
 import { validateReleaseCoordinates } from "./release-coordinates.mjs"
 
 const [archiveArgument, commit] = process.argv.slice(2)
@@ -14,13 +15,23 @@ const head = command("git", ["rev-parse", "HEAD"]).toString().trim()
 if (head !== commit || command("git", ["status", "--porcelain", "--untracked-files=normal"]).toString().trim()) {
   throw new Error("release audit requires the exact pinned commit in a clean worktree")
 }
-const archiveFile = (path) => command("tar", ["-xOzf", archive, `package/${path}`])
+const inventory = await archiveInventory(archive)
+const archiveRecord = (path) => {
+  const record = inventory.get(`package/${path}`)
+  if (!record || record.directory) throw new Error(`release tarball is missing ${path}`)
+  return record
+}
+const archiveFile = (path) => {
+  const record = archiveRecord(path)
+  if (record.text === undefined) throw new Error(`Audit requested non-text contents: ${path}`)
+  return record.text
+}
+const archiveContentDigest = (path) => archiveRecord(path).sha256
 const gitFile = (path) => command("git", ["show", `${commit}:${path}`])
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex")
-const files = command("tar", ["-tzf", archive]).toString().trim().split("\n")
-if (files.length !== new Set(files).size) throw new Error("tarball has duplicate entries")
+const files = [...inventory.keys()]
 const names = files
-  .filter((name) => !name.endsWith("/"))
+  .filter((name) => !inventory.get(name).directory)
   .map((name) => {
     if (!name.startsWith("package/") || name.includes("..") || name.includes("\\")) {
       throw new Error(`unsafe tarball path: ${name}`)
@@ -99,14 +110,14 @@ for (const profile of ["linux-arm64", "darwin-arm64"]) {
   ]) {
     const path = `native/prebuilt/${profile}/${artifact}`
     required.push(path)
-    if (sha256(archiveFile(path)) !== sha256(gitFile(path))) {
+    if (archiveContentDigest(path) !== sha256(gitFile(path))) {
       throw new Error(`native artifact differs from pinned release commit: ${path}`)
     }
   }
 }
 for (const name of required) if (!names.includes(name)) throw new Error(`release tarball is missing ${name}`)
 for (const name of defaultRuleFiles)
-  if (sha256(archiveFile(name)) !== sha256(gitFile(name)))
+  if (archiveContentDigest(name) !== sha256(gitFile(name)))
     throw new Error(`shipped default rule differs from the pinned release commit: ${name}`)
 for (const name of names.filter((name) =>
   /^(?:dist\/.*\.js|docs\/.*\.md|README\.md|package-runtime\.json|bin\/launch\.sh)$/.test(name)

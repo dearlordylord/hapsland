@@ -1,6 +1,9 @@
+import { preflightPi, reusablePiPreflight } from "./native-pi-preflight.mjs"
+import { NATIVE_AGENT_PROFILES } from "./native-agent-profiles.mjs"
 import { connectDefaultRuleFixture } from "../src/test-support/default-rules.ts"
 // Installed Pi branch of the shared native cross-file harness; no CLI entry point.
-import { spawn, spawnSync } from "node:child_process"
+import { spawnSync } from "node:child_process"
+import { executeNative } from "./native-process.mjs"
 import { createHash } from "node:crypto"
 import {
   copyFileSync,
@@ -27,25 +30,7 @@ const lines = (path) => {
     return []
   }
 }
-const execute = (command, args, { cwd, env, input, timeout = 240000 } = {}) =>
-  new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd, env, stdio: [input === undefined ? "ignore" : "pipe", "pipe", "pipe"] })
-    let stdout = "",
-      stderrBytes = 0
-    const timer = setTimeout(() => child.kill("SIGTERM"), timeout)
-    child.stdout.on("data", (data) => {
-      stdout += data
-    })
-    child.stderr.on("data", (data) => {
-      stderrBytes += data.length
-    })
-    child.once("error", reject)
-    child.once("close", (code, signal) => {
-      clearTimeout(timer)
-      resolve({ code, signal, stdout, stderrBytes })
-    })
-    if (input !== undefined) child.stdin.end(input)
-  })
+const execute = executeNative
 const jsonCommand = async (cli, flag, request, options) => {
   const result = await execute(cli, [flag], { ...options, input: JSON.stringify(request), timeout: 30000 })
   try {
@@ -88,7 +73,7 @@ export async function runPiNativeProfile({
 }) {
   if (
     language !== "typescript" ||
-    !["adoption", "reviewer-unavailable", "unsupported-write", "unicode-edit"].includes(scenario) ||
+    !NATIVE_AGENT_PROFILES.pi.scenarios.includes(scenario) ||
     mode !== "controlled-offline"
   )
     throw new Error(
@@ -97,10 +82,11 @@ export async function runPiNativeProfile({
   if (process.platform !== "linux" || process.arch !== "arm64") throw new Error("Pi milestone is scoped to Linux arm64")
   const binary = process.env.HAPSLAND_TEST_PI ?? "/home/node/bin/pi"
   const version = spawnSync(binary, ["--version"], { encoding: "utf8", timeout: 10000 }).stdout?.trim()
-  if (version !== "1.0.0") throw new Error("Pi native milestone requires exact Pi 1.0.0")
+  if (version !== NATIVE_AGENT_PROFILES.pi.version) throw new Error("Pi native milestone requires exact Pi 1.0.0")
   const ordinaryHome = process.env.PI_CODING_AGENT_DIR ?? "/home/node/.pi/agent"
   const settings = JSON.parse(readFileSync(join(ordinaryHome, "settings.json"), "utf8"))
   const model = piModelProfile(settings)
+  const preflight = reusablePiPreflight(process.env, settings, version) ?? preflightPi()
   const runnerHash = hash(readFileSync(runnerPath)),
     piProfileHash = hash(readFileSync(new URL(import.meta.url))),
     assertionHelperHash = hash(readFileSync(new URL("./native-pi-observation.mjs", import.meta.url)))
@@ -120,7 +106,8 @@ export async function runPiNativeProfile({
   const declaration = {
     maximumProviderRequests: 0,
     reviewer: "controlled-offline",
-    agentModelAuthenticated: true,
+    agentModelAuthenticated: preflight.status === "authenticated",
+    preflight,
     model,
     maximumSourceEditCalls: scenario === "adoption" ? 2 : 1,
     hostCeilingMs: 240000,
@@ -191,12 +178,13 @@ export async function runPiNativeProfile({
     )
     let tarball
     if (archivePath === undefined) {
-      const packed = await execute("npm", ["pack", "--ignore-scripts", "--json", "--pack-destination", temp], {
-        cwd: project,
-        timeout: 120000
-      })
-      if (packed.code !== 0) throw new Error("Native package packing failed")
-      tarball = join(temp, JSON.parse(packed.stdout)[0].filename)
+      const prepared = await execute(
+        process.execPath,
+        [join(project, "scripts/prepare-package.mjs"), "--timeout-ms=120000"],
+        { cwd: project, timeout: 125000 }
+      )
+      if (prepared.code !== 0) throw new Error("Native package preparation failed")
+      tarball = JSON.parse(prepared.stdout).archivePath
     } else tarball = resolve(archivePath)
     const installed = await execute(
       "npm",

@@ -32,6 +32,23 @@ export const precheckStages = [
   ],
   ["native-rule-observation", "--test", "scripts/native-rule-observation.test.mjs"],
   [
+    "verification-infrastructure",
+    "--test",
+    "--test-concurrency=1",
+    "scripts/artifact-store.test.mjs",
+    "scripts/dependency-digests.test.mjs",
+    "scripts/dev-pack.test.mjs",
+    "scripts/archive-inventory.test.mjs",
+    "scripts/install-git-hooks.test.mjs",
+    "scripts/pinned-bun.test.mjs",
+    "scripts/native-bindings.test.mjs",
+    "scripts/native-pi-preflight.test.mjs",
+    "scripts/native-process.test.mjs",
+    "scripts/test-harness/bun-coverage.test.mjs",
+    "scripts/test-harness/verification-plan.test.mjs",
+    "scripts/test-harness/verify.test.mjs"
+  ],
+  [
     "test-harness",
     "--test",
     "scripts/test-harness/run-checks.test.mjs",

@@ -1,3 +1,4 @@
+import { BUN_VERSION, bunExecutable } from "./runtime/bun-runtime.ts"
 import { SUPPORTED_CLIENTS, CLIENT_NAMES } from "./runtime/agent-clients.ts"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../scripts/test-harness/policy.mjs"
 import { describe, expect, it, vi } from "vitest"
@@ -10,7 +11,7 @@ import { join } from "node:path"
 const cli = (args: ReadonlyArray<string>, input = "") => {
   const home = mkdtempSync(join(tmpdir(), "hapsland-cli-arguments-"))
   try {
-    const result = spawnSync(process.execPath, ["src/cli.ts", ...args], {
+    const result = spawnSync(bunExecutable(), ["src/cli.ts", ...args], {
       input,
       encoding: "utf8",
       timeout: DEFAULT_CHILD_TIMEOUT_MS,
@@ -236,7 +237,7 @@ describe("declarative CLI subprocess contracts", () => {
     expect(result.status).toBe(0)
     expect(JSON.parse(result.stdout)).toEqual({
       name: "@hapsland/hapsland",
-      executable: process.execPath,
+      executable: bunExecutable(),
       args: [join(process.cwd(), "src/cli.ts")]
     })
     expect(result.stderr).toBe("")
@@ -246,7 +247,7 @@ describe("declarative CLI subprocess contracts", () => {
     const result = cli(["--runtime-identity"])
     expect(result.status).toBe(0)
     expect(JSON.parse(result.stdout)).toEqual({
-      version: process.version,
+      version: BUN_VERSION,
       platform: process.platform,
       architecture: process.arch
     })

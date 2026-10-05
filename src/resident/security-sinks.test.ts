@@ -1,3 +1,4 @@
+import { bunExecutable } from "../runtime/bun-runtime.ts"
 import { runClient } from "../test-support/client-runtime.ts"
 /** Resident source-free diagnostic and process-sink regression witnesses. */
 import { afterEach, describe, expect, it } from "vitest"
@@ -62,7 +63,7 @@ describe("security sink prototype", () => {
 
     const launchScript =
       "import {ensureResidentEffect as ensureResident} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));"
-    const child = spawn(process.execPath, ["--input-type=module", "-e", launchScript], {
+    const child = spawn(bunExecutable(), ["--input-type=module", "-e", launchScript], {
       cwd: process.cwd(),
       env: {
         ...process.env,
@@ -187,7 +188,7 @@ describe("security sink prototype", () => {
       "console.log('done');",
       "})));"
     ].join("\n")
-    const child = spawn(process.execPath, ["--input-type=module", "-e", script], {
+    const child = spawn(bunExecutable(), ["--input-type=module", "-e", script], {
       cwd: process.cwd(),
       env: { ...process.env, REVIEW_RESIDENT_DEBUG: "1" },
       stdio: ["ignore", "pipe", "pipe"]

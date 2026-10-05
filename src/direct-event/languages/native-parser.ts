@@ -1,23 +1,12 @@
+import { physicalNativeBindings, configureNativeBindings } from "../../runtime/native-bindings.ts"
 import { assertReviewEngineBoundary } from "../../runtime/review-engine-boundary.ts"
-import { packageAssetPath } from "../../runtime/package-runtime.ts"
-import { existsSync } from "node:fs"
-import { resolve, extname } from "node:path"
+import { packageAssetPath, standalone } from "../../runtime/package-runtime.ts"
+import { extname } from "node:path"
 assertReviewEngineBoundary("native-parser")
 
 const nativeRoot = packageAssetPath("native", "prebuilt", `${process.platform}-${process.arch}`)
-const parserRuntime = resolve(nativeRoot, "tree-sitter")
-const rustLanguage = resolve(nativeRoot, "tree-sitter-rust")
-if (existsSync(resolve(rustLanguage, "build/Release/tree_sitter_rust_binding.node"))) {
-  process.env.TREE_SITTER_RUST_PREBUILD = rustLanguage
-}
-const parserLanguage = resolve(nativeRoot, "tree-sitter-typescript")
-if (
-  existsSync(resolve(parserRuntime, "build/Release/tree_sitter_runtime_binding.node")) &&
-  existsSync(resolve(parserLanguage, "build/Release/tree_sitter_typescript_binding.node"))
-) {
-  process.env.TREE_SITTER_PREBUILD = parserRuntime
-  process.env.TREE_SITTER_TYPESCRIPT_PREBUILD = parserLanguage
-}
+if (!standalone && typeof Bun !== "undefined") Bun.plugin(physicalNativeBindings(JSON.stringify(nativeRoot), true))
+configureNativeBindings(nativeRoot)
 export const { default: Parser } = await import("tree-sitter")
 export const { default: TypeScript } = await import("tree-sitter-typescript")
 export const { default: Rust } = await import("tree-sitter-rust")

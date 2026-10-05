@@ -1,3 +1,4 @@
+import { bunExecutable } from "../runtime/bun-runtime.ts"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
@@ -93,7 +94,7 @@ describe("evaluation execution and commands", () => {
   )
 
   it("accepts plan/run/report through the real JSON process boundary", () => {
-    const planned = spawnSync(process.execPath, ["src/cli.ts", "--evaluation-plan"], {
+    const planned = spawnSync(bunExecutable(), ["src/cli.ts", "--evaluation-plan"], {
       cwd: process.cwd(),
       input: JSON.stringify({ version: 1, operation: "plan" }),
       encoding: "utf8"
@@ -106,7 +107,7 @@ describe("evaluation execution and commands", () => {
     }
     expect(plan).toMatchObject({ operation: "plan", plan: { plannedRequests: 44, worstCaseRequests: 132 } })
 
-    const run = spawnSync(process.execPath, ["src/cli.ts", "--evaluation-run"], {
+    const run = spawnSync(bunExecutable(), ["src/cli.ts", "--evaluation-run"], {
       cwd: process.cwd(),
       input: JSON.stringify({ version: 1, operation: "run" }),
       encoding: "utf8"
@@ -123,7 +124,7 @@ describe("evaluation execution and commands", () => {
     expect(run.stdout).not.toContain("flat delivery alternatives")
     expect(run.stdout).not.toContain("SOURCE")
 
-    const verified = spawnSync(process.execPath, ["src/cli.ts", "--evaluation-report"], {
+    const verified = spawnSync(bunExecutable(), ["src/cli.ts", "--evaluation-report"], {
       cwd: process.cwd(),
       input: JSON.stringify({ version: 1, operation: "report", report: report.report }),
       encoding: "utf8"

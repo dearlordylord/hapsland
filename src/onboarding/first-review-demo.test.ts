@@ -1,3 +1,4 @@
+import { bunExecutable } from "../runtime/bun-runtime.ts"
 import * as Effect from "effect/Effect"
 import { Deferred, Fiber } from "effect"
 import { execFileAsync } from "../../scripts/test-harness/process.mjs"
@@ -366,8 +367,8 @@ describe("installed-product first-review demo", () => {
     )
     const worker = new URL("../../scripts/first-review-race-worker.mjs", import.meta.url).pathname
     const runs = await Promise.all([
-      execFileAsync(process.execPath, ["--experimental-strip-types", worker, workerInputPath]),
-      execFileAsync(process.execPath, ["--experimental-strip-types", worker, workerInputPath])
+      execFileAsync(bunExecutable(), [worker, workerInputPath]),
+      execFileAsync(bunExecutable(), [worker, workerInputPath])
     ])
     const results = runs.map(({ stdout }) => JSON.parse(stdout) as { readonly status: string })
     expect(results.filter(({ status }) => status === "passed")).toHaveLength(1)

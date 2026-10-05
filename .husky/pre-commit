@@ -1,3 +1,5 @@
 set -eu
 
 npm exec --no -- lint-staged
+
+npm run typecheck

@@ -1,3 +1,4 @@
+import { bunExecutable } from "./runtime/bun-runtime.ts"
 import { spawnSync } from "../scripts/test-harness/process.mjs"
 import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
@@ -5,7 +6,7 @@ import { expect, it } from "vitest"
 
 it("reports package readiness from individual checks and returns the matching exit status", () => {
   const result = spawnSync(
-    process.execPath,
+    bunExecutable(),
     [fileURLToPath(new URL("./package-doctor.ts", import.meta.url)), "--json"],
     { encoding: "utf8", env: process.env }
   )
@@ -55,8 +56,8 @@ it("reports package readiness from individual checks and returns the matching ex
 
 it("defaults to readable output even when stdout is piped, with the same exit status as JSON", () => {
   const entrypoint = fileURLToPath(new URL("./package-doctor.ts", import.meta.url))
-  const human = spawnSync(process.execPath, [entrypoint], { encoding: "utf8", env: process.env })
-  const machine = spawnSync(process.execPath, [entrypoint, "--json"], { encoding: "utf8", env: process.env })
+  const human = spawnSync(bunExecutable(), [entrypoint], { encoding: "utf8", env: process.env })
+  const machine = spawnSync(bunExecutable(), [entrypoint, "--json"], { encoding: "utf8", env: process.env })
   expect(human.error).toBeUndefined()
   expect(machine.error).toBeUndefined()
   expect(human.status).toBe(machine.status)
@@ -72,7 +73,7 @@ it("defaults to readable output even when stdout is piped, with the same exit st
 })
 
 it.each(["--help", "--unknown"])("handles %s without running package diagnostics", (arg) => {
-  const result = spawnSync(process.execPath, [fileURLToPath(new URL("./package-doctor.ts", import.meta.url)), arg], {
+  const result = spawnSync(bunExecutable(), [fileURLToPath(new URL("./package-doctor.ts", import.meta.url)), arg], {
     encoding: "utf8",
     env: process.env
   })

@@ -1,3 +1,4 @@
+import { bunExecutable } from "../runtime/bun-runtime.ts"
 import { Effect } from "effect"
 import { loadReviewSettings } from "../runtime/review-config.ts"
 import { reviewCodexDirectEvent } from "../direct-event/pipeline.ts"
@@ -19,7 +20,7 @@ it("creates, inspects, disables and reconnects a project rule through the CLI", 
   roots.push(root)
   execFileSync("git", ["init", "--quiet", root])
   const run = (...args: string[]) =>
-    spawnSync(process.execPath, [join(process.cwd(), "src/cli.ts"), "rules", ...args], {
+    spawnSync(bunExecutable(), [join(process.cwd(), "src/cli.ts"), "rules", ...args], {
       cwd: root,
       env: { ...process.env, REVIEW_USER_CONFIG_PATH: join(root, "personal/config.jsonc") },
       encoding: "utf8",
@@ -102,7 +103,7 @@ it("creates personal rules, connects a custom rule in defaults and rejects inval
   execFileSync("git", ["init", "--quiet", root])
   const configurationPath = join(root, "personal/config.jsonc")
   const run = (...args: string[]) =>
-    spawnSync(process.execPath, [join(process.cwd(), "src/cli.ts"), "rules", ...args], {
+    spawnSync(bunExecutable(), [join(process.cwd(), "src/cli.ts"), "rules", ...args], {
       cwd: root,
       env: { ...process.env, REVIEW_USER_CONFIG_PATH: configurationPath },
       encoding: "utf8",

@@ -1,3 +1,4 @@
+import { bunExecutable } from "../runtime/bun-runtime.ts"
 import {
   mkdtemp,
   readdir,
@@ -168,7 +169,7 @@ describe("private inspection journal", () => {
       await Effect.runPromise(store.write(value, JSON.stringify(value), { allowed: () => allowed, commit: () => allowed }));
     `
       const child = spawn(
-        process.execPath,
+        bunExecutable(),
         ["--input-type=module", "--eval", script, directory, JSON.stringify(record(2)), boundary],
         { stdio: ["pipe", "pipe", "pipe"] }
       )
@@ -475,7 +476,7 @@ describe("private inspection journal", () => {
       now = 101;
       await Effect.runPromise(store.snapshot());
     `
-      const child = spawn(process.execPath, ["--input-type=module", "-e", script, directory], {
+      const child = spawn(bunExecutable(), ["--input-type=module", "-e", script, directory], {
         stdio: ["ignore", "pipe", "pipe"]
       })
       const exited = once(child, "exit")

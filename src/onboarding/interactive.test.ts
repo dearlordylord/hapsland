@@ -1,3 +1,4 @@
+import { bunExecutable } from "../runtime/bun-runtime.ts"
 import { connectDefaultRuleFixture } from "../test-support/default-rules.ts"
 import { ConfigProvider, Effect } from "effect"
 import { previewClaudeInstallation, installClaudeIntegration } from "./claude-installation.ts"
@@ -32,7 +33,7 @@ const fixture = () => {
 }
 const terminal = async (test: ReturnType<typeof fixture>, args: string[], answer: "y" | "n", selection?: string) => {
   const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
-  const command = [process.execPath, join(process.cwd(), "src/cli.ts"), ...args].map(quote).join(" ")
+  const command = [bunExecutable(), join(process.cwd(), "src/cli.ts"), ...args].map(quote).join(" ")
   const child = spawn("script", ["-qfec", command, "/dev/null"], {
     cwd: test.repository,
     env: test.environment,
@@ -103,7 +104,7 @@ const updaterFixture = (
     target,
     `#!/usr/bin/env node
 const fs=require('node:fs');
-if(process.argv.includes('--package-identity')) { console.log(JSON.stringify({name:'@hapsland/hapsland',executable:process.execPath,args:[${JSON.stringify(join(process.cwd(), "src/cli.ts"))}]})); process.exit(0); }
+if(process.argv.includes('--package-identity')) { console.log(JSON.stringify({name:'@hapsland/hapsland',executable:${JSON.stringify(bunExecutable())},args:[${JSON.stringify(join(process.cwd(), "src/cli.ts"))}]})); process.exit(0); }
 const r=JSON.parse(fs.readFileSync(0,'utf8'));
 fs.appendFileSync(${JSON.stringify(requests)},JSON.stringify(r)+'\\n');
 const options=${JSON.stringify(options)};

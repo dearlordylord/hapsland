@@ -1,3 +1,4 @@
+import { bunExecutable } from "../runtime/bun-runtime.ts"
 import { ConfigProvider, Effect, Redacted } from "effect"
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -80,7 +81,7 @@ it("a fresh process independently reads the file without inherited key or enviro
     import {Effect,ConfigProvider,Redacted} from "effect";
     const input=await Effect.runPromise(resolveCredentialInput(${JSON.stringify({ envVar: "TYPESAFE_API_KEY", root, userDirectory })}).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({preserveEmptyStrings:true})))));
     console.log(JSON.stringify({present:input.value !== undefined && Redacted.value(input.value) === "synthetic-fresh-process",file:input.file === ${JSON.stringify(join(root, ".env"))},unchanged:process.env.TYPESAFE_API_KEY === undefined && process.env.UNRELATED === undefined}));`
-  const result = spawnSync(process.execPath, ["--experimental-strip-types", "--input-type=module", "-e", script], {
+  const result = spawnSync(bunExecutable(), ["--input-type=module", "-e", script], {
     env: environment,
     encoding: "utf8",
     timeout: 10_000

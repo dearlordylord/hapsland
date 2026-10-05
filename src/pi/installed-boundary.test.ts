@@ -138,12 +138,15 @@ describe.each(["source", "installed"] as const)(
       it.each(["replaced", "final-refusal", "aborted"])(
         "closes offered advice after %s composition and permits a fresh edit",
         async (composition) => {
-          const { root, capturePath, call, prepareResident } = fixture(true)
+          const { root, capturePath, call, prepareResident, waitForAdvice } = fixture(true)
           await prepareResident()
           await call("tool_call", before)
           writeFileSync(join(root, "type.ts"), "type OrderCount = number\n")
           expect(await call("tool_result", result)).toBeUndefined()
           writeFileSync(join(root, "backend.gate"), "release\n")
+          // Composition needs an actual ready offer. Establish that precondition
+          // through IPC rather than depending on classifier completion timing.
+          await waitForAdvice()
           const offer = await call("agent_before_settle", {
             entries: [],
             continue: false,
@@ -170,6 +173,7 @@ describe.each(["source", "installed"] as const)(
           const fresh = { ...before, toolCallId: "fresh-after-composition" }
           await call("tool_call", fresh)
           const native = await call("tool_result", { ...result, ...fresh })
+          if (native === undefined) await waitForAdvice()
           const settled = await call("agent_before_settle", {
             entries: [],
             continue: false,

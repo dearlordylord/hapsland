@@ -4,6 +4,7 @@ import { copyFileSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync, syml
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { test } from "node:test"
+import { installGitHooks } from "./install-git-hooks.mjs"
 
 const runner = resolve("scripts/run-quality-lint.mjs")
 test("lint failure prevents formatting; explicit and changed selection stay bounded", () => {
@@ -52,7 +53,7 @@ test("lint failure prevents formatting; explicit and changed selection stay boun
 test("real pre-commit formats staged code and rejects a lint defect", () => {
   const root = mkdtempSync(join(tmpdir(), "hapsland-precommit-"))
   const run = (command, args) =>
-    spawnSync(command, args, { cwd: root, encoding: "utf8", timeout: 30_000, env: { ...process.env, HUSKY: "1" } })
+    spawnSync(command, args, { cwd: root, encoding: "utf8", timeout: 30_000, env: process.env })
   try {
     assert.equal(run("git", ["init", "--quiet"]).status, 0)
     symlinkSync(resolve("node_modules"), join(root, "node_modules"), "dir")
@@ -61,10 +62,14 @@ test("real pre-commit formats staged code and rejects a lint defect", () => {
     for (const file of [".oxlintrc.json", "dprint.json"]) copyFileSync(file, join(root, file))
     writeFileSync(
       join(root, "package.json"),
-      JSON.stringify({ private: true, "lint-staged": { "*.ts": `${process.execPath} ${runner} --staged --fix` } })
+      JSON.stringify({
+        private: true,
+        scripts: { typecheck: "tsc --noEmit --skipLibCheck --types node src/example.ts" },
+        "lint-staged": { "*.ts": `${process.execPath} ${runner} --staged --fix` }
+      })
     )
     copyFileSync(".husky/pre-commit", join(root, ".husky/pre-commit"))
-    assert.equal(run(process.execPath, [resolve("node_modules/husky/bin.js")]).status, 0)
+    installGitHooks(root)
     writeFileSync(join(root, "src/example.ts"), 'export const value={nested:"hello"};\n')
     assert.equal(run("git", ["add", "."]).status, 0)
     const commit = () =>
@@ -72,6 +77,17 @@ test("real pre-commit formats staged code and rejects a lint defect", () => {
     const first = commit()
     assert.equal(first.status, 0, first.stdout + first.stderr)
     assert.equal(run("git", ["show", "HEAD:src/example.ts"]).stdout, 'export const value = { nested: "hello" }\n')
+    writeFileSync(join(root, "src/example.ts"), 'export const value={nested:"staged"};\n')
+    assert.equal(run("git", ["add", "src/example.ts"]).status, 0)
+    writeFileSync(
+      join(root, "src/example.ts"),
+      'export const value={nested:"staged"};\nexport const unstaged = "preserved"\n'
+    )
+    const partial = commit()
+    assert.equal(partial.status, 0, partial.stdout + partial.stderr)
+    assert.equal(run("git", ["show", "HEAD:src/example.ts"]).stdout, 'export const value = { nested: "staged" }\n')
+    assert.match(readFileSync(join(root, "src/example.ts"), "utf8"), /export const unstaged = "preserved"/)
+    assert.match(run("git", ["diff", "--", "src/example.ts"]).stdout, /unstaged/)
     writeFileSync(join(root, "src/example.ts"), "const unused = 1\n")
     assert.equal(run("git", ["add", "src/example.ts"]).status, 0)
     const rejected = commit()

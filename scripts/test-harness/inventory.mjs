@@ -59,6 +59,23 @@ const testFiles = (root) => {
   return files.sort()
 }
 
+/** Find package consumers through their actual local import closure. */
+export const requiredTestArtifacts = (root, selectedFiles) => {
+  const pending = selectedFiles.map((file) => resolve(root, file)),
+    seen = new Set()
+  while (pending.length) {
+    const file = pending.pop()
+    if (seen.has(file)) continue
+    seen.add(file)
+    if (relative(root, file).replaceAll("\\", "/") === "src/test-support/test-package.ts") return ["package"]
+    for (const specifier of importsOf(file)) {
+      const dependency = localModule(file, specifier)
+      if (dependency) pending.push(dependency)
+    }
+  }
+  return []
+}
+
 /** Conservative static inventory: a process-capable import is not proof that
  * every test in the file actually launches a child. Type-only imports do not count. */
 export const inventoryTestHarness = (root, selectedFiles) => {

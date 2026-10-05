@@ -1,3 +1,4 @@
+import { bunExecutable } from "../runtime/bun-runtime.ts"
 import { SHIPPED_DEFAULT_RULES } from "../rules/shipped.ts"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
 import { createInstallationPackageFixture } from "../test-support/installation-package.ts"
@@ -67,7 +68,7 @@ const invoke = (
   request: Record<string, unknown>,
   environment: NodeJS.ProcessEnv = fixtureValue.environment
 ) => {
-  const child = spawnSync(process.execPath, [setupEntrypoint(), "--setup"], {
+  const child = spawnSync(bunExecutable(), [setupEntrypoint(), "--setup"], {
     cwd: fixtureValue.repository,
     env: environment,
     input: JSON.stringify({
@@ -155,7 +156,7 @@ const invokeMaskedSetup = async (
     })
   )
   const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
-  const command = `${quote(process.execPath)} ${quote(setupEntrypoint())} --setup < ${quote(requestPath)}`
+  const command = `${quote(bunExecutable())} ${quote(setupEntrypoint())} --setup < ${quote(requestPath)}`
   const child = spawn("script", ["-qfec", command, "/dev/null"], {
     cwd: test.repository,
     env: environment,
@@ -362,7 +363,7 @@ describe("public resumable setup operation", () => {
         })
       ])
     )
-    const child = spawnSync(process.execPath, [setupEntrypoint(), "--credentials"], {
+    const child = spawnSync(bunExecutable(), [setupEntrypoint(), "--credentials"], {
       cwd: test.repository,
       env: environment,
       input: JSON.stringify({ version: 1, operation: "credentials", cwd: test.repository }),
@@ -474,7 +475,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
       )
       const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
       const entrypoint = setupEntrypoint()
-      const command = `${quote(process.execPath)} ${quote(entrypoint)} --setup < ${quote(requestPath)}`
+      const command = `${quote(bunExecutable())} ${quote(entrypoint)} --setup < ${quote(requestPath)}`
       const environment: NodeJS.ProcessEnv = {
         ...test.environment,
         REVIEW_CREDENTIAL_HELPER: helper,
@@ -742,7 +743,7 @@ it("unattended setup previews without writes, applies a saved plan and rejects s
   const test = fixture()
   const plan = join(test.root, "setup-plan.json")
   const run = (...args: string[]) =>
-    spawnSync(process.execPath, [setupEntrypoint(), "setup", ...args], {
+    spawnSync(bunExecutable(), [setupEntrypoint(), "setup", ...args], {
       cwd: test.repository,
       env: { ...test.environment, HAPSLAND_ACTIVE_DISPATCH: "1" },
       encoding: "utf8",

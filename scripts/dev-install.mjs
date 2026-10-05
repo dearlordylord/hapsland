@@ -1,15 +1,8 @@
 import * as Effect from "effect/Effect"
 import { spawnSync } from "node:child_process"
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs"
+import { readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
-import {
-  devBuildIdentity,
-  devCacheDirectory,
-  readDevCandidate,
-  writeDevCandidate,
-  withDevInstallLock
-} from "./dev-install-cache.mjs"
-import { packDevelopmentArchive } from "./dev-pack.mjs"
+import { buildToolchain, ensurePackageArtifact } from "./artifact-store.mjs"
 import { stageRelease } from "../src/onboarding/distribution.ts"
 import { NEW_KEY_FLAG, SETUP_COMMAND } from "../src/runtime/cli-names.ts"
 
@@ -56,58 +49,26 @@ const stage = async (label, work) => {
   }
 }
 const root = process.cwd()
-const cache = devCacheDirectory(root)
-const toolVersion = (command, args) => {
-  const probe = spawnSync(command, args, { encoding: "utf8", timeout: 10_000 })
-  return probe.status === 0 ? probe.stdout.trim() : "unavailable"
-}
-const toolchain = {
-  node: process.version,
-  profile: environment.HAPSLAND_BUILD_PROFILE,
-  bun: environment.HAPSLAND_BUILD_BUN ?? "mise-or-path:1.3.14",
-  npm: toolVersion("npm", ["--version"]),
-  cc: toolVersion("cc", ["--version"]),
-  libsecret: process.platform === "linux" ? toolVersion("pkg-config", ["--modversion", "libsecret-1"]) : undefined
-}
 let candidate
 try {
-  candidate = await withDevInstallLock(cache, async () => {
-    let inputs
-    const identity = devBuildIdentity(root, toolchain, (observed) => {
-      inputs = observed
-    })
-    const cached = readDevCandidate(cache, identity)
-    let archive
-    if (cached) {
-      archive = cached.archive
-      process.stdout.write("Reusing unchanged development build; skipping build and pack.\n")
-    } else {
-      process.stdout.write("Development build inputs changed or cache missing; building current platform.\n")
-      run("npm", ["run", "build"])
-      run("npm", ["run", "verify:release-native"])
-      const destination = mkdtempSync(join(cache, "pack-"))
-      archive = await stage("Packing local development archive (fast compression)", () =>
-        packDevelopmentArchive({ root, destination })
-      )
-      let currentInputs
-      if (
-        devBuildIdentity(root, toolchain, (observed) => {
-          currentInputs = observed
-        }) !== identity
-      ) {
-        const changed = [...new Set([...inputs.keys(), ...currentInputs.keys()])].filter(
-          (path) => inputs.get(path) !== currentInputs.get(path)
-        )
-        throw new Error(
-          `Build inputs changed during dev-install: ${changed.slice(0, 10).join(", ")}; rerun to build the current code`
-        )
+  const toolchain = await buildToolchain(environment)
+  const artifact = await stage("Preparing checked local development archive", () =>
+    ensurePackageArtifact({
+      root,
+      toolchain,
+      runStage: async ({ command, args }) => {
+        run(command, args)
+        return { exitCode: 0 }
       }
-      writeDevCandidate(cache, identity, archive)
-    }
-    return await stage("Checking installed snapshot / installing local archive", () =>
-      Effect.runPromise(stageRelease({ kind: "archive", path: archive }))
-    )
-  })
+    })
+  )
+  process.stdout.write(
+    artifact.buildReused ? "Reusing checked development build.\n" : "Built current development inputs.\n"
+  )
+  run("npm", ["run", "verify:release-native"])
+  candidate = await stage("Checking installed snapshot / installing local archive", () =>
+    Effect.runPromise(stageRelease({ kind: "archive", path: artifact.archivePath }))
+  )
 } catch (error) {
   process.stderr.write(`${error.message}\n`)
   process.exit(error.exitCode ?? 1)

@@ -1,3 +1,4 @@
+import { bunExecutable } from "../runtime/bun-runtime.ts"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs"
 import { hostname, tmpdir } from "node:os"
@@ -14,11 +15,11 @@ describe("public credential CLI", () => {
     const entrypoint = join(process.cwd(), "src", "cli.ts")
     writeFileSync(
       helper,
-      `#!${process.execPath}\nrequire("node:fs").writeFileSync(${JSON.stringify(invoked)},"invoked");console.log(JSON.stringify({status:"available"}));\n`,
+      `#!${bunExecutable()}\nrequire("node:fs").writeFileSync(${JSON.stringify(invoked)},"invoked");console.log(JSON.stringify({status:"available"}));\n`,
       { mode: 0o700 }
     )
     const environment = { ...process.env, HOME: root }
-    const login = spawnSync(process.execPath, [entrypoint, "--login", "--credential-stdin"], {
+    const login = spawnSync(bunExecutable(), [entrypoint, "--login", "--credential-stdin"], {
       cwd: root,
       env: { ...environment, REVIEW_CREDENTIAL_HELPER: "", REVIEW_CREDENTIAL_STATE_PATH: join(root, "state") },
       input: "synthetic-key\n",
@@ -27,7 +28,7 @@ describe("public credential CLI", () => {
     })
     expect(login.status).toBe(6)
     expect(JSON.parse(login.stdout)).toMatchObject({ operation: "login", status: "unavailable" })
-    const logout = spawnSync(process.execPath, [entrypoint, "--logout"], {
+    const logout = spawnSync(bunExecutable(), [entrypoint, "--logout"], {
       cwd: root,
       env: { ...environment, REVIEW_CREDENTIAL_HELPER: helper, REVIEW_CREDENTIAL_STATE_PATH: "" },
       encoding: "utf8",
@@ -71,7 +72,7 @@ else if (operation === "delete") { const found=existsSync(vault); rmSync(vault,{
       TEST_SECRET_VAULT: vault
     }
     delete environment.TYPESAFE_API_KEY
-    const login = spawnSync(process.execPath, [entrypoint, "--login", "--credential-stdin"], {
+    const login = spawnSync(bunExecutable(), [entrypoint, "--login", "--credential-stdin"], {
       cwd: root,
       env: environment,
       input: `${marker}\n`,
@@ -86,7 +87,7 @@ else if (operation === "delete") { const found=existsSync(vault); rmSync(vault,{
     })
     expect(`${login.stdout}${login.stderr}`).not.toContain(marker)
 
-    const logout = spawnSync(process.execPath, [entrypoint, "--logout"], {
+    const logout = spawnSync(bunExecutable(), [entrypoint, "--logout"], {
       cwd: root,
       env: { ...environment, ALT_KEY: "surviving-environment-marker" },
       encoding: "utf8"
@@ -101,14 +102,14 @@ else if (operation === "delete") { const found=existsSync(vault); rmSync(vault,{
     })
     expect(`${logout.stdout}${logout.stderr}`).not.toContain("surviving-environment-marker")
 
-    const secondLogin = spawnSync(process.execPath, [entrypoint, "--login", "--credential-stdin"], {
+    const secondLogin = spawnSync(bunExecutable(), [entrypoint, "--login", "--credential-stdin"], {
       cwd: root,
       env: environment,
       input: `${marker}\n`,
       encoding: "utf8"
     })
     expect(secondLogin.status).toBe(0)
-    const indeterminateLogout = spawnSync(process.execPath, [entrypoint, "--logout"], {
+    const indeterminateLogout = spawnSync(bunExecutable(), [entrypoint, "--logout"], {
       cwd: root,
       env: { ...environment, TEST_BREAK_STATE_AFTER_DELETE: "1" },
       encoding: "utf8"
@@ -149,7 +150,7 @@ if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}
       }),
       { mode: 0o600 }
     )
-    const child = spawnSync(process.execPath, [entrypoint, "--login", "--credential-stdin"], {
+    const child = spawnSync(bunExecutable(), [entrypoint, "--login", "--credential-stdin"], {
       cwd: root,
       env: { ...process.env, REVIEW_CREDENTIAL_HELPER: helper, REVIEW_CREDENTIAL_STATE_PATH: state },
       input: `${marker}\n`,
@@ -185,7 +186,7 @@ console.log('{"version":1,"status":"missing"}');
       const quote = (value: string) => "'" + value.replaceAll("'", "'\\''") + "'"
       const child = spawnSync(
         "script",
-        ["-qfec", `${quote(process.execPath)} ${quote(entrypoint)} --logout`, "/dev/null"],
+        ["-qfec", `${quote(bunExecutable())} ${quote(entrypoint)} --logout`, "/dev/null"],
         {
           cwd: root,
           encoding: "utf8",
@@ -219,7 +220,7 @@ if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}
       )
       chmodSync(helper, 0o700)
       const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
-      const command = `before=$(stty -g); ${quote(process.execPath)} ${quote(entrypoint)} --login; code=$?; after=$(stty -g); printf '\\nMODEBEFORE:%s\\nMODEAFTER:%s\\nEXIT:%s\\n' "$before" "$after" "$code"`
+      const command = `before=$(stty -g); ${quote(bunExecutable())} ${quote(entrypoint)} --login; code=$?; after=$(stty -g); printf '\\nMODEBEFORE:%s\\nMODEAFTER:%s\\nEXIT:%s\\n' "$before" "$after" "$code"`
       const child = spawn("script", ["-qfec", command, "/dev/null"], {
         cwd: root,
         env: {
@@ -296,7 +297,7 @@ exit 1
       chmodSync(stty, 0o700)
       const child = spawnSync(
         "script",
-        ["-qfec", `${JSON.stringify(process.execPath)} ${JSON.stringify(entrypoint)} --login`, "/dev/null"],
+        ["-qfec", `${JSON.stringify(bunExecutable())} ${JSON.stringify(entrypoint)} --login`, "/dev/null"],
         {
           cwd: root,
           env: {

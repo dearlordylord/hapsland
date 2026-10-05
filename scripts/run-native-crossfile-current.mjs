@@ -1,7 +1,10 @@
+import { NATIVE_AGENT_PROFILES, resolveNativeAgentProfile } from "./native-agent-profiles.mjs"
+import { resolveBunRuntime } from "./pinned-bun.mjs"
 import { runClient } from "../src/test-support/client-runtime.ts"
 // Bounded real-host observation of TypeScript, Rust and Bend cross-file review.
 // Raw host streams, source, provider bodies, and credentials stay in a disposable directory.
-import { spawn, spawnSync } from "node:child_process"
+import { spawnSync } from "node:child_process"
+import { executeNative } from "./native-process.mjs"
 import { createHash } from "node:crypto"
 import {
   chmodSync,
@@ -34,7 +37,15 @@ import { faultProfile, assessPreFault } from "./native-hook-faults.mjs"
 import { runPiNativeProfile } from "./native-pi-profile.mjs"
 
 const project = resolve(import.meta.dirname, "..")
+const requestedModel = process.argv.find((argument) => argument.startsWith("--model="))?.slice(8)
+const requestedProvider = process.argv.find((argument) => argument.startsWith("--provider="))?.slice(11)
+if (requestedModel !== undefined && !/^[a-zA-Z0-9_.:/-]{1,120}$/.test(requestedModel))
+  throw new Error("Invalid native model identifier")
 const host = process.argv.find((arg) => arg.startsWith("--host="))?.slice(7)
+if (requestedProvider !== undefined && requestedProvider !== (host === "claude" ? "anthropic" : "openai"))
+  throw new Error("Native provider must match the selected host profile")
+if (host === "pi" && requestedModel !== undefined && requestedModel !== "gpt-6-luna")
+  throw new Error("Pi native checks require the existing gpt-6-luna profile")
 const language = process.argv.find((arg) => arg.startsWith("--language="))?.slice(11) ?? "typescript"
 if (!["typescript", "rust", "bend"].includes(language)) throw new Error("Choose a supported source language")
 const scenario = process.argv.find((arg) => arg.startsWith("--scenario="))?.slice(11) ?? "adoption"
@@ -53,6 +64,12 @@ if (
   ].includes(scenario)
 )
   throw new Error("Choose an adoption, reviewer, POST-hook or PRE-hook scenario")
+resolveNativeAgentProfile({
+  host,
+  provider: requestedProvider ?? NATIVE_AGENT_PROFILES[host]?.provider,
+  model: requestedModel ?? NATIVE_AGENT_PROFILES[host]?.model ?? "default",
+  scenario
+})
 const unicodeUpdate = process.argv.includes("--unicode-update")
 if (unicodeUpdate && (language !== "typescript" || scenario !== "adoption"))
   throw new Error("--unicode-update requires TypeScript adoption")
@@ -149,7 +166,7 @@ const codexBinary = process.env.HAPSLAND_TEST_CODEX ?? "/tmp/hapsland-codex-0155
 const claudeBinary = process.env.HAPSLAND_TEST_CLAUDE ?? "/home/node/.local/share/claude/versions/2.1.218"
 const binary = host === "codex" ? codexBinary : claudeBinary
 const version = spawnSync(binary, ["--version"], { encoding: "utf8", timeout: 10_000 }).stdout?.trim()
-if (version !== (host === "codex" ? "codex-cli 0.155.1" : "2.1.218 (Claude Code)"))
+if (version !== NATIVE_AGENT_PROFILES[host].version)
   throw new Error(`Unsupported native test profile: ${version ?? "unavailable"}`)
 
 const temp = mkdtempSync(join(tmpdir(), "hapsland-crossfile-native-"))
@@ -250,24 +267,7 @@ const safeLines = (path) => {
     return []
   }
 }
-const run = (command, args, env, cwd, timeoutMs = 240_000) =>
-  new Promise((resolveRun, reject) => {
-    const child = spawn(command, args, { cwd, env, stdio: ["ignore", "pipe", "pipe"] })
-    let stdout = "",
-      stderrBytes = 0
-    const timer = setTimeout(() => child.kill("SIGTERM"), timeoutMs)
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk
-    })
-    child.stderr.on("data", (chunk) => {
-      stderrBytes += chunk.length
-    })
-    child.once("error", reject)
-    child.once("close", (code, signal) => {
-      clearTimeout(timer)
-      resolveRun({ code, signal, stdout, stderrBytes })
-    })
-  })
+const run = (command, args, env, cwd, timeout = 240000) => executeNative(command, args, { env, cwd, timeout })
 const initial = fixture.initial
 const answers = Object.fromEntries(
   [
@@ -363,7 +363,7 @@ if(fault && (fault.phase==='pre'?kind==='before-edit':kind==='edit'||kind==='bac
 const flags=kind==='edit' ? ['--${host === "codex" ? "codex" : "claude"}-hook','--controlled-writer','--composed-edit-hook']
   : ['--composed-'+kind+'-hook','--composed-host=${host === "codex" ? "codex-cli" : "claude-code"}'];
 ${mode === "controlled-offline" ? "flags.push('--controlled-reviewer');" : ""}
-const result=spawnSync(process.execPath,[${JSON.stringify(join(project, "src/cli.ts"))},...flags],
+const result=spawnSync(${JSON.stringify(resolveBunRuntime().executable)},[${JSON.stringify(join(project, "src/cli.ts"))},...flags],
   {input,encoding:'utf8',env:process.env,timeout:30000,maxBuffer:1048576});
 let output; try { output=JSON.parse(result.stdout) } catch {}
 const message=output?.reason??output?.hookSpecificOutput?.additionalContext??output?.systemMessage??'';
@@ -537,6 +537,7 @@ globalThis.fetch=async (...args)=>{
     host === "codex"
       ? [
           "exec",
+          ...(requestedModel ? ["--model", requestedModel] : []),
           "--ephemeral",
           "--json",
           "--dangerously-bypass-hook-trust",
@@ -548,6 +549,7 @@ globalThis.fetch=async (...args)=>{
         ]
       : [
           "-p",
+          ...(requestedModel ? ["--model", requestedModel] : []),
           "--output-format",
           "stream-json",
           "--verbose",

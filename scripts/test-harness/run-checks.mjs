@@ -141,6 +141,7 @@ export async function createRun({
   inherited,
   scope,
   selectedTestFiles,
+  plan,
   output = console.log
 }) {
   const runsRoot = join(root, ".test-runs")
@@ -150,14 +151,14 @@ export async function createRun({
   const lockPath = join(runsRoot, "full.lock")
   if (inherited) {
     const supplied = JSON.parse(inherited)
-    if (mode !== "test" || supplied.root !== root || !/^[a-zA-Z0-9_-]+$/.test(supplied.id))
+    if (!["test", "artifact"].includes(mode) || supplied.root !== root || !/^[a-zA-Z0-9_-]+$/.test(supplied.id))
       throw new Error("Invalid nested gate context")
     const recorded = await readJson(join(runsRoot, supplied.id, "manifest.json"))
-    const lock = await readJson(lockPath)
+    const lock = recorded.mode === "focused" ? undefined : await readJson(lockPath)
     if (
-      recorded.mode !== "quality" ||
+      (mode === "test" ? recorded.mode !== "quality" : !["focused", "test", "quality"].includes(recorded.mode)) ||
       recorded.token !== supplied.token ||
-      lock.token !== supplied.token ||
+      (lock !== undefined && lock.token !== supplied.token) ||
       recorded.pid !== supplied.pid ||
       recorded.deadline !== supplied.deadline ||
       !alive(supplied.pid)
@@ -197,7 +198,8 @@ export async function createRun({
       ...context,
       mode,
       startedAt,
-      plannedStages,
+      plannedStages: plan?.stages.map((stage) => stage.name) ?? plannedStages,
+      ...(plan === undefined ? {} : { verificationPlan: plan }),
       skippedStages: [],
       sourcePin: await gitHead(root),
       ...(scope === undefined ? {} : { scope }),
@@ -366,7 +368,14 @@ export async function createRun({
     )
     return record
   }
-  async function recordSyntheticStage({ name, state, reason = undefined, error = undefined, dependsOn = [] }) {
+  async function recordSyntheticStage({
+    name,
+    state,
+    reason = undefined,
+    error = undefined,
+    evidence = undefined,
+    dependsOn = []
+  }) {
     const begin = Date.now()
     const basename = `${process.pid}-${String(++sequence).padStart(3, "0")}-${name.replace(/[^a-zA-Z0-9_-]/g, "_")}`
     const record = {
@@ -382,10 +391,13 @@ export async function createRun({
       elapsedMs: 0,
       ...(reason ? { reason } : {}),
       ...(error ? { error } : {}),
+      ...(evidence ? { evidence } : {}),
       ...(dependsOn.length ? { dependsOn } : {})
     }
     await atomicJson(join(runDirectory, "stages", `${basename}.json`), record)
-    output(`${state === "failed" ? "FAIL" : "SKIP"} ${name}; ${error ?? reason ?? "no process launched"}`)
+    output(
+      `${state === "passed" ? "PASS" : state === "failed" ? "FAIL" : "SKIP"} ${name}; ${error ?? reason ?? "no process launched"}`
+    )
     return record
   }
   async function recordSkippedStage({ name, reason = undefined, dependsOn = [] }) {
@@ -427,7 +439,7 @@ export async function createRun({
       abortReason = "process group still present; lock retained"
     }
     const stages = await stageResults(runDirectory)
-    const errors = await failures(runDirectory)
+    const errors = mode === "artifact" ? [] : await failures(runDirectory)
     const evaluatedStages = inherited ? stages.filter((stage) => stage.ownerPid === process.pid) : stages
     const failedStages = evaluatedStages.filter((stage) => stage.state !== "passed")
     const skippedStages = stages
@@ -477,6 +489,7 @@ export async function createRun({
     context,
     runStage,
     recordSkippedStage,
+    recordPassedStage: ({ name, evidence }) => recordSyntheticStage({ name, state: "passed", evidence }),
     recordFailedStage,
     finish,
     get aborted() {
@@ -485,8 +498,28 @@ export async function createRun({
   }
 }
 
+export async function runSelectedTests(run, root, selection, environment = {}) {
+  if (selection.nodeFiles.length)
+    await run.runStage({
+      name: "node-focused",
+      command: process.execPath,
+      args: ["--test", "--test-concurrency=1", ...selection.nodeFiles],
+      env: environment
+    })
+  if (selection.vitestFiles.length)
+    await run.runStage({
+      name: "vitest-focused",
+      command: join(root, "node_modules", ".bin", "vitest"),
+      args: ["run", "--maxWorkers=1", ...selection.vitestFiles, ...selection.options],
+      env: {
+        ...environment,
+        HAPSLAND_FOCUSED_TEST_SELECTION: JSON.stringify({ files: selection.vitestFiles, options: selection.options })
+      }
+    })
+}
+
 export async function focusedSelection(root, args) {
-  const files = args.filter((arg) => !arg.startsWith("-") && /\.test\.(?:m?[jt]sx?|cjs)$/.test(arg))
+  const files = [...new Set(args.filter((arg) => !arg.startsWith("-") && /\.test\.(?:m?[jt]sx?|cjs)$/.test(arg)))]
   if (!files.length)
     throw new Error("Focused checks require explicit existing test files; options alone cannot select the full suite.")
   for (const file of files) {
@@ -505,7 +538,7 @@ export async function focusedSelection(root, args) {
   }
 }
 
-export async function main(argv = process.argv.slice(2), root = defaultRoot) {
+export async function main(argv = process.argv.slice(2), root = defaultRoot, plan) {
   const [mode, ...raw] = argv
   if (!["test", "focused", "quality", "status"].includes(mode))
     throw new Error("Usage: run-checks.mjs test|focused|quality|status [args]")
@@ -531,14 +564,16 @@ export async function main(argv = process.argv.slice(2), root = defaultRoot) {
     throw new Error("Full test accepts --coverage only; use focused for file selection.")
   if (mode === "quality" && args.length) throw new Error("Quality does not accept test-selection arguments")
   const selection = mode === "focused" ? await focusedSelection(root, args) : undefined
-  const { sourceIdentity, prepareArchive } = await import("./prepare-archive.mjs")
+  const { sourceIdentity } = await import("./source-identity.mjs")
+  const { prepareArchive } = await import("./prepare-archive.mjs")
   const run = await createRun({
     root,
     mode,
     timeoutMs,
     inherited: process.env[contextVariable],
     scope,
-    selectedTestFiles: selection ? [...selection.nodeFiles, ...selection.vitestFiles] : undefined
+    selectedTestFiles: selection ? [...selection.nodeFiles, ...selection.vitestFiles] : undefined,
+    plan
   })
   let sourceDigest
   try {
@@ -565,24 +600,7 @@ export async function main(argv = process.argv.slice(2), root = defaultRoot) {
   try {
     if (mode === "quality") await runQualityStages(run, root)
     else if (mode === "focused") {
-      if (selection.nodeFiles.length)
-        await run.runStage({
-          name: "node-focused",
-          command: process.execPath,
-          args: ["--test", ...selection.nodeFiles]
-        })
-      if (selection.vitestFiles.length)
-        await run.runStage({
-          name: "vitest-focused",
-          command: join(root, "node_modules", ".bin", "vitest"),
-          args: ["run", "--maxWorkers=1", ...selection.vitestFiles, ...selection.options],
-          env: {
-            HAPSLAND_FOCUSED_TEST_SELECTION: JSON.stringify({
-              files: selection.vitestFiles,
-              options: selection.options
-            })
-          }
-        })
+      await runSelectedTests(run, root, selection)
     } else {
       const precheckFailures = []
       for (const [name, ...stageArgs] of precheckStages) {
@@ -598,7 +616,12 @@ export async function main(argv = process.argv.slice(2), root = defaultRoot) {
       } else if (!run.aborted) {
         let archive
         try {
-          archive = await prepareArchive({ root, runDirectory: run.runDirectory, runStage: run.runStage })
+          archive = await prepareArchive({
+            root,
+            runDirectory: run.runDirectory,
+            runStage: run.runStage,
+            deadline: run.context.deadline
+          })
         } catch (error) {
           await run.recordFailedStage({ name: "package-archive", error })
           console.error(`FAIL package-archive: ${error instanceof Error ? error.message : String(error)}`)

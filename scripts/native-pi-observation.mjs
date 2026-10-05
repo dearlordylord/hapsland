@@ -1,6 +1,10 @@
+import { NATIVE_AGENT_PROFILES } from "./native-agent-profiles.mjs"
 // Source-free assertions shared by the native cross-file runner's Pi profile.
 export const piModelProfile = (settings) => {
-  if (settings.defaultProvider !== "openai" || settings.defaultModel !== "gpt-6-luna")
+  if (
+    settings.defaultProvider !== NATIVE_AGENT_PROFILES.pi.provider ||
+    settings.defaultModel !== NATIVE_AGENT_PROFILES.pi.model
+  )
     throw new Error("Pi native milestone requires the existing openai/gpt-6-luna profile")
   return { provider: settings.defaultProvider, model: settings.defaultModel }
 }

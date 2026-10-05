@@ -1,18 +1,15 @@
-import { createRequire } from "node:module"
 import { readFileSync } from "node:fs"
+import { npmToolingRequire, npmPackageFiles } from "./npm-tooling.mjs"
+import { fileURLToPath } from "node:url"
 import { resolve } from "node:path"
 
 /** Use the invoking npm's packlist and tar implementation, with fast local compression. */
 export async function packDevelopmentArchive({ root, destination, npmEntrypoint = process.env.npm_execpath }) {
-  if (!npmEntrypoint) throw new Error("Run dev-install through npm run so its packaging implementation is available")
-  const require = createRequire(npmEntrypoint)
-  const Arborist = require("@npmcli/arborist")
-  const packlist = require("npm-packlist")
+  const require = npmToolingRequire(npmEntrypoint)
   const tar = require("tar")
   const manifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"))
   if (manifest.name !== "@hapsland/hapsland") throw new Error("pack did not select a Hapsland package")
-  const tree = await new Arborist({ path: root }).loadActual()
-  const files = await packlist(tree, { path: root })
+  const files = await npmPackageFiles(root, npmEntrypoint)
   const archive = resolve(
     destination,
     `${manifest.name.replace(/^@/, "").replaceAll("/", "-")}-${manifest.version}.tgz`
@@ -34,4 +31,10 @@ export async function packDevelopmentArchive({ root, destination, npmEntrypoint 
     files
   )
   return archive
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const [root, destination, ...extra] = process.argv.slice(2)
+  if (!root || !destination || extra.length) throw new Error("Usage: dev-pack.mjs ROOT DESTINATION")
+  console.log(await packDevelopmentArchive({ root: resolve(root), destination: resolve(destination) }))
 }

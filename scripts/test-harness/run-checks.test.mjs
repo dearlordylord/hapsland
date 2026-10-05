@@ -383,3 +383,20 @@ for (const lintExit of [0, 1]) {
     assert.match(await readFile(stages[0].logPath, "utf8"), /lint witness/u)
   })
 }
+
+test("artifact preparation shares a focused parent's records and cannot extend its deadline", async (t) => {
+  const root = await fixture(t)
+  const parent = await createRun({ root, mode: "focused", timeoutMs: 10000, output() {} })
+  const child = await createRun({
+    root,
+    mode: "artifact",
+    timeoutMs: 100000,
+    inherited: JSON.stringify(parent.context),
+    output() {}
+  })
+  assert.equal(child.context.deadline, parent.context.deadline)
+  await child.runStage(command("artifact-stage", "process.exit(0)"))
+  assert.equal(await child.finish(), 0)
+  assert.equal(JSON.parse(await readFile(join(parent.runDirectory, "status.json"), "utf8")).state, "running")
+  assert.equal(await parent.finish(), 0)
+})

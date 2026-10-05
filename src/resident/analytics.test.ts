@@ -1,3 +1,4 @@
+import { bunExecutable } from "../runtime/bun-runtime.ts"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
 import { runClient } from "../test-support/client-runtime.ts"
 import { nativeDeferred as deferred } from "../test-support/native-deferred.ts"
@@ -365,7 +366,7 @@ describe("resident session analytics", () => {
         REVIEW_CREDENTIAL_STATE_PATH: join(f.root, "credentials"),
         TYPESAFE_API_KEY: "STATUS_SYNTHETIC_KEY"
       }
-      const json = spawnSync(process.execPath, ["src/cli.ts", "--status"], {
+      const json = spawnSync(bunExecutable(), ["src/cli.ts", "--status"], {
         env,
         input,
         encoding: "utf8",
@@ -380,7 +381,7 @@ describe("resident session analytics", () => {
           controlledTotals: { requestsStarted: 1, clearReviews: 1 }
         }
       })
-      const human = spawnSync(process.execPath, ["src/cli.ts", "--status", "--status-human"], {
+      const human = spawnSync(bunExecutable(), ["src/cli.ts", "--status", "--status-human"], {
         env,
         input,
         encoding: "utf8",
