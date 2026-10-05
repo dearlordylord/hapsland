@@ -335,9 +335,16 @@ export const cancelShared = (state: EngineState, order: number): EngineState => 
   sharedCheck(state)
   return retain(state, SharedEngine.cancel(state, BigInt(readNat(order))))
 }
+const sharedQueueViews = new WeakMap<object, readonly { readonly at: number; readonly order: number }[]>()
 export const queuedShared = (state: EngineState): readonly { readonly at: number; readonly order: number }[] => {
   sharedCheck(state)
-  return freezeCanonicalData(readList(SharedEngine.queued(state), decodeEntry))
+  const queue = SharedEngine.queued(state)
+  const key = typeof queue === "object" && queue !== null && Object.isFrozen(queue) ? queue : undefined
+  const cached = key ? sharedQueueViews.get(key) : undefined
+  if (cached) return cached
+  const entries = freezeCanonicalData(readList(queue, decodeEntry))
+  if (key) sharedQueueViews.set(key, entries)
+  return entries
 }
 const decodeOption = decoder(
   Schema.Union([

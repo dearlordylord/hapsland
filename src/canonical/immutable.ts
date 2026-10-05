@@ -7,7 +7,7 @@ export const freezeCanonicalData = <A>(value: A): A => {
     if (typeof current !== "object" || current === null || Object.isFrozen(current)) continue
     const children = Object.values(current)
     Object.freeze(current)
-    for (const child of children) pending.push(child)
+    for (const child of children) if (typeof child === "object" && child !== null) pending.push(child)
   }
   return value
 }

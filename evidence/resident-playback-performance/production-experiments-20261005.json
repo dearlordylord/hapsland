@@ -1,0 +1,334 @@
+{
+  "status": "ongoing",
+  "baselineCommit": "34df1734a451a676d34408d2a9a894b3c823a8fe",
+  "metric": "Chromium main-thread ThreadTime milliseconds / processed canonical event count",
+  "evaluatorVersion": 2,
+  "conditions": {
+    "seed": 7,
+    "advicees": [
+      1,
+      6
+    ],
+    "productionBundles": true,
+    "controlledBuildInputs": true,
+    "perProcessDeadlineSeconds": 10
+  },
+  "plan": [
+    {
+      "experiment": "record/tag/list readers, immutable queue reuse, primitive freeze filtering",
+      "done": true,
+      "outcome": "Correctness passed; browser CPU improvement varies by sample."
+    },
+    {
+      "experiment": "share privately branded immutable event decode across driver and canonical boundary",
+      "done": true,
+      "outcome": "Removes second decode without trusting frozen lookalikes."
+    },
+    {
+      "experiment": "reuse identical projection placements and skip redundant signatures",
+      "done": true,
+      "outcome": "Full evidence retained."
+    },
+    {
+      "experiment": "reduce wrapper intermediate allocations",
+      "done": true,
+      "outcome": "Fresh Bend JavaScript build; core unchanged."
+    },
+    {
+      "experiment": "16-event host batch",
+      "done": true,
+      "accepted": false,
+      "outcome": "CPU/event increased approximately 50-95%; source reverted."
+    },
+    {
+      "experiment": "cooperative execution of one original logical batch",
+      "done": false,
+      "outcome": "In progress after phase timing found outer steps <12ms and batches up to111ms."
+    }
+  ],
+  "pairedResults": {
+    "2": {
+      "1": {
+        "baseline": {
+          "samples": [
+            0.6898044504383007,
+            0.6078900876601483,
+            0.5958664868509778
+          ],
+          "meanCpuMsPerEvent": 0.6311870083164756
+        },
+        "candidate-2": {
+          "samples": [
+            0.602019539427774,
+            0.57025,
+            0.555372340425532
+          ],
+          "meanCpuMsPerEvent": 0.5758806266177686
+        }
+      },
+      "6": {
+        "baseline": {
+          "samples": [
+            0.9724085714285715,
+            0.9837485714285714,
+            0.9714007142857143
+          ],
+          "meanCpuMsPerEvent": 0.9758526190476191
+        },
+        "candidate-2": {
+          "samples": [
+            0.9119285714285714,
+            0.9983749999999999,
+            0.8979007142857143
+          ],
+          "meanCpuMsPerEvent": 0.9360680952380952
+        }
+      }
+    },
+    "3": {
+      "1": {
+        "baseline": {
+          "samples": [
+            0.8294520547945204,
+            0.6891719178082192,
+            0.8079671232876713
+          ],
+          "meanCpuMsPerEvent": 0.7755303652968036
+        },
+        "candidate-3": {
+          "samples": [
+            0.7051132707774798,
+            0.5775246122724208,
+            0.5710616438356164
+          ],
+          "meanCpuMsPerEvent": 0.6178998422951724
+        }
+      },
+      "6": {
+        "baseline": {
+          "samples": [
+            1.4564250000000003,
+            1.1085335714285713,
+            1.0443242857142856
+          ],
+          "meanCpuMsPerEvent": 1.2030942857142857
+        },
+        "candidate-3": {
+          "samples": [
+            1.0316392857142855,
+            1.1226542857142856,
+            0.9862442857142857
+          ],
+          "meanCpuMsPerEvent": 1.0468459523809523
+        }
+      }
+    },
+    "4": {
+      "1": {
+        "candidate-3": {
+          "samples": [
+            0.5469878542510122,
+            0.5457733050847458
+          ],
+          "meanCpuMsPerEvent": 0.5463805796678789
+        },
+        "candidate-4": {
+          "samples": [
+            0.8007207792207792,
+            0.8702837171052632
+          ],
+          "meanCpuMsPerEvent": 0.8355022481630212
+        }
+      },
+      "6": {
+        "candidate-3": {
+          "samples": [
+            0.9069171428571429,
+            0.8767750000000001
+          ],
+          "meanCpuMsPerEvent": 0.8918460714285714
+        },
+        "candidate-4": {
+          "samples": [
+            1.8784146743610883,
+            1.5809883333333334
+          ],
+          "meanCpuMsPerEvent": 1.729701503847211
+        }
+      }
+    },
+    "5": {
+      "1": {
+        "baseline": {
+          "samples": [
+            0.7392432975871314,
+            0.5837741065407958
+          ],
+          "meanCpuMsPerEvent": 0.6615087020639636
+        },
+        "candidate-5": {
+          "samples": [
+            0.6114329096045197,
+            0.532899011299435
+          ],
+          "meanCpuMsPerEvent": 0.5721659604519773
+        }
+      },
+      "6": {
+        "baseline": {
+          "samples": [
+            0.9581928571428572,
+            0.9289064285714285
+          ],
+          "meanCpuMsPerEvent": 0.9435496428571428
+        },
+        "candidate-5": {
+          "samples": [
+            1.01204,
+            0.8341214285714286
+          ],
+          "meanCpuMsPerEvent": 0.9230807142857143
+        }
+      }
+    }
+  },
+  "limitations": [
+    "One/six scenario performance varies; six-advicee final two-pair CPU gain is only2.2% and one sample worsened. Do not claim a stable15-20% gain.",
+    "ThreadTime corrects older evaluator which labeled wall TaskDuration as CPU. Older values are not directly comparable.",
+    "Timeline timing measures DOM dispatch to inspection update and excludes prior browser queue delay.",
+    "Historical fixed workload differs: old45 events, current93 including48 preparationGraph; total times are not equivalent-engine comparisons.",
+    "Autoresearch automation could not snapshot concurrent checkout; no managed keep/satisfied result claimed."
+  ],
+  "validation": {
+    "focusedTests": {
+      "files": 10,
+      "tests": 88,
+      "status": "passed"
+    },
+    "checkFast": "passed",
+    "engineArtifactCheck": "passed",
+    "freshBendJavaScriptBuild": "passed",
+    "residentLiveness1and6": "passed",
+    "timeline1and6": "passed",
+    "simulationBrowserPlaybackReplayCapacityLayoutPrefix": "passed",
+    "fullSimulationBrowserScript": "not passed/not claimed: earlier stale selector/layout setup repaired, only affected prefix validated"
+  },
+  "historicalComparison": {
+    "fixedWorkload": {
+      "historicalCpuMsPerRun": 29.56,
+      "currentCpuMsPerRun": 51.61,
+      "historicalEvents": 45,
+      "currentEvents": 93
+    },
+    "openRoundIncludingConstruction": {
+      "historicalCpuMsPerRun": 0.51,
+      "currentCpuMsPerRun": 2.322
+    }
+  },
+  "phaseTiming": {
+    "metric": "Run.advance_step_normalization_wall_time",
+    "clock": "window.performance.now",
+    "runtime": {
+      "node": "24.20.0",
+      "playwright": "1.63.0",
+      "chromiumExecutable": "/home/node/.cache/ms-playwright/chromium-1243/chrome-linux-arm64/chrome",
+      "browserLibraryOverlay": "/tmp/hapsland-chromium-libs/root"
+    },
+    "measurement": "outermost Run.step only; recursive step calls contribute to their outer call, not separate samples",
+    "workload": "dashboard defaults, seed 7, resident advicee counts 1 and 6; real Play resident playback paused after at least 1200 retained events",
+    "percentileMethod": "nearest rank",
+    "sourceUnchangedDuringRun": true,
+    "sources": {
+      "head": "34df1734a451a676d34408d2a9a894b3c823a8fe",
+      "status": "M packages/agent-flow-viz/scripts/measure-resident-cpu.mjs\n M packages/monkey-business-bend/engine.mjs\n M packages/monkey-business-bend/generated.json\n M src/canonical/boundary-schema.ts\n M src/canonical/canonical-boundary.ts\n M src/canonical/immutable.ts\n M src/canonical/simulation-adapter.ts\n?? .autoresearch/advance-phase-timing.mjs",
+      "sha256": {
+        ".autoresearch/advance-phase-timing.mjs": "3ee662dfc4634935a194fabea2031a624d89c11078542e5dc276f2dad6fa99a4",
+        "packages/agent-flow-viz/package.json": "e8c0bc2165a0d5085e1500f6fd65a112c62fa3245f9f44c9ebaad8d93248f2e2",
+        "packages/agent-flow-viz/src/simulation.ts": "7e529fe7a87793b368636d3d69234c60ea35e104b1317c5d2f6e15186bf9d7a3",
+        "packages/agent-flow-viz/scripts/measure-resident-cpu.mjs": "0d5ca75c5553f74ec3dadaf3e8b5c1b8faaffddb5ce6bf66d08bfa4c2d9f882e",
+        "packages/monkey-business/src/index.ts": "977e24a5436f5396b7f1a6d6e77b1a62482b9049fd473003e3cb52cf95b5cf38",
+        "packages/monkey-business/src/session.ts": "b4f0532cab1d0dc275c72f3a3d7482ab30f78608106d794b1045a5daa21144ba",
+        "packages/monkey-business/src/shared-core.ts": "4a275cebbc60e813647b3dd6278defc04b7a025d9f6e9f5c56346aa6125c2f13",
+        "src/canonical/simulation-adapter.ts": "d85365035382c3b88aee1d45703e1f701aee26265fcc9a5ea7905a0f7f3ff930",
+        "src/canonical/canonical-boundary.ts": "e6b82daf4403ba5715b21e86b636fd6c6f1f601a61aa42ac82e80bd96914583b",
+        "src/canonical/canonical.generated.js": "6d539087749d74f89d3db027c3bc2dc3626ea873089c4360e66d092c5bec92d3",
+        "src/canonical/boundary-schema.ts": "5f4ce6c449fc7220858ae333abdba8d4963da2d09be6a450d1f8f18b9af18fbc",
+        "src/canonical/graph-adapter.ts": "50e0fc001dd0c743d167e8864f6c4709b6cce7aa5132df1e215da3d4945529df",
+        "src/canonical/simulation-codec.ts": "6eebdf7cc1aa21939a9668ed333d6c81a1b53b25f8fb1f391e2619f1dbccd513",
+        "src/canonical/immutable.ts": "16ad16447c49ad2715fd2ae09fe7d2b7a0bdb8c7f103f758501aefaf18951f6e",
+        "packages/monkey-business-bend/engine.mjs": "1aa455e8e942bdc7973e69d47c1089ccfa24be6bbea52f76a1edfce171f24d91",
+        "packages/monkey-business-bend/generated.json": "b7d0c9ba09034572b4b4fbe9e0663800d680c29bbb4cddc0cb58ecffd86a682a"
+      }
+    },
+    "cases": [
+      {
+        "advicees": 1,
+        "seed": 7,
+        "events": 1441,
+        "targetEvents": 1200,
+        "elapsedMs": 913.324028,
+        "methods": {
+          "advance": {
+            "count": 17,
+            "totalMs": 618.5000004768372,
+            "p50Ms": 34.60000014305115,
+            "p95Ms": 60.700000047683716,
+            "maxMs": 60.700000047683716
+          },
+          "outerStep": {
+            "count": 1442,
+            "totalMs": 593.9000008106232,
+            "p50Ms": 0.2999999523162842,
+            "p95Ms": 1.0999999046325684,
+            "maxMs": 8.900000095367432
+          },
+          "normalization": {
+            "count": 17,
+            "totalMs": 0.6000008583068848,
+            "p50Ms": 0,
+            "p95Ms": 0.10000014305114746,
+            "maxMs": 0.10000014305114746
+          }
+        },
+        "pageErrors": [],
+        "caseWallMs": 2275
+      },
+      {
+        "advicees": 6,
+        "seed": 7,
+        "events": 1400,
+        "targetEvents": 1200,
+        "elapsedMs": 1546.4398879999999,
+        "methods": {
+          "advance": {
+            "count": 14,
+            "totalMs": 949.1000001430511,
+            "p50Ms": 60.799999952316284,
+            "p95Ms": 111,
+            "maxMs": 111
+          },
+          "outerStep": {
+            "count": 1400,
+            "totalMs": 919.7999999523163,
+            "p50Ms": 0.5999999046325684,
+            "p95Ms": 1.7000000476837158,
+            "maxMs": 11.400000095367432
+          },
+          "normalization": {
+            "count": 14,
+            "totalMs": 0.9000000953674316,
+            "p50Ms": 0.09999990463256836,
+            "p95Ms": 0.20000004768371582,
+            "maxMs": 0.20000004768371582
+          }
+        },
+        "pageErrors": [],
+        "caseWallMs": 2890
+      }
+    ],
+    "limitations": [
+      "Diagnostic wall time includes browser main-thread scheduling and instrumentation overhead; it is not CPU time.",
+      "The source tree may be dirty; the recorded HEAD, relevant status, and SHA-256 hashes identify this candidate."
+    ]
+  }
+}

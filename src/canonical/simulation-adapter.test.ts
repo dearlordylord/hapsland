@@ -21,6 +21,46 @@ import { encodeEngineValue, encodeSharedValue, decodeSharedValue } from "./simul
 
 const limits = { globalItems: 32, globalBytes: 4096, partitionItems: 16, partitionBytes: 2048 }
 describe("trusted simulation composition boundary", () => {
+  it("reuses immutable queue views across wrappers without changing scheduling or provenance", () => {
+    const original = initialSharedCanonical(limits)
+    const queued = enqueueShared(enqueueShared(original, 20, 2), 10, 1)
+    const view = queuedShared(queued)
+    expect(queuedShared(queued)).toBe(view)
+    const changedCanonical = stepSharedCanonical(queued, { kind: "openRound", partition: 1, lifetime: 1 }).state
+    expect(changedCanonical).not.toBe(queued)
+    expect(SharedEngine.queued(changedCanonical)).toBe(SharedEngine.queued(queued))
+    expect(queuedShared(changedCanonical)).toBe(view)
+    expect(Object.isFrozen(view)).toBe(true)
+    expect(Object.isFrozen(view[0])).toBe(true)
+    expect(Reflect.set(view[0]!, "at", 999)).toBe(false)
+    expect(() => queuedShared(structuredClone(queued))).toThrow("foreign shared engine state")
+    const appended = enqueueShared(changedCanonical, 30, 3)
+    expect(queuedShared(appended)).toEqual([
+      { at: 10, order: 1 },
+      { at: 20, order: 2 },
+      { at: 30, order: 3 }
+    ])
+    expect(queuedShared(appended)).not.toBe(view)
+    const cancelled = cancelShared(appended, 2)
+    expect(queuedShared(cancelled)).toEqual([
+      { at: 10, order: 1 },
+      { at: 30, order: 3 }
+    ])
+    expect(queuedShared(cancelShared(cancelled, 999))).toEqual(queuedShared(cancelled))
+    const taken = takeShared(cancelled)
+    expect(taken.entry).toEqual({ at: 10, order: 1 })
+    expect(queuedShared(taken.state)).toEqual([{ at: 30, order: 3 }])
+    const empty = takeShared(taken.state).state
+    expect(queuedShared(empty)).toEqual([])
+    const stillEmpty = takeShared(empty)
+    expect(stillEmpty.entry).toBeUndefined()
+    expect(queuedShared(stillEmpty.state)).toEqual([])
+    expect(queuedShared(queued)).toBe(view)
+    expect(view).toEqual([
+      { at: 10, order: 1 },
+      { at: 20, order: 2 }
+    ])
+  })
   it("rejects route and notice feedback without original engine provenance", () => {
     const state = initialSharedCanonical(limits)
     const projection = projectSharedCanonical(state)

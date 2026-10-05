@@ -1,6 +1,7 @@
 # Native continuous consumer. All business transitions are owned by shared NativeRun.
 import Base
 import ./DefenseAuto.bend as A
+import ./DefenseCues.bend as Cues
 import ./DefenseModel.bend as M
 import ./DefenseProjection.bend as P
 import ./DefenseEffects.bend as E
@@ -172,8 +173,12 @@ def started(world: M.World) -> M.World:
   match world:
     case M.World{core,t,p,l,c,g,h,ts,ms,_,o,r,cl,d,auto,x,y,selected,work,flash}:
       M.World{core,t,p,l,c,g,h,ts,ms,True{},o,r,cl,d,auto,x,y,selected,work,flash}
-def start(world: M.World) -> M.World:
-  action(started(world),T.WorkloadControl{Some{1n},Workload.Burst{1n}})
+def burst_controlled(world: M.World,result: T.Controlled) -> M.World:
+  match result:
+    case T.Controlled{state,True{}}: Cues.burst(M.with_engine(started(world),state))
+    case T.Controlled{_,False{}}: world
+def start(+world: M.World) -> M.World:
+  burst_controlled(world,Run.control(M.engine(world),T.WorkloadControl{Some{1n},Workload.Burst{1n}}))
 def frame_counts(commands: List<&2,C.Command>, +kind: U32) -> U32:
   match commands:
     case Nil{}: 0
@@ -194,8 +199,8 @@ def consumed(+world: M.World, advanced: T.Advanced) -> M.World:
     case M.World{_,+t,p,l,c,+g,h,ts,_,a,+o,r,+cl,+d,auto,x,y,selected,work,flash} T.Advanced{+state,+frames,_}:
       +delivered = count_frames(frames,0)
       +next = M.with_engine(world,state)
-      M.World{[state],(t + 1 : U32),p,l,c,(g + delivered * 5 : U32),h,ts,E.refresh(next,M.core(next),(o + count_frames(frames,1) : U32)),a,
-        (o + count_frames(frames,1) : U32),r,(cl + count_frames(frames,2) : U32),(d + delivered : U32),auto,x,y,selected,work,flash}
+      Cues.tick(world,M.World{[state],(t + 1 : U32),p,l,c,(g + delivered * 5 : U32),h,ts,E.refresh(next,M.core(next),(o + count_frames(frames,1) : U32)),a,
+        (o + count_frames(frames,1) : U32),r,(cl + count_frames(frames,2) : U32),(d + delivered : U32),auto,x,y,selected,work,flash},frames)
 # A Refiner shot changes only future sampled Jev outcomes. Issued facts stay intact.
 def refiner_fired(items: List<&2,M.Tower>) -> Bool:
   match items:

@@ -111,20 +111,22 @@ try {
     )
     const assertCapacity = async () => {
       const projection = JSON.parse(await panel.locator(".simulation-details pre").textContent()).after
-      const limits = await panel.locator(".topology-capacities").innerText()
+      // Ensemble layers expose resident totals in the shared inset and stage labels.
+      const layer = panel.locator(".ensemble-layer.is-selected")
+      assert.equal(
+        await layer.locator(".resident-capacity-inset").getAttribute("aria-label"),
+        `Inspect shared resident capacity: ${projection.global.items} of ${projection.limits.globalItems} items; ${projection.global.bytes} of ${projection.limits.globalBytes} bytes`
+      )
+      const diagram = await layer.innerText()
+      const preparing = projection.dispatch.running.filter((item) => item.preparation).length
       assert.ok(
-        limits.includes(
-          `Review capacity ledger: ${projection.global.items}/${projection.limits.globalItems} items; ${projection.global.bytes}/${projection.limits.globalBytes} bytes`
+        diagram.includes(
+          `Preparing: agent ${preparing} · shared ${preparing}/${projection.executionLimits.preparation}`
         )
       )
       assert.ok(
-        limits.includes(
-          `Preparation running: ${projection.dispatch.running.filter((item) => item.preparation).length}/${projection.executionLimits.preparation}`
-        )
-      )
-      assert.ok(
-        limits.includes(
-          `Jev in-flight: ${projection.dispatch.requests.length}/${projection.executionLimits.jevRequests}`
+        diagram.includes(
+          `Jev: agent ${projection.dispatch.requests.length} · shared ${projection.dispatch.requests.length}/${projection.executionLimits.jevRequests}`
         )
       )
       assert.equal(await panel.locator(".shared-capacity-bar").count(), 0)
@@ -140,6 +142,7 @@ try {
       document.querySelector(".simulation-inspection")?.textContent.includes("Viewing latest")
     )
     await assertCapacity()
+    console.log("STAGE capacity latest/history/latest passed")
     const before = await panel.locator(".simulation-details").innerText()
     await panel.getByRole("button", { name: "Start / reset", exact: true }).click()
     await status("Seeded session started")
@@ -245,6 +248,7 @@ try {
     const loadedMetadataReplay = JSON.parse(await panel.getByLabel("Replay JSON", { exact: true }).inputValue())
     assert.deepEqual(loadedMetadataReplay.endpoint, metadataReplay.endpoint)
     assert.deepEqual(loadedMetadataReplay.controls, metadataReplay.controls)
+    console.log("STAGE metadata replay endpoint/control restoration passed")
     await panel.getByRole("button", { name: "Single step", exact: true }).click()
     await status("One checked transition advanced")
     await panel.getByRole("button", { name: "Bookmark event", exact: true }).click()
@@ -281,6 +285,7 @@ try {
       }
     }
     await status("Replay reached its exact recorded endpoint")
+    console.log("STAGE recorded replay completion passed")
     await status(`virtual time ${JSON.parse(fileReplay).endpoint.now} ms`)
     await panel.getByRole("button", { name: "Export replay", exact: true }).click()
     await status("Replay inputs exported")
@@ -378,9 +383,8 @@ try {
       document.querySelector("#monkey-business")?.textContent.includes("Following request:")
     )
     // Stage selection opens the flat inspection view; layout stays stable within it.
-    const focusAgent = panel.getByRole("button", { name: "Focus selected agent", exact: true })
-    if (await focusAgent.count()) {
-      await focusAgent.click()
+    if (!(await panel.locator(".ensemble-panel.is-flat").count())) {
+      await panel.getByRole("button", { name: "Focus selected advicee", exact: true }).click()
       await panel.locator(".ensemble-panel.is-flat").waitFor()
     }
     const diagramTop = () =>
