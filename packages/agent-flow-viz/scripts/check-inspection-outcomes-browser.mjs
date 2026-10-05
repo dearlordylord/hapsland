@@ -11,7 +11,7 @@ import { adaptCodexDirectEvent } from "../../../src/direct-event/adapter.ts"
 import { addEvent, makeGitFixture, put } from "../../../src/direct-event/test-fixtures.ts"
 import { makeInspectionStorage } from "../../../src/inspection/storage.ts"
 import { makeInspectionHttpServer } from "../../../src/inspection/http.ts"
-import { configuredRules } from "../../../src/policy/rules.ts"
+import { configuredRules, connectDefaultRuleFixture } from "../../../src/test-support/default-rules.ts"
 import { readCredentialState } from "../../../src/credentials/secret-service.ts"
 import { nativeDeferred } from "../../../src/test-support/native-deferred.ts"
 
@@ -29,7 +29,10 @@ try {
     JSON.stringify({
       version: 1,
       sessionInspection: true,
-      ruleOverrides: { r1_inferred_case: { threshold: 0.6, message: "Configured finding message" } }
+      rules: connectDefaultRuleFixture(root).map((path, index) => ({
+        path,
+        ...(index === 0 ? { threshold: 0.6, message: "Configured finding message" } : {})
+      }))
     })
   )
   const history = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 4 * 1048576 })
@@ -99,7 +102,7 @@ try {
     credential: {
       name: "TYPESAFE_API_KEY",
       environmentValue: "OFFLINE_INSPECTION_CREDENTIAL_MUST_NOT_BE_RETAINED",
-      environmentOnly: true,
+
       generation: readCredentialState(join(root, "credential-state")).generation,
       statePath: join(root, "credential-state")
     }

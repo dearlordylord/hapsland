@@ -58,6 +58,10 @@ const hostPaths = [
     "../../src/canonical/simulation-adapter.ts",
     "../../src/canonical/simulation-codec.ts",
     "../../src/canonical/canonical-boundary.ts",
+    "../../src/canonical/constructors.ts",
+    "../../src/canonical/event-reader.ts",
+    "../../src/canonical/boundary-schema.ts",
+    "../../src/canonical/immutable.ts",
     "../../src/canonical/graph-adapter.ts"
   ])
 const hostHash = hash(hostPaths.map((path) => `${path}\0${readFileSync(join(root, path))}\0`).join(""))
@@ -235,7 +239,15 @@ const facts = value => {
     if (!Number.isSafeInteger(value) || value < 0 || value >= 2 ** 48) throw new RangeError("invalid immediate Nat");
     return value;
   }
-  if (value !== null && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, key === "$" && typeof item === "string" ? (item.startsWith("../agent-flow-bend/") ? item.slice(19) : item) : facts(item)]));
+  if (value !== null && typeof value === "object") {
+    const entries = Object.entries(value);
+    for (const entry of entries) {
+      const key = entry[0];
+      const item = entry[1];
+      entry[1] = key === "$" && typeof item === "string" ? (item.startsWith("../agent-flow-bend/") ? item.slice(19) : item) : facts(item);
+    }
+    return Object.fromEntries(entries);
+  }
   return value;
 };
 export default {

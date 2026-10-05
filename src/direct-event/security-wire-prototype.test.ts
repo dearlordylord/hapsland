@@ -7,7 +7,7 @@ import * as Layer from "effect/Layer"
 import * as Redacted from "effect/Redacted"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
-import { compileRulePack } from "../rules/compiler.ts"
+import { compileRule } from "../rules/compiler.ts"
 import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
 import { DEFAULT_API_BASE, DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
 import { adaptCodexAdd } from "./adapter.ts"
@@ -36,27 +36,20 @@ const oracleRule = {
   threshold: 0.7,
   message: "Prototype rule matched."
 } as const
-const rules = compileRulePack(
+const rules = [
   {
-    schemaVersion: 1,
-    id: "security-probe",
-    contentVersion: "1",
-    rules: [
+    ...oracleRule,
+    inputs: [
       {
-        ...oracleRule,
-        reviewTargets: [
-          {
-            artifactKind: "typeShape",
-            inputContract: TYPE_INPUT_CONTRACT,
-            capabilities: ["root-declaration", "resolved-outbound-types"]
-          }
-        ]
+        languages: ["typescript", "rust", "bend"],
+        kind: "type",
+
+        requires: ["root-declaration", "resolved-outbound-types"]
       }
     ]
-  },
-  "fixture:security-wire"
-)
-const ruleId = "security-probe/security_wire_probe"
+  }
+].map((rule) => compileRule({ version: 1, ...rule }, "fixture:security-wire"))
+const ruleId = "security_wire_probe"
 
 type WireRequest = {
   readonly url: string

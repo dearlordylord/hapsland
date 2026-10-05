@@ -17,7 +17,7 @@ import { makeInspectionStorage } from "../../../src/inspection/storage.ts"
 import { makeInspectionHttpServer } from "../../../src/inspection/http.ts"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
-import { configuredRules } from "../../../src/policy/rules.ts"
+import { configuredRules, connectDefaultRuleFixture } from "../../../src/test-support/default-rules.ts"
 import { readCredentialState } from "../../../src/credentials/secret-service.ts"
 import { nativeDeferred } from "../../../src/test-support/native-deferred.ts"
 
@@ -39,7 +39,10 @@ try {
   const inspectionConfig = {
     version: 1,
     sessionInspection: true,
-    ruleOverrides: { r1_inferred_case: { threshold: 0.6, message: "Inspect browser 日本語 cases" } }
+    rules: connectDefaultRuleFixture(root).map((path, index) => ({
+      path,
+      ...(index === 0 ? { threshold: 0.6, message: "Inspect browser 日本語 cases" } : {})
+    }))
   }
   await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify(inspectionConfig))
   let historyNow = Date.now()
@@ -102,7 +105,7 @@ try {
     credential: {
       name: "TYPESAFE_API_KEY",
       environmentValue: "INSPECTION_OFFLINE_KEY",
-      environmentOnly: true,
+
       generation: readCredentialState(join(root, "credential-state")).generation,
       statePath: join(root, "credential-state")
     },

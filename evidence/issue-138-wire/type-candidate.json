@@ -75,7 +75,7 @@
       }
     },
     "decisions": {
-      "wire-proposal/type": {
+      "type": {
         "_tag": "Probability",
         "instructions": "Is the selected type closure meaningful?",
         "criteria": {
@@ -87,5 +87,5 @@
   },
   "canonicalTreeBytes": 474,
   "providerInputBytes": 777,
-  "completeRequestBytes": 942
+  "completeRequestBytes": 928
 }

@@ -34,10 +34,10 @@ shared agent instructions with a synthetic finding; no review request is made.
 Sending source to a review service is a data-sharing decision. Your task prompt
 and conversation with the agent are not sent to the review backend.
 
-You control which files are eligible through includes, exclusions, and privacy
-exclusions. Every supporting file passes the same selection checks before its
-source is read; project includes cannot restore a user exclusion. Limits bound
-the files explored and the code included in the review tree.
+You choose which changed files can be reviewed and which files can supply related
+code. Related code follows the review file scope unless you explicitly configure a
+context scope. Privacy exclusions protect both kinds of reads and cannot be undone
+by project includes. Limits bound exploration and the code included in the review tree.
 
 Selected source code and rule questions are sent to the selected external
 classifier: [Jev](https://typesafe.ai) by default, or Cloudflare Clef/Clef-flash. It sees that code and those questions, not the agent’s
@@ -92,14 +92,18 @@ and network calls remain native code. See [proof scope and evidence](./docs/arch
 
 ## Built-in rules and your own
 
-Hapsland starts with the Noul rule pack: nine questions about code design, including
-whether a declaration allows meaningless combinations of values. Which rules
-run depends on the kind of declaration and the available related code.
+With no explicit rule selection, authorized setup connects nine editable JSON rule
+files with questions about code
+design, including whether a declaration allows meaningless combinations of values.
+Each rule declares supported languages, input forms, and required related code.
 
-You can add local rule packs for your team's concerns and configure their scope,
-when feedback should be returned, and what its messages say. Rules ask yes-or-no
-questions about the supplied type or function and its related code. See [custom rule packs](./docs/configuration.md#declarative-rule-packs)
-and the [type-design rules](./TYPE-DESIGN-RULES.md).
+Inspect them with `hapsland rules list` or `hapsland rules show --id r1_inferred_case`.
+Author one rule per file and connect it explicitly. Choose personal or project
+settings for activation, languages, file scope, threshold, and feedback messages.
+File paths belong to settings; the rule defines the concern and evidence it needs.
+A configured rule runs only on supported inputs with sufficient evidence. See
+[custom rules](./docs/configuration.md#declarative-rules) and the
+[type-design rules](./TYPE-DESIGN-RULES.md).
 
 See [supported languages and limits](#supported-languages) before setup.
 
@@ -180,7 +184,7 @@ guides for exact host limits and automation.
 
 ## Configuration
 
-Configure file selection and exclusions, local rule packs, per-rule overrides, and the credential environment-variable reference. The product accepts layered JSONC files. With no file settings, all otherwise eligible files are selected; user exclusions can turn review off.
+Configure file selection and exclusions, individual local rules and per-rule selection, and the credential environment-variable reference. The product accepts layered JSONC files. With no file settings, all otherwise eligible files are selected; user exclusions can turn review off.
 
 A small project configuration:
 
@@ -193,7 +197,7 @@ A small project configuration:
 }
 ```
 
-See the [complete configuration guide](./docs/configuration.md) for field details, rule packs, precedence, and runtime behavior.
+See the [complete configuration guide](./docs/configuration.md) for field details, rules, precedence, and runtime behavior.
 
 <!-- configuration-readme:end -->
 

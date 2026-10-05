@@ -30,7 +30,7 @@ export const SITE_EXAMPLE = {
     scope: "Recorded synthetic same-file study; not live/current installed integration evidence"
   },
   ruleId: "r4_duplicate_encoding",
-  // Wording copied from src/questions.ts and src/rules/bundled.ts.
+  // Wording copied from src/questions.ts and src/rules/shipped.ts.
   ruleQuestion:
     "Can a value of `artifact` carry one fact twice over and have the two copies disagree, because the shape stores it in more than one place?",
   feedbackMessage: "The type appears to store the same fact in places that can disagree.",

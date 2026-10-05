@@ -1,4 +1,3 @@
-import * as Schema from "effect/Schema"
 import {
   type ProbabilityWordsSchema,
   decoder,
@@ -11,9 +10,14 @@ import {
   readBendList,
   Probability
 } from "./boundary-schema.ts"
-import { decodeCanonicalConstructor, decodeCanonicalRejection } from "./constructors.ts"
+import { readCanonicalEvent } from "./event-reader.ts"
 import {
-  CanonicalEventSchema,
+  decodeCanonicalConstructor,
+  decodeCanonicalProjectionConstructor,
+  decodeCanonicalRejection,
+  withCanonicalConstructorReuse
+} from "./constructors.ts"
+import {
   CanonicalLimitsSchema,
   type JevRequestOutcome,
   type CompletedEditReason,
@@ -39,7 +43,7 @@ import {
   bendPreparationLimit,
   bendJevRequestLimit
 } from "./canonical.generated.js"
-
+import * as Schema from "effect/Schema"
 export type {
   JevRequestOutcome,
   CompletedEditReason,
@@ -70,12 +74,15 @@ const completedEditTags: Record<CompletedEditReason, string> = {
 const encodeCompletedEditReason = (reason: CompletedEditReason): unknown => ({
   $: `EditHistory.${completedEditTags[reason]}`
 })
-const decodeCompletedEditReason = (value: unknown): CompletedEditReason => {
+const decodeCompletedEditReason = (
+  value: unknown,
+  decode: typeof decodeCanonicalConstructor = decodeCanonicalConstructor
+): CompletedEditReason => {
   const entry = (Object.entries(completedEditTags) as [CompletedEditReason, string][]).find(
     ([, name]) => tag(value) === `EditHistory.${name}`
   )
   if (entry === undefined) throw new TypeError("invalid completed edit reason")
-  decodeCanonicalConstructor(value, `EditHistory.${entry[1]}`)
+  decode(value, `EditHistory.${entry[1]}`)
   return entry[0]
 }
 const object = readRecord
@@ -148,17 +155,6 @@ const deliverySurface = (surface: "edit" | "background" | "stop"): unknown => {
   const name = { edit: "Delivery.Edit", background: "Delivery.Background", stop: "Delivery.Stop" }[surface]
   return { $: name }
 }
-const _collectorReason = (reason: CollectorReason): unknown => {
-  const name = {
-    backend: "Backend",
-    credential: "Credential",
-    capacity: "Capacity",
-    stale: "Stale",
-    lost: "Lost",
-    expired: "Expired"
-  }[reason]
-  return { $: `CollectorAuthority.${name}` }
-}
 const reuseMemberState = (state: ReuseMemberState): unknown => {
   const name = {
     pending: "JoinedPending",
@@ -189,7 +185,6 @@ const decodeJevRequestOutcome = (value: unknown): JevRequestOutcome => {
   decodeCanonicalConstructor(value, name)
   return outcome
 }
-const decodeEvent = decoder(CanonicalEventSchema)
 const encodeReserveCapacity = (event: Extract<CanonicalEvent, { kind: "reserveCapacity" }>): unknown => {
   return {
     $: "Canonical.ReserveCapacity",
@@ -1277,7 +1272,7 @@ const eventEncoders: { [Kind in keyof EventByKind]: (event: EventByKind[Kind]) =
 
 const encodeVariant = <Kind extends keyof EventByKind>(event: EventByKind[Kind] & { readonly kind: Kind }): unknown =>
   eventEncoders[event.kind](event)
-export const encodeCanonicalEvent = (input: CanonicalEvent): unknown => encodeVariant(decodeEvent(input))
+export const encodeCanonicalEvent = (input: CanonicalEvent): unknown => encodeVariant(readCanonicalEvent(input))
 
 const outcome = (value: unknown): "finding" | "clear" | "unavailable" | "interrupted" | "discarded" => {
   const name = tag(value)
@@ -1313,7 +1308,10 @@ const decodeCollectorReason = (value: unknown): CollectorReason => {
   return reason
 }
 
-const purpose = (value: unknown): CapacityPurpose => {
+const purpose = (
+  value: unknown,
+  decode: typeof decodeCanonicalConstructor = decodeCanonicalConstructor
+): CapacityPurpose => {
   const names: Record<string, CapacityPurpose> = {
     "Ledger.ObservationDispatch": "observationDispatch",
     "Ledger.Preparation": "preparation",
@@ -1325,12 +1323,20 @@ const purpose = (value: unknown): CapacityPurpose => {
   const name = tag(value)
   const result = names[name]
   if (!result) throw new TypeError("unknown capacity purpose")
-  decodeCanonicalConstructor(value, name)
+  decode(value, name)
   return result
 }
-const charge = (value: unknown): CapacityCharge => {
-  const x = decodeCanonicalConstructor(value, "Ledger.Charge")
-  return { id: nat(x.id, true), partition: nat(x.partition, true), bytes: nat(x.bytes), purpose: purpose(x.purpose) }
+const charge = (
+  value: unknown,
+  decode: typeof decodeCanonicalConstructor = decodeCanonicalConstructor
+): CapacityCharge => {
+  const x = decode(value, "Ledger.Charge")
+  return {
+    id: nat(x.id, true),
+    partition: nat(x.partition, true),
+    bytes: nat(x.bytes),
+    purpose: purpose(x.purpose, decode)
+  }
 }
 const usage = (value: unknown): { readonly items: number; readonly bytes: number } => {
   const x = decodeCanonicalConstructor(value, "Ledger.Usage")
@@ -2236,19 +2242,19 @@ const registerCanonical = (state: unknown): void => {
     throw cause
   }
 }
-const decodeState = (value: unknown) => decodeCanonicalConstructor(value, "Canonical.State")
-const decodeLedger = (value: unknown) => decodeCanonicalConstructor(value, "Ledger.Ledger")
-const decodeLedgerLimits = (value: unknown) => decodeCanonicalConstructor(value, "Ledger.Limits")
+const decodeState = (value: unknown) => decodeCanonicalProjectionConstructor(value, "Canonical.State")
+const decodeLedger = (value: unknown) => decodeCanonicalProjectionConstructor(value, "Ledger.Ledger")
+const decodeLedgerLimits = (value: unknown) => decodeCanonicalProjectionConstructor(value, "Ledger.Limits")
 
 const projectCompletedEdits = (value: unknown) => {
-  const history = decodeCanonicalConstructor(value, "EditHistory.State")
+  const history = decodeCanonicalProjectionConstructor(value, "EditHistory.State")
   const completedEdits = readList(
     history.entries,
     (value) => {
-      const entry = decodeCanonicalConstructor(value, "EditHistory.Completed")
+      const entry = decodeCanonicalProjectionConstructor(value, "EditHistory.Completed")
       return {
         tool: nat(entry.tool, true),
-        reason: decodeCompletedEditReason(entry.reason),
+        reason: decodeCompletedEditReason(entry.reason, decodeCanonicalProjectionConstructor),
         reported: bool(entry.reported)
       }
     },
@@ -2260,9 +2266,9 @@ const projectCompletedEdits = (value: unknown) => {
 }
 
 const projectDispatch = (value: unknown) => {
-  const rawDispatch = decodeCanonicalConstructor(value, "Dispatch.State")
+  const rawDispatch = decodeCanonicalProjectionConstructor(value, "Dispatch.State")
   const dispatchEntry = (value: unknown): DispatchEntry => {
-    const x = decodeCanonicalConstructor(value, "Dispatch.Entry")
+    const x = decodeCanonicalProjectionConstructor(value, "Dispatch.Entry")
     return {
       partition: nat(x.partition, true),
       lifetime: nat(x.lifetime, true),
@@ -2274,7 +2280,7 @@ const projectDispatch = (value: unknown) => {
     }
   }
   const requests = readList(rawDispatch.requests, (value) => {
-    const x = decodeCanonicalConstructor(value, "Dispatch.Request")
+    const x = decodeCanonicalProjectionConstructor(value, "Dispatch.Request")
     return {
       partition: nat(x.partition, true),
       lifetime: nat(x.lifetime, true),
@@ -2296,19 +2302,19 @@ const projectDispatch = (value: unknown) => {
 }
 
 const projectNotices = (value: unknown) => {
-  const noticeState = decodeCanonicalConstructor(value, "NoticeState.State")
+  const noticeState = decodeCanonicalProjectionConstructor(value, "NoticeState.State")
   const notices: CanonicalProjection["notices"] = readList(noticeState.records, (value) => {
-    const item = decodeCanonicalConstructor(value, "NoticeState.Record")
+    const item = decodeCanonicalProjectionConstructor(value, "NoticeState.Record")
     const pending =
       tag(item.pending) === "Some"
         ? (() => {
-            const p = decodeCanonicalConstructor(
-              decodeCanonicalConstructor(item.pending, "Some").value,
+            const p = decodeCanonicalProjectionConstructor(
+              decodeCanonicalProjectionConstructor(item.pending, "Some").value,
               "NoticeState.Pending"
             )
             return { id: nat(p.id, true), count: nat(p.count), sequence: nat(p.sequence, true), leased: bool(p.leased) }
           })()
-        : (decodeCanonicalConstructor(item.pending, "None"), undefined)
+        : (decodeCanonicalProjectionConstructor(item.pending, "None"), undefined)
     return {
       id: nat(item.id, true),
       partition: nat(item.partition, true),
@@ -2331,14 +2337,14 @@ const projectNotices = (value: unknown) => {
 }
 
 const projectReuse = (value: unknown) => {
-  const reuseState = decodeCanonicalConstructor(value, "ReuseState.State")
+  const reuseState = decodeCanonicalProjectionConstructor(value, "ReuseState.State")
   const reuse: CanonicalProjection["reuse"] = {
     claims: readList(reuseState.claims, (value) => {
-      const item = decodeCanonicalConstructor(value, "ReuseState.Claim")
+      const item = decodeCanonicalProjectionConstructor(value, "ReuseState.Claim")
       return { id: nat(item.id, true), attached: bool(item.attached) }
     }),
     cache: readList(reuseState.cache, (value) => {
-      const item = decodeCanonicalConstructor(value, "ReuseState.Entry")
+      const item = decodeCanonicalProjectionConstructor(value, "ReuseState.Entry")
       return {
         id: nat(item.id, true),
         partition: nat(item.partition, true),
@@ -2357,10 +2363,10 @@ const projectReuse = (value: unknown) => {
 }
 
 const projectRevision = (value: unknown) => {
-  const rawRevision = decodeCanonicalConstructor(value, "RevisionState.State")
+  const rawRevision = decodeCanonicalProjectionConstructor(value, "RevisionState.State")
   const revision = {
     entries: readList(rawRevision.entries, (value) => {
-      const entry = decodeCanonicalConstructor(value, "RevisionState.Entry")
+      const entry = decodeCanonicalProjectionConstructor(value, "RevisionState.Entry")
       return {
         subject: nat(entry.subject, true),
         input: nat(entry.input, true),
@@ -2376,15 +2382,15 @@ const projectRevision = (value: unknown) => {
 }
 
 const projectCollection = (value: unknown) => {
-  const collectionState = decodeCanonicalConstructor(value, "CollectionState.State")
+  const collectionState = decodeCanonicalProjectionConstructor(value, "CollectionState.State")
   const collection = {
     ready: readList(collectionState.ready, (id) => nat(id, true)),
     leases: readList(collectionState.leases, (value) => {
-      const item = decodeCanonicalConstructor(value, "CollectionState.Lease")
+      const item = decodeCanonicalProjectionConstructor(value, "CollectionState.Lease")
       return { advice: nat(item.advice, true), owner: nat(item.owner, true) }
     }),
     claims: readList(collectionState.claims, (value) => {
-      const item = decodeCanonicalConstructor(value, "CollectionState.Claim")
+      const item = decodeCanonicalProjectionConstructor(value, "CollectionState.Claim")
       return { group: nat(item.group, true), owner: nat(item.owner, true) }
     })
   }
@@ -2400,20 +2406,20 @@ const projectCollection = (value: unknown) => {
 }
 
 const projectDelivery = (value: unknown) => {
-  const deliveryState = decodeCanonicalConstructor(value, "DeliveryState.State")
-  const rawSubmissions = decodeCanonicalConstructor(deliveryState.submissions, "SubmissionState.State")
+  const deliveryState = decodeCanonicalProjectionConstructor(value, "DeliveryState.State")
+  const rawSubmissions = decodeCanonicalProjectionConstructor(deliveryState.submissions, "SubmissionState.State")
   const surface = (value: unknown): "edit" | "background" | "stop" => {
     const name = tag(value)
-    decodeCanonicalConstructor(value, name)
+    decodeCanonicalProjectionConstructor(value, name)
     if (name === "Handoff.Edit") return "edit"
     if (name === "Handoff.Background") return "background"
     if (name === "Handoff.Stop") return "stop"
     throw new TypeError("invalid submission surface")
   }
   const decodeLease = (value: unknown) => {
-    const lease = decodeCanonicalConstructor(value, "Handoff.Lease")
+    const lease = decodeCanonicalProjectionConstructor(value, "Handoff.Lease")
     const phaseName = tag(lease.phase)
-    const leasePhase = decodeCanonicalConstructor(lease.phase, phaseName)
+    const leasePhase = decodeCanonicalProjectionConstructor(lease.phase, phaseName)
     if ("surface" in leasePhase) surface(leasePhase.surface)
     const phase = phaseName.slice("Handoff.".length).toLowerCase()
     if (!["available", "reserved", "authorized", "submitted", "uncertain"].includes(phase))
@@ -2428,8 +2434,8 @@ const projectDelivery = (value: unknown) => {
   }
   const delivery = {
     slots: readList(deliveryState.slots, (value) => {
-      const item = decodeCanonicalConstructor(value, "DeliveryState.Slot")
-      decodeCanonicalConstructor(item.phase, tag(item.phase))
+      const item = decodeCanonicalProjectionConstructor(value, "DeliveryState.Slot")
+      decodeCanonicalProjectionConstructor(item.phase, tag(item.phase))
       const phase = tag(item.phase).slice("DeliveryState.".length).toLowerCase()
       if (!["reserved", "authorized", "submitted", "failed", "uncertain"].includes(phase))
         throw new TypeError("invalid canonical delivery phase")
@@ -2443,13 +2449,13 @@ const projectDelivery = (value: unknown) => {
       }
     }),
     counters: readList(deliveryState.counters, (value) => {
-      const item = decodeCanonicalConstructor(value, "DeliveryState.Counter")
+      const item = decodeCanonicalProjectionConstructor(value, "DeliveryState.Counter")
       return { group: nat(item.group, true), round: nat(item.round, true), used: nat(item.used) }
     }),
     submissions: {
       batches: readList(rawSubmissions.batches, (value) => {
-        const item = decodeCanonicalConstructor(value, "SubmissionState.Batch")
-        decodeCanonicalConstructor(item.phase, tag(item.phase))
+        const item = decodeCanonicalProjectionConstructor(value, "SubmissionState.Batch")
+        decodeCanonicalProjectionConstructor(item.phase, tag(item.phase))
         const phase = tag(item.phase).slice("Delivery.".length).toLowerCase()
         if (!["reserved", "authorized", "submitted", "uncertain"].includes(phase))
           throw new TypeError("invalid submission phase")
@@ -2465,10 +2471,11 @@ const projectDelivery = (value: unknown) => {
         }
       }),
       leases: readList(rawSubmissions.leases, (value) => {
-        const item = decodeCanonicalConstructor(value, "SubmissionState.LeaseRecord")
+        const item = decodeCanonicalProjectionConstructor(value, "SubmissionState.LeaseRecord")
         const lease = decodeLease(item.current)
-        if (tag(item.previous) === "Some") decodeLease(decodeCanonicalConstructor(item.previous, "Some").value)
-        else decodeCanonicalConstructor(item.previous, "None")
+        if (tag(item.previous) === "Some")
+          decodeLease(decodeCanonicalProjectionConstructor(item.previous, "Some").value)
+        else decodeCanonicalProjectionConstructor(item.previous, "None")
         return { advice: nat(item.advice, true), fingerprint: nat(item.fingerprint, true), ...lease }
       })
     }
@@ -2613,7 +2620,7 @@ const validateRoundIdentities = (
 }
 
 const projectGlobal = (state: unknown, charges: CanonicalProjection["charges"], usedBytes: number) => {
-  const total = decodeCanonicalConstructor(bendCanonicalTotal(state), "Ledger.Usage")
+  const total = decodeCanonicalProjectionConstructor(bendCanonicalTotal(state), "Ledger.Usage")
   const global = { items: nat(total.items), bytes: nat(total.bytes) }
   if (global.items !== charges.length || global.bytes !== usedBytes) throw new TypeError("Bend ledger total mismatch")
   return global
@@ -2621,10 +2628,10 @@ const projectGlobal = (state: unknown, charges: CanonicalProjection["charges"], 
 
 const projectInventory = (state: unknown, limits: ReturnType<typeof decodeLedgerLimits>) => {
   const inventory = readList(bendCanonicalInventory(state), (entry) => {
-    const x = decodeCanonicalConstructor(entry, "Ledger.InventoryEntry")
-    const entryLimits = decodeCanonicalConstructor(x.limits, "Ledger.Limits")
+    const x = decodeCanonicalProjectionConstructor(entry, "Ledger.InventoryEntry")
+    const entryLimits = decodeCanonicalProjectionConstructor(x.limits, "Ledger.Limits")
     return {
-      purpose: purpose(x.purpose),
+      purpose: purpose(x.purpose, decodeCanonicalProjectionConstructor),
       limits: {
         globalItems: nat(entryLimits.global_items, true),
         globalBytes: nat(entryLimits.global_bytes, true),
@@ -2656,153 +2663,163 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
   }
   const identity = object(state)
   if (!known.has(identity)) throw new TypeError("foreign canonical state")
-  const s = decodeState(state)
-  nat(s.next_round, true)
-  nat(s.next_operation, true)
-  const completedEdits = projectCompletedEdits(s.history)
-  const dispatch = projectDispatch(s.dispatch)
-  const collectionState = decodeCanonicalConstructor(s.collection, "CollectionState.State")
-  const notices = projectNotices(collectionState.notices)
-  const reuse = projectReuse(collectionState.reuse)
-  const revision = projectRevision(collectionState.revision)
+  return withCanonicalConstructorReuse(() => {
+    const s = decodeState(state)
+    nat(s.next_round, true)
+    nat(s.next_operation, true)
+    const completedEdits = projectCompletedEdits(s.history)
+    const dispatch = projectDispatch(s.dispatch)
+    const collectionState = decodeCanonicalProjectionConstructor(s.collection, "CollectionState.State")
+    const notices = projectNotices(collectionState.notices)
+    const reuse = projectReuse(collectionState.reuse)
+    const revision = projectRevision(collectionState.revision)
 
-  const collection = projectCollection(s.collection)
-  const delivery = projectDelivery(collectionState.delivery)
-  const executionLimits = {
-    preparation: nat(bendPreparationLimit(), true),
-    jevRequests: nat(bendJevRequestLimit(), true)
-  }
-  validateDispatch(dispatch, executionLimits)
-  const ledger = decodeLedger(s.ledger)
-  nat(ledger.next_id, true)
-  const limits = decodeLedgerLimits(ledger.limits)
-  for (const value of Object.values(limits).slice(1)) nat(value, true)
-  const charges = readList(ledger.charges, charge)
-  const rounds = readList(s.rounds, (value) => {
-    const x = decodeCanonicalConstructor(value, "Canonical.Round")
-    const write = tag(x.write) === "Some" ? nat(decodeCanonicalConstructor(x.write, "Some").value, true) : undefined
-    if (write === undefined) decodeCanonicalConstructor(x.write, "None")
-    const quietSince =
-      tag(x.quiet_since) === "Some" ? nat(decodeCanonicalConstructor(x.quiet_since, "Some").value) : undefined
-    if (quietSince === undefined) decodeCanonicalConstructor(x.quiet_since, "None")
-    return {
-      partition: nat(x.partition, true),
-      lifetime: nat(x.lifetime, true),
-      id: nat(x.id, true),
-      waiting: bool(x.waiting),
-      deciding: bool(x.deciding),
-      ...(write === undefined ? {} : { write }),
-      uncertain: bool(x.uncertain),
-      ...(quietSince === undefined ? {} : { quietSince })
+    const collection = projectCollection(s.collection)
+    const delivery = projectDelivery(collectionState.delivery)
+    const executionLimits = {
+      preparation: nat(bendPreparationLimit(), true),
+      jevRequests: nat(bendJevRequestLimit(), true)
     }
-  })
-  const admissions = readList(s.admissions, (value) => {
-    const x = decodeCanonicalConstructor(value, "Admission.AdmissionState")
-    const permits = readList(x.permits, (entry) => {
-      const permit = decodeCanonicalConstructor(entry, "Admission.Permit")
-      const started = nat(permit.started)
-      const deadline = nat(permit.deadline)
-      if (deadline < started) throw new TypeError("invalid permit deadline")
-      return { token: nat(permit.token, true), tool: nat(permit.tool, true), round: nat(permit.round, true), deadline }
+    validateDispatch(dispatch, executionLimits)
+    const ledger = decodeLedger(s.ledger)
+    nat(ledger.next_id, true)
+    const limits = decodeLedgerLimits(ledger.limits)
+    for (const value of Object.values(limits).slice(1)) nat(value, true)
+    const charges = readList(ledger.charges, (value) => charge(value, decodeCanonicalProjectionConstructor))
+    const rounds = readList(s.rounds, (value) => {
+      const x = decodeCanonicalProjectionConstructor(value, "Canonical.Round")
+      const write =
+        tag(x.write) === "Some" ? nat(decodeCanonicalProjectionConstructor(x.write, "Some").value, true) : undefined
+      if (write === undefined) decodeCanonicalProjectionConstructor(x.write, "None")
+      const quietSince =
+        tag(x.quiet_since) === "Some"
+          ? nat(decodeCanonicalProjectionConstructor(x.quiet_since, "Some").value)
+          : undefined
+      if (quietSince === undefined) decodeCanonicalProjectionConstructor(x.quiet_since, "None")
+      return {
+        partition: nat(x.partition, true),
+        lifetime: nat(x.lifetime, true),
+        id: nat(x.id, true),
+        waiting: bool(x.waiting),
+        deciding: bool(x.deciding),
+        ...(write === undefined ? {} : { write }),
+        uncertain: bool(x.uncertain),
+        ...(quietSince === undefined ? {} : { quietSince })
+      }
     })
-    const next = nat(x.next_token, true)
-    if (
-      permits.some((item) => item.token >= next) ||
-      new Set(permits.map((item) => item.token)).size !== permits.length ||
-      new Set(permits.map((item) => item.tool)).size !== permits.length
-    )
-      throw new TypeError("invalid admission tokens")
-    return {
-      partition: nat(x.partition, true),
-      lifetime: nat(x.lifetime, true),
-      round: nat(x.round),
-      active: bool(x.active),
-      closedAt: nat(x.closed_at),
-      permits
-    }
-  })
-  const work = readList(s.work, (value) => {
-    const x = decodeCanonicalConstructor(value, "Canonical.Work")
-    const kind = tag(x.kind)
-    decodeCanonicalConstructor(x.kind, kind)
-    const names = {
-      "Canonical.AwaitingSourceRead": "awaitingSourceRead",
-      "Canonical.SourceReading": "sourceReading",
-      "Canonical.Preparing": "preparing",
-      "Canonical.Reviewing": "reviewing",
-      "Canonical.AtJev": "atJev",
-      "Canonical.PendingFinding": "pendingFinding"
-    } as const
-    const stage = names[kind as keyof typeof names]
-    if (stage === undefined) throw new TypeError("invalid work kind")
-    return {
-      partition: nat(x.partition, true),
-      lifetime: nat(x.lifetime, true),
-      round: nat(x.round, true),
-      operation: nat(x.operation, true),
-      reservation: nat(x.charge),
-      parent: nat(x.parent),
-      kind: stage
-    }
-  })
-  const pendingFindings = readList(s.work, (value) => {
-    const x = decodeCanonicalConstructor(value, "Canonical.Work")
-    return tag(x.kind) === "Canonical.PendingFinding"
-      ? {
-          operation: nat(x.operation, true),
-          count: nat(decodeCanonicalConstructor(x.kind, "Canonical.PendingFinding").count, true)
+    const admissions = readList(s.admissions, (value) => {
+      const x = decodeCanonicalProjectionConstructor(value, "Admission.AdmissionState")
+      const permits = readList(x.permits, (entry) => {
+        const permit = decodeCanonicalProjectionConstructor(entry, "Admission.Permit")
+        const started = nat(permit.started)
+        const deadline = nat(permit.deadline)
+        if (deadline < started) throw new TypeError("invalid permit deadline")
+        return {
+          token: nat(permit.token, true),
+          tool: nat(permit.tool, true),
+          round: nat(permit.round, true),
+          deadline
         }
-      : undefined
-  }).filter((item): item is { operation: number; count: number } => item !== undefined)
-  const chargeIds = new Set(charges.map((x) => x.id))
-  const chargesById = new Map(charges.map((x) => [x.id, x]))
-  if (
-    notices.some((item) => {
-      const held = chargesById.get(item.reservation)
-      return held?.purpose !== "operationalNotice" || held.partition !== item.partition
+      })
+      const next = nat(x.next_token, true)
+      if (
+        permits.some((item) => item.token >= next) ||
+        new Set(permits.map((item) => item.token)).size !== permits.length ||
+        new Set(permits.map((item) => item.tool)).size !== permits.length
+      )
+        throw new TypeError("invalid admission tokens")
+      return {
+        partition: nat(x.partition, true),
+        lifetime: nat(x.lifetime, true),
+        round: nat(x.round),
+        active: bool(x.active),
+        closedAt: nat(x.closed_at),
+        permits
+      }
     })
-  )
-    throw new TypeError("canonical notice reservation mismatch")
-  const usedBytes = charges.reduce((sum, x) => sum + x.bytes, 0)
-  validateStateIdentities({ charges, chargeIds, work, rounds, admissions }, s)
-  validateWorkReservations(work, chargesById, rounds, s)
-  validateCachedReservations(reuse.cache, chargesById)
-  validateCapacityLimits(charges, rounds, usedBytes, ledger, limits)
-  const global = projectGlobal(state, charges, usedBytes)
-  const partitionIds = [
-    ...new Set([...rounds.map((round) => round.partition), ...charges.map((item) => item.partition)])
-  ]
-  const partitions = partitionIds.map((partition) => {
-    const usage = decodeCanonicalConstructor(bendCanonicalPartitionUsage(state, partition), "Ledger.Usage")
-    return { partition, items: nat(usage.items), bytes: nat(usage.bytes) }
+    const work = readList(s.work, (value) => {
+      const x = decodeCanonicalProjectionConstructor(value, "Canonical.Work")
+      const kind = tag(x.kind)
+      decodeCanonicalProjectionConstructor(x.kind, kind)
+      const names = {
+        "Canonical.AwaitingSourceRead": "awaitingSourceRead",
+        "Canonical.SourceReading": "sourceReading",
+        "Canonical.Preparing": "preparing",
+        "Canonical.Reviewing": "reviewing",
+        "Canonical.AtJev": "atJev",
+        "Canonical.PendingFinding": "pendingFinding"
+      } as const
+      const stage = names[kind as keyof typeof names]
+      if (stage === undefined) throw new TypeError("invalid work kind")
+      return {
+        partition: nat(x.partition, true),
+        lifetime: nat(x.lifetime, true),
+        round: nat(x.round, true),
+        operation: nat(x.operation, true),
+        reservation: nat(x.charge),
+        parent: nat(x.parent),
+        kind: stage
+      }
+    })
+    const pendingFindings = readList(s.work, (value) => {
+      const x = decodeCanonicalProjectionConstructor(value, "Canonical.Work")
+      return tag(x.kind) === "Canonical.PendingFinding"
+        ? {
+            operation: nat(x.operation, true),
+            count: nat(decodeCanonicalProjectionConstructor(x.kind, "Canonical.PendingFinding").count, true)
+          }
+        : undefined
+    }).filter((item): item is { operation: number; count: number } => item !== undefined)
+    const chargeIds = new Set(charges.map((x) => x.id))
+    const chargesById = new Map(charges.map((x) => [x.id, x]))
+    if (
+      notices.some((item) => {
+        const held = chargesById.get(item.reservation)
+        return held?.purpose !== "operationalNotice" || held.partition !== item.partition
+      })
+    )
+      throw new TypeError("canonical notice reservation mismatch")
+    const usedBytes = charges.reduce((sum, x) => sum + x.bytes, 0)
+    validateStateIdentities({ charges, chargeIds, work, rounds, admissions }, s)
+    validateWorkReservations(work, chargesById, rounds, s)
+    validateCachedReservations(reuse.cache, chargesById)
+    validateCapacityLimits(charges, rounds, usedBytes, ledger, limits)
+    const global = projectGlobal(state, charges, usedBytes)
+    const partitionIds = [
+      ...new Set([...rounds.map((round) => round.partition), ...charges.map((item) => item.partition)])
+    ]
+    const partitions = partitionIds.map((partition) => {
+      const usage = decodeCanonicalProjectionConstructor(bendCanonicalPartitionUsage(state, partition), "Ledger.Usage")
+      return { partition, items: nat(usage.items), bytes: nat(usage.bytes) }
+    })
+    const inventory = projectInventory(state, limits)
+    const projection: CanonicalProjection = freezeCanonicalData({
+      global,
+      executionLimits,
+      limits: {
+        globalItems: nat(limits.global_items, true),
+        globalBytes: nat(limits.global_bytes, true),
+        partitionItems: nat(limits.partition_items, true),
+        partitionBytes: nat(limits.partition_bytes, true)
+      },
+      partitions,
+      charges,
+      inventory,
+      rounds,
+      admissions,
+      completedEdits,
+      work,
+      pendingFindings,
+      dispatch,
+      collection,
+      revision,
+      reuse,
+      notices,
+      delivery
+    })
+    projections.set(identity, projection)
+    return projection
   })
-  const inventory = projectInventory(state, limits)
-  const projection: CanonicalProjection = freezeCanonicalData({
-    global,
-    executionLimits,
-    limits: {
-      globalItems: nat(limits.global_items, true),
-      globalBytes: nat(limits.global_bytes, true),
-      partitionItems: nat(limits.partition_items, true),
-      partitionBytes: nat(limits.partition_bytes, true)
-    },
-    partitions,
-    charges,
-    inventory,
-    rounds,
-    admissions,
-    completedEdits,
-    work,
-    pendingFindings,
-    dispatch,
-    collection,
-    revision,
-    reuse,
-    notices,
-    delivery
-  })
-  projections.set(identity, projection)
-  return projection
 }
 const decodeLimits = decoder(CanonicalLimitsSchema)
 export const initialCanonical = (input: typeof CanonicalLimitsSchema.Type): unknown => {

@@ -81,5 +81,6 @@ type Control is Data:
   WorkloadControl{identity: Maybe<&2, Nat>, control: Workload.Control}
   JevProfile{delay: Nat, weights: List<&2, Numeric.Words>}
   EnvironmentControl{current_work: Bool, credential_ready: Bool, credential_generation: Nat, source_readable: Bool}
+  JevDelay{delay: Nat}
 type Controlled is Data:
   Controlled{state: State, applied: Bool}

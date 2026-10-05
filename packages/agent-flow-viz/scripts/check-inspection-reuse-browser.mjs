@@ -11,7 +11,7 @@ import { adaptCodexDirectEvent } from "../../../src/direct-event/adapter.ts"
 import { addEvent, makeGitFixture, put } from "../../../src/direct-event/test-fixtures.ts"
 import { makeInspectionStorage } from "../../../src/inspection/storage.ts"
 import { makeInspectionHttpServer } from "../../../src/inspection/http.ts"
-import { configuredRules } from "../../../src/policy/rules.ts"
+import { configuredRules, connectDefaultRuleFixture } from "../../../src/test-support/default-rules.ts"
 import { readCredentialState } from "../../../src/credentials/secret-service.ts"
 import { nativeDeferred } from "../../../src/test-support/native-deferred.ts"
 
@@ -25,7 +25,10 @@ const deadline = setTimeout(() => {
 }, 45000)
 const release = nativeDeferred()
 try {
-  await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+  await writeFile(
+    join(root, ".hapsland.jsonc"),
+    JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+  )
   await put(root, "type.ts", "type OrderCount = number;\n")
   const history = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 4 * 1048576 })
   const started = nativeDeferred()
@@ -76,7 +79,7 @@ try {
     credential: {
       name: "TYPESAFE_API_KEY",
       environmentValue: "OFFLINE_REUSE_KEY",
-      environmentOnly: true,
+
       generation: readCredentialState(join(root, "credential-state")).generation,
       statePath: join(root, "credential-state")
     }

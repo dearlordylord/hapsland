@@ -116,8 +116,8 @@ sanitized failures without raw credentials or source-bearing responses.
 Run `npx vitest run --maxWorkers=1 src/review-providers` for offline validation.
 The checks cover both model selectors, actual HTTP body/account/auth shape,
 criteria and ID mapping, 64/65 questions, the exact body byte boundary with UTF-8
-and escaping, malformed/failed responses, configuration ownership, and model-change
-invalidation. They establish adapter behavior against controlled transports.
+and escaping, malformed/failed responses, configuration ownership, and captured
+provider selection across credential waits. They establish adapter behavior against controlled transports.
 No live Cloudflare request, quality comparison, latency measurement, or native
 agent/platform validation is claimed. The separate evaluation milestone runner
 remains a Jev-specific suite.

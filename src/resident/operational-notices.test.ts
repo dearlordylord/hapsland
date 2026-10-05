@@ -6,8 +6,8 @@ import { symlink, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
 import type { DirectObservation, DirectAdvicee } from "../direct-event/model.ts"
-import { addEvent, makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../policy/rules.ts"
+import { addEvent, makeReviewGitFixture as makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts"
+import { configuredRules } from "../test-support/default-rules.ts"
 import type { ResidentDispatchContext } from "./protocol.ts"
 import { MAX_OPERATIONAL_NOTICE_KEYS, OPERATIONAL_NOTICE_COOLDOWN_MS } from "./server.ts"
 import { residentPaths } from "./paths.ts"
@@ -40,33 +40,31 @@ const installCapacityRule = async (root: string, threshold = 0.7, messageBytes =
     root,
     "rules.jsonc",
     JSON.stringify({
-      schemaVersion: 1,
-      id: "team",
-      contentVersion: "1",
-      rules: [
+      version: 1,
+      id: "large",
+      question: "Does this declaration need review?",
+      criteria: { false: "No", true: "Yes" },
+      threshold,
+      message: "x".repeat(messageBytes),
+      inputs: [
         {
-          id: "large",
-          question: "Does this declaration need review?",
-          criteria: { false: "No", true: "Yes" },
-          threshold,
-          message: "x".repeat(messageBytes),
-          applicability: { includes: ["**/*.ts"] },
-          reviewTargets: [
-            {
-              artifactKind: "typeShape",
-              inputContract: "direct-event/type-shape/v1",
-              capabilities: ["root-declaration", "resolved-outbound-types"]
-            }
-          ]
+          languages: ["typescript", "rust", "bend"],
+          kind: "type",
+
+          requires: ["root-declaration", "resolved-outbound-types"]
         }
       ]
     })
   )
-  await put(root, ".hapsland.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }))
+  await put(
+    root,
+    ".hapsland.jsonc",
+    JSON.stringify({ version: 1, rules: [{ path: "rules.jsonc", includes: ["**/*.ts"] }] })
+  )
 }
 
 const capacityDispatch = (statePath: string): ResidentDispatchContext =>
-  dispatch(statePath, { answers: { ...answers, "team/large": { _tag: "Probability", probability: 1 } } })
+  dispatch(statePath, { answers: { ...answers, large: { _tag: "Probability", probability: 1 } } })
 
 const collectAndFinalize = async (
   server: ResidentRuntime,
@@ -94,7 +92,7 @@ const fillAndFinalizeCooldownTable = async (
       advicee: advicee({ sessionId: `session-${index}`, turnId: `turn-${index}`, toolUseId: `tool-${index}` })
     }
     scopes.push(scoped)
-    expect(Effect.runSync(server.admit(scoped, context)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(scoped, context))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
   }
   expect(await Effect.runPromise(server.accountingMetrics())).toMatchObject({
@@ -134,7 +132,7 @@ console.log('{"version":1,"status":"interaction-required"}');
       credential: {
         name: "TYPESAFE_API_KEY",
         environmentValue: null,
-        environmentOnly: false,
+
         generation: 1,
         statePath: credentialStatePath
       },
@@ -142,7 +140,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     }
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")))
     try {
-      expect(Effect.runSync(server.admit(observation, context)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(observation, context))).status).toBe("accepted")
       await Effect.runPromise(server.whenIdle())
       const result = await collectAndFinalize(server, observation, context)
       expect(result.status).toBe("empty")
@@ -164,7 +162,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     let now = 100
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime-a")), () => now)
 
-    expect(Effect.runSync(server.admit(observation, failed)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(observation, failed))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     const first = await collectAndFinalize(server, observation, failed)
     expect(first.status).toBe("empty")
@@ -177,14 +175,14 @@ console.log('{"version":1,"status":"interaction-required"}');
     expect(await Effect.runPromise(server.collect(root, observation.advicee, failed))).toMatchObject({
       status: "empty"
     })
-    expect(Effect.runSync(server.admit(observation, failed)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(observation, failed))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     expect(await Effect.runPromise(server.collect(root, observation.advicee, failed))).toMatchObject({
       status: "empty"
     })
 
     now += 1
-    expect(Effect.runSync(server.admit(observation, failed)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(observation, failed))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     const boundary = await collectAndFinalize(server, observation, failed)
     expect(boundary.status).toBe("empty")
@@ -195,7 +193,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     })
 
     const restarted = await acquireResidentFixture(residentPaths(join(root, "runtime-b")), () => now)
-    expect(Effect.runSync(restarted.admit(observation, failed)).status).toBe("accepted")
+    expect((await Effect.runPromise(restarted.admit(observation, failed))).status).toBe("accepted")
     await Effect.runPromise(restarted.whenIdle())
     expect((await Effect.runPromise(restarted.collect(root, observation.advicee, failed))).status).toBe("empty")
     await Effect.runPromise(server.close)
@@ -207,13 +205,13 @@ console.log('{"version":1,"status":"interaction-required"}');
     const failed = dispatch(statePath, { failure: "offline backend" })
     let now = 100
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => now)
-    expect(Effect.runSync(server.admit(observation, failed)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(observation, failed))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     now += OPERATIONAL_NOTICE_COOLDOWN_MS - 1
-    expect(Effect.runSync(server.admit(observation, failed)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(observation, failed))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     now += 1
-    expect(Effect.runSync(server.admit(observation, failed)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(observation, failed))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     const result = await collectAndFinalize(server, observation, failed)
     expect(result.status).toBe("empty")
@@ -229,13 +227,13 @@ console.log('{"version":1,"status":"interaction-required"}');
     const failed = dispatch(statePath, { failure: "offline backend" })
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 1_000)
 
-    expect(Effect.runSync(server.admit(observation, failed)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(observation, failed))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     await installCapacityRule(root)
-    expect(Effect.runSync(server.admit(observation, capacityDispatch(statePath))).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(observation, capacityDispatch(statePath)))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     await installCapacityRule(root, 0.7, 32)
-    expect(Effect.runSync(server.admit(observation, capacityDispatch(statePath))).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(observation, capacityDispatch(statePath)))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     const combined = await Effect.runPromise(server.collect(root, observation.advicee, capacityDispatch(statePath)))
     expect(combined.status).toBe("advice")
@@ -253,14 +251,14 @@ console.log('{"version":1,"status":"interaction-required"}');
       toolUseId: "other-tool"
     })
     const otherObservation = { ...observation, advicee: otherAdvicee }
-    expect(Effect.runSync(server.admit(otherObservation, failed)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(otherObservation, failed))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     const otherAdviceeNotice = await collectAndFinalize(server, otherObservation, failed)
     expect(otherAdviceeNotice.status).toBe("empty")
 
     const second = await fixture()
     const secondFailed = dispatch(second.statePath, { failure: "offline backend" })
-    expect(Effect.runSync(server.admit(second.observation, secondFailed)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(second.observation, secondFailed))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     expect(await Effect.runPromise(server.collect(root, observation.advicee, failed))).toMatchObject({
       status: "empty"
@@ -285,7 +283,7 @@ console.log('{"version":1,"status":"interaction-required"}');
 
     now += PENDING_ADVICE_EXPIRY_MS
     await installCapacityRule(root, 0.7, 32)
-    expect(Effect.runSync(server.admit(observation, capacityDispatch(statePath))).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(observation, capacityDispatch(statePath)))).status).toBe("accepted")
     expect(await Effect.runPromise(server.accountingMetrics())).toMatchObject({ operationalNoticeKeys: 0 })
     await Effect.runPromise(server.whenIdle())
     await Effect.runPromise(server.close)
@@ -301,7 +299,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     await put(root, ".env.local", "SECRET=not-read\n")
     const excluded = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [".env.local"])))
     if (excluded === undefined) throw new Error("excluded fixture adaptation failed")
-    expect(Effect.runSync(excludedServer.admit(excluded, capacity)).status).toBe("accepted")
+    expect((await Effect.runPromise(excludedServer.admit(excluded, capacity))).status).toBe("accepted")
     await Effect.runPromise(excludedServer.whenIdle())
     expect(await Effect.runPromise(excludedServer.collect(root, excluded.advicee, capacity))).toMatchObject({
       status: "empty"
@@ -311,7 +309,7 @@ console.log('{"version":1,"status":"interaction-required"}');
       pendingOperationalNotices: maximumKeys
     })
     excludedNow += PENDING_ADVICE_EXPIRY_MS
-    expect(Effect.runSync(excludedServer.admit(excluded, capacity)).status).toBe("accepted")
+    expect((await Effect.runPromise(excludedServer.admit(excluded, capacity))).status).toBe("accepted")
     await Effect.runPromise(excludedServer.whenIdle())
     expect(await Effect.runPromise(excludedServer.collect(root, excluded.advicee, capacity))).toMatchObject({
       status: "empty"
@@ -368,7 +366,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     const failed = dispatch(statePath, { failure: "offline backend" })
     let now = 20
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => now)
-    expect(Effect.runSync(server.admit(observation, failed)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(observation, failed))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     expect(await Effect.runPromise(server.accountingMetrics())).toMatchObject({
       operationalNoticeKeys: 1,
@@ -376,7 +374,9 @@ console.log('{"version":1,"status":"interaction-required"}');
     })
 
     now += PENDING_ADVICE_EXPIRY_MS
-    expect(Effect.runSync(server.admit(observation, dispatch(statePath, { answers }))).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(observation, dispatch(statePath, { answers })))).status).toBe(
+      "accepted"
+    )
     expect(await Effect.runPromise(server.accountingMetrics())).toMatchObject({
       operationalNoticeKeys: 0,
       pendingOperationalNotices: 0
@@ -390,7 +390,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 10)
     const oversized = dispatch(statePath, { answers: { oversized: "x".repeat(2 * 1024 * 1024) } })
     const unknown = { ...observation, advicee: { ...observation.advicee, sessionId: "" } }
-    expect(Effect.runSync(server.admit(unknown, oversized)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(unknown, oversized))).status).toBe("accepted")
     expect(await Effect.runPromise(server.accountingMetrics())).toMatchObject({ operationalNoticeKeys: 0 })
 
     await installCapacityRule(root)
@@ -419,13 +419,13 @@ console.log('{"version":1,"status":"interaction-required"}');
     )
     if (unsupported === undefined) throw new Error("unsupported fixture adaptation failed")
     const capacity = capacityDispatch(statePath)
-    expect(Effect.runSync(server.admit(unsupported, capacity)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(unsupported, capacity))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     const unsupportedOperation = {
       ...observation,
       candidates: [{ operation: "delete" as const, path: "type.ts", addedLines: [] as const }]
     }
-    expect(Effect.runSync(server.admit(unsupportedOperation, capacity)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(unsupportedOperation, capacity))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     expect(await Effect.runPromise(server.collect(root, unsupported.advicee, capacity))).toMatchObject({
       status: "empty"

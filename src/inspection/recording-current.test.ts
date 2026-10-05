@@ -8,13 +8,16 @@ import { acquireResidentFixture } from "../resident/runtime-fixture.ts"
 import { residentPaths } from "../resident/paths.ts"
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
 import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../policy/rules.ts"
+import { configuredRules, connectDefaultRuleFixture } from "../test-support/default-rules.ts"
 import { nativeDeferred } from "../test-support/native-deferred.ts"
 
 it("shows live recording state separately when its last disabled observation was not retained", async () => {
   const root = await makeGitFixture()
   const config = join(root, ".hapsland.jsonc")
-  await writeFile(config, JSON.stringify({ version: 1, sessionInspection: true }))
+  await writeFile(
+    config,
+    JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+  )
   const history = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
   const published = nativeDeferred<void>()
   const disabled = nativeDeferred<void>()
@@ -43,17 +46,19 @@ it("shows live recording state separately when its last disabled observation was
       const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [path])))
       if (!observation) throw new Error("missing observation")
       expect(
-        Effect.runSync(
-          resident.admit(observation, {
-            statePath: join(root, "consent"),
-            userConfigPath: join(root, "absent-user"),
-            credential: null,
-            controlled: {
-              answers: Object.fromEntries(
-                configuredRules.map((rule) => [rule.id, { _tag: "Probability" as const, probability: 0 }])
-              )
-            }
-          })
+        (
+          await Effect.runPromise(
+            resident.admit(observation, {
+              statePath: join(root, "consent"),
+              userConfigPath: join(root, "absent-user"),
+              credential: null,
+              controlled: {
+                answers: Object.fromEntries(
+                  configuredRules.map((rule) => [rule.id, { _tag: "Probability" as const, probability: 0 }])
+                )
+              }
+            })
+          )
         ).status
       ).toBe("accepted")
       await Effect.runPromise(resident.whenIdle())
@@ -80,7 +85,10 @@ it("shows live recording state separately when its last disabled observation was
         expect.objectContaining({ status: "observed", roots: [{ root, state: "enabled", epoch: 1 }] })
       ])
     )
-    await writeFile(config, JSON.stringify({ version: 1, sessionInspection: false }))
+    await writeFile(
+      config,
+      JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: false })
+    )
     await edit("second.ts")
     await disabled.promise
     const current = await snapshot()

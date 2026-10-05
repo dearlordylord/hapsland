@@ -4,6 +4,7 @@ import { canonicalValue } from "../direct-event/model.ts"
 import type { CapacityLedger } from "./capacity.ts"
 import type { CompletedEditReason } from "../canonical/adapter.ts"
 import { DEFAULT_EDIT_PERMIT_LIMITS, DEFAULT_VIRTUAL_ROUND_QUIET_MS } from "../configuration/types.ts"
+import type { ReviewSettingsSnapshot } from "../runtime/review-settings.ts"
 import { DELIVERY_LEASE_MS } from "./protocol.ts"
 
 /** Shared round and source-free handoff state for every agent runtime. */
@@ -36,7 +37,10 @@ type Submission = {
 
 const fingerprint = (finding: unknown): string => createHash("sha256").update(canonicalValue(finding)).digest("hex")
 
+export type EditAdmission = { readonly generation: number; readonly settings?: ReviewSettingsSnapshot }
+
 export type EditPermit = {
+  readonly settings?: ReviewSettingsSnapshot
   readonly partition: string
   readonly generation: number
   readonly expiresAt: number
@@ -140,6 +144,10 @@ export const assertDeliveryState = (state: DeliveryState, owner: CapacityLedger)
 
 /** Read-only delivery views leave the owned record unchanged. */
 export const deliveryView = (state: DeliveryState, canonicalOwner: CapacityLedger) => {
+  function registeredEditSettings(partition: string, eventId: string): ReviewSettingsSnapshot | undefined {
+    return state.permits.get(`${partition}\0${eventId}`)?.settings
+  }
+
   function recentEditCount(): number {
     return canonicalOwner.canonicalProjection().completedEdits.length
   }
@@ -180,6 +188,7 @@ export const deliveryView = (state: DeliveryState, canonicalOwner: CapacityLedge
   return {
     canonical: canonicalOwner,
     recentEditCount,
+    registeredEditSettings,
     editIdentityMappingCount,
     liveCollectionTokenKeys,
     hasFinishPermit,
@@ -466,7 +475,8 @@ export const deliveryOperations = (
     startedAt: number,
     now = monotonicNow(),
     limits: EditPermitLimits = DEFAULT_EDIT_PERMIT_LIMITS,
-    quietMs = DEFAULT_VIRTUAL_ROUND_QUIET_MS
+    quietMs = DEFAULT_VIRTUAL_ROUND_QUIET_MS,
+    settings?: ReviewSettingsSnapshot
   ): EditDecision {
     expirePermits(now)
     const key = `${partition}\0${eventId}`
@@ -482,7 +492,21 @@ export const deliveryOperations = (
     const tool = toolId(key)
     const issued = issueProspectivePermit(partition, key, tool, startedAt, now, facts, known)
     if (!issued.issued) return { accepted: false, reason: issued.reason }
-    return retainIssuedPermit(partition, key, tool, startedAt, quietMs, admission, known, issued.result, facts)
+    const decision = retainIssuedPermit(
+      partition,
+      key,
+      tool,
+      startedAt,
+      quietMs,
+      admission,
+      known,
+      issued.result,
+      facts
+    )
+    const permit = state.permits.get(key)
+    if (decision.accepted && permit !== undefined && settings !== undefined)
+      state.permits.set(key, { ...permit, settings })
+    return decision
   }
   function releaseCompletedPermit(partition: string, key: string, permit: { readonly token: number }): void {
     releaseAdmissionPermit(partition, permit.token)
@@ -518,7 +542,7 @@ export const deliveryOperations = (
     key: string,
     now: number,
     previous: Round | undefined
-  ): number | undefined {
+  ): EditAdmission | undefined {
     expirePermits(now)
     const permit = state.permits.get(key)
     if (permit === undefined) {
@@ -535,7 +559,10 @@ export const deliveryOperations = (
     }
     finishPermit(key, "consumed")
     if (previous === undefined) startRound(partition, permit.quietMs)
-    return readGeneration(partition)
+    return {
+      generation: readGeneration(partition),
+      ...(permit.settings === undefined ? {} : { settings: permit.settings })
+    }
   }
   function closedKnownRound(partition: string, known: number): boolean {
     return canonicalOwner
@@ -637,12 +664,12 @@ export const deliveryOperations = (
     now: number,
     requirePermit = false,
     limits: EditPermitLimits = DEFAULT_EDIT_PERMIT_LIMITS
-  ): number | undefined {
+  ): EditAdmission | undefined {
     const previous = state.rounds.get(partition)
     const key = `${partition}\0${eventId}`
-    return requirePermit
-      ? admitPermittedEdit(partition, key, now, previous)
-      : admitInternalEdit(partition, key, now, previous, limits)
+    if (requirePermit) return admitPermittedEdit(partition, key, now, previous)
+    const generation = admitInternalEdit(partition, key, now, previous, limits)
+    return generation === undefined ? undefined : { generation }
   }
 
   function expirePermits(now = monotonicNow()): void {

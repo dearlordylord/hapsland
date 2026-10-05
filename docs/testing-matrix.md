@@ -16,7 +16,10 @@ Engine evidence. They remain subject to lint and TypeScript checks.
 
 | Gate | Entry point | Coverage | Boundary established |
 | --- | --- | --- | --- |
-| Resident playback liveness | `npm --prefix packages/agent-flow-viz run test:resident-liveness-browser`; `packages/monkey-business/src/cache-quiet-liveness.test.ts` | Default one/six-advicee Play, pause/resume; finding/clear cache plus quiet-window settlement and replay | Observed progress beyond Jev result through genuine cache facts; not universal scheduler liveness or live Jev transport |
+| Resident playback and timeline | `npm --prefix packages/agent-flow-viz run test:resident-liveness-browser`; `npm --prefix packages/agent-flow-viz run test:timeline-browser`; `packages/monkey-business/src/cache-quiet-liveness.test.ts` | Default one/six-advicee Play and pause/resume; finding/clear cache and quiet-window replay; monotonic timeline drag, exact paused endpoint, keyboard seek, previous/next/latest and playback resynchronization | Observed cache progress and browser interaction; not universal scheduler liveness or live Jev transport |
+| Resident edit settings | `npm run test:focused -- src/runtime/review-settings.test.ts src/resident/edit-settings.test.ts` | Five-second non-sliding cache TTL, shared concurrent loads, failure recovery, immutable snapshots, pre-edit ownership, delayed delivery and mixed Claude modes | Configuration and compiled rules remain fixed for each edit; no disk-I/O or latency improvement claim |
+| Resident settings inspection | `npm run test:focused -- packages/monkey-business/src/applied-settings.test.ts` | Snapshot identity across execution, defensive copies and deep freezing, control invalidation, rejected controls and replay restoration | Applied configuration and controls are stable inspection inputs; no performance-improvement claim |
+| Immutable simulation boundary reuse | `npm run test:focused -- src/canonical/immutable.test.ts src/canonical/simulation-codec.test.ts src/canonical/boundary-schema.test.ts src/canonical/boundary.test.ts src/canonical/simulation-adapter.test.ts src/canonical/constructors-reuse.test.ts` | Transactional constructor reuse with strict public decoding; schema-equivalent scalar fast paths; cyclic/shared/wide freezing; frozen graph reuse; mutable and accessor isolation; list and scalar bounds; emitted Engine equivalence | Boundary correctness and snapshot isolation; no throughput claim |
 | Inspection dashboard browser | `npm --prefix packages/agent-flow-viz run test:inspection-browser` | Real resident/offline provider → private journal → production HTTP/SSE → Chromium; per-unit request selection, exact request and native output copy, refused/interrupted/synchronous/written attempts, three-edit batch links, keyboard selection, pause/resume, keyboard reconnect with a retained cursor, recovery gaps, stable live reading, typed payload loss while paused, repeated observed recording periods, safe text, 375 px layout | Observed preparation/results/fates and historical writer evidence; written output without retained acknowledgement remains distinct from uncertainty. Pi and verified source discovery have separate checks below; full-feature milestone validation remains pending; no agent visibility or repair claim |
 | Inspection evaluation reuse | `npm --prefix packages/agent-flow-viz run test:inspection-reuse-browser` | Actual provider request held while another edit joins, clear result reused from cache, separate controlled DecisionModel call, public API/browser links and filtered retained totals, repeated recovery and physical policy-record loss | Joins/cache add no model or transport calls; controlled model activity remains distinct from live HTTP. Unknown activity after policy loss is explicit. Totals count retained immutable identities and do not claim complete capture |
 | Inspection classifier outcomes | `npm --prefix packages/agent-flow-viz run test:inspection-outcomes-browser` | Real resident and offline production provider transport through private journal and public API/browser; clear/findings, invalid answers, backend failure, timeout, interruption, oversized capture, exact copy and credential/error-body exclusion | Observed outcomes remain distinct from submission. The backend-error fixture exercises the resident error boundary without suppressing the original failure; no live Jev or model-visibility claim |
@@ -267,6 +270,16 @@ JS execution bound. Each test has a 250-second aggregate bound; supervise each
 selected qualification with a 300-second stage. These overrides do not change
 runner defaults or product deadlines. Recovery compares the complete native
 and compiler-emitted vectors before its independent public and replay checks.
+
+The original advicee preparation-after-departure comparison uses C30/clang90/native5
+with a 150-second aggregate watchdog; an authenticated preflight session keeps
+its own fixed compilation policy. Freshness source-change comparisons retain
+native/emitted-JS agreement under a 200-second watchdog (C90/clang60/native5,
+JS15+5). Their independent public milestones and replay also run as separate
+TypeScript tests. The concurrent-notice comparison uses the shared native runner
+and its C30/clang30/native5 allowances under the same 100-second watchdog;
+it no longer owns a separate compiler subprocess implementation.
+These are fixture compilation budgets, not product latency deadlines.
 
 ## Pull request checks
 

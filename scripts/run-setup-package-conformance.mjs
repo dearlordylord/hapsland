@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util"
 import { standaloneEnvironment } from "./test-harness/standalone-environment.mjs"
 import { preparePackageInstall } from "./test-harness/package-install.mjs"
 import { spawn } from "node:child_process"
@@ -306,7 +307,9 @@ try {
   const installProposalDigest = actionDigest(handoff, "approve-installation", "installProposalDigest")
   expect(typeof installProposalDigest === "string", "installation approval was absent")
 
-  const authorizedRequest = { ...baseRequest, installProposalDigest }
+  const rulesProposalDigest = actionDigest(handoff, "approve-default-rules", "rulesProposalDigest")
+  expect(typeof rulesProposalDigest === "string", "editable defaults approval was absent")
+  const authorizedRequest = { ...baseRequest, installProposalDigest, rulesProposalDigest }
   const authorizedEnvironment = { ...baseEnvironment, TYPESAFE_API_KEY: "package-setup-environment-secret" }
   const interrupted = await invokeSetup(
     cli,
@@ -331,7 +334,49 @@ try {
     resumed.stages.some((stage) => stage.stage === "repository" && stage.status === "complete"),
     "file settings were not loaded"
   )
-  const repeated = await invokeSetup(cli, repository, authorizedEnvironment, authorizedRequest, 6, "repeated setup")
+  const shippedDirectory = join(installation, "node_modules/@hapsland/hapsland/src/rules/defaults")
+  const filenames = (await readdir(shippedDirectory)).filter((name) => name.endsWith(".json")).sort()
+  expect(filenames.length === 9, "installed package must contain nine individual default rules")
+  const editablePaths = filenames.map((name) => join(stateRoot, "rules/defaults", name))
+  for (const [index, filename] of filenames.entries()) {
+    const shippedDocument = JSON.parse(await readFile(join(shippedDirectory, filename), "utf8"))
+    const editableDocument = JSON.parse(await readFile(editablePaths[index], "utf8"))
+    expect(shippedDocument.version === 1 && typeof shippedDocument.id === "string", "installed rule asset is malformed")
+    expect(isDeepStrictEqual(editableDocument, shippedDocument), "materialized default disagrees with installed asset")
+  }
+  const inventory = parse(
+    await run(cli, ["rules", "list", "--json"], { cwd: repository, env: authorizedEnvironment }),
+    "installed rule inventory",
+    0
+  )
+  expect(
+    inventory.enabledCount === 9 && inventory.rules.every((rule) => editablePaths.includes(rule.source)),
+    "installed rules did not use editable source paths"
+  )
+  const editablePath = editablePaths[0]
+  const editableDocument = JSON.parse(await readFile(editablePath, "utf8"))
+  editableDocument.question = "Is the installed edited concern present?"
+  await writeFile(editablePath, JSON.stringify(editableDocument))
+  const detail = parse(
+    await run(cli, ["rules", "show", "--id", editableDocument.id, "--json"], {
+      cwd: repository,
+      env: authorizedEnvironment
+    }),
+    "installed edited rule",
+    0
+  )
+  expect(
+    detail.question === "Is the installed edited concern present?",
+    "installed loader ignored the edited JSON question"
+  )
+  const repeated = await invokeSetup(
+    cli,
+    repository,
+    authorizedEnvironment,
+    { ...baseRequest, installProposalDigest },
+    6,
+    "repeated setup"
+  )
   expect(
     !JSON.stringify([interrupted, resumed, repeated]).includes("package-setup-environment-secret"),
     "setup disclosed the environment credential"
@@ -346,6 +391,10 @@ try {
   )
   const hooks = JSON.parse(await readFile(join(codexHome, "hooks.json"), "utf8"))
   expect(hooks.hooks.PostToolUse.length === 1, "repeat setup duplicated the owned hook")
+  expect(
+    JSON.parse(await readFile(editablePath, "utf8")).question === "Is the installed edited concern present?",
+    "repeat setup overwrote authored JSON"
+  )
 
   const demoPreview = await invokeDemo(
     cli,
@@ -517,7 +566,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
   const pilotMarker = "package-guided-pilot-secret"
   const pilotCodexExecutable = process.env.REVIEW_PILOT_CODEX_EXECUTABLE ?? codexExecutable
   const declinedPilot = await runGuidedPilot(cli, pilotRepository, pilotEnvironment, pilotHome, pilotCodexExecutable, [
-    { prompt: "Install these entries", value: "y" },
+    { prompt: "Apply these setup changes", value: "y" },
     { prompt: "Jev API key:", value: pilotMarker }
   ])
   expect(
@@ -535,7 +584,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
     pilotCodexExecutable,
     []
   )
-  expect(approvedPilot.includes("Offline readiness: unknown"), "guided pilot overstated native trust")
+  expect(approvedPilot.includes("Setup: offline readiness: unknown"), "guided pilot overstated native trust")
   expect(approvedPilot.includes("native trust or hook review prompt"), "guided pilot omitted trust handoff")
   expect(!approvedPilot.includes(pilotMarker), "guided rerun disclosed saved credential")
   const pilotHooks = JSON.parse(await readFile(join(pilotHome, "hooks.json"), "utf8"))

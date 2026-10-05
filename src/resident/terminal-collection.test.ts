@@ -15,8 +15,8 @@ import { join } from "node:path"
 import "node:fs"
 import { readActivity } from "../activity/status.ts"
 import { adaptClaudeDirectEvent } from "../direct-event/adapter.ts"
-import { makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../policy/rules.ts"
+import { makeReviewGitFixture as makeGitFixture, put } from "../direct-event/test-fixtures.ts"
+import { configuredRules } from "../test-support/default-rules.ts"
 import { residentPaths } from "./paths.ts"
 
 import "./hook-clock.ts"
@@ -102,19 +102,19 @@ describe("common collection and reuse invariants", () => {
     const activityPath = join(data.root, "joined-activity")
     const dispatch = { ...data.dispatch(0), activityPath }
     const primer = { ...data.observation, advicee: { ...data.observation.advicee, sessionId: "primer" } }
-    expect(Effect.runSync(server.admit(primer, dispatch)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(primer, dispatch))).status).toBe("accepted")
     await primerEntered.promise
     for (const sessionId of ["blocker-a", "blocker-b"]) {
       const blocker = { ...data.observation, advicee: { ...data.observation.advicee, sessionId } }
-      expect(Effect.runSync(server.admit(blocker, dispatch)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(blocker, dispatch))).status).toBe("accepted")
     }
     releasePrimer.resolve()
     await blockersEntered.promise
     await Effect.runPromise(controls.holdNextOwner)
-    const first = Effect.runSync(server.admit(data.observation, dispatch, true))
+    const first = await Effect.runPromise(server.admit(data.observation, dispatch, true))
     if (first.status !== "accepted") throw new Error("owner not admitted")
     const secondObservation = { ...data.observation, advicee: { ...data.observation.advicee, toolUseId: "tool-two" } }
-    const second = Effect.runSync(server.admit(secondObservation, dispatch, true))
+    const second = await Effect.runPromise(server.admit(secondObservation, dispatch, true))
     if (second.status !== "accepted") throw new Error("repeat not admitted")
     releaseBlockers.resolve()
     await Effect.runPromise(controls.ownerEntered)
@@ -160,11 +160,11 @@ describe("common collection and reuse invariants", () => {
       )
     })
     const dispatch = data.dispatch(0)
-    const first = Effect.runSync(server.admit(data.observation, dispatch))
+    const first = await Effect.runPromise(server.admit(data.observation, dispatch))
     if (first.status !== "accepted") throw new Error("first not admitted")
     await Effect.runPromise(server.whenIdle())
     expect(Effect.runSync(server.accountingMetrics()).pendingEvaluations).toBe(0)
-    const second = Effect.runSync(server.admit(data.observation, dispatch))
+    const second = await Effect.runPromise(server.admit(data.observation, dispatch))
     if (second.status !== "accepted") throw new Error("second not admitted")
     await Effect.runPromise(server.whenIdle())
     expect(await collect(server, data, dispatch)).toEqual({ status: "empty" })
@@ -178,7 +178,7 @@ describe("common collection and reuse invariants", () => {
     const data = await fixture()
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")))
     const dispatch = data.dispatch(0.9)
-    const admission = Effect.runSync(server.admit(data.observation, dispatch))
+    const admission = await Effect.runPromise(server.admit(data.observation, dispatch))
     if (admission.status !== "accepted") throw new Error("not admitted")
     await Effect.runPromise(server.whenIdle())
     for (let index = 0; index < 16; index += 1) {
@@ -212,7 +212,7 @@ describe("common collection and reuse invariants", () => {
     })
     const activityPath = join(data.root, "mixed-activity")
     const dispatch = { ...data.dispatch(0.9), activityPath }
-    const admission = Effect.runSync(server.admit(observation, dispatch))
+    const admission = await Effect.runPromise(server.admit(observation, dispatch))
     if (admission.status !== "accepted") throw new Error("not admitted")
     await Effect.runPromise(server.whenIdle())
     let delivered = false
@@ -239,7 +239,7 @@ describe("common collection and reuse invariants", () => {
     const data = await fixture()
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), () => 1_000)
     const dispatch = data.dispatch(0.9)
-    const admission = Effect.runSync(server.admit(data.observation, dispatch))
+    const admission = await Effect.runPromise(server.admit(data.observation, dispatch))
     if (admission.status !== "accepted") throw new Error("not admitted")
     await Effect.runPromise(server.whenIdle())
     const outcomes = await Promise.all([collect(server, data, dispatch), collect(server, data, dispatch)])
@@ -255,8 +255,8 @@ describe("common collection and reuse invariants", () => {
     const data = await fixture()
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")))
     const dispatch = data.dispatch(0.9)
-    const finding = Effect.runSync(server.admit(data.observation, dispatch))
-    const skipped = Effect.runSync(
+    const finding = await Effect.runPromise(server.admit(data.observation, dispatch))
+    const skipped = await Effect.runPromise(
       server.admit(
         { ...data.observation, candidates: [{ operation: "delete", path: "type.ts", addedLines: [] }] },
         dispatch
@@ -275,10 +275,10 @@ describe("common collection and reuse invariants", () => {
     const data = await fixture()
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")))
     const dispatch = data.dispatch(0.9)
-    const first = Effect.runSync(server.admit(data.observation, dispatch))
+    const first = await Effect.runPromise(server.admit(data.observation, dispatch))
     if (first.status !== "accepted") throw new Error("first not admitted")
     await Effect.runPromise(server.whenIdle())
-    const second = Effect.runSync(server.admit(data.observation, dispatch))
+    const second = await Effect.runPromise(server.admit(data.observation, dispatch))
     if (second.status !== "accepted") throw new Error("second not admitted")
     await Effect.runPromise(server.whenIdle())
     let advice = await collect(server, data, dispatch)
@@ -296,11 +296,11 @@ describe("common collection and reuse invariants", () => {
     const data = await fixture()
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")))
     const dispatch = data.dispatch(0)
-    const first = Effect.runSync(server.admit(data.observation, dispatch))
+    const first = await Effect.runPromise(server.admit(data.observation, dispatch))
     if (first.status !== "accepted") throw new Error("first not admitted")
     await Effect.runPromise(server.whenIdle())
     expect(await collect(server, data, dispatch)).toEqual({ status: "empty" })
-    const second = Effect.runSync(server.admit(data.observation, dispatch))
+    const second = await Effect.runPromise(server.admit(data.observation, dispatch))
     if (second.status !== "accepted") throw new Error("second not admitted")
     await Effect.runPromise(server.whenIdle())
     expect(await collect(server, data, dispatch)).toEqual({ status: "empty" })
@@ -311,7 +311,7 @@ describe("common collection and reuse invariants", () => {
     await put(data.root, ".hapsland.jsonc", '{"version":1,"excludes":["type.ts"]}\n')
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")))
     const dispatch = data.dispatch(0)
-    const admission = Effect.runSync(server.admit(data.observation, dispatch))
+    const admission = await Effect.runPromise(server.admit(data.observation, dispatch))
     if (admission.status !== "accepted") throw new Error("not admitted")
     await Effect.runPromise(server.whenIdle())
     expect(await collect(server, data, dispatch)).toEqual({ status: "empty" })
@@ -321,11 +321,11 @@ describe("common collection and reuse invariants", () => {
     const data = await fixture()
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")))
     const failed = data.dispatch(0, "controlled backend failure")
-    const first = Effect.runSync(server.admit(data.observation, failed))
+    const first = await Effect.runPromise(server.admit(data.observation, failed))
     if (first.status !== "accepted") throw new Error("first not admitted")
     await Effect.runPromise(server.whenIdle())
     await put(data.root, ".hapsland.jsonc", '{"version":1,"excludes":["type.ts"]}\n')
-    const second = Effect.runSync(server.admit(data.observation, failed))
+    const second = await Effect.runPromise(server.admit(data.observation, failed))
     if (second.status !== "accepted") throw new Error("second not admitted")
     await Effect.runPromise(server.whenIdle())
     expect(await collect(server, data, failed)).toEqual({ status: "empty" })

@@ -1,0 +1,4318 @@
+{
+  "purpose": "Five reported presentation symptoms traced against actual shared-Host events and actor histories",
+  "status": "Pre-fix diagnostic evidence; proposed presentation laws are not approved or proved",
+  "inputs": {
+    "map": 0,
+    "towers": [],
+    "manualBurst": 1,
+    "seed": 152,
+    "tickMs": 20,
+    "nativeDefaults": {
+      "jevDelayMs": 3200,
+      "preparationDelayMs": 800,
+      "outputDelayMs": 800,
+      "adviceLifetimeMs": 20000
+    }
+  },
+  "lane": "Emitted actual Host exports from the separately generated laboratory module, with identical Host/Model/Motion sources; not fresh native/window validation",
+  "sources": {
+    "DefenseHost.bend": "8b560c11b1ac2aaf26a22e8d066ad2501c18138509473e4cbc69dea13835c88d",
+    "DefenseMotion.bend": "b8a5fb72c007fea246011c66a2db270eb3432b8ee83ea9fdd15bbd5a77b49b5c",
+    "DefenseMotionTypes.bend": "6ca50e25e4c0fc76ecbf8f05b50c4d973aba70c999e2688681c69c7938db4322",
+    "DefenseRender.bend": "2d814061c48f097d83b87cf973904bb22184425fa9d4f3adea73fa2e7b2356ec",
+    "DefenseModel.bend": "f422e53370fb3c93368f223e35f75cfb9325e2b1203cfcf53665f78c7db66e76",
+    "DefenseConsumer.bend": "4c4b346e618c86de0c25417732918edbba6ea7aad69b9f2e70357359a4e9f804"
+  },
+  "findings": [
+    {
+      "case": 1,
+      "classification": "presentation defect",
+      "tick": 40,
+      "businessTimeMs": 800,
+      "operation": "1/1/1/1",
+      "position": [
+        192,
+        174
+      ],
+      "visiblePhase": 0,
+      "terminal": 30,
+      "remainingWaypoints": 17,
+      "reason": "Renderer switches all terminal actors to grey immediately, before their remaining historical route completes."
+    },
+    {
+      "case": 2,
+      "classification": "presentation defect",
+      "sourceHandoff": {
+        "lastRouteTick": 152,
+        "successorStartsTick": 153,
+        "ancestorRemovedTick": 181,
+        "position": [
+          412,
+          174
+        ]
+      },
+      "preparationHandoff": {
+        "lastRouteTick": 276,
+        "successorStartsTick": 277,
+        "ancestorRemovedTick": 305,
+        "position": [
+          676,
+          174
+        ]
+      },
+      "reason": "The completed predecessor body remains for the30-tick terminal timer while successors move away."
+    },
+    {
+      "case": 3,
+      "classification": "correct business outcome with insufficient explanation",
+      "settlementMs": 4000,
+      "operations": [
+        "1/1/1/3",
+        "1/1/1/4"
+      ],
+      "outcome": "RequestClear",
+      "commands": [
+        "ReservationReleased",
+        "ReviewRecorded(Clear)",
+        "SettleClear",
+        "JevRequestOutcomeRecorded"
+      ],
+      "reason": "The exact default first burst produces two clear outcomes; there are no findings to send."
+    },
+    {
+      "case": 4,
+      "classification": "correct retained ownership plus misleading physical waiting",
+      "scenario": "Controlled finding-outcome variant of the same Host configuration; not claimed as the exact unrecorded player run",
+      "findingMs": 4000,
+      "individualSubmissionMs": 4800,
+      "retirementMs": 24000,
+      "retirementEvents": [
+        "CollectionExpiryCheck(elapsed20000,lifetime20000)",
+        "CollectionRetireAdvice",
+        "SubmissionForget",
+        "RetireReview"
+      ],
+      "leader": {
+        "operation": "1/1/1/3",
+        "position": [
+          116,
+          468
+        ],
+        "routeCompleteTick": 701,
+        "waitStartsTick": 702
+      },
+      "follower": {
+        "operation": "1/1/1/4",
+        "position": [
+          116,
+          444
+        ],
+        "remainingWaypoints": 9,
+        "waitStartsTick": 701,
+        "blockingReason": "branch_clear=false: older same-phase actor at Manhattan distance24 <28"
+      },
+      "reason": "Advice is already individually submitted; the bodies represent retained findings. The second body stalls due to visual spacing. Later disappearance is expiry/retirement, not delivery completion."
+    },
+    {
+      "case": 5,
+      "classification": "correct review fan-out with missing causal presentation",
+      "event": "PreparationCompleted",
+      "operation": "1/1/1/2",
+      "businessTimeMs": 800,
+      "unitBytes": [
+        10,
+        20
+      ],
+      "admittedOperations": [
+        "1/1/1/3",
+        "1/1/1/4"
+      ],
+      "sourceFamily": 1,
+      "expectedPredecessor": "1/1/1/2",
+      "predecessorAfterFirstMove": [],
+      "reason": "Two actual UnitAdmitted commands create two review units. The UI does not explain this fork and move_to clears the causal predecessor used by hover inspection."
+    }
+  ],
+  "traces": {
+    "default": {
+      "events": [
+        {
+          "tick": 1,
+          "time": 0,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.OpenRound",
+            "partition": 1,
+            "lifetime": 1
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.RoundStarted",
+              "id": 1
+            }
+          ],
+          "before": [],
+          "after": []
+        },
+        {
+          "tick": 1,
+          "time": 0,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.AdmitObservation",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.ObservationAdmitted",
+              "id": 1
+            }
+          ],
+          "before": [],
+          "after": [
+            {
+              "id": "1/1/1/1",
+              "kind": "AwaitingSourceRead",
+              "parent": 0
+            }
+          ]
+        },
+        {
+          "tick": 1,
+          "time": 0,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.QueueDispatch",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 1
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.DispatchStarted",
+              "operation": 1,
+              "sequence": 0
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/1",
+              "kind": "AwaitingSourceRead",
+              "parent": 0
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/1",
+              "kind": "AwaitingSourceRead",
+              "parent": 0
+            }
+          ]
+        },
+        {
+          "tick": 1,
+          "time": 0,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.StartObservation",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "observation": 1
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.ObservationStarted"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/1",
+              "kind": "AwaitingSourceRead",
+              "parent": 0
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/1",
+              "kind": "SourceReading",
+              "parent": 0
+            }
+          ]
+        },
+        {
+          "tick": 1,
+          "time": 0,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.BeginObservedPreparation",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "observation": 1,
+            "bytes": 100
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.Prepare",
+              "operation": 2,
+              "reservation": 1
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/1",
+              "kind": "SourceReading",
+              "parent": 0
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/1",
+              "kind": "SourceReading",
+              "parent": 0
+            },
+            {
+              "id": "1/1/1/2",
+              "kind": "Preparing",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.PreparationCompleted",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 2,
+            "unit_bytes": {
+              "$": "Con",
+              "head": 10,
+              "tail": {
+                "$": "Con",
+                "head": 20,
+                "tail": {
+                  "$": "Nil"
+                }
+              }
+            }
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.PreparationReleased",
+              "id": 1,
+              "after": {
+                "$": "../../packages/agent-flow-bend/Canonical.CapacityView",
+                "global": {
+                  "$": "../../packages/agent-flow-bend/Ledger.Usage",
+                  "items": 0,
+                  "bytes": 0
+                },
+                "local": {
+                  "$": "../../packages/agent-flow-bend/Ledger.Usage",
+                  "items": 0,
+                  "bytes": 0
+                },
+                "charges": {
+                  "$": "Nil"
+                }
+              }
+            },
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.UnitAdmitted",
+              "operation": 3,
+              "reservation": 2,
+              "position": 1,
+              "bytes": 10,
+              "after": {
+                "$": "../../packages/agent-flow-bend/Canonical.CapacityView",
+                "global": {
+                  "$": "../../packages/agent-flow-bend/Ledger.Usage",
+                  "items": 1,
+                  "bytes": 10
+                },
+                "local": {
+                  "$": "../../packages/agent-flow-bend/Ledger.Usage",
+                  "items": 1,
+                  "bytes": 10
+                },
+                "charges": {
+                  "$": "Con",
+                  "head": {
+                    "$": "../../packages/agent-flow-bend/Ledger.Charge",
+                    "id": 2,
+                    "partition": 1,
+                    "bytes": 10,
+                    "purpose": {
+                      "$": "../../packages/agent-flow-bend/Ledger.ReviewUnit"
+                    }
+                  },
+                  "tail": {
+                    "$": "Nil"
+                  }
+                }
+              }
+            },
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.UnitAdmitted",
+              "operation": 4,
+              "reservation": 3,
+              "position": 2,
+              "bytes": 20,
+              "after": {
+                "$": "../../packages/agent-flow-bend/Canonical.CapacityView",
+                "global": {
+                  "$": "../../packages/agent-flow-bend/Ledger.Usage",
+                  "items": 2,
+                  "bytes": 30
+                },
+                "local": {
+                  "$": "../../packages/agent-flow-bend/Ledger.Usage",
+                  "items": 2,
+                  "bytes": 30
+                },
+                "charges": {
+                  "$": "Con",
+                  "head": {
+                    "$": "../../packages/agent-flow-bend/Ledger.Charge",
+                    "id": 2,
+                    "partition": 1,
+                    "bytes": 10,
+                    "purpose": {
+                      "$": "../../packages/agent-flow-bend/Ledger.ReviewUnit"
+                    }
+                  },
+                  "tail": {
+                    "$": "Con",
+                    "head": {
+                      "$": "../../packages/agent-flow-bend/Ledger.Charge",
+                      "id": 3,
+                      "partition": 1,
+                      "bytes": 20,
+                      "purpose": {
+                        "$": "../../packages/agent-flow-bend/Ledger.ReviewUnit"
+                      }
+                    },
+                    "tail": {
+                      "$": "Nil"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/1",
+              "kind": "SourceReading",
+              "parent": 0
+            },
+            {
+              "id": "1/1/1/2",
+              "kind": "Preparing",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/1",
+              "kind": "SourceReading",
+              "parent": 0
+            },
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.QueueDispatch",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 3
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.DispatchStarted",
+              "operation": 3,
+              "sequence": 1
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/1",
+              "kind": "SourceReading",
+              "parent": 0
+            },
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/1",
+              "kind": "SourceReading",
+              "parent": 0
+            },
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.QueueDispatch",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 4
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.DispatchStarted",
+              "operation": 4,
+              "sequence": 2
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/1",
+              "kind": "SourceReading",
+              "parent": 0
+            },
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/1",
+              "kind": "SourceReading",
+              "parent": 0
+            },
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.CompleteObservation",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "observation": 1
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.ObservationCompleted"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/1",
+              "kind": "SourceReading",
+              "parent": 0
+            },
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.DispatchSettled",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 1
+          },
+          "commands": [],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.StartReview",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 3
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.ReviewStarted"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.JevRequestReady",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 3,
+            "root_valid": true,
+            "configuration_valid": true,
+            "credential_ready": true,
+            "selected": true,
+            "current_work": true,
+            "physical_available": true
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.JevRequestIssued",
+              "partition": 1,
+              "lifetime": 1,
+              "round": 1,
+              "operation": 3,
+              "request": 5
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.StartReview",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 4
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.ReviewStarted"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.JevRequestReady",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 4,
+            "root_valid": true,
+            "configuration_valid": true,
+            "credential_ready": true,
+            "selected": true,
+            "current_work": true,
+            "physical_available": true
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.JevRequestIssued",
+              "partition": 1,
+              "lifetime": 1,
+              "round": 1,
+              "operation": 4,
+              "request": 6
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "AtJev",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.JevRequestStarted",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 3,
+            "request": 5
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.JevRequestStartRecorded"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "AtJev",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "AtJev",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.JevRequestStarted",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 4,
+            "request": 6
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.JevRequestStartRecorded"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "AtJev",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "AtJev",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.JevRequestSettled",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 3,
+            "request": 5,
+            "outcome": {
+              "$": "../../packages/agent-flow-bend/Canonical.RequestClear"
+            },
+            "current_work": true
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.ReservationReleased",
+              "id": 2
+            },
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.ReviewRecorded",
+              "outcome": {
+                "$": "../../packages/agent-flow-bend/Canonical.Clear"
+              }
+            },
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.SettleClear"
+            },
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.JevRequestOutcomeRecorded",
+              "outcome": {
+                "$": "../../packages/agent-flow-bend/Canonical.RequestClear"
+              }
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "AtJev",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.JevRequestSettled",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 4,
+            "request": 6,
+            "outcome": {
+              "$": "../../packages/agent-flow-bend/Canonical.RequestClear"
+            },
+            "current_work": true
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.ReservationReleased",
+              "id": 3
+            },
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.ReviewRecorded",
+              "outcome": {
+                "$": "../../packages/agent-flow-bend/Canonical.Clear"
+              }
+            },
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.SettleClear"
+            },
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.JevRequestOutcomeRecorded",
+              "outcome": {
+                "$": "../../packages/agent-flow-bend/Canonical.RequestClear"
+              }
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ],
+          "after": []
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.DispatchSettled",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 3
+          },
+          "commands": [],
+          "before": [],
+          "after": []
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.DispatchSettled",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 4
+          },
+          "commands": [],
+          "before": [],
+          "after": []
+        }
+      ],
+      "actorTransitions": [
+        {
+          "tick": 1,
+          "id": "1/1/1/2",
+          "family": 1,
+          "x": 412,
+          "y": 174,
+          "phase": 2,
+          "observed": 2,
+          "terminal": 0,
+          "outcome": 0,
+          "path": 18,
+          "released": false,
+          "predecessor": [
+            "1/1/1/1"
+          ]
+        },
+        {
+          "tick": 1,
+          "id": "1/1/1/1",
+          "family": 1,
+          "x": 36,
+          "y": 174,
+          "phase": 0,
+          "observed": 1,
+          "terminal": 0,
+          "outcome": 6,
+          "path": 18,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 40,
+          "id": "1/1/1/3",
+          "family": 1,
+          "x": 676,
+          "y": 174,
+          "phase": 3,
+          "observed": 4,
+          "terminal": 0,
+          "outcome": 0,
+          "path": 21,
+          "released": false,
+          "predecessor": [
+            "1/1/1/2"
+          ]
+        },
+        {
+          "tick": 40,
+          "id": "1/1/1/4",
+          "family": 1,
+          "x": 676,
+          "y": 174,
+          "phase": 3,
+          "observed": 4,
+          "terminal": 0,
+          "outcome": 0,
+          "path": 21,
+          "released": false,
+          "predecessor": [
+            "1/1/1/2"
+          ]
+        },
+        {
+          "tick": 40,
+          "id": "1/1/1/2",
+          "family": 1,
+          "x": 412,
+          "y": 174,
+          "phase": 2,
+          "observed": 2,
+          "terminal": 30,
+          "outcome": 6,
+          "path": 18,
+          "released": false,
+          "predecessor": [
+            "1/1/1/1"
+          ]
+        },
+        {
+          "tick": 40,
+          "id": "1/1/1/1",
+          "family": 1,
+          "x": 192,
+          "y": 174,
+          "phase": 0,
+          "observed": 1,
+          "terminal": 30,
+          "outcome": 6,
+          "path": 17,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 80,
+          "id": "1/1/1/1",
+          "family": 1,
+          "x": 348,
+          "y": 174,
+          "phase": 1,
+          "observed": 1,
+          "terminal": 30,
+          "outcome": 6,
+          "path": 15,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 152,
+          "id": "1/1/1/1",
+          "family": 1,
+          "x": 412,
+          "y": 174,
+          "phase": 1,
+          "observed": 1,
+          "terminal": 30,
+          "outcome": 6,
+          "path": 0,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 153,
+          "id": "1/1/1/2",
+          "family": 1,
+          "x": 412,
+          "y": 174,
+          "phase": 2,
+          "observed": 2,
+          "terminal": 30,
+          "outcome": 6,
+          "path": 17,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 153,
+          "id": "1/1/1/1",
+          "family": 1,
+          "x": 412,
+          "y": 174,
+          "phase": 1,
+          "observed": 1,
+          "terminal": 29,
+          "outcome": 6,
+          "path": 0,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 181,
+          "id": "1/1/1/1",
+          "removed": true
+        },
+        {
+          "tick": 200,
+          "id": "1/1/1/3",
+          "family": 1,
+          "x": 676,
+          "y": 174,
+          "phase": 3,
+          "observed": 4,
+          "terminal": 30,
+          "outcome": 2,
+          "path": 27,
+          "released": false,
+          "predecessor": [
+            "1/1/1/2"
+          ]
+        },
+        {
+          "tick": 200,
+          "id": "1/1/1/4",
+          "family": 1,
+          "x": 676,
+          "y": 174,
+          "phase": 3,
+          "observed": 4,
+          "terminal": 30,
+          "outcome": 2,
+          "path": 27,
+          "released": false,
+          "predecessor": [
+            "1/1/1/2"
+          ]
+        },
+        {
+          "tick": 276,
+          "id": "1/1/1/2",
+          "family": 1,
+          "x": 676,
+          "y": 174,
+          "phase": 2,
+          "observed": 2,
+          "terminal": 30,
+          "outcome": 6,
+          "path": 0,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 277,
+          "id": "1/1/1/3",
+          "family": 1,
+          "x": 676,
+          "y": 174,
+          "phase": 3,
+          "observed": 4,
+          "terminal": 30,
+          "outcome": 2,
+          "path": 26,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 277,
+          "id": "1/1/1/2",
+          "family": 1,
+          "x": 676,
+          "y": 174,
+          "phase": 2,
+          "observed": 2,
+          "terminal": 29,
+          "outcome": 6,
+          "path": 0,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 285,
+          "id": "1/1/1/4",
+          "family": 1,
+          "x": 676,
+          "y": 174,
+          "phase": 3,
+          "observed": 4,
+          "terminal": 30,
+          "outcome": 2,
+          "path": 26,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 305,
+          "id": "1/1/1/2",
+          "removed": true
+        },
+        {
+          "tick": 461,
+          "id": "1/1/1/3",
+          "family": 1,
+          "x": 412,
+          "y": 444,
+          "phase": 4,
+          "observed": 4,
+          "terminal": 30,
+          "outcome": 2,
+          "path": 20,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 469,
+          "id": "1/1/1/4",
+          "family": 1,
+          "x": 412,
+          "y": 444,
+          "phase": 4,
+          "observed": 4,
+          "terminal": 30,
+          "outcome": 2,
+          "path": 20,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 541,
+          "id": "1/1/1/3",
+          "family": 1,
+          "x": 404,
+          "y": 460,
+          "phase": 6,
+          "observed": 4,
+          "terminal": 30,
+          "outcome": 2,
+          "path": 5,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 566,
+          "id": "1/1/1/3",
+          "family": 1,
+          "x": 380,
+          "y": 388,
+          "phase": 6,
+          "observed": 4,
+          "terminal": 30,
+          "outcome": 2,
+          "path": 0,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 567,
+          "id": "1/1/1/3",
+          "family": 1,
+          "x": 380,
+          "y": 388,
+          "phase": 6,
+          "observed": 4,
+          "terminal": 29,
+          "outcome": 2,
+          "path": 0,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 568,
+          "id": "1/1/1/4",
+          "family": 1,
+          "x": 404,
+          "y": 460,
+          "phase": 6,
+          "observed": 4,
+          "terminal": 30,
+          "outcome": 2,
+          "path": 5,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 595,
+          "id": "1/1/1/3",
+          "removed": true
+        },
+        {
+          "tick": 601,
+          "id": "1/1/1/4",
+          "family": 1,
+          "x": 380,
+          "y": 388,
+          "phase": 6,
+          "observed": 4,
+          "terminal": 30,
+          "outcome": 2,
+          "path": 0,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 602,
+          "id": "1/1/1/4",
+          "family": 1,
+          "x": 380,
+          "y": 388,
+          "phase": 6,
+          "observed": 4,
+          "terminal": 29,
+          "outcome": 2,
+          "path": 0,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 630,
+          "id": "1/1/1/4",
+          "removed": true
+        }
+      ],
+      "stalls": [
+        {
+          "tick": 153,
+          "id": "1/1/1/1",
+          "family": 1,
+          "x": 412,
+          "y": 174,
+          "phase": 1,
+          "observed": 1,
+          "terminal": 29,
+          "outcome": 6,
+          "path": 0,
+          "released": true,
+          "predecessor": [],
+          "start": 153,
+          "reason": {
+            "ready": true,
+            "branchClear": true,
+            "canPlay": true
+          },
+          "end": 181,
+          "durationTicks": 28,
+          "removed": true
+        },
+        {
+          "tick": 277,
+          "id": "1/1/1/2",
+          "family": 1,
+          "x": 676,
+          "y": 174,
+          "phase": 2,
+          "observed": 2,
+          "terminal": 29,
+          "outcome": 6,
+          "path": 0,
+          "released": true,
+          "predecessor": [],
+          "start": 277,
+          "reason": {
+            "ready": true,
+            "branchClear": true,
+            "canPlay": true
+          },
+          "end": 305,
+          "durationTicks": 28,
+          "removed": true
+        },
+        {
+          "tick": 567,
+          "id": "1/1/1/3",
+          "family": 1,
+          "x": 380,
+          "y": 388,
+          "phase": 6,
+          "observed": 4,
+          "terminal": 29,
+          "outcome": 2,
+          "path": 0,
+          "released": true,
+          "predecessor": [],
+          "start": 567,
+          "reason": {
+            "ready": true,
+            "branchClear": true,
+            "canPlay": true
+          },
+          "end": 595,
+          "durationTicks": 28,
+          "removed": true
+        },
+        {
+          "tick": 602,
+          "id": "1/1/1/4",
+          "family": 1,
+          "x": 380,
+          "y": 388,
+          "phase": 6,
+          "observed": 4,
+          "terminal": 29,
+          "outcome": 2,
+          "path": 0,
+          "released": true,
+          "predecessor": [],
+          "start": 602,
+          "reason": {
+            "ready": true,
+            "branchClear": true,
+            "canPlay": true
+          },
+          "end": 630,
+          "durationTicks": 28,
+          "removed": true
+        }
+      ]
+    },
+    "controlledFinding": {
+      "events": [
+        {
+          "tick": 1,
+          "time": 0,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.OpenRound",
+            "partition": 1,
+            "lifetime": 1
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.RoundStarted",
+              "id": 1
+            }
+          ],
+          "before": [],
+          "after": []
+        },
+        {
+          "tick": 1,
+          "time": 0,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.AdmitObservation",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.ObservationAdmitted",
+              "id": 1
+            }
+          ],
+          "before": [],
+          "after": [
+            {
+              "id": "1/1/1/1",
+              "kind": "AwaitingSourceRead",
+              "parent": 0
+            }
+          ]
+        },
+        {
+          "tick": 1,
+          "time": 0,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.QueueDispatch",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 1
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.DispatchStarted",
+              "operation": 1,
+              "sequence": 0
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/1",
+              "kind": "AwaitingSourceRead",
+              "parent": 0
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/1",
+              "kind": "AwaitingSourceRead",
+              "parent": 0
+            }
+          ]
+        },
+        {
+          "tick": 1,
+          "time": 0,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.StartObservation",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "observation": 1
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.ObservationStarted"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/1",
+              "kind": "AwaitingSourceRead",
+              "parent": 0
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/1",
+              "kind": "SourceReading",
+              "parent": 0
+            }
+          ]
+        },
+        {
+          "tick": 1,
+          "time": 0,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.BeginObservedPreparation",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "observation": 1,
+            "bytes": 100
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.Prepare",
+              "operation": 2,
+              "reservation": 1
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/1",
+              "kind": "SourceReading",
+              "parent": 0
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/1",
+              "kind": "SourceReading",
+              "parent": 0
+            },
+            {
+              "id": "1/1/1/2",
+              "kind": "Preparing",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.PreparationCompleted",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 2,
+            "unit_bytes": {
+              "$": "Con",
+              "head": 10,
+              "tail": {
+                "$": "Con",
+                "head": 20,
+                "tail": {
+                  "$": "Nil"
+                }
+              }
+            }
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.PreparationReleased",
+              "id": 1,
+              "after": {
+                "$": "../../packages/agent-flow-bend/Canonical.CapacityView",
+                "global": {
+                  "$": "../../packages/agent-flow-bend/Ledger.Usage",
+                  "items": 0,
+                  "bytes": 0
+                },
+                "local": {
+                  "$": "../../packages/agent-flow-bend/Ledger.Usage",
+                  "items": 0,
+                  "bytes": 0
+                },
+                "charges": {
+                  "$": "Nil"
+                }
+              }
+            },
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.UnitAdmitted",
+              "operation": 3,
+              "reservation": 2,
+              "position": 1,
+              "bytes": 10,
+              "after": {
+                "$": "../../packages/agent-flow-bend/Canonical.CapacityView",
+                "global": {
+                  "$": "../../packages/agent-flow-bend/Ledger.Usage",
+                  "items": 1,
+                  "bytes": 10
+                },
+                "local": {
+                  "$": "../../packages/agent-flow-bend/Ledger.Usage",
+                  "items": 1,
+                  "bytes": 10
+                },
+                "charges": {
+                  "$": "Con",
+                  "head": {
+                    "$": "../../packages/agent-flow-bend/Ledger.Charge",
+                    "id": 2,
+                    "partition": 1,
+                    "bytes": 10,
+                    "purpose": {
+                      "$": "../../packages/agent-flow-bend/Ledger.ReviewUnit"
+                    }
+                  },
+                  "tail": {
+                    "$": "Nil"
+                  }
+                }
+              }
+            },
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.UnitAdmitted",
+              "operation": 4,
+              "reservation": 3,
+              "position": 2,
+              "bytes": 20,
+              "after": {
+                "$": "../../packages/agent-flow-bend/Canonical.CapacityView",
+                "global": {
+                  "$": "../../packages/agent-flow-bend/Ledger.Usage",
+                  "items": 2,
+                  "bytes": 30
+                },
+                "local": {
+                  "$": "../../packages/agent-flow-bend/Ledger.Usage",
+                  "items": 2,
+                  "bytes": 30
+                },
+                "charges": {
+                  "$": "Con",
+                  "head": {
+                    "$": "../../packages/agent-flow-bend/Ledger.Charge",
+                    "id": 2,
+                    "partition": 1,
+                    "bytes": 10,
+                    "purpose": {
+                      "$": "../../packages/agent-flow-bend/Ledger.ReviewUnit"
+                    }
+                  },
+                  "tail": {
+                    "$": "Con",
+                    "head": {
+                      "$": "../../packages/agent-flow-bend/Ledger.Charge",
+                      "id": 3,
+                      "partition": 1,
+                      "bytes": 20,
+                      "purpose": {
+                        "$": "../../packages/agent-flow-bend/Ledger.ReviewUnit"
+                      }
+                    },
+                    "tail": {
+                      "$": "Nil"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/1",
+              "kind": "SourceReading",
+              "parent": 0
+            },
+            {
+              "id": "1/1/1/2",
+              "kind": "Preparing",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/1",
+              "kind": "SourceReading",
+              "parent": 0
+            },
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.QueueDispatch",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 3
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.DispatchStarted",
+              "operation": 3,
+              "sequence": 1
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/1",
+              "kind": "SourceReading",
+              "parent": 0
+            },
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/1",
+              "kind": "SourceReading",
+              "parent": 0
+            },
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.QueueDispatch",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 4
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.DispatchStarted",
+              "operation": 4,
+              "sequence": 2
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/1",
+              "kind": "SourceReading",
+              "parent": 0
+            },
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/1",
+              "kind": "SourceReading",
+              "parent": 0
+            },
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.CompleteObservation",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "observation": 1
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.ObservationCompleted"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/1",
+              "kind": "SourceReading",
+              "parent": 0
+            },
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.DispatchSettled",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 1
+          },
+          "commands": [],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.StartReview",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 3
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.ReviewStarted"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.JevRequestReady",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 3,
+            "root_valid": true,
+            "configuration_valid": true,
+            "credential_ready": true,
+            "selected": true,
+            "current_work": true,
+            "physical_available": true
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.JevRequestIssued",
+              "partition": 1,
+              "lifetime": 1,
+              "round": 1,
+              "operation": 3,
+              "request": 5
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "Reviewing",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.StartReview",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 4
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.ReviewStarted"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.JevRequestReady",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 4,
+            "root_valid": true,
+            "configuration_valid": true,
+            "credential_ready": true,
+            "selected": true,
+            "current_work": true,
+            "physical_available": true
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.JevRequestIssued",
+              "partition": 1,
+              "lifetime": 1,
+              "round": 1,
+              "operation": 4,
+              "request": 6
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "Reviewing",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "AtJev",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.JevRequestStarted",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 3,
+            "request": 5
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.JevRequestStartRecorded"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "AtJev",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "AtJev",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 40,
+          "time": 800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.JevRequestStarted",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 4,
+            "request": 6
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.JevRequestStartRecorded"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "AtJev",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "AtJev",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.JevRequestSettled",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 3,
+            "request": 5,
+            "outcome": {
+              "$": "../../packages/agent-flow-bend/Canonical.RequestFinding"
+            },
+            "current_work": true
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.ReviewRecorded",
+              "outcome": {
+                "$": "../../packages/agent-flow-bend/Canonical.Finding"
+              }
+            },
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.RetainFinding"
+            },
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.JevRequestOutcomeRecorded",
+              "outcome": {
+                "$": "../../packages/agent-flow-bend/Canonical.RequestFinding"
+              }
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "AtJev",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "AtJev",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "AtJev",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.JevRequestSettled",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 4,
+            "request": 6,
+            "outcome": {
+              "$": "../../packages/agent-flow-bend/Canonical.RequestFinding"
+            },
+            "current_work": true
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.ReviewRecorded",
+              "outcome": {
+                "$": "../../packages/agent-flow-bend/Canonical.Finding"
+              }
+            },
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.RetainFinding"
+            },
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.JevRequestOutcomeRecorded",
+              "outcome": {
+                "$": "../../packages/agent-flow-bend/Canonical.RequestFinding"
+              }
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "AtJev",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.DispatchSettled",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 3
+          },
+          "commands": [],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.CollectionReady",
+            "advice": 3,
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "observation": 1,
+            "joined_pending": false
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.CollectionEligible"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.DispatchSettled",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 4
+          },
+          "commands": [],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.CollectionReady",
+            "advice": 4,
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "observation": 1,
+            "joined_pending": false
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.CollectionEligible"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.CollectionReady",
+            "advice": 3,
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "observation": 1,
+            "joined_pending": false
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.CollectionEligible"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.FinalCandidateCheck",
+            "owner_current": true,
+            "credential_generation": true,
+            "credential_authorized": true,
+            "expired": false,
+            "work_current": true,
+            "has_findings": true
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.RetainCandidate"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.FinalCandidateCheck",
+            "owner_current": true,
+            "credential_generation": true,
+            "credential_authorized": true,
+            "expired": false,
+            "work_current": true,
+            "has_findings": true
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.RetainCandidate"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.FinalCandidateCheck",
+            "owner_current": true,
+            "credential_generation": true,
+            "credential_authorized": true,
+            "expired": false,
+            "work_current": true,
+            "has_findings": true
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.RetainCandidate"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.SubmissionSuppressCheck",
+            "advice": 3,
+            "fingerprint": 3,
+            "round": 1,
+            "surface": {
+              "$": "../../packages/agent-flow-bend/Handoff.Background"
+            }
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.SubmissionUnsuppressed"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.SubmissionSuppressCheck",
+            "advice": 4,
+            "fingerprint": 4,
+            "round": 1,
+            "surface": {
+              "$": "../../packages/agent-flow-bend/Handoff.Background"
+            }
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.SubmissionUnsuppressed"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.SubmissionSuppressCheck",
+            "advice": 3,
+            "fingerprint": 3,
+            "round": 1,
+            "surface": {
+              "$": "../../packages/agent-flow-bend/Handoff.Background"
+            }
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.SubmissionUnsuppressed"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.CollectionReserveLease",
+            "advice": 3,
+            "token": 3
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.CollectionLeaseReserved"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.SubmissionBegin",
+            "advice": 3,
+            "group": 1,
+            "round": 1,
+            "token": 3,
+            "surface": {
+              "$": "../../packages/agent-flow-bend/Handoff.Background"
+            },
+            "authorize_now": true,
+            "fingerprints": {
+              "$": "Con",
+              "head": 3,
+              "tail": {
+                "$": "Nil"
+              }
+            },
+            "units": {
+              "$": "Con",
+              "head": 3,
+              "tail": {
+                "$": "Nil"
+              }
+            }
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.SubmissionBegun"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.CollectionReserveLease",
+            "advice": 4,
+            "token": 4
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.CollectionLeaseReserved"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.SubmissionBegin",
+            "advice": 4,
+            "group": 1,
+            "round": 1,
+            "token": 4,
+            "surface": {
+              "$": "../../packages/agent-flow-bend/Handoff.Background"
+            },
+            "authorize_now": true,
+            "fingerprints": {
+              "$": "Con",
+              "head": 4,
+              "tail": {
+                "$": "Nil"
+              }
+            },
+            "units": {
+              "$": "Con",
+              "head": 4,
+              "tail": {
+                "$": "Nil"
+              }
+            }
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.SubmissionBegun"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.CollectionReserveLease",
+            "advice": 3,
+            "token": 3
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.CollectionLeaseRefused"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.SubmissionBegin",
+            "advice": 3,
+            "group": 1,
+            "round": 1,
+            "token": 3,
+            "surface": {
+              "$": "../../packages/agent-flow-bend/Handoff.Background"
+            },
+            "authorize_now": true,
+            "fingerprints": {
+              "$": "Con",
+              "head": 3,
+              "tail": {
+                "$": "Nil"
+              }
+            },
+            "units": {
+              "$": "Con",
+              "head": 3,
+              "tail": {
+                "$": "Nil"
+              }
+            }
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.SubmissionRefused"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 240,
+          "time": 4800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.SubmissionTerminal",
+            "advice": 3,
+            "token": 3,
+            "certain": true
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.SubmissionRecorded"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 240,
+          "time": 4800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.CollectionLeaseCheck",
+            "advice": 3,
+            "token": 3,
+            "expired": false,
+            "stop_collector": false,
+            "same_group": true,
+            "reofferable": false
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.CollectionLeaseKept"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 240,
+          "time": 4800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.CollectionReleaseLease",
+            "advice": 3,
+            "token": 3
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.CollectionLeaseReleased"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 240,
+          "time": 4800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.SubmissionTerminal",
+            "advice": 4,
+            "token": 4,
+            "certain": true
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.SubmissionRecorded"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 240,
+          "time": 4800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.CollectionLeaseCheck",
+            "advice": 4,
+            "token": 4,
+            "expired": false,
+            "stop_collector": false,
+            "same_group": true,
+            "reofferable": false
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.CollectionLeaseKept"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 240,
+          "time": 4800,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.CollectionReleaseLease",
+            "advice": 4,
+            "token": 4
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.CollectionLeaseReleased"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 1200,
+          "time": 24000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.CollectionExpiryCheck",
+            "elapsed": 20000,
+            "lifetime": 20000
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.CollectionExpired"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 1200,
+          "time": 24000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.CollectionExpiryCheck",
+            "elapsed": 20000,
+            "lifetime": 20000
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.CollectionExpired"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 1200,
+          "time": 24000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.CollectionRetireAdvice",
+            "advice": 3
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.CollectionAdviceRetired"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 1200,
+          "time": 24000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.SubmissionForget",
+            "advice": 3
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.SubmissionForgotten"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 1200,
+          "time": 24000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.RetireReview",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 3
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.ReservationReleased",
+              "id": 2
+            },
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.ReviewRecorded",
+              "outcome": {
+                "$": "../../packages/agent-flow-bend/Canonical.Discarded"
+              }
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            },
+            {
+              "id": "1/1/1/3",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 1200,
+          "time": 24000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.CollectionRetireAdvice",
+            "advice": 4
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.CollectionAdviceRetired"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 1200,
+          "time": 24000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.SubmissionForget",
+            "advice": 4
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.SubmissionForgotten"
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ]
+        },
+        {
+          "tick": 1200,
+          "time": 24000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.RetireReview",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 4
+          },
+          "commands": [
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.ReservationReleased",
+              "id": 3
+            },
+            {
+              "$": "../../packages/agent-flow-bend/Canonical.ReviewRecorded",
+              "outcome": {
+                "$": "../../packages/agent-flow-bend/Canonical.Discarded"
+              }
+            }
+          ],
+          "before": [
+            {
+              "id": "1/1/1/4",
+              "kind": "PendingFinding",
+              "parent": 1
+            }
+          ],
+          "after": []
+        }
+      ],
+      "actorTransitions": [
+        {
+          "tick": 1,
+          "id": "1/1/1/2",
+          "family": 1,
+          "x": 412,
+          "y": 174,
+          "phase": 2,
+          "observed": 2,
+          "terminal": 0,
+          "outcome": 0,
+          "path": 18,
+          "released": false,
+          "predecessor": [
+            "1/1/1/1"
+          ]
+        },
+        {
+          "tick": 1,
+          "id": "1/1/1/1",
+          "family": 1,
+          "x": 36,
+          "y": 174,
+          "phase": 0,
+          "observed": 1,
+          "terminal": 0,
+          "outcome": 6,
+          "path": 18,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 40,
+          "id": "1/1/1/3",
+          "family": 1,
+          "x": 676,
+          "y": 174,
+          "phase": 3,
+          "observed": 4,
+          "terminal": 0,
+          "outcome": 0,
+          "path": 21,
+          "released": false,
+          "predecessor": [
+            "1/1/1/2"
+          ]
+        },
+        {
+          "tick": 40,
+          "id": "1/1/1/4",
+          "family": 1,
+          "x": 676,
+          "y": 174,
+          "phase": 3,
+          "observed": 4,
+          "terminal": 0,
+          "outcome": 0,
+          "path": 21,
+          "released": false,
+          "predecessor": [
+            "1/1/1/2"
+          ]
+        },
+        {
+          "tick": 40,
+          "id": "1/1/1/2",
+          "family": 1,
+          "x": 412,
+          "y": 174,
+          "phase": 2,
+          "observed": 2,
+          "terminal": 30,
+          "outcome": 6,
+          "path": 18,
+          "released": false,
+          "predecessor": [
+            "1/1/1/1"
+          ]
+        },
+        {
+          "tick": 40,
+          "id": "1/1/1/1",
+          "family": 1,
+          "x": 192,
+          "y": 174,
+          "phase": 0,
+          "observed": 1,
+          "terminal": 30,
+          "outcome": 6,
+          "path": 17,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 80,
+          "id": "1/1/1/1",
+          "family": 1,
+          "x": 348,
+          "y": 174,
+          "phase": 1,
+          "observed": 1,
+          "terminal": 30,
+          "outcome": 6,
+          "path": 15,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 152,
+          "id": "1/1/1/1",
+          "family": 1,
+          "x": 412,
+          "y": 174,
+          "phase": 1,
+          "observed": 1,
+          "terminal": 30,
+          "outcome": 6,
+          "path": 0,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 153,
+          "id": "1/1/1/2",
+          "family": 1,
+          "x": 412,
+          "y": 174,
+          "phase": 2,
+          "observed": 2,
+          "terminal": 30,
+          "outcome": 6,
+          "path": 17,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 153,
+          "id": "1/1/1/1",
+          "family": 1,
+          "x": 412,
+          "y": 174,
+          "phase": 1,
+          "observed": 1,
+          "terminal": 29,
+          "outcome": 6,
+          "path": 0,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 181,
+          "id": "1/1/1/1",
+          "removed": true
+        },
+        {
+          "tick": 276,
+          "id": "1/1/1/2",
+          "family": 1,
+          "x": 676,
+          "y": 174,
+          "phase": 2,
+          "observed": 2,
+          "terminal": 30,
+          "outcome": 6,
+          "path": 0,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 277,
+          "id": "1/1/1/3",
+          "family": 1,
+          "x": 676,
+          "y": 174,
+          "phase": 3,
+          "observed": 5,
+          "terminal": 0,
+          "outcome": 0,
+          "path": 46,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 277,
+          "id": "1/1/1/2",
+          "family": 1,
+          "x": 676,
+          "y": 174,
+          "phase": 2,
+          "observed": 2,
+          "terminal": 29,
+          "outcome": 6,
+          "path": 0,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 285,
+          "id": "1/1/1/4",
+          "family": 1,
+          "x": 676,
+          "y": 174,
+          "phase": 3,
+          "observed": 5,
+          "terminal": 0,
+          "outcome": 0,
+          "path": 46,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 305,
+          "id": "1/1/1/2",
+          "removed": true
+        },
+        {
+          "tick": 461,
+          "id": "1/1/1/3",
+          "family": 1,
+          "x": 412,
+          "y": 444,
+          "phase": 4,
+          "observed": 5,
+          "terminal": 0,
+          "outcome": 0,
+          "path": 40,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 469,
+          "id": "1/1/1/4",
+          "family": 1,
+          "x": 412,
+          "y": 444,
+          "phase": 4,
+          "observed": 5,
+          "terminal": 0,
+          "outcome": 0,
+          "path": 40,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 541,
+          "id": "1/1/1/3",
+          "family": 1,
+          "x": 404,
+          "y": 460,
+          "phase": 5,
+          "observed": 5,
+          "terminal": 0,
+          "outcome": 0,
+          "path": 25,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 568,
+          "id": "1/1/1/4",
+          "family": 1,
+          "x": 404,
+          "y": 460,
+          "phase": 5,
+          "observed": 5,
+          "terminal": 0,
+          "outcome": 0,
+          "path": 25,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 701,
+          "id": "1/1/1/3",
+          "family": 1,
+          "x": 116,
+          "y": 468,
+          "phase": 5,
+          "observed": 5,
+          "terminal": 0,
+          "outcome": 0,
+          "path": 0,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 1200,
+          "id": "1/1/1/3",
+          "family": 1,
+          "x": 116,
+          "y": 468,
+          "phase": 5,
+          "observed": 5,
+          "terminal": 29,
+          "outcome": 0,
+          "path": 0,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 1200,
+          "id": "1/1/1/4",
+          "family": 1,
+          "x": 116,
+          "y": 444,
+          "phase": 5,
+          "observed": 5,
+          "terminal": 30,
+          "outcome": 0,
+          "path": 9,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 1228,
+          "id": "1/1/1/3",
+          "removed": true
+        },
+        {
+          "tick": 1266,
+          "id": "1/1/1/4",
+          "family": 1,
+          "x": 116,
+          "y": 468,
+          "phase": 5,
+          "observed": 5,
+          "terminal": 30,
+          "outcome": 0,
+          "path": 0,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 1267,
+          "id": "1/1/1/4",
+          "family": 1,
+          "x": 116,
+          "y": 468,
+          "phase": 5,
+          "observed": 5,
+          "terminal": 29,
+          "outcome": 0,
+          "path": 0,
+          "released": true,
+          "predecessor": []
+        },
+        {
+          "tick": 1295,
+          "id": "1/1/1/4",
+          "removed": true
+        }
+      ],
+      "stalls": [
+        {
+          "tick": 153,
+          "id": "1/1/1/1",
+          "family": 1,
+          "x": 412,
+          "y": 174,
+          "phase": 1,
+          "observed": 1,
+          "terminal": 29,
+          "outcome": 6,
+          "path": 0,
+          "released": true,
+          "predecessor": [],
+          "start": 153,
+          "reason": {
+            "ready": true,
+            "branchClear": true,
+            "canPlay": true
+          },
+          "end": 181,
+          "durationTicks": 28,
+          "removed": true
+        },
+        {
+          "tick": 277,
+          "id": "1/1/1/2",
+          "family": 1,
+          "x": 676,
+          "y": 174,
+          "phase": 2,
+          "observed": 2,
+          "terminal": 29,
+          "outcome": 6,
+          "path": 0,
+          "released": true,
+          "predecessor": [],
+          "start": 277,
+          "reason": {
+            "ready": true,
+            "branchClear": true,
+            "canPlay": true
+          },
+          "end": 305,
+          "durationTicks": 28,
+          "removed": true
+        },
+        {
+          "tick": 702,
+          "id": "1/1/1/3",
+          "family": 1,
+          "x": 116,
+          "y": 468,
+          "phase": 5,
+          "observed": 5,
+          "terminal": 0,
+          "outcome": 0,
+          "path": 0,
+          "released": true,
+          "predecessor": [],
+          "start": 702,
+          "reason": {
+            "ready": true,
+            "branchClear": true,
+            "canPlay": true
+          },
+          "end": 1228,
+          "durationTicks": 526,
+          "removed": true
+        },
+        {
+          "tick": 701,
+          "id": "1/1/1/4",
+          "family": 1,
+          "x": 116,
+          "y": 444,
+          "phase": 5,
+          "observed": 5,
+          "terminal": 0,
+          "outcome": 0,
+          "path": 9,
+          "released": true,
+          "predecessor": [],
+          "start": 701,
+          "reason": {
+            "ready": true,
+            "branchClear": false,
+            "canPlay": false
+          },
+          "end": 1229,
+          "durationTicks": 528
+        },
+        {
+          "tick": 1267,
+          "id": "1/1/1/4",
+          "family": 1,
+          "x": 116,
+          "y": 468,
+          "phase": 5,
+          "observed": 5,
+          "terminal": 29,
+          "outcome": 0,
+          "path": 0,
+          "released": true,
+          "predecessor": [],
+          "start": 1267,
+          "reason": {
+            "ready": true,
+            "branchClear": true,
+            "canPlay": true
+          },
+          "end": 1295,
+          "durationTicks": 28,
+          "removed": true
+        }
+      ]
+    },
+    "otherMaps": [
+      {
+        "name": "finding-map1",
+        "phase5Stalls": [
+          {
+            "tick": 125,
+            "id": "1/1/1/1",
+            "family": 1,
+            "x": 288,
+            "y": 166,
+            "phase": 1,
+            "observed": 1,
+            "terminal": 29,
+            "outcome": 6,
+            "path": 0,
+            "released": true,
+            "predecessor": [],
+            "start": 125,
+            "reason": {
+              "ready": true,
+              "branchClear": true,
+              "canPlay": true
+            },
+            "end": 153,
+            "durationTicks": 28,
+            "removed": true
+          },
+          {
+            "tick": 233,
+            "id": "1/1/1/2",
+            "family": 1,
+            "x": 448,
+            "y": 190,
+            "phase": 2,
+            "observed": 2,
+            "terminal": 29,
+            "outcome": 6,
+            "path": 0,
+            "released": true,
+            "predecessor": [],
+            "start": 233,
+            "reason": {
+              "ready": true,
+              "branchClear": true,
+              "canPlay": true
+            },
+            "end": 261,
+            "durationTicks": 28,
+            "removed": true
+          },
+          {
+            "tick": 694,
+            "id": "1/1/1/3",
+            "family": 1,
+            "x": 184,
+            "y": 572,
+            "phase": 5,
+            "observed": 5,
+            "terminal": 0,
+            "outcome": 0,
+            "path": 0,
+            "released": true,
+            "predecessor": [],
+            "start": 694,
+            "reason": {
+              "ready": true,
+              "branchClear": true,
+              "canPlay": true
+            },
+            "end": 800,
+            "durationTicks": 106,
+            "still": true
+          },
+          {
+            "tick": 695,
+            "id": "1/1/1/4",
+            "family": 1,
+            "x": 160,
+            "y": 572,
+            "phase": 5,
+            "observed": 5,
+            "terminal": 0,
+            "outcome": 0,
+            "path": 8,
+            "released": true,
+            "predecessor": [],
+            "start": 695,
+            "reason": {
+              "ready": true,
+              "branchClear": false,
+              "canPlay": false
+            },
+            "end": 800,
+            "durationTicks": 105,
+            "still": true
+          }
+        ]
+      },
+      {
+        "name": "finding-map2",
+        "phase5Stalls": [
+          {
+            "tick": 166,
+            "id": "1/1/1/1",
+            "family": 1,
+            "x": 452,
+            "y": 172,
+            "phase": 1,
+            "observed": 1,
+            "terminal": 29,
+            "outcome": 6,
+            "path": 0,
+            "released": true,
+            "predecessor": [],
+            "start": 166,
+            "reason": {
+              "ready": true,
+              "branchClear": true,
+              "canPlay": true
+            },
+            "end": 194,
+            "durationTicks": 28,
+            "removed": true
+          },
+          {
+            "tick": 317,
+            "id": "1/1/1/2",
+            "family": 1,
+            "x": 654,
+            "y": 324,
+            "phase": 2,
+            "observed": 2,
+            "terminal": 29,
+            "outcome": 6,
+            "path": 0,
+            "released": true,
+            "predecessor": [],
+            "start": 317,
+            "reason": {
+              "ready": true,
+              "branchClear": true,
+              "canPlay": true
+            },
+            "end": 345,
+            "durationTicks": 28,
+            "removed": true
+          }
+        ]
+      }
+    ],
+    "sampledLaterBurst": {
+      "settlements": [
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.JevRequestSettled",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 3,
+            "request": 5,
+            "outcome": {
+              "$": "../../packages/agent-flow-bend/Canonical.RequestClear"
+            },
+            "current_work": true
+          }
+        },
+        {
+          "tick": 200,
+          "time": 4000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.JevRequestSettled",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 4,
+            "request": 6,
+            "outcome": {
+              "$": "../../packages/agent-flow-bend/Canonical.RequestClear"
+            },
+            "current_work": true
+          }
+        },
+        {
+          "tick": 800,
+          "time": 8000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.JevRequestSettled",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 9,
+            "request": 11,
+            "outcome": {
+              "$": "../../packages/agent-flow-bend/Canonical.RequestClear"
+            },
+            "current_work": true
+          }
+        },
+        {
+          "tick": 800,
+          "time": 8000,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.JevRequestSettled",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 10,
+            "request": 12,
+            "outcome": {
+              "$": "../../packages/agent-flow-bend/Canonical.RequestClear"
+            },
+            "current_work": true
+          }
+        },
+        {
+          "tick": 1694,
+          "time": 33873,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.JevRequestSettled",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 15,
+            "request": 17,
+            "outcome": {
+              "$": "../../packages/agent-flow-bend/Canonical.RequestClear"
+            },
+            "current_work": true
+          }
+        },
+        {
+          "tick": 1694,
+          "time": 33873,
+          "event": {
+            "$": "../../packages/agent-flow-bend/Canonical.JevRequestSettled",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 16,
+            "request": 18,
+            "outcome": {
+              "$": "../../packages/agent-flow-bend/Canonical.RequestFinding"
+            },
+            "current_work": true
+          }
+        }
+      ]
+    }
+  },
+  "limits": [
+    "The player supplied map0/no towers/burst1, but no saved event trace or exact button timings; the controlled-finding case explains a reproducible matching mechanism, not the exact player run.",
+    "No new proof or corrected native/window qualification is claimed."
+  ]
+}

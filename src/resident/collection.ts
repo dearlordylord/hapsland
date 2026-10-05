@@ -1,3 +1,4 @@
+import { findingCollectionOutcome, collectionOrdering } from "./collection-decisions.ts"
 import type { CodexDirectEventOutput, Finding } from "../direct-event/output.ts"
 import { toCodexDirectEventOutput } from "../direct-event/output.ts"
 import { formatReviewFeedback } from "../feedback/message.ts"
@@ -38,22 +39,13 @@ const canonicalCollectionCommand = (event: CanonicalEvent): string => {
 }
 
 export const collectionOrder = <A extends Pick<CollectionCandidate, "sequence">>(left: A, right: A): number => {
-  switch (
+  return collectionOrdering(
     canonicalCollectionCommand({
       kind: "collectionOrderCheck",
       leftSequence: left.sequence,
       rightSequence: right.sequence
     })
-  ) {
-    case "collectionBefore":
-      return -1
-    case "collectionEqual":
-      return 0
-    case "collectionAfter":
-      return 1
-    default:
-      throw new Error("invalid canonical collection order")
-  }
+  )
 }
 
 const elapsedForBend = (now: number, started: number, limit: number): number => {
@@ -197,18 +189,7 @@ const standaloneFindingOffer: CanonicalFindingOffer = Effect.fn("Collection.stan
     selectedCount: input.selectedCount,
     prospectiveBytes: input.prospectiveBytes
   })
-  switch (command) {
-    case "collectionFindingSelected":
-      return "selected"
-    case "collectionFindingRetained":
-      return "retained"
-    case "collectionFindingLimited":
-      return "limited"
-    case "collectionFindingExpired":
-      return "expired"
-    default:
-      throw new Error("invalid canonical finding offer")
-  }
+  return findingCollectionOutcome(command)
 })
 
 const standaloneNoticeOffer: CanonicalNoticeOffer = (items, bytes, skipUnfitting) => {

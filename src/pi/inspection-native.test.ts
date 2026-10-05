@@ -5,7 +5,7 @@ import { join } from "node:path"
 import { Effect } from "effect"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { makeInspectionHttpServer } from "../inspection/http.ts"
-import { configuredRules } from "../policy/rules.ts"
+import { connectDefaultRuleFixture } from "../test-support/default-rules.ts"
 import { makeInspectionStorage } from "../inspection/storage.ts"
 import type { InspectionRecord } from "../inspection/contract.ts"
 import {
@@ -44,14 +44,9 @@ describe("Pi native extension inspection through production command and public f
         }
       )
       const context = { ...f.context, cwd: realpathSync(f.root) }
-      writeFileSync(
-        join(f.root, "user.json"),
-        JSON.stringify({
-          version: 1,
-          sessionInspection: variant !== "opt-out",
-          ruleOverrides: Object.fromEntries(configuredRules.map((rule, index) => [rule.id, { enabled: index === 0 }]))
-        })
-      )
+      const rulePaths = connectDefaultRuleFixture(f.root)
+      writeFileSync(join(f.root, ".hapsland.jsonc"), JSON.stringify({ version: 1, rules: [rulePaths[0]] }))
+      writeFileSync(join(f.root, "user.json"), JSON.stringify({ version: 1, sessionInspection: variant !== "opt-out" }))
       if (variant === "opt-out") writeFileSync(join(f.root, "backend.gate"), "release\n")
       if (lostAck) writeFileSync(`${ackGate}.enabled`, "enabled\n")
       await f.prepareResident()

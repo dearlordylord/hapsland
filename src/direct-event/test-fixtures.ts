@@ -1,3 +1,4 @@
+import { connectDefaultRuleFixture } from "../test-support/default-rules.ts"
 import { execFileAsync } from "../../scripts/test-harness/process.mjs"
 import { mkdtemp, mkdir, realpath, writeFile } from "node:fs/promises"
 import { join } from "node:path"
@@ -13,6 +14,13 @@ export const makeGitFixture = async () => {
   await execFileAsync("git", ["-C", root, "config", "user.email", "test@example.invalid"])
   await execFileAsync("git", ["-C", root, "config", "user.name", "Test"])
   return realpath(root)
+}
+
+/** Review fixtures explicitly connect their editable default source. */
+export const makeReviewGitFixture = async () => {
+  const root = await makeGitFixture()
+  connectDefaultRuleFixture(root)
+  return root
 }
 
 export const put = async (root: string, path: string, value: string | Uint8Array) => {

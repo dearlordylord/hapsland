@@ -239,7 +239,44 @@ const resolvePatterns = (layers: ReadonlyArray<ConfigurationLayer>) => {
     }
   }
 
-  return { includes, overriddenIncludes, excludes, protectedExcludes: dedupePatterns(protectedExcludes) }
+  let contextIncludes = includes
+  let overriddenContextIncludes: ReadonlyArray<PatternOrigin> = []
+  let contextExcludes: ReadonlyArray<PatternOrigin> = []
+  let explicitContextExcludes = false
+  let languages = originated<ReadonlyArray<"typescript" | "rust" | "bend">>(["typescript", "rust", "bend"], {
+    layer: "built-in",
+    source: "built-in",
+    field: "languages"
+  })
+  for (const layer of layers) {
+    if (layer.document.contextIncludes !== undefined) {
+      overriddenContextIncludes = dedupePatterns([
+        ...overriddenContextIncludes,
+        ...contextIncludes.map((entry) => ({ ...entry, active: false }))
+      ])
+      contextIncludes = dedupePatterns(patternsFor(layer, "contextIncludes", layer.document.contextIncludes))
+    }
+    if (layer.document.contextExcludes !== undefined) {
+      explicitContextExcludes = true
+      contextExcludes = dedupePatterns([
+        ...contextExcludes,
+        ...patternsFor(layer, "contextExcludes", layer.document.contextExcludes)
+      ])
+    }
+    if (layer.document.languages !== undefined)
+      languages = originated(layer.document.languages, origin(layer, "languages"))
+  }
+  if (!explicitContextExcludes) contextExcludes = excludes
+  return {
+    includes,
+    overriddenIncludes,
+    excludes,
+    contextIncludes,
+    overriddenContextIncludes,
+    contextExcludes,
+    languages,
+    protectedExcludes: dedupePatterns(protectedExcludes)
+  }
 }
 
 const resolveCredentialReference = (layers: ReadonlyArray<ConfigurationLayer>) => {
@@ -346,6 +383,10 @@ export const validateCapturedPolicy = (policy: ResolvedPolicy): void => {
       overriddenIncludes: policy.overriddenIncludes,
       excludes: policy.excludes,
       protectedExcludes: policy.protectedExcludes,
+      contextIncludes: policy.contextIncludes,
+      overriddenContextIncludes: policy.overriddenContextIncludes,
+      contextExcludes: policy.contextExcludes,
+      languages: policy.languages,
       credentialEnvVar: policy.credentialEnvVar,
       claudeFeedbackMode: policy.claudeFeedbackMode,
       graphLimits: policy.graphLimits,

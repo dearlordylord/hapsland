@@ -1,36 +1,25 @@
-import { BUNDLED_NOUL_PACK } from "../rules/bundled.ts"
+import { SHIPPED_DEFAULT_RULES } from "../rules/shipped.ts"
 import { DEFAULT_RULE_THRESHOLD } from "../rules/schema.ts"
-import type { RulePack, RuleDefinition as ProductionRuleDefinition } from "../rules/schema.ts"
+import type { RuleDefinition as ProductionRuleDefinition } from "../rules/schema.ts"
 import { makeAmbiguousExpectation, makeExpectation, makeFixture, makeRuleDefinition } from "./digest.ts"
 import type { Expectation, Fixture, RuleDefinition } from "./model.ts"
 
-/**
- * Convert a production declarative pack into the identity-bearing evaluation
- * definitions.  Keeping this adapter next to the fixture suite makes it hard to
- * accidentally evaluate a hand-written question that differs from the runtime
- * compiler's selected pack.
- */
-export const evaluationDefinitionsFromPack = (
-  pack: Pick<RulePack, "id" | "contentVersion" | "rules">
+/** Derive evaluation definitions from the exact authored production rules. */
+export const evaluationDefinitionsFromRules = (
+  rules: ReadonlyArray<ProductionRuleDefinition>
 ): ReadonlyArray<RuleDefinition> =>
-  pack.rules.map((rule: ProductionRuleDefinition) =>
+  rules.map((rule) =>
     makeRuleDefinition({
-      packId: pack.id,
       ruleId: rule.id,
-      packVersion: pack.contentVersion,
       question: rule.question,
       criteria: rule.criteria,
       defaultMessage: rule.message,
-      threshold: rule.threshold ?? DEFAULT_RULE_THRESHOLD,
-      applicability: {
-        includePatterns: rule.applicability?.includes ?? [],
-        excludePatterns: rule.applicability?.excludes ?? []
-      }
+      threshold: rule.threshold ?? DEFAULT_RULE_THRESHOLD
     })
   )
 
 /** The exact bundled production definitions used by the default milestone. */
-export const BUNDLED_EVALUATION_RULES = evaluationDefinitionsFromPack(BUNDLED_NOUL_PACK)
+export const BUNDLED_EVALUATION_RULES = evaluationDefinitionsFromRules(SHIPPED_DEFAULT_RULES)
 
 /**
  * Human-labelled synthetic examples for the inferred-case rule.  The negative
@@ -76,10 +65,10 @@ export const BUNDLED_EVALUATION_FIXTURES: ReadonlyArray<Fixture> = [
 const inferredCaseRule = BUNDLED_EVALUATION_RULES.find((rule) => rule.identity.ruleId === "r1_inferred_case")
 
 if (inferredCaseRule === undefined) {
-  throw new Error("bundled Noul pack does not contain r1_inferred_case")
+  throw new Error("bundled Noul rules does not contain r1_inferred_case")
 }
 
-const inferredCaseId = inferredCaseRule.identity.qualifiedId
+const inferredCaseId = inferredCaseRule.identity.ruleId
 const fixture = (id: string): Fixture => {
   const found = BUNDLED_EVALUATION_FIXTURES.find((candidate) => candidate.id === id)
   if (found === undefined) throw new Error(`missing evaluation fixture ${id}`)

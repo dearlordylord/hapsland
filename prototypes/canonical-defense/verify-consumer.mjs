@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { isDeepStrictEqual } from "node:util";
 import { compareNativeRuntime, compareNativeFrames } from "./compare-native-runtime.mjs";
 import { readFileSync } from "node:fs";
 import { createGameStreams } from "./game-stream-runner.mjs";
@@ -37,12 +38,12 @@ function nextBatch() {
 const config = {
   seed: 152, retention: 10000,
   limits: { globalItems: 32, globalBytes: 480, partitionItems: 16, partitionBytes: 480 },
-  session: { agent: "agent-1", seed: 152, editIntervalMs: 1200, variationMs: 200,
+  session: { agent: "agent-1", seed: 152, editIntervalMs: 30000, variationMs: 200,
     editsPerTask: 4, taskPauseMs: 3000, adviceResponse: "ignore", repairDelayMs: 300,
     bytes: 100, unitBytes: [10, 20] },
   preparationDelay: 800, jevDelay: 3200, adviceLifetime: 20000,
   outputProfile: { outcome: "certain", delayMs: 800, leaseMs: 5000 },
-  outcomeWeights: { neverSent: 0, finding: 1, clear: 1, backendFailure: 0, timeout: 0, interrupted: 0 },
+  outcomeWeights: { neverSent: 0, finding: 1, clear: 0, backendFailure: 0, timeout: 0, interrupted: 0 },
   fileTrees: { minFiles: 1, maxFiles: 3, maxImports: 2, maxDepth: 2, deniedPercent: 0,
     missingPercent: 0, unreadablePercent: 0, repeatedEdgePercent: 10, cyclicEdgePercent: 0,
     unsupportedPercent: 0, deadlineStep: 0, localWork: 0,
@@ -83,7 +84,7 @@ for (const seed of [0,3,17,41]) {
   // Delivered originals leave the native core; frame facts are the actual
   // retained history used to reconstruct the public target boundary.
   const nativeReceipts = [];
-  let ticks = 0, paused = false, suspended = false, pace = 1200;
+  let ticks = 0, paused = false, suspended = false, pace = 30000;
   let pendingBatch=envelope;
   assert.equal(run.now, 0);
   assert.equal(run.observations.length, 0, "configuration queues arrivals without performing work");
@@ -111,7 +112,8 @@ for (const seed of [0,3,17,41]) {
     if (input.$ === "DefenseConsumerObserved.GameKey") {
       if (input.code === 110) run.applyControl({ kind: "burst", agent: "agent-1", count: 1 });
       if (input.code === 97) { suspended = !suspended; run.applyControl({ kind: "suspendArrivals", agent: "agent-1", suspended }); }
-      if (input.code === 91) { pace = Math.max(20, pace - 100); run.applyControl({ kind: "editPace", agent: "agent-1", intervalMs: pace }); }
+      if (input.code === 91) { pace = Math.min(60000, pace + 100); run.applyControl({ kind: "editPace", agent: "agent-1", intervalMs: pace }); }
+      if (input.code === 93) { pace = Math.max(20, pace - 100); run.applyControl({ kind: "editPace", agent: "agent-1", intervalMs: pace }); }
       if (input.code === 32) paused = !paused;
       assert.deepEqual([...checkpointTicks()],[]);
       assert.equal(afterWorld.clock, ticks, "keys do not advance virtual time");
@@ -140,7 +142,25 @@ for (const seed of [0,3,17,41]) {
             assert.equal(list(physical.frames).length, 0);
           } else {
             ticks++;
+            // Presentation reads every accepted frame and never gates business work.
             run.advance({ untilTime: ticks * 20, maxEvents: 256 });
+            // Independent game scenario: each default request has eight rules.
+            // Add multiplicity through the same public canonical input boundary.
+            const settlements = publicFrames.filter(frame => frame.kind === "canonical" &&
+              frame.observation.event.kind === "jevRequestSettled" &&
+              frame.observation.event.outcome === "finding" && frame.observation.event.currentWork);
+            let counts = 0;
+            for (const frame of settlements) {
+              const event = frame.observation.event;
+              const work = run.observe().projection.work.find(item => item.partition === event.partition &&
+                item.lifetime === event.lifetime && item.round === event.round && item.operation === event.operation);
+              if (work?.kind !== "pendingFinding") continue;
+              run.schedule({ at: run.now, kind: "canonical", event: { kind: "findingCountUpdated",
+                partition: event.partition, lifetime: event.lifetime, round: event.round,
+                operation: event.operation, count: 8 } });
+              counts++;
+            }
+            if (counts) run.advance({ untilTime: run.now, maxEvents: 32 });
           }
         } finally { unsubscribe(); }
         const deliveries = list(physical.physical).map(readRecord);

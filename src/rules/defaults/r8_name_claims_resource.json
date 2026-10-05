@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "id": "r8_name_claims_resource",
+  "question": "Does `artifact` declare a callable whose own name claims a read or a write of a resource \u2014 saving, fetching, finding, sending, deleting, renewing \u2014 that its parameters and return type do not mention?\n\nFocus: A name that states only a computation claims nothing: computing, checking, formatting. The finding is a name that reaches past its arguments \u2014 a store it saves to, a source it finds in, a channel it sends over \u2014 while the declaration names no store, client, or channel among its parameters, and no requirements or error channel stating one in its return type.",
+  "criteria": {
+    "false": "Each callable's declaration accounts for what its name claims, or no name claims a resource\n\nExamples:\n- the store, client, or clock the name implies appears as a parameter\n- the return type's requirements or error channel names the resource, as `Effect<T, E, Database>`\n- the name claims only a computation over the arguments given",
+    "true": "A callable's name claims an effect on a resource its declaration never mentions\n\nExamples:\n- `save(x): Promise<void>` \u2014 a write with no store in sight\n- `findById(id): Promise<T | null>` \u2014 a read from an unnamed source\n- `send(msg): void` \u2014 a transmission with no channel"
+  },
+  "threshold": 0.7,
+  "message": "A declaration appears to hide a resource named by the operation.",
+  "title": "name claims resource",
+  "inputs": [
+    {
+      "languages": [
+        "typescript",
+        "rust",
+        "bend"
+      ],
+      "kind": "type",
+      "requires": [
+        "root-declaration",
+        "resolved-outbound-types",
+        "selected-source-type-closure"
+      ]
+    }
+  ]
+}

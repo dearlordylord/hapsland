@@ -69,12 +69,12 @@ The narrative order is:
 1. Hero and a short explanation of reviewing types, functions, and related definitions.
 2. GIF showing one possible feedback cycle, with no promise that every agent repairs.
 3. Setup using built-in rules; a visible sentence that teams can add their own rules.
-4. Source controls: user/project exclusions, no read of an excluded supporting path,
+4. Source controls: distinct root/context selection, unbeatable privacy exclusions, no read of a denied supporting path,
    context size limits, and the user-selected review recipient.
 5. Short “what is checked” paragraph with precise proof scope and links.
 6. Links to the interactive example, configuration, and technical architecture.
 
-Custom rules are local JSONC packs connected through configuration. Mention the
+Each custom rule is one local JSONC document, explicitly connected through configuration. Mention the
 capability and link [configuration](configuration.md); a full authoring tutorial
 is outside the first-read flow. Supported rule targets depend on language/context.
 Do not imply every built-in rule applies to every function or type.
@@ -226,7 +226,7 @@ its checks.
 | “We test core decisions with deterministic simulation and replay.” | [monkey-business](../packages/monkey-business/README.md) exercises compiled decisions with virtual time and synthetic facts; excludes the complete resident, real source capture, IPC, and Jev transport |
 | “You control which files are eligible for review.” | [Configuration](configuration.md): exclusions accumulate; without file settings otherwise eligible files are selected; no per-request confirmation |
 | “Review context follows related definitions.” | [Input contract](review-contract-compatibility.md): selected source is included, with omissions and limits; does not establish better judgment accuracy |
-| “Use built-in rules or add your own.” | [Configuration](configuration.md): local JSONC packs and declared supported targets; rule matching still respects input capabilities |
+| “Use built-in rules or add your own.” | [Configuration](configuration.md): individual local JSONC rules and declared supported language/input combinations; rule matching still respects input capabilities |
 | “The selected review backend evaluates the selected code.” | [Provider boundary](review-providers.md): user configuration selects Jev or Cloudflare Clef/Clef-flash; offline adapter checks do not establish live Cloudflare quality or latency |
 
 Proposed compact assurance copy: “Formally checked core logic: proven context limits

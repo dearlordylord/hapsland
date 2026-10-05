@@ -12,13 +12,12 @@ export const captureInspectionPolicy = (
 ): Extract<InspectionFact, { kind: "unit-policy" }> => {
   const rules = prepared.input.rules.map((rule) => ({
     ruleId: rule.id,
-    qualifiedId: rule.qualifiedId,
+    source: rule.source,
     question: rule.decision.instructions,
     criteria: rule.decision.criteria,
     threshold: rule.threshold,
     message: rule.message,
     rank: rule.rank,
-    packDigest: rule.packDigest,
     definitionDigest: rule.definitionDigest
   }))
   return {

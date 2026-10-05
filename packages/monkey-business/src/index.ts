@@ -202,6 +202,7 @@ export type RunObservation = {
 }
 export const AdvanceOptionsSchema = Schema.Struct({ untilTime: Schema.optional(Nat), maxEvents: Schema.optional(Nat) })
 export type AdvanceOptions = typeof AdvanceOptionsSchema.Type
+export type AdvanceResult = { reason: "timeLimit" | "eventLimit" | "idle"; events: number; now: number }
 const decodeAdvanceOptions = decoder(AdvanceOptionsSchema)
 export type RunConfig = {
   readonly expiryProfile?: ExpiryProfile
@@ -536,6 +537,7 @@ export class Run {
   private listeners = new Set<(o: Observation) => void>()
   private structuralListeners = new Set<(frame: RunStructuralFrame) => void>()
   private controls: ControlRecord[] = []
+  private settingsSnapshot: Pick<Replay, "config" | "controls"> | undefined
   private interventionReports: JevInterventionReport[] = []
   get interventions(): readonly JevInterventionReport[] {
     return copy(this.interventionReports)
@@ -2284,8 +2286,7 @@ export class Run {
       }
     }
     emissionSourceJob = afterSourceJob
-    for (const action of decodeDriver({ handled: true, actions: result.afterActions }).actions)
-      emitDriver(action, item.job, afterSourceJob)
+    for (const action of result.afterActions) emitDriver(action, item.job, afterSourceJob)
     if (event.kind === "preparationCompleted" && item.job) {
       const parent = before.work.find((w) => w.operation === event.operation)?.parent
       if (parent) this.jobs.delete(parent)
@@ -2390,12 +2391,12 @@ export class Run {
     return this.record(observation)
   }
   private enqueueResponseActions(
-    actions: unknown,
+    actions: readonly DriverAction[],
     origin: Scheduled["responseOrigin"],
     fallback: number,
     writer: Scheduled["writerOrigin"] = undefined
   ): void {
-    for (const action of decodeDriver({ handled: true, actions }).actions) {
+    for (const action of actions) {
       const owner = action.candidate?.partition ?? this.core.eventScope(action.event, fallback) ?? fallback
       this.event(owner, action.event, action.delay, undefined, action.expiryAdvice)
       const item = this.scheduled.get(this.order - 1)
@@ -2550,27 +2551,65 @@ export class Run {
       this.scheduled.delete(head.order)
     }
   }
-  advance(options: AdvanceOptions = {}) {
+  /**
+   * Begin one resumable advance, yielding after each outer step. The caller owns
+   * the Run while the iterator is suspended and must finish or close it before
+   * applying controls or starting another advance. Closing after a yield cancels
+   * at that step boundary and normalizes once; closing before the first `next`
+   * has no effect.
+   */
+  beginAdvance(options: AdvanceOptions = {}): Generator<void, AdvanceResult> {
     const { untilTime, maxEvents = 1000 } = decodeAdvanceOptions(options)
     integer(maxEvents, "event limit")
     if (untilTime !== undefined) {
       integer(untilTime, "time limit")
       if (untilTime < this.clock) throw new RangeError("time limit precedes current time")
     }
+    return this.advanceSteps(untilTime, maxEvents)
+  }
+  private *advanceSteps(untilTime: number | undefined, maxEvents: number): Generator<void, AdvanceResult> {
     let events = 0
-    while (events < maxEvents && this.queue.length) {
-      if (untilTime !== undefined && this.queue[0]!.at > untilTime) {
-        this.normalizeQuietWriterBoundary()
-        return { reason: "timeLimit" as const, events, now: this.clock }
+    let yielded = false
+    let normalizationAttempted = false
+    const finish = (reason: AdvanceResult["reason"] | (() => AdvanceResult["reason"])): AdvanceResult => {
+      normalizationAttempted = true
+      this.normalizeQuietWriterBoundary()
+      return { reason: typeof reason === "function" ? reason() : reason, events, now: this.clock }
+    }
+    try {
+      while (events < maxEvents && this.queue.length) {
+        if (untilTime !== undefined && this.queue[0]!.at > untilTime) {
+          return finish("timeLimit")
+        }
+        if (this.step(untilTime)) events++
+        else if (this.queue.length) {
+          yielded = true
+          yield
+          yielded = false
+          return finish("timeLimit")
+        }
+        yielded = true
+        yield
+        yielded = false
       }
-      if (this.step(untilTime)) events++
-      else if (this.queue.length) {
+      // Normalization can discard the final refused writer fact, so determine
+      // the terminal reason from the post-normalization queue state.
+      return finish(() => (this.queue.length ? "eventLimit" : "idle"))
+    } finally {
+      // `return()` or `throw()` at a yield closes at the just-completed step.
+      // A step exception and normal terminal paths retain their existing single
+      // normalization behavior.
+      if (yielded && !normalizationAttempted) {
+        normalizationAttempted = true
         this.normalizeQuietWriterBoundary()
-        return { reason: "timeLimit" as const, events, now: this.clock }
       }
     }
-    this.normalizeQuietWriterBoundary()
-    return { reason: this.queue.length ? ("eventLimit" as const) : ("idle" as const), events, now: this.clock }
+  }
+  advance(options: AdvanceOptions = {}): AdvanceResult {
+    const iterator = this.beginAdvance(options)
+    let next = iterator.next()
+    while (!next.done) next = iterator.next()
+    return next.value
   }
   [replayProgress](driver?: ReplayProgressDriver) {
     this.progressDriver = driver
@@ -2595,6 +2634,12 @@ export class Run {
       if (before[0] === this.count && before[1] === this.takes && before[2] === this.clock)
         throw new Error("unreconstructable replay endpoint")
     }
+  }
+  /** Immutable applied inputs for inspection, without copying the execution timeline. */
+  get appliedSettings(): Pick<Replay, "config" | "controls"> {
+    if (this.settingsSnapshot?.controls.length !== this.controls.length)
+      this.settingsSnapshot = freezeCanonicalData(copy({ config: this.config, controls: this.controls }))
+    return this.settingsSnapshot
   }
   exportReplay(): Replay {
     return copy({

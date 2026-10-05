@@ -10,12 +10,15 @@ import { acquireResidentFixture } from "../resident/runtime-fixture.ts"
 import { residentPaths } from "../resident/paths.ts"
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
 import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../policy/rules.ts"
+import { configuredRules, connectDefaultRuleFixture } from "../test-support/default-rules.ts"
 import { nativeDeferred } from "../test-support/native-deferred.ts"
 
 it("disconnects a stalled public feed while real resident reviews and persistence continue", async () => {
   const root = await makeGitFixture()
-  await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+  await writeFile(
+    join(root, ".hapsland.jsonc"),
+    JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+  )
   const history = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
   const published = nativeDeferred<void>()
   const resident = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {

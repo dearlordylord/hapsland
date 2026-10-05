@@ -9,8 +9,8 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
 import type { DirectObservation } from "../direct-event/model.ts"
-import { addEvent, makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../policy/rules.ts"
+import { addEvent, makeReviewGitFixture as makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts"
+import { configuredRules } from "../test-support/default-rules.ts"
 import {
   acknowledgeAdviceEffect as acknowledgeAdvice,
   beginComposedSubmissionEffect as beginComposedSubmission,
@@ -610,7 +610,7 @@ describe("resident separate-process lifecycle", () => {
     ).toBeUndefined()
   })
 
-  it("rechecks file exclusions after admission and before backend dispatch", async () => {
+  it("keeps edit file selection across admission and backend waits", async () => {
     const root = await makeGitFixture()
     const temporary = await mkdtemp(join(tmpdir(), "product-resident-revoke-"))
     directories.push(root, temporary)
@@ -661,12 +661,12 @@ describe("resident separate-process lifecycle", () => {
       )
       return stats.status === "stats" && stats.running === 0 ? stats : undefined
     })
-    expect(existsSync(capturePath)).toBe(false)
-    expect(await runClient(collectReady(root, advicee(), dispatch, paths))).toBeUndefined()
+    expect(existsSync(capturePath)).toBe(true)
+    expect(await runClient(collectReady(root, advicee(), dispatch, paths))).toBeDefined()
     expect(JSON.parse(await readFile(paths.owner, "utf8"))).toMatchObject({ pid: owner.pid })
   })
 
-  it("loads current configuration at dispatch rather than freezing admission config", async () => {
+  it("keeps the admission configuration through dispatch and delayed delivery", async () => {
     const root = await makeGitFixture()
     const temporary = await mkdtemp(join(tmpdir(), "product-resident-config-"))
     directories.push(root, temporary)
@@ -717,8 +717,8 @@ describe("resident separate-process lifecycle", () => {
       )
       return stats.status === "stats" && stats.running === 0 ? stats : undefined
     })
-    expect(existsSync(capturePath)).toBe(false)
-    expect(await runClient(collectReady(root, advicee(), dispatch, paths))).toBeUndefined()
+    expect(existsSync(capturePath)).toBe(true)
+    expect(await runClient(collectReady(root, advicee(), dispatch, paths))).toBeDefined()
   })
 
   it("kills one lifetime, rejects obsolete messages, restarts empty, and cleans up only when idle", async () => {

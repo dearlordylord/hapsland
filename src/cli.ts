@@ -12,6 +12,7 @@ import type { inspectClaudeInstallation } from "./onboarding/claude-installation
 import type { inspectCodexInstallation } from "./onboarding/codex-installation.ts"
 import { runPiHook } from "./pi/transport.ts"
 import { formatReviewFeedback } from "./feedback/message.ts"
+import { SetupOperation } from "./onboarding/setup-request.ts"
 import { parseInvocation, type ClientArguments } from "./cli-command.ts"
 import { isHookInvocation } from "./runtime/hook-invocation.ts"
 import { hookMonotonicMillis, monotonicNow } from "./resident/hook-clock.ts"
@@ -64,6 +65,15 @@ import {
 import { logoutCredential, resolveCredential, runSecretService, saveCredential } from "./credentials/secret-service.ts"
 import { readActivity, recordActivity } from "./activity/status.ts"
 import { recordDemoTrace } from "./onboarding/demo-trace.ts"
+
+const localFailureMessage = (cause: unknown): string => {
+  if (typeof cause === "object" && cause !== null && "reason" in cause && typeof cause.reason === "string") {
+    const source = "source" in cause ? String(cause.source) : "Setup"
+    const field = "field" in cause ? String(cause.field) : "$"
+    return `${source}:${field}: ${cause.reason}`
+  }
+  return cause instanceof Error ? cause.message : "Local operation failed"
+}
 
 const statusExitCodes = new Map<string, number>([
   ["unsupported", 3],
@@ -238,36 +248,6 @@ const InstallationOperation = Schema.Union([
   })
 ])
 type InstallationOperation = typeof InstallationOperation.Type
-
-const setupOperationsFor = <const Fields extends Schema.Struct.Fields>(fields: Fields) =>
-  Schema.Struct({
-    version: Schema.Literal(1),
-    operation: Schema.Literal("setup"),
-    scope: Schema.Struct({ cwd: Schema.NonEmptyString, review: Schema.Literals(["enabled", "disabled"]) }),
-    credential: Schema.Literals(["saved", "environment", "skip"]),
-    installProposalDigest: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))),
-    interactive: Schema.optionalKey(Schema.Boolean),
-    newKey: Schema.optionalKey(Schema.Boolean),
-    ...fields
-  })
-const SetupOperation = Schema.Union([
-  setupOperationsFor({
-    host: Schema.Literal("codex"),
-    codexHome: Schema.optionalKey(Schema.NonEmptyString),
-    codexExecutable: Schema.optionalKey(Schema.NonEmptyString)
-  }),
-  setupOperationsFor({
-    host: Schema.Literal("pi"),
-    piHome: Schema.optionalKey(Schema.NonEmptyString),
-    piExecutable: Schema.optionalKey(Schema.NonEmptyString)
-  }),
-  setupOperationsFor({
-    host: Schema.Literal("claude"),
-    claudeHome: Schema.optionalKey(Schema.NonEmptyString),
-    claudeExecutable: Schema.optionalKey(Schema.NonEmptyString)
-  })
-])
-type SetupOperation = typeof SetupOperation.Type
 
 const FirstReviewDemoOperation = Schema.Struct({
   version: Schema.Literal(1),
@@ -1290,6 +1270,7 @@ const pilotConfiguration = Effect.fn("InteractiveSetup.configuration")(function*
   const userConfigPath = Option.getOrUndefined(yield* Config.option(Config.NonEmptyString("REVIEW_USER_CONFIG_PATH")))
   return { statePath, ...(userConfigPath === undefined ? {} : { userConfigPath }) }
 })
+let setupInventoryShown = false
 const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClient) {
   const { runSetup } = yield* Effect.promise(() => import("./onboarding/setup.ts"))
   const { readMaskedCredential } = yield* Effect.promise(() => import("./credentials/masked-input.ts"))
@@ -1301,7 +1282,7 @@ const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClien
   const configuration = terminal ? yield* pilotConfiguration() : undefined
   const cwd = process.cwd()
   const command = currentCommand()
-  return yield* runPilotSetup(
+  const result = yield* runPilotSetup(
     {
       terminal,
       host,
@@ -1335,6 +1316,18 @@ const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClien
       }
     }
   )
+  if (terminal && !setupInventoryShown) {
+    setupInventoryShown = true
+    const { loadRuleInventory, formatRuleInventory } = yield* Effect.promise(() => import("./rules/inventory.ts"))
+    const root = yield* discoverWorkingTreeRoot(cwd)
+    const inventory = yield* loadRuleInventory(root, configuration ?? {}).pipe(Effect.result)
+    if (inventory._tag === "Success") process.stderr.write(formatRuleInventory(inventory.success))
+    else
+      process.stderr.write(
+        "Rule inventory unavailable; repair the connected pack or configuration and run hapsland rules list.\n"
+      )
+  }
+  return result
 })
 
 const initialClientStatus = (inspection: {
@@ -1576,6 +1569,15 @@ if (invocation.kind === "dashboard") {
   )
 } else if (cliSwitch("package-identity")) {
   process.stdout.write(JSON.stringify({ name: "@hapsland/hapsland", ...currentCommand() }) + "\n")
+} else if (invocation.kind === "rules") {
+  const { runRulesCommand } = await import("./rules/command.ts")
+  try {
+    await Effect.runPromise(runRulesCommand(invocation.options).pipe(Effect.provide(processConfigurationLayer)))
+  } catch (cause) {
+    const error = localFailureMessage(cause)
+    process.stderr.write(`${error}\n`)
+    process.exitCode = 6
+  }
 } else if (cliSwitch("pilot") || invocation.kind === "lifecycle") {
   try {
     const command = invocation.kind === "lifecycle" ? invocation.command : "setup"
@@ -1635,7 +1637,34 @@ if (invocation.kind === "dashboard") {
           Effect.provide(machineClockLayer)
         )
       )
-    else if (clientArguments.host === undefined)
+    else if (
+      !cliSwitch("pilot") &&
+      (clientArguments.flags.has("--no-input") ||
+        clientArguments.flags.has("--apply") ||
+        clientArguments.flags.has("--save-plan") ||
+        clientArguments.flags.has("--apply-plan") ||
+        !process.stdin.isTTY ||
+        !process.stderr.isTTY)
+    ) {
+      const { runUnattendedSetup } = await import("./onboarding/unattended.ts")
+      const result = await Effect.runPromise(
+        runUnattendedSetup(clientArguments).pipe(
+          Effect.provide(processConfigurationLayer),
+          Effect.catch((cause) =>
+            Effect.succeed({
+              version: 1,
+              operation: "setup",
+              status: "needs-user-action",
+              providerCalls: 0,
+              paidVerificationPerformed: false,
+              message: localFailureMessage(cause)
+            })
+          )
+        )
+      )
+      assignResultExitCode(result)
+      process.stdout.write(JSON.stringify(result) + "\n")
+    } else if (clientArguments.host === undefined)
       await Effect.runPromise(
         chooseSetupClients().pipe(Effect.provide(processConfigurationLayer), Effect.provide(machineClockLayer))
       )

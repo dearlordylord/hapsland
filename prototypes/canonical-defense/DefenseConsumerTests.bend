@@ -51,27 +51,33 @@ def run_result(worlds: List<&2,M.World>,original: M.World) -> M.World:
     case _: original
 def run(fuel: Nat,+world: M.World) -> M.World:
   run_result(run_boxed(fuel,[world]),world)
+def world_value(items: List<&2,M.World>) -> M.World:
+  match items:
+    case world <> _: world
+    case Nil{}: H.initial()
 def main() -> IO(Unit):
-  +origin = H.initial()
-  +dashboard = Consumer.initial()
-  +built = H.build(origin,424,232,1)
-  +paused = H.key(origin,32)
-  +burst = H.key(origin,110)
-  +progress = run(100n,burst)
-  +suspended = H.key(progress,97)
-  +resumed = H.key(suspended,97)
+  +origin: List<&2,M.World> = [H.initial()]
+  +dashboard: List<&2,T.State> = [Consumer.initial()]
+  +built: List<&2,M.World> = [H.build(world_value(origin),424,232,1)]
+  +paused: List<&2,M.World> = [H.key(world_value(origin),32)]
+  +burst: List<&2,M.World> = [H.key(world_value(origin),110)]
+  +progress: List<&2,M.World> = [run(100n,world_value(burst))]
+  +suspended: List<&2,M.World> = [H.key(world_value(progress),97)]
+  +resumed: List<&2,M.World> = [H.key(world_value(suspended),97)]
   do IO<Unit>:
-    require(initial_observation(Run.observe(dashboard)),"one configured advicee starts with one queued arrival, zero transitions and time0")
-    require(same_observation(Run.observe(M.engine(built)),Run.observe(M.engine(origin))),"construction preserves observed engine time, event count and queued work")
-    require(U32.is_eq(M.gold(built),105) && U32.is_eq(M.number(List.length(&2,M.Tower,M.towers(built))),1),"Refiner construction charges55 gold and creates one tower")
-    require(same_observation(Run.observe(M.engine(H.damage(H.move(built,160,180)))),Run.observe(M.engine(built))),"damage and geometry preserve observed engine counters")
-    require(same_observation(Run.observe(M.engine(run(4n,paused))),Run.observe(M.engine(origin))) && U32.is_eq(M.time(run(4n,paused)),0),"pause freezes game clock and all engine transitions")
-    require(valid(Run.observe(M.engine(burst))),"N submits a supported generic Burst control")
-    require(returned_frames(burst,H.tick_observed(burst)),"actual tick observer returns every counted engine frame exactly once")
-    require(paused_frames(H.tick_observed(paused)),"actual paused tick observer returns no frames and keeps virtual time0")
-    require(U32.is_eq(M.time(progress),100) && (M.offered(progress) > 0 : U32),"continuous virtual endpoints reach original admitted workload without authored waves")
-    require(initial_observation(Run.observe(dashboard)),"game work leaves the independent dashboard at time0 with its single untouched arrival")
-    require(Bool.not(M.auto(suspended)) && valid(Run.observe(M.engine(suspended))),"A suspends future recurring arrivals on the existing valid state")
-    require(M.auto(resumed) && valid(Run.observe(M.engine(resumed))),"A resumes the same resident without reset")
-    require(U32.is_eq(P.ledger_bytes(H.key(progress,91)),P.ledger_bytes(progress)) && U32.is_eq(P.requests(H.key(progress,91)),P.requests(progress)),"live Pace preserves existing owned bytes and requests")
+    require(initial_observation(Run.observe(Consumer.boxed(dashboard))),"one configured advicee starts with one queued arrival, zero transitions and time0")
+    require(same_observation(Run.observe(M.engine(world_value(built))),Run.observe(M.engine(world_value(origin)))),"construction preserves observed engine time, event count and queued work")
+    require(U32.is_eq(M.gold(world_value(built)),105) && U32.is_eq(M.number(List.length(&2,M.Tower,M.towers(world_value(built)))),1),"Delivery relay construction charges55 gold and creates one tower")
+    require(same_observation(Run.observe(M.engine(H.damage(H.move(world_value(built),160,180)))),Run.observe(M.engine(world_value(built)))),"damage and geometry preserve observed engine counters")
+    require(same_observation(Run.observe(M.engine(run(4n,world_value(paused)))),Run.observe(M.engine(world_value(origin)))) && U32.is_eq(M.time(run(4n,world_value(paused))),0),"pause freezes game clock and all engine transitions")
+    require(valid(Run.observe(M.engine(world_value(burst)))),"N submits a supported generic Burst control")
+    require(U32.is_eq(M.arrival_interval(H.key(world_value(origin),93)),29900),"] speeds up arrivals by reducing the interval")
+    require(U32.is_eq(M.arrival_interval(H.key(world_value(origin),91)),30100),"[ slows down arrivals even above the old10000ms cap")
+    require(returned_frames(world_value(burst),H.tick_observed(world_value(burst))),"actual tick observer returns every counted engine frame exactly once")
+    require(paused_frames(H.tick_observed(world_value(paused))),"actual paused tick observer returns no frames and keeps virtual time0")
+    require(U32.is_eq(M.time(world_value(progress)),100) && (M.offered(world_value(progress)) > 0 : U32),"continuous virtual endpoints reach original admitted workload without authored waves")
+    require(initial_observation(Run.observe(Consumer.boxed(dashboard))),"game work leaves the independent dashboard at time0 with its single untouched arrival")
+    require(Bool.not(M.auto(world_value(suspended))) && valid(Run.observe(M.engine(world_value(suspended)))),"A suspends future recurring arrivals on the existing valid state")
+    require(M.auto(world_value(resumed)) && valid(Run.observe(M.engine(world_value(resumed)))),"A resumes the same resident without reset")
+    require(U32.is_eq(P.ledger_bytes(H.key(world_value(progress),91)),P.ledger_bytes(world_value(progress))) && U32.is_eq(P.requests(H.key(world_value(progress),91)),P.requests(world_value(progress))),"live Pace preserves existing owned bytes and requests")
     IO.print("CONTINUOUS GAME CONSUMER checks complete")

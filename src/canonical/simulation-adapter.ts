@@ -49,7 +49,7 @@ import {
   decodeTrustedCanonicalStep,
   projectTrustedCanonical
 } from "./canonical-boundary.ts"
-import { encodeSharedValue, decodeSharedValue } from "./simulation-codec.ts"
+import { encodeEngineValue as encodeSharedValue, decodeSharedValue } from "./simulation-codec.ts"
 import { projectImportGraph, decodeImportGraphStep } from "./graph-adapter.ts"
 const graphKey = decoder(
   Schema.Struct({
@@ -113,28 +113,23 @@ export const projectSharedCanonical = (state: EngineState): CanonicalProjection 
   sharedCheck(state)
   return projectionOf(state)
 }
+const readPhysicalRelease = decoder(
+  Schema.Struct({ $: Schema.Literal("WriterScenario.PhysicalRelease"), capture: Schema.Unknown, event: Schema.Unknown })
+)
 export const stepSharedCanonical = (state: EngineState, event: CanonicalEvent) => {
   sharedCheck(state)
-  const transition = SharedEngine.step(state, encodeSharedValue(encodeCanonicalEvent(event)))
+  const encodedEvent = encodeSharedValue(encodeCanonicalEvent(event))
+  const transition = SharedEngine.step(state, encodedEvent)
   const result = decodeTrustedCanonicalStep(transition.result)
   const projection = projectCanonical(result.state)
-  const afterActions = decodeSharedValue(
-    SharedEngine.after(state, transition.state, encodeSharedValue(encodeCanonicalEvent(event)))
-  )
-  decodeDriver({ handled: true, actions: afterActions })
-  const departureFacts = readList(
-    SharedEngine.writer_departures(state, transition.state, encodeSharedValue(encodeCanonicalEvent(event))),
-    (value) => {
-      const raw = decoder(
-        Schema.Struct({
-          $: Schema.Literal("WriterScenario.PhysicalRelease"),
-          capture: Schema.Unknown,
-          event: Schema.Unknown
-        })
-      )(decodeSharedValue(value))
-      return { capture: decodeWriterIssuedCapture(raw.capture), event: decodeDriverEvent(raw.event) }
-    }
-  )
+  const afterActions = decodeDriver({
+    handled: true,
+    actions: decodeSharedValue(SharedEngine.after(state, transition.state, encodedEvent))
+  }).actions
+  const departureFacts = readList(SharedEngine.writer_departures(state, transition.state, encodedEvent), (value) => {
+    const raw = readPhysicalRelease(decodeSharedValue(value))
+    return { capture: decodeWriterIssuedCapture(raw.capture), event: decodeDriverEvent(raw.event) }
+  })
   const raw = readRecord(transition.result)
   const commands = raw.$ === "Canonical.Advanced" ? readList(raw.commands, (x) => x) : []
   const cacheReleases = readList(SharedEngine.cache_removed(state, originalCommandList(commands)), (value) =>
@@ -315,7 +310,54 @@ export const consumedSharedPermit = (
 const schedulerEntry = decoder(
   Schema.Struct({ $: Schema.Literal("Scheduler.Entry"), at: Schema.Number, order: Schema.Number })
 )
+const maxSchedulerEntryNat = 2 ** 48 - 1
+const maxSchedulerEntryBigNat = BigInt(maxSchedulerEntryNat)
+const schedulerEntryNat = (value: unknown): number | undefined => {
+  if (typeof value === "number")
+    return Number.isInteger(value) && value >= 0 && value <= maxSchedulerEntryNat ? value : undefined
+  if (typeof value === "bigint") return value >= 0n && value <= maxSchedulerEntryBigNat ? Number(value) : undefined
+  return undefined
+}
+/** Fast path only for the plain data objects emitted by the trusted scheduler. */
+const fastSchedulerEntry = (value: unknown): { readonly at: number; readonly order: number } | undefined => {
+  try {
+    if (
+      typeof value !== "object" ||
+      value === null ||
+      Array.isArray(value) ||
+      Object.getPrototypeOf(value) !== Object.prototype
+    )
+      return undefined
+
+    // Descriptor inspection lets accessors and unexpected shapes fall through
+    // without reading their values. The existing decoder owns those cases.
+    const descriptors = Object.getOwnPropertyDescriptors(value) as Record<PropertyKey, PropertyDescriptor>
+    const enumerableKeys = Reflect.ownKeys(descriptors).filter((key) => descriptors[key]?.enumerable)
+    if (
+      enumerableKeys.length !== 3 ||
+      !enumerableKeys.includes("$") ||
+      !enumerableKeys.includes("at") ||
+      !enumerableKeys.includes("order")
+    )
+      return undefined
+
+    const tag = descriptors["$"]
+    const at = descriptors.at
+    const order = descriptors.order
+    if (!tag || !("value" in tag) || tag.value !== "Scheduler.Entry") return undefined
+    if (!at || !("value" in at) || !order || !("value" in order)) return undefined
+    const nativeAt = schedulerEntryNat(at.value)
+    const nativeOrder = schedulerEntryNat(order.value)
+    if (nativeAt === undefined || nativeOrder === undefined) return undefined
+    return Object.freeze({ at: nativeAt, order: nativeOrder })
+  } catch {
+    // Proxies and other unusual values retain the established schema path.
+    return undefined
+  }
+}
 const decodeEntry = (value: unknown): { readonly at: number; readonly order: number } => {
+  const fast = fastSchedulerEntry(value)
+  if (fast) return fast
   const entry = schedulerEntry(decodeSharedValue(value))
   return freezeCanonicalData({ at: readNat(entry.at), order: readNat(entry.order) })
 }
@@ -340,9 +382,16 @@ export const cancelShared = (state: EngineState, order: number): EngineState => 
   sharedCheck(state)
   return retain(state, SharedEngine.cancel(state, BigInt(readNat(order))))
 }
+const sharedQueueViews = new WeakMap<object, readonly { readonly at: number; readonly order: number }[]>()
 export const queuedShared = (state: EngineState): readonly { readonly at: number; readonly order: number }[] => {
   sharedCheck(state)
-  return freezeCanonicalData(readList(SharedEngine.queued(state), decodeEntry))
+  const queue = SharedEngine.queued(state)
+  const key = typeof queue === "object" && queue !== null && Object.isFrozen(queue) ? queue : undefined
+  const cached = key ? sharedQueueViews.get(key) : undefined
+  if (cached) return cached
+  const entries = freezeCanonicalData(readList(queue, decodeEntry))
+  if (key) sharedQueueViews.set(key, entries)
+  return entries
 }
 const decodeOption = decoder(
   Schema.Union([
@@ -634,6 +683,7 @@ export const sharedPreparationActive = (
 // these small immutable facts; no state ancestry or completed-callback archive.
 const callbackReceipts = new WeakSet<object>()
 const callbackReceiptResidents = new WeakMap<object, object>()
+const outputOutcomeTags = { certain: "Certain", uncertain: "Uncertain", failed: "Failed" } as const
 export const issueSharedCallback = (
   state: EngineState,
   event: CanonicalEvent,
@@ -644,10 +694,11 @@ export const issueSharedCallback = (
 ) => {
   sharedCheck(state)
   const encodedAction = encodeDriverAction(action)
-  if (JSON.stringify(encodeCanonicalEvent(event)) !== JSON.stringify(readRecord(encodedAction).event))
+  const canonicalEvent = encodeCanonicalEvent(event)
+  if (JSON.stringify(canonicalEvent) !== JSON.stringify(readRecord(encodedAction).event))
     throw new TypeError("callback action event mismatch")
   const checkedCapture = capture === undefined ? undefined : validateOutputCapture(capture)
-  const encoded = encodeSharedValue(encodeCanonicalEvent(event))
+  const encoded = encodeSharedValue(canonicalEvent)
   const owner = SharedEngine.callback_owner(state, encoded)
   if (readRecord(owner).$ === "None") return { state, receipt: undefined }
   const issued =
@@ -667,19 +718,32 @@ export const issueSharedCallback = (
           encodeSharedValue(encodedAction),
           encodeSharedValue(encodeOutputCapture(checkedCapture))
         )
-  const captured = readRecord(issued.receipt)
-  if (captured.$ === "None") {
+  return publishSharedCallback(state, issued)
+}
+const readSharedReceipt = (value: unknown, invalid: string): Record<string, unknown> | undefined => {
+  const fact = readRecord(value)
+  if (fact.$ !== "Some" && fact.$ !== "None") throw new TypeError(invalid)
+  return fact.$ === "Some" ? freezeCanonicalData(readRecord(fact.value)) : undefined
+}
+const receiptResident = (state: EngineState): object => {
+  const resident = sharedResidents.get(state)
+  if (resident === undefined) throw new TypeError("missing receipt resident provenance")
+  return resident
+}
+const registerSharedReceipt = (receipt: object | undefined, resident: object): void => {
+  if (receipt === undefined) return
+  callbackReceipts.add(receipt)
+  callbackReceiptResidents.set(receipt, resident)
+}
+const publishSharedCallback = (state: EngineState, issued: ReturnType<typeof SharedEngine.callback_issue>) => {
+  const receipt = readSharedReceipt(issued.receipt, "invalid callback issuance receipt")
+  if (receipt === undefined) {
     if (issued.state !== state) throw new TypeError("refused callback issuance changed original state")
     return { state, receipt: undefined }
   }
-  if (captured.$ !== "Some") throw new TypeError("invalid callback issuance receipt")
-  const next = issued.state
-  const receipt = freezeCanonicalData(readRecord(captured.value))
-  const resident = sharedResidents.get(state)
-  if (resident === undefined) throw new TypeError("missing receipt resident provenance")
-  const published = retain(state, next)
-  callbackReceipts.add(receipt)
-  callbackReceiptResidents.set(receipt, resident)
+  const resident = receiptResident(state)
+  const published = retain(state, issued.state)
+  registerSharedReceipt(receipt, resident)
   return { state: published, receipt }
 }
 export const sharedCallbackOriginals = (state: EngineState) => {
@@ -719,19 +783,26 @@ export const actSharedCallback = (
 export const interveneSharedOutput = (state: EngineState, target: unknown, outcome: unknown, receipt?: object) => {
   sharedCheck(state)
   const checked = validateOutputAttemptControl({ kind: "outputAttempt", target, outcome })
+  validateSharedOutputReceipt(state, receipt)
+  const transition = SharedEngine.output_intervene(
+    state,
+    encodeSharedValue(encodeCallbackTarget(checked.target)),
+    { $: `OutputScenario.${outputOutcomeTags[checked.outcome]}` },
+    receipt === undefined ? { $: "None" } : { $: "Some", value: receipt }
+  )
+  return publishSharedOutputIntervention(state, transition)
+}
+const validateSharedOutputReceipt = (state: EngineState, receipt: object | undefined): void => {
   if (
     receipt !== undefined &&
     (!callbackReceipts.has(receipt) || callbackReceiptResidents.get(receipt) !== sharedResidents.get(state))
   )
     throw new TypeError("foreign output receipt")
-  const transition = SharedEngine.output_intervene(
-    state,
-    encodeSharedValue(encodeCallbackTarget(checked.target)),
-    {
-      $: `OutputScenario.${checked.outcome === "certain" ? "Certain" : checked.outcome === "uncertain" ? "Uncertain" : "Failed"}`
-    },
-    receipt === undefined ? { $: "None" } : { $: "Some", value: receipt }
-  )
+}
+const publishSharedOutputIntervention = (
+  state: EngineState,
+  transition: ReturnType<typeof SharedEngine.output_intervene>
+) => {
   // Decode every public component before publishing either state or provenance.
   const result = decodeSharedValue(transition.result)
   const cancel = readList(decodeSharedValue(transition.cancel), readNat)
@@ -743,16 +814,10 @@ export const interveneSharedOutput = (state: EngineState, target: unknown, outco
     decodeDriver({ handled: true, actions: { $: "Con", head: item.action, tail: { $: "Nil" } } })
     return freezeCanonicalData(item)
   })
-  const fact = readRecord(transition.receipt)
-  if (fact.$ !== "Some" && fact.$ !== "None") throw new TypeError("invalid output intervention receipt")
-  const changedReceipt = fact.$ === "Some" ? freezeCanonicalData(readRecord(fact.value)) : undefined
-  const resident = sharedResidents.get(state)
-  if (resident === undefined) throw new TypeError("missing receipt resident provenance")
+  const changedReceipt = readSharedReceipt(transition.receipt, "invalid output intervention receipt")
+  const resident = receiptResident(state)
   const next = retain(state, transition.state)
-  if (changedReceipt !== undefined) {
-    callbackReceipts.add(changedReceipt)
-    callbackReceiptResidents.set(changedReceipt, resident)
-  }
+  registerSharedReceipt(changedReceipt, resident)
   return { state: next, result, cancel, schedule, receipt: changedReceipt }
 }
 export const deliverSharedOutput = (receipt: object, now: number) => {
@@ -1029,9 +1094,12 @@ export const stepSharedCache = (state: EngineState, capsule: SharedCacheFact) =>
   const raw = readRecord(transition.result)
   const commands = raw.$ === "Canonical.Advanced" ? readList(raw.commands, (value) => value) : []
   const projection = projectCanonical(result.state)
-  const afterActions = decodeSharedValue(
-    SharedEngine.after(state, transition.state, encodeSharedValue(encodeCanonicalEvent(capsule.event)))
-  )
+  const afterActions = decodeDriver({
+    handled: true,
+    actions: decodeSharedValue(
+      SharedEngine.after(state, transition.state, encodeSharedValue(encodeCanonicalEvent(capsule.event)))
+    )
+  }).actions
   const cacheReleases = [
     ...readList(transition.releases, (value) => decodeDriverEvent(decodeSharedValue(value))),
     ...readList(SharedEngine.cache_removed(state, originalCommandList(commands)), (value) =>
@@ -1112,9 +1180,8 @@ const responseTransition = (
           round: raw.issued.value.round
         })
       : undefined
-  const actions = decodeSharedValue(transition.actions)
   // Decode every action before publishing state or its newly issued capability.
-  decodeDriver({ handled: true, actions })
+  const actions = decodeDriver({ handled: true, actions: decodeSharedValue(transition.actions) }).actions
   return { state: retain(before, transition.state), result: responseResults[raw.result.$], issued, actions }
 }
 export const controlSharedResponse = (state: EngineState, control: CollectionResponseControl, now: number) => {
@@ -1321,8 +1388,7 @@ export const prepareSharedWriter = (state: EngineState, capture: WriterCapture) 
   )
   const option = writerPendingOption(decodeSharedValue(transition.pending))
   const raw = option.$ === "Some" ? decodeWriterPending(option.value) : undefined
-  const actions = decodeSharedValue(transition.actions)
-  decodeDriver({ handled: true, actions })
+  const actions = decodeDriver({ handled: true, actions: decodeSharedValue(transition.actions) }).actions
   // Entire capsule/action envelope must decode before retaining either state
   // or its once-issued source provenance, including malformed late actions.
   const next = retain(state, transition.state as EngineState)

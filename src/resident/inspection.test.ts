@@ -1,4 +1,4 @@
-import { configuredRules } from "../policy/rules.ts"
+import { configuredRules, connectDefaultRuleFixture } from "../test-support/default-rules.ts"
 import { randomUUID } from "node:crypto"
 import { residentRequestEffect } from "./client.ts"
 import { reviewControlsLayer } from "../test-support/review-controls.ts"
@@ -20,7 +20,10 @@ describe("resident inspection capture", () => {
     const root = await makeGitFixture()
     await put(root, "first.ts", "type FirstCount = number;\n")
     await put(root, "second.ts", "type SecondCount = number;\n")
-    await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+    await writeFile(
+      join(root, ".hapsland.jsonc"),
+      JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+    )
     const written = nativeDeferred<void>()
     const store = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
     let armed = false
@@ -55,7 +58,7 @@ describe("resident inspection capture", () => {
         )
       }
     }
-    expect(Effect.runSync(server.admit(observation, dispatch, true)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(observation, dispatch, true))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     await Effect.runPromise(server.listen())
     armed = true
@@ -117,7 +120,10 @@ describe("resident inspection capture", () => {
     async (composed) => {
       const root = await makeGitFixture()
       await put(root, "type.ts", "type OrderCount = number;\n")
-      await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+      await writeFile(
+        join(root, ".hapsland.jsonc"),
+        JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+      )
       const retained = nativeDeferred<void>()
       const current = nativeDeferred<void>()
       let suppressionStored = false
@@ -151,7 +157,7 @@ describe("resident inspection capture", () => {
           )
         }
       }
-      expect(Effect.runSync(server.admit(observation, dispatch, composed)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(observation, dispatch, composed))).status).toBe("accepted")
       await Effect.runPromise(server.whenIdle())
       await retained.promise
       const collect = () =>
@@ -198,7 +204,10 @@ describe("resident inspection capture", () => {
   it("records actual advice expiry without claiming source repair or submission", async () => {
     const root = await makeGitFixture()
     await put(root, "type.ts", "type OrderCount = number;\n")
-    await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+    await writeFile(
+      join(root, ".hapsland.jsonc"),
+      JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+    )
     let clock = 1000
     const retained = nativeDeferred<void>()
     const expired = nativeDeferred<void>()
@@ -226,7 +235,7 @@ describe("resident inspection capture", () => {
     }
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
     if (!observation) throw new Error("missing observation")
-    expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(observation, dispatch))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     await retained.promise
     clock += PENDING_ADVICE_EXPIRY_MS
@@ -248,7 +257,10 @@ describe("resident inspection capture", () => {
     await put(root, "good.ts", "type GoodCount = number\n")
     await put(root, "bad.ts", 'import { Amount } from "./support";\ntype BadCount = Amount;\n')
     await put(root, "support.ts", "export type Amount = number;\n")
-    await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+    await writeFile(
+      join(root, ".hapsland.jsonc"),
+      JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+    )
     const stored = nativeDeferred<void>()
     const seen = new Set<string>()
     const store = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
@@ -269,17 +281,19 @@ describe("resident inspection capture", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["good.ts", "bad.ts"])))
     if (!observation) throw new Error("missing observation")
     expect(
-      Effect.runSync(
-        server.admit(observation, {
-          statePath: join(root, "consent"),
-          userConfigPath: join(root, "absent-user"),
-          credential: null,
-          controlled: {
-            answers: Object.fromEntries(
-              configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0 }])
-            )
-          }
-        })
+      (
+        await Effect.runPromise(
+          server.admit(observation, {
+            statePath: join(root, "consent"),
+            userConfigPath: join(root, "absent-user"),
+            credential: null,
+            controlled: {
+              answers: Object.fromEntries(
+                configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0 }])
+              )
+            }
+          })
+        )
       ).status
     ).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
@@ -303,7 +317,10 @@ describe("resident inspection capture", () => {
   it("links a cached clear review to its captured original without inventing a second request", async () => {
     const root = await makeGitFixture()
     await put(root, "type.ts", "type OrderCount = number\n")
-    await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+    await writeFile(
+      join(root, ".hapsland.jsonc"),
+      JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+    )
     const persisted = nativeDeferred<void>()
     const store = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
@@ -329,7 +346,7 @@ describe("resident inspection capture", () => {
     for (const tool_use_id of ["first", "repeat"]) {
       const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["type.ts"], { tool_use_id })))
       if (!observation) throw new Error("missing observation")
-      expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(observation, dispatch))).status).toBe("accepted")
       await Effect.runPromise(server.whenIdle())
     }
     await persisted.promise
@@ -355,7 +372,10 @@ describe("resident inspection capture", () => {
   it("captures valid obsolete-lifetime ingress and its refusal without admitting review work", async () => {
     const root = await makeGitFixture()
     await put(root, "type.ts", "type OrderCount = number\n")
-    await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+    await writeFile(
+      join(root, ".hapsland.jsonc"),
+      JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+    )
     const stored = nativeDeferred<void>()
     const history = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
@@ -397,12 +417,15 @@ describe("resident inspection capture", () => {
       { kind: "edit-received", candidates: [{ operation: "add", path: "type.ts" }] },
       { kind: "edit-admission", outcome: "obsolete-lifetime" }
     ])
-    expect(Effect.runSync(server.stats())).toMatchObject({ pendingAdvice: 0 })
+    expect(await Effect.runPromise(server.stats())).toMatchObject({ pendingAdvice: 0 })
   })
   it("settles real resident review work while optional filesystem publication is stalled", async () => {
     const root = await makeGitFixture()
     await put(root, "type.ts", "type OrderCount = number\n")
-    await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+    await writeFile(
+      join(root, ".hapsland.jsonc"),
+      JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+    )
     const entered = nativeDeferred<void>()
     const release = nativeDeferred<void>()
     const settled = nativeDeferred<void>()
@@ -428,7 +451,7 @@ describe("resident inspection capture", () => {
       credential: null,
       controlled: { answers: {} }
     }
-    expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(observation, dispatch))).status).toBe("accepted")
     await entered.promise
     await Effect.runPromise(server.whenIdle())
     expect((await Effect.runPromise(server.pendingAdviceMetadata())).length).toBe(0)
@@ -441,7 +464,10 @@ describe("resident inspection capture", () => {
     const root = await makeGitFixture()
     await put(root, "type.ts", "type OrderCount = number\n")
     const config = join(root, ".hapsland.jsonc")
-    await writeFile(config, JSON.stringify({ version: 1, sessionInspection: true }))
+    await writeFile(
+      config,
+      JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+    )
     const stored = nativeDeferred<void>()
     const prepared = nativeDeferred<void>()
     const evaluated = nativeDeferred<void>()
@@ -494,7 +520,7 @@ describe("resident inspection capture", () => {
         answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0.9 }]))
       }
     }
-    expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(observation, dispatch))).status).toBe("accepted")
     await stored.promise
     await prepared.promise
     await evaluated.promise
@@ -550,8 +576,11 @@ describe("resident inspection capture", () => {
     expect(stale.fact.payload).toEqual(retained.fact.payload)
     expect(stale.correlation.evaluationId).toBe(retained.correlation.evaluationId)
     expect(retiredRecords.filter((record) => record.fact.kind === "model-input")).toHaveLength(1)
-    await writeFile(config, JSON.stringify({ version: 1, sessionInspection: false }))
-    Effect.runSync(server.admit(observation, dispatch))
+    await writeFile(
+      config,
+      JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: false })
+    )
+    await Effect.runPromise(server.admit(observation, dispatch))
     await Effect.runPromise(server.whenIdle())
     await Effect.runPromise(server.close)
     const { records: history } = await readHistory()

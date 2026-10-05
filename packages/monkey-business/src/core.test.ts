@@ -166,7 +166,7 @@ it("a virtual finish deadline cancels unfinished requests and permits later work
 it("uses checked continuation exhaustion to allow finish instead of inventing another continuation", () => {
   const run = createRun({
     outcome: "finding",
-    session: { editIntervalMs: 10, variationMs: 0, editsPerTask: 1, taskPauseMs: 1 },
+    session: { editIntervalMs: 10, variationMs: 0, editsPerTask: 1, taskPauseMs: 1, adviceResponse: "promptRepair" },
     jevDelay: 30,
     finishDeadline: 100
   })

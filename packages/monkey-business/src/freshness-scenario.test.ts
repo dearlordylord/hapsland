@@ -1,5 +1,12 @@
 import { expect, it } from "vitest"
-import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type Run, type RunConfig } from "./index.ts"
+import {
+  createRun,
+  restoreReplay,
+  DEFAULT_FILE_TREE_PROFILE,
+  type Run,
+  type RunConfig,
+  type Observation
+} from "./index.ts"
 
 const config = (changed: boolean, next: number, preparationDelay: number): RunConfig => ({
   seed: 7,
@@ -177,4 +184,89 @@ it("changed source before final selection retires the old finding and fresh work
   ).toEqual([46])
   expect(run.projection.global).toEqual({ items: 1, bytes: 7 })
   replay(run)
+})
+
+const expected = (changed: boolean) => [
+  // Shared issuance uses the actual owner allocator, also exercised independently
+  // by createRun below: operation/request are3/4, then7/8.
+  [12, 7, 1, 1, 1, 3, 4, changed ? 0 : 1],
+  ...(!changed ? [[18, 7]] : []),
+  [12, 10, 1, 1, 1, 7, 8, 1],
+  [18, 10],
+  [32, 10, changed ? 1 : 2, changed ? 5 : 10, 0, 0, 0]
+]
+function publicMilestones(frames: readonly Observation[]): number[][] {
+  return frames.flatMap((frame) =>
+    frame.event.kind === "jevRequestSettled"
+      ? [
+          [
+            12,
+            frame.time,
+            frame.event.partition,
+            frame.event.lifetime,
+            frame.event.round,
+            frame.event.operation,
+            frame.event.request,
+            Number(frame.event.currentWork)
+          ]
+        ]
+      : frame.event.kind === "submissionTerminal"
+        ? [[18, frame.time]]
+        : []
+  )
+}
+
+it.each([false, true])("preserves independent stale-delivery milestones and replay for changed=%s", (changed) => {
+  const run = createRun({
+    seed: 7,
+    retention: 1000,
+    preparationDelay: 2,
+    jevDelay: 5,
+    outcome: "finding",
+    adviceLifetime: 600000,
+    fileTrees: {
+      ...DEFAULT_FILE_TREE_PROFILE,
+      minFiles: 2,
+      maxFiles: 2,
+      maxImports: 1,
+      maxDepth: 1,
+      deniedPercent: 0,
+      minSourceBytes: 100,
+      maxSourceBytes: 100,
+      minTreeBytes: 20,
+      maxTreeBytes: 20
+    },
+    inputs: [
+      { at: 0, kind: "edit", bytes: 10, unitBytes: [5], revisionSubject: "root", revisionInput: "old" },
+      {
+        at: 3,
+        kind: "edit",
+        bytes: 10,
+        unitBytes: [5],
+        revisionSubject: "root",
+        revisionInput: changed ? "new" : "old"
+      }
+    ]
+  })
+  expect(run.advance({ untilTime: 12, maxEvents: 120 }).reason).not.toBe("eventLimit")
+  const final = run.projection
+  const snapshot = [
+    32,
+    run.now,
+    final.global.items,
+    final.global.bytes,
+    final.dispatch.running.length,
+    final.dispatch.requests.length,
+    final.collection.leases.length
+  ]
+  expect([...publicMilestones(run.observations), snapshot]).toEqual(expected(changed))
+  const old = run.observations.find((frame) => frame.event.kind === "jevRequestSettled" && frame.event.operation === 3)!
+  if (changed) {
+    // The captured request remains known, but its obsolete finding is retired.
+    expect(old.commands).toContainEqual({ kind: "retireStaleFinding" })
+    expect(old.commands).not.toContainEqual({ kind: "retainFinding" })
+  } else expect(old.commands).toContainEqual({ kind: "retainFinding" })
+  expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe())
+  // These original source-selection milestones complement the physical custody
+  // assertions in freshness-captured-callback.test.ts.
 })

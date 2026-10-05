@@ -250,9 +250,7 @@ export const isComparisonDigestValid = (comparison: ComparisonType): boolean =>
   comparison.comparisonDigest === digestComparison(comparison)
 
 export interface RuleDefinitionInput {
-  readonly packId: string
   readonly ruleId: string
-  readonly packVersion: string
   readonly question: string
   readonly criteria: RuleCriteria
   readonly defaultMessage: string
@@ -264,14 +262,7 @@ export interface RuleDefinitionInput {
 }
 
 export const makeRuleDefinition = (input: RuleDefinitionInput): RuleDefinitionType => {
-  const identity = {
-    packId: input.packId,
-    ruleId: input.ruleId,
-    // Production packs and configuration use slash-qualified IDs.  Keep the
-    // identity identical across authored evaluation data and compiled rules.
-    qualifiedId: `${input.packId}/${input.ruleId}`,
-    packVersion: input.packVersion
-  }
+  const identity = { ruleId: input.ruleId }
   const definitionWithoutDigest = {
     identity,
     question: input.question,
@@ -382,7 +373,7 @@ export const makeRuleReference = (definition: RuleDefinitionType): RuleReference
   Schema.decodeUnknownSync(
     RuleReference,
     strictParseOptions
-  )({ qualifiedId: definition.identity.qualifiedId, definitionDigest: definition.definitionDigest })
+  )({ ruleId: definition.identity.ruleId, definitionDigest: definition.definitionDigest })
 
 export interface ExpectationInput {
   readonly fixtureId: string

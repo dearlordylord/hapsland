@@ -13,6 +13,9 @@ import {
   tickSimulation as tickResident,
   simulationView as residentView,
   simulationRun,
+  simulationReadRun,
+  finishSimulationAdvance,
+  continueSimulation as continueResident,
   selectSimulationAgent
 } from "./simulation"
 
@@ -44,13 +47,13 @@ export const initialSimulation: SimulationModel = {
   feedback: "Choose the number of advicees, then start one shared resident."
 }
 const displayScopes = (model: ResidentModel) => {
-  const run = simulationRun()
+  const run = simulationReadRun()
   if (run?.agentScopes.length) return run.agentScopes
   const partitions = run?.projection.partitions.map((record) => record.partition).sort((a, b) => a - b) ?? []
   return (partitions.length ? partitions : [1]).map((partition) => ({
     agent: `agent-${partition}`,
     partition,
-    seed: run?.exportReplay().config.seed ?? Number(model.seed)
+    seed: run?.appliedSettings.config.seed ?? Number(model.seed)
   }))
 }
 const reconcile = (model: SimulationModel, resident: ResidentModel): SimulationModel => ({
@@ -72,6 +75,13 @@ export const changeSimulation = (model: SimulationModel, field: string, raw: str
   return reconcile(model, changeResident(model.resident, field, raw))
 }
 export const actSimulation = (model: SimulationModel, action: string): SimulationModel => {
+  if (!["fleet:flat", "fleet:camera"].includes(action)) {
+    const settled = finishSimulationAdvance(model.resident)
+    model = reconcile(
+      model,
+      ["fleet:play", "play"].includes(action) ? { ...settled, playing: model.resident.playing } : settled
+    )
+  }
   if (action === "fleet:start" || action === "start") {
     const count = Number(model.count)
     if (!Number.isSafeInteger(count) || count < 1 || count > 6)
@@ -116,8 +126,16 @@ export const actSimulation = (model: SimulationModel, action: string): Simulatio
       : {})
   }
 }
-export const tickSimulation = (model: SimulationModel, deltaMs: number): SimulationModel =>
-  reconcile(model, tickResident(model.resident, deltaMs))
+export const tickSimulation = (model: SimulationModel, deltaMs: number): SimulationModel => {
+  const resident = tickResident(model.resident, deltaMs)
+  return resident === model.resident ? model : reconcile(model, resident)
+}
+
+export { simulationContinuation, runSimulationContinuation } from "./simulation"
+export const continueSimulation = (model: SimulationModel, generation: number): SimulationModel => {
+  const resident = continueResident(model.resident, generation)
+  return resident === model.resident ? model : reconcile(model, resident)
+}
 
 const colors = AGENT_COLORS
 const bounded = (raw: string, low: number, high: number, fallback: number) =>
@@ -142,7 +160,7 @@ const agentProjection = (snapshot: Parameters<typeof projectAgent>[0], partition
 // a replay is replaced or advanced independently of a renderer update.
 const buildScene = (resident: ResidentModel) => {
   const model = { resident }
-  const run = simulationRun()
+  const run = simulationReadRun()
   const observations = run?.observations ?? []
   const current =
     model.resident.selected < 0
@@ -204,13 +222,13 @@ const buildScene = (resident: ResidentModel) => {
 let sceneCache:
   | {
       resident: ResidentModel
-      run: ReturnType<typeof simulationRun>
+      run: ReturnType<typeof simulationReadRun>
       count: number
       value: ReturnType<typeof buildScene>
     }
   | undefined
 const sceneFor = (resident: ResidentModel) => {
-  const run = simulationRun()
+  const run = simulationReadRun()
   const count = run?.eventCount ?? 0
   if (sceneCache?.resident === resident && sceneCache.run === run && sceneCache.count === count) return sceneCache.value
   const value = buildScene(resident)
@@ -262,7 +280,13 @@ const inspectorView = <Message>(
     changed,
     false,
     layer.local
-      ? { projection: layer.local, observations: layer.history, partition: layer.agent.partition, agents: scopes }
+      ? {
+          projection: layer.local,
+          observations: layer.history,
+          partition: layer.agent.partition,
+          agents: scopes,
+          numbers: layer.numbers
+        }
       : undefined
   )
 
@@ -368,7 +392,7 @@ export const simulationView = <Message>(
                   current?.sequence ?? -1,
                   current?.time ?? run?.now ?? 0,
                   projection,
-                  run?.exportReplay().config.limits !== undefined
+                  run?.appliedSettings.config.limits !== undefined
                 )
               ]
             : []),

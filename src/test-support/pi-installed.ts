@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import assert from "node:assert/strict"
-import { configuredRules } from "../policy/rules.ts"
+import { configuredRules, connectDefaultRuleFixture } from "./default-rules.ts"
 import { pathToFileURL } from "node:url"
 import { residentRequestEffect } from "../resident/client.ts"
 import { residentPaths } from "../resident/paths.ts"
@@ -179,6 +179,7 @@ export const fixture = (
     fixtureMode === "source" ? join(dirname(installedCli), "resident/main.ts") : installedResident
   )
   execFileSync("git", ["init", "--quiet", root])
+  connectDefaultRuleFixture(root)
   const capturePath = join(root, "backend-calls")
   const handlers = new Map<string, Handler>()
   const environment = () => ({

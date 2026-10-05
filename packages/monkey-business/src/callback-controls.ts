@@ -99,6 +99,7 @@ const RawPositive = Schema.Union([
   PositiveNat,
   Schema.BigInt.check(Schema.makeFilter((value) => value >= 1n && value < 2n ** 48n))
 ])
+const readRawPositive = decoder(RawPositive)
 const RawOwner = Schema.Struct({
   $: Schema.Literal("Callbacks.Owner"),
   partition: RawPositive,
@@ -153,7 +154,7 @@ export function decodeCallbackTarget(value: unknown): CallbackTarget {
         round: Number(target.effect.round),
         attempt: Number(target.effect.attempt),
         token: Number(target.effect.token),
-        selected: readBendList(target.effect.selected, (value) => Number(decoder(RawPositive)(value)), 2048)
+        selected: readBendList(target.effect.selected, (value) => Number(readRawPositive(value)), 2048)
       }
       break
     case "Callbacks.JevStarted":

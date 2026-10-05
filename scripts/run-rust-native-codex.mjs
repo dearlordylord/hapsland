@@ -1,4 +1,4 @@
-import { NOUL_MESSAGES } from "../src/rules/bundled.ts"
+import { DEFAULT_RULE_MESSAGES } from "../src/rules/shipped.ts"
 import { runClient } from "../src/test-support/client-runtime.ts"
 // Opt-in real Codex + real Jev demonstration. Retains only source-free evidence.
 import { spawn, execFileSync } from "node:child_process"
@@ -138,9 +138,9 @@ const p=spawnSync('rustc',['--edition=2024','--crate-type=lib','payment.rs','-o'
     observer,
     (await readFile(observer, "utf8")) +
       "\nimport fs from 'node:fs';\nimport {syncBuiltinESMExports} from 'node:module';\nimport {createHash} from 'node:crypto';\nconst hookProcess=process.argv.some(a=>a==='--codex-hook'||/^--composed-(?:before-edit|background|stop|prompt)-hook$/.test(a));\nif(hookProcess){\n  let nativeInput='',output='';\n  const read=fs.readFileSync;\n  fs.readFileSync=function(...args){const value=read.apply(this,args);if(args[0]===0)nativeInput+=String(value);return value;};\n  syncBuiltinESMExports();\n  const write=process.stdout.write;\n  process.stdout.write=function(chunk,...args){output+=String(chunk);return write.call(this,chunk,...args);};\n  const at=Date.now();\n  process.once('exit',code=>{\n    let event,out;try{event=JSON.parse(nativeInput)}catch{}try{out=JSON.parse(output)}catch{}\n    const context=out?.hookSpecificOutput?.additionalContext??out?.reason??out?.systemMessage??'';\n    const file=process.env.DEMO_SOURCE;\n    const source=file&&fs.existsSync(file)?read(file,'utf8'):'';\n    fs.appendFileSync(process.env.DEMO_EVENTS,JSON.stringify({kind:'hook',at,doneAt:Date.now(),hookKind:process.argv.find(a=>a==='--codex-hook'||a.startsWith('--composed-')&&a.endsWith('-hook')),hookEvent:event?.hook_event_name??'unknown',tool:event?.tool_name??'unknown',eventKey:event?createHash('sha256').update(['activity-v1:event',event.session_id,event.agent_id??'root',event.turn_id,event.tool_use_id].join(String.fromCharCode(0))).digest('hex'):null,exitCode:code,stdoutBytes:Buffer.byteLength(output),outputKeys:out?Object.keys(out):[],findings:context.split('\\n').some(line=>/^.+ :: .+: /.test(line)),notice:context.includes('Operational notice:'),ruleId:Object.entries(" +
-      JSON.stringify(NOUL_MESSAGES) +
+      JSON.stringify(DEFAULT_RULE_MESSAGES) +
       ").find(([,text])=>context.includes(text))?.[0]??null,ruleIdSource:'configured-message-match',ruleIds:Object.entries(" +
-      JSON.stringify(NOUL_MESSAGES) +
+      JSON.stringify(DEFAULT_RULE_MESSAGES) +
       ").filter(([,text])=>context.includes(text)).map(([id])=>id),sourceHash:source?createHash('sha256').update(source).digest('hex'):null,sourceBytes:Buffer.byteLength(source),draft:source.includes('receipt: Option<String>')&&source.includes('failure_reason: Option<String>')})+'\\n',{mode:0o600});\n  });\n}\n"
   )
   const env = {
@@ -325,7 +325,7 @@ After the initial apply_patch, run npm test as the next tool call before any oth
           (messages.at(-1) ?? "").includes("HAPSLAND_ADVICE_APPLIED") &&
           !(messages.at(-1) ?? "").includes("HAPSLAND_ADVICE_NOT_APPLIED"),
         agentQuotesDeliveredFinding:
-          !!finding?.ruleId && (messages.at(-1) ?? "").includes(NOUL_MESSAGES[finding.ruleId]),
+          !!finding?.ruleId && (messages.at(-1) ?? "").includes(DEFAULT_RULE_MESSAGES[finding.ruleId]),
         finalSourceChanged:
           source.length > 0 && !source.includes("receipt: Option<String>") && source.includes("pub enum PaymentState"),
         followupClearObserved: followup?.stage === "clear",

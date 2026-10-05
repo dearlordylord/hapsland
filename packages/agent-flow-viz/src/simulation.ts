@@ -112,6 +112,7 @@ export const SimulationModel = Schema.Struct({
   suspended: Schema.Boolean,
   revision: Schema.Number,
   selected: Schema.Number,
+  timelineEpoch: Schema.Number,
   activityFrom: Schema.Number,
   feedback: Schema.String
 })
@@ -188,6 +189,7 @@ export const initialSimulation: SimulationModel = {
   suspended: false,
   revision: 0,
   selected: -1,
+  timelineEpoch: 0,
   activityFrom: -1,
   feedback: "Start a seeded source-free session. Jev effects are simulated."
 }
@@ -275,6 +277,7 @@ export const followsRecord = (frame: Observation, identity: string) => {
   return field in frame.event && String((frame.event as unknown as Record<string, unknown>)[field]) === id
 }
 let totals = { checked: 0, admitted: 0, refused: 0, failed: 0, advice: 0, uncertain: 0, released: 0 }
+const currentTotals = () => totals
 const countFrame = (item: Observation) => {
   totals.checked++
   totals.admitted += item.commands.filter((command) => command.kind === "observationAdmitted").length
@@ -338,7 +341,7 @@ const draftWeights = (model: SimulationModel): OutcomeWeights => {
   }
   return weights
 }
-const appliedWeights = (replay: Replay): OutcomeWeights => {
+const appliedWeights = (replay: Pick<Replay, "config" | "controls">): OutcomeWeights => {
   let weights =
     replay.config.outcomeWeights ??
     (replay.config.outcome ? singleOutcomeWeights(replay.config.outcome) : DEFAULT_OUTCOME_WEIGHTS)
@@ -459,12 +462,14 @@ export const changeSimulation = (model: SimulationModel, field: string, raw: str
     ].includes(field)
   )
     return model
+  if (field === "delay" || JEV_OUTCOME_ORDER.some((outcome) => weightField(outcome) === field))
+    model = finishSimulationAdvance(model)
   const draft = { ...model, [field]: raw }
   if (!run || (field !== "delay" && !JEV_OUTCOME_ORDER.some((outcome) => weightField(outcome) === field))) return draft
   if (replaySource)
     return { ...draft, feedback: "Cannot update: finish recorded replay before changing live Jev settings." }
   try {
-    const active = run.exportReplay()
+    const active = run.appliedSettings
     const profile = [...active.controls].reverse().find((entry) => entry.control.kind === "jevProfile")?.control
     run.applyControl({
       kind: "jevProfile",
@@ -485,7 +490,7 @@ export const changeSimulation = (model: SimulationModel, field: string, raw: str
     }
   }
 }
-export const actSimulation = (model: SimulationModel, action: string): SimulationModel => {
+const actSimulationNow = (model: SimulationModel, action: string): SimulationModel => {
   model = { ...model, activityFrom: -1 }
   try {
     const exported = () => ({ ...run!.exportReplay(), dashboard: { bookmark: model.bookmark } })
@@ -1038,8 +1043,8 @@ export const actSimulation = (model: SimulationModel, action: string): Simulatio
           feedback = "Replay inputs exported below; copy JSON to a fresh dashboard run."
           break
         default:
-          if (action.startsWith("inspect:")) {
-            selected = Number(action.slice(8))
+          if (action.startsWith("inspect:") || action.startsWith("scrub:")) {
+            selected = Number(action.slice(action.indexOf(":") + 1))
             playing = false
           }
           if (["previous", "next", "latest", "from-start", "go-bookmark"].includes(action)) {
@@ -1063,25 +1068,21 @@ export const actSimulation = (model: SimulationModel, action: string): Simulatio
       ...loadedFields,
       playing,
       suspended:
-        run
-          ?.exportReplay()
-          .controls.findLast(
-            (entry) =>
-              entry.control.kind === "suspendArrivals" &&
-              (!entry.control.agent || entry.control.agent === model.agentId)
-          )?.control.kind === "suspendArrivals"
+        run?.appliedSettings.controls.findLast(
+          (entry) =>
+            entry.control.kind === "suspendArrivals" && (!entry.control.agent || entry.control.agent === model.agentId)
+        )?.control.kind === "suspendArrivals"
           ? (
-              run
-                .exportReplay()
-                .controls.findLast(
-                  (entry) =>
-                    entry.control.kind === "suspendArrivals" &&
-                    (!entry.control.agent || entry.control.agent === model.agentId)
-                )!.control as Extract<Control, { kind: "suspendArrivals" }>
+              run.appliedSettings.controls.findLast(
+                (entry) =>
+                  entry.control.kind === "suspendArrivals" &&
+                  (!entry.control.agent || entry.control.agent === model.agentId)
+              )!.control as Extract<Control, { kind: "suspendArrivals" }>
             ).suspended
           : suspended,
       replay,
       selected,
+      timelineEpoch: action.startsWith("scrub:") ? model.timelineEpoch : model.timelineEpoch + 1,
       feedback,
       revision: model.revision + 1
     }
@@ -1094,6 +1095,194 @@ export const actSimulation = (model: SimulationModel, action: string): Simulatio
     }
   }
 }
+type AdvanceResult = ReturnType<NonNullable<typeof run>["advance"]>
+type PublishedRun = Pick<
+  NonNullable<typeof run>,
+  | "now"
+  | "eventCount"
+  | "projection"
+  | "observations"
+  | "agentScopes"
+  | "appliedSettings"
+  | "capacityMetadata"
+  | "editPermitLimits"
+  | "futurePermitProfile"
+  | "interventions"
+  | "observe"
+>
+let publishedRun: PublishedRun | undefined
+let publishedTotals = { ...totals }
+let advanceGeneration = 0
+type PendingAdvanceStatus =
+  | { state: "running" }
+  | { state: "result"; result: AdvanceResult }
+  | { state: "error"; error: unknown }
+type PendingAdvance = {
+  iterator: Generator<void, AdvanceResult>
+  beforeTime: number
+  activityFrom: number
+  generation: number
+  scheduled: boolean
+  status: PendingAdvanceStatus
+  runner?: Promise<void>
+}
+let pendingAdvance: PendingAdvance | undefined
+const capturePublishedRun = () => {
+  if (!run) return
+  const observed = run.observe()
+  publishedTotals = { ...totals }
+  publishedRun = {
+    ...observed,
+    appliedSettings: run.appliedSettings,
+    editPermitLimits: run.editPermitLimits,
+    futurePermitProfile: run.futurePermitProfile,
+    observe: () => observed
+  }
+}
+/** The renderer sees a complete boundary while the actual Run advances privately. */
+export const simulationReadRun = (): PublishedRun | undefined => (pendingAdvance ? publishedRun : run)
+const completedAdvance = (
+  model: SimulationModel,
+  batch: NonNullable<typeof pendingAdvance>,
+  result: AdvanceResult
+): SimulationModel => {
+  if (!run) return model
+  // Empty windows leave the virtual clock at the last event. Carry that
+  // budget forward; an event-limited batch also preserves its unspent time.
+  wallBudget = result.reason === "idle" ? 0 : Math.max(0, wallBudget - (result.now - batch.beforeTime))
+  const completed = completeReplay()
+  return {
+    ...model,
+    selected: -1,
+    activityFrom: batch.activityFrom,
+    suspended:
+      (
+        run.appliedSettings.controls.findLast(
+          (entry) =>
+            entry.control.kind === "suspendArrivals" && (!entry.control.agent || entry.control.agent === model.agentId)
+        )?.control as Extract<Control, { kind: "suspendArrivals" }> | undefined
+      )?.suspended ?? model.suspended,
+    revision: model.revision + 1,
+    playing:
+      !completed &&
+      (result.reason !== "idle" || model.suspended) &&
+      (!replayEndpoint || run.eventCount < replayEndpoint.eventCount),
+    feedback: completed
+      ? "Replay reached its exact recorded endpoint."
+      : /^(Cannot apply:|Cannot update:|Could not read replay file:)/.test(model.feedback)
+        ? model.feedback
+        : result.reason === "idle"
+          ? model.suspended
+            ? "Existing work settled; waiting for edit generation to resume."
+            : "No pending events; playback paused."
+          : `Playback advanced (${result.reason}).`
+  }
+}
+const advanceSlice = (batch: PendingAdvance): void => {
+  if (pendingAdvance !== batch || batch.status.state !== "running") return
+  const deadline = performance.now() + 5
+  try {
+    do {
+      if (pendingAdvance !== batch || batch.status.state !== "running") return
+      const next = batch.iterator.next()
+      if (next.done) {
+        batch.status = { state: "result", result: next.value }
+        return
+      }
+    } while (performance.now() < deadline)
+  } catch (error) {
+    batch.status = { state: "error", error }
+  }
+}
+const failedAdvance = (model: SimulationModel, error: unknown): SimulationModel => ({
+  ...model,
+  playing: false,
+  revision: model.revision + 1,
+  feedback: `Run error: ${error instanceof Error ? error.message : String(error)}`
+})
+const commitTerminalAdvance = (model: SimulationModel, batch: PendingAdvance): SimulationModel => {
+  if (pendingAdvance !== batch || batch.status.state === "running") return model
+  pendingAdvance = undefined
+  return batch.status.state === "result"
+    ? completedAdvance(model, batch, batch.status.result)
+    : failedAdvance(model, batch.status.error)
+}
+export const finishSimulationAdvance = (model: SimulationModel): SimulationModel => {
+  const batch = pendingAdvance
+  advanceGeneration++
+  if (!batch || !run) return model
+  if (batch.status.state !== "running") return commitTerminalAdvance(model, batch)
+  // Invalidate the asynchronous owner before returning the generator. Its next
+  // timer wake will see that this batch is no longer current and will stop.
+  pendingAdvance = undefined
+  try {
+    // Closing normalizes the completed step without executing the remaining batch.
+    // The required generator return argument is ignored; read actual coordinates
+    // only after normalization, which can also remove the final queued fact.
+    batch.iterator.return({ reason: "eventLimit", events: run.eventCount - batch.activityFrom, now: run.now })
+    return completedAdvance(model, batch, {
+      reason: run.queuedFacts.length ? "eventLimit" : "idle",
+      events: run.eventCount - batch.activityFrom,
+      now: run.now
+    })
+  } catch (error) {
+    return failedAdvance(model, error)
+  }
+}
+export const actSimulation = (model: SimulationModel, action: string): SimulationModel => {
+  const settled = finishSimulationAdvance(model)
+  // Pause/Resume follows the user's pre-action intent even when closing work
+  // discovers an idle queue and automatically pauses the completed boundary.
+  return actSimulationNow(action === "play" ? { ...settled, playing: model.playing } : settled, action)
+}
+/** Reserve one continuation, avoiding duplicate commands from animation ticks. */
+export const simulationContinuation = (): number | undefined => {
+  if (!pendingAdvance || pendingAdvance.status.state !== "running" || pendingAdvance.scheduled || pendingAdvance.runner)
+    return undefined
+  pendingAdvance.scheduled = true
+  return pendingAdvance.generation
+}
+export const continueSimulation = (model: SimulationModel, generation: number): SimulationModel => {
+  const batch = pendingAdvance
+  if (batch?.generation !== generation || batch.runner) return model
+  if (batch.status.state !== "running") return commitTerminalAdvance(model, batch)
+  batch.scheduled = false
+  advanceSlice(batch)
+  return batch.status.state === "running" ? model : commitTerminalAdvance(model, batch)
+}
+const yieldContinuation = (channel: MessageChannel): Promise<void> => {
+  if (typeof globalThis.scheduler?.yield === "function") return globalThis.scheduler.yield()
+  return new Promise((resolve) => {
+    channel.port1.onmessage = () => resolve()
+    channel.port2.postMessage(undefined)
+  })
+}
+/** Drive the reserved batch across browser turns; only the continuation message commits it. */
+export const runSimulationContinuation = (generation: number, signal?: AbortSignal): Promise<void> => {
+  const batch = pendingAdvance
+  if (batch?.generation !== generation) return Promise.resolve()
+  if (batch.runner) return batch.runner
+  if (batch.status.state !== "running") return Promise.resolve()
+  batch.scheduled = false
+  const channel = new MessageChannel()
+  const runner = (async () => {
+    while (true) {
+      await yieldContinuation(channel)
+      if (signal?.aborted || pendingAdvance !== batch || batch.generation !== generation) return
+      if (batch.status.state !== "running") return
+      advanceSlice(batch)
+      if (batch.status.state !== "running") return
+    }
+  })()
+  batch.runner = runner
+  const clearRunner = () => {
+    channel.port1.close()
+    channel.port2.close()
+    if (batch.runner === runner) batch.runner = undefined
+  }
+  void runner.then(clearRunner, clearRunner)
+  return runner
+}
 export const tickSimulation = (model: SimulationModel, deltaMs: number): SimulationModel => {
   if (fileReadState.error) {
     const feedback = fileReadState.error
@@ -1101,47 +1290,20 @@ export const tickSimulation = (model: SimulationModel, deltaMs: number): Simulat
     return { ...model, feedback }
   }
   if (!model.playing || !run) return model
+  wallBudget += Math.min(deltaMs, 100) * model.appliedSpeed
+  if (pendingAdvance || wallBudget < 50) return model
   try {
-    wallBudget += Math.min(deltaMs, 100) * model.appliedSpeed
-    if (wallBudget < 50) return model
-    const beforeTime = run.now
-    const activityFrom = run.eventCount
-    const result = run.advance({
-      untilTime: beforeTime + Math.floor(wallBudget),
-      maxEvents: replayEndpoint ? Math.min(100, replayEndpoint.eventCount - run.eventCount) : 100
-    })
-    // Empty windows leave the virtual clock at the last event. Carry that
-    // budget forward; an event-limited batch also preserves its unspent time.
-    wallBudget = result.reason === "idle" ? 0 : Math.max(0, wallBudget - (result.now - beforeTime))
-    const completed = completeReplay()
-    return {
-      ...model,
-      selected: -1,
-      activityFrom,
-      suspended:
-        (
-          run
-            .exportReplay()
-            .controls.findLast(
-              (entry) =>
-                entry.control.kind === "suspendArrivals" &&
-                (!entry.control.agent || entry.control.agent === model.agentId)
-            )?.control as Extract<Control, { kind: "suspendArrivals" }> | undefined
-        )?.suspended ?? model.suspended,
-      revision: model.revision + 1,
-      playing:
-        !completed &&
-        (result.reason !== "idle" || model.suspended) &&
-        (!replayEndpoint || run.eventCount < replayEndpoint.eventCount),
-      feedback: completed
-        ? "Replay reached its exact recorded endpoint."
-        : /^(Cannot apply:|Cannot update:|Could not read replay file:)/.test(model.feedback)
-          ? model.feedback
-          : result.reason === "idle"
-            ? model.suspended
-              ? "Existing work settled; waiting for edit generation to resume."
-              : "No pending events; playback paused."
-            : `Playback advanced (${result.reason}).`
+    capturePublishedRun()
+    pendingAdvance = {
+      iterator: run.beginAdvance({
+        untilTime: run.now + Math.floor(wallBudget),
+        maxEvents: replayEndpoint ? Math.min(100, replayEndpoint.eventCount - run.eventCount) : 100
+      }),
+      beforeTime: run.now,
+      activityFrom: run.eventCount,
+      generation: ++advanceGeneration,
+      scheduled: false,
+      status: { state: "running" }
     }
   } catch (error) {
     return {
@@ -1150,6 +1312,10 @@ export const tickSimulation = (model: SimulationModel, deltaMs: number): Simulat
       feedback: `Run error: ${error instanceof Error ? error.message : String(error)}`
     }
   }
+  const batch = pendingAdvance
+  if (!batch) return model
+  advanceSlice(batch)
+  return batch.status.state === "running" ? model : commitTerminalAdvance(model, batch)
 }
 export const simulationView = <Message>(
   model: SimulationModel,
@@ -1161,9 +1327,12 @@ export const simulationView = <Message>(
     readonly projection: import("../../../src/canonical/adapter").CanonicalProjection
     readonly observations: readonly Observation[]
     readonly partition?: number
+    readonly numbers?: import("@hapsland/agent-flow-projection").RecordNumbers
     readonly agents?: readonly import("./shared-resident-view").AgentScope[]
   }
 ) => {
+  const run = simulationReadRun()
+  const totals = pendingAdvance ? publishedTotals : currentTotals()
   // Native dirty inputs own their visible draft. A controlled Value would replay older
   // queued models into the focused field; only explicit draft replacement changes its key.
   const input = (field: string, label: string, value: string) =>
@@ -1202,8 +1371,9 @@ export const simulationView = <Message>(
   } catch {
     /* Invalid drafts are previewed without touching the engine. */
   }
-  const observations = run?.observe().observations ?? []
-  const activeReplay = run?.exportReplay()
+  const observed = run?.observe()
+  const observations = observed?.observations ?? []
+  const activeReplay = run?.appliedSettings
   const latestControl = <Kind extends Control["kind"]>(kind: Kind) =>
     activeReplay?.controls
       .map((entry) => entry.control)
@@ -1267,9 +1437,11 @@ export const simulationView = <Message>(
     ? model.resourceRound
     : ""
   // A clipped observation history cannot establish the first ordinal of each kind.
-  const numbers = numberRecords(
-    observations[0]?.sequence === 0 ? observations.filter((item) => item.sequence <= (current?.sequence ?? -1)) : []
-  )
+  const numbers =
+    inspection?.numbers ??
+    numberRecords(
+      observations[0]?.sequence === 0 ? observations.filter((item) => item.sequence <= (current?.sequence ?? -1)) : []
+    )
   const last: ReplayStep | undefined = current
     ? {
         event: current.event,
@@ -1395,13 +1567,7 @@ export const simulationView = <Message>(
       ),
       ...(run
         ? [
-            adviceeLifecycleControls(
-              h,
-              run.observe().adviceeLifecycles,
-              run.agentScopes,
-              action,
-              Boolean(replaySource)
-            ),
+            adviceeLifecycleControls(h, observed!.adviceeLifecycles, run.agentScopes, action, Boolean(replaySource)),
             permitControls(h, run.editPermitLimits, run.futurePermitProfile, action, Boolean(replaySource))
           ]
         : []),
@@ -1423,7 +1589,7 @@ export const simulationView = <Message>(
               run.projection,
               run.agentScopes,
               run.now,
-              run.observe().writerReports,
+              observed!.writerReports,
               action,
               Boolean(replaySource),
               run.capacityMetadata.collectors?.capacity ?? 1
@@ -1433,33 +1599,17 @@ export const simulationView = <Message>(
               run.projection,
               run.agentScopes,
               run.now,
-              run.observe().collectionResponseReports,
+              observed!.collectionResponseReports,
               action,
               Boolean(replaySource)
             )
           ]
         : []),
       ...(run
-        ? [
-            callbackControls(
-              h,
-              run.observe().callbackTargets,
-              run.observe().callbackReports,
-              action,
-              Boolean(replaySource)
-            )
-          ]
+        ? [callbackControls(h, observed!.callbackTargets, observed!.callbackReports, action, Boolean(replaySource))]
         : []),
       ...(run
-        ? [
-            outputAttemptControls(
-              h,
-              run.observe().outputAttempts,
-              run.observe().outputReports,
-              action,
-              Boolean(replaySource)
-            )
-          ]
+        ? [outputAttemptControls(h, observed!.outputAttempts, observed!.outputReports, action, Boolean(replaySource))]
         : []),
       ...(run ? [jevFaultControls(h, run.projection, run.interventions, action, Boolean(replaySource))] : []),
       controlForm("graphLimits", [
@@ -1909,8 +2059,12 @@ export const simulationView = <Message>(
             h.AriaLabel("Retained event timeline"),
             h.Min(String(observations[0]?.sequence ?? 0)),
             h.Max(String(observations.at(-1)?.sequence ?? 0)),
-            h.Value(String(current?.sequence ?? 0)),
-            h.OnInput((raw) => action(`inspect:${raw}`))
+            // The native thumb owns an in-flight gesture; queued playback renders
+            // may update the default without replaying an older value over the drag.
+            // Explicit controls replace the node to synchronize historical navigation.
+            h.Key(`timeline:${model.draftEpoch}:${model.timelineEpoch}`),
+            { _tag: "Prop", key: "defaultValue", value: String(current?.sequence ?? 0) },
+            h.OnInput((raw) => action(`scrub:${raw}`))
           ])
         ]
       ),
@@ -1940,7 +2094,7 @@ export const simulationRun = () => run
 /** Load applied generator values when inspecting a different agent. */
 export const selectSimulationAgent = (model: SimulationModel, agent: string): SimulationModel => {
   if (run && !run.agentScopes.length) return { ...model, agentId: agent, item: "" }
-  const replay = run?.exportReplay()
+  const replay = run?.appliedSettings
   const session = replay?.config.sessions?.find((session) => session.agent === agent) ?? replay?.config.session
   const latest = <Kind extends Control["kind"]>(kind: Kind) =>
     replay?.controls.findLast(

@@ -1,4 +1,15 @@
 {
   "version": 1,
-  "sessionAnalytics": true
+  "sessionAnalytics": true,
+  "rules": [
+    "src/rules/defaults/r1_inferred_case.json",
+    "src/rules/defaults/r2_meaningless_combinations.json",
+    "src/rules/defaults/r3_split_correlations.json",
+    "src/rules/defaults/r4_duplicate_encoding.json",
+    "src/rules/defaults/r5_absence_confusion.json",
+    "src/rules/defaults/r6_bare_domain_value.json",
+    "src/rules/defaults/r7_name_wider_than_type.json",
+    "src/rules/defaults/r8_name_claims_resource.json",
+    "src/rules/defaults/r9_body_reaches_undeclared.json"
+  ]
 }

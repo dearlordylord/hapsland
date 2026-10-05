@@ -1,7 +1,7 @@
 import { encodeCanonicalEvent } from "../../../src/canonical/canonical-boundary.ts"
-import { CanonicalEventSchema } from "../../../src/canonical/models.ts"
 import { decodeCanonicalConstructor } from "../../../src/canonical/constructors.ts"
 import { freezeCanonicalData } from "../../../src/canonical/immutable.ts"
+import { readCanonicalEvent } from "../../../src/canonical/event-reader.ts"
 import { readRecord, readNat, readBool, readBendList, decoder, Word } from "../../../src/canonical/boundary-schema.ts"
 import type { CanonicalEvent, JevRequestOutcome } from "../../../src/canonical/adapter.ts"
 
@@ -29,7 +29,6 @@ const outcomeTags: Record<JevRequestOutcome, string> = {
   interrupted: "RequestInterrupted"
 }
 export const encodeDriverOutcome = (outcome: JevRequestOutcome): unknown => ({ $: `Canonical.${outcomeTags[outcome]}` })
-const readEvent = decoder(CanonicalEventSchema)
 const names: Record<string, string> = {
   extra_pending: "extraPending",
   has_notice: "hasNotice",
@@ -175,7 +174,7 @@ export const decodeDriverEvent = (value: unknown): CanonicalEvent => {
       result[key === "unit_bytes" ? "unitBytes" : key] = readBendList(item, readNat, key === "selected" ? 2048 : 1024)
     else result[names[key] ?? key] = typeof item === "boolean" ? readBool(item) : readNat(item)
   }
-  return freezeCanonicalData(readEvent(result))
+  return readCanonicalEvent(result)
 }
 const surface = (value: unknown): DriverCandidate["surface"] => {
   switch (readRecord(value).$) {
@@ -236,7 +235,7 @@ export const encodeDriverAction = (value: DriverAction): unknown => {
   if (candidate && !Object.hasOwn(surfaces, candidate.surface)) throw new TypeError("invalid Driver candidate surface")
   return {
     $: "Driver.Action",
-    event: encodeCanonicalEvent(readEvent(value.event)),
+    event: encodeCanonicalEvent(readCanonicalEvent(value.event)),
     delay: readNat(value.delay),
     job: readBool(value.job),
     candidate: candidate

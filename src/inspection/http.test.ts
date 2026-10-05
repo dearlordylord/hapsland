@@ -24,7 +24,7 @@ import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts"
 import { nativeDeferred } from "../test-support/native-deferred.ts"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
-import { configuredRules } from "../policy/rules.ts"
+import { configuredRules, connectDefaultRuleFixture } from "../test-support/default-rules.ts"
 import { readCredentialState } from "../credentials/secret-service.ts"
 import { decodeInspectionRecord } from "./contract.ts"
 
@@ -42,7 +42,10 @@ it("exposes exact retained bytes from a real resident's production provider tran
     JSON.stringify({
       version: 1,
       sessionInspection: true,
-      ruleOverrides: { r1_inferred_case: { threshold: 0.6, message: "Inspect 日本語 cases\r\n\tprecisely" } }
+      rules: connectDefaultRuleFixture(root).map((path, index) => ({
+        path,
+        ...(index === 0 ? { threshold: 0.6, message: "Inspect 日本語 cases\r\n\tprecisely" } : {})
+      }))
     })
   )
   const stored = nativeDeferred<void>()
@@ -96,19 +99,20 @@ it("exposes exact retained bytes from a real resident's production provider tran
   if (!observation) throw new Error("missing observation")
   const credentialPath = join(root, "credential-state")
   expect(
-    Effect.runSync(
-      resident.admit(observation, {
-        statePath: join(root, "consent"),
-        userConfigPath: join(root, "absent-user"),
-        controlled: null,
-        credential: {
-          name: "TYPESAFE_API_KEY",
-          environmentValue: "INSPECTION_OFFLINE_KEY",
-          environmentOnly: true,
-          generation: readCredentialState(credentialPath).generation,
-          statePath: credentialPath
-        }
-      })
+    (
+      await Effect.runPromise(
+        resident.admit(observation, {
+          statePath: join(root, "consent"),
+          userConfigPath: join(root, "absent-user"),
+          controlled: null,
+          credential: {
+            name: "TYPESAFE_API_KEY",
+            environmentValue: "INSPECTION_OFFLINE_KEY",
+            generation: readCredentialState(credentialPath).generation,
+            statePath: credentialPath
+          }
+        })
+      )
     ).status
   ).toBe("accepted")
   await Effect.runPromise(resident.whenIdle())
@@ -158,7 +162,7 @@ it("exposes exact retained bytes from a real resident's production provider tran
         rules: expect.arrayContaining([
           expect.objectContaining({
             ruleId: "r1_inferred_case",
-            qualifiedId: "noul/r1_inferred_case",
+            source: expect.stringContaining("r1_inferred_case.json"),
             threshold: 0.6,
             message: "Inspect 日本語 cases\r\n\tprecisely",
             question: configuredRules[0]!.decision.instructions,
@@ -252,7 +256,10 @@ it("exposes exact retained bytes from a real resident's production provider tran
 it("exposes exceptional provider failure without a clear result, duplicate outcome or private response body", async () => {
   const root = await makeGitFixture()
   await put(root, "type.ts", "type OrderCount = number;\n")
-  await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+  await writeFile(
+    join(root, ".hapsland.jsonc"),
+    JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+  )
   const history = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
   const published = nativeDeferred<void>()
   const dispatched: Buffer[] = []
@@ -282,19 +289,20 @@ it("exposes exceptional provider failure without a clear result, duplicate outco
   if (!observation) throw new Error("missing observation")
   const credentialPath = join(root, "credential-state")
   expect(
-    Effect.runSync(
-      resident.admit(observation, {
-        statePath: join(root, "consent"),
-        userConfigPath: join(root, "absent-user"),
-        controlled: null,
-        credential: {
-          name: "TYPESAFE_API_KEY",
-          environmentValue: "PRIVATE_OFFLINE_CREDENTIAL",
-          environmentOnly: true,
-          generation: readCredentialState(credentialPath).generation,
-          statePath: credentialPath
-        }
-      })
+    (
+      await Effect.runPromise(
+        resident.admit(observation, {
+          statePath: join(root, "consent"),
+          userConfigPath: join(root, "absent-user"),
+          controlled: null,
+          credential: {
+            name: "TYPESAFE_API_KEY",
+            environmentValue: "PRIVATE_OFFLINE_CREDENTIAL",
+            generation: readCredentialState(credentialPath).generation,
+            statePath: credentialPath
+          }
+        })
+      )
     ).status
   ).toBe("accepted")
   await published.promise
@@ -351,7 +359,10 @@ it("exposes exceptional provider failure without a clear result, duplicate outco
 it("serves pre-launch real resident history through protected HTTP and SSE after that resident closes", async () => {
   const root = await makeGitFixture()
   await put(root, "type.ts", "type OrderCount = number\n")
-  await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+  await writeFile(
+    join(root, ".hapsland.jsonc"),
+    JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+  )
   const stored = nativeDeferred<void>()
   const history = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
   const resident = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
@@ -369,13 +380,15 @@ it("serves pre-launch real resident history through protected HTTP and SSE after
   const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
   if (!observation) throw new Error("missing fixture observation")
   expect(
-    Effect.runSync(
-      resident.admit(observation, {
-        statePath: join(root, "consent"),
-        userConfigPath: join(root, "absent-user"),
-        credential: null,
-        controlled: { answers: {} }
-      })
+    (
+      await Effect.runPromise(
+        resident.admit(observation, {
+          statePath: join(root, "consent"),
+          userConfigPath: join(root, "absent-user"),
+          credential: null,
+          controlled: { answers: {} }
+        })
+      )
     ).status
   ).toBe("accepted")
   await stored.promise
@@ -447,7 +460,10 @@ it.each([true, false])(
       JSON.stringify({
         version: 1,
         sessionInspection: true,
-        ruleOverrides: { r1_inferred_case: { message: "Inspect 日本語\r\n\tcases" } }
+        rules: connectDefaultRuleFixture(root).map((path, index) => ({
+          path,
+          ...(index === 0 ? { message: "Inspect 日本語\r\n\tcases" } : {})
+        }))
       })
     )
     const stored = nativeDeferred<void>()
@@ -483,13 +499,13 @@ it.each([true, false])(
         )
       }
     }
-    expect(Effect.runSync(resident.admit(observation, dispatch, true)).status).toBe("accepted")
+    expect((await Effect.runPromise(resident.admit(observation, dispatch, true))).status).toBe("accepted")
     await Effect.runPromise(resident.whenIdle())
     const other = await Effect.runPromise(
       adaptCodexDirectEvent(addEvent(root, ["other.ts"], { tool_use_id: "inspection-other-edit" }))
     )
     if (!other) throw new Error("missing second edit")
-    expect(Effect.runSync(resident.admit(other, dispatch, true)).status).toBe("accepted")
+    expect((await Effect.runPromise(resident.admit(other, dispatch, true))).status).toBe("accepted")
     await Effect.runPromise(resident.whenIdle())
     const ackGate = join(root, "ack-reply")
     if (!acknowledged) await writeFile(`${ackGate}.enabled`, "enabled\n")

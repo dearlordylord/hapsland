@@ -15,10 +15,6 @@ import {
 import type { ConfigurationLayer } from "./resolve.ts"
 import { selectGlobalPath } from "../policy/file-policy.ts"
 import { explainPath } from "../explanation/index.ts"
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
-import { readCurrentClaudeFeedbackAuthority } from "./current-claude-authority.ts"
 
 const source = (name: string, value: string): ConfigurationLayer => ({
   name: name as ConfigurationLayer["name"],
@@ -186,20 +182,20 @@ describe("configuration v1 decoding", () => {
       expect.objectContaining({ field: "editPermitLimits.perAdvicee" })
     )
   })
-  it("keeps old layered documents valid while rejecting undeclared branch and form controls", () => {
+  it("keeps current layered documents valid while rejecting undeclared branch and form controls", () => {
     const user = source(
       "user",
-      '{"version":1,"includes":["src/**"],"privacyExcludes":["src/private/**"],"ruleOverrides":{"team/check":{"threshold":0.5}}}'
+      '{"version":1,"includes":["src/**"],"privacyExcludes":["src/private/**"],"rules":[{"path":"check.jsonc","threshold":0.5}]}'
     )
     const project = source(
       "project",
-      '{"version":1,"excludes":["src/generated/**"],"packs":[{"id":"team","enabled":false}]}'
+      '{"version":1,"excludes":["src/generated/**"],"rules":[{"id":"check","enabled":false}]}'
     )
     const policy = resolveConfiguration([user, project], "/repo")
     expect(selectGlobalPath(policy, "src/ok.ts").selected).toBe(true)
     expect(selectGlobalPath(policy, "src/private/secret.ts").selected).toBe(false)
     expect(selectGlobalPath(policy, "src/generated/a.ts").selected).toBe(false)
-    expect(project.document.packs).toEqual([{ id: "team", enabled: false }])
+    expect(project.document.rules).toEqual([{ id: "check", enabled: false }])
     for (const [field, value] of [
       ["artifactKinds", ["function"]],
       ["resultForms", ["choice"]],
@@ -246,8 +242,8 @@ describe("configuration v1 decoding", () => {
     ["undocumented flat runtime field", '{"version":1,"adviceBudget":101}', "adviceBudget"],
     ["undocumented include alias", '{"version":1,"include":["src/**"]}', "include"],
     ["undocumented exclude alias", '{"version":1,"exclude":["src/**"]}', "exclude"],
-    ["pack reference without locator", '{"version":1,"packs":[{}]}', "packs[0]"],
-    ["pack reference with path and id", '{"version":1,"packs":[{"path":"rules.jsonc","id":"team"}]}', "packs[0]"],
+    ["rule reference without locator", '{"version":1,"rules":[{}]}', "rules[0]"],
+    ["rule reference with path and id", '{"version":1,"rules":[{"path":"rule.jsonc","id":"check"}]}', "rules[0]"],
     ["negated include", '{"version":1,"includes":["!src/**"]}', "includes[0]"],
     ["traversal include", '{"version":1,"includes":["../src/**"]}', "includes[0]"],
     ["reversed glob range", '{"version":1,"includes":["[z-a]"]}', "includes[0]"],
@@ -286,11 +282,11 @@ describe("configuration v1 decoding", () => {
     }
   })
 
-  it("accepts fractional rule-override thresholds from the Effect schema", () => {
+  it("accepts fractional rule-reference thresholds from the Effect schema", () => {
     expect(
-      decodeConfigurationText('{"version":1,"ruleOverrides":{"team/check":{"threshold":0.5}}}', "fractional.jsonc")
-        .ruleOverrides
-    ).toEqual({ "team/check": { threshold: 0.5 } })
+      decodeConfigurationText('{"version":1,"rules":[{"path":"check.jsonc","threshold":0.5}]}', "fractional.jsonc")
+        .rules
+    ).toEqual([{ path: "check.jsonc", threshold: 0.5 }])
   })
 })
 
@@ -351,42 +347,6 @@ describe("layered selection and provenance", () => {
       expect(() =>
         decodeConfigurationText(JSON.stringify({ version: 1, claudeFeedbackMode: mode }), "user.jsonc")
       ).toThrow(ConfigurationError)
-    }
-  })
-
-  it("rechecks current user and project mode synchronously and fails closed", () => {
-    const root = mkdtempSync(join(tmpdir(), "hapsland-claude-mode-"))
-    const userPath = join(root, "user.jsonc")
-    const projectPath = join(root, ".hapsland.jsonc")
-    try {
-      expect(readCurrentClaudeFeedbackAuthority(root, userPath)).toMatchObject({
-        valid: true,
-        mode: "advisory",
-        origin: { layer: "built-in" }
-      })
-      writeFileSync(userPath, '{"version":1,"claudeFeedbackMode":"block-current-findings"}')
-      expect(readCurrentClaudeFeedbackAuthority(root, userPath)).toMatchObject({
-        valid: true,
-        mode: "block-current-findings",
-        origin: { layer: "user" }
-      })
-      writeFileSync(projectPath, '{"version":1,"claudeFeedbackMode":"advisory"}')
-      expect(readCurrentClaudeFeedbackAuthority(root, userPath)).toMatchObject({
-        valid: true,
-        mode: "advisory",
-        origin: { layer: "project" }
-      })
-      writeFileSync(projectPath, '{"version":1,"claudeFeedbackMode":"block-current-findings"}')
-      expect(readCurrentClaudeFeedbackAuthority(root, userPath)).toEqual({ valid: false })
-      rmSync(projectPath)
-      writeFileSync(userPath, '{"version":1,"claudeFeedbackMode":')
-      expect(readCurrentClaudeFeedbackAuthority(root, userPath)).toEqual({ valid: false })
-      rmSync(userPath)
-      expect(readCurrentClaudeFeedbackAuthority(root, userPath)).toMatchObject({ valid: true, mode: "advisory" })
-      writeFileSync(projectPath, '{"version":1,')
-      expect(readCurrentClaudeFeedbackAuthority(root, userPath)).toEqual({ valid: false })
-    } finally {
-      rmSync(root, { recursive: true, force: true })
     }
   })
 

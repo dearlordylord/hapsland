@@ -10,7 +10,7 @@ import { acquireResidentFixture } from "../resident/runtime-fixture.ts"
 import { residentPaths } from "../resident/paths.ts"
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
 import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../policy/rules.ts"
+import { configuredRules, connectDefaultRuleFixture } from "../test-support/default-rules.ts"
 import { nativeDeferred } from "../test-support/native-deferred.ts"
 
 type ReplaySnapshot = ReturnType<ReturnType<typeof makeInspectionReplay>["describe"]> & {
@@ -31,7 +31,10 @@ it("replays real per-source increments after a snapshot and resets honestly when
   try {
     const publish: Array<(path: string) => Promise<void>> = []
     for (const root of roots) {
-      await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+      await writeFile(
+        join(root, ".hapsland.jsonc"),
+        JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+      )
       let stored = nativeDeferred<void>()
       const resident = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
         inspectionPersistence: {

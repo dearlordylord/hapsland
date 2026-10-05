@@ -3,41 +3,29 @@ import * as Effect from "effect/Effect"
 import { resolveConfiguration, effectiveGraphLimits } from "../configuration/resolve.ts"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
 import "../policy/rules.ts"
-import { compileRulePack } from "../rules/compiler.ts"
+import { compileRule } from "../rules/compiler.ts"
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
 import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts"
 import { adaptCodexDirectEvent } from "./adapter.ts"
 import { measuredRootSourceDecision, prepareObservation, reviewObservation } from "./pipeline.ts"
 import { addEvent, makeGitFixture, put } from "./test-fixtures.ts"
 
-const rules = compileRulePack(
+const rules = [
   {
-    schemaVersion: 1,
-    id: "root-cap",
-    contentVersion: "1",
-    rules: [
-      {
-        id: "type",
-        question: "Is the type clear?",
-        criteria: { false: "No", true: "Yes" },
-        message: "Review type",
-        reviewTargets: [
-          { artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT, capabilities: ["root-declaration"] }
-        ]
-      },
-      {
-        id: "function",
-        question: "Is the function clear?",
-        criteria: { false: "No", true: "Yes" },
-        message: "Review function",
-        reviewTargets: [
-          { artifactKind: "function", inputContract: FUNCTION_INPUT_CONTRACT, capabilities: ["signature", "body"] }
-        ]
-      }
-    ]
+    id: "type",
+    question: "Is the type clear?",
+    criteria: { false: "No", true: "Yes" },
+    message: "Review type",
+    inputs: [{ languages: ["typescript", "rust", "bend"], kind: "type", requires: ["root-declaration"] }]
   },
-  "fixture:root-cap"
-)
+  {
+    id: "function",
+    question: "Is the function clear?",
+    criteria: { false: "No", true: "Yes" },
+    message: "Review function",
+    inputs: [{ languages: ["typescript"], kind: "function", requires: ["signature", "body"] }]
+  }
+].map((rule) => compileRule({ version: 1, ...rule }, "fixture:root-cap"))
 
 describe("configured root source cap", () => {
   for (const branch of [

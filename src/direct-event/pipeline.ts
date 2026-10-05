@@ -1,3 +1,4 @@
+import { languageForPath } from "./languages/registry.ts"
 import { assertReviewEngineBoundary } from "../runtime/review-engine-boundary.ts"
 import { toCodexDirectEventOutput, type Finding, type CodexDirectEventOutput } from "./output.ts"
 import * as Effect from "effect/Effect"
@@ -6,7 +7,7 @@ import * as Result from "effect/Result"
 import * as Schema from "effect/Schema"
 import { AiError, Decision, DecisionModel } from "effect/ai"
 import type { CompiledRule } from "../rules/compiler.ts"
-import { applicableRules, configuredRules } from "../policy/rules.ts"
+import { applicableRules } from "../policy/rules.ts"
 import { compareRuleRank, findingFromProbability } from "../rules/decision.ts"
 import { encodedProviderHttpBodyBytes } from "./provider-body-size.ts"
 import { admitReview } from "../configuration/decision.ts"
@@ -206,7 +207,7 @@ const currentPolicy = (context: DirectReviewContext): DirectFilePolicy =>
     : current(context.policy)
 
 const currentRules = (context: DirectReviewContext): ReadonlyArray<CompiledRule> =>
-  context.rules === undefined ? (context.settings.rules ?? configuredRules) : current(context.rules)
+  context.rules === undefined ? (context.settings.rules ?? []) : current(context.rules)
 
 const currentInputContract = (context: DirectReviewContext): string =>
   context.inputContract === undefined ? TYPE_INPUT_CONTRACT : current(context.inputContract)
@@ -299,7 +300,8 @@ const freezePreparedUnitInput = (
   rootLocation: ReviewInput["rootLocation"],
   sourceFingerprints: NonNullable<ReviewInput["sourceFingerprints"]>,
   frame: PreparationFrame,
-  partial: boolean
+  partial: boolean,
+  language: "typescript" | "rust" | "bend"
 ): ReviewInput => {
   const declaration = unit.root.artifact
   const artifactKind = declaration.kind === "function" ? ("function" as const) : ("typeShape" as const)
@@ -317,7 +319,7 @@ const freezePreparedUnitInput = (
     path,
     declaration,
     unit,
-    rules: freezeRules(rules, { artifactKind, inputContract: frame.contract }),
+    rules: freezeRules(rules, { language, artifactKind, inputContract: frame.contract }),
     interpretation: "probability-strictly-greater-than-threshold"
   } satisfies ReviewInput)
 }
@@ -343,14 +345,17 @@ const prepareResolvedUnit = (
   const artifactKind = declaration.kind === "function" ? ("function" as const) : ("typeShape" as const)
   const partial = unitHasOmissions(unit)
   const capabilities = preparationCapabilities(frame.contract, partial)
+  const language = languageForPath(path)?.id
+  if (language !== "typescript" && language !== "rust" && language !== "bend") return undefined
   const rules = applicableRules(declaration.source, path, currentRules(frame.context), {
+    language,
     artifactKind,
     inputContract: frame.contract,
     complete: true,
     ...(capabilities === undefined ? {} : { capabilities })
   })
   if (rules.length === 0) return omitted("no-applicable-rule")
-  const input = freezePreparedUnitInput(path, unit, rules, rootLocation, sourceFingerprints, frame, partial)
+  const input = freezePreparedUnitInput(path, unit, rules, rootLocation, sourceFingerprints, frame, partial, language)
   return {
     status: "ready",
     path,

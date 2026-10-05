@@ -19,7 +19,7 @@ import {
   type EvaluationScenario,
   type Fixture,
   type Observation,
-  QualifiedRuleId,
+  RuleId,
   type RuleDefinition,
   type Expectation,
   strictParseOptions
@@ -53,7 +53,7 @@ export interface EvaluationExecutionResult {
 
 const fixtureLookup = (fixtures: ReadonlyArray<Fixture>) => new Map(fixtures.map((fixture) => [fixture.id, fixture]))
 
-const ruleLookup = (rules: ReadonlyArray<CompiledRule>) => new Map(rules.map((rule) => [rule.qualifiedId, rule]))
+const ruleLookup = (rules: ReadonlyArray<CompiledRule>) => new Map(rules.map((rule) => [rule.ruleId, rule]))
 
 const fixtureRef = (
   fixtures: ReadonlyMap<string, Fixture>,
@@ -86,8 +86,8 @@ const selectedRules = (
   scenario: EvaluationScenario
 ): Effect.Effect<ReadonlyArray<CompiledRule>, EvaluationExecutionError> =>
   Effect.forEach(scenario.ruleSet, (reference) => {
-    const rule = rules.get(reference.qualifiedId)
-    const definition = definitions.get(reference.qualifiedId)
+    const rule = rules.get(reference.ruleId)
+    const definition = definitions.get(reference.ruleId)
     if (rule === undefined || definition === undefined || definition.definitionDigest !== reference.definitionDigest) {
       return Effect.fail(
         new EvaluationExecutionError({
@@ -98,8 +98,7 @@ const selectedRules = (
     return Effect.succeed(rule)
   })
 
-const requestRuleIds = (rules: ReadonlyArray<CompiledRule>) =>
-  rules.map((rule) => decode(QualifiedRuleId, rule.qualifiedId))
+const requestRuleIds = (rules: ReadonlyArray<CompiledRule>) => rules.map((rule) => decode(RuleId, rule.ruleId))
 
 const unavailableObservation = (input: {
   readonly id: string
@@ -194,13 +193,13 @@ const observed = Effect.fn("Evaluation.observeFixture")(function* (input: {
     { path: input.fixture.path, contentHash: input.fixture.contentHash },
     input.rules.length
   ).map((finding) => ({
-    ruleId: decode(QualifiedRuleId, finding.ruleId),
+    ruleId: decode(RuleId, finding.ruleId),
     probability: finding.probability,
     message: finding.message
   }))
   const assessmentEntries = input.rules.flatMap((rule) => {
     const probability = assessment.success[rule.id]
-    return probability === undefined ? [] : [{ ruleId: decode(QualifiedRuleId, rule.qualifiedId), probability }]
+    return probability === undefined ? [] : [{ ruleId: decode(RuleId, rule.ruleId), probability }]
   })
   if (assessmentEntries.length !== input.rules.length) {
     return makeObservation({
@@ -302,8 +301,8 @@ const fixtureComparisons = (
   const observation = observationAt(context, scenario.id, fixtureId, repetition)
   if (observation === undefined) return []
   return scenario.ruleSet.flatMap((rule) => [
-    semanticComparison(context, scenario, fixtureId, rule.qualifiedId, repetition, observation),
-    ...crossBatchComparisons(context, scenario, fixtureId, rule.qualifiedId, repetition, observation)
+    semanticComparison(context, scenario, fixtureId, rule.ruleId, repetition, observation),
+    ...crossBatchComparisons(context, scenario, fixtureId, rule.ruleId, repetition, observation)
   ])
 }
 const repeatedFixtureComparisons = (
@@ -382,9 +381,7 @@ export const executeEvaluation = (
     const backend = yield* ReviewBackend.Service
     const fixtures = fixtureLookup(input.fixtures)
     const rules = ruleLookup(input.compiledRules)
-    const definitions = new Map(
-      input.ruleDefinitions.map((definition) => [definition.identity.qualifiedId, definition])
-    )
+    const definitions = new Map(input.ruleDefinitions.map((definition) => [definition.identity.ruleId, definition]))
     const selectedScenarios = new Map(input.scenarios.map((scenario) => [scenario.id, scenario]))
     const observations: Array<Observation> = []
     for (const scenarioId of input.run.scenarioIds) {
@@ -415,7 +412,7 @@ export const executeEvaluation = (
 
 /**
  * Construct evaluation definitions from a compiled production rule set when a
- * caller needs a run identity without re-reading pack files.
+ * caller needs a run identity without re-reading rule files.
  */
 const applicabilityPatterns = (patterns: readonly string[] | undefined): readonly string[] => patterns ?? []
 const compiledRuleApplicability = (rule: CompiledRule) =>
@@ -428,9 +425,7 @@ const compiledRuleApplicability = (rule: CompiledRule) =>
 export const definitionsFromCompiledRules = (rules: ReadonlyArray<CompiledRule>): ReadonlyArray<RuleDefinition> =>
   rules.map((rule) =>
     makeRuleDefinition({
-      packId: rule.packId,
       ruleId: rule.ruleId,
-      packVersion: rule.packVersion,
       question: rule.decision.instructions,
       criteria: rule.decision.criteria,
       defaultMessage: rule.message,

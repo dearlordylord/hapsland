@@ -125,13 +125,12 @@ export const InspectionFact = Schema.Union([
         rules: Schema.Array(
           Schema.Struct({
             ruleId: Id,
-            qualifiedId: Text,
+            source: Text,
             question: Text,
             criteria: Schema.Struct({ false: Text, true: Text }),
             threshold: Probability,
             message: Text,
             rank: Count,
-            packDigest: Hash,
             definitionDigest: Hash
           })
         ).check(Schema.isMaxLength(128))

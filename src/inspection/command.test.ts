@@ -13,7 +13,7 @@ import { acquireResidentFixture } from "../resident/runtime-fixture.ts"
 import { residentPaths } from "../resident/paths.ts"
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
 import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../policy/rules.ts"
+import { configuredRules, connectDefaultRuleFixture } from "../test-support/default-rules.ts"
 import { residentRequestEffect } from "../resident/client.ts"
 import { runClient } from "../test-support/client-runtime.ts"
 
@@ -101,7 +101,10 @@ describe.each(["source", "package"] as const)("%s foreground inspection command"
   it("reads pre-launch history and leaves resident recording alive across interrupt and restart", async () => {
     const directory = await realpath(await mkdtemp(join(tmpdir(), "hd-")))
     const root = await makeGitFixture()
-    await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+    await writeFile(
+      join(root, ".hapsland.jsonc"),
+      JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+    )
     const history = makeInspectionStorage(join(directory, "hapsland", "inspection"), {
       retentionMs: 7 * 86400000,
       storageBytes: 128 * 1048576

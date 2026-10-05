@@ -9,8 +9,8 @@ import { readFileSync, writeFileSync } from "node:fs"
 import { connect } from "node:net"
 import { adaptClaudeDirectEvent } from "../direct-event/adapter.ts"
 import type { DirectObservation } from "../direct-event/model.ts"
-import { makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../policy/rules.ts"
+import { makeReviewGitFixture as makeGitFixture, put } from "../direct-event/test-fixtures.ts"
+import { configuredRules } from "../test-support/default-rules.ts"
 import { residentPaths } from "./paths.ts"
 import { acquireResidentFixture, type ResidentRuntime as ResidentServer } from "./runtime-fixture.ts"
 import { admitAndCollectEffect as admitAndCollect, residentRequestEffect as residentRequest } from "./client.ts"
@@ -65,7 +65,11 @@ const fixture = async () => {
   }
   return { root, feedback, observation, dispatch }
 }
-const permit = async (server: ResidentServer, observation: DirectObservation) => {
+const permit = async (
+  server: ResidentServer,
+  observation: DirectObservation,
+  userConfigPath = join(observation.root, "user.jsonc")
+) => {
   expect(
     (
       await Effect.runPromise(
@@ -75,6 +79,7 @@ const permit = async (server: ResidentServer, observation: DirectObservation) =>
           lifetime: server.lifetime,
           root: observation.root,
           advicee: observation.advicee,
+          userConfigPath,
           startedAt: monotonicNow() - 1
         })
       )
@@ -94,7 +99,7 @@ const admitReady = async (
   dispatch: ResidentDispatchContext
 ) => {
   await permit(server, observation)
-  expect(Effect.runSync(server.admit(observation, dispatch, true, true)).status).toBe("accepted")
+  expect((await Effect.runPromise(server.admit(observation, dispatch, true, true))).status).toBe("accepted")
   await Effect.runPromise(server.whenIdle())
 }
 const request = (
@@ -257,7 +262,7 @@ describe("registry-free Claude edit response", () => {
     await Effect.runPromise(server.listen())
     try {
       await permit(server, first)
-      expect(Effect.runSync(server.admit(first, data.dispatch, true, true)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(first, data.dispatch, true, true))).status).toBe("accepted")
       await Effect.runPromise(server.whenIdle())
       expect(Effect.runSync(server.pendingAdviceMetadata())).toHaveLength(1)
       await admitReady(server, second, other.dispatch)
@@ -296,13 +301,17 @@ describe("registry-free Claude edit response", () => {
       await permit(server, first)
       const a = send(server, first, data.dispatch)
       await entered.promise
-      data.feedback("block-current-findings")
-      await permit(server, second)
-      const b = send(server, second, data.dispatch)
+      const blockingUser = join(data.root, "blocking-user.jsonc")
+      writeFileSync(blockingUser, JSON.stringify({ version: 1, claudeFeedbackMode: "block-current-findings" }))
+      await permit(server, second, blockingUser)
+      const b = send(server, second, { ...data.dispatch, userConfigPath: blockingUser })
       release.resolve()
       const responses = await Promise.all([a, b])
       if (responses[0]?.status === "advice") expect(responses[0].output).toHaveProperty("hookSpecificOutput")
-      if (responses[1]?.status === "advice") expect(responses[1].output).toHaveProperty("decision", "block")
+      if (responses[1]?.status === "advice") {
+        if (text(responses[1]).includes("second.ts")) expect(responses[1].output).toHaveProperty("decision", "block")
+        else expect(responses[1].output).toHaveProperty("hookSpecificOutput")
+      }
       // A bounded edit wait can finish before both evaluations; work that
       // misses that response must remain available through the common lease.
       await Effect.runPromise(server.whenIdle())
@@ -323,7 +332,7 @@ describe("registry-free Claude edit response", () => {
   })
 
   it.each(["opt-in", "revoke", "project-narrowing", "source", "rotate", "suspend", "expiry", "round-closed"])(
-    "rechecks %s after provisional selection at the final handoff",
+    "keeps edit settings while rechecking %s at final handoff",
     async (change) => {
       const data = await fixture()
       const observation = await data.observation()
@@ -337,7 +346,7 @@ describe("registry-free Claude edit response", () => {
               credential: {
                 name: "TYPESAFE_API_KEY",
                 environmentValue: "synthetic-test-value",
-                environmentOnly: false,
+
                 generation: 1,
                 statePath
               },
@@ -402,9 +411,12 @@ describe("registry-free Claude edit response", () => {
         await permit(server, collector)
         enabled = true
         const response = await send(server, collector, dispatch)
-        if (change === "opt-in") {
+        if (change === "opt-in" || change === "revoke" || change === "project-narrowing") {
           expect(response.status).toBe("advice")
-          if (response.status === "advice") expect(response.output).toHaveProperty("hookSpecificOutput")
+          if (response.status === "advice") {
+            if (change === "opt-in") expect(response.output).toHaveProperty("hookSpecificOutput")
+            else expect(response.output).toHaveProperty("decision", "block")
+          }
         } else {
           expect(response.status).not.toBe("advice")
           if (change === "rotate" || change === "suspend")
@@ -430,7 +442,7 @@ describe("registry-free Claude edit response", () => {
         credential: {
           name: "TYPESAFE_API_KEY",
           environmentValue: "synthetic-test-value",
-          environmentOnly: false,
+
           generation: 1,
           statePath
         },
@@ -454,7 +466,7 @@ describe("registry-free Claude edit response", () => {
     await Effect.runPromise(server.listen())
     try {
       await permit(server, first)
-      expect(Effect.runSync(server.admit(first, a, true, true)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(first, a, true, true))).status).toBe("accepted")
       await Effect.runPromise(server.whenIdle())
       await permit(server, second)
       gated = true

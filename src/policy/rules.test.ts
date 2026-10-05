@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { Probability, RuleId } from "../domain/contracts.ts"
-import { configuredRules, deriveAdvice } from "./rules.ts"
+import { deriveAdvice } from "./rules.ts"
+import { configuredRules } from "../test-support/default-rules.ts"
 
 const snapshot = { path: "src/example.ts", contentHash: "abc123" }
 

@@ -220,7 +220,7 @@ and leaves later opportunities to another synchronous edit response or Stop.
 Stop remains a safety net for late findings. The synchronous collection bound
 remains approximately 3.9 seconds and does not guarantee a result. Advisory output is the
 default. A synchronous `block-current-findings` response requires a user-owned
-opt-in that remains valid at the final handoff; project policy may narrow it to
+opt-in captured in the edit settings snapshot; project policy may narrow it to
 advisory. For ordinary collection, findings from an accepted edit become ready
 after its source preparation and all derived review work have settled. A
 completed finding from that edit remains pending while sibling work is still
@@ -234,10 +234,12 @@ finding was not ready during edit A's hook.
 
 The installed edit hook uses one bounded admission-and-collection RPC. Its active
 response context freezes the originating tool, root, advicee, resident lifetime,
-round, credential generation, configuration reference, expiry, and admission-time
-user opt-in. Final
-handoff rechecks credentials, source freshness, round authority, and current
-opt-in; later opt-in cannot elevate an advisory response. Closing or timing out
+round, credential generation, edit settings snapshot, expiry, and the snapshot
+user opt-in. Final handoff rechecks credentials, source freshness and round
+authority; configuration and compiled rules remain the originating edit snapshot.
+Later opt-in cannot elevate an advisory edit or response. A blocking response also
+requires a retained finding whose originating edit snapshot permits blocking;
+advisory findings alone cannot create a blocking response. Closing or timing out
 the response releases provisional delivery leases and discards its context.
 Admitted preparation and review work continue under the resident lifetime and
 remain available to later synchronous collection or Stop, and to background
@@ -262,7 +264,7 @@ guarantee a later model-visible opportunity.
 ## Handoff, reoffer, and continuation count
 
 Before Hapsland gives advice, it checks the working root and advicee, the
-current Jev credential generation, file settings, each file needed by the review unit,
+current Jev credential generation, the edit snapshot file settings, each file needed by the review unit,
 whether the work is still current, and the advice age. A temporary failure
 of this check leaves current advice
 eligible until a later valid attempt or expiry; stale or unattributed advice is

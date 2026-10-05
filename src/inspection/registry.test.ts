@@ -16,7 +16,7 @@ import { residentPaths } from "../resident/paths.ts"
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
 import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts"
 import { nativeDeferred } from "../test-support/native-deferred.ts"
-import { configuredRules } from "../policy/rules.ts"
+import { configuredRules, connectDefaultRuleFixture } from "../test-support/default-rules.ts"
 
 it("discovers opted-in additional endpoints and isolates retained lifetimes through the public feed", async () => {
   const roots = [await makeGitFixture(), await makeGitFixture()]
@@ -24,7 +24,10 @@ it("discovers opted-in additional endpoints and isolates retained lifetimes thro
   const residents = []
   for (const root of roots) {
     await put(root, "type.ts", "type OrderCount = number\n")
-    await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+    await writeFile(
+      join(root, ".hapsland.jsonc"),
+      JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+    )
     const stored = nativeDeferred<void>()
     const resident = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       inspectionPersistence: {
@@ -42,17 +45,19 @@ it("discovers opted-in additional endpoints and isolates retained lifetimes thro
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
     if (!observation) throw new Error("missing observation")
     expect(
-      Effect.runSync(
-        resident.admit(observation, {
-          statePath: join(root, "consent"),
-          userConfigPath: join(root, "absent-user"),
-          credential: null,
-          controlled: {
-            answers: Object.fromEntries(
-              configuredRules.map((rule) => [rule.id, { _tag: "Probability" as const, probability: 0 }])
-            )
-          }
-        })
+      (
+        await Effect.runPromise(
+          resident.admit(observation, {
+            statePath: join(root, "consent"),
+            userConfigPath: join(root, "absent-user"),
+            credential: null,
+            controlled: {
+              answers: Object.fromEntries(
+                configuredRules.map((rule) => [rule.id, { _tag: "Probability" as const, probability: 0 }])
+              )
+            }
+          })
+        )
       ).status
     ).toBe("accepted")
     await stored.promise

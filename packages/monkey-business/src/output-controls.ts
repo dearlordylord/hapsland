@@ -1,9 +1,9 @@
+import { CallbackTargetSchema } from "./callback-controls.ts"
+import SharedEngine from "../../monkey-business-bend/engine.mjs"
 import { encodeSharedValue, decodeSharedValue } from "../../../src/canonical/simulation-codec.ts"
 import { decodeDriver } from "./driver-codec.ts"
 import { Schema } from "effect"
 import { decoder, Nat, PositiveNat, readBendList } from "../../../src/canonical/boundary-schema.ts"
-import { CallbackTargetSchema } from "./callback-controls.ts"
-import SharedEngine from "../../monkey-business-bend/engine.mjs"
 
 const Duration = Nat.check(Schema.isLessThanOrEqualTo(1_000_000_000))
 export const OutputScenarioProfileSchema = Schema.Struct({
@@ -81,7 +81,6 @@ export function encodeOutputCapture(value: unknown) {
 
 // Explicit #182 dependency: its exact target schema/receipt owner is reused.
 // Integrator extends that effect union for a single atomic Finish terminal.
-
 // The central #182 exact target schema owns every stage, including expiry and
 // one atomic finish completion. No parallel Finish target shape is maintained.
 const IssuedOutputTarget = CallbackTargetSchema.check(

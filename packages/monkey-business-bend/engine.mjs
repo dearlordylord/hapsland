@@ -29348,7 +29348,7 @@ function $0m3(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:4b03719247e95da04abe15f02509d34d223f299c0528196d330dd2d9a9c83cc0";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:6cb05a8f4ff05d896314f156f619478e5a7fa11ceaddabdfa45163c0b220e36c";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:f5e81d20545bb1bc4473d6968b291182381435937778168a2e29c59967587891";
 
 const facts = value => {
@@ -29360,7 +29360,15 @@ const facts = value => {
     if (!Number.isSafeInteger(value) || value < 0 || value >= 2 ** 48) throw new RangeError("invalid immediate Nat");
     return value;
   }
-  if (value !== null && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, key === "$" && typeof item === "string" ? (item.startsWith("../agent-flow-bend/") ? item.slice(19) : item) : facts(item)]));
+  if (value !== null && typeof value === "object") {
+    const entries = Object.entries(value);
+    for (const entry of entries) {
+      const key = entry[0];
+      const item = entry[1];
+      entry[1] = key === "$" && typeof item === "string" ? (item.startsWith("../agent-flow-bend/") ? item.slice(19) : item) : facts(item);
+    }
+    return Object.fromEntries(entries);
+  }
   return value;
 };
 export default {

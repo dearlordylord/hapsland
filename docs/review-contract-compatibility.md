@@ -1,9 +1,9 @@
 # Review contract compatibility
 
 **Purpose:** Record how direct-edit type and function review fits configuration, rules, identity, and delivery.
-**Status:** Maintained; amended by the 2026-09-29 owner decision.
+**Status:** Maintained; amended by the 2026-09-29 and 2026-10-05 owner decisions.
 **Authority:** Accepted product contract for the named compatibility decisions. Tests and conformance records supply implementation evidence.
-**Expected use:** Check changes to configuration, rule packs, review input, and review result reuse.
+**Expected use:** Check changes to configuration, rule definitions, review input, and review result reuse.
 **Lifecycle:** Review when any of those boundaries or the #93 type/function contract changes.
 
 The owner approved bounded cross-file source use for direct-edit type and
@@ -12,29 +12,61 @@ as a production route. A later comparison of advice quality is a separate task;
 this decision does not claim measured live Jev quality. The [#93 contract](type-function-review-proposal.md)
 owns the source, completeness, and input requirements.
 
-## Configuration and rule packs
+## Configuration and individual rules
 
-Configuration remains version 1. Built-in, user, and project layers retain
-their order. A higher include list replaces a lower one, exclusions accumulate,
-and protected paths cannot be restored by an include. Every root and supporting
-file passes containment, protected-path, Git-ignore, and file-selection checks
-before Hapsland reads its source. Configuration must be valid before source
-capture. The old repository grant is not a dispatch gate.
+The 2026-10-05 user authorization adopts individual rule documents and separates
+intrinsic input requirements from configured application policy. It supersedes the
+pack, content-version, authored-path and source-rung decisions in #220 and its
+#221–224 implementation tasks. Those historical issues retain their chronology;
+this contract and the amended [Phase F contract](../PRODUCT-PHASE-F-SPEC.md) own
+current behavior. Formats remain version 1 during this pre-release change.
 
-Authored packs for direct review use schemaVersion 1, updated in place during
-this pre-release phase. Each rule declares
-reviewTargets with an exact artifact kind, input contract, and required
-capabilities. A rule shared by type and function review names both targets.
-Unknown versions, targets, capabilities, or fields fail the selected pack.
-Invalid or unsupported pack versions fail configuration before source capture.
-Bundled Noul rules target type review; its body rule also targets function review.
-The function target of the body rule requires the exact signature and body, not
-complete call/type closure. It reviews resource use visible in included source
-with omissions retained explicitly; missing references alone are not findings.
-Other targets retain their declared closure requirements.
-Rule IDs, enablement,
-path filters, probability thresholds, and authored messages retain their
-configured meanings. Choice and Score result forms remain separate decisions.
+Built-in, user, and project settings retain their order. Includes and language
+lists use the highest supplied list; exclusions accumulate. Omission inherits,
+and an empty include/language list selects nothing. Rule settings resolve by stable
+rule identity and intersect global root selection and intrinsic input support.
+There is no separate repository grant. Invalid selected configuration fails before
+source capture, without falling back to other rules.
+
+Global `includes`/`excludes` select edited roots. `contextIncludes`/`contextExcludes`
+select supporting source; omitted context selection follows the effective root
+file policy. Explicit context settings may allow related files outside root scope
+without making them review roots. `privacyExcludes`, containment, protected paths,
+Git-ignore, file kind, and capture bounds apply before every root or supporting
+read. No include can restore a privacy-denied file. Freshness checks retain each
+file's root or context role.
+
+Each version-one JSONC rule document declares a stable ID, optional display title,
+question, criteria, message, threshold, and `inputs`. Each input declares supported
+`languages`, `kind` (`type` or `function`), and required evidence in `requires`.
+The compiler maps supported combinations to the exact direct-review contract;
+authors do not supply transport contract identifiers. TypeScript, Rust, and Bend
+types and TypeScript functions are supported within their bounded analyzer profiles.
+Unknown fields or versions fail validation. Enabled input combinations selected by
+configured languages must be supported, including their evidence requirements.
+A disabled rule may retain an unsupported schema input for future use; enabling it
+fails. Configured languages must be a subset of authored languages, or configuration
+fails. A supported subset of a multi-input rule may be selected explicitly. Runtime
+schemas have no execution support, and concrete values are unsupported roots; a
+schema is not implicitly a type declaration or a higher evidence rung.
+
+One file defines one rule. Files become active only through explicit configuration
+`rules` references. New connections enable their rule unless disabled. References
+use either a local path or an inherited rule ID, with optional activation,
+languages, paths, threshold, and message settings. Paths belong to configuration.
+A duplicate identity or rebinding to a different file is an error. Rule content and
+effective settings have content digests; there are no pack identities or content
+version labels. Existing default rule IDs (`r1_inferred_case` and the other `rN_*`
+IDs) remain stable. Initial setup provisions nine editable defaults only when no configuration layer
+declares `rules`. Any explicit selection, including `rules: []`, is authoritative:
+repeat setup preserves it and authored files, without reconnecting removed defaults.
+Missing connected files fail validation instead of being recreated.
+
+The default body rule requires the exact function signature and body, not complete
+call/type closure. Missing references are explicit omissions and are not findings.
+Other inputs retain their declared evidence requirements. Every shipped and custom
+rule uses the same validation, compilation, and evidence-admission boundary.
+Choice and Score result forms remain separate decisions.
 
 ## Review input and result identity
 
@@ -57,8 +89,12 @@ renderer, root, evidence tree, selected rule definitions, and effective
 policy. Source-file fingerprints support freshness checks but do not by
 themselves change semantic identity when an unrelated comment moves. Before
 dispatch, Hapsland requires the captured files to match exactly. Before
-advice, it rereads contributing files and rebuilds the unit; changed review
-input, rules, file selection, attribution, or working root retires the result.
+advice, it rereads contributing files and rebuilds the unit using the edit-owned
+configuration and compiled rules snapshot; changed source input, attribution, or
+working root retires the result. Saved configuration and rule changes apply only
+to subsequently captured edit snapshots, with the five-second cache behavior in
+[configuration](configuration.md#runtime-behavior). The snapshot stays with the
+edit through advice and delivery, including later collect or Stop requests.
 Only a still-current matching unit may reuse a successful review-backend result.
 The prepared identity includes the selected provider, model selector, and full
 destination; a change to any of these invalidates reuse. See the

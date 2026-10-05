@@ -8,10 +8,13 @@ import {
   actSimulation,
   changeSimulation,
   tickSimulation,
+  continueSimulation,
+  simulationContinuation,
+  runSimulationContinuation,
   simulationView
 } from "./fleet-simulation"
-import { Option, Schema } from "effect"
-import { type Runtime, type Update } from "foldkit"
+import { Effect, Option, Schema } from "effect"
+import { Command, type Runtime, type Update } from "foldkit"
 import { createLazy, type Document, type HtmlBuilder } from "foldkit/html"
 import { defineMessageUnion } from "foldkit/message"
 import { IMPORT_GRAPH_SCENARIOS, importGraphView } from "./import-graph-view"
@@ -58,6 +61,7 @@ export const Message = defineMessageUnion({
   SimulationAction: { action: Schema.String },
   SimulationChanged: { field: Schema.String, raw: Schema.String },
   SimulationTick: { deltaMs: Schema.Number },
+  SimulationContinued: { generation: Schema.Number },
   SimulationCameraZoomed: { factor: Schema.Number },
   SimulationCameraRotated: { dx: Schema.Number, dy: Schema.Number },
   SelectedImportScenario: { index: Schema.Number },
@@ -156,6 +160,23 @@ const seekHistory = (model: Model, requested: number): Model => {
   }
 }
 
+const ContinueSimulation = Command.define("ContinueSimulation", {
+  args: { generation: Schema.Number },
+  messages: [Message.SimulationContinued],
+  execute: ({ generation }) =>
+    Effect.promise(async (signal) => {
+      await runSimulationContinuation(generation, signal)
+      return Message.SimulationContinued({ generation })
+    })
+})
+const playbackUpdate = (model: Model, simulation: SimulationModel): Update.Return<Model, Message> => {
+  const generation = simulationContinuation()
+  return {
+    model: simulation === model.simulation ? model : { ...model, simulation },
+    ...(generation === undefined ? {} : { commands: [ContinueSimulation({ generation })] })
+  }
+}
+
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     SimulationAction: ({ action }) => ({ model: { ...model, simulation: actSimulation(model.simulation, action) } }),
@@ -186,7 +207,11 @@ export const update = (model: Model, message: Message) =>
         }
       }
     }),
-    SimulationTick: ({ deltaMs }) => ({ model: { ...model, simulation: tickSimulation(model.simulation, deltaMs) } }),
+    SimulationTick: ({ deltaMs }) => {
+      const simulation = tickSimulation(model.simulation, deltaMs)
+      return playbackUpdate(model, simulation)
+    },
+    SimulationContinued: ({ generation }) => playbackUpdate(model, continueSimulation(model.simulation, generation)),
     SelectedImportScenario: ({ index }) => ({
       model: {
         ...model,

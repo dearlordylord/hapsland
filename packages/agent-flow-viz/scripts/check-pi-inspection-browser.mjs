@@ -6,7 +6,7 @@ import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { chromium } from "playwright"
 import { Effect, Scope, Exit } from "effect"
-import { configuredRules } from "../../../src/policy/rules.ts"
+import { connectDefaultRuleFixture } from "../../../src/test-support/default-rules.ts"
 import { makeInspectionStorage } from "../../../src/inspection/storage.ts"
 import { makeInspectionHttpServer } from "../../../src/inspection/http.ts"
 import {
@@ -56,14 +56,9 @@ try {
       }
     )
     const context = { ...f.context, cwd: realpathSync(f.root) }
-    writeFileSync(
-      join(f.root, "user.json"),
-      JSON.stringify({
-        version: 1,
-        sessionInspection: true,
-        ruleOverrides: Object.fromEntries(configuredRules.map((rule, index) => [rule.id, { enabled: index === 0 }]))
-      })
-    )
+    const rulePaths = connectDefaultRuleFixture(f.root)
+    writeFileSync(join(f.root, ".hapsland.jsonc"), JSON.stringify({ version: 1, rules: [rulePaths[0]] }))
+    writeFileSync(join(f.root, "user.json"), JSON.stringify({ version: 1, sessionInspection: true }))
     await f.prepareResident()
     await f.call("tool_call", before, context)
     writeFileSync(join(f.root, "type.ts"), "type OrderCount = number\n")

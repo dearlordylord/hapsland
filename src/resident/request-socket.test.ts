@@ -89,7 +89,7 @@ it("dispatches every valid v1 alternative over real sockets and rejects malforme
           credential: {
             name: "API_KEY",
             environmentValue: null,
-            environmentOnly: true,
+
             generation: -1,
             statePath: "/tmp/state"
           }
