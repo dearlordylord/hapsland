@@ -122,3 +122,11 @@ it("keeps list bounds and scalar checks when frozen nodes are reused", () => {
   expect(() => decodeSharedValue(oversized)).toThrow()
   expect(() => decodeSharedValue(Object.freeze({ $: "Tuple", value: -1 }))).toThrow()
 })
+
+it("copies prototype-named payload fields as own data properties", () => {
+  const input = JSON.parse('{"$":"Tuple","__proto__":{"$":"Some","value":1}}')
+  const output = decodeSharedValue(input) as Record<string, unknown>
+  expect(Object.getPrototypeOf(output)).toBe(Object.prototype)
+  expect(Object.hasOwn(output, "__proto__")).toBe(true)
+  expect(output.__proto__).toEqual({ $: "Some", value: 1 })
+})

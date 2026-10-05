@@ -123,8 +123,11 @@ const convertRecord = (record: Record<string, unknown>, encode: boolean): unknow
   for (const [key, field] of Object.entries(record)) {
     const converted = key === "$" ? tag : convert(field, encode, words && wordFields.has(key))
     if (result === undefined && converted !== field) result = { ...record }
-    if (result !== undefined)
-      Object.defineProperty(result, key, { value: converted, enumerable: true, writable: true, configurable: true })
+    if (result !== undefined) {
+      if (key === "__proto__")
+        Object.defineProperty(result, key, { value: converted, enumerable: true, writable: true, configurable: true })
+      else result[key] = converted
+    }
   }
   return result ?? record
 }
