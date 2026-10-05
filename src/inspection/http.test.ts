@@ -10,6 +10,91 @@ import { residentPaths } from "../resident/paths.ts"
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
 import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts"
 import { nativeDeferred } from "../test-support/native-deferred.ts"
+import * as HttpClient from "effect/http/HttpClient"
+import * as HttpClientResponse from "effect/http/HttpClientResponse"
+import { configuredRules } from "../policy/rules.ts"
+import { readCredentialState } from "../credentials/secret-service.ts"
+import { decodeInspectionRecord } from "./contract.ts"
+
+it("exposes exact retained bytes from a real resident's production provider transport", async () => {
+  const root = await makeGitFixture()
+  await put(root, "type.ts", "type OrderCount = {\r\n\t/** 日本語 */\r\n\tvalue: number\r\n};\r\n")
+  await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+  const stored = nativeDeferred<void>()
+  const history = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
+  const dispatched: Buffer[] = []
+  const resident = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+    inspectionPersistence: {
+      write: (record, encoded, allowed) =>
+        history.write(record, encoded, allowed).pipe(
+          Effect.tap(() =>
+            Effect.sync(() => {
+              if (record.fact.kind === "evaluation-outcome") stored.resolve()
+            })
+          )
+        )
+    },
+    offlineHttpClient: HttpClient.make((request) => {
+      if (request.body._tag !== "Uint8Array") throw new Error("missing original HTTP bytes")
+      dispatched.push(Buffer.from(request.body.body))
+      return Effect.succeed(
+        HttpClientResponse.fromWeb(
+          request,
+          new Response(
+            JSON.stringify({
+              model: "jev-latest",
+              answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { type: "noul", noul: 0 }])),
+              usage: { input_tokens: 1, output_tokens: 1 }
+            }),
+            { status: 200, headers: { "content-type": "application/json" } }
+          )
+        )
+      )
+    })
+  })
+  const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
+  if (!observation) throw new Error("missing observation")
+  const credentialPath = join(root, "credential-state")
+  expect(
+    Effect.runSync(
+      resident.admit(observation, {
+        statePath: join(root, "consent"),
+        userConfigPath: join(root, "absent-user"),
+        controlled: null,
+        credential: {
+          name: "TYPESAFE_API_KEY",
+          environmentValue: "INSPECTION_OFFLINE_KEY",
+          environmentOnly: true,
+          generation: readCredentialState(credentialPath).generation,
+          statePath: credentialPath
+        }
+      })
+    ).status
+  ).toBe("accepted")
+  await stored.promise
+  await Effect.runPromise(resident.close)
+  const scope = await Effect.runPromise(Scope.make())
+  try {
+    const server = await Effect.runPromise(
+      makeInspectionHttpServer(history).pipe(Effect.provideService(Scope.Scope, scope))
+    )
+    const value: unknown = await (await fetch(`${server.url}snapshot`)).json()
+    if (typeof value !== "object" || value === null || !("records" in value) || !Array.isArray(value.records))
+      throw new Error("missing snapshot")
+    const records = value.records.map(decodeInspectionRecord)
+    const transport = records.find((record) => record.fact.kind === "transport-invoked")?.fact
+    expect(transport?.kind).toBe("transport-invoked")
+    if (transport?.kind !== "transport-invoked" || transport.payload.status !== "available")
+      throw new Error("missing retained transport bytes")
+    expect(dispatched).toHaveLength(1)
+    expect(Buffer.from(transport.payload.encoded, "base64").equals(dispatched[0]!)).toBe(true)
+    expect(transport.payload.byteLength).toBe(dispatched[0]!.byteLength)
+    expect(dispatched[0]!.toString()).not.toContain("INSPECTION_OFFLINE_KEY")
+    expect(JSON.stringify(records)).not.toContain("INSPECTION_OFFLINE_KEY")
+  } finally {
+    await Effect.runPromise(Scope.close(scope, Exit.void))
+  }
+})
 
 it("serves pre-launch real resident history through protected HTTP and SSE after that resident closes", async () => {
   const root = await makeGitFixture()
