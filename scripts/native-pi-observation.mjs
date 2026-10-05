@@ -54,3 +54,7 @@ export const assessPiAdoption = ({
       !!repair && outcomes.some((e) => e.toolUseHash === repair.toolUseHash && e.outcome === "completed-clear")
   }
 }
+
+export const piInstallationReady = ({ code, value }) =>
+  (code === 0 || (code === 6 && value.status === "needs-user-action")) &&
+  value.stages?.some((stage) => stage.stage === "installation" && stage.status === "complete") === true

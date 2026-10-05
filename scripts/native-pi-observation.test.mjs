@@ -1,6 +1,6 @@
 import test from "node:test"
 import assert from "node:assert/strict"
-import { assessPiAdoption, piModelProfile, piModelObserved } from "./native-pi-observation.mjs"
+import { assessPiAdoption, piInstallationReady, piModelProfile, piModelObserved } from "./native-pi-observation.mjs"
 const base = () => ({
   events: [
     { kind: "hapsland-response", status: "registered", at: 0 },
@@ -69,4 +69,23 @@ test("the native stream must confirm the selected provider and model on every as
   for (const wrong of [{ provider: "other" }, { model: "other" }, { provider: undefined }]) {
     assert.equal(piModelObserved([observed, { ...observed, ...wrong }], profile), false)
   }
+})
+
+test("completed installation permits the explicit offline setup's remaining user actions", () => {
+  const stages = [
+    { stage: "installation", status: "complete" },
+    { stage: "credential", status: "pending" }
+  ]
+  assert.equal(piInstallationReady({ code: 0, value: { status: "ready", stages } }), true)
+  assert.equal(piInstallationReady({ code: 6, value: { status: "needs-user-action", stages } }), true)
+  assert.equal(piInstallationReady({ code: 1, value: { status: "needs-user-action", stages } }), false)
+  assert.equal(piInstallationReady({ code: 6, value: { status: "failed", stages } }), false)
+  assert.equal(piInstallationReady({ code: 6, value: { status: "needs-user-action", stages: [] } }), false)
+  assert.equal(
+    piInstallationReady({
+      code: 6,
+      value: { status: "needs-user-action", stages: [{ stage: "installation", status: "pending" }] }
+    }),
+    false
+  )
 })

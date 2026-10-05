@@ -14,7 +14,7 @@ import {
 } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
-import { assessPiAdoption, piModelProfile, piModelObserved } from "./native-pi-observation.mjs"
+import { assessPiAdoption, piInstallationReady, piModelProfile, piModelObserved } from "./native-pi-observation.mjs"
 
 const hash = (value) => createHash("sha256").update(value).digest("hex")
 const lines = (path) => {
@@ -272,8 +272,7 @@ export async function runPiNativeProfile({
       { version: 1, operation: "doctor", host: "pi", piHome: home, piExecutable: binary, cwd: repo },
       { cwd: repo, env }
     )
-    const installationStage = setup.value.stages?.find((stage) => stage.stage === "installation")
-    if (setup.code !== 0 || installationStage?.status !== "complete") {
+    if (!piInstallationReady(setup)) {
       const summary = {
         exitCode: setup.code,
         status: setup.value.status,
