@@ -260,7 +260,12 @@ export function gameCompilerIdentity(fixture,ownerSources,{deadline=null}={}) {
 }
 
 /** One fresh compiler artifact per backend; bounded individual lossless batches. */
-export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs=5000,emissionTimeoutMs=30000,clangTimeoutMs=30000,resumeCompilerReceipt,resumeOutputReceipt,overallDeadlineMs}={}) {
+export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs=5000,emissionTimeoutMs=30000,clangTimeoutMs=30000,resumeCompilerReceipt,resumeOutputReceipt,overallDeadlineMs,executionArgumentGroups=[[]]}={}) {
+  if(!Array.isArray(executionArgumentGroups)||!executionArgumentGroups.length||executionArgumentGroups.length>16||
+      executionArgumentGroups.some(args=>!Array.isArray(args)||args.length>16||args.some(arg=>typeof arg!=="string"||arg.length>256)))
+    throw new Error("Invalid finite game execution argument groups");
+  if(resumeOutputReceipt!==undefined&&(executionArgumentGroups.length!==1||executionArgumentGroups[0].length))
+    throw new Error("Retained game output does not support argument groups");
   if(executionTimeoutMs!==5000 && executionTimeoutMs!==15000 && executionTimeoutMs!==30000 && executionTimeoutMs!==180000)throw new Error("unsupported finite game execution allowance");
   if(!Number.isSafeInteger(emissionTimeoutMs)||emissionTimeoutMs<0||emissionTimeoutMs>120000)throw new RangeError("invalid game C emission allowance");
   if(!Number.isSafeInteger(clangTimeoutMs)||clangTimeoutMs<=0||clangTimeoutMs>120000)throw new RangeError("invalid game clang allowance");
@@ -292,13 +297,20 @@ export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs
     if(resume?.binary){writeFileSync(binary,resumeArtifact(resume.binary,true));chmodSync(binary,resume.binary.mode);}
     else checked(tools[1].file,["-O0","-Wno-unused-value",c,"-o",binary,"-lm","-pthread"],phaseAllowance(clangTimeoutMs,deadline));
     completed.push("clang compilation");verify();
-    const binaryHash=hash(binary);phase="native execution";const native=await streamGameBatches(binary,[],directory,"native",phaseAllowance(executionTimeoutMs,deadline),deadline!==null);completed.push("native execution");verify();
+    const native=[];const binaryHash=hash(binary);phase="native execution";
+    for(const [index,args] of executionArgumentGroups.entries()){
+      native.push(...await streamGameBatches(binary,args,directory,`native-${index}`,phaseAllowance(executionTimeoutMs,deadline),deadline!==null));verify();
+    }
+    completed.push("native execution");verify();
     if(hash(c)!==cHash||hash(binary)!==binaryHash)throw new Error("native artifact changed");
     phase="JS emission";checked(tools[0].file,[fileURLToPath(fixture),"-o",js],phaseAllowance(30000,deadline));completed.push("JS emission");verify();
-    const jsHash=hash(js);phase="JS execution";const emitted=await streamGameBatches(process.execPath,[js],directory,"emitted",phaseAllowance(executionTimeoutMs,deadline),deadline!==null);verify();
+    const emitted=[];const jsHash=hash(js);phase="JS execution";
+    for(const [index,args] of executionArgumentGroups.entries()){
+      emitted.push(...await streamGameBatches(process.execPath,[js,...args],directory,`emitted-${index}`,phaseAllowance(executionTimeoutMs,deadline),deadline!==null));verify();
+    }
     if(hash(js)!==jsHash)throw new Error("emitted artifact changed");
     try{retainGameOutputs(native,emitted,{fixture:fixturePath,sources,tools,
-      origin:{native:resume?`explicit ${resume.lane} receipt`:"fresh compiler",emitted:"fresh JS emission",cHash,binaryHash,jsHash}});}
+      origin:{native:resume?`explicit ${resume.lane} receipt`:"fresh compiler",emitted:"fresh JS emission",cHash,binaryHash,jsHash,executionArgumentGroups}});}
     catch{console.error("Offline game outputs could not be retained");}
     return{native,emitted,cleanup:()=>rmSync(directory,{recursive:true,force:true})};
   }catch(error){
