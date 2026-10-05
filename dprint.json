@@ -22,9 +22,10 @@
     "**/prototypes",
     "**/test/fixtures",
     "**/*.generated.*",
-    "packages/session-bend/session.mjs",
     "**/vendor/**",
-    "**/fixtures/**"
+    "**/fixtures/**",
+    "packages/monkey-business/src/preparation.ts",
+    "packages/monkey-business/src/file-trees.ts"
   ],
   "plugins": [
     "https://plugins.dprint.dev/oxc-0.32.0.wasm"

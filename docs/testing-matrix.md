@@ -8,6 +8,12 @@
 
 ## Which gate to run
 
+The byte-bound preparation inputs `packages/monkey-business/src/preparation.ts` and
+`file-trees.ts` are excluded from automatic formatting because their exact bytes
+participate in the shared Engine preparation identity. Keep their formatting stable
+when changing other owners; intentional preparation changes require regenerated
+Engine evidence. They remain subject to lint and TypeScript checks.
+
 | Gate | Entry point | Coverage | Boundary established |
 | --- | --- | --- | --- |
 | Repository documentation | `npm run docs:install` once; `npm run docs:check` | Local Markdown links, raw HTML images and links, and heading anchors in tracked and new non-ignored Markdown | Files and headings exist; no external URL requests or documentation-truth claim |
