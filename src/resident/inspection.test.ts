@@ -101,6 +101,7 @@ describe("resident inspection capture", () => {
     const config = join(root, ".hapsland.jsonc")
     await writeFile(config, JSON.stringify({ version: 1, sessionInspection: true }))
     const stored = nativeDeferred<void>()
+    const prepared = nativeDeferred<void>()
     const store = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       inspectionPersistence: {
@@ -109,6 +110,7 @@ describe("resident inspection capture", () => {
             Effect.tap(() =>
               Effect.sync(() => {
                 if (record.fact.kind === "edit-admission") stored.resolve()
+                if (record.fact.kind === "unit-prepared") prepared.resolve()
               })
             )
           )
@@ -124,14 +126,25 @@ describe("resident inspection capture", () => {
     }
     expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted")
     await stored.promise
+    await prepared.promise
     const records = await Effect.runPromise(store.snapshot())
-    expect(records.map((record) => record.fact.kind)).toEqual(["recording-state", "edit-received", "edit-admission"])
+    expect(records.filter((record) => record.fact.kind !== "unit-prepared").map((record) => record.fact.kind)).toEqual([
+      "recording-state",
+      "edit-received",
+      "edit-admission"
+    ])
     const received = records.find((record) => record.fact.kind === "edit-received")!
     expect(received.source.lifetime).toBe(server.lifetime)
     expect(received.scope.runtime).toBe("codex-cli")
     expect(received.fact).toEqual({ kind: "edit-received", candidates: [{ operation: "add", path: "type.ts" }] })
-    expect(JSON.stringify(records)).not.toContain("OrderCount")
+    expect(JSON.stringify(received)).not.toContain("OrderCount")
     expect(records.find((record) => record.fact.kind === "edit-admission")?.correlation).toEqual(received.correlation)
+    await Effect.runPromise(server.whenIdle())
+    const preparedRecords = await Effect.runPromise(store.snapshot())
+    const unit = preparedRecords.find((record) => record.fact.kind === "unit-prepared")
+    expect(unit?.correlation.receiptId).toBe(received.correlation.receiptId)
+    expect(unit?.correlation.unitId).toMatch(/^[a-f0-9]{64}$/)
+    expect(unit?.fact).toMatchObject({ kind: "unit-prepared", declaration: "OrderCount", path: "type.ts" })
     await writeFile(config, JSON.stringify({ version: 1, sessionInspection: false }))
     Effect.runSync(server.admit(observation, dispatch))
     await Effect.runPromise(server.whenIdle())

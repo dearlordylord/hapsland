@@ -52,6 +52,13 @@ export const InspectionWriterState = Schema.Literals([
 ])
 export const InspectionFact = Schema.Union([
   Schema.Struct({
+    kind: Schema.Literal("unit-prepared"),
+    semanticIdentity: Hash,
+    path: Path,
+    declaration: Id,
+    completeness: Schema.Literals(["complete", "incomplete-irrelevant"])
+  }),
+  Schema.Struct({
     kind: Schema.Literal("recording-state"),
     state: Schema.Literals(["enabled", "disabled", "unavailable"])
   }),

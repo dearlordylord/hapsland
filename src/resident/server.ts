@@ -1,3 +1,4 @@
+import type { InspectionScope, InspectionCorrelation } from "../inspection/contract.ts"
 import { makeInspectionRecorder, type InspectionPersistence } from "../inspection/recorder.ts"
 import { makeInspectionStorage } from "../inspection/storage.ts"
 import { readInspectionSettings } from "../inspection/settings.ts"
@@ -185,6 +186,7 @@ const ResidentControlledOptions = Schema.Struct({
 })
 
 type IngressJob = {
+  readonly inspectionReceipt?: InspectionReceipt
   readonly canonicalRound: number
   readonly round?: RoundWork
   readonly work?: WorkCohort
@@ -228,7 +230,10 @@ type EditCollectionRequest = {
 type HandoffRequest = ResidentRequest | EditCollectionRequest
 type ResponseContext = { readonly authority?: ResponseAuthority; readonly token?: string }
 
+type InspectionReceipt = { readonly scope: InspectionScope; readonly correlation: InspectionCorrelation }
+
 type UnitJob = {
+  readonly inspectionReceipt?: InspectionReceipt
   readonly canonicalRound: number
   readonly round?: RoundWork
   readonly work?: WorkCohort
@@ -816,7 +821,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     canonicalRound: number,
     canonicalObservationId: number,
     reservation: CapacityReservation,
-    round: RoundWork | undefined
+    round: RoundWork | undefined,
+    inspectionReceipt: InspectionReceipt | undefined
   ): Effect.fn.Return<IngressJob> {
     const roundFields =
       round === undefined
@@ -828,6 +834,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           }
     return {
       kind: "ingress",
+      ...(inspectionReceipt === undefined ? {} : { inspectionReceipt }),
       canonicalRound,
       ...roundFields,
       observation,
@@ -866,7 +873,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     observation: DirectObservation,
     dispatch: ResidentDispatchContext,
     composed = false,
-    requirePermit = false
+    requirePermit = false,
+    inspectionReceipt?: InspectionReceipt
   ): Effect.fn.Return<ResidentResponse> {
     const now = residentNow()
     yield* residentExpirePending(now)
@@ -905,7 +913,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       canonicalRound,
       canonicalObservationId,
       reservation,
-      round
+      round,
+      inspectionReceipt
     )
     if (!(yield* residentDispatcher.enqueue(partition, job))) {
       yield* residentLedger.observation(partition, canonicalObservationId, "interruptObservation", canonicalRound)
@@ -925,7 +934,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     requirePermit = false
   ) {
     const receipt = inspectionReceive(observation, dispatch)
-    const response = yield* admitCore(observation, dispatch, composed, requirePermit)
+    const response = yield* admitCore(observation, dispatch, composed, requirePermit, receipt)
     if (
       response.status === "accepted" ||
       response.status === "rejected-capacity" ||
@@ -2936,6 +2945,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           const makePreparedUnit = (): UnitJob => {
             return {
               kind: "unit",
+              ...(job.inspectionReceipt === undefined ? {} : { inspectionReceipt: job.inspectionReceipt }),
               canonicalRound: job.canonicalRound,
               ...(job.round === undefined ? {} : { round: job.round, work: job.work }),
               ...(workUnitId === undefined ? {} : { workUnitId }),
@@ -2953,6 +2963,22 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             }
           }
           const unit = makePreparedUnit()
+          if (unit.inspectionReceipt !== undefined) {
+            inspection.offer(
+              unit.inspectionReceipt.scope,
+              {
+                ...unit.inspectionReceipt.correlation,
+                unitId: createHash("sha256").update(`${unit.partition}:${unit.canonicalOperationId}`).digest("hex")
+              },
+              {
+                kind: "unit-prepared",
+                semanticIdentity: unit.prepared.identity,
+                path: unit.prepared.input.path,
+                declaration: unit.prepared.input.declaration.name,
+                completeness: unit.prepared.input.completeness
+              }
+            )
+          }
           if (item.kind === "cached") {
             const settleCachedUnit = Effect.fn("ResidentRuntime.settleCachedUnit")(function* () {
               if (

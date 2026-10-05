@@ -23,7 +23,7 @@ it("serves pre-launch real resident history through protected HTTP and SSE after
         history.write(record, encoded, allowed).pipe(
           Effect.tap(() =>
             Effect.sync(() => {
-              if (record.fact.kind === "edit-admission") stored.resolve()
+              if (record.fact.kind === "unit-prepared") stored.resolve()
             })
           )
         )
@@ -55,14 +55,15 @@ it("serves pre-launch real resident history through protected HTTP and SSE after
       records: [
         { fact: { kind: "recording-state" } },
         { fact: { kind: "edit-received" } },
-        { fact: { kind: "edit-admission" } }
+        { fact: { kind: "edit-admission" } },
+        { fact: { kind: "unit-prepared" } }
       ]
     })
     const page = await fetch(server.url)
     expect(page.status).toBe(200)
     expect(page.headers.get("content-security-policy")).toContain("script-src 'sha256-")
     expect(await page.text()).toContain("Hapsland inspection")
-    expect(JSON.stringify(snapshot)).not.toContain("OrderCount")
+    expect(JSON.stringify(snapshot)).not.toContain("type OrderCount")
     expect((await fetch(`${server.origin}/snapshot`)).status).toBe(404)
     expect((await fetch(`${server.url}snapshot`, { headers: { origin: "https://evil.invalid" } })).status).toBe(403)
     const hostileHostStatus = await new Promise<number | undefined>((resolve, reject) => {
