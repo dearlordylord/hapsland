@@ -31,6 +31,12 @@ export const makeInspectionSubmissionRecorder = (
   const identity = { ...source }
   const tickets = new Map<string, Ticket>()
   let bytes = 0
+  const revoke = (token: string): void => {
+    const ticket = tickets.get(token)
+    if (ticket === undefined) return
+    tickets.delete(token)
+    bytes -= ticket.bytes
+  }
   const prune = () => {
     for (const [token, ticket] of tickets) {
       if (ticket.expires <= now() || recorder.consentEpoch(ticket.batch.root) !== ticket.epoch) {
@@ -136,5 +142,5 @@ export const makeInspectionSubmissionRecorder = (
       }
     }
   })
-  return { register, observation }
+  return { register, revoke, observation }
 }

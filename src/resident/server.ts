@@ -4718,6 +4718,24 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     request: ResidentRequest,
     _context: Ref.Ref<ResponseContext>
   ) {
+    if (request.operation === "inspection-writer") {
+      const observer = inspectionSubmissions.observation.forAttempt({
+        batchId: request.token,
+        attemptId: request.attemptId,
+        endpoint: paths.socket,
+        lifetime: request.lifetime,
+        root: request.root,
+        advicee: request.advicee,
+        findingCount: request.findingCount,
+        noticeOnly: request.noticeOnly
+      })
+      observer?.observe({
+        state: request.state,
+        ...(request.encoded === undefined ? {} : { encoded: request.encoded })
+      })
+      // Receipt of an optional report is not delivery or persistence acknowledgement.
+      return residentResponse({ status: "empty" })
+    }
     if (
       (request.operation === "acknowledge" || request.operation === "finalize") &&
       !(yield* residentComposedDelivery.hasToken(request.token))
@@ -4955,6 +4973,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       )
     })
     if (response.status !== "advice") return yield* nonAdviceHandoff(response)
+    inspectionSubmissions.revoke(response.token)
     const now = residentNow()
     yield* residentExpirePending(now)
     yield* residentPruneNoticeCooldowns(now)
@@ -5098,9 +5117,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }
     })
     yield* fitHandoffFindings()
-    const findings = (yield* Effect.forEach(handoff, (advice) => residentLedger.advice.current(advice))).flatMap(
-      (content) => content.delivery?.findings ?? []
-    )
+    const finalContents = yield* Effect.forEach(handoff, (advice) => residentLedger.advice.current(advice))
+    const findings = finalContents.flatMap((content) => content.delivery?.findings ?? [])
     const notices = yield* residentNoticesForToken(response.token)
     const checkHandoffOutputFit = Effect.fn("ResidentRuntime.checkHandoffOutputFit")(function* (): Effect.fn.Return<
       ResidentResponse | undefined
@@ -5217,7 +5235,27 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             )
       }
     )
-    return yield* finishEditHandoff()
+    const finalResponse = yield* finishEditHandoff()
+    // Final fit, source and authority checks may change the provisional membership.
+    // Replace its detached observation ownership only after those checks finish.
+    if (finalResponse.status === "advice" && request.operation === "collect" && inspection.isEnabled(request.root)) {
+      const payload = captureInspectionFate(findings, "retained", "pending-advice").payload
+      if (payload.status === "available")
+        inspectionSubmissions.register(response.token, {
+          root: request.root,
+          advicee: request.advicee,
+          findingIds: payload.findingIds,
+          evaluations: finalContents.flatMap((content, index) => {
+            if (!content.delivery?.findings.length) return []
+            const advice = handoff[index]!
+            const evaluationId = inspectionOrigins.get(advice.evaluationKey)
+            return [
+              { semanticIdentity: advice.prepared.identity, ...(evaluationId === undefined ? {} : { evaluationId }) }
+            ]
+          })
+        })
+    }
+    return finalResponse
   }, Effect.uninterruptible)
 
   const residentFinishWriteMatches = (canWrite: boolean, response: ResidentResponse, token: string): boolean =>

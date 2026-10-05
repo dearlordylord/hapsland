@@ -1,4 +1,5 @@
 import type { CodexDirectEventOutput } from "../direct-event/output.ts"
+import { InspectionWriterState } from "../inspection/contract.ts"
 import { ROUND_CLOSE_REASONS, type RoundCloseReason } from "../activity/status.ts"
 import { isCodexHostVersion, type DirectObservation, type DirectAdvicee } from "../direct-event/model.ts"
 
@@ -143,6 +144,19 @@ export type ResidentRequest =
       readonly operation: "finalize"
       readonly lifetime: string
       readonly token: string
+    }
+  | {
+      readonly requestRoute: "shared"
+      readonly operation: "inspection-writer"
+      readonly lifetime: string
+      readonly token: string
+      readonly attemptId: string
+      readonly root: string
+      readonly advicee: DirectAdvicee
+      readonly findingCount: number
+      readonly noticeOnly: boolean
+      readonly state: typeof InspectionWriterState.Type
+      readonly encoded?: string
     }
   | { readonly requestRoute: "shared"; readonly operation: "stats"; readonly lifetime: string }
   | { readonly requestRoute: "shared"; readonly operation: "cleanup"; readonly lifetime: string }
@@ -357,6 +371,18 @@ const ResidentRequestSchema = Schema.Union([
     surface: Schema.Literals(["edit", "background", "stop"])
   }),
   Schema.Struct({ ...token, operation: Schema.Literals(["release", "acknowledge", "finalize"]) }),
+  Schema.Struct({
+    ...owner,
+    operation: Schema.Literal("inspection-writer"),
+    token: BoundedString,
+    attemptId: Schema.String.check(Schema.isPattern(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)),
+    findingCount: SafeNatural.check(Schema.isLessThanOrEqualTo(128)),
+    noticeOnly: Schema.Boolean,
+    state: InspectionWriterState,
+    encoded: Schema.optionalKey(
+      Schema.String.check(Schema.makeFilter((value) => Buffer.byteLength(value, "utf8") <= 16_384))
+    )
+  }),
   Schema.Struct({ ...lifetime, operation: Schema.Literal("admit"), ...admission, observation: Observation }),
   // Separate alternatives make finish mandatory only for turn-end collection.
   Schema.Struct({ ...collection, mode: Schema.optionalKey(Schema.Literal("ordinary")) }),

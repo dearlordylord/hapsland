@@ -1,4 +1,7 @@
 import { configuredRules } from "../policy/rules.ts"
+import { randomUUID } from "node:crypto"
+import { residentRequestEffect } from "./client.ts"
+import { reviewControlsLayer } from "../test-support/review-controls.ts"
 import { Effect } from "effect"
 import { describe, expect, it } from "vitest"
 import { join } from "node:path"
@@ -13,6 +16,102 @@ import { nativeDeferred } from "../test-support/native-deferred.ts"
 import type { ResidentDispatchContext } from "./protocol.ts"
 
 describe("resident inspection capture", () => {
+  it("binds writer evidence to the surviving batch at the final socket handoff", async () => {
+    const root = await makeGitFixture()
+    await put(root, "first.ts", "type FirstCount = number;\n")
+    await put(root, "second.ts", "type SecondCount = number;\n")
+    await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+    const written = nativeDeferred<void>()
+    const store = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
+    let armed = false
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+      reviewControls: reviewControlsLayer({
+        beforeResponseHandoff: Effect.fn("InspectionFixture.pruneSource")(() =>
+          armed
+            ? Effect.promise(() => put(root, "first.ts", "type FirstCount = string;\n")).pipe(Effect.asVoid)
+            : Effect.void
+        )
+      }),
+      inspectionPersistence: {
+        write: (record, encoded, publication) =>
+          store.write(record, encoded, publication).pipe(
+            Effect.tap(() =>
+              Effect.sync(() => {
+                if (record.fact.kind === "writer-evidence" && record.fact.state === "written") written.resolve()
+              })
+            )
+          )
+      }
+    })
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["first.ts", "second.ts"])))
+    if (!observation) throw new Error("missing observation")
+    const dispatch: ResidentDispatchContext = {
+      statePath: join(root, "consent"),
+      userConfigPath: join(root, "absent-user"),
+      credential: null,
+      controlled: {
+        answers: Object.fromEntries(
+          configuredRules.map((rule, index) => [rule.id, { _tag: "Probability", probability: index === 0 ? 0.9 : 0 }])
+        )
+      }
+    }
+    expect(Effect.runSync(server.admit(observation, dispatch, true)).status).toBe("accepted")
+    await Effect.runPromise(server.whenIdle())
+    await Effect.runPromise(server.listen())
+    armed = true
+    const response = await Effect.runPromise(
+      residentRequestEffect(server.paths, {
+        requestRoute: "shared",
+        operation: "collect",
+        lifetime: server.lifetime,
+        root,
+        advicee: observation.advicee,
+        dispatch,
+        composed: true
+      })
+    )
+    expect(response.status).toBe("advice")
+    if (response.status !== "advice") throw new Error("missing final response")
+    expect(response.findingCount).toBe(1)
+    const report = {
+      requestRoute: "shared" as const,
+      operation: "inspection-writer" as const,
+      token: response.token,
+      attemptId: randomUUID(),
+      lifetime: server.lifetime,
+      root,
+      advicee: observation.advicee,
+      findingCount: 1,
+      noticeOnly: false,
+      state: "written" as const,
+      encoded: JSON.stringify(response.output) + "\n"
+    }
+    expect(
+      await Effect.runPromise(
+        residentRequestEffect(server.paths, {
+          ...report,
+          advicee: { ...observation.advicee, toolUseId: "foreign-edit" }
+        })
+      )
+    ).toEqual({ status: "empty" })
+    expect(await Effect.runPromise(residentRequestEffect(server.paths, report))).toEqual({ status: "empty" })
+    await written.promise
+    // Read after the final report write settles, before teardown can enqueue retirement facts.
+    const snapshot = await Effect.runPromise(store.snapshot())
+    const evidence = snapshot.find((record) => record.fact.kind === "writer-evidence")?.fact
+    if (evidence?.kind !== "writer-evidence") throw new Error("missing writer evidence")
+    expect(evidence.findingIds).toHaveLength(1)
+    expect(evidence.evaluations).toHaveLength(1)
+    expect(evidence.output).toMatchObject({
+      status: "available",
+      encoded: Buffer.from(report.encoded).toString("base64")
+    })
+    expect(snapshot.filter((record) => record.fact.kind === "writer-evidence")).toHaveLength(1)
+    const surviving = snapshot.find(
+      (record) => record.fact.kind === "unit-prepared" && record.fact.path === "second.ts"
+    )
+    expect(evidence.evaluations[0]?.evaluationId).toBe(surviving?.correlation.evaluationId)
+  })
   it.each([false, true])(
     "distinguishes current findings from finalized retirement or suppression (composed: %s)",
     async (composed) => {

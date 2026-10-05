@@ -17,6 +17,32 @@ import {
 } from "./protocol.ts"
 
 describe("resident protocol bounds", () => {
+  it("bounds optional writer reports by UTF-8 bytes and rejects invented writer states", () => {
+    const report = {
+      requestRoute: "shared",
+      operation: "inspection-writer",
+      lifetime: "owner",
+      token: "batch",
+      attemptId: "11111111-1111-4111-8111-111111111111",
+      root: "/tmp/repository",
+      advicee: advicee(),
+      findingCount: 1,
+      noticeOnly: false,
+      state: "written",
+      encoded: "日本語\r\n\t".repeat(100)
+    } as const
+    expect(decodeCurrentResidentRequest(encodeCurrentResidentRequest(report))).toEqual(report)
+    for (const change of [
+      { encoded: "日".repeat(5462) },
+      { state: "model-read" },
+      { findingCount: 129 },
+      { attemptId: "not-an-attempt" },
+      { credentials: "forbidden" },
+      { findingCount: -1 }
+    ])
+      expect(decodeResidentRequest(JSON.stringify({ ...report, ...change }))).toBeUndefined()
+    expect(decodeResidentRequest(JSON.stringify({ ...report, encoded: "日".repeat(5461) + "a" }))).toBeDefined()
+  })
   it("uses one version-one envelope for bounded edit responses and rejects retired ticket requests", () => {
     const observation = {
       root: "/tmp/repository",
