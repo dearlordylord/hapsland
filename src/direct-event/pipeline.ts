@@ -1032,18 +1032,39 @@ const evaluateProbabilityAnswers = (prepared: PreparedUnit, answers: Probability
   return { status: "evaluated", findings } satisfies Evaluation
 }
 
+export type EvaluationEvidence =
+  | {
+      readonly kind: "validated-answers"
+      readonly answers: ReadonlyArray<{ readonly ruleId: string; readonly probability: number }>
+    }
+  | {
+      readonly kind: "evaluation-outcome"
+      readonly outcome: "clear" | "findings" | "input-limit" | "backend" | "invalid-response" | "timeout"
+    }
+
 /** One DecisionModel call, no retry wrapper, with a fixed total call deadline. */
 export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(function* (
   prepared: PreparedUnit,
-  beforeDispatch: Effect.Effect<void, unknown> = Effect.void
+  beforeDispatch: Effect.Effect<void, unknown> = Effect.void,
+  observe?: (evidence: EvaluationEvidence) => void
 ) {
+  const emit = (evidence: EvaluationEvidence) => {
+    try {
+      observe?.(evidence)
+    } catch {
+      /* Optional evidence cannot change evaluation. */
+    }
+  }
+
   const providerInput = preparedProviderInput(prepared)
   const modelId = prepared.input.providerIdentity.model
   if (
     providerInput === undefined ||
     requestLimitViolation(modelId, probabilityRequest(modelId, providerInput, prepared.input.rules)) !== undefined
-  )
+  ) {
+    emit({ kind: "evaluation-outcome", outcome: "input-limit" })
     return { status: "input-limit" } as const
+  }
   const decisions: Record<string, Decision.Probability> = {}
   for (const rule of prepared.input.rules) decisions[rule.id] = rule.decision
   const definition = Decision.make({ input: Schema.Json, decisions })
@@ -1054,11 +1075,29 @@ export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(functi
     Effect.timeoutOption(`${DIRECT_EVENT_DEADLINE_MS} millis`),
     Effect.result
   )
-  if (Result.isFailure(evaluated)) return { status: "backend" } as const
-  if (Option.isNone(evaluated.success)) return { status: "timeout" } as const
+  if (Result.isFailure(evaluated)) {
+    emit({ kind: "evaluation-outcome", outcome: "backend" })
+    return { status: "backend" } as const
+  }
+  if (Option.isNone(evaluated.success)) {
+    emit({ kind: "evaluation-outcome", outcome: "timeout" })
+    return { status: "timeout" } as const
+  }
   const answers = evaluated.success.value.answers
-  if (!expectedProbabilityAnswers(prepared, answers)) return { status: "backend" } as const
-  return evaluateProbabilityAnswers(prepared, answers)
+  if (!expectedProbabilityAnswers(prepared, answers) || !Object.values(answers).every(validProbabilityAnswer)) {
+    emit({ kind: "evaluation-outcome", outcome: "invalid-response" })
+    return { status: "backend" } as const
+  }
+  emit({
+    kind: "validated-answers",
+    answers: Object.entries(answers).map(([ruleId, answer]) => ({ ruleId, probability: answer.probability }))
+  })
+  const result = evaluateProbabilityAnswers(prepared, answers)
+  emit({
+    kind: "evaluation-outcome",
+    outcome: result.status === "evaluated" ? (result.findings.length ? "findings" : "clear") : "invalid-response"
+  })
+  return result
 })
 
 /** Core path consumes the one immutable observation produced at the host boundary. */

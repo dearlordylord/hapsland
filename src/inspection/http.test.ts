@@ -23,7 +23,7 @@ it("serves pre-launch real resident history through protected HTTP and SSE after
         history.write(record, encoded, allowed).pipe(
           Effect.tap(() =>
             Effect.sync(() => {
-              if (record.fact.kind === "unit-prepared") stored.resolve()
+              if (record.fact.kind === "evaluation-outcome") stored.resolve()
             })
           )
         )
@@ -52,12 +52,11 @@ it("serves pre-launch real resident history through protected HTTP and SSE after
     expect(response.status).toBe(200)
     const snapshot = await response.json()
     expect(snapshot).toMatchObject({
-      records: [
-        { fact: { kind: "recording-state" } },
-        { fact: { kind: "edit-received" } },
-        { fact: { kind: "edit-admission" } },
-        { fact: { kind: "unit-prepared" } }
-      ]
+      records: expect.arrayContaining(
+        ["recording-state", "edit-received", "edit-admission", "unit-prepared"].map((kind) =>
+          expect.objectContaining({ fact: expect.objectContaining({ kind }) })
+        )
+      )
     })
     const page = await fetch(server.url)
     expect(page.status).toBe(200)

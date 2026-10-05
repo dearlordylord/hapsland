@@ -1,3 +1,4 @@
+import { configuredRules } from "../policy/rules.ts"
 import { Effect } from "effect"
 import { describe, expect, it } from "vitest"
 import { join } from "node:path"
@@ -102,6 +103,7 @@ describe("resident inspection capture", () => {
     await writeFile(config, JSON.stringify({ version: 1, sessionInspection: true }))
     const stored = nativeDeferred<void>()
     const prepared = nativeDeferred<void>()
+    const evaluated = nativeDeferred<void>()
     const store = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       inspectionPersistence: {
@@ -111,6 +113,7 @@ describe("resident inspection capture", () => {
               Effect.sync(() => {
                 if (record.fact.kind === "edit-admission") stored.resolve()
                 if (record.fact.kind === "unit-prepared") prepared.resolve()
+                if (record.fact.kind === "evaluation-outcome") evaluated.resolve()
               })
             )
           )
@@ -122,17 +125,20 @@ describe("resident inspection capture", () => {
       statePath: join(root, "consent"),
       userConfigPath: join(root, "absent-user.jsonc"),
       credential: null,
-      controlled: { answers: {} }
+      controlled: {
+        answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0.9 }]))
+      }
     }
     expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted")
     await stored.promise
     await prepared.promise
+    await evaluated.promise
     const records = await Effect.runPromise(store.snapshot())
-    expect(records.filter((record) => record.fact.kind !== "unit-prepared").map((record) => record.fact.kind)).toEqual([
-      "recording-state",
-      "edit-received",
-      "edit-admission"
-    ])
+    expect(
+      records
+        .filter((record) => ["recording-state", "edit-received", "edit-admission"].includes(record.fact.kind))
+        .map((record) => record.fact.kind)
+    ).toEqual(["recording-state", "edit-received", "edit-admission"])
     const received = records.find((record) => record.fact.kind === "edit-received")!
     expect(received.source.lifetime).toBe(server.lifetime)
     expect(received.scope.runtime).toBe("codex-cli")
@@ -145,6 +151,14 @@ describe("resident inspection capture", () => {
     expect(unit?.correlation.receiptId).toBe(received.correlation.receiptId)
     expect(unit?.correlation.unitId).toMatch(/^[a-f0-9]{64}$/)
     expect(unit?.fact).toMatchObject({ kind: "unit-prepared", declaration: "OrderCount", path: "type.ts" })
+    expect(preparedRecords.find((record) => record.fact.kind === "validated-answers")?.fact).toMatchObject({
+      kind: "validated-answers",
+      answers: configuredRules.map((rule) => ({ ruleId: rule.id, probability: 0.9 }))
+    })
+    expect(preparedRecords.find((record) => record.fact.kind === "evaluation-outcome")?.fact).toEqual({
+      kind: "evaluation-outcome",
+      outcome: "findings"
+    })
     await writeFile(config, JSON.stringify({ version: 1, sessionInspection: false }))
     Effect.runSync(server.admit(observation, dispatch))
     await Effect.runPromise(server.whenIdle())

@@ -52,6 +52,16 @@ export const InspectionWriterState = Schema.Literals([
 ])
 export const InspectionFact = Schema.Union([
   Schema.Struct({
+    kind: Schema.Literal("validated-answers"),
+    answers: Schema.Array(
+      Schema.Struct({ ruleId: Id, probability: Schema.Number.check(Schema.isBetween({ minimum: 0, maximum: 1 })) })
+    ).check(Schema.isMaxLength(128))
+  }),
+  Schema.Struct({
+    kind: Schema.Literal("evaluation-outcome"),
+    outcome: Schema.Literals(["clear", "findings", "input-limit", "backend", "invalid-response", "timeout"])
+  }),
+  Schema.Struct({
     kind: Schema.Literal("unit-prepared"),
     semanticIdentity: Hash,
     path: Path,

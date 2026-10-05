@@ -3508,7 +3508,18 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                 })
               )
             )
-            const evaluation = evaluatePrepared(job.prepared, beforeDispatch).pipe(Effect.provide(decisionModel))
+            const evaluation = evaluatePrepared(job.prepared, beforeDispatch, (evidence) => {
+              if (job.inspectionReceipt === undefined) return
+              inspection.offer(
+                job.inspectionReceipt.scope,
+                {
+                  ...job.inspectionReceipt.correlation,
+                  unitId: createHash("sha256").update(`${job.partition}:${job.canonicalOperationId}`).digest("hex"),
+                  requestId: createHash("sha256").update(`${job.partition}:${ready.request}`).digest("hex")
+                },
+                evidence
+              )
+            }).pipe(Effect.provide(decisionModel))
             return yield* credentialProvider === undefined
               ? evaluation
               : evaluation.pipe(Effect.provide(credentialProvider))
