@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto"
 import { residentRequestEffect } from "./client.ts"
 import { reviewControlsLayer } from "../test-support/review-controls.ts"
 import { Effect } from "effect"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { join } from "node:path"
 import { writeFile } from "node:fs/promises"
 import { acquireResidentFixture } from "./runtime-fixture.ts"
@@ -12,10 +12,67 @@ import { residentPaths } from "./paths.ts"
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
 import { addEvent, makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts"
 import { makeInspectionStorage } from "../inspection/storage.ts"
+import * as inspectionStorage from "../inspection/storage.ts"
 import { nativeDeferred } from "../test-support/native-deferred.ts"
 import type { ResidentDispatchContext } from "./protocol.ts"
 
 describe("resident inspection capture", () => {
+  it("reuses the production journal writer across edits instead of rereading every payload", async () => {
+    const root = await makeGitFixture()
+    await put(root, "first.ts", "type FirstCount = number;\n")
+    await put(root, "second.ts", "type SecondCount = number;\n")
+    await writeFile(
+      join(root, ".hapsland.jsonc"),
+      JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+    )
+    const original = inspectionStorage.makeInspectionStorage
+    const finished = nativeDeferred<void>()
+    let payloadReads = 0,
+      outcomes = 0
+    const factory = vi.spyOn(inspectionStorage, "makeInspectionStorage").mockImplementation((_directory, limits) => {
+      const store = original(join(root, "inspection"), limits, {
+        payloadRead: () => {
+          payloadReads += 1
+        }
+      })
+      const write: typeof store.write = (record, encoded, publication) =>
+        store.write(record, encoded, publication).pipe(
+          Effect.tap(() =>
+            Effect.sync(() => {
+              if (record.fact.kind === "evaluation-outcome" && ++outcomes === 2) finished.resolve()
+            })
+          )
+        )
+      return { ...store, write }
+    })
+    let server: Awaited<ReturnType<typeof acquireResidentFixture>> | undefined
+    try {
+      server = await acquireResidentFixture(residentPaths(join(root, "runtime")))
+      const dispatch: ResidentDispatchContext = {
+        statePath: join(root, "consent"),
+        userConfigPath: join(root, "absent-user"),
+        credential: null,
+        controlled: {
+          answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0 }]))
+        }
+      }
+      for (const path of ["first.ts", "second.ts"]) {
+        const observation = await Effect.runPromise(
+          adaptCodexDirectEvent(addEvent(root, [path], { tool_use_id: path }))
+        )
+        if (!observation) throw new Error("missing edit observation")
+        expect((await Effect.runPromise(server.admit(observation, dispatch, true))).status).toBe("accepted")
+        await Effect.runPromise(server.whenIdle())
+      }
+      await finished.promise
+      expect(factory).toHaveBeenCalledTimes(1)
+      expect(payloadReads).toBe(0)
+    } finally {
+      if (server) await Effect.runPromise(server.close)
+      factory.mockRestore()
+    }
+  })
+
   it("binds writer evidence to the surviving batch at the final socket handoff", async () => {
     const root = await makeGitFixture()
     await put(root, "first.ts", "type FirstCount = number;\n")

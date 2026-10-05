@@ -569,19 +569,30 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const inspectionOrigins = new Map<string, string>()
   const inspectionRegistrations = new Map<string, { epoch: number; at: number }>()
   const inspectionLimits = new Map<string, { readonly retentionMs: number; readonly storageBytes: number }>()
+  let inspectionJournal:
+    | {
+        readonly retentionMs: number
+        readonly storageBytes: number
+        readonly store: ReturnType<typeof makeInspectionStorage>
+      }
+    | undefined
   const inspection = yield* makeInspectionRecorder(
     { endpoint: paths.socket, lifetime },
     options.inspectionPersistence ?? {
       write: (record, encoded, publication) =>
         Effect.suspend(() => {
           const limits = inspectionLimits.get(record.scope.root)
-          return limits === undefined
-            ? Effect.void
-            : makeInspectionStorage(join(HAPSLAND_STATE_DIRECTORY, "inspection"), limits).write(
-                record,
-                encoded,
-                publication
-              )
+          if (limits === undefined) return Effect.void
+          if (
+            inspectionJournal === undefined ||
+            inspectionJournal.retentionMs !== limits.retentionMs ||
+            inspectionJournal.storageBytes !== limits.storageBytes
+          )
+            inspectionJournal = {
+              ...limits,
+              store: makeInspectionStorage(join(HAPSLAND_STATE_DIRECTORY, "inspection"), limits)
+            }
+          return inspectionJournal.store.write(record, encoded, publication)
         })
     }
   )
