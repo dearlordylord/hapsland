@@ -20,7 +20,7 @@ Each scenario page shows the problem, actual input code, final agent code and th
 
 ## What the current numbers mean
 
-The larger-declaration study contains **six scenarios: four types and two functions, covering five of the nine bundled Noul rules**. Each scenario has one compact defective input and one larger separated defective input in the native comparison.
+The larger-declaration study contains **six scenarios: four types and two functions, covering five of the nine bundled Hapsland rules**. Each scenario has one compact defective input and one larger separated defective input in the native comparison.
 
 | Defective inputs in native sessions | Hapsland sessions repaired | Abide sessions repaired |
 | --- | ---: | ---: |
@@ -28,7 +28,7 @@ The larger-declaration study contains **six scenarios: four types and two functi
 | Six larger separated inputs — one per scenario | 6/6 | 0/6 |
 | Both forms — twelve inputs per product | 11/12 | 2/12 |
 
-**6/6 means six checked repairs in six sessions, one per larger scenario.** It does not mean six rules or six repetitions per scenario. Each native cell is one session using **Codex CLI 0.155.1, model `gpt-6-luna`, reasoning `max`**. Both reviewers use Jev and the same target Noul concerns; Abide 0.0.7 uses an active custom rubric. All conditions include equal diagnostic feedback reporting.
+**6/6 means six checked repairs in six sessions, one per larger scenario.** It does not mean six rules or six repetitions per scenario. Each native cell is one session using **Codex CLI 0.155.1, model `gpt-6-luna`, reasoning `max`**. Both reviewers use Jev and the same target design concerns; Abide 0.0.7 uses an active custom rubric. All conditions include equal diagnostic feedback reporting.
 
 All twelve defective Hapsland sessions had a positive Jev answer and confirmed feedback receipt; eleven resulted in checked repairs. In the compact render-pool session, the agent declined the advice. Abide sessions produced two repairs without a verified feedback-to-repair link. Separately, Hapsland gave one false warning in 36 clean detection observations; Abide gave none. Detection counts are repeated review observations, not native repairs.
 

@@ -17,7 +17,7 @@ hapsland setup claude
 ```
 
 Setup previews owned hooks, asks before installation, offers masked entry for a
-missing Jev key, and reports offline readiness without contacting Jev. Finish
+missing Jev key, and reports offline readiness. Guided setup then offers a separately confirmed Jev key check using a built-in greeting, without project code; declining sends no request. Finish
 current client work, restart the client, and complete its native trust prompts.
 The default registration is user-wide: [file settings](configuration.md) control
 which repositories and files can be reviewed.

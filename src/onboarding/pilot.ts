@@ -2,10 +2,13 @@ import { formatOutcome, formatStatusOutcome } from "./human-output.ts"
 import type { profileFields } from "./client-command.ts"
 import * as Effect from "effect/Effect"
 import * as Schema from "effect/Schema"
-import { formatCompatibility, formatProposal } from "./client-lifecycle.ts"
+import { formatInstallationRequirements, formatProposal } from "./client-lifecycle.ts"
 import type { SetupClient } from "./client-selection.ts"
 import type { SetupRequest, runSetup } from "./setup.ts"
 import type { execFileClosedStdin } from "./host-process.ts"
+import { credentialSourceGuidance } from "./credential-guidance.ts"
+import { JEV_PROVIDER } from "../runtime/backend.ts"
+import { setupCommand } from "../runtime/cli-names.ts"
 
 type SetupResult = Effect.Success<ReturnType<typeof runSetup>>
 type SetupStage = SetupResult["stages"][number]
@@ -21,6 +24,7 @@ export interface PilotPorts {
   readonly run: (request: SetupRequest, credentialEntered: () => void) => Effect.Effect<SetupResult, unknown>
   readonly activate: Effect.Effect<void, unknown>
   readonly doctor: Effect.Effect<Effect.Success<ReturnType<typeof execFileClosedStdin>>, unknown>
+  readonly verifyCredential: Effect.Effect<void, unknown>
   readonly confirm: (question: string) => Effect.Effect<boolean, unknown>
   readonly write: (text: string) => void
   readonly exitCode: (code: number) => void
@@ -36,11 +40,12 @@ const writeSetupActions = (result: SetupResult, ports: PilotPorts): void => {
   for (const action of result.actions) ports.write(`${formatOutcome("info", `Next: ${action.action}.`)}\n`)
 }
 const compatibilitySetupReady = (frame: PilotFrame, result: SetupResult): boolean => {
-  frame.ports.write(
-    `${formatStatusOutcome(stageStatus(result, "compatibility"), `Compatibility: ${stageSummary(result, "compatibility")}.`)}\n`
-  )
-  for (const line of formatCompatibility(setupStage(result, "compatibility")?.observed)) frame.ports.write(`${line}\n`)
   if (stageStatus(result, "compatibility") === "complete") return true
+  frame.ports.write(
+    `${formatOutcome("error", `Cannot install Hapsland for the selected ${frame.hostName} executable.`)}\n`
+  )
+  for (const line of formatInstallationRequirements(setupStage(result, "compatibility")?.observed))
+    frame.ports.write(`${line}\n`)
   frame.ports.write(`${result.actions[0]?.action ?? `Use a declared ${frame.hostName} profile.`}\n`)
   frame.ports.exitCode(3)
   return false
@@ -70,7 +75,7 @@ const approveSetupInstallation = Effect.fn("Pilot.approveInstallation")(function
   if (rulesAction !== undefined) frame.ports.write(`Rules preview: ${rulesAction.action}.\n`)
   if (!(yield* frame.ports.confirm(`Apply these setup changes for ${frame.hostName}?`))) {
     frame.ports.write(
-      `${formatOutcome("info", `Installation was not changed. Run hapsland setup ${frame.options.host} to resume.`)}\n`
+      `${formatOutcome("info", `Installation was not changed. Run ${setupCommand(frame.options.host)} to resume.`)}\n`
     )
     return undefined
   }
@@ -86,13 +91,33 @@ const approveSetupInstallation = Effect.fn("Pilot.approveInstallation")(function
 })
 const setupCredentialComplete = (result: SetupResult): boolean =>
   stageStatus(result, "installation") === "complete" && stageStatus(result, "credential") === "complete"
-const reportSetupCredential = (frame: PilotFrame, result: SetupResult, entered: boolean): boolean => {
+const reportSavedCredential = (frame: PilotFrame, result: SetupResult, entered: boolean): void => {
   if (entered && stageStatus(result, "credential") === "complete")
-    frame.ports.write(`Jev key saved in ${frame.options.platform === "darwin" ? "Keychain" : "Secret Service"}.\n`)
+    frame.ports.write(
+      `${JEV_PROVIDER.name} key saved in ${frame.options.platform === "darwin" ? "Keychain" : "Secret Service"}.\n`
+    )
+}
+const reportInactiveSavedKey = (frame: PilotFrame, observed: unknown): void => {
+  if (typeof observed === "object" && observed !== null && "source" in observed && observed.source !== "saved")
+    frame.ports.write(
+      `${formatOutcome("warning", "The newly saved key is not active: an environment or file key takes priority.")}\n`
+    )
+}
+const reportSetupCredential = (frame: PilotFrame, result: SetupResult, entered: boolean): boolean => {
+  reportSavedCredential(frame, result, entered)
   frame.ports.write(
     `${formatStatusOutcome(stageStatus(result, "credential"), `Credential: ${stageSummary(result, "credential")}. No real verification or review was sent.`)}\n`
   )
-  if (setupCredentialComplete(result)) return true
+  const complete = setupCredentialComplete(result)
+  if (!complete)
+    for (const line of credentialSourceGuidance(
+      setupStage(result, "credential")?.observed,
+      frame.options.host,
+      frame.options.platform
+    ))
+      frame.ports.write(`${formatOutcome("info", line)}\n`)
+  if (entered) reportInactiveSavedKey(frame, setupStage(result, "credential")?.observed)
+  if (complete) return true
   frame.ports.write(`${formatOutcome("warning", "Setup incomplete: installation or credentials need attention.")}\n`)
   writeSetupActions(result, frame.ports)
   frame.ports.exitCode(result.status === "partial" ? 5 : 6)
@@ -160,6 +185,7 @@ const runApprovedSetup = Effect.fn("Pilot.runApproved")(function* (
   if (["complete", "partial"].includes(stageStatus(result, "installation"))) yield* frame.ports.activate
   if (!reportSetupCredential(frame, result, credentialWasEntered())) return
   if (!reportSetupRepository(frame, result)) return
+  yield* frame.ports.verifyCredential
   yield* diagnoseSetup(frame)
 })
 export const runPilotSetup = Effect.fn("Pilot.run")(function* (options: PilotOptions, ports: PilotPorts) {
@@ -188,7 +214,7 @@ export const runPilotSetup = Effect.fn("Pilot.run")(function* (options: PilotOpt
     credentialEntered = true
   }
   ports.write(
-    `${frame.hostName} review integration setup. Selected profile hooks apply across repositories according to file settings. No Jev call is made during setup.\n`
+    `${frame.hostName} review integration setup. Selected profile hooks apply across repositories according to file settings. Installation and local checks make no ${JEV_PROVIDER.name} calls; an optional key verification is offered separately.\n`
   )
   const result = yield* ports.run(request, entered)
   if (!compatibilitySetupReady(frame, result)) return

@@ -1,6 +1,7 @@
 import type { SetupClient } from "./client-selection.ts"
+import { SETUP_COMMAND } from "../runtime/cli-names.ts"
 
-export const clientCommands = ["setup", "update", "doctor", "repair", "reinstall", "uninstall"] as const
+export const clientCommands = [SETUP_COMMAND, "update", "doctor", "repair", "reinstall", "uninstall"] as const
 export type ClientCommand = (typeof clientCommands)[number]
 export const clients: ReadonlyArray<SetupClient> = ["claude", "codex", "pi"]
 const piProfile = (home: string | undefined, executable: string | undefined) => ({

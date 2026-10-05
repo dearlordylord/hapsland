@@ -34,11 +34,15 @@ hapsland setup codex
 hapsland setup pi
 ```
 
-Setup rechecks credentials on every run: environment and file credentials take precedence over saved login; an explicitly configured `credentialEnvVar` selects environment-only authentication. An available key is reused. A missing saved key triggers masked input in an interactive terminal after installation approval. An unavailable or locked store is reported separately with recovery instructions; setup does not validate the key against Jev. Package installation alone does not ask for a key.
+Setup rechecks credentials on every run: environment and file credentials take precedence over saved login; an explicitly configured `credentialEnvVar` selects environment-only authentication. An available key is reused. A missing saved key triggers masked input in an interactive terminal after installation approval. An unavailable or locked store is reported separately with recovery instructions; local setup checks do not validate the key against Jev. Guided terminal setup then offers a separate optional live key check. Package installation alone does not ask for a key.
 
 Use `hapsland setup codex --new-key` (also supported for Claude and Pi) to skip the existing-key lookup and request a replacement. This requires a terminal and an accessible native store. It does not override environment credential precedence: unset the environment key to use saved login. With an explicit `credentialEnvVar`, set that variable instead. Automation may set `newKey: true` in its version-1 `--setup` JSON request.
 
-Setup previews the exact owned hooks, asks before installing them, offers masked credential entry when a saved key is missing, loads file settings, and reports offline readiness. It makes no Jev request. All three clients accept the version-1 JSON `--setup` interface; `--pilot --host=claude|codex|pi` invokes the same guided flow (bare `--pilot` opens the same client selector).
+Setup previews the exact owned hooks, asks before installing them, offers masked credential entry when a saved key is missing, loads file settings, and reports offline readiness. Its installation and local checks make no Jev request; the optional key check runs only after separate confirmation. All three clients accept the version-1 JSON `--setup` interface; `--pilot --host=claude|codex|pi` invokes the same guided flow (bare `--pilot` opens the same client selector).
+
+The terminal explains that the key must come from TypeSafe, links to [the key dashboard](https://console.typesafe.ai/keys), and explains hidden input and native storage. It shows the selected environment variable, credential file path, or native store, with instructions to replace that source. `--new-key` changes only native saved login; if a file or environment key wins, setup explicitly says the newly saved key is not active.
+
+After credential setup and before the final agent-start instructions, Jev users may approve one sample request to `https://api.typesafe.ai/v1/systemone`. The check sends only a built-in greeting and one Noul question through the Effect Decision integration, may use paid credits, has no retries, and stops after 15 seconds. It reports successful authorization, rejected key, denied access, rate limiting, or an incomplete check without displaying the key or raw provider response. Declining leaves key validity unverified. The key is saved before verification; network, timeout, rate-limit, balance or service failures keep it available for later reviews and only emit a warning, without a setup-restart instruction. Definite authorization rejection offers immediate masked replacement for saved login, or an immediate recheck after the user edits the selected credential file. Each additional request requires confirmation, with at most three checks in one guided flow. Environment keys must be changed in the agent launch environment. Cloudflare users are told that the Jev check does not apply. JSON `--setup`, `doctor`, and login remain offline. A successful key check does not establish that agent hooks executed or reviewed a project edit.
 
 ### Unattended setup
 
@@ -95,6 +99,8 @@ hapsland doctor claude       # One client
 ```
 
 ### Reading doctor and installer results
+
+Successful agent and packaged-component probes are silent in guided setup. Installation refusal reports the concrete missing executable, lifecycle-hook capability, or damaged/mismatched Hapsland package component. Hapsland supplies its packaged runtime; these probes do not ask users to install a separate runtime.
 
 User-facing doctor and lifecycle output uses plain ASCII markers: `[OK]` for the
 stated successful check or change, `[WARN]` for partial or unknown readiness,

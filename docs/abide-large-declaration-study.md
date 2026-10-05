@@ -18,7 +18,7 @@ Six domains were selected from ten proposals before live outcomes: report delive
 
 Four type domains compare a compact core with meaningful additional configuration fields. Their larger adjacent and separated variants contain the same fields and meanings. Two function domains keep the same statements, evaluation order and behavior across layouts; their larger forms expand signatures and group computation into paragraphs. Function comparisons measure layout, not a different population of semantically larger programs. “Larger” is relative: type declarations are roughly 16–21 lines and function declarations 18–21 lines, not large production modules. Deliberately separating related fields is an experimental condition, not a recommended coding style.
 
-All native sessions use **Codex CLI 0.155.1, model `gpt-6-luna`, reasoning effort `max`**. Both reviewers use Jev. Abide 0.0.7 receives the same target Noul question and criteria through an active custom rubric; Hapsland uses the current signature/body requirement for the resource rule.
+All native sessions use **Codex CLI 0.155.1, model `gpt-6-luna`, reasoning effort `max`**. Both reviewers use Jev. Abide 0.0.7 receives the same target binary review question and criteria through an active custom rubric; Hapsland uses the current signature/body requirement for the resource rule.
 
 The fixed matrix contains 36 inputs: six domains × three layouts × defect/control. Detection uses two repetitions for each reviewer, or 144 cells. Native work uses compact and large-separated layouts, one session per input and reviewer condition, including a no-review methodology control: 72 sessions. No favorable subset replaces those measurements.
 

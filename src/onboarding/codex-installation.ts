@@ -724,7 +724,9 @@ const unsupportedResult = (
   status: "unsupported",
   host: { adapter: "codex", home: inputs.home, compatibility: host },
   completed: [],
-  pending: ["install the declared runtime, packaged entrypoint, and a declared Codex CLI version before mutation"]
+  pending: [
+    "restore the selected Codex executable with lifecycle hooks and a complete Hapsland package before mutation"
+  ]
 })
 
 const PackageManifest = Schema.Struct({ version: Schema.NonEmptyString })

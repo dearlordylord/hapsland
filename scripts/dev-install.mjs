@@ -11,19 +11,20 @@ import {
 } from "./dev-install-cache.mjs"
 import { packDevelopmentArchive } from "./dev-pack.mjs"
 import { stageRelease } from "../src/onboarding/distribution.ts"
+import { NEW_KEY_FLAG, SETUP_COMMAND } from "../src/runtime/cli-names.ts"
 
 const args = process.argv.slice(2)
 const host = args.find((arg) => arg.startsWith("--host="))?.slice("--host=".length)
 const update = args.includes("--update")
-const newKey = args.includes("--new-key")
-if (update && newKey) throw new Error("--new-key requires guided setup; omit --update")
+const newKey = args.includes(NEW_KEY_FLAG)
+if (update && newKey) throw new Error(`${NEW_KEY_FLAG} requires guided setup; omit --update`)
 const forwarded = args.filter((arg) => /^--(?:claude|codex|pi)-(?:home|executable)=/.test(arg))
 if (
   (host !== "claude" && host !== "codex" && host !== "pi") ||
-  args.some((arg) => arg !== `--host=${host}` && arg !== "--update" && arg !== "--new-key" && !forwarded.includes(arg))
+  args.some((arg) => arg !== `--host=${host}` && arg !== "--update" && arg !== NEW_KEY_FLAG && !forwarded.includes(arg))
 ) {
   throw new Error(
-    "usage: npm run dev-install -- --host=claude|codex|pi [--update | --new-key] [--claude-home=PATH|--codex-home=PATH|--pi-home=PATH] [--claude-executable=PATH|--codex-executable=PATH|--pi-executable=PATH]"
+    `usage: npm run dev-install -- --host=claude|codex|pi [--update | ${NEW_KEY_FLAG}] [--claude-home=PATH|--codex-home=PATH|--pi-home=PATH] [--claude-executable=PATH|--codex-executable=PATH|--pi-executable=PATH]`
   )
 }
 const environment = {
@@ -135,7 +136,7 @@ try {
     candidate.executable,
     update
       ? ["update", host, `--target=${candidate.executable}`, ...forwarded]
-      : ["setup", host, ...(newKey ? ["--new-key"] : []), ...forwarded]
+      : [SETUP_COMMAND, host, ...(newKey ? [NEW_KEY_FLAG] : []), ...forwarded]
   )
 } catch (error) {
   process.stderr.write(`${error.message}\n`)

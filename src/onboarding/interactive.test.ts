@@ -56,7 +56,8 @@ const terminal = async (test: ReturnType<typeof fixture>, args: string[], answer
     if (confirmations > confirmationsSent) {
       confirmationsSent = confirmations
       answered = true
-      child.stdin.write(`${answer}\n`)
+      const question = output.slice(output.lastIndexOf("\n", output.lastIndexOf("[y/N]")))
+      child.stdin.write(`${question.includes("Verify this key") ? "n" : answer}\n`)
     }
   })
   child.stderr.on("data", (chunk: Buffer) => {
@@ -211,7 +212,11 @@ it.skipIf(process.platform !== "linux")(
     connectDefaultRuleFixture(test.repository, test.environment.REVIEW_USER_CONFIG_PATH)
     const resumed = await terminal(test, ["setup", ...clients.flags], "y", "\r")
     expect(resumed.code).toBe(0)
-    expect(resumed.answered).toBe(false)
+    expect(resumed.output).toContain("Selected key source: environment variable TYPESAFE_API_KEY")
+    expect(resumed.output).toContain("Verify this key with one request")
+    expect(resumed.output).toContain("Key validity: not checked")
+    expect(resumed.answered).toBe(true)
+    expect(resumed.output.match(/Verify this key with one request/g)).toHaveLength(2)
     expect(readFileSync(join(clients.claudeHome, "settings.json"), "utf8")).toBe(claude)
     expect(readFileSync(join(clients.codexHome, "hooks.json"), "utf8")).toBe(codex)
     const result = await terminal(test, ["setup", ...clients.flags], "y", " \x1b[B \r")

@@ -2,6 +2,8 @@ import { Cause, Deferred, Duration, Effect, Schedule, Schema } from "effect"
 import { execFileClosedStdin } from "../onboarding/host-process.ts"
 import { closeSync, constants, openSync, readSync } from "node:fs"
 import { terminalModeArguments } from "./terminal.ts"
+import { JEV_KEY_ENTRY_GUIDANCE } from "../onboarding/credential-guidance.ts"
+import { JEV_PROVIDER } from "../runtime/backend.ts"
 
 export class MaskedInputError extends Schema.TaggedError<MaskedInputError>()("MaskedInputError", {
   message: Schema.String
@@ -52,7 +54,13 @@ export const readMaskedCredential = Effect.fn("CredentialTerminal.readMasked")(f
         const disabled = yield* terminalMode("-echo")
         if (!disabled.succeeded) return yield* Effect.fail(unavailable())
         owned.prompted = true
-        yield* Effect.try({ try: () => process.stderr.write("Jev API key: "), catch: unavailable })
+        yield* Effect.try({
+          try: () =>
+            process.stderr.write(
+              `${JEV_KEY_ENTRY_GUIDANCE}The key will be saved in ${process.platform === "darwin" ? "login Keychain" : "Secret Service (login keyring)"}.\n${JEV_PROVIDER.name} API key: `
+            ),
+          catch: unavailable
+        })
         const cancelled = Deferred.await(owned.cancelled)
         const poll = Effect.fn("CredentialTerminal.poll")(() =>
           Effect.try({

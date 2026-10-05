@@ -1,5 +1,7 @@
 import { previewDefaultRules, applyDefaultRules } from "./default-rules.ts"
 import { configurationError } from "../configuration/errors.ts"
+import { JEV_PROVIDER } from "../runtime/backend.ts"
+import { NEW_KEY_FLAG, CLI_NAME, LOGIN_FLAG, LOGOUT_FLAG, setupCommand } from "../runtime/cli-names.ts"
 import { previewPiInstallation, installPiIntegration } from "./pi-installation.ts"
 import * as Effect from "effect/Effect"
 import { discoverWorkingTreeRoot } from "../repository/root.ts"
@@ -205,14 +207,14 @@ const reportInteractiveCredentialAction = (outcome: InteractiveCredentialOutcome
     stage: "credential",
     code: interactiveCredentialActionCode(outcome.status),
     action: cancelled
-      ? "rerun setup interactively or run hapsland --login in a user terminal"
+      ? `rerun setup interactively or run ${CLI_NAME} ${LOGIN_FLAG} in a user terminal`
       : indeterminate
-        ? "run hapsland --logout to resolve the uncertain replacement, then run hapsland --login"
+        ? `run ${CLI_NAME} ${LOGOUT_FLAG} to resolve the uncertain replacement, then run ${CLI_NAME} ${LOGIN_FLAG}`
         : outcome.status === "locked"
-          ? "unlock the login keyring, then run hapsland --login"
+          ? `unlock the login keyring, then run ${CLI_NAME} ${LOGIN_FLAG}`
           : outcome.status === "invalid"
-            ? "run hapsland --login again and enter a nonempty credential"
-            : "reinstall an archive containing the native helper for this platform if it is missing, or repair native credential storage; then run hapsland --login. Alternatively set TYPESAFE_API_KEY before setup and launching the agent"
+            ? `run ${CLI_NAME} ${LOGIN_FLAG} again and enter a nonempty credential`
+            : `reinstall an archive containing the native helper for this platform if it is missing, or repair native credential storage; then run ${CLI_NAME} ${LOGIN_FLAG}. Alternatively set ${JEV_PROVIDER.credentialEnvVar} before setup and launching the agent`
   })
 }
 
@@ -257,9 +259,9 @@ const reportInteractiveCredential = (outcome: InteractiveCredentialOutcome, prog
 
 const credentialPendingSummary = (resolution: CredentialResolution): string => {
   if (resolution.source === "saved" && resolution.status === "unavailable")
-    return "native credential storage is unavailable; Hapsland could not check for a saved Jev key"
+    return `native credential storage is unavailable; Hapsland could not check for a saved ${JEV_PROVIDER.name} key`
   if (resolution.status === "missing")
-    return "a Jev API key is required; no key was found in the selected credential source"
+    return `a ${JEV_PROVIDER.name} API key is required; no key was found in the selected credential source`
   return `the selected ${resolution.source} credential is ${resolution.status}`
 }
 
@@ -276,7 +278,7 @@ const credentialPendingAction = (
   if (request.credential === "environment" || environmentOnly)
     return `set ${settings.credentialEnvVar} in the selected host execution environment, then rerun setup`
   if (resolution.status === "missing" || resolution.status === "invalid")
-    return "rerun setup interactively in a user terminal for masked credential entry; use --new-key to replace a saved key"
+    return `rerun setup interactively in a user terminal for masked credential entry; use ${NEW_KEY_FLAG} to replace a saved key`
   return `restore native credential storage (Linux: a session D-Bus Secret Service with a default collection; macOS: login Keychain), or set ${settings.credentialEnvVar} in the terminal before setup and launching the agent`
 }
 
@@ -295,6 +297,9 @@ const reportCredentialResolution = (
       summary: `a review credential is available from ${resolution.file ?? resolution.source}`,
       observed: {
         source: resolution.source,
+        envVar: settings.credentialEnvVar,
+        environmentOnly,
+        provider: settings.backend,
         ...(resolution.file === undefined ? {} : { file: resolution.file }),
         inspectedContext: "setup-process",
         valueDisclosed: false
@@ -309,6 +314,9 @@ const reportCredentialResolution = (
       summary: credentialPendingSummary(resolution),
       observed: {
         source: resolution.source,
+        envVar: settings.credentialEnvVar,
+        environmentOnly,
+        provider: settings.backend,
         ...(resolution.file === undefined ? {} : { file: resolution.file }),
         status: resolution.status,
         inspectedContext: "setup-process",
@@ -336,7 +344,11 @@ const readInteractiveCredential = Effect.fn("Setup.readCredential")(function* (
     const saved = yield* saveCredential(value)
     value = ""
     if (saved.status === "stored") {
-      resolution = yield* resolveCredential({ envVar: settings.credentialEnvVar, environmentOnly: false })
+      resolution = yield* resolveCredential({
+        envVar: settings.credentialEnvVar,
+        environmentOnly: false,
+        root: settings.configuration.policy.root
+      })
     } else {
       interactiveOutcome = {
         status: saved.status,
@@ -382,14 +394,14 @@ const reportNewCredentialPending = (settings: ReviewSettings, environmentOnly: b
     status: "pending",
     summary: environmentOnly
       ? "new saved key entry cannot replace the configured environment credential"
-      : "a new Jev key requires interactive entry after installation approval"
+      : `a new ${JEV_PROVIDER.name} key requires interactive entry after installation approval`
   })
   progress.actions.push({
     stage: "credential",
     code: "provide-credential",
     action: environmentOnly
       ? `set ${settings.credentialEnvVar} in the selected host execution environment; remove the explicit credentialEnvVar setting to use saved login`
-      : "run hapsland setup with --new-key in a user terminal and approve installation"
+      : `run ${setupCommand(undefined, true)} in a user terminal and approve installation`
   })
   progress.pending.push("enter a new credential")
 }
@@ -460,19 +472,19 @@ const reportCompatibility = (
     stages.push({
       stage: "compatibility",
       status: "unsupported",
-      summary: `the selected ${hostName} host is unsupported`,
+      summary: `the selected ${hostName} executable or Hapsland package failed installation checks`,
       observed: compatibility
     })
     actions.push({
       stage: "compatibility",
       code: "select-supported-host",
-      action: `select a declared ${hostName} executable and the packaged Bun runtime, then rerun setup`
+      action: `check the selected ${hostName} executable; reinstall Hapsland if its packaged components are missing or damaged`
     })
   } else {
     stages.push({
       stage: "compatibility",
       status: "complete",
-      summary: `the selected ${hostName} host and packaged runtime are compatible`,
+      summary: `the selected ${hostName} executable and Hapsland package passed installation checks`,
       observed: compatibility
     })
     completed.push("compatibility checked")

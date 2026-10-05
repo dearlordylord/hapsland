@@ -65,7 +65,7 @@ export const BUNDLED_EVALUATION_FIXTURES: ReadonlyArray<Fixture> = [
 const inferredCaseRule = BUNDLED_EVALUATION_RULES.find((rule) => rule.identity.ruleId === "r1_inferred_case")
 
 if (inferredCaseRule === undefined) {
-  throw new Error("bundled Noul rules does not contain r1_inferred_case")
+  throw new Error("default Hapsland rules do not contain r1_inferred_case")
 }
 
 const inferredCaseId = inferredCaseRule.identity.ruleId
