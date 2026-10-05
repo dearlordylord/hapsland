@@ -334,34 +334,31 @@ try {
     resumed.stages.some((stage) => stage.stage === "repository" && stage.status === "complete"),
     "file settings were not loaded"
   )
-  const shippedAsset = await readFile(
-    join(installation, "node_modules/@hapsland/hapsland/src/rules/defaults/hapsland.json"),
-    "utf8"
-  )
-  const shippedDocument = JSON.parse(shippedAsset)
-  expect(
-    shippedDocument.schemaVersion === 1 && shippedDocument.rules.length === 9,
-    "installed shipped JSON asset is absent or malformed"
-  )
-  const editablePath = join(stateRoot, "rules/defaults/hapsland.json")
-  const editableDocument = JSON.parse(await readFile(editablePath, "utf8"))
-  expect(
-    isDeepStrictEqual(editableDocument.rules, shippedDocument.rules),
-    "materialized defaults disagree with the installed asset"
-  )
+  const shippedDirectory = join(installation, "node_modules/@hapsland/hapsland/src/rules/defaults")
+  const filenames = (await readdir(shippedDirectory)).filter((name) => name.endsWith(".json")).sort()
+  expect(filenames.length === 9, "installed package must contain nine individual default rules")
+  const editablePaths = filenames.map((name) => join(stateRoot, "rules/defaults", name))
+  for (const [index, filename] of filenames.entries()) {
+    const shippedDocument = JSON.parse(await readFile(join(shippedDirectory, filename), "utf8"))
+    const editableDocument = JSON.parse(await readFile(editablePaths[index], "utf8"))
+    expect(shippedDocument.version === 1 && typeof shippedDocument.id === "string", "installed rule asset is malformed")
+    expect(isDeepStrictEqual(editableDocument, shippedDocument), "materialized default disagrees with installed asset")
+  }
   const inventory = parse(
     await run(cli, ["rules", "list", "--json"], { cwd: repository, env: authorizedEnvironment }),
     "installed rule inventory",
     0
   )
   expect(
-    inventory.enabledCount === 9 && inventory.rules.every((rule) => rule.source === editablePath),
+    inventory.enabledCount === 9 && inventory.rules.every((rule) => editablePaths.includes(rule.source)),
     "installed rules did not use editable source paths"
   )
-  editableDocument.rules[0].question = "Is the installed edited concern present?"
+  const editablePath = editablePaths[0]
+  const editableDocument = JSON.parse(await readFile(editablePath, "utf8"))
+  editableDocument.question = "Is the installed edited concern present?"
   await writeFile(editablePath, JSON.stringify(editableDocument))
   const detail = parse(
-    await run(cli, ["rules", "show", "--id", `${editableDocument.id}/${editableDocument.rules[0].id}`, "--json"], {
+    await run(cli, ["rules", "show", "--id", editableDocument.id, "--json"], {
       cwd: repository,
       env: authorizedEnvironment
     }),
@@ -395,7 +392,7 @@ try {
   const hooks = JSON.parse(await readFile(join(codexHome, "hooks.json"), "utf8"))
   expect(hooks.hooks.PostToolUse.length === 1, "repeat setup duplicated the owned hook")
   expect(
-    JSON.parse(await readFile(editablePath, "utf8")).rules[0].question === "Is the installed edited concern present?",
+    JSON.parse(await readFile(editablePath, "utf8")).question === "Is the installed edited concern present?",
     "repeat setup overwrote authored JSON"
   )
 

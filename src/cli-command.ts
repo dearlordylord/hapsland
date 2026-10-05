@@ -143,7 +143,7 @@ export interface ClientArguments {
   readonly flags: ReadonlyMap<string, string>
 }
 const rulesOptions = {
-  action: Argument.Literals("action", ["list", "show", "enable", "disable", "create", "connect"]).pipe(
+  action: Argument.Literals("action", ["list", "show", "explain", "enable", "disable", "create", "connect"]).pipe(
     Argument.optional
   ),
   id: valueFlag("id"),
@@ -254,7 +254,7 @@ export const parseInvocation = async (args: ReadonlyArray<string>): Promise<Invo
     Effect.sync(() => {
       invocation = { kind: "rules", options }
     })
-  ).pipe(Command.withDescription("Inspect, toggle, create or connect local JSON rule packs; no classifier calls"))
+  ).pipe(Command.withDescription("Inspect, toggle, create or connect local JSON rules; no classifier calls"))
   const root = parent.pipe(
     Command.withSubcommands([
       ...clientCommands.map((command) =>

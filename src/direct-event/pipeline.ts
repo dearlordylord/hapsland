@@ -1,3 +1,4 @@
+import { languageForPath } from "./languages/registry.ts"
 import { assertReviewEngineBoundary } from "../runtime/review-engine-boundary.ts"
 import { toCodexDirectEventOutput, type Finding, type CodexDirectEventOutput } from "./output.ts"
 import * as Effect from "effect/Effect"
@@ -293,7 +294,8 @@ const freezePreparedUnitInput = (
   rootLocation: ReviewInput["rootLocation"],
   sourceFingerprints: NonNullable<ReviewInput["sourceFingerprints"]>,
   frame: PreparationFrame,
-  partial: boolean
+  partial: boolean,
+  language: "typescript" | "rust" | "bend"
 ): ReviewInput => {
   const declaration = unit.root.artifact
   const artifactKind = declaration.kind === "function" ? ("function" as const) : ("typeShape" as const)
@@ -311,7 +313,7 @@ const freezePreparedUnitInput = (
     path,
     declaration,
     unit,
-    rules: freezeRules(rules, { artifactKind, inputContract: frame.contract }),
+    rules: freezeRules(rules, { language, artifactKind, inputContract: frame.contract }),
     interpretation: "probability-strictly-greater-than-threshold"
   } satisfies ReviewInput)
 }
@@ -329,14 +331,17 @@ const prepareResolvedUnit = (
   const artifactKind = declaration.kind === "function" ? ("function" as const) : ("typeShape" as const)
   const partial = unitHasOmissions(unit)
   const capabilities = preparationCapabilities(frame.contract, partial)
+  const language = languageForPath(path)?.id
+  if (language !== "typescript" && language !== "rust" && language !== "bend") return undefined
   const rules = applicableRules(declaration.source, path, currentRules(frame.context), {
+    language,
     artifactKind,
     inputContract: frame.contract,
     complete: true,
     ...(capabilities === undefined ? {} : { capabilities })
   })
   if (rules.length === 0) return undefined
-  const input = freezePreparedUnitInput(path, unit, rules, rootLocation, sourceFingerprints, frame, partial)
+  const input = freezePreparedUnitInput(path, unit, rules, rootLocation, sourceFingerprints, frame, partial, language)
   return {
     status: "ready",
     path,

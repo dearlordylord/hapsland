@@ -58,18 +58,14 @@ const renderer = makeRendererAdapterIdentity({
 })
 
 const ruleA = makeRuleDefinition({
-  packId: "synthetic",
   ruleId: "inferred-case",
-  packVersion: "1.0.0",
   question: "Does the declaration encode alternatives without naming the case?",
   criteria: "Report implicit alternatives.",
   defaultMessage: "Name the case explicitly.",
   threshold: DEFAULT_RULE_THRESHOLD
 })
 const ruleB = makeRuleDefinition({
-  packId: "synthetic",
   ruleId: "meaningless-combinations",
-  packVersion: "1.0.0",
   question: "Does the declaration admit meaningless combinations?",
   criteria: "Report impossible combinations.",
   defaultMessage: "Constrain the state space.",
@@ -97,9 +93,7 @@ const configuration = makeConfigurationCase({
   user: makeConfigurationLayer({ name: "user" }),
   project: makeConfigurationLayer({ name: "project" }),
   consent: { repositoryId: "repo", backendId: backend.id, destinationId: "synthetic-destination", granted: true },
-  expectedEffective: makeEffectiveConfiguration({
-    selectedRuleIds: [ruleA.identity.qualifiedId, ruleB.identity.qualifiedId]
-  })
+  expectedEffective: makeEffectiveConfiguration({ selectedRuleIds: [ruleA.identity.ruleId, ruleB.identity.ruleId] })
 })
 
 const scenarioFor = (input: {
@@ -165,7 +159,7 @@ const observation = (input: {
   readonly id: string
   readonly scenarioId: typeof isolated.id
   readonly fixtureId: typeof fixture.id
-  readonly observationRuleId?: typeof ruleA.identity.qualifiedId
+  readonly observationRuleId?: typeof ruleA.identity.ruleId
   readonly probability?: number
   readonly transport?: "available" | "unavailable"
   readonly conformance?: "passed" | "failed" | "unchecked"
@@ -181,7 +175,7 @@ const observation = (input: {
       domain: fixture.domain,
       path: fixture.path,
       contentHash: fixture.contentHash,
-      ruleIds: [ruleA.identity.qualifiedId],
+      ruleIds: [ruleA.identity.ruleId],
       inputContract,
       rendererAdapter: renderer
     },
@@ -195,11 +189,7 @@ const observation = (input: {
     conformance: { status: input.conformance ?? "passed", reasons: [] },
     ...(input.probability === undefined
       ? {}
-      : {
-          assessment: [
-            { ruleId: input.observationRuleId ?? ruleA.identity.qualifiedId, probability: input.probability }
-          ]
-        }),
+      : { assessment: [{ ruleId: input.observationRuleId ?? ruleA.identity.ruleId, probability: input.probability }] }),
     findings: [],
     reviewStatus: input.reviewStatus ?? "reviewed"
   })
@@ -230,9 +220,7 @@ describe("evaluation model", () => {
       source: `${fixture.source}\n`
     })
     const changedRule = makeRuleDefinition({
-      packId: "synthetic",
       ruleId: "inferred-case",
-      packVersion: "1.0.0",
       question: `${ruleA.question} (changed)`,
       criteria: ruleA.criteria,
       defaultMessage: ruleA.defaultMessage,
@@ -324,7 +312,7 @@ describe("evaluation model", () => {
       name: "semantic without rule",
       relation: "semantic-band",
       observationId: "observation",
-      ruleId: ruleA.identity.qualifiedId,
+      ruleId: ruleA.identity.ruleId,
       tolerance: 0
     })
     const { ruleId: _ruleId, ...semanticWithoutRule } = semantic
@@ -373,7 +361,7 @@ describe("evaluation model", () => {
       name: "missing expectation",
       relation: "semantic-band",
       observationId: "obs-missing",
-      ruleId: ruleA.identity.qualifiedId,
+      ruleId: ruleA.identity.ruleId,
       tolerance: 0
     })
     const missing = compareObservation(
@@ -388,10 +376,10 @@ describe("evaluation model", () => {
       name: "ambiguous fixture",
       relation: "semantic-band",
       observationId: "obs-ambiguous",
-      ruleId: ruleA.identity.qualifiedId,
+      ruleId: ruleA.identity.ruleId,
       expectation: makeExpectation({
         fixtureId: fixture.id,
-        ruleId: ruleA.identity.qualifiedId,
+        ruleId: ruleA.identity.ruleId,
         result: { kind: "ambiguous", reason: "boundary concept is unsettled" },
         rationale: "The fixture is retained for observation only."
       }),
@@ -439,10 +427,10 @@ describe("evaluation model", () => {
       name: "positive band",
       relation: "semantic-band",
       observationId: right.id,
-      ruleId: ruleA.identity.qualifiedId,
+      ruleId: ruleA.identity.ruleId,
       expectation: makeExpectation({
         fixtureId: fixture.id,
-        ruleId: ruleA.identity.qualifiedId,
+        ruleId: ruleA.identity.ruleId,
         result: {
           kind: "violation",
           band: { minimum: DEFAULT_RULE_THRESHOLD, maximum: 1, minimumInclusive: false, maximumInclusive: true }
@@ -462,7 +450,7 @@ describe("evaluation model", () => {
       leftObservationId: left.id,
       rightObservationId: observation({ id: "obs-full", scenarioId: full.id, fixtureId: fixture.id, probability: 0.9 })
         .id,
-      ruleId: ruleA.identity.qualifiedId,
+      ruleId: ruleA.identity.ruleId,
       direction: "increase",
       minimumDelta: 0.5,
       tolerance: 0
@@ -497,7 +485,7 @@ describe("evaluation model", () => {
       name: "missing label",
       relation: "semantic-band",
       observationId: failed.id,
-      ruleId: ruleA.identity.qualifiedId,
+      ruleId: ruleA.identity.ruleId,
       tolerance: 0
     })
     const report = buildEvaluationReport({
@@ -662,7 +650,7 @@ it("evaluates measured changes in both directions and enforces no-change toleran
       relation: "measured-change",
       leftObservationId: left.id,
       rightObservationId: right.id,
-      ruleId: ruleA.identity.qualifiedId,
+      ruleId: ruleA.identity.ruleId,
       direction: entry.direction,
       minimumDelta: 0.25,
       tolerance: 0.01
@@ -688,11 +676,11 @@ it("keeps absent observations and absent semantic evidence unchecked", () => {
     name: "semantic evidence",
     relation: "semantic-band",
     observationId: target.id,
-    ruleId: ruleA.identity.qualifiedId,
+    ruleId: ruleA.identity.ruleId,
     tolerance: 0,
     expectation: makeExpectation({
       fixtureId: fixture.id,
-      ruleId: ruleA.identity.qualifiedId,
+      ruleId: ruleA.identity.ruleId,
       result: { kind: "clear", band: { minimum: 0, maximum: 0.5, minimumInclusive: true, maximumInclusive: true } },
       rationale: "A labeled control must have a measured probability."
     })
@@ -722,7 +710,7 @@ it("keeps absent observations and absent semantic evidence unchecked", () => {
     ...comparison,
     expectation: makeExpectation({
       fixtureId: fixture.id,
-      ruleId: ruleA.identity.qualifiedId,
+      ruleId: ruleA.identity.ruleId,
       result: { kind: "unchecked", reason: "label pending" },
       rationale: "Owner has not labeled this fixture."
     })

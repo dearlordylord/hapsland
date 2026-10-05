@@ -1,7 +1,14 @@
 import type { ProviderIdentity } from "../review-providers/catalog.ts"
 import { createHash } from "node:crypto"
 import type { CompiledRule } from "../rules/compiler.ts"
-import type { ReviewTarget } from "../rules/targets.ts"
+import {
+  TYPE_INPUT_CONTRACT,
+  FUNCTION_INPUT_CONTRACT,
+  TYPE_CAPABILITIES,
+  FUNCTION_CAPABILITIES,
+  type ReviewTarget
+} from "../rules/targets.ts"
+import type { RuleLanguage } from "../rules/schema.ts"
 import type { PostEditLocation, VerifiedPatchHunk } from "./edit-attribution.ts"
 import type { GraphLimits } from "../configuration/graph-limits.ts"
 
@@ -172,10 +179,7 @@ export type ObservationResult =
 
 export type FrozenRule = {
   readonly id: string
-  readonly qualifiedId: string
-  readonly packId: string
-  readonly packVersion: string
-  readonly packDigest: string
+  readonly source: string
   readonly definitionDigest: string
   readonly threshold: number
   readonly message: string
@@ -242,28 +246,46 @@ export const freezeInput = (value: ReviewInput): ReviewInput => deepFreeze(value
 
 export const freezeRules = (
   rules: ReadonlyArray<CompiledRule>,
-  target?: { readonly artifactKind: "typeShape" | "function"; readonly inputContract: string }
+  target?: {
+    readonly language: RuleLanguage
+    readonly artifactKind: "typeShape" | "function"
+    readonly inputContract: string
+  }
 ): ReadonlyArray<FrozenRule> =>
   deepFreeze(
     rules.map((rule) => ({
       id: rule.id,
-      qualifiedId: rule.qualifiedId,
-      packId: rule.packId,
-      packVersion: rule.packVersion,
-      packDigest: rule.packDigest,
+      source: rule.source,
       definitionDigest: rule.definitionDigest,
       threshold: rule.threshold,
       message: rule.message,
       rank: rule.rank,
       decision: { ...rule.decision, criteria: { ...rule.decision.criteria } },
       ...(() => {
-        const selected =
+        const input =
           target === undefined
             ? undefined
-            : rule.reviewTargets?.find(
+            : rule.inputs.find(
                 (candidate) =>
-                  candidate.artifactKind === target.artifactKind && candidate.inputContract === target.inputContract
+                  candidate.kind === (target.artifactKind === "typeShape" ? "type" : "function") &&
+                  candidate.languages.includes(target.language)
               )
+        const selected: ReviewTarget | undefined =
+          input === undefined || target === undefined
+            ? undefined
+            : input.kind === "type" && target.inputContract === TYPE_INPUT_CONTRACT
+              ? {
+                  artifactKind: "typeShape",
+                  inputContract: TYPE_INPUT_CONTRACT,
+                  capabilities: TYPE_CAPABILITIES.filter((capability) => input.requires.includes(capability))
+                }
+              : input.kind === "function" && target.inputContract === FUNCTION_INPUT_CONTRACT
+                ? {
+                    artifactKind: "function",
+                    inputContract: FUNCTION_INPUT_CONTRACT,
+                    capabilities: FUNCTION_CAPABILITIES.filter((capability) => input.requires.includes(capability))
+                  }
+                : undefined
         return selected === undefined ? {} : { target: selected }
       })()
     }))

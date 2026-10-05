@@ -6,7 +6,7 @@ import { resolveConfiguration, effectiveReviewBackend } from "../configuration/r
 import type { ConfigurationCapture } from "../configuration/types.ts"
 import { DEFAULT_CREDENTIAL_ENV_VAR } from "../configuration/types.ts"
 import { compileRules, type CompiledRule } from "../rules/compiler.ts"
-import { loadRulePacks } from "../rules/loader.ts"
+import { loadRules } from "../rules/loader.ts"
 import { JEV_API_BASE, JEV_BACKEND, JEV_DESTINATION, type BackendId, type Destination } from "./backend.ts"
 
 import { providerIdentity, providerApiBase, type ProviderIdentity } from "../review-providers/catalog.ts"
@@ -32,7 +32,7 @@ export interface ReviewSettings {
   /** Captured once for the event and shared by explanation and runtime selection. */
   readonly configuration: ConfigurationCapture
   /** Fully validated, captured rule set. Callers may supply rules separately. */
-  readonly rulePackDigests?: ReadonlyArray<string>
+  readonly ruleDigests?: ReadonlyArray<string>
   readonly rules?: ReadonlyArray<CompiledRule>
 }
 
@@ -68,21 +68,24 @@ export const loadReviewSettings = Effect.fn("ReviewConfig.load")(function* (
         new ReviewConfigError({ source: error.source, field: error.field, reason: error.reason })
     )
   )
-  const packs = yield* loadRulePacks({ root, layers: capture.policy.layers }).pipe(
+  const loadedRules = yield* loadRules({ root, layers: capture.policy.layers }).pipe(
     Effect.mapError(
       (error) => new ReviewConfigError({ source: error.source, field: error.field, reason: error.reason })
     )
   )
   const rules = yield* Effect.try({
-    try: () => compileRules({ packs, layers: capture.policy.layers }),
+    try: () => compileRules({ rules: loadedRules }),
     catch: (error) =>
       new ReviewConfigError({
         source: compilationErrorField(error, "source", root),
-        field: compilationErrorField(error, "field", "ruleOverrides"),
-        reason: compilationErrorField(error, "reason", "rule-pack compilation failed")
+        field: compilationErrorField(error, "field", "rules"),
+        reason: compilationErrorField(error, "reason", "rule compilation failed")
       })
   })
-  return { ...settingsFrom(capture, rules), rulePackDigests: packs.map((pack) => `${pack.id}:${pack.contentDigest}`) }
+  return {
+    ...settingsFrom(capture, rules),
+    ruleDigests: loadedRules.map((rule) => `${rule.id}:${rule.definitionDigest}`)
+  }
 })
 
 export const defaultReviewSettings = (root = "."): ReviewSettings => {

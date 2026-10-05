@@ -31,15 +31,15 @@ The tree still contains selected code. Structure provides focused context; it do
 
 ## Built-in rules and rules you supply
 
-The editable Hapsland default pack supplies nine probability questions about code design. Each rule declares whether it can review a type, a function, or both, and what supporting evidence it needs. A rule runs only when those needs are met. An omitted reference can be irrelevant to one rule but necessary for another; an omission need not prevent every rule from running.
+Nine editable Hapsland default rule files supply probability questions about code design. Each rule declares supported language/input combinations and the evidence it needs. A rule runs only when those needs are met. An omitted reference can be irrelevant to one rule but necessary for another; an omission need not prevent every rule from running.
 
-You can add local JSONC rule packs and configure their activation, file scope, probability thresholds, and feedback messages. Rule filters narrow file selection; they cannot authorize additional source. Rules ask about the supplied code, not the agent's conversation or task history. See [rule packs](configuration.md#declarative-rule-packs).
+Each local JSONC document defines one rule with a stable identity. Configuration explicitly connects it and selects activation, language and file restrictions, thresholds, and feedback messages. Rule settings narrow global root scope and intrinsic input support. Runtime validation schemas are a separate unsupported input form; they are not automatically treated as type declarations. See [rules and configuration](configuration.md#declarative-rules).
 
 ## The user controls the source boundary
 
 Sending source to an external review service is a data-sharing decision. Hapsland controls which code enters its review requests; it does not set the review service’s data-retention policy. The user’s task prompt and conversation with the agent are not review inputs. Jev receives eligible source definitions and rule questions.
 
-Every root and supporting file must pass repository containment, protected-path, Git-ignore, and effective file-selection checks before its source is read. User and project exclusions accumulate; project includes cannot restore an excluded file. Rule filters can narrow this boundary further. `privacyExcludes` protects selected paths, and a user `excludes: ["**/*"]` turns review off.
+Every file must pass repository containment, protected-path, Git-ignore, and capture checks before its source is read. Root files additionally pass global root selection and rule settings; supporting files pass context selection. Omitted context settings inherit root file scope, while explicit context settings may permit related files outside root scope. `privacyExcludes` applies to both roles and cannot be overridden. Exclusions accumulate across user and project settings; a user `excludes: ["**/*"]` leaves no review roots and turns review off.
 
 With credentials available and no file settings, all otherwise eligible files are selected. There is no per-request approval prompt. Users should set an explicit source scope when they want a narrower boundary. Graph limits also bound files, reference depth, source reads, work, and encoded evidence; the default evidence-tree cap is 20 KiB. The cap limits code because the review model has a finite context window. Rule questions and provider overhead also occupy that window; they are outside the code-tree cap. This byte cap is not an exact measurement of model tokens.
 

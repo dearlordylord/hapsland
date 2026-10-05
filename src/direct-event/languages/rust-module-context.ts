@@ -6,7 +6,7 @@ import { initialImportGraph, projectImportGraph, stepImportGraph } from "../../c
 import type { GraphLimits } from "../../configuration/graph-limits.ts"
 import { inspectRustModules, type GraphInspectionOptions } from "./rust.ts"
 import { captureStable, type StableCapture } from "../capture.ts"
-import { eligibleNamedPath } from "../selection.ts"
+import { contextDirectFilePolicy, eligibleNamedPath } from "../selection.ts"
 import type { LanguageGraphHost } from "./contracts.ts"
 
 type Route = {
@@ -265,7 +265,12 @@ export const resolveRustModuleContext = Effect.fn("DirectEvent.resolveRustModule
     if (active === undefined) {
       return undefined
     }
-    const selected = yield* eligibleNamedPath(context.root, active.path, context.policy, context.rootIdentity)
+    const selected = yield* eligibleNamedPath(
+      context.root,
+      active.path,
+      contextDirectFilePolicy(context.policy),
+      context.rootIdentity
+    )
     return stepImportGraph(state, { kind: "pathChecked", allowed: selected !== undefined })
   })
   const captureSelectedModule = Effect.fn("DirectEvent.captureSelectedRustModule")(function* (
@@ -288,7 +293,12 @@ export const resolveRustModuleContext = Effect.fn("DirectEvent.resolveRustModule
     if (active === undefined) {
       return undefined
     }
-    const selected = yield* eligibleNamedPath(context.root, active.path, context.policy, context.rootIdentity)
+    const selected = yield* eligibleNamedPath(
+      context.root,
+      active.path,
+      contextDirectFilePolicy(context.policy),
+      context.rootIdentity
+    )
     if (selected === undefined || !captureBudgetAvailable(selected.relativePath)) return undefined
     const capture = yield* captureSelectedModule(selected)
     if (capture === undefined || capture.byteLength > limits.sourceBytes) {

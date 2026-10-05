@@ -2,7 +2,7 @@ import { providerIdentity } from "../review-providers/catalog.ts"
 import { createHash } from "node:crypto"
 import { readFile, writeFile } from "node:fs/promises"
 import { describe, expect, it } from "vitest"
-import { compileRulePack } from "../rules/compiler.ts"
+import { compileRule } from "../rules/compiler.ts"
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
 import { canonicalValue, freezeRules, type PreparedUnit, type ReviewArtifact, type ReviewNode } from "./model.ts"
 import {
@@ -31,42 +31,36 @@ const node = (value: ReviewArtifact, references: ReviewNode["references"] = []):
   artifact: value,
   references
 })
-const rules = compileRulePack(
+const rules = [
   {
-    schemaVersion: 1,
-    id: "wire-proposal",
-    contentVersion: "1",
-    rules: [
+    id: "type",
+    question: "Is the selected type closure meaningful?",
+    criteria: { false: "No", true: "Yes" },
+    message: "Review the type closure",
+    inputs: [
       {
-        id: "type",
-        question: "Is the selected type closure meaningful?",
-        criteria: { false: "No", true: "Yes" },
-        message: "Review the type closure",
-        reviewTargets: [
-          {
-            artifactKind: "typeShape",
-            inputContract: TYPE_INPUT_CONTRACT,
-            capabilities: ["root-declaration", "resolved-outbound-types"]
-          }
-        ]
-      },
-      {
-        id: "function",
-        question: "Does the selected function call its helper?",
-        criteria: { false: "No", true: "Yes" },
-        message: "Review the function body",
-        reviewTargets: [
-          {
-            artifactKind: "function",
-            inputContract: FUNCTION_INPUT_CONTRACT,
-            capabilities: ["signature", "body", "resolved-local-calls"]
-          }
-        ]
+        languages: ["typescript", "rust", "bend"],
+        kind: "type",
+
+        requires: ["root-declaration", "resolved-outbound-types"]
       }
     ]
   },
-  "fixture:issue-138-wire"
-)
+  {
+    id: "function",
+    question: "Does the selected function call its helper?",
+    criteria: { false: "No", true: "Yes" },
+    message: "Review the function body",
+    inputs: [
+      {
+        languages: ["typescript"],
+        kind: "function",
+
+        requires: ["signature", "body", "resolved-local-calls"]
+      }
+    ]
+  }
+].map((rule) => compileRule({ version: 1, ...rule }, "fixture:issue-138-wire"))
 
 const prepared = (branch: "type" | "function"): PreparedUnit => {
   const isType = branch === "type"
@@ -102,7 +96,11 @@ const prepared = (branch: "type" | "function"): PreparedUnit => {
       path,
       declaration: root,
       unit: { root: rootNode },
-      rules: freezeRules([rule], { artifactKind: isType ? "typeShape" : "function", inputContract: contract }),
+      rules: freezeRules([rule], {
+        language: "typescript",
+        artifactKind: isType ? "typeShape" : "function",
+        inputContract: contract
+      }),
       interpretation: "probability-strictly-greater-than-threshold"
     }
   }

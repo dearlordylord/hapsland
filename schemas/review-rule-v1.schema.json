@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/RuleDocument",
+  "$defs": {
+    "RuleDocument": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "number",
+          "enum": [
+            1
+          ]
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^(?!\\.{1,2}(?:\\/|$))(?!.*\\/\\.{1,2}(?:\\/|$))[a-zA-Z0-9._-]+(?:\\/[a-zA-Z0-9._-]+)*$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1
+        },
+        "criteria": {
+          "type": "object",
+          "properties": {
+            "false": {
+              "type": "string",
+              "minLength": 1
+            },
+            "true": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "false",
+            "true"
+          ],
+          "additionalProperties": false
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "languages": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "typescript",
+                        "rust",
+                        "bend"
+                      ]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "type",
+                      "function"
+                    ]
+                  },
+                  "requires": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "uniqueItems": true
+                  }
+                },
+                "required": [
+                  "languages",
+                  "kind",
+                  "requires"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "languages": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "typescript",
+                        "rust",
+                        "bend"
+                      ]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "schema"
+                    ]
+                  },
+                  "requires": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "uniqueItems": true
+                  },
+                  "dialect": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "languages",
+                  "kind",
+                  "requires"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "question",
+        "criteria",
+        "message",
+        "inputs"
+      ],
+      "additionalProperties": false,
+      "title": "Rule v1"
+    }
+  }
+}

@@ -59,7 +59,7 @@ hapsland setup --no-input --apply-plan setup-plan.json --json
 
 <!-- unattended-setup-commands:end -->
 
-Preview leaves hooks, rule packs and configuration unchanged. `--save-plan` writes
+Preview leaves hooks, rule files and configuration unchanged. `--save-plan` writes
 only the explicitly requested plan file, preserving an existing plan. A saved plan
 binds client choices and current installation/default-rule digests; its application
 revalidates them and rejects stale plans before selected writes. This frontend uses
@@ -77,8 +77,13 @@ An installed integration still needs native trust and an ordinary observed revie
 unknown trust/readiness can therefore return 6 after installation succeeds.
 
 Setup shows the effective rule inventory once per guided invocation, including
-when several clients are selected. See [editable and custom rules](configuration.md#declarative-rule-packs)
-for their paths, eligibility and management commands.
+when several clients are selected. See [editable and custom rules](configuration.md#declarative-rules)
+for their paths, eligibility and management commands. Authorized initial setup
+connects nine individual editable default files only when no configuration layer
+declares `rules`. An explicit selection, including `rules: []`, is preserved; setup
+does not reconnect disconnected defaults. Repeat setup preserves authored content. A missing connected rule is reported rather than silently recreated.
+Creating a custom rule also connects it, and its preview states that activation
+before interactive writes. Merely saving a rule file does not activate it.
 
 The selected profile is user-wide by default. File settings control eligible repositories and files; invoking setup from a repository does not restrict the installed hooks to that repository. Use [configuration](configuration.md) to bound review scope. `--claude-home=PATH`, `--codex-home=PATH`, or `--pi-home=PATH` and the corresponding `--claude-executable=PATH`, `--codex-executable=PATH`, or `--pi-executable=PATH` select the registration and compatibility probe. An alternate registration home alone does not configure the client process to use that home.
 
@@ -259,7 +264,7 @@ hapsland uninstall              # Preview and remove installed integrations
 hapsland uninstall codex        # Remove one integration
 ```
 
-Doctor distinguishes no registration from damaged ownership/configuration. Deleting an event, a main/background handler, Codex's owned hooks-feature entry, or Pi's owned extension leaves a damaged integration. Update and repair restore missing entries after a full preview and confirmation. Changed commands or duplicate marked entries remain conflicts under ordinary repair/update. Reinstall replaces marked Hapsland handlers while preserving unmarked handlers, client settings, review configuration, rule packs, saved credentials and native trust. If ownership metadata is damaged, explicit reinstall can replace it. For an interrupted operation from a separately invoked retained package, select that package explicitly with `hapsland repair CLIENT --target=/absolute/retained-prefix/bin/hapsland`. It never guesses how to repair malformed host JSON/TOML and never reconstructs unmarked hooks whose ownership cannot be established.
+Doctor distinguishes no registration from damaged ownership/configuration. Deleting an event, a main/background handler, Codex's owned hooks-feature entry, or Pi's owned extension leaves a damaged integration. Update and repair restore missing entries after a full preview and confirmation. Changed commands or duplicate marked entries remain conflicts under ordinary repair/update. Reinstall replaces marked Hapsland handlers while preserving unmarked handlers, client settings, review configuration, rule files, saved credentials and native trust. If ownership metadata is damaged, explicit reinstall can replace it. For an interrupted operation from a separately invoked retained package, select that package explicitly with `hapsland repair CLIENT --target=/absolute/retained-prefix/bin/hapsland`. It never guesses how to repair malformed host JSON/TOML and never reconstructs unmarked hooks whose ownership cannot be established.
 
 A supported interrupted Codex operation resumes its journal after approval. Explicit reinstall can replace an unusable journal, keeping a private backup next to it and building from current user files rather than restoring an old whole-file snapshot. The approval binds the current journal as well as configuration changes; later edits require another preview. If the active package is missing or its administrative record is damaged, reinstall falls back to the runnable package in PATH, reports that choice, and reestablishes the active record. Use `hapsland reinstall CLIENT --target=/absolute/healthy-prefix/bin/hapsland` to select another healthy package.
 

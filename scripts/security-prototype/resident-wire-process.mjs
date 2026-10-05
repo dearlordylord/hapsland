@@ -41,24 +41,19 @@ try {
     root,
     "rules.jsonc",
     JSON.stringify({
-      schemaVersion: 1,
-      id: "security-probe",
-      contentVersion: "1",
-      rules: [
+      version: 1,
+      ...securityWireRule,
+      inputs: [
         {
-          ...securityWireRule,
-          reviewTargets: [
-            {
-              artifactKind: "typeShape",
-              inputContract: "direct-event/type-shape/v1",
-              capabilities: ["root-declaration", "resolved-outbound-types"]
-            }
-          ]
+          languages: ["typescript", "rust", "bend"],
+          kind: "type",
+
+          requires: ["root-declaration", "resolved-outbound-types"]
         }
       ]
     })
   )
-  const config = { version: 1, packs: ["rules.jsonc"] }
+  const config = { version: 1, rules: ["rules.jsonc"] }
   if (scenario === "exclude-at-admission") config.excludes = [path]
   await put(root, ".hapsland.jsonc", JSON.stringify(config))
   const statePath = join(root, "consent")

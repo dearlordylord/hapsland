@@ -1,3 +1,4 @@
+import { SHIPPED_DEFAULT_RULES } from "../rules/shipped.ts"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
 import { createInstallationPackageFixture } from "../test-support/installation-package.ts"
 import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
@@ -674,16 +675,18 @@ describe("Claude setup shares the resumable credential and repository workflow",
 
 it("binds editable defaults and configuration to setup authorization and preserves authored content", () => {
   const test = fixture()
-  const path = join(test.root, "rules", "defaults", "hapsland.json")
+  const path = join(test.root, "rules", "defaults", `${SHIPPED_DEFAULT_RULES[0]?.id}.json`)
   const preview = invoke(test, {})
   expect(existsSync(path)).toBe(false)
   expect(existsSync(join(test.root, "user.jsonc"))).toBe(false)
   const authorized = authorization(preview)
   expect(authorized.rulesProposalDigest).toMatch(/^[a-f0-9]{64}$/)
   invoke(test, authorized)
-  expect(JSON.parse(readFileSync(path, "utf8")).rules).toHaveLength(9)
-  expect(JSON.parse(readFileSync(join(test.root, "user.jsonc"), "utf8")).packs).toContain(path)
-  const edited = JSON.stringify({ schemaVersion: 1, id: "noul", contentVersion: "1", rules: [] })
+  expect(JSON.parse(readFileSync(path, "utf8"))).toMatchObject({ version: 1, id: SHIPPED_DEFAULT_RULES[0]?.id })
+  for (const rule of SHIPPED_DEFAULT_RULES)
+    expect(existsSync(join(test.root, "rules", "defaults", `${rule.id}.json`))).toBe(true)
+  expect(JSON.parse(readFileSync(join(test.root, "user.jsonc"), "utf8")).rules).toContain(path)
+  const edited = JSON.stringify({ ...JSON.parse(readFileSync(path, "utf8")), question: "Preserved authored concern" })
   writeFileSync(path, edited)
   invoke(test, {})
   expect(readFileSync(path, "utf8")).toBe(edited)
@@ -719,7 +722,7 @@ it("unattended setup previews without writes, applies a saved plan and rejects s
   expect(preview.stderr).toBe("")
   expect(existsSync(join(test.codexHome, "config.toml"))).toBe(false)
   expect(existsSync(join(test.root, "user.jsonc"))).toBe(false)
-  expect(existsSync(join(test.root, "rules/defaults/hapsland.json"))).toBe(false)
+  expect(existsSync(join(test.root, `rules/defaults/${SHIPPED_DEFAULT_RULES[0]?.id}.json`))).toBe(false)
   expect(JSON.parse(preview.stdout)).toMatchObject({ providerCalls: 0, paidVerificationPerformed: false })
   expect(existsSync(plan)).toBe(true)
   const applied = run("--no-input", "--apply-plan", plan, "--json")
@@ -732,10 +735,10 @@ it("unattended setup previews without writes, applies a saved plan and rejects s
       expect.objectContaining({ stage: "host-trust", status: "unknown" })
     ])
   })
-  expect(existsSync(join(test.root, "rules/defaults/hapsland.json"))).toBe(true)
+  expect(existsSync(join(test.root, `rules/defaults/${SHIPPED_DEFAULT_RULES[0]?.id}.json`))).toBe(true)
   const next = join(test.root, "next-plan.json")
   run(...choices, "--save-plan", next)
-  const path = join(test.root, "rules/defaults/hapsland.json")
+  const path = join(test.root, `rules/defaults/${SHIPPED_DEFAULT_RULES[0]?.id}.json`)
   const edited = readFileSync(path, "utf8") + " "
   writeFileSync(path, edited)
   const stale = run("--no-input", "--apply-plan", next, "--json")
@@ -743,14 +746,17 @@ it("unattended setup previews without writes, applies a saved plan and rejects s
   expect(JSON.parse(stale.stdout).status).toBe("proposal-mismatch")
   expect(readFileSync(path, "utf8")).toBe(edited)
   const custom = join(test.root, "disabled-custom.json")
-  writeFileSync(custom, JSON.stringify({ schemaVersion: 1, id: "disabled-custom", contentVersion: "1", rules: [] }))
+  writeFileSync(custom, JSON.stringify({ ...JSON.parse(readFileSync(path, "utf8")), id: "disabled-custom" }))
   const configurationPath = join(test.root, "user.jsonc")
   const configuration = JSON.parse(readFileSync(configurationPath, "utf8"))
-  configuration.packs.push({ path: custom, enabled: false })
+  configuration.rules.push({ path: custom, enabled: false })
   writeFileSync(configurationPath, JSON.stringify(configuration))
   const disabledPlan = join(test.root, "disabled-plan.json")
   run(...choices, "--save-plan", disabledPlan)
-  writeFileSync(custom, JSON.stringify({ schemaVersion: 1, id: "disabled-custom", contentVersion: "2", rules: [] }))
+  writeFileSync(
+    custom,
+    JSON.stringify({ ...JSON.parse(readFileSync(custom, "utf8")), question: "Changed disabled authored source" })
+  )
   const disabledStale = run("--no-input", "--apply-plan", disabledPlan, "--json")
   expect(disabledStale.status).toBe(4)
   expect(JSON.parse(disabledStale.stdout).status).toBe("proposal-mismatch")

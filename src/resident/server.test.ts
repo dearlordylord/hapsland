@@ -3201,29 +3201,27 @@ describe("resident delivery lease", () => {
       root,
       "rules.jsonc",
       JSON.stringify({
-        schemaVersion: 1,
-        id: "team",
-        contentVersion: "1",
-        rules: [
+        version: 1,
+        id: "large",
+        question: "Does this declaration use a primitive?",
+        criteria: { false: "No", true: "Yes" },
+        threshold: 0.7,
+        message: "x".repeat(1024),
+        inputs: [
           {
-            id: "large",
-            question: "Does this declaration use a primitive?",
-            criteria: { false: "No", true: "Yes" },
-            threshold: 0.7,
-            message: "x".repeat(1024),
-            applicability: { includes: ["**/*.ts"] },
-            reviewTargets: [
-              {
-                artifactKind: "typeShape",
-                inputContract: "direct-event/type-shape/v1",
-                capabilities: ["root-declaration", "resolved-outbound-types"]
-              }
-            ]
+            languages: ["typescript", "rust", "bend"],
+            kind: "type",
+
+            requires: ["root-declaration", "resolved-outbound-types"]
           }
         ]
       })
     )
-    await put(root, ".review.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }))
+    await put(
+      root,
+      ".review.jsonc",
+      JSON.stringify({ version: 1, rules: [{ path: "rules.jsonc", includes: ["**/*.ts"] }] })
+    )
     await stageFiles(root, paths)
     const statePath = join(root, "consent")
     const capturePath = join(root, "backend-calls")
@@ -3238,7 +3236,7 @@ describe("resident delivery lease", () => {
         capturePath,
         answers: {
           ...Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0.9 }])),
-          "team/large": { _tag: "Probability", probability: 0.9 }
+          large: { _tag: "Probability", probability: 0.9 }
         }
       }
     }
@@ -3274,29 +3272,27 @@ describe("resident delivery lease", () => {
         root,
         "rules.jsonc",
         JSON.stringify({
-          schemaVersion: 1,
-          id: "team",
-          contentVersion: "1",
-          rules: [
+          version: 1,
+          id: "large",
+          question: "Does this declaration use a primitive?",
+          criteria: { false: "No", true: "Yes" },
+          threshold: 0.7,
+          message: "x".repeat(messageBytes),
+          inputs: [
             {
-              id: "large",
-              question: "Does this declaration use a primitive?",
-              criteria: { false: "No", true: "Yes" },
-              threshold: 0.7,
-              message: "x".repeat(messageBytes),
-              applicability: { includes: ["**/*.ts"] },
-              reviewTargets: [
-                {
-                  artifactKind: "typeShape",
-                  inputContract: "direct-event/type-shape/v1",
-                  capabilities: ["root-declaration", "resolved-outbound-types"]
-                }
-              ]
+              languages: ["typescript", "rust", "bend"],
+              kind: "type",
+
+              requires: ["root-declaration", "resolved-outbound-types"]
             }
           ]
         })
       )
-      await put(root, ".hapsland.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }))
+      await put(
+        root,
+        ".hapsland.jsonc",
+        JSON.stringify({ version: 1, rules: [{ path: "rules.jsonc", includes: ["**/*.ts"] }] })
+      )
       const statePath = join(root, "consent")
       const capturePath = join(root, "backend-calls")
       const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
@@ -3310,7 +3306,7 @@ describe("resident delivery lease", () => {
           capturePath,
           answers: {
             ...Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0 }])),
-            "team/large": { _tag: "Probability", probability: 1 }
+            large: { _tag: "Probability", probability: 1 }
           }
         }
       }
@@ -3775,29 +3771,27 @@ describe("resident delivery lease", () => {
     await put(root, "type.ts", "type OrderCount = number\n")
     const rules = (message: string) =>
       JSON.stringify({
-        schemaVersion: 1,
-        id: "team",
-        contentVersion: "1",
-        rules: [
+        version: 1,
+        id: "primitive",
+        question: "Does this declaration use a primitive?",
+        criteria: { false: "No", true: "Yes" },
+        threshold: 0.7,
+        message,
+        inputs: [
           {
-            id: "primitive",
-            question: "Does this declaration use a primitive?",
-            criteria: { false: "No", true: "Yes" },
-            threshold: 0.7,
-            message,
-            applicability: { includes: ["**/*.ts"] },
-            reviewTargets: [
-              {
-                artifactKind: "typeShape",
-                inputContract: "direct-event/type-shape/v1",
-                capabilities: ["root-declaration", "resolved-outbound-types"]
-              }
-            ]
+            languages: ["typescript", "rust", "bend"],
+            kind: "type",
+
+            requires: ["root-declaration", "resolved-outbound-types"]
           }
         ]
       })
     await put(root, "rules.jsonc", rules("first recommendation"))
-    await put(root, ".hapsland.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }))
+    await put(
+      root,
+      ".hapsland.jsonc",
+      JSON.stringify({ version: 1, rules: [{ path: "rules.jsonc", includes: ["**/*.ts"] }] })
+    )
     const statePath = join(root, "consent")
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
     expect(observation).toBeDefined()
@@ -3807,7 +3801,7 @@ describe("resident delivery lease", () => {
       controlled: {
         answers: {
           ...Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0.9 }])),
-          "team/primitive": { _tag: "Probability", probability: 0.9 }
+          primitive: { _tag: "Probability", probability: 0.9 }
         }
       }
     }

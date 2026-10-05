@@ -14,9 +14,8 @@ import { configurationError } from "../configuration/errors.ts"
 import { resolveConfiguration } from "../configuration/resolve.ts"
 import { atomicInstallationFile } from "../onboarding/atomic-installation-file.ts"
 import { compileRules } from "./compiler.ts"
-import { loadRulePacks } from "./loader.ts"
-import { decodeRulePackDocument, decodeRulePackText } from "./schema.ts"
-import { TYPE_INPUT_CONTRACT } from "./targets.ts"
+import { loadRules } from "./loader.ts"
+import { decodeRuleDocument, decodeRuleText } from "./schema.ts"
 
 export type RuleScope = "personal" | "project"
 export type RuleChange =
@@ -36,26 +35,18 @@ const contained = (root: string, path: string): boolean => {
   return offset !== ".." && !offset.startsWith("../") && !isAbsolute(offset)
 }
 
-const generatedPack = (id: string) => ({
-  schemaVersion: 1,
+const generatedRule = (id: string) => ({
+  version: 1,
   id,
-  contentVersion: "1.0.0",
-  rules: [
-    {
-      id: "concern",
-      title: "Authored concern",
-      question: "Does the supplied type declaration admit values that violate the intended domain constraint?",
-      criteria: {
-        false: "The supplied declaration enforces the intended constraint.",
-        true: "Visible evidence shows an admitted value that violates the intended constraint."
-      },
-      message: "Review the authored domain constraint.",
-      threshold: 0.7,
-      reviewTargets: [
-        { artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT, capabilities: ["root-declaration"] }
-      ]
-    }
-  ]
+  title: "Authored concern",
+  question: "Does the supplied type declaration admit values that violate the intended domain constraint?",
+  criteria: {
+    false: "The supplied declaration enforces the intended constraint.",
+    true: "Visible evidence shows an admitted value that violates the intended constraint."
+  },
+  message: "Review the authored domain constraint.",
+  threshold: 0.7,
+  inputs: [{ languages: ["typescript", "rust", "bend"], kind: "type", requires: ["root-declaration"] }]
 })
 
 /** Plan configuration changes against the complete current rule set before any write. */
@@ -79,34 +70,60 @@ export const previewRuleChange = Effect.fn("Rules.previewChange")(function* (
     before === undefined ? { version: 1 as const } : decodeConfigurationText(before, configurationPath)
   )
   const capture = yield* loadConfiguration(root, options)
-  const currentPacks = yield* loadRulePacks({ root, layers: capture.policy.layers })
+  const currentRules = yield* loadRules({ root, layers: capture.policy.layers })
   let proposed = document
   let path: string | undefined
-  let packBefore: string | undefined
-  let packAfter: string | undefined
-  let selectedPacks = currentPacks
+  let ruleBefore: string | undefined
+  let ruleAfter: string | undefined
+  let selectedRules = currentRules
   if (change.action === "enable" || change.action === "disable") {
     const inventory = yield* ruleOperation(configurationPath, "$", () =>
-      compileRules({ packs: currentPacks, layers: capture.policy.layers, includeDisabled: true })
+      compileRules({ rules: currentRules, includeDisabled: true })
     )
-    if (!inventory.some((rule) => rule.qualifiedId === change.id))
+    if (!inventory.some((rule) => rule.ruleId === change.id))
       return yield* configurationError(
         configurationPath,
-        "ruleOverrides",
-        "select a qualified rule identity shown by hapsland rules list"
+        "rules",
+        "select a rule identity shown by hapsland rules list"
       )
+    const references = document.rules ?? []
+    const selected = currentRules.find((rule) => rule.id === change.id)
+    const index = references.findIndex((reference) =>
+      typeof reference !== "string" && "id" in reference
+        ? reference.id === change.id
+        : selected !== undefined &&
+          canonicalDestination(
+            resolve(dirname(configurationPath), typeof reference === "string" ? reference : reference.path)
+          ) === selected.path
+    )
+    selectedRules = currentRules.map((rule) =>
+      rule.id === change.id
+        ? {
+            ...rule,
+            enabled: change.action === "enable",
+            reference: { ...rule.reference, enabled: change.action === "enable" }
+          }
+        : rule
+    )
     proposed = {
       ...document,
-      ruleOverrides: {
-        ...document.ruleOverrides,
-        [change.id]: { ...document.ruleOverrides?.[change.id], enabled: change.action === "enable" }
-      }
+      rules:
+        index < 0
+          ? [...references, { id: change.id, enabled: change.action === "enable" }]
+          : references.map((reference, offset) =>
+              offset !== index
+                ? reference
+                : {
+                    ...(typeof reference === "string" ? { path: reference } : reference),
+                    enabled: change.action === "enable"
+                  }
+            )
     }
   } else {
     // Validate an ID before using it as a filename.
     if (change.action === "create")
       yield* ruleOperation(configurationPath, "$", () =>
-        decodeRulePackDocument(generatedPack(change.id), configurationPath)
+        decodeRuleDocument(generatedRule(change.id), configurationPath)
       )
     path =
       change.action === "connect"
@@ -115,58 +132,103 @@ export const previewRuleChange = Effect.fn("Rules.previewChange")(function* (
             change.scope === "personal" ? dirname(configurationPath) : join(root, ".hapsland"),
             "rules",
             "custom",
-            `${change.id}.json`
+            `${encodeURIComponent(change.id)}.json`
           )
     if (change.scope === "project" && !contained(root, path))
-      return yield* configurationError(path, "$", "project rule packs must stay inside the Git working tree")
+      return yield* configurationError(path, "$", "project rule files must stay inside the Git working tree")
     const selectedPath = path
-    packBefore = yield* ruleOperation(configurationPath, "$", () => optionalText(selectedPath))
-    if (change.action === "connect" && packBefore === undefined)
-      return yield* configurationError(path, "$", "rule-pack file does not exist; provide an existing pack with --path")
-    packAfter = packBefore ?? JSON.stringify(generatedPack(change.action === "create" ? change.id : ""), null, 2) + "\n"
-    const selectedContent = packAfter
-    const pack = yield* ruleOperation(configurationPath, "$", () => decodeRulePackText(selectedContent, selectedPath))
-    if (change.action === "create" && pack.id !== change.id)
+    ruleBefore = yield* ruleOperation(configurationPath, "$", () => optionalText(selectedPath))
+    if (change.action === "connect" && ruleBefore === undefined)
+      return yield* configurationError(path, "$", "rule file does not exist; provide an existing rule with --path")
+    ruleAfter = ruleBefore ?? JSON.stringify(generatedRule(change.action === "create" ? change.id : ""), null, 2) + "\n"
+    const selectedContent = ruleAfter
+    const authored = yield* ruleOperation(configurationPath, "$", () => decodeRuleText(selectedContent, selectedPath))
+    if (change.action === "create" && authored.id !== change.id)
       return yield* configurationError(
         path,
         "id",
-        "existing authored pack has a different identity; connect it explicitly instead"
+        "existing authored rule has a different identity; connect it explicitly instead"
       )
     const canonical = canonicalDestination(path)
-    const prior = currentPacks.find((candidate) => candidate.id === pack.id)
+    const prior = currentRules.find((candidate) => candidate.id === authored.id)
     if (prior !== undefined && prior.path !== canonical)
-      return yield* configurationError(path, "id", "pack identity is already connected to a different file")
-    const references = document.packs ?? []
+      return yield* configurationError(
+        path,
+        "id",
+        `rule identity is already connected to a different file: '${prior.path}' and '${canonical}'`
+      )
+    const references = document.rules ?? []
     const connected = references.some((reference) => {
       const selected = typeof reference === "string" ? reference : "path" in reference ? reference.path : undefined
       return selected !== undefined && canonicalDestination(resolve(dirname(configurationPath), selected)) === canonical
     })
     proposed = connected
       ? document
-      : { ...document, packs: [...references, relative(dirname(configurationPath), path)] }
+      : { ...document, rules: [...references, relative(dirname(configurationPath), path)] }
     if (prior === undefined)
-      selectedPacks = [
-        ...currentPacks,
+      selectedRules = [
+        ...currentRules,
         {
-          ...pack,
+          ...authored,
           origin: {
             layer: change.scope === "personal" ? "user" : "project",
             source: configurationPath,
-            field: "packs"
+            field: "rules"
           },
           path: canonical,
-          enabled: true
+          enabled: true,
+          reference: {
+            path: canonical,
+            origin: {
+              layer: change.scope === "personal" ? "user" : "project",
+              source: configurationPath,
+              field: "rules"
+            }
+          }
         }
       ]
   }
-  const layers = capture.policy.layers.filter((layer) => layer.source !== configurationPath)
-  layers.push({ name: change.scope === "personal" ? "user" : "project", source: configurationPath, document: proposed })
-  const policy = yield* ruleOperation(configurationPath, "$", () => resolveConfiguration(layers, root))
-  yield* ruleOperation(configurationPath, "$", () =>
-    compileRules({ packs: selectedPacks, layers: policy.layers, includeDisabled: true })
-  )
+  const replacement = {
+    name: change.scope === "personal" ? ("user" as const) : ("project" as const),
+    source: configurationPath,
+    document: proposed
+  }
+  const layers = capture.policy.layers.some((layer) => layer.source === configurationPath)
+    ? capture.policy.layers.map((layer) => (layer.source === configurationPath ? replacement : layer))
+    : change.scope === "personal"
+      ? [
+          ...capture.policy.layers.filter((layer) => layer.name === "built-in"),
+          replacement,
+          ...capture.policy.layers.filter((layer) => layer.name === "project")
+        ]
+      : [...capture.policy.layers, replacement]
+  if (change.action === "enable" || change.action === "disable" || ruleBefore !== undefined)
+    selectedRules = yield* loadRules({ root, layers })
+  yield* ruleOperation(configurationPath, "$", () => resolveConfiguration(layers, root))
+  yield* ruleOperation(configurationPath, "$", () => compileRules({ rules: selectedRules, includeDisabled: true }))
+  const selectedId =
+    change.action === "connect"
+      ? selectedRules.find((rule) => rule.path === (path === undefined ? undefined : canonicalDestination(path)))?.id
+      : change.id
+  const enabled = selectedRules.find((rule) => rule.id === selectedId)?.enabled
   const after = JSON.stringify(decodeConfigurationDocument(proposed, configurationPath), null, 2) + "\n"
-  const plan = { version: 1 as const, root, change, configurationPath, before, after, path, packBefore, packAfter }
+  const authoredSources = yield* ruleOperation(configurationPath, "rules", () =>
+    currentRules.map((rule) => ({ path: rule.path, text: readFileSync(rule.path, "utf8") }))
+  )
+  const plan = {
+    enabled,
+    authoredSources,
+    layers: capture.policy.layers,
+    version: 1 as const,
+    root,
+    change,
+    configurationPath,
+    before,
+    after,
+    path,
+    ruleBefore,
+    ruleAfter
+  }
   return { ...plan, digest: createHash("sha256").update(JSON.stringify(plan)).digest("hex") }
 })
 
@@ -184,9 +246,9 @@ const applyRuleChangeUnlocked = Effect.fn("Rules.applyChangeUnlocked")(function*
       "rules plan is stale; preview again before applying"
     )
   yield* ruleOperation(plan.configurationPath, "$", () => {
-    if (plan.path !== undefined && plan.packBefore === undefined && plan.packAfter !== undefined) {
+    if (plan.path !== undefined && plan.ruleBefore === undefined && plan.ruleAfter !== undefined) {
       mkdirSync(dirname(plan.path), { recursive: true, mode: 0o700 })
-      writeFileSync(plan.path, plan.packAfter, { encoding: "utf8", flag: "wx", mode: 0o600 })
+      writeFileSync(plan.path, plan.ruleAfter, { encoding: "utf8", flag: "wx", mode: 0o600 })
     }
     if (plan.after !== plan.before) atomicInstallationFile(plan.configurationPath, plan.after)
   })
@@ -197,6 +259,7 @@ const applyRuleChangeUnlocked = Effect.fn("Rules.applyChangeUnlocked")(function*
     scope: change.scope,
     configurationPath: plan.configurationPath,
     ...(plan.path === undefined ? {} : { path: plan.path }),
+    enabled: plan.enabled,
     providerCalls: 0,
     classifierQualityValidated: false
   }

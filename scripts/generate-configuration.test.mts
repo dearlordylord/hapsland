@@ -7,8 +7,7 @@ import { fromJSONSchema } from "zod/v4"
 import * as Schema from "effect/Schema"
 import { describe, expect, it } from "vitest"
 import { decodeConfigurationText } from "../src/configuration/decode.ts"
-import { decodeRulePackText } from "../src/rules/schema.ts"
-import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../src/rules/targets.ts"
+import { decodeRuleText } from "../src/rules/schema.ts"
 import { renderConfigurationArtifacts } from "./generate-configuration.ts"
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..")
@@ -27,7 +26,7 @@ const withFixture = (run: (root: string) => void): void => {
   )
   writeFileSync(
     join(root, "docs/configuration.md"),
-    "# Configuration\n\nAuthored guide before.\n\n<!-- configuration-guide:start -->\nold\n<!-- configuration-guide:end -->\n\nAuthored pack notes before.\n\n<!-- rule-pack-guide:start -->\nold\n<!-- rule-pack-guide:end -->\n\nAuthored guide after.\n"
+    "# Configuration\n\nAuthored guide before.\n\n<!-- configuration-guide:start -->\nold\n<!-- configuration-guide:end -->\n\nAuthored pack notes before.\n\n<!-- rule-guide:start -->\nold\n<!-- rule-guide:end -->\n\nAuthored guide after.\n"
   )
   try {
     run(root)
@@ -47,7 +46,7 @@ const generatedFiles = (root: string): ReadonlyArray<string> => [
   join(root, "docs/configuration.md"),
   join(root, "docs/installation-workflows.md"),
   join(root, "schemas/review-config-v1.schema.json"),
-  join(root, "schemas/review-rule-pack-v1.schema.json")
+  join(root, "schemas/review-rule-v1.schema.json")
 ]
 
 const codeBlocks = (markdown: string): ReadonlyArray<string> =>
@@ -83,226 +82,58 @@ describe("configuration documentation generator", () => {
       const readme = initial[0] ?? ""
       const guide = initial[1] ?? ""
       expect(readme).toContain("Configure file selection")
-      expect(readme).toContain("local rule packs")
-      expect(guide).toContain("ruleOverrides.<key>.threshold")
-      expect(guide).toContain("`packs[].path` | non-empty string | Required (path form)")
-      expect(guide).toContain("`includes` | array of non-empty string (may be empty)")
-      expect(guide).toContain("`includes[]` | non-empty string | Array item (array may be empty)")
-      expect(guide).toContain("`ruleOverrides` | map of object (may be empty)")
-      expect(guide).toContain("`ruleOverrides.<key>` | object | Map value (map may be empty)")
-      expect(guide).toContain("`rules` | array of object (may be empty) | Required")
-      expect(guide).toContain("`rules[]` | object | Array item (array may be empty)")
-      expect(guide.match(/`packs\[\]\.enabled`/gu)).toHaveLength(1)
+      expect(readme).toContain("individual local rules")
+      expect(guide).toContain("`rules[].path`")
+      expect(guide).toContain("`rules[].threshold`")
+      expect(guide).toContain("`inputs[].languages`")
       expect(readme).toContain("Authored README before.")
       expect(readme).toContain("Authored README after.")
       expect(guide).toContain("Authored guide before.")
-      expect(guide).toContain("Authored pack notes before.")
       expect(guide).toContain("Authored guide after.")
-
-      expect(
-        codeBlocks(readme).map((example) => decodeConfigurationText(example, "README configuration example").version)
-      ).toEqual([1])
-      const configurationGuideExample = codeBlocks(guide).find((example) => example.includes('"version"'))
-      expect(configurationGuideExample).toBeDefined()
-      expect(decodeConfigurationText(configurationGuideExample ?? "", "configuration guide example").version).toBe(1)
-      const packExample = codeBlocks(guide).find((example) => example.includes("schemaVersion"))
-      expect(packExample).toBeDefined()
-      expect(decodeRulePackText(packExample ?? "{}", "guide example").rules[0]?.reviewTargets[0]).toMatchObject({
-        artifactKind: "typeShape",
-        inputContract: TYPE_INPUT_CONTRACT
+      const examples = codeBlocks(guide)
+      const ruleExample = examples.find((example) => example.includes('"question"'))
+      expect(ruleExample).toBeDefined()
+      expect(decodeRuleText(ruleExample ?? "{}", "guide example").inputs[0]).toMatchObject({
+        kind: "type",
+        languages: ["typescript", "rust", "bend"]
       })
-
-      const configurationSchema = JSON.parse(readFileSync(files[3]!, "utf8")) as Record<string, unknown>
-      const rulePackSchema = JSON.parse(readFileSync(files[4]!, "utf8")) as Record<string, unknown>
+      expect(codeBlocks(readme).map((example) => decodeConfigurationText(example, "readme").version)).toEqual([1])
+      const configurationSchema = JSON.parse(readFileSync(files[3]!, "utf8"))
+      const ruleSchema = JSON.parse(readFileSync(files[4]!, "utf8"))
       const configurationValidator = fromJSONSchema(configurationSchema)
-      const rulePackValidator = fromJSONSchema(rulePackSchema)
-      expect(configurationSchema).toMatchObject({
-        $schema: "https://json-schema.org/draft/2020-12/schema",
-        required: ["version"],
-        additionalProperties: false,
-        properties: { packs: { items: { $ref: "#/$defs/RulePackReference" } } },
-        $defs: {
-          RuleOverride: { properties: { threshold: { type: "number", minimum: 0, maximum: 1 } } },
-          RulePackReference: { anyOf: expect.any(Array) }
-        }
-      })
-      expect(rulePackSchema).toMatchObject({
-        $ref: "#/$defs/RulePackDocument",
-        $defs: {
-          RulePackDocument: { properties: { rules: { items: { $ref: "#/$defs/RuleDefinition" } } } },
-          RuleDefinition: {
-            properties: {
-              criteria: { $ref: "#/$defs/RuleCriteria" },
-              threshold: { minimum: 0, maximum: 1, default: 0.7 }
-            }
-          }
-        }
-      })
-      expect(configurationValidator.safeParse({ version: 1 }).success).toBe(true)
+      const ruleValidator = fromJSONSchema(ruleSchema)
       expect(
-        configurationValidator.safeParse({ version: 1, includes: [], excludes: [], packs: [], ruleOverrides: {} })
-          .success
+        configurationValidator.safeParse({ version: 1, rules: [{ path: "rule.json", threshold: 0.5 }] }).success
       ).toBe(true)
       expect(
-        configurationValidator.safeParse({
-          version: 1,
-          ruleOverrides: { "team/check": { threshold: 0.5 } },
-          packs: [{ path: "rules.jsonc", enabled: true }]
-        }).success
-      ).toBe(true)
-      expect(configurationValidator.safeParse({ version: 1, consent: true }).success).toBe(false)
-      for (const identity of ["team/name", "team:name", "team\\name", "team name"]) {
-        const configuration = { version: 1, packs: [{ id: identity }] }
-        expect(configurationValidator.safeParse(configuration).success).toBe(false)
-        expect(() => decodeConfigurationText(JSON.stringify(configuration), "invalid-pack-reference.jsonc")).toThrow()
-      }
-      expect(configurationValidator.safeParse({ version: 1, settings: { deadlineMs: 60_001 } }).success).toBe(false)
-      expect(
-        configurationValidator.safeParse({ version: 1, ruleOverrides: { "team/check": { threshold: 1.1 } } }).success
+        configurationValidator.safeParse({ version: 1, rules: [{ path: "rule.json", id: "team/check" }] }).success
       ).toBe(false)
+      expect(configurationValidator.safeParse({ version: 1, packs: [] }).success).toBe(false)
       expect(
-        configurationValidator.safeParse({ version: 1, packs: [{ path: "rules.jsonc", id: "team" }] }).success
+        configurationValidator.safeParse({ version: 1, rules: [{ id: "team/check", threshold: 1.1 }] }).success
       ).toBe(false)
-      expect(
-        rulePackValidator.safeParse({ schemaVersion: 1, id: "team", contentVersion: "1.0.0", rules: [] }).success
-      ).toBe(true)
-      const typeTarget = {
-        artifactKind: "typeShape",
-        inputContract: TYPE_INPUT_CONTRACT,
-        capabilities: ["root-declaration", "resolved-outbound-types"]
-      }
-      const functionTarget = {
-        artifactKind: "function",
-        inputContract: FUNCTION_INPUT_CONTRACT,
-        capabilities: ["signature", "body"]
-      }
-      const pack = {
-        schemaVersion: 1,
-        id: "team",
-        contentVersion: "1.0.0",
-        rules: [
-          {
-            id: "check",
-            question: "Is the rule satisfied?",
-            criteria: { false: "No", true: "Yes" },
-            message: "Check this rule.",
-            reviewTargets: [typeTarget, functionTarget]
-          }
-        ]
-      }
-      expect(rulePackValidator.safeParse(pack).success).toBe(true)
-      expect(decodeRulePackText(JSON.stringify(pack), "pack.jsonc").schemaVersion).toBe(1)
+      const authored = JSON.parse(ruleExample ?? "{}")
+      expect(ruleValidator.safeParse(authored).success).toBe(true)
       for (const invalid of [
-        { ...pack, schemaVersion: "unsupported" },
-        { ...pack, rules: [{ ...pack.rules[0], reviewTargets: [] }] },
-        {
-          ...pack,
-          rules: [{ ...pack.rules[0], reviewTargets: [{ ...typeTarget, inputContract: FUNCTION_INPUT_CONTRACT }] }]
-        },
-        {
-          ...pack,
-          rules: [{ ...pack.rules[0], reviewTargets: [{ ...functionTarget, capabilities: ["root-declaration"] }] }]
-        },
-        {
-          ...pack,
-          rules: [
-            {
-              ...pack.rules[0],
-              reviewTargets: [{ ...typeTarget, capabilities: ["root-declaration", "root-declaration"] }]
-            }
-          ]
-        }
+        { ...authored, version: 2 },
+        { ...authored, inputs: [] },
+        { ...authored, minimumRung: 1 },
+        { ...authored, inputs: [{ languages: ["typescript"], kind: "value", requires: [] }] },
+        { ...authored, inputs: [{ languages: [], kind: "type", requires: [] }] }
       ]) {
-        expect(rulePackValidator.safeParse(invalid).success).toBe(false)
-        expect(() => decodeRulePackText(JSON.stringify(invalid), "invalid.jsonc")).toThrow()
+        expect(ruleValidator.safeParse(invalid).success).toBe(false)
+        expect(() => decodeRuleText(JSON.stringify(invalid), "invalid.json")).toThrow()
       }
-      // The runtime also enforces one target per kind. Zod's JSON Schema converter
-      // does not currently apply the draft 2020-12 `maxContains` keyword.
-      expect(() =>
-        decodeRulePackText(
-          JSON.stringify({ ...pack, rules: [{ ...pack.rules[0], reviewTargets: [typeTarget, typeTarget] }] }),
-          "duplicate-target.jsonc"
-        )
-      ).toThrow()
-      expect(
-        rulePackValidator.safeParse({
-          schemaVersion: 1,
-          id: "team",
-          contentVersion: "1.0.0",
-          rules: [
-            {
-              id: "check",
-              question: "Is the rule satisfied?",
-              criteria: { false: "No", true: "Yes" },
-              message: "Check this rule."
-            }
-          ]
-        }).success
-      ).toBe(false)
-      expect(rulePackValidator.safeParse({ version: 1, packId: "team", packVersion: "1.0.0", rules: [] }).success).toBe(
-        false
-      )
-      for (const identity of ["team/name", "team:name", "team\\name", "team name"]) {
-        expect(
-          rulePackValidator.safeParse({ schemaVersion: 1, id: identity, contentVersion: "1.0.0", rules: [] }).success
-        ).toBe(false)
-        expect(() =>
-          decodeRulePackText(
-            JSON.stringify({ schemaVersion: 1, id: identity, contentVersion: "1.0.0", rules: [] }),
-            "invalid-identity.jsonc"
-          )
-        ).toThrow()
-        expect(
-          rulePackValidator.safeParse({
-            schemaVersion: 1,
-            id: "team",
-            contentVersion: "1.0.0",
-            rules: [
-              {
-                id: identity,
-                question: "Is the rule satisfied?",
-                criteria: { false: "No", true: "Yes" },
-                message: "Check this rule."
-              }
-            ]
-          }).success
-        ).toBe(false)
-        expect(() =>
-          decodeRulePackText(
-            JSON.stringify({
-              schemaVersion: 1,
-              id: "team",
-              contentVersion: "1.0.0",
-              rules: [
-                {
-                  id: identity,
-                  question: "Is the rule satisfied?",
-                  criteria: { false: "No", true: "Yes" },
-                  message: "Check this rule."
-                }
-              ]
-            }),
-            "invalid-rule-identity.jsonc"
-          )
-        ).toThrow()
+      for (const identity of ["team:name", "team\\name", "team name", "../rule", "team/../rule"]) {
+        expect(ruleValidator.safeParse({ ...authored, id: identity }).success).toBe(false)
+        expect(() => decodeRuleText(JSON.stringify({ ...authored, id: identity }), "invalid.json")).toThrow()
       }
       expect(
-        rulePackValidator.safeParse({
-          schemaVersion: 1,
-          id: "team",
-          contentVersion: "1.0.0",
-          rules: [
-            {
-              id: "check",
-              question: "Is the rule satisfied?",
-              criteria: { false: "No", true: "Yes" },
-              message: "Check this rule.",
-              threshold: 1.1
-            }
-          ]
+        ruleValidator.safeParse({
+          ...authored,
+          inputs: [{ languages: ["typescript"], kind: "schema", dialect: "effect", requires: [] }]
         }).success
-      ).toBe(false)
-      expect(readFileSync(files[3]!, "utf8")).toContain('"$defs"')
+      ).toBe(true)
 
       const second = runGenerator(root, "--update")
       expect(second.status, second.stderr).toBe(0)
@@ -336,7 +167,7 @@ describe("configuration documentation generator", () => {
       const readme = join(root, "README.md")
       const guide = join(root, "docs/configuration.md")
       const originalReadme = readFileSync(readme, "utf8")
-      const malformedGuide = readFileSync(guide, "utf8").replace("<!-- rule-pack-guide:start -->", "")
+      const malformedGuide = readFileSync(guide, "utf8").replace("<!-- rule-guide:start -->", "")
       writeFileSync(guide, malformedGuide)
 
       const updated = runGenerator(root, "--update")

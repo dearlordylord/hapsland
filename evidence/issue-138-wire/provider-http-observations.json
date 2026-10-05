@@ -15,13 +15,13 @@
   "observations": [
     {
       "id": "type-candidate",
-      "localRequestBytes": 942,
-      "httpBodyBytes": 956,
-      "httpBodySha256": "b73cd292975d8d571a4564936685ab5ad51a0a7659ac245171fed9d0cf77f0c2",
+      "localRequestBytes": 928,
+      "httpBodyBytes": 942,
+      "httpBodySha256": "e4e9c8ce40470472b57c33d6ef9bddde9dccd9378f40792df2df14f58b530ef7",
       "stateBytes": 777,
-      "questionsBytes": 135,
+      "questionsBytes": 121,
       "questionKeys": [
-        "wire-proposal/type"
+        "type"
       ],
       "inputContract": "direct-event/type-shape/v1",
       "headerNames": [
@@ -35,13 +35,13 @@
     },
     {
       "id": "function-candidate",
-      "localRequestBytes": 1026,
-      "httpBodyBytes": 1040,
-      "httpBodySha256": "ca2a33380e67de3de25f4a652b23b912c4b09b65b0ac67442843d69bcdb40f08",
+      "localRequestBytes": 1012,
+      "httpBodyBytes": 1026,
+      "httpBodySha256": "c1f30efdcb5d1d81ab2bca6489ebaa84844854d6c04d4206bca2284a07d9ea53",
       "stateBytes": 854,
-      "questionsBytes": 142,
+      "questionsBytes": 128,
       "questionKeys": [
-        "wire-proposal/function"
+        "function"
       ],
       "inputContract": "direct-event/function/v1",
       "headerNames": [

@@ -6,7 +6,7 @@ import { prepareObservation, preparedProviderInput, preparedUnitStillCurrent } f
 import { addEvent, makeReviewGitFixture as makeGitFixture, put, updateEvent } from "./test-fixtures.ts"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
-import { compileRulePack } from "../rules/compiler.ts"
+import { compileRule } from "../rules/compiler.ts"
 import { semanticIdentity } from "./model.ts"
 
 describe("Codex root attribution", () => {
@@ -24,29 +24,22 @@ describe("Codex root attribution", () => {
         advicee: observation.advicee,
         inputContract: FUNCTION_INPUT_CONTRACT,
         settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
-        rules: compileRulePack(
+        rules: [
           {
-            schemaVersion: 1,
-            id: "team",
-            contentVersion: "1",
-            rules: [
+            id: "function",
+            question: "Is this function clear?",
+            criteria: { false: "No", true: "Yes" },
+            message: "Clarify it",
+            inputs: [
               {
-                id: "function",
-                question: "Is this function clear?",
-                criteria: { false: "No", true: "Yes" },
-                message: "Clarify it",
-                reviewTargets: [
-                  {
-                    artifactKind: "function",
-                    inputContract: FUNCTION_INPUT_CONTRACT,
-                    capabilities: ["signature", "body"]
-                  }
-                ]
+                languages: ["typescript"],
+                kind: "function",
+
+                requires: ["signature", "body"]
               }
             ]
-          },
-          "fixture-current"
-        )
+          }
+        ].map((rule) => compileRule({ version: 1, ...rule }, "fixture-current"))
       } as const
       const prepared = yield* prepareObservation(observation, context)
       expect(prepared.observation.outcomes[0]?.status).toBe("observed")

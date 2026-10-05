@@ -19,8 +19,8 @@ const gate = (event: CanonicalEvent): boolean => {
   return command.gate === "admit"
 }
 
-export const includeRule = (packEnabled: boolean, ruleEnabled: boolean): boolean =>
-  gate({ kind: "ruleEnableCheck", packEnabled, ruleEnabled })
+export const includeRule = (ruleEnabled: boolean): boolean =>
+  gate({ kind: "ruleEnableCheck", packEnabled: true, ruleEnabled })
 
 export const applicableRule = (facts: {
   readonly consent: boolean
@@ -28,15 +28,12 @@ export const applicableRule = (facts: {
   readonly target: "typeShape" | "functionTarget" | "unsupportedTarget"
   readonly globalIncluded: boolean
   readonly globalExcluded: boolean
-  readonly packEnabled: boolean
   readonly ruleEnabled: boolean
   readonly ruleIncluded: boolean
   readonly ruleExcluded: boolean
   readonly targetDeclared: boolean
   readonly capabilitiesAvailable: boolean
-  readonly sourceRung: number
-  readonly minimumRung: number
-}): boolean => gate({ kind: "ruleApplicabilityCheck", ...facts })
+}): boolean => gate({ kind: "ruleApplicabilityCheck", ...facts, packEnabled: true, sourceRung: 1, minimumRung: 1 })
 
 export const findingFromProbability = (probability: number, threshold: number): boolean => {
   const observed = probabilityWords(probability)

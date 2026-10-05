@@ -80,6 +80,7 @@ export function check(input: ModerationInput): ModerationDecision {
         // A rule which actually requires closure must still be withheld.
         const strict = {
           ...rule,
+          inputs: [{ languages: ["typescript" as const], kind: "function" as const, requires: FUNCTION_CAPABILITIES }],
           reviewTargets: [
             {
               artifactKind: "function" as const,

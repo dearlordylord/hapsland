@@ -20,7 +20,7 @@ export const securityWireManifest = JSON.parse(
   }
 }
 
-export const securityWireRuleId = "security-probe/security_wire_probe"
+export const securityWireRuleId = "security_wire_probe"
 export const securityWireRule = {
   id: "security_wire_probe",
   question: "Does this declaration contain the intended shape?",

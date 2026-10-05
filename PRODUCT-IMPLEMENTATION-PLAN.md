@@ -380,7 +380,7 @@ Acceptance requires that Codex sees advice for the reviewed snapshot before its 
 the completed edit is never rejected, and unavailable review is distinguishable from no
 finding.
 
-### Phase F — configuration and rule packaging
+### Phase F — configuration and rules
 
 **Completed 2026-09-20:** issue #3,
 implemented through issues #9–#15, with the consolidated local specification in
@@ -389,9 +389,9 @@ configuration explanation, session receipt, and rule-conformance test requiremen
 Directory-scoped consent is deferred to
 issue #2.
 
-Phase F provides project/user configuration, file selection, thresholds, messages,
+The completed Phase F milestone provided project/user configuration, file selection, thresholds, messages,
 enable/disable consent, privacy exclusions, timeouts, credential references, local
-declarative rule packs, diagnostics, and session receipts without rule-specific Codex
+declarative rules, diagnostics, and session receipts without rule-specific Codex
 adapter changes. Deterministic tests cover configuration and rule composition at the real
 process boundary. The explicit live milestone completed all 44 planned transport and
 conformance requests; its preregistered semantic release gate did not pass. Sanitized
@@ -399,6 +399,11 @@ failed, ambiguous, and unchecked semantic results remain recorded in
 [`evidence/evaluation/live-report-2026-09-20.json`](./evidence/evaluation/live-report-2026-09-20.json)
 without weakening expectations. That result limits release claims but does not leave the
 Phase F implementation unfinished.
+
+The 2026-10-05 owner amendment in [the configuration/rule contract](./PRODUCT-PHASE-F-SPEC.md)
+replaces pack definitions with one rule per JSONC file, explicit rule references,
+language selection, and separate root/context policy. Historical milestone outcomes
+do not establish validation of that later change.
 
 ### Phase G — composition and release hardening
 

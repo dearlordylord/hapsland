@@ -108,11 +108,13 @@ describe("resident session analytics", () => {
       await Effect.runPromise(server.whenIdle())
       await put(
         f.root,
-        "user.jsonc",
+        ".hapsland.jsonc",
         JSON.stringify({
           version: 1,
-          sessionAnalytics: true,
-          ruleOverrides: Object.fromEntries(configuredRules.map((rule) => [rule.id, { enabled: false }]))
+          rules: configuredRules.map((rule) => ({
+            path: join(f.root, ".hapsland", "rules", "defaults", `${encodeURIComponent(rule.id)}.json`),
+            enabled: false
+          }))
         })
       )
       expect(Effect.runSync(server.admit(await f.observation("rules-disabled"), f.dispatch)).status).toBe("accepted")

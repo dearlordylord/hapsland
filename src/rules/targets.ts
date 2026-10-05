@@ -1,4 +1,4 @@
-/** Review-input identifiers and evidence needs for the current rule-pack schema. */
+/** Review-input identifiers and evidence needs for the current rule schema. */
 export const TYPE_INPUT_CONTRACT = "direct-event/type-shape/v1" as const
 export const FUNCTION_INPUT_CONTRACT = "direct-event/function/v1" as const
 

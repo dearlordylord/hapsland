@@ -1,58 +1,96 @@
-# Configuration and rule packs
+# Configuration and rules
 
-The configuration file and authored rule packs use version 1.
-Each rule names the type-shape or function input it can review and the
-supporting evidence it needs. The selected review backend returns a probability for the rule's binary
-question. Choice and Score are not supported result forms.
+**Purpose:** Explain rule authoring, explicit activation, and source-selection settings.
+**Status:** Active maintained guidance for the 2026-10-05 owner-approved rule design.
+**Authority:** The accepted rule and configuration contracts in [Phase F](../PRODUCT-PHASE-F-SPEC.md), [direct review](type-function-review-proposal.md), and [compatibility](review-contract-compatibility.md) own behavior; generated field tables describe the current schema.
+**Expected use:** Author a rule, choose where it applies, and explain effective review settings.
+**Lifecycle:** Update with rule/configuration schema, CLI, or source-selection changes; review whenever supported inputs or source-reading boundaries change.
 
-File settings select reviewable files. With no file settings, all otherwise
-eligible files are selected when review credentials are available. User exclusions
-accumulate with project exclusions; a user `"**/*"` exclusion turns review off.
-
-Project configuration is read once from the Git working-tree root. The project file is `.hapsland.jsonc`. User defaults are read from
-`$REVIEW_USER_CONFIG_PATH`, or (when that variable is absent)
-`$XDG_CONFIG_HOME/hapsland/config.jsonc`, defaulting to
-`~/.config/hapsland/config.jsonc` when the XDG base is absent, empty or relative. There is no nested directory
-inheritance and no automatic `.gitignore` loading.
-An explicitly empty `$REVIEW_USER_CONFIG_PATH` is a configuration error; only an
-absent variable selects the default path.
-
-Both documents are versioned JSONC and may contain `//` or `/* ... */` comments
-and trailing commas. Unknown fields, duplicate object keys, unsupported versions,
-malformed values, absolute/traversing patterns, and negated patterns are errors.
-The editor-completion artifact is [`../schemas/review-config-v1.schema.json`](../schemas/review-config-v1.schema.json).
-This phase does not publish a hosted schema URL: copy that file into an
-editor-accessible installation/configuration directory and point `$schema` at the
-copy. The schema assists editors with structural JSON; the runtime also parses
-JSONC and applies semantic glob, rule-pack, and repository-policy checks.
+Each rule lives in its own version-one JSONC document. It states a binary question,
+criteria, feedback, and the languages, input forms, and evidence it understands.
+Configuration decides whether the rule is active and where it applies. The review
+backend returns a probability; Choice and Score are separate unsupported result forms.
 
 ## Configuration locations and precedence
 
 | Layer | Location | Behavior |
 | --- | --- | --- |
-| Built-in | Non-rule settings defaults | Supplies defaults when neither user nor project sets a value. |
-| User | `REVIEW_USER_CONFIG_PATH`, otherwise `$XDG_CONFIG_HOME/hapsland/config.jsonc` (normally `~/.config/hapsland/config.jsonc`) | Supplies personal defaults and controls shared resident resources and review destination. |
-| Project | `.hapsland.jsonc` at the canonical Git root | Overrides ordinary settings for this repository. There are no nested config layers. |
-| Rule packs | Explicit `packs` paths in either document | Rule definitions, not another global config layer. Relative paths resolve from the declaring config. |
+| Built-in | Non-rule settings defaults | Supplies omitted settings. |
+| User | `REVIEW_USER_CONFIG_PATH`, otherwise `$XDG_CONFIG_HOME/hapsland/config.jsonc` (normally `~/.config/hapsland/config.jsonc`) | Personal settings across repositories; owns review destination and shared resident resources. |
+| Project | `.hapsland.jsonc` at the canonical Git working-tree root | Overrides ordinary settings for this repository. There are no nested configuration layers. |
+| Rule documents | Explicit `rules` references in configuration | Definitions, not another configuration layer. Paths resolve from the declaring configuration. |
 
-Project overrides user for `sessionAnalytics` (including `false`) and include
-lists. Exclusions accumulate and always win. User graph limits are ceilings:
-projects may lower them. Credentials, review destination, shared resident limits
-and stronger Claude blocking have their documented user-owned restrictions;
-project precedence does not mean every field can override personal authority.
+An absent, empty, or relative XDG base uses `~/.config`. An explicitly empty
+`REVIEW_USER_CONFIG_PATH` is an error; only an absent override selects the default.
+Invocation from a subdirectory does not change the configuration root or pattern base.
 
-The existing `explain` operation reports loaded layers with exact source paths,
-selection origins and effective `sessionAnalytics` with its winning origin:
+Omitted fields inherit. Include lists and language selections use the highest
+explicitly supplied list; an empty list selects nothing. Exclusions accumulate
+across layers and win over includes. Each rule's configured fields resolve
+independently by its stable identity. Individual path and language settings further
+narrow global root selection and the rule's declared input support.
 
-```sh
-printf '%s\n' '{"version":1,"operation":"explain","cwd":"/absolute/project","path":"src/example.ts"}' | hapsland --explain
+User privacy exclusions cannot be removed by project settings. Review destination,
+shared resident limits, and stronger Claude blocking have user-owned restrictions;
+ordinary project precedence does not override those restrictions. User graph limits
+are ceilings that projects may lower. `sessionAnalytics` uses ordinary precedence,
+including an explicit project `false`.
+
+Configuration and rule documents support JSONC comments and trailing commas.
+Unknown fields, duplicate keys, unsupported versions, malformed values and patterns,
+and duplicate rule identities fail validation. Configuration is validated before
+source capture. Editor completion uses
+[`review-config-v1.schema.json`](../schemas/review-config-v1.schema.json); copy the
+schema into an editor-accessible location when a local `$schema` reference is needed.
+There is no hosted schema URL. Runtime validation additionally checks semantic
+constraints, references, and repository containment.
+
+## Review roots, related code, and privacy
+
+`includes` and `excludes` select files whose changed declarations may become review
+roots. `languages` optionally narrows their supported source languages. With these
+settings omitted, all otherwise eligible supported roots are selected.
+
+`contextIncludes` and `contextExcludes` select files that may supply related code.
+When context settings are omitted, context follows the effective root file policy;
+choosing `src/**` does not silently permit reading outside `src`. An explicit
+context selection can additionally permit `shared/**` without selecting changed
+roots there. Every captured file still passes containment, protected-path, Git-ignore,
+regular-file and size checks. `privacyExcludes` prohibits both root and context reads
+regardless of any include. Root-language and per-rule filters do not broaden the
+analyzer's supported dependency resolution.
+
+For example, this project reviews TypeScript and Rust roots in `src`, while allowing
+related declarations from `shared`. A referenced `shared/private` file remains unread:
+
+```jsonc
+{
+  "version": 1,
+  "includes": ["src/**"],
+  "languages": ["typescript", "rust"],
+  "contextIncludes": ["src/**", "shared/**"],
+  "privacyExcludes": ["shared/private/**"],
+  "rules": [
+    {
+      "path": ".hapsland/rules/custom/domain-state.json",
+      "languages": ["typescript"],
+      "includes": ["src/api/**"]
+    }
+  ]
+}
 ```
 
-`configuration.layers` is ordered from built-in through user to project. Missing
-optional files are not reported as loaded. An explicit user-file override is
-shown by its actual path. No review backend is called. Native agent settings
-(such as Codex `config.toml`/`hooks.json`) configure hooks and trust separately;
-they are not Hapsland review-policy layers.
+Path settings belong to configuration, never to the authored rule. A TypeScript
+rule restricted to `tests/**` cannot select anything when the global root scope is
+`src/**`. Required context denied by privacy or context selection is missing evidence,
+not a clear review result. Rules that do not need the omitted evidence may still run.
+
+Patterns are repository-relative and use `/` separators. Matching is case-sensitive;
+`*` and `?` do not cross `/`, while `**` may cross directories. Dot-files require a
+pattern segment beginning with `.`. Bracket classes and simple brace alternatives
+are supported. Patterns are bounded to 1,024 characters, eight brace groups, eight
+choices per group, and 256 expansions. Absolute paths, traversal, and negated
+re-inclusion are invalid. Moving a rule document never changes the pattern base.
 
 <!-- configuration-guide:start -->
 
@@ -73,10 +111,16 @@ they are not Hapsland review-policy layers.
 |---|---|---|---|---|
 | `version` | fixed value 1 | Required | — | Configuration wire-format version. |
 | `$schema` | string | Optional | — | Optional editor schema location. It does not change runtime validation. |
-| `includes` | array of non-empty string (may be empty) | Optional | — | Optional repository-relative file patterns. Omission inherits the lower-precedence list; an empty array selects no paths. |
+| `includes` | array of non-empty string (may be empty) | Optional | — | Changed-root repository-relative patterns. Omission inherits the lower-precedence list; an empty array selects no roots. |
 | `includes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
-| `excludes` | array of non-empty string (may be empty) | Optional | — | Additional repository-relative exclusions. Exclusions accumulate across configuration layers and always win. |
+| `excludes` | array of non-empty string (may be empty) | Optional | — | Changed-root repository-relative exclusions. Exclusions accumulate across configuration layers and always win for roots. |
 | `excludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
+| `languages` | array of "typescript" or "rust" or "bend" (may be empty) | Optional | — | Changed-root analyzer languages. Omission inherits; an empty array selects no roots. |
+| `languages[]` | "typescript" or "rust" or "bend" | Array item (array may be empty) | — | — |
+| `contextIncludes` | array of non-empty string (may be empty) | Optional | — | Supporting-context patterns. Omission inherits effective root includes; an empty array selects no supporting paths. |
+| `contextIncludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
+| `contextExcludes` | array of non-empty string (may be empty) | Optional | — | Supporting-context exclusions accumulate across layers. Omission inherits effective root exclusions. |
+| `contextExcludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
 | `privacyExcludes` | array of non-empty string (may be empty) | Optional | — | Additional protected-path exclusions. These accumulate and cannot be overridden by lower-privacy layers. |
 | `privacyExcludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
 | `reviewBackend` | object with `provider` or object with `provider` and `model` and `accountId` | Optional | — | User-owned review destination. Jev is the default; Cloudflare requires a model and account ID. Projects cannot set this field. |
@@ -99,271 +143,200 @@ they are not Hapsland review-policy layers.
 | `graphLimits.outgoingEdges` | integer (1–16) | Optional | 16 | Maximum outgoing edges per accepted file. |
 | `graphLimits.depth` | integer (1–4) | Optional | 4 | Maximum supporting-reference depth. |
 | `graphLimits.work` | integer (1–128) | Optional | 128 | Maximum graph edge work steps. |
-| `packs` | array of non-empty string or object with `path` or object with `id` (may be empty) | Optional | — | Local rule-pack path declarations or references to packs inherited from lower-precedence layers. Shipped defaults are explicitly connected during authorized setup. |
-| `packs[]` | non-empty string or object with `path` or object with `id` | Array item (array may be empty) | — | A path declaration or an inherited pack identity; object forms contain exactly one locator. |
-| `packs[].path` | non-empty string | Required (path form) | — | Local rule-pack path; relative paths resolve from the originating configuration file. |
-| `packs[].enabled` | boolean | Optional | — | Optional enablement override. Omission inherits an existing pack's state and enables a newly declared pack. |
-| `packs[].id` | non-empty string matching a pattern | Required (id form) | — | Identity of a rule pack declared in a lower-precedence configuration layer. |
-| `ruleOverrides` | map of object (may be empty) | Optional | — | Map of qualified rule IDs to layer-specific overrides. Use pack-id/rule-id for local packs. |
-| `ruleOverrides.<key>` | object | Map value (map may be empty) | — | Layer-specific activation, path filters, threshold, and advice message for one qualified rule ID. |
-| `ruleOverrides.<key>.enabled` | boolean | Optional | — | Whether this rule is enabled in this configuration layer. |
-| `ruleOverrides.<key>.includes` | array of non-empty string (may be empty) | Optional | — | Additional rule path filters; they intersect global file selection. |
-| `ruleOverrides.<key>.includes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
-| `ruleOverrides.<key>.excludes` | array of non-empty string (may be empty) | Optional | — | Rule-specific path exclusions; they cannot restore globally excluded paths. |
-| `ruleOverrides.<key>.excludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
-| `ruleOverrides.<key>.threshold` | number (0–1) | Optional | — | Probability threshold from 0 through 1. Omission inherits the rule-pack threshold. |
-| `ruleOverrides.<key>.message` | non-empty string | Optional | — | Advice text to use for this rule; omission keeps the rule-pack message. |
+| `rules` | array of non-empty string or object with `path` or object with `id` (may be empty) | Optional | — | — |
+| `rules[]` | non-empty string or object with `path` or object with `id` | Array item (array may be empty) | — | A local rule path or inherited rule ID, with optional selection settings. |
+| `rules[].path` | non-empty string | Required (path form) | — | — |
+| `rules[].enabled` | boolean | Optional | — | — |
+| `rules[].languages` | array of "typescript" or "rust" or "bend" (may be empty) | Optional | — | — |
+| `rules[].languages[]` | "typescript" or "rust" or "bend" | Array item (array may be empty) | — | — |
+| `rules[].includes` | array of non-empty string (may be empty) | Optional | — | — |
+| `rules[].includes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
+| `rules[].excludes` | array of non-empty string (may be empty) | Optional | — | — |
+| `rules[].excludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
+| `rules[].threshold` | number (0–1) | Optional | — | — |
+| `rules[].message` | non-empty string | Optional | — | — |
+| `rules[].id` | string matching a pattern | Required (id form) | — | — |
 
 <!-- configuration-guide:end -->
 
-The optional `graphLimits` profile controls Bend import exploration for a review
-unit. It has its own `version: 1`; omitted fields inherit their built-in values.
-Project values may lower a user's graph limit, but may not raise it. A changed
-profile applies when a new review unit captures configuration; an in-flight
-unit retains its original limits. An invalid profile fails configuration
-resolution before any new review egress. The total read cap must be at least
-the per-file cap because Bend reserves a full allowed file before requesting a
-read. The root's declared encoded contribution must fit `treeBytes`; Bend
-rejects that root otherwise. Native capture must measure canonical encoded
-contributions and enforce physical read bounds. These graph limits apply to
-source evidence. Provider request limits apply separately to the exact HTTP body;
-see [review providers and limits](review-providers.md) for selection, native checks,
-and the currently unmeasured token budgets.
+The graph profile bounds the active direct-edit type and function path. Each
+supporting file must pass the context policy before reading. TypeScript local
+imports, verified Rust Cargo modules, and explicit relative Bend imports can supply
+bounded cross-file evidence within their supported analysis profiles. Rust and Bend
+functions are not supported. See the [input contract](type-function-review-proposal.md#branch-contracts).
 
-The graph profile bounds the active direct-edit type and function review path.
-Hapsland follows supported local imports only after each supporting path passes
-file selection. A missing, excluded, ambiguous, or oversized required source
-makes that review unit incomplete and prevents its Jev request.
+The optional version-one `graphLimits` profile bounds source bytes, tree size,
+files, reads, edges, depth, and work. Projects may lower user ceilings. An in-flight
+unit retains its captured profile; an invalid profile fails configuration before
+egress. The total read cap must be at least the per-file cap. Provider request
+limits independently constrain the HTTP request; see [review providers](review-providers.md).
 
-Policy layers are built-in, user, then project. A supplied include list replaces the
-lower-precedence list; exclusions accumulate, and any exclusion wins. Thus a project
-include cannot restore a user privacy exclusion. Runtime captures the resolved policy
-and its digest at event preflight. `config explain` uses that same captured policy and
-does not call the review backend:
+Credential environment-variable selection has a user-owned exception: a user
+`credentialEnvVar` wins over a project value; otherwise a project value may supply it.
+The built-in reference is `TYPESAFE_API_KEY`. Inspection reports its name and presence,
+never its value. See [credential lookup](installation-workflows.md#personal-development-on-your-own-clients).
 
-```sh
-printf '%s\n' '{"version":1,"operation":"explain","cwd":"/repo","path":"src/a.ts"}' \
-  | node src/cli.ts --explain
-```
+Session analytics are disabled by default. Set `sessionAnalytics: true` to retain
+source-free session totals and bounded rule-ID history, subject to the limits in
+[status and analytics](status.md#optional-session-analytics).
 
-Credential selection has a user-owned exception to this precedence: a
-`credentialEnvVar` set in user configuration takes priority over a project value.
-A project value takes effect when user configuration omits the field. If both omit
-it, the built-in `TYPESAFE_API_KEY` reference applies.
+Claude feedback defaults to `advisory`. Only user configuration may enable
+`claudeFeedbackMode: "block-current-findings"`; a project may restrict it to
+`advisory`. The post-edit hook cannot undo the edit or guarantee a repair. Background
+and Stop behavior follows the shared delivery contract.
 
-Session analytics are disabled by default. Set `"sessionAnalytics": true` in the
-root project configuration to record source-free Jev outcome totals and a bounded
-rule-ID history for that repository. A user value supplies a default; a project
-value overrides it in either direction, including explicit `false`. See [session analytics](status.md#optional-session-analytics)
-for count semantics and the shared 30-day / 20 MiB retention limits.
+## Declarative rules
 
-Claude Code feedback defaults to `advisory`. In the candidate installed flow,
-the synchronous `PostToolUse` hook may return a current finding within its
-bounded deadline; background or Stop may offer eligible advice later. To opt
-into stronger synchronous feedback after a successful edit, put
-`"claudeFeedbackMode": "block-current-findings"` in the **user** configuration
-file. A project configuration may set `"claudeFeedbackMode": "advisory"` to
-restrict that repository. A project cannot enable block feedback; its attempt
-is an invalid configuration. This setting governs synchronous edit feedback;
-background and Stop follow the resident's shared delivery and round decisions.
-The resident rechecks the current files before handing off a block response.
-The hook runs after the edit and cannot undo it or guarantee that Claude will
-repair the finding.
+When no loaded configuration layer declares a `rules` field, authorized initial
+setup materializes nine editable default rule files under
+`~/.config/hapsland/rules/defaults/`, respecting XDG conventions, and explicitly
+connects them. Any explicit `rules` field, including `rules: []`, is authoritative:
+setup does not add or reconnect defaults alongside that selection. For example, `r1_inferred_case.json` retains the stable rule ID
+`r1_inferred_case`. The selected file is authoritative: editing it changes the rule;
+disabling or disconnecting it changes effective review. Deleting a connected file
+reports a missing-source error, rather than restoring a hidden default. Repeated
+setup preserves authored files. An unreferenced file is inactive in every directory.
 
-## Declarative rule packs
+Each rule document has `version: 1`, a stable `id`, optional `title`, `question`,
+`criteria`, `message`, optional `threshold`, and a nonempty `inputs` list. The default
+threshold is 0.7; a finding requires a probability strictly greater than its threshold.
+An ID may use a namespace such as `team/domain-state`; it is not a filesystem path.
+There are no packs, content-version labels, authored path filters, or source-evidence
+rungs. Content digests identify actual definition changes.
 
-Authorized setup materializes Hapsland's nine shipped default rules as editable JSON
-at `~/.config/hapsland/rules/defaults/hapsland.json` (or the applicable
-`XDG_CONFIG_HOME`), then explicitly connects that file in personal configuration.
-The pack retains its stable `noul` identity and historical assessment keys;
-Noul is TypeSafe's probability result type, rather than the name of the rule set.
-Both shipped and custom packs use the same Effect Schema and semantic compiler.
-Source-rung eligibility is authored in each definition's `minimumRung`.
+Each `inputs` entry names a nonempty `languages` list, a `kind`, and required evidence
+in `requires`. Entries describe supported combinations, not independent dimensions:
+TypeScript, Rust, and Bend support `type`; only TypeScript supports `function`.
+`requires` may be empty, meaning no additional listed evidence requirements beyond
+a supported extracted root; it does not promise complete dependency evidence.
+Type evidence capabilities are `root-declaration`, `resolved-outbound-types`, and
+`selected-source-type-closure`; function capabilities are `signature`, `body`,
+`resolved-local-calls`, and `resolved-outbound-types`. Duplicate combinations are errors. Enabled inputs selected by configured languages
+must have supported combinations and evidence requirements; unsupported selected
+inputs fail configuration before source capture.
 
-The connected JSON is authoritative. Edit or remove rules there to change subsequent
-review. An empty `rules` array is valid. A missing or malformed connected file
-reports a local error; setup never silently restores deleted connected defaults.
-Repeated setup preserves authored files. An unreferenced JSON file is inactive,
-including a custom pack placed in the defaults directory.
+Runtime validation schemas such as Zod and Effect Schema are a distinct future input
+form with a schema dialect; they are not TypeScript type declarations. A disabled rule may retain a schema input declaration for future use, but enabling
+that input is rejected explicitly. A multi-input rule may run its supported inputs
+when configuration languages exclude every unsupported combination. Concrete values
+are not supported review roots. The schema used to validate a rule's JSON is unrelated to reviewing a
+runtime schema. No user code is executed to load a rule or discover its inputs.
 
-### Author JSON first; use the CLI for scaffolding and connection
+Question/criteria edits belong in the rule file. Configuration may change activation,
+path/language selection, threshold, and feedback message. A configured language must
+belong to an authored input; an extra language is an actionable configuration error,
+not a request to extend intrinsic support. The provider receives one changed declaration and bounded related code,
+not a whole file, raw diff, task, or transcript. Missing required evidence prevents
+that rule's evaluation. Findings may concern pre-existing code within the changed root.
 
-The recommended authoring workflow is to write or edit a JSON pack directly,
-using the example and schema below. Save project packs under
-`<Git root>/.hapsland/rules/custom/PACK.json`, or personal packs under
-`~/.config/hapsland/rules/custom/PACK.json` (respecting `XDG_CONFIG_HOME`).
-Then connect the file with `hapsland rules connect --path PATH --scope project`
-or `--scope personal`. Saving a file alone does not activate it.
+### Author, connect, and inspect
 
-Alternatively, `hapsland rules create --id PACK --scope project` creates a minimal
-JSON starting point and connects it. Edit that JSON to author the actual rules;
-the CLI does not replace JSON authoring with an interactive rule editor.
-
-Connection is recorded in the configuration's `packs` list. For example, a
-project `.hapsland.jsonc` can connect a hand-authored pack with:
-
-```json
-{
-  "version": 1,
-  "packs": [".hapsland/rules/custom/my-rules.json"]
-}
-```
-
-Connected packs are enabled by default. Use `packs[].enabled` to disable a whole
-pack, or `ruleOverrides` / the enable and disable commands to control individual
-rules. Rule selection additionally depends on `reviewTargets` (artifact and
-required evidence), `minimumRung` (minimum evidence rung), and `applicability`
-(rule-specific file patterns), alongside global file selection.
-
-Use `hapsland rules list` to inspect the complete effective inventory, including
-disabled rules, qualified identities, configuration scopes and source paths.
-`hapsland rules show --id PACK/RULE` exposes question, criteria, feedback,
-threshold, targets, path filters and configuration origins. Add `--json` for automation.
-Zero enabled rules produces an explicit warning; enabled counts do not imply every
-rule runs on every edit. Review is bounded to supported type and function evidence.
+Write a project rule under `<Git root>/.hapsland/rules/custom/`, or a personal rule
+under `~/.config/hapsland/rules/custom/`. Connect it explicitly:
 
 ```sh
-hapsland rules disable --id noul/r1_inferred_case --scope project
-hapsland rules enable --id noul/r1_inferred_case --scope personal
-hapsland rules create --id my-rules --scope project
-hapsland rules connect --path /absolute/path/to/pack.json --scope personal
+hapsland rules connect --path .hapsland/rules/custom/domain-state.json --scope project
+hapsland rules list
+hapsland rules show --id team/domain-state
+hapsland rules disable --id team/domain-state --scope project
 ```
 
-Interactive creation and connection offer personal scope with project as the
-default, then show concrete target files before confirmation. Unattended changes
-must specify `--scope`. Personal custom packs use
-`~/.config/hapsland/rules/custom/PACK.json`; project packs use
-`<Git root>/.hapsland/rules/custom/PACK.json` and cannot escape the working tree,
-including through symlinks. Creation preserves an existing valid authored file.
-Connection registers an explicit configuration reference. These commands validate
-schema, targets and identities locally; they do not launch an editor, call a
-classifier, or establish classifier quality. Users edit JSON questions themselves.
+`hapsland rules create --id domain-state --scope project` creates a starting rule
+**and connects it**. Its preview states the activation, scope, and concrete files
+before interactive writes. Edit the created JSON to define the actual concern.
+Creation preserves an existing authored file. Interactive create/connect offers
+personal scope with project selected by default; unattended changes specify scope.
+Neither operation opens an editor or calls the review backend.
 
-Local packs use [`../schemas/review-rule-pack-v1.schema.json`](../schemas/review-rule-pack-v1.schema.json).
+A `rules` entry contains either `path` to declare a rule or `id` to configure a rule
+inherited from a lower layer, plus optional `enabled`, `languages`, `includes`,
+`excludes`, `threshold`, and `message`. A new connection enables its rule unless
+explicitly disabled. Relative paths resolve from the declaring configuration.
+Project references must remain inside the Git worktree, including after symlink
+resolution; personal references may name user-managed files. Duplicate identities,
+unknown inherited identities, and rebinding an inherited identity to another source
+are errors. Fork a definition under a distinct ID.
 
-The pack file declares a schema version, stable ID, exact content version, and
-binary rules. `question` and the `true`/`false` criteria are authored content;
-configuration can change only activation, path filters, threshold, and advice
-message. A rule's qualified ID is `pack-id/rule-id`.
+Inventory includes disabled rules, source paths, definition-derived display text,
+and configuration origins. Zero enabled rules is an explicit warning. Setup shows
+one inventory for the current repository per invocation, including when several
+agent runtimes are selected. Enabled counts are not coverage claims.
 
-<!-- rule-pack-guide:start -->
+Rule explanation distinguishes activation, global root selection, per-rule paths,
+language selection, and intrinsic supported inputs. Path/language inspection does
+not parse source or establish available evidence: it must say when artifact kind,
+attribution, and evidence remain unexamined. Configuration explanation uses the same
+resolved policy as review and makes no backend request:
 
-### Rule-pack example
+```sh
+printf '%s\n' '{"version":1,"operation":"explain","cwd":"/absolute/project","path":"src/example.ts"}' | hapsland --explain
+```
+
+`configuration.layers` lists loaded sources from built-in through user to project.
+Missing optional files are not loaded layers. Native agent hook/trust settings are
+separate from Hapsland policy. Rule JSON editor validation uses
+[`review-rule-v1.schema.json`](../schemas/review-rule-v1.schema.json); structural
+validity does not establish classifier judgment quality.
+
+<!-- rule-guide:start -->
+
+### Rule example
 
 ```jsonc
 {
-  "schemaVersion": 1,
-  "id": "team",
-  "contentVersion": "1.0.0",
-  "rules": [
+  "version": 1,
+  "id": "team/meaningful-combinations",
+  "question": "Does the artifact make an invalid state representable?",
+  "criteria": {
+    "false": "Every representable state has a domain meaning.",
+    "true": "The artifact admits a state with no domain meaning."
+  },
+  "message": "Review this declaration's representable states.",
+  "inputs": [
     {
-      "id": "meaningful-combinations",
-      "question": "Does the artifact make an invalid state representable?",
-      "criteria": {
-        "false": "Every representable state has a domain meaning.",
-        "true": "The artifact admits a state with no domain meaning."
-      },
-      "message": "Review this declaration's representable states.",
-      "applicability": {
-        "includes": [
-          "src/**"
-        ]
-      },
-      "reviewTargets": [
-        {
-          "artifactKind": "typeShape",
-          "inputContract": "direct-event/type-shape/v1",
-          "capabilities": [
-            "root-declaration",
-            "resolved-outbound-types",
-            "selected-source-type-closure"
-          ]
-        }
+      "languages": [
+        "typescript",
+        "rust",
+        "bend"
+      ],
+      "kind": "type",
+      "requires": [
+        "root-declaration",
+        "resolved-outbound-types",
+        "selected-source-type-closure"
       ]
     }
   ]
 }
 ```
 
-### Rule-pack fields
+### Rule fields
 
 | Field | Type and bounds | Presence | Default | Description |
 |---|---|---|---|---|
-| `schemaVersion` | fixed value 1 | Required | — | Rule-pack wire-format version. |
-| `id` | non-empty string matching a pattern | Required | — | Stable pack identity; it cannot contain separators or whitespace. |
-| `contentVersion` | non-empty string | Required | — | Authored content version, independent of the wire schema version. |
-| `rules` | array of object (may be empty) | Required | — | Rules declared by this pack. Rule identities must be unique within the pack. |
-| `rules[]` | object | Array item (array may be empty) | — | One declarative rule in a rule pack. |
-| `rules[].id` | non-empty string matching a pattern | Required | — | Stable rule identity within this pack; it cannot contain separators or whitespace. |
-| `rules[].title` | non-empty string | Optional | — | Display title authored with the rule. |
-| `rules[].minimumRung` | 1 or 2 or 3 | Optional | — | Minimum source evidence rung: raw value, declaration, or refined schema. Omission uses 1. |
-| `rules[].question` | non-empty string | Required | — | Question evaluated against the available review input. |
-| `rules[].criteria` | object | Required | — | String-valued evidence criteria for both probability outcomes. |
-| `rules[].criteria.false` | non-empty string | Required | — | Text rendered when the evaluated criterion is false. |
-| `rules[].criteria.true` | non-empty string | Required | — | Text rendered when the evaluated criterion is true. |
-| `rules[].threshold` | number (0–1) | Optional | 0.7 | Probability threshold from 0 through 1. Omission uses the built-in rule threshold. |
-| `rules[].message` | non-empty string | Required | — | Authored advice text attached to a qualifying result. |
-| `rules[].applicability` | object | Optional | — | Rule-level path filters, intersected with global file selection. |
-| `rules[].applicability.includes` | array of non-empty string (may be empty) | Optional | — | Optional repository-relative patterns a path must match for this rule to apply. |
-| `rules[].applicability.includes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
-| `rules[].applicability.excludes` | array of non-empty string (may be empty) | Optional | — | Optional repository-relative patterns that prevent this rule from applying. |
-| `rules[].applicability.excludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
-| `rules[].reviewTargets` | array of object with `artifactKind` and `inputContract` and `capabilities` (at least 1 item, at most 2 items) | Required | — | Exact input contracts and evidence required by this rule. |
-| `rules[].reviewTargets[]` | object with `artifactKind` and `inputContract` and `capabilities` | Array item (array may be empty) | — | — |
-| `rules[].reviewTargets[].artifactKind` | fixed value "typeShape" or fixed value "function" | Required (object form) | — | — |
-| `rules[].reviewTargets[].inputContract` | fixed value "direct-event/type-shape/v1" or fixed value "direct-event/function/v1" | Required (object form) | — | — |
-| `rules[].reviewTargets[].capabilities` | array of "root-declaration" or "resolved-outbound-types" or "selected-source-type-closure" (at least 1 item) or array of "signature" or "body" or "resolved-local-calls" or "resolved-outbound-types" (at least 1 item) | Required (object form) | — | — |
-| `rules[].reviewTargets[].capabilities[]` | "root-declaration" or "resolved-outbound-types" or "selected-source-type-closure" or "signature" or "body" or "resolved-local-calls" or "resolved-outbound-types" | Array item (array may be empty) | — | — |
+| `version` | fixed value 1 | Required | — | — |
+| `id` | string matching a pattern | Required | — | — |
+| `title` | non-empty string | Optional | — | — |
+| `question` | non-empty string | Required | — | — |
+| `criteria` | object | Required | — | — |
+| `criteria.false` | non-empty string | Required | — | — |
+| `criteria.true` | non-empty string | Required | — | — |
+| `message` | non-empty string | Required | — | — |
+| `threshold` | number (0–1) | Optional | — | — |
+| `inputs` | array of object with `languages` and `kind` and `requires` (at least 1 item) | Required | — | — |
+| `inputs[]` | object with `languages` and `kind` and `requires` | Array item (array may be empty) | — | — |
+| `inputs[].languages` | array of "typescript" or "rust" or "bend" (at least 1 item) | Required (object form) | — | — |
+| `inputs[].languages[]` | "typescript" or "rust" or "bend" | Array item (array may be empty) | — | — |
+| `inputs[].kind` | "type" or "function" or fixed value "schema" | Required (object form) | — | — |
+| `inputs[].requires` | array of non-empty string (may be empty) | Required (object form) | — | — |
+| `inputs[].requires[]` | non-empty string | Array item (array may be empty) | — | — |
+| `inputs[].dialect` | non-empty string | Optional | — | — |
 
-A type target uses `typeShape` with `direct-event/type-shape/v1`. Its capabilities may be `root-declaration`, `resolved-outbound-types`, and `selected-source-type-closure`.
-A function target uses `function` with `direct-event/function/v1`. Its capabilities may be `signature`, `body`, `resolved-local-calls`, and `resolved-outbound-types`.
-Each target must name at least one capability. A rule may name one target of each kind. Hapsland sends a review unit to the selected backend only when the required evidence is complete.
+Inputs pair each declared language with a kind and required capabilities. Type inputs support TypeScript, Rust and Bend; function inputs currently support TypeScript.
+Schema inputs remain distinct declarations and produce an explicit unsupported-input diagnostic when selected. Concrete values are not review inputs.
+Hapsland dispatches only when the selected language/kind pair and required evidence match. File and language restrictions belong in configuration rule references.
 
-<!-- rule-pack-guide:end -->
-
-Each `packs` entry is either a path that declares a local pack or an inherited pack
-`id`; an object must not provide both locators (or neither).
-
-Project pack paths resolve from the project configuration and must remain inside
-the Git working tree, including their real path after symlink resolution. User
-pack paths resolve from the user configuration and may reference user-managed
-local files. If a pack is inherited, its original configuration remains the
-path-resolution base. Matching is always against the repository-relative path,
-never the pack directory. Explicitly loaded packs are enabled by default;
-disabling a pack vetoes every rule in it, including an enabled rule override.
-
-Duplicate pack/rule identities, multiple content versions, rebinding an inherited
-pack ID to another file, unknown overrides, malformed selected packs, and unknown
-schema versions make the whole selected configuration unavailable before source
-egress. A fork must use a distinct pack ID. Rule filters intersect global
-eligibility: they can narrow a review, but cannot re-include a globally excluded
-or protected path.
-
-Rule authors must use rule-pack schema 1 and name an exact type or function
-input contract and required capabilities. The resident reviews one changed
-TypeScript type or function, or supported Rust/Bend type declaration, per unit.
-TypeScript supporting evidence can follow supported local imports across selected
-files. Rust and Bend supporting evidence is limited to the same file; their functions are
-deferred. The [review contract](type-function-review-proposal.md#branch-contracts)
-defines the supported extraction scope. Omitted evidence is
-marked, and a rule runs only when its declared needs are met. Its review input does
-not contain a whole file, a before/after diff, or task or transcript context.
-Packs without explicit targets fail configuration before source capture.
-Findings may describe pre-existing content.
-Do not author a rule that promises to judge evidence its request cannot contain.
-Advice is local authored text attached to the validated probability, rule ID,
-path, and snapshot hash; no extra model call generates a message.
-
-Patterns are repository-relative and use `/` separators. Matching is case-sensitive;
-`*` and `?` do not cross `/`, while `**` may cross directories. Dot-files are matched
-only by a pattern segment beginning with `.`. Bracket classes (`[ab]`) and simple
-brace alternatives (`{ts,tsx}`) are supported. To keep matching bounded, a pattern is
-limited to 1,024 characters, eight brace groups, eight choices per group, and 256
-total brace expansions. `!` is not negation and never re-includes a path. Ordinary
-patterns are still subject to protected gates: repository
-boundary, sensitive names (`.env`, credentials, secret/key/certificate files),
-generated/lock and vendor/build directories, configured source extensions, regular
-files, symlink containment, and the 256 KiB snapshot limit.
+<!-- rule-guide:end -->
 
 ## Runtime behavior
 

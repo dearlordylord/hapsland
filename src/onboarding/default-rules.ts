@@ -5,129 +5,116 @@ import { dirname, join, resolve } from "node:path"
 import * as Effect from "effect/Effect"
 import { loadConfiguration, DEFAULT_USER_CONFIGURATION_FILE } from "../configuration/load.ts"
 import { decodeConfigurationText, decodeConfigurationDocument } from "../configuration/decode.ts"
-import { configurationError, ConfigurationError } from "../configuration/errors.ts"
-import { SHIPPED_DEFAULT_PACK } from "../rules/shipped.ts"
-import { decodeRulePackText } from "../rules/schema.ts"
-import { loadRulePacks } from "../rules/loader.ts"
+import { configurationError } from "../configuration/errors.ts"
+import { SHIPPED_DEFAULT_RULES } from "../rules/shipped.ts"
+import { decodeRuleText } from "../rules/schema.ts"
+import { loadRules } from "../rules/loader.ts"
 import { compileRules } from "../rules/compiler.ts"
+import { ruleOperation } from "../rules/operations.ts"
 import { atomicInstallationFile } from "./atomic-installation-file.ts"
 
 const readOptional = (path: string): string | undefined => (existsSync(path) ? readFileSync(path, "utf8") : undefined)
-const template =
-  JSON.stringify(
-    {
-      schemaVersion: 1,
-      id: SHIPPED_DEFAULT_PACK.id,
-      contentVersion: SHIPPED_DEFAULT_PACK.contentVersion,
-      rules: SHIPPED_DEFAULT_PACK.rules
-    },
-    null,
-    2
-  ) + "\n"
+const samePath = (left: string, right: string) =>
+  left === right || (existsSync(left) && existsSync(right) && realpathSync(left) === realpathSync(right))
 
-/** The digest binds authored bytes as well as proposed writes. Preview never writes. */
-export const previewDefaultRules = Effect.fn("Setup.previewDefaultRules")(
-  (userConfigPath = DEFAULT_USER_CONFIGURATION_FILE, root = process.cwd()) =>
-    Effect.try({
-      try: () => {
-        const configurationPath = resolve(userConfigPath)
-        const path = join(dirname(configurationPath), "rules", "defaults", "hapsland.json")
-        const configurationBefore = readOptional(configurationPath)
-        const document =
-          configurationBefore === undefined
-            ? { version: 1 as const }
-            : decodeConfigurationText(configurationBefore, configurationPath)
-        const references = document.packs ?? []
-        const connected = references.some((reference) => {
-          const selected = typeof reference === "string" ? reference : "path" in reference ? reference.path : undefined
-          if (selected === undefined) return false
-          const selectedPath = resolve(dirname(configurationPath), selected)
-          return (
-            selectedPath === path ||
-            (existsSync(selectedPath) && existsSync(path) && realpathSync(selectedPath) === realpathSync(path))
-          )
-        })
-        const packBefore = readOptional(path)
-        if (connected && packBefore === undefined)
-          throw configurationError(
-            path,
-            "$",
-            "connected default pack is missing; restore your authored file or remove its configuration reference"
-          )
-        const packAfter = packBefore ?? template
-        const pack = decodeRulePackText(packAfter, path)
-        if (
-          !connected &&
-          references.some((reference) => typeof reference !== "string" && "id" in reference && reference.id === pack.id)
-        )
-          throw configurationError(
-            configurationPath,
-            "packs",
-            "default pack identity already has an inherited reference; connect its source explicitly"
-          )
-        const configurationAfter = connected
-          ? configurationBefore
-          : JSON.stringify(
-              decodeConfigurationDocument({ ...document, packs: [...references, path] }, configurationPath),
-              null,
-              2
-            ) + "\n"
-        const proposal = {
-          version: 1 as const,
-          configurationPath,
+/** Bind every authored source and every configuration layer; preview never writes. */
+export const previewDefaultRules = Effect.fn("Setup.previewDefaultRules")(function* (
+  userConfigPath = DEFAULT_USER_CONFIGURATION_FILE,
+  root = process.cwd()
+) {
+  const configurationPath = resolve(userConfigPath)
+  const capture = yield* loadConfiguration(root, { userConfigPath: configurationPath })
+  const current = yield* loadRules({ root, layers: capture.policy.layers })
+  const proposal = yield* ruleOperation(configurationPath, "rules", () => {
+    const configurationBefore = readOptional(configurationPath)
+    const document =
+      configurationBefore === undefined
+        ? { version: 1 as const }
+        : decodeConfigurationText(configurationBefore, configurationPath)
+    const explicitSelection = capture.policy.layers.some((layer) => layer.document.rules !== undefined)
+    const references = [...(document.rules ?? [])]
+    const files = (explicitSelection ? [] : SHIPPED_DEFAULT_RULES).map((shipped) => {
+      const path = join(dirname(configurationPath), "rules", "defaults", `${encodeURIComponent(shipped.id)}.json`)
+      const connected = references.some((reference) => {
+        const selected = typeof reference === "string" ? reference : "path" in reference ? reference.path : undefined
+        return selected !== undefined && samePath(resolve(dirname(configurationPath), selected), path)
+      })
+      const before = readOptional(path)
+      if (connected && before === undefined)
+        throw configurationError(
           path,
-          configurationBefore,
-          configurationAfter,
-          packBefore,
-          packAfter
-        }
-        return {
-          ...proposal,
-          changed: !connected || packBefore === undefined,
-          digest: createHash("sha256").update(JSON.stringify(proposal)).digest("hex")
-        }
-      },
-      catch: (cause) =>
-        cause instanceof ConfigurationError
-          ? cause
-          : configurationError(userConfigPath, "packs", "could not preview default rules; check file permissions")
-    }).pipe(
-      Effect.tap((proposal) =>
-        Effect.gen(function* () {
-          const capture = yield* loadConfiguration(root, { userConfigPath: proposal.configurationPath })
-          const packs = yield* loadRulePacks({ root, layers: capture.policy.layers })
-          const pack = decodeRulePackText(proposal.packAfter, proposal.path)
-          const path = proposal.packBefore === undefined ? proposal.path : realpathSync(proposal.path)
-          const existing = packs.find((candidate) => candidate.id === pack.id)
-          if (existing !== undefined && existing.path !== path)
-            return yield* configurationError(
-              proposal.path,
-              "id",
-              "default pack identity is already connected to a different file"
-            )
-          const candidate = {
-            ...pack,
-            origin: { layer: "user" as const, source: proposal.configurationPath, field: "packs" },
-            path,
-            enabled: true
-          }
-          yield* Effect.try({
-            try: () =>
-              compileRules({
-                packs: existing === undefined ? [...packs, candidate] : packs,
-                layers: capture.policy.layers,
-                includeDisabled: true
-              }),
-            catch: (cause) =>
-              cause instanceof ConfigurationError
-                ? cause
-                : configurationError(proposal.path, "$", "default rules compilation failed")
-          })
-        })
+          "$",
+          "connected default rule is missing; restore your authored file or remove its configuration reference"
+        )
+      const { source: _source, origin: _origin, definitionDigest: _digest, ...definition } = shipped
+      const after = before ?? JSON.stringify(definition, null, 2) + "\n"
+      const authored = decodeRuleText(after, path)
+      const existing = current.find((rule) => rule.id === authored.id)
+      if (existing !== undefined && !samePath(existing.path, path))
+        throw configurationError(
+          path,
+          "id",
+          `default rule identity is already connected to a different file: '${existing.path}' and '${path}'`
+        )
+      if (
+        !connected &&
+        references.some(
+          (reference) => typeof reference !== "string" && "id" in reference && reference.id === authored.id
+        )
       )
+        throw configurationError(
+          configurationPath,
+          "rules",
+          "default rule identity already has an inherited reference; connect its source explicitly"
+        )
+      if (!connected) references.push(path)
+      return { path, before, after, authored }
+    })
+    const configurationAfter = explicitSelection
+      ? configurationBefore
+      : JSON.stringify(decodeConfigurationDocument({ ...document, rules: references }, configurationPath), null, 2) +
+        "\n"
+    const authoredSources = current.map((rule) => ({ path: rule.path, text: readFileSync(rule.path, "utf8") }))
+    const layers = capture.policy.layers.map((layer) =>
+      layer.source === configurationPath
+        ? {
+            ...layer,
+            document:
+              configurationAfter === undefined
+                ? document
+                : decodeConfigurationText(configurationAfter, configurationPath)
+          }
+        : layer
     )
-)
-
+    const proposedRules = [...current]
+    for (const file of files)
+      if (!proposedRules.some((rule) => rule.id === file.authored.id))
+        proposedRules.push({
+          ...file.authored,
+          path: file.path,
+          enabled: true,
+          origin: { layer: "user", source: configurationPath, field: "rules" },
+          reference: { path: file.path, origin: { layer: "user", source: configurationPath, field: "rules" } }
+        })
+    compileRules({ rules: proposedRules, includeDisabled: true })
+    const plan = {
+      version: 1 as const,
+      configurationPath,
+      configurationBefore,
+      configurationAfter,
+      files,
+      paths: files.map((file) => file.path),
+      authoredSources,
+      layers
+    }
+    return {
+      ...plan,
+      changed: files.some((file) => file.before === undefined) || references.length !== (document.rules ?? []).length,
+      digest: createHash("sha256").update(JSON.stringify(plan)).digest("hex")
+    }
+  })
+  return proposal
+})
 const applyDefaultRulesUnlocked = Effect.fn("Setup.applyDefaultRulesUnlocked")(function* (
   userConfigPath: string | undefined,
   digest: string,
@@ -140,25 +127,17 @@ const applyDefaultRulesUnlocked = Effect.fn("Setup.applyDefaultRulesUnlocked")(f
       "proposalDigest",
       "default rules plan is stale; preview again before applying"
     )
-  yield* Effect.try({
-    try: () => {
-      if (proposal.packBefore === undefined) {
-        mkdirSync(dirname(proposal.path), { recursive: true, mode: 0o700 })
-        writeFileSync(proposal.path, proposal.packAfter, { encoding: "utf8", mode: 0o600, flag: "wx" })
+  yield* ruleOperation(proposal.configurationPath, "rules", () => {
+    for (const file of proposal.files)
+      if (file.before === undefined) {
+        mkdirSync(dirname(file.path), { recursive: true, mode: 0o700 })
+        writeFileSync(file.path, file.after, { encoding: "utf8", mode: 0o600, flag: "wx" })
       }
-      if (proposal.configurationAfter !== proposal.configurationBefore)
-        atomicInstallationFile(proposal.configurationPath, proposal.configurationAfter)
-    },
-    catch: () =>
-      configurationError(
-        proposal.configurationPath,
-        "packs",
-        "default rules application could not complete; inspect the files and preview again"
-      )
+    if (proposal.configurationAfter !== undefined && proposal.configurationAfter !== proposal.configurationBefore)
+      atomicInstallationFile(proposal.configurationPath, proposal.configurationAfter)
   })
   return proposal
 })
-
 export const applyDefaultRules = Effect.fn("Setup.applyDefaultRules")(
   (userConfigPath: string | undefined, digest: string, root = process.cwd()) =>
     withInstallationLock(

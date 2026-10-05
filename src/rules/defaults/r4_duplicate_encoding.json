@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "id": "r4_duplicate_encoding",
+  "question": "Can a value of `artifact` carry one fact twice over and have the two copies disagree, because the shape stores it in more than one place?\n\nFocus: Fields that happen to correlate are not the finding. The finding is a fact the shape lets be written down twice, so nothing stops one copy from saying something the other contradicts.",
+  "criteria": {
+    "false": "Each fact is written down once, and anything else that depends on it is derived rather than stored\n\nExamples:\n- a `birthDate` alone, with age computed where it is needed\n- a `lines` list alone, its length read from the list\n- one `price: Money` value, formatted at the edge that displays it",
+    "true": "One fact is reachable through two fields at once, and the shape admits values where they disagree\n\nExamples:\n- a `birthDate` beside an `age`, either settable, so a value can claim an age its date denies\n- a `lines` list beside a `lineCount`, which nothing keeps in step\n- `priceCents` beside a `priceLabel` string that spells the same price out\n- a `path` beside a `directory` and a `fileName` that repeat its parts"
+  },
+  "threshold": 0.7,
+  "message": "The type appears to store the same fact in places that can disagree.",
+  "title": "duplicate encoding",
+  "inputs": [
+    {
+      "languages": [
+        "typescript",
+        "rust",
+        "bend"
+      ],
+      "kind": "type",
+      "requires": [
+        "root-declaration",
+        "resolved-outbound-types",
+        "selected-source-type-closure"
+      ]
+    }
+  ]
+}

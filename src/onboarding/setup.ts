@@ -95,7 +95,7 @@ const reportRepositorySettings = (
       summary: excludedAll ? "user file settings exclude all files" : "review disablement requires a user exclusion",
       observed: {
         configurationDigest: settings.configuration.policy.digest,
-        rulePackDigests: settings.rulePackDigests ?? [],
+        ruleDigests: settings.ruleDigests ?? [],
         canonicalRoot: root,
         effectiveIncludes: settings.configuration.policy.includes.map((entry) => entry.value)
       }
@@ -116,7 +116,7 @@ const reportRepositorySettings = (
       summary: "effective file settings loaded",
       observed: {
         configurationDigest: settings.configuration.policy.digest,
-        rulePackDigests: settings.rulePackDigests ?? [],
+        ruleDigests: settings.ruleDigests ?? [],
         canonicalRoot: root,
         effectiveIncludes: settings.configuration.policy.includes.map((entry) => entry.value),
         effectiveExcludes: settings.configuration.policy.excludes.map((entry) => entry.value)
@@ -742,7 +742,7 @@ export const runSetup = Effect.fn("Setup.run")(function* (request: SetupRequest,
         stage: "rules",
         status: "partial",
         summary: "editable default rules application could not complete; inspect the reported files and preview again",
-        observed: { path: proposal.path, configurationPath: proposal.configurationPath }
+        observed: { paths: proposal.paths, configurationPath: proposal.configurationPath }
       })
       pending.push("preview and resume default rules application")
     } else
@@ -751,15 +751,17 @@ export const runSetup = Effect.fn("Setup.run")(function* (request: SetupRequest,
         status: applied || !proposal.changed ? "complete" : "pending",
         summary:
           applied || !proposal.changed
-            ? "editable default rules connected"
+            ? proposal.paths.length === 0
+              ? "explicit rule selection preserved"
+              : "editable default rules connected"
             : "editable default rules require setup authorization",
-        observed: { path: proposal.path, configurationPath: proposal.configurationPath, digest: proposal.digest }
+        observed: { paths: proposal.paths, configurationPath: proposal.configurationPath, digest: proposal.digest }
       })
     if (!applied && proposal.changed) {
       actions.push({
         stage: "rules",
         code: "approve-default-rules",
-        action: `materialize editable rules at ${proposal.path} and connect them in ${proposal.configurationPath}`,
+        action: `materialize editable rules at ${proposal.paths.join(", ")} and connect them in ${proposal.configurationPath}`,
         authorization: { rulesProposalDigest: proposal.digest }
       })
       pending.push("approve editable default rules")
