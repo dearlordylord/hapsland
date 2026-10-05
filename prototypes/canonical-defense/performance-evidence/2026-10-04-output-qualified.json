@@ -1,20 +1,20 @@
 {
   "purpose": "Offline qualification evidence, not product contract",
-  "source_owner_commit": "6cdea592",
-  "run_id": "20261004235156892-2012019-c70aa9",
+  "source_commit": "20787242",
+  "run_id": "20261004235655112-2033989-4232c2",
   "exit_code": 0,
-  "selected_tests_passed": 7,
-  "elapsed_s": 37.724,
-  "scope": "Seven original NativeRun native/emitted/public/replay scenarios with final Stop-owned binding",
+  "selected_tests_passed": 1,
+  "elapsed_s": 64.283,
+  "scope": "Five original certain/uncertain/failed output profiles including delay before/equal/after lease, complete native/emitted equality, independent public intermediate/literal facts and replay",
   "complete_decoded_native_emitted_vectors_equal": true,
   "retained_bytes_hashes_verified": true,
   "receipts": [
     {
-      "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004235156892-2012019-c70aa9/workload-outputs/fresh-native-2012091-QJ72gL/receipt.json",
+      "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004235655112-2033989-4232c2/workload-outputs/fresh-native-2034142-UKOK4v/receipt.json",
       "receipt": {
         "lane": "fresh-native",
         "identity": {
-          "root": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-original-scenarios.bend",
+          "root": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/output-scenario-native.bend",
           "graph": {
             "entries": [
               {
@@ -438,44 +438,124 @@
                 "sha256": "053e118f17cd7a3fb79c1d5ef71354f262c0dbfc4386737ad42627afed04cccf"
               },
               {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-boundaries.bend",
-                "sha256": "5f47f453122a22f00f2560c2eddd7fa833f4db7991fe2408cef14b082c0c3783"
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/advicee-lifecycle-driver.bend",
+                "sha256": "e1d1922466a23db15fa57049bf4280a30038ff90e5ddf4152408c0f7d7a68841"
               },
               {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-credential-restore.bend",
-                "sha256": "6c2ef1a42968c367698b227d1156654c2ad4277f8f405ae78f72ee7dd112f714"
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/callback-native-codec.bend",
+                "sha256": "b25278414d030f5b600fa79c928c63f83b7e308956903fd868865b8cfb9ee88a"
               },
               {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-credential-rotate.bend",
-                "sha256": "a112bc90d2108dfd658ec81de0ee458588f502022226c560a54b04470d34bb84"
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/callback-native-driver.bend",
+                "sha256": "d678a2e291c839eccd991298693b4e6ae92bc4ddd2c49a6bf84d147ecc842634"
               },
               {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-empty-sizes.bend",
-                "sha256": "ac9b9e086df8aaf026b0070aad4af07746fc512458de11486c2a355687d2ce2c"
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/expiry-observed-driver.bend",
+                "sha256": "3a65cb897e49c64f5e81c067c0c4aca72bb0d0deda99454b34ea5a437d96971f"
               },
               {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-event-boundary.bend",
-                "sha256": "ff7fc0fe246e8766675566f07185598ea7b81a5e8006c7bcf647f45057497c19"
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/expiry-observed-wire.bend",
+                "sha256": "1305e7a2d20b82cf805922a301f825ed4d31a3a4107a0be071096cf01ea51724"
               },
               {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-future-profile.bend",
-                "sha256": "488c432ef8571531d7558a7eaaa8d2242027a401c8138532821b88efadb47eee"
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/jev-native-step.bend",
+                "sha256": "38352108cb5eefc1cd58ba4d46cc617e059f81a69c38fb97c16dd358aa3eaa92"
               },
               {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-original-scenarios.bend",
-                "sha256": "ba4869f042d3e825a549a5e8c971d321df99e9c50c57efa032d94d6cf02ed3c1"
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/minimal-scenario.bend",
+                "sha256": "9eb6b83266f488c072d01c8c58bb9c397d72e8badb9521ad8046f0af93439a99"
               },
               {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-projection.bend",
-                "sha256": "dd74cc5bbbcc4875ab9afe88bb0756b4870d874f1790df0db34d3e44ca5369e1"
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/output-scenario-driver.bend",
+                "sha256": "67563a56ab628926a1994479c59b2a1c7e1b0f227a110a5888f9737cd6cab887"
               },
               {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-scenario.bend",
-                "sha256": "4426eaf55d3d391bfa22f52847d86bbe683eb1fc0ee2704928c87a7cd0172392"
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/output-scenario-native.bend",
+                "sha256": "4dfd8a97b7d880a736de5d483587b52567b0dc3edcdea32479c5c171f82ea8b1"
               },
               {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-wrong-completion.bend",
-                "sha256": "22f0964419652925ff0fb70f23c0f9c822deffb933581feed7ce88ad84a48ee2"
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/sharing-observed-capture.bend",
+                "sha256": "18144205bd01741c0152865cf100fcdf140df52cd921471753a6d92b91c74514"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/sharing-observed-driver.bend",
+                "sha256": "d4482eb87fbd6804a038f1934c8335f108df35c74e3f056476bf0b02ed84a9d4"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/sharing-observed-hook.bend",
+                "sha256": "7448fafc8b36ded9d79912a6f3078fbbd15b58b83f123ec5b0b1293455cc9508"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/sharing-observed-initial.bend",
+                "sha256": "89227186c46113846824819938cee083090baba2b28e576a582a982c9438968b"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/sharing-observed-provenance.bend",
+                "sha256": "8949b6e6642326f990a9b544b2dd4cdfa64225aadeac610db44048c0d2a25ac5"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/sharing-observed-transport.bend",
+                "sha256": "57b5f271e7c07755ed452b35cce5011c1c6b0b0326a71296c5411e5a77513a5f"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/sharing-observed-wire.bend",
+                "sha256": "1d1730d44f56666e8d52e99ff3b23543a1618161dd74ee1e71b0c4eca4e42288"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/sharing-original-captures.bend",
+                "sha256": "1767fd4233c9205c9ab4ff23da555149382808fa6c36f684eafb9d6a5d2e18f0"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/sharing-original-inputs.bend",
+                "sha256": "ea0146abe9364918d37bd4a27e84ca9434796062a3c9cf5cb45f462c485f4d18"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/stop-observed-wire.bend",
+                "sha256": "55b7dedecd24013632cdee00f937315fb727ec3faf36ff8ced9c887d0d37ed5d"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/stop-original-inputs.bend",
+                "sha256": "5a7d9f2529d52078cc44eaeb1fb62c6149b0aa39e90941fc2e1be5335c6b33d6"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/writer-intersection-controls.bend",
+                "sha256": "799c129a5371b6ec6a8016bf7325788ab1e8938adbbcb63e42720a40eb258942"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/writer-intersection-driver.bend",
+                "sha256": "45866fab59e731aef282332b079ec23b25a8c31d02d5f5cf414add3950fa7736"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/writer-observed-context.bend",
+                "sha256": "ae0d3f6a3452e8498e94edc9b24bc91512261390464f821612d4bbb2edbb87af"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/writer-observed-driver.bend",
+                "sha256": "c3fbcbd0a5a02219f8bc1834fedc20bceb13fe5c7326ca9fd1bd920d112b9139"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/writer-observed-hook.bend",
+                "sha256": "5719bee253121c9b8f73b799a55a6380d2134c019824269be3b9eac28bb485b7"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/writer-observed-initial.bend",
+                "sha256": "ff60f95fc7be7b7e6f180da405e99e62b93c1b66acb770f870e8a75af1211857"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/writer-observed-program.bend",
+                "sha256": "eaa938e0e7b58b98626c4755c0bd3ed92a3c59b7a7874a126ca4a32a5a251c6a"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/writer-observed-transport.bend",
+                "sha256": "16963e75154771160af2608c55e21a987bf662cc2b801db09eec705418957dac"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/writer-observed-wire.bend",
+                "sha256": "dae89548c8b96ee38825f8cfdd17440d8e586e6fec07397bc9cce291782fc928"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/writer-original-inputs.bend",
+                "sha256": "282471e9f7e45a9b33ae503bef885e3638e0cac5f4e1d32047652712d5fbbc15"
               },
               {
                 "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/CredentialContext.bend",
@@ -512,18 +592,6 @@
               {
                 "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/JevEffects.bend",
                 "sha256": "36c9f1210d8c95bb3ac91cb04a160c0d628c7637728029d5315297c10c5d228d"
-              },
-              {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/NativeFinish.bend",
-                "sha256": "2c88ebb588397f8a4e39e5fea9c5fc27e22642c281c4e6a7685ee18f23291dda"
-              },
-              {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/NativeRun.bend",
-                "sha256": "82e8f254320369233eeb891c1aa125f8e42b9e08af65f8c77761489a33f3a78e"
-              },
-              {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/NativeRunTypes.bend",
-                "sha256": "3e8e8d9fa9e302222c7687399ed555281674ebdbc49aa7fa9f282e107ce199dd"
               },
               {
                 "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/NoticeScenario.bend",
@@ -614,7 +682,7 @@
                 "sha256": "8d9dec3f04ee9cdad8248e93d03b72da4853e81a2d693e1faeee46ae06f2eabe"
               }
             ],
-            "sha256": "8980807eaba1b164ad67bf6e5a743aeb75d75a4257524f47c1639628fa1a175f"
+            "sha256": "3318db1137cfbb41cd183a8eb0ee57335fbc5a470aa081c030f1b99a5178f265"
           },
           "inputs": {
             "tools": {
@@ -655,20 +723,20 @@
         "timeouts": {
           "emission": 90000,
           "clang": 120000,
-          "execution": 15000
+          "execution": 5000
         },
-        "outputPath": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004235156892-2012019-c70aa9/workload-outputs/fresh-native-2012091-QJ72gL/output.json.gz",
-        "outputBytes": 14531,
-        "outputSha256": "b016616a3d89d2aa65d1b35d24119ac9365235e3fb361d46ed1fdda7e95ea2a7",
+        "outputPath": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004235655112-2033989-4232c2/workload-outputs/fresh-native-2034142-UKOK4v/output.json.gz",
+        "outputBytes": 358625,
+        "outputSha256": "2e577150e29bbb226c2430c90d6f4487f1279eb0669376b3d3221e9ee80c362f",
         "purpose": "Offline execution output for diagnosis; no automatic reuse or acceptance verdict"
       }
     },
     {
-      "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004235156892-2012019-c70aa9/workload-outputs/emitted-js-2012091-rm6Xdt/receipt.json",
+      "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004235655112-2033989-4232c2/workload-outputs/emitted-js-2034142-Zo5sDz/receipt.json",
       "receipt": {
         "lane": "emitted-js",
         "identity": {
-          "root": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-original-scenarios.bend",
+          "root": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/output-scenario-native.bend",
           "graph": {
             "entries": [
               {
@@ -1092,44 +1160,124 @@
                 "sha256": "053e118f17cd7a3fb79c1d5ef71354f262c0dbfc4386737ad42627afed04cccf"
               },
               {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-boundaries.bend",
-                "sha256": "5f47f453122a22f00f2560c2eddd7fa833f4db7991fe2408cef14b082c0c3783"
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/advicee-lifecycle-driver.bend",
+                "sha256": "e1d1922466a23db15fa57049bf4280a30038ff90e5ddf4152408c0f7d7a68841"
               },
               {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-credential-restore.bend",
-                "sha256": "6c2ef1a42968c367698b227d1156654c2ad4277f8f405ae78f72ee7dd112f714"
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/callback-native-codec.bend",
+                "sha256": "b25278414d030f5b600fa79c928c63f83b7e308956903fd868865b8cfb9ee88a"
               },
               {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-credential-rotate.bend",
-                "sha256": "a112bc90d2108dfd658ec81de0ee458588f502022226c560a54b04470d34bb84"
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/callback-native-driver.bend",
+                "sha256": "d678a2e291c839eccd991298693b4e6ae92bc4ddd2c49a6bf84d147ecc842634"
               },
               {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-empty-sizes.bend",
-                "sha256": "ac9b9e086df8aaf026b0070aad4af07746fc512458de11486c2a355687d2ce2c"
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/expiry-observed-driver.bend",
+                "sha256": "3a65cb897e49c64f5e81c067c0c4aca72bb0d0deda99454b34ea5a437d96971f"
               },
               {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-event-boundary.bend",
-                "sha256": "ff7fc0fe246e8766675566f07185598ea7b81a5e8006c7bcf647f45057497c19"
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/expiry-observed-wire.bend",
+                "sha256": "1305e7a2d20b82cf805922a301f825ed4d31a3a4107a0be071096cf01ea51724"
               },
               {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-future-profile.bend",
-                "sha256": "488c432ef8571531d7558a7eaaa8d2242027a401c8138532821b88efadb47eee"
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/jev-native-step.bend",
+                "sha256": "38352108cb5eefc1cd58ba4d46cc617e059f81a69c38fb97c16dd358aa3eaa92"
               },
               {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-original-scenarios.bend",
-                "sha256": "ba4869f042d3e825a549a5e8c971d321df99e9c50c57efa032d94d6cf02ed3c1"
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/minimal-scenario.bend",
+                "sha256": "9eb6b83266f488c072d01c8c58bb9c397d72e8badb9521ad8046f0af93439a99"
               },
               {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-projection.bend",
-                "sha256": "dd74cc5bbbcc4875ab9afe88bb0756b4870d874f1790df0db34d3e44ca5369e1"
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/output-scenario-driver.bend",
+                "sha256": "67563a56ab628926a1994479c59b2a1c7e1b0f227a110a5888f9737cd6cab887"
               },
               {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-scenario.bend",
-                "sha256": "4426eaf55d3d391bfa22f52847d86bbe683eb1fc0ee2704928c87a7cd0172392"
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/output-scenario-native.bend",
+                "sha256": "4dfd8a97b7d880a736de5d483587b52567b0dc3edcdea32479c5c171f82ea8b1"
               },
               {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/native-run-wrong-completion.bend",
-                "sha256": "22f0964419652925ff0fb70f23c0f9c822deffb933581feed7ce88ad84a48ee2"
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/sharing-observed-capture.bend",
+                "sha256": "18144205bd01741c0152865cf100fcdf140df52cd921471753a6d92b91c74514"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/sharing-observed-driver.bend",
+                "sha256": "d4482eb87fbd6804a038f1934c8335f108df35c74e3f056476bf0b02ed84a9d4"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/sharing-observed-hook.bend",
+                "sha256": "7448fafc8b36ded9d79912a6f3078fbbd15b58b83f123ec5b0b1293455cc9508"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/sharing-observed-initial.bend",
+                "sha256": "89227186c46113846824819938cee083090baba2b28e576a582a982c9438968b"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/sharing-observed-provenance.bend",
+                "sha256": "8949b6e6642326f990a9b544b2dd4cdfa64225aadeac610db44048c0d2a25ac5"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/sharing-observed-transport.bend",
+                "sha256": "57b5f271e7c07755ed452b35cce5011c1c6b0b0326a71296c5411e5a77513a5f"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/sharing-observed-wire.bend",
+                "sha256": "1d1730d44f56666e8d52e99ff3b23543a1618161dd74ee1e71b0c4eca4e42288"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/sharing-original-captures.bend",
+                "sha256": "1767fd4233c9205c9ab4ff23da555149382808fa6c36f684eafb9d6a5d2e18f0"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/sharing-original-inputs.bend",
+                "sha256": "ea0146abe9364918d37bd4a27e84ca9434796062a3c9cf5cb45f462c485f4d18"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/stop-observed-wire.bend",
+                "sha256": "55b7dedecd24013632cdee00f937315fb727ec3faf36ff8ced9c887d0d37ed5d"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/stop-original-inputs.bend",
+                "sha256": "5a7d9f2529d52078cc44eaeb1fb62c6149b0aa39e90941fc2e1be5335c6b33d6"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/writer-intersection-controls.bend",
+                "sha256": "799c129a5371b6ec6a8016bf7325788ab1e8938adbbcb63e42720a40eb258942"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/writer-intersection-driver.bend",
+                "sha256": "45866fab59e731aef282332b079ec23b25a8c31d02d5f5cf414add3950fa7736"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/writer-observed-context.bend",
+                "sha256": "ae0d3f6a3452e8498e94edc9b24bc91512261390464f821612d4bbb2edbb87af"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/writer-observed-driver.bend",
+                "sha256": "c3fbcbd0a5a02219f8bc1834fedc20bceb13fe5c7326ca9fd1bd920d112b9139"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/writer-observed-hook.bend",
+                "sha256": "5719bee253121c9b8f73b799a55a6380d2134c019824269be3b9eac28bb485b7"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/writer-observed-initial.bend",
+                "sha256": "ff60f95fc7be7b7e6f180da405e99e62b93c1b66acb770f870e8a75af1211857"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/writer-observed-program.bend",
+                "sha256": "eaa938e0e7b58b98626c4755c0bd3ed92a3c59b7a7874a126ca4a32a5a251c6a"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/writer-observed-transport.bend",
+                "sha256": "16963e75154771160af2608c55e21a987bf662cc2b801db09eec705418957dac"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/writer-observed-wire.bend",
+                "sha256": "dae89548c8b96ee38825f8cfdd17440d8e586e6fec07397bc9cce291782fc928"
+              },
+              {
+                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/conformance/writer-original-inputs.bend",
+                "sha256": "282471e9f7e45a9b33ae503bef885e3638e0cac5f4e1d32047652712d5fbbc15"
               },
               {
                 "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/CredentialContext.bend",
@@ -1166,18 +1314,6 @@
               {
                 "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/JevEffects.bend",
                 "sha256": "36c9f1210d8c95bb3ac91cb04a160c0d628c7637728029d5315297c10c5d228d"
-              },
-              {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/NativeFinish.bend",
-                "sha256": "2c88ebb588397f8a4e39e5fea9c5fc27e22642c281c4e6a7685ee18f23291dda"
-              },
-              {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/NativeRun.bend",
-                "sha256": "82e8f254320369233eeb891c1aa125f8e42b9e08af65f8c77761489a33f3a78e"
-              },
-              {
-                "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/NativeRunTypes.bend",
-                "sha256": "3e8e8d9fa9e302222c7687399ed555281674ebdbc49aa7fa9f282e107ce199dd"
               },
               {
                 "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/NoticeScenario.bend",
@@ -1268,7 +1404,7 @@
                 "sha256": "8d9dec3f04ee9cdad8248e93d03b72da4853e81a2d693e1faeee46ae06f2eabe"
               }
             ],
-            "sha256": "8980807eaba1b164ad67bf6e5a743aeb75d75a4257524f47c1639628fa1a175f"
+            "sha256": "3318db1137cfbb41cd183a8eb0ee57335fbc5a470aa081c030f1b99a5178f265"
           },
           "inputs": {
             "tools": {
@@ -1310,9 +1446,9 @@
           "emission": 30000,
           "execution": 5000
         },
-        "outputPath": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004235156892-2012019-c70aa9/workload-outputs/emitted-js-2012091-rm6Xdt/output.json.gz",
-        "outputBytes": 14531,
-        "outputSha256": "b016616a3d89d2aa65d1b35d24119ac9365235e3fb361d46ed1fdda7e95ea2a7",
+        "outputPath": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004235655112-2033989-4232c2/workload-outputs/emitted-js-2034142-Zo5sDz/output.json.gz",
+        "outputBytes": 358624,
+        "outputSha256": "fc69443ba70f17d1dd3630f5e8b97e2eae81c9e0b9dd3339cc495dea689ab97a",
         "purpose": "Offline execution output for diagnosis; no automatic reuse or acceptance verdict"
       }
     }

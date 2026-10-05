@@ -234,16 +234,16 @@ real transport, installed agent runtimes or every possible interleaving.
 
 | Family | Shared Bend owner and public/dashboard path | Recorded local acceptance evidence | Boundary still outside that evidence |
 | --- | --- | --- | --- |
-| Admission, preparation and multi-advicee lifecycle (#178–186) | Canonical, Driver, Workload, PermitScenario and PreparationScenario; public Run and dashboard edit/PRE/completion controls | Original lifecycle native/emitted/public cases; generated PRE and permit public/dashboard checks; callback six-case native/emitted/public/replay family | Actual filesystem capture, native IPC, runtime hooks and real Jev transport |
+| Admission, preparation and multi-advicee lifecycle (#178–186) | Canonical, Driver, Workload, PermitScenario and PreparationScenario; public Run and dashboard edit/PRE/completion controls | Original lifecycle native/emitted/public cases, four twelve-cycle fault/finding native/emitted/public/replay scripts, generated PRE and permit public/dashboard checks, and callback six-case native/emitted/public/replay family | Actual filesystem capture, native IPC, runtime hooks and real Jev transport |
 | Freshness (#187) | FreshnessScenario and production output freshness decisions; captured callbacks through Run | Both original freshness variants: retained native output, fresh emitted JavaScript, independent public milestones and replay | Actual source capture and credential transport |
 | Reuse and cache (#188–189) | SharingScenario and CacheScenario; shared reuse controls and advicee lifecycle | Seven original sharing cases and cache-pressure/refusal case: native/emitted equality, independent public expectations and replay (sharing uses guarded retained outputs) | Native identity verification and real cache/storage IO |
 | Notices and exact expiry (#190, #196) | NoticeScenario, ExpiryScenario, Collection and Notice clocks; public resource/notice controls | Original notice owner cases and twelve expiry cases: native/emitted/public/frozen-input/replay agreement | Real-time clocks and native notice delivery |
-| Output attempts (#191) | OutputScenario and OutputCompletion; public attempt controls and dashboard delivery controls | Native batch/completion owner rows; public output/control assertions and dashboard control tests | Native serialization size and external acknowledgment transport |
-| Collection and writers (#192–193) | Collector, CollectionResponseScenario and WriterScenario; public response/writer controls | Collection/response/resource assertions; thirteen original writer native/emitted/public/replay cases; collector-meter browser check | Real background writer processes and resident IPC |
+| Output attempts (#191) | OutputScenario and OutputCompletion; public attempt controls and dashboard delivery controls | Five original output native/emitted/public/literal/replay cases, native batch/completion owner rows, public output/control assertions and dashboard control tests | Native serialization size and external acknowledgment transport |
+| Collection and writers (#192–193) | Collector, CollectionResponseScenario and WriterScenario; public response/writer controls | Five original response-authority native/emitted/public/intermediate/replay cases; ten native decision rows, collection/resource assertions, thirteen original writer native/emitted/public/replay cases and collector-meter browser check | Real background writer processes and resident IPC |
 | Stop and continuation (#194–195) | StopScenario and production fit/output authority; public Finish and dashboard selected-group inspection | Waiting, eleven original Stop cases and twelve output cases: native/emitted/public/frozen/replay agreement; seeded continuation tests and exclusive Stop-slot browser check | Supplied encoded-byte facts are synthetic, not measured serialization |
 | Quiet and recovery campaigns (#197–198) | QuietScenario plus existing lifecycle cleanup owners; shared Run controls | Quiet inactivity regression, twelve seeded public campaigns and applicable lifecycle/Stop/expiry owner evidence | No Cartesian campaign or special campaign UI is implied; unavailable scheduling premises are not passes |
-| Shared outcome/context execution | Engine.prepare_command_context and authentic source-job/receipt carriers | Meaningful public outcome/codec checks; aggregate NativeRun producer equality has been exercised | NativeRun's seven-case public qualification retains an initial wide-clock configuration failure until its corrected public case is observed passing |
-| Optional game and consumer independence (#199–200) | Independent game consumer; dashboard/headless core has no game dependency | Disposable game-absent dashboard build and removal audit; current selected business checks above | Full continuous game execution remains pending after bounded runs stopped before completing its original workload |
+| Shared outcome/context execution | Engine.prepare_command_context and authentic source-job/receipt carriers | Seven original NativeRun native/emitted/public/replay cases passed against the final source, including initial u48 expiry and authentic SourceJob continuation | Synthetic schedules and offline observations do not establish live transport behavior |
+| Optional game and consumer independence (#199–200) | Independent game consumer; dashboard/headless core has no game dependency | Current game-absent dashboard build and removal audit; all 145 game batches across 3,222 ticks agree in native/emitted/public history and midpoint replay | Interactive game window/input-device validation remains separate from the qualified headless consumer |
 
 The public headless boundary and ordinary version-one replay are shared across
 these families. Complete native/emitted comparisons use each family's accepted
@@ -252,13 +252,16 @@ private Engine/Runtime layouts are not a required oracle. Retained-output checks
 are explicit, source/tool guarded and reported as retained evidence, not fresh
 compilation. Mixed failed runs preserve their passing owner results.
 
-The disposable game-absent build was observed at `ce35b138`; the application and
-dashboard package/build configuration remains unchanged through `3f4b5219`.
-That is historical consumer-independence evidence, not a fresh build of every
-subsequent source change. Final #200 reconciliation must identify the applicable
-current local checks and unfinished game/NativeRun boundaries. It does not impose
-an exhaustive theorem inventory, CI wait or another native compilation of already
-qualified unchanged families. Accepted laws remain in their existing owners.
+The current game-absent build passed at `a495fd90` with the game directory
+physically removed and restored afterward. Subsequent changes are test/codec
+qualification and evidence, rather than a new dashboard dependency. The full
+game comparison passed at `6cdea592`; its complete source/tool identity remains
+unchanged after the separate output/collector qualification additions. Final
+NativeRun, recovery, output and collection-response checks passed separately.
+See [qualified game and runner evidence](../../prototypes/canonical-defense/README.md#completed-performance-investigation).
+These recorded scopes do not impose an exhaustive theorem inventory, CI wait or
+another native compilation of already qualified unchanged families. Accepted
+laws remain in their existing owners.
 
 Continuous tasks, task pause, edit interval/jitter, edits per task and advice
 responses are configurable at dashboard Start alongside existing per-advicee

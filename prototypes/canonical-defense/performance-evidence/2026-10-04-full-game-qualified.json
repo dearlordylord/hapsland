@@ -1,17 +1,17 @@
 {
-  "source_commit": "dfd4266b",
-  "run_id": "20261004233103378-1957579-6010f7",
+  "source_commit": "6cdea592",
+  "run_id": "20261004234018581-1985305-ef813d",
   "command": [
     "node",
     "scripts/run-game-consumer.mjs"
   ],
-  "receipt": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004233103378-1957579-6010f7/workload-outputs/game-output-1957605-0zUk1S/receipt.json",
+  "receipt": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004234018581-1985305-ef813d/workload-outputs/game-output-1985334-YbrgbV/receipt.json",
   "origin": {
     "native": "fresh compiler",
     "emitted": "fresh JS emission",
-    "cHash": "9da95da959094acdcfd57e4e8190c4c310481669d5116de031422fecc211a627",
-    "binaryHash": "c2a79b8e84e870fb00acdc7f1635dadea5fa73f2292253f9b2da5d2bb895e39e",
-    "jsHash": "06bcc6a01324ee10c8b2d8c861e5bcc3d458c43db3f7d30a878ff202c18fa063"
+    "cHash": "2cfb724df2227a4612d5a20e28b3b684ede0a001916a69ded196929d82f30e0f",
+    "binaryHash": "1c157e4a82973f32994084c6eb20677f341a0c9cc2dd66484b38b9bcebd02c0e",
+    "jsHash": "a785a79625482aa3412cfe6d435be6639a63ec13ad33e87c5d12a7475ea09bb3"
   },
   "batches_per_lane": 145,
   "bytes": {
@@ -22,7 +22,7 @@
   "all_native_js_pairs_byte_equal": true,
   "terminal": "passed",
   "exit_code": 0,
-  "elapsed_s": 131.373,
+  "elapsed_s": 207.606,
   "scope": "Original four campaigns, all 3222 Host ticks, native/emitted-JS/public histories, independently expected midpoints and ordinary replay",
   "limits_s": {
     "overall": 380,
@@ -552,7 +552,7 @@
     },
     {
       "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/NativeRun.bend",
-      "expected": "b60e605ada83d39babc67fda52644aeeaec1b340e6b6cb01d03bba4cb71243b2"
+      "expected": "82e8f254320369233eeb891c1aa125f8e42b9e08af65f8c77761489a33f3a78e"
     },
     {
       "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/JevEffects.bend",
