@@ -226,11 +226,13 @@ it("runs original source-free minimal scenarios through the native shared driver
         "-o",
         source
       ],
-      { encoding: "utf8", timeout: 5000 }
+      { encoding: "utf8", timeout: 10000 }
     )
     expect(emit.error).toBeUndefined()
     expect(emit.status, emit.stdout + emit.stderr).toBe(0)
-    // Bend checking/emission and native execution each retain a five-second bound.
+    // Bend checking/emission has a ten-second bound: isolated Linux arm64 runs
+    // took 4.5–5.2s and exceeded the former five-second bound. Native execution
+    // retains its five-second bound.
     // External C compilation has a separate fifteen-second bound: it took 4.1s
     // without load and exceeded 5s during concurrent checks. This compile budget
     // changes no proof or simulated-time deadline; optimization is irrelevant to traces.
