@@ -65,6 +65,11 @@
       "experiment": "timer versus browser task scheduling",
       "done": true,
       "outcome": "MessageChannel alone reduced long tasks but lost throughput; native scheduler.yield recovered throughput. A broken initial channel experiment failed type/runtime correctness and was never delivered."
+    },
+    {
+      "experiment": "reuse fixed Stop schemas and compiled decoders rather than recreate them per call",
+      "done": true,
+      "outcome": "Strict validation retained; two serial alternating pairs per advicee count measured lower normalized main-thread CPU."
     }
   ],
   "pairedResults": {
@@ -1099,5 +1104,624 @@
     "byteIdenticalToMeasuredCandidate14": true,
     "buildBaseline": "34df1734 controlled checkout plus only owned performance source changes",
     "latestMasterAtValidation": "068f4c7b2104d07da8a7cf619c20983b8e0aed7a"
+  },
+  "decoderCompilationReuse": {
+    "baselineCommit": "f263a4f8",
+    "conditions": "Same production evaluator and seed; serial pairs with reversed order; actual retained event counts used for normalization.",
+    "summary": [
+      {
+        "advicees": 1,
+        "priorCpuMsPerEvent": 0.5111665893079238,
+        "candidateCpuMsPerEvent": 0.48837490194384164,
+        "cpuReductionPercent": 4.458759207040542
+      },
+      {
+        "advicees": 6,
+        "priorCpuMsPerEvent": 0.84926375,
+        "candidateCpuMsPerEvent": 0.7729161084043847,
+        "cpuReductionPercent": 8.989862289025673
+      }
+    ],
+    "raw": [
+      {
+        "name": "f263",
+        "repeat": 0,
+        "advicees": 1,
+        "exit": 0,
+        "stdout": "{\"metric\":\"main_thread_cpu_ms_per_processed_event\",\"timeDomain\":\"threadTicks\",\"evaluatorVersion\":2,\"cases\":[{\"advicees\":1,\"seed\":7,\"before\":0,\"events\":3205,\"virtualTimeMs\":16734,\"cpuMs\":1657.6329999999998,\"cpuMsPerEvent\":0.5172021840873634,\"elapsedMs\":1763.521674,\"taskCpuMs\":1655.346,\"scriptCpuMs\":662.2090000000001,\"layoutCpuMs\":50.964000000000006,\"styleCpuMs\":15.594,\"observedLongTaskCount\":0,\"maxObservedLongTaskMs\":0,\"observedLongTasks\":[],\"bundle\":\"http://127.0.0.1:4200/assets/dashboard-DuJNLV1V.js\"}],\"value\":0.5172021840873634}\nMETRIC main_thread_cpu_ms_per_processed_event=0.5172021840873634\n",
+        "stderr": "",
+        "result": {
+          "metric": "main_thread_cpu_ms_per_processed_event",
+          "timeDomain": "threadTicks",
+          "evaluatorVersion": 2,
+          "cases": [
+            {
+              "advicees": 1,
+              "seed": 7,
+              "before": 0,
+              "events": 3205,
+              "virtualTimeMs": 16734,
+              "cpuMs": 1657.6329999999998,
+              "cpuMsPerEvent": 0.5172021840873634,
+              "elapsedMs": 1763.521674,
+              "taskCpuMs": 1655.346,
+              "scriptCpuMs": 662.2090000000001,
+              "layoutCpuMs": 50.964000000000006,
+              "styleCpuMs": 15.594,
+              "observedLongTaskCount": 0,
+              "maxObservedLongTaskMs": 0,
+              "observedLongTasks": [],
+              "bundle": "http://127.0.0.1:4200/assets/dashboard-DuJNLV1V.js"
+            }
+          ],
+          "value": 0.5172021840873634
+        }
+      },
+      {
+        "name": "reuse",
+        "repeat": 0,
+        "advicees": 1,
+        "exit": 0,
+        "stdout": "{\"metric\":\"main_thread_cpu_ms_per_processed_event\",\"timeDomain\":\"threadTicks\",\"evaluatorVersion\":2,\"cases\":[{\"advicees\":1,\"seed\":7,\"before\":0,\"events\":3107,\"virtualTimeMs\":15969,\"cpuMs\":1563.75,\"cpuMsPerEvent\":0.5032990022529772,\"elapsedMs\":1719.366496,\"taskCpuMs\":1560.912,\"scriptCpuMs\":560.5369999999999,\"layoutCpuMs\":45.268,\"styleCpuMs\":15.091000000000001,\"observedLongTaskCount\":0,\"maxObservedLongTaskMs\":0,\"observedLongTasks\":[],\"bundle\":\"http://127.0.0.1:4201/assets/dashboard-C64DQpOW.js\"}],\"value\":0.5032990022529772}\nMETRIC main_thread_cpu_ms_per_processed_event=0.5032990022529772\n",
+        "stderr": "",
+        "result": {
+          "metric": "main_thread_cpu_ms_per_processed_event",
+          "timeDomain": "threadTicks",
+          "evaluatorVersion": 2,
+          "cases": [
+            {
+              "advicees": 1,
+              "seed": 7,
+              "before": 0,
+              "events": 3107,
+              "virtualTimeMs": 15969,
+              "cpuMs": 1563.75,
+              "cpuMsPerEvent": 0.5032990022529772,
+              "elapsedMs": 1719.366496,
+              "taskCpuMs": 1560.912,
+              "scriptCpuMs": 560.5369999999999,
+              "layoutCpuMs": 45.268,
+              "styleCpuMs": 15.091000000000001,
+              "observedLongTaskCount": 0,
+              "maxObservedLongTaskMs": 0,
+              "observedLongTasks": [],
+              "bundle": "http://127.0.0.1:4201/assets/dashboard-C64DQpOW.js"
+            }
+          ],
+          "value": 0.5032990022529772
+        }
+      },
+      {
+        "name": "reuse",
+        "repeat": 1,
+        "advicees": 1,
+        "exit": 0,
+        "stdout": "{\"metric\":\"main_thread_cpu_ms_per_processed_event\",\"timeDomain\":\"threadTicks\",\"evaluatorVersion\":2,\"cases\":[{\"advicees\":1,\"seed\":7,\"before\":0,\"events\":3181,\"virtualTimeMs\":16649,\"cpuMs\":1506.047,\"cpuMsPerEvent\":0.4734508016347061,\"elapsedMs\":1758.4283,\"taskCpuMs\":1503.639,\"scriptCpuMs\":468.543,\"layoutCpuMs\":38.732,\"styleCpuMs\":11.243,\"observedLongTaskCount\":0,\"maxObservedLongTaskMs\":0,\"observedLongTasks\":[],\"bundle\":\"http://127.0.0.1:4201/assets/dashboard-C64DQpOW.js\"}],\"value\":0.4734508016347061}\nMETRIC main_thread_cpu_ms_per_processed_event=0.4734508016347061\n",
+        "stderr": "",
+        "result": {
+          "metric": "main_thread_cpu_ms_per_processed_event",
+          "timeDomain": "threadTicks",
+          "evaluatorVersion": 2,
+          "cases": [
+            {
+              "advicees": 1,
+              "seed": 7,
+              "before": 0,
+              "events": 3181,
+              "virtualTimeMs": 16649,
+              "cpuMs": 1506.047,
+              "cpuMsPerEvent": 0.4734508016347061,
+              "elapsedMs": 1758.4283,
+              "taskCpuMs": 1503.639,
+              "scriptCpuMs": 468.543,
+              "layoutCpuMs": 38.732,
+              "styleCpuMs": 11.243,
+              "observedLongTaskCount": 0,
+              "maxObservedLongTaskMs": 0,
+              "observedLongTasks": [],
+              "bundle": "http://127.0.0.1:4201/assets/dashboard-C64DQpOW.js"
+            }
+          ],
+          "value": 0.4734508016347061
+        }
+      },
+      {
+        "name": "f263",
+        "repeat": 1,
+        "advicees": 1,
+        "exit": 0,
+        "stdout": "{\"metric\":\"main_thread_cpu_ms_per_processed_event\",\"timeDomain\":\"threadTicks\",\"evaluatorVersion\":2,\"cases\":[{\"advicees\":1,\"seed\":7,\"before\":0,\"events\":3107,\"virtualTimeMs\":15969,\"cpuMs\":1569.442,\"cpuMsPerEvent\":0.5051309945284841,\"elapsedMs\":1686.2237790000001,\"taskCpuMs\":1567.251,\"scriptCpuMs\":583.568,\"layoutCpuMs\":45.719,\"styleCpuMs\":15.129,\"observedLongTaskCount\":0,\"maxObservedLongTaskMs\":0,\"observedLongTasks\":[],\"bundle\":\"http://127.0.0.1:4200/assets/dashboard-DuJNLV1V.js\"}],\"value\":0.5051309945284841}\nMETRIC main_thread_cpu_ms_per_processed_event=0.5051309945284841\n",
+        "stderr": "",
+        "result": {
+          "metric": "main_thread_cpu_ms_per_processed_event",
+          "timeDomain": "threadTicks",
+          "evaluatorVersion": 2,
+          "cases": [
+            {
+              "advicees": 1,
+              "seed": 7,
+              "before": 0,
+              "events": 3107,
+              "virtualTimeMs": 15969,
+              "cpuMs": 1569.442,
+              "cpuMsPerEvent": 0.5051309945284841,
+              "elapsedMs": 1686.2237790000001,
+              "taskCpuMs": 1567.251,
+              "scriptCpuMs": 583.568,
+              "layoutCpuMs": 45.719,
+              "styleCpuMs": 15.129,
+              "observedLongTaskCount": 0,
+              "maxObservedLongTaskMs": 0,
+              "observedLongTasks": [],
+              "bundle": "http://127.0.0.1:4200/assets/dashboard-DuJNLV1V.js"
+            }
+          ],
+          "value": 0.5051309945284841
+        }
+      },
+      {
+        "name": "f263",
+        "repeat": 0,
+        "advicees": 6,
+        "exit": 0,
+        "stdout": "{\"metric\":\"main_thread_cpu_ms_per_processed_event\",\"timeDomain\":\"threadTicks\",\"evaluatorVersion\":2,\"cases\":[{\"advicees\":6,\"seed\":7,\"before\":0,\"events\":3200,\"virtualTimeMs\":2528,\"cpuMs\":2780.848,\"cpuMsPerEvent\":0.869015,\"elapsedMs\":3025.9442710000003,\"taskCpuMs\":2777.543,\"scriptCpuMs\":869.8209999999999,\"layoutCpuMs\":57.747,\"styleCpuMs\":60.905,\"observedLongTaskCount\":4,\"maxObservedLongTaskMs\":107,\"observedLongTasks\":[{\"startTime\":337.5,\"duration\":107},{\"startTime\":510.19999980926514,\"duration\":77},{\"startTime\":736.7999999523163,\"duration\":83},{\"startTime\":2779.399999856949,\"duration\":59}],\"bundle\":\"http://127.0.0.1:4200/assets/dashboard-DuJNLV1V.js\"}],\"value\":0.869015}\nMETRIC main_thread_cpu_ms_per_processed_event=0.869015\n",
+        "stderr": "",
+        "result": {
+          "metric": "main_thread_cpu_ms_per_processed_event",
+          "timeDomain": "threadTicks",
+          "evaluatorVersion": 2,
+          "cases": [
+            {
+              "advicees": 6,
+              "seed": 7,
+              "before": 0,
+              "events": 3200,
+              "virtualTimeMs": 2528,
+              "cpuMs": 2780.848,
+              "cpuMsPerEvent": 0.869015,
+              "elapsedMs": 3025.9442710000003,
+              "taskCpuMs": 2777.543,
+              "scriptCpuMs": 869.8209999999999,
+              "layoutCpuMs": 57.747,
+              "styleCpuMs": 60.905,
+              "observedLongTaskCount": 4,
+              "maxObservedLongTaskMs": 107,
+              "observedLongTasks": [
+                {
+                  "startTime": 337.5,
+                  "duration": 107
+                },
+                {
+                  "startTime": 510.19999980926514,
+                  "duration": 77
+                },
+                {
+                  "startTime": 736.7999999523163,
+                  "duration": 83
+                },
+                {
+                  "startTime": 2779.399999856949,
+                  "duration": 59
+                }
+              ],
+              "bundle": "http://127.0.0.1:4200/assets/dashboard-DuJNLV1V.js"
+            }
+          ],
+          "value": 0.869015
+        }
+      },
+      {
+        "name": "reuse",
+        "repeat": 0,
+        "advicees": 6,
+        "exit": 0,
+        "stdout": "{\"metric\":\"main_thread_cpu_ms_per_processed_event\",\"timeDomain\":\"threadTicks\",\"evaluatorVersion\":2,\"cases\":[{\"advicees\":6,\"seed\":7,\"before\":0,\"events\":3284,\"virtualTimeMs\":2568,\"cpuMs\":2534.6989999999996,\"cpuMsPerEvent\":0.771832825822168,\"elapsedMs\":2836.5015019999996,\"taskCpuMs\":2531.776,\"scriptCpuMs\":792.022,\"layoutCpuMs\":57.044,\"styleCpuMs\":59.382,\"observedLongTaskCount\":1,\"maxObservedLongTaskMs\":150,\"observedLongTasks\":[{\"startTime\":410.60000014305115,\"duration\":150}],\"bundle\":\"http://127.0.0.1:4201/assets/dashboard-C64DQpOW.js\"}],\"value\":0.771832825822168}\nMETRIC main_thread_cpu_ms_per_processed_event=0.771832825822168\n",
+        "stderr": "",
+        "result": {
+          "metric": "main_thread_cpu_ms_per_processed_event",
+          "timeDomain": "threadTicks",
+          "evaluatorVersion": 2,
+          "cases": [
+            {
+              "advicees": 6,
+              "seed": 7,
+              "before": 0,
+              "events": 3284,
+              "virtualTimeMs": 2568,
+              "cpuMs": 2534.6989999999996,
+              "cpuMsPerEvent": 0.771832825822168,
+              "elapsedMs": 2836.5015019999996,
+              "taskCpuMs": 2531.776,
+              "scriptCpuMs": 792.022,
+              "layoutCpuMs": 57.044,
+              "styleCpuMs": 59.382,
+              "observedLongTaskCount": 1,
+              "maxObservedLongTaskMs": 150,
+              "observedLongTasks": [
+                {
+                  "startTime": 410.60000014305115,
+                  "duration": 150
+                }
+              ],
+              "bundle": "http://127.0.0.1:4201/assets/dashboard-C64DQpOW.js"
+            }
+          ],
+          "value": 0.771832825822168
+        }
+      },
+      {
+        "name": "reuse",
+        "repeat": 1,
+        "advicees": 6,
+        "exit": 0,
+        "stdout": "{\"metric\":\"main_thread_cpu_ms_per_processed_event\",\"timeDomain\":\"threadTicks\",\"evaluatorVersion\":2,\"cases\":[{\"advicees\":6,\"seed\":7,\"before\":0,\"events\":3284,\"virtualTimeMs\":2568,\"cpuMs\":2541.814,\"cpuMsPerEvent\":0.7739993909866016,\"elapsedMs\":2876.923276,\"taskCpuMs\":2538.6440000000002,\"scriptCpuMs\":803.674,\"layoutCpuMs\":54.519,\"styleCpuMs\":59.135,\"observedLongTaskCount\":3,\"maxObservedLongTaskMs\":116,\"observedLongTasks\":[{\"startTime\":324.09999990463257,\"duration\":116},{\"startTime\":614.0999999046326,\"duration\":53},{\"startTime\":837.0999999046326,\"duration\":58}],\"bundle\":\"http://127.0.0.1:4201/assets/dashboard-C64DQpOW.js\"}],\"value\":0.7739993909866016}\nMETRIC main_thread_cpu_ms_per_processed_event=0.7739993909866016\n",
+        "stderr": "",
+        "result": {
+          "metric": "main_thread_cpu_ms_per_processed_event",
+          "timeDomain": "threadTicks",
+          "evaluatorVersion": 2,
+          "cases": [
+            {
+              "advicees": 6,
+              "seed": 7,
+              "before": 0,
+              "events": 3284,
+              "virtualTimeMs": 2568,
+              "cpuMs": 2541.814,
+              "cpuMsPerEvent": 0.7739993909866016,
+              "elapsedMs": 2876.923276,
+              "taskCpuMs": 2538.6440000000002,
+              "scriptCpuMs": 803.674,
+              "layoutCpuMs": 54.519,
+              "styleCpuMs": 59.135,
+              "observedLongTaskCount": 3,
+              "maxObservedLongTaskMs": 116,
+              "observedLongTasks": [
+                {
+                  "startTime": 324.09999990463257,
+                  "duration": 116
+                },
+                {
+                  "startTime": 614.0999999046326,
+                  "duration": 53
+                },
+                {
+                  "startTime": 837.0999999046326,
+                  "duration": 58
+                }
+              ],
+              "bundle": "http://127.0.0.1:4201/assets/dashboard-C64DQpOW.js"
+            }
+          ],
+          "value": 0.7739993909866016
+        }
+      },
+      {
+        "name": "f263",
+        "repeat": 1,
+        "advicees": 6,
+        "exit": 0,
+        "stdout": "{\"metric\":\"main_thread_cpu_ms_per_processed_event\",\"timeDomain\":\"threadTicks\",\"evaluatorVersion\":2,\"cases\":[{\"advicees\":6,\"seed\":7,\"before\":0,\"events\":3200,\"virtualTimeMs\":2528,\"cpuMs\":2654.44,\"cpuMsPerEvent\":0.8295125,\"elapsedMs\":2954.762216,\"taskCpuMs\":2651.15,\"scriptCpuMs\":781.404,\"layoutCpuMs\":54.817,\"styleCpuMs\":57.215,\"observedLongTaskCount\":1,\"maxObservedLongTaskMs\":89,\"observedLongTasks\":[{\"startTime\":348.09999990463257,\"duration\":89}],\"bundle\":\"http://127.0.0.1:4200/assets/dashboard-DuJNLV1V.js\"}],\"value\":0.8295125}\nMETRIC main_thread_cpu_ms_per_processed_event=0.8295125\n",
+        "stderr": "",
+        "result": {
+          "metric": "main_thread_cpu_ms_per_processed_event",
+          "timeDomain": "threadTicks",
+          "evaluatorVersion": 2,
+          "cases": [
+            {
+              "advicees": 6,
+              "seed": 7,
+              "before": 0,
+              "events": 3200,
+              "virtualTimeMs": 2528,
+              "cpuMs": 2654.44,
+              "cpuMsPerEvent": 0.8295125,
+              "elapsedMs": 2954.762216,
+              "taskCpuMs": 2651.15,
+              "scriptCpuMs": 781.404,
+              "layoutCpuMs": 54.817,
+              "styleCpuMs": 57.215,
+              "observedLongTaskCount": 1,
+              "maxObservedLongTaskMs": 89,
+              "observedLongTasks": [
+                {
+                  "startTime": 348.09999990463257,
+                  "duration": 89
+                }
+              ],
+              "bundle": "http://127.0.0.1:4200/assets/dashboard-DuJNLV1V.js"
+            }
+          ],
+          "value": 0.8295125
+        }
+      }
+    ],
+    "limitations": [
+      "Two pairs per case establish observed sample changes, not platform guarantees.",
+      "Stop points differ by a published batch: one-agent endpoints 3107\u20133205 events; six-agent prior 3200 versus candidate 3284. CPU is normalized by each actual event count."
+    ],
+    "validation": {
+      "focusedSixSuites": {
+        "tests": 27,
+        "log": ".test-runs/20261005065135378-3679236-38bbeb/3679236-001-vitest-focused.log"
+      },
+      "updatedOwnerSuites": {
+        "tests": 8,
+        "log": ".test-runs/20261005065214131-3680162-0dfb12/3680162-001-vitest-focused.log"
+      },
+      "checkFast": "passed after added tests; worker exec session30479",
+      "productionLiveness": "passed 1 and 6 advicees; .autoresearch/decoder-reuse-liveness.log",
+      "generatedIdentityCheck": "passed; compiled policy unchanged",
+      "stagedChecks": "passed lint-staged --no-stash --no-hide-partially-staged"
+    },
+    "sourceHashes": {
+      "packages/monkey-business/src/stop-codec.ts": "15d42ec9e49f9ffa4bae47b3d15e90d4ba4926240d803db8b12c556e7767b39e",
+      "packages/monkey-business/src/callback-controls.ts": "881c20f3ee254974dbe48cb8ba55693c9203fc98c386d9ebd82e940cd00cadb2"
+    },
+    "originalBaselinePair": [
+      {
+        "name": "original34df",
+        "advicees": 1,
+        "exit": 0,
+        "stdout": "{\"metric\":\"main_thread_cpu_ms_per_processed_event\",\"timeDomain\":\"threadTicks\",\"evaluatorVersion\":2,\"cases\":[{\"advicees\":1,\"seed\":7,\"before\":0,\"events\":3283,\"virtualTimeMs\":16929,\"cpuMs\":1796.579,\"cpuMsPerEvent\":0.5472369783734389,\"elapsedMs\":1932.9515829999998,\"taskCpuMs\":1795.3300000000002,\"scriptCpuMs\":1652.887,\"layoutCpuMs\":36.103,\"styleCpuMs\":9.686,\"observedLongTaskCount\":5,\"maxObservedLongTaskMs\":62,\"observedLongTasks\":[{\"startTime\":392.2000000476837,\"duration\":59},{\"startTime\":569.9000000953674,\"duration\":50},{\"startTime\":739.5,\"duration\":52},{\"startTime\":1156.5999999046326,\"duration\":62},{\"startTime\":1290.4000000953674,\"duration\":51}],\"bundle\":\"http://127.0.0.1:4184/assets/dashboard-B9ccJG11.js\"}],\"value\":0.5472369783734389}\nMETRIC main_thread_cpu_ms_per_processed_event=0.5472369783734389\n",
+        "stderr": "",
+        "result": {
+          "metric": "main_thread_cpu_ms_per_processed_event",
+          "timeDomain": "threadTicks",
+          "evaluatorVersion": 2,
+          "cases": [
+            {
+              "advicees": 1,
+              "seed": 7,
+              "before": 0,
+              "events": 3283,
+              "virtualTimeMs": 16929,
+              "cpuMs": 1796.579,
+              "cpuMsPerEvent": 0.5472369783734389,
+              "elapsedMs": 1932.9515829999998,
+              "taskCpuMs": 1795.3300000000002,
+              "scriptCpuMs": 1652.887,
+              "layoutCpuMs": 36.103,
+              "styleCpuMs": 9.686,
+              "observedLongTaskCount": 5,
+              "maxObservedLongTaskMs": 62,
+              "observedLongTasks": [
+                {
+                  "startTime": 392.2000000476837,
+                  "duration": 59
+                },
+                {
+                  "startTime": 569.9000000953674,
+                  "duration": 50
+                },
+                {
+                  "startTime": 739.5,
+                  "duration": 52
+                },
+                {
+                  "startTime": 1156.5999999046326,
+                  "duration": 62
+                },
+                {
+                  "startTime": 1290.4000000953674,
+                  "duration": 51
+                }
+              ],
+              "bundle": "http://127.0.0.1:4184/assets/dashboard-B9ccJG11.js"
+            }
+          ],
+          "value": 0.5472369783734389
+        }
+      },
+      {
+        "name": "reuse",
+        "advicees": 1,
+        "exit": 0,
+        "stdout": "{\"metric\":\"main_thread_cpu_ms_per_processed_event\",\"timeDomain\":\"threadTicks\",\"evaluatorVersion\":2,\"cases\":[{\"advicees\":1,\"seed\":7,\"before\":0,\"events\":3107,\"virtualTimeMs\":15969,\"cpuMs\":1535.636,\"cpuMsPerEvent\":0.4942504023173479,\"elapsedMs\":1677.8903420000001,\"taskCpuMs\":1533.057,\"scriptCpuMs\":539.486,\"layoutCpuMs\":39.743,\"styleCpuMs\":11.464,\"observedLongTaskCount\":0,\"maxObservedLongTaskMs\":0,\"observedLongTasks\":[],\"bundle\":\"http://127.0.0.1:4201/assets/dashboard-C64DQpOW.js\"}],\"value\":0.4942504023173479}\nMETRIC main_thread_cpu_ms_per_processed_event=0.4942504023173479\n",
+        "stderr": "",
+        "result": {
+          "metric": "main_thread_cpu_ms_per_processed_event",
+          "timeDomain": "threadTicks",
+          "evaluatorVersion": 2,
+          "cases": [
+            {
+              "advicees": 1,
+              "seed": 7,
+              "before": 0,
+              "events": 3107,
+              "virtualTimeMs": 15969,
+              "cpuMs": 1535.636,
+              "cpuMsPerEvent": 0.4942504023173479,
+              "elapsedMs": 1677.8903420000001,
+              "taskCpuMs": 1533.057,
+              "scriptCpuMs": 539.486,
+              "layoutCpuMs": 39.743,
+              "styleCpuMs": 11.464,
+              "observedLongTaskCount": 0,
+              "maxObservedLongTaskMs": 0,
+              "observedLongTasks": [],
+              "bundle": "http://127.0.0.1:4201/assets/dashboard-C64DQpOW.js"
+            }
+          ],
+          "value": 0.4942504023173479
+        }
+      },
+      {
+        "name": "original34df",
+        "advicees": 6,
+        "exit": 0,
+        "stdout": "{\"metric\":\"main_thread_cpu_ms_per_processed_event\",\"timeDomain\":\"threadTicks\",\"evaluatorVersion\":2,\"cases\":[{\"advicees\":6,\"seed\":7,\"before\":0,\"events\":3200,\"virtualTimeMs\":2528,\"cpuMs\":2812.4990000000003,\"cpuMsPerEvent\":0.8789059375000001,\"elapsedMs\":3103.858052,\"taskCpuMs\":2810.385,\"scriptCpuMs\":2499.4100000000003,\"layoutCpuMs\":49.941,\"styleCpuMs\":50.083000000000006,\"observedLongTaskCount\":25,\"maxObservedLongTaskMs\":126,\"observedLongTasks\":[{\"startTime\":356.40000009536743,\"duration\":114},{\"startTime\":470.60000014305115,\"duration\":100},{\"startTime\":574.3000001907349,\"duration\":108},{\"startTime\":683.1000001430511,\"duration\":126},{\"startTime\":837.2000000476837,\"duration\":78},{\"startTime\":915.5,\"duration\":52},{\"startTime\":979.4000000953674,\"duration\":71},{\"startTime\":1051.5,\"duration\":80},{\"startTime\":1165.1000001430511,\"duration\":84},{\"startTime\":1432.9000000953674,\"duration\":68},{\"startTime\":1528,\"duration\":94},{\"startTime\":1654.4000000953674,\"duration\":64},{\"startTime\":1816.7000000476837,\"duration\":56},{\"startTime\":1898.9000000953674,\"duration\":55},{\"startTime\":2052.9000000953674,\"duration\":79},{\"startTime\":2221,\"duration\":50},{\"startTime\":2295.9000000953674,\"duration\":54},{\"startTime\":2374.300000190735,\"duration\":69},{\"startTime\":2443.5,\"duration\":56},{\"startTime\":2500.100000143051,\"duration\":80},{\"startTime\":2613.300000190735,\"duration\":53},{\"startTime\":2696,\"duration\":84},{\"startTime\":2931,\"duration\":61},{\"startTime\":3147.7000000476837,\"duration\":61},{\"startTime\":3239.7000000476837,\"duration\":71}],\"bundle\":\"http://127.0.0.1:4184/assets/dashboard-B9ccJG11.js\"}],\"value\":0.8789059375000001}\nMETRIC main_thread_cpu_ms_per_processed_event=0.8789059375000001\n",
+        "stderr": "",
+        "result": {
+          "metric": "main_thread_cpu_ms_per_processed_event",
+          "timeDomain": "threadTicks",
+          "evaluatorVersion": 2,
+          "cases": [
+            {
+              "advicees": 6,
+              "seed": 7,
+              "before": 0,
+              "events": 3200,
+              "virtualTimeMs": 2528,
+              "cpuMs": 2812.4990000000003,
+              "cpuMsPerEvent": 0.8789059375000001,
+              "elapsedMs": 3103.858052,
+              "taskCpuMs": 2810.385,
+              "scriptCpuMs": 2499.4100000000003,
+              "layoutCpuMs": 49.941,
+              "styleCpuMs": 50.083000000000006,
+              "observedLongTaskCount": 25,
+              "maxObservedLongTaskMs": 126,
+              "observedLongTasks": [
+                {
+                  "startTime": 356.40000009536743,
+                  "duration": 114
+                },
+                {
+                  "startTime": 470.60000014305115,
+                  "duration": 100
+                },
+                {
+                  "startTime": 574.3000001907349,
+                  "duration": 108
+                },
+                {
+                  "startTime": 683.1000001430511,
+                  "duration": 126
+                },
+                {
+                  "startTime": 837.2000000476837,
+                  "duration": 78
+                },
+                {
+                  "startTime": 915.5,
+                  "duration": 52
+                },
+                {
+                  "startTime": 979.4000000953674,
+                  "duration": 71
+                },
+                {
+                  "startTime": 1051.5,
+                  "duration": 80
+                },
+                {
+                  "startTime": 1165.1000001430511,
+                  "duration": 84
+                },
+                {
+                  "startTime": 1432.9000000953674,
+                  "duration": 68
+                },
+                {
+                  "startTime": 1528,
+                  "duration": 94
+                },
+                {
+                  "startTime": 1654.4000000953674,
+                  "duration": 64
+                },
+                {
+                  "startTime": 1816.7000000476837,
+                  "duration": 56
+                },
+                {
+                  "startTime": 1898.9000000953674,
+                  "duration": 55
+                },
+                {
+                  "startTime": 2052.9000000953674,
+                  "duration": 79
+                },
+                {
+                  "startTime": 2221,
+                  "duration": 50
+                },
+                {
+                  "startTime": 2295.9000000953674,
+                  "duration": 54
+                },
+                {
+                  "startTime": 2374.300000190735,
+                  "duration": 69
+                },
+                {
+                  "startTime": 2443.5,
+                  "duration": 56
+                },
+                {
+                  "startTime": 2500.100000143051,
+                  "duration": 80
+                },
+                {
+                  "startTime": 2613.300000190735,
+                  "duration": 53
+                },
+                {
+                  "startTime": 2696,
+                  "duration": 84
+                },
+                {
+                  "startTime": 2931,
+                  "duration": 61
+                },
+                {
+                  "startTime": 3147.7000000476837,
+                  "duration": 61
+                },
+                {
+                  "startTime": 3239.7000000476837,
+                  "duration": 71
+                }
+              ],
+              "bundle": "http://127.0.0.1:4184/assets/dashboard-B9ccJG11.js"
+            }
+          ],
+          "value": 0.8789059375000001
+        }
+      },
+      {
+        "name": "reuse",
+        "advicees": 6,
+        "exit": 0,
+        "stdout": "{\"metric\":\"main_thread_cpu_ms_per_processed_event\",\"timeDomain\":\"threadTicks\",\"evaluatorVersion\":2,\"cases\":[{\"advicees\":6,\"seed\":7,\"before\":0,\"events\":3200,\"virtualTimeMs\":2528,\"cpuMs\":2476.302,\"cpuMsPerEvent\":0.773844375,\"elapsedMs\":2684.726574,\"taskCpuMs\":2473.3300000000004,\"scriptCpuMs\":767.941,\"layoutCpuMs\":55.102,\"styleCpuMs\":56.682,\"observedLongTaskCount\":1,\"maxObservedLongTaskMs\":92,\"observedLongTasks\":[{\"startTime\":350.2000000476837,\"duration\":92}],\"bundle\":\"http://127.0.0.1:4201/assets/dashboard-C64DQpOW.js\"}],\"value\":0.773844375}\nMETRIC main_thread_cpu_ms_per_processed_event=0.773844375\n",
+        "stderr": "",
+        "result": {
+          "metric": "main_thread_cpu_ms_per_processed_event",
+          "timeDomain": "threadTicks",
+          "evaluatorVersion": 2,
+          "cases": [
+            {
+              "advicees": 6,
+              "seed": 7,
+              "before": 0,
+              "events": 3200,
+              "virtualTimeMs": 2528,
+              "cpuMs": 2476.302,
+              "cpuMsPerEvent": 0.773844375,
+              "elapsedMs": 2684.726574,
+              "taskCpuMs": 2473.3300000000004,
+              "scriptCpuMs": 767.941,
+              "layoutCpuMs": 55.102,
+              "styleCpuMs": 56.682,
+              "observedLongTaskCount": 1,
+              "maxObservedLongTaskMs": 92,
+              "observedLongTasks": [
+                {
+                  "startTime": 350.2000000476837,
+                  "duration": 92
+                }
+              ],
+              "bundle": "http://127.0.0.1:4201/assets/dashboard-C64DQpOW.js"
+            }
+          ],
+          "value": 0.773844375
+        }
+      }
+    ],
+    "review": {
+      "standards": "No hard findings; private fixed decoder construction moves to module import.",
+      "spec": "No findings; same strict schemas, per-call validation, bounds, ordering and fresh output construction."
+    }
   }
 }
