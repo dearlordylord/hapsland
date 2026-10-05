@@ -58,6 +58,7 @@ const hostPaths = [
     "../../src/canonical/simulation-adapter.ts",
     "../../src/canonical/simulation-codec.ts",
     "../../src/canonical/canonical-boundary.ts",
+    "../../src/canonical/constructors.ts",
     "../../src/canonical/event-reader.ts",
     "../../src/canonical/boundary-schema.ts",
     "../../src/canonical/immutable.ts",
