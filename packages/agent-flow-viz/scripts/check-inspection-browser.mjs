@@ -218,6 +218,27 @@ try {
   assert.equal(await page.evaluate(() => getSelection().toString().length), 20)
   assert.equal(await page.locator("#detail").evaluate((element) => element.scrollTop), readingPosition)
   assert.equal(dispatched.length, 4)
+  phase = "original model-input loss"
+  const beforeInputLoss = await (await fetch(`${server.url}snapshot`)).json()
+  const originalTransport = beforeInputLoss.records.find(
+    (record) => record.source.id === requestReferences[0].sourceId && record.sequence === requestReferences[0].sequence
+  )
+  const originalInputs = beforeInputLoss.records.filter(
+    (record) =>
+      record.source.id === originalTransport.source.id &&
+      record.correlation.receiptId === originalTransport.correlation.receiptId &&
+      record.fact.kind === "model-input"
+  )
+  assert.equal(originalInputs.length, 2)
+  for (const record of originalInputs) {
+    await rm(join(root, "inspection", `${record.source.id}-${String(record.sequence).padStart(16, "0")}.json`))
+  }
+  await page
+    .getByRole("button", { name: /type\.ts/ })
+    .first()
+    .click()
+  await page.waitForFunction(() => document.querySelector("#input").textContent.includes("No retained model input"))
+  assert.equal(await page.locator("#requests button").count(), 2, "Transport evidence survives model-input loss")
   await edit("type.ts", "reuse-existing-advice")
   await page.waitForFunction(() => document.querySelectorAll("#edits li").length === 4)
   assert.equal(dispatched.length, 4, "existing advice must not create another classifier invocation")

@@ -187,7 +187,7 @@ function render(snapshot) {
 
   for (const record of records.filter(record => record.fact.kind === 'evaluation-route')) {
     const fact = record.fact;
-    const original = fact.original.status === 'linked' ? snapshot.records.find(candidate => candidate.source.id === record.source.id && candidate.correlation.evaluationId === fact.original.evaluationId && candidate.fact.kind === 'model-input') : null;
+    const original = fact.original.status === 'linked' ? snapshot.records.find(candidate => candidate.source.id === record.source.id && candidate.correlation.evaluationId === fact.original.evaluationId && candidate.correlation.receiptId && (candidate.fact.kind === 'model-input' || candidate.fact.kind === 'transport-invoked' || candidate.fact.kind === 'unit-prepared')) : null;
     const outcomes = original ? snapshot.records.filter(candidate => candidate.source.id === record.source.id && candidate.correlation.evaluationId === fact.original.evaluationId && candidate.fact.kind === 'evaluation-outcome').map(candidate => candidate.fact.outcome) : [];
     const item = document.createElement('p');
     item.textContent = fact.path + ' · ' + fact.declaration + ' · ' + fact.route + ' · ' + (outcomes.length ? 'Recorded evaluation: ' + outcomes.join(', ') : 'Evaluation outcome not retained or pending');

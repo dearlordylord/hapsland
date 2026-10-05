@@ -143,7 +143,9 @@ inaccessible journal (`history-unavailable`) and facts without exact bytes
 and check it against the captured payload. The browser fixture fans one edit into
 two actual provider requests, selects both by keyboard, and compares each copy
 and unit label against its dispatched body. Original-evaluation links select the
-matching request rather than the first invocation in the original receipt. A
+matching request rather than the first invocation in the original receipt. The
+fixture also removes the original model-input records while preserving actual
+transport records, then verifies the original links and exact bodies still work. A
 missing selection never switches to another body. A missing result leaves the clipboard
 unchanged and labels the remaining preview as previously captured history. These
 checks do not establish replay cursors or complete recording coverage.
