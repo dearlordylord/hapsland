@@ -447,6 +447,23 @@ describe("resident inspection capture", () => {
     const evaluated = nativeDeferred<void>()
     const retired = nativeDeferred<void>()
     const store = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
+    const readOnce = () => Effect.runPromise(store.snapshot())
+    const readHistory = async () => {
+      let saved: Awaited<ReturnType<typeof readOnce>> | undefined
+      // Review completion does not drain the independent journal writer. Retry
+      // only this fixture's read; persistence and every fact assertion stay real.
+      await expect
+        .poll(
+          async () => {
+            saved = await readOnce().catch(() => undefined)
+            return saved !== undefined
+          },
+          { timeout: 2000 }
+        )
+        .toBe(true)
+      if (saved === undefined) throw new Error("inspection journal never became readable")
+      return saved
+    }
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       inspectionPersistence: {
         write: (record, encoded, publication) =>
@@ -482,7 +499,7 @@ describe("resident inspection capture", () => {
     await prepared.promise
     await evaluated.promise
     await Effect.runPromise(server.whenIdle())
-    const { records } = await Effect.runPromise(store.snapshot())
+    const { records } = await readHistory()
     expect(
       records
         .filter((record) => ["recording-state", "edit-received", "edit-admission"].includes(record.fact.kind))
@@ -495,7 +512,7 @@ describe("resident inspection capture", () => {
     expect(JSON.stringify(received)).not.toContain("OrderCount")
     expect(records.find((record) => record.fact.kind === "edit-admission")?.correlation).toEqual(received.correlation)
     await Effect.runPromise(server.whenIdle())
-    const { records: preparedRecords } = await Effect.runPromise(store.snapshot())
+    const { records: preparedRecords } = await readHistory()
     const unit = preparedRecords.find((record) => record.fact.kind === "unit-prepared")
     expect(unit?.correlation.receiptId).toBe(received.correlation.receiptId)
     expect(unit?.correlation.unitId).toMatch(/^[a-f0-9]{64}$/)
@@ -524,7 +541,7 @@ describe("resident inspection capture", () => {
     await Effect.runPromise(server.collect(root, advicee(), dispatch))
     await retired.promise
     expect(await Effect.runPromise(server.pendingAdviceMetadata())).toHaveLength(0)
-    const { records: retiredRecords } = await Effect.runPromise(store.snapshot())
+    const { records: retiredRecords } = await readHistory()
     const stale = retiredRecords.find((record) => record.fact.kind === "finding-fate" && record.fact.fate === "stale")
     expect(stale?.fact).toMatchObject({ fate: "stale", reason: "resident-stale" })
     if (stale?.fact.kind !== "finding-fate" || retained?.fact.kind !== "finding-fate")
@@ -537,7 +554,7 @@ describe("resident inspection capture", () => {
     Effect.runSync(server.admit(observation, dispatch))
     await Effect.runPromise(server.whenIdle())
     await Effect.runPromise(server.close)
-    const { records: history } = await Effect.runPromise(store.snapshot())
+    const { records: history } = await readHistory()
     expect(history.filter((record) => record.fact.kind === "edit-received")).toHaveLength(1)
   })
 })
