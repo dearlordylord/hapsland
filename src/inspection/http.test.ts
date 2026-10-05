@@ -249,6 +249,88 @@ it("exposes exact retained bytes from a real resident's production provider tran
   }
 })
 
+it("exposes exceptional provider failure without a clear result, duplicate outcome or private response body", async () => {
+  const root = await makeGitFixture()
+  await put(root, "type.ts", "type OrderCount = number;\n")
+  await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+  const history = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
+  const published = nativeDeferred<void>()
+  const dispatched: Buffer[] = []
+  const settled: string[] = []
+  const privateBody = "PRIVATE_PROVIDER_ERROR_BODY"
+  const resident = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+    jevRequestObserver: (item) => {
+      if (item.stage === "settled") settled.push(item.outcome ?? "missing")
+    },
+    inspectionPersistence: {
+      write: (record, encoded, publication) =>
+        history.write(record, encoded, publication).pipe(
+          Effect.tap(() =>
+            Effect.sync(() => {
+              if (record.fact.kind === "evaluation-outcome") published.resolve()
+            })
+          )
+        )
+    },
+    offlineHttpClient: HttpClient.make((request) => {
+      if (request.body._tag !== "Uint8Array") throw new Error("missing dispatched bytes")
+      dispatched.push(Buffer.from(request.body.body))
+      return Effect.succeed(HttpClientResponse.fromWeb(request, new Response(privateBody, { status: 503 })))
+    })
+  })
+  const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
+  if (!observation) throw new Error("missing observation")
+  const credentialPath = join(root, "credential-state")
+  expect(
+    Effect.runSync(
+      resident.admit(observation, {
+        statePath: join(root, "consent"),
+        userConfigPath: join(root, "absent-user"),
+        controlled: null,
+        credential: {
+          name: "TYPESAFE_API_KEY",
+          environmentValue: "PRIVATE_OFFLINE_CREDENTIAL",
+          environmentOnly: true,
+          generation: readCredentialState(credentialPath).generation,
+          statePath: credentialPath
+        }
+      })
+    ).status
+  ).toBe("accepted")
+  await published.promise
+  await Effect.runPromise(resident.whenIdle())
+  expect(settled).toEqual(["backendFailure"])
+  expect(dispatched).toHaveLength(1)
+  await Effect.runPromise(
+    Effect.scoped(
+      Effect.gen(function* () {
+        const server = yield* makeInspectionHttpServer(history)
+        yield* Effect.promise(async () => {
+          const snapshot = await (await fetch(`${server.url}snapshot`)).json()
+          const records: ReadonlyArray<ReturnType<typeof decodeInspectionRecord>> =
+            snapshot.records.map(decodeInspectionRecord)
+          expect(
+            records.filter((record) => record.fact.kind === "evaluation-outcome").map((record) => record.fact)
+          ).toEqual([{ kind: "evaluation-outcome", outcome: "backend" }])
+          expect(
+            records.some((record) => record.fact.kind === "validated-answers" || record.fact.kind === "writer-evidence")
+          ).toBe(false)
+          const transport = records.find((record) => record.fact.kind === "transport-invoked")
+          if (!transport) throw new Error("missing retained transport")
+          const payload = await (
+            await fetch(`${server.url}payload/${transport.source.id}/${transport.sequence}`)
+          ).json()
+          expect(payload.status).toBe("available")
+          expect(Buffer.from(payload.encoded, "base64").equals(dispatched[0]!)).toBe(true)
+          expect(JSON.stringify(snapshot)).not.toContain(privateBody)
+          expect(JSON.stringify(snapshot)).not.toContain("PRIVATE_OFFLINE_CREDENTIAL")
+          expect(dispatched).toHaveLength(1)
+        })
+      })
+    )
+  )
+})
+
 it("serves pre-launch real resident history through protected HTTP and SSE after that resident closes", async () => {
   const root = await makeGitFixture()
   await put(root, "type.ts", "type OrderCount = number\n")
