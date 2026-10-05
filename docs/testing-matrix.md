@@ -135,6 +135,16 @@ selected qualification with a 300-second stage. These overrides do not change
 runner defaults or product deadlines. Recovery compares the complete native
 and compiler-emitted vectors before its independent public and replay checks.
 
+The original advicee preparation-after-departure comparison uses C30/clang90/native5
+with a 150-second aggregate watchdog; an authenticated preflight session keeps
+its own fixed compilation policy. Freshness source-change comparisons retain
+native/emitted-JS agreement under a 200-second watchdog (C90/clang60/native5,
+JS15+5). Their independent public milestones and replay also run as separate
+TypeScript tests. The concurrent-notice comparison uses the shared native runner
+and its C30/clang30/native5 allowances under the same 100-second watchdog;
+it no longer owns a separate compiler subprocess implementation.
+These are fixture compilation budgets, not product latency deadlines.
+
 ## Pull request checks
 
 [Offline CI](../.github/workflows/check.yml) runs on pull requests and pushes to

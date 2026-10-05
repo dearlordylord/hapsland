@@ -661,21 +661,17 @@ it.each([
   WORKLOAD_CONFORMANCE_TIMEOUT_MS
 )
 
-it(
-  "native shared driver agrees on original preparation completion after departure",
-  () => {
-    const native = runWorkloadNative(
-      new URL("../../monkey-business-bend/conformance/advicee-preparation-departure.bend", import.meta.url),
-      { clangTimeoutMs: 45000 }
-    ) as number[][]
-    expect(native.filter((row) => [97, 98, 99].includes(row[0]!))).toEqual([])
-    expect(native.length).toBeLessThan(120)
-    expect(native.at(-1)!.slice(16, 24)).toEqual([2, 12, 1, 5, 1, 7, 0, 0])
-    expect(native.filter((row) => row[0] === 6 && row[4] === 1 && row[24] === 1)).toHaveLength(1)
-    expect(native).toEqual(lifecycleTrace(preparationDeparture()))
-  },
-  WORKLOAD_CONFORMANCE_TIMEOUT_MS
-)
+it("native shared driver agrees on original preparation completion after departure", () => {
+  const native = runWorkloadNative(
+    new URL("../../monkey-business-bend/conformance/advicee-preparation-departure.bend", import.meta.url),
+    process.env.HAPSLAND_NATIVE_PREFLIGHT_MANIFEST ? {} : { clangTimeoutMs: 90000 }
+  ) as number[][]
+  expect(native.filter((row) => [97, 98, 99].includes(row[0]!))).toEqual([])
+  expect(native.length).toBeLessThan(120)
+  expect(native.at(-1)!.slice(16, 24)).toEqual([2, 12, 1, 5, 1, 7, 0, 0])
+  expect(native.filter((row) => row[0] === 6 && row[4] === 1 && row[24] === 1)).toHaveLength(1)
+  expect(native).toEqual(lifecycleTrace(preparationDeparture()))
+}, 150000)
 
 it.each([
   ["disconnect", "advicee-departure.bend"],

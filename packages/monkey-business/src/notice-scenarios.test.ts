@@ -1,9 +1,8 @@
 import { expect, it } from "vitest"
-import { spawnSync } from "node:child_process"
-import { mkdtempSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
-import { fileURLToPath } from "node:url"
+import {
+  runWorkloadNative,
+  WORKLOAD_CONFORMANCE_TIMEOUT_MS
+} from "../../monkey-business-bend/conformance/workload-native-runner.mjs"
 import { createRun, replayRun, type RunInput } from "./index.ts"
 import type { CanonicalEvent } from "../../../src/canonical/adapter.ts"
 
@@ -93,70 +92,52 @@ it("keeps backend failure diagnostics separate from ordinary advice", () => {
   expect(run.projection.work.some((w) => w.kind === "pendingFinding")).toBe(false)
 })
 
-it("matches native Bend to independent intermediate public notice observations", () => {
-  const run = createRun({ inputs: noticeInputs() })
-  const row = (partition: number) => {
-    const n = run.projection.notices.find((n) => n.partition === partition)!
-    return [n.partition, n.suppressed, n.pending?.id ?? 0, n.pending?.count ?? 0, Number(n.pending?.leased ?? false)]
-  }
-  const selectedAt = (at: number) => {
-    const selected = run.observations
-      .find((f) => f.time === at && f.event.kind === "noticeSelect")
-      ?.commands.find((c) => c.kind === "noticeSelected")
-    if (selected?.kind !== "noticeSelected") throw new Error("missing notice selection")
-    return [...selected.ids]
-  }
-  const rows: number[][] = []
-  run.advance({ untilTime: 3, maxEvents: 100 })
-  rows.push(row(1), row(2))
-  run.advance({ untilTime: 10, maxEvents: 100 })
-  rows.push(row(1))
-  run.advance({ untilTime: 11, maxEvents: 100 })
-  rows.push(selectedAt(11))
-  run.advance({ untilTime: 13, maxEvents: 100 })
-  rows.push(row(1))
-  run.advance({ untilTime: 15, maxEvents: 100 })
-  rows.push(selectedAt(14), selectedAt(15))
-  run.advance({ untilTime: 16, maxEvents: 100 })
-  rows.push(row(1), row(2))
-  run.advance({ untilTime: 19, maxEvents: 100 })
-  rows.push(selectedAt(18), selectedAt(19))
-  const expected = [
-    [1, 2, 101, 0, 0],
-    [2, 1, 202, 0, 0],
-    [1, 0, 101, 2, 0],
-    [101],
-    [1, 0, 101, 2, 1],
-    [202],
-    [202],
-    [1, 0, 0, 0, 0],
-    [2, 1, 202, 0, 0],
-    [],
-    [202]
-  ]
-  expect(rows).toEqual(expected)
-  const directory = mkdtempSync(join(tmpdir(), "hapsland-notices-"))
-  try {
-    const source = join(directory, "notices.c"),
-      binary = join(directory, "notices")
-    const emit = spawnSync(
-      "bend",
-      [fileURLToPath(new URL("../../monkey-business-bend/conformance/notices.bend", import.meta.url)), "-o", source],
-      { encoding: "utf8", timeout: 5000 }
-    )
-    expect(emit.error).toBeUndefined()
-    expect(emit.status, emit.stdout + emit.stderr).toBe(0)
-    const compile = spawnSync("clang", ["-O0", "-Wno-unused-value", source, "-o", binary, "-lm", "-pthread"], {
-      encoding: "utf8",
-      timeout: 15000
-    })
-    expect(compile.error).toBeUndefined()
-    expect(compile.status, compile.stdout + compile.stderr).toBe(0)
-    const native = spawnSync(binary, [], { encoding: "utf8", timeout: 5000 })
-    expect(native.error).toBeUndefined()
-    expect(native.status, native.stdout + native.stderr).toBe(0)
-    expect(JSON.parse(native.stdout)).toEqual(expected)
-  } finally {
-    rmSync(directory, { recursive: true, force: true })
-  }
-}, 30000)
+it(
+  "matches native Bend to independent intermediate public notice observations",
+  () => {
+    const run = createRun({ inputs: noticeInputs() })
+    const row = (partition: number) => {
+      const n = run.projection.notices.find((n) => n.partition === partition)!
+      return [n.partition, n.suppressed, n.pending?.id ?? 0, n.pending?.count ?? 0, Number(n.pending?.leased ?? false)]
+    }
+    const selectedAt = (at: number) => {
+      const selected = run.observations
+        .find((f) => f.time === at && f.event.kind === "noticeSelect")
+        ?.commands.find((c) => c.kind === "noticeSelected")
+      if (selected?.kind !== "noticeSelected") throw new Error("missing notice selection")
+      return [...selected.ids]
+    }
+    const rows: number[][] = []
+    run.advance({ untilTime: 3, maxEvents: 100 })
+    rows.push(row(1), row(2))
+    run.advance({ untilTime: 10, maxEvents: 100 })
+    rows.push(row(1))
+    run.advance({ untilTime: 11, maxEvents: 100 })
+    rows.push(selectedAt(11))
+    run.advance({ untilTime: 13, maxEvents: 100 })
+    rows.push(row(1))
+    run.advance({ untilTime: 15, maxEvents: 100 })
+    rows.push(selectedAt(14), selectedAt(15))
+    run.advance({ untilTime: 16, maxEvents: 100 })
+    rows.push(row(1), row(2))
+    run.advance({ untilTime: 19, maxEvents: 100 })
+    rows.push(selectedAt(18), selectedAt(19))
+    const expected = [
+      [1, 2, 101, 0, 0],
+      [2, 1, 202, 0, 0],
+      [1, 0, 101, 2, 0],
+      [101],
+      [1, 0, 101, 2, 1],
+      [202],
+      [202],
+      [1, 0, 0, 0, 0],
+      [2, 1, 202, 0, 0],
+      [],
+      [202]
+    ]
+    expect(rows).toEqual(expected)
+    const native = runWorkloadNative(new URL("../../monkey-business-bend/conformance/notices.bend", import.meta.url))
+    expect(native).toEqual(expected)
+  },
+  WORKLOAD_CONFORMANCE_TIMEOUT_MS
+)
