@@ -2,7 +2,7 @@ export {
   CONFIGURATION_VERSION,
   ConfigurationDocument,
   GraphLimitsSettings,
-  RulePackReference,
-  RuleOverride
+  RuleReference,
+  RuleSettings
 } from "./types.ts"
 export { decodeConfigurationDocument, decodeConfigurationText } from "./decode.ts"

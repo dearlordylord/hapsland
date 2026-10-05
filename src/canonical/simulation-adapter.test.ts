@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import {
   initialSharedCanonical,
   projectSharedCanonical,
@@ -21,6 +21,79 @@ import { encodeEngineValue, encodeSharedValue, decodeSharedValue } from "./simul
 
 const limits = { globalItems: 32, globalBytes: 4096, partitionItems: 16, partitionBytes: 2048 }
 describe("trusted simulation composition boundary", () => {
+  it("decodes native queued and taken scheduler entries with the full Nat boundary", () => {
+    const state = initialSharedCanonical(limits)
+    const maximum = 2 ** 48 - 1
+    const entry = (at: number | bigint, order: number | bigint) => ({ $: "Scheduler.Entry", at, order })
+    const nil = { $: "Nil" }
+    const queue = {
+      $: "Con",
+      head: entry(0n, 1n),
+      tail: { $: "Con", head: entry(BigInt(maximum), BigInt(maximum)), tail: nil }
+    }
+    const queued = vi.spyOn(SharedEngine, "queued").mockReturnValueOnce(queue)
+    const taken = vi
+      .spyOn(SharedEngine, "take")
+      .mockReturnValueOnce({ state, entry: { $: "Some", value: entry(BigInt(maximum), 0n) } })
+    try {
+      const view = queuedShared(state)
+      expect(view).toEqual([
+        { at: 0, order: 1 },
+        { at: maximum, order: maximum }
+      ])
+      expect(Object.keys(view[0]!)).toEqual(["at", "order"])
+      expect(Object.isFrozen(view)).toBe(true)
+      expect(Object.isFrozen(view[0])).toBe(true)
+
+      const result = takeShared(state)
+      expect(result.entry).toEqual({ at: maximum, order: 0 })
+      expect(Object.keys(result.entry!)).toEqual(["at", "order"])
+      expect(Object.isFrozen(result.entry)).toBe(true)
+    } finally {
+      queued.mockRestore()
+      taken.mockRestore()
+    }
+  })
+
+  it("uses the established decoder for invalid range, extra keys, and accessors", () => {
+    const state = initialSharedCanonical(limits)
+    const withEntry = (head: unknown) => ({ $: "Con", head, tail: { $: "Nil" } })
+    const invalidRange = vi
+      .spyOn(SharedEngine, "queued")
+      .mockReturnValueOnce(withEntry({ $: "Scheduler.Entry", at: 2n ** 48n, order: 0n }))
+    try {
+      expect(() => queuedShared(state)).toThrow("shared Nat outside u48 range")
+    } finally {
+      invalidRange.mockRestore()
+    }
+
+    const extraProperty = vi
+      .spyOn(SharedEngine, "queued")
+      .mockReturnValueOnce(withEntry({ $: "Scheduler.Entry", at: 1, order: 0, extra: true }))
+    try {
+      expect(() => queuedShared(state)).toThrow("invalid Bend boundary value")
+    } finally {
+      extraProperty.mockRestore()
+    }
+
+    let accessorReads = 0
+    const accessorEntry = {
+      $: "Scheduler.Entry",
+      get at() {
+        accessorReads += 1
+        return accessorReads === 1 ? true : 1
+      },
+      order: 0
+    }
+    const accessor = vi.spyOn(SharedEngine, "queued").mockReturnValueOnce(withEntry(accessorEntry))
+    try {
+      expect(queuedShared(state)).toEqual([{ at: 1, order: 0 }])
+      expect(accessorReads).toBe(2)
+    } finally {
+      accessor.mockRestore()
+    }
+  })
+
   it("reuses immutable queue views across wrappers without changing scheduling or provenance", () => {
     const original = initialSharedCanonical(limits)
     const queued = enqueueShared(enqueueShared(original, 20, 2), 10, 1)

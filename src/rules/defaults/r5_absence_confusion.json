@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "id": "r5_absence_confusion",
+  "question": "Does `artifact` offer two encodings of one state, or collapse two states that the domain distinguishes, around missing values?\n\nFocus: \"Not supplied\", \"known to be nothing\", and \"known to be empty\" are three different facts.",
+  "criteria": {
+    "false": "Collections are required and emptiness carries the nothing meaning, or absence has its own named meaning\n\nExamples:\n- a required `tags` list where empty is how a caller says there are none\n- permissions are `{ kind: \"inherited\" } | { kind: \"own\", granted: Permission[] }`, so inheritance is a named state rather than a missing field\n- an attachment list typed non-empty, so the invariant holds at construction",
+    "true": "An optional collection whose absence and emptiness mean the same thing, or a field where undefined, null and empty are all reachable\n\nExamples:\n- an optional `tags` list where absent and `[]` are both reachable and denote the same nothing\n- a `middleName` where missing, `null` and `\"\"` are all reachable\n- an optional `permissions` list whose absence carries a meaning the shape never names\n- an `items` list that must not be empty, with emptiness still representable"
+  },
+  "threshold": 0.7,
+  "message": "Absence appears to carry more than one meaning.",
+  "title": "absence confusion",
+  "inputs": [
+    {
+      "languages": [
+        "typescript",
+        "rust",
+        "bend"
+      ],
+      "kind": "type",
+      "requires": [
+        "root-declaration",
+        "resolved-outbound-types",
+        "selected-source-type-closure"
+      ]
+    }
+  ]
+}

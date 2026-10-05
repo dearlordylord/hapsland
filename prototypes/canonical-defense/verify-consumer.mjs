@@ -142,15 +142,8 @@ for (const seed of [0,3,17,41]) {
             assert.equal(list(physical.frames).length, 0);
           } else {
             ticks++;
-            // The game commits one input only when its road/service is ready.
-            // Deferred candidates preserve the entire engine and report no IO;
-            // compare each committed input independently through the public run.
-            if (isDeepStrictEqual(after, before)) {
-              assert.equal(list(physical.frames).length, 0, "deferred game tick emits no phantom frames");
-              assert.equal(list(physical.physical).length, 0, "deferred game tick performs no physical delivery");
-            } else {
-              run.advance({ untilTime: ticks * 20, maxEvents: 1 });
-            }
+            // Presentation reads every accepted frame and never gates business work.
+            run.advance({ untilTime: ticks * 20, maxEvents: 256 });
           }
         } finally { unsubscribe(); }
         const deliveries = list(physical.physical).map(readRecord);

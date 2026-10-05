@@ -19,7 +19,7 @@ const {
   encodedPreparedProviderInputBytes,
   encodedPreparedProviderHttpBodyBytes
 } = await load("src/direct-event/pipeline.ts")
-const { configuredRules } = await load("src/policy/rules.ts")
+const { configuredRules } = await load("src/test-support/default-rules.ts")
 const { DEFAULT_BACKEND, DEFAULT_DESTINATION } = await load("src/runtime/review-config.ts")
 const { probabilityRequest, requestLimitViolation } = await load("src/review-providers/request.ts")
 const hash = (x) => crypto.createHash("sha256").update(x).digest("hex")

@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "id": "r1_inferred_case",
+  "question": "Can `artifact` express values that mean different operations of the domain in `artifact.domain`, with no field of the shape naming which one a value is?\n\nFocus: A shape with exactly one meaning has no cases to tell apart, and its optional fields are independent attributes of that one meaning. The finding is a shape whose instances mean different things with nothing naming which.",
+  "criteria": {
+    "false": "One field names the case and each case's own fields sit with it, or the shape has a single meaning whose fields are independent attributes of it\n\nExamples:\n- `{ tag: \"ok\", value } | { tag: \"error\", message }`, read by looking at `tag`\n- each member of the union opens with a literal naming it, and carries only its own fields\n- a customer record whose optional `nickname` and `phone` are attributes of one meaning rather than alternative modes",
+    "true": "Instances mean different things and the case is recoverable only from which fields are present or absent, a flat record whose optional fields belong to different operations included\n\nExamples:\n- a delivery record carrying `emailAddress` and `phoneNumber`, either absent, where whichever is filled decides how it is sent\n- a payment holding both `cardLast4` and `bankAccount`, with the caller told to fill one\n- an event that is a signup when `referrer` is there and a login when it is not\n- a union of `string | { x: number; y: number }` distinguished only by which type arrived\n- a report request where `month` alone means one month, `from` with `to` means a custom range, and nothing states which was intended"
+  },
+  "threshold": 0.7,
+  "message": "The type appears to encode distinct cases without naming the case.",
+  "title": "inferred case",
+  "inputs": [
+    {
+      "languages": [
+        "typescript",
+        "rust",
+        "bend"
+      ],
+      "kind": "type",
+      "requires": [
+        "root-declaration",
+        "resolved-outbound-types",
+        "selected-source-type-closure"
+      ]
+    }
+  ]
+}

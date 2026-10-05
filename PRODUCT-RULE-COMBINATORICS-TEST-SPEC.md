@@ -1,16 +1,20 @@
 # Rule combinatorics: executable specification for Phase F
 
-Status: required test design, not an implemented test suite. This accompanies
-[the Phase F specification](./PRODUCT-PHASE-F-SPEC.md).
-The user explicitly requires tests that describe the combinations of rules and settings.
-Implementation is tracked by Phase F issue #3.
+**Purpose:** Specify observable combinations of rule definitions, configuration, and review evidence.
+**Status:** Maintained required test design; amended for individual rules and root/context policy on 2026-10-05.
+**Authority:** Accepted test-design contract alongside [Phase F](./PRODUCT-PHASE-F-SPEC.md); this document does not claim the named tests have run.
+**Expected use:** Select deterministic cases for configuration and rule changes, reporting only observed coverage.
+**Lifecycle:** Update after accepted identity, activation, source-selection, or input changes; review tests and the evaluation model together.
+
+Historical Phase F runtime and receipt scenarios below remain subject to the current
+[direct-review contract](docs/type-function-review-proposal.md) and [advice contract](docs/advicing-target-contract.md).
 
 ## What the suite proves
 
-Given built-in defaults, user/project configuration, local packs, consent, file paths,
+Given built-in defaults, user/project configuration, individual rule documents, root/context paths, languages,
 and controlled backend answers, the suite specifies which rules are requested, which
 files leave the machine, which findings are emitted, and why. Backend judgment quality
-is a separate question; fake probabilities cannot prove that a Noul question captures
+is a separate question; fake probabilities cannot prove that a probability question captures
 its intended concept.
 
 Use a small independent table/oracle for expected public behavior, not a copy of the
@@ -21,42 +25,52 @@ responses. Store generated regressions as named fixtures when they expose a doma
 
 ## Exhaustive small-domain selection matrix
 
-Exhaust every combination of these seven Boolean conditions for one candidate file/rule:
+Exhaust every combination of these five Boolean conditions for one supported file/rule:
 
-1. Consent matches the repository/backend/destination.
-2. The file matches effective global inclusion.
-3. A global exclusion matches the file.
-4. The pack is enabled.
-5. The rule is enabled.
-6. The rule's include patterns match the file.
-7. The rule's exclusion patterns match the file.
+1. The file matches effective global root inclusion.
+2. A global root exclusion matches the file.
+3. The rule is enabled.
+4. The rule's configured include patterns match the file.
+5. The rule's configured exclusion patterns match the file.
 
-The rule is requested exactly when consent and both inclusion checks hold, neither
-exclusion matches, and both activation checks hold. This is 128 explicit combinations,
-not a claim to enumerate every possible configuration. Independently test built-in
-applicability and filesystem eligibility as additional gates. Configuration validity
-is checked before any backend request, including when some valid rules could run.
+Selection requires activation and both inclusion checks, with neither exclusion.
+These are 32 combinations, not every configuration. Independently vary intrinsic
+and configured language/kind support, observed evidence, filesystem eligibility,
+context selection, and privacy exclusions. Configuration validity is checked before
+source capture, including when some valid rules could otherwise run. The retired
+pack-enabled and repository-consent axes are not current settings.
 
 | Scenario | Required observable outcome |
 |---|---|
-| Enabled rule in disabled pack | No request for that rule |
-| Rule includes a globally excluded file | No source egress |
-| User includes `src/**`; project includes `lib/**` | Only effective `lib/**` selection remains |
-| User excludes `**/*.secret.ts`; project supplies exclude `[]` | User exclusion still applies |
-| Missing include vs include `[]` | Inherit vs select no files |
-| One valid pack plus an invalid selected pack | Configuration unavailable; zero backend requests |
-| Duplicate identities | Configuration error with both origins |
-| Same local rule ID in two distinct packs | Distinct qualified identities, no collision |
+| Setup with explicit rules, including `[]` | Preserve the selected inventory; no defaults added or reconnected |
+| Initial setup without any rules field | Provision and explicitly connect nine editable defaults |
+| Connected but disabled rule | No request for that rule; it remains visible in inventory |
+| Rule includes a globally excluded root | No review of that root |
+| User includes `src/**`; project includes `lib/**` | Only effective `lib/**` root selection remains |
+| User excludes `**/*.secret.ts`; project supplies exclude `[]` | User root exclusion still applies |
+| Missing include/languages vs `[]` | Inherit vs select nothing |
+| Valid rule plus invalid selected rule | Configuration unavailable; zero source capture or backend requests |
+| Same rule ID in two files | Configuration error identifying conflicting origins |
+| Distinct namespace IDs with similar suffixes | Distinct rules; identity does not depend on filenames |
+| Rule file relocated, unchanged configuration paths | Matching still uses repository root |
+| `src/a.ts` references `shared/b.ts`, context omitted | Root selection also bounds context; outside-scope supporting file is unread |
+| Explicit context includes `shared/**` | Supporting file may contribute; an edit there does not become a root |
+| Privacy-denied supporting file also explicitly included | No read; dependent evidence is incomplete |
+| Global TypeScript/Rust; rule intrinsic TypeScript; configured Rust | Actionable configuration error: configured languages must be an authored subset |
+| Runtime-schema or Rust-function input enabled and selected | Explicit unsupported-input validation error |
+| Unsupported input in a disabled rule | Visible authored definition, no request; enabling that input fails |
+| Mixed TypeScript/Rust function inputs, configuration selects TypeScript | Supported selected input may run; Rust execution remains unsupported |
+| Explain with only path/language information | Reports path/language policy and unexamined artifact/evidence; no semantic coverage claim |
 | Every rule disabled/inapplicable | Skipped, zero backend requests |
-| Local pack relocated, same source patterns | File matching still uses repository root |
 
 ## Configuration and provenance properties
 
 Generate bounded valid configurations directly; test invalid configurations through
 separate generators instead of filtering away most generated input.
 
-1. **Exclusion monotonicity:** adding an exclusion at any layer cannot increase eligible
-   files. No higher-layer selection can weaken an inherited exclusion.
+1. **Exclusion monotonicity:** adding an exclusion cannot increase eligibility in
+   its role. Privacy denial applies to both root and supporting reads and cannot be
+   weakened by another layer. Root and context exclusions retain their own scopes.
 2. **Include replacement:** once a higher-precedence include list is supplied, changing
    lower-precedence include lists cannot alter effective selection. Exclusions remain
    independently active.
@@ -71,8 +85,9 @@ separate generators instead of filtering away most generated input.
 6. **Roundtrip:** decoding a canonical serialized configuration preserves resolved
    meaning. JSONC comments need not survive serialization. Unsupported fields/versions
    must fail explicitly rather than disappear during decoding.
-7. **Scope intersection:** per-rule selection can narrow but never expand the globally
-   eligible file set.
+7. **Scope intersection:** per-rule path/language selection can narrow but never
+   expand global root scope or intrinsic supported inputs. Related code independently
+   passes context selection and privacy; a supporting node does not become a root.
 8. **Root independence:** invoking from a working-tree subdirectory does not change
    selection relative to the same discovered root. Similar path prefixes, traversal,
    symlinks, and separator boundaries must not bypass exclusion or repository limits.
@@ -127,7 +142,7 @@ must produce an explicit limitation rather than a fabricated healthy receipt.
 - Pure rule/configuration tests: exhaustive small matrices and property-based laws.
 - Deterministic Effect tests: the same DecisionModel authority as live use, controlled
   clock, service failures, and concurrent completion orders.
-- Real subprocess fixtures: configure temporary project/user state and local packs;
+- Real subprocess fixtures: configure temporary project/user state and individual rules;
   assert protocol output, selected rules, preserved file content, explanation origins,
   receipt output, and no secret/source-bearing diagnostic leakage.
 - Host evidence: a targeted synthetic pinned-Codex TUI diagnostic probe; retain the
@@ -144,6 +159,6 @@ counterexample shrinking. Do not substitute a coverage percentage for these beha
 Accepted semantic-test scope: specify positive/negative synthetic rule fixtures and
 isolated-versus-batched evaluation in addition to deterministic composition tests.
 [PRODUCT-RULE-EVALUATION-MODEL.md](./PRODUCT-RULE-EVALUATION-MODEL.md) defines the shared
-fixture, expectation, scenario, observation, comparison, and run model. Keep local-pack
+fixture, expectation, scenario, observation, comparison, and run model. Keep custom-rule
 evaluations explicit and paid runs milestone-gated. Quint and `quint-connect-ts` are
 future validation work, not current implementation or Phase F completion requirements.

@@ -11,6 +11,7 @@ const adapter = source("src/rules/decision.ts")
 
 if (
   compiler.includes("isApplicable:") ||
+  /packEnabled|minimumRung|sourceRung/.test(compiler) ||
   compiler.includes("if (authoredTarget === undefined) return false") ||
   /levelOf\(source\)\s*>=/.test(compiler) ||
   /probability\s*>\s*rule\.threshold/.test(direct + policy) ||
@@ -19,10 +20,8 @@ if (
   throw new Error("superseded TypeScript rule decision returned")
 }
 if (
-  !compiler.includes("includeRule(packEnabled") ||
   !compiler.includes("applicableRule({") ||
-  !compiler.includes("targetDeclared: declaredTargets.length > 0") ||
-  !compiler.includes("minimumRung: rule.minimumRung") ||
+  !compiler.includes("targetDeclared: inputs.length > 0") ||
   !policy.includes("findingFromProbability(") ||
   !policy.includes("compareRuleRank(") ||
   !policy.includes("withinAdviceBudget(") ||

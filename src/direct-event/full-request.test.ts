@@ -2,7 +2,7 @@ import { providerIdentity } from "../review-providers/catalog.ts"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import { Decision } from "effect/ai"
-import { configuredRules } from "../policy/rules.ts"
+import { configuredRules } from "../test-support/default-rules.ts"
 import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts"
 import {
   encodedPreparedProviderInputBytes,

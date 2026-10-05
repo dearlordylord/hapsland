@@ -23,6 +23,9 @@ export const StopCaptureSchema = Schema.Struct({
 }).check(Schema.makeFilter((value) => value.started <= value.cutoff))
 export type StopCapture = typeof StopCaptureSchema.Type
 const readCapture = decoder(StopCaptureSchema)
+const decodeNat = decoder(Nat)
+const decodePositiveNat = decoder(PositiveNat)
+const decodeBoolean = decoder(Schema.Boolean)
 export const encodeStopCapture = (value: unknown) => {
   const capture = readCapture(value)
   return Object.freeze({ $: "StopScenario.Capture", ...capture })
@@ -44,7 +47,7 @@ export const decodeStopFacts = (value: unknown) =>
 export const initialStopFacts = (capture: StopCapture) =>
   decodeStopFacts(SharedEngine.stop_initial(encodeStopCapture(capture)))
 export const wakeStopFacts = (capture: StopCapture, now: number) =>
-  decodeStopFacts(SharedEngine.stop_wake(encodeStopCapture(capture), decoder(Nat)(now)))
+  decodeStopFacts(SharedEngine.stop_wake(encodeStopCapture(capture), decodeNat(now)))
 
 const Selected = Schema.Array(PositiveNat).check(
   Schema.isMaxLength(2048),
@@ -81,8 +84,9 @@ const FinishFields = Schema.Struct({
   fit_pending: Schema.Boolean,
   output: Schema.Unknown
 })
+const readFinish = decoder(FinishFields)
 export const decodeStopFinish = (value: unknown) => {
-  const fact = decoder(FinishFields)(value)
+  const fact = readFinish(value)
   const selected = readSelected(readBendList(fact.selected, readNat, 2048))
   const outputs = readBendList(fact.output, decodeOutputCapture, 1)
   readCapture({
@@ -112,13 +116,14 @@ export const decodeStopFinish = (value: unknown) => {
 }
 export type StopFinish = ReturnType<typeof decodeStopFinish>
 export const decodeStopRegistry = (value: unknown) => readBendList(value, decodeStopFinish, 2048)
+const maybeWire = decoder(
+  Schema.Union([
+    Schema.Struct({ $: Schema.Literal("None") }),
+    Schema.Struct({ $: Schema.Literal("Some"), value: Schema.Unknown })
+  ])
+)
 export const decodeStopFound = (value: unknown): StopFinish | undefined => {
-  const found = decoder(
-    Schema.Union([
-      Schema.Struct({ $: Schema.Literal("None") }),
-      Schema.Struct({ $: Schema.Literal("Some"), value: Schema.Unknown })
-    ])
-  )(value)
+  const found = maybeWire(value)
   return found.$ === "Some" ? decodeStopFinish(found.value) : undefined
 }
 export const StopInputSchema = Schema.Struct({
@@ -129,7 +134,8 @@ export const StopInputSchema = Schema.Struct({
   cutoff: Nat,
   recurring: Schema.Boolean
 }).check(Schema.makeFilter((value) => value.started <= value.cutoff))
-export const encodeStopInput = (value: unknown) => ({ $: "StopScenario.Input", ...decoder(StopInputSchema)(value) })
+const readInput = decoder(StopInputSchema)
+export const encodeStopInput = (value: unknown) => ({ $: "StopScenario.Input", ...readInput(value) })
 export type StopProgress =
   | { kind: "waiting"; value: boolean }
   | { kind: "ready"; count: number }
@@ -140,19 +146,19 @@ export type StopProgress =
 export const encodeStopProgress = (progress: StopProgress): unknown => {
   switch (progress.kind) {
     case "waiting":
-      return { $: "StopScenario.Waiting", value: decoder(Schema.Boolean)(progress.value) }
+      return { $: "StopScenario.Waiting", value: decodeBoolean(progress.value) }
     case "ready":
-      return { $: "StopScenario.Ready", count: decoder(Nat)(progress.count) }
+      return { $: "StopScenario.Ready", count: decodeNat(progress.count) }
     case "selected":
       return {
         $: "StopScenario.Selected",
-        advice: decoder(PositiveNat)(progress.advice),
-        keep: decoder(Schema.Boolean)(progress.keep)
+        advice: decodePositiveNat(progress.advice),
+        keep: decodeBoolean(progress.keep)
       }
     case "clear":
       return { $: "StopScenario.Clear" }
     case "fit":
-      return { $: "StopScenario.Fit", value: decoder(Schema.Boolean)(progress.value) }
+      return { $: "StopScenario.Fit", value: decodeBoolean(progress.value) }
     case "output":
       return { $: "StopScenario.Output", capture: encodeOutputCapture(progress.capture) }
   }
@@ -164,9 +170,10 @@ const CommandFactsSchema = Schema.Struct({
   bytes: Schema.optional(Nat),
   fitAttempt: Schema.optional(PositiveNat)
 })
+const readCommandFacts = decoder(CommandFactsSchema)
 export type StopCommandFacts = typeof CommandFactsSchema.Type
 export const encodeStopCommandFacts = (value: StopCommandFacts): unknown => {
-  const facts = decoder(CommandFactsSchema)(value)
+  const facts = readCommandFacts(value)
   const control = validateLiveControl({ kind: "outputProfile", ...facts.profile })
   if (control.kind !== "outputProfile") throw new TypeError("invalid original Stop output profile")
   return {
@@ -179,34 +186,31 @@ export const encodeStopCommandFacts = (value: StopCommandFacts): unknown => {
     fit_attempt: facts.fitAttempt === undefined ? { $: "None" } : { $: "Some", value: facts.fitAttempt }
   }
 }
-const maybeWire = decoder(
-  Schema.Union([
-    Schema.Struct({ $: Schema.Literal("None") }),
-    Schema.Struct({ $: Schema.Literal("Some"), value: Schema.Unknown })
-  ])
-)
 const optionalWire = <T>(value: unknown, decode: (value: unknown) => T): T | undefined => {
   const item = maybeWire(value)
   return item.$ === "Some" ? decode(item.value) : undefined
 }
+const readCommand = decoder(
+  Schema.Struct({
+    $: Schema.Literal("StopHandled"),
+    state: Schema.Unknown,
+    handled: Schema.Unknown,
+    ended: Schema.Unknown,
+    fit_attempt: Schema.Unknown,
+    output: Schema.Unknown
+  })
+)
+const readHandled = decoder(
+  Schema.Struct({ $: Schema.Literal("Driver.Handled"), handled: Schema.Boolean, actions: Schema.Unknown })
+)
+const readEnded = decoder(
+  Schema.Struct({ $: Schema.Literal("StopScenario.Ended"), finish: Schema.Unknown, continuation: Schema.Boolean })
+)
 export const decodeStopCommand = (value: unknown) => {
-  const report = decoder(
-    Schema.Struct({
-      $: Schema.Literal("StopHandled"),
-      state: Schema.Unknown,
-      handled: Schema.Unknown,
-      ended: Schema.Unknown,
-      fit_attempt: Schema.Unknown,
-      output: Schema.Unknown
-    })
-  )(value)
-  const handled = decoder(
-    Schema.Struct({ $: Schema.Literal("Driver.Handled"), handled: Schema.Boolean, actions: Schema.Unknown })
-  )(decodeSharedValue(report.handled))
+  const report = readCommand(value)
+  const handled = readHandled(decodeSharedValue(report.handled))
   const ended = optionalWire(decodeSharedValue(report.ended), (value) => {
-    const fact = decoder(
-      Schema.Struct({ $: Schema.Literal("StopScenario.Ended"), finish: Schema.Unknown, continuation: Schema.Boolean })
-    )(value)
+    const fact = readEnded(value)
     return { finish: decodeStopFinish(fact.finish), continuation: fact.continuation }
   })
   return {

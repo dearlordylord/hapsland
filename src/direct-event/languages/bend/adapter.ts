@@ -1,3 +1,4 @@
+import { LANGUAGE_EXTENSIONS } from "../path-language.ts"
 import { createHash } from "node:crypto"
 import { dirname, extname, join, normalize } from "node:path"
 import * as Effect from "effect/Effect"
@@ -50,7 +51,7 @@ const inspectBend = (path: string, source: string): GraphFile | undefined => {
 
 export const bendAdapter: LanguageAdapter = {
   id: "bend",
-  extensions: [".bend"],
+  extensions: LANGUAGE_EXTENSIONS.bend,
   displayName: "Bend",
   probe: { path: "doctor.bend", source: "type DoctorProbe is Data:\n  DoctorProbe{}" },
   parseTypes(path, source) {

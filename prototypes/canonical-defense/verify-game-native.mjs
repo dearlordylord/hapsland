@@ -5,14 +5,24 @@ import { createNativePreflight, validateNativeFixture, cleanupNativePreflight } 
 // Window/input-device integration remains a separate interactive gate.
 const roots = [
   "DefenseConsumerTests.bend",
+  "DefenseProcessTests.bend",
+  "DefenseMotionTests.bend",
+  "DefenseTowerTests.bend",
   "DefenseStartupTests.bend",
   "DefenseDisplayTests.bend",
+  "DefenseInspectionTests.bend",
+  "DefenseCueTests.bend",
+  "DefenseCommandScopeTests.bend",
   "DefensePreviewTests.bend",
   "DefenseMapTests.bend",
   "DefenseDrawTests.bend",
   "DefenseRasterTests.bend",
 ];
-for (const root of roots) {
+const requested = process.argv.slice(2);
+if (requested.some(root => !roots.includes(root)) || new Set(requested).size !== requested.length)
+  throw new Error("Select distinct known native fixture names");
+const selected = requested.length ? requested : roots;
+for (const root of selected) {
   const fixture = new URL(`./${root}`, import.meta.url);
   const preflight = createNativePreflight({ fixtures: [fixture] });
   try {
@@ -26,4 +36,4 @@ for (const root of roots) {
     cleanupNativePreflight(preflight);
   }
 }
-console.log("Standalone game native suite: all seven roots passed");
+console.log(`Standalone game native suite: all ${selected.length} selected roots passed`);

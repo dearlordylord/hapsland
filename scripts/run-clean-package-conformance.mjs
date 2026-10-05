@@ -1,7 +1,7 @@
 import { cleanupOwnedResident } from "./test-harness/cleanup-owned-resident.mjs"
 import { standaloneEnvironment } from "./test-harness/standalone-environment.mjs"
 import { preparePackageInstall } from "./test-harness/package-install.mjs"
-import { configuredRules } from "../src/policy/rules.ts"
+import { configuredRules } from "../src/test-support/default-rules.ts"
 import { nativeFindingLines, nativeFindingsSubmittedOnce } from "./package-finding-output.mjs"
 import { spawn } from "node:child_process"
 import { createHash } from "node:crypto"
@@ -686,6 +686,14 @@ try {
 
   progress("create-isolated-repository")
   await mustRun("git", ["init", "--quiet", "--initial-branch=master"], { cwd: repository })
+  const defaultNames = (await readdir(join(packageDirectory, "src/rules/defaults")))
+    .filter((name) => name.endsWith(".json"))
+    .sort()
+  const defaultPaths = defaultNames.map((name) => join(repository, ".hapsland", "rules", "defaults", name))
+  await mkdir(dirname(defaultPaths[0]), { recursive: true })
+  for (const [index, name] of defaultNames.entries())
+    await copyFile(join(packageDirectory, "src/rules/defaults", name), defaultPaths[index])
+  await writeFile(join(repository, ".hapsland.jsonc"), JSON.stringify({ version: 1, rules: defaultPaths }))
   await mustRun("git", ["config", "user.name", "Package Fixture"], { cwd: repository })
   await mustRun("git", ["config", "user.email", "fixture@example.invalid"], { cwd: repository })
   await writeFile(join(repository, "README.md"), "synthetic package fixture\n", { mode: 0o600 })
@@ -705,27 +713,15 @@ try {
     const summaryPath = join(temporary, `${language}-cross-file-summary.jsonl`)
     const isolatedRuntime = join(temporary, `${language}-cross-file-runtime`)
     const rule = {
-      schemaVersion: 1,
-      id: `${language}-package`,
-      contentVersion: "1",
-      rules: [
-        {
-          id: "shape",
-          question: "Does this type admit invalid states?",
-          criteria: { false: "No", true: "Yes" },
-          message: "Use a constrained type",
-          reviewTargets: [
-            {
-              artifactKind: "typeShape",
-              inputContract: "direct-event/type-shape/v1",
-              capabilities: ["root-declaration", "resolved-outbound-types"]
-            }
-          ]
-        }
-      ]
+      version: 1,
+      id: `${language}-shape`,
+      question: "Does this type admit invalid states?",
+      criteria: { false: "No", true: "Yes" },
+      message: "Use a constrained type",
+      inputs: [{ languages: [language], kind: "type", requires: ["root-declaration", "resolved-outbound-types"] }]
     }
-    await writeFile(join(repository, "pack.json"), JSON.stringify(rule))
-    await writeFile(join(repository, ".hapsland.jsonc"), '{"version":1,"packs":["pack.json"]}')
+    await writeFile(join(repository, "rule.json"), JSON.stringify(rule))
+    await writeFile(join(repository, ".hapsland.jsonc"), '{"version":1,"rules":["rule.json"]}')
     const env = {
       ...launcherEnvironment,
       REVIEW_RESIDENT_DIR: isolatedRuntime,
@@ -733,7 +729,7 @@ try {
       REVIEW_INSTALL_CONTROLLED: "1",
       REVIEW_USER_CONFIG_PATH: join(temporary, "cross-file-user.json"),
       REVIEW_CONTROL_JSON: JSON.stringify({
-        answers: { [`${language}-package/shape`]: { _tag: "Probability", probability: 0.9 } },
+        answers: { [`${language}-shape`]: { _tag: "Probability", probability: 0.9 } },
         requestSummaryPath: summaryPath
       })
     }

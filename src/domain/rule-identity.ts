@@ -1,8 +1,6 @@
 import * as Schema from "effect/Schema"
 
-/**
- * Shared structural constraint for local pack and rule identities.
- * The slash, colon, and backslash separators and whitespace are reserved by
- * qualified identity and path resolution.
- */
-export const RuleIdentitySchema = Schema.String.check(Schema.isMinLength(1), Schema.isPattern(/^[^/:\\\s]+$/u))
+/** Stable rule identity; an optional namespace is identity rather than a file path. */
+export const RuleIdentitySchema = Schema.String.check(
+  Schema.isPattern(/^(?!\.{1,2}(?:\/|$))(?!.*\/\.{1,2}(?:\/|$))[a-zA-Z0-9._-]+(?:\/[a-zA-Z0-9._-]+)*$/u)
+)

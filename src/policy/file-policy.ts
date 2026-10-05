@@ -1,6 +1,7 @@
 import type { ConfigurationOrigin, PatternOrigin, ResolvedPolicy } from "../configuration/types.ts"
 import { matchesAnyGlob } from "../matcher/glob.ts"
 import { classifyFileProtection, selectFile } from "../configuration/decision.ts"
+import { rootLanguageForPath } from "../direct-event/languages/path-language.ts"
 import { pathFacts } from "./path-facts.ts"
 
 export type ProtectedGate = "repository-boundary" | "sensitive" | "generated-or-vendor" | "file-extension"
@@ -47,19 +48,29 @@ export const protectedPathReason = (path: string): ProtectedGate | undefined => 
 const matching = (patterns: ReadonlyArray<PatternOrigin>, path: string): ReadonlyArray<PatternOrigin> =>
   patterns.filter((pattern) => matchesAnyGlob([pattern.value], path))
 
-export const selectGlobalPath = (policy: ResolvedPolicy, path: string): SelectionDecision => {
+export const selectGlobalPath = (policy: ResolvedPolicy, path: string): SelectionDecision =>
+  selectPolicyPath(policy, path, false)
+
+export const selectContextPath = (policy: ResolvedPolicy, path: string): SelectionDecision =>
+  selectPolicyPath(policy, path, true)
+
+const selectPolicyPath = (policy: ResolvedPolicy, path: string, context: boolean): SelectionDecision => {
+  const includes = context ? policy.contextIncludes : policy.includes
+  const excludes = context ? policy.contextExcludes : policy.excludes
   const observed = pathFacts(path)
   const value = observed.kind === "valid" ? observed.normalized : undefined
   // Compute configured matches before protected gates so explain can account for
   // an attempted sensitive/generated path without implying that it was eligible.
-  const matchingIncludes = value === undefined ? [] : matching(policy.includes, value)
-  const matchingExcludes = value === undefined ? [] : matching([...policy.excludes, ...policy.protectedExcludes], value)
+  const matchingIncludes = value === undefined ? [] : matching(includes, value)
+  const matchingExcludes = value === undefined ? [] : matching([...excludes, ...policy.protectedExcludes], value)
   const gate = protectedPathReason(path)
   const reason = selectFile({
     protected: gate !== undefined,
     excluded: matchingExcludes.length > 0,
-    includesEmpty: policy.includes.length === 0,
-    included: matchingIncludes.length > 0
+    includesEmpty: includes.length === 0,
+    included:
+      matchingIncludes.length > 0 &&
+      (context || policy.languages.value.includes(rootLanguageForPath(path) as "typescript" | "rust" | "bend"))
   })
   if (reason === "protected")
     return {

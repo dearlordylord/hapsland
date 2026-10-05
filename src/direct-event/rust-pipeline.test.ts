@@ -1,12 +1,12 @@
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
-import { compileRulePack } from "../rules/compiler.ts"
+import { compileRule } from "../rules/compiler.ts"
 import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
 import { adaptCodexAdd } from "./adapter.ts"
 import { prepareObservation, preparedProviderInput, preparedUnitStillCurrent, evaluatePrepared } from "./pipeline.ts"
 import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts"
-import { configuredRules } from "../policy/rules.ts"
+import { configuredRules } from "../test-support/default-rules.ts"
 import { resolveRustModuleContext } from "./languages/rust-module-context.ts"
 import { captureStable } from "./capture.ts"
 import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "./selection.ts"
@@ -14,29 +14,22 @@ import { GRAPH_LIMIT_CEILINGS } from "../configuration/graph-limits.ts"
 import { addEvent, makeGitFixture, put, updateEvent } from "./test-fixtures.ts"
 
 const rules = (closure: boolean) =>
-  compileRulePack(
+  [
     {
-      schemaVersion: 1,
-      id: "rust",
-      contentVersion: "1",
-      rules: [
+      id: "shape",
+      question: "Does this type admit invalid states?",
+      criteria: { false: "No", true: "Yes" },
+      message: "Use an enum",
+      inputs: [
         {
-          id: "shape",
-          question: "Does this type admit invalid states?",
-          criteria: { false: "No", true: "Yes" },
-          message: "Use an enum",
-          reviewTargets: [
-            {
-              artifactKind: "typeShape",
-              inputContract: TYPE_INPUT_CONTRACT,
-              capabilities: closure ? ["root-declaration", "resolved-outbound-types"] : ["root-declaration"]
-            }
-          ]
+          languages: ["typescript", "rust", "bend"],
+          kind: "type",
+
+          requires: closure ? ["root-declaration", "resolved-outbound-types"] : ["root-declaration"]
         }
       ]
-    },
-    "rust-test"
-  )
+    }
+  ].map((rule) => compileRule({ version: 1, ...rule }, "rust-test"))
 const prepare = (event: unknown, closure = true) =>
   Effect.gen(function* () {
     const observation = yield* adaptCodexAdd(event)

@@ -14,7 +14,7 @@ import { languageForPath } from "./languages/registry.ts"
 import type { GraphFacts, LanguageGraphHost, PreparedGraph } from "./languages/contracts.ts"
 import { captureStable, type StableCapture } from "./capture.ts"
 import type { ArtifactReference, ReviewArtifact, ReviewNode, ReviewUnit } from "./model.ts"
-import { eligibleNamedPath } from "./selection.ts"
+import { contextDirectFilePolicy, eligibleNamedPath } from "./selection.ts"
 
 type MutableNode = { artifact: ReviewNode["artifact"]; references: ArtifactReference[] }
 type Pending = {
@@ -413,7 +413,7 @@ const checkGraphPath = Effect.fn("DirectEvent.checkGraphPath")(function* (
   const selected = yield* eligibleNamedPath(
     frame.context.root,
     target.path,
-    frame.context.policy,
+    contextDirectFilePolicy(frame.context.policy),
     frame.context.rootIdentity
   )
   advanceGraph(frame, { kind: "pathChecked", allowed: selected !== undefined })
@@ -537,7 +537,7 @@ const readGraphSource = Effect.fn("DirectEvent.readGraphSource")(function* (
   const selected = yield* eligibleNamedPath(
     frame.context.root,
     target.path,
-    frame.context.policy,
+    contextDirectFilePolicy(frame.context.policy),
     frame.context.rootIdentity
   )
   if (selected === undefined || !captureBudgetAvailable(frame.context, selected.relativePath)) {

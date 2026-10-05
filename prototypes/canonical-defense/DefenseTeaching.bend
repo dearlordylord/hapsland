@@ -106,20 +106,6 @@ def target_tokens(items: List<&2,P.Token>,+target: Nat,+matching: Bool) -> List<
       Bool.pick(List<&2,P.Token>,same_bool(Nat.is_eq(U32.to_nat(P.id(token)),target),matching),token <> tail,tail)
 def tokens_focused(+items: List<&2,P.Token>,+target: Nat) -> List<&2,P.Token>:
   List.append(&2,P.Token,target_tokens(items,target,True{}),target_tokens(items,target,False{}))
-def focus_found(world: M.World,fallback: Nat,found: Maybe<&2,M.Tower>) -> Nat:
-  match found:
-    case None{}: fallback
-    case Some{tower}: E.target(world,tower)
-def focus(+world: M.World,fallback: Nat) -> Nat:
-  focus_found(world,fallback,H.selected_tower(M.towers(world),M.selected(world)))
-def final_blocker_found(+world: M.World,target: Nat,power: U32,found: Maybe<&2,C.Work>) -> Bool:
-  match found:
-    case None{}: False{}
-    case Some{+work}:
-      U32.is_eq(E.kind(work),4) && E.pending_sibling(E.family(work),M.work(M.core(world))) &&
-        U32.is_eq(count_family(P.tokens(world),E.family(work),0),1) && (E.remaining(world,work) <= power : U32)
-def final_blocker(+world: M.World,+target: Nat,power: U32) -> Bool:
-  final_blocker_found(world,target,power,E.find_work(target,M.work(M.core(world))))
 def preparation_used(world: M.World) -> U32:
   M.number(Dispatch.preparation_count(E.running(M.dispatch(M.core(world)))))
 def partition_limits_value(ledger: Ledger.Ledger) -> Ledger.Limits:
@@ -136,14 +122,6 @@ def partition_items(world: M.World) -> U32:
   P.usage_items(Ledger.partition_usage(P.charges(P.ledger(M.core(world))),1n))
 def partition_bytes(world: M.World) -> U32:
   P.usage_bytes(Ledger.partition_usage(P.charges(P.ledger(M.core(world))),1n))
-def first_tower(items: List<&2,M.Tower>) -> M.Tower:
-  match items:
-    case tower <> _: tower
-    case Nil{}: M.Tower{0,0,6,1,0,0,0n,0}
-def shield_charge_after(world: M.World) -> U32:
-  M.charges(first_tower(H.shield_towers(H.shield_allocation(world))))
-def shield_next_spend(world: M.World) -> U32:
-  M.sub(240,shield_charge_after(world))
 def focus_kind_found(fallback: U32,found: Maybe<&2,M.Tower>) -> U32:
   match found:
     case None{}: fallback
@@ -159,4 +137,4 @@ def review_count(items: List<&2,C.Work>,+world: M.World,+side: U32,+waiting: Boo
     case Nil{}: 0
     case +work <> rest:
       +branch = Bool.not(U32.is_eq(M.layout(world),1)) || U32.is_eq(E.lane(world,work),side)
-      (Bool.to_u32(U32.is_eq(E.kind(work),3) && branch && same_bool(E.review_waiting(world,work),waiting)) + review_count(rest,world,side,waiting) : U32)
+      (Bool.to_u32(branch && Bool.pick(Bool,waiting,U32.is_eq(E.kind(work),4) && Bool.not(E.started(E.id(work),E.requests(M.dispatch(M.core(world))))),U32.is_eq(E.kind(work),3))) + review_count(rest,world,side,waiting) : U32)

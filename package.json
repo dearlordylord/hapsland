@@ -31,12 +31,13 @@
     "docs/installation-workflows.md",
     "docs/npm-publishing.md",
     "schemas/review-config-v1.schema.json",
-    "schemas/review-rule-pack-v1.schema.json",
+    "schemas/review-rule-v1.schema.json",
     "package-runtime.json",
     "docs/pi-installation.md",
     "dist/bin",
     "dist/runtime/hook-catalog.js",
-    "dist/pi/**/*.js"
+    "dist/pi/**/*.js",
+    "src/rules/defaults/*.json"
   ],
   "bin": {
     "hapsland": "bin/launch.sh",

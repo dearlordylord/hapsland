@@ -1,9 +1,13 @@
 # Rule evaluation and conformance model
 
-Status: specification only. Defines the shared model for deterministic composition
-tests and empirical rule-quality evaluations. No runtime, test runner, or Quint model
-is implemented by this document. Formal checking with Quint and `quint-connect-ts` is
-recorded as later work; tool compatibility and integration have not been established.
+**Purpose:** Define the shared model for deterministic composition tests and empirical rule-quality evaluations.
+**Status:** Maintained specification model; rule identity and source policy amended by the 2026-10-05 owner authorization.
+**Authority:** Accepted evaluation-model contract; it does not claim implementation or measured semantic quality. Current input behavior belongs to the [direct-review contract](docs/type-function-review-proposal.md).
+**Expected use:** Design fixtures, scenarios, and bounded live evaluations independently of implementation details.
+**Lifecycle:** Update when rule identity, review input, policy composition, or evaluation evidence changes; review after an accepted change to those boundaries.
+
+Formal checking with Quint and `quint-connect-ts` remains later work; this document
+does not establish tool compatibility or an implemented reference model.
 
 Related: [Phase F configuration](./PRODUCT-PHASE-F-SPEC.md) and
 [combinatorics test specification](./PRODUCT-RULE-COMBINATORICS-TEST-SPEC.md).
@@ -28,7 +32,7 @@ that the backend understands a domain or that a fixture label is correct.
 
 | Entity | Required meaning and identity |
 |---|---|
-| Rule definition | Qualified pack/rule ID; exact pack version; digest of the actual question and criteria; default message, threshold, and applicability. A version label alone does not prove unchanged content. |
+| Rule definition | Stable rule ID and exact definition digest, covering question, criteria, supported language/kind/evidence combinations, default message and threshold. File placement does not define identity; path policy belongs to configuration. |
 | Fixture | Stable ID, synthetic source file, domain/path presented to the backend, and content hash. Path is part of semantic context and must not change accidentally between comparisons. |
 | Expectation | Fixture ID + rule identity + intended result and explanation. This is authored test data, independent of an observed probability. Missing expectations mean unchecked, never clear. |
 | Configuration case | Explicit built-in/user/project layers and consent state, with expected effective settings and provenance. |
@@ -37,18 +41,23 @@ that the backend understands a domain or that a fixture label is correct.
 | Comparison | A declared relationship between observations: exact deterministic equality, semantic-band acceptance, or measured change across batching/fixture transformations. |
 | Evaluation run | A selected scenario set, suite/config/rule/fixture identities, backend identity, repeat count, declared call budget, and sanitized results. Transport success, semantic success, and coverage are separate fields. |
 
-Configuration identity records the effective policy as well as pack identities. Rule
+Configuration identity records the effective root/context/privacy and per-rule policy as well as rule identities. Rule
 definition identity and fixture identity let a result be invalidated when meaning or
 input changes, even if names are reused. Operational overrides such as a message change
 must not be confused with edits to the question/criteria.
 
-Evaluation identity also records the input-contract version and the renderer/adapter
-identity that constructs backend context. The current single full-file fixture is a
-prototype baseline, not a permanent restriction on product inputs. Full-file, diff,
-task-relative, or multi-file evaluations must not be treated as equivalent merely because
-they reuse a question. Phase F explicitly retains the current full-file-plus-path input
-for this milestone; declaration extraction and richer context are deferred, non-blocking
-work. No additional context egress is authorized by this note.
+Evaluation identity also records the input contract and renderer identity. The current
+[direct-review contract](docs/type-function-review-proposal.md) supplies one changed
+root and bounded related declarations. Full-file, diff, task-relative, and other
+input scenarios are not equivalent merely because they reuse a question. Runtime
+schemas remain distinct unsupported inputs; concrete values remain outside current
+root support. A former raw/type/schema ranking is not evidence of capabilities.
+
+Composition cases distinguish root selection, context selection, absolute privacy
+denial, and intrinsic versus configured languages. Include a root under `src`, a
+related declaration under `shared`, and a privacy-denied dependency. Assert both
+root eligibility and actual captured/sent supporting source. A path-only explanation
+must report unexamined kind/evidence instead of claiming semantic eligibility.
 
 ## Fixture expectations
 
@@ -138,7 +147,7 @@ already-sent requests.
 
 - No backend attempt without valid configuration, matching consent, an eligible snapshot,
   and at least one selected rule at the dispatch authorization checkpoint.
-- Rule-level selection never expands global eligibility.
+- Rule-level selection never expands global root eligibility or intrinsic input support. Supporting source separately satisfies context and privacy policy.
 - A successful assessment has exactly the selected rule keys with valid probabilities.
 - Every delivered finding identifies a reviewed snapshot; a mismatch at the pre-delivery
   check suppresses it. No claim is made that files cannot change after that checkpoint.

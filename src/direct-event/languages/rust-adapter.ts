@@ -1,3 +1,4 @@
+import { LANGUAGE_EXTENSIONS } from "./path-language.ts"
 import { extname, dirname, join, normalize, relative } from "node:path"
 import * as rust from "./rust.ts"
 import * as Effect from "effect/Effect"
@@ -5,7 +6,7 @@ import type { LanguageAdapter } from "./contracts.ts"
 import { resolveRustModuleContext } from "./rust-module-context.ts"
 export const rustAdapter: LanguageAdapter = {
   id: "rust",
-  extensions: [".rs"],
+  extensions: LANGUAGE_EXTENSIONS.rust,
   displayName: "Rust",
   probe: { path: "doctor.rs", source: "struct DoctorProbe { ready: bool }" },
   parseTypes: rust.parseTypes,

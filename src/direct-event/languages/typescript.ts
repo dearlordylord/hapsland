@@ -1,3 +1,4 @@
+import { LANGUAGE_EXTENSIONS } from "./path-language.ts"
 import { descendants, sameSyntaxNode, typeScriptRoot, type SyntaxNode } from "./native-parser.ts"
 import { createHash } from "node:crypto"
 import { extname, dirname, join, normalize } from "node:path"
@@ -22,7 +23,7 @@ type ParsedDeclaration = {
   >
 }
 
-const supported = new Set([".ts", ".tsx", ".mts", ".cts"])
+const supported = new Set<string>(LANGUAGE_EXTENSIONS.typescript)
 const importSyntax = new Set(["import", "import_alias", "import_require_clause", "import_statement", "import_type"])
 
 /** Iterative traversal contains adversarially deep, but byte-bounded, syntax. */

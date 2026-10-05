@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { addEvent, makeGitFixture, advicee } from "../direct-event/test-fixtures.ts"
+import { addEvent, makeReviewGitFixture as makeGitFixture, advicee } from "../direct-event/test-fixtures.ts"
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
 import * as Effect from "effect/Effect"
 import {

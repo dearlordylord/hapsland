@@ -14,7 +14,7 @@ import {
 } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
-import { configuredRules } from "../src/policy/rules.ts"
+import { configuredRules } from "../src/test-support/default-rules.ts"
 // Bounded, preregistered synthetic detection and native-agent comparison.
 
 const fixtureModule = resolve(

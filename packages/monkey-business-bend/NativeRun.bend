@@ -1079,10 +1079,12 @@ def prepared_command(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.J
 def command_context(state: T.State, action: Driver.Action, job: Maybe<&2,T.Job>, _source: Maybe<&2,T.EmissionContext>) -> Driver.Context:
   context(state,action,job,None{})
 
-def command_partition(+context: Driver.Context, scope: Maybe<&2,Nat>) -> Driver.Context:
+# Resolve partition-owned policy after the command scope is known, even without a job.
+def command_partition(+state: T.State, context: Driver.Context, scope: Maybe<&2,Nat>) -> Driver.Context:
   match context scope:
-    case Driver.Context{_,lifetime,round,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_} Some{partition}:
-      Driver.with_scope(context,Driver.ContextScope{partition,lifetime,round})
+    case Driver.Context{_,lifetime,round,bytes,job,delay,outcome,current,credential,generation,readable,advice_lifetime,candidate,_,review,output,certain,output_delay,lease,_,dispatch} Some{+partition}:
+      Driver.Context{partition,lifetime,round,bytes,job,delay,outcome,current,credential,generation,readable,advice_lifetime,candidate,
+        Bool.not(Engine.collector_configured(core(state))) && Bool.not(active_finish(state,partition)),review,output,certain,output_delay,lease,generated_partition(state,partition),dispatch}
     case context None{}: context
 
 def request_put_selected(equal: Bool, original: T.IssuedRequest, tail: List<&2,T.IssuedRequest>, request: Nat,
@@ -1110,7 +1112,7 @@ def issued_command(state: T.State, command: Canonical.Command) -> T.State:
 def command_selected(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.Job>, +command: Canonical.Command,
     source: Maybe<&2,T.EmissionContext>, scope: Maybe<&2,Nat>, +source_job: Maybe<&2,Driver.SourceJob>) -> T.State:
   prepared_command(issued_command(remember_command(state,command,job),command),action,job,command,Engine.prepare_command_context(core(state),command,
-    source_job,outcome_environment(state),command_partition(command_context(state,action,job,source),scope)),[source_job])
+    source_job,outcome_environment(state),command_partition(state,command_context(state,action,job,source),scope)),[source_job])
 
 def command_bound(state: T.State, action: Driver.Action, command: Canonical.Command,
     source: Maybe<&2,T.EmissionContext>, +scope: Maybe<&2,Nat>, fallback: Maybe<&2,T.Job>,
@@ -1927,6 +1929,17 @@ def jev_control(state: T.State, delay: Nat, weights: List<&2, Numeric.Words>) ->
     case T.State{core, items, next, count, seed, T.Environment{_, _, _, prep, tree, limits, output, lease, current, ready, generation, readable, lifetime,output_profile}, latest, valid, prepared,jobs,host}:
       T.Controlled{T.State{core, items, next, count, seed, T.Environment{delay, None{}, weights, prep, tree, limits, output, lease, current, ready, generation, readable, lifetime,output_profile}, latest, valid, prepared,jobs,host}, True{}}
 
+# A delay-only profile control preserves forced outcomes and the random stream.
+# This matches the public jevProfile control with both outcome choices omitted.
+def jev_delay_control(state: T.State,delay: Nat) -> T.Controlled:
+  match state:
+    case T.State{core,items,next,count,seed,T.Environment{_,outcome,weights,prep,tree,limits,output,lease,current,ready,generation,readable,lifetime,profile},latest,valid,prepared,jobs,host}:
+      T.Controlled{T.State{core,items,next,count,seed,T.Environment{delay,outcome,weights,prep,tree,limits,output,lease,current,ready,generation,readable,lifetime,profile},latest,valid,prepared,jobs,host},True{}}
+def jev_delay_supported(valid: Bool,state: T.State,delay: Nat) -> T.Controlled:
+  match valid:
+    case True{}: jev_delay_control(state,delay)
+    case False{}: T.Controlled{state,False{}}
+
 def jev_supported(valid: Bool, state: T.State, delay: Nat, weights: List<&2, Numeric.Words>) -> T.Controlled:
   match valid:
     case True{}: jev_control(state, delay, weights)
@@ -2024,6 +2037,7 @@ def output_control(valid: Bool, state: T.State, outcome: OutputScenario.Outcome,
 
 def control(+state: T.State, control: T.Control) -> T.Controlled:
   match control:
+    case T.JevDelay{+delay}: jev_delay_supported(Nat.is_le(delay,1000000000n),state,delay)
     case T.OutputProfileControl{outcome,+delay,+lease}:
       output_control(Nat.is_le(delay,1000000000n) && Nat.is_gt(lease,0n) && Nat.is_le(lease,1000000000n),state,outcome,delay,lease)
     case T.AdviceeLifecycleControl{identity,action}: lifecycle(state,identity,action)
