@@ -39,10 +39,17 @@ export const readPositiveNat = decoder(PositiveNat)
 export const readBytes = decoder(ByteCount)
 export const readBool = decoder(Schema.Boolean)
 const RecordSchema = Schema.Record(Schema.String, Schema.Unknown)
+const checkedRecords = new WeakSet<object>()
 /** Schema assertions preserve native object identity used by the provenance fence. */
 export const readRecord = (value: unknown): Record<string, unknown> => {
+  if (typeof value === "object" && value !== null && checkedRecords.has(value)) return value as Record<string, unknown>
   try {
     Schema.asserts(RecordSchema, value)
+    if (
+      Object.isFrozen(value) &&
+      Object.values(Object.getOwnPropertyDescriptors(value)).every((descriptor) => "value" in descriptor)
+    )
+      checkedRecords.add(value)
   } catch (cause) {
     throw new TypeError("invalid Bend object", { cause })
   }
