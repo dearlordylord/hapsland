@@ -11,6 +11,52 @@ import { nativeDeferred } from "../test-support/native-deferred.ts"
 import type { ResidentDispatchContext } from "./protocol.ts"
 
 describe("resident inspection capture", () => {
+  it("captures valid obsolete-lifetime ingress and its refusal without admitting review work", async () => {
+    const root = await makeGitFixture()
+    await put(root, "type.ts", "type OrderCount = number\n")
+    await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+    const stored = nativeDeferred<void>()
+    const history = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+      inspectionPersistence: {
+        write: (record, encoded, allowed) =>
+          history.write(record, encoded, allowed).pipe(
+            Effect.tap(() =>
+              Effect.sync(() => {
+                if (record.fact.kind === "edit-admission") stored.resolve()
+              })
+            )
+          )
+      }
+    })
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
+    if (!observation) throw new Error("missing observation")
+    const response = await Effect.runPromise(
+      server.handle({
+        requestRoute: "shared",
+        operation: "admit",
+        lifetime: "prior-lifetime",
+        observation,
+        controlledWriter: true,
+        composed: true,
+        dispatch: {
+          statePath: join(root, "consent"),
+          userConfigPath: join(root, "absent-user"),
+          credential: null,
+          controlled: { answers: {} }
+        }
+      })
+    )
+    expect(response.status).toBe("obsolete-lifetime")
+    await stored.promise
+    const records = await Effect.runPromise(history.snapshot())
+    expect(records.map((record) => record.fact)).toEqual([
+      { kind: "recording-state", state: "enabled" },
+      { kind: "edit-received", candidates: [{ operation: "add", path: "type.ts" }] },
+      { kind: "edit-admission", outcome: "obsolete-lifetime" }
+    ])
+    expect(Effect.runSync(server.stats())).toMatchObject({ pendingAdvice: 0 })
+  })
   it("settles real resident review work while optional filesystem publication is stalled", async () => {
     const root = await makeGitFixture()
     await put(root, "type.ts", "type OrderCount = number\n")

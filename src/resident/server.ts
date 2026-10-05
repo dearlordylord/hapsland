@@ -593,6 +593,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     })
     return { scope, correlation }
   }
+  const inspectionRefuse = (
+    observation: DirectObservation,
+    dispatch: ResidentDispatchContext,
+    outcome: "unsupported" | "obsolete-lifetime"
+  ) => {
+    const receipt = inspectionReceive(observation, dispatch)
+    inspection.offer(receipt.scope, receipt.correlation, { kind: "edit-admission", outcome })
+  }
   const residentJoined = residentLedger.joinedReviews(logicalBytes)
   const residentRuntimeScope = yield* Scope.Scope
   const residentIpcScope = yield* Scope.make()
@@ -4167,7 +4175,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentHandleAdmit = Effect.fn("ResidentRuntime.handle.admit")(function* (
     request: Extract<ResidentRequest, { operation: "admit" }>
   ) {
-    if (request.composed !== true) return residentResponse({ status: "unsupported" })
+    if (request.composed !== true) {
+      inspectionRefuse(request.observation, request.dispatch, "unsupported")
+      return residentResponse({ status: "unsupported" })
+    }
     return residentResponse(yield* admit(request.observation, request.dispatch, true, true))
   })
   const residentFindingResponse = (
@@ -4407,9 +4418,17 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   ) {
     const context = yield* residentResponseContext(responseContext)
     const lifetime = yield* residentRequestLifetime(request)
-    if (lifetime !== undefined) return lifetime
+    if (lifetime !== undefined) {
+      if (request.operation === "admit" || request.operation === "admit-and-collect")
+        inspectionRefuse(request.observation, request.dispatch, "obsolete-lifetime")
+      return lifetime
+    }
     if (residentRequestNeedsSweep(request)) yield* sweepQuietRounds(residentNow())
-    if (residentRequestUnsupported(request)) return residentResponse({ status: "unsupported" })
+    if (residentRequestUnsupported(request)) {
+      if (request.operation === "admit" || request.operation === "admit-and-collect")
+        inspectionRefuse(request.observation, request.dispatch, "unsupported")
+      return residentResponse({ status: "unsupported" })
+    }
     for (const route of [residentRouteBoundary, residentRouteReview, residentRouteAdministration]) {
       const response = yield* route(request, context)
       if (response !== undefined) return response
