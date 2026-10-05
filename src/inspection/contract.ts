@@ -33,16 +33,6 @@ export const InspectionCorrelation = Schema.Struct({
 })
 export type InspectionCorrelation = typeof InspectionCorrelation.Type
 
-/** Availability describes retained original bytes, never reconstructed presentation. */
-export const InspectionPayloadReference = Schema.Union([
-  Schema.Struct({ status: Schema.Literal("available"), id: Id, byteLength: Count, sha256: Hash }),
-  Schema.Struct({
-    status: Schema.Literal("missing"),
-    reason: Schema.Literals(["not-captured", "oversized", "disabled", "capacity", "expired", "evicted", "unavailable"])
-  })
-])
-export type InspectionPayloadReference = typeof InspectionPayloadReference.Type
-
 /** Shared writer evidence: hook and native producers have no dependency on each other. */
 export const InspectionWriterState = Schema.Literals([
   "ready",
@@ -236,7 +226,20 @@ export const InspectionFact = Schema.Union([
     state: InspectionWriterState,
     noticeOnly: Schema.Boolean,
     findingIds: Schema.Array(Id).check(Schema.isMaxLength(128)),
-    output: Schema.optionalKey(InspectionPayloadReference)
+    recipient: Schema.Struct({ turnId: Schema.NullOr(Id), toolUseId: Schema.NullOr(Id) }),
+    evaluations: Schema.Array(Schema.Struct({ semanticIdentity: Hash, evaluationId: Schema.optionalKey(Id) })).check(
+      Schema.isMaxLength(128)
+    ),
+    output: Schema.Union([
+      Schema.Struct({
+        status: Schema.Literal("available"),
+        representation: Schema.Literal("host-jsonl-base64"),
+        encoded: Schema.String.check(Schema.isMaxLength(21848)),
+        byteLength: Count,
+        sha256: Hash
+      }),
+      Schema.Struct({ status: Schema.Literal("missing"), reason: Schema.Literals(["not-captured", "oversized"]) })
+    ])
   })
 ])
 export type InspectionFact = typeof InspectionFact.Type
@@ -283,6 +286,17 @@ export const decodeInspectionRecord = (value: unknown): InspectionRecord => {
       createHash("sha256").update(bytes).digest("hex") !== payload.sha256
     )
       throw new Error("inspection payload identity mismatch")
+  }
+  if (record.fact.kind === "writer-evidence" && record.fact.output.status === "available") {
+    const payload = record.fact.output
+    const bytes = Buffer.from(payload.encoded, "base64")
+    if (
+      bytes.byteLength !== payload.byteLength ||
+      bytes.byteLength > 16384 ||
+      bytes.toString("base64") !== payload.encoded ||
+      createHash("sha256").update(bytes).digest("hex") !== payload.sha256
+    )
+      throw new Error("inspection writer payload identity mismatch")
   }
   return record
 }

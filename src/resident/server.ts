@@ -1,3 +1,5 @@
+import { makeInspectionSubmissionRecorder } from "../inspection/submission-recorder.ts"
+import type { InspectionSubmissionObservation } from "../inspection/writer.ts"
 import { InspectionTransportObservation } from "../inspection/transport.ts"
 import { captureInspectionPolicy, captureInspectionFindings, captureInspectionFate } from "../inspection/capture.ts"
 import type { InspectionScope, InspectionCorrelation } from "../inspection/contract.ts"
@@ -475,6 +477,7 @@ export interface ResidentRuntimeOperations {
 }
 
 export interface ResidentRuntime {
+  readonly inspectionSubmissionObservation: InspectionSubmissionObservation["Service"]
   readonly operations: ResidentRuntimeOperations
   readonly lifetime: string
   readonly paths: ResidentPaths
@@ -581,6 +584,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         })
     }
   )
+  const inspectionSubmissions = makeInspectionSubmissionRecorder(inspection, { endpoint: paths.socket, lifetime })
   const inspectionObserveAdviceFate = (
     advice: Advice,
     findings: ReadonlyArray<Finding>,
@@ -1561,7 +1565,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     frame: CollectionFrame,
     handoff: ReadonlyArray<Advice>,
     token: string,
-    now: number
+    now: number,
+    root: string,
+    recipient: DirectAdvicee
   ) {
     const offers = (yield* Effect.forEach(handoff, (advice) => residentHandoffOffers(frame, advice, now))).flat()
     const limited: Array<number> = []
@@ -1587,9 +1593,26 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       if ((yield* residentLedger.advice.current(advice)).delivery?.findings.length === 0)
         yield* residentReleaseAdviceLease(advice)
     }
-    return (yield* Effect.forEach(handoff, (advice) => residentLedger.advice.current(advice))).flatMap(
-      (content) => content.delivery?.findings ?? []
-    )
+    const contents = yield* Effect.forEach(handoff, (advice) => residentLedger.advice.current(advice))
+    const findings = contents.flatMap((content) => content.delivery?.findings ?? [])
+    if (inspection.isEnabled(root)) {
+      const payload = captureInspectionFate(findings, "retained", "pending-advice").payload
+      if (payload.status === "available")
+        inspectionSubmissions.register(token, {
+          root,
+          advicee: recipient,
+          findingIds: payload.findingIds,
+          evaluations: contents.flatMap((content, index) => {
+            if (!content.delivery?.findings.length) return []
+            const advice = handoff[index]!
+            const evaluationId = inspectionOrigins.get(advice.evaluationKey)
+            return [
+              { semanticIdentity: advice.prepared.identity, ...(evaluationId === undefined ? {} : { evaluationId }) }
+            ]
+          })
+        })
+    }
+    return findings
   })
   const residentCollectionResponse = (
     frame: CollectionFrame,
@@ -1636,7 +1659,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           // One clock reading checks ownership and authority after every final capture.
           const handoffNow = residentNow()
           const handoff = yield* residentCollectHandoff(frame, final, token, handoffNow)
-          const findings = yield* residentSelectHandoffFindings(frame, handoff, token, handoffNow)
+          const findings = yield* residentSelectHandoffFindings(frame, handoff, token, handoffNow, root, advicee)
           // Operational failures remain resident diagnostics; only actionable findings reach the agent.
           return residentCollectionResponse(frame, token, findings)
         }).pipe(
@@ -5525,6 +5548,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     })
   )
   const runtime: ResidentRuntime = Object.freeze({
+    inspectionSubmissionObservation: inspectionSubmissions.observation,
     operations,
     lifetime,
     paths,

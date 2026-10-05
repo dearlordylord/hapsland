@@ -179,5 +179,13 @@ export const makeInspectionRecorder = Effect.fn("InspectionRecorder.make")(funct
     correlation: InspectionCorrelation,
     fact: InspectionObservation
   ): InspectionOffer => enqueue(scope, correlation, fact)
-  return { offer, observeRecording, isEnabled: (root: string) => !closed && roots.get(root)?.state === "enabled" }
+  return {
+    offer,
+    observeRecording,
+    isEnabled: (root: string) => !closed && roots.get(root)?.state === "enabled",
+    consentEpoch: (root: string) =>
+      !closed && roots.get(root)?.state === "enabled" ? roots.get(root)?.epoch : undefined
+  }
 })
+
+export type InspectionRecorder = Effect.Success<ReturnType<typeof makeInspectionRecorder>>

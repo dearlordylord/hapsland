@@ -1,3 +1,8 @@
+import { Writable } from "node:stream"
+import { submitDirectHookOutput, DirectHookSubmission } from "../resident/direct-hook-output.ts"
+import { HookOutput, makeWritableHookOutput } from "../resident/hook-output.ts"
+import { hookMonotonicMillis } from "../resident/hook-clock.ts"
+import { InspectionSubmissionObservation } from "./writer.ts"
 import { request } from "node:http"
 import { Effect, Scope, Exit } from "effect"
 import { expect, it } from "vitest"
@@ -269,3 +274,147 @@ it("rejects direct network exposure before opening a server", async () => {
     Effect.runPromise(Effect.scoped(makeInspectionHttpServer(history, { host: "0.0.0.0" })))
   ).rejects.toThrow("loopback")
 })
+
+it.each([true, false])(
+  "retains actual native hook output through the public feed when acknowledgement arrives: %s",
+  async (acknowledged) => {
+    const root = await makeGitFixture()
+    await put(root, "type.ts", "type OrderCount = number;\n")
+    await put(root, "other.ts", "type OtherCount = number;\n")
+    await writeFile(
+      join(root, ".hapsland.jsonc"),
+      JSON.stringify({
+        version: 1,
+        sessionInspection: true,
+        ruleOverrides: { r1_inferred_case: { message: "Inspect 日本語\r\n\tcases" } }
+      })
+    )
+    const stored = nativeDeferred<void>()
+    const history = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
+    const resident = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+      inspectionPersistence: {
+        write: (record, encoded, publication) =>
+          history.write(record, encoded, publication).pipe(
+            Effect.tap(() =>
+              Effect.sync(() => {
+                if (
+                  record.fact.kind === "writer-evidence" &&
+                  record.fact.state === (acknowledged ? "acknowledged" : "written")
+                )
+                  stored.resolve()
+              })
+            )
+          )
+      }
+    })
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
+    if (!observation) throw new Error("missing observation")
+    const dispatch = {
+      statePath: join(root, "consent"),
+      userConfigPath: join(root, "absent-user"),
+      credential: null,
+      controlled: {
+        answers: Object.fromEntries(
+          configuredRules.map((rule, index) => [
+            rule.id,
+            { _tag: "Probability" as const, probability: index === 0 ? 0.9 : 0 }
+          ])
+        )
+      }
+    }
+    expect(Effect.runSync(resident.admit(observation, dispatch)).status).toBe("accepted")
+    await Effect.runPromise(resident.whenIdle())
+    const other = await Effect.runPromise(
+      adaptCodexDirectEvent(addEvent(root, ["other.ts"], { tool_use_id: "inspection-other-edit" }))
+    )
+    if (!other) throw new Error("missing second edit")
+    expect(Effect.runSync(resident.admit(other, dispatch)).status).toBe("accepted")
+    await Effect.runPromise(resident.whenIdle())
+    const response = await Effect.runPromise(resident.collect(root, observation.advicee, dispatch))
+    if (response.status !== "advice") throw new Error("missing advice")
+    expect(response.findingCount).toBe(2)
+    const bytes: Array<Buffer> = []
+    const stream = new Writable({
+      write: (chunk, _encoding, complete) => {
+        bytes.push(Buffer.from(chunk))
+        complete()
+      }
+    })
+    const collected = {
+      output: response.output,
+      token: response.token,
+      lifetime: resident.lifetime,
+      paths: resident.paths,
+      root,
+      advicee: observation.advicee,
+      activityPath: undefined,
+      findingCount: response.findingCount
+    }
+    const outcome = await Effect.runPromise(
+      submitDirectHookOutput(
+        { value: response.output, collected },
+        { composed: false, claude: true, deadlineAt: (await Effect.runPromise(hookMonotonicMillis)) + 5000 }
+      ).pipe(
+        Effect.provideService(HookOutput, makeWritableHookOutput(stream)),
+        Effect.provideService(InspectionSubmissionObservation, resident.inspectionSubmissionObservation),
+        Effect.provideService(DirectHookSubmission, {
+          begin: () => Effect.die("unexpected composed admission"),
+          release: () => Effect.die("unexpected composed release"),
+          writeCodex: () => Effect.die("unexpected synchronous write"),
+          record: () => Effect.void,
+          acknowledge: () =>
+            Effect.gen(function* () {
+              const result = yield* resident.acknowledge(response.token)
+              if (result.status !== "acknowledged") return false
+              if (acknowledged) yield* resident.finalize(response.token)
+              return acknowledged
+            })
+        })
+      )
+    )
+    expect(outcome).toBe("written")
+    await stored.promise
+    stream.end()
+    const scope = await Effect.runPromise(Scope.make())
+    try {
+      const server = await Effect.runPromise(
+        makeInspectionHttpServer(history).pipe(Effect.provideService(Scope.Scope, scope))
+      )
+      const body: unknown = await (await fetch(`${server.url}snapshot`)).json()
+      if (typeof body !== "object" || body === null || !("records" in body) || !Array.isArray(body.records))
+        throw new Error("missing snapshot")
+      const records = body.records.map(decodeInspectionRecord)
+      const states = records.filter((record) => record.fact.kind === "writer-evidence")
+      expect(states.map((record) => (record.fact.kind === "writer-evidence" ? record.fact.state : null))).toEqual([
+        "ready",
+        "write-started",
+        "written",
+        ...(acknowledged ? ["acknowledged"] : [])
+      ])
+      const written = states.find((record) => record.fact.kind === "writer-evidence" && record.fact.state === "written")
+      if (written?.fact.kind !== "writer-evidence" || written.fact.output.status !== "available")
+        throw new Error("missing written output")
+      expect(Buffer.from(written.fact.output.encoded, "base64").equals(Buffer.concat(bytes))).toBe(true)
+      expect(written.correlation.batchId).toBe(response.token)
+      expect(written.correlation.attemptId).toMatch(/^[a-f0-9-]{36}$/)
+      expect(written.fact.recipient).toEqual({
+        turnId: observation.advicee.turnId,
+        toolUseId: observation.advicee.toolUseId
+      })
+      expect(written.fact.findingIds).toHaveLength(response.findingCount)
+      expect(written.fact.evaluations.map((member) => member.evaluationId).sort()).toEqual(
+        records
+          .filter((record) => record.fact.kind === "model-input")
+          .map((record) => record.correlation.evaluationId)
+          .sort()
+      )
+      expect(
+        new Set(
+          records.filter((record) => record.fact.kind === "model-input").map((record) => record.correlation.receiptId)
+        ).size
+      ).toBe(2)
+    } finally {
+      await Effect.runPromise(Scope.close(scope, Exit.void))
+    }
+  }
+)
