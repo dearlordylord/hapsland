@@ -79,6 +79,14 @@ Contexts are explicitly `tuning` or `heldOut` and have unique identities. Search
 
 ## Current ability boundary and remaining work
 
+The provisional teaching priority is causal clarity over the number of abilities. The following selection remains editable; measurements do not establish human learning or a permanent roster.
+
+| Priority | Ability | Intended observation | Countercase |
+| --- | --- | --- | --- |
+| 1 | Jev Service | A future request captures shorter latency while outcome and admission rules remain intact. | Purchasing after issuance preserves the captured deadline; inaccessible source or credentials remain inaccessible. |
+| 2 | Delivery Relay | Future output becomes faster while authorization, acknowledgment and retained findings remain distinct. | Already authorized output keeps its timing; clear reviews provide no finding output to accelerate. |
+| 3 | Access Repair | Source readability and credential readiness are independent factual conditions restored by a connected purchase. | Healthy access makes the investment ineffective; refused work is not resurrected and an old repair does not protect against a later outage. |
+
 The headless [game action seam](../DefenseLab.bend) reuses Host construction, placement validation, upgrades and observed ticks. It returns explicit illegal-placement, unknown-tower, unaffordable and maximum-level refusals with zero charge. Its tick retains actual connectivity, profile effects and health damage while discarding output rewards to keep a fixed investment budget. The [actual-game API](game.ts) connects that seam to deterministic build/upgrade schedules, separate game/business observations, finite comparisons/search and JSON experiment replay. `node scripts/build-game-lab.mjs` emits the optional game module; its checker hashes every transitive repository Bend dependency and checks exact emitted bytes.
 
 `runGameExperiment` retains the `continuousGame` label and accepts explicit scenario settings: request/output/source delays, readable source, credential readiness, sampled/clear/finding outcomes, initial burst and arrival interval. Defaults are 3200/800/800ms, ready/readable access, sampled outcomes, burst 1 and 30000ms arrival interval. The creation seed also configures the advicee workload seed. Supply layout, fixed initial budget, enabled catalogue identities, deterministic build/upgrade actions, `untilTicks` and `maxEvents`. One tick requests a 20ms business endpoint and at most 256 events, additionally limited by the remaining global event budget. Business time remains the engine's actual endpoint and is reported separately from the game tick. Coordinates and one-based upgrade indices are recorded; the newest tower comes first in the tower list. Rejected actions spend zero.
