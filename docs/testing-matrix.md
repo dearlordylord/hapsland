@@ -61,6 +61,28 @@ renderers, rather than generated sections.
 Historical worktrees without that file use the maintained command captured by
 the installer in the common Git directory, executed in the current worktree.
 
+## Bend formatting
+
+Use the standalone `bend-format` **0.1.19** (the bend-idea formatter), Python 3,
+and the repository's `.editorconfig`. Install the pinned release from
+[the formatter release](https://github.com/dearlordylord/bend-idea/releases/tag/v0.1.19)
+and put its executable on PATH, or set `BEND_FORMAT_BIN`. A separate JAR can use
+`BEND_FORMAT_JAR` and `BEND_FORMAT_JAVA` (Java 21+).
+
+- `npm run format:fix`: fix changed tracked and nonignored new Bend files.
+- `npm run format:check`: check the same selection.
+- `npm run format:check -- --base origin/master`: check the branch delta.
+- `npm run format:check -- --all`: check all tracked Bend files, including legacy style.
+- `npm run format:fix -- path/to/file.bend`: format explicit repository-relative paths.
+
+The commit hook checks exact staged Bend bytes without rewriting files or the
+index. Empty selections need no formatter. Exit 1 means formatting differs;
+exit 2 means an unavailable tool, unsupported source, or error, never success.
+Untouched sources need no bulk cleanup. Format before freezing source hashes or
+mutation anchors; after formatting executable Bend, rerun its affected proofs,
+mutation checks and artifact checks. Style checks do not establish semantics.
+Wrapper and staged-byte regression tests: `python3 scripts/test_bend_format.py`.
+
 ## Optional development modules
 
 Ordinary `npm test`, coverage/quality checks, and production/release builds exclude the game and the separate Monkey Business test suite. The production build does not validate or rebuild the standalone simulator. Run `npm run test:game` for generated game-lab identity, lab types and the focused lab suite; run `npm run test:simulation` for simulator freshness and all explicitly enumerated Monkey Business tests. Both entrypoints use the finite supervisor; native game/lab checks remain separate commands in the matrix below. Explicit `test:focused` selections can still include these owners. Production conformance tests using the model as an oracle remain in the ordinary gate, as do the production Bend artifact and authority checks. This separation changes test selection, not CRAP thresholds or missing-evidence policy. Review it when a development module becomes a production dependency.
