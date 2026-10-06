@@ -47,11 +47,6 @@ export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocu
     },
     {
       path: "docs/configuration.md",
-      name: "first-rule-defaults",
-      text: `Hapsland ships **${SHIPPED_DEFAULT_RULES.length} editable default rules**.`
-    },
-    {
-      path: "docs/configuration.md",
       name: "credential-reference",
       text: `The built-in credential reference is \`${JEV_PROVIDER.credentialEnvVar}\`. Inspection reports its name and presence, never its value. See [credential lookup](installation-workflows.md#personal-development-on-your-own-clients).`
     },

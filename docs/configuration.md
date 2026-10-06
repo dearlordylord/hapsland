@@ -311,12 +311,6 @@ validity does not establish classifier judgment quality.
 
 Run these commands from the root of your project's Git working tree.
 
-<!-- first-rule-defaults:start -->
-
-Hapsland ships **9 editable default rules**.
-
-<!-- first-rule-defaults:end -->
-
 Before writing another, inspect the rules you already have:
 
 ```sh
