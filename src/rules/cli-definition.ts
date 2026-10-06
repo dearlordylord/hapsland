@@ -3,6 +3,9 @@ import * as Flag from "effect/cli/Flag"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import { CLI_NAME } from "../runtime/cli-names.ts"
+import { SHIPPED_DEFAULT_RULES } from "./shipped.ts"
+
+export const DEFAULT_RULE_EXAMPLE_ID = SHIPPED_DEFAULT_RULES[0]!.id
 
 const ruleActions = [
   {
@@ -16,21 +19,21 @@ const ruleActions = [
     name: "show",
     description: "View a connected rule and its effective settings",
     flags: "id",
-    example: "--id r1_inferred_case",
+    example: `--id ${DEFAULT_RULE_EXAMPLE_ID}`,
     detail: "Find identities with rules list. Edit the displayed JSON file to change the rule."
   },
   {
     name: "explain",
     description: "Explain activation and file/language selection",
     flags: "explain",
-    example: "--id r1_inferred_case --path src/example.ts",
+    example: `--id ${DEFAULT_RULE_EXAMPLE_ID} --path src/example.ts`,
     detail: "Static configuration inspection only; source and required evidence are not examined."
   },
   {
     name: "check",
     description: "Review the declaration at a file and line with the classifier",
     flags: "check",
-    example: "--path src/example.ts --line 12 --id r1_inferred_case",
+    example: `--path src/example.ts --line 12 --id ${DEFAULT_RULE_EXAMPLE_ID}`,
     callsClassifier: true,
     detail:
       "Selects the enclosing supported declaration and its bounded related code, not an arbitrary line window. Sends that code and eligible enabled rules to the configured external classifier (may incur charges); returns probabilities and findings. Uses normal key discovery. No resident or agent session. Exit 0 means evaluated (including findings); exit 6 means skipped/unavailable. --json includes the actual source-bearing classifier input."
@@ -155,7 +158,7 @@ export const makeRulesCommand = (invoke: (options: RulesOptions) => void) => {
     ).pipe(
       Command.withShortDescription(action.description),
       Command.withDescription(
-        `${action.description}. ${action.detail}${action.name === "list" ? "" : "scope" in flags[action.flags] ? " Examples use no-primitive-obsession, a custom rule ID. Create or connect it before using activation commands." : " Examples use the shipped default r1_inferred_case. Use rules list to find IDs connected in this project."} ${"callsClassifier" in action ? "" : "No classifier calls."} ${"scope" in flags[action.flags] ? "Interactive changes show a preview and ask for confirmation; unattended changes require --scope." : "callsClassifier" in action ? "Explicit one-off review." : "Read-only."}`
+        `${action.description}. ${action.detail}${action.name === "list" ? "" : "scope" in flags[action.flags] ? " Examples use no-primitive-obsession, a custom rule ID. Create or connect it before using activation commands." : ` Examples use the shipped default ${DEFAULT_RULE_EXAMPLE_ID}. Use rules list to find IDs connected in this project.`} ${"callsClassifier" in action ? "" : "No classifier calls."} ${"scope" in flags[action.flags] ? "Interactive changes show a preview and ask for confirmation; unattended changes require --scope." : "callsClassifier" in action ? "Explicit one-off review." : "Read-only."}`
       ),
       Command.withExamples([
         {

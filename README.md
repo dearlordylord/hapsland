@@ -101,7 +101,11 @@ With no explicit rule selection, authorized setup connects 9 editable JSON rule 
 
 <!-- shipped-rules:end -->
 
+<!-- rule-inspection:start -->
+
 Inspect them with `hapsland rules list` or `hapsland rules show --id r1_inferred_case`.
+
+<!-- rule-inspection:end -->
 Author one rule per file and connect it explicitly. Choose personal or project
 settings for activation, languages, file scope, threshold, and feedback messages.
 File paths belong to settings; the rule defines the concern and evidence it needs.
@@ -119,8 +123,11 @@ Start with the **9 editable default rules**.
 
 <!-- first-rule-defaults:end -->
 
-Run `hapsland rules list`, then
-`hapsland rules show --id r1_inferred_case` to inspect one and its source file.
+<!-- first-rule-inspection:start -->
+
+Run `hapsland rules list`, then `hapsland rules show --id r1_inferred_case` to inspect one and its source file.
+
+<!-- first-rule-inspection:end -->
 You may already have a rule for your concern. Setup connects defaults when no
 explicit rule selection is configured; your current inventory shows what is
 actually connected and enabled.

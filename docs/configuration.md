@@ -222,8 +222,15 @@ When no loaded configuration layer declares a `rules` field, authorized initial 
 <!-- shipped-rules:end -->
 
 Any explicit `rules` field, including `rules: []`, is authoritative:
-setup does not add or enable defaults alongside that selection. For example, `r1_inferred_case.json` retains the stable rule ID
-`r1_inferred_case`. The selected file is authoritative: editing it changes the rule;
+setup does not add or enable defaults alongside that selection.
+
+<!-- rule-file-identity:start -->
+
+For example, `r1_inferred_case.json` retains the stable rule ID `r1_inferred_case`.
+
+<!-- rule-file-identity:end -->
+
+The selected file is authoritative: editing it changes the rule;
 disabling or disconnecting it changes effective review. Deleting a connected file
 reports a missing-source error, rather than restoring a hidden default. Repeated
 setup preserves authored files. An unreferenced file is inactive in every directory.
@@ -313,10 +320,14 @@ Run these commands from the root of your project's Git working tree.
 
 Before writing another, inspect the rules you already have:
 
+<!-- first-rule-inspection:start -->
+
 ```sh
 hapsland rules list
 hapsland rules show --id r1_inferred_case
 ```
+
+<!-- first-rule-inspection:end -->
 
 See the [default concerns](../TYPE-DESIGN-RULES.md). The default
 `r6_bare_domain_value` already addresses primitive domain values; inspect it before

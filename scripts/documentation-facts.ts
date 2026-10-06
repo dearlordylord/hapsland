@@ -7,6 +7,7 @@ import { GRAPH_LIMIT_CEILINGS, graphLimitFields } from "../src/configuration/gra
 import { MAX_INSPECTION_MESSAGE_BYTES } from "../src/inspection/contract.ts"
 import { DEFAULT_RULE_THRESHOLD } from "../src/rules/schema.ts"
 import { SHIPPED_DEFAULT_RULES } from "../src/rules/shipped.ts"
+import { DEFAULT_RULE_EXAMPLE_ID } from "../src/rules/cli-definition.ts"
 import { PROVIDER_LIMITS } from "../src/review-providers/catalog.ts"
 import { REVIEW_SETTINGS_CACHE_CAPACITY, REVIEW_SETTINGS_CACHE_TTL_MS } from "../src/runtime/review-settings.ts"
 
@@ -30,6 +31,26 @@ export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocu
   const analytics = recordingFieldName(schema, "AnalyticsRecordingEnabled")
   const inspection = recordingFieldName(schema, "InspectionRecordingEnabled")
   return [
+    {
+      path: "README.md",
+      name: "rule-inspection",
+      text: `Inspect them with \`hapsland rules list\` or \`hapsland rules show --id ${DEFAULT_RULE_EXAMPLE_ID}\`.`
+    },
+    {
+      path: "README.md",
+      name: "first-rule-inspection",
+      text: `Run \`hapsland rules list\`, then \`hapsland rules show --id ${DEFAULT_RULE_EXAMPLE_ID}\` to inspect one and its source file.`
+    },
+    {
+      path: "docs/configuration.md",
+      name: "first-rule-inspection",
+      text: ["```sh", "hapsland rules list", `hapsland rules show --id ${DEFAULT_RULE_EXAMPLE_ID}`, "```"].join("\n")
+    },
+    {
+      path: "docs/configuration.md",
+      name: "rule-file-identity",
+      text: `For example, \`${encodeURIComponent(DEFAULT_RULE_EXAMPLE_ID)}.json\` retains the stable rule ID \`${DEFAULT_RULE_EXAMPLE_ID}\`.`
+    },
     {
       path: "README.md",
       name: "shipped-rules",
