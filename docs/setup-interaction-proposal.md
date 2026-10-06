@@ -1,10 +1,10 @@
 # Explicit setup interaction and credential destinations
 
-**Purpose:** Preserve the proposed setup conversation and frame research into an explicit interaction model and terminal renderer.
+**Purpose:** Preserve the proposed setup conversation and define an explicit CLI interaction architecture across human-input workflows, with bounded setup replay diagrams.
 **Status:** Design proposal; no implementation or dependency adoption is authorized by this document.
 **Authority:** Design proposal recording the conversation of 2026-10-06. Existing setup, configuration, ownership and consent contracts remain authoritative; this is not an accepted product contract.
 **Expected use:** Evaluate interaction-model and terminal-rendering candidates, then make an explicit design decision before implementing setup changes.
-**Lifecycle:** Temporary until the setup-interaction design acceptance milestone. Consolidate accepted user behavior into `docs/installation-workflows.md` and `docs/configuration.md`, record the selected architecture in an ADR, update inbound links, and delete this proposal. Rejected options remain in Git history.
+**Lifecycle:** Temporary until the setup-interaction design acceptance milestone. Consolidate accepted user behavior into `docs/installation-workflows.md` and `docs/configuration.md`, record the selected architecture in an ADR, consolidate rule-interaction requirements into `docs/configuration.md`, update inbound links, and delete this proposal. Rejected options remain in Git history.
 
 ## Problem and current implementation
 
@@ -133,3 +133,84 @@ After prototype discussion, real credential-owner integration remains required b
 ## Production implementation direction
 
 The user intends eventual production integration to use idiomatic Effect throughout orchestration while retaining a pure reducer. The [prototype guidance](../prototypes/setup-interaction/README.md#production-effect-direction) records this direction and distinguishes it from completed migration. Existing hook-installation approval behavior remains the baseline: the user confirms manual testing, and orchestration changes must preserve preview, confirmation and proposal-digest authorization. Concrete service and Layer boundaries remain integration choices.
+
+## CLI-wide interaction scope
+
+The broader CLI handoff is now in work. The user accepts sharing interaction conventions and rendering while retaining workflow-specific models and domain owners. Complete coverage means inventorying every human-input entry point and documenting deliberate exceptions, not forcing all commands into a wizard. The diagram generator remains bounded to the setup prototype; a CLI-wide diagram system is not required by this decision.
+
+### Observed entry points and ownership
+
+This inventory is source inspection evidence; the proposed models below are design direction, not newly validated production behavior.
+
+| Surface and executable owner | Current interaction and consent | Proposed explicit model and preserved exception |
+| --- | --- | --- |
+| Setup selection: `src/onboarding/client-selection.ts`, `src/cli.ts` (`chooseSetupClients`) | Client checkboxes; selected clients run separately; unchecking does not uninstall | Preserve installed labels/default selections and per-client results. First menu has no Back; Escape exits. Empty Continue is guarded in the accepted prototype. |
+| Setup: `src/onboarding/pilot.ts`, `setup.ts` | Compatibility/preview, per-client confirmation, installation/default-rule digests, credential entry, activation, doctor, optional verification | Workflow-specific reducer invokes existing owners. Preview/approval stays bound to the actual proposal. Back retains completed or partial results; no implied undo. |
+| Rule mutations: `src/rules/command.ts`, `management.ts` | Missing interactive scope uses a yes/no personal-vs-project question; preview/apply uses `plan.digest` | Named Project/Personal choices, explicit Preview/Approval/Applying/Outcome. Preserve create/connect activation semantics. Explicit unattended scope and existing noninteractive apply semantics remain separate; do not silently add prompts or consent. |
+| Update: `src/onboarding/update.ts`, CLI `updateInteractive` | Registered-client discovery, target staging, per-client previews, one confirmation covering applicable client digests, independent results and retained-package activation/recovery | Keep batch approval cardinality, already-current/no-registration paths, and target retention. Back after staging does not claim the staged package was deleted or earlier activation undone. |
+| Repair/reinstall/uninstall: `src/onboarding/maintenance.ts`, CLI `maintenanceInteractive` | Per-client inspection, journal recovery, preview, confirmation and digest-bound mutation | Workflow-specific model retains recovered operation, per-client approval and continuation after failures. No generic rollback or replacement of ownership/journal logic. |
+| Login: CLI `loginCredential`, `src/credentials/masked-input.ts` | Explicit login probes native store with interaction permitted, hidden key input, save; input failure preserves prior credential; `--credential-stdin` is explicit | Resolve/probe, Capture, Save, Outcome without adding a destination choice. Preserve native-store status/recovery and explicit stdin path. Hidden cancellation remains terminal for the input session. |
+| Credential verification/replacement: `src/onboarding/credential-verification.ts` | Separate paid-check consent; sanitized outcome; source-dependent replacement/recheck; at most three confirmed checks, 15-second requests, no automatic retries | Credential-owner model shared by setup, not duplicated in the setup reducer. Every additional request retains fresh consent. Environment-only keys are changed outside the CLI; file recheck and saved replacement are distinct actions. |
+| Logout: CLI `logoutSavedCredential` | Explicit command, no dialog; deletion status, saved-use suspension/generation, environment override explanation | Keep direct command semantics and structured output. Reuse outcome formatting only if appropriate; do not invent a confirmation or wizard. |
+| Explicitly interactive JSON setup: CLI `runJsonSetup`, credential owner | `interactive: true` explicitly injects masked `/dev/tty` reading even when stdin carries JSON | Preserve this authorized controlling-terminal input path and structured stdout. Prototype stdin/stderr TTY rejection cannot be copied wholesale. Ordinary unattended setup still never prompts; `--credential-stdin` remains a separate explicit path. |
+| Doctor; rule list/show/explain; preview/JSON/headless commands | Direct inspection or explicitly structured automation | Keep direct output and version-one formats. No first-option fallback, prompts, hidden input or new implicit paid requests. |
+
+No dedicated interactive rule editor was found. Creating/connecting rules does not imply an editor requirement. Native agent trust and OS credential authorization remain external interactions; the renderer cannot accept them on the user's behalf or report them complete merely because setup succeeded.
+
+### Shared interface and Effect interpreter
+
+The shared module owns terminal lifetime, input-session correlation, visible key hints, plain/interactive output routing, and safe presentation. Workflow modules own legal transitions, proposal identity, commands, retry policy and domain recovery. Installation, rule management and credential owners continue to compute and validate proposals and perform mutations.
+
+Use a small discriminated view vocabulary: **selection**, **approval**, **secret input**, **operation status**, and **outcome**. Selection includes stable choice identities and an explicit navigation policy. Approval carries an owner-derived preview and authorization identity; selecting a destination or moving focus never grants mutation consent. Secret input yields a short-lived owner-consumed value outside serializable state, events and replay traces. Status/outcome represent observed facts and recovery actions, not presumed success.
+
+The renderer returns typed interaction results (choice, submitted approval, Back, Exit, input termination) rather than calling owners. Each workflow translates those results into its own typed events. Back availability and destination are projected by the workflow. Escape is Back where Back exists and Exit at the initial selection; hidden input retains the accepted cancellation behavior. Distinguish EOF, process interruption and user navigation so depleted input cannot loop and mutation interruption cannot be misreported as rollback. Clear approval on a changed proposal and reject late input/completion by correlation identity.
+
+The interpreter uses typed Effects for command execution and resource lifetime, with Effect services/Layers for shared production/test wiring where useful. Pure reducers have no terminal, process or storage dependency. Side-effecting output/exit callbacks execute within Effect. Keep global signal policy session-owned and raw mode/echo/cursor/listener restoration scoped. Avoid blanket catch-all handling that turns domain failure into Back or cancellation.
+
+Existing production full-line write confirmation is an intentional consent adapter, not automatically replaced by the prototype's arrow-key Approve menu. The secret adapter is `Prompt.Hidden` in the prototype; production adoption must preserve the current controlling-terminal and explicit credential-stdin behavior. Sharing conventions does not require identical implementations for every input kind.
+
+### Internal owner seams required before migration
+
+Read-only source review found that `runSetup` already combines credential resolution, hidden capture and save within its credential stage. Moving only `pilot.ts` into a reducer would leave this interaction implicit. Extract an internal credential-owner interface shared by structured setup and human orchestration: it owns source resolution/precedence, availability, explicit capture eligibility, saving, replacement and safe recovery. The workflow model decides when to ask; it does not reimplement credential policy. Keep captured values out of reducer events and return only sanitized outcomes/correlation.
+
+Credential verification currently owns source-dependent replacement and retry consent inside its loop. Make those decisions inspectable through the credential workflow rather than copying that loop into setup. Owner request execution retains its existing bounded request and sanitized-response implementation.
+
+The prototype terminal adapter currently fails `readLine` and assumes stdin/stderr TTYs. It is not a production-ready confirmation or controlling-terminal adapter. Implement and verify full-line confirmation support, authorized `/dev/tty` input, and terminal acquisition/cleanup explicitly before replacing production input. Retain the built-in `Prompt.Hidden` constraint; do not add a custom hidden prompt or reinterpret hidden cancellation as navigation.
+
+### Integration decisions already settled
+
+- The setup flow is accepted; success presentation will be assessed during production integration.
+- First integration presents current credential behavior. Project/user file-saving options remain an extension point. Creating an explicit follow-up task for these options is part of integration; it must cover default choice, preview/approval, overwrite preservation, private permissions, safe targets and Git-ignore policy.
+- Preserve the manually tested production installation approval process and independent automated behavior assertions. Native agent trust remains a separate prerequisite.
+- Readiness guidance must emit **Codex**, preserving the existing production test expectation; do not change that test to accept **Codex CLI**.
+- Linux arm64 execution validation is required near the end of production integration. A Linux compile alone does not satisfy it.
+- Real credential-owner integration is required after the prototype. Ordinary prototype/tests stay offline with fake/injected owners; do not inspect the user's credential store.
+- Screen-reader work is outside the current scope. Visual review and success presentation belong to the integration review, not a claim made by PTY tests.
+
+### Implementation and acceptance sequence
+
+1. Audit all inventory rows against the shared interface and retain deliberate exceptions. Use the requested Astra architecture review to catch missing surfaces or duplicated policy.
+2. Extend the throwaway prototype with representative rule scope/approval, batch update, maintenance recovery and credential verification/replacement flows. Drive distinct models through the same renderer/interpreter conventions with fake owners, including Back, decline, stale approval, partial outcomes and input termination. Keep login secret behavior unchanged and setup Mermaid generation bounded.
+3. Integrate shared Effect input/output/lifetime wiring and then workflow models with actual existing owners. Preserve proposal digests, multi-client consent cardinality, structured/headless behavior and secret isolation. Remove superseded production orchestration rather than retaining parallel implementations.
+4. Create the additional credential-destination follow-up task, settle success presentation using real owner outcomes, and make the Codex wording correction.
+5. Run focused model/owner tests and affected process/PTY and packaging checks from the testing matrix. Validate actual Linux arm64 execution near the end; record platform, executable and cleanup evidence. A broad CLI migration requires the full quality gate once its candidate is frozen, with its finite deadline declared before execution.
+
+Acceptance requires every inventoried interactive entry point to be migrated or explicitly documented as a deliberate exception; no changed domain consent or unattended behavior; stale input/approval/completion rejection; no repeated mutation or paid request; preserved per-client partial/recovery results; restored terminal modes/listeners on all exits; secrets absent from model/view/replays/output; success claims limited to actual observed stages; and Linux execution evidence. Diagram freshness remains a separate bounded check, not proof of correctness or complete workflow coverage.
+
+### Astra architecture review outcome
+
+Astra reviewed the actual owners and prototype read-only and supports the shared module plus workflow-specific reducers and Effect interpreters. The review adds these requirements to the integration plan:
+
+- Include bare setup, explicit-client setup, legacy pilot and explicitly interactive JSON as entry paths into the appropriate shared owner/workflow. Preserve setup's separate default-rule proposal digest as well as hook-installation authorization.
+- Give the shared interaction module a live terminal adapter and a scripted adapter. Its small interface covers typed single/multiple choices, full-line confirmation, hidden input and durable presentation; navigation capability is explicit. A reusable runner must know nothing about credential precedence, host selection, rule scope or approval grouping. Avoid a universal command union and services around pure helpers.
+- Production uses one application Effect runtime with scoped sessions. Do not migrate the prototype's repeated `runFork`/`runPromise` bridges or nested `runSync(Effect.cached(...))` into the implementation. Discovery, failure reporting, output and exit status are Effects or safe returned outcomes interpreted at the CLI edge.
+- Session correlation/deduplication does not establish process-wide exactly-once mutation. Existing owner locks, digests and journals remain authoritative. Never cache a secret-bearing result in the generic command runner.
+- Preserve active-package routing, staged target retention, activation and installed launcher behavior. Verify these physical seams through appropriate installed checks rather than only reducer equality.
+- Replace the prototype's guessed credential precedence and synthetic readiness with owner observations. Keep native trust, installation, credential availability and verification separate in outcome presentation; changing readiness to Codex must not accidentally change all consumers of the shared client label.
+- Check controlling-terminal capability early, then run actual source and installed relevant flows on Linux near completion using isolated fake stores. No real user credential store is needed for this acceptance evidence.
+
+The review itself ran no tests and changed no files. The implementation sequence and owner baseline below distinguish executed checks from advisory review.
+
+### Inspected owner baseline
+
+The focused existing update, maintenance and credential-verification suites passed together on this worktree: 76 tests across three files. They establish the checked existing behavior, not the proposed migration. The earlier targeted pilot approval and terminal confirmation cases passed; the broader pilot run still has the known Codex/Codex CLI readiness-text mismatch that integration must correct in production output. Rules, controlling-TTY and Linux acceptance must run at their affected implementation gates; source inspection alone is not execution evidence.

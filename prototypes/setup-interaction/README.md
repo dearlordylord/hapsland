@@ -102,3 +102,9 @@ This is an implementation direction for adoption after prototype review, not a c
 - The production CLI, unattended version-one JSON, saved plans, packaging assets and review policies are unchanged. Root `check:fast` excludes prototypes, so this package has its own typecheck and qualification.
 
 See the [preserved flow](../../docs/setup-interaction-proposal.md), [model research](../../docs/research/PRODUCT-RESEARCH-ADVISORY-2026-10-06-INTERACTION-MODEL.md) and [renderer research](../../docs/research/PRODUCT-RESEARCH-ADVISORY-2026-10-06-CONSOLE-RENDERING.md). This is evidence for a design choice, not owner acceptance or release support.
+
+## CLI-wide extension direction
+
+The broader interaction handoff is now in work. The [CLI-wide inventory and acceptance sequence](../../docs/setup-interaction-proposal.md#cli-wide-interaction-scope) owns the next prototype extension: share input/view/lifetime conventions while keeping setup, rules, update, maintenance and credential models separate. Preserve distinct approval cardinalities, actual owner digests and unattended paths. The existing setup diagram remains bounded to setup replay scenarios.
+
+Integration presents current credential behavior and creates a follow-up task for additional project/user file-saving choices. Success presentation is resolved with production owner outcomes; readiness says **Codex**. Linux arm64 execution is a required late integration check, not deferred beyond integration. The initial selection dialog remains accepted, and hidden-input cancellation remains unchanged.
