@@ -1,3 +1,4 @@
+import { bunExecutable } from "../runtime/bun-runtime.ts"
 import { ConfigProvider, Effect } from "effect"
 import { createHash } from "node:crypto"
 import { canonicalJson } from "./hook-reconciliation.ts"
@@ -38,7 +39,7 @@ const fixture = (version = "2.1.218") => {
   chmodSync(claudeExecutable, 0o700)
   const entrypoint = join(root, "cli.js")
   writeFileSync(entrypoint, "process.stdin.resume();\n")
-  process.env.REVIEW_INSTALL_RUNTIME = process.execPath
+  process.env.REVIEW_INSTALL_RUNTIME = bunExecutable()
   process.env.REVIEW_INSTALL_ENTRYPOINT = entrypoint
   return { root, home, claudeExecutable }
 }
@@ -82,7 +83,7 @@ describe("Claude installation lifecycle", () => {
         Effect.provide(
           ConfigProvider.layer(
             ConfigProvider.fromUnknown(
-              { REVIEW_INSTALL_RUNTIME: process.execPath, REVIEW_INSTALL_ENTRYPOINT: join(root, "cli.js") },
+              { REVIEW_INSTALL_RUNTIME: bunExecutable(), REVIEW_INSTALL_ENTRYPOINT: join(root, "cli.js") },
               { preserveEmptyStrings: true }
             )
           )

@@ -18,6 +18,8 @@ const fixture = () => {
   mkdirSync(join(directory, "scripts"))
   for (const name of ["build-capture-helper.mjs", "native-artifact.mjs", "verify-native-release.mjs"])
     cpSync(resolve("scripts", name), join(directory, "scripts", name))
+  mkdirSync(join(directory, "src/runtime"), { recursive: true })
+  cpSync(resolve("src/runtime/native-bindings.ts"), join(directory, "src/runtime/native-bindings.ts"))
   cpSync(resolve("native/prebuilt"), join(directory, "native/prebuilt"), { recursive: true })
   const run = () =>
     spawnSync(

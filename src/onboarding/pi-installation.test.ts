@@ -1,3 +1,4 @@
+import { BUN_VERSION } from "../runtime/bun-runtime.ts"
 import { execFileSync } from "node:child_process"
 import { pathToFileURL } from "node:url"
 import { ConfigProvider, Effect } from "effect"
@@ -15,19 +16,24 @@ import {
   diagnosePiIntegration,
   hasPiRegistration
 } from "./pi-installation.ts"
+const hostPlatform = process.platform
+const hostArchitecture = process.arch
 const directories: string[] = []
 const fixture = () => {
+  // Installation lifecycle fixtures target the declared Linux arm64 profile.
+  Object.defineProperty(process, "platform", { value: "linux" })
+  Object.defineProperty(process, "arch", { value: "arm64" })
   const root = mkdtempSync(join(tmpdir(), "hapsland-pi-install-"))
   directories.push(root)
   const home = join(root, "custom-home")
   const host = join(root, "pi")
-  const runtime = join(root, "node")
+  const runtime = join(root, "bun")
   const entrypoint = join(root, "release", "cli.js")
   mkdirSync(join(root, "release", "pi"), { recursive: true })
   writeFileSync(join(root, "release", "pi", "extension.js"), "export default function(){}\n")
   writeFileSync(entrypoint, "")
   writeFileSync(host, "#!/bin/sh\necho 1.0.0\n", { mode: 0o700 })
-  writeFileSync(runtime, "#!/bin/sh\necho v24.20.0\n", { mode: 0o700 })
+  writeFileSync(runtime, `#!/bin/sh\necho ${BUN_VERSION}\n`, { mode: 0o700 })
   const configuration = ConfigProvider.layer(
     ConfigProvider.fromUnknown({ REVIEW_INSTALL_RUNTIME: runtime, REVIEW_INSTALL_ENTRYPOINT: entrypoint })
   )
@@ -45,6 +51,8 @@ const fixture = () => {
   }
 }
 afterEach(() => {
+  Object.defineProperty(process, "platform", { value: hostPlatform })
+  Object.defineProperty(process, "arch", { value: hostArchitecture })
   for (const root of directories.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 const digest = (value: unknown): string => {

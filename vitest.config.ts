@@ -1,9 +1,13 @@
 import { resolveBunRuntime } from "./scripts/pinned-bun.mjs"
 import { join } from "node:path"
+import { realpathSync } from "node:fs"
 import { defineConfig } from "vitest/config"
 import { inventoryTestHarness } from "./scripts/test-harness/inventory.mjs"
 import { testDiscovery } from "./scripts/test-harness/test-scope.mjs"
 import { UNIT_TEST_TIMEOUT_MS } from "./scripts/test-harness/policy.mjs"
+
+// Keep macOS fixture sockets within its 104-byte limit and avoid /var path aliases.
+if (process.platform === "darwin") process.env.TMPDIR = realpathSync("/tmp")
 
 process.env.HAPSLAND_BUILD_BUN = resolveBunRuntime().executable
 // Keep runtime transpilation outside isolated product homes.

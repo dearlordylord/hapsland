@@ -1,4 +1,4 @@
-import { bunExecutable } from "../runtime/bun-runtime.ts"
+import { BUN_VERSION, bunExecutable } from "../runtime/bun-runtime.ts"
 import {
   createInstallationPackageFixture,
   installationPackageDeclaration
@@ -10,6 +10,7 @@ import {
   mkdtempSync,
   mkdirSync,
   readFileSync,
+  realpathSync,
   readdirSync,
   readlinkSync,
   rmSync,
@@ -57,7 +58,7 @@ afterEach(() => {
 })
 
 const fixture = () => {
-  const root = mkdtempSync(join(tmpdir(), "review install 'quoted path' "))
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "review install 'quoted path' ")))
   roots.push(root)
   const home = join(root, "custom codex home 'one'")
   const bin = join(root, "fake codex")
@@ -278,7 +279,7 @@ describe("public Codex installation operations", async () => {
     const runtime = join(test.root, "synthetic-x64-runtime")
     writeFileSync(
       runtime,
-      `#!/bin/sh\nprintf '%s' '${JSON.stringify({ version: "v24.20.0", platform: "linux", architecture: "x64" })}'\n`,
+      `#!/bin/sh\nprintf '%s' '${JSON.stringify({ version: BUN_VERSION, platform: "linux", architecture: "x64" })}'\n`,
       { mode: 0o700 }
     )
     const result = await invokeCli(
@@ -292,7 +293,7 @@ describe("public Codex installation operations", async () => {
           runtime: {
             supported: false,
             checks: {
-              engine: { ready: true, required: "v24.20.0" },
+              engine: { ready: true, required: BUN_VERSION },
               platform: { ready: false, observed: "linux" },
               architecture: { ready: false, observed: "x64", required: "arm64" }
             }
@@ -303,7 +304,7 @@ describe("public Codex installation operations", async () => {
     expect(readdirSync(test.home)).toEqual([])
   })
 
-  it("accepts source Node against matching profiles even when package distribution declares Bun", async () => {
+  it("rejects source Node against matching profiles when the runtime contract requires Bun", async () => {
     const test = fixture()
     const entrypoint = createInstallationPackageFixture(test.root)
     const declaration = {
@@ -323,13 +324,13 @@ describe("public Codex installation operations", async () => {
       { ...process.env, REVIEW_INSTALL_RUNTIME: runtime, REVIEW_INSTALL_ENTRYPOINT: entrypoint }
     )
     expect(result).toMatchObject({
-      status: "preview",
+      status: "unsupported",
       host: {
         compatibility: {
           runtime: {
-            supported: true,
+            supported: false,
             checks: {
-              engine: { ready: true, observed: "v24.20.0", required: "v24.20.0" },
+              engine: { ready: false, observed: process.version, required: BUN_VERSION },
               platform: { ready: true, observed: "linux" },
               architecture: { ready: true, observed: "x64" }
             }
@@ -520,7 +521,7 @@ describe("public Codex installation operations", async () => {
           args: [quotedEntrypoint],
           parser: { executable: bunExecutable(), args: [join(dirname(quotedEntrypoint), "parser-main.js")] },
           resident: { executable: bunExecutable(), args: [join(dirname(quotedEntrypoint), "resident", "main.js")] },
-          observed: { version: process.version, platform: process.platform, architecture: process.arch }
+          observed: { version: BUN_VERSION, platform: process.platform, architecture: process.arch }
         },
         feature: { file: join(home, "config.toml"), table: "features", key: "hooks", value: true },
         hook: {
@@ -787,16 +788,21 @@ responses_websockets_v2 = true`)
     expect(existsSync(join(missingRuntime.home, ".hapsland"))).toBe(false)
 
     const nonRuntime = fixture()
+    const nonRuntimeExecutable = join(nonRuntime.root, "not-a-runtime")
+    writeFileSync(nonRuntimeExecutable, "#!/bin/sh\nexit 0\n", { mode: 0o700 })
     const trueResult = await invoke(
       { operation: "install-preview", codexHome: nonRuntime.home, codexExecutable: nonRuntime.bin },
-      { ...process.env, REVIEW_INSTALL_RUNTIME: "/bin/true" }
+      { ...process.env, REVIEW_INSTALL_RUNTIME: nonRuntimeExecutable }
     )
     expect(trueResult).toMatchObject({
       status: "unsupported",
       host: {
         compatibility: {
           runtime: {
-            checks: { runtime: { ready: true }, engine: { ready: false, observed: "not-a-supported-runtime" } }
+            checks: {
+              runtime: { ready: true, observed: "regular-file" },
+              engine: { ready: false, observed: "not-a-supported-runtime" }
+            }
           }
         }
       }

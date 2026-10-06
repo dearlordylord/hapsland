@@ -234,7 +234,7 @@ it("prints doctor actions and incomplete checks while omitting ready checks", as
   expect(f.output.join("")).toContain("Next: approve native trust")
   expect(f.output.join("")).toContain("trust: unknown")
   expect(f.output.join("")).not.toContain("profile: ready")
-  expect(f.output.join("")).toContain("Next: restart Codex, complete native repository and hook trust")
+  expect(f.output.join("")).toContain("Next: restart Codex CLI, complete native repository and hook trust")
   expect(f.exits).toEqual([])
 })
 

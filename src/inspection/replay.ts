@@ -1,5 +1,5 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto"
-import type { InspectionRecord, InspectionLoss } from "./contract.ts"
+import type { InspectionRecord, InspectionLoss, InspectionJournalSnapshot } from "./contract.ts"
 
 const MAX_SOURCES = 128
 const ENTRY_BYTES = 40
@@ -54,7 +54,8 @@ export const makeInspectionReplay = () => {
       records: ReadonlyArray<InspectionRecord>,
       cursor: string | undefined,
       truncated: boolean,
-      losses: ReadonlyArray<InspectionLoss>
+      losses: ReadonlyArray<InspectionLoss>,
+      expired: InspectionJournalSnapshot["expired"] = []
     ) => {
       const sources = new Map<string, Set<number>>()
       for (const record of records) {
@@ -77,7 +78,10 @@ export const makeInspectionReplay = () => {
               sourceId: position.sourceId,
               reason:
                 losses.find((loss) => loss.sourceId === position.sourceId && loss.sequence === position.sequence)
-                  ?.reason ?? "cursor-anchor-not-retained"
+                  ?.reason ??
+                (expired?.some((entry) => entry.sourceId === position.sourceId && entry.sequence === position.sequence)
+                  ? "expired"
+                  : "cursor-anchor-not-retained")
             })
         }
       if (sources.size > MAX_SOURCES) gaps.push({ reason: "source-limit" })

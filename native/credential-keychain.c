@@ -146,7 +146,7 @@ static int set_secret(void) {
     return 2;
   }
   CFDictionarySetValue(changes, kSecValueData, value);
-  CFDictionarySetValue(changes, kSecAttrLabel, CFSTR("Realtime review credential"));
+  CFDictionarySetValue(changes, kSecAttrLabel, CFSTR("Hapsland review API key"));
   OSStatus status = SecItemUpdate(query, changes);
   if (status == errSecItemNotFound) {
     CFMutableDictionaryRef add = identity_query();
@@ -155,7 +155,7 @@ static int set_secret(void) {
       status = errSecAllocate;
     } else {
       CFDictionarySetValue(add, kSecValueData, value);
-      CFDictionarySetValue(add, kSecAttrLabel, CFSTR("Realtime review credential"));
+      CFDictionarySetValue(add, kSecAttrLabel, CFSTR("Hapsland review API key"));
       CFDictionarySetValue(add, kSecAttrAccessible, kSecAttrAccessibleAfterFirstUnlock);
       status = SecItemAdd(add, NULL);
       CFRelease(add);

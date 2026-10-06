@@ -83,7 +83,7 @@ export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(f
       const records = [...unique.values()]
       const discovery = yield* registry.discover(records, standard)
       const retained: InspectionRecord[] = []
-      const positions = replay.describe(records, cursor, false, journal.losses)
+      const positions = replay.describe(records, cursor, false, journal.losses, journal.expired)
       let bytes = Buffer.byteLength(JSON.stringify({ ...discovery, ...positions })) + 512
       for (let index = records.length - 1; index >= 0; index--) {
         const record = records[index]!
@@ -105,7 +105,7 @@ export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(f
       return {
         version: 1,
         ...discovery,
-        ...replay.describe(records, cursor, truncated, journal.losses),
+        ...replay.describe(records, cursor, truncated, journal.losses, journal.expired),
         records: retained,
         retained: [...identities].map(([sourceId, sequences]) => ({ sourceId, sequences })),
         truncated

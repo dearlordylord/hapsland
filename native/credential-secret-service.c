@@ -120,7 +120,7 @@ static int set_secret(void) {
   GHashTable *attrs = attributes();
   SecretValue *value = secret_value_new(input, (gssize)length, "text/plain");
   SecretItem *item = secret_item_create_sync(
-    collection, &schema, attrs, "Realtime review credential", value,
+    collection, &schema, attrs, "Hapsland review API key", value,
     SECRET_ITEM_CREATE_REPLACE, NULL, &error
   );
   secret_value_unref(value);
