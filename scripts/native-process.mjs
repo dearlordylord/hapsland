@@ -14,6 +14,8 @@ export function executeNative(
   }
   const duration = Math.min(timeout, inheritedDeadline - Date.now())
   if (
+    !Number.isSafeInteger(timeout) ||
+    timeout <= 0 ||
     !Number.isSafeInteger(duration) ||
     duration <= 0 ||
     !Number.isSafeInteger(maxOutputBytes) ||
