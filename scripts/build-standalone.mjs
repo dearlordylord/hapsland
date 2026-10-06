@@ -6,10 +6,10 @@ import { fileURLToPath } from "node:url"
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const bun = resolveBunRuntime().executable
 const entries = [
-  ["hapsland", "src/cli.ts"],
-  ["hapsland-doctor", "src/package-doctor.ts"],
-  ["hapsland-parser", "src/parser-main.ts"],
-  ["hapsland-resident", "src/resident/main.ts"]
+  ["hapsland", "dist/cli.js"],
+  ["hapsland-doctor", "dist/package-doctor.js"],
+  ["hapsland-parser", "dist/parser-main.js"],
+  ["hapsland-resident", "dist/resident/main.js"]
 ]
 const profiles = process.env.HAPSLAND_BUILD_PROFILE
   ? [process.env.HAPSLAND_BUILD_PROFILE]

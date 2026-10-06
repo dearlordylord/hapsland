@@ -282,5 +282,24 @@
       "Default installed dedicated-hook routing and native Pi validation",
       "Owner tooling decision before dependent integration"
     ]
-  }
+  },
+  "assemblyAmendments": [
+    {
+      "date": "2026-10-06",
+      "scope": "Existing four standalone roles assemble from tsc-emitted JavaScript",
+      "review": {
+        "agent": "architecture_inventory",
+        "conclusion": "Sound narrow assembly migration; reported input evidence does not account for computed runtime loads or physical native contributions",
+        "disposition": "Stale-output risk fixed for rejected entries, thrown build, failed build and metadata rejection; tooling adapter and retained metadata identity remain cache/publication obligations"
+      },
+      "validation": {
+        "fast": "npm run check:fast passed after failure cleanup",
+        "boundary": "20261006212608157-1259072-0717c0: Linux ARM64 build/pack and 55 tests across CLI, Claude, Pi passed before cleanup amendment",
+        "failureCleanup": "Rejected TypeScript and missing JavaScript entries both fail and remove seeded stale executable",
+        "finalBuild": "HAPSLAND_BUILD_PROFILE=linux-arm64 timeout 120s npm run build passed after cleanup amendment",
+        "workers": "All three worker --version calls exit0/version0.1.0; CLI runtime identity Bun1.3.14 linux arm64",
+        "scope": "JavaScript-only compiler-reported assembly inputs; no manifest ordering, cache publication, hook routing or additional platform claim"
+      }
+    }
+  ]
 }
