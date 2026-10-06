@@ -1,11 +1,20 @@
 import * as NodeServices from "@effect/platform-node/NodeServices"
 import { Effect, Fiber, Terminal } from "effect"
 import * as Prompt from "effect/cli/Prompt"
-import { activeHost, command, initial, type Action, type Model } from "./domain.ts"
-import { executeFake } from "./fake.ts"
+import { activeHost, command, initial, readiness, type Action, type Model } from "./domain.ts"
+import { createFakeExecutor } from "./fake.ts"
 import { withMachine } from "./machine.ts"
 import { reduce } from "./reducer.ts"
 import { terminal } from "./terminal.ts"
+// Signal cancellation is session-wide; repeated/group signals must not bypass cleanup.
+const signals = ["SIGINT", "SIGTERM", "SIGHUP"] as const
+let signalCancelled = false
+let activeController: AbortController | undefined
+const onSignal = () => {
+  signalCancelled = true
+  activeController?.abort()
+}
+for (const signal of signals) process.on(signal, onSignal)
 const plain = !!process.env.NO_COLOR
 const theme = plain ? { primaryColor: "", mutedColor: "", successColor: "", errorColor: "", submittedColor: "" } : {}
 const choice = (title: string, value: Action) => ({ title, value })
@@ -18,8 +27,12 @@ function action(m: Model): Effect.Effect<Action, unknown> {
     return runPrompt(
       Prompt.MultiSelect({
         message: "Select synthetic agents (Space, Enter; Ctrl+C cancels)",
-        choices: ["Claude", "Codex", "Pi"].map((host) => ({ title: host, value: host })),
-        min: 1,
+        choices: ["Claude", "Codex", "Pi"].map((host) => ({
+          title: host,
+          value: host,
+          selected: m.hosts.includes(host)
+        })),
+        min: 0,
         theme
       })
     ).pipe(Effect.map((hosts) => ({ kind: "select", hosts })))
@@ -29,9 +42,11 @@ function action(m: Model): Effect.Effect<Action, unknown> {
       choice("User: /fake/user/.config/hapsland/.env", { kind: "destination", destination: "user" }),
       choice("Native store (simulated, no store access)", { kind: "destination", destination: "native" }),
       choice("Skip credential setup", { kind: "destination", destination: "skip" }),
+      choice("Back to agents", { kind: "back" }),
       choice("Cancel", { kind: "cancel" })
     ]
     if (m.source !== "none") options.unshift(choice(`Keep existing: ${m.source}`, { kind: "keep" }))
+    process.stderr.write(`Credential result: ${m.credentialOutcome}. Last saved destination: ${m.savedDestination}.\n`)
     process.stderr.write(`Effective source: ${m.source}. Environment overrides saved files.\n`)
     return runPrompt(Prompt.Select({ message: "Where should the credential be available?", choices: options, theme }))
   }
@@ -55,6 +70,7 @@ function action(m: Model): Effect.Effect<Action, unknown> {
   )
 }
 async function session(dispatch: (e: { revision: number; action: Action }) => Promise<Model>) {
+  const execute = createFakeExecutor()
   let model = initial(process.argv.includes("--existing") ? "environment" : "none")
   while (model.phase !== "Done" && model.phase !== "Cancelled") {
     process.stderr.write(`STATE ${JSON.stringify(model)}\n`)
@@ -65,7 +81,7 @@ async function session(dispatch: (e: { revision: number; action: Action }) => Pr
             kind: "observed",
             commandId: c.id,
             outcome: await scopedRun(
-              executeFake(model, () =>
+              execute(model, () =>
                 runPrompt(Prompt.Hidden({ message: "Enter a FAKE key only; it is discarded", theme }))
               )
             )
@@ -81,35 +97,44 @@ async function session(dispatch: (e: { revision: number; action: Action }) => Pr
       if (c?.type === "save") model = await dispatch({ revision: model.revision, action: { kind: "cancel" } })
     }
   }
+  const status = readiness(model)
+  if (!model.hosts.length && model.phase === "Done")
+    process.stderr.write("No agents selected. No further hook changes; prior results are retained.\n")
+  if (model.declinedUpdates.length)
+    process.stderr.write(`Declined updates kept prior setup results for: ${model.declinedUpdates.join(", ")}.\n`)
+  process.stderr.write(`Credential save: ${model.credentialOutcome}.\n`)
+  process.stderr.write(
+    `Setup: ${status.setup}. Credential: ${status.credentials}. ${status.verification}.\nNext: ${status.next}\n`
+  )
   process.stderr.write(`RESULT ${JSON.stringify(model)}\n`)
   process.stdout.write(JSON.stringify(model) + "\n")
 }
 async function scopedRun<A>(effect: Effect.Effect<A, unknown>): Promise<A> {
   const controller = new AbortController()
-  const interrupt = () => controller.abort()
-  process.once("SIGINT", interrupt)
-  process.once("SIGTERM", interrupt)
-  process.once("SIGHUP", interrupt)
+  activeController = controller
+  if (signalCancelled) controller.abort()
   const fiber = Effect.runFork(effect, { signal: controller.signal })
   try {
     return await Effect.runPromise(Fiber.join(fiber))
   } finally {
-    process.off("SIGINT", interrupt)
-    process.off("SIGTERM", interrupt)
-    process.off("SIGHUP", interrupt)
+    if (activeController === controller) activeController = undefined
   }
 }
-if (!process.stdin.isTTY || !process.stderr.isTTY || process.env.TERM === "dumb") {
-  process.stderr.write(
-    "Prototype requires interactive stdin/stderr and a capable terminal. Use bun compare.ts for a plain-text replay.\n"
-  )
-  process.exitCode = 2
-} else if (process.argv.includes("--machine")) {
-  await withMachine(initial(process.argv.includes("--existing") ? "environment" : "none"), session)
-} else {
-  let model = initial(process.argv.includes("--existing") ? "environment" : "none")
-  await session(async (e) => {
-    model = reduce(model, e)
-    return model
-  })
+try {
+  if (!process.stdin.isTTY || !process.stderr.isTTY || process.env.TERM === "dumb") {
+    process.stderr.write(
+      "Prototype requires interactive stdin/stderr and a capable terminal. Use npm run compare for a plain-text replay.\n"
+    )
+    process.exitCode = 2
+  } else if (process.argv.includes("--machine")) {
+    await withMachine(initial(process.argv.includes("--existing") ? "environment" : "none"), session)
+  } else {
+    let model = initial(process.argv.includes("--existing") ? "environment" : "none")
+    await session(async (e) => {
+      model = reduce(model, e)
+      return model
+    })
+  }
+} finally {
+  for (const signal of signals) process.off(signal, onSignal)
 }

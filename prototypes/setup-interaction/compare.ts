@@ -1,11 +1,12 @@
 import assert from "node:assert/strict"
 import { Effect } from "effect"
 import { command, initial, type Action, type Event, type Model } from "./domain.ts"
-import { calls, executeFake } from "./fake.ts"
+import { calls, createFakeExecutor } from "./fake.ts"
 import { withMachine } from "./machine.ts"
 import { reduce } from "./reducer.ts"
 type Dispatch = (event: Event) => Promise<Model>
 const reports: object[] = []
+const executors = new WeakMap<Dispatch, ReturnType<typeof createFakeExecutor>>()
 async function scenario(name: string, source: string, drive: (dispatch: Dispatch, start: Model) => Promise<Model>) {
   const expected: Model[] = []
   let local = initial(source)
@@ -31,7 +32,12 @@ const input = (dispatch: Dispatch, m: Model, action: Action) => dispatch({ revis
 const finish = async (dispatch: Dispatch, m: Model) => {
   const c = command(m)
   assert(c)
-  return input(dispatch, m, { kind: "observed", commandId: c.id, outcome: await Effect.runPromise(executeFake(m)) })
+  let execute = executors.get(dispatch)
+  if (!execute) {
+    execute = createFakeExecutor()
+    executors.set(dispatch, execute)
+  }
+  return input(dispatch, m, { kind: "observed", commandId: c.id, outcome: await Effect.runPromise(execute(m)) })
 }
 await scenario("two hosts, partial result, project save, separate check", "none", async (d, m) => {
   m = await input(d, m, { kind: "select", hosts: ["Claude", "Codex"] })

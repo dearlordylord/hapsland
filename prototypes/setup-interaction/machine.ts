@@ -1,6 +1,16 @@
 import { Effect, Schema } from "effect"
 import { Event as MachineEvent, Machine, State } from "effect-machine"
-import { activeHost, hookDigest, saveDigest, type Context, type Event, type Model, type Phase } from "./domain.ts"
+import {
+  activeHost,
+  hookDigest,
+  saveDigest,
+  safeObservation,
+  sourceAfterSave,
+  type Context,
+  type Event,
+  type Model,
+  type Phase
+} from "./domain.ts"
 // Separate statechart implementation: it does not call the reducer.
 const context = Schema.declare<Context>(
   (value): value is Context => typeof value === "object" && value !== null && "revision" in value
@@ -26,9 +36,12 @@ export function withMachine<A>(start: Model, use: (dispatch: (e: Event) => Promi
     S[phase]({ context: { ...c, ...patch, revision: c.revision + 1 } })
   const advance = (c: Context, outcome: string) => {
     const index = c.index + 1
+    const host = activeHost({ ...c, phase: "Applying" })
+    const retained = outcome === "declined" && c.results[host] !== undefined
     return to(index < c.hosts.length ? "Hooks" : "Credential", c, {
       index,
-      results: { ...c.results, [activeHost({ ...c, phase: "Applying" })]: outcome },
+      results: { ...c.results, [host]: retained ? c.results[host]! : outcome },
+      declinedUpdates: retained ? [...new Set([...c.declinedUpdates, host])] : c.declinedUpdates,
       digest: index < c.hosts.length ? hookDigest(c.hosts, index) : ""
     })
   }
@@ -39,14 +52,15 @@ export function withMachine<A>(start: Model, use: (dispatch: (e: Event) => Promi
     .when(
       S.Select,
       E.Input,
-      ({ state, event }) =>
-        matches(state.context, event.event) &&
-        event.event.action.kind === "select" &&
-        event.event.action.hosts.length > 0,
+      ({ state, event }) => matches(state.context, event.event) && event.event.action.kind === "select",
       ({ state, event }) => {
         const a = event.event.action
         return a.kind === "select"
-          ? to("Hooks", state.context, { hosts: a.hosts, index: 0, digest: hookDigest(a.hosts, 0) })
+          ? to(a.hosts.length ? "Hooks" : "Done", state.context, {
+              hosts: a.hosts,
+              index: 0,
+              digest: a.hosts.length ? hookDigest(a.hosts, 0) : ""
+            })
           : state
       }
     )
@@ -102,12 +116,15 @@ export function withMachine<A>(start: Model, use: (dispatch: (e: Event) => Promi
       ({ state, event }) =>
         event.event.action.kind === "observed" && event.event.action.outcome === "saved"
           ? to("CheckApproval", state.context, {
-              source:
-                state.context.source === "environment"
-                  ? "environment (saved credential shadowed)"
-                  : state.context.destination
+              source: sourceAfterSave(state.context.source, state.context.destination),
+              credentialOutcome: "saved",
+              savedDestination: state.context.destination,
+              digest: ""
             })
-          : to("Credential", state.context)
+          : to("Credential", state.context, {
+              credentialOutcome: event.event.action.kind === "observed" ? event.event.action.outcome : "failed",
+              digest: ""
+            })
     )
     .when(
       S.CheckApproval,
@@ -135,6 +152,12 @@ export function withMachine<A>(start: Model, use: (dispatch: (e: Event) => Promi
   )
   navigable = navigable
     .when(
+      S.Credential,
+      E.Input,
+      ({ state, event }) => matches(state.context, event.event) && event.event.action.kind === "back",
+      ({ state }) => to("Select", state.context, { digest: "" })
+    )
+    .when(
       S.Hooks,
       E.Input,
       ({ state, event }) => matches(state.context, event.event) && event.event.action.kind === "back",
@@ -160,7 +183,9 @@ export function withMachine<A>(start: Model, use: (dispatch: (e: Event) => Promi
           yield* actor.start
           return yield* Effect.promise(() =>
             use(async (e) => {
-              await Effect.runPromise(actor.call(E.Input({ event: e })))
+              const before = await Effect.runPromise(actor.snapshot)
+              const safe = safeObservation({ ...before.context, phase: before._tag }, e)
+              await Effect.runPromise(actor.call(E.Input({ event: safe })))
               const snapshot = await Effect.runPromise(actor.snapshot)
               return { ...snapshot.context, phase: snapshot._tag }
             })

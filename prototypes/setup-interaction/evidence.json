@@ -1,6 +1,6 @@
 {
-  "observedAt": "2026-10-06T15:45:15.045Z",
-  "sourceDigest": "b60d94f965c268ab3ab9aee4c805ff977f8618f3fafb49a2dfa20607c8c3fb11",
+  "observedAt": "2026-10-06T16:42:07.990Z",
+  "sourceDigest": "f4b44e67a02c2712798cf1bcf8bb078c25f0fcd12ae745e9024683482f764033",
   "host": "darwin-arm64",
   "bun": "1.3.14",
   "effect": "4.0.0",
@@ -26,8 +26,11 @@
           },
           "destination": "project",
           "source": "project",
-          "digest": "synthetic-save:project",
-          "check": "synthetic success (zero requests)"
+          "digest": "",
+          "check": "synthetic success (zero requests)",
+          "credentialOutcome": "saved",
+          "savedDestination": "project",
+          "declinedUpdates": []
         }
       },
       {
@@ -46,7 +49,10 @@
           "destination": "user",
           "source": "none",
           "digest": "",
-          "check": "not requested"
+          "check": "not requested",
+          "credentialOutcome": "not requested",
+          "savedDestination": "skip",
+          "declinedUpdates": []
         }
       },
       {
@@ -64,8 +70,11 @@
           },
           "destination": "project",
           "source": "environment (saved credential shadowed)",
-          "digest": "synthetic-save:project",
-          "check": "not requested"
+          "digest": "",
+          "check": "not requested",
+          "credentialOutcome": "saved",
+          "savedDestination": "project",
+          "declinedUpdates": []
         }
       },
       {
@@ -83,8 +92,11 @@
           },
           "destination": "user",
           "source": "environment (saved credential shadowed)",
-          "digest": "synthetic-save:user",
-          "check": "not requested"
+          "digest": "",
+          "check": "not requested",
+          "credentialOutcome": "saved",
+          "savedDestination": "user",
+          "declinedUpdates": []
         }
       },
       {
@@ -102,8 +114,11 @@
           },
           "destination": "native",
           "source": "environment (saved credential shadowed)",
-          "digest": "synthetic-save:native",
-          "check": "not requested"
+          "digest": "",
+          "check": "not requested",
+          "credentialOutcome": "saved",
+          "savedDestination": "native",
+          "declinedUpdates": []
         }
       },
       {
@@ -122,7 +137,10 @@
           "destination": "skip",
           "source": "environment",
           "digest": "",
-          "check": "not requested"
+          "check": "not requested",
+          "credentialOutcome": "not requested",
+          "savedDestination": "skip",
+          "declinedUpdates": []
         }
       },
       {
@@ -141,7 +159,10 @@
           "destination": "skip",
           "source": "environment",
           "digest": "",
-          "check": "not requested"
+          "check": "not requested",
+          "credentialOutcome": "not requested",
+          "savedDestination": "skip",
+          "declinedUpdates": []
         }
       },
       {
@@ -159,8 +180,11 @@
           },
           "destination": "user",
           "source": "none",
-          "digest": "synthetic-save:user",
-          "check": "not requested"
+          "digest": "",
+          "check": "not requested",
+          "credentialOutcome": "failed",
+          "savedDestination": "skip",
+          "declinedUpdates": []
         }
       }
     ],
@@ -172,6 +196,169 @@
     "state": "Idle",
     "stateOwnedTaskReleased": true,
     "lateCompletionApplied": false
+  },
+  "swarmFlow": {
+    "runtime": "1.3.14",
+    "controllers": [
+      "reducer",
+      "effect-machine"
+    ],
+    "independentSemanticExpectations": 86,
+    "findings": [],
+    "status": "PASS"
+  },
+  "swarmInteraction": {
+    "checks": "synthetic setup interaction adversary",
+    "expectations": 196,
+    "findings": []
+  },
+  "swarmTerminal": {
+    "runner": "node run.mjs cli.ts",
+    "seconds": 5.664,
+    "budgetSeconds": 55,
+    "results": [
+      {
+        "name": "idle-ctrl-d",
+        "ok": true,
+        "phase": "Cancelled",
+        "restored": true,
+        "finalTranscript": true
+      },
+      {
+        "name": "idle-repeated-ctrl-d",
+        "ok": true,
+        "phase": "Cancelled",
+        "restored": true,
+        "finalTranscript": true
+      },
+      {
+        "name": "hidden-ctrl-d",
+        "ok": true,
+        "phase": "Cancelled",
+        "markerAbsent": true,
+        "finalTranscript": true
+      },
+      {
+        "name": "hidden-ctrl-c",
+        "ok": true,
+        "phase": "Cancelled",
+        "markerAbsent": true,
+        "finalTranscript": true
+      },
+      {
+        "name": "machine-hidden-ctrl-d",
+        "ok": true,
+        "phase": "Cancelled",
+        "markerAbsent": true,
+        "finalTranscript": true
+      },
+      {
+        "name": "hidden-multibyte-narrow",
+        "ok": true,
+        "phase": "Done",
+        "width": 12,
+        "markerAbsent": true,
+        "finalTranscript": true
+      },
+      {
+        "name": "escape-and-back",
+        "ok": true,
+        "phase": "Done",
+        "escape": "escape-ignored-until-enter",
+        "escapeAdvancedBeforeEnter": false,
+        "finalTranscript": true
+      },
+      {
+        "name": "back-from-save-approval",
+        "ok": true,
+        "phase": "Done",
+        "backReturnedToCredential": true,
+        "savingObserved": false,
+        "finalTranscript": true
+      },
+      {
+        "name": "machine-back-from-save-approval",
+        "ok": true,
+        "phase": "Done",
+        "backReturnedToCredential": true,
+        "savingObserved": false,
+        "finalTranscript": true
+      },
+      {
+        "name": "back-to-agents",
+        "ok": true,
+        "phase": "Cancelled",
+        "priorSelectionRetained": true,
+        "finalTranscript": true
+      },
+      {
+        "name": "machine-back-to-agents",
+        "ok": true,
+        "phase": "Cancelled",
+        "priorSelectionRetained": true,
+        "finalTranscript": true
+      },
+      {
+        "name": "typeahead-boundary",
+        "ok": true,
+        "phase": "Done",
+        "approvalLeakedAcrossPrompt": false,
+        "finalTranscript": true
+      },
+      {
+        "name": "machine-typeahead-boundary",
+        "ok": true,
+        "phase": "Done",
+        "approvalLeakedAcrossPrompt": false,
+        "finalTranscript": true
+      },
+      {
+        "name": "stdin-tty-stderr-pipe",
+        "ok": true,
+        "stdinTTY": true,
+        "stderrTTY": false,
+        "exit": 2,
+        "stdoutEmpty": true
+      },
+      {
+        "name": "stdin-pipe-stderr-tty",
+        "ok": true,
+        "stdinTTY": false,
+        "stderrTTY": true,
+        "exit": 2,
+        "stdoutEmpty": true
+      },
+      {
+        "name": "both-channels-pipe",
+        "ok": true,
+        "stdinTTY": false,
+        "stderrTTY": false,
+        "exit": 2,
+        "stdoutEmpty": true
+      },
+      {
+        "name": "signal-during-hook-step",
+        "ok": true,
+        "launcher": "node run.mjs cli.ts",
+        "durableResult": true
+      },
+      {
+        "name": "machine-signal-during-hook-step",
+        "ok": true,
+        "launcher": "node run.mjs cli.ts",
+        "durableResult": true
+      },
+      {
+        "name": "launcher-parent-only-SIGTERM",
+        "ok": true,
+        "launcher": "node run.mjs cli.ts",
+        "nodeExit": 0,
+        "childPipeEOF": true,
+        "phase": "Cancelled",
+        "terminalRestored": true
+      }
+    ],
+    "failures": []
   },
   "sourcePTY": [
     {

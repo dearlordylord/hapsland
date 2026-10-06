@@ -34,6 +34,9 @@ try {
   run("node_modules/.bin/tsc", ["-p", "tsconfig.json"])
   const comparison = JSON.parse(run(executable, ["compare.ts"]))
   const lifetime = JSON.parse(run(executable, ["lifetime.ts"]))
+  const swarmFlow = JSON.parse(run(executable, ["swarm-flow.ts"]))
+  const swarmInteraction = JSON.parse(run(executable, ["swarm-interaction.ts"]))
+  const swarmTerminal = JSON.parse(run("python3", ["swarm-terminal.py", "--bun", executable]))
   const sourcePTY = JSON.parse(run("python3", ["probe-terminal.py", "--bun", executable]))
   const targets = ["bun-darwin-arm64", "bun-linux-arm64"]
   for (const target of targets)
@@ -53,6 +56,9 @@ try {
     typecheck: "passed",
     comparison,
     lifetime,
+    swarmFlow,
+    swarmInteraction,
+    swarmTerminal,
     sourcePTY,
     compiledPTY,
     compileTargets: targets,

@@ -8,7 +8,10 @@
     "typecheck": "tsc -p tsconfig.json",
     "probe": "node probe.mjs",
     "lifetime": "node run.mjs lifetime.ts",
-    "qualify": "node qualify.mjs"
+    "qualify": "node qualify.mjs",
+    "swarm:flow": "node run.mjs swarm-flow.ts",
+    "swarm:interaction": "node run.mjs swarm-interaction.ts",
+    "swarm:terminal": "python3 swarm-terminal.py"
   },
   "dependencies": {
     "@effect/platform-node": "4.0.0",

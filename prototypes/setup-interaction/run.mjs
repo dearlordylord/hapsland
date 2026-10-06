@@ -1,10 +1,34 @@
-import { spawnSync } from "node:child_process"
+import { spawn } from "node:child_process"
 import { resolveBunRuntime } from "../../scripts/pinned-bun.mjs"
 const { executable } = resolveBunRuntime()
-const result = spawnSync(executable, process.argv.slice(2), {
+const child = spawn(executable, process.argv.slice(2), {
   cwd: import.meta.dirname,
   stdio: "inherit",
-  timeout: 120_000
+  detached: process.platform !== "win32"
 })
-if (result.error) throw result.error
-process.exitCode = result.status ?? 1
+const signals = ["SIGINT", "SIGTERM", "SIGHUP", "SIGWINCH"]
+const forward = (signal) => {
+  if (child.exitCode === null) child.kill(signal)
+}
+const handlers = signals.map((signal) => {
+  const handler = () => forward(signal)
+  process.on(signal, handler)
+  return handler
+})
+let expired = false
+let grace
+const deadline = setTimeout(() => {
+  expired = true
+  child.kill("SIGTERM")
+  grace = setTimeout(() => child.kill("SIGKILL"), 5000)
+}, 120_000)
+child.once("error", () => {
+  process.stderr.write("Could not start pinned prototype runtime.\n")
+  process.exitCode = 1
+})
+child.once("close", (code) => {
+  clearTimeout(deadline)
+  clearTimeout(grace)
+  signals.forEach((signal, i) => process.off(signal, handlers[i]))
+  process.exitCode = expired ? 1 : (code ?? 1)
+})
