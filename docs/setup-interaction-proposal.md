@@ -95,6 +95,7 @@ Use primary docs, source, tests and first-party metadata. Discover through offic
 
 - [Interaction-model advisory](research/PRODUCT-RESEARCH-ADVISORY-2026-10-06-INTERACTION-MODEL.md)
 - [Console-rendering advisory](research/PRODUCT-RESEARCH-ADVISORY-2026-10-06-CONSOLE-RENDERING.md)
+- [CLI framework alternatives and Abide comparison](research/PRODUCT-RESEARCH-ADVISORY-2026-10-06-CLI-FRAMEWORK-ALTERNATIVES.md)
 
 ## Decisions still open
 
