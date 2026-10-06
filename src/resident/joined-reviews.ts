@@ -1,5 +1,5 @@
 import type { Effect } from "effect"
-import type { DirectObservation } from "../direct-event/model.ts"
+import type { DirectObservation } from "../direct-event/observation.ts"
 import type { CollectorReason } from "../canonical/adapter.ts"
 import type { CapacityLedger } from "./capacity.ts"
 import type { WorkRevision, RevisionOperations } from "./revision.ts"

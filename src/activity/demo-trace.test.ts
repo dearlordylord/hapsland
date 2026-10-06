@@ -2,7 +2,7 @@ import { afterEach, expect, it } from "vitest"
 import { mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import type { DirectAdvicee } from "../direct-event/model.ts"
+import type { DirectAdvicee } from "../direct-event/observation.ts"
 import { demoSourceHash, readDemoTrace, recordDemoTrace } from "./demo-trace.ts"
 const roots: string[] = []
 const fixture = () => {

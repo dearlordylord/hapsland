@@ -19,21 +19,12 @@ import * as Schema from "effect/Schema"
 import { Socket } from "node:net"
 import { resolve } from "node:path"
 import { closeSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import type { DirectObservation, DirectAdvicee } from "../direct-event/model.ts"
+import type { DirectObservation, DirectAdvicee } from "../direct-event/observation.ts"
 
 import { ReviewConfigError } from "../runtime/review-settings-error.ts"
 import { loadConfiguration } from "../configuration/load.ts"
-import type { ControlledDecisionModelOptions } from "../test-support/controlled-decision-model.ts"
-import { DEFAULT_CREDENTIAL_STATE_PATH, readCredentialState } from "../credentials/state.ts"
-import type { ClaudeHostOutput, CollectionMode } from "./collection.ts"
 import {
-  prepareResidentDirectory,
-  resolveResidentPaths,
-  verifyResidentSocket,
-  type ResidentPaths,
-  type ResidentEndpointError
-} from "./paths.ts"
-import {
+  type ResidentControlledOptions,
   CLIENT_REQUEST_DEADLINE_MS,
   EDIT_REQUEST_DEADLINE_MS,
   MAX_IPC_FRAME_BYTES,
@@ -42,8 +33,18 @@ import {
   encodeCurrentResidentRequest,
   type ResidentDispatchContext,
   type ResidentRequest,
-  type ResidentResponse
+  type ResidentResponse,
+  type CollectionMode
 } from "./protocol.ts"
+import { DEFAULT_CREDENTIAL_STATE_PATH, readCredentialState } from "../credentials/state.ts"
+import type { ClaudeHostOutput } from "../direct-event/claude-output.ts"
+import {
+  prepareResidentDirectory,
+  resolveResidentPaths,
+  verifyResidentSocket,
+  type ResidentPaths,
+  type ResidentEndpointError
+} from "./paths.ts"
 
 const monotonicMillis = Clock.monotonicTimeNanos.pipe(Effect.map((now) => Number(now) / 1_000_000))
 
@@ -351,12 +352,12 @@ export const inspectResidentEffect = Effect.fn("ResidentClient.inspectResident")
     : { available: false }
 })
 
-const controlledAnswers = (options: ControlledDecisionModelOptions) => ({
+const controlledAnswers = (options: ResidentControlledOptions) => ({
   ...(options.answers === undefined ? {} : { answers: options.answers }),
   ...(options.delayMs === undefined ? {} : { delayMs: options.delayMs }),
   ...(options.failure === undefined ? {} : { failure: options.failure })
 })
-const controlledSourceOutcomes = (options: ControlledDecisionModelOptions) => ({
+const controlledSourceOutcomes = (options: ResidentControlledOptions) => ({
   ...(options.failureOnSourceIncludes === undefined
     ? {}
     : { failureOnSourceIncludes: options.failureOnSourceIncludes }),
@@ -367,14 +368,14 @@ const controlledSourceOutcomes = (options: ControlledDecisionModelOptions) => ({
     ? {}
     : { syntheticR6BrandedRepair: options.syntheticR6BrandedRepair })
 })
-const controlledTranscripts = (options: ControlledDecisionModelOptions) => ({
+const controlledTranscripts = (options: ResidentControlledOptions) => ({
   ...(options.capturePath === undefined ? {} : { capturePath: options.capturePath }),
   ...(options.requestSummaryPath === undefined ? {} : { requestSummaryPath: options.requestSummaryPath }),
   ...(options.outcomePath === undefined ? {} : { outcomePath: options.outcomePath })
 })
-const controlledCredentials = (options: ControlledDecisionModelOptions) =>
+const controlledCredentials = (options: ResidentControlledOptions) =>
   options.requireCredential === undefined ? {} : { requireCredential: options.requireCredential }
-const controlledDispatchOptions = (options: ControlledDecisionModelOptions | undefined) =>
+const controlledDispatchOptions = (options: ResidentControlledOptions | undefined) =>
   options === undefined
     ? null
     : {
@@ -393,7 +394,7 @@ export const makeResidentDispatchContextEffect = Effect.fn("ResidentClient.makeR
   statePath: string,
   activityPath: string,
   userConfigPath: string | undefined,
-  controlledOptions: ControlledDecisionModelOptions | undefined
+  controlledOptions: ResidentControlledOptions | undefined
 ): Effect.fn.Return<ResidentDispatchContext, ResidentIpcError | ReviewConfigError> {
   const capture = yield* loadConfiguration(root, userConfigurationOptions(userConfigPath)).pipe(
     Effect.mapError(

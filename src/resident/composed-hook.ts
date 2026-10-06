@@ -9,8 +9,8 @@ import * as Layer from "effect/Layer"
 import { HookOutput } from "./hook-output.ts"
 import { recordActivity } from "../activity/status.ts"
 import { adaptComposedHookIdentity } from "../direct-event/adapter.ts"
-import type { CodexHostVersion } from "../direct-event/model.ts"
-import type { ControlledDecisionModelOptions } from "../test-support/controlled-decision-model.ts"
+import type { CodexHostVersion } from "../direct-event/observation.ts"
+import type { ResidentControlledOptions } from "./protocol.ts"
 import {
   type AdviceeCollectionOutcome,
   acknowledgeAdviceEffect,
@@ -26,7 +26,7 @@ import {
   releaseComposedBackgroundEffect
 } from "./client.ts"
 import { resolveResidentPaths } from "./paths.ts"
-import { claudeStopHostOutput } from "./collection.ts"
+import { claudeStopHostOutput } from "../direct-event/claude-output.ts"
 
 type BoundClient<F> = F extends (...args: infer Args) => Effect.Effect<infer A, infer E, unknown>
   ? (...args: Args) => Effect.Effect<A, E>
@@ -139,7 +139,7 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
   readonly statePath: string
   readonly activityPath: string
   readonly userConfigPath?: string
-  readonly controlled?: ControlledDecisionModelOptions
+  readonly controlled?: ResidentControlledOptions
 }) {
   const runtime = yield* ComposedHookRuntime
   const {

@@ -1,6 +1,7 @@
 import type { ReviewSettingsSnapshot } from "../runtime/review-settings.ts"
 import type { Finding } from "../direct-event/output.ts"
-import type { DirectObservation, PreparedUnit } from "../direct-event/model.ts"
+import type { PreparedUnit } from "../direct-event/model.ts"
+import type { DirectObservation } from "../direct-event/observation.ts"
 import type { EvaluatedUnit } from "../direct-event/pipeline.ts"
 import type { CapacityLedger, CapacityReservation } from "./capacity.ts"
 import type { WorkRevision } from "./revision.ts"

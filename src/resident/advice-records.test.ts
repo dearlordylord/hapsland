@@ -5,13 +5,8 @@ import { it } from "@effect/vitest"
 import { expect } from "vitest"
 import { Cause, Effect } from "effect"
 import { makeResidentState } from "./capacity.ts"
-import {
-  freezeInput,
-  freezeRules,
-  semanticIdentity,
-  type PreparedUnit,
-  type DirectObservation
-} from "../direct-event/model.ts"
+import { freezeInput, freezeRules, semanticIdentity, type PreparedUnit } from "../direct-event/model.ts"
+import { type DirectObservation } from "../direct-event/observation.ts"
 import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
 import { advicee } from "../direct-event/test-fixtures.ts"
 import type { AdviceInitial } from "./advice-records.ts"

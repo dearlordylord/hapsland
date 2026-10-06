@@ -2,7 +2,7 @@ import { activitySessionKey, activityRepositoryKey, pruneActivityStore } from ".
 import { createHash, randomUUID } from "node:crypto"
 import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
-import type { DirectAdvicee } from "../direct-event/model.ts"
+import type { DirectAdvicee } from "../direct-event/observation.ts"
 
 export const MAX_ACTIVITY_EVENTS_PER_SESSION = 256
 export const MAX_ACTIVITY_MARKERS_PER_EVENT = 72

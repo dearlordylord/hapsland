@@ -31,20 +31,20 @@ import * as Schema from "effect/Schema"
 import "node:os"
 import { join } from "node:path"
 import { readFileSync } from "node:fs"
-import { execFileClosedStdin } from "./onboarding/host-process.ts"
+import { execFileClosedStdin } from "./process/closed-stdin.ts"
 import { currentCommand, runtimeVersion } from "./runtime/package-runtime.ts"
 import { machineClockLayer } from "./runtime/machine-clock.ts"
 import { discoverWorkingTreeRoot, rootRelativePath } from "./repository/root.ts"
 import { selectFile } from "./configuration/decision.ts"
 import { DEFAULT_CREDENTIAL_ENV_VAR, loadReviewSettings, type ReviewSettings } from "./runtime/review-config.ts"
-import type { ControlledDecisionModelOptions } from "./test-support/controlled-decision-model.ts"
+import type { ResidentControlledOptions } from "./resident/protocol.ts"
 import {
   adaptCodexDirectEvent,
   adaptCodexReply,
   adaptClaudeDirectEvent,
   isCodexNativeApplyPatch
 } from "./direct-event/adapter.ts"
-import { isCodexHostVersion, type CodexHostVersion, type DirectObservation } from "./direct-event/model.ts"
+import { isCodexHostVersion, type CodexHostVersion, type DirectObservation } from "./direct-event/observation.ts"
 import { type ClaudeHostOutput } from "./direct-event/claude-output.ts"
 import { directHookSubmissionLayer, submitDirectHookOutput } from "./resident/direct-hook-output.ts"
 import {
@@ -66,7 +66,7 @@ import {
 } from "./resident/composed-hook.ts"
 import { logoutCredential, resolveCredential, runSecretService, saveCredential } from "./credentials/secret-service.ts"
 import { readActivity, recordActivity } from "./activity/status.ts"
-import { recordDemoTrace } from "./onboarding/demo-trace.ts"
+import { recordDemoTrace } from "./activity/demo-trace.ts"
 
 const localFailureMessage = (cause: unknown): string => {
   if (typeof cause === "object" && cause !== null && "reason" in cause && typeof cause.reason === "string") {
@@ -435,7 +435,7 @@ const admitCodexHookObservation = Effect.fn("CodexHook.admitObservation")(functi
 const runDirectCodexHook = (
   nativeEvent: unknown,
   hostVersion: CodexHostVersion,
-  controlled: ControlledDecisionModelOptions | undefined,
+  controlled: ResidentControlledOptions | undefined,
   statePath: string,
   activityPath: string,
   userConfigPath: string | undefined
@@ -477,7 +477,7 @@ const runDirectCodexHook = (
 
 const runDirectBoundedHook = Effect.fn("ClaudeHook.collectBounded")(function* (
   observation: DirectObservation | undefined,
-  controlled: ControlledDecisionModelOptions | undefined,
+  controlled: ResidentControlledOptions | undefined,
   statePath: string,
   activityPath: string,
   userConfigPath: string | undefined
@@ -1004,7 +1004,7 @@ const runPiNativeInput = Effect.fn("Cli.runPiNativeInput")(function* (
   statePath: string,
   activityPath: string,
   userConfigPath: string | undefined,
-  controlled: ControlledDecisionModelOptions | undefined
+  controlled: ResidentControlledOptions | undefined
 ) {
   return yield* runPiHook(yield* decodeJson(input), {
     statePath,
@@ -1018,7 +1018,7 @@ const runClaudeNativeInput = Effect.fn("Cli.runClaudeNativeInput")(function* (
   statePath: string,
   activityPath: string,
   userConfigPath: string | undefined,
-  controlled: ControlledDecisionModelOptions | undefined
+  controlled: ResidentControlledOptions | undefined
 ) {
   if (!isComposedEditHook) return {}
   const observation = yield* adaptClaudeDirectEvent(
@@ -1034,7 +1034,7 @@ const runCodexNativeInput = Effect.fn("Cli.runCodexNativeInput")(function* (
   statePath: string,
   activityPath: string,
   userConfigPath: string | undefined,
-  controlled: ControlledDecisionModelOptions | undefined
+  controlled: ResidentControlledOptions | undefined
 ) {
   const direct = yield* runDirectCodexHook(
     yield* decodeJson(input),

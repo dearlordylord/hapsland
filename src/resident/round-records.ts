@@ -1,5 +1,5 @@
 import type { Effect } from "effect"
-import type { DirectAdvicee } from "../direct-event/model.ts"
+import type { DirectAdvicee } from "../direct-event/observation.ts"
 import type { CapacityLedger } from "./capacity.ts"
 import type { BendWorkView } from "./bend-work.ts"
 

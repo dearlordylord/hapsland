@@ -9,7 +9,7 @@ import type {
   DirectAdvicee,
   PhysicalRootIdentity,
   CodexHostVersion
-} from "./model.ts"
+} from "./observation.ts"
 import type { PostEditLocation, VerifiedPatchHunk } from "./edit-attribution.ts"
 import { MAX_SOURCE_BYTES, captureStable, type CaptureHooks } from "./capture.ts"
 import { eligibleNamedPath, resolvedDirectFilePolicy } from "./selection.ts"

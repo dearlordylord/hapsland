@@ -4,7 +4,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import { recordActivity } from "../activity/status.ts"
-import { recordDemoTrace } from "../onboarding/demo-trace.ts"
+import { recordDemoTrace } from "../activity/demo-trace.ts"
 import {
   claudeHostOutputText,
   encodeClaudeHostOutputLine,

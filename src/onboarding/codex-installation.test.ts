@@ -1,4 +1,4 @@
-import { bunExecutable } from "../runtime/bun-runtime.ts"
+import { BUN_VERSION, bunExecutable } from "../runtime/bun-runtime.ts"
 import {
   createInstallationPackageFixture,
   installationPackageDeclaration
@@ -278,7 +278,7 @@ describe("public Codex installation operations", async () => {
     const runtime = join(test.root, "synthetic-x64-runtime")
     writeFileSync(
       runtime,
-      `#!/bin/sh\nprintf '%s' '${JSON.stringify({ version: "v24.20.0", platform: "linux", architecture: "x64" })}'\n`,
+      `#!/bin/sh\nprintf '%s' '${JSON.stringify({ version: BUN_VERSION, platform: "linux", architecture: "x64" })}'\n`,
       { mode: 0o700 }
     )
     const result = await invokeCli(
@@ -292,7 +292,7 @@ describe("public Codex installation operations", async () => {
           runtime: {
             supported: false,
             checks: {
-              engine: { ready: true, required: "v24.20.0" },
+              engine: { ready: true, required: BUN_VERSION },
               platform: { ready: false, observed: "linux" },
               architecture: { ready: false, observed: "x64", required: "arm64" }
             }
@@ -303,7 +303,7 @@ describe("public Codex installation operations", async () => {
     expect(readdirSync(test.home)).toEqual([])
   })
 
-  it("accepts source Node against matching profiles even when package distribution declares Bun", async () => {
+  it("accepts pinned Bun against matching package profiles", async () => {
     const test = fixture()
     const entrypoint = createInstallationPackageFixture(test.root)
     const declaration = {
@@ -315,7 +315,7 @@ describe("public Codex installation operations", async () => {
     const runtime = join(test.root, "synthetic-x64-runtime")
     writeFileSync(
       runtime,
-      `#!/bin/sh\nprintf '%s' '${JSON.stringify({ version: process.version, platform: "linux", architecture: "x64" })}'\n`,
+      `#!/bin/sh\nprintf '%s' '${JSON.stringify({ version: BUN_VERSION, platform: "linux", architecture: "x64" })}'\n`,
       { mode: 0o700 }
     )
     const result = await invokeCli(
@@ -329,7 +329,7 @@ describe("public Codex installation operations", async () => {
           runtime: {
             supported: true,
             checks: {
-              engine: { ready: true, observed: "v24.20.0", required: "v24.20.0" },
+              engine: { ready: true, observed: BUN_VERSION, required: BUN_VERSION },
               platform: { ready: true, observed: "linux" },
               architecture: { ready: true, observed: "x64" }
             }
@@ -520,7 +520,7 @@ describe("public Codex installation operations", async () => {
           args: [quotedEntrypoint],
           parser: { executable: bunExecutable(), args: [join(dirname(quotedEntrypoint), "parser-main.js")] },
           resident: { executable: bunExecutable(), args: [join(dirname(quotedEntrypoint), "resident", "main.js")] },
-          observed: { version: process.version, platform: process.platform, architecture: process.arch }
+          observed: { version: BUN_VERSION, platform: process.platform, architecture: process.arch }
         },
         feature: { file: join(home, "config.toml"), table: "features", key: "hooks", value: true },
         hook: {

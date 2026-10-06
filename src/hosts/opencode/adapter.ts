@@ -3,7 +3,7 @@ import { isAbsolute, relative, resolve, sep } from "node:path"
 import * as Effect from "effect/Effect"
 import { captureStable, MAX_SOURCE_BYTES, type CaptureHooks } from "../../direct-event/capture.ts"
 import { eligibleNamedPath } from "../../direct-event/selection.ts"
-import type { DirectCandidate, DirectObservation, DirectAdvicee } from "../../direct-event/model.ts"
+import type { DirectCandidate, DirectObservation, DirectAdvicee } from "../../direct-event/observation.ts"
 
 const object = (value: unknown): Record<string, unknown> | undefined =>
   typeof value === "object" && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : undefined

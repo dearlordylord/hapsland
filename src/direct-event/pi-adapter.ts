@@ -4,7 +4,7 @@ import { discoverPhysicalWorkingTreeRoot } from "../repository/root.ts"
 import { loadConfiguration } from "../configuration/load.ts"
 import { captureStable, MAX_SOURCE_BYTES, type CaptureHooks } from "./capture.ts"
 import { eligibleNamedPath, resolvedDirectFilePolicy } from "./selection.ts"
-import type { DirectAdvicee, DirectObservation, PhysicalRootIdentity } from "./model.ts"
+import type { DirectAdvicee, DirectObservation, PhysicalRootIdentity } from "./observation.ts"
 import { verifyPiPostEditHunks } from "./pi-patch-hunks.ts"
 
 const record = (value: unknown): Record<string, unknown> | undefined =>

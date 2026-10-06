@@ -2,12 +2,12 @@ import { packageAssetPath } from "../runtime/package-runtime.ts"
 import { constants, existsSync, type BigIntStats } from "node:fs"
 import { open, realpath, type FileHandle } from "node:fs/promises"
 import { join } from "node:path"
-import { execFileClosedStdinBuffer } from "../onboarding/host-process.ts"
+import { execFileClosedStdinBuffer } from "../process/closed-stdin.ts"
 import { createHash } from "node:crypto"
 import * as Schema from "effect/Schema"
 import * as Effect from "effect/Effect"
 import type { EligiblePath } from "./selection.ts"
-import type { PhysicalRootIdentity } from "./model.ts"
+import type { PhysicalRootIdentity } from "./observation.ts"
 
 export const MAX_SOURCE_BYTES = 262_144
 

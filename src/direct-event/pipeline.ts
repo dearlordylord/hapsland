@@ -43,14 +43,13 @@ import {
   freezeInput,
   freezeRules,
   semanticIdentity,
-  type DirectObservation,
-  type DirectAdvicee,
   type PreparedUnit,
   type ReviewInput,
   type ReviewUnit,
   type ObservationResult,
   type PathObservationOutcome
 } from "./model.ts"
+import { type DirectObservation, type DirectAdvicee } from "./observation.ts"
 import {
   DEFAULT_DIRECT_FILE_POLICY,
   type eligibleNamedPath,

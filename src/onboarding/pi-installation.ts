@@ -16,7 +16,7 @@ import { dirname, join, resolve } from "node:path"
 import { pathToFileURL } from "node:url"
 import { atomicInstallationFile } from "./atomic-installation-file.ts"
 import { withInstallationLock } from "./installation-lock.ts"
-import { execFileClosedStdin } from "./host-process.ts"
+import { execFileClosedStdin } from "../process/closed-stdin.ts"
 
 export interface PiInstallationRequest {
   readonly piHome?: string

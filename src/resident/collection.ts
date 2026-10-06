@@ -5,10 +5,13 @@ import { formatReviewFeedback } from "../feedback/message.ts"
 import * as Effect from "effect/Effect"
 
 import { encodedCodexHostOutputBytes } from "../direct-event/writer.ts"
-import { encodeClaudeHostOutputLine, type ClaudeHostOutput } from "../direct-event/claude-output.ts"
+import {
+  claudeStopHostOutput,
+  encodeClaudeHostOutputLine,
+  type ClaudeHostOutput
+} from "../direct-event/claude-output.ts"
 import { initialCanonical, stepCanonical, type CanonicalEvent } from "../canonical/adapter.ts"
 import { GLOBAL_BYTE_LIMIT, GLOBAL_ITEM_LIMIT, PARTITION_BYTE_LIMIT, PARTITION_ITEM_LIMIT } from "./capacity.ts"
-export type { ClaudeBlockOutput, ClaudeHostOutput } from "../direct-event/claude-output.ts"
 
 export const PENDING_ADVICE_EXPIRY_MS = 600_000
 export const MAX_COMBINED_RESPONSE_BYTES = 10 * 1024
@@ -20,8 +23,6 @@ export type OperationalNotice = { readonly kind: OperationalNoticeKind; readonly
 export type ClaudeOutputMode = "advisory" | "block-current-findings"
 
 export type CollectionCandidate = { readonly sequence: number; readonly pendingAt: number }
-
-export type CollectionMode = "ordinary" | "turn-end"
 
 const standaloneLimits = {
   globalItems: GLOBAL_ITEM_LIMIT,
@@ -107,15 +108,6 @@ export const combinedClaudeOutput = (
 
 export const encodedClaudeHostOutputBytes = (output: ClaudeHostOutput): number =>
   Buffer.byteLength(encodeClaudeHostOutputLine(output), "utf8")
-
-/** Match the final JSONL object written by the composed Claude hook. */
-export const claudeStopHostOutput = (
-  output: CodexDirectEventOutput,
-  findingCount: number
-): { readonly decision: "block"; readonly reason: string } | { readonly systemMessage: string } => {
-  const message = output.hookSpecificOutput.additionalContext
-  return findingCount > 0 ? { decision: "block", reason: message } : { systemMessage: message }
-}
 
 export const encodedClaudeStopOutputBytes = (
   findings: ReadonlyArray<Finding>,

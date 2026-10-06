@@ -1,11 +1,11 @@
-import { execFileClosedStdin } from "../onboarding/host-process.ts"
+import { execFileClosedStdin } from "../process/closed-stdin.ts"
 import { existsSync } from "node:fs"
 import { realpath, stat } from "node:fs/promises"
 import { dirname, join, relative, resolve, sep } from "node:path"
 import * as Effect from "effect/Effect"
 
 import * as Schema from "effect/Schema"
-import type { PhysicalRootIdentity } from "../direct-event/model.ts"
+import type { PhysicalRootIdentity } from "../direct-event/observation.ts"
 class RepositoryObservationError extends Schema.TaggedError<RepositoryObservationError>()(
   "RepositoryObservationError",
   { message: Schema.NonEmptyString }

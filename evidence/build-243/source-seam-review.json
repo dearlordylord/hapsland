@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "issue": 243,
+  "scope": "Partial source seam extraction; no full extraction milestone or tooling adoption",
+  "owners": [
+    {
+      "module": "src/process/closed-stdin.ts",
+      "concept": "Bounded child process execution with closed stdin",
+      "consumers": [
+        "capture",
+        "repository",
+        "credential input",
+        "installation",
+        "CLI"
+      ],
+      "direction": "Domain consumers depend on process operations; no onboarding dependency",
+      "contract": "docs/testing-matrix.md"
+    },
+    {
+      "module": "src/direct-event/observation.ts",
+      "concept": "Native observations and physical root identity",
+      "consumers": [
+        "host adapters",
+        "capture",
+        "IPC",
+        "resident records",
+        "review execution"
+      ],
+      "direction": "Observation contracts depend only on attribution types; provider execution depends on observations",
+      "contract": "docs/direct-event-v1-supported-profile.md"
+    },
+    {
+      "module": "src/direct-event/claude-output.ts",
+      "concept": "Claude host response formatting",
+      "consumers": [
+        "composed hook",
+        "collection tests"
+      ],
+      "direction": "Delivery depends on formatting; formatting does not depend on collection policy",
+      "contract": "docs/advicing-target-contract.md"
+    },
+    {
+      "module": "src/resident/protocol.ts",
+      "concept": "IPC collection mode and serializable controlled options",
+      "consumers": [
+        "client",
+        "server",
+        "hook CLI",
+        "Pi transport"
+      ],
+      "direction": "Hook consumers use wire contract, without importing test provider implementation",
+      "contract": "docs/advicing-target-contract.md"
+    },
+    {
+      "module": "src/activity/demo-trace.ts",
+      "concept": "Source-free demo activity observation",
+      "consumers": [
+        "onboarding",
+        "hook output",
+        "resident",
+        "CLI"
+      ],
+      "direction": "Capabilities consume activity trace; trace does not depend on onboarding",
+      "contract": "docs/installation-workflows.md"
+    }
+  ],
+  "architecturalReview": {
+    "agent": "architecture_inventory",
+    "findings": [],
+    "conclusion": "Exact moves preserve behavior and improve dependency direction; dedicated compositions and enforcement remain unproved",
+    "fixtureReview": "Bun fixture corrections preserve architecture, ownership, installation and conflict assertions; no production runtime change"
+  },
+  "validation": {
+    "fast": "npm run check:fast passed",
+    "toolBoundary": "node --test scripts/credential-boundaries.test.mjs passed 3 tests",
+    "initialBoundary": {
+      "run": "20261006203414250-1054948-2d3006",
+      "build": "passed",
+      "pack": "passed",
+      "tests": "219 passed, 24 failed due to stale Node runtime fixture identities"
+    },
+    "correctedOwners": {
+      "run": "20261006203732363-1072570-6fd346",
+      "tests": "73 passed"
+    },
+    "boundaryRepeat": {
+      "run": "20261006203815950-1077470-50624b",
+      "tests": "243 passed across 18 files",
+      "packagePreparation": "Reused unchanged successful build and pack preparation"
+    },
+    "coverage": "Focused affected boundaries, not full-project coverage"
+  },
+  "pending": [
+    "Owner tooling/architecture decision",
+    "Dedicated hook executable and host-loaded isolation",
+    "Production dependency graph/cache/enforcement",
+    "Installed routing and interleaved performance validation"
+  ],
+  "lifecycle": {
+    "trigger": "Issue 243 completion",
+    "action": "consolidate",
+    "destination": "Current architecture/build owners and issue completion evidence; delete superseded checkpoints"
+  }
+}

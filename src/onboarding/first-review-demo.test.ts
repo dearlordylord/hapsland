@@ -18,7 +18,7 @@ import {
   DemoExecutionError
 } from "./first-review-demo.ts"
 import { claimDemoBudget, readDemoBudgetUsage } from "./demo-budget.ts"
-import { readDemoTrace, recordDemoTrace } from "./demo-trace.ts"
+import { readDemoTrace, recordDemoTrace } from "../activity/demo-trace.ts"
 
 const roots: Array<string> = []
 

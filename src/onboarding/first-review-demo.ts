@@ -9,9 +9,9 @@ import { basename, dirname, join } from "node:path"
 import { readActivity } from "../activity/status.ts"
 import { inspectResidentEffect as inspectResident } from "../resident/client.ts"
 import { inspectCodexInstallation } from "./codex-installation.ts"
-import { execFileClosedStdin } from "./host-process.ts"
+import { execFileClosedStdin } from "../process/closed-stdin.ts"
 import { initializeDemoBudget, readDemoBudgetUsage } from "./demo-budget.ts"
-import { demoSourceHash, readDemoTrace } from "./demo-trace.ts"
+import { demoSourceHash, readDemoTrace } from "../activity/demo-trace.ts"
 
 export const DEMO_SOURCE_BYTE_BUDGET = 4_096 as const
 export const DEMO_PROVIDER_CALL_BUDGET = 2 as const

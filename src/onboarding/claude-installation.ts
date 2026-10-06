@@ -8,7 +8,7 @@ import {
   expectedRuntimeVersion
 } from "../runtime/package-runtime.ts"
 import { Config, Effect, Schema } from "effect"
-import { execFileClosedStdin } from "./host-process.ts"
+import { execFileClosedStdin } from "../process/closed-stdin.ts"
 import { createHash } from "node:crypto"
 import { lstatSync, readFileSync, realpathSync, statSync } from "node:fs"
 import { homedir } from "node:os"

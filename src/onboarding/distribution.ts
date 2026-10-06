@@ -1,6 +1,6 @@
 import * as Effect from "effect/Effect"
 import * as Schema from "effect/Schema"
-import { execFileClosedStdin } from "./host-process.ts"
+import { execFileClosedStdin } from "../process/closed-stdin.ts"
 import { createHash } from "node:crypto"
 import { mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
 import { homedir } from "node:os"

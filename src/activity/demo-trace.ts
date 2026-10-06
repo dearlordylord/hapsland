@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto"
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import * as Schema from "effect/Schema"
-import type { DirectAdvicee } from "../direct-event/model.ts"
+import type { DirectAdvicee } from "../direct-event/observation.ts"
 
 const Trace = Schema.Struct({
   version: Schema.Literal(1),

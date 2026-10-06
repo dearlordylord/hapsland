@@ -1,7 +1,7 @@
 import { packageRoot, packageCommand, commandEntrypoint, runtimeVersion } from "../runtime/package-runtime.ts"
 import { Effect, Schema } from "effect"
 import { nativeArchitecture } from "./native-architecture.ts"
-import { execFileClosedStdin } from "./host-process.ts"
+import { execFileClosedStdin } from "../process/closed-stdin.ts"
 import { accessSync, constants, existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 

@@ -46,13 +46,8 @@ import { appendFileSync, statSync, writeFileSync } from "node:fs"
 import { access, appendFile, chmod, rm, writeFile } from "node:fs/promises"
 import { createServer, type Server, type Socket } from "node:net"
 import { join, resolve } from "node:path"
-import {
-  canonicalValue,
-  isCodexHostVersion,
-  type DirectObservation,
-  type DirectAdvicee,
-  type PreparedUnit
-} from "../direct-event/model.ts"
+import { canonicalValue, type PreparedUnit } from "../direct-event/model.ts"
+import { isCodexHostVersion, type DirectObservation, type DirectAdvicee } from "../direct-event/observation.ts"
 import {
   evaluatePrepared,
   encodedPreparedProviderInputBytes,
@@ -85,7 +80,8 @@ import {
   type ResidentDispatchContext,
   type ResidentRequest,
   type ResidentResponse,
-  type ResidentUnavailableReason
+  type ResidentUnavailableReason,
+  type CollectionMode
 } from "./protocol.ts"
 import { makeResidentState, type CapacityLedger, type CapacityReservation } from "./capacity.ts"
 import { makeDispatcher, type Dispatcher } from "./dispatch.ts"
@@ -105,7 +101,6 @@ import {
   selectFittingCurrentFindingIndices,
   selectFittingClaudeFindings,
   type ClaudeOutputMode,
-  type CollectionMode,
   type FindingSelectionFacts,
   type CanonicalFindingOffer,
   type OperationalNoticeKind
@@ -115,7 +110,7 @@ import { resolveCredential, type CredentialResolution } from "../credentials/sec
 import { readCredentialState } from "../credentials/state.ts"
 import { claimDemoBudget } from "../onboarding/demo-budget.ts"
 import { findingFromProbability } from "../rules/decision.ts"
-import { recordDemoTrace } from "../onboarding/demo-trace.ts"
+import { recordDemoTrace } from "../activity/demo-trace.ts"
 
 class ResidentAdapterError extends Schema.TaggedError<ResidentAdapterError>()("ResidentAdapterError", {
   operation: Schema.String

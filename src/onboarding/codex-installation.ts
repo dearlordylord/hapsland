@@ -9,7 +9,7 @@ import {
   runtimeProbeArguments
 } from "../runtime/package-runtime.ts"
 import { Config, Effect, Schema } from "effect"
-import { execFileClosedStdin } from "./host-process.ts"
+import { execFileClosedStdin } from "../process/closed-stdin.ts"
 import { createHash, randomUUID } from "node:crypto"
 import {
   accessSync,
@@ -27,7 +27,7 @@ import {
 import { homedir } from "node:os"
 import { dirname, extname, join, resolve } from "node:path"
 import { parse as parseToml } from "smol-toml"
-import { isCodexHostVersion } from "../direct-event/model.ts"
+import { isCodexHostVersion } from "../direct-event/observation.ts"
 
 import { withInstallationLock } from "./installation-lock.ts"
 import {

@@ -3,7 +3,7 @@ import { execFileAsync } from "../../scripts/test-harness/process.mjs"
 import { mkdtemp, mkdir, realpath, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
-import type { DirectAdvicee } from "./model.ts"
+import type { DirectAdvicee } from "./observation.ts"
 
 export const makeGitFixture = async () => {
   // These fixtures place the resident socket under `root/runtime`. macOS

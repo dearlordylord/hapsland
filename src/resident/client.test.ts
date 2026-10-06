@@ -22,7 +22,7 @@ import {
   type ResidentStartupOperations
 } from "./client.ts"
 import { prepareResidentDirectory, residentPaths, validateEndpointMetadata } from "./paths.ts"
-import type { DirectObservation } from "../direct-event/model.ts"
+import type { DirectObservation } from "../direct-event/observation.ts"
 
 const directories: Array<string> = []
 const servers: Array<Server> = []

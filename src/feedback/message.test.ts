@@ -2,7 +2,8 @@ import { toCodexDirectEventOutput, type Finding } from "../direct-event/output.t
 import { describe, expect, it } from "vitest"
 import { formatReviewFeedback, REVIEW_FEEDBACK_HEADING, REVIEW_FEEDBACK_INSTRUCTIONS } from "./message.ts"
 
-import { combinedClaudeOutput, combinedReviewOutput, claudeStopHostOutput } from "../resident/collection.ts"
+import { combinedClaudeOutput, combinedReviewOutput } from "../resident/collection.ts"
+import { claudeStopHostOutput } from "../direct-event/claude-output.ts"
 
 const finding = {
   path: "example.ts",

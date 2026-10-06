@@ -6,7 +6,7 @@ import {
   versionProbeArguments
 } from "../runtime/package-runtime.ts"
 import { Config, Effect, Schema } from "effect"
-import { execFileClosedStdin } from "./host-process.ts"
+import { execFileClosedStdin } from "../process/closed-stdin.ts"
 import { createHash } from "node:crypto"
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from "node:fs"
 import { homedir } from "node:os"

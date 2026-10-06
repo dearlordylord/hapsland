@@ -1,17 +1,18 @@
 import type { CodexDirectEventOutput } from "../direct-event/output.ts"
 import { InspectionRecordingRoot } from "../inspection/contract.ts"
 import { ROUND_CLOSE_REASONS, type RoundCloseReason } from "../activity/status.ts"
-import { isCodexHostVersion, type DirectObservation, type DirectAdvicee } from "../direct-event/model.ts"
+import { isCodexHostVersion, type DirectObservation, type DirectAdvicee } from "../direct-event/observation.ts"
 
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import type { ClaudeHostOutput, CollectionMode } from "./collection.ts"
+import type { ClaudeHostOutput } from "../direct-event/claude-output.ts"
 
 export const MAX_IPC_FRAME_BYTES = 262_144
 export const MAX_IPC_CONNECTIONS = 32
 export const CLIENT_REQUEST_DEADLINE_MS = 1_500
 export const STARTUP_READINESS_DEADLINE_MS = 10_000
 export const DELIVERY_LEASE_MS = 5_000
+export type CollectionMode = "ordinary" | "turn-end"
 /** Bounded synchronous edit response; the hook retains its existing 3.9 s ceiling. */
 export const EDIT_REQUEST_DEADLINE_MS = 3_900
 

@@ -6,7 +6,8 @@ import { spawnSync } from "../../scripts/test-harness/process.mjs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { execFileClosedStdin, execFileClosedStdinBuffer, spawnInherited } from "./host-process.ts"
+import { execFileClosedStdin, execFileClosedStdinBuffer } from "../process/closed-stdin.ts"
+import { spawnInherited } from "./host-process.ts"
 
 describe("native host process", () => {
   it("closes stdin so a prompt argument can start without waiting for the deadline", async () => {

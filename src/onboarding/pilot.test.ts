@@ -3,7 +3,7 @@ import { expect, it, vi } from "vitest"
 import { runPilotSetup, type PilotOptions, type PilotPorts } from "./pilot.ts"
 import { profileFields } from "./client-command.ts"
 import type { runSetup } from "./setup.ts"
-import type { HostProcessResult } from "./host-process.ts"
+import type { HostProcessResult } from "../process/closed-stdin.ts"
 
 type Result = Effect.Success<ReturnType<typeof runSetup>>
 type Stage = Result["stages"][number]

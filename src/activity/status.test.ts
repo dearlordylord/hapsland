@@ -3,7 +3,7 @@ import { spawn } from "node:child_process"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
-import type { DirectAdvicee } from "../direct-event/model.ts"
+import type { DirectAdvicee } from "../direct-event/observation.ts"
 import { readActivity, formatActivityHuman, recordActivity, recordRoundClosure, type ActivityStage } from "./status.ts"
 
 const roots: Array<string> = []

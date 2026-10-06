@@ -190,9 +190,10 @@ if (
 for (const key of ["REVIEW_ACTIVITY_PATH", "REVIEW_DEMO_TEST_SANDBOX_BYPASS", "REVIEW_DEMO_TEST_CODEX_MODEL"]) {
   if (demo.includes(`process.env.${key}`)) throw new Error(`demo configuration bypass returned: ${key}`)
 }
-const host = read("src/onboarding/host-process.ts")
-if (/new Promise|Effect\.run(?:Sync|Promise|Fork)\(/u.test(host) || !host.includes("Effect.acquireUseRelease(")) {
-  throw new Error("native Codex host process must use scoped Effect ownership")
+for (const host of [read("src/onboarding/host-process.ts"), read("src/process/closed-stdin.ts")]) {
+  if (/new Promise|Effect\.run(?:Sync|Promise|Fork)\(/u.test(host) || !host.includes("Effect.acquireUseRelease(")) {
+    throw new Error("host processes must use scoped Effect ownership")
+  }
 }
 
 const maskedInput = read("src/credentials/masked-input.ts")

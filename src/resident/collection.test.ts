@@ -1,3 +1,4 @@
+import { claudeStopHostOutput } from "../direct-event/claude-output.ts"
 import type { Finding } from "../direct-event/output.ts"
 import { Effect } from "effect"
 import { describe, expect, it } from "vitest"
@@ -9,7 +10,6 @@ import {
   combinedFindingOutput,
   combinedClaudeOutput,
   combinedReviewOutput,
-  claudeStopHostOutput,
   encodedClaudeStopOutputBytes,
   encodedHostOutputBytes,
   encodedClaudeHostOutputBytes,

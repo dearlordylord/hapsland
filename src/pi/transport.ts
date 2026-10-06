@@ -16,9 +16,8 @@ import {
   residentRequestEffect,
   type AdviceeCollectionOutcome
 } from "../resident/client.ts"
-import type { ControlledDecisionModelOptions } from "../test-support/controlled-decision-model.ts"
-import type { DirectAdvicee } from "../direct-event/model.ts"
-import type { ResidentDispatchContext } from "../resident/protocol.ts"
+import type { ResidentControlledOptions, ResidentDispatchContext } from "../resident/protocol.ts"
+import type { DirectAdvicee } from "../direct-event/observation.ts"
 
 /** Pi has an awaited boundary, with a four-second Hapsland wait inside its five-second resident fence. */
 export const PI_FINISH_DEADLINE_MS = 4_000
@@ -29,7 +28,7 @@ type Options = {
   statePath: string
   activityPath: string
   userConfigPath?: string
-  controlled?: ControlledDecisionModelOptions
+  controlled?: ResidentControlledOptions
 }
 type Context = {
   root: string

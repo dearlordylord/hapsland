@@ -7,7 +7,7 @@ import { matchesAnyGlob } from "../matcher/glob.ts"
 import { admitCandidateFile, selectFile } from "../configuration/decision.ts"
 import { protectedPathReason } from "../policy/file-policy.ts"
 import { rootLanguageForPath } from "./languages/path-language.ts"
-import type { PhysicalRootIdentity } from "./model.ts"
+import type { PhysicalRootIdentity } from "./observation.ts"
 
 export type DirectFilePolicy = {
   /** The already-resolved, highest-precedence include list. Empty selects nothing. */

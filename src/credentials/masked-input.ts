@@ -1,5 +1,5 @@
 import { Cause, Deferred, Duration, Effect, Schedule, Schema } from "effect"
-import { execFileClosedStdin } from "../onboarding/host-process.ts"
+import { execFileClosedStdin } from "../process/closed-stdin.ts"
 import { closeSync, constants, openSync, readSync } from "node:fs"
 import { terminalModeArguments } from "./terminal.ts"
 import { JEV_KEY_ENTRY_GUIDANCE } from "../onboarding/credential-guidance.ts"
