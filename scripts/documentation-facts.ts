@@ -149,7 +149,7 @@ export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocu
     {
       path: "README.md",
       name: "shipped-rules",
-      text: `With no explicit rule selection, authorized setup enables ${SHIPPED_DEFAULT_RULES.length} editable JSON rule files with questions about code design, including whether a declaration allows meaningless combinations of values. Each rule declares supported languages, input forms, and required related code.`
+      text: `By default, authorized setup enables ${SHIPPED_DEFAULT_RULES.length} editable JSON rule files with questions about code design, including whether a declaration allows meaningless combinations of values. Each rule declares supported languages, input forms, and required related code.`
     },
     {
       path: "README.md",
