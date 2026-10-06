@@ -1,0 +1,63 @@
+[
+  {
+    "law": "projection_exact",
+    "before": "Request{model, state, questions}",
+    "after": "Request{model, state, \"\"}",
+    "location": "Laws.projection_exact"
+  },
+  {
+    "law": "projection_noninterference",
+    "before": "case Envelope{Review{model, state, questions}, _}:\n      Request{model, state, questions}",
+    "after": "case Envelope{Review{model, _, questions}, Private{prompt, _, _, _, _}}:\n      Request{model, prompt, questions}",
+    "location": "Laws.projection_noninterference"
+  },
+  {
+    "law": "projection_erasure",
+    "before": "case Envelope{Review{model, state, questions}, _}:\n      Request{model, state, questions}",
+    "after": "case Envelope{Review{model, _, questions}, Private{prompt, _, _, _, _}}:\n      Request{model, prompt, questions}",
+    "location": "Laws.projection_erasure"
+  },
+  {
+    "law": "transmission_exact",
+    "before": "project(envelope) <> sent",
+    "after": "project(envelope) <> Nil{}",
+    "location": "Laws.transmission_exact"
+  },
+  {
+    "law": "cancellation_has_no_fallback",
+    "before": "case Cancel{} State{_, private, sent}: State{None{}, private, sent}",
+    "after": "case Cancel{} State{pending, private, sent}: State{pending, private, sent}",
+    "location": "Laws.cancellation_has_no_fallback"
+  },
+  {
+    "law": "step_erasure",
+    "before": "case PrivateChanged{private} State{pending, _, sent}: State{pending, private, sent}",
+    "after": "case PrivateChanged{Private{+prompt, conversation, derived, inspection, attribution}} State{pending, _, sent}: State{pending, Private{prompt, conversation, derived, inspection, attribution}, Request{\"leak\", prompt, \"\"} <> sent}",
+    "location": "Laws.step_erasure"
+  },
+  {
+    "law": "trace_erasure",
+    "before": "def run(events: List<&2, ContentEvent>, state: State) -> State:\n  match events:\n    case Nil{}: state",
+    "after": "def leak_private(private: Private, pending: Maybe<&2, Envelope>, retained: Private, sent: List<&2, Request>) -> State:\n  match private:\n    case Private{prompt, _, _, _, _}: State{pending, retained, Request{\"leak\", prompt, \"\"} <> sent}\n\ndef leak(state: State) -> State:\n  match state:\n    case State{pending, +private, sent}: leak_private(private, pending, private, sent)\n\ndef run(events: List<&2, ContentEvent>, state: State) -> State:\n  match events:\n    case Nil{}: leak(state)",
+    "location": "Laws.trace_erasure"
+  },
+  {
+    "law": "trace_noninterference",
+    "before": "def run(events: List<&2, ContentEvent>, state: State) -> State:\n  match events:\n    case Nil{}: state",
+    "after": "def leak_private(private: Private, pending: Maybe<&2, Envelope>, retained: Private, sent: List<&2, Request>) -> State:\n  match private:\n    case Private{prompt, _, _, _, _}: State{pending, retained, Request{\"leak\", prompt, \"\"} <> sent}\n\ndef leak(state: State) -> State:\n  match state:\n    case State{pending, +private, sent}: leak_private(private, pending, private, sent)\n\ndef run(events: List<&2, ContentEvent>, state: State) -> State:\n  match events:\n    case Nil{}: leak(state)",
+    "location": "Laws.trace_private_stuttering",
+    "note": "Rejected in the supporting private-stuttering law, not in the relational law itself."
+  },
+  {
+    "law": "private_event_stutters",
+    "before": "case PrivateChanged{private} State{pending, _, sent}: State{pending, private, sent}",
+    "after": "case PrivateChanged{Private{+prompt, conversation, derived, inspection, attribution}} State{pending, _, sent}: State{pending, Private{prompt, conversation, derived, inspection, attribution}, Request{\"leak\", prompt, \"\"} <> sent}",
+    "location": "Laws.private_event_stutters"
+  },
+  {
+    "law": "trace_private_stuttering",
+    "before": "def run(events: List<&2, ContentEvent>, state: State) -> State:\n  match events:\n    case Nil{}: state",
+    "after": "def leak_private(private: Private, pending: Maybe<&2, Envelope>, retained: Private, sent: List<&2, Request>) -> State:\n  match private:\n    case Private{prompt, _, _, _, _}: State{pending, retained, Request{\"leak\", prompt, \"\"} <> sent}\n\ndef leak(state: State) -> State:\n  match state:\n    case State{pending, +private, sent}: leak_private(private, pending, private, sent)\n\ndef run(events: List<&2, ContentEvent>, state: State) -> State:\n  match events:\n    case Nil{}: leak(state)",
+    "location": "Laws.trace_private_stuttering"
+  }
+]

@@ -92,6 +92,32 @@ named-reference grammar, and the aggregate evidence-size limit still applies.
 The request contains neither a whole file nor an edit diff,
 agent transcript, absolute path, or unrelated source.
 
+### Review content isolation
+
+For fixed selected source, selected rule questions and criteria, and provider
+configuration, request content must not depend on task prompts, conversation
+history, prompt/transcript digests, local inspection records, or agent attribution.
+These private values must not be copied into otherwise valid source, rule, URL,
+or header fields. A schema-valid request alone does not establish this property.
+The same boundary applies to retained snapshots and subsequent dispatches.
+Inspection observes a copy of encoded request bytes and cannot rewrite them;
+review transports disable ambient trace-header propagation.
+
+Permitted review content includes the selected declaration/evidence tree (with
+relative source identities and renderer metadata), authored rule IDs, questions
+and criteria, and provider framing. Authentication is sent separately in the
+provider's authorization header. A user or agent can copy conversation text into
+selected source or rule files; that text then belongs to the explicitly permitted
+input. This contract does not require semantic redaction of code or rules.
+
+The content guarantee does not claim independence of request timing, count,
+admission, cancellation, or reviewed edits from the conversation. The agent's work
+and prompt lifecycle can affect those. The [formal content model and host
+obligations](../packages/agent-flow-bend/README.md#content-isolation-proofs) distinguish
+the proved conditional theorem from implementation evidence and remaining gaps.
+
+### Freshness and result reuse
+
 Hapsland selects each rule only when its declared evidence needs are met. A
 rule may run with a marked omission that is irrelevant to it. If no rule applies,
 Hapsland sends no request. A review input's identity includes the exact input contract,

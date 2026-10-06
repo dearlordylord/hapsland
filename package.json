@@ -93,7 +93,8 @@
     "check:format": "node scripts/run-quality-lint.mjs --format-only",
     "hooks:install": "node scripts/install-git-hooks.mjs",
     "test:game": "node scripts/run-optional-development.mjs game",
-    "test:simulation": "node scripts/run-optional-development.mjs simulation"
+    "test:simulation": "node scripts/run-optional-development.mjs simulation",
+    "test:content-isolation": "node packages/agent-flow-bend/scripts/check-content-isolation.mjs && node scripts/check-content-wire-mutants.mjs"
   },
   "devDependencies": {
     "@bcoe/v8-coverage": "1.0.2",

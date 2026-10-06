@@ -73,6 +73,15 @@ General kernel-checked proofs cover import-graph budget properties and finite-ev
 
 The core has a formally checked exclusion case with no source-read command: [`import_graph_exclusion_has_no_read_command`](../packages/agent-flow-bend/LAWS.bend) and its [proof](../packages/agent-flow-bend/PROOF.bend). It proves the specified transition, not a universal confidentiality theorem. Separately, the [general tree-size laws](../packages/agent-flow-bend/import-graph-proof/LAWS.bend) prove that accepted size contributions stay within their cap under the stated premises. These are the precise meanings behind the README's qualified core-verification claim.
 
+The [content-isolation laws](../packages/agent-flow-bend/README.md#content-isolation-proofs)
+prove, by induction, that private values cannot affect request contents in the
+content-boundary model, including across arbitrary finite histories and inserted
+private-only notifications. Exactness laws preserve permitted review content.
+Production correspondence has adversarial pipeline, HTTP and mutation tests,
+including isolation of inspection buffers and suppression of ambient tracing.
+Source/rule provenance and a formal refinement of the TypeScript host remain open;
+this is a conditional model theorem, not an end-to-end confidentiality proof.
+
 See the [Bend package and proof scope](../packages/agent-flow-bend/README.md), the [reviewed TypeScript decision boundary](typescript-decision-boundary-ledger.md), and [installed compatibility evidence](installed-release-compatibility.md).
 
 Deterministic simulation adds a separate layer of evidence. [monkey-business](../packages/monkey-business/README.md) runs the compiled policy reducers under a virtual clock with seeded workloads, generated import trees, synthetic failures, and exact replay. Tests cover request saturation, stale work, credential changes, uncertain output, expiry, and recovery within configured limits. Graph property tests check permissions and budgets at each graph frame. This simulates the core and environment; it does not execute the complete resident, real source capture, IPC, or Jev transport. Resource limits account for declared logical charges and native bounds, rather than proving a fixed process RSS ceiling.

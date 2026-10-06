@@ -23,7 +23,9 @@ that lacks necessary code is skipped.
 ## What leaves my repository?
 
 Sending source to a review service is a data-sharing decision. Your task prompt
-and conversation with the agent are not sent to the review backend.
+and conversation with the agent are not review inputs. Text copied into selected
+source code or configured rule questions can be sent as part of those inputs.
+See the [content-isolation contract and proof limits](./docs/review-contract-compatibility.md#review-content-isolation).
 
 You choose which changed files can be reviewed and which files can supply related
 code. Related code follows the review file scope unless you explicitly configure a

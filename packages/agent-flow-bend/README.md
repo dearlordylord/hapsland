@@ -134,6 +134,64 @@ decision-affecting value as an explicit fact to Bend. TypeScript measures time
 and supplies clock and deadline facts; pure Bend decisions do not read an
 implicit host clock.
 
+## Content isolation proofs
+
+Run `npm run test:content-isolation` in this package for the ten general laws in
+[`content-proof/LAWS.bend`](content-proof/LAWS.bend) and their
+[proofs](content-proof/PROOF.bend). The root command of the same name also runs
+three production mutation checks. Both gates are in the root deterministic test
+inventory. The ordinary suite includes the
+[pipeline and HTTP checks](../../src/direct-event/content-isolation.test.ts).
+Use Bend 2.0.35 on PATH, or set `HAPSLAND_CONTENT_BEND` to its absolute path.
+Each compiler call has a five-second deadline. The gate checks 261 literal
+instances and relational premises, rejects ten compiling model mutants, and
+requires the BendTT kernel verdict. A deliberately disabled kernel must fail.
+Nine mutants fail in their law's own proof; the relational theorem's mutant fails
+in its supporting private-stuttering theorem, as recorded in the mutant table.
+
+The theorem is **conditional content noninterference**. Two model executions with
+the same permitted inputs and public control events produce identical request
+content and pending public state, however their private data differs. Arbitrarily
+many private-only notifications can be inserted or removed. The proof is induction
+over arbitrary finite lists, not bounded simulation. Exact-projection and
+transmission laws preserve the model, code and questions, preventing a vacuous
+implementation that sends nothing. Cancellation clears the pending snapshot;
+repeated sends project the stored snapshot; recovery accepts a supplied snapshot.
+These are content operations, **not a replacement for the resident scheduler or
+a claim that production automatically retries or restores requests**.
+
+`core.bend` is a specification and proof driver; production does not execute it.
+Its `Review` holds exact strings representing model, encoded review state, and
+encoded questions. `Private` holds prompt, conversation, derivatives such as
+hashes, inspection, and attribution. `project` selects only `Review`. The model
+does not inspect string contents or establish where those strings came from.
+Its emitted history is newest first. The two-run relation requires equal initial
+public history; an empty history is the normal starting case.
+
+The implementation correspondence is explicit:
+
+| Model boundary | Production owner | Evidence and remaining obligation |
+| --- | --- | --- |
+| Permitted `Review.state` | `candidateReviewInput` / `preparedProviderInput` in [pipeline.ts](../../src/direct-event/pipeline.ts), [renderer](../../src/direct-event/review-renderer.ts) | [Capture tests](../../src/direct-event/content-provenance.test.ts) run Codex, Claude and Pi adapters on real source and transcript files; wire tests vary prepared metadata and extra private fields while holding source fixed. These are selected native witnesses; general parsing/capture provenance remains unproved. |
+| Permitted `Review.questions` | Frozen compiled rules and Effect `DecisionModel` | Tests retain exact IDs, instructions and criteria while varying local rule paths/messages. Rule-file provenance remains a host obligation. |
+| Projection and encoding | `evaluatePrepared`, Jev's pinned Effect provider, [Cloudflare encoder](../../src/review-providers/request.ts) | Exact nonempty bodies and headers are checked at the HTTP seam; Jev also uses real Fetch and a loopback socket. JSON encoding, provider code, runtime and OS remain trusted. |
+| Private inspection and ambient context | [inspection copy](../../src/inspection/transport.ts), [review transport](../../src/review-providers/transport.ts) | Tests attempt to overwrite source through inspection and propagate private parent trace IDs. Both providers enforce the shared boundary. |
+| Stage, send, retry, cancel, recover | Resident snapshots, reuse and dispatch; separate lifecycle proofs/tests | The content proof does **not** verify all resident transitions, cache/persistence codecs, async interleavings, or that every outbound call follows this projection. Formal implementation refinement is still missing. |
+
+The three [production mutants](../../scripts/check-content-wire-mutants.mjs)
+inject local metadata into a schema-valid source field, restore the live inspection
+buffer, and restore ambient tracing. Each must fail a named assertion after the
+unchanged suite passes; syntax/import failures and timeouts do not count as kills.
+Runs use isolated source copies and retain logs in `.test-runs`.
+
+Scope limits are part of the claim: conversation text copied into selected code
+or rules can be reviewed; timing/count/admission channels are excluded; arbitrary
+developer scripts using the general-purpose `decide` API are outside the direct-edit
+contract. This is not a proof against all process/network leaks or compromised
+dependencies, and does not verify backend retention. Review the laws, correspondence
+table and mutation sets whenever capture, rules, request construction, transport,
+inspection, or retained request handling changes.
+
 ## Conditional progress proofs
 
 Run `npm run test:progress` for `progress-proof/LAWS.bend` and

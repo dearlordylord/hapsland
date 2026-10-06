@@ -1,6 +1,8 @@
 import { describe, expect, it } from "@effect/vitest"
 import * as ConfigProvider from "effect/ConfigProvider"
 import * as Effect from "effect/Effect"
+import * as Tracer from "effect/Tracer"
+import { InspectionTransportObservation } from "../inspection/transport.ts"
 import { Decision } from "effect/ai"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
@@ -28,6 +30,12 @@ describe("Cloudflare DecisionModel wire contract", () => {
       Effect.gen(function* () {
         const requests: Array<{ url: string; auth: string | undefined; body: string }> = []
         const httpClient = HttpClient.make((request) => {
+          expect(Object.keys(request.headers).sort()).toEqual([
+            "accept",
+            "authorization",
+            "content-length",
+            "content-type"
+          ])
           const body = request.body._tag === "Uint8Array" ? new TextDecoder().decode(request.body.body) : ""
           requests.push({ url: request.url, auth: request.headers.authorization, body })
           return Effect.succeed(HttpClientResponse.fromWeb(request, Response.json(envelope(model))))
@@ -37,7 +45,13 @@ describe("Cloudflare DecisionModel wire contract", () => {
           Effect.provide(
             liveLayer({ identity: identity(model), credentialEnvVar: "CLOUDFLARE_API_TOKEN", httpClient })
           ),
-          Effect.provide(tokenLayer)
+          Effect.provide(tokenLayer),
+          Effect.provideService(InspectionTransportObservation, {
+            observe: (bytes) => {
+              if (bytes !== undefined) bytes.fill(0)
+            }
+          }),
+          Effect.withParentSpan(Tracer.externalSpan({ traceId: "PRIVATE_CONVERSATION", spanId: "PRIVATE_PARENT" }))
         )
         expect(result.answers["namespace/rule"].probability).toBe(0.91)
         expect(result.usage.inputTokens).toBe(12)

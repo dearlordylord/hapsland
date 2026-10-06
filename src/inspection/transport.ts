@@ -13,7 +13,8 @@ export const inspectHttpTransport = (client: HttpClient.HttpClient): HttpClient.
       const observer = Context.getOrUndefined(yield* Effect.context(), InspectionTransportObservation)
       if (observer !== undefined) {
         try {
-          observer.observe(request.body._tag === "Uint8Array" ? request.body.body : undefined)
+          // Inspection owns its copy; a callback must not be able to rewrite egress.
+          observer.observe(request.body._tag === "Uint8Array" ? Uint8Array.from(request.body.body) : undefined)
         } catch {
           /* Optional capture never changes transport behavior. */
         }

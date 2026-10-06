@@ -203,6 +203,16 @@ The [Pi attribution checks](../src/direct-event/pi-adapter.test.ts) and [install
 
 ## TS-010 — Validate provider request constraints at the transport boundary
 
+The 2026-10-06 owner request to strengthen prompt/conversation isolation adds the
+[content-isolation contract](review-contract-compatibility.md#review-content-isolation).
+The shared [review transport](../src/review-providers/transport.ts) disables ambient
+trace propagation; [inspection](../src/inspection/transport.ts) receives copied bytes.
+These native Effect/HTTP operations enforce the content boundary without changing
+Bend dispatch authority. The [content laws and proof limits](../packages/agent-flow-bend/README.md#content-isolation-proofs)
+remain a conditional model theorem, with production correspondence checked by
+capture, wire and mutation tests. They do not establish native refinement.
+
+
 | Field | Boundary |
 | --- | --- |
 | Decision | TypeScript resolves the user-selected review provider, model, and fixed-origin destination; serializes the exact request; and rejects invalid native protocol sizes/counts before any HTTP effect. Unknown limits remain unknown. Declared token budgets are recorded without a claim of exact token enforcement. |

@@ -1,4 +1,4 @@
-import { inspectHttpTransport } from "./inspection/transport.ts"
+import { reviewHttpTransport } from "./review-providers/transport.ts"
 import { assertReviewEngineBoundary } from "./runtime/review-engine-boundary.ts"
 import { TypeSafeClient, TypeSafeDecisionModel } from "@effect/ai-typesafe"
 import * as Config from "effect/Config"
@@ -47,10 +47,10 @@ export const liveLayer = (options: {
   ).pipe(
     Layer.provide(
       options.httpClient === undefined
-        ? Layer.effect(HttpClient.HttpClient, Effect.map(HttpClient.HttpClient, inspectHttpTransport)).pipe(
+        ? Layer.effect(HttpClient.HttpClient, Effect.map(HttpClient.HttpClient, reviewHttpTransport)).pipe(
             Layer.provide(FetchHttpClient.layer)
           )
-        : Layer.succeed(HttpClient.HttpClient, inspectHttpTransport(options.httpClient))
+        : Layer.succeed(HttpClient.HttpClient, reviewHttpTransport(options.httpClient))
     )
   )
   return TypeSafeDecisionModel.model(MODEL).pipe(Layer.provide(client))
