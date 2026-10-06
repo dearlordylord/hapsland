@@ -26,7 +26,7 @@ const configurationExample = JSON.stringify({ version: CONFIGURATION_VERSION, in
 const ruleExample = JSON.stringify(
   {
     version: RULE_SCHEMA_VERSION,
-    id: "team/meaningful-combinations",
+    id: "namespace/meaningful-combinations",
     question: "Does the artifact make an invalid state representable?",
     criteria: {
       false: "Every representable state has a domain meaning.",

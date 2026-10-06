@@ -199,7 +199,7 @@ describe("configuration v1 decoding", () => {
     for (const [field, value] of [
       ["artifactKinds", ["function"]],
       ["resultForms", ["choice"]],
-      ["ruleOverrides", { "team/check": { resultForm: "score" } }]
+      ["ruleOverrides", { "namespace/check": { resultForm: "score" } }]
     ] as const) {
       expect(() =>
         decodeConfigurationText(JSON.stringify({ version: 1, [field]: value }), "future-config.jsonc")
@@ -250,7 +250,7 @@ describe("configuration v1 decoding", () => {
     ["removed rule surface", '{"version":1,"rules":{"r2_meaningless_combinations":{"threshold":0.8}}}', "rules"],
     [
       "array rule override shorthand",
-      '{"version":1,"ruleOverrides":[{"ruleId":"team/check","enabled":true}]}',
+      '{"version":1,"ruleOverrides":[{"ruleId":"namespace/check","enabled":true}]}',
       "ruleOverrides"
     ]
   ])("reports bounded errors for %s", (_label, text, field) => {

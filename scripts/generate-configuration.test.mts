@@ -170,11 +170,11 @@ describe("configuration documentation generator", () => {
         configurationValidator.safeParse({ version: 1, rules: [{ path: "rule.json", threshold: 0.5 }] }).success
       ).toBe(true)
       expect(
-        configurationValidator.safeParse({ version: 1, rules: [{ path: "rule.json", id: "team/check" }] }).success
+        configurationValidator.safeParse({ version: 1, rules: [{ path: "rule.json", id: "namespace/check" }] }).success
       ).toBe(false)
       expect(configurationValidator.safeParse({ version: 1, packs: [] }).success).toBe(false)
       expect(
-        configurationValidator.safeParse({ version: 1, rules: [{ id: "team/check", threshold: 1.1 }] }).success
+        configurationValidator.safeParse({ version: 1, rules: [{ id: "namespace/check", threshold: 1.1 }] }).success
       ).toBe(false)
       const authored = JSON.parse(ruleExample ?? "{}")
       expect(ruleValidator.safeParse(authored).success).toBe(true)
@@ -188,7 +188,7 @@ describe("configuration documentation generator", () => {
         expect(ruleValidator.safeParse(invalid).success).toBe(false)
         expect(() => decodeRuleText(JSON.stringify(invalid), "invalid.json")).toThrow()
       }
-      for (const identity of ["team:name", "team\\name", "team name", "../rule", "team/../rule"]) {
+      for (const identity of ["team:name", "team\\name", "team name", "../rule", "namespace/../rule"]) {
         expect(ruleValidator.safeParse({ ...authored, id: identity }).success).toBe(false)
         expect(() => decodeRuleText(JSON.stringify({ ...authored, id: identity }), "invalid.json")).toThrow()
       }

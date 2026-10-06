@@ -236,9 +236,7 @@ Each rule document has `version: 1`, a stable `id`, optional `title`, `question`
 The default threshold is 0.7; a finding requires a probability strictly greater than its threshold.
 
 <!-- rule-threshold:end -->
-An ID may use a namespace such as `team/no-primitive-obsession`; it is not a filesystem path.
-There are no packs, content-version labels, authored path filters, or source-evidence
-rungs. Content digests identify actual definition changes.
+An ID may use a namespace such as `namespace/no-primitive-obsession`.
 
 Each `inputs` entry names a nonempty `languages` list, a `kind`, and required evidence
 in `requires`. Entries describe supported combinations, not independent dimensions:
@@ -534,7 +532,7 @@ hapsland rules disable --id no-primitive-obsession --scope project
 ```jsonc
 {
   "version": 1,
-  "id": "team/meaningful-combinations",
+  "id": "namespace/meaningful-combinations",
   "question": "Does the artifact make an invalid state representable?",
   "criteria": {
     "false": "Every representable state has a domain meaning.",
