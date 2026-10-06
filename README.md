@@ -20,15 +20,6 @@ follows its references to build a tree of related definitions. Checks use that d
 need. This lets review consider relationships beyond the changed lines. A check
 that lacks necessary code is skipped.
 
-<p align="center"><img src="./assets/review-flow.gif" alt="Illustrative review loop: an agent edit gains related code context, receives feedback, and is repaired and reviewed again" width="800"></p>
-
-The animation starts with a small edit, expands to the declaration and related
-code, then illustrates a feedback and repair loop. Feedback follows the edit; it does not
-undo it or guarantee a repair. Delivery and optional blocking feedback depend on
-the agent runtime and configuration. See the [architecture guide](./docs/architecture.md)
-for the flow and its boundaries. Run `hapsland --feedback-preview` to see the
-shared agent instructions with a synthetic finding; no review request is made.
-
 ## What leaves my repository?
 
 Sending source to a review service is a data-sharing decision. Your task prompt
@@ -48,6 +39,15 @@ references. What is NOT sent: the full file, edit diff, agent conversation, and
 unrelated source. With review credentials and no
 file settings, all otherwise eligible files are selected. Set an explicit scope
 when you want a narrower boundary. See [configuration](./docs/configuration.md).
+
+<p align="center"><img src="./assets/review-flow.gif" alt="Illustrative review loop: an agent edit gains related code context, receives feedback, and is repaired and reviewed again" width="800"></p>
+
+The animation starts with a small edit, expands to the declaration and related
+code, then illustrates a feedback and repair loop. Feedback follows the edit; it does not
+undo it or guarantee a repair. Delivery and optional blocking feedback depend on
+the agent runtime and configuration. See the [architecture guide](./docs/architecture.md)
+for the flow and its boundaries. Run `hapsland --feedback-preview` to see the
+shared agent instructions with a synthetic finding; no review request is made.
 
 ## Choose a review backend
 
