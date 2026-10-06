@@ -9,11 +9,11 @@ ${marker}
 set -eu
 root=$(git rev-parse --show-toplevel)
 cd "$root"
-if [ ! -f .husky/pre-commit ]; then
-  echo "This worktree has no maintained pre-commit command." >&2
-  exit 1
+if [ -f .husky/pre-commit ]; then
+  exec sh .husky/pre-commit
 fi
-exec sh .husky/pre-commit
+common=$(git rev-parse --git-common-dir)
+exec sh "$common/hapsland-hooks/maintained-pre-commit"
 `
 export function installGitHooks(root = process.cwd()) {
   const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8", timeout: 5000 }).trim()
@@ -49,6 +49,10 @@ export function installGitHooks(root = process.cwd()) {
   const path = join(hooks, "pre-commit")
   if (existsSync(path) && !readFileSync(path, "utf8").includes(marker))
     throw new Error("Existing shared pre-commit dispatcher is not Hapsland-owned")
+  const maintained = join(root, ".husky/pre-commit")
+  const fallback = join(hooks, "maintained-pre-commit")
+  if (existsSync(maintained)) writeFileSync(fallback, readFileSync(maintained))
+  else if (!existsSync(fallback)) throw new Error("No maintained pre-commit command is available")
   writeFileSync(path, dispatcher)
   chmodSync(path, 0o755)
   git("config", "--local", "core.hooksPath", hooks)

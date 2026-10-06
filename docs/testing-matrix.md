@@ -52,6 +52,8 @@ restoration cannot remove entrypoints used by a running CLI or resident.
 Run `npm run hooks:install` once per repository. The shared Git dispatcher invokes
 the current worktree's maintained `.husky/pre-commit`, including lint-staged and
 typechecking, for existing and newly created worktrees.
+Historical worktrees without that file use the maintained command captured by
+the installer in the common Git directory, executed in the current worktree.
 
 ## Optional development modules
 
