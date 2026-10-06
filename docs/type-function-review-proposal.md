@@ -337,7 +337,7 @@ Concrete values are not supported roots.
 The evidence model has no raw/type/schema ranking: capabilities and bounded observed
 evidence establish eligibility. Rule-file validation schemas are not review inputs.
 
-Configuration explicitly connects each rule by path. An inherited identity can be
+Configuration declares each rule by path. An inherited identity can be
 configured by ID without redefining its source. Settings select enablement, languages,
 root paths, threshold, and message. The rule itself contains no file applicability
 policy. Configured rule languages must be a subset of authored languages; a language outside

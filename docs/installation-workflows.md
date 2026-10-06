@@ -70,7 +70,7 @@ only the explicitly requested plan file, preserving an existing plan. A saved pl
 binds client choices and current installation/default-rule digests; its application
 revalidates them and rejects stale plans before selected writes. This frontend uses
 the same version-one structured `--setup` engine. Its `rulesProposalDigest`
-authorizes materialization and connection of editable defaults separately from
+authorizes creation and activation of editable defaults separately from
 `installProposalDigest`; prompt suppression grants neither authorization.
 
 Environment and saved credential resolution use the existing sources. There is
@@ -84,11 +84,17 @@ unknown trust/readiness can therefore return 6 after installation succeeds.
 
 Setup shows the effective rule inventory once per guided invocation, including
 when several clients are selected. See [editable and custom rules](configuration.md#declarative-rules)
-for their paths, eligibility and management commands. Authorized initial setup
-connects nine individual editable default files only when no configuration layer
-declares `rules`. An explicit selection, including `rules: []`, is preserved; setup
-does not enable unselected defaults. Repeat setup preserves authored content. A missing connected rule is reported rather than silently recreated.
-Creating a custom rule also connects it, and its preview states that activation
+for their paths, eligibility and management commands.
+
+<!-- shipped-rules:start -->
+
+Authorized initial setup enables 9 individual editable default files only when no configuration layer declares `rules`.
+
+<!-- shipped-rules:end -->
+
+An explicit selection, including `rules: []`, is preserved; setup
+does not enable unselected defaults. Repeat setup preserves authored content. A missing rule file is reported rather than silently recreated.
+Creating a custom rule also enables it, and its preview states that activation
 before interactive writes. Merely saving a rule file does not activate it.
 
 The selected profile is user-wide by default. File settings control eligible repositories and files; invoking setup from a repository does not restrict the installed hooks to that repository. Use [configuration](configuration.md) to bound review scope. `--claude-home=PATH`, `--codex-home=PATH`, or `--pi-home=PATH` and the corresponding `--claude-executable=PATH`, `--codex-executable=PATH`, or `--pi-executable=PATH` select the registration and compatibility probe. An alternate registration home alone does not configure the client process to use that home.
@@ -328,7 +334,7 @@ Run `hapsland --version` alone to identify the invoked package version. This doe
 | `repair` | Restore missing owned Hapsland hooks |
 | `reinstall` | Replace marked Hapsland hooks, preserving user settings |
 | `uninstall` | Remove owned Hapsland hooks from registered integrations |
-| `rules` | Inspect, manage and test local JSON rules. Only check sends code to the classifier; other actions make no classifier calls. Defaults to list. Edit connected JSON files in your editor; there is no editor or disconnect command. |
+| `rules` | Inspect, manage and test local JSON rules. Only check sends code to the classifier; other actions make no classifier calls. Defaults to list. Edit rule JSON files in your editor. |
 
 #### hapsland dashboard
 
@@ -407,7 +413,7 @@ hapsland uninstall pi
 
 #### hapsland rules
 
-Inspect, manage and test local JSON rules. Only check sends code to the classifier; other actions make no classifier calls. Defaults to list. Edit connected JSON files in your editor; there is no editor or disconnect command.
+Inspect, manage and test local JSON rules. Only check sends code to the classifier; other actions make no classifier calls. Defaults to list. Edit rule JSON files in your editor.
 
 ```sh
 hapsland rules list

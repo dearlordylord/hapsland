@@ -164,7 +164,7 @@ const validateAuthoredIdentity = Effect.fn("Rules.validateAuthoredIdentity")(fun
     return yield* configurationError(
       path,
       "id",
-      "existing authored rule has a different identity; connect it explicitly instead"
+      "existing authored rule has a different identity; use rules connect instead"
     )
   const canonical = canonicalDestination(path)
   const prior = context.currentRules.find((candidate) => candidate.id === authored.id)
@@ -172,7 +172,7 @@ const validateAuthoredIdentity = Effect.fn("Rules.validateAuthoredIdentity")(fun
     return yield* configurationError(
       path,
       "id",
-      `rule identity is already connected to a different file: '${prior.path}' and '${canonical}'`
+      `rule identity already uses a different file: '${prior.path}' and '${canonical}'`
     )
   return { canonical, prior }
 })

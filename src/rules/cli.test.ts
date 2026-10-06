@@ -25,7 +25,7 @@ afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
-it("creates, inspects, disables and reconnects a project rule through the CLI", async () => {
+it("creates, inspects, disables and adds a project rule again through the CLI", async () => {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "hapsland-rules-cli-")))
   roots.push(root)
   execFileSync("git", ["init", "--quiet", root])
@@ -107,7 +107,7 @@ it("creates, inspects, disables and reconnects a project rule through the CLI", 
   expect(JSON.parse(run("list", "--json").stdout).rules).toHaveLength(1)
 })
 
-it("creates personal rules, connects a custom rule in defaults and rejects invalid inputs before writes", () => {
+it("creates personal rules, adds a custom rule in defaults and rejects invalid inputs before writes", () => {
   const root = mkdtempSync(join(tmpdir(), "hapsland-personal-rules-"))
   roots.push(root)
   execFileSync("git", ["init", "--quiet", root])
@@ -151,7 +151,7 @@ it("creates personal rules, connects a custom rule in defaults and rejects inval
   expect(run("list").stdout).toContain(original)
 })
 
-it("binds all connected authored sources to previews and rejects unsupported active schema rules before writes", async () => {
+it("binds all authored sources to previews and rejects unsupported active schema rules before writes", async () => {
   const root = mkdtempSync(join(tmpdir(), "hapsland-rule-preview-"))
   roots.push(root)
   execFileSync("git", ["init", "--quiet", root])
@@ -162,7 +162,7 @@ it("binds all connected authored sources to previews and rejects unsupported act
   await Effect.runPromise(applyRuleChange(root, create, initial.digest, options))
   const { formatRuleChangePreview } = await import("./command.ts")
   expect(formatRuleChangePreview(initial)).toContain(
-    `This will connect the rule in ${join(root, ".hapsland.jsonc")}. The rule will be enabled.`
+    `This will update the rule settings in ${join(root, ".hapsland.jsonc")}. The rule will be enabled.`
   )
   expect(initial.path).toBe(join(root, ".hapsland/rules/custom/domain%2Fcount.json"))
   const toggle = { action: "disable", scope: "project", id: "domain/count" } as const

@@ -51,7 +51,7 @@ schemas have no execution support, and concrete values are unsupported roots; a
 schema is not implicitly a type declaration or a higher evidence rung.
 
 One file defines one rule. Files become active only through explicit configuration
-`rules` references. New connections enable their rule unless disabled. References
+`rules` references. New rule references enable their rule unless disabled. References
 use either a local path or an inherited rule ID, with optional activation,
 languages, paths, threshold, and message settings. Paths belong to configuration.
 A duplicate identity or rebinding to a different file is an error. Rule content and
@@ -60,7 +60,7 @@ version labels. Existing default rule IDs (`r1_inferred_case` and the other `rN_
 IDs) remain stable. Initial setup provisions nine editable defaults only when no configuration layer
 declares `rules`. Any explicit selection, including `rules: []`, is authoritative:
 repeat setup preserves it and authored files, without enabling unselected defaults.
-Missing connected files fail validation instead of being recreated.
+Missing rule files fail validation instead of being recreated.
 
 The default body rule requires the exact function signature and body, not complete
 call/type closure. Missing references are explicit omissions and are not findings.
@@ -75,7 +75,7 @@ selects the enclosing supported declaration at a one-based line rather than
 requiring an attributed agent edit. It uses the same source policy, stable capture,
 parser, bounded graph, evidence admission, configured backend, credential discovery,
 probability interpretation and input limits as ordinary review. Optional `--id`
-selects one enabled connected rule; otherwise all eligible enabled rules run.
+selects one enabled rule; otherwise all eligible enabled rules run.
 This explicit command authorizes that classifier request; it starts no resident,
 fabricates no agent identity, publishes no agent advice and writes no inspection
 journal. A request at an ambiguous or unsupported line is skipped. Source changes

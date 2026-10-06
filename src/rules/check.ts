@@ -39,7 +39,7 @@ export const checkRuleAtLine = Effect.fn("Rules.checkAtLine")(function* (
   const rules = (settings.rules ?? []).filter((rule) => request.id === undefined || rule.id === request.id)
   if (request.id !== undefined && rules.length === 0)
     return yield* Effect.fail(
-      new Error(`Rule '${request.id}' is not enabled. Run hapsland rules list to inspect connected rules.`)
+      new Error(`Rule '${request.id}' is not enabled. Run hapsland rules list to inspect rules.`)
     )
   const selection = { root: repository.root, rootIdentity: repository.rootIdentity, path, line: request.line }
   const omissions: Array<{ path: string; declaration: string; reason: string }> = []

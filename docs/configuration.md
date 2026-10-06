@@ -74,22 +74,40 @@ analyzer's supported dependency resolution.
 For example, this project reviews TypeScript and Rust roots in `src`, while allowing
 related declarations from `shared`. A referenced `shared/private` file remains unread:
 
+<!-- rule-selection-example:start -->
+
 ```jsonc
 {
   "version": 1,
-  "includes": ["src/**"],
-  "languages": ["typescript", "rust"],
-  "contextIncludes": ["src/**", "shared/**"],
-  "privacyExcludes": ["shared/private/**"],
+  "includes": [
+    "src/**"
+  ],
+  "languages": [
+    "typescript",
+    "rust"
+  ],
+  "contextIncludes": [
+    "src/**",
+    "shared/**"
+  ],
+  "privacyExcludes": [
+    "shared/private/**"
+  ],
   "rules": [
     {
       "path": ".hapsland/rules/custom/no-primitive-obsession.json",
-      "languages": ["typescript"],
-      "includes": ["src/api/**"]
+      "languages": [
+        "typescript"
+      ],
+      "includes": [
+        "src/api/**"
+      ]
     }
   ]
 }
 ```
+
+<!-- rule-selection-example:end -->
 
 Path settings belong to configuration, never to the authored rule. A TypeScript
 rule restricted to `tests/**` cannot select anything when the global root scope is
@@ -217,7 +235,7 @@ and Stop behavior follows the shared delivery contract.
 
 <!-- shipped-rules:start -->
 
-When no loaded configuration layer declares a `rules` field, authorized initial setup materializes 9 editable default rule files under `~/.config/hapsland/rules/defaults/`.
+When no loaded configuration layer declares a `rules` field, authorized initial setup materializes 9 editable default rule files normally under `~/.config/hapsland/rules/defaults/`.
 
 <!-- shipped-rules:end -->
 
@@ -231,7 +249,7 @@ For example, `r1_inferred_case.json` retains the stable rule ID `r1_inferred_cas
 <!-- rule-file-identity:end -->
 
 The selected file is authoritative: editing it changes the rule;
-disabling or disconnecting it changes effective review. Deleting a connected file
+disabling it changes effective review. Deleting its file
 reports a missing-source error, rather than restoring a hidden default. Repeated
 setup preserves authored files. An unreferenced file is inactive in every directory.
 
@@ -270,15 +288,15 @@ not a request to extend intrinsic support. The provider receives one changed dec
 not a whole file, raw diff, task, or transcript. Missing required evidence prevents
 that rule's evaluation. Findings may concern pre-existing code within the changed root.
 
-### Author, connect, and inspect
+### Author, enable, and inspect
 
 Write a project rule under `<Git root>/.hapsland/rules/custom/`, or a personal rule
-under `~/.config/hapsland/rules/custom/`. Connect it explicitly using the
+under `~/.config/hapsland/rules/custom/`. Add it using the
 [generated command reference](#rule-commands) below. Its examples come from the
 same definitions as terminal help, rather than a separate maintained command list.
 
 `hapsland rules create --id no-primitive-obsession --scope project` creates a starting rule
-**and connects it**. Its preview states the activation, scope, and concrete files
+**and enables it**. Its preview states the activation, scope, and concrete files
 before interactive writes. Edit the created JSON to define the actual concern.
 Creation preserves an existing authored file. Interactive create/connect offers
 personal scope with project selected by default; unattended changes specify scope.
@@ -286,7 +304,7 @@ Neither operation opens an editor or calls the review backend.
 
 A `rules` entry contains either `path` to declare a rule or `id` to configure a rule
 inherited from a lower layer, plus optional `enabled`, `languages`, `includes`,
-`excludes`, `threshold`, and `message`. A new connection enables its rule unless
+`excludes`, `threshold`, and `message`. A new rule reference enables its rule unless
 explicitly disabled. Relative paths resolve from the declaring configuration.
 Project references must remain inside the Git worktree, including after symlink
 resolution; personal references may name user-managed files. Duplicate identities,
@@ -329,15 +347,15 @@ hapsland rules show --id r1_inferred_case
 
 <!-- first-rule-inspection:end -->
 
-See the [default concerns](../TYPE-DESIGN-RULES.md). The default
-`r6_bare_domain_value` already addresses primitive domain values; inspect it before
-adding a custom variant. `no-primitive-obsession` below teaches custom authoring.
+<!-- authoring-default:start -->
+
+See the [default rules](../TYPE-DESIGN-RULES.md). The default `r6_bare_domain_value` already addresses primitive domain values; inspect it before adding a custom variant. `no-primitive-obsession` below teaches custom authoring.
+
+<!-- authoring-default:end -->
 
 [Refactoring.Guru describes primitive obsession](https://refactoring.guru/smells/primitive-obsession)
 as using primitives or type codes where small objects should express domain
-meaning. This walkthrough checks the domain-value part visible in type
-declarations; it is not a ban on primitives or a check of every symptom in that
-article.
+meaning.
 
 **1. Choose one concern that the captured code can answer.** For example: “Do distinct
 domain concepts use interchangeable primitive values?” State what counts
@@ -345,7 +363,9 @@ as a violation and what should stay clear. Avoid combining unrelated concerns or
 asking about behavior that requires a task description, production data or a whole
 repository. See [what the checker can see](../README.md#what-can-the-checker-see).
 
-**2. Create a connected starter, then keep it disabled while editing.**
+**2. Create a starter, then keep it disabled while editing.**
+
+<!-- authoring-create:start -->
 
 ```sh
 hapsland rules create --id no-primitive-obsession --scope project
@@ -353,13 +373,17 @@ hapsland rules disable --id no-primitive-obsession --scope project
 hapsland rules show --id no-primitive-obsession
 ```
 
-`create` writes a starter and connects it enabled; it does not open an editor.
+<!-- authoring-create:end -->
+
+`create` writes an enabled starter; it does not open an editor.
 Interactive changes show a preview and ask for confirmation. Open the source path
-shown by `show` in your editor. Project scope keeps the rule and connection in the
+shown by `show` in your editor. Project scope keeps the rule and configuration in the
 repository; choose `--scope personal` for your user configuration instead.
 
 **3. Replace the starter's generic concern with your own.** For this example,
 save the following JSON in that created file, keeping the ID unchanged:
+
+<!-- authoring-rule:start -->
 
 ```json
 {
@@ -375,13 +399,21 @@ save the following JSON in that created file, keeping the ID unchanged:
   "threshold": 0.7,
   "inputs": [
     {
-      "languages": ["typescript"],
+      "languages": [
+        "typescript"
+      ],
       "kind": "type",
-      "requires": ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"]
+      "requires": [
+        "root-declaration",
+        "resolved-outbound-types",
+        "selected-source-type-closure"
+      ]
     }
   ]
 }
 ```
+
+<!-- authoring-rule:end -->
 
 The question asks about one violation; `criteria.true` describes a finding and
 `criteria.false` describes the acceptable case. `message` gives actionable feedback.
@@ -391,17 +423,23 @@ evidence or function bodies, declare the appropriate [input kind and required ev
 missing required evidence prevents evaluation. File filters and language/threshold
 overrides belong in configuration references, not the authored rule's path fields.
 
-If you prefer writing the JSON yourself, save one rule per file and connect it:
+If you prefer writing the JSON yourself, save one rule per file and add it:
+
+<!-- authoring-connect:start -->
 
 ```sh
 hapsland rules connect --path .hapsland/rules/custom/no-primitive-obsession.json --scope project
 ```
 
-This is an alternative to `create`, not an extra step for an already connected
-rule. `connect` validates the file and enables a new connection. You can also
-[declare its path directly in configuration](#author-connect-and-inspect).
+<!-- authoring-connect:end -->
+
+This is an alternative to `create`, not an extra step for a rule already listed
+by `rules list`. `connect` validates the file and enables a newly added rule. You can also
+[declare its path directly in configuration](#author-enable-and-inspect).
 
 **4. Enable and inspect the effective selection.**
+
+<!-- authoring-enable:start -->
 
 ```sh
 hapsland rules enable --id no-primitive-obsession --scope project
@@ -409,12 +447,14 @@ hapsland rules show --id no-primitive-obsession
 hapsland rules explain --id no-primitive-obsession --path src/primitive-obsession-examples.ts
 ```
 
+<!-- authoring-enable:end -->
+
 These commands make no classifier calls. `explain` checks configuration selection;
 it does not parse the source or establish whether the necessary evidence exists.
 
-**5. Test a violation and an acceptable case.** Create
-`src/primitive-obsession-examples.ts` with a loose domain type and a version using
-distinct ID types:
+<!-- authoring-source:start -->
+
+**5. Test a violation and an acceptable case.** Create `src/primitive-obsession-examples.ts` with a loose domain type and a version using distinct ID types:
 
 ```ts
 export type LooseOrder = {
@@ -431,24 +471,24 @@ export type Order = {
 }
 ```
 
+<!-- authoring-source:end -->
+
 Then run:
+
+<!-- authoring-check:start -->
 
 ```sh
 hapsland rules check --path src/primitive-obsession-examples.ts --line 2 --id no-primitive-obsession
 hapsland rules check --path src/primitive-obsession-examples.ts --line 10 --id no-primitive-obsession
 ```
 
-The first type lets customer and order IDs be interchanged and should trigger;
-the second gives them distinct types and should stay clear. The primitive `value`
-inside each wrapper is its representation, not itself a violation. A plain alias
-such as `type CustomerId = string` would still be interchangeable; merely naming
-a primitive does not establish a distinct type. These are expectations to check,
-not guaranteed classifier outputs. Each command selects the enclosing
-declaration and bounded related code, uses normal credential discovery and sends
-a real external classifier request that may incur charges. No resident or agent
-session is needed. Add `--json` to inspect the actual source-bearing input and
-probabilities. A skipped/unavailable result is not a clear result, and exit 0 also
-includes findings. See [file/line check details](#try-a-rule-on-a-file-and-line).
+<!-- authoring-check:end -->
+
+<!-- authoring-check-result:start -->
+
+The first type lets customer and order IDs be interchanged and should trigger; the second gives them distinct types and should stay clear. The primitive `value` inside each wrapper is its representation, not itself a violation. A plain alias such as `type CustomerId = string` would still be interchangeable; merely naming a primitive does not establish a distinct type. These are expectations to check, not guaranteed classifier outputs. Each command selects the enclosing declaration and bounded related code, uses normal credential discovery and sends a real external classifier request that may incur charges. No resident or agent session is needed. Add `--json` to inspect the actual source-bearing input and probabilities. A skipped/unavailable result is not a clear result, and exit 0 also includes findings. See [file/line check details](#try-a-rule-on-a-file-and-line).
+
+<!-- authoring-check-result:end -->
 
 **6. Refine against more examples before relying on it.** Try edge cases and
 similar code that should not trigger. Inspect the captured input before changing
@@ -462,13 +502,16 @@ remove the example source according to your project's conventions.
 
 ### Try a rule on a file and line
 
-`no-primitive-obsession` is the example custom rule created in the walkthrough,
-not a shipped default. Substitute an enabled ID from `hapsland rules list`.
+<!-- rule-check-example:start -->
+
+`no-primitive-obsession` is the example custom rule created in the walkthrough, not a shipped default. Substitute an enabled ID from `hapsland rules list`.
 
 ```sh
-hapsland rules check --path src/example.ts --line 12 --id no-primitive-obsession
-hapsland rules check --path src/example.ts --line 12 --json
+hapsland rules check --path src/primitive-obsession-examples.ts --line 2 --id no-primitive-obsession
+hapsland rules check --path src/primitive-obsession-examples.ts --line 2 --json
 ```
+
+<!-- rule-check-example:end -->
 
 `--path` is relative to the current directory, inside its Git working tree;
 `--line` is a positive one-based line inside a supported declaration. The command
@@ -478,7 +521,7 @@ evidence admission and classifier path as ordinary review. It does not pick a
 fixed number of surrounding lines or send the entire file. Blank lines outside
 roots and lines shared by multiple roots do not authorize a request.
 
-Only eligible **enabled connected rules** run. `--id` selects one; omit it to run
+Only eligible **enabled rules** run. `--id` selects one; omit it to run
 all eligible rules for that declaration. Normal root/context selection, privacy
 exclusions, ignored-file checks and resource limits still apply. Missing required
 evidence, no eligible rule, or a denied file produces an explained skip and no
@@ -494,15 +537,23 @@ classifier and may incur charges. Human output names the selected declaration,
 related source files, probabilities, thresholds and findings. `--json` includes
 the actual source-bearing classifier input, selection diagnostics and results;
 keep that output private when it contains private code. Source changes during
-review invalidate the result. Exit 0 means evaluated, **even with a finding**;
-exit 6 means skipped/unavailable or a local operation failure. Invalid command
-arguments are rejected before review. A clear result means no probability exceeded
+review invalidate the result.
+
+<!-- rule-check-exits:start -->
+
+Exit 0 means evaluated, **even with a finding**; exit 6 means skipped/unavailable or a local operation failure. Invalid command arguments are rejected before review.
+
+<!-- rule-check-exits:end -->
+
+A clear result means no probability exceeded
 its configured threshold; it is not proof that the code or rule is correct.
 
 Try representative positive and negative examples, including edge cases where
-similar code should not trigger. The [inspection dashboard](status.md#opt-in-local-inspection)
-provides another view of actual agent reviews after enabling `sessionInspection`;
-its journal does not include this one-off command.
+similar code should not trigger. <!-- rule-check-dashboard:start -->
+
+The [inspection dashboard](status.md#opt-in-local-inspection) provides another view of actual agent reviews after enabling `sessionInspection`; its journal does not include this one-off command.
+
+<!-- rule-check-dashboard:end -->
 
 <!-- rule-guide:start -->
 
@@ -512,14 +563,14 @@ The command definitions generate this reference and terminal help. `hapsland rul
 
 | Command | Purpose |
 |---|---|
-| `list` | List connected rules, activation and source files |
-| `show` | View a connected rule and its effective settings |
+| `list` | List rules, activation and source files |
+| `show` | View a rule and its effective settings |
 | `explain` | Explain activation and file/language selection |
 | `check` | Review the declaration at a file and line with the classifier |
-| `create` | Create and connect an editable rule |
-| `connect` | Connect an existing local JSON rule |
-| `enable` | Enable a connected rule in the selected scope |
-| `disable` | Disable a connected rule in the selected scope |
+| `create` | Create an editable rule |
+| `connect` | Add an existing local JSON rule |
+| `enable` | Enable a rule in the selected scope |
+| `disable` | Disable a rule in the selected scope |
 
 ```sh
 hapsland rules list

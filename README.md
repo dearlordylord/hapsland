@@ -97,7 +97,7 @@ and network calls remain native code. See [proof scope and evidence](./docs/arch
 
 <!-- shipped-rules:start -->
 
-With no explicit rule selection, authorized setup connects 9 editable JSON rule files with questions about code design, including whether a declaration allows meaningless combinations of values. Each rule declares supported languages, input forms, and required related code.
+With no explicit rule selection, authorized setup enables 9 editable JSON rule files with questions about code design, including whether a declaration allows meaningless combinations of values. Each rule declares supported languages, input forms, and required related code.
 
 <!-- shipped-rules:end -->
 
@@ -106,7 +106,7 @@ With no explicit rule selection, authorized setup connects 9 editable JSON rule 
 Inspect them with `hapsland rules list` or `hapsland rules show --id r1_inferred_case`.
 
 <!-- rule-inspection:end -->
-Author one rule per file and connect it explicitly. Choose personal or project
+Author one rule per file and enable it explicitly. Choose personal or project
 settings for activation, languages, file scope, threshold, and feedback messages.
 File paths belong to settings; the rule defines the concern and evidence it needs.
 A configured rule runs only on supported inputs with sufficient evidence. See
@@ -128,12 +128,12 @@ Start with the **9 editable default rules**.
 Run `hapsland rules list`, then `hapsland rules show --id r1_inferred_case` to inspect one and its source file.
 
 <!-- first-rule-inspection:end -->
-You may already have a rule for your concern. Setup connects defaults when no
+You may already have a rule for your concern. Setup enables defaults when no
 explicit rule selection is configured; your current inventory shows what is
-actually connected and enabled.
+available and enabled.
 
 For a custom concern, follow the [first-rule walkthrough](./docs/configuration.md#write-your-first-rule):
-create and connect a starter with `hapsland rules create`, edit its JSON in your
+create a starter with `hapsland rules create`, edit its JSON in your
 editor, then test examples that should trigger and stay clear with `rules check`.
 You can also write a JSON file yourself and use `rules connect`. These are local
 editable files; you do not need the Hapsland source checkout.
@@ -144,9 +144,13 @@ Try a rule against a specific declaration without making an agent edit. This
 example uses the custom rule created in the walkthrough; substitute an enabled ID
 from `hapsland rules list` to check another rule:
 
+<!-- rule-check-example:start -->
+
 ```sh
-hapsland rules check --path src/example.ts --line 12 --id no-primitive-obsession
+hapsland rules check --path src/primitive-obsession-examples.ts --line 2 --id no-primitive-obsession
 ```
+
+<!-- rule-check-example:end -->
 
 The line is one-based and selects its enclosing supported declaration. Hapsland
 captures that declaration and bounded related code with the normal parser, scope,
@@ -154,21 +158,22 @@ privacy and evidence checks, then sends the eligible rule and code to your
 configured external classifier. This is a real request and may incur charges.
 Omit `--id` to check all eligible enabled rules. It uses normal key discovery and
 starts neither a resident nor an agent session. Add `--json` to see the actual
-source-bearing classifier input and probabilities. Exit 0 means evaluation
-completed, including findings; exit 6 means skipped or unavailable, not a passing
-check. Try both examples that should trigger and examples that should stay clear;
+source-bearing classifier input and probabilities.
+
+<!-- rule-check-exits:start -->
+
+Exit 0 means evaluation completed, including findings; exit 6 means skipped or unavailable, not a passing check.
+
+<!-- rule-check-exits:end -->
+
+Try both examples that should trigger and examples that should stay clear;
 one result does not establish rule accuracy.
 
-To inspect **ordinary agent reviews**, enable the debug recording setting by
-merging `"sessionInspection": true` into the repository's `.hapsland.jsonc`,
-make a new eligible edit through an installed integration, then run
-`hapsland dashboard`. The dashboard lets you inspect captured declarations,
-related context, classifier results, and feedback. Recording is off by default,
-contains source, and is independent of analytics. Opening the dashboard does not
-enable recording or backfill history. One-off `rules check` results are returned
-in the terminal; they are not recorded in the resident journal. See
-[rule checks](./docs/configuration.md#try-a-rule-on-a-file-and-line) and
-[dashboard setup](./docs/status.md#opt-in-local-inspection).
+<!-- rule-check-dashboard:start -->
+
+To inspect **ordinary agent reviews**, enable the debug recording setting by merging `"sessionInspection": true` into the repository's `.hapsland.jsonc`, make a new eligible edit through an installed integration, then run `hapsland dashboard`. The dashboard lets you inspect captured declarations, related context, classifier results, and feedback. Recording is off by default, contains source, and is independent of analytics. Opening the dashboard does not enable recording or backfill history. One-off `hapsland rules check` results are returned in the terminal; they are not recorded in the resident journal. See [rule checks](./docs/configuration.md#try-a-rule-on-a-file-and-line) and [dashboard setup](./docs/status.md#opt-in-local-inspection).
+
+<!-- rule-check-dashboard:end -->
 
 ## A contextual comparison with Abide
 

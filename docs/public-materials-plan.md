@@ -74,7 +74,7 @@ The narrative order is:
 5. Short “what is checked” paragraph with precise proof scope and links.
 6. Links to the interactive example, configuration, and technical architecture.
 
-Each custom rule is one local JSONC document, explicitly connected through configuration. Mention the
+Each custom rule is one local JSONC document, enabled through configuration. Mention the
 capability and link [configuration](configuration.md); a full authoring tutorial
 is outside the first-read flow. Supported rule targets depend on language/context.
 Do not imply every built-in rule applies to every function or type.
