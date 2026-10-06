@@ -151,7 +151,7 @@ hapsland rules check --path src/primitive-obsession-examples.ts --line 2 --id no
 
 <!-- rule-check-example:end -->
 
-The line is one-based and selects its enclosing supported declaration. Hapsland
+The line is one-based and selects its enclosing declaration. Hapsland
 captures that declaration and bounded related code with the normal parser, scope,
 privacy and evidence checks, then sends the eligible rule and code to your
 configured external classifier. This is a real request and may incur charges.
