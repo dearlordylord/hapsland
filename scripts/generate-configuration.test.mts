@@ -6,6 +6,20 @@ import { spawnSync } from "./test-harness/process.mjs"
 import { fileURLToPath } from "node:url"
 import { fromJSONSchema } from "zod/v4"
 import * as Schema from "effect/Schema"
+import * as Effect from "effect/Effect"
+import { rm } from "node:fs/promises"
+import {
+  authoringCommandExamples,
+  authoringRuleExample,
+  authoringSelections,
+  authoringSourceExample,
+  authoringSourcePath
+} from "./rule-authoring-example.ts"
+import { parseInvocation } from "../src/cli-command.ts"
+import { makeGitFixture, put } from "../src/direct-event/test-fixtures.ts"
+import { discoverPhysicalWorkingTreeRoot } from "../src/repository/root.ts"
+import { loadReviewSettings } from "../src/runtime/review-config.ts"
+import { prepareSourceLine, preparedProviderInput } from "../src/direct-event/pipeline.ts"
 import { describe, expect, it } from "vitest"
 import { decodeConfigurationText } from "../src/configuration/decode.ts"
 import { decodeRuleText } from "../src/rules/schema.ts"
@@ -75,6 +89,36 @@ const codeBlocks = (markdown: string): ReadonlyArray<string> =>
   [...markdown.matchAll(/```(?:jsonc|json)\n([\s\S]*?)\n```/gu)].map((match) => match[1] ?? "")
 
 describe("configuration documentation generator", () => {
+  it("keeps the authoring commands and source selections executable through runtime owners", async () => {
+    for (const command of authoringCommandExamples)
+      expect(await parseInvocation(command.split(" ").slice(1))).toMatchObject({ kind: "rules" })
+    const root = await makeGitFixture()
+    try {
+      await put(root, "rule.json", JSON.stringify(authoringRuleExample))
+      await put(root, "user.json", JSON.stringify({ version: 1 }))
+      await put(root, ".hapsland.jsonc", JSON.stringify({ version: 1, rules: ["rule.json"] }))
+      await put(root, authoringSourcePath, authoringSourceExample)
+      const settings = await Effect.runPromise(loadReviewSettings(root, { userConfigPath: join(root, "user.json") }))
+      const repository = await Effect.runPromise(discoverPhysicalWorkingTreeRoot(root))
+      for (const selection of authoringSelections) {
+        const result = await Effect.runPromise(
+          prepareSourceLine({ ...repository, path: authoringSourcePath, line: selection.line }, { settings })
+        )
+        const ready = result.outcomes.flatMap((outcome) => (outcome.status === "ready" ? [outcome.prepared] : []))
+        expect(ready).toHaveLength(1)
+        expect(ready[0]!.input.declaration.name).toBe(selection.declaration)
+        expect(ready[0]!.input.rules.map((rule) => rule.id)).toEqual([authoringRuleExample.id])
+        if (selection.declaration === "Order") {
+          const input = JSON.stringify(preparedProviderInput(ready[0]!))
+          expect(input).toContain("customer-id")
+          expect(input).toContain("order-id")
+        }
+      }
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
   it("reflects a changed Effect Schema field in both generated outputs", () => {
     const changedSchema = Schema.Struct({
       version: Schema.Literal(1),
@@ -170,11 +214,11 @@ describe("configuration documentation generator", () => {
         configurationValidator.safeParse({ version: 1, rules: [{ path: "rule.json", threshold: 0.5 }] }).success
       ).toBe(true)
       expect(
-        configurationValidator.safeParse({ version: 1, rules: [{ path: "rule.json", id: "team/check" }] }).success
+        configurationValidator.safeParse({ version: 1, rules: [{ path: "rule.json", id: "namespace/check" }] }).success
       ).toBe(false)
       expect(configurationValidator.safeParse({ version: 1, packs: [] }).success).toBe(false)
       expect(
-        configurationValidator.safeParse({ version: 1, rules: [{ id: "team/check", threshold: 1.1 }] }).success
+        configurationValidator.safeParse({ version: 1, rules: [{ id: "namespace/check", threshold: 1.1 }] }).success
       ).toBe(false)
       const authored = JSON.parse(ruleExample ?? "{}")
       expect(ruleValidator.safeParse(authored).success).toBe(true)
@@ -188,7 +232,7 @@ describe("configuration documentation generator", () => {
         expect(ruleValidator.safeParse(invalid).success).toBe(false)
         expect(() => decodeRuleText(JSON.stringify(invalid), "invalid.json")).toThrow()
       }
-      for (const identity of ["team:name", "team\\name", "team name", "../rule", "team/../rule"]) {
+      for (const identity of ["team:name", "team\\name", "team name", "../rule", "namespace/../rule"]) {
         expect(ruleValidator.safeParse({ ...authored, id: identity }).success).toBe(false)
         expect(() => decodeRuleText(JSON.stringify({ ...authored, id: identity }), "invalid.json")).toThrow()
       }

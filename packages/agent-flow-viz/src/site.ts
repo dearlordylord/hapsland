@@ -548,13 +548,10 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
               h.p(
                 [],
                 [
-                  "Jev classifies code against the questions; Hapsland uses the result and your settings to choose the feedback message. Add local rule packs for your team's concerns. Choose their scope, thresholds and feedback messages. Rules run only when the supplied code meets their evidence needs. No feedback does not mean every check passed: a check may be skipped or fail to run."
+                  "Jev classifies code against the questions; Hapsland uses the result and your settings to choose the feedback message. Add local rules for your team's concerns. Choose their scope, thresholds and feedback messages. Rules run only when the supplied code meets their evidence needs. No feedback does not mean every check passed: a check may be skipped or fail to run."
                 ]
               ),
-              h.a(
-                [h.Href(`${guide("configuration")}#declarative-rule-packs`), h.Class("text-link")],
-                ["See custom rule packs ↗"]
-              )
+              h.a([h.Href(`${guide("configuration")}#declarative-rules`), h.Class("text-link")], ["See custom rules ↗"])
             ]
           )
         ]

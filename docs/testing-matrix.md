@@ -4,7 +4,7 @@
 **Status:** Maintained testing guidance.
 **Authority:** Maintained guidance and implementation or validation evidence; product behavior remains defined by its named contracts.
 **Expected use:** Select the smallest relevant gate before a change, locate the current manual native integration runner, and distinguish source-checkout observations from package or platform support.
-**Lifecycle:** Update this matrix whenever a test scenario, runner, supported language or runtime profile, or evidence owner changes. Review it when a milestone retires or replaces a runner; delete obsolete instructions and retain evidence only while a current decision, claim, or open review needs its provenance.
+**Lifecycle:** Update this matrix whenever a test scenario, runner, language or runtime profile, or evidence owner changes. Review it when a milestone retires or replaces a runner; delete obsolete instructions and retain evidence only while a current decision, claim, or open review needs its provenance.
 
 ## Verification profiles
 
@@ -21,14 +21,14 @@ retain conservative periodic snapshots; focused coverage is not a full gate.
 | `fast` | Typecheck, generated configuration, changed-file lint and selected component tests | Optional explicit files |
 | `boundary` | IPC, process, CLI, hooks and installation consumers | Required explicit files; package preparation follows the selected import closure |
 | `native` | Compiler checks or a real agent scenario | `--native-target=typescript\|rust\|bend` and compiler test files; or explicit `--host`, `--provider`, `--model`, `--scenario` |
-| `stress` | Long bounded saturation, seeded simulation or contention checks | Required explicit files; assertions and seeds stay unchanged |
+| `stress` | Saturation tests with a deadline, seeded simulation or contention checks | Required explicit files; assertions and seeds stay unchanged |
 | `quality` | Existing full deterministic gate and fresh coverage/CRAP analysis | Complete inventory; filters are refused |
 
 `--timeout-ms=N` sets the finite run deadline. Compiler version preflight alone
 is not compiler validation; select the compiler tests for the changed owner.
 Agent profiles select the declared model; Pi requires its existing
 `openai/gpt-6-luna` profile. Pi checks its pinned runtime and confirms that model
-with one bounded, tool-free request before preparing a package. A receipt is
+with one tool-free request with a timeout before preparing a package. A receipt is
 reused only within the same owned run and unchanged profile; model response and
 credentials are not retained. Real agent runs remain explicit.
 
@@ -95,13 +95,13 @@ evidence before regenerating the scenario pages.
 | Installed hook inventory | `npm run hooks:generate`; `npm run docs:check` | README table generated from the shared Codex, Claude Code and Pi hook catalog | Documentation matches registration definitions; no native lifecycle execution claim |
 | Comparison scenario documentation | `node scripts/generate-abide-scenario-pages.mjs --check` | Six generated reader pages, 36 linked input variants and helpers, measured fixture digest and frozen per-scenario results | Inline code and displayed scenario outcomes match their owners; offline, no new measurement |
 | Native game recording | `node --test prototypes/canonical-defense/recording-launch.test.mjs prototypes/canonical-defense/cached-build.test.mjs`; `node prototypes/canonical-defense/check-recording.mjs` | Realtime file visibility, exact complete-World restore and full playback, playback isolation, reset replacement, stale identity rejection and interrupted-tail recovery | Focused native/emitted host and physical file checks within 380 seconds; no power-loss durability, old-build compatibility or shared-engine milestone claim |
-| Optional game balance laboratory | `node scripts/build-game-lab.mjs --check`; `npm run test:focused -- scripts/game-balance-lab.test.mts`; `node_modules/.bin/tsc -p prototypes/canonical-defense/lab/tsconfig.json --noEmit` | Shared game translation, actual-game placement/upgrades/health, bounded strength/radius, fixed investments, refusal, ordinary business replay, paired/interaction comparisons and held-out separation | Declared offline fixtures and finite search; see [current limits](../prototypes/canonical-defense/lab/README.md#actual-game-ability-boundary); Host changes also require the game-consumer runner |
+| Optional game balance laboratory | `node scripts/build-game-lab.mjs --check`; `npm run test:focused -- scripts/game-balance-lab.test.mts`; `node_modules/.bin/tsc -p prototypes/canonical-defense/lab/tsconfig.json --noEmit` | Shared game translation, actual-game placement/upgrades/health, strength/radius limits, fixed investments, refusal, ordinary business replay, paired/interaction comparisons and held-out separation | Declared offline fixtures and finite search; see [current limits](../prototypes/canonical-defense/lab/README.md#actual-game-ability-boundary); Host changes also require the game-consumer runner |
 | Actual-Lab native behavioral predicates | `node scripts/verify-game-lab-native-tests.mjs`; `node --test scripts/verify-game-lab-native-tests.test.mjs scripts/game-consumer-deadline.test.mjs` | 20 independently expected construction, budget, captured timing/lease and access-restoration predicates in native/emitted JavaScript; verifier rejection and deadline/identity sensitivity | Source5/C30/clang30/JS30/exec5 per root, finite30-minute runner; exact existing foreign numeric-IO declarations excluded from source checks, no universal proof or platform claim |
 | Laboratory native/emitted full traces | `python3 packages/monkey-business-bend/conformance/generate-callback-native-prefix.py --optional-profile prototypes/canonical-defense/lab-native-prefix-profile.json --check`; `node scripts/run-game-consumer.mjs --lab` | Seven declared scenarios × 40 ticks; complete before/intervention/after Worlds, frames and physical deliveries; exact scenario/tick and hard event-budget accounting | Source/tool-pinned native/emitted agreement; C emission within the authenticated 380s supervisor deadline (direct fixture command: 30s), clang preparation 120s as in the full game consumer, JS emission 30s, each scenario execution 5s; public replay and window behavior require their separate checks |
 | Focused implementation checks | `npm run test:focused -- <test files>`; `npm run check:fast` | Explicit test files and typing/configuration checks; no full suite or proof chain | Changed owners only; does not qualify full source coverage |
 | Development snapshot cache and packing | `node --test scripts/artifact-store.test.mjs scripts/dev-pack.test.mjs scripts/test-harness/prepare-archive.test.mjs` | Build-input changes, ignored tool caches, lock ownership, archive integrity, npm file selection and executable bins | Local dev archives use gzip level 1; npm release packing is unchanged. Identical worktrees share content-addressed build outputs and archives. Corruption and in-flight input changes are rejected; each check still executes afresh. |
 | Routine deterministic gate | `npm test` | Bend artifact and authority checks, boundary scripts, Vitest tests for the reducer, adapters, resident, and CLI | Logic and controlled fixtures; no native agent or Jev call |
-| Process harness contention | `npm run test:contention`; `npm run test:harness:inventory` | Full deterministic gate under bounded Linux CPU pressure; transitive process/scenario inventory; hung-child cleanup probes | Declared scheduling profile and finite harness failure; no product deadline, latency, or arbitrary-starvation claim |
+| Process harness contention | `npm run test:contention`; `npm run test:harness:inventory` | Full deterministic gate under the declared Linux CPU-pressure profile; transitive process/scenario inventory; hung-child cleanup probes | Declared scheduling profile and finite harness failure; no product deadline, latency, or arbitrary-starvation claim |
 | TypeScript quality gate | `npm run quality:check` | Full deterministic gate with fresh Istanbul coverage, then pinned crap4ts analysis of `src` | Per-function complexity and coverage policy; strict missing evidence; no correctness or assertion-quality guarantee |
 | Compile/package source | `npm run typecheck`; `npm run build` | TypeScript typing, Bend artifacts, native helpers, standalone Bun commands and agent extension assets | Buildability of this checkout; unsupported hosts retain format-verified declared native artifacts without target-host validation |
 | Hook review-engine import invariant | `npx vitest run --maxWorkers=1 src/runtime/review-engine-boundary.test.ts scripts/cli-import-boundary.test.mts` | Five engine/parser/provider module boundaries under every hook flag; permitted manual imports; static eager import closure | Runtime import violations emit a fixed diagnostic and throw, including dynamic imports; static dependencies can initialize before their module assertion |
@@ -117,7 +117,7 @@ evidence before regenerating the scenario pages.
 | Pi native limits and reviewer failure | Same shared runner with `--host=pi --language=typescript --scenario=unsupported-write`, `--scenario=unicode-edit`, or `--scenario=reviewer-unavailable` | Installed isolated Pi native mutation and selected truthful failure paths | Selected observations only; no broad fault-matrix or platform claim |
 | Native Pi assertion regression | `node --test scripts/native-pi-observation.test.mjs` | Planted visibility, attribution, semantic expansion, and correlated follow-up failures | Runner verdict cannot conflate submitted advice with visible advice or repair |
 | Full native fault matrix | `node scripts/run-native-negative-matrix.mjs` | All 24 controlled negative cells, at most three real host sessions at once | Per-cell declarations, results, and batch summary; no Jev requests |
-| Paid source-checkout adoption | Same runner with `--scenario=adoption --live --execute-paid` | Real agent plus real Jev; six HTTP attempts maximum per invocation | Bounded selected live path, with each run's outcome retained separately |
+| Paid source-checkout adoption | Same runner with `--scenario=adoption --live --execute-paid` | Real agent plus real Jev; six HTTP attempts maximum per invocation | Selected live path within the request budget, with each run's outcome retained separately |
 | Source-checkout Abide coexistence | Same runner with `--host=HOST --language=typescript --coexistence=CASE --abide-prefix=PREFIX --hook-order=ORDER` | Real Codex/Claude, released Abide 0.0.7 handlers, controlled reviewers; `both` additionally accepts `--live --execute-paid` | Selected delivery, independent reviewer failure and file-exclusion cases; no general installed-package or native-trust declaration |
 | Abide installer coexistence | `node scripts/run-abide-installation-witness.mjs --abide-prefix=PREFIX` | Real source Hapsland and released Abide installers in isolated profiles; both orders, repeat init and each uninstall | Registration preservation only; no native agent session or Jev call |
 
@@ -134,9 +134,9 @@ Local completion uses the smallest checks that establish the changed behavior:
   consumer checks. Build/package checks apply when their inputs or output layout
   change.
 - Full fresh-coverage CRAP gate: releases, declared milestones, large cross-cutting
-  features whose impact cannot be bounded by focused checks, and explicit
+  features whose impact cannot be assessed with focused checks, and explicit
   requests. State the additional evidence before running it. A filename or
-  literal replacement, or a bounded configuration fix, does not automatically
+  literal replacement, or a small configuration fix, does not automatically
   require a full gate. CI continues to run the full gate; local focused checks
   do not claim full-project coverage.
 
@@ -225,7 +225,7 @@ checks and the final milestone gate remain separate requirements.
 The [source discovery tests](../src/inspection/registry.test.ts) connect two real
 residents through retained private registrations and the public inspection API.
 They reject changed private permissions, owner symlinks and FIFOs, distinguish
-resident exit from lifetime replacement, and check bounded metadata and source
+resident exit from lifetime replacement, and check size-limited metadata and source
 counts. Inspection probes use a separate private `inspection.sock` endpoint accepting only hello and lifetime-bound recording-status reads. Its four connection slots and 300 ms total connection deadline are independent of the 32 hook-control slots. The socket saturation test verifies control requests while inspection is full, read-only probes while control is full, and rejection of cleanup on the inspection endpoint, and closure despite trickled incomplete input. Probes do not start residents or extend review lifetime.
 The Pi browser gate exercises distinct residents and roots with native selectors;
 its keyboard checks cover focus traversal and button activation, not native popup
@@ -250,7 +250,7 @@ checks do not establish replay cursors or complete recording coverage.
 The [public replay test](../src/inspection/replay.test.ts) records two real resident
 sources, takes a snapshot, records further edits, and resumes after each source's
 sequence position through HTTP and SSE `Last-Event-ID`. Resumed SSE frames carry
-only records after each saved source position, plus a bounded list of the current
+only records after each saved source position, plus a list with an entry limit of the current
 view's retained identities. An unchanged cursor sends no record payloads. The
 browser merges by source/sequence and removes identities no longer retained. Fresh or reset frames replace the retained view. Repeated
 source/sequence records are idempotent. Cursors are signed per inspector launch, carry at most 128
@@ -260,11 +260,11 @@ after actual journal expiry. Coverage is
 always limited to retained observations; this does not prove that silent capture
 failures are known. Exact loss markers distinguish known expiry and capacity eviction;
 missing markers keep the reason unknown. The [slow-consumer test](../src/inspection/consumer.test.ts) pauses a real TCP
-reader against a bounded saturated feed. A real resident review and private
+reader against a saturated feed with event-size limits. A real resident review and private
 journal publication continue, the stalled response closes, and a new connection
 retrieves that review with the saved cursor. Five seconds of continuous socket
 backpressure trigger closure, checked every 100 ms; draining resets the deadline.
-The HTTP adapter waits for drain before pulling another bounded event, so a slow
+The HTTP adapter waits for drain before pulling another size-limited event, so a slow
 feed retains one response frame rather than an unbounded event queue. This is an
 observed local transport case, not a general network latency guarantee.
 
@@ -273,8 +273,7 @@ real resident's disabled-state history write and verifies that the public API
 still reports the resident's disabled capture state separately from its last
 retained enabled observation. The lifetime-bound `inspection-status` operation
 reads only in-memory recorder state: it neither starts a resident nor changes
-recording, review, cleanup or submission state. Known roots and metadata are
-bounded, with omitted counts. The Pi browser checks enabled observations from
+recording, review, cleanup or submission state. Known roots and metadata have entry and size limits, with omitted counts. The Pi browser checks enabled observations from
 three live sources and unknown current root states after their disconnection.
 Configuration changes apply at the next edit admission; this observation does
 not reread project files or guarantee successful persistence. Paused displays
@@ -284,15 +283,15 @@ review policy. It verifies five retained state periods and three consent epochs,
 links each period to its next retained transition, and excludes disabled edits
 from source-bearing history. An open historical period does not claim current
 state or continuous coverage. Its configured 4 MiB fixture quota preserves the
-full bounded marker window for the selected older handoff's expiry check; the
-physical default-cap journal check is described above; bounded marker retention and
+full marker retention window for the selected older handoff's expiry check; the
+physical default-cap journal check is described above; marker retention limits and
 marker loss have separate journal checks.
 
 Loss markers are source-free, private, immutable version-one journal objects
 naming an exact removed source/sequence identity and the observed reason. They
 are published after successful unlink, under the journal lock, and count toward
 the same allocated cap with their temporary files. At most 128 markers are kept,
-further bounded by the configured quota; diagnostic retention ages from removal.
+further limited by the configured quota; diagnostic retention ages from removal.
 Older markers can be lost, so absence is not evidence of complete coverage.
 The journal samples records and markers together for HTTP, replay and payload
 reads. [Journal tests](../src/inspection/storage.test.ts) cover capacity markers
@@ -383,7 +382,7 @@ milestones; those remain separate declared checks above.
 
 The [proof toolchain installer](../scripts/install-bend-toolchain.mjs) downloads
 first-party Linux x64/arm64 archives with pinned SHA256 digests and checks the
-progress proof with Bend’s bundled kernel before the bounded harness starts.
+progress proof with Bend’s bundled kernel before the harness starts.
 Bend 2.0.34 is pinned to upstream source commit
 `7d8a3eb036042c6549461054d25a10f26d361c5c`; its kernel requires Lean 4.34.0.
 Run the installer once and add its printed bin directories to `PATH` for local
@@ -399,7 +398,7 @@ threshold of **8** with missing evidence treated as an error.
 to **1.0.5** (`DEPEND ON`); the V8 coverage provider is pinned to the same
 release as Vitest and emits Istanbul JSON, not raw V8 coverage.
 The [harness policy](../scripts/test-harness/policy.mjs) applies a five-second per-test watchdog in ordinary unit files and a
-60-second per-test watchdog in process-capable or explicitly named bounded
+60-second per-test watchdog in process-capable or explicitly named time-limited
 scenario files, in ordinary and coverage runs alike.
 `npm run test:harness:inventory` derives the classification from transitive
 runtime imports and reports the dependency that caused each process classification.
@@ -421,7 +420,7 @@ the test, file, class, and test or cleanup phase. Deliberately hung-child tests
 verify a finite failure and that the immediate child has been reaped.
 Asynchronous `spawn` fixtures retain their explicit lifecycle and cleanup controls.
 These scheduling allowances are harness limits, not product latency requirements;
-product runtime deadlines, retries, and supported profiles are unchanged.
+product runtime deadlines, retries, and runtime profiles are unchanged.
 
 Keep process tests for boundaries that require actual executable, socket, or host
 behavior. Test domain variants once at their owning layer rather than repeating
@@ -454,8 +453,7 @@ option does not remove test cases or replace source coverage evidence.
 the runner, suite, and two busy workers share the first four allowed CPUs
 (or fewer when unavailable). Worker readiness is acknowledged through IPC.
 A 30-minute fixture bound kills the suite process group; completion or interruption
-kills and reaps the owned pressure workers. This is a bounded scheduling-pressure
-check, not a throughput benchmark or proof for arbitrary host starvation.
+kills and reaps the owned pressure workers. This is a scheduling-pressure check with a deadline, not a throughput benchmark or proof for arbitrary host starvation.
 No sleep is used to establish correctness or concurrency ordering.
 
 Subprocess coverage is enabled so CLI and resident tests contribute evidence
@@ -541,7 +539,7 @@ and remove unsupported internal-shape assertions instead of inventing context.
 
 ### Stop-family observation owner
 
-The agreed Stop fixture projection is the bounded `BusinessState` containing
+The agreed Stop fixture projection is the finite-domain `BusinessState` containing
 `Canonical.State` and the relevant `StopScenario.Finish` records. Its
 implementation captures ordered event and command facts from actual transitions,
 rather than a second policy simulator. Recursive private Stop-driver `Runtime`,
@@ -601,7 +599,7 @@ phases, and unchanged C/binary hashes. Invalid receipts fail before spawning;
 ordinary checks remain fresh. Report resumed phases separately from fresh ones.
 
 Do not repeat an unchanged failed check. The next run must test a concrete repair,
-a competing cause, or an explicitly declared bounded budget amendment. Reuse a
+a competing cause, or an explicitly declared budget amendment. Reuse a
 successful result only for the exact inputs and scope it validated. Optional
 proposal proofs are separate from business qualification; do not make them a
 completion gate unless an accepted contract requires them. Accepted production
@@ -627,7 +625,7 @@ Before a command expected to exceed one minute, declare its expected duration an
 wall-clock stop time. The runner supplies a finite deadline: five minutes for focused checks and
 25 minutes for full checks, including nested coverage commands. Override it
 explicitly with `--timeout-ms=<milliseconds>` when the declared check needs a
-different bounded budget; nested commands cannot extend the parent deadline. Use its retained stage evidence to distinguish preparation,
+different budget; nested commands cannot extend the parent deadline. Use its retained stage evidence to distinguish preparation,
 build, proof, test and analysis failures instead of blindly rerunning tests.
 These rules borrow the finite-work and retained-evidence approach from
 [Dalph development guidance](https://github.com/dearlordylord/dalph/blob/master/docs/development/workflow.md#keeping-implementation-work-finite).
@@ -733,7 +731,7 @@ and follow-up review was observed. All 15 runner checks passed with zero Jev
 requests. This is source-checkout evidence with declared trust/sandbox bypasses,
 not installed-package or ordinary interactive trust validation.
 
-Run `node scripts/run-native-negative-matrix.mjs` to exercise all 24 negative cells in one bounded batch. Negative scenarios use the controlled offline reviewer and make **zero Jev requests**. The runner records hook event order, source-free request shape, outcome identity hashes, compiler status, and the exact checks used for its verdict. A native run is an observed case, not a frequency estimate or proof of every interleaving. The [negative scenario index](../evidence/native-negative/index.json) records the six cells per scenario and any incomplete attempts.
+Run `node scripts/run-native-negative-matrix.mjs` to exercise all 24 negative cells in one finite batch. Negative scenarios use the controlled offline reviewer and make **zero Jev requests**. The runner records hook event order, source-free request shape, outcome identity hashes, compiler status, and the exact checks used for its verdict. A native run is an observed case, not a frequency estimate or proof of every interleaving. The [negative scenario index](../evidence/native-negative/index.json) records the six cells per scenario and any incomplete attempts.
 
 The 2026-10-01 run has 24 selected demonstrated cells and zero Jev requests. Its first batch passed 23 of 24 cells. In the remaining Claude TypeScript case the first result finished before the second edit, so that attempt could not test a stale result. A separately declared 13-second controlled delay produced the intended order and passed. Both records remain linked in the index. The stale case allows the older review result to remain accounted for internally; it asserts that the old finding does not reach the agent after the newer edit and clear result.
 

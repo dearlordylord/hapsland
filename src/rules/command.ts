@@ -1,4 +1,5 @@
 import { Config, Effect, Option } from "effect"
+import { RULE_CHECK_EXIT_CODES } from "./cli-definition.ts"
 import type { RulesOptions } from "../cli-command.ts"
 import { discoverWorkingTreeRoot } from "../repository/root.ts"
 import { askConfirmation } from "../onboarding/confirmation.ts"
@@ -6,10 +7,10 @@ import { loadRuleInventory, formatRuleInventory, formatRule, explainRule } from 
 import { applyRuleChange, previewRuleChange, type RuleChange } from "./management.ts"
 
 export const formatRuleChangePreview = (plan: Effect.Success<ReturnType<typeof previewRuleChange>>): string =>
-  `Scope: ${plan.change.scope}\nConfiguration: ${plan.configurationPath}\n${plan.path === undefined ? "" : `Rule file: ${plan.path}\n`}${plan.change.action === "create" || plan.change.action === "connect" ? `This will connect the rule in ${plan.configurationPath}. The rule will be ${plan.enabled ? "enabled" : "disabled"}.\n` : `The rule will be ${plan.enabled ? "enabled" : "disabled"}.\n`}`
+  `Scope: ${plan.change.scope}\nConfiguration: ${plan.configurationPath}\n${plan.path === undefined ? "" : `Rule file: ${plan.path}\n`}${plan.change.action === "create" || plan.change.action === "connect" ? `This will update the rule settings in ${plan.configurationPath}. The rule will be ${plan.enabled ? "enabled" : "disabled"}.\n` : `The rule will be ${plan.enabled ? "enabled" : "disabled"}.\n`}`
 
 type RuleInspectionAction = "list" | "show" | "explain"
-const inspectionAction = (action: RuleInspectionAction | RuleChange["action"]): action is RuleInspectionAction =>
+const inspectionAction = (action: RulesOptions["action"]): action is RuleInspectionAction =>
   action === "list" || action === "show" || action === "explain"
 const inspectionOutput = (
   action: "show" | "explain",
@@ -34,7 +35,7 @@ const inspectRules = Effect.fn("Rules.inspectCommand")(function* (
     const rule = inventory.rules.find((candidate) => candidate.id === options.id)
     if (rule === undefined)
       return yield* Effect.fail(
-        new Error(`Unknown rule identity '${options.id}'. Run hapsland rules list to find connected identities.`)
+        new Error(`Unknown rule identity '${options.id}'. Run hapsland rules list to find rule identities.`)
       )
     const explanation = explainRule(rule, inventory, options.path)
     process.stdout.write(inspectionOutput(action, options, rule, explanation))
@@ -80,12 +81,21 @@ const ruleChangeOutput = (
   if (json) return JSON.stringify(result) + "\n"
   const activation =
     change.action === "create" || change.action === "connect"
-      ? ` Rule is connected and ${result.enabled ? "enabled" : "disabled"}.`
+      ? ` Rule is ${result.enabled ? "enabled" : "disabled"}.`
       : ""
   const file = "path" in result ? `Rule file: ${result.path}\n` : ""
   return `${change.action} completed in ${change.scope} scope.${activation}\nConfiguration: ${result.configurationPath}\n${file}Local structural validation only; classifier quality was not validated.\n`
 }
 export const runRulesCommand = Effect.fn("Rules.command")(function* (options: RulesOptions) {
+  if (options.action === "check") {
+    if (options.path === undefined || options.line === undefined)
+      return yield* Effect.fail(new Error("rules check requires --path and --line."))
+    const { checkRuleAtLine, formatRuleCheck } = yield* Effect.promise(() => import("./check.ts"))
+    const result = yield* checkRuleAtLine({ path: options.path, line: options.line, id: options.id })
+    process.stdout.write(options.json ? JSON.stringify(result) + "\n" : formatRuleCheck(result))
+    if (result.status !== "evaluated") process.exitCode = RULE_CHECK_EXIT_CODES.unavailable
+    return
+  }
   const root = yield* discoverWorkingTreeRoot(process.cwd())
   const configured = Option.getOrUndefined(yield* Config.option(Config.NonEmptyString("REVIEW_USER_CONFIG_PATH")))
   const configuration = configured === undefined ? {} : { userConfigPath: configured }

@@ -38,7 +38,7 @@ hapsland setup pi
 
 Setup rechecks credentials on every run: environment and file credentials take precedence over saved login; an explicitly configured `credentialEnvVar` selects environment-only authentication. An available key is reused. A missing saved key triggers masked input in an interactive terminal after installation approval. An unavailable or locked store is reported separately with recovery instructions; local setup checks do not validate the key against Jev. Guided terminal setup then offers a separate optional live key check. Package installation alone does not ask for a key.
 
-Use `hapsland setup codex --new-key` (also supported for Claude and Pi) to skip the existing-key lookup and request a replacement. This requires a terminal and an accessible native store. It does not override environment credential precedence: unset the environment key to use saved login. With an explicit `credentialEnvVar`, set that variable instead. Automation may set `newKey: true` in its version-1 `--setup` JSON request.
+Use `hapsland setup codex --new-key` (also available for Claude and Pi) to skip the existing-key lookup and request a replacement. This requires a terminal and an accessible native store. It does not override environment credential precedence: unset the environment key to use saved login. With an explicit `credentialEnvVar`, set that variable instead. Automation may set `newKey: true` in its version-1 `--setup` JSON request.
 
 Setup previews the exact owned hooks, asks before installing them, offers masked credential entry when a saved key is missing, loads file settings, and reports offline readiness. Its installation and local checks make no Jev request; the optional key check runs only after separate confirmation. All three clients accept the version-1 JSON `--setup` interface; `--pilot --host=claude|codex|pi` invokes the same guided flow (bare `--pilot` opens the same client selector).
 
@@ -70,7 +70,7 @@ only the explicitly requested plan file, preserving an existing plan. A saved pl
 binds client choices and current installation/default-rule digests; its application
 revalidates them and rejects stale plans before selected writes. This frontend uses
 the same version-one structured `--setup` engine. Its `rulesProposalDigest`
-authorizes materialization and connection of editable defaults separately from
+authorizes creation and activation of editable defaults separately from
 `installProposalDigest`; prompt suppression grants neither authorization.
 
 Environment and saved credential resolution use the existing sources. There is
@@ -84,16 +84,22 @@ unknown trust/readiness can therefore return 6 after installation succeeds.
 
 Setup shows the effective rule inventory once per guided invocation, including
 when several clients are selected. See [editable and custom rules](configuration.md#declarative-rules)
-for their paths, eligibility and management commands. Authorized initial setup
-connects seven individual editable default files only when no configuration layer
-declares `rules`. An explicit selection, including `rules: []`, is preserved; setup
-does not reconnect disconnected defaults. Repeat setup preserves authored content. A missing connected rule is reported rather than silently recreated.
-Creating a custom rule also connects it, and its preview states that activation
+for their paths, eligibility and management commands.
+
+<!-- shipped-rules:start -->
+
+Authorized initial setup enables 7 individual editable default files only when no configuration layer declares `rules`.
+
+<!-- shipped-rules:end -->
+
+An explicit selection, including `rules: []`, is preserved; setup
+does not enable unselected defaults. Repeat setup preserves authored content. A missing rule file is reported rather than silently recreated.
+Creating a custom rule also enables it, and its preview states that activation
 before interactive writes. Merely saving a rule file does not activate it.
 
-The selected profile is user-wide by default. File settings control eligible repositories and files; invoking setup from a repository does not restrict the installed hooks to that repository. Use [configuration](configuration.md) to bound review scope. `--claude-home=PATH`, `--codex-home=PATH`, or `--pi-home=PATH` and the corresponding `--claude-executable=PATH`, `--codex-executable=PATH`, or `--pi-executable=PATH` select the registration and compatibility probe. An alternate registration home alone does not configure the client process to use that home.
+The selected profile is user-wide by default. File settings control repositories and files; invoking setup from a repository does not restrict the installed hooks to that repository. Use [configuration](configuration.md) to bound review scope. `--claude-home=PATH`, `--codex-home=PATH`, or `--pi-home=PATH` and the corresponding `--claude-executable=PATH`, `--codex-executable=PATH`, or `--pi-executable=PATH` select the registration and compatibility probe. An alternate registration home alone does not configure the client process to use that home.
 
-Finish current client work, restart the client normally, and complete its native repository/hook trust prompts. Make a supported edit and inspect [session activity](status.md). Installation and offline readiness do not prove a review or model repair happened. Diagnose without a JSON request:
+Finish current client work, restart the client normally, and complete its native repository/hook trust prompts. Edit a type or function and inspect [session activity](status.md). Installation and offline readiness do not prove a review or model repair happened. Diagnose without a JSON request:
 
 ```sh
 hapsland doctor              # All registered clients, read-only
@@ -194,7 +200,7 @@ and requires no package rebuild or hook update. See the
 
 <!-- inspection-recording:start -->
 
-Recording is off by default: merge `"sessionInspection": true` into your project's `.hapsland.jsonc` using the [configuration template](examples/session-inspection.jsonc), then make a new eligible edit. Neither dashboard enables recording or backfills old edits; retained history can remain visible after recording is turned off.
+Recording is off by default: add `"sessionInspection": true` into your project's `.hapsland.jsonc` using the [configuration template](examples/session-inspection.jsonc), then make a new edit. Neither dashboard enables recording or backfills old edits; retained history can remain visible after recording is turned off.
 
 <!-- inspection-recording:end -->
 
@@ -254,7 +260,7 @@ npm run conformance:client-lifecycle
 
 Pass the matching home/executable flags when using another profile. The script explicitly selects the packed target, bypassing any previously active administrative package. Each run takes a packed snapshot; rebuilding the checkout does not change installed code. Different snapshots may have the same package version and are identified by checksum, commit, and prefix. Retain the printed archive and previous installed package for diagnosis and recovery. `npm link` is unnecessary.
 
-The explicit equivalent is `npm run pack:release`, followed by a production-only npm install of the tarball into a fresh prefix, package doctor, and that target's setup or update. Keep credentials in the native store or selected execution environment. Make a supported edit in a disposable repository, then inspect session activity. These instructions do not authorize a live check on arbitrary private source.
+The explicit equivalent is `npm run pack:release`, followed by a production-only npm install of the tarball into a fresh prefix, package doctor, and that target's setup or update. Keep credentials in the native store or selected execution environment. Edit a type or function in a disposable repository, then inspect session activity. These instructions do not authorize a live check on arbitrary private source.
 
 ### Source changes and repeated installation
 
@@ -292,7 +298,7 @@ hapsland uninstall codex        # Remove one integration
 
 Doctor distinguishes no registration from damaged ownership/configuration. Deleting an event, a main/background handler, Codex's owned hooks-feature entry, or Pi's owned extension leaves a damaged integration. Update and repair restore missing entries after a full preview and confirmation. Changed commands or duplicate marked entries remain conflicts under ordinary repair/update. Reinstall replaces marked Hapsland handlers while preserving unmarked handlers, client settings, review configuration, rule files, saved credentials and native trust. If ownership metadata is damaged, explicit reinstall can replace it. For an interrupted operation from a separately invoked retained package, select that package explicitly with `hapsland repair CLIENT --target=/absolute/retained-prefix/bin/hapsland`. It never guesses how to repair malformed host JSON/TOML and never reconstructs unmarked hooks whose ownership cannot be established.
 
-A supported interrupted Codex operation resumes its journal after approval. Explicit reinstall can replace an unusable journal, keeping a private backup next to it and building from current user files rather than restoring an old whole-file snapshot. The approval binds the current journal as well as configuration changes; later edits require another preview. If the active package is missing or its administrative record is damaged, reinstall falls back to the runnable package in PATH, reports that choice, and reestablishes the active record. Use `hapsland reinstall CLIENT --target=/absolute/healthy-prefix/bin/hapsland` to select another healthy package.
+An interrupted Codex operation with a resumable journal resumes after approval. Explicit reinstall can replace an unusable journal, keeping a private backup next to it and building from current user files rather than restoring an old whole-file snapshot. The approval binds the current journal as well as configuration changes; later edits require another preview. If the active package is missing or its administrative record is damaged, reinstall falls back to the runnable package in PATH, reports that choice, and reestablishes the active record. Use `hapsland reinstall CLIENT --target=/absolute/healthy-prefix/bin/hapsland` to select another healthy package.
 
 Uninstall previews removal of Hapsland-owned hooks and its owned feature entry. Remove hooks **before** uninstalling any npm package they reference. An already missing owned hook is safe to remove; locally modified entries require explicit reinstall or manual reconciliation first. User settings, credentials, independent hooks and native trust are preserved. Unchecking a client in setup only skips that profile and does not uninstall it.
 
@@ -328,7 +334,7 @@ Run `hapsland --version` alone to identify the invoked package version. This doe
 | `repair` | Restore missing owned Hapsland hooks |
 | `reinstall` | Replace marked Hapsland hooks, preserving user settings |
 | `uninstall` | Remove owned Hapsland hooks from registered integrations |
-| `rules` | Inspect and manage local JSON rules; no classifier calls. Defaults to list. Edit connected JSON files in your editor; there is no editor or disconnect command. |
+| `rules` | Inspect, manage and test local JSON rules. Only check sends code to the classifier; other actions make no classifier calls. Defaults to list. Edit rule JSON files in your editor. |
 
 #### hapsland dashboard
 
@@ -407,16 +413,17 @@ hapsland uninstall pi
 
 #### hapsland rules
 
-Inspect and manage local JSON rules; no classifier calls. Defaults to list. Edit connected JSON files in your editor; there is no editor or disconnect command.
+Inspect, manage and test local JSON rules. Only check sends code to the classifier; other actions make no classifier calls. Defaults to list. Edit rule JSON files in your editor.
 
 ```sh
 hapsland rules list
-hapsland rules show --id team/domain-state
-hapsland rules explain --id team/domain-state --path src/example.ts
-hapsland rules create --id team/domain-state --scope project
-hapsland rules connect --path .hapsland/rules/custom/domain-state.json --scope project
-hapsland rules enable --id team/domain-state --scope project
-hapsland rules disable --id team/domain-state --scope project
+hapsland rules show --id meaningless_combinations
+hapsland rules explain --id meaningless_combinations --path src/example.ts
+hapsland rules check --path src/example.ts --line 12 --id meaningless_combinations
+hapsland rules create --id no-primitive-obsession --scope project
+hapsland rules connect --path .hapsland/rules/custom/no-primitive-obsession.jsonc --scope project
+hapsland rules enable --id no-primitive-obsession --scope project
+hapsland rules disable --id no-primitive-obsession --scope project
 ```
 
 ### Flag-based operations

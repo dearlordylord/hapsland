@@ -4,7 +4,7 @@
 **Status:** Active maintained guidance for the 2026-10-05 owner-approved rule design.
 **Authority:** The accepted rule and configuration contracts in [Phase F](../PRODUCT-PHASE-F-SPEC.md), [direct review](type-function-review-proposal.md), and [compatibility](review-contract-compatibility.md) own behavior; generated field tables describe the current schema.
 **Expected use:** Author a rule, choose where it applies, and explain effective review settings.
-**Lifecycle:** Update with rule/configuration schema, CLI, or source-selection changes; review whenever supported inputs or source-reading boundaries change.
+**Lifecycle:** Update with rule/configuration schema, CLI, or source-selection changes; review whenever rule inputs or source-reading boundaries change.
 
 Each rule lives in its own version-one JSONC document. It states a binary question,
 criteria, feedback, and the languages, input forms, and evidence it understands.
@@ -25,7 +25,7 @@ the distinction between current recording and retained history.
 | Layer | Location | Behavior |
 | --- | --- | --- |
 | Built-in | Non-rule settings defaults | Supplies omitted settings. |
-| User | `REVIEW_USER_CONFIG_PATH`, otherwise `$XDG_CONFIG_HOME/hapsland/config.jsonc` (normally `~/.config/hapsland/config.jsonc`) | Personal settings across repositories; owns review destination and shared resident resources. |
+| User | `REVIEW_USER_CONFIG_PATH`, otherwise `$XDG_CONFIG_HOME/hapsland/config.jsonc` (normally `~/.config/hapsland/config.jsonc`) | Personal settings across repositories; owns review destination and shared review resources. |
 | Project | `.hapsland.jsonc` at the canonical Git working-tree root | Overrides ordinary settings for this repository. There are no nested configuration layers. |
 | Rule documents | Explicit `rules` references in configuration | Definitions, not another configuration layer. Paths resolve from the declaring configuration. |
 
@@ -42,7 +42,7 @@ independently by its stable identity. Individual path and language settings furt
 narrow global root selection and the rule's declared input support.
 
 User privacy exclusions cannot be removed by project settings. Review destination,
-shared resident limits, and stronger Claude blocking have user-owned restrictions;
+shared review limits, and stronger Claude blocking have user-owned restrictions;
 ordinary project precedence does not override those restrictions. User graph limits
 are ceilings that projects may lower. Session analytics use ordinary precedence,
 including an explicit project `false`.
@@ -59,8 +59,8 @@ constraints, references, and repository containment.
 ## Review roots, related code, and privacy
 
 `includes` and `excludes` select files whose changed declarations may become review
-roots. `languages` optionally narrows their supported source languages. With these
-settings omitted, all otherwise eligible supported roots are selected.
+roots. `languages` optionally narrows their source languages. With these
+settings omitted, all otherwise eligible roots are selected.
 
 `contextIncludes` and `contextExcludes` select files that may supply related code.
 When context settings are omitted, context follows the effective root file policy;
@@ -69,27 +69,45 @@ context selection can additionally permit `shared/**` without selecting changed
 roots there. Every captured file still passes containment, protected-path, Git-ignore,
 regular-file and size checks. `privacyExcludes` prohibits both root and context reads
 regardless of any include. Root-language and per-rule filters do not broaden the
-analyzer's supported dependency resolution.
+analyzer's dependency resolution.
 
 For example, this project reviews TypeScript and Rust roots in `src`, while allowing
 related declarations from `shared`. A referenced `shared/private` file remains unread:
 
+<!-- rule-selection-example:start -->
+
 ```jsonc
 {
   "version": 1,
-  "includes": ["src/**"],
-  "languages": ["typescript", "rust"],
-  "contextIncludes": ["src/**", "shared/**"],
-  "privacyExcludes": ["shared/private/**"],
+  "includes": [
+    "src/**"
+  ],
+  "languages": [
+    "typescript",
+    "rust"
+  ],
+  "contextIncludes": [
+    "src/**",
+    "shared/**"
+  ],
+  "privacyExcludes": [
+    "shared/private/**"
+  ],
   "rules": [
     {
-      "path": ".hapsland/rules/custom/domain-state.json",
-      "languages": ["typescript"],
-      "includes": ["src/api/**"]
+      "path": ".hapsland/rules/custom/no-primitive-obsession.jsonc",
+      "languages": [
+        "typescript"
+      ],
+      "includes": [
+        "src/api/**"
+      ]
     }
   ]
 }
 ```
+
+<!-- rule-selection-example:end -->
 
 Path settings belong to configuration, never to the authored rule. A TypeScript
 rule restricted to `tests/**` cannot select anything when the global root scope is
@@ -99,7 +117,7 @@ not a clear review result. Rules that do not need the omitted evidence may still
 Patterns are repository-relative and use `/` separators. Matching is case-sensitive;
 `*` and `?` do not cross `/`, while `**` may cross directories. Dot-files require a
 pattern segment beginning with `.`. Bracket classes and simple brace alternatives
-are supported. Patterns are bounded to 1,024 characters, eight brace groups, eight
+are allowed. Patterns permit at most 1,024 characters, eight brace groups, eight
 choices per group, and 256 expansions. Absolute paths, traversal, and negated
 re-inclusion are invalid. Moving a rule document never changes the pattern base.
 
@@ -157,7 +175,7 @@ resolved selection before expecting a review result.
 | `editPermitLimits.perAdvicee` | integer (1–65536) | Optional | 32 | Maximum simultaneously pending edit permits for one advicee in the shared resident. |
 | `editPermitLimits.resident` | integer (1–65536) | Optional | 4096 | Maximum simultaneously pending edit permits across the shared resident. |
 | `virtualRoundQuietMs` | integer (10000–3600000) | Optional | 300000 | Continuous fully quiet time before an open virtual round closes without Stop, in milliseconds. User configuration only; captured when the round opens. |
-| `graphLimits` | object | Optional | — | Versioned bounded import graph limits; omitted values inherit. |
+| `graphLimits` | object | Optional | — | Import graph limits; omitted values inherit. |
 | `graphLimits.version` | fixed value 1 | Required | — | Import graph limits profile version. |
 | `graphLimits.sourceBytes` | integer (1–262144) | Optional | 262144 | Maximum source bytes in each graph file. |
 | `graphLimits.treeBytes` | integer (1–20480) | Optional | 20480 | Maximum accepted encoded evidence-tree bytes. |
@@ -185,7 +203,7 @@ resolved selection before expecting a review result.
 The graph profile bounds the active direct-edit type and function path. Each
 supporting file must pass the context policy before reading. TypeScript local
 imports, verified Rust Cargo modules, and explicit relative Bend imports can supply
-bounded cross-file evidence within their supported analysis profiles. Rust and Bend
+cross-file evidence within their analysis profiles. Rust and Bend
 functions are not supported. See the [input contract](type-function-review-proposal.md#branch-contracts).
 
 The optional version-one `graphLimits` profile bounds source bytes, tree size,
@@ -204,7 +222,7 @@ The built-in credential reference is `TYPESAFE_API_KEY`. Inspection reports its 
 
 <!-- analytics-enablement:start -->
 
-Session analytics are disabled by default. Set `sessionAnalytics: true` to retain source-free session totals and bounded rule-ID history, subject to the limits in [status and analytics](status.md#optional-session-analytics).
+Session analytics are disabled by default. Set `sessionAnalytics: true` to retain source-free session totals and rule-ID history, subject to the limits in [status and analytics](status.md#optional-session-analytics).
 
 <!-- analytics-enablement:end -->
 
@@ -215,13 +233,23 @@ and Stop behavior follows the shared delivery contract.
 
 ## Declarative rules
 
-When no loaded configuration layer declares a `rules` field, authorized initial
-setup materializes seven editable default rule files under
-`~/.config/hapsland/rules/defaults/`, respecting XDG conventions, and explicitly
-connects them. Any explicit `rules` field, including `rules: []`, is authoritative:
-setup does not add or reconnect defaults alongside that selection. For example, `meaningless_combinations.json` retains the stable rule ID
-`meaningless_combinations`. The selected file is authoritative: editing it changes the rule;
-disabling or disconnecting it changes effective review. Deleting a connected file
+<!-- shipped-rules:start -->
+
+When no loaded configuration layer declares a `rules` field, authorized initial setup materializes 7 editable default rule files normally under `~/.config/hapsland/rules/defaults/`.
+
+<!-- shipped-rules:end -->
+
+Any explicit `rules` field, including `rules: []`, is authoritative:
+setup does not add or enable defaults alongside that selection.
+
+<!-- rule-file-identity:start -->
+
+For example, `meaningless_combinations.json` retains the stable rule ID `meaningless_combinations`.
+
+<!-- rule-file-identity:end -->
+
+The selected file is authoritative: editing it changes the rule;
+disabling it changes effective review. Deleting its file
 reports a missing-source error, rather than restoring a hidden default. Repeated
 setup preserves authored files. An unreferenced file is inactive in every directory.
 
@@ -231,7 +259,7 @@ The [#240 cleanup](https://github.com/dearlordylord/hapsland/issues/240) removes
 `inferred_case` and `duplicate_encoding` from shipped defaults and removes `rN_`
 prefixes from retained IDs and filenames. This changes new provisioning only.
 Existing selections and user-edited files are neither renamed nor overwritten;
-use `hapsland rules disable --id <authored-id> --scope user` to stop a connected rule.
+use `hapsland rules disable --id <authored-id> --scope personal` to disable a rule.
 
 The dispositions below use the predefined defective and clean examples in the
 [compact study](./abide-contextual-review-study.md#results-by-rule) and the separate
@@ -240,7 +268,7 @@ observations of the recorded definitions, with repeated inputs, not independent
 samples or fresh classifier validation. The retained questions, criteria and
 0.7 thresholds are unchanged. Renaming an ID does not validate classifier accuracy.
 
-| Recorded ID | Current default | Supported concern and disposition |
+| Recorded ID | Current default | Concern and disposition |
 | --- | --- | --- |
 | `r1_inferred_case` | Removed | Unnamed operation alternatives: 0/6 defects detected, 0/3 clean warnings, 0/2 checked repairs. No demonstrated unique acceptance value in this set. |
 | `r2_meaningless_combinations` | `meaningless_combinations` | Conditional fields reachable where meaningless. Compact 6/6 detections, 0/3 clean warnings, 1/2 repairs; report-delivery larger study supplies separate positive, clean and layout cases. |
@@ -268,24 +296,22 @@ Each rule document has `version: 1`, a stable `id`, optional `title`, `question`
 The default threshold is 0.7; a finding requires a probability strictly greater than its threshold.
 
 <!-- rule-threshold:end -->
-An ID may use a namespace such as `team/domain-state`; it is not a filesystem path.
-There are no packs, content-version labels, authored path filters, or source-evidence
-rungs. Content digests identify actual definition changes.
+An ID may use a namespace such as `namespace/no-primitive-obsession`.
 
 Each `inputs` entry names a nonempty `languages` list, a `kind`, and required evidence
-in `requires`. Entries describe supported combinations, not independent dimensions:
+in `requires`. Entries describe accepted combinations, not independent dimensions:
 TypeScript, Rust, and Bend support `type`; only TypeScript supports `function`.
 `requires` may be empty, meaning no additional listed evidence requirements beyond
-a supported extracted root; it does not promise complete dependency evidence.
+an extracted root; it does not promise complete dependency evidence.
 Type evidence capabilities are `root-declaration`, `resolved-outbound-types`, and
 `selected-source-type-closure`; function capabilities are `signature`, `body`,
 `resolved-local-calls`, and `resolved-outbound-types`. Duplicate combinations are errors. Enabled inputs selected by configured languages
-must have supported combinations and evidence requirements; unsupported selected
+must have accepted combinations and evidence requirements; unsupported selected
 inputs fail configuration before source capture.
 
 Runtime validation schemas such as Zod and Effect Schema are a distinct future input
 form with a schema dialect; they are not TypeScript type declarations. A disabled rule may retain a schema input declaration for future use, but enabling
-that input is rejected explicitly. A multi-input rule may run its supported inputs
+that input is rejected explicitly. A multi-input rule may run its eligible inputs
 when configuration languages exclude every unsupported combination. Concrete values
 are not supported review roots. The schema used to validate a rule's JSON is unrelated to reviewing a
 runtime schema. No user code is executed to load a rule or discover its inputs.
@@ -293,19 +319,19 @@ runtime schema. No user code is executed to load a rule or discover its inputs.
 Question/criteria edits belong in the rule file. Configuration may change activation,
 path/language selection, threshold, and feedback message. A configured language must
 belong to an authored input; an extra language is an actionable configuration error,
-not a request to extend intrinsic support. The provider receives one changed declaration and bounded related code,
+not a request to extend intrinsic support. The provider receives one changed declaration and related code,
 not a whole file, raw diff, task, or transcript. Missing required evidence prevents
 that rule's evaluation. Findings may concern pre-existing code within the changed root.
 
-### Author, connect, and inspect
+### Author, enable, and inspect
 
 Write a project rule under `<Git root>/.hapsland/rules/custom/`, or a personal rule
-under `~/.config/hapsland/rules/custom/`. Connect it explicitly using the
+under `~/.config/hapsland/rules/custom/`. Add it using the
 [generated command reference](#rule-commands) below. Its examples come from the
 same definitions as terminal help, rather than a separate maintained command list.
 
-`hapsland rules create --id domain-state --scope project` creates a starting rule
-**and connects it**. Its preview states the activation, scope, and concrete files
+`hapsland rules create --id no-primitive-obsession --scope project` creates a starting rule
+**and enables it**. Its preview states the activation, scope, and concrete files
 before interactive writes. Edit the created JSON to define the actual concern.
 Creation preserves an existing authored file. Interactive create/connect offers
 personal scope with project selected by default; unattended changes specify scope.
@@ -313,7 +339,7 @@ Neither operation opens an editor or calls the review backend.
 
 A `rules` entry contains either `path` to declare a rule or `id` to configure a rule
 inherited from a lower layer, plus optional `enabled`, `languages`, `includes`,
-`excludes`, `threshold`, and `message`. A new connection enables its rule unless
+`excludes`, `threshold`, and `message`. A new rule reference enables its rule unless
 explicitly disabled. Relative paths resolve from the declaring configuration.
 Project references must remain inside the Git worktree, including after symlink
 resolution; personal references may name user-managed files. Duplicate identities,
@@ -326,7 +352,7 @@ one inventory for the current repository per invocation, including when several
 agent runtimes are selected. Enabled counts are not coverage claims.
 
 Rule explanation distinguishes activation, global root selection, per-rule paths,
-language selection, and intrinsic supported inputs. Path/language inspection does
+language selection, and declared inputs. Path/language inspection does
 not parse source or establish available evidence: it must say when artifact kind,
 attribution, and evidence remain unexamined. Configuration explanation uses the same
 resolved policy as review and makes no backend request:
@@ -341,6 +367,230 @@ separate from Hapsland policy. Rule JSON editor validation uses
 [`review-rule-v1.schema.json`](../schemas/review-rule-v1.schema.json); structural
 validity does not establish classifier judgment quality.
 
+### Write your first rule
+
+Run these commands from the root of your project's Git working tree.
+
+Before writing another, inspect the rules you already have:
+
+<!-- first-rule-inspection:start -->
+
+```sh
+hapsland rules list
+hapsland rules show --id meaningless_combinations
+```
+
+<!-- first-rule-inspection:end -->
+
+<!-- authoring-default:start -->
+
+See the [default rules](../TYPE-DESIGN-RULES.md). The default `bare_domain_value` already addresses primitive domain values; inspect it before adding a custom variant. `no-primitive-obsession` below teaches custom authoring.
+
+<!-- authoring-default:end -->
+
+[Refactoring.Guru describes primitive obsession](https://refactoring.guru/smells/primitive-obsession)
+as using primitives or type codes where small objects should express domain
+meaning.
+
+**1. Choose one concern that the captured code can answer.** For example: “Do distinct
+domain concepts use interchangeable primitive values?” State what counts
+as a violation and what should stay clear. Avoid combining unrelated concerns or
+asking about behavior that requires a task description, production data or a whole
+repository. See [what leaves your repository](../README.md#what-leaves-my-repository).
+
+**2. Create a starter, then keep it disabled while editing.**
+
+<!-- authoring-create:start -->
+
+```sh
+hapsland rules create --id no-primitive-obsession --scope project
+hapsland rules disable --id no-primitive-obsession --scope project
+hapsland rules show --id no-primitive-obsession
+```
+
+<!-- authoring-create:end -->
+
+`create` writes an enabled `.jsonc` starter with comments explaining type and function
+inputs and evidence requirements; it does not open an editor. Rule files accept
+comments with either a `.json` or `.jsonc` filename.
+Interactive changes show a preview and ask for confirmation. Open the source path
+shown by `show` in your editor. Project scope keeps the rule and configuration in the
+repository; choose `--scope personal` for your user configuration instead.
+
+**3. Replace the starter's generic concern with your own.** For this example,
+save the following JSON in that created file, keeping the ID unchanged:
+
+<!-- authoring-rule:start -->
+
+```json
+{
+  "version": 1,
+  "id": "no-primitive-obsession",
+  "title": "No primitive obsession",
+  "question": "Does the supplied domain type use bare primitives or primitive type codes where a small domain-specific type should express identity, units, allowed values or constraints?",
+  "criteria": {
+    "false": "Distinct domain concepts have distinct types. Free text and primitives in storage or wire formats alone are not violations.",
+    "true": "A domain identity, quantity, constrained value or category uses an unconstrained primitive or opaque type code, losing a meaningful domain distinction."
+  },
+  "message": "Give distinct domain concepts distinct types so their values cannot be accidentally interchanged.",
+  "threshold": 0.7,
+  "inputs": [
+    {
+      "languages": [
+        "typescript"
+      ],
+      "kind": "type",
+      "requires": [
+        "root-declaration",
+        "resolved-outbound-types",
+        "selected-source-type-closure"
+      ]
+    }
+  ]
+}
+```
+
+<!-- authoring-rule:end -->
+
+The question asks about one violation; `criteria.true` describes a finding and
+`criteria.false` describes the acceptable case. `message` gives actionable feedback.
+This rule needs the declaration and its related type definitions to distinguish
+bare primitives from domain-specific types. If your concern needs different
+evidence or function bodies, declare the appropriate [input kind and required evidence](#declarative-rules);
+missing required evidence prevents evaluation. File filters and language/threshold
+overrides belong in configuration references, not the authored rule's path fields.
+
+If you prefer writing the JSON yourself, save one rule per file and add it:
+
+<!-- authoring-connect:start -->
+
+```sh
+hapsland rules connect --path .hapsland/rules/custom/no-primitive-obsession.jsonc --scope project
+```
+
+<!-- authoring-connect:end -->
+
+This is an alternative to `create`, not an extra step for a rule already listed
+by `rules list`. `connect` validates the file and enables a newly added rule. You can also
+[declare its path directly in configuration](#author-enable-and-inspect).
+
+**4. Enable and inspect the effective selection.**
+
+<!-- authoring-enable:start -->
+
+```sh
+hapsland rules enable --id no-primitive-obsession --scope project
+hapsland rules show --id no-primitive-obsession
+hapsland rules explain --id no-primitive-obsession --path src/primitive-obsession-examples.ts
+```
+
+<!-- authoring-enable:end -->
+
+These commands make no classifier calls. `explain` checks configuration selection;
+it does not parse the source or establish whether the necessary evidence exists.
+
+<!-- authoring-source:start -->
+
+**5. Test a violation and an acceptable case.** Create `src/primitive-obsession-examples.ts` with a loose domain type and a version using distinct ID types:
+
+```ts
+export type LooseOrder = {
+  customerId: string
+  orderId: string
+}
+
+export type CustomerId = { readonly kind: "customer-id"; readonly value: string }
+export type OrderId = { readonly kind: "order-id"; readonly value: string }
+
+export type Order = {
+  customerId: CustomerId
+  orderId: OrderId
+}
+```
+
+<!-- authoring-source:end -->
+
+Then run:
+
+<!-- authoring-check:start -->
+
+```sh
+hapsland rules check --path src/primitive-obsession-examples.ts --line 2 --id no-primitive-obsession
+hapsland rules check --path src/primitive-obsession-examples.ts --line 10 --id no-primitive-obsession
+```
+
+<!-- authoring-check:end -->
+
+<!-- authoring-check-result:start -->
+
+The first type lets customer and order IDs be interchanged and should trigger; the second gives them distinct types and should stay clear. The primitive `value` inside each wrapper is its representation, not itself a violation. A plain alias such as `type CustomerId = string` would still be interchangeable; merely naming a primitive does not establish a distinct type. These are expectations to check, not guaranteed classifier outputs. Each command selects the enclosing declaration and related code, uses normal credential discovery and sends a real external classifier request that may incur charges. No agent session is needed. Add `--json` to inspect the actual source-bearing input and probabilities. A skipped/unavailable result is not a clear result, and exit 0 also includes findings. See [file/line check details](#try-a-rule-on-a-file-and-line).
+
+<!-- authoring-check-result:end -->
+
+**6. Refine against more examples before relying on it.** Try edge cases and
+similar code that should not trigger. Inspect the captured input before changing
+the question or evidence requirements; check effective settings for overrides.
+A probability strictly above the threshold produces a finding, but adjusting the
+threshold alone does not fix an unclear concern. Once satisfied, use ordinary
+agent edits and the [opt-in inspection dashboard](status.md#opt-in-local-inspection)
+to inspect reviews and feedback. Disable the rule if you are still tuning it.
+Commit the project rule and configuration when you want to share them; keep or
+remove the example source according to your project's conventions.
+
+### Try a rule on a file and line
+
+<!-- rule-check-example:start -->
+
+`no-primitive-obsession` is the example custom rule created in the walkthrough, not a shipped default. Substitute an enabled ID from `hapsland rules list`.
+
+```sh
+hapsland rules check --path src/primitive-obsession-examples.ts --line 2 --id no-primitive-obsession
+hapsland rules check --path src/primitive-obsession-examples.ts --line 2 --json
+```
+
+<!-- rule-check-example:end -->
+
+`--path` is relative to the current directory, inside its Git working tree;
+`--line` is a positive one-based line inside a type or function. The command
+selects that entire type declaration or TypeScript function signature and body,
+then resolves its related code using the same capture, parser, graph,
+evidence admission and classifier path as ordinary review. It does not pick a
+fixed number of surrounding lines or send the entire file. Blank lines outside
+roots and lines shared by multiple roots do not authorize a request.
+
+Only eligible **enabled rules** run. `--id` selects one; omit it to run
+all eligible rules for that declaration. Normal root/context selection, privacy
+exclusions, ignored-file checks and resource limits still apply. Missing required
+evidence, no eligible rule, or a denied file produces an explained skip and no
+classifier request. The command uses the configured backend and its normal
+credential discovery (environment, eligible project and user key files, native
+saved key). Explicit credential references use the named key from the environment
+or configured credential-file locations, without native-store fallback. See
+[credential lookup](installation-workflows.md#personal-development-on-your-own-clients). It requires no agent session, and does not modify source, rules or settings.
+
+This command explicitly sends the selected code and rule questions to the external
+classifier and may incur charges. Human output names the selected declaration,
+related source files, probabilities, thresholds and findings. `--json` includes
+the actual source-bearing classifier input, selection diagnostics and results;
+keep that output private when it contains private code. Source changes during
+review invalidate the result.
+
+<!-- rule-check-exits:start -->
+
+Exit 0 means evaluated, **even with a finding**; exit 6 means skipped/unavailable or a local operation failure. Invalid command arguments are rejected before review.
+
+<!-- rule-check-exits:end -->
+
+A clear result means no probability exceeded
+its configured threshold; it is not proof that the code or rule is correct.
+
+Try representative positive and negative examples, including edge cases where
+similar code should not trigger. <!-- rule-check-dashboard:start -->
+
+The [inspection dashboard](status.md#opt-in-local-inspection) provides another view of actual agent reviews after enabling `sessionInspection`; its journal does not include this one-off command.
+
+<!-- rule-check-dashboard:end -->
+
 <!-- rule-guide:start -->
 
 ### Rule commands
@@ -349,22 +599,24 @@ The command definitions generate this reference and terminal help. `hapsland rul
 
 | Command | Purpose |
 |---|---|
-| `list` | List connected rules, activation and source files |
-| `show` | View a connected rule and its effective settings |
+| `list` | List rules, activation and source files |
+| `show` | View a rule and its effective settings |
 | `explain` | Explain activation and file/language selection |
-| `create` | Create and connect an editable rule |
-| `connect` | Connect an existing local JSON rule |
-| `enable` | Enable a connected rule in the selected scope |
-| `disable` | Disable a connected rule in the selected scope |
+| `check` | Review the declaration at a file and line with the classifier |
+| `create` | Create an editable rule |
+| `connect` | Add an existing local JSON rule |
+| `enable` | Enable a rule in the selected scope |
+| `disable` | Disable a rule in the selected scope |
 
 ```sh
 hapsland rules list
-hapsland rules show --id team/domain-state
-hapsland rules explain --id team/domain-state --path src/example.ts
-hapsland rules create --id team/domain-state --scope project
-hapsland rules connect --path .hapsland/rules/custom/domain-state.json --scope project
-hapsland rules enable --id team/domain-state --scope project
-hapsland rules disable --id team/domain-state --scope project
+hapsland rules show --id meaningless_combinations
+hapsland rules explain --id meaningless_combinations --path src/example.ts
+hapsland rules check --path src/example.ts --line 12 --id meaningless_combinations
+hapsland rules create --id no-primitive-obsession --scope project
+hapsland rules connect --path .hapsland/rules/custom/no-primitive-obsession.jsonc --scope project
+hapsland rules enable --id no-primitive-obsession --scope project
+hapsland rules disable --id no-primitive-obsession --scope project
 ```
 
 ### Rule example
@@ -372,7 +624,7 @@ hapsland rules disable --id team/domain-state --scope project
 ```jsonc
 {
   "version": 1,
-  "id": "team/meaningful-combinations",
+  "id": "namespace/meaningful-combinations",
   "question": "Does the artifact make an invalid state representable?",
   "criteria": {
     "false": "Every representable state has a domain meaning.",

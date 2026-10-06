@@ -33,13 +33,13 @@ describe("Cloudflare DecisionModel wire contract", () => {
           return Effect.succeed(HttpClientResponse.fromWeb(request, Response.json(envelope(model))))
         })
         const state = { artifact: { source: "SOURCE-SENTINEL", domain: "src/type.ts" } }
-        const result = yield* decide({ state, decisions: { "team/rule": decision } }).pipe(
+        const result = yield* decide({ state, decisions: { "namespace/rule": decision } }).pipe(
           Effect.provide(
             liveLayer({ identity: identity(model), credentialEnvVar: "CLOUDFLARE_API_TOKEN", httpClient })
           ),
           Effect.provide(tokenLayer)
         )
-        expect(result.answers["team/rule"].probability).toBe(0.91)
+        expect(result.answers["namespace/rule"].probability).toBe(0.91)
         expect(result.usage.inputTokens).toBe(12)
         expect(requests).toHaveLength(1)
         const request = requests[0]
@@ -53,7 +53,7 @@ describe("Cloudflare DecisionModel wire contract", () => {
         })
         expect(request.body).not.toContain("SECRET-SENTINEL")
         expect(Buffer.byteLength(request.body)).toBe(
-          encodedProviderHttpBodyBytes(state, [{ id: "team/rule", decision }], model)
+          encodedProviderHttpBodyBytes(state, [{ id: "namespace/rule", decision }], model)
         )
       })
     )

@@ -42,7 +42,7 @@ pack-enabled and repository-consent axes are not current settings.
 
 | Scenario | Required observable outcome |
 |---|---|
-| Setup with explicit rules, including `[]` | Preserve the selected inventory; no defaults added or reconnected |
+| Setup with explicit rules, including `[]` | Preserve the selected inventory; no defaults added or enabled |
 | Initial setup without any rules field | Provision and explicitly connect nine editable defaults |
 | Connected but disabled rule | No request for that rule; it remains visible in inventory |
 | Rule includes a globally excluded root | No review of that root |

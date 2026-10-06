@@ -38,8 +38,8 @@ per platform: approximately 268 MB compressed and 737 MB unpacked. Each command
 includes Bun. These are candidate archive sizes, not reviewed release pins.
 
 
-Codex background and bounded finish delivery, and Claude synchronous edit delivery
-with bounded Stop fallback, are **not part of the pinned release support declaration below**. The
+Codex background and finish delivery with a deadline, and Claude synchronous edit delivery
+with Stop fallback with a deadline, are **not part of the pinned release support declaration below**. The
 [Advicing target contract](advicing-target-contract.md) states accepted behavior;
 the [Linux evidence index](../evidence/advicing-linux/README.md) records current
 candidate observations and gaps. The [product vocabulary](../CONTEXT.md)
@@ -98,7 +98,7 @@ The runner accepts 0.155.1 and 0.156.0, checks versions before packing or creati
 Keychain fixture, and writes a separate evidence file for each real-host version. The retained
 release manifest verifies the macOS arm64 real-host cell specifically for Codex CLI 0.156.0.
 
-The supported observation profile still cannot attribute overlapping invisible writes in a shared
+The observation profile still cannot attribute overlapping invisible writes in a shared
 root when the host supplies no direct writer evidence. Such observations are
 `unsupported-unattributed`; they do not publish agent-addressed advice. This limitation is part of
 the machine manifest and may not be removed to obtain a passing declaration.

@@ -3,7 +3,7 @@
 **Purpose:** Explain how Hapsland bounds preparation, classifier requests, retained review state, and advice delivery.
 **Status:** Active maintained implementation guidance.
 **Authority:** Maintained guidance describing the current implementation; accepted review, configuration, and advice contracts own product behavior. Numerical bounds and offline checks are not throughput, latency, process-memory, or platform-support guarantees.
-**Expected use:** Understand which resource refused work, choose supported configuration controls, and locate the implementation and checks before changing a limit.
+**Expected use:** Understand which resource refused work, choose configuration controls, and locate the implementation and checks before changing a limit.
 **Lifecycle:** Keep this guide current with dispatch, capacity, graph, provider, IPC, and delivery changes. Review when any limit, saturation behavior, configuration ownership, or resource-release boundary changes; replace superseded descriptions in place.
 
 Hapsland manages resources around the review backend, including the number of
@@ -19,7 +19,7 @@ Each shared resident has two separate pools in the checked
 
 | Resource | Current bound | What occupies it |
 | --- | --- | --- |
-| Preparation jobs | 8 | Running native preparation jobs that capture and analyze eligible source |
+| Preparation jobs | 8 | Running native preparation jobs that capture and analyze source |
 | Classifier request permits | 8 | Issued backend requests, from reservation through physical effect settlement |
 
 Preparation does not consume a classifier request permit. Ready review work
@@ -28,7 +28,7 @@ issue a request command. The TypeScript executor performs the external effect
 and reports whether it started, failed before sending, completed, timed out, or
 was interrupted. Command issuance alone is not evidence that source was sent.
 
-When all eight request permits are occupied, another eligible ready review is
+When all eight request permits are occupied, another ready review is
 settled as unavailable immediately. Hapsland does not retain it in a backend
 wait queue or automatically retry it when a permit becomes free. Preparation
 scheduling and resident capacity admission have their own behavior. Future
@@ -101,7 +101,7 @@ selection before source capture. A marked omission can make some rules
 inapplicable without making an independent eligible rule or unit unavailable.
 
 Use the [graph settings](configuration.md) to narrow collection within the
-supported ceilings. Project limits may lower user limits, not raise them.
+maximum values. Project limits may lower user limits, not raise them.
 Increasing a provider's context window does not increase Hapsland's collection
 limits or allow excluded source to be read.
 

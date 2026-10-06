@@ -96,6 +96,25 @@ export type DirectReviewContext = {
   readonly beforeHandoff?: Effect.Effect<void>
 }
 
+/** Source preparation has no authority to publish advice to an agent. */
+export type PreparedSource = Omit<PreparedUnit, "advicee">
+type SourcePrepareOutcome =
+  | { readonly status: "ready"; readonly path: string; readonly prepared: PreparedSource }
+  | { readonly status: "skipped"; readonly path: string }
+type PreparedSourceObservation = {
+  readonly observation: ObservationResult
+  readonly outcomes: ReadonlyArray<SourcePrepareOutcome>
+}
+export type SourceLineRequest = Pick<DirectObservation, "root" | "rootIdentity"> & {
+  readonly path: string
+  readonly line: number
+}
+type PreparationObservation = Omit<DirectObservation, "advicee"> & {
+  readonly advicee?: DirectAdvicee
+  readonly lineSelection?: { readonly line: number; readonly roots: Set<string> }
+}
+export type SourcePreparationContext = Omit<DirectReviewContext, "controlledWriter" | "advicee">
+
 export type PrepareOutcome =
   | { readonly status: "ready"; readonly path: string; readonly prepared: PreparedUnit }
   | { readonly status: "skipped"; readonly path: string }
@@ -200,17 +219,17 @@ const validEvaluation = (evaluation: EvaluatedUnit): boolean =>
 
 const current = <A>(value: A | (() => A)): A => (typeof value === "function" ? (value as () => A)() : value)
 
-const currentPolicy = (context: DirectReviewContext): DirectFilePolicy =>
+const currentPolicy = (context: SourcePreparationContext): DirectFilePolicy =>
   context.policy === undefined
     ? context.settings.configuration === undefined
       ? DEFAULT_DIRECT_FILE_POLICY
       : resolvedDirectFilePolicy(context.settings.configuration.policy)
     : current(context.policy)
 
-const currentRules = (context: DirectReviewContext): ReadonlyArray<CompiledRule> =>
+const currentRules = (context: SourcePreparationContext): ReadonlyArray<CompiledRule> =>
   context.rules === undefined ? (context.settings.rules ?? []) : current(context.rules)
 
-const currentInputContract = (context: DirectReviewContext): string =>
+const currentInputContract = (context: SourcePreparationContext): string =>
   context.inputContract === undefined ? TYPE_INPUT_CONTRACT : current(context.inputContract)
 
 const analysisRoot = (analysis: UnitAnalysis) =>
@@ -235,8 +254,8 @@ export const measuredRootSourceDecision = (sourceBytes: number, limits: GraphLim
   stepImportGraph(initialImportGraph(limits), { kind: "root", target: 1, sourceBytes, treeBytes: 0, edges: [] }).command
 
 type PreparationFrame = {
-  readonly observation: DirectObservation
-  readonly context: DirectReviewContext
+  readonly observation: PreparationObservation
+  readonly context: SourcePreparationContext
   readonly contract: string
   readonly graphLimits: GraphLimits
   readonly supportingCaptures: Map<string, import("./capture.ts").StableCapture>
@@ -333,7 +352,7 @@ const prepareResolvedUnit = (
   candidateDeclarations: readonly CandidateDeclaration[],
   path: string,
   frame: PreparationFrame
-): PrepareOutcome | undefined => {
+): SourcePrepareOutcome | undefined => {
   const declaration = unit.root.artifact
   const omitted = (reason: "missing-evidence" | "no-applicable-rule") => {
     try {
@@ -361,24 +380,15 @@ const prepareResolvedUnit = (
   })
   if (rules.length === 0) return omitted("no-applicable-rule")
   const input = freezePreparedUnitInput(path, unit, rules, rootLocation, sourceFingerprints, frame, partial, language)
-  return {
-    status: "ready",
-    path,
-    prepared: {
-      root: frame.observation.root,
-      advicee: frame.observation.advicee,
-      input,
-      identity: semanticIdentity(input)
-    }
-  }
+  return { status: "ready", path, prepared: { root: frame.observation.root, input, identity: semanticIdentity(input) } }
 }
 const prepareReadyUnits = (
   units: readonly ReviewUnit[],
   candidateDeclarations: readonly CandidateDeclaration[],
   path: string,
   frame: PreparationFrame
-): PrepareOutcome[] => {
-  const outcomes: PrepareOutcome[] = []
+): SourcePrepareOutcome[] => {
+  const outcomes: SourcePrepareOutcome[] = []
   for (const unit of units) {
     const ready = prepareResolvedUnit(unit, candidateDeclarations, path, frame)
     if (ready !== undefined) outcomes.push(ready)
@@ -415,7 +425,7 @@ const captureCandidateRoot = Effect.fn("DirectEvent.captureCandidateRoot")(funct
 const admitCandidateMaterialization = Effect.fn("DirectEvent.admitCandidateMaterialization")(function* (
   path: string,
   captured: import("./capture.ts").StableCapture,
-  context: DirectReviewContext,
+  context: SourcePreparationContext,
   materializedPaths: Set<string>,
   rejectedPaths: Set<string>
 ) {
@@ -438,8 +448,8 @@ const admitCandidateMaterialization = Effect.fn("DirectEvent.admitCandidateMater
   return true
 })
 const candidatePostEditHunks = (
-  observation: DirectObservation,
-  candidate: Pick<DirectObservation["candidates"][number], "operation">,
+  observation: PreparationObservation,
+  candidate: Pick<PreparationObservation["candidates"][number], "operation">,
   path: string,
   captured: import("./capture.ts").StableCapture
 ) => {
@@ -455,7 +465,7 @@ const candidatePostEditHunks = (
         : undefined
 }
 const selectCandidateRoots = (
-  observation: DirectObservation,
+  observation: PreparationObservation,
   candidate: { readonly operation: "add" | "update" },
   path: string,
   captured: import("./capture.ts").StableCapture,
@@ -523,13 +533,13 @@ const candidateRootLocation = (
 const isGraphInputContract = (contract: string): boolean =>
   contract === TYPE_INPUT_CONTRACT || contract === FUNCTION_INPUT_CONTRACT
 
-const hasVerifiedClaudeSpan = (observation: DirectObservation, path: string): boolean =>
-  observation.advicee.host === "claude-code" &&
+const hasVerifiedClaudeSpan = (observation: PreparationObservation, path: string): boolean =>
+  observation.advicee?.host === "claude-code" &&
   observation.verifiedPostEditHunks?.path === path &&
   observation.verifiedPostEditHunks.hunks.length > 0
 const metadataOnlyCandidate = (
-  candidate: DirectObservation["candidates"][number],
-  observation: DirectObservation
+  candidate: PreparationObservation["candidates"][number],
+  observation: PreparationObservation
 ): boolean =>
   candidate.operation === "update" &&
   !candidate.addedLines.some((line) => line.trim().length > 0) &&
@@ -543,6 +553,18 @@ const selectCapturedCandidate = (
   analyses: readonly UnitAnalysis[],
   frozen: ReadonlySet<string> | undefined
 ) => {
+  if (frame.observation.lineSelection !== undefined) {
+    const { line, roots } = frame.observation.lineSelection
+    const matching = candidateDeclarations.filter(
+      ({ location }) =>
+        line >= location.start.line &&
+        (line < location.end.line || (line === location.end.line && location.end.column > 1))
+    )
+    for (const declaration of matching) roots.add(declaration.artifact.id)
+    if (matching.length !== 1) return { selected: [] as UnitAnalysis[], ambiguous: matching.length > 1 }
+    const selected = matching[0]!
+    return { selected: analyses.filter((item) => analysisRoot(item).id === selected.artifact.id), ambiguous: false }
+  }
   if (frozen !== undefined)
     return { selected: analyses.filter((item) => frozen.has(analysisRoot(item).name)), ambiguous: false }
   if (!isGraphInputContract(frame.contract) || candidateDeclarations.length === 0)
@@ -587,7 +609,7 @@ const resolveCapturedCandidate = Effect.fn("DirectEvent.resolveCapturedCandidate
   return { units, failures, candidateDeclarations }
 })
 type PreparedCandidate = {
-  readonly outcomes: readonly PrepareOutcome[]
+  readonly outcomes: readonly SourcePrepareOutcome[]
   readonly pathOutcomes: readonly PathObservationOutcome[]
   readonly units: readonly ReviewUnit[]
 }
@@ -607,9 +629,9 @@ const frozenCandidateNames = (frozenNames: ReadonlyMap<string, ReadonlySet<strin
   return { included: true as const, frozen }
 }
 const eligibleCandidate = Effect.fn("DirectEvent.eligibleCandidate")(function* (
-  candidate: DirectObservation["candidates"][number],
-  observation: DirectObservation,
-  context: DirectReviewContext,
+  candidate: PreparationObservation["candidates"][number],
+  observation: PreparationObservation,
+  context: SourcePreparationContext,
   frozenNames: ReadonlyMap<string, ReadonlySet<string>> | undefined
 ) {
   if (candidate.operation === "delete" || candidate.operation === "move") {
@@ -663,9 +685,9 @@ const completedCandidate = Effect.fn("DirectEvent.completedCandidate")(function*
 })
 
 const prepareCandidate = Effect.fn("DirectEvent.prepareCandidate")(function* (
-  candidate: DirectObservation["candidates"][number],
-  observation: DirectObservation,
-  context: DirectReviewContext,
+  candidate: PreparationObservation["candidates"][number],
+  observation: PreparationObservation,
+  context: SourcePreparationContext,
   contract: string,
   supportingCaptures: PreparationFrame["supportingCaptures"],
   materializedPaths: Set<string>,
@@ -744,9 +766,11 @@ const mergePathOutcome = (
     analysis: mergePathAnalysis(prior.analysis, current.analysis)
   }
 }
-const mergePreparedObservations = (branches: readonly PreparedObservation[]): PreparedObservation => {
+const mergePreparedSourceObservations = (branches: readonly PreparedSourceObservation[]): PreparedSourceObservation => {
   const ready = branches.flatMap((branch) =>
-    branch.outcomes.filter((item): item is Extract<PrepareOutcome, { status: "ready" }> => item.status === "ready")
+    branch.outcomes.filter(
+      (item): item is Extract<SourcePrepareOutcome, { status: "ready" }> => item.status === "ready"
+    )
   )
   const byPath = new Map<string, PathObservationOutcome>()
   for (const branch of branches)
@@ -755,7 +779,7 @@ const mergePreparedObservations = (branches: readonly PreparedObservation[]): Pr
     }
   const pathOutcomes = [...byPath.values()]
   const readyPaths = new Set(ready.map((item) => item.path))
-  const outcomes: PrepareOutcome[] = [
+  const outcomes: SourcePrepareOutcome[] = [
     ...ready,
     ...pathOutcomes.flatMap((item) =>
       readyPaths.has(item.path) ? [] : [{ status: "skipped" as const, path: item.path }]
@@ -778,12 +802,12 @@ const mergePreparedObservations = (branches: readonly PreparedObservation[]): Pr
         }
       : { status: "incomplete" as const, outcomes: pathOutcomes, units },
     outcomes
-  } satisfies PreparedObservation
+  } satisfies PreparedSourceObservation
 }
 
 const prepareObservationForContract = Effect.fn("DirectEvent.prepareObservationForContract")(function* (
-  observation: DirectObservation,
-  context: DirectReviewContext,
+  observation: PreparationObservation,
+  context: SourcePreparationContext,
   contract: string,
   supportingCaptures: Map<string, import("./capture.ts").StableCapture>,
   materializedPaths: Set<string>,
@@ -791,7 +815,7 @@ const prepareObservationForContract = Effect.fn("DirectEvent.prepareObservationF
   selectedCount: { value: number },
   frozenNames: ReadonlyMap<string, ReadonlySet<string>> | undefined = undefined
 ) {
-  const outcomes: Array<PrepareOutcome> = []
+  const outcomes: Array<SourcePrepareOutcome> = []
   const pathOutcomes: Array<PathObservationOutcome> = []
   const observedUnits: Array<ReviewUnit> = []
   for (const candidate of observation.candidates) {
@@ -824,13 +848,13 @@ const prepareObservationForContract = Effect.fn("DirectEvent.prepareObservationF
         outcomes: pathOutcomes
       }
     : { status: "incomplete", outcomes: pathOutcomes, units: observedUnits }
-  return { observation: result, outcomes } satisfies PreparedObservation
+  return { observation: result, outcomes } satisfies PreparedSourceObservation
 })
 
 /** One observation can yield type and function review units under distinct input contracts. */
-export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(function* (
-  observation: DirectObservation,
-  context: DirectReviewContext,
+const prepareSourceObservation = Effect.fn("DirectEvent.prepareSourceObservation")(function* (
+  observation: PreparationObservation,
+  context: SourcePreparationContext,
   frozenNames: ReadonlyMap<string, ReadonlySet<string>> | undefined = undefined
 ) {
   const captures = new Map<string, import("./capture.ts").StableCapture>()
@@ -841,7 +865,7 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
     context.inputContract === undefined
       ? [TYPE_INPUT_CONTRACT, FUNCTION_INPUT_CONTRACT]
       : [currentInputContract(context)]
-  const branches: PreparedObservation[] = []
+  const branches: PreparedSourceObservation[] = []
   for (const contract of requested) {
     branches.push(
       yield* prepareObservationForContract(
@@ -857,7 +881,67 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
     )
   }
   if (branches.length === 1) return branches[0]!
-  return mergePreparedObservations(branches)
+  return mergePreparedSourceObservations(branches)
+})
+
+/** Hook preparation attaches the original advicee only after source preparation. */
+export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(function* (
+  observation: DirectObservation,
+  context: DirectReviewContext,
+  frozenNames: ReadonlyMap<string, ReadonlySet<string>> | undefined = undefined
+): Effect.fn.Return<PreparedObservation> {
+  const result = yield* prepareSourceObservation(observation, context, frozenNames)
+  return {
+    ...result,
+    outcomes: result.outcomes.map((outcome) =>
+      outcome.status === "ready"
+        ? { ...outcome, prepared: { ...outcome.prepared, advicee: observation.advicee } }
+        : outcome
+    )
+  }
+})
+
+/** Explicit operator selection; no fabricated edit, agent identity or resident. */
+export const prepareSourceLine = Effect.fn("DirectEvent.prepareSourceLine")(function* (
+  request: SourceLineRequest,
+  context: SourcePreparationContext
+) {
+  const roots = new Set<string>()
+  const result = yield* prepareSourceObservation(
+    {
+      root: request.root,
+      rootIdentity: request.rootIdentity,
+      candidates: [{ operation: "add", path: request.path }],
+      lineSelection: { line: request.line, roots }
+    },
+    context
+  )
+  const ambiguousLine = roots.size > 1
+  return {
+    ...result,
+    ambiguousLine,
+    outcomes: ambiguousLine ? [{ status: "skipped" as const, path: request.path }] : result.outcomes
+  }
+})
+
+export const preparedSourceLineStillCurrent = Effect.fn("DirectEvent.preparedSourceLineStillCurrent")(function* (
+  request: SourceLineRequest,
+  prepared: PreparedSource,
+  context: SourcePreparationContext
+) {
+  if (!(yield* verifyObservationRoot(request))) return false
+  const latest = yield* prepareSourceLine(request, context)
+  const ready = latest.outcomes.filter((outcome) => outcome.status === "ready")
+  return (
+    ready.length === 1 &&
+    ready.some(
+      (outcome) =>
+        outcome.status === "ready" &&
+        outcome.prepared.identity === prepared.identity &&
+        sameInput(outcome.prepared.input, prepared.input) &&
+        canonicalValue(outcome.prepared.input.sourceFingerprints) === canonicalValue(prepared.input.sourceFingerprints)
+    )
+  )
 })
 
 /** Rebuild the named rule input under current file policy before a Jev request. */
@@ -985,7 +1069,7 @@ export const candidateReviewInput = (input: ReviewInput): CandidateReviewInput |
 }
 
 /** Exact source-bearing `DecisionModel` input before provider serialization. */
-export const preparedProviderInput = (prepared: PreparedUnit) => {
+export const preparedProviderInput = (prepared: PreparedSource) => {
   if (prepared.input.contract === TYPE_INPUT_CONTRACT || prepared.input.contract === FUNCTION_INPUT_CONTRACT) {
     const candidate = candidateReviewInput(prepared.input)
     return candidate === undefined ? undefined : renderCandidateReviewInput(candidate)
@@ -994,12 +1078,12 @@ export const preparedProviderInput = (prepared: PreparedUnit) => {
 }
 
 /** UTF-8 bytes in the exact JSON representation supplied as the provider input value. */
-export const encodedPreparedProviderInputBytes = (prepared: PreparedUnit): number =>
+export const encodedPreparedProviderInputBytes = (prepared: PreparedSource): number =>
   preparedProviderInput(prepared) === undefined
     ? Number.POSITIVE_INFINITY
     : Buffer.byteLength(JSON.stringify(preparedProviderInput(prepared)), "utf8")
 
-export const encodedFullJevRequestBytes = (prepared: PreparedUnit): number => {
+export const encodedFullJevRequestBytes = (prepared: PreparedSource): number => {
   const input = preparedProviderInput(prepared)
   if (input === undefined) return Number.POSITIVE_INFINITY
   return Buffer.byteLength(
@@ -1012,7 +1096,7 @@ export const encodedFullJevRequestBytes = (prepared: PreparedUnit): number => {
 }
 
 /** Pinned provider's encoded JSON HTTP body, distinct from the local proposal shape. */
-export const encodedPreparedProviderHttpBodyBytes = (prepared: PreparedUnit): number => {
+export const encodedPreparedProviderHttpBodyBytes = (prepared: PreparedSource): number => {
   const input = preparedProviderInput(prepared)
   return input === undefined
     ? Number.POSITIVE_INFINITY
@@ -1022,12 +1106,12 @@ export const encodedPreparedProviderHttpBodyBytes = (prepared: PreparedUnit): nu
 type ProbabilityAnswers = Readonly<Record<string, { readonly probability: number }>>
 const validProbabilityAnswer = (answer: ProbabilityAnswers[string] | undefined): answer is ProbabilityAnswers[string] =>
   answer !== undefined && Number.isFinite(answer.probability) && answer.probability >= 0 && answer.probability <= 1
-const expectedProbabilityAnswers = (prepared: PreparedUnit, answers: ProbabilityAnswers): boolean => {
+const expectedProbabilityAnswers = (prepared: PreparedSource, answers: ProbabilityAnswers): boolean => {
   const expected = prepared.input.rules.map(({ id }) => id).sort()
   const actual = Object.keys(answers).sort()
   return expected.length === actual.length && expected.every((key, index) => key === actual[index])
 }
-const evaluateProbabilityAnswers = (prepared: PreparedUnit, answers: ProbabilityAnswers): Evaluation => {
+const evaluateProbabilityAnswers = (prepared: PreparedSource, answers: ProbabilityAnswers): Evaluation => {
   const ranked: Array<{ readonly finding: Finding; readonly rank: number }> = []
   for (const rule of prepared.input.rules) {
     const answer = answers[rule.id]
@@ -1078,7 +1162,7 @@ export type EvaluationEvidence =
 
 /** One DecisionModel call, no retry wrapper, with a fixed total call deadline. */
 export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(function* (
-  prepared: PreparedUnit,
+  prepared: PreparedSource,
   beforeDispatch: Effect.Effect<void, unknown> = Effect.void,
   observe?: (evidence: EvaluationEvidence) => void
 ) {

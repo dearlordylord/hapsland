@@ -12,7 +12,7 @@ code-design concerns.
 
 A type can allow a state that makes no sense. A function can make an assumption
 its inputs do not support. Those choices can spread as the agent writes more code.
-Hapsland reviews supported edits while the agent is working, giving it a chance
+Hapsland reviews edits while the agent is working, giving it a chance
 to revisit the decision early.
 
 Hapsland starts from the edited lines, finds the changed type or function, then
@@ -20,16 +20,7 @@ follows its references to build a tree of related definitions. Checks use that d
 need. This lets review consider relationships beyond the changed lines. A check
 that lacks necessary code is skipped.
 
-<p align="center"><img src="./assets/review-flow.gif" alt="Illustrative review loop: an agent edit gains related code context, receives feedback, and is repaired and reviewed again" width="800"></p>
-
-The animation starts with a small edit, expands to the declaration and related
-code, then illustrates a feedback and repair loop. Feedback follows the edit; it does not
-undo it or guarantee a repair. Delivery and optional blocking feedback depend on
-the agent runtime and configuration. See the [architecture guide](./docs/architecture.md)
-for the flow and its boundaries. Run `hapsland --feedback-preview` to see the
-shared agent instructions with a synthetic finding; no review request is made.
-
-## Choose what leaves your repository
+## What leaves my repository?
 
 Sending source to a review service is a data-sharing decision. Your task prompt
 and conversation with the agent are not sent to the review backend.
@@ -42,10 +33,21 @@ by project includes. Limits bound exploration and the code included in the revie
 Selected source code and rule questions are sent to the selected external
 classifier: [Jev](https://typesafe.ai) by default, or Cloudflare Clef/Clef-flash. It sees that code and those questions, not the agent’s
 task or conversation. Hapsland maps its results to configured feedback messages.
-The review input excludes the full file, edit diff, agent conversation, and
+The checker receives one type declaration, or a TypeScript function's
+signature and body, plus related code reached through local
+references. What is NOT sent: the full file, edit diff, agent conversation, and
 unrelated source. With review credentials and no
 file settings, all otherwise eligible files are selected. Set an explicit scope
 when you want a narrower boundary. See [configuration](./docs/configuration.md).
+
+<p align="center"><img src="./assets/review-flow.gif" alt="Illustrative review loop: an agent edit gains related code context, receives feedback, and is repaired and reviewed again" width="800"></p>
+
+The animation starts with a small edit, expands to the declaration and related
+code, then illustrates a feedback and repair loop. Feedback follows the edit; it does not
+undo it or guarantee a repair. Delivery and optional blocking feedback depend on
+the agent runtime and configuration. See the [architecture guide](./docs/architecture.md)
+for the flow and its boundaries. Run `hapsland --feedback-preview` to see the
+shared agent instructions with a synthetic finding; no review request is made.
 
 ## Choose a review backend
 
@@ -70,9 +72,9 @@ where documented, including Clef's 64-question limit. Token limits are recorded
 but require a tokenizer before they can be enforced. See
 [provider configuration and limits](./docs/review-providers.md) for details.
 
-Hapsland also manages review resources: each resident has separate pools for
+Hapsland also manages review resources: each background service has separate pools for
 eight preparation jobs and eight concurrent classifier request permits, plus
-bounded retained state and advice output. See
+limits on retained state and advice output. See
 [review resources and limits](./docs/review-resources.md) for saturation behavior,
 configuration controls, and the distinction between collection and model limits.
 
@@ -92,20 +94,80 @@ and network calls remain native code. See [proof scope and evidence](./docs/arch
 
 ## Built-in rules and your own
 
-With no explicit rule selection, authorized setup connects seven editable JSON rule
-files with questions about code
-design, including whether a declaration allows meaningless combinations of values.
-Each rule declares supported languages, input forms, and required related code.
+<!-- shipped-rules:start -->
+
+By default, authorized setup enables 7 editable JSON rule files with questions about code design.
+
+<!-- shipped-rules:end -->
+
+<!-- rule-inspection:start -->
 
 Inspect them with `hapsland rules list` or `hapsland rules show --id meaningless_combinations`.
-Author one rule per file and connect it explicitly. Choose personal or project
+
+<!-- rule-inspection:end -->
+Author one rule per file and enable it. Choose personal or project
 settings for activation, languages, file scope, threshold, and feedback messages.
 File paths belong to settings; the rule defines the concern and evidence it needs.
-A configured rule runs only on supported inputs with sufficient evidence. See
+A configured rule runs only on inputs with sufficient evidence. See
 [custom rules](./docs/configuration.md#declarative-rules) and the
 [type-design rules](./TYPE-DESIGN-RULES.md).
 
-See [supported languages and limits](#supported-languages) before setup.
+See [languages and limits](#languages-and-limits) before setup.
+
+## Write your first rule
+
+<!-- first-rule-defaults:start -->
+
+Start with the **7 editable default rules**.
+
+<!-- first-rule-defaults:end -->
+
+<!-- first-rule-inspection:start -->
+
+Run `hapsland rules list`, then `hapsland rules show --id meaningless_combinations` to inspect one and its source file.
+
+<!-- first-rule-inspection:end -->
+You may already have a rule for your concern. Setup enables defaults when no
+explicit rule selection is configured; your current inventory shows what is
+available and enabled.
+
+For a custom concern, follow the [first-rule walkthrough](./docs/configuration.md#write-your-first-rule):
+create a starter with `hapsland rules create`, edit its JSON in your
+editor, then test examples that should trigger and stay clear with `rules check`.
+You can also write a JSON file yourself and use `rules connect`. These are local
+editable files; you do not need the Hapsland source checkout.
+
+## Does my rule work?
+
+Try a rule against an interface or function without making an agent edit. This
+example uses the custom rule created in the walkthrough; substitute an enabled ID
+from `hapsland rules list` to check another rule:
+
+<!-- rule-check-example:start -->
+
+```sh
+hapsland rules check --path src/primitive-obsession-examples.ts --line 2 --id no-primitive-obsession
+```
+
+<!-- rule-check-example:end -->
+
+The line is one-based and selects its enclosing declaration. Hapsland sends the
+declaration to the classifier you configured in the [setup guide](#installation).
+
+<!-- rule-check-exits:start -->
+
+Exit 0 means evaluation completed, including findings; exit 6 means skipped or unavailable.
+
+<!-- rule-check-exits:end -->
+
+Try both examples that should trigger and examples that should stay clear;
+one result does not establish rule accuracy.
+
+<!-- rule-check-dashboard:start -->
+
+To inspect **ordinary agent reviews**, enable the debug recording setting by adding `"sessionInspection": true` into the repository's `.hapsland.jsonc`, make a new edit through an agent with [installed Hapsland](#installation), then run `hapsland dashboard`. The dashboard lets you inspect classifier requests and responses. Recording is off by default, contains source, and is independent of analytics. Opening the dashboard does not enable recording or backfill history. One-off `hapsland rules check` results are not recorded in the debug journal. See [rule checks](./docs/configuration.md#try-a-rule-on-a-file-and-line) and [dashboard setup](./docs/status.md#opt-in-local-inspection).
+
+<!-- rule-check-dashboard:end -->
 
 ## A contextual comparison with Abide
 
@@ -156,7 +218,7 @@ Or install manually after a stable release is published and verified:
    using a built-in greeting; it sends no project code and may use paid credits.
 
 3. Finish current client work, restart the client normally, complete its native
-   trust prompts, and make a supported edit. Follow the [status guide](./docs/status.md) to inspect observed review activity;
+   trust prompts, and edit a type or function. Follow the [status guide](./docs/status.md) to inspect observed review activity;
    installation alone does not establish that a review ran.
 
 The hooks apply across the selected user profile, not just the repository where
@@ -203,16 +265,16 @@ See the [complete configuration guide](./docs/configuration.md) for field detail
 
 <!-- configuration-readme:end -->
 
-## Supported languages
+## Languages and limits
 
 | Language | Reviewed code | Main limits |
 | --- | --- | --- |
 | TypeScript (`.ts`, `.tsx`, `.mts`, `.cts`) | Interfaces, type aliases, and named functions, with related local types and imports, within configured limits | Unsupported syntax or unresolved evidence can prevent review. |
-| Rust (`.rs`) | Top-level structs, enums, and type aliases, with local type context across verified Cargo modules | Explicit local `mod`/`use` bindings and aliases are supported. External crates, re-exports, inline modules, functions, macros, and conditional compilation are not supported. Cargo metadata and supporting files must pass file selection. Attributes such as `derive` make evidence incomplete for the default rules. |
+| Rust (`.rs`) | Top-level structs, enums, and type aliases, with local type context across verified Cargo modules | Hapsland resolves explicit local `mod`/`use` bindings and aliases. External crates, re-exports, inline modules, functions, macros, and conditional compilation are not supported. Cargo metadata and supporting files must pass file selection. Attributes such as `derive` make evidence incomplete for the default rules. |
 | Bend (`.bend`) | Top-level `type` datatypes and constructor payloads, with related definitions from the same file or explicit relative `.bend` alias imports, within configured limits | Functions, laws/proofs, dependent or computed types, and hub, bare, or absolute imports are unsupported. This first profile skips files with string literals and requires single-line constructors indented with two spaces. |
 
 Rust cross-file context requires a selected `Cargo.toml` with an explicit
-2018, 2021, or 2024 edition and supported library/binary targets. Workspace-inherited
+2018, 2021, or 2024 edition and accepted library/binary targets. Workspace-inherited
 editions, custom build targets, and test/example/bench target tables are outside
 this profile. Module paths must be unambiguous; excluded supporting files stay unread.
 
@@ -220,7 +282,7 @@ Language support applies to source review; it does not select an agent runtime.
 If an edit lacks the evidence a rule needs, Hapsland skips that rule. Silence
 is not confirmation that the code passed review. See the
 [review contract](./docs/type-function-review-proposal.md#branch-contracts) for
-the exact supported syntax and [session status](./docs/status.md) to inspect
+the syntax limits and [session status](./docs/status.md) to inspect
 review activity.
 
 ## Development
@@ -244,7 +306,7 @@ for the source owner, port selection, and checks.
 
 <!-- inspection-recording:start -->
 
-Recording is off by default: merge `"sessionInspection": true` into your project's `.hapsland.jsonc` using the [configuration template](./docs/examples/session-inspection.jsonc), then make a new eligible edit. Neither dashboard enables recording or backfills old edits; retained history can remain visible after recording is turned off.
+Recording is off by default: add `"sessionInspection": true` into your project's `.hapsland.jsonc` using the [configuration template](./docs/examples/session-inspection.jsonc), then make a new edit. Neither dashboard enables recording or backfills old edits; retained history can remain visible after recording is turned off.
 
 <!-- inspection-recording:end -->
 
@@ -337,7 +399,7 @@ configuration or printed. User configuration selects Jev or Cloudflare Clef/Clef
 An unavailable credential prevents provider dispatch. Changing effective exclusions
 affects future dispatches and cannot recall a request already sent.
 
-The supported Codex event boundary is documented in the
+The Codex event boundary is documented in the
 [direct-event profile](./docs/direct-event-v1-supported-profile.md). The installed Codex
 integration uses a synchronous pre-edit permit and its matching composed post-edit hook.
 An isolated `--codex-hook` call without that lifecycle stays quiet. The installed
@@ -359,7 +421,7 @@ without that facility are unsupported rather than falling back to path-only sour
 Offline readiness diagnosis and headless activity inspection are documented in
 [`docs/status.md`](./docs/status.md). Doctor checks the selected installed integration
 without prompts, repairs, source reads, or Jev calls. Status uses an explicit host session
-ID and bounded source-free resident activity, and never treats silence or missing
+ID and source-free review activity, and never treats silence or missing
 instrumentation as a clear review. Optional [session analytics](./docs/status.md#optional-session-analytics)
 are disabled by default; user configuration can enable Jev outcome totals and recent
 rule-ID history. See the [shared activity storage limits](./docs/status.md).
@@ -402,9 +464,9 @@ Generated from [the hook catalog](./src/runtime/hook-catalog.ts). Command timeou
 | Claude Code | `PostToolUse` | `Edit\|Write` | Sync command | 5 s | Report the edit and collect ready advice |
 | Claude Code | `Stop` | All | Sync command | 5 s | Collect admitted review results before the agent finishes |
 | Claude Code | `SubagentStop` | All | Sync command | 5 s | Collect admitted review results before a subagent finishes |
-| Claude Code | `UserPromptSubmit` | All | Sync command | 4 s | Notify the resident of the user prompt; does not open a review round |
+| Claude Code | `UserPromptSubmit` | All | Sync command | 4 s | Notify Hapsland of the user prompt; does not open a review round |
 | Pi | `agent_start` | All | Extension callback | No IPC | Remember the agent identity for cleanup |
-| Pi | `tool_call` | `edit` | Extension callback | 7 s per IPC call | Register a supported edit attempt |
+| Pi | `tool_call` | `edit` | Extension callback | 7 s per IPC call | Register an edit attempt |
 | Pi | `tool_result` | `edit` | Extension callback | 7 s per IPC call | Report the edit and offer ready advice in the tool result |
 | Pi | `agent_before_settle` | All | Extension callback | 7 s per IPC call | Offer review advice before the agent settles |
 | Pi | `session_before_switch` | All | Extension callback | 7 s per IPC call | Retire edit attempts and close owned partitions |

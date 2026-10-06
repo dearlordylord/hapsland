@@ -8,7 +8,7 @@ behavior. Negated re-inclusion is excluded from this phase, so an overbroad excl
 be removed at its originating layer; keep built-in exclusions narrow and expose provenance
 through configuration explanation.
 
-The decision adopts the bounded recommendation in
+The decision adopts the recommendation in
 [the file-filter research](https://github.com/dearlordylord/hapsland-research/blob/master/PRODUCT-CONFIG-FILE-FILTER-RESEARCH-2026-09-19.md).
 
 Implementation is tracked by Phase F issue #3. The target uses file

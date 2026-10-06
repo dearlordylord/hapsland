@@ -12,15 +12,15 @@ describe("provider request limits", () => {
     expect(PROVIDER_LIMITS.clef.questions).toBe(64)
   })
   it("measures multibyte UTF-8 and JSON escaping at the exact body boundary", () => {
-    const base = probabilityRequest("clef", "", [{ id: "team/rule", decision }])
+    const base = probabilityRequest("clef", "", [{ id: "namespace/rule", decision }])
     if (base === undefined) throw new Error("invalid fixture")
     const limit = PROVIDER_LIMITS.clef.httpBodyBytes
     if (limit === undefined) throw new Error("missing byte limit")
     const state = "я\n" + "x".repeat(limit - base.bytes - Buffer.byteLength("я\\n"))
-    const exact = probabilityRequest("clef", state, [{ id: "team/rule", decision }])
+    const exact = probabilityRequest("clef", state, [{ id: "namespace/rule", decision }])
     expect(exact?.bytes).toBe(limit)
     expect(requestLimitViolation("clef", exact)).toBeUndefined()
-    const over = probabilityRequest("clef", state + "x", [{ id: "team/rule", decision }])
+    const over = probabilityRequest("clef", state + "x", [{ id: "namespace/rule", decision }])
     expect(requestLimitViolation("clef", over)).toBe("http-body-bytes")
   })
   it("does not collapse qualified IDs or permit duplicate IDs", () => {

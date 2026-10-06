@@ -6,6 +6,22 @@ import { ConfigurationDocument, CONFIGURATION_VERSION } from "../src/configurati
 import { GRAPH_LIMIT_CEILINGS, graphLimitFields } from "../src/configuration/graph-limits.ts"
 import { MAX_INSPECTION_MESSAGE_BYTES } from "../src/inspection/contract.ts"
 import { DEFAULT_RULE_THRESHOLD } from "../src/rules/schema.ts"
+import { SHIPPED_DEFAULT_RULES } from "../src/rules/shipped.ts"
+import {
+  DEFAULT_RULE_EXAMPLE_ID,
+  CUSTOM_RULE_EXAMPLE_ID,
+  CUSTOM_RULE_EXAMPLE_PATH,
+  RULE_CHECK_EXIT_CODES
+} from "../src/rules/cli-definition.ts"
+import primitiveDomainDefinition from "../src/rules/defaults/bare_domain_value.json" with { type: "json" }
+import { CLI_NAME } from "../src/runtime/cli-names.ts"
+import {
+  authoringExampleFacts,
+  authoringCheckCommands,
+  authoringSourcePath,
+  authoringSelections,
+  ruleExampleCommand
+} from "./rule-authoring-example.ts"
 import { PROVIDER_LIMITS } from "../src/review-providers/catalog.ts"
 import { REVIEW_SETTINGS_CACHE_CAPACITY, REVIEW_SETTINGS_CACHE_TTL_MS } from "../src/runtime/review-settings.ts"
 
@@ -28,7 +44,123 @@ const mib = (value: number): string => `${value / (1024 * 1024)} MiB`
 export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocument) => {
   const analytics = recordingFieldName(schema, "AnalyticsRecordingEnabled")
   const inspection = recordingFieldName(schema, "InspectionRecordingEnabled")
+  if (!SHIPPED_DEFAULT_RULES.some((rule) => rule.id === primitiveDomainDefinition.id))
+    throw new Error("primitive domain rule is no longer shipped; update the first-rule walkthrough")
   return [
+    ...authoringExampleFacts(),
+    {
+      path: "docs/configuration.md",
+      name: "rule-check-dashboard",
+      text: `The [inspection dashboard](status.md#opt-in-local-inspection) provides another view of actual agent reviews after enabling \`${inspection}\`; its journal does not include this one-off command.`
+    },
+    {
+      path: "docs/configuration.md",
+      name: "authoring-check-result",
+      text: `The first type lets customer and order IDs be interchanged and should trigger; the second gives them distinct types and should stay clear. The primitive \`value\` inside each wrapper is its representation, not itself a violation. A plain alias such as \`type CustomerId = string\` would still be interchangeable; merely naming a primitive does not establish a distinct type. These are expectations to check, not guaranteed classifier outputs. Each command selects the enclosing declaration and related code, uses normal credential discovery and sends a real external classifier request that may incur charges. No agent session is needed. Add \`--json\` to inspect the actual source-bearing input and probabilities. A skipped/unavailable result is not a clear result, and exit ${RULE_CHECK_EXIT_CODES.evaluated} also includes findings. See [file/line check details](#try-a-rule-on-a-file-and-line).`
+    },
+    {
+      path: "docs/configuration.md",
+      name: "rule-selection-example",
+      text: [
+        "```jsonc",
+        JSON.stringify(
+          {
+            version: CONFIGURATION_VERSION,
+            includes: ["src/**"],
+            languages: ["typescript", "rust"],
+            contextIncludes: ["src/**", "shared/**"],
+            privacyExcludes: ["shared/private/**"],
+            rules: [{ path: CUSTOM_RULE_EXAMPLE_PATH, languages: ["typescript"], includes: ["src/api/**"] }]
+          },
+          null,
+          2
+        ),
+        "```"
+      ].join("\n")
+    },
+    {
+      path: "docs/configuration.md",
+      name: "authoring-default",
+      text: `See the [default rules](../TYPE-DESIGN-RULES.md). The default \`${primitiveDomainDefinition.id}\` already addresses primitive domain values; inspect it before adding a custom variant. \`${CUSTOM_RULE_EXAMPLE_ID}\` below teaches custom authoring.`
+    },
+    { path: "README.md", name: "rule-check-example", text: ["```sh", authoringCheckCommands[0], "```"].join("\n") },
+    {
+      path: "docs/configuration.md",
+      name: "rule-check-example",
+      text: [
+        `\`${CUSTOM_RULE_EXAMPLE_ID}\` is the example custom rule created in the walkthrough, not a shipped default. Substitute an enabled ID from \`${ruleExampleCommand("list")}\`.`,
+        "",
+        "```sh",
+        authoringCheckCommands[0],
+        ruleExampleCommand("check", `--path ${authoringSourcePath} --line ${authoringSelections[0].line} --json`),
+        "```"
+      ].join("\n")
+    },
+    {
+      path: "README.md",
+      name: "rule-check-exits",
+      text: `Exit ${RULE_CHECK_EXIT_CODES.evaluated} means evaluation completed, including findings; exit ${RULE_CHECK_EXIT_CODES.unavailable} means skipped or unavailable.`
+    },
+    {
+      path: "docs/configuration.md",
+      name: "rule-check-exits",
+      text: `Exit ${RULE_CHECK_EXIT_CODES.evaluated} means evaluated, **even with a finding**; exit ${RULE_CHECK_EXIT_CODES.unavailable} means skipped/unavailable or a local operation failure. Invalid command arguments are rejected before review.`
+    },
+    {
+      path: "README.md",
+      name: "rule-check-dashboard",
+      text: `To inspect **ordinary agent reviews**, enable the debug recording setting by adding \`"${inspection}": true\` into the repository's \`${PROJECT_CONFIGURATION_FILE}\`, make a new edit through an agent with [installed Hapsland](#installation), then run \`${CLI_NAME} dashboard\`. The dashboard lets you inspect classifier requests and responses. Recording is off by default, contains source, and is independent of analytics. Opening the dashboard does not enable recording or backfill history. One-off \`${CLI_NAME} rules check\` results are not recorded in the debug journal. See [rule checks](./docs/configuration.md#try-a-rule-on-a-file-and-line) and [dashboard setup](./docs/status.md#opt-in-local-inspection).`
+    },
+    {
+      path: "docs/status.md",
+      name: "rule-check-dashboard",
+      text: `For **“Does my rule work?”**, use this debug dashboard to compare the declaration and related context captured for an ordinary agent edit with its classifier outcome and feedback. The opt-in setting is \`${inspection}\`, not an analytics setting. Enable it as shown below before making the edit. For an immediate check without an agent edit, run \`${ruleExampleCommand("check", "--path FILE --line N")}\` (and optionally \`--id RULE\`); see [file/line rule checks](configuration.md#try-a-rule-on-a-file-and-line). That command returns its own results and does not append them to this journal.`
+    },
+    {
+      path: "docs/installation-workflows.md",
+      name: "shipped-rules",
+      text: `Authorized initial setup enables ${SHIPPED_DEFAULT_RULES.length} individual editable default files only when no configuration layer declares \`rules\`.`
+    },
+    {
+      path: "README.md",
+      name: "rule-inspection",
+      text: `Inspect them with \`${ruleExampleCommand("list")}\` or \`${ruleExampleCommand("show", `--id ${DEFAULT_RULE_EXAMPLE_ID}`)}\`.`
+    },
+    {
+      path: "README.md",
+      name: "first-rule-inspection",
+      text: `Run \`${ruleExampleCommand("list")}\`, then \`${ruleExampleCommand("show", `--id ${DEFAULT_RULE_EXAMPLE_ID}`)}\` to inspect one and its source file.`
+    },
+    {
+      path: "docs/configuration.md",
+      name: "first-rule-inspection",
+      text: [
+        "```sh",
+        ruleExampleCommand("list"),
+        ruleExampleCommand("show", `--id ${DEFAULT_RULE_EXAMPLE_ID}`),
+        "```"
+      ].join("\n")
+    },
+    {
+      path: "docs/configuration.md",
+      name: "rule-file-identity",
+      text: `For example, \`${encodeURIComponent(DEFAULT_RULE_EXAMPLE_ID)}.json\` retains the stable rule ID \`${DEFAULT_RULE_EXAMPLE_ID}\`.`
+    },
+    {
+      path: "README.md",
+      name: "shipped-rules",
+      text: `By default, authorized setup enables ${SHIPPED_DEFAULT_RULES.length} editable JSON rule files with questions about code design.`
+    },
+    {
+      path: "README.md",
+      name: "first-rule-defaults",
+      text: `Start with the **${SHIPPED_DEFAULT_RULES.length} editable default rules**.`
+    },
+    {
+      path: "docs/configuration.md",
+      name: "shipped-rules",
+      text: `When no loaded configuration layer declares a \`rules\` field, authorized initial setup materializes ${SHIPPED_DEFAULT_RULES.length} editable default rule files normally under \`~/.config/hapsland/rules/defaults/\`.`
+    },
     {
       path: "docs/configuration.md",
       name: "credential-reference",
@@ -50,7 +182,7 @@ export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocu
       text: `| Layer | Location | Behavior |
 | --- | --- | --- |
 | Built-in | Non-rule settings defaults | Supplies omitted settings. |
-| User | \`REVIEW_USER_CONFIG_PATH\`, otherwise \`$XDG_CONFIG_HOME/hapsland/config.jsonc\` (normally \`~/.config/hapsland/config.jsonc\`) | Personal settings across repositories; owns review destination and shared resident resources. |
+| User | \`REVIEW_USER_CONFIG_PATH\`, otherwise \`$XDG_CONFIG_HOME/hapsland/config.jsonc\` (normally \`~/.config/hapsland/config.jsonc\`) | Personal settings across repositories; owns review destination and shared review resources. |
 | Project | \`${PROJECT_CONFIGURATION_FILE}\` at the canonical Git working-tree root | Overrides ordinary settings for this repository. There are no nested configuration layers. |
 | Rule documents | Explicit \`rules\` references in configuration | Definitions, not another configuration layer. Paths resolve from the declaring configuration. |`
     },
@@ -85,7 +217,7 @@ export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocu
     {
       path: "docs/configuration.md",
       name: "analytics-enablement",
-      text: `Session analytics are disabled by default. Set \`${analytics}: true\` to retain source-free session totals and bounded rule-ID history, subject to the limits in [status and analytics](status.md#optional-session-analytics).`
+      text: `Session analytics are disabled by default. Set \`${analytics}: true\` to retain source-free session totals and rule-ID history, subject to the limits in [status and analytics](status.md#optional-session-analytics).`
     },
     {
       path: "docs/configuration.md",
