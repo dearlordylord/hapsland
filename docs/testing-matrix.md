@@ -85,7 +85,7 @@ evidence before regenerating the scenario pages.
 | Resident settings inspection | `npm run test:focused -- packages/monkey-business/src/applied-settings.test.ts` | Snapshot identity across execution, defensive copies and deep freezing, control invalidation, rejected controls and replay restoration | Applied configuration and controls are stable inspection inputs; no performance-improvement claim |
 | Immutable simulation boundary reuse | `npm run test:focused -- src/canonical/immutable.test.ts src/canonical/simulation-codec.test.ts src/canonical/boundary-schema.test.ts src/canonical/boundary.test.ts src/canonical/simulation-adapter.test.ts src/canonical/constructors-reuse.test.ts` | Transactional constructor reuse with strict public decoding; schema-equivalent scalar fast paths; cyclic/shared/wide freezing; frozen graph reuse; mutable and accessor isolation; list and scalar bounds; emitted Engine equivalence | Boundary correctness and snapshot isolation; no throughput claim |
 | Inspection page development | `npm run dev:inspection`; `npm --prefix packages/agent-flow-viz run test:inspection-dev-browser` | Source page edits reload the real inspector at the same private URL; syntax-error recovery, CSP execution and protected journal routes | Local source development only; no package rebuild, hook update, resident startup or release claim |
-| Inspection dashboard browser | `npm --prefix packages/agent-flow-viz run test:inspection-browser` | Real resident/offline provider → private journal → production HTTP/SSE → Chromium; per-unit request selection, exact request copy and resident messages independent of hook execution, three-edit batch links, keyboard selection, pause/resume, keyboard reconnect with a retained cursor, recovery gaps, stable live reading, typed payload loss while paused, observed recording disable/re-enable, safe text, 375 px layout | Observed preparation/results/fates and resident messages; preparation does not establish native output or agent receipt. Pi and verified source discovery have separate checks below; full-feature milestone validation remains pending; no agent visibility or repair claim |
+| Inspection dashboard browser | `npm --prefix packages/agent-flow-viz run test:inspection-browser` | Real resident/offline provider → private journal → production HTTP/SSE → Chromium; per-unit request selection and JSON preview and resident messages independent of hook execution, three-edit batch links, keyboard selection, stable live reading, typed payload loss, observed recording disable/re-enable, safe text, 375 px layout | Observed preparation/results/fates and resident messages; preparation does not establish native output or agent receipt. Pi and verified source discovery have separate checks below; full-feature milestone validation remains pending; no agent visibility or repair claim |
 | Inspection evaluation reuse | `npm --prefix packages/agent-flow-viz run test:inspection-reuse-browser` | Actual provider request held while another edit joins, clear result reused from cache, separate controlled DecisionModel call, public API/browser links and filtered retained totals, repeated recovery and physical policy-record loss | Joins/cache add no model or transport calls; controlled model activity remains distinct from live HTTP. Unknown activity after policy loss is explicit. Totals count retained immutable identities and do not claim complete capture |
 | Inspection classifier outcomes | `npm --prefix packages/agent-flow-viz run test:inspection-outcomes-browser` | Real resident and offline production provider transport through private journal and public API/browser; clear/findings, invalid answers, backend failure, timeout, interruption, oversized capture, exact copy and credential/error-body exclusion | Observed outcomes remain distinct from submission. The backend-error fixture exercises the resident error boundary without suppressing the original failure; no live Jev or model-visibility claim |
 | Pi inspector handoffs | `npm --prefix packages/agent-flow-viz run test:pi-inspection-browser`; [native fixture matrix](../src/pi/inspection-native.test.ts) | Existing native extension fixtures → freshly packed production command/resident → private journal → public HTTP/SSE → Chromium; actual edit and finish offers, general resident messages independent of native output and lost acknowledgement, original edit links, verified multi-source health, retained history after resident exit, identity filters, keyboard focus/button activation and 375 px layout. Native matrix additionally covers session switch, recording disabled, and altered native output with the original native value preserved. | Native handler proposed output and resident replies remain distinct from completed writes or model visibility. One-rule edit fixture permits at most two later eligible comment mutations without starting unrelated classifier work, each with the existing short callback deadline; the extracted package boundary does not establish npm installation or other-platform support; no general latency or repair claim |
@@ -251,13 +251,11 @@ sources, takes a snapshot, records further edits, and resumes after each source'
 sequence position through HTTP and SSE `Last-Event-ID`. Resumed SSE frames carry
 only records after each saved source position, plus a bounded list of the current
 view's retained identities. An unchanged cursor sends no record payloads. The
-browser merges by source/sequence and removes identities no longer retained,
-including while paused. Fresh or reset frames replace the retained view. Repeated
+browser merges by source/sequence and removes identities no longer retained. Fresh or reset frames replace the retained view. Repeated
 source/sequence records are idempotent. Cursors are signed per inspector launch, carry at most 128
 source positions, and fit the server's header bound. A missing retained anchor or
-invalid cursor produces explicit gaps and a fresh retained snapshot; source and
-view bounds remain visible. Browser checks reconnect by keyboard while paused,
-keep selection frozen, and display loss after actual journal expiry. Coverage is
+invalid cursor produces explicit protocol gaps and a fresh retained snapshot. Browser checks keep the selected edit open during live updates and remove expired rows
+after actual journal expiry. Coverage is
 always limited to retained observations; this does not prove that silent capture
 failures are known. Exact loss markers distinguish known expiry and capacity eviction;
 missing markers keep the reason unknown. The [slow-consumer test](../src/inspection/consumer.test.ts) pauses a real TCP
@@ -300,8 +298,8 @@ reads. [Journal tests](../src/inspection/storage.test.ts) cover capacity markers
 across fresh readers, refusal to republish marked identities, physical publication
 peaks, marker expiry, and producer death before/after marker linking. Private
 record and marker FIFOs fail promptly without being deleted. The real-resident
-browser gate reduces the allocated cap while paused, observes known eviction,
-then expires retained data without changing selection or copying missing bytes.
+browser gate reduces the allocated cap during live updates, observes eviction through the journal API,
+then expires retained data and checks that unavailable rows disappear.
 
 ## Local inspection model
 

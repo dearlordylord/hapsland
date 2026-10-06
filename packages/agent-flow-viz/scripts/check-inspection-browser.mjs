@@ -120,10 +120,7 @@ try {
     makeInspectionHttpServer(history).pipe(Effect.provideService(Scope.Scope, scope))
   )
   browser = await chromium.launch({ headless: true })
-  const context = await browser.newContext({
-    viewport: { width: 375, height: 812 },
-    permissions: ["clipboard-read", "clipboard-write"]
-  })
+  const context = await browser.newContext({ viewport: { width: 375, height: 812 } })
   const page = await context.newPage()
   const errors = []
   page.on("pageerror", (error) => errors.push(error.message))
@@ -133,9 +130,11 @@ try {
   const originalKey = await row.getAttribute("data-key")
   const originalRow = page.locator(`#edits button[data-key="${originalKey}"]`)
   assert.ok((await row.boundingBox()).y < 812, "Edits appear on the first narrow screen")
-  assert.equal(await page.locator("#sources").isVisible(), false)
+  assert.equal(await page.locator("#history-panel").count(), 0)
   assert.equal(await page.locator("#current-recording").isVisible(), false)
-  assert.equal(await page.locator("#root-filter").isVisible(), false)
+  assert.equal(await page.locator("#root-filter").isVisible(), true)
+  assert.equal(await page.locator("#hide-unreviewed").isChecked(), true)
+  await page.locator("#hide-unreviewed").uncheck()
   await row.focus()
   await page.keyboard.press("Enter")
   await page.waitForFunction(() => document.querySelector("#detail").textContent.includes("edit-admission"))
@@ -148,10 +147,8 @@ try {
     await page.screenshot({ path: "/tmp/hapsland-inspection-ux-desktop.png", fullPage: true })
     await page.setViewportSize({ width: 375, height: 812 })
   }
-  await revealInspection(page, "#copy")
-  await page.getByRole("button", { name: "Copy exact request", exact: true }).click()
-  await page.waitForFunction(() => document.querySelector("#copy-status").textContent === "Exact request copied")
-  assert.ok(Buffer.from(await page.evaluate(() => navigator.clipboard.readText())).equals(dispatched[0]))
+  await revealInspection(page, "#exact")
+  assert.equal(await page.locator("#copy").count(), 0)
   assert.equal(await page.locator("#exact").textContent(), dispatched[0].toString("utf8"))
   await page.waitForFunction(() => document.querySelectorAll("#requests button").length === 2)
   const copiedRequests = []
@@ -166,10 +163,7 @@ try {
     requestDeclarations.push(metadata.declaration)
     requestReferences.push({ sourceId: metadata.sourceId, sequence: metadata.sequence })
     assert.equal(metadata.payload.status, "available")
-    await page.getByRole("button", { name: "Copy exact request", exact: true }).focus()
-    await page.keyboard.press("Enter")
-    await page.waitForFunction(() => document.querySelector("#copy-status").textContent === "Exact request copied")
-    const copied = await page.evaluate(() => navigator.clipboard.readText())
+    const copied = await page.locator("#exact").textContent()
     assert.equal(JSON.parse(copied).state.artifact.name, metadata.declaration)
     assert.equal(Buffer.byteLength(copied), metadata.payload.byteLength)
     assert.equal(await page.locator("#exact").textContent(), copied)
@@ -204,28 +198,14 @@ try {
   assert.match(await page.locator("#results").textContent(), /Validated backend answers:[\s\S]*0.7/)
   assert.match(await page.locator("#results").textContent(), /Interpreted findings:[\s\S]*Inspect browser 日本語 cases/)
   const selection = await page.locator("#detail").textContent()
-  await page.getByRole("button", { name: "Pause updates", exact: true }).click()
   const hostile = "<img onerror=alert(1)>.ts"
   await put(root, hostile, "type OtherCount = number\n")
-  await edit(hostile, "while-paused")
-  await page.locator("#status").filter({ hasText: "Paused" }).waitFor()
-  assert.equal(await page.locator("#edits li").count(), 1)
-  assert.equal(await page.locator("#detail").textContent(), selection)
-  const recovery = page.waitForRequest((request) => request.url().includes("/events?cursor="))
-  await page.getByRole("button", { name: "Reconnect", exact: true }).focus()
-  await page.keyboard.press("Enter")
-  const recoveryRequest = await recovery
-  assert.ok(new URL(recoveryRequest.url()).searchParams.get("cursor"))
-  await page.waitForFunction(() =>
-    document.querySelector("#history-status").textContent.includes("Recovered retained history")
-  )
-  assert.equal(await page.locator("#detail").textContent(), selection)
-  assert.equal(await page.locator("#edits li").count(), 1)
-  await page.getByRole("button", { name: "Resume updates", exact: true }).click()
+  await edit(hostile, "during-live-update")
   await page.getByRole("button", { name: /<img onerror/ }).waitFor()
+  assert.equal(await page.locator("#edits button").count(), 2)
+  assert.equal(await page.locator("#detail").textContent(), selection)
   assert.equal(await page.locator("#edits img").count(), 0)
   assert.equal(await page.locator("#detail").textContent(), selection)
-  await page.waitForFunction(() => document.querySelector("#recording").textContent.includes("enabled"))
   await revealInspection(page, "#detail")
   await page.evaluate(() => {
     const detail = document.querySelector("#detail")
@@ -307,7 +287,7 @@ try {
   phase = "request-loss replay"
   await page.waitForFunction(() => document.querySelectorAll("#requests button").length === 1)
   phase = "missing original request"
-  assert.equal(await page.locator("#copy").isDisabled(), true)
+  assert.equal(await page.locator("#copy").count(), 0)
   assert.match(await page.locator("#exact").textContent(), /unavailable.*cannot be reconstructed/)
   await reused.focus()
   await page.keyboard.press("Enter")
@@ -319,7 +299,7 @@ try {
     .focus()
   await page.keyboard.press("Enter")
   assert.equal(await page.locator("#requests button").count(), 1)
-  assert.equal(await page.locator("#copy").isDisabled(), true)
+  assert.equal(await page.locator("#copy").count(), 0)
   assert.match(await page.locator("#request-metadata").textContent(), /no retained transport evidence/)
   phase = "mixed outcomes and resident message"
   await put(root, "mixed.ts", "type MixedCount = number;\n")
@@ -360,8 +340,8 @@ try {
   assert.equal(response.status, "advice")
   assert.equal(response.findingCount, 3)
   await messagePublished.promise
-  await revealInspection(page, "#all-handoffs")
-  await page.getByRole("button", { name: "Show all messages", exact: true }).click()
+  await page.locator("#edits button").filter({ hasText: "mixed.ts" }).first().click()
+  await revealInspection(page, "#handoffs")
   await page.waitForFunction(() => document.querySelectorAll("#handoffs button").length === 1)
   const messages = (await (await fetch(`${server.url}snapshot`)).json()).records.filter(
     (record) => record.fact.kind === "agent-message"
@@ -405,47 +385,23 @@ try {
     await edit(`enabled-${cycle}.ts`, `enabled-${cycle}`)
     await recordingPublished.promise
   }
-  phase = "recording periods display"
-  await revealInspection(page, "#recording-periods")
-  await page.waitForFunction(() => JSON.parse(document.querySelector("#recording-periods").textContent).length === 3)
-  const periods = JSON.parse(await page.locator("#recording-periods").textContent())
-  assert.deepEqual(
-    periods.map((period) => period.state),
-    ["enabled", "disabled", "enabled"]
-  )
-  assert.deepEqual(
-    periods.map((period) => period.consentEpoch),
-    [1, 1, 2]
-  )
-  assert.deepEqual(
-    periods.map((period) => period.nextObservedTransition?.state ?? null),
-    ["disabled", "enabled", null]
-  )
-  assert.ok(periods.every((period) => period.root === root && period.sourceId === periods[0].sourceId))
-  assert.ok(
-    periods.slice(0, -1).every((period) => period.nextObservedTransition.sequence > period.observedStart.sequence)
-  )
+  phase = "recording transition retention"
   const retainedPeriods = await (await fetch(`${server.url}snapshot`)).json()
   assert.equal(retainedPeriods.records.filter((record) => record.fact.kind === "recording-state").length, 3)
   assert.ok(!JSON.stringify(retainedPeriods.records).includes("disabled-1.ts"))
   await page.waitForFunction(() => document.querySelectorAll("#edits li").length === 7)
   assert.equal(dispatched.length, 8)
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
-  await page.getByRole("button", { name: "Pause updates", exact: true }).click()
-  const frozen = await page.locator("#detail").textContent()
-  phase = "paused resident message expiry"
+  phase = "live resident message expiry"
   historyNow += 2 * 86400000
   const expiredMessage = await (
     await fetch(`${server.url}payload/${messages[0].source.id}/${messages[0].sequence}`)
   ).json()
   assert.equal(expiredMessage.reason, "expired")
-  await page.waitForFunction(() =>
-    document.querySelector("#history-status").textContent.includes("Retained records expired")
-  )
-  assert.equal(await page.locator("#detail").textContent(), frozen)
+  await page.waitForFunction(() => document.querySelectorAll("#edits button").length === 0)
   assert.deepEqual(errors, [])
   console.log(
-    "inspection browser: real review history, per-unit request selection and exact copy, resident-owned messages, batch edit links, keyboard controls, live reading stability, paused reconnect and recovery gaps, observed recording periods, paused payload expiry and narrow layout passed"
+    "inspection browser: real review history, per-unit request selection and JSON preview, resident-owned messages, batch edit links, keyboard controls, live reading stability, live updates and recovery gaps, live payload expiry and narrow layout passed"
   )
 } finally {
   clearTimeout(deadline)

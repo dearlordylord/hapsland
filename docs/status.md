@@ -151,17 +151,19 @@ This records preparation, not native output,
 agent receipt, model visibility, or repair. **Finding state changes** hides
 repeated observations of the same finding state.
 
-The inspector shows **current recording observations** from live residents
-separately from **retained recording state observations**. A lost history write
-can leave the last retained event as enabled even when the resident now reports
-disabled. Configuration changes apply when that resident next receives an edit.
-Unreachable residents have unknown current recording state; paused displays keep
-the observation at their displayed snapshot. Enabled capture does not guarantee
-that every event was successfully retained.
+The header's recording indicator reflects current observations from reachable
+residents. Unreachable residents have unknown recording state. Configuration
+changes apply on the next edit; enabled capture does not guarantee that every
+event was retained.
+
+Filters are always visible. Edits without captured classifier calls are hidden by
+default, with a count in each hidden span. Clear filters restores that default.
+Finding counts distinguish returned findings from a completed clear review;
+pending or failed reviews are not presented as zero findings. Debug contains
+finding status changes labelled with their rule and declaration, plus raw events.
 
 For edits with multiple classifier invocations, choose the captured request by
-review unit and request identity. The exact-body view and copy action use that
-immutable selection. Original-evaluation links select the matching captured
+review unit and request identity. The JSON view uses that immutable selection. Original-evaluation links select the matching captured
 request; missing transport evidence is explicit and is not replaced by another
 unit's body.
 
@@ -171,22 +173,14 @@ unknown activity kept distinct. Joins, cache hits and existing advice add no new
 calls. Replayed source/sequence identities count once; missing capture or history
 can leave these totals incomplete.
 
-Retained recording transitions are grouped into observed periods for each resident
-lifetime and working root. Each period names its retained start and next retained
-transition, with separate consent epochs after re-enabling. A missing next
-transition does not establish current state, and missing observations can hide
-other periods; these summaries do not establish continuous capture.
-
 Resumed live feeds send retained increments after each source's saved position.
 The inspector merges these by immutable source/sequence identity and removes rows
 no longer present in the retained view. A reset supplies a fresh bounded snapshot.
 
-Known expiry and capacity eviction are shown through bounded source-free loss
-markers. Markers share the journal's quota and can themselves expire or be lost;
-an unclassified missing record remains unknown. Payload reads return an explicit
-missing result, and copy actions preserve the clipboard when selected bytes are
-no longer available. Pausing keeps the selected preview while recording and
-known-loss notifications continue.
+Retained records may expire or be evicted by the journal quota. Missing records
+are not evidence of a successful or inactive review. Payload reads return an
+explicit missing result; the dashboard removes edits no longer retained while
+keeping the selected edit open across ordinary live updates.
 
 ## Session status
 
