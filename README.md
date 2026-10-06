@@ -42,8 +42,8 @@ by project includes. Limits bound exploration and the code included in the revie
 Selected source code and rule questions are sent to the selected external
 classifier: [Jev](https://typesafe.ai) by default, or Cloudflare Clef/Clef-flash. It sees that code and those questions, not the agent’s
 task or conversation. Hapsland maps its results to configured feedback messages.
-The checker receives one supported type declaration, or a TypeScript function's
-signature and body, plus bounded related code reached through supported local
+The checker receives one type declaration, or a TypeScript function's
+signature and body, plus bounded related code reached through local
 references. Required evidence missing from that graph can prevent a rule from
 running. The review input excludes the full file, edit diff, agent conversation, and
 unrelated source. With review credentials and no
