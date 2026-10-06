@@ -8,7 +8,7 @@ if (handleWorkerInformation("parser", process.argv.slice(2))) process.exit(0)
 type ParserInput = { readonly path?: unknown; readonly source?: unknown }
 
 if (process.argv.includes("--demo-validate")) {
-  const { validateDemoSession } = await import("./onboarding/demo-validation.ts")
+  const { validateDemoSession } = await import("./direct-event/demo-validation.ts")
   const valid = await validateDemoSession(process.cwd()).catch(() => false)
   process.stdout.write(JSON.stringify({ valid }) + "\n")
   process.exit(valid ? 0 : 1)

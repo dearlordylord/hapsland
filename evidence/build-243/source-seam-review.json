@@ -149,6 +149,15 @@
         "boundary": "20261006212251542-1242802-ba1220: 185 tests across 7 files passed",
         "scope": "Focused owners/consumers; no full-project or installed-release claim"
       }
+    },
+    {
+      "date": "2026-10-06",
+      "scope": "Parser demo validation source-analysis ownership",
+      "review": "architecture_inventory: exact implementation/test moves, external ROOT/session.ts load remains explicit loader-policy obligation",
+      "validation": {
+        "fast": "npm run check:fast passed",
+        "boundary": "20261006212446489-1255434-1f7af0: 19 tests across 3 files passed"
+      }
     }
   ]
 }
