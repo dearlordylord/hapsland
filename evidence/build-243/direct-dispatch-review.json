@@ -45,5 +45,59 @@
     "trigger": "Issue243 completion",
     "action": "consolidate",
     "destination": "Maintained architecture/build owners and issue evidence; delete superseded checkpoints"
+  },
+  "argumentExtraction": {
+    "scope": "Hook-owned definitions and preparatory dedicated parser; no installed routing change",
+    "owners": [
+      {
+        "module": "src/hooks/arguments.ts",
+        "concept": "Hook channels, registration metadata and conflict validation",
+        "consumers": [
+          "shared CLI",
+          "hook-only parser"
+        ],
+        "direction": "Compositions import hook grammar; grammar imports no administration",
+        "contract": "docs/direct-event-v1-supported-profile.md"
+      },
+      {
+        "module": "src/runtime/argument-flags.ts",
+        "concept": "CLI boolean and nonempty value grammar",
+        "consumers": [
+          "administration command tree",
+          "hook grammar"
+        ],
+        "direction": "Both command grammars depend on bounded Effect flag constructors"
+      },
+      {
+        "module": "src/hooks/command.ts",
+        "concept": "Quiet hook-only argument parsing",
+        "consumers": [
+          "future dedicated entry; current focused tests"
+        ],
+        "direction": "Depends on hook grammar/runtime metadata/Effect services, excludes administration"
+      }
+    ],
+    "architecturalReview": {
+      "agent": "architecture_inventory",
+      "extraction": "Flag names, multiplicity, values and conflict ordering preserved",
+      "finding": "Raw transport classification accepted false-only channels or an edit modifier alone",
+      "disposition": "Require decoded true executable channels; all four reproductions tested; reviewer confirms source correction",
+      "limits": "Preparatory parser not installed/native execution acceptance"
+    },
+    "validation": {
+      "fast": "passed",
+      "focused": {
+        "run": "20261006204718885-1114418-4cd2e2",
+        "tests": "98 passed across3files"
+      },
+      "packageBoundary": {
+        "run": "20261006204423199-1100386-df52cf",
+        "build": "passed",
+        "pack": "passed",
+        "tests": "23 passed",
+        "scope": "Current CLI consuming extracted flags; new preparatory parser not yet routed"
+      }
+    },
+    "initialTestFailure": "Vitest table spread argument arrays; corrected table objects, then all cases passed"
   }
 }

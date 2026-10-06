@@ -1,3 +1,5 @@
+import { switchFlag, valueFlag } from "./runtime/argument-flags.ts"
+import { hookArgumentFlags, validateHookArguments } from "./hooks/arguments.ts"
 import { SUPPORTED_CLIENTS, supportedClientNames } from "./runtime/agent-clients.ts"
 import {
   validInspectionAddress,
@@ -42,24 +44,6 @@ const validate = <A>(read: () => A) =>
       new CliError.UserError({ cause, userMessage: cause instanceof Error ? cause.message : "Invalid CLI arguments" })
   })
 
-const switchFlag = (name: string, aliases: ReadonlyArray<string> = [], hidden = true) => {
-  let flag = Flag.Boolean(name)
-  for (const alias of aliases) flag = Flag.withAlias(flag, alias)
-  if (hidden) flag = Flag.withHidden(flag)
-  return flag.pipe(
-    Flag.atMost(1),
-    Flag.map((values) => values[0] ?? false)
-  )
-}
-const valueFlag = (name: string) =>
-  Flag.String(name).pipe(
-    Flag.filter(
-      (value) => value.trim() !== "" && !value.startsWith("--"),
-      () => "a nonempty value"
-    ),
-    Flag.atMost(1),
-    Flag.map((values) => values[0])
-  )
 const profiles = {
   host: Flag.Literals("host", SUPPORTED_CLIENTS).pipe(
     Flag.atMost(1),
@@ -111,25 +95,7 @@ const automationFlags = {
   ),
   "credential-stdin": switchFlag("credential-stdin"),
   "evaluation-live": switchFlag("evaluation-live"),
-  "codex-hook": switchFlag("codex-hook"),
-  "claude-hook": switchFlag("claude-hook"),
-  "pi-hook": switchFlag("pi-hook"),
-  "opencode-hook": switchFlag("opencode-hook"),
-  "composed-edit-hook": switchFlag("composed-edit-hook"),
-  "composed-before-edit-hook": switchFlag("composed-before-edit-hook"),
-  "composed-background-hook": switchFlag("composed-background-hook"),
-  "composed-stop-hook": switchFlag("composed-stop-hook"),
-  "composed-prompt-hook": switchFlag("composed-prompt-hook"),
-  "controlled-reviewer": switchFlag("controlled-reviewer"),
-  "controlled-writer": switchFlag("controlled-writer"),
-  "review-tool-owned": valueFlag("review-tool-owned").pipe(Flag.withHidden),
-  "review-tool-composed-owned": valueFlag("review-tool-composed-owned").pipe(Flag.withHidden),
-  "codex-version": valueFlag("codex-version").pipe(Flag.withHidden),
-  "composed-host": Flag.Literals("composed-host", ["claude-code", "codex-cli"]).pipe(
-    Flag.atMost(1),
-    Flag.map((values) => values[0]),
-    Flag.withHidden
-  )
+  ...hookArgumentFlags
 }
 export const unattendedSetupOptions = {
   "no-input": switchFlag("no-input", [], false).pipe(
@@ -217,15 +183,6 @@ const forbiddenPilotOption = (name: string): boolean =>
   automationOptionNames.has(name) && name !== "pilot" && name !== NEW_KEY_OPTION
 const pilotConflicts = (values: ParentOptions): boolean =>
   Object.entries(values).some(([name, value]) => forbiddenPilotOption(name) && activeOption(value))
-const validateHookChannels = (
-  hooks: ReadonlyArray<string>,
-  composed: ReadonlyArray<string>,
-  operations: ReadonlyArray<string>
-): void => {
-  if (hooks.length > 1 || composed.length > 1) throw new Error("Hook and operation options cannot be combined.")
-  if (hooks.length + composed.length > 0 && operations.length > 0)
-    throw new Error("Hook and operation options cannot be combined.")
-}
 const validateAutomationMode = (values: ParentOptions, operations: ReadonlyArray<string>): void => {
   if (values.pilot && pilotConflicts(values))
     throw new Error(`--pilot accepts only client profile, --target and ${NEW_KEY_FLAG} options.`)
@@ -251,17 +208,7 @@ const validateClientProfile = (values: ParentOptions): void => {
 }
 const validateAutomation = (values: ParentOptions): void => {
   const operations = (Object.keys(operationFlags) as Array<keyof typeof operationFlags>).filter((key) => values[key])
-  const hooks = ["codex-hook", "claude-hook", "opencode-hook", "pi-hook"].filter(
-    (key) => values[key as keyof typeof values] === true
-  )
-  const composed = [
-    "composed-before-edit-hook",
-    "composed-background-hook",
-    "composed-stop-hook",
-    "composed-prompt-hook",
-    "composed-edit-hook"
-  ].filter((key) => values[key as keyof typeof values] === true)
-  validateHookChannels(hooks, composed, operations)
+  validateHookArguments(values, operations)
   validateAutomationMode(values, operations)
   validateClientProfile(values)
 }
