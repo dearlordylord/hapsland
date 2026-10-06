@@ -328,8 +328,7 @@ hapsland rules show --id r1_inferred_case
 
 See the [default concerns](../TYPE-DESIGN-RULES.md). The default
 `r6_bare_domain_value` already addresses primitive domain values; inspect it before
-adding a custom variant. `no-primitive-obsession` below teaches custom authoring,
-not an additional default you must enable alongside it.
+adding a custom variant. `no-primitive-obsession` below teaches custom authoring.
 
 [Refactoring.Guru describes primitive obsession](https://refactoring.guru/smells/primitive-obsession)
 as using primitives or type codes where small objects should express domain
