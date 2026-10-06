@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { SUPPORTED_CLIENTS, CLIENT_NAMES } from "./runtime/agent-clients.ts"
 import { formatOutcome, formatStatusOutcome } from "./onboarding/human-output.ts"
-import { NEW_KEY_FLAG, CLI_NAME, LOGIN_FLAG, setupCommand } from "./runtime/cli-names.ts"
+import { NEW_KEY_FLAG, CLI_NAME, LOGIN_FLAG, setupCommand, DEFAULT_UPDATE_CHANNEL } from "./runtime/cli-names.ts"
 import { JEV_PROVIDER } from "./runtime/backend.ts"
 import { HAPSLAND_CONFIG_DIRECTORY, HAPSLAND_STATE_DIRECTORY } from "./runtime/user-paths.ts"
 import { profileFields } from "./onboarding/client-command.ts"
@@ -1461,7 +1461,7 @@ const validateArchiveSelection = (archive: string | undefined, version: string |
     throw new Error("select either --tarball or a registry channel/version")
 }
 const selectedRelease = (): ReleaseSelection => {
-  const channel = flagValue("--channel") ?? "latest"
+  const channel = flagValue("--channel") ?? DEFAULT_UPDATE_CHANNEL
   if (channel !== "latest" && channel !== "next") throw new Error("--channel must be latest or next")
   const archive = flagValue("--tarball")
   const version = flagValue("--version")

@@ -1,5 +1,10 @@
 import { SUPPORTED_CLIENTS, supportedClientNames } from "./runtime/agent-clients.ts"
-import { validInspectionAddress } from "./inspection/options.ts"
+import {
+  validInspectionAddress,
+  INSPECTION_HOSTS,
+  DEFAULT_INSPECTION_HOST,
+  DEFAULT_INSPECTION_PORT
+} from "./inspection/options.ts"
 import { SETUP_REVIEW_CHOICES, SETUP_CREDENTIAL_CHOICES } from "./onboarding/setup-request.ts"
 import { isHookInvocation } from "./runtime/hook-invocation.ts"
 import * as Argument from "effect/cli/Argument"
@@ -13,17 +18,19 @@ import * as CliOutput from "effect/cli/CliOutput"
 import * as GlobalFlag from "effect/cli/GlobalFlag"
 import * as Option from "effect/Option"
 import * as NodeServices from "@effect/platform-node/NodeServices"
-import { clientCommands, type ClientCommand } from "./onboarding/client-command.ts"
+import { clientCommandDefinitions, type ClientCommand } from "./onboarding/client-command.ts"
 import type { SetupClient } from "./onboarding/client-selection.ts"
 import { JEV_PROVIDER } from "./runtime/backend.ts"
 import { makeRulesCommand, type RulesOptions } from "./rules/cli-definition.ts"
+import { ROOT_OPERATIONS, operationHelp, rootOperationExample } from "./cli-help.ts"
+import { PACKAGE_VERSION, VERSION_FLAG } from "./runtime/cli-information.ts"
 import {
   NEW_KEY_OPTION,
   NEW_KEY_FLAG,
-  LOGIN_OPTION,
-  LOGOUT_OPTION,
   SETUP_COMMAND,
-  CLI_NAME
+  CLI_NAME,
+  UPDATE_CHANNELS,
+  DEFAULT_UPDATE_CHANNEL
 } from "./runtime/cli-names.ts"
 
 export type { RulesOptions } from "./rules/cli-definition.ts"
@@ -56,46 +63,52 @@ const valueFlag = (name: string) =>
 const profiles = {
   host: Flag.Literals("host", SUPPORTED_CLIENTS).pipe(
     Flag.atMost(1),
-    Flag.map((values) => values[0])
+    Flag.map((values) => values[0]),
+    Flag.withDescription("Agent runtime; alternative to positional CLIENT (must agree when both are given)")
   ),
-  "claude-home": valueFlag("claude-home"),
-  "claude-executable": valueFlag("claude-executable"),
-  "pi-home": valueFlag("pi-home"),
-  "pi-executable": valueFlag("pi-executable"),
-  "codex-home": valueFlag("codex-home"),
-  "codex-executable": valueFlag("codex-executable")
-}
-const operationFlags = {
-  "feedback-preview": switchFlag("feedback-preview", [], false).pipe(
-    Flag.withDescription("Preview shared agent feedback with a synthetic finding; no review request")
+  "claude-home": valueFlag("claude-home").pipe(
+    Flag.withDescription("Claude registration home; does not change how Claude itself is launched")
   ),
-  credentials: switchFlag("inspect-credentials", ["credentials"], false),
-  status: switchFlag("status", ["inspect-consent"], false),
-  explain: switchFlag("explain", ["config-explain"], false),
-  doctor: switchFlag("doctor", [], false),
-  "install-preview": switchFlag("install-preview", [], false),
-  install: switchFlag("install", [], false),
-  "update-preview": switchFlag("update-preview", [], false),
-  update: switchFlag("update", [], false),
-  uninstall: switchFlag("uninstall", [], false),
-  "evaluation-plan": switchFlag("evaluation-plan", [], false),
-  "evaluation-run": switchFlag("evaluation-run", [], false),
-  "evaluation-report": switchFlag("evaluation-report", [], false),
-  [SETUP_COMMAND]: switchFlag(SETUP_COMMAND, [], false),
-  demo: switchFlag("demo", [], false),
-  [LOGIN_OPTION]: switchFlag(LOGIN_OPTION, [], false),
-  [LOGOUT_OPTION]: switchFlag(LOGOUT_OPTION, [], false),
-  "package-identity": switchFlag("package-identity"),
-  "runtime-identity": switchFlag("runtime-identity"),
-  pilot: switchFlag("pilot", [], false)
+  "claude-executable": valueFlag("claude-executable").pipe(
+    Flag.withDescription("Claude executable to probe; defaults to runtime discovery")
+  ),
+  "pi-home": valueFlag("pi-home").pipe(
+    Flag.withDescription("Pi registration home; does not change how Pi itself is launched")
+  ),
+  "pi-executable": valueFlag("pi-executable").pipe(
+    Flag.withDescription("Pi executable to probe; defaults to runtime discovery")
+  ),
+  "codex-home": valueFlag("codex-home").pipe(
+    Flag.withDescription("Codex registration home; does not change how Codex itself is launched")
+  ),
+  "codex-executable": valueFlag("codex-executable").pipe(
+    Flag.withDescription("Codex executable to probe; defaults to runtime discovery")
+  )
 }
+const operationFlags = Object.fromEntries(
+  Object.keys(ROOT_OPERATIONS).map((key) => {
+    const information = operationHelp(key as keyof typeof ROOT_OPERATIONS)
+    return [
+      key,
+      switchFlag(information.flag ?? key, information.aliases ?? [], information.hidden ?? false).pipe(
+        Flag.withDescription(information.description)
+      )
+    ]
+  })
+) as { readonly [Key in keyof typeof ROOT_OPERATIONS]: Flag.Flag<boolean> }
 const automationFlags = {
   ...operationFlags,
   [NEW_KEY_OPTION]: switchFlag(NEW_KEY_OPTION, [], false).pipe(
-    Flag.withDescription(`Request a new saved ${JEV_PROVIDER.name} key instead of checking the existing key`)
+    Flag.withDescription(
+      `With setup or --pilot, request a new saved ${JEV_PROVIDER.name} key instead of checking the existing key`
+    )
   ),
-  human: switchFlag("human", ["status-human"], false),
-  json: switchFlag("json", [], false),
+  human: switchFlag("human", ["status-human"], false).pipe(
+    Flag.withDescription("Human output for --status; JSON is the status default")
+  ),
+  json: switchFlag("json", [], false).pipe(
+    Flag.withDescription("Structured credential login/logout output; JSON-stdin operations already return JSON")
+  ),
   "credential-stdin": switchFlag("credential-stdin"),
   "evaluation-live": switchFlag("evaluation-live"),
   "codex-hook": switchFlag("codex-hook"),
@@ -131,22 +144,26 @@ export const unattendedSetupOptions = {
   ),
   credential: Flag.Literals("credential", SETUP_CREDENTIAL_CHOICES).pipe(
     Flag.atMost(1),
-    Flag.map((values) => values[0])
+    Flag.map((values) => values[0]),
+    Flag.withDescription("Unattended credential choice; required with explicit review/client choices")
   ),
   review: Flag.Literals("review", SETUP_REVIEW_CHOICES).pipe(
     Flag.atMost(1),
-    Flag.map((values) => values[0])
+    Flag.map((values) => values[0]),
+    Flag.withDescription("Unattended review choice; required with explicit credential/client choices")
   ),
-  json: switchFlag("json", [], false)
+  json: switchFlag("json", [], false).pipe(
+    Flag.withDescription("Structured unattended setup results; does not authorize applying changes")
+  )
 }
 const setupFlag = (name: keyof typeof unattendedSetupOptions): string => `--${name}`
 export const unattendedSetupTemplates = (): ReadonlyArray<string> => {
-  const base = `hapsland setup codex ${setupFlag("no-input")} ${setupFlag("review")} ${SETUP_REVIEW_CHOICES[0]} ${setupFlag("credential")}`
+  const base = `${CLI_NAME} ${SETUP_COMMAND} codex ${setupFlag("no-input")} ${setupFlag("review")} ${SETUP_REVIEW_CHOICES[0]} ${setupFlag("credential")}`
   return [
     `${base} ${SETUP_CREDENTIAL_CHOICES[1]} ${setupFlag("json")}`,
     `${base} ${SETUP_CREDENTIAL_CHOICES[1]} ${setupFlag("apply")} ${setupFlag("json")}`,
     `${base} ${SETUP_CREDENTIAL_CHOICES[0]} ${setupFlag("save-plan")} setup-plan.json ${setupFlag("json")}`,
-    `hapsland setup ${setupFlag("no-input")} ${setupFlag("apply-plan")} setup-plan.json ${setupFlag("json")}`
+    `${CLI_NAME} ${SETUP_COMMAND} ${setupFlag("no-input")} ${setupFlag("apply-plan")} setup-plan.json ${setupFlag("json")}`
   ]
 }
 export const unattendedSetupUsage = (): string =>
@@ -185,8 +202,13 @@ const clientArguments = (values: ClientArgumentValues): ClientArguments => {
 const parentOptions = {
   ...automationFlags,
   ...profiles,
-  target: valueFlag("target"),
-  client: Argument.Literals("client", SUPPORTED_CLIENTS).pipe(Argument.optional)
+  target: valueFlag("target").pipe(
+    Flag.withDescription("Explicit Hapsland executable for lifecycle package selection; use a lifecycle subcommand")
+  ),
+  client: Argument.Literals("client", SUPPORTED_CLIENTS).pipe(
+    Argument.optional,
+    Argument.withDescription(`Agent runtime: ${SUPPORTED_CLIENTS.join(" | ")}; guided --pilot selection only`)
+  )
 }
 type ParentOptions = Command.Command.Config.Infer<typeof parentOptions>
 const activeOption = (value: unknown): boolean => value !== false && value !== undefined
@@ -244,50 +266,103 @@ const validateAutomation = (values: ParentOptions): void => {
   validateClientProfile(values)
 }
 
-/** Parse once before any workflow, stdin read, package dispatch or installation mutation. */
-export const parseInvocation = async (args: ReadonlyArray<string>): Promise<Invocation | undefined> => {
-  let invocation: Invocation | undefined
+/** One command tree supplies parsing, terminal help and generated references. */
+export const makeCliCommand = (invoke: (invocation: Invocation) => void) => {
   const parent = Command.make(CLI_NAME, parentOptions, (values) =>
     validate(() => {
       validateAutomation(values)
-      invocation = { kind: "automation", options: values, client: clientArguments(values) }
+      invoke({ kind: "automation", options: values, client: clientArguments(values) })
     })
-  ).pipe(Command.withDescription(`Hapsland — ${supportedClientNames} review integration`))
+  ).pipe(
+    Command.withDescription(
+      `Hapsland — ${supportedClientNames} review integration. Use a subcommand for human workflows, or an operation flag with one version-one JSON request on stdin for automation. Root client profile flags apply to --pilot; automation requests carry profiles in JSON. JSON operations already return structured results; --json is not a universal output switch. Run ${CLI_NAME} ${VERSION_FLAG} alone for the invoked package version; lifecycle commands may route to a retained active package. Use COMMAND --help for details.`
+    ),
+    Command.withExamples([
+      { command: `${CLI_NAME} ${SETUP_COMMAND}`, description: "Choose agent runtimes interactively" },
+      rootOperationExample("status"),
+      rootOperationExample("explain"),
+      rootOperationExample("install-preview"),
+      rootOperationExample("login"),
+      { command: `${CLI_NAME} ${VERSION_FLAG}`, description: "Identify the invoked package; no stdin or workflow runs" }
+    ])
+  )
   const rulesCommand = makeRulesCommand((options) => {
-    invocation = { kind: "rules", options }
+    invoke({ kind: "rules", options })
   })
-  const root = parent.pipe(
+  return parent.pipe(
     Command.withSubcommands([
-      Command.make("dashboard", { host: valueFlag("host"), port: valueFlag("port") }, (values) =>
-        validate(() => {
-          const host = values.host ?? "127.0.0.1"
-          const text = values.port ?? "0"
-          const port = Number(text)
-          if (!/^[0-9]+$/.test(text) || !validInspectionAddress(host, port))
-            throw new Error("dashboard requires a loopback host and a port from 0 to 65535")
-          invocation = { kind: "dashboard", host, port }
-        })
-      ).pipe(Command.withDescription("Foreground local inspection dashboard; does not enable recording")),
-      ...clientCommands.map((command) =>
-        Command.make(
+      Command.make(
+        "dashboard",
+        {
+          host: valueFlag("host").pipe(
+            Flag.withDescription(
+              `Loopback address (${INSPECTION_HOSTS.join(" | ")}); default ${DEFAULT_INSPECTION_HOST}`
+            )
+          ),
+          port: valueFlag("port").pipe(
+            Flag.withDescription(`Port 0–65535; default ${DEFAULT_INSPECTION_PORT} lets the OS choose a free port`)
+          )
+        },
+        (values) =>
+          validate(() => {
+            const host = values.host ?? DEFAULT_INSPECTION_HOST
+            const text = values.port ?? String(DEFAULT_INSPECTION_PORT)
+            const port = Number(text)
+            if (!/^[0-9]+$/.test(text) || !validInspectionAddress(host, port))
+              throw new Error("dashboard requires a loopback host and a port from 0 to 65535")
+            invoke({ kind: "dashboard", host, port })
+          })
+      ).pipe(
+        Command.withShortDescription("Serve the local inspection dashboard in the foreground"),
+        Command.withDescription(
+          "Serve retained local inspection at a private URL printed to stdout. Runs in the foreground until interrupted; does not enable recording. Use a loopback address. See docs/status.md for recording and dashboard controls."
+        ),
+        Command.withExamples([
+          {
+            command: `${CLI_NAME} dashboard --host ${DEFAULT_INSPECTION_HOST} --port ${DEFAULT_INSPECTION_PORT}`,
+            description: "Print a private dashboard URL on an OS-selected port"
+          }
+        ])
+      ),
+      ...clientCommandDefinitions.map((definition) => {
+        const command = definition.name
+        return Command.make(
           command,
           {
             ...profiles,
-            ...(command === SETUP_COMMAND
+            ...(definition.options === "setup"
               ? { [NEW_KEY_OPTION]: automationFlags[NEW_KEY_OPTION], ...unattendedSetupOptions }
               : {}),
-            client: Argument.Literals("client", SUPPORTED_CLIENTS).pipe(Argument.optional),
-            ...(command === "update" || command === SETUP_COMMAND || command === "repair" || command === "reinstall"
-              ? { target: valueFlag("target") }
-              : {}),
-            ...(command === "update"
+            client: Argument.Literals("client", SUPPORTED_CLIENTS).pipe(
+              Argument.optional,
+              Argument.withDescription(`${SUPPORTED_CLIENTS.join(" | ")}. ${definition.clientDescription}`)
+            ),
+            ...(definition.options !== "profile"
               ? {
-                  tarball: valueFlag("tarball"),
-                  channel: Flag.Literals("channel", ["latest", "next"]).pipe(
-                    Flag.atMost(1),
-                    Flag.map((values) => values[0])
+                  target: valueFlag("target").pipe(
+                    Flag.withDescription(
+                      "Explicit Hapsland executable; overrides active package routing; cannot combine with update acquisition selectors"
+                    )
+                  )
+                }
+              : {}),
+            ...(definition.options === "update"
+              ? {
+                  tarball: valueFlag("tarball").pipe(
+                    Flag.withDescription("Local package archive; cannot combine with --target, --channel or --version")
                   ),
-                  version: valueFlag("version")
+                  channel: Flag.Literals("channel", UPDATE_CHANNELS).pipe(
+                    Flag.atMost(1),
+                    Flag.map((values) => values[0]),
+                    Flag.withDescription(
+                      `Registry channel; default ${DEFAULT_UPDATE_CHANNEL}; may combine with release --version`
+                    )
+                  ),
+                  version: valueFlag("version").pipe(
+                    Flag.withDescription(
+                      "Release version to install; distinct from root --version, which reports this package"
+                    )
+                  )
                 }
               : {})
           },
@@ -302,31 +377,63 @@ export const parseInvocation = async (args: ReadonlyArray<string>): Promise<Invo
                   if (releases.length > 1 && (client.flags.has("--target") || client.flags.has("--tarball")))
                     throw new Error("--target and --tarball cannot be combined with other release options.")
                 }
-                invocation = { kind: "lifecycle", command, client }
+                invoke({ kind: "lifecycle", command, client })
               })
             })
         ).pipe(
-          Command.withDescription(
-            {
-              setup: "Guided client setup",
-              update: "Update installed integrations",
-              doctor: "Check installed clients (read-only)",
-              repair: "Restore missing Hapsland hooks",
-              reinstall: "Replace marked Hapsland hooks; preserve user settings",
-              uninstall: "Remove Hapsland from installed clients"
-            }[command]
-          )
+          Command.withShortDescription(definition.summary),
+          Command.withDescription(definition.description),
+          Command.withExamples([
+            ...definition.examples.map((arguments_) => ({
+              command: `${CLI_NAME} ${command}${arguments_ === "" ? "" : ` ${arguments_}`}`,
+              description: definition.summary
+            })),
+            ...(definition.options === "setup"
+              ? unattendedSetupTemplates().map((example) => ({
+                  command: example,
+                  description: "Explicit unattended setup; application is authorized separately"
+                }))
+              : [])
+          ])
         )
-      ),
+      }),
       rulesCommand
     ])
   )
+}
+
+export const cliCommandReference = () => {
+  const root = makeCliCommand(() => {})
+  return {
+    description: root.description,
+    examples: root.examples,
+    commands: root.subcommands.flatMap((group) =>
+      group.commands.map((command) => ({
+        name: command.name,
+        summary: command.shortDescription ?? command.description ?? "",
+        description: command.description ?? "",
+        examples: command.examples
+      }))
+    )
+  }
+}
+
+/** Parse before any workflow, stdin read, package dispatch or installation mutation. */
+export const parseInvocation = async (args: ReadonlyArray<string>): Promise<Invocation | undefined> => {
+  if (args.length === 1 && args[0] === VERSION_FLAG) {
+    process.stdout.write(PACKAGE_VERSION + "\n")
+    return undefined
+  }
+  let invocation: Invocation | undefined
+  const root = makeCliCommand((parsed) => {
+    invocation = parsed
+  })
   const output: string[] = []
   const capturedConsole = Object.assign(Object.create(console), {
     log: (...values: unknown[]) => output.push(values.map(String).join(" "))
   })
   const result = await Effect.runPromise(
-    Command.runWith(root, { version: "0.1.0", renderErrors: false })(args).pipe(
+    Command.runWith(root, { version: PACKAGE_VERSION, renderErrors: false })(args).pipe(
       Effect.provide(NodeServices.layer),
       Effect.provideService(CliConfig.CliConfig, { builtIns: [GlobalFlag.Help] }),
       Effect.provideService(Console.Console, capturedConsole),

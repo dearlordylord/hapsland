@@ -2,7 +2,16 @@ import { bunExecutable } from "../runtime/bun-runtime.ts"
 import { SHIPPED_DEFAULT_RULES } from "../rules/shipped.ts"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
 import { createInstallationPackageFixture } from "../test-support/installation-package.ts"
-import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import {
+  chmodSync,
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { spawn } from "node:child_process"
@@ -17,7 +26,7 @@ afterEach(() => {
 })
 
 const fixture = () => {
-  const root = mkdtempSync(join(tmpdir(), "review-setup-"))
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "review-setup-")))
   roots.push(root)
   const repository = join(root, "repository")
   const codexHome = join(root, "codex-home")
@@ -545,7 +554,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
     }
   )
 
-  it("reports cancelled masked input without falling back to stale missing state", () => {
+  it("reports cancelled masked input without falling back to stale missing state", async () => {
     const test = fixture()
     installDisabled(test)
     const environment: NodeJS.ProcessEnv = {
@@ -553,7 +562,50 @@ else if (operation === "probe") console.log('{"status":"available"}');
       REVIEW_CREDENTIAL_HELPER: credentialHelper(test, "unavailable")
     }
     delete environment.TYPESAFE_API_KEY
-    const result = invoke(test, { credential: "saved", interactive: true }, environment)
+    // A new session proves cancellation without inheriting the runner's /dev/tty.
+    const child = spawn(bunExecutable(), [setupEntrypoint(), "--setup"], {
+      cwd: test.repository,
+      env: environment,
+      detached: true,
+      stdio: "pipe"
+    })
+    let output = ""
+    let errors = ""
+    child.stdout.on("data", (chunk) => {
+      output += String(chunk)
+    })
+    child.stderr.on("data", (chunk) => {
+      errors += String(chunk)
+    })
+    child.stdin.end(
+      JSON.stringify({
+        version: 1,
+        operation: "setup",
+        host: "codex",
+        scope: { cwd: test.repository, review: "enabled" },
+        credential: "saved",
+        interactive: true,
+        codexHome: test.codexHome,
+        codexExecutable: test.codexExecutable
+      })
+    )
+    const exit = await new Promise<number | null>((resolve, reject) => {
+      const deadline = setTimeout(() => {
+        child.kill("SIGKILL")
+        reject(new Error("Detached setup timed out"))
+      }, DEFAULT_CHILD_TIMEOUT_MS)
+      child.once("error", (error) => {
+        clearTimeout(deadline)
+        reject(error)
+      })
+      child.once("close", (code) => {
+        clearTimeout(deadline)
+        resolve(code)
+      })
+    })
+    expect(exit).toBe(6)
+    expect(errors).toBe("")
+    const result = JSON.parse(output) as SetupOutput
     expect(result.stages).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

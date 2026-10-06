@@ -9,6 +9,9 @@ import { join } from "node:path"
 import { readFileSync } from "node:fs"
 import { mkdir, rm } from "node:fs/promises"
 import { acquireResidentOwnership, releaseResidentOwnership, ownershipControlsLayer } from "./ownership.ts"
+import { handleWorkerInformation } from "../runtime/cli-information.ts"
+
+if (handleWorkerInformation("resident", process.argv.slice(2))) process.exit(0)
 
 class ResidentProcessError extends Schema.TaggedError<ResidentProcessError>()("ResidentProcessError", {
   operation: Schema.String

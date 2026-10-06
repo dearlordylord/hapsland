@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs"
 import { analyzeTypeFile } from "./direct-event/analyzer.ts"
+import { handleWorkerInformation } from "./runtime/cli-information.ts"
+
+if (handleWorkerInformation("parser", process.argv.slice(2))) process.exit(0)
 
 type ParserInput = { readonly path?: unknown; readonly source?: unknown }
 

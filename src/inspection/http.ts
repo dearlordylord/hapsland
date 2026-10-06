@@ -1,4 +1,4 @@
-import { validInspectionAddress } from "./options.ts"
+import { validInspectionAddress, DEFAULT_INSPECTION_HOST, DEFAULT_INSPECTION_PORT } from "./options.ts"
 import { createServer } from "node:http"
 import { randomBytes } from "node:crypto"
 import { Effect, Stream, Schedule } from "effect"
@@ -32,8 +32,8 @@ export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(f
   history: InspectionHistoryReader,
   options: InspectionHttpServerOptions = {}
 ) {
-  const host = options.host ?? "127.0.0.1"
-  const port = options.port ?? 0
+  const host = options.host ?? DEFAULT_INSPECTION_HOST
+  const port = options.port ?? DEFAULT_INSPECTION_PORT
   if (!validInspectionAddress(host, port))
     throw new Error("inspection requires a loopback host and a port from 0 to 65535")
   const node = createServer({ maxHeaderSize: 8192, requestTimeout: 5000, headersTimeout: 5000 })

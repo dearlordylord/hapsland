@@ -2,7 +2,8 @@ import { BUN_VERSION, bunExecutable } from "./runtime/bun-runtime.ts"
 import { SUPPORTED_CLIENTS, CLIENT_NAMES } from "./runtime/agent-clients.ts"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../scripts/test-harness/policy.mjs"
 import { describe, expect, it, vi } from "vitest"
-import { parseInvocation } from "./cli-command.ts"
+import { cliCommandReference, parseInvocation } from "./cli-command.ts"
+import { PACKAGE_VERSION } from "./runtime/cli-information.ts"
 import { ruleCommandReference } from "./rules/cli-definition.ts"
 import { spawnSync } from "../scripts/test-harness/process.mjs"
 import { mkdtempSync, readdirSync, rmSync } from "node:fs"
@@ -49,6 +50,36 @@ const parse = async (args: ReadonlyArray<string>) => {
 }
 
 describe("declarative CLI subprocess contracts", () => {
+  it("discovers all human commands and accepts their generated examples", async () => {
+    const reference = cliCommandReference()
+    const root = await parse(["--help"])
+    for (const command of reference.commands) {
+      expect(root.output).toContain(command.name)
+      expect(root.output).toContain(command.summary)
+      const help = await parse([command.name, "--help"])
+      expect(help.invocation).toBeUndefined()
+      expect(help.output).toContain("EXAMPLES")
+      for (const example of command.examples) {
+        const result = await parse(example.command.split(" ").slice(1))
+        expect(result.invocation).toBeDefined()
+      }
+    }
+  })
+
+  it("reports the invoked package version before reading invalid stdin or creating state", () => {
+    const result = cli(["--version"], "not JSON")
+    expect(result.status).toBe(0)
+    expect(result.stdout).toBe(PACKAGE_VERSION + "\n")
+    expect(result.stderr).toBe("")
+    expect(result.files).toEqual([])
+  })
+
+  it("preserves update release selection independently of root information", async () => {
+    const result = await parse(["update", "codex", "--version", "0.2.0"])
+    expect(result.invocation).toMatchObject({ kind: "lifecycle", command: "update" })
+    if (result.invocation?.kind === "lifecycle") expect(result.invocation.client.flags.get("--version")).toBe("0.2.0")
+  })
+
   it("discovers rule commands and validates every documented example through the parser", async () => {
     const help = await parse(["rules", "--help"])
     expect(help.invocation).toBeUndefined()

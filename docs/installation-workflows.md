@@ -6,6 +6,8 @@
 **Expected use:** Choose a lane, register its exact package in a selected client profile, and verify observed review activity.
 **Lifecycle:** Keep current with CLI onboarding, publishing, host profiles, and package layout. Review whenever any of those changes; replace superseded instructions in place.
 
+See the [generated command reference](#command-reference) for help and examples.
+
 ## Stable installation and ordinary use
 
 You can ask your coding agent to handle installation:
@@ -306,3 +308,169 @@ the new build; this avoids leaving hooks whose old ownership record is outside t
 new namespace. Move any desired user configuration explicitly. Native credential
 store service/account identity remains unchanged, so the directory rename does
 not rename the stored secret itself.
+
+<!-- cli-reference:start -->
+
+## Command reference
+
+This reference is generated from the command and flag definitions that supply terminal help. Use `hapsland COMMAND --help` for flags, client choices and examples.
+
+Run `hapsland --version` alone to identify the invoked package version. This does not read stdin or start a workflow. Lifecycle commands may route to a retained active package; the version is not a freshness or compatibility check.
+
+### Human commands
+
+| Command | Purpose |
+|---|---|
+| `dashboard` | Serve the local inspection dashboard in the foreground |
+| `setup` | Set up review integrations interactively or with an explicit unattended plan |
+| `update` | Preview and confirm updates to registered integrations |
+| `doctor` | Inspect installed integrations offline (read-only) |
+| `repair` | Restore missing owned Hapsland hooks |
+| `reinstall` | Replace marked Hapsland hooks, preserving user settings |
+| `uninstall` | Remove owned Hapsland hooks from registered integrations |
+| `rules` | Inspect and manage local JSON rules; no classifier calls. Defaults to list. Edit connected JSON files in your editor; there is no editor or disconnect command. |
+
+#### hapsland dashboard
+
+Serve retained local inspection at a private URL printed to stdout. Runs in the foreground until interrupted; does not enable recording. Use a loopback address. See docs/status.md for recording and dashboard controls.
+
+```sh
+hapsland dashboard --host 127.0.0.1 --port 0
+```
+
+#### hapsland setup
+
+Without CLIENT, a terminal opens the client selector; an explicit client selects one profile. Guided setup previews changes and asks before installing. Unattended setup requires explicit client, review and credential choices (unless applying a saved plan); --no-input suppresses prompts, while --apply separately authorizes changes. Local setup is offline; guided setup may offer a separately confirmed paid key check.
+
+```sh
+hapsland setup
+hapsland setup claude
+hapsland setup codex
+hapsland setup pi
+hapsland setup codex --no-input --review enabled --credential environment --json
+hapsland setup codex --no-input --review enabled --credential environment --apply --json
+hapsland setup codex --no-input --review enabled --credential saved --save-plan setup-plan.json --json
+hapsland setup --no-input --apply-plan setup-plan.json --json
+```
+
+#### hapsland update
+
+Without CLIENT, updates registered profiles. Requires a terminal and confirmation. The registry channel defaults to latest; --version selects a release within a channel. --target and --tarball cannot be combined with other release selectors. For automation, use version-one --update-preview / --update JSON requests instead of this interactive command.
+
+```sh
+hapsland update
+hapsland update claude --channel latest
+hapsland update codex --channel latest
+hapsland update pi --channel latest
+```
+
+#### hapsland doctor
+
+Without CLIENT, checks registered profiles. Reports local configuration, credentials and installation readiness; native trust and actual review execution remain unverified. Human output does not require a terminal. For structured output, use a version-one --doctor JSON request. Package prerequisites are checked separately by hapsland-doctor.
+
+```sh
+hapsland doctor
+hapsland doctor claude
+hapsland doctor codex
+hapsland doctor pi
+```
+
+#### hapsland repair
+
+Without CLIENT, repairs registered profiles. Requires a terminal; previews and asks before applying. Changed or conflicting entries are not replaced by repair; use reinstall for marked Hapsland entries. Keeps unrelated hooks. For unattended workflows, use the documented version-one installation requests.
+
+```sh
+hapsland repair claude
+hapsland repair codex
+hapsland repair pi
+```
+
+#### hapsland reinstall
+
+Without CLIENT, reinstalls registered profiles. Requires a terminal; previews and asks before applying. Replaces only marked Hapsland entries and preserves unrelated hooks and user settings. For unattended workflows, use the documented version-one installation requests with reinstall enabled.
+
+```sh
+hapsland reinstall claude
+hapsland reinstall codex
+hapsland reinstall pi
+```
+
+#### hapsland uninstall
+
+Without CLIENT, uninstalls registered profiles. Requires a terminal; previews and asks before removal. Preserves unrelated hooks and leaves the package installed. For automation, use a version-one --uninstall JSON request.
+
+```sh
+hapsland uninstall claude
+hapsland uninstall codex
+hapsland uninstall pi
+```
+
+#### hapsland rules
+
+Inspect and manage local JSON rules; no classifier calls. Defaults to list. Edit connected JSON files in your editor; there is no editor or disconnect command.
+
+```sh
+hapsland rules list
+hapsland rules show --id team/domain-state
+hapsland rules explain --id team/domain-state --path src/example.ts
+hapsland rules create --id team/domain-state --scope project
+hapsland rules connect --path .hapsland/rules/custom/domain-state.json --scope project
+hapsland rules enable --id team/domain-state --scope project
+hapsland rules disable --id team/domain-state --scope project
+```
+
+### Flag-based operations
+
+These retain their version-one input/output contracts. Operations described as JSON requests read one request from stdin; a subcommand is not required. `--json` selects credential login/logout output, while JSON-stdin operations already return structured output. `--human` applies to status. Check exit status before parsing results.
+
+| Operation | Aliases | Input and behavior |
+|---|---|---|
+| `--feedback-preview` | — | Print synthetic agent feedback; no stdin, writes or review request |
+| `--inspect-credentials` | `--credentials` | Read version-one credentials JSON from stdin; report credential sources without secrets; no Jev call |
+| `--status` | `--inspect-consent` | Read version-one status JSON from stdin; report session activity as JSON (or --human); no review request |
+| `--explain` | `--config-explain` | Read version-one explain JSON from stdin; report effective path/configuration policy as JSON; no review request |
+| `--doctor` | — | Read version-one doctor JSON from stdin; inspect an installed integration offline and return JSON |
+| `--install-preview` | — | Read version-one installation JSON from stdin; preview owned hook changes without applying them; return JSON |
+| `--install` | — | Read version-one installation JSON from stdin; apply changes authorized by proposalDigest; return JSON |
+| `--update-preview` | — | Read version-one update JSON from stdin; preview installed hook changes without applying them; return JSON |
+| `--update` | — | Read version-one update JSON from stdin; apply changes authorized by proposalDigest; return JSON |
+| `--uninstall` | — | Read version-one uninstall JSON from stdin; remove owned hooks under the request's authorization; return JSON |
+| `--evaluation-plan` | — | Read version-one evaluation plan JSON from stdin; describe the evaluation without live calls; return JSON |
+| `--evaluation-run` | — | Read version-one evaluation run JSON from stdin; run the requested evaluation; live calls require --evaluation-live and explicit live authorization |
+| `--evaluation-report` | — | Read version-one evaluation report JSON from stdin; format the supplied evidence as JSON |
+| `--setup` | — | Read version-one setup JSON from stdin; preview/apply only the request's authorized stages; interactive requests may prompt for credentials; return JSON |
+| `--demo` | — | Read version-one demo JSON from stdin; preview/cancel a first review or execute its explicitly authorized live selection |
+| `--login` | — | Save a Jev key in native storage using a masked terminal prompt; --json selects structured output; no Jev call |
+| `--logout` | — | Remove native saved login; environment/file credentials remain separate; --json selects structured output; no Jev call |
+| `--pilot` | — | Guided terminal setup; optional CLIENT or --host selects one runtime, otherwise opens the client selector |
+
+```sh
+hapsland setup
+hapsland --status < request.json
+hapsland --explain < request.json
+hapsland --install-preview < request.json
+hapsland --login
+hapsland --version
+```
+
+### Package and worker entry points
+
+#### hapsland-doctor
+
+Inspect local package prerequisites; no Jev request. Human output is the default, including when redirected. Use --json for the version-one report. For installed agent checks, use hapsland doctor CLIENT.
+
+Usage: `hapsland-doctor [--json]`. Use `--help`/`-h` or `--version` alone for information before any stdin or state handling.
+
+#### hapsland-parser
+
+Internal source-analysis worker. Read one JSON object with string path and source fields from stdin and write the analysis as JSON. No review request. --demo-validate validates the existing demo in the current directory without reading stdin.
+
+Usage: `hapsland-parser < request.json`. Use `--help`/`-h` or `--version` alone for information before any stdin or state handling.
+
+#### hapsland-resident
+
+Internal review worker, normally started by Hapsland hooks. RUNTIME_DIRECTORY is required; normal startup creates private state and listens on its socket until idle shutdown or a signal. This is not the inspection dashboard. Use hapsland dashboard for inspection.
+
+Usage: `hapsland-resident RUNTIME_DIRECTORY`. Use `--help`/`-h` or `--version` alone for information before any stdin or state handling.
+
+<!-- cli-reference:end -->

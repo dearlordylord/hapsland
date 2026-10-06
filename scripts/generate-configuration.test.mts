@@ -21,7 +21,7 @@ const withFixture = (run: (root: string) => void): void => {
   mkdirSync(join(root, "docs"), { recursive: true })
   writeFileSync(
     join(root, "docs/installation-workflows.md"),
-    "Authored setup guide.\n<!-- unattended-setup-commands:start -->\nold\n<!-- unattended-setup-commands:end -->\n"
+    "Authored setup guide.\n<!-- cli-reference:start -->\nold\n<!-- cli-reference:end -->\n<!-- unattended-setup-commands:start -->\nold\n<!-- unattended-setup-commands:end -->\n"
   )
   writeFileSync(
     join(root, "README.md"),
@@ -67,7 +67,8 @@ const generatedFiles = (root: string): ReadonlyArray<string> => [
   join(root, "docs/examples/session-inspection.jsonc"),
   join(root, "docs/pi-installation.md"),
   join(root, "docs/review-providers.md"),
-  join(root, "docs/review-resources.md")
+  join(root, "docs/review-resources.md"),
+  join(root, "src/inspection/brand.ts")
 ]
 
 const codeBlocks = (markdown: string): ReadonlyArray<string> =>

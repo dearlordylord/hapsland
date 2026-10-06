@@ -1,4 +1,4 @@
-import { bunExecutable } from "./runtime/bun-runtime.ts"
+import { BUN_VERSION, bunExecutable } from "./runtime/bun-runtime.ts"
 import { spawnSync } from "../scripts/test-harness/process.mjs"
 import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
@@ -40,9 +40,9 @@ it("reports package readiness from individual checks and returns the matching ex
   expect(result.status).toBe(allReady ? 0 : 1)
   const declaration = JSON.parse(readFileSync(new URL("../package-runtime.json", import.meta.url), "utf8"))
   expect(checks.find((check) => check.name === "runtime")).toMatchObject({
-    observed: process.version,
+    observed: BUN_VERSION,
     required: `${declaration.runtime.name} ${declaration.runtime.version}`,
-    status: "unsupported"
+    status: "ready"
   })
   const profileDeclared = declaration.profiles.some(
     (profile: { operatingSystem: string; architecture: string }) =>

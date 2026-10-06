@@ -1,6 +1,6 @@
 import { PROJECT_CONFIGURATION_FILE } from "../src/configuration/load.ts"
 import { documentationFacts } from "./documentation-facts.ts"
-import { unattendedSetupTemplates } from "../src/cli-command.ts"
+import { unattendedSetupTemplates, cliCommandReference } from "../src/cli-command.ts"
 import * as Effect from "effect/Effect"
 import * as Schema from "effect/Schema"
 import { readFile, mkdir, writeFile } from "node:fs/promises"
@@ -9,6 +9,9 @@ import { fileURLToPath } from "node:url"
 import { ConfigurationDocument, CONFIGURATION_VERSION } from "../src/configuration/types.ts"
 import { RuleDefinition, RULE_SCHEMA_VERSION } from "../src/rules/schema.ts"
 import { ruleCommandReference } from "../src/rules/cli-definition.ts"
+import { rootOperationReference } from "../src/cli-help.ts"
+import { workerCommandReference, VERSION_FLAG } from "../src/runtime/cli-information.ts"
+import { CLI_NAME } from "../src/runtime/cli-names.ts"
 
 type JsonObject = Record<string, unknown>
 type GeneratedTarget = { readonly path: string; readonly content?: string; readonly problem?: string }
@@ -264,6 +267,59 @@ const fieldsOf = (root: JsonObject): ReadonlyArray<Field> => {
 
 const markdownCell = (value: string): string => value.replaceAll("|", "\\|").replaceAll("\n", " ")
 
+const fullCliReference = (): string => {
+  const reference = cliCommandReference()
+  return [
+    "## Command reference",
+    "",
+    "This reference is generated from the command and flag definitions that supply terminal help. Use `hapsland COMMAND --help` for flags, client choices and examples.",
+    "",
+    `Run \`${CLI_NAME} ${VERSION_FLAG}\` alone to identify the invoked package version. This does not read stdin or start a workflow. Lifecycle commands may route to a retained active package; the version is not a freshness or compatibility check.`,
+    "",
+    "### Human commands",
+    "",
+    "| Command | Purpose |",
+    "|---|---|",
+    ...reference.commands.map((command) => `| \`${command.name}\` | ${markdownCell(command.summary)} |`),
+    "",
+    ...reference.commands.flatMap((command) => [
+      `#### ${CLI_NAME} ${command.name}`,
+      "",
+      command.description,
+      "",
+      "```sh",
+      ...command.examples.map((example) => example.command),
+      "```",
+      ""
+    ]),
+    "### Flag-based operations",
+    "",
+    "These retain their version-one input/output contracts. Operations described as JSON requests read one request from stdin; a subcommand is not required. `--json` selects credential login/logout output, while JSON-stdin operations already return structured output. `--human` applies to status. Check exit status before parsing results.",
+    "",
+    "| Operation | Aliases | Input and behavior |",
+    "|---|---|---|",
+    ...rootOperationReference().map(
+      (operation) =>
+        `| \`${operation.name}\` | ${operation.aliases.map((alias) => `\`--${alias}\``).join(", ") || "—"} | ${markdownCell(operation.description)} |`
+    ),
+    "",
+    "```sh",
+    ...reference.examples.map((example) => example.command),
+    "```",
+    "",
+    "### Package and worker entry points",
+    "",
+    ...workerCommandReference().flatMap((command) => [
+      `#### ${command.name}`,
+      "",
+      command.description,
+      "",
+      `Usage: \`${command.name} ${command.arguments}\`. Use \`--help\`/\`-h\` or \`${VERSION_FLAG}\` alone for information before any stdin or state handling.`,
+      ""
+    ])
+  ].join("\n")
+}
+
 const markdownTable = (schema: JsonObject): string => {
   const definitions = getDefinitions(schema)
   const byPath = new Map<
@@ -460,16 +516,23 @@ const makeTargets = async (root: string): Promise<ReadonlyArray<GeneratedTarget>
         path: installationPath,
         content: replaceMarkedSection(
           replaceMarkedSection(
-            installation,
-            ["<!-- inspection-recording:start -->", "<!-- inspection-recording:end -->"],
-            inspection.notice("examples/session-inspection.jsonc")
+            replaceMarkedSection(
+              installation,
+              ["<!-- inspection-recording:start -->", "<!-- inspection-recording:end -->"],
+              inspection.notice("examples/session-inspection.jsonc")
+            ),
+            ["<!-- cli-reference:start -->", "<!-- cli-reference:end -->"],
+            fullCliReference()
           ),
           ["<!-- unattended-setup-commands:start -->", "<!-- unattended-setup-commands:end -->"],
           "```sh\n" + unattendedSetupTemplates().join("\n") + "\n```"
         )
       })
     } catch {
-      targets.push({ path: installationPath, problem: "expected exactly one ordered unattended setup marker pair" })
+      targets.push({
+        path: installationPath,
+        problem: "expected exactly one ordered marker pair for each generated installation section"
+      })
     }
   }
 
@@ -556,6 +619,24 @@ const makeTargets = async (root: string): Promise<ReadonlyArray<GeneratedTarget>
     if (existing === undefined) targets.push(target)
     else targets[targets.indexOf(existing)] = target
   }
+  const brandAssets = await Promise.all(
+    [
+      ["inspectionFavicon", "favicon.svg"],
+      ["inspectionProductIcon", "product-icon.svg"]
+    ].map(async ([name, file]) => {
+      const original = await readFile(new URL(`../assets/brand/${file}`, import.meta.url), "utf8")
+      // Derive the dark-background icon from the canonical artwork without duplicating its geometry.
+      const svg =
+        file === "product-icon.svg"
+          ? original.replaceAll("#151719", "#dce3eb").replace("black skeletal robot hand", "silver skeletal robot hand")
+          : original
+      return `export const ${name} =\n  "data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}"`
+    })
+  )
+  targets.push({
+    path: resolve(root, "src/inspection/brand.ts"),
+    content: ["// Generated by npm run config:generate from assets/brand.", ...brandAssets, ""].join("\n")
+  })
   return targets
 }
 

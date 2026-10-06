@@ -2,8 +2,8 @@ import { BUN_VERSION, bunExecutable } from "./bun-runtime.ts"
 import { realpathSync } from "node:fs"
 import { dirname, extname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import { CLI_NAME } from "./cli-names.ts"
 import { sourceRuntimeFromEntrypoint, sourceRuntimeCommand } from "./source-runtime-layout.ts"
+import { PACKAGE_COMMAND_NAMES } from "./cli-information.ts"
 export { BUN_VERSION } from "./bun-runtime.ts"
 
 export interface RuntimeCommand {
@@ -11,12 +11,7 @@ export interface RuntimeCommand {
   readonly args: ReadonlyArray<string>
 }
 export type PackageRole = "cli" | "doctor" | "parser" | "resident"
-const roleNames: Readonly<Record<PackageRole, string>> = {
-  cli: CLI_NAME,
-  doctor: "hapsland-doctor",
-  parser: "hapsland-parser",
-  resident: "hapsland-resident"
-}
+const roleNames: Readonly<Record<PackageRole, string>> = PACKAGE_COMMAND_NAMES
 const sourceEntries: Readonly<Record<PackageRole, string>> = {
   cli: "cli",
   doctor: "package-doctor",
