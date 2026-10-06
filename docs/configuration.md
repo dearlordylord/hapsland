@@ -222,7 +222,7 @@ When no loaded configuration layer declares a `rules` field, authorized initial 
 <!-- shipped-rules:end -->
 
 Any explicit `rules` field, including `rules: []`, is authoritative:
-setup does not add or reconnect defaults alongside that selection. For example, `r1_inferred_case.json` retains the stable rule ID
+setup does not add or enable defaults alongside that selection. For example, `r1_inferred_case.json` retains the stable rule ID
 `r1_inferred_case`. The selected file is authoritative: editing it changes the rule;
 disabling or disconnecting it changes effective review. Deleting a connected file
 reports a missing-source error, rather than restoring a hidden default. Repeated

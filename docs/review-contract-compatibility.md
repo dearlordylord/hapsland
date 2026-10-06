@@ -59,7 +59,7 @@ effective settings have content digests; there are no pack identities or content
 version labels. Existing default rule IDs (`r1_inferred_case` and the other `rN_*`
 IDs) remain stable. Initial setup provisions nine editable defaults only when no configuration layer
 declares `rules`. Any explicit selection, including `rules: []`, is authoritative:
-repeat setup preserves it and authored files, without reconnecting removed defaults.
+repeat setup preserves it and authored files, without enabling unselected defaults.
 Missing connected files fail validation instead of being recreated.
 
 The default body rule requires the exact function signature and body, not complete
