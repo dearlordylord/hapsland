@@ -1,10 +1,10 @@
 # Setup interaction prototype
 
-**Purpose:** Compare a typed reducer and `effect-machine` on the same setup conversation, and exercise Effect Prompt through a project-owned terminal adapter.
+**Purpose:** Exercise workflow-specific reducers and the shared Effect interaction seam across setup, rules, update, maintenance, login and verification; retain the setup reducer/statechart comparison.
 **Status:** Throwaway executable prototype; not production onboarding or an accepted dependency choice.
 **Authority:** Design experiment and bounded validation evidence. Current setup/credential owners remain authoritative; fake digests and outcomes are not their public contracts.
 **Expected use:** Run the console demo, inspect state after each action, and use the replay/PTY evidence to choose a production design.
-**Lifecycle:** Temporary until the setup-interaction design acceptance milestone. Consolidate the chosen architecture into an ADR and accepted behavior into `docs/installation-workflows.md` and `docs/configuration.md`; update links and delete this prototype from the implementation branch. This PR branch and Git history retain the experiment and evidence.
+**Lifecycle:** Temporary until #244 production integration and validation are complete. Consolidate the chosen architecture into an ADR and accepted behavior into `docs/installation-workflows.md` and `docs/configuration.md`; update links and delete this prototype from the implementation branch. This PR branch and Git history retain the experiment and evidence.
 
 ## Run
 
@@ -73,7 +73,7 @@ npm run swarm:terminal
 npm run qualify
 ```
 
-`qualify` has a 90-second aggregate deadline, typechecks the isolated package, compares both controllers, checks the shared interaction seam and rules behavior/source and compiled PTY cases, both diagram freshness checks and task lifetime, runs all three adversarial swarm probes and source PTY probes, compiles macOS/Linux arm64 standalone executables, and probes the host executable. It requires an arm64 macOS/Linux host and removes temporary binaries. `npm run qualify -- --write` refreshes [evidence.json](evidence.json) after a new experiment; the plain command leaves the recorded evidence unchanged.
+`qualify` has a 120-second aggregate deadline, typechecks the isolated package, compares both controllers, checks every workflow and shared interaction scripted/source and compiled PTY case, all six diagram freshness checks and task lifetime, runs all three adversarial swarm probes and source PTY probes, compiles macOS/Linux arm64 standalone executables, and probes the host executable. It requires an arm64 macOS/Linux host and removes temporary binaries. `npm run qualify -- --write` refreshes [evidence.json](evidence.json) after a new experiment; the plain command leaves the recorded evidence unchanged.
 
 The replay asserts matching state after each event in eight scenarios: two clients with a partial result; back and stale approval/result rejection; wrong command IDs; refusal of navigation during a write; each destination; skip; preserving a higher-priority environment source; keeping an existing credential; declined paid verification; and failed-save recovery. Keys never appear in events/model/command logs. These assertions are executable experiment probes, not a replacement production test suite.
 
@@ -128,7 +128,7 @@ See the [preserved flow](../../docs/setup-interaction-proposal.md), [model resea
 
 ## CLI-wide extension direction
 
-The broader interaction handoff is now in work. The [CLI-wide inventory and acceptance sequence](../../docs/setup-interaction-proposal.md#cli-wide-interaction-scope) owns the next prototype extension: share input/view/lifetime conventions while keeping setup, rules, update, maintenance and credential models separate. Preserve distinct approval cardinalities, actual owner digests and unattended paths. The owner extended diagram scope: every modeled interactive workflow must emit Mermaid inside Markdown from executable replay scenarios, with explicit regeneration, non-writing freshness checks and bounded coverage guidance. Setup and rules artifacts exist now; update, maintenance, login and verification/replacement artifacts land with their models. Direct/headless exceptions do not acquire invented dialog states.
+The broader interaction handoff is now in work. The [CLI-wide inventory and acceptance sequence](../../docs/setup-interaction-proposal.md#cli-wide-interaction-scope) owns the next prototype extension: share input/view/lifetime conventions while keeping setup, rules, update, maintenance and credential models separate. Preserve distinct approval cardinalities, actual owner digests and unattended paths. The owner extended diagram scope: every modeled interactive workflow must emit Mermaid inside Markdown from executable replay scenarios, with explicit regeneration, non-writing freshness checks and bounded coverage guidance. All six workflow artifacts now exist. Direct/headless exceptions do not acquire invented dialog states.
 
 Integration presents current credential behavior and creates a follow-up task for additional project/user file-saving choices. Success presentation is resolved with production owner outcomes; readiness says **Codex**. Linux arm64 execution is a required late integration check, not deferred beyond integration. The initial selection dialog remains accepted, and hidden-input cancellation remains unchanged.
 
@@ -137,3 +137,36 @@ Integration presents current credential behavior and creates a follow-up task fo
 The shared process/session runner installs scoped signal handlers before input starts. The input lease serializes concurrent callers and refuses subsequent or queued input after release or terminal termination while preserving durable outcome presentation until scope exit; workflow reducers still own revision/command correlation. Scripted hidden input requires an explicit synthetic step and consumes EOF/Exit as termination rather than inventing a credential. Secrets never become replay events or generated Markdown.
 
 The dedicated physical probe exercises ordinary and controlling-terminal Prompt.Hidden, Escape/Ctrl+C/Ctrl+D, process interruption, multiple-selection guarding/Back, and strict full-line approval. It checks process exit, secret absence, pure JSON stdout and restored terminal configuration. On macOS it excludes only the kernel-owned PENDIN pending-input marker from flag equality; input/echo configuration and control characters remain checked. Complete OS settings are restored for the separately acquired terminal. These fake-input checks do not establish real owner integration or Linux execution.
+
+## Remaining workflow prototypes
+
+Each workflow has its own pure model/interpreter and uses the shared interaction seam. The terminal/session and safe replay projection are shared; consent and recovery remain workflow-specific. Injected owners are synthetic and import no production code.
+
+```sh
+npm run demo:update
+npm run demo:update -- --scenario=partial
+npm run demo:update -- --scenario=stale
+npm run demo:maintenance -- --operation=repair
+npm run demo:maintenance -- --operation=reinstall --scenario=partial
+npm run demo:maintenance -- --operation=uninstall
+npm run demo:login
+npm run demo:login -- --scenario=failed
+npm run demo:verification
+npm run demo:verification -- --source=file
+npm run demo:verification -- --source=environment
+npm run demo:verification -- --scenario=rejected
+npm run workflows:probe
+npm run workflows:terminal
+```
+
+Update discovers two synthetic registered agents, stages a package, previews all changes and asks for one full-line group approval. Independent outcomes continue after failure. Already-current agents retain activation behavior. Back from approval returns to preview; the staged package remains retained. A changed proposal requires fresh group approval. Additional scenarios include `no-registration`, `current`, `failed` and `activation-failed`.
+
+Maintenance previews and approves each agent independently. The repair fixture has an interrupted Claude uninstall to resume; repair does not overwrite that journaled operation. Reinstall and uninstall are distinct commands. Partial/failed work does not prevent the next agent's dialog. Earlier outcomes survive Exit; activation failure is separate from completed mutation. Settings and credentials are untouched by the prototype.
+
+Login probes synthetic native storage before requesting a fake key with Prompt.Hidden. It has no project/user destination selector. Cancellation before saving preserves the previous credential. Outcomes are stored, failed or partial; environment/file precedence still wins over native saving. `unavailable` requests no key. Capture is interruptible; the scope wipes the Redacted wrapper even if saving fails, without claiming memory zeroization.
+
+Verification shows each request's consent, built-in sample, paid-credit warning, 15-second timeout and three-request cap. Every request requires new affirmative consent. Rejected/forbidden saved keys can be replaced through hidden input; file credentials can be re-read after an external edit. Correction approval covers replacement/re-reading and one additional check, preserving the existing grouped correction consent. Environment-only keys are changed outside the CLI. Rate-limit/unconfirmed outcomes do not auto-retry. Failed/partial saves do not proceed to another check. Stale source observations require fresh consent. Selecting correction grants no write or request permission.
+
+Source and host-compiled PTY checks cover group/per-agent consent, stale proposals, Back, partial continuation, hidden cancellation, signals/EOF, secret absence, headless rejection, JSON stdout and restored terminal modes. Scripted checks additionally cover strict decline, current/no-registration, activation failure, precedence, correction, request limits and stale revision/command/approval guards. Effect TestClock verifies the real timeout without a real-time sleep. These checks do not validate real stores/journals, acquisition/activation or installed routing. Linux execution remains required during integration.
+
+Inspect [update](update-diagram.md), [maintenance](maintenance-diagram.md), [login](login-diagram.md), and [verification/replacement](verification-diagram.md). All replay the actual prototype reducers/interpreters with independent assertions. `npm run diagram:write` regenerates all six artifacts; `npm run diagram:check` checks freshness without rewriting. Keys, raw payloads and proposal digests are excluded.

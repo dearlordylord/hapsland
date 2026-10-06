@@ -1,11 +1,387 @@
 {
-  "observedAt": "2026-10-06T21:26:18.915Z",
-  "sourceDigest": "a87903329f0dad7b3b1f98d1b11bd62d3084f351f8181ca663fef5823ec80af4",
+  "observedAt": "2026-10-06T21:54:34.300Z",
+  "sourceDigest": "1250f908e85488ffbd7d4ec4b01bfa3e785ec34a41da5d1f6db669b09d6ed8af",
   "host": "darwin-arm64",
   "bun": "1.3.14",
   "effect": "4.0.0",
   "effectMachine": "0.28.0",
   "typecheck": "passed",
+  "workflows": {
+    "cases": {
+      "update": 14,
+      "maintenance": 11,
+      "login": 8,
+      "verification": 16
+    },
+    "realWrites": 0,
+    "credentialReads": 0,
+    "providerRequests": 0,
+    "guards": {
+      "staleInputs": "passed",
+      "staleAuthorization": "passed",
+      "writesWaitForOutcome": "passed",
+      "realOperations": 0
+    },
+    "timeout": "passed",
+    "ownerFailurePreserved": "passed",
+    "capturedWrapperWiped": "passed"
+  },
+  "workflowsSourcePTY": {
+    "runner": "source",
+    "cases": [
+      {
+        "name": "update-group-partial",
+        "phase": "Done",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "update-decline",
+        "phase": "Done",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "update-back",
+        "phase": "Done",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "update-stale",
+        "phase": "Done",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "maintenance-per-agent",
+        "phase": "Done",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "maintenance-partial-exit",
+        "phase": "Cancelled",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "maintenance-back",
+        "phase": "Cancelled",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "login-hidden",
+        "phase": "Done",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "login-escape",
+        "phase": "Cancelled",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "login-eof",
+        "phase": "Cancelled",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "verification-replace",
+        "phase": "Done",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "verification-file-recheck",
+        "phase": "Done",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "verification-decline",
+        "phase": "Done",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "verification-env-guidance",
+        "phase": "Done",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "verification-hidden-cancel",
+        "phase": "Cancelled",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "update-signal",
+        "phase": "Interrupted",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "update-eof",
+        "phase": "Cancelled",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "maintenance-signal",
+        "phase": "Interrupted",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "maintenance-eof",
+        "phase": "Cancelled",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "login-signal",
+        "phase": "Interrupted",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "login-eof",
+        "phase": "Cancelled",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "verification-signal",
+        "phase": "Interrupted",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "verification-eof",
+        "phase": "Cancelled",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      }
+    ],
+    "headlessCases": 4,
+    "realWrites": 0,
+    "providerRequests": 0
+  },
+  "workflowsCompiledPTY": {
+    "runner": "compiled",
+    "cases": [
+      {
+        "name": "update-group-partial",
+        "phase": "Done",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "update-decline",
+        "phase": "Done",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "update-back",
+        "phase": "Done",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "update-stale",
+        "phase": "Done",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "maintenance-per-agent",
+        "phase": "Done",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "maintenance-partial-exit",
+        "phase": "Cancelled",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "maintenance-back",
+        "phase": "Cancelled",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "login-hidden",
+        "phase": "Done",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "login-escape",
+        "phase": "Cancelled",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "login-eof",
+        "phase": "Cancelled",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "verification-replace",
+        "phase": "Done",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "verification-file-recheck",
+        "phase": "Done",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "verification-decline",
+        "phase": "Done",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "verification-env-guidance",
+        "phase": "Done",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "verification-hidden-cancel",
+        "phase": "Cancelled",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "update-signal",
+        "phase": "Interrupted",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "update-eof",
+        "phase": "Cancelled",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "maintenance-signal",
+        "phase": "Interrupted",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "maintenance-eof",
+        "phase": "Cancelled",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "login-signal",
+        "phase": "Interrupted",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "login-eof",
+        "phase": "Cancelled",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "verification-signal",
+        "phase": "Interrupted",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "verification-eof",
+        "phase": "Cancelled",
+        "modesRestored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      }
+    ],
+    "headlessCases": 4,
+    "realWrites": 0,
+    "providerRequests": 0
+  },
+  "workflowDiagrams": {
+    "cases": {
+      "update": 14,
+      "maintenance": 11,
+      "login": 8,
+      "verification": 16
+    },
+    "realWrites": 0,
+    "credentialReads": 0,
+    "providerRequests": 0,
+    "diagrams": [
+      "update",
+      "maintenance",
+      "login",
+      "verification"
+    ],
+    "freshness": "passed"
+  },
   "interaction": {
     "hiddenTermination": "passed",
     "explicitSyntheticCapture": "passed",
@@ -715,7 +1091,7 @@
   },
   "swarmTerminal": {
     "runner": "node run.mjs cli.ts",
-    "seconds": 20.323,
+    "seconds": 19.57,
     "budgetSeconds": 55,
     "results": [
       {

@@ -18,7 +18,7 @@ for (const file of readdirSync(import.meta.dirname)
     .update("\0")
 }
 const sourceDigest = sourceHash.digest("hex")
-const end = Date.now() + 90_000
+const end = Date.now() + 120_000
 const directory = mkdtempSync(join(tmpdir(), "hapsland-interaction-prototype-"))
 function run(command, args) {
   const result = spawnSync(command, args, {
@@ -34,6 +34,9 @@ try {
   run("node_modules/.bin/tsc", ["-p", "tsconfig.json"])
   const interaction = JSON.parse(run(executable, ["interaction-probe.ts"]))
   const interactionSourcePTY = JSON.parse(run("python3", ["interaction-terminal.py"]))
+  const workflows = JSON.parse(run(executable, ["workflows-probe.ts"]))
+  const workflowsSourcePTY = JSON.parse(run("python3", ["workflows-terminal.py"]))
+  const workflowDiagrams = JSON.parse(run(executable, ["workflow-diagrams.ts"]))
   const comparison = JSON.parse(run(executable, ["compare.ts"]))
   const rules = JSON.parse(run(executable, ["rules-probe.ts"]))
   const rulesSourcePTY = JSON.parse(run("python3", ["rules-terminal.py"]))
@@ -65,6 +68,18 @@ try {
     "--outfile",
     join(directory, "interaction-host")
   ])
+  for (const target of targets)
+    run(executable, [
+      "build",
+      "--compile",
+      `--target=${target}`,
+      "workflows-cli.ts",
+      "--outfile",
+      join(directory, `workflows-${target}`)
+    ])
+  const workflowsCompiledPTY = JSON.parse(
+    run("python3", ["workflows-terminal.py", "--compiled", join(directory, `workflows-${hostTarget}`)])
+  )
   const interactionCompiledPTY = JSON.parse(
     run("python3", ["interaction-terminal.py", "--compiled", join(directory, "interaction-host")])
   )
@@ -82,6 +97,10 @@ try {
     effect: "4.0.0",
     effectMachine: "0.28.0",
     typecheck: "passed",
+    workflows,
+    workflowsSourcePTY,
+    workflowsCompiledPTY,
+    workflowDiagrams,
     interaction,
     interactionSourcePTY,
     interactionCompiledPTY,

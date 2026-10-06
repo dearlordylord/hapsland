@@ -12,13 +12,19 @@
     "swarm:flow": "node run.mjs swarm-flow.ts",
     "swarm:interaction": "node run.mjs swarm-interaction.ts",
     "swarm:terminal": "python3 swarm-terminal.py",
-    "diagram:write": "node run.mjs diagram.ts --write && node run.mjs rules-diagram.ts --write",
-    "diagram:check": "node run.mjs diagram.ts && node run.mjs rules-diagram.ts",
+    "diagram:write": "node run.mjs diagram.ts --write && node run.mjs rules-diagram.ts --write && node run.mjs workflow-diagrams.ts --write",
+    "diagram:check": "node run.mjs diagram.ts && node run.mjs rules-diagram.ts && node run.mjs workflow-diagrams.ts",
     "demo:rules": "node run.mjs rules-cli.ts",
     "rules:probe": "node run.mjs rules-probe.ts",
     "rules:terminal": "python3 rules-terminal.py",
     "interaction:probe": "node run.mjs interaction-probe.ts",
-    "interaction:terminal": "python3 interaction-terminal.py"
+    "interaction:terminal": "python3 interaction-terminal.py",
+    "demo:update": "node run.mjs workflows-cli.ts update",
+    "demo:maintenance": "node run.mjs workflows-cli.ts maintenance",
+    "demo:login": "node run.mjs workflows-cli.ts login",
+    "demo:verification": "node run.mjs workflows-cli.ts verification",
+    "workflows:probe": "node run.mjs workflows-probe.ts",
+    "workflows:terminal": "python3 workflows-terminal.py"
   },
   "dependencies": {
     "@effect/platform-node": "4.0.0",

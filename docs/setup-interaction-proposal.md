@@ -215,3 +215,9 @@ The review itself ran no tests and changed no files. The implementation sequence
 ### Inspected owner baseline
 
 The focused existing update, maintenance and credential-verification suites passed together on this worktree: 76 tests across three files. They establish the checked existing behavior, not the proposed migration. The earlier targeted pilot approval and terminal confirmation cases passed; the broader pilot run still has the known Codex/Codex CLI readiness-text mismatch that integration must correct in production output. Rules, controlling-TTY and Linux acceptance must run at their affected implementation gates; source inspection alone is not execution evidence.
+
+### Remaining workflow prototype milestone
+
+Update, maintenance/recovery, login and verification/replacement now have separate executable prototype models, injected synthetic owners, shared live/scripted input, replay-generated Mermaid Markdown and bounded source/compiled terminal checks. The [prototype guide](../prototypes/setup-interaction/README.md#remaining-workflow-prototypes) explains scenarios and evidence limits. Production integration remains blocked by #243; no final package/build choice or real owner integration is adopted here.
+
+After #244 production integration and validation, consolidate adopted decisions, generators and useful tests into production owners, update inbound links, and delete every prototype created or extended for #244, including isolated manifests, demo scripts, fake owners, temporary replay Markdown and superseded qualification snapshots. Unrelated repository prototypes are outside that scope. Retain maintained production Mermaid documentation and its executable generator; Git history preserves the experiment chronology.

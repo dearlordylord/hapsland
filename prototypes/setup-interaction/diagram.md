@@ -4,7 +4,7 @@
 **Status:** Generated throwaway prototype evidence.
 **Authority:** Bounded replay evidence; not an accepted product contract or proof of all legal behavior.
 **Expected use:** Preview this Markdown with Mermaid support alongside the console prototype; regenerate explicitly after reducer or scenario changes.
-**Lifecycle:** Delete at the setup-interaction design acceptance milestone; consolidate adopted generator behavior and coverage limits into the production generator's owner documentation, and architectural decisions into an ADR. Update inbound links before deleting.
+**Lifecycle:** Delete after #244 production integration and validation; consolidate adopted generator behavior and coverage limits into the production generator's owner documentation, and architectural decisions into an ADR. Update inbound links before deleting.
 
 > This diagram shows transitions observed by the declared scenario replays through the current reducer. Regeneration keeps it current for those scenarios; it does not establish exhaustive coverage. New states, guards or context-dependent branches may remain absent until scenarios exercise them. Diagram freshness does not establish behavioral correctness.
 
