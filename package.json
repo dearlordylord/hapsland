@@ -96,6 +96,7 @@
     "test:simulation": "node scripts/run-optional-development.mjs simulation"
   },
   "devDependencies": {
+    "@babel/parser": "7.29.9",
     "@bcoe/v8-coverage": "1.0.2",
     "@crap4ts/crap4ts": "1.0.5",
     "@effect/ai-typesafe": "4.0.0",
@@ -108,6 +109,7 @@
     "dprint": "0.55.2",
     "effect": "4.0.0",
     "fast-check": "4.2.0",
+    "istanbul-lib-instrument": "6.0.3",
     "lint-staged": "17.3.0",
     "oxlint": "1.76.0",
     "oxlint-tsgolint": "7.0.2001",
@@ -115,10 +117,10 @@
     "tree-sitter": "0.25.1",
     "tree-sitter-rust": "0.24.0",
     "tree-sitter-typescript": "0.23.2",
+    "turbo": "2.11.7",
     "typescript": "7.0.2",
     "vitest": "5.0.1",
-    "zod": "4.6.5",
-    "istanbul-lib-instrument": "6.0.3"
+    "zod": "4.6.5"
   },
   "allowScripts": {
     "tree-sitter@0.25.1": true,
