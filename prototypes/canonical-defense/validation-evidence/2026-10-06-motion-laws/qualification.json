@@ -1,0 +1,301 @@
+{
+  "purpose": "Source-bound qualification of the owner-approved discrete game-motion laws",
+  "status": "Passed local optional proof and mutation gate",
+  "authority": "Implementation and validation evidence; accepted law statements own guarantees",
+  "date": "2026-10-06",
+  "command": "timeout 130 node prototypes/canonical-defense/verify-motion-laws.mjs",
+  "toolVersions": {
+    "bend": "2.0.35",
+    "lean": "4.34.1"
+  },
+  "platform": "Linux arm64",
+  "overallDeadlineMs": 130000,
+  "perCheckerDeadlineMs": 5000,
+  "result": {
+    "bend": [
+      "observation_preserves_position",
+      "observation_preserves_identity",
+      "blocked_actor_unchanged",
+      "advance_preserves_identity",
+      "advance_preserves_outcome"
+    ],
+    "arithmetic": [
+      {
+        "law": "coordinate_no_overshoot",
+        "leanSourceSha256": "b828aad23720794dc661c4a56b83fcdb2298ff544b39190be462ded1358b90e1"
+      },
+      {
+        "law": "coordinate_distance_nonincreasing",
+        "leanSourceSha256": "ea3abb751731b9241b01560250cb5bdb199dc38fb471bca6d09e9b8e168f7f7f"
+      },
+      {
+        "law": "coordinate_step_bounded",
+        "leanSourceSha256": "72afe69bb12b3a2f5edd58d1c161f7d677fe03d87e9972d24e4ec1c512f87ce5"
+      },
+      {
+        "law": "zero_allowance_stationary",
+        "leanSourceSha256": "77be4d1800b6669a52d2dfa32a7e476217e03c1b41730f315d0bb989833167c8"
+      },
+      {
+        "law": "arrived_coordinate_stationary",
+        "leanSourceSha256": "b25cf0ac2faae15e774535f96cca31c5e75a3dc3dbb9104418f823de743fc3fa"
+      },
+      {
+        "law": "travel_one_axis",
+        "leanSourceSha256": "764cab61827dca0b856669068369514061f52ea240f9f600d95d07cfeb83e8f8"
+      },
+      {
+        "law": "travel_step_bounded",
+        "leanSourceSha256": "c0e9a04ab0b680561f4cc1712afa59111d51939f7c3f7bdf1af9d32b27ac1fee"
+      },
+      {
+        "law": "travel_distance_nonincreasing",
+        "leanSourceSha256": "8a6ee8acfd7fbce939764aab56a793f4e925f9fe8761c20e652b434f684692ba"
+      },
+      {
+        "law": "travel_reaches_close_horizontal_target",
+        "leanSourceSha256": "acfcfa1732ee702431081c2cff78004848d150110457b4b4220faf499a11da7a"
+      }
+    ],
+    "mutants": [
+      {
+        "law": "coordinate_no_overshoot",
+        "boundary": "arithmetic",
+        "result": "rejected"
+      },
+      {
+        "law": "coordinate_distance_nonincreasing",
+        "boundary": "arithmetic",
+        "result": "rejected"
+      },
+      {
+        "law": "coordinate_step_bounded",
+        "boundary": "arithmetic",
+        "result": "rejected"
+      },
+      {
+        "law": "zero_allowance_stationary",
+        "boundary": "arithmetic",
+        "result": "rejected"
+      },
+      {
+        "law": "arrived_coordinate_stationary",
+        "boundary": "arithmetic",
+        "result": "rejected"
+      },
+      {
+        "law": "travel_one_axis",
+        "boundary": "arithmetic",
+        "result": "rejected"
+      },
+      {
+        "law": "travel_step_bounded",
+        "boundary": "arithmetic",
+        "result": "rejected"
+      },
+      {
+        "law": "travel_distance_nonincreasing",
+        "boundary": "arithmetic",
+        "result": "rejected"
+      },
+      {
+        "law": "travel_reaches_close_horizontal_target",
+        "boundary": "arithmetic",
+        "result": "rejected"
+      },
+      {
+        "law": "observation_preserves_position",
+        "boundary": "Bend",
+        "result": "rejected"
+      },
+      {
+        "law": "observation_preserves_identity",
+        "boundary": "Bend",
+        "result": "rejected"
+      },
+      {
+        "law": "blocked_actor_unchanged",
+        "boundary": "Bend",
+        "result": "rejected"
+      },
+      {
+        "law": "advance_preserves_identity",
+        "boundary": "Bend",
+        "result": "rejected"
+      },
+      {
+        "law": "advance_preserves_outcome",
+        "boundary": "Bend",
+        "result": "rejected"
+      }
+    ],
+    "sources": {
+      "DefenseMotion.bend": "1c7781417ce32f3b81b9e3438cefc44b04a0f6130907ecd6d15bb5d014bc8162",
+      "DefenseMap.bend": "debc6651614c46fff01353cbd008869688c5bf99bab3f3500f6dc7b9085db069",
+      "DefenseMotionTypes.bend": "6ca50e25e4c0fc76ecbf8f05b50c4d973aba70c999e2688681c69c7938db4322",
+      "DefensePresentation.bend": "3e27fd18cccfbeee1ca48633bf535699a196254779c2ecea10070d37186400b9",
+      "MotionStateLAWS.bend": "3a2715325330507eb0f89395c54c4dbc4af1bf0f01b3222ef30ecd820ca46e39",
+      "MotionStatePROOF.bend": "59cc73d0d43cb315ac92b620a7028fbf18511a391807e5e036c4d6f5f53a3193",
+      "MotionArithmeticLAWS.bend": "fe36a433682a5575a57804bef7154e232b16b8358223218fba55610007022b1a",
+      "motion-arithmetic.mjs": "76a3d970b33c942fdf3f32c1ca22fb747a9736ce5ac0d80525000c894f1488b5",
+      "verify-motion-laws.mjs": "43d11212fc6a88001e4397fde7ef70fbf5fc2dc2c4c15758c812f60f39a3b6be",
+      "motion-state-slice.mjs": "ba7b736d445be5663194e17d6908065fb4bb1df11c99b1fbe99d3cf8085dc369",
+      "MotionArithmeticFacts.lean": "c5f7c53d0d348bba276e02215cc83c965be332883ba96231e84930948a3b3637",
+      "MotionArithmeticPROOF.lean": "9bcc1ca617f031d4d2f155487204253373eec083d58fd2a418b317de139f0e39",
+      "../../packages/agent-flow-bend/Canonical.bend": "a744b7aec1d03470368f0f1a1170ce1a1182aa208fa3246887cd8ebc35cafe70"
+    },
+    "trust": {
+      "bend": "Bend checker and mathematical kernel on selected game definitions; observation proofs generalize only the appended-path field to every typed suffix",
+      "arithmetic": "source-expression lowering to Lean unsigned BitVec 32; Lean kernel checks ordinary arithmetic proofs; bv_decide is used only to find mutant counterexamples",
+      "bridge": "The lowering and Bend-U32/Lean-BitVec primitive correspondence are trusted, not proved in Bend. No simulator, frame interpolation or calendar guarantee."
+    },
+    "kernel": {
+      "sourceSha256": "e15042434e73aab07ab05cea4b77b5619082c00a6d4924ea2d4a2cdec05facce",
+      "binarySha256": "02908579737daee32461f0c352caebb3c7606b96f648b6adbe88c4bc97b0d0cf"
+    },
+    "baseSha256": "c742fae9c49b14f0cc9128429a2c6109364c8a933a142f2c90b9f2e5fd976661",
+    "stateSlices": [
+      {
+        "law": "observation_preserves_position",
+        "abstractSuffix": true,
+        "selectedDefinitions": [
+          "phase",
+          "point",
+          "changed"
+        ],
+        "selectedMapDefinitions": [],
+        "canonicalTypes": [
+          "Work",
+          "WorkKind"
+        ],
+        "bendttSha256": "03f3b4ee34f3297a6d6dfa4f0fa09b193239d62dd1051029cd52f814a14faf80"
+      },
+      {
+        "law": "observation_preserves_identity",
+        "abstractSuffix": true,
+        "selectedDefinitions": [
+          "phase",
+          "actor_key",
+          "changed"
+        ],
+        "selectedMapDefinitions": [],
+        "canonicalTypes": [
+          "Work",
+          "WorkKind"
+        ],
+        "bendttSha256": "6738711a0ba3929be937e7f5ef524fe9e84a3e6ea4b8d6aeb1f1616e102b4ba4"
+      },
+      {
+        "law": "blocked_actor_unchanged",
+        "abstractSuffix": false,
+        "selectedDefinitions": [
+          "point",
+          "path",
+          "travel",
+          "shown_time",
+          "move_to",
+          "advance",
+          "move_when"
+        ],
+        "selectedMapDefinitions": [
+          "px",
+          "py",
+          "travel_coordinate_order",
+          "travel_coordinate",
+          "same"
+        ],
+        "canonicalTypes": [
+          "Work",
+          "WorkKind"
+        ],
+        "bendttSha256": "aafe471d0a18f3c71938e527b3562500a94eb8a46ea3e44743ac4f6c4a069a21"
+      },
+      {
+        "law": "advance_preserves_identity",
+        "abstractSuffix": false,
+        "selectedDefinitions": [
+          "actor_key",
+          "point",
+          "travel",
+          "shown_time",
+          "move_to",
+          "advance"
+        ],
+        "selectedMapDefinitions": [
+          "px",
+          "py",
+          "travel_coordinate_order",
+          "travel_coordinate",
+          "same"
+        ],
+        "canonicalTypes": [
+          "Work",
+          "WorkKind"
+        ],
+        "bendttSha256": "8b1ab868bf24c5251547254ee406aaa4e48fd01a5d263f494b0b42c5b427df90"
+      },
+      {
+        "law": "advance_preserves_outcome",
+        "abstractSuffix": false,
+        "selectedDefinitions": [
+          "point",
+          "travel",
+          "shown_time",
+          "move_to",
+          "advance"
+        ],
+        "selectedMapDefinitions": [
+          "px",
+          "py",
+          "travel_coordinate_order",
+          "travel_coordinate",
+          "same"
+        ],
+        "canonicalTypes": [
+          "Work",
+          "WorkKind"
+        ],
+        "bendttSha256": "9649aa78bf751daf130104a31a1bd940c08a73ec0b5960d58dab9477a0ad71c8"
+      }
+    ],
+    "arithmeticHelpers": [
+      {
+        "name": "coordinate_up",
+        "sourceSha256": "e66a8c90d7b50c1c6e893b351bd9a89f7761431e5291971dc8f77c6b04f9dce3"
+      },
+      {
+        "name": "coordinate_down",
+        "sourceSha256": "3d78ae3d45d81bbc4c7c659197c0f45028e4de4354867efd830d451a01b852f9"
+      },
+      {
+        "name": "coordinate_toNat",
+        "sourceSha256": "a2c3123fa07ad93e32485e42273e25e53933978b745609330dff601ea6b06f2f"
+      },
+      {
+        "name": "distance_toNat",
+        "sourceSha256": "02cd433449b0f99b46827027810c3711bb3d34003bc3504fc1f1704478294707"
+      },
+      {
+        "name": "coordinate_between",
+        "sourceSha256": "7b0d5985c0a10a44f11775cab58f83f6ea6e54d1d254f062968508510acdc4ac"
+      },
+      {
+        "name": "coordinate_step",
+        "sourceSha256": "6aceedf4d1d3622fe06f827c29de26be24800255e19a1b81f0cc7d0715defc9e"
+      },
+      {
+        "name": "coordinate_remaining",
+        "sourceSha256": "867881a10661f614ff9519797f56bfcaa2aaef633ea299b539a59c4eebbdfe70"
+      },
+      {
+        "name": "coordinate_close",
+        "sourceSha256": "c7b78f83f41f67c0e13a1a2059119f3d78aadad35f0cb42c5a48d026314f0f0a"
+      }
+    ],
+    "elapsedMs": 63545
+  },
+  "focusedToolTests": 3,
+  "limits": "No continuous interpolation, complete frame mapping, branch-body identity, queue liveness, calendar rescheduling, native game compilation or platform qualification. Bend U32-to-Lean BitVec lowering remains trusted.",
+  "earlierAttempts": "Combined full-owner Bend/kernel checks and a large bitvector decision exceeded five-second deadlines. They were not counted as passes. The final gate checks isolated source slices and ordinary arithmetic supporting lemmas under the unchanged per-check limits.",
+  "focusedToolLint": "Four exact source copies checked with repository oxlint rules; prototype exclusion bypassed only for this focused check."
+}
