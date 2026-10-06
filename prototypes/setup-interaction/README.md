@@ -85,6 +85,12 @@ The final swarm reports no findings in its checked scope: 86 flow expectations, 
 
 This does not establish that arbitrary owner payloads are valid external input, that a native credential write is recoverable, or that an actor/reducer has passed all interleavings. The fake operation is private; both the demo and replay now use the session executor. Evidence remains synthetic and bounded.
 
+## Production Effect direction
+
+The user intends the eventual production integration to use idiomatic Effect throughout orchestration. Keep the reducer pure; execute commands, terminal interaction, owner operations and cleanup through typed Effects. Assemble dependencies explicitly, using Effect services and Layers where they clarify ownership, scope and production/test wiring. An explicit ports interface such as production `PilotPorts` is compatible with this direction; it is a project interface, not an Effect-native type. Plain side-effecting callbacks such as output and exit-code updates should execute within Effect rather than escape the orchestration boundary.
+
+This is an implementation direction for adoption after prototype review, not a claim that the throwaway prototype or existing production code already completes that migration. Preserve the tested installation-preview, confirmation and proposal-digest behavior when changing orchestration; the user confirms having manually tested the existing approval flow. Keep secrets outside reducer state and retain owner-controlled mutation, correlation and scoped cleanup. Select the concrete services/Layer boundary during integration rather than migrating interfaces for naming alone.
+
 ## Boundaries and unresolved work
 
 - The two controllers implement transitions independently. Shared domain helpers describe safe data, digests, context updates and view-derived commands; the machine does not call the reducer. No inspector, persistence or cluster features are enabled.
