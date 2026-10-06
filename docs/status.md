@@ -95,6 +95,16 @@ prints its launch URL. It does not enable recording or start a resident. Enable
 recording continues independently of the dashboard process. Source-bearing
 inspection history is separate from the source-free status and analytics below.
 
+From a checkout, `npm run dev:inspection` runs the same private, read-only
+inspector directly from source and prints its URL. Edits to
+[`src/inspection/page.ts`](../src/inspection/page.ts) automatically reload the
+visible browser page while keeping the server and capability URL alive. A page
+syntax error returns HTTP 503 until the source is fixed; the browser then reloads
+the repaired page. Server-side changes require restarting the command. Use
+`npm run dev:inspection -- --port=4318` to choose a port. This workflow uses the
+existing local journal and does not rebuild a package, invoke Tree-sitter,
+update installed hooks, or start a resident.
+
 The **To agent** view renders the general Hapsland message saved by the resident
 before the final socket handoff, with its intended recipient and original
 finding/evaluation membership. Hooks and native extensions do not serialize

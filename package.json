@@ -58,6 +58,7 @@
     "audit:release": "node scripts/audit-release-tarball.mjs",
     "local-release": "node scripts/local-release.mjs",
     "dev-install": "node --experimental-strip-types scripts/dev-install.mjs",
+    "dev:inspection": "node --experimental-strip-types scripts/dev-inspection.mjs",
     "test": "node scripts/test-harness/run-checks.mjs test",
     "test:native:preflight": "node scripts/run-native-preflight-tests.mjs",
     "test:live": "RUN_LIVE_JEV=1 vitest run src/jev-live.test.ts",

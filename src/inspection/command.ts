@@ -4,9 +4,9 @@ import { join } from "node:path"
 import { HAPSLAND_STATE_DIRECTORY } from "../runtime/user-paths.ts"
 import { readInspectionUserLimits } from "./settings.ts"
 import { makeInspectionStorage } from "./storage.ts"
-import { makeInspectionHttpServer } from "./http.ts"
+import { makeInspectionHttpServer, type InspectionHttpServerOptions } from "./http.ts"
 
-export const runInspectionDashboard = (options: { readonly host: string; readonly port: number }): void => {
+export const runInspectionDashboard = (options: InspectionHttpServerOptions): void => {
   NodeRuntime.runMain(
     Effect.scoped(
       Effect.gen(function* () {

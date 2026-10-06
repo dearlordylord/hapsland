@@ -21,10 +21,16 @@ export interface InspectionHistoryReader {
   readonly snapshot: () => Effect.Effect<InspectionJournalSnapshot, unknown>
 }
 
+export interface InspectionHttpServerOptions {
+  readonly host?: string
+  readonly port?: number
+  readonly page?: Effect.Effect<{ readonly html: string; readonly policy: string }, unknown>
+}
+
 /** Foreground, scoped HTTP access. A random per-launch capability keeps local TCP access private. */
 export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(function* (
   history: InspectionHistoryReader,
-  options: { readonly host?: string; readonly port?: number } = {}
+  options: InspectionHttpServerOptions = {}
 ) {
   const host = options.host ?? "127.0.0.1"
   const port = options.port ?? 0
@@ -116,10 +122,17 @@ export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(f
       )
         return Response.empty({ status: 403, headers })
       if (request.url === base)
-        return Response.text(inspectionPage, {
-          contentType: "text/html",
-          headers: { ...headers, "content-security-policy": inspectionPagePolicy }
-        })
+        return yield* (options.page ?? Effect.succeed({ html: inspectionPage, policy: inspectionPagePolicy })).pipe(
+          Effect.map((page) =>
+            Response.text(page.html, {
+              contentType: "text/html",
+              headers: { ...headers, "content-security-policy": page.policy }
+            })
+          ),
+          Effect.catchCause(() =>
+            Effect.succeed(Response.text("Inspection page unavailable", { status: 503, headers }))
+          )
+        )
       const route = new URL(request.url, origin)
       const replayRoute = route.pathname === `${base}snapshot` || route.pathname === `${base}events`
       if (replayRoute && [...route.searchParams.keys()].some((key) => key !== "cursor"))
