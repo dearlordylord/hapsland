@@ -1,12 +1,12 @@
 import * as NodeServices from "@effect/platform-node/NodeServices"
-import { Effect, Fiber, Terminal } from "effect"
+import { Deferred, Effect, Fiber, Terminal } from "effect"
 import * as Prompt from "effect/cli/Prompt"
 import { activeHost, command, initial, readiness, type Action, type Model } from "./domain.ts"
 import { createFakeExecutor } from "./fake.ts"
 import { withMachine } from "./machine.ts"
 import { reduce } from "./reducer.ts"
 import { selectionPrompt } from "./selection.ts"
-import { terminal } from "./terminal.ts"
+import { makeTerminal, terminal } from "./terminal.ts"
 // Signal cancellation is session-wide; repeated/group signals must not bypass cleanup.
 const signals = ["SIGINT", "SIGTERM", "SIGHUP"] as const
 let signalCancelled = false
@@ -23,6 +23,21 @@ const runPrompt = <A>(prompt: Prompt.Prompt<A>) =>
   Effect.scoped(
     Prompt.run(prompt).pipe(Effect.provideService(Terminal.Terminal, terminal), Effect.provide(NodeServices.layer))
   )
+// Escape navigation races the menu through public Effect APIs; the prompt scope cleans up the losing input reader.
+const runMenu = (prompt: Prompt.Prompt<Action>) =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const back = yield* Deferred.make<Action>()
+      const menuTerminal = makeTerminal(() => Deferred.doneUnsafe(back, Effect.succeed({ kind: "back" })))
+      return yield* Effect.raceFirst(
+        Prompt.run(prompt).pipe(
+          Effect.provideService(Terminal.Terminal, menuTerminal),
+          Effect.provide(NodeServices.layer)
+        ),
+        Deferred.await(back)
+      )
+    })
+  )
 function action(m: Model): Effect.Effect<Action, unknown> {
   if (m.phase === "Select") return runPrompt(selectionPrompt(m.hosts))
   if (m.phase === "Credential") {
@@ -37,7 +52,8 @@ function action(m: Model): Effect.Effect<Action, unknown> {
     if (m.source !== "none") options.unshift(choice(`Keep existing: ${m.source}`, { kind: "keep" }))
     process.stderr.write(`Credential result: ${m.credentialOutcome}. Last saved destination: ${m.savedDestination}.\n`)
     process.stderr.write(`Effective source: ${m.source}. Environment overrides saved files.\n`)
-    return runPrompt(Prompt.Select({ message: "Where should the credential be available?", choices: options, theme }))
+    process.stderr.write("Esc: Back to agents\n")
+    return runMenu(Prompt.Select({ message: "Where should the credential be available?", choices: options, theme }))
   }
   const message =
     m.phase === "Hooks"
@@ -45,7 +61,8 @@ function action(m: Model): Effect.Effect<Action, unknown> {
       : m.phase === "SaveApproval"
         ? `Save fake key in ${m.destination}; approval ${m.digest}. Preserve unrelated entries; no actual write.`
         : "Run one separately consented key check? (simulated; zero paid requests)"
-  return runPrompt(
+  process.stderr.write("Esc: Back\n")
+  return runMenu(
     Prompt.Select({
       message,
       choices: [

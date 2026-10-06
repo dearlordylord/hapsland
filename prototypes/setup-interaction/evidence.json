@@ -1,6 +1,6 @@
 {
-  "observedAt": "2026-10-06T18:31:23.701Z",
-  "sourceDigest": "20d5c456a62c5c977a9dc1b9201e82217532199d072f2b4a3ab742e011186435",
+  "observedAt": "2026-10-06T18:42:37.964Z",
+  "sourceDigest": "b477b6ec97037fc651fe15ab59e45122c62196d564b9d7b38a2ff8db894c0d70",
   "host": "darwin-arm64",
   "bun": "1.3.14",
   "effect": "4.0.0",
@@ -221,9 +221,31 @@
   },
   "swarmTerminal": {
     "runner": "node run.mjs cli.ts",
-    "seconds": 16.098,
+    "seconds": 20.298,
     "budgetSeconds": 55,
     "results": [
+      {
+        "name": "reducer-escape-navigation",
+        "ok": true,
+        "phase": "Cancelled",
+        "escapeBackMenus": [
+          "Hooks",
+          "Credential",
+          "SaveApproval",
+          "CheckApproval"
+        ]
+      },
+      {
+        "name": "machine-escape-navigation",
+        "ok": true,
+        "phase": "Cancelled",
+        "escapeBackMenus": [
+          "Hooks",
+          "Credential",
+          "SaveApproval",
+          "CheckApproval"
+        ]
+      },
       {
         "name": "reducer-selection-exit-False-False",
         "ok": true,
@@ -373,7 +395,7 @@
         "name": "escape-and-back",
         "ok": true,
         "phase": "Cancelled",
-        "escapeExits": true
+        "escapeBack": true
       },
       {
         "name": "back-from-save-approval",

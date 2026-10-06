@@ -316,10 +316,14 @@ def escape_and_back():
         initial(c)
         assert c.until(b"Preview Claude hooks"), c.diag("hook prompt")
         assert c.raw(), c.diag("hook prompt enters raw mode")
+        start = len(c.terminal_data)
         c.send(b"\x1b")
+        assert c.until(b"Select agents", start=start), c.diag("Escape returns to agent selection")
+        assert c.raw(), c.diag("returned selection active")
+        c.send(b"\x04")
         result, transcript = c.finish("Cancelled")
         assert result.get("results", {}).get("Claude") != "complete", c.diag("Escape must not approve")
-        return {"phase": result["phase"], "escapeExits": True}
+        return {"phase": result["phase"], "escapeBack": True}
     finally:
         c.cleanup()
 
@@ -371,7 +375,7 @@ def selection_bindings(engine="reducer", empty=False):
             c.send(b"\r")
             assert c.until(b"Preview Claude hooks"), c.diag("Enter continues selection")
             assert c.raw(), c.diag("hook prompt active")
-            c.send(b"\x1b")
+            c.send(b"\x04")
             result, transcript = c.finish("Cancelled")
             assert result["hosts"] == ["Claude", "Codex", "Pi"], c.diag("Enter retains selection")
         return {"phase": result["phase"], "emptyEnterGuarded": True, "spaceSelects": True, "escapeExits": True}
@@ -544,7 +548,40 @@ def selection_exit(engine, selected, explicit):
         c.cleanup()
 
 
+def escape_navigation(engine):
+    c = make(f"{engine}-escape-navigation", engine=engine)
+    def go(keys, marker):
+        assert c.raw(), c.diag("current menu active")
+        start = len(c.terminal_data)
+        c.send(keys)
+        assert c.until(marker, start=start), c.diag("navigation destination")
+    try:
+        initial(c)
+        assert c.until(b"Preview Claude hooks"), c.diag("hook preview")
+        go(b"\x1b", b"Select agents")
+        go(b"\r", b"Preview Claude hooks")
+        go(b"\r", b"Where should the credential")
+        go(b"\x1b", b"Select agents")
+        go(b"\r", b"Preview Claude hooks")
+        go(b"\r", b"Where should the credential")
+        go(b"\r", b"Save fake key")
+        go(b"\x1b", b"Where should the credential")
+        go(b"\r", b"Save fake key")
+        go(b"\x1b[B\r", b"Enter a FAKE key")
+        go(b"SYNTHETIC_ESCAPE_TEST\r", b"Run one separately")
+        go(b"\x1b", b"Where should the credential")
+        assert c.raw(), c.diag("returned credential menu active")
+        c.send(b"\x04")
+        result, transcript = c.finish("Cancelled")
+        assert result["credentialOutcome"] == "saved", c.diag("Back preserves saved outcome")
+        return {"phase": result["phase"], "escapeBackMenus": ["Hooks", "Credential", "SaveApproval", "CheckApproval"]}
+    finally:
+        c.cleanup()
+
+
 def run_all():
+    for engine in ("reducer", "machine"):
+        record(f"{engine}-escape-navigation", lambda engine=engine: escape_navigation(engine))
     for engine in ("reducer", "machine"):
         for selected in (False, True):
             for explicit in (False, True):
