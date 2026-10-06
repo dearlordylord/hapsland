@@ -1,7 +1,7 @@
 import { execFileSync } from "../../scripts/test-harness/process.mjs"
 import { reviewCodexDirectEvent } from "../direct-event/pipeline.ts"
 import { addEvent, advicee } from "../direct-event/test-fixtures.ts"
-import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts"
+import { controlledDecisionModelLayer } from "../review-execution/controlled-decision-model.ts"
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"

@@ -12,7 +12,7 @@ import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.t
 import {
   controlledDecisionModelLayer,
   type ControlledDecisionModelOptions
-} from "../test-support/controlled-decision-model.ts"
+} from "../review-execution/controlled-decision-model.ts"
 import {
   DIRECT_EVENT_DEADLINE_MS,
   encodedPreparedProviderInputBytes,

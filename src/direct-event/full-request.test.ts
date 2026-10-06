@@ -3,7 +3,7 @@ import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import { Decision } from "effect/ai"
 import { configuredRules } from "../test-support/default-rules.ts"
-import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts"
+import { controlledDecisionModelLayer } from "../review-execution/controlled-decision-model.ts"
 import {
   encodedPreparedProviderInputBytes,
   encodedPreparedProviderHttpBodyBytes,

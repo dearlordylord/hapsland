@@ -68,7 +68,7 @@ import { makeReviewSettings, settingsSource, type ReviewSettingsSnapshot } from 
 import {
   controlledDecisionModelLayer,
   type ControlledDecisionModelOptions
-} from "../test-support/controlled-decision-model.ts"
+} from "../review-execution/controlled-decision-model.ts"
 import { prepareResidentDirectory, resolveResidentPaths, verifyRemovableSocket, type ResidentPaths } from "./paths.ts"
 import {
   DELIVERY_LEASE_MS,

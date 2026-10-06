@@ -536,7 +536,7 @@ effectIt.effect("serializes only portable controlled dispatch options and keeps 
     const provider = ConfigProvider.layer(
       ConfigProvider.fromUnknown({ REVIEW_CREDENTIAL_STATE_PATH: join(root, "credential-state.json") })
     )
-    const options: import("../test-support/controlled-decision-model.ts").ControlledDecisionModelOptions = {
+    const options: import("../review-execution/controlled-decision-model.ts").ControlledDecisionModelOptions = {
       answers: { fixture: { _tag: "Probability", probability: 0.5 } },
       delayMs: 0,
       failure: "fixture-failure",

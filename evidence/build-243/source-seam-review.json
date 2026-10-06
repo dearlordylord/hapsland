@@ -139,6 +139,16 @@
           "limitation": "Existing optional simulator type failures remain; focused changed consumer test passed"
         }
       }
+    },
+    {
+      "date": "2026-10-06",
+      "scope": "Production controlled reviewer belongs to review execution",
+      "review": "architecture_inventory: implementation/test exact moves; all production imports migrated; artifact-store synthetic test-support path intentionally retained as generic fixture",
+      "validation": {
+        "fast": "npm run check:fast passed",
+        "boundary": "20261006212251542-1242802-ba1220: 185 tests across 7 files passed",
+        "scope": "Focused owners/consumers; no full-project or installed-release claim"
+      }
     }
   ]
 }

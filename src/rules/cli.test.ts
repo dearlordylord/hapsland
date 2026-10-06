@@ -3,7 +3,7 @@ import { Effect } from "effect"
 import { loadReviewSettings } from "../runtime/review-config.ts"
 import { reviewCodexDirectEvent } from "../direct-event/pipeline.ts"
 import { addEvent, advicee } from "../direct-event/test-fixtures.ts"
-import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts"
+import { controlledDecisionModelLayer } from "../review-execution/controlled-decision-model.ts"
 import {
   mkdirSync,
   writeFileSync,

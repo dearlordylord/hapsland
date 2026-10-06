@@ -12,7 +12,7 @@ import { SHIPPED_DEFAULT_RULES } from "../rules/shipped.ts"
 import {
   controlledDecisionModelLayer,
   type ControlledDecisionModelOptions
-} from "../test-support/controlled-decision-model.ts"
+} from "../review-execution/controlled-decision-model.ts"
 import {
   makeBackendIdentity,
   makeEvaluationRun,

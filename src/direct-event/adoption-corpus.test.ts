@@ -7,7 +7,7 @@ import { addEvent, makeGitFixture, put } from "./test-fixtures.ts"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
 import { compileRule } from "../rules/compiler.ts"
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
-import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts"
+import { controlledDecisionModelLayer } from "../review-execution/controlled-decision-model.ts"
 
 type Case = {
   id: string
