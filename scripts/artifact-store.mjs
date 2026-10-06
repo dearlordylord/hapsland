@@ -65,7 +65,7 @@ export async function treeInventory(root, { deadline = Date.now() + 30000 } = {}
 }
 export async function artifactStoreDirectory(root) {
   const result = await execute("git", ["-C", root, "rev-parse", "--git-common-dir"], { timeout: 5000 })
-  return join(resolve(root, result.stdout.trim()), "hapsland-artifacts")
+  return join(await realpath(resolve(root, result.stdout.trim())), "hapsland-artifacts")
 }
 export async function buildToolchain(environment = process.env) {
   const version = async (command, args) => {

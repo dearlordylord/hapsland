@@ -262,7 +262,7 @@ test("package preparation records verified cache reuse as successful harness evi
   const f = await fixture(t)
   await ensurePackageArtifact(f)
   const { preparePackage } = await import("./prepare-package.mjs")
-  const reused = await preparePackage({ root: f.root, toolchain: f.toolchain })
+  const reused = await preparePackage({ root: f.root, toolchain: f.toolchain, inherited: null })
   assert.equal(reused.buildReused, true)
   assert.equal(reused.packageReused, true)
   assert.deepEqual(f.calls, ["package-build", "package-pack"])
