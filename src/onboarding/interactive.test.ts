@@ -1,3 +1,5 @@
+import { SHIPPED_DEFAULT_RULES } from "../rules/shipped.ts"
+import { terminalAvailable, terminalArguments, terminalCommand } from "../../scripts/test-harness/terminal.mjs"
 import { bunExecutable } from "../runtime/bun-runtime.ts"
 import { connectDefaultRuleFixture } from "../test-support/default-rules.ts"
 import { ConfigProvider, Effect } from "effect"
@@ -34,7 +36,7 @@ const fixture = () => {
 const terminal = async (test: ReturnType<typeof fixture>, args: string[], answer: "y" | "n", selection?: string) => {
   const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
   const command = [bunExecutable(), join(process.cwd(), "src/cli.ts"), ...args].map(quote).join(" ")
-  const child = spawn("script", ["-qfec", command, "/dev/null"], {
+  const child = spawn(terminalCommand, terminalArguments(command), {
     cwd: test.repository,
     env: test.environment,
     stdio: ["pipe", "pipe", "pipe"]
@@ -81,13 +83,13 @@ const terminal = async (test: ReturnType<typeof fixture>, args: string[], answer
   expect(output).not.toContain("interactive-test-key")
   return { code, output, answered }
 }
-it.skipIf(process.platform !== "linux")("declining guided setup leaves Claude settings absent", async () => {
+it.skipIf(!terminalAvailable)("declining guided setup leaves Claude settings absent", async () => {
   const test = fixture()
   const home = join(test.root, "claude-home")
   const host = join(test.root, "claude")
   writeFileSync(host, "#!/bin/sh\nprintf '2.1.218\\n'\n", { mode: 0o700 })
   const result = await terminal(test, ["setup", "claude", `--claude-home=${home}`, `--claude-executable=${host}`], "n")
-  expect(result.code).toBe(0)
+  expect(result.code, result.output).toBe(0)
   expect(existsSync(join(home, "settings.json"))).toBe(false)
 })
 const updaterFixture = (
@@ -117,14 +119,14 @@ else console.log(JSON.stringify({status:'complete'}));
   return { target, requests }
 }
 
-it.skipIf(process.platform !== "linux")(
+it.skipIf(!terminalAvailable)(
   "interactive update carries the exact preview digest and selected home to the target",
   async () => {
     const test = fixture()
     const target = updaterFixture(test)
     const home = join(test.root, "claude-home")
     const result = await terminal(test, ["update", "claude", `--target=${target.target}`, `--claude-home=${home}`], "y")
-    expect(result.code).toBe(0)
+    expect(result.code, result.output).toBe(0)
     const requests = readFileSync(target.requests, "utf8")
       .trim()
       .split("\n")
@@ -136,14 +138,14 @@ it.skipIf(process.platform !== "linux")(
     expect(result.output).toContain("restart claude")
   }
 )
-it.skipIf(process.platform !== "linux")("declining update performs only a read-only preview", async () => {
+it.skipIf(!terminalAvailable)("declining update performs only a read-only preview", async () => {
   const test = fixture()
   const target = updaterFixture(test)
   const result = await terminal(test, ["update", "codex", `--target=${target.target}`], "n")
-  expect(result.code).toBe(0)
+  expect(result.code, result.output).toBe(0)
   expect(readFileSync(target.requests, "utf8").trim().split("\n")).toHaveLength(1)
 })
-it.skipIf(process.platform !== "linux")("guided Codex setup installs through the named client command", async () => {
+it.skipIf(!terminalAvailable)("guided Codex setup installs through the named client command", async () => {
   const test = fixture()
   const home = join(test.root, "codex-home")
   const host = join(test.root, "codex")
@@ -153,7 +155,7 @@ it.skipIf(process.platform !== "linux")("guided Codex setup installs through the
     { mode: 0o700 }
   )
   const result = await terminal(test, ["setup", "codex", `--codex-home=${home}`, `--codex-executable=${host}`], "y")
-  expect(result.code).toBe(0)
+  expect(result.code, result.output).toBe(0)
   expect(result.answered).toBe(true)
   expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain("--composed-host=codex-cli")
   expect(result.output).toContain("restart Codex")
@@ -186,23 +188,23 @@ const bothClients = (test: ReturnType<typeof fixture>) => {
     ]
   }
 }
-it.skipIf(process.platform !== "linux")(
+it.skipIf(!terminalAvailable)(
   "bare setup selects and installs both clients with independent confirmation",
   async () => {
     const test = fixture()
     const clients = bothClients(test)
     const result = await terminal(test, ["setup", ...clients.flags], "y", " \x1b[B \r")
-    expect(result.code).toBe(0)
+    expect(result.code, result.output).toBe(0)
     expect(result.output).toContain("[ ] Claude Code — not installed")
     expect(result.output).toContain("[ ] Codex CLI — not installed")
     expect(result.output.match(/Apply these setup changes/g)).toHaveLength(2)
     expect(result.output.match(/Rules for /g)).toHaveLength(1)
-    expect(result.output).toContain("9 enabled of 9")
+    expect(result.output).toContain(`${SHIPPED_DEFAULT_RULES.length} enabled of ${SHIPPED_DEFAULT_RULES.length}`)
     expect(readFileSync(join(clients.claudeHome, "settings.json"), "utf8")).toContain("--composed-host=claude-code")
     expect(readFileSync(join(clients.codexHome, "hooks.json"), "utf8")).toContain("--composed-host=codex-cli")
   }
 )
-it.skipIf(process.platform !== "linux")(
+it.skipIf(!terminalAvailable)(
   "existing clients are checked and deselecting them preserves their registrations",
   async () => {
     const test = fixture()
@@ -221,7 +223,7 @@ it.skipIf(process.platform !== "linux")(
     expect(readFileSync(join(clients.claudeHome, "settings.json"), "utf8")).toBe(claude)
     expect(readFileSync(join(clients.codexHome, "hooks.json"), "utf8")).toBe(codex)
     const result = await terminal(test, ["setup", ...clients.flags], "y", " \x1b[B \r")
-    expect(result.code).toBe(0)
+    expect(result.code, result.output).toBe(0)
     expect(result.output).toContain("[x] Claude Code — installed")
     expect(result.output).toContain("[x] Codex CLI — installed")
     expect(result.output).toContain("No clients selected. No changes made.")
@@ -230,11 +232,11 @@ it.skipIf(process.platform !== "linux")(
     expect(readFileSync(join(clients.codexHome, "hooks.json"), "utf8")).toBe(codex)
   }
 )
-it.skipIf(process.platform !== "linux")("cancelling client selection writes no registrations", async () => {
+it.skipIf(!terminalAvailable)("cancelling client selection writes no registrations", async () => {
   const test = fixture()
   const clients = bothClients(test)
   const result = await terminal(test, ["setup", ...clients.flags], "y", "\x1b")
-  expect(result.code).toBe(0)
+  expect(result.code, result.output).toBe(0)
   expect(existsSync(join(clients.claudeHome, "settings.json"))).toBe(false)
   expect(existsSync(join(clients.codexHome, "hooks.json"))).toBe(false)
 })
@@ -268,7 +270,7 @@ const recordedRequests = (path: string) =>
     .trim()
     .split("\n")
     .map((line) => JSON.parse(line))
-it.skipIf(process.platform !== "linux")(
+it.skipIf(!terminalAvailable)(
   "bare update previews both installed clients, then applies both exact digests after one confirmation",
   async () => {
     const test = fixture()
@@ -276,7 +278,7 @@ it.skipIf(process.platform !== "linux")(
     await installBothClients(test, clients)
     const target = updaterFixture(test)
     const result = await terminal(test, ["update", ...clients.flags, `--target=${target.target}`], "y")
-    expect(result.code).toBe(0)
+    expect(result.code, result.output).toBe(0)
     const requests = recordedRequests(target.requests)
     expect(requests.map((r) => `${r.host}:${r.operation}`)).toEqual([
       "claude:update-preview",
@@ -293,7 +295,7 @@ it.skipIf(process.platform !== "linux")(
     expect(result.output).toContain("[OK] codex update: updated.")
   }
 )
-it.skipIf(process.platform !== "linux")(
+it.skipIf(!terminalAvailable)(
   "a failed client update reports failure and still updates the other installed client",
   async () => {
     const test = fixture()
@@ -301,7 +303,7 @@ it.skipIf(process.platform !== "linux")(
     await installBothClients(test, clients)
     const target = updaterFixture(test, { failHost: "claude", failOperation: "update" })
     const result = await terminal(test, ["update", ...clients.flags, `--target=${target.target}`], "y")
-    expect(result.code).toBe(6)
+    expect(result.code, result.output).toBe(6)
     expect(recordedRequests(target.requests).map((r) => `${r.host}:${r.operation}`)).toEqual([
       "claude:update-preview",
       "codex:update-preview",
@@ -312,7 +314,7 @@ it.skipIf(process.platform !== "linux")(
     expect(result.output).toContain("[OK] codex update: updated.")
   }
 )
-it.skipIf(process.platform !== "linux")("bare update acquires one target for both installed clients", async () => {
+it.skipIf(!terminalAvailable)("bare update acquires one target for both installed clients", async () => {
   const test = fixture()
   const clients = bothClients(test)
   await installBothClients(test, clients)
@@ -335,7 +337,7 @@ else if(args[0]==='install'){
   )
   const stagedTest = { ...test, environment: { ...test.environment, PATH: `${test.root}:${process.env.PATH ?? ""}` } }
   const result = await terminal(stagedTest, ["update", ...clients.flags], "y")
-  expect(result.code).toBe(0)
+  expect(result.code, result.output).toBe(0)
   expect(recordedRequests(npmCalls).map((args) => args[0])).toEqual(["view", "install"])
   expect(result.output.match(/\[y\/N\]/g)).toHaveLength(1)
   expect(recordedRequests(target.requests).map((r) => `${r.host}:${r.operation}`)).toEqual([
@@ -346,7 +348,7 @@ else if(args[0]==='install'){
   ])
 })
 
-it.skipIf(process.platform !== "linux")(
+it.skipIf(!terminalAvailable)(
   "public setup uses the active package and cannot silently revert to the command in PATH",
   async () => {
     const test = fixture()
@@ -364,7 +366,7 @@ it.skipIf(process.platform !== "linux")(
       JSON.stringify({ version: 1, executable: process.execPath, args: [entrypoint] })
     )
     const result = await terminal(test, ["setup", "claude", ...clients.flags], "y")
-    expect(result.code).toBe(0)
+    expect(result.code, result.output).toBe(0)
     expect(result.answered).toBe(false)
     expect(JSON.parse(readFileSync(capture, "utf8"))[0]).toBe("setup")
     expect(existsSync(join(clients.claudeHome, "settings.json"))).toBe(false)

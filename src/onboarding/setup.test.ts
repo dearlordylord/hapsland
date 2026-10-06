@@ -1,3 +1,4 @@
+import { terminalAvailable, terminalArguments, terminalCommand } from "../../scripts/test-harness/terminal.mjs"
 import { bunExecutable } from "../runtime/bun-runtime.ts"
 import { SHIPPED_DEFAULT_RULES } from "../rules/shipped.ts"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
@@ -166,7 +167,7 @@ const invokeMaskedSetup = async (
   )
   const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
   const command = `${quote(bunExecutable())} ${quote(setupEntrypoint())} --setup < ${quote(requestPath)}`
-  const child = spawn("script", ["-qfec", command, "/dev/null"], {
+  const child = spawn(terminalCommand, terminalArguments(command), {
     cwd: test.repository,
     env: environment,
     stdio: ["pipe", "pipe", "pipe"]
@@ -194,7 +195,7 @@ const invokeMaskedSetup = async (
     })
     child.once("error", rejectExit)
   })
-  expect(exit).toBe(6)
+  expect(exit, output).toBe(6)
   expect(supplied).toBe(true)
   if (credential.length > 0) expect(output).not.toContain(credential)
   const encoded = output.split(/\r?\n/).find((line) => line.startsWith('{"version":1,"operation":"setup"'))
@@ -440,7 +441,7 @@ describe("public resumable setup operation", () => {
     expect(result.providerCalls).toBe(0)
   })
 
-  it.skipIf(process.platform !== "linux").each([
+  it.skipIf(!terminalAvailable).each([
     { newKey: false, fileOverride: false },
     { newKey: true, fileOverride: false },
     { newKey: true, fileOverride: true }
@@ -493,7 +494,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
       delete environment.TYPESAFE_API_KEY
       const keyFile = join(test.repository, ".env.local")
       if (fileOverride) writeFileSync(keyFile, "TYPESAFE_API_KEY=project-override-key\n")
-      const child = spawn("script", ["-qfec", command, "/dev/null"], {
+      const child = spawn(terminalCommand, terminalArguments(command), {
         cwd: test.repository,
         env: environment,
         stdio: ["pipe", "pipe", "pipe"]
@@ -522,7 +523,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
         })
         child.once("error", rejectExit)
       })
-      expect(exit).toBe(6)
+      expect(exit, output).toBe(6)
       expect(supplied).toBe(true)
       expect(output).not.toContain(marker)
       expect(readFileSync(vault, "utf8")).toBe(marker)
@@ -603,7 +604,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
         resolve(code)
       })
     })
-    expect(exit).toBe(6)
+    expect(exit, output).toBe(6)
     expect(errors).toBe("")
     const result = JSON.parse(output) as SetupOutput
     expect(result.stages).toEqual(
@@ -625,7 +626,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
     )
   })
 
-  it.skipIf(process.platform !== "linux")(
+  it.skipIf(!terminalAvailable)(
     "reports invalid, unavailable, and indeterminate interactive storage outcomes",
     async () => {
       const cases = [

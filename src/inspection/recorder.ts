@@ -40,14 +40,7 @@ type Pending = {
   readonly sourceBearing: boolean
 }
 
-/** Independent scoped worker. Producers never run, await or retry persistence. */
-export const makeInspectionRecorder = Effect.fn("InspectionRecorder.make")(function* (
-  source: { readonly endpoint: string; readonly lifetime: string },
-  persistence: InspectionPersistence,
-  limits: { readonly items?: number; readonly bytes?: number; readonly now?: () => number } = {}
-) {
-  const maxItems = limits.items ?? MAX_INSPECTION_QUEUE_ITEMS
-  const maxBytes = limits.bytes ?? MAX_INSPECTION_QUEUE_BYTES
+const validateQueueBounds = (maxItems: number, maxBytes: number): void => {
   if (
     !Number.isSafeInteger(maxItems) ||
     maxItems < 1 ||
@@ -57,6 +50,19 @@ export const makeInspectionRecorder = Effect.fn("InspectionRecorder.make")(funct
     maxBytes > MAX_INSPECTION_QUEUE_BYTES
   )
     throw new Error("invalid inspection queue bounds")
+}
+const recordingState = (enabled: boolean | undefined): Recording["state"] =>
+  enabled === undefined ? "unavailable" : enabled ? "enabled" : "disabled"
+
+/** Independent scoped worker. Producers never run, await or retry persistence. */
+export const makeInspectionRecorder = Effect.fn("InspectionRecorder.make")(function* (
+  source: { readonly endpoint: string; readonly lifetime: string },
+  persistence: InspectionPersistence,
+  limits: { readonly items?: number; readonly bytes?: number; readonly now?: () => number } = {}
+) {
+  const maxItems = limits.items ?? MAX_INSPECTION_QUEUE_ITEMS
+  const maxBytes = limits.bytes ?? MAX_INSPECTION_QUEUE_BYTES
+  validateQueueBounds(maxItems, maxBytes)
   const clock = limits.now ?? Date.now
   const identity = { ...source, id: inspectionSourceId(source.endpoint, source.lifetime) }
   const queue = yield* Queue.dropping<number>(maxItems)
@@ -71,14 +77,36 @@ export const makeInspectionRecorder = Effect.fn("InspectionRecorder.make")(funct
     allocatedBytes -= entry.bytes
     allocatedItems -= 1
   }
+  const recordingForObservation = (root: string, sourceBearing: boolean): Recording | undefined => {
+    const recording = roots.get(root)
+    if (closed || recording === undefined || (sourceBearing && recording.state !== "enabled")) return undefined
+    return recording
+  }
+  const ensureRecording = (root: string, state: Recording["state"]): Recording | undefined => {
+    let recording = roots.get(root)
+    if (closed || (state !== "enabled" && recording === undefined)) return undefined
+    if (recording === undefined) {
+      if (roots.size >= MAX_INSPECTION_ROOTS) return undefined
+      recording = { state: "disabled", epoch: 0 }
+      roots.set(root, recording)
+    }
+    return recording
+  }
+  const revokePending = (root: string): void => {
+    for (const [key, entry] of pending) {
+      if (entry.root !== root || !entry.sourceBearing) continue
+      pending.delete(key)
+      free(entry)
+    }
+  }
   const enqueue = (
     scope: InspectionScope,
     correlation: InspectionCorrelation,
     fact: InspectionFact
   ): InspectionOffer => {
-    const recording = roots.get(scope.root)
     const sourceBearing = fact.kind !== "recording-state"
-    if (closed || recording === undefined || (sourceBearing && recording.state !== "enabled")) return "disabled"
+    const recording = recordingForObservation(scope.root, sourceBearing)
+    if (recording === undefined) return "disabled"
     // Consume identity on a lost observation as well; later retained increments may expose the gap.
     sequence += 1
     let encoded: string
@@ -113,24 +141,13 @@ export const makeInspectionRecorder = Effect.fn("InspectionRecorder.make")(funct
     return "queued"
   }
   const observeRecording = (root: string, enabled: boolean | undefined): void => {
-    const state = enabled === undefined ? "unavailable" : enabled ? "enabled" : "disabled"
-    let recording = roots.get(root)
-    if (closed || (state !== "enabled" && recording === undefined)) return
-    if (recording === undefined) {
-      if (roots.size >= MAX_INSPECTION_ROOTS) return
-      recording = { state: "disabled", epoch: 0 }
-      roots.set(root, recording)
-    }
+    const state = recordingState(enabled)
+    const recording = ensureRecording(root, state)
+    if (recording === undefined) return
     if (closed || recording.state === state) return
     recording.state = state
     if (enabled) recording.epoch += 1
-    else {
-      for (const [key, entry] of pending) {
-        if (entry.root !== root || !entry.sourceBearing) continue
-        pending.delete(key)
-        free(entry)
-      }
-    }
+    else revokePending(root)
     enqueue(
       { root, runtime: null, runtimeVersion: null, sessionId: null, subagentId: null },
       {},

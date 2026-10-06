@@ -418,6 +418,12 @@ export const cliCommandReference = () => {
   }
 }
 
+const cliFailureMessage = (failure: CliError.CliError): string => {
+  if (failure._tag === "ShowHelp") return CliOutput.defaultFormatter({ colors: false }).formatErrors(failure.errors)
+  if (failure._tag === "UserError") return failure.userMessage ?? "Invalid CLI arguments"
+  return String(failure)
+}
+
 /** Parse before any workflow, stdin read, package dispatch or installation mutation. */
 export const parseInvocation = async (args: ReadonlyArray<string>): Promise<Invocation | undefined> => {
   if (args.length === 1 && args[0] === VERSION_FLAG) {
@@ -440,16 +446,7 @@ export const parseInvocation = async (args: ReadonlyArray<string>): Promise<Invo
       Effect.result
     )
   )
-  if (result._tag === "Failure") {
-    const failure = result.failure
-    throw new Error(
-      failure._tag === "ShowHelp"
-        ? CliOutput.defaultFormatter({ colors: false }).formatErrors(failure.errors)
-        : failure._tag === "UserError"
-          ? (failure.userMessage ?? "Invalid CLI arguments")
-          : String(failure)
-    )
-  }
+  if (result._tag === "Failure") throw new Error(cliFailureMessage(result.failure))
   if (invocation === undefined && output.length > 0 && !isHookInvocation(args))
     process.stdout.write(output.join("\n") + "\n")
   return invocation

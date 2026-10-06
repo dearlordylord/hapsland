@@ -13,6 +13,7 @@ import {
   preparedProviderInput,
   candidateReviewInput,
   evaluatePrepared,
+  type PreparedSource,
   type EvaluationEvidence
 } from "../direct-event/pipeline.ts"
 import { findingFromProbability } from "./decision.ts"
@@ -23,14 +24,12 @@ export interface RuleCheckRequest {
   readonly id?: string | undefined
 }
 
-/** Manual review shares capture, graph, evidence admission, credentials and model execution with hooks. */
-export const checkRuleAtLine = Effect.fn("Rules.checkAtLine")(function* (
+const resolveRuleCheckContext = Effect.fn("Rules.resolveCheckContext")(function* (
   request: RuleCheckRequest,
-  options: { readonly cwd?: string; readonly httpClient?: HttpClient.HttpClient } = {}
+  cwd: string
 ) {
   if (!Number.isSafeInteger(request.line) || request.line < 1)
     return yield* Effect.fail(new Error("--line must be a positive one-based integer."))
-  const cwd = options.cwd ?? process.cwd()
   const repository = yield* discoverPhysicalWorkingTreeRoot(cwd)
   const path = rootRelativePath(repository.root, repository.physicalCwd, request.path)
   if (path === undefined) return yield* Effect.fail(new Error("--path must stay inside the current Git working tree."))
@@ -41,6 +40,35 @@ export const checkRuleAtLine = Effect.fn("Rules.checkAtLine")(function* (
     return yield* Effect.fail(
       new Error(`Rule '${request.id}' is not enabled. Run hapsland rules list to inspect rules.`)
     )
+  return { repository, path, settings, rules }
+})
+const noSelectionReason = (
+  ambiguous: boolean,
+  readyCount: number,
+  reasons: ReadonlyArray<string>,
+  ruleCount: number
+): string => {
+  if (ambiguous || readyCount > 1 || reasons.includes("ambiguous-update")) return "ambiguous-line"
+  if (ruleCount === 0) return "no-enabled-rules"
+  return reasons[0] ?? "no-eligible-declaration"
+}
+
+const capturedSelection = (prepared: PreparedSource) => ({
+  declaration: {
+    name: prepared.input.declaration.name,
+    kind: prepared.input.declaration.kind,
+    location: prepared.input.rootLocation
+  },
+  relatedSources: [...new Set(candidateReviewInput(prepared.input)?.nodes.map((node) => node.domain) ?? [])],
+  input: preparedProviderInput(prepared)
+})
+
+/** Manual review shares capture, graph, evidence admission, credentials and model execution with hooks. */
+export const checkRuleAtLine = Effect.fn("Rules.checkAtLine")(function* (
+  request: RuleCheckRequest,
+  options: { readonly cwd?: string; readonly httpClient?: HttpClient.HttpClient } = {}
+) {
+  const { repository, path, settings, rules } = yield* resolveRuleCheckContext(request, options.cwd ?? process.cwd())
   const selection = { root: repository.root, rootIdentity: repository.rootIdentity, path, line: request.line }
   const omissions: Array<{ path: string; declaration: string; reason: string }> = []
   const context = {
@@ -85,12 +113,7 @@ export const checkRuleAtLine = Effect.fn("Rules.checkAtLine")(function* (
     ])
   ]
   if (ready.length !== 1) {
-    const reason =
-      preparation.ambiguousLine || ready.length > 1 || preparationReasons.includes("ambiguous-update")
-        ? "ambiguous-line"
-        : rules.length === 0
-          ? "no-enabled-rules"
-          : (preparationReasons[0] ?? "no-eligible-declaration")
+    const reason = noSelectionReason(preparation.ambiguousLine, ready.length, preparationReasons, rules.length)
     return {
       ...base,
       status: "skipped" as const,
@@ -101,16 +124,7 @@ export const checkRuleAtLine = Effect.fn("Rules.checkAtLine")(function* (
     }
   }
   const prepared = ready[0]!
-  const captured = {
-    ...base,
-    declaration: {
-      name: prepared.input.declaration.name,
-      kind: prepared.input.declaration.kind,
-      location: prepared.input.rootLocation
-    },
-    relatedSources: [...new Set(candidateReviewInput(prepared.input)?.nodes.map((node) => node.domain) ?? [])],
-    input: preparedProviderInput(prepared)
-  }
+  const captured = { ...base, ...capturedSelection(prepared) }
   const credential = yield* resolveCredential({
     root: repository.root,
     envVar: settings.credentialEnvVar,
@@ -176,32 +190,34 @@ export const checkRuleAtLine = Effect.fn("Rules.checkAtLine")(function* (
   }
 })
 
-export const formatRuleCheck = (result: Effect.Success<ReturnType<typeof checkRuleAtLine>>): string => {
-  const header = [
-    `${result.path}:${result.line} — ${result.status}`,
-    `Classifier: ${result.provider.model}; requests: ${result.classifierCalls}`
+type RuleCheckResult = Effect.Success<ReturnType<typeof checkRuleAtLine>>
+const selectionDetails = (result: RuleCheckResult): string[] => {
+  if (!("declaration" in result)) return []
+  return [
+    `Selected ${result.declaration.kind} ${result.declaration.name}; full declaration plus bounded related code.`,
+    `Related source: ${result.relatedSources.join(", ") || "none"}`
   ]
-  if ("declaration" in result) {
-    header.push(
-      `Selected ${result.declaration.kind} ${result.declaration.name}; full declaration plus bounded related code.`
-    )
-    header.push(`Related source: ${result.relatedSources.join(", ") || "none"}`)
-  }
-  if ("reason" in result) header.push(`Reason: ${result.reason}`)
-  for (const rule of result.results)
-    header.push(
-      `${rule.finding ? "FINDING" : "clear"} ${rule.ruleId}: probability ${rule.probability}, threshold > ${rule.threshold}${rule.finding ? ` — ${rule.message}` : ""}`
-    )
-  for (const omission of result.omissions) header.push(`Skipped ${omission.declaration}: ${omission.reason}`)
-  for (const outcome of result.analysis) {
-    if (outcome.status === "incomplete") header.push(`Selection: ${outcome.reason}`)
-    else if (outcome.analysis.status === "incomplete")
-      for (const failure of outcome.analysis.failures)
-        header.push(`Analysis${failure.root === undefined ? "" : ` (${failure.root})`}: ${failure.reason}`)
-  }
-  header.push(
+}
+const ruleResultDetails = (rule: RuleCheckResult["results"][number]): string =>
+  `${rule.finding ? "FINDING" : "clear"} ${rule.ruleId}: probability ${rule.probability}, threshold > ${rule.threshold}${rule.finding ? ` — ${rule.message}` : ""}`
+const analysisDetails = (outcome: RuleCheckResult["analysis"][number]): string[] => {
+  if (outcome.status === "incomplete") return [`Selection: ${outcome.reason}`]
+  if (outcome.analysis.status !== "incomplete") return []
+  return outcome.analysis.failures.map(
+    (failure) => `Analysis${failure.root === undefined ? "" : ` (${failure.root})`}: ${failure.reason}`
+  )
+}
+export const formatRuleCheck = (result: RuleCheckResult): string => {
+  const lines = [
+    `${result.path}:${result.line} — ${result.status}`,
+    `Classifier: ${result.provider.model}; requests: ${result.classifierCalls}`,
+    ...selectionDetails(result),
+    ...("reason" in result ? [`Reason: ${result.reason}`] : []),
+    ...result.results.map(ruleResultDetails),
+    ...result.omissions.map((omission) => `Skipped ${omission.declaration}: ${omission.reason}`),
+    ...result.analysis.flatMap(analysisDetails),
     result.explanation,
     "Use --json to inspect the captured classifier input and results. No resident or agent session was started."
-  )
-  return header.join("\n") + "\n"
+  ]
+  return lines.join("\n") + "\n"
 }

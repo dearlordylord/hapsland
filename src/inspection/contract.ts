@@ -289,10 +289,7 @@ export const inspectionSourceId = (endpoint: string, lifetime: string): string =
     .digest("hex")
 
 const decode = Schema.decodeUnknownSync(InspectionRecord, { onExcessProperty: "error" })
-export const decodeInspectionRecord = (value: unknown): InspectionRecord => {
-  const record = decode(value)
-  if (record.source.id !== inspectionSourceId(record.source.endpoint, record.source.lifetime))
-    throw new Error("inspection source identity mismatch")
+const validateModelInput = (record: InspectionRecord): void => {
   if (record.fact.kind === "model-input" && record.fact.payload.status === "available") {
     const payload = record.fact.payload
     if (
@@ -303,6 +300,8 @@ export const decodeInspectionRecord = (value: unknown): InspectionRecord => {
       throw new Error("inspection payload identity mismatch")
     Schema.decodeUnknownSync(Schema.Json)(JSON.parse(payload.encoded))
   }
+}
+const validateTransportInput = (record: InspectionRecord): void => {
   if (record.fact.kind === "transport-invoked" && record.fact.payload.status === "available") {
     const payload = record.fact.payload
     const bytes = Buffer.from(payload.encoded, "base64")
@@ -314,6 +313,13 @@ export const decodeInspectionRecord = (value: unknown): InspectionRecord => {
     )
       throw new Error("inspection payload identity mismatch")
   }
+}
+export const decodeInspectionRecord = (value: unknown): InspectionRecord => {
+  const record = decode(value)
+  if (record.source.id !== inspectionSourceId(record.source.endpoint, record.source.lifetime))
+    throw new Error("inspection source identity mismatch")
+  validateModelInput(record)
+  validateTransportInput(record)
   return record
 }
 export const decodeInspectionRecordText = (encoded: string): InspectionRecord => {

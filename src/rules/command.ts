@@ -86,16 +86,17 @@ const ruleChangeOutput = (
   const file = "path" in result ? `Rule file: ${result.path}\n` : ""
   return `${change.action} completed in ${change.scope} scope.${activation}\nConfiguration: ${result.configurationPath}\n${file}Local structural validation only; classifier quality was not validated.\n`
 }
+const checkRules = Effect.fn("Rules.checkCommand")(function* (options: RulesOptions) {
+  if (options.path === undefined || options.line === undefined)
+    return yield* Effect.fail(new Error("rules check requires --path and --line."))
+  const { checkRuleAtLine, formatRuleCheck } = yield* Effect.promise(() => import("./check.ts"))
+  const result = yield* checkRuleAtLine({ path: options.path, line: options.line, id: options.id })
+  process.stdout.write(options.json ? JSON.stringify(result) + "\n" : formatRuleCheck(result))
+  if (result.status !== "evaluated") process.exitCode = RULE_CHECK_EXIT_CODES.unavailable
+  return
+})
 export const runRulesCommand = Effect.fn("Rules.command")(function* (options: RulesOptions) {
-  if (options.action === "check") {
-    if (options.path === undefined || options.line === undefined)
-      return yield* Effect.fail(new Error("rules check requires --path and --line."))
-    const { checkRuleAtLine, formatRuleCheck } = yield* Effect.promise(() => import("./check.ts"))
-    const result = yield* checkRuleAtLine({ path: options.path, line: options.line, id: options.id })
-    process.stdout.write(options.json ? JSON.stringify(result) + "\n" : formatRuleCheck(result))
-    if (result.status !== "evaluated") process.exitCode = RULE_CHECK_EXIT_CODES.unavailable
-    return
-  }
+  if (options.action === "check") return yield* checkRules(options)
   const root = yield* discoverWorkingTreeRoot(process.cwd())
   const configured = Option.getOrUndefined(yield* Config.option(Config.NonEmptyString("REVIEW_USER_CONFIG_PATH")))
   const configuration = configured === undefined ? {} : { userConfigPath: configured }

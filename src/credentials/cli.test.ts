@@ -1,3 +1,4 @@
+import { terminalAvailable, terminalArguments, terminalCommand } from "../../scripts/test-harness/terminal.mjs"
 import { bunExecutable } from "../runtime/bun-runtime.ts"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs"
@@ -168,7 +169,7 @@ if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}
     expect(`${child.stdout}${child.stderr}`).not.toContain(marker)
   })
 
-  it.skipIf(process.platform !== "linux")(
+  it.skipIf(!terminalAvailable)(
     "warns in a terminal that logout leaves the configured environment credential active",
     () => {
       const root = mkdtempSync(join(tmpdir(), "credential-logout-pty-"))
@@ -185,8 +186,8 @@ console.log('{"version":1,"status":"missing"}');
       )
       const quote = (value: string) => "'" + value.replaceAll("'", "'\\''") + "'"
       const child = spawnSync(
-        "script",
-        ["-qfec", `${quote(bunExecutable())} ${quote(entrypoint)} --logout`, "/dev/null"],
+        terminalCommand,
+        terminalArguments(`${quote(bunExecutable())} ${quote(entrypoint)} --logout`),
         {
           cwd: root,
           encoding: "utf8",
@@ -206,114 +207,92 @@ console.log('{"version":1,"status":"missing"}');
     }
   )
 
-  it.skipIf(process.platform !== "linux")(
-    "restores the exact terminal mode after SIGINT during masked input",
-    async () => {
-      const root = mkdtempSync(join(tmpdir(), "credential-pty-"))
-      const helper = join(root, "helper.mjs")
-      const entrypoint = join(process.cwd(), "src", "cli.ts")
-      writeFileSync(
-        helper,
-        `#!/usr/bin/env node
+  it.skipIf(!terminalAvailable)("restores the exact terminal mode after SIGINT during masked input", async () => {
+    const root = mkdtempSync(join(tmpdir(), "credential-pty-"))
+    const helper = join(root, "helper.mjs")
+    const entrypoint = join(process.cwd(), "src", "cli.ts")
+    writeFileSync(
+      helper,
+      `#!/usr/bin/env node
 if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}');
 `
-      )
-      chmodSync(helper, 0o700)
-      const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
-      const command = `before=$(stty -g); ${quote(bunExecutable())} ${quote(entrypoint)} --login; code=$?; after=$(stty -g); printf '\\nMODEBEFORE:%s\\nMODEAFTER:%s\\nEXIT:%s\\n' "$before" "$after" "$code"`
-      const child = spawn("script", ["-qfec", command, "/dev/null"], {
-        cwd: root,
-        env: {
-          ...process.env,
-          REVIEW_CREDENTIAL_HELPER: helper,
-          REVIEW_CREDENTIAL_STATE_PATH: join(root, "state.json")
-        },
-        stdio: ["pipe", "pipe", "pipe"]
+    )
+    chmodSync(helper, 0o700)
+    const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
+    const command = `before=$(stty -g); ${quote(bunExecutable())} ${quote(entrypoint)} --login; code=$?; after=$(stty -g); printf '\\nMODEBEFORE:%s\\nMODEAFTER:%s\\nEXIT:%s\\n' "$before" "$after" "$code"`
+    const child = spawn(terminalCommand, terminalArguments(command), {
+      cwd: root,
+      env: { ...process.env, REVIEW_CREDENTIAL_HELPER: helper, REVIEW_CREDENTIAL_STATE_PATH: join(root, "state.json") },
+      stdio: ["pipe", "pipe", "pipe"]
+    })
+    let output = ""
+    let interrupted = false
+    child.stdout.on("data", (chunk: Buffer) => {
+      output += chunk.toString("utf8")
+      if (!interrupted && output.includes("Jev API key:")) {
+        interrupted = true
+        child.stdin.write("\x03")
+      }
+    })
+    child.stderr.on("data", (chunk: Buffer) => {
+      output += chunk.toString("utf8")
+    })
+    await new Promise<void>((resolveExit, rejectExit) => {
+      const timeout = setTimeout(() => {
+        child.kill("SIGKILL")
+        rejectExit(new Error(`PTY cancellation timed out: ${output}`))
+      }, DEFAULT_CHILD_TIMEOUT_MS)
+      child.once("exit", () => {
+        clearTimeout(timeout)
+        resolveExit()
       })
-      let output = ""
-      let interrupted = false
-      child.stdout.on("data", (chunk: Buffer) => {
-        output += chunk.toString("utf8")
-        if (!interrupted && output.includes("Jev API key:")) {
-          const processes = spawnSync("ps", ["-eo", "pid=,args="], { encoding: "utf8" }).stdout
-          const line = processes
-            .split("\n")
-            .find(
-              (candidate) =>
-                /^\s*\d+\s+\S*node\s+/.test(candidate) &&
-                candidate.includes(entrypoint) &&
-                candidate.includes("--login")
-            )
-          const pid = line?.trim().split(/\s+/, 1)[0]
-          if (pid !== undefined) {
-            interrupted = true
-            process.kill(Number(pid), "SIGINT")
-          }
-        }
-      })
-      child.stderr.on("data", (chunk: Buffer) => {
-        output += chunk.toString("utf8")
-      })
-      await new Promise<void>((resolveExit, rejectExit) => {
-        const timeout = setTimeout(() => {
-          child.kill("SIGKILL")
-          rejectExit(new Error(`PTY cancellation timed out: ${output}`))
-        }, DEFAULT_CHILD_TIMEOUT_MS)
-        child.once("exit", () => {
-          clearTimeout(timeout)
-          resolveExit()
-        })
-        child.once("error", rejectExit)
-      })
-      const modes = /MODEBEFORE:([^\r\n]+)\r?\nMODEAFTER:([^\r\n]+)\r?\nEXIT:(\d+)/.exec(output)
-      expect(modes, output).not.toBeNull()
-      expect(modes?.[2]).toBe(modes?.[1])
-      expect(Number(modes?.[3])).not.toBe(0)
-    }
-  )
+      child.once("error", rejectExit)
+    })
+    const modes = /MODEBEFORE:([^\r\n]+)\r?\nMODEAFTER:([^\r\n]+)\r?\nEXIT:(\d+)/.exec(output)
+    expect(modes, output).not.toBeNull()
+    expect(modes?.[2]).toBe(modes?.[1])
+    expect(Number(modes?.[3])).not.toBe(0)
+  })
 
-  it.skipIf(process.platform !== "linux")(
-    "does not disable echo when the original terminal mode cannot be captured",
-    () => {
-      const root = mkdtempSync(join(tmpdir(), "credential-pty-capture-"))
-      const helper = join(root, "helper.mjs")
-      const stty = join(root, "stty")
-      const log = join(root, "stty.log")
-      const entrypoint = join(process.cwd(), "src", "cli.ts")
-      writeFileSync(
-        helper,
-        `#!/usr/bin/env node
+  it.skipIf(!terminalAvailable)("does not disable echo when the original terminal mode cannot be captured", () => {
+    const root = mkdtempSync(join(tmpdir(), "credential-pty-capture-"))
+    const helper = join(root, "helper.mjs")
+    const stty = join(root, "stty")
+    const log = join(root, "stty.log")
+    const entrypoint = join(process.cwd(), "src", "cli.ts")
+    writeFileSync(
+      helper,
+      `#!/usr/bin/env node
 if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}');
 `
-      )
-      writeFileSync(
-        stty,
-        `#!/bin/sh
+    )
+    writeFileSync(
+      stty,
+      `#!/bin/sh
 printf '%s\n' "$*" >> "$STTY_LOG"
 exit 1
 `
-      )
-      chmodSync(helper, 0o700)
-      chmodSync(stty, 0o700)
-      const child = spawnSync(
-        "script",
-        ["-qfec", `${JSON.stringify(bunExecutable())} ${JSON.stringify(entrypoint)} --login`, "/dev/null"],
-        {
-          cwd: root,
-          env: {
-            ...process.env,
-            PATH: `${root}:${process.env.PATH ?? ""}`,
-            STTY_LOG: log,
-            REVIEW_CREDENTIAL_HELPER: helper,
-            REVIEW_CREDENTIAL_STATE_PATH: join(root, "state.json")
-          },
-          encoding: "utf8",
-          timeout: DEFAULT_CHILD_TIMEOUT_MS
-        }
-      )
-      expect(child.status).not.toBe(0)
-      expect(readFileSync(log, "utf8")).toContain("-F /dev/tty -g")
-      expect(readFileSync(log, "utf8")).not.toContain("-echo")
-    }
-  )
+    )
+    chmodSync(helper, 0o700)
+    chmodSync(stty, 0o700)
+    const child = spawnSync(
+      terminalCommand,
+      terminalArguments(`${JSON.stringify(bunExecutable())} ${JSON.stringify(entrypoint)} --login`),
+      {
+        cwd: root,
+        env: {
+          ...process.env,
+          PATH: `${root}:${process.env.PATH ?? ""}`,
+          STTY_LOG: log,
+          REVIEW_CREDENTIAL_HELPER: helper,
+          REVIEW_CREDENTIAL_STATE_PATH: join(root, "state.json")
+        },
+        encoding: "utf8",
+        timeout: DEFAULT_CHILD_TIMEOUT_MS
+      }
+    )
+    expect(child.status).not.toBe(0)
+    expect(readFileSync(log, "utf8")).toContain(`${process.platform === "darwin" ? "-f" : "-F"} /dev/tty -g`)
+    expect(readFileSync(log, "utf8")).not.toContain("-echo")
+  })
 })

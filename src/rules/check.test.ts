@@ -288,6 +288,19 @@ describe("one-off file and line rule checks", () => {
     expect(result.results).toEqual([])
   })
 
+  it("rejects paths outside the working tree before calling the classifier", async () => {
+    const root = await fixture()
+    const fake = transport(0.4)
+    await expect(
+      Effect.runPromise(
+        checkRuleAtLine({ path: "../outside.ts", line: 1 }, { cwd: root, httpClient: fake.httpClient }).pipe(
+          Effect.provide(configuration(root))
+        )
+      )
+    ).rejects.toThrow("--path must stay inside")
+    expect(fake.requests).toEqual([])
+  })
+
   it("rejects disabled/unknown rules and invalid lines before calling the classifier", async () => {
     const root = await fixture()
     const fake = transport(0.9)
