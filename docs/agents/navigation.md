@@ -42,6 +42,11 @@ Paths in the implementation column are entry points, not a complete module inven
 
 ## Decisions and evidence
 
+The [setup interaction proposal](../setup-interaction-proposal.md) preserves the
+2026-10-06 proposed credential-destination flow and routes to separate advisory
+research on explicit interaction models and console rendering. It is design and
+research input, not an accepted setup contract or dependency decision.
+
 Read the current contract and executable check before a milestone report. Use the
 [issue tracker guide](issue-tracker.md) when an originating issue or owner decision
 is needed. Research is advisory until an accepted contract adopts it.
