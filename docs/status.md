@@ -89,6 +89,11 @@ that the agent read, acknowledged, or applied a finding.
 
 ## Opt-in local inspection
 
+| Use | Command | Page source |
+| --- | --- | --- |
+| Development | `npm run dev:inspection` from the repository root | Current checkout, with automatic browser reload |
+| Bundled production | `hapsland dashboard` | Installed package; source edits require a new package update |
+
 `hapsland dashboard` runs the private loopback inspector in the foreground and
 prints its launch URL. It does not enable recording or start a resident. Enable
 `sessionInspection` through [configuration](configuration.md) to record new work;
@@ -104,6 +109,10 @@ the repaired page. Server-side changes require restarting the command. Use
 `npm run dev:inspection -- --port=4318` to choose a port. This workflow uses the
 existing local journal and does not rebuild a package, invoke Tree-sitter,
 update installed hooks, or start a resident.
+
+Run `npm --prefix packages/agent-flow-viz run test:inspection-dev-browser` to
+check automatic reload, a stable private URL, syntax-error recovery, and HTTP
+route protection against the real page source.
 
 The **To agent** view renders the general Hapsland message saved by the resident
 before the final socket handoff, with its intended recipient and original

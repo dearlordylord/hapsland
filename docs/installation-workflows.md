@@ -182,6 +182,18 @@ To return to stable from `next`, run `hapsland update --channel=latest` (all ins
 
 ## Personal development on your own clients
 
+### Iterating on the inspection page
+
+Run `npm run dev:inspection` from the repository root for the inspection dashboard
+served from the current checkout. Browser pages reload when
+`src/inspection/page.ts` changes; this workflow reads the existing local journal
+and requires no package rebuild or hook update. See the
+[inspection guide](status.md#opt-in-local-inspection) for port selection and limits.
+
+For bundled production, run `hapsland dashboard`: its page comes from the
+installed package. Use the fixed-snapshot workflow below when you want to update
+that bundled page or test changed runtime and hook behavior.
+
 ### Installing a fixed checkout snapshot
 
 The current `dev-install` command installs a **fixed packaged snapshot**. It is

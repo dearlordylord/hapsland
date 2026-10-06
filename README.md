@@ -231,6 +231,17 @@ for the main architectural differences and the rationale for a separate product.
 Use the [repository map](./docs/agents/navigation.md) to locate contracts,
 implementation entry points, tests, the website, and research assets.
 
+For the inspection dashboard, choose the page source explicitly:
+
+| Use | Command | Page |
+| --- | --- | --- |
+| Development | `npm run dev:inspection` | Current checkout; page edits reload the browser automatically |
+| Bundled production | `hapsland dashboard` | Page embedded in the installed package |
+
+Both read the same local inspection journal. Page development needs no package
+build or installation update. See [inspection development](./docs/status.md#opt-in-local-inspection)
+for the source owner, port selection, and checks.
+
 Install a fresh local snapshot on your own client without publishing:
 
 ```sh

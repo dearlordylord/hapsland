@@ -31,6 +31,7 @@ Paths in the implementation column are entry points, not a complete module inven
 
 | Artifact | Owner and entry point |
 | --- | --- |
+| Local inspection dashboard | [Development and bundled production commands](../status.md#opt-in-local-inspection): `npm run dev:inspection` serves current source with browser reload; `hapsland dashboard` serves the installed bundle. [Page](../../src/inspection/page.ts), [development runner](../../scripts/dev-inspection.mjs), [reload and recovery check](../../packages/agent-flow-viz/scripts/check-inspection-dev-browser.mjs). |
 | Public website and Cloudflare deployment | [Visualization package README](../../packages/agent-flow-viz/README.md#public-site-and-shared-import-replay); source starts at [site.ts](../../packages/agent-flow-viz/src/site.ts). Run package commands from `packages/agent-flow-viz`. |
 | Production decision dashboard | [Visualization package](../../packages/agent-flow-viz/README.md), [dashboard rules](../../packages/agent-flow-viz/DASHBOARD-RULES.md), [production page](../../packages/agent-flow-viz/src/production-main.ts). |
 | Reducer-to-diagram projection | [Projection package](../../packages/agent-flow-projection/README.md), [projection implementation](../../packages/agent-flow-projection/src/index.ts). This derives display evidence from checked transitions; layout belongs to the visualization package. |

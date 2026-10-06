@@ -8,6 +8,12 @@
 
 ## Public site and shared import replay
 
+The local **inspection dashboard** uses a separate development command:
+`npm run dev:inspection` from the repository root. It serves current inspection
+page source with automatic browser reload. Its bundled production command is
+`hapsland dashboard`. See [the inspection guide](../../docs/status.md#opt-in-local-inspection).
+The Vite commands below serve the public site and decision visualization.
+
 Run `npm run dev` in this package and open `/site.html` for the FoldKit public
 site, or `/index.html` for the full dashboard. `npm run build` emits both entries
 with relative asset paths. Building is separate from deploying either page.
