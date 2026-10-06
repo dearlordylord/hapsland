@@ -3,7 +3,7 @@
 **Purpose:** Explain how Hapsland bounds preparation, classifier requests, retained review state, and advice delivery.
 **Status:** Active maintained implementation guidance.
 **Authority:** Maintained guidance describing the current implementation; accepted review, configuration, and advice contracts own product behavior. Numerical bounds and offline checks are not throughput, latency, process-memory, or platform-support guarantees.
-**Expected use:** Understand which resource refused work, choose supported configuration controls, and locate the implementation and checks before changing a limit.
+**Expected use:** Understand which resource refused work, choose configuration controls, and locate the implementation and checks before changing a limit.
 **Lifecycle:** Keep this guide current with dispatch, capacity, graph, provider, IPC, and delivery changes. Review when any limit, saturation behavior, configuration ownership, or resource-release boundary changes; replace superseded descriptions in place.
 
 Hapsland manages resources around the review backend, including the number of
@@ -101,7 +101,7 @@ selection before source capture. A marked omission can make some rules
 inapplicable without making an independent eligible rule or unit unavailable.
 
 Use the [graph settings](configuration.md) to narrow collection within the
-supported ceilings. Project limits may lower user limits, not raise them.
+maximum values. Project limits may lower user limits, not raise them.
 Increasing a provider's context window does not increase Hapsland's collection
 limits or allow excluded source to be read.
 

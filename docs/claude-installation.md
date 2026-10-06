@@ -2,9 +2,9 @@
 
 **Purpose:** Explain Claude Code registration, setup, updates, and removal.
 **Status:** Maintained installation guidance.
-**Authority:** Operational guidance for implemented lifecycle operations; exact compatibility claims remain bounded by the evidence cited below.
+**Authority:** Operational guidance for implemented lifecycle operations; exact compatibility claims are limited to the evidence cited below.
 **Expected use:** Configure a selected client profile and diagnose ownership or readiness problems.
-**Lifecycle:** Update with installer or onboarding changes; review when supported host versions, runtime profiles, or trust behavior change.
+**Lifecycle:** Update with installer or onboarding changes; review when host versions accepted by the adapter, runtime profiles, or trust behavior change.
 
 ## Guided setup and updates
 
@@ -49,7 +49,7 @@ Run recovery or removal only for the action you intend:
 
 | Command | Action |
 | --- | --- |
-| `hapsland repair claude` | Restore missing hooks or resume a supported interrupted operation. |
+| `hapsland repair claude` | Restore missing hooks. |
 | `hapsland reinstall claude` | Replace damaged marked Hapsland handlers while preserving user settings and credentials. |
 | `hapsland uninstall claude` | Preview and remove this integration. |
 
@@ -59,10 +59,10 @@ checks or acts on every registered Claude/Codex profile; setup opens the selecto
 
 ## Lifecycle automation
 
-For supported source languages and limitations, see the
-[supported-language table](../README.md#supported-languages).
+For source languages and limitations, see the
+[language table](../README.md#languages-and-limits).
 
-This adapter targets the exact Claude Code `2.1.218` profile. Selected headless native `Edit|Write` trials with a controlled local backend passed an opted-in block-and-repair fixture and bounded stale, failure, and restart fixtures. The bounded [#136 native evidence](../evidence/native-136/index.json) later observed live Jev findings through Stop and a model-originated repair, without a final acknowledgment token. These selected runs do not establish interactive compatibility, a reaction rate, or general Claude Code support. Installation alone does not establish host compatibility or advice reaction; see the [#94 scope decision package](../evidence/host-94/decision-and-evidence.md).
+This adapter targets the exact Claude Code `2.1.218` profile. Selected headless native `Edit|Write` trials with a controlled local backend passed an opted-in block-and-repair fixture and stale, failure, and restart fixtures. The selected [#136 native evidence](../evidence/native-136/index.json) later observed live Jev findings through Stop and a model-originated repair, without a final acknowledgment token. These selected runs do not establish interactive compatibility, a reaction rate, or general Claude Code support. Installation alone does not establish host compatibility or advice reaction; see the [#94 scope decision package](../evidence/host-94/decision-and-evidence.md).
 
 The versioned JSON operations use `host: "claude"`, `claudeHome` (default `~/.claude`), and optionally `claudeExecutable` (default `claude`). Preview is read-only and returns `proposal.digest`. Apply that digest to install or update. The first uninstall call is also a preview; pass its digest to remove the owned entry.
 

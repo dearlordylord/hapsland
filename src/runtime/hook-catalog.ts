@@ -100,7 +100,7 @@ export const commandHooks = {
 export const piHookCommand = { flags: ["--pi-hook"], timeoutMs: 7_000 } as const
 export const piHooks = {
   agentStart: { event: "agent_start", purpose: "Remember the agent identity for cleanup", callsResident: false },
-  toolCall: { event: "tool_call", tool: "edit", purpose: "Register a supported edit attempt", callsResident: true },
+  toolCall: { event: "tool_call", tool: "edit", purpose: "Register an edit attempt", callsResident: true },
   toolResult: {
     event: "tool_result",
     tool: "edit",

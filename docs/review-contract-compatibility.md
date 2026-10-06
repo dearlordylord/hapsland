@@ -6,7 +6,7 @@
 **Expected use:** Check changes to configuration, rule definitions, review input, and review result reuse.
 **Lifecycle:** Review when any of those boundaries or the #93 type/function contract changes.
 
-The owner approved bounded cross-file source use for direct-edit type and
+The owner approved cross-file source use within graph limits for direct-edit type and
 function review on 2026-09-29. The earlier one-file named-type input is retired
 as a production route. A later comparison of advice quality is a separate task;
 this decision does not claim measured live Jev quality. The [#93 contract](type-function-review-proposal.md)
@@ -37,16 +37,16 @@ read. No include can restore a privacy-denied file. Freshness checks retain each
 file's root or context role.
 
 Each version-one JSONC rule document declares a stable ID, optional display title,
-question, criteria, message, threshold, and `inputs`. Each input declares supported
+question, criteria, message, threshold, and `inputs`. Each input declares
 `languages`, `kind` (`type` or `function`), and required evidence in `requires`.
-The compiler maps supported combinations to the exact direct-review contract;
+The compiler maps accepted combinations to the exact direct-review contract;
 authors do not supply transport contract identifiers. TypeScript, Rust, and Bend
-types and TypeScript functions are supported within their bounded analyzer profiles.
+types and TypeScript functions can be reviewed within their analyzer profiles.
 Unknown fields or versions fail validation. Enabled input combinations selected by
-configured languages must be supported, including their evidence requirements.
+configured languages must be accepted by the compiler, including their evidence requirements.
 A disabled rule may retain an unsupported schema input for future use; enabling it
 fails. Configured languages must be a subset of authored languages, or configuration
-fails. A supported subset of a multi-input rule may be selected explicitly. Runtime
+fails. An eligible subset of a multi-input rule may be selected explicitly. Runtime
 schemas have no execution support, and concrete values are unsupported roots; a
 schema is not implicitly a type declaration or a higher evidence rung.
 
@@ -73,7 +73,7 @@ Choice and Score result forms remain separate decisions.
 ## Smoke test the rule
 
 `hapsland rules check --path FILE --line N` sends the enclosing declaration and
-bounded related code to the classifier, without an agent session or resident.
+related code to the classifier, without an agent session or resident.
 Add `--id` to select one enabled rule. Results include probabilities and findings;
 `--json` includes code. Unsupported, ambiguous or stale selections cannot yield a
 valid result. See [usage and limits](configuration.md#try-a-rule-on-a-file-and-line).
@@ -82,11 +82,11 @@ valid result. See [usage and limits](configuration.md#try-a-rule-on-a-file-and-l
 
 The active input contracts are direct-event/type-shape/v1 and
 direct-event/function/v1. Each request carries one changed root and its
-bounded evidence tree with marked omissions. Supporting declarations can come from other
-selected files through supported local imports. They do not become separate
+evidence tree within graph limits with marked omissions. Supporting declarations can come from other
+selected files through local imports the analyzer resolves. They do not become separate
 edited roots. Omitted reference sites may contain opaque expression text, such
 as an anonymous callback or dynamic call, rather than a named binding. This
-text remains a bounded JSON string with its omission reason; it neither adds
+text remains a size-limited JSON string with its omission reason; it neither adds
 a resolved node nor makes the graph complete. Resolved edges retain their
 named-reference grammar, and the aggregate evidence-size limit still applies.
 The request contains neither a whole file nor an edit diff,
@@ -114,7 +114,7 @@ Update attribution currently requires an exact verified post-edit span. Codex
 `apply_patch` hunks, Claude `Edit`/`Write` native content evidence, and Pi 1.0.0
 native `edit` unified-result patches can supply one. Codex and Pi share post-edit
 patch verification with explicit placement rules: Codex requires a unique text
-match; Pi verifies native line coordinates against bounded current source without
+match; Pi verifies native line coordinates against current source within capture limits without
 a text-search fallback or a separate pre-edit image. Pi derives ranges from the
 successful result patch independently of how `oldText`/`newText` replacements are
 grouped, including replacements spanning omitted context across hunks. Claude

@@ -133,7 +133,7 @@
   ],
   "additionalProperties": false,
   "title": "Review configuration v1",
-  "description": "JSONC configuration for file selection, bounded import exploration, rules, and credential references.",
+  "description": "JSONC configuration for file selection, import exploration limits, rules, and credential references.",
   "$defs": {
     "ReviewBackendSettings": {
       "anyOf": [
@@ -288,7 +288,7 @@
         "version"
       ],
       "additionalProperties": false,
-      "description": "Versioned bounded import graph limits; omitted values inherit."
+      "description": "Import graph limits; omitted values inherit."
     },
     "RuleReference": {
       "anyOf": [

@@ -36,7 +36,7 @@ one installed delivery behavior, without a legacy/composed mode selector.
 
 ### Agent-facing sequence
 
-In an ordinary supported agent-runtime cycle, the user gives an agent work to
+In an ordinary agent-runtime cycle, the user gives an agent work to
 do. Before an eligible edit tool runs, Hapsland's pre-edit hook asks the resident
 to register that edit attempt. After the tool edits a file, the synchronous
 post-edit hook reports the result. The first accepted edit opens the advicee's
@@ -44,7 +44,7 @@ virtual round. Review then runs in the resident; the agent can receive advice
 after an edit or when it tries to finish. Codex also uses a background hook;
 Claude does not install or collect advice through an asynchronous PostToolUse hook.
 
-When the agent tries to finish, its Stop hook gives Hapsland a bounded chance
+When the agent tries to finish, its Stop hook gives Hapsland limited time
 to complete admitted reviews. A continue-with-advice response asks the agent
 to work on that advice and keeps the same virtual round open. The agent can edit
 and try to finish again. An allow-finish response closes the virtual round. A
@@ -57,14 +57,14 @@ virtual round, because the runtime's own turn boundary is separate.
 
 ### Agent response is controlled by its instructions
 
-Hapsland submits advice and can request a bounded continuation; it does not
+Hapsland submits advice and can request a continuation within the configured limit; it does not
 compel the agent to implement a finding. The agent decides how to respond under
 its governing instructions. A user can instruct it to follow reviews or to
 ignore them. Hapsland does not override that choice. An agent's decision not to
 repair is not, by itself, a delivery failure; nor does submission prove that the
 agent saw the advice and chose to ignore it.
 
-The human-readable finding message has one runtime-neutral owner. All supported
+The human-readable finding message has one runtime-neutral owner. All integrated
 runtime envelopes carry the same heading and response instructions: check the
 findings, fix valid issues and verify, or explain a disagreement. Each finding
 names its file and declaration and carries its configured message; rule IDs
@@ -86,7 +86,7 @@ failed delivery.
 ## Advicee identity and admission
 
 Review and advice belong to an exact advicee partition: canonical physical
-working root, agent runtime and supported version, session ID, and supplied
+working root, agent runtime and version accepted by the adapter, session ID, and supplied
 subagent ID or null. Native `agent_id` maps to Hapsland's `subagentId` at the
 adapter boundary. Today an omitted ID maps to null, the main-agent scope. That
 mapping does not prove an event came from the main agent. If a runtime can omit
@@ -150,7 +150,7 @@ cover native command startup, be strictly after the closed-round boundary, and
 retain its original deadline across IPC retries and resident startup. The
 resident checks that start, deadline, identity, and closed-round fence
 atomically before issuing a permit. The
-supported runtime must keep the edit tool behind its synchronous pre-edit hook.
+integrated runtime must keep the edit tool behind its synchronous pre-edit hook.
 If that ordering or cancellation cannot be established, admission is incomplete;
 process-start time alone is insufficient proof of native event order. Each
 asynchronous result carries its originating round and resident lifetime. It
@@ -172,14 +172,14 @@ work in the round is unfinished, subject to its safe hook deadline. When all
 work settles, it decides immediately. A deadline-reached event forces a
 decision earlier. For example, with two unfinished items, the first Jev result
 leaves the hook open; the second lets the policy decide. The policy considers
-pending actionable advice at the decision point and selects a bounded batch.
+pending actionable advice at the decision point and selects a batch within the output limit.
 Jev error behavior is not specified by this refinement beyond truthful
 unavailable/incomplete status.
 
 The wait exists to give unfinished reviews a chance to become advice before
 the agent finishes. Hapsland cannot hold a runtime hook open without limit, so
 it waits only within the safe hook deadline and decides with the results then
-available. A result that misses that boundary is a cost of the bounded wait,
+available. A result that misses that boundary is a consequence of the review deadline,
 not a reason to skip the wait. When the continuation budget is exhausted,
 Hapsland may allow finish immediately because it cannot present another
 continue-with-advice response.
@@ -232,7 +232,7 @@ the same advicee and virtual round. For example, edit B's synchronous response
 may include a still-current finding from edit A in that round, even when the
 finding was not ready during edit A's hook.
 
-The installed edit hook uses one bounded admission-and-collection RPC. Its active
+The installed edit hook uses one admission-and-collection RPC with a deadline. Its active
 response context freezes the originating tool, root, advicee, resident lifetime,
 round, credential generation, edit settings snapshot, expiry, and the snapshot
 user opt-in. Final handoff rechecks credentials, source freshness and round
@@ -248,7 +248,7 @@ state determine readiness; no collectible ticket or per-unit outcome mirror is
 retained. Operational failure records use the
 same advicee scope across those opportunities, but are retained for diagnostics
 instead of being included in agent output. The installed edit path
-automatically starts a bounded background advice wait for Codex only.
+automatically starts a background advice wait with a deadline for Codex only.
 Claude background invocations return without collecting or submitting advice.
 CLI and resident exchange one version 1 local IPC envelope across admission,
 collection, lifecycle, and delivery operations. An older peer's response cannot
@@ -269,8 +269,8 @@ whether the work is still current, and the advice age. A temporary failure
 of this check leaves current advice
 eligible until a later valid attempt or expiry; stale or unattributed advice is
 suppressed. The resident grants one tokenized lease per selected advice item.
-At the final IPC handoff, the resident takes a bounded, descriptor-anchored
-capture of each selected source file and supplies its freshness as a fact to
+At the final IPC handoff, the resident captures each selected source file through
+its descriptor, subject to source-size limits, and supplies its freshness as a fact to
 the Bend candidate decision. A changed or unreadable source retires its
 selected finding.
 Overlapping collectors cannot own that item together. The collector releases a
@@ -278,7 +278,7 @@ lease on a known pre-output failure; a completed advice submission records only
 submission to the runtime. Lost acknowledgements and uncertain submissions
 remain uncertain; lease recovery requires revalidation. Current self-imposed
 response budget is 10 KiB of final encoded host output, including Claude-specific
-wrapping. There is no separate finding-count cap. An individually oversized finding yields a bounded
+wrapping. There is no separate finding-count cap. An individually oversized finding yields a size-limited
 limitation rather than an endless retry.
 
 The response-size check determines which findings enter a Stop output before
@@ -360,7 +360,7 @@ proofs; executable evidence does not establish complete native orchestration.
 
 Hapsland closes its virtual round when it issues an allow-finish response, even
 if another runtime hook keeps the actual agent round going. This closure follows
-the bounded finish-decision wait described above; the wait gives reviews their
+the finish-decision deadline described above; the wait gives reviews their
 available chance to become advice before cleanup discards unfinished work.
 Before emitting `allow`, the resident fences new admission, collection, output authorization,
 and queue transitions for that round and invalidates its pre-edit permits.
@@ -379,7 +379,7 @@ fence takes effect, without producing new review or delivery work.
 After full quiescence for the configured duration, Hapsland closes the round
 without waiting for a Stop response. This uses the same admission fence and
 cleanup, and records `quiescent` as the source-free closure reason. A Stop
-already in progress follows its own bounded hold instead. The timeout begins
+already in progress follows its own deadline instead. The timeout begins
 when the round is observed fully quiet, so a periodic check can close it later
 than the configured duration. A late Stop for a closed round cannot reopen it.
 

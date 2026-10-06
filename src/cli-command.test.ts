@@ -108,7 +108,7 @@ describe("declarative CLI subprocess contracts", () => {
   it("discovers live rule checks and rejects invalid coordinates before dispatch", async () => {
     const help = await parse(["rules", "check", "--help"])
     expect(help.invocation).toBeUndefined()
-    expect(help.output).toContain("bounded related code")
+    expect(help.output).toContain("related code")
     expect(help.output).toContain("external classifier")
     expect(help.output).toContain("--line")
     expect(help.output).not.toContain("--scope")

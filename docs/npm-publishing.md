@@ -5,7 +5,7 @@
 **Status:** Maintained publishing guidance; no release is declared by this document.
 **Authority:** Maintained operational guidance for the user-approved stable/next lanes. Platform acceptance is governed by exact release evidence.
 **Expected use:** Prepare release coordinates, publish from a logged-in host, and verify registry artifacts before advertising support.
-**Lifecycle:** Update with release tooling, package layout, or registry policy; review for each release or change to supported host/platform cells.
+**Lifecycle:** Update with release tooling, package layout, or registry policy; review for each release or change to release host/platform combinations.
 
 The maintainer publishes `@hapsland/hapsland` from a clean, reviewed `master`
 checkout. GitHub Actions is optional supporting evidence. The source repository
@@ -31,7 +31,7 @@ used to publish the changed checkout. The script fails on a checksum mismatch.
 
 For candidate-to-stable promotion, prepare a stable package version and reviewed
 archive, then publish it through this flow. Moving a prerelease to `latest` is not
-a supported shortcut. Before publishing a candidate, verify that its intended
+an allowed release shortcut. Before publishing a candidate, verify that its intended
 registration and recovery paths pass offline; stable support advertising additionally
 requires the registry and authenticated host evidence below.
 
@@ -104,7 +104,7 @@ REVIEW_LIVE_CODEX_HOME=/absolute/path/to/dedicated-codex-home npm run conformanc
 
 The demo declares a ceiling of two Jev requests, 4,096 source bytes, and
 180 seconds. It requires separate consent and records sanitized stage and
-timing evidence. This is a purposeful small release check; other bounded live
+timing evidence. This is a purposeful small release check; other live checks within request budgets
 validation can use hundreds of Jev calls when the question warrants them.
 Keep ordinary automated tests offline and deterministic.
 

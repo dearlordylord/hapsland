@@ -76,7 +76,7 @@ The narrative order is:
 
 Each custom rule is one local JSONC document, enabled through configuration. Mention the
 capability and link [configuration](configuration.md); a full authoring tutorial
-is outside the first-read flow. Supported rule targets depend on language/context.
+is outside the first-read flow. Rule targets depend on language/context.
 Do not imply every built-in rule applies to every function or type.
 
 Future short README animations should be captures of the same approved scenarios
@@ -228,7 +228,7 @@ its checks.
 | “We test core decisions with deterministic simulation and replay.” | [monkey-business](../packages/monkey-business/README.md) exercises compiled decisions with virtual time and synthetic facts; excludes the complete resident, real source capture, IPC, and Jev transport |
 | “You control which files are eligible for review.” | [Configuration](configuration.md): exclusions accumulate; without file settings otherwise eligible files are selected; no per-request confirmation |
 | “Review context follows related definitions.” | [Input contract](review-contract-compatibility.md): selected source is included, with omissions and limits; does not establish better judgment accuracy |
-| “Use built-in rules or add your own.” | [Configuration](configuration.md): individual local JSONC rules and declared supported language/input combinations; rule matching still respects input capabilities |
+| “Use built-in rules or add your own.” | [Configuration](configuration.md): individual local JSONC rules and declared language/input combinations; rule matching still respects input capabilities |
 | “The selected review backend evaluates the selected code.” | [Provider boundary](review-providers.md): user configuration selects Jev or Cloudflare Clef/Clef-flash; offline adapter checks do not establish live Cloudflare quality or latency |
 
 Proposed compact assurance copy: “Formally checked core logic: proven context limits

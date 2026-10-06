@@ -108,10 +108,7 @@ export const GraphLimitsSettings = Schema.Struct({
   ),
   depth: Schema.optionalKey(graphBound(GRAPH_LIMIT_CEILINGS.depth, "Maximum supporting-reference depth.")),
   work: Schema.optionalKey(graphBound(GRAPH_LIMIT_CEILINGS.work, "Maximum graph edge work steps."))
-}).annotate({
-  identifier: "GraphLimitsSettings",
-  description: "Versioned bounded import graph limits; omitted values inherit."
-})
+}).annotate({ identifier: "GraphLimitsSettings", description: "Import graph limits; omitted values inherit." })
 export interface GraphLimitsSettings extends Schema.Schema.Type<typeof GraphLimitsSettings> {}
 
 /**
@@ -207,7 +204,7 @@ export const ConfigurationDocument = Schema.Struct({
   rules: Schema.optionalKey(Schema.Array(RuleReference))
 }).annotate({
   title: "Review configuration v1",
-  description: "JSONC configuration for file selection, bounded import exploration, rules, and credential references."
+  description: "JSONC configuration for file selection, import exploration limits, rules, and credential references."
 })
 export interface ConfigurationDocument extends Schema.Schema.Type<typeof ConfigurationDocument> {}
 

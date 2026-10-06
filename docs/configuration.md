@@ -4,7 +4,7 @@
 **Status:** Active maintained guidance for the 2026-10-05 owner-approved rule design.
 **Authority:** The accepted rule and configuration contracts in [Phase F](../PRODUCT-PHASE-F-SPEC.md), [direct review](type-function-review-proposal.md), and [compatibility](review-contract-compatibility.md) own behavior; generated field tables describe the current schema.
 **Expected use:** Author a rule, choose where it applies, and explain effective review settings.
-**Lifecycle:** Update with rule/configuration schema, CLI, or source-selection changes; review whenever supported inputs or source-reading boundaries change.
+**Lifecycle:** Update with rule/configuration schema, CLI, or source-selection changes; review whenever rule inputs or source-reading boundaries change.
 
 Each rule lives in its own version-one JSONC document. It states a binary question,
 criteria, feedback, and the languages, input forms, and evidence it understands.
@@ -59,8 +59,8 @@ constraints, references, and repository containment.
 ## Review roots, related code, and privacy
 
 `includes` and `excludes` select files whose changed declarations may become review
-roots. `languages` optionally narrows their supported source languages. With these
-settings omitted, all otherwise eligible supported roots are selected.
+roots. `languages` optionally narrows their source languages. With these
+settings omitted, all otherwise eligible roots are selected.
 
 `contextIncludes` and `contextExcludes` select files that may supply related code.
 When context settings are omitted, context follows the effective root file policy;
@@ -69,7 +69,7 @@ context selection can additionally permit `shared/**` without selecting changed
 roots there. Every captured file still passes containment, protected-path, Git-ignore,
 regular-file and size checks. `privacyExcludes` prohibits both root and context reads
 regardless of any include. Root-language and per-rule filters do not broaden the
-analyzer's supported dependency resolution.
+analyzer's dependency resolution.
 
 For example, this project reviews TypeScript and Rust roots in `src`, while allowing
 related declarations from `shared`. A referenced `shared/private` file remains unread:
@@ -117,7 +117,7 @@ not a clear review result. Rules that do not need the omitted evidence may still
 Patterns are repository-relative and use `/` separators. Matching is case-sensitive;
 `*` and `?` do not cross `/`, while `**` may cross directories. Dot-files require a
 pattern segment beginning with `.`. Bracket classes and simple brace alternatives
-are supported. Patterns are bounded to 1,024 characters, eight brace groups, eight
+are allowed. Patterns permit at most 1,024 characters, eight brace groups, eight
 choices per group, and 256 expansions. Absolute paths, traversal, and negated
 re-inclusion are invalid. Moving a rule document never changes the pattern base.
 
@@ -175,7 +175,7 @@ resolved selection before expecting a review result.
 | `editPermitLimits.perAdvicee` | integer (1–65536) | Optional | 32 | Maximum simultaneously pending edit permits for one advicee in the shared resident. |
 | `editPermitLimits.resident` | integer (1–65536) | Optional | 4096 | Maximum simultaneously pending edit permits across the shared resident. |
 | `virtualRoundQuietMs` | integer (10000–3600000) | Optional | 300000 | Continuous fully quiet time before an open virtual round closes without Stop, in milliseconds. User configuration only; captured when the round opens. |
-| `graphLimits` | object | Optional | — | Versioned bounded import graph limits; omitted values inherit. |
+| `graphLimits` | object | Optional | — | Import graph limits; omitted values inherit. |
 | `graphLimits.version` | fixed value 1 | Required | — | Import graph limits profile version. |
 | `graphLimits.sourceBytes` | integer (1–262144) | Optional | 262144 | Maximum source bytes in each graph file. |
 | `graphLimits.treeBytes` | integer (1–20480) | Optional | 20480 | Maximum accepted encoded evidence-tree bytes. |
@@ -203,7 +203,7 @@ resolved selection before expecting a review result.
 The graph profile bounds the active direct-edit type and function path. Each
 supporting file must pass the context policy before reading. TypeScript local
 imports, verified Rust Cargo modules, and explicit relative Bend imports can supply
-bounded cross-file evidence within their supported analysis profiles. Rust and Bend
+cross-file evidence within their analysis profiles. Rust and Bend
 functions are not supported. See the [input contract](type-function-review-proposal.md#branch-contracts).
 
 The optional version-one `graphLimits` profile bounds source bytes, tree size,
@@ -222,7 +222,7 @@ The built-in credential reference is `TYPESAFE_API_KEY`. Inspection reports its 
 
 <!-- analytics-enablement:start -->
 
-Session analytics are disabled by default. Set `sessionAnalytics: true` to retain source-free session totals and bounded rule-ID history, subject to the limits in [status and analytics](status.md#optional-session-analytics).
+Session analytics are disabled by default. Set `sessionAnalytics: true` to retain source-free session totals and rule-ID history, subject to the limits in [status and analytics](status.md#optional-session-analytics).
 
 <!-- analytics-enablement:end -->
 
@@ -268,7 +268,7 @@ observations of the recorded definitions, with repeated inputs, not independent
 samples or fresh classifier validation. The retained questions, criteria and
 0.7 thresholds are unchanged. Renaming an ID does not validate classifier accuracy.
 
-| Recorded ID | Current default | Supported concern and disposition |
+| Recorded ID | Current default | Concern and disposition |
 | --- | --- | --- |
 | `r1_inferred_case` | Removed | Unnamed operation alternatives: 0/6 defects detected, 0/3 clean warnings, 0/2 checked repairs. No demonstrated unique acceptance value in this set. |
 | `r2_meaningless_combinations` | `meaningless_combinations` | Conditional fields reachable where meaningless. Compact 6/6 detections, 0/3 clean warnings, 1/2 repairs; report-delivery larger study supplies separate positive, clean and layout cases. |
@@ -299,19 +299,19 @@ The default threshold is 0.7; a finding requires a probability strictly greater 
 An ID may use a namespace such as `namespace/no-primitive-obsession`.
 
 Each `inputs` entry names a nonempty `languages` list, a `kind`, and required evidence
-in `requires`. Entries describe supported combinations, not independent dimensions:
+in `requires`. Entries describe accepted combinations, not independent dimensions:
 TypeScript, Rust, and Bend support `type`; only TypeScript supports `function`.
 `requires` may be empty, meaning no additional listed evidence requirements beyond
-a supported extracted root; it does not promise complete dependency evidence.
+an extracted root; it does not promise complete dependency evidence.
 Type evidence capabilities are `root-declaration`, `resolved-outbound-types`, and
 `selected-source-type-closure`; function capabilities are `signature`, `body`,
 `resolved-local-calls`, and `resolved-outbound-types`. Duplicate combinations are errors. Enabled inputs selected by configured languages
-must have supported combinations and evidence requirements; unsupported selected
+must have accepted combinations and evidence requirements; unsupported selected
 inputs fail configuration before source capture.
 
 Runtime validation schemas such as Zod and Effect Schema are a distinct future input
 form with a schema dialect; they are not TypeScript type declarations. A disabled rule may retain a schema input declaration for future use, but enabling
-that input is rejected explicitly. A multi-input rule may run its supported inputs
+that input is rejected explicitly. A multi-input rule may run its eligible inputs
 when configuration languages exclude every unsupported combination. Concrete values
 are not supported review roots. The schema used to validate a rule's JSON is unrelated to reviewing a
 runtime schema. No user code is executed to load a rule or discover its inputs.
@@ -319,7 +319,7 @@ runtime schema. No user code is executed to load a rule or discover its inputs.
 Question/criteria edits belong in the rule file. Configuration may change activation,
 path/language selection, threshold, and feedback message. A configured language must
 belong to an authored input; an extra language is an actionable configuration error,
-not a request to extend intrinsic support. The provider receives one changed declaration and bounded related code,
+not a request to extend intrinsic support. The provider receives one changed declaration and related code,
 not a whole file, raw diff, task, or transcript. Missing required evidence prevents
 that rule's evaluation. Findings may concern pre-existing code within the changed root.
 
@@ -352,7 +352,7 @@ one inventory for the current repository per invocation, including when several
 agent runtimes are selected. Enabled counts are not coverage claims.
 
 Rule explanation distinguishes activation, global root selection, per-rule paths,
-language selection, and intrinsic supported inputs. Path/language inspection does
+language selection, and declared inputs. Path/language inspection does
 not parse source or establish available evidence: it must say when artifact kind,
 attribution, and evidence remain unexamined. Configuration explanation uses the same
 resolved policy as review and makes no backend request:
@@ -523,7 +523,7 @@ hapsland rules check --path src/primitive-obsession-examples.ts --line 10 --id n
 
 <!-- authoring-check-result:start -->
 
-The first type lets customer and order IDs be interchanged and should trigger; the second gives them distinct types and should stay clear. The primitive `value` inside each wrapper is its representation, not itself a violation. A plain alias such as `type CustomerId = string` would still be interchangeable; merely naming a primitive does not establish a distinct type. These are expectations to check, not guaranteed classifier outputs. Each command selects the enclosing declaration and bounded related code, uses normal credential discovery and sends a real external classifier request that may incur charges. No resident or agent session is needed. Add `--json` to inspect the actual source-bearing input and probabilities. A skipped/unavailable result is not a clear result, and exit 0 also includes findings. See [file/line check details](#try-a-rule-on-a-file-and-line).
+The first type lets customer and order IDs be interchanged and should trigger; the second gives them distinct types and should stay clear. The primitive `value` inside each wrapper is its representation, not itself a violation. A plain alias such as `type CustomerId = string` would still be interchangeable; merely naming a primitive does not establish a distinct type. These are expectations to check, not guaranteed classifier outputs. Each command selects the enclosing declaration and related code, uses normal credential discovery and sends a real external classifier request that may incur charges. No resident or agent session is needed. Add `--json` to inspect the actual source-bearing input and probabilities. A skipped/unavailable result is not a clear result, and exit 0 also includes findings. See [file/line check details](#try-a-rule-on-a-file-and-line).
 
 <!-- authoring-check-result:end -->
 
@@ -551,9 +551,9 @@ hapsland rules check --path src/primitive-obsession-examples.ts --line 2 --json
 <!-- rule-check-example:end -->
 
 `--path` is relative to the current directory, inside its Git working tree;
-`--line` is a positive one-based line inside a supported declaration. The command
+`--line` is a positive one-based line inside a type or function. The command
 selects that entire type declaration or TypeScript function signature and body,
-then resolves its bounded related code using the same capture, parser, graph,
+then resolves its related code using the same capture, parser, graph,
 evidence admission and classifier path as ordinary review. It does not pick a
 fixed number of surrounding lines or send the entire file. Blank lines outside
 roots and lines shared by multiple roots do not authorize a request.
@@ -565,7 +565,7 @@ evidence, no eligible rule, or a denied file produces an explained skip and no
 classifier request. The command uses the configured backend and its normal
 credential discovery (environment, eligible project and user key files, native
 saved key). Explicit credential references use the named key from the environment
-or supported key files, without native-store fallback. See
+or configured credential-file locations, without native-store fallback. See
 [credential lookup](installation-workflows.md#personal-development-on-your-own-clients). It starts no resident,
 requires no agent session, and does not modify source, rules or settings.
 

@@ -1,4 +1,4 @@
-# Render pool: allow only supported worker counts
+# Render pool: allow only allowed worker counts
 
 **Purpose:** Explain this measured scenario, show its code and route readers to its specific checks.
 **Status:** Completed exploratory scenario; generated from the current frozen comparison.
@@ -10,7 +10,7 @@
 
 ## What can go wrong
 
-The service offers pools of exactly one, two or four workers. A plain number also accepts unsupported counts such as three or seventeen.
+The service offers pools of exactly one, two or four workers. A plain number also accepts unallowed counts such as three or seventeen.
 
 **Code:** Type. **Rule:** r7 — enforce what the field name promises. `CaseState` is the exported declaration name used by the experiment.
 
@@ -52,7 +52,7 @@ This is the collection’s counterexample. In the compact Hapsland session, Jev 
 
 ## What counts as a correct repair
 
-Accept all three supported counts and reject other numbers, while preserving every independent setting. For this domain, `workerCount: 1 | 2 | 4` is sufficient.
+Accept all three allowed counts and reject other numbers, while preserving every independent setting. For this domain, `workerCount: 1 | 2 | 4` is sufficient.
 
 The [valid larger control](large-separated/clean.ts) was authored before the runs. It is not an agent’s final repair. Each product preserved both native clean inputs in this scenario.
 
@@ -68,7 +68,7 @@ Detection uses all three layouts with two reviews per input and product. Native 
 
 ## Inspect the checks
 
-Complete compiler assignment witnesses test all supported counts, unsupported counts and independent settings. This is a local-value diagnostic; it does not require imported implementation context.
+Complete compiler assignment witnesses test all allowed counts, unallowed counts and independent settings. This is a local-value diagnostic; it does not require imported implementation context.
 
 Detection false warnings on six clean observations: **Hapsland 0/6; Abide 0/6**. Those six observations repeat the three valid layouts; they are not six independent clean designs.
 

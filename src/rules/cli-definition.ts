@@ -38,7 +38,7 @@ const ruleActions = [
     flags: "check",
     example: `--path src/example.ts --line 12 --id ${DEFAULT_RULE_EXAMPLE_ID}`,
     callsClassifier: true,
-    detail: `Selects the enclosing declaration and its bounded related code, not an arbitrary line window. Sends that code and eligible enabled rules to the configured external classifier (may incur charges); returns probabilities and findings. Uses normal key discovery. No resident or agent session. Exit ${RULE_CHECK_EXIT_CODES.evaluated} means evaluated (including findings); exit ${RULE_CHECK_EXIT_CODES.unavailable} means skipped/unavailable. --json includes the actual source-bearing classifier input.`
+    detail: `Selects the enclosing declaration and its related code, not an arbitrary line window. Sends that code and eligible enabled rules to the configured external classifier (may incur charges); returns probabilities and findings. Uses normal key discovery. No resident or agent session. Exit ${RULE_CHECK_EXIT_CODES.evaluated} means evaluated (including findings); exit ${RULE_CHECK_EXIT_CODES.unavailable} means skipped/unavailable. --json includes the actual source-bearing classifier input.`
   },
   {
     name: "create",
@@ -123,7 +123,7 @@ const flags = {
         (value) => Number.isSafeInteger(value) && value > 0,
         () => "a positive one-based line"
       ),
-      Flag.withDescription("One-based line inside a supported declaration (required)")
+      Flag.withDescription("One-based line inside a type or function (required)")
     ),
     id: textFlag("id", "Enabled rule identity; omit to run all eligible enabled rules").pipe(
       Flag.optional,

@@ -6,18 +6,18 @@
 **Expected use:** Diagnose readiness and inspect recorded session work.
 **Lifecycle:** Update with status, analytics, inspection, configuration, or retention changes; review when runtime instrumentation or storage behavior changes.
 
-## Supported source languages
+## Source languages
 
 Hapsland reviews TypeScript interfaces, type aliases, and named functions, plus
 Rust structs, enums, and type aliases, and Bend `type` datatypes. Rust type
 context follows explicit local module bindings whose crate and module roles
 are verified from Cargo metadata and `mod` declarations. External crates,
 re-exports, inline modules, functions, macros, and conditional compilation are
-unsupported. Bend supports bounded transitive context through explicit relative
+unsupported. Bend supports transitive context through explicit relative
 `.bend` imports with aliases. Bend functions, dependent types, laws/proofs, and
 hub, bare, or absolute imports are unsupported; this profile also skips files
 with string literals and requires single-line constructors indented with two spaces.
-See the [supported-language table](../README.md#supported-languages) for file
+See the [language table](../README.md#languages-and-limits) for file
 extensions and limitations. An eligible file can still be skipped when its
 syntax or supporting evidence is unsupported; a skipped edit is not a clean
 review result.
@@ -40,14 +40,14 @@ presence in the doctor process, and effective file settings for the canonical re
 names that inspected context; actual-hook and saved-credential accessibility remain
 `unknown` until an independent, nonprompting probe verifies them. It
 does not prompt, repair configuration, launch the resident, read source, or call Jev.
-Host trust and saved-credential accessibility are `unknown` when no bounded,
+Host trust and saved-credential accessibility are `unknown` when no time-limited,
 nonprompting query exists. Every non-ready stage includes one action in `nextSteps`.
 
-The production hooks and resident record bounded, immutable, source-free activity
+The production hooks and resident record immutable, source-free activity
 markers for each observed event. Session, child, repository, event, and semantic unit
 identities are hashed before persistence. At most 256 events and 72 current semantic
 markers per event are retained per session. Markers contain only stage,
-timestamps, resident lifetime, bounded counts, and hashed identities; they never contain
+timestamps, resident lifetime, counts, and hashed identities; they never contain
 source, paths, credentials, advice, probabilities, or provider responses.
 <!-- activity-retention:start -->
 
@@ -181,7 +181,7 @@ can leave these totals incomplete.
 
 Resumed live feeds send retained increments after each source's saved position.
 The inspector merges these by immutable source/sequence identity and removes rows
-no longer present in the retained view. A reset supplies a fresh bounded snapshot.
+no longer present in the retained view. A reset supplies a fresh snapshot.
 
 Retained records may expire or be evicted by the journal quota. Missing records
 are not evidence of a successful or inactive review. Payload reads return an
@@ -264,7 +264,7 @@ be counted retrospectively. Analytics do not count every native tool call or suc
 Controlled test-provider activity is separated in `controlledTotals` and marked
 `controlled` in details; it never contributes to Jev totals.
 
-Details contain timestamps, outcome kinds, finding counts, bounded rule IDs, and hashed
+Details contain timestamps, outcome kinds, finding counts, rule IDs with length limits, and hashed
 event/child identities. They never include source, file paths, advice text, probabilities,
 credentials, or provider responses. At most 64 rule IDs of 128 characters each are kept
 per detail; IDs outside the safe printable identifier subset are omitted, and

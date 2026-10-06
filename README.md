@@ -12,7 +12,7 @@ code-design concerns.
 
 A type can allow a state that makes no sense. A function can make an assumption
 its inputs do not support. Those choices can spread as the agent writes more code.
-Hapsland reviews supported edits while the agent is working, giving it a chance
+Hapsland reviews edits while the agent is working, giving it a chance
 to revisit the decision early.
 
 Hapsland starts from the edited lines, finds the changed type or function, then
@@ -74,7 +74,7 @@ but require a tokenizer before they can be enforced. See
 
 Hapsland also manages review resources: each resident has separate pools for
 eight preparation jobs and eight concurrent classifier request permits, plus
-bounded retained state and advice output. See
+limits on retained state and advice output. See
 [review resources and limits](./docs/review-resources.md) for saturation behavior,
 configuration controls, and the distinction between collection and model limits.
 
@@ -108,11 +108,11 @@ Inspect them with `hapsland rules list` or `hapsland rules show --id meaningless
 Author one rule per file and enable it. Choose personal or project
 settings for activation, languages, file scope, threshold, and feedback messages.
 File paths belong to settings; the rule defines the concern and evidence it needs.
-A configured rule runs only on supported inputs with sufficient evidence. See
+A configured rule runs only on inputs with sufficient evidence. See
 [custom rules](./docs/configuration.md#declarative-rules) and the
 [type-design rules](./TYPE-DESIGN-RULES.md).
 
-See [supported languages and limits](#supported-languages) before setup.
+See [languages and limits](#languages-and-limits) before setup.
 
 ## Write your first rule
 
@@ -152,7 +152,7 @@ hapsland rules check --path src/primitive-obsession-examples.ts --line 2 --id no
 <!-- rule-check-example:end -->
 
 The line is one-based and selects its enclosing declaration. Hapsland
-captures that declaration and bounded related code with the normal parser, scope,
+captures that declaration and related code with the normal parser, scope,
 privacy and evidence checks, then sends the eligible rule and code to your
 configured external classifier. This is a real request and may incur charges.
 Omit `--id` to check all eligible enabled rules. It uses normal key discovery and
@@ -223,7 +223,7 @@ Or install manually after a stable release is published and verified:
    using a built-in greeting; it sends no project code and may use paid credits.
 
 3. Finish current client work, restart the client normally, complete its native
-   trust prompts, and make a supported edit. Follow the [status guide](./docs/status.md) to inspect observed review activity;
+   trust prompts, and edit a type or function. Follow the [status guide](./docs/status.md) to inspect observed review activity;
    installation alone does not establish that a review ran.
 
 The hooks apply across the selected user profile, not just the repository where
@@ -270,16 +270,16 @@ See the [complete configuration guide](./docs/configuration.md) for field detail
 
 <!-- configuration-readme:end -->
 
-## Supported languages
+## Languages and limits
 
 | Language | Reviewed code | Main limits |
 | --- | --- | --- |
 | TypeScript (`.ts`, `.tsx`, `.mts`, `.cts`) | Interfaces, type aliases, and named functions, with related local types and imports, within configured limits | Unsupported syntax or unresolved evidence can prevent review. |
-| Rust (`.rs`) | Top-level structs, enums, and type aliases, with local type context across verified Cargo modules | Explicit local `mod`/`use` bindings and aliases are supported. External crates, re-exports, inline modules, functions, macros, and conditional compilation are not supported. Cargo metadata and supporting files must pass file selection. Attributes such as `derive` make evidence incomplete for the default rules. |
+| Rust (`.rs`) | Top-level structs, enums, and type aliases, with local type context across verified Cargo modules | Hapsland resolves explicit local `mod`/`use` bindings and aliases. External crates, re-exports, inline modules, functions, macros, and conditional compilation are not supported. Cargo metadata and supporting files must pass file selection. Attributes such as `derive` make evidence incomplete for the default rules. |
 | Bend (`.bend`) | Top-level `type` datatypes and constructor payloads, with related definitions from the same file or explicit relative `.bend` alias imports, within configured limits | Functions, laws/proofs, dependent or computed types, and hub, bare, or absolute imports are unsupported. This first profile skips files with string literals and requires single-line constructors indented with two spaces. |
 
 Rust cross-file context requires a selected `Cargo.toml` with an explicit
-2018, 2021, or 2024 edition and supported library/binary targets. Workspace-inherited
+2018, 2021, or 2024 edition and accepted library/binary targets. Workspace-inherited
 editions, custom build targets, and test/example/bench target tables are outside
 this profile. Module paths must be unambiguous; excluded supporting files stay unread.
 
@@ -287,7 +287,7 @@ Language support applies to source review; it does not select an agent runtime.
 If an edit lacks the evidence a rule needs, Hapsland skips that rule. Silence
 is not confirmation that the code passed review. See the
 [review contract](./docs/type-function-review-proposal.md#branch-contracts) for
-the exact supported syntax and [session status](./docs/status.md) to inspect
+the syntax limits and [session status](./docs/status.md) to inspect
 review activity.
 
 ## Development
@@ -404,7 +404,7 @@ configuration or printed. User configuration selects Jev or Cloudflare Clef/Clef
 An unavailable credential prevents provider dispatch. Changing effective exclusions
 affects future dispatches and cannot recall a request already sent.
 
-The supported Codex event boundary is documented in the
+The Codex event boundary is documented in the
 [direct-event profile](./docs/direct-event-v1-supported-profile.md). The installed Codex
 integration uses a synchronous pre-edit permit and its matching composed post-edit hook.
 An isolated `--codex-hook` call without that lifecycle stays quiet. The installed
@@ -426,7 +426,7 @@ without that facility are unsupported rather than falling back to path-only sour
 Offline readiness diagnosis and headless activity inspection are documented in
 [`docs/status.md`](./docs/status.md). Doctor checks the selected installed integration
 without prompts, repairs, source reads, or Jev calls. Status uses an explicit host session
-ID and bounded source-free resident activity, and never treats silence or missing
+ID and source-free resident activity, and never treats silence or missing
 instrumentation as a clear review. Optional [session analytics](./docs/status.md#optional-session-analytics)
 are disabled by default; user configuration can enable Jev outcome totals and recent
 rule-ID history. See the [shared activity storage limits](./docs/status.md).
@@ -471,7 +471,7 @@ Generated from [the hook catalog](./src/runtime/hook-catalog.ts). Command timeou
 | Claude Code | `SubagentStop` | All | Sync command | 5 s | Collect admitted review results before a subagent finishes |
 | Claude Code | `UserPromptSubmit` | All | Sync command | 4 s | Notify the resident of the user prompt; does not open a review round |
 | Pi | `agent_start` | All | Extension callback | No IPC | Remember the agent identity for cleanup |
-| Pi | `tool_call` | `edit` | Extension callback | 7 s per IPC call | Register a supported edit attempt |
+| Pi | `tool_call` | `edit` | Extension callback | 7 s per IPC call | Register an edit attempt |
 | Pi | `tool_result` | `edit` | Extension callback | 7 s per IPC call | Report the edit and offer ready advice in the tool result |
 | Pi | `agent_before_settle` | All | Extension callback | 7 s per IPC call | Offer review advice before the agent settles |
 | Pi | `session_before_switch` | All | Extension callback | 7 s per IPC call | Retire edit attempts and close owned partitions |
