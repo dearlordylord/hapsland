@@ -13,7 +13,10 @@
     "swarm:interaction": "node run.mjs swarm-interaction.ts",
     "swarm:terminal": "python3 swarm-terminal.py",
     "diagram:write": "node run.mjs diagram.ts --write",
-    "diagram:check": "node run.mjs diagram.ts"
+    "diagram:check": "node run.mjs diagram.ts",
+    "demo:rules": "node run.mjs rules-cli.ts",
+    "rules:probe": "node run.mjs rules-probe.ts",
+    "rules:terminal": "python3 rules-terminal.py"
   },
   "dependencies": {
     "@effect/platform-node": "4.0.0",

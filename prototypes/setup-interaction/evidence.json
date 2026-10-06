@@ -1,6 +1,6 @@
 {
-  "observedAt": "2026-10-06T18:53:32.718Z",
-  "sourceDigest": "8c701861132d711b3e378edc0f3f1a5c5abc969ee799e7026f9085a9e50cba9f",
+  "observedAt": "2026-10-06T20:35:11.692Z",
+  "sourceDigest": "133da36554834c058146431ff4403959f4aa4bc9976db67d7bbb9b9796d83249",
   "host": "darwin-arm64",
   "bun": "1.3.14",
   "effect": "4.0.0",
@@ -192,6 +192,293 @@
     "providerRequests": 0,
     "storageWrites": 0
   },
+  "rules": {
+    "scriptedCases": 22,
+    "staleAuthorization": "passed",
+    "ownerDigestRecheck": "passed",
+    "replayNoRepeatedWrite": "passed",
+    "realWrites": 0,
+    "credentialReads": 0,
+    "providerRequests": 0
+  },
+  "rulesSourcePTY": {
+    "runner": "source",
+    "cases": [
+      {
+        "name": "approve-project",
+        "phase": "Done",
+        "simulatedWrites": 1,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "approve-personal",
+        "phase": "Done",
+        "simulatedWrites": 1,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "decline-b'\\r'",
+        "phase": "Done",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "decline-b'yes\\r'",
+        "phase": "Done",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "decline-b'n\\r'",
+        "phase": "Done",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "stale-renewed-consent",
+        "phase": "Done",
+        "simulatedWrites": 1,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "failed",
+        "phase": "Done",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "partial",
+        "phase": "Done",
+        "simulatedWrites": 1,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "escape-back",
+        "phase": "Done",
+        "simulatedWrites": 1,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "explicit-back-exit",
+        "phase": "Cancelled",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "ctrl-d-0",
+        "phase": "Cancelled",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "ctrl-d-1",
+        "phase": "Cancelled",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "ctrl-d-2",
+        "phase": "Cancelled",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "escape-initial-exit",
+        "phase": "Cancelled",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "signal-2",
+        "phase": "Cancelled",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "signal-15",
+        "phase": "Cancelled",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "signal-1",
+        "phase": "Cancelled",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "narrow",
+        "phase": "Done",
+        "simulatedWrites": 1,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "typeahead",
+        "phase": "Cancelled",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      }
+    ],
+    "realWrites": 0
+  },
+  "rulesCompiledPTY": {
+    "runner": "compiled",
+    "cases": [
+      {
+        "name": "approve-project",
+        "phase": "Done",
+        "simulatedWrites": 1,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "approve-personal",
+        "phase": "Done",
+        "simulatedWrites": 1,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "decline-b'\\r'",
+        "phase": "Done",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "decline-b'yes\\r'",
+        "phase": "Done",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "decline-b'n\\r'",
+        "phase": "Done",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "stale-renewed-consent",
+        "phase": "Done",
+        "simulatedWrites": 1,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "failed",
+        "phase": "Done",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "partial",
+        "phase": "Done",
+        "simulatedWrites": 1,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "escape-back",
+        "phase": "Done",
+        "simulatedWrites": 1,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "explicit-back-exit",
+        "phase": "Cancelled",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "ctrl-d-0",
+        "phase": "Cancelled",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "ctrl-d-1",
+        "phase": "Cancelled",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "ctrl-d-2",
+        "phase": "Cancelled",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "escape-initial-exit",
+        "phase": "Cancelled",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "signal-2",
+        "phase": "Cancelled",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "signal-15",
+        "phase": "Cancelled",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "signal-1",
+        "phase": "Cancelled",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "narrow",
+        "phase": "Done",
+        "simulatedWrites": 1,
+        "modesRestored": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "typeahead",
+        "phase": "Cancelled",
+        "simulatedWrites": 0,
+        "modesRestored": true,
+        "stdoutJSON": true
+      }
+    ],
+    "realWrites": 0
+  },
   "diagram": {
     "scenarios": 8,
     "transitions": 19,
@@ -221,7 +508,7 @@
   },
   "swarmTerminal": {
     "runner": "node run.mjs cli.ts",
-    "seconds": 19.338,
+    "seconds": 19.941,
     "budgetSeconds": 55,
     "results": [
       {

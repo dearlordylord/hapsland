@@ -33,6 +33,8 @@ function run(command, args) {
 try {
   run("node_modules/.bin/tsc", ["-p", "tsconfig.json"])
   const comparison = JSON.parse(run(executable, ["compare.ts"]))
+  const rules = JSON.parse(run(executable, ["rules-probe.ts"]))
+  const rulesSourcePTY = JSON.parse(run("python3", ["rules-terminal.py"]))
   const diagram = JSON.parse(run(executable, ["diagram.ts"]))
   const lifetime = JSON.parse(run(executable, ["lifetime.ts"]))
   const swarmFlow = JSON.parse(run(executable, ["swarm-flow.ts"]))
@@ -44,6 +46,17 @@ try {
     run(executable, ["build", "--compile", `--target=${target}`, "cli.ts", "--outfile", join(directory, target)])
   const hostTarget = process.platform === "darwin" ? "bun-darwin-arm64" : "bun-linux-arm64"
   if (process.arch !== "arm64") throw new Error("Compiled execution probe is scoped to arm64 hosts")
+  run(executable, [
+    "build",
+    "--compile",
+    `--target=${hostTarget}`,
+    "rules-cli.ts",
+    "--outfile",
+    join(directory, "rules-host")
+  ])
+  const rulesCompiledPTY = JSON.parse(
+    run("python3", ["rules-terminal.py", "--compiled", join(directory, "rules-host")])
+  )
   const compiledPTY = JSON.parse(
     run("python3", ["probe-terminal.py", "--bun", executable, "--compiled", join(directory, hostTarget)])
   )
@@ -56,6 +69,9 @@ try {
     effectMachine: "0.28.0",
     typecheck: "passed",
     comparison,
+    rules,
+    rulesSourcePTY,
+    rulesCompiledPTY,
     diagram,
     lifetime,
     swarmFlow,

@@ -1,12 +1,11 @@
-import * as NodeServices from "@effect/platform-node/NodeServices"
-import { Deferred, Effect, Fiber, Terminal } from "effect"
+import { Effect, Fiber } from "effect"
 import * as Prompt from "effect/cli/Prompt"
 import { activeHost, command, initial, readiness, type Action, type Model } from "./domain.ts"
 import { createFakeExecutor } from "./fake.ts"
 import { withMachine } from "./machine.ts"
 import { reduce } from "./reducer.ts"
 import { selectionPrompt } from "./selection.ts"
-import { makeTerminal, terminal } from "./terminal.ts"
+import { runPrompt, runNavigable } from "./interaction.ts"
 // Signal cancellation is session-wide; repeated/group signals must not bypass cleanup.
 const signals = ["SIGINT", "SIGTERM", "SIGHUP"] as const
 let signalCancelled = false
@@ -19,25 +18,7 @@ for (const signal of signals) process.on(signal, onSignal)
 const plain = !!process.env.NO_COLOR
 const theme = plain ? { primaryColor: "", mutedColor: "", successColor: "", errorColor: "", submittedColor: "" } : {}
 const choice = (title: string, value: Action) => ({ title, value })
-const runPrompt = <A>(prompt: Prompt.Prompt<A>) =>
-  Effect.scoped(
-    Prompt.run(prompt).pipe(Effect.provideService(Terminal.Terminal, terminal), Effect.provide(NodeServices.layer))
-  )
-// Escape navigation races the menu through public Effect APIs; the prompt scope cleans up the losing input reader.
-const runMenu = (prompt: Prompt.Prompt<Action>) =>
-  Effect.scoped(
-    Effect.gen(function* () {
-      const back = yield* Deferred.make<Action>()
-      const menuTerminal = makeTerminal(() => Deferred.doneUnsafe(back, Effect.succeed({ kind: "back" })))
-      return yield* Effect.raceFirst(
-        Prompt.run(prompt).pipe(
-          Effect.provideService(Terminal.Terminal, menuTerminal),
-          Effect.provide(NodeServices.layer)
-        ),
-        Deferred.await(back)
-      )
-    })
-  )
+const runMenu = (prompt: Prompt.Prompt<Action>) => runNavigable(prompt, { kind: "back" })
 function action(m: Model): Effect.Effect<Action, unknown> {
   if (m.phase === "Select") return runPrompt(selectionPrompt(m.hosts))
   if (m.phase === "Credential") {

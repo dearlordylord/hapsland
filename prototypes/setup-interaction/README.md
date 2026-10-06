@@ -23,6 +23,27 @@ The first dialog focuses Continue with no agents selected. Enter with an empty s
 
 The terminal prints the relevant state before each action and a durable final result on stderr. Only the final JSON goes to stdout. With `NO_COLOR=1`, the adapter strips SGR styling while retaining cursor controls for interactive menus. Non-TTY stdin/stderr and `TERM=dumb` are rejected with a plain-text next step; they never receive default answers. The replay command below supplies a readable, non-interactive experiment instead of introducing another unattended product format.
 
+## Rules vertical slice
+
+The second workflow uses the same Effect prompt/navigation module as setup, with a separate pure rules reducer and an injected in-memory owner. It exercises named scope selection, owner preview, full-line approval and observed outcome without changing production or adopting #243's pending package/build structure.
+
+```sh
+npm run demo:rules
+npm run demo:rules -- --action=connect
+npm run demo:rules -- --action=enable --outcome=stale
+npm run demo:rules -- --action=disable --outcome=partial
+npm run rules:probe
+npm run rules:terminal
+```
+
+Select Project or Personal, review the proposed rule change, and choose Continue to approval. Enter a complete **y** (case-insensitive, surrounding whitespace allowed) to approve. Empty input, **yes**, and any other line decline, matching existing production confirmation. Escape at approval returns to preview; Escape at preview returns to scope; Escape at the initial scope exits. Back/Exit appear in the choice menus. Ctrl+C/Ctrl+D terminate input. Scope selection and preview issue no write. A changed owner proposal is rejected before mutation, shown again with a new digest, and requires fresh approval.
+
+All four actions—create, connect, enable and disable—are synthetic. Create/connect explicitly show connection and activation; disable shows disabled status. The owner checks the exact approved plan and deduplicates repeated accepted plans in memory. Failed and partial outcomes are distinct; partial status warns that recovery needs inspection. No real files, credential stores, registration or provider operations are accessed. The fake owner's digest and simulated write count are evidence of the interaction shape, not a replacement for production plan semantics or locks.
+
+The scripted and live adapters satisfy the same interaction interface. The rules entry uses one top-level Effect runtime with scoped signal/input cleanup. Setup now reuses the extracted prompt/navigation functions; its preexisting runtime bridges remain a throwaway limitation to remove in production integration. The shared hidden method uses Prompt.Hidden; no custom hidden input was added. Production full-line and authorized controlling-terminal capabilities still require integration against #243's accepted owners; this ordinary-TTY rules slice does not validate redirected-JSON secret input.
+
+Qualification includes rules scripted witnesses plus source and host-compiled PTY cases, alongside all prior setup checks. PTY witnesses cover both scope choices, explicit approval/decline, Back/Exit, changed proposals, failure/partial status, narrow input, typeahead, Ctrl+D and launcher-forwarded signals. Diagram generation remains limited to setup.
+
 ## Reducer replay diagram
 
 Open [the generated Mermaid Markdown](diagram.md) in a Mermaid-capable preview, then run `npm run demo` to try the corresponding console flow. The main graph contains observed state-changing transitions; a companion graph shows observed ignored inputs as self-loops. Replay tables retain event revisions and emitted command IDs without keys, raw owner payloads or approval digests. Prompt-only focus/warning changes and hidden key entry are outside this domain graph.
@@ -50,7 +71,7 @@ npm run swarm:terminal
 npm run qualify
 ```
 
-`qualify` has a 60-second aggregate deadline, typechecks the isolated package, compares both controllers, checks diagram freshness and task lifetime, runs all three adversarial swarm probes and source PTY probes, compiles macOS/Linux arm64 standalone executables, and probes the host executable. It requires an arm64 macOS/Linux host and removes temporary binaries. `npm run qualify -- --write` refreshes [evidence.json](evidence.json) after a new experiment; the plain command leaves the recorded evidence unchanged.
+`qualify` has a 60-second aggregate deadline, typechecks the isolated package, compares both controllers, checks rules behavior/PTY cases, diagram freshness and task lifetime, runs all three adversarial swarm probes and source PTY probes, compiles macOS/Linux arm64 standalone executables, and probes the host executable. It requires an arm64 macOS/Linux host and removes temporary binaries. `npm run qualify -- --write` refreshes [evidence.json](evidence.json) after a new experiment; the plain command leaves the recorded evidence unchanged.
 
 The replay asserts matching state after each event in eight scenarios: two clients with a partial result; back and stale approval/result rejection; wrong command IDs; refusal of navigation during a write; each destination; skip; preserving a higher-priority environment source; keeping an existing credential; declined paid verification; and failed-save recovery. Keys never appear in events/model/command logs. These assertions are executable experiment probes, not a replacement production test suite.
 
