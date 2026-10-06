@@ -116,7 +116,7 @@ Merge this [generated configuration template](examples/session-inspection.jsonc)
 }
 ```
 
-Then make a new eligible edit through an installed Hapsland integration. The setting applies on the next edit; enabling it does not backfill earlier edits. A fresh journal stays empty until new events are recorded. Opening either dashboard does not enable recording. Existing retained history can still be shown after recording is disabled. This history contains captured source and review messages; source-free analytics does not enable it.
+Then make a new edit through an installed Hapsland integration. The setting applies on the next edit; enabling it does not backfill earlier edits. A fresh journal stays empty until new events are recorded. Opening either dashboard does not enable recording. Existing retained history can still be shown after recording is disabled. This history contains captured source and review messages; source-free analytics does not enable it.
 A user default can also enable recording, but an explicit project `sessionInspection: false` overrides it.
 
 <!-- inspection-recording:end -->

@@ -200,7 +200,7 @@ and requires no package rebuild or hook update. See the
 
 <!-- inspection-recording:start -->
 
-Recording is off by default: merge `"sessionInspection": true` into your project's `.hapsland.jsonc` using the [configuration template](examples/session-inspection.jsonc), then make a new eligible edit. Neither dashboard enables recording or backfills old edits; retained history can remain visible after recording is turned off.
+Recording is off by default: add `"sessionInspection": true` into your project's `.hapsland.jsonc` using the [configuration template](examples/session-inspection.jsonc), then make a new edit. Neither dashboard enables recording or backfills old edits; retained history can remain visible after recording is turned off.
 
 <!-- inspection-recording:end -->
 
