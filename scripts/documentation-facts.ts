@@ -13,7 +13,7 @@ import {
   CUSTOM_RULE_EXAMPLE_PATH,
   RULE_CHECK_EXIT_CODES
 } from "../src/rules/cli-definition.ts"
-import primitiveDomainDefinition from "../src/rules/defaults/r6_bare_domain_value.json" with { type: "json" }
+import primitiveDomainDefinition from "../src/rules/defaults/bare_domain_value.json" with { type: "json" }
 import { CLI_NAME } from "../src/runtime/cli-names.ts"
 import {
   authoringExampleFacts,

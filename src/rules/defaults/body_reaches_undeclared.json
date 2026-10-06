@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "id": "r9_body_reaches_undeclared",
+  "id": "body_reaches_undeclared",
   "question": "Does `artifact` declare a callable whose body reaches for a resource or a change of state that its own parameters and return type do not mention?\n\nFocus: Doing work is not the finding, and neither is a shape that declares no callable at all \u2014 a record of fields has nothing to reach for. The finding is a declaration that reads as a function of its arguments while the body reads a clock, a filesystem, a network, a device, a global or an enclosing object, or writes to one. A callable that takes what it touches as an argument, or states the effect in its return type, is not a finding, however much work it does. Judge only dependencies visible in the supplied root body and included supporting declarations. Omitted references are unknown: do not infer their behavior or treat missing evidence alone as a hidden-resource finding. An omission does not erase a resource use that is already visible in included source.",
   "criteria": {
     "false": "Everything a callable reaches for appears in its declaration, or the artifact declares no callable\n\nExamples:\n- a function receives the client, the clock or the writer it uses as a parameter\n- a function's return type states the effect it performs and the resources it needs\n- a pure function of its arguments, returning a value computed from them alone\n- a record or a table of fields, which calls nothing",

@@ -1,6 +1,6 @@
 # Hapsland and Abide: readable rule examples and measured outcomes
 
-**Purpose:** Show concrete examples for all nine bundled Hapsland rules and explain their comparative validation.
+**Purpose:** Show concrete examples for the nine Hapsland rules evaluated at execution time and explain their comparative validation.
 **Status:** Draft for publication review; current resource-rule batch completed on 2026-10-03 (UTC).
 **Authority:** Comparative research advisory and validation evidence; not an accepted product contract or release certification.
 **Expected use:** Read the code, inspect measured differences and limitations, and assess relevance to your workflow.
@@ -8,7 +8,7 @@
 
 [Studies and examples](./review-studies.md) → Compact nine-rule coverage
 
-This report covers all nine rules through two separate matrices: duplicate-fact rule `r4`, and the eight other rules. The [larger-declaration scenario pages](./review-studies.md#choose-a-scenario) belong to a separate five-rule study.
+This historical report covers all nine rules evaluated at execution time through two separate matrices: duplicate-fact rule `r4`, and the eight other rules. The [larger-declaration scenario pages](./review-studies.md#choose-a-scenario) belong to a separate five-rule study.
 
 ## What this comparison establishes
 
@@ -68,6 +68,8 @@ Each TypeScript file combines the starting declaration and its related definitio
 | Declare the resources a body uses | [clock sensitive expiry](./examples/body-reaches-undeclared/clock-sensitive-expiry.ts) · [hidden audit write](./examples/body-reaches-undeclared/hidden-audit-write.ts) | [clean explicit time](./examples/body-reaches-undeclared/clean-explicit-time.ts) |
 
 The [frozen fixtures](../evidence/abide-rule-coverage-current/abide-rule-coverage-fixtures.mjs) own the tested inputs. For naturally contextual cases, related definitions were in unchanged `support.ts`; the [offline preparation record](../evidence/abide-rule-coverage-current/preflight.json) records which definitions entered Hapsland's graph. Count/HTTP-prefix examples are local. A related-definition example is not by itself proof that context caused an advantage.
+
+Current setup provisions seven defaults; [default dispositions](./configuration.md#default-rule-dispositions) explain removal of r1 and r4. The outcomes below retain the original questions and inputs and do not validate revised rules.
 
 ## Results by rule
 
@@ -150,4 +152,4 @@ node scripts/score-abide-rule-coverage.mjs --score \
   --output=/tmp/hapsland-replayed-rule-scores.json --expected-count=9
 ```
 
-The scorer requires TypeScript 5.9.3 at `/tmp/hapsland-quality-scorer/node_modules/typescript`. This calls no reviewer. A live rerun of the [fixed runner](../scripts/run-abide-rule-coverage.mjs) needs credentials and a fresh destination; it incurs review requests.
+The scorer requires TypeScript 5.9.3 at `/tmp/hapsland-quality-scorer/node_modules/typescript`. This calls no reviewer. A live rerun of the [fixed runner](../scripts/run-abide-rule-coverage.mjs) needs credentials, a fresh destination, and the source revision recorded in its declaration; it incurs review requests. The current checkout has removed and renamed defaults and cannot reproduce the original classifier inputs.

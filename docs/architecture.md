@@ -31,7 +31,7 @@ The tree still contains selected code. Structure provides focused context; it do
 
 ## Built-in rules and rules you supply
 
-Nine editable Hapsland default rule files supply probability questions about code design. Each rule declares supported language/input combinations and the evidence it needs. A rule runs only when those needs are met. An omitted reference can be irrelevant to one rule but necessary for another; an omission need not prevent every rule from running.
+Seven editable Hapsland default rule files supply probability questions about code design. Each rule declares supported language/input combinations and the evidence it needs. A rule runs only when those needs are met. An omitted reference can be irrelevant to one rule but necessary for another; an omission need not prevent every rule from running.
 
 Each local JSONC document defines one rule with a stable identity. Configuration declares its path and selects activation, language and file restrictions, thresholds, and feedback messages. Rule settings narrow global root scope and intrinsic input support. Runtime validation schemas are a separate unsupported input form; they are not automatically treated as type declarations. See [rules and configuration](configuration.md#declarative-rules).
 

@@ -336,12 +336,15 @@ try {
   )
   const shippedDirectory = join(installation, "node_modules/@hapsland/hapsland/src/rules/defaults")
   const filenames = (await readdir(shippedDirectory)).filter((name) => name.endsWith(".json")).sort()
-  expect(filenames.length === 9, "installed package must contain nine individual default rules")
+  expect(filenames.length === 7, "installed package must contain seven individual default rules")
   const editablePaths = filenames.map((name) => join(stateRoot, "rules/defaults", name))
   for (const [index, filename] of filenames.entries()) {
     const shippedDocument = JSON.parse(await readFile(join(shippedDirectory, filename), "utf8"))
     const editableDocument = JSON.parse(await readFile(editablePaths[index], "utf8"))
-    expect(shippedDocument.version === 1 && typeof shippedDocument.id === "string", "installed rule asset is malformed")
+    expect(
+      shippedDocument.version === 1 && shippedDocument.id === filename.slice(0, -5),
+      "installed rule asset is malformed"
+    )
     expect(isDeepStrictEqual(editableDocument, shippedDocument), "materialized default disagrees with installed asset")
   }
   const inventory = parse(
@@ -350,7 +353,7 @@ try {
     0
   )
   expect(
-    inventory.enabledCount === 9 && inventory.rules.every((rule) => editablePaths.includes(rule.source)),
+    inventory.enabledCount === 7 && inventory.rules.every((rule) => editablePaths.includes(rule.source)),
     "installed rules did not use editable source paths"
   )
   const editablePath = editablePaths[0]

@@ -88,7 +88,7 @@ for their paths, eligibility and management commands.
 
 <!-- shipped-rules:start -->
 
-Authorized initial setup enables 9 individual editable default files only when no configuration layer declares `rules`.
+Authorized initial setup enables 7 individual editable default files only when no configuration layer declares `rules`.
 
 <!-- shipped-rules:end -->
 
@@ -417,9 +417,9 @@ Inspect, manage and test local JSON rules. Only check sends code to the classifi
 
 ```sh
 hapsland rules list
-hapsland rules show --id r1_inferred_case
-hapsland rules explain --id r1_inferred_case --path src/example.ts
-hapsland rules check --path src/example.ts --line 12 --id r1_inferred_case
+hapsland rules show --id meaningless_combinations
+hapsland rules explain --id meaningless_combinations --path src/example.ts
+hapsland rules check --path src/example.ts --line 12 --id meaningless_combinations
 hapsland rules create --id no-primitive-obsession --scope project
 hapsland rules connect --path .hapsland/rules/custom/no-primitive-obsession.jsonc --scope project
 hapsland rules enable --id no-primitive-obsession --scope project

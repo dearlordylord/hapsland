@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "id": "r2_meaningless_combinations",
+  "id": "meaningless_combinations",
   "question": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds \u2014 inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
   "criteria": {
     "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",

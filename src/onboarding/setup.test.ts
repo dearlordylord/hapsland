@@ -773,7 +773,10 @@ it.each(["changed", "malformed"])("rejects %s default rules before installing an
   const approved = authorization(invoke(test, {}))
   const path = join(test.root, "rules", "defaults", `${SHIPPED_DEFAULT_RULES[0]?.id}.json`)
   mkdirSync(join(test.root, "rules", "defaults"), { recursive: true })
-  const original = readFileSync(join(process.cwd(), "src", "rules", "defaults", "r1_inferred_case.json"), "utf8")
+  const original = readFileSync(
+    join(process.cwd(), "src", "rules", "defaults", "meaningless_combinations.json"),
+    "utf8"
+  )
   writeFileSync(
     path,
     variant === "malformed"

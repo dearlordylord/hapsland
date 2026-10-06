@@ -134,7 +134,9 @@ A deliberate snapshot or a separate layout width would be a different design.
 The example edit removes `Gallery.coverWidth` and reads width from the cover's
 own dimensions. This is an authored example edit, not a guaranteed agent repair.
 
-The applicable built-in type rule is `noul/r4_duplicate_encoding`. Its configured
+This historical example uses the recorded `r4_duplicate_encoding` rule, removed
+from shipped defaults by #240 because of clean warnings in a separate compact study.
+It demonstrates an authored duplicate-fact concern, not a current default. Its recorded
 message is “The type appears to store the same fact in places that can disagree.”
 Jev classifies the supplied code against the supplied question and returns a
 probability; Hapsland applies the configured threshold and message. Jev does not
@@ -150,7 +152,7 @@ illustration relocates the same declarations into separate files so exclusions c
 be shown; that adaptation was not the recorded classifier input.
 
 This type example does not establish function-rule behavior. Explain function
-review separately: the current built-in `noul/r9_body_reaches_undeclared` asks
+review separately: the current default `body_reaches_undeclared` asks
 whether a callable reaches state or resources absent from its declaration.
 Related definitions provide context; they are not additional edited targets.
 

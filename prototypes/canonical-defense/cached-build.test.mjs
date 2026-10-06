@@ -15,7 +15,7 @@ function fixture(t) {
   const bendDirectory = join(root, ".bend/bend2")
   const bin = join(root, "bin")
   for (const directory of [prototypeDir, bendDirectory, bin]) mkdirSync(directory, { recursive: true })
-  for (const name of ["run.sh", "cached-build.mjs", "clang-no-stack-check.sh"]) copyFileSync(join(owner, name), join(prototypeDir, name))
+  for (const name of ["run.sh", "cached-build.mjs", "clang-no-stack-check.sh", "recording-launch.mjs"]) copyFileSync(join(owner, name), join(prototypeDir, name))
   writeFileSync(join(prototypeDir, "DefenseMain.bend"), 'import Base\nimport ./Dependency.bend\n')
   writeFileSync(join(prototypeDir, "Dependency.bend"), 'import "./effect.c"\n')
   writeFileSync(join(prototypeDir, "effect.c"), '#include "./header.h"\n')
@@ -94,13 +94,13 @@ test("failed or changing builds never publish a reusable binary", t => {
   assert.equal(f.count(), 3)
 })
 
-test("run.sh builds once, reuses the cache and forwards runtime arguments", t => {
+test("run.sh builds once, reuses the cache and selects recording mode", t => {
   const f = fixture(t)
-  for (const argument of ["first argument", "different runtime argument"]) {
+  for (const argument of ["--new", "--new"]) {
     const result = spawnSync("bash", [join(f.prototypeDir, "run.sh"), argument], { env: f.environment, encoding: "utf8", timeout: 10000 })
     assert.equal(result.status, 0, result.stderr)
-    assert.equal(result.stdout, `--threads\n4\n${argument}\n`)
-    assert.match(result.stderr, argument === "first argument" ? /building/ : /using cached build/)
+    assert.equal(result.stdout, `--threads\n4\n`)
+    assert.match(result.stderr, /building|using cached build/)
   }
   assert.equal(f.count(), 1)
 })

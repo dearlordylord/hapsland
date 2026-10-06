@@ -189,7 +189,7 @@ describe("resident session analytics", () => {
         answers: Object.fromEntries(
           configuredRules.map((rule) => [
             rule.id,
-            { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 }
+            { _tag: "Probability", probability: rule.id === "bare_domain_value" ? 0.9 : 0 }
           ])
         )
       }
@@ -206,7 +206,7 @@ describe("resident session analytics", () => {
         findings: 1
       })
       expect(f.read().details.find((detail) => detail.kind === "request-findings")?.ruleIds).toEqual([
-        "r6_bare_domain_value"
+        "bare_domain_value"
       ])
       const response = await Effect.runPromise(
         server.handle({

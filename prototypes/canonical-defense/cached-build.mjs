@@ -82,7 +82,7 @@ function sourceIdentity(prototypeDir, bendDirectory) {
     }
   }
   visit(join(prototypeDir, "DefenseMain.bend"))
-  for (const name of ["run.sh", "cached-build.mjs", "clang-no-stack-check.sh"]) visit(join(prototypeDir, name))
+  for (const name of ["run.sh", "cached-build.mjs", "clang-no-stack-check.sh", "recording-launch.mjs"]) visit(join(prototypeDir, name))
   runtime(bendDirectory)
   return [...files].sort(([a], [b]) => a.localeCompare(b))
 }

@@ -83,7 +83,7 @@ it("exposes exact retained bytes from a real resident's production provider tran
               answers: Object.fromEntries(
                 configuredRules.map((rule) => [
                   rule.id,
-                  { type: "noul", noul: rule.id === "r1_inferred_case" ? 0.7 : 0 }
+                  { type: "noul", noul: rule.id === "meaningless_combinations" ? 0.7 : 0 }
                 ])
               ),
               usage: { input_tokens: 1, output_tokens: 1 }
@@ -160,8 +160,8 @@ it("exposes exact retained bytes from a real resident's production provider tran
         status: "available",
         rules: expect.arrayContaining([
           expect.objectContaining({
-            ruleId: "r1_inferred_case",
-            source: expect.stringContaining("r1_inferred_case.json"),
+            ruleId: "meaningless_combinations",
+            source: expect.stringContaining("meaningless_combinations.json"),
             threshold: 0.6,
             message: "Inspect 日本語 cases\r\n\tprecisely",
             question: configuredRules[0]!.decision.instructions,
@@ -172,7 +172,7 @@ it("exposes exact retained bytes from a real resident's production provider tran
     })
     const answers = records.find((record) => record.fact.kind === "validated-answers")?.fact
     expect(answers).toMatchObject({
-      answers: expect.arrayContaining([{ ruleId: "r1_inferred_case", probability: 0.7 }])
+      answers: expect.arrayContaining([{ ruleId: "meaningless_combinations", probability: 0.7 }])
     })
     const findings = records.find((record) => record.fact.kind === "interpreted-findings")?.fact
     expect(findings).toMatchObject({
@@ -180,7 +180,7 @@ it("exposes exact retained bytes from a real resident's production provider tran
         status: "available",
         findings: [
           expect.objectContaining({
-            ruleId: "r1_inferred_case",
+            ruleId: "meaningless_combinations",
             probability: 0.7,
             message: "Inspect 日本語 cases\r\n\tprecisely",
             path: "type.ts",

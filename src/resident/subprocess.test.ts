@@ -511,7 +511,7 @@ describe("resident separate-process lifecycle", () => {
         answers: Object.fromEntries(
           configuredRules.map((rule) => [
             rule.id,
-            { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 }
+            { _tag: "Probability", probability: rule.id === "bare_domain_value" ? 0.9 : 0 }
           ])
         )
       }
@@ -761,7 +761,7 @@ describe("resident separate-process lifecycle", () => {
         answers: Object.fromEntries(
           configuredRules.map((rule) => [
             rule.id,
-            { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 }
+            { _tag: "Probability", probability: rule.id === "bare_domain_value" ? 0.9 : 0 }
           ])
         )
       }

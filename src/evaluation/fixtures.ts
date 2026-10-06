@@ -21,31 +21,26 @@ export const evaluationDefinitionsFromRules = (
 /** The exact bundled production definitions used by the default milestone. */
 export const BUNDLED_EVALUATION_RULES = evaluationDefinitionsFromRules(SHIPPED_DEFAULT_RULES)
 
-/**
- * Human-labelled synthetic examples for the inferred-case rule.  The negative
- * control is intentionally superficially similar: optional contact attributes do
- * not by themselves encode alternative operations.  The ambiguous example is
- * retained for observation, not converted into a guessed label.
- */
+/** Predefined conditional-field examples; controlled execution tests plumbing, not classifier accuracy. */
 export const BUNDLED_EVALUATION_FIXTURES: ReadonlyArray<Fixture> = [
   makeFixture({
-    id: "noul-r1-positive",
-    name: "flat delivery alternatives",
+    id: "noul-conditional-field-positive",
+    name: "unconstrained delivery timestamp",
     role: "positive",
-    domain: "delivery policy",
+    domain: "delivery lifecycle",
     path: "fixtures/delivery-flat.ts",
-    source: "export type Delivery = { emailAddress?: string; phoneNumber?: string };\n"
+    source: 'export type Delivery = { status: "pending" | "delivered"; deliveredAt?: string };\n'
   }),
   makeFixture({
-    id: "noul-r1-negative",
+    id: "noul-conditional-field-negative",
     name: "tagged delivery union",
     role: "negative",
-    domain: "delivery policy",
+    domain: "delivery lifecycle",
     path: "fixtures/delivery-tagged.ts",
-    source: 'export type Delivery = { kind: "email"; address: string } | { kind: "phone"; number: string };\n'
+    source: 'export type Delivery = { status: "pending" } | { status: "delivered"; deliveredAt: string };\n'
   }),
   makeFixture({
-    id: "noul-r1-negative-control",
+    id: "noul-conditional-field-negative-control",
     name: "optional contact attributes control",
     role: "negative-control",
     domain: "customer profile",
@@ -53,22 +48,24 @@ export const BUNDLED_EVALUATION_FIXTURES: ReadonlyArray<Fixture> = [
     source: "export type Customer = { nickname?: string; phone?: string };\n"
   }),
   makeFixture({
-    id: "noul-r1-ambiguous",
-    name: "legacy delivery payload",
+    id: "noul-conditional-field-ambiguous",
+    name: "legacy delivery timestamp",
     role: "ambiguous",
-    domain: "legacy delivery payload",
+    domain: "legacy delivery timestamp",
     path: "fixtures/delivery-legacy.ts",
-    source: "export type LegacyDelivery = { address?: string; channel?: string };\n"
+    source: "export type LegacyDelivery = { status: string; timestamp?: string };\n"
   })
 ]
 
-const inferredCaseRule = BUNDLED_EVALUATION_RULES.find((rule) => rule.identity.ruleId === "r1_inferred_case")
+const conditionalFieldRule = BUNDLED_EVALUATION_RULES.find(
+  (rule) => rule.identity.ruleId === "meaningless_combinations"
+)
 
-if (inferredCaseRule === undefined) {
-  throw new Error("default Hapsland rules do not contain r1_inferred_case")
+if (conditionalFieldRule === undefined) {
+  throw new Error("default Hapsland rules do not contain meaningless_combinations")
 }
 
-const inferredCaseId = inferredCaseRule.identity.ruleId
+const conditionalFieldId = conditionalFieldRule.identity.ruleId
 const fixture = (id: string): Fixture => {
   const found = BUNDLED_EVALUATION_FIXTURES.find((candidate) => candidate.id === id)
   if (found === undefined) throw new Error(`missing evaluation fixture ${id}`)
@@ -77,34 +74,34 @@ const fixture = (id: string): Fixture => {
 
 export const BUNDLED_EVALUATION_EXPECTATIONS: ReadonlyArray<Expectation> = [
   makeExpectation({
-    fixtureId: fixture("noul-r1-positive").id,
-    ruleId: inferredCaseId,
+    fixtureId: fixture("noul-conditional-field-positive").id,
+    ruleId: conditionalFieldId,
     result: {
       kind: "violation",
       band: { minimum: DEFAULT_RULE_THRESHOLD, maximum: 1, minimumInclusive: false, maximumInclusive: true }
     },
     rationale:
-      "The flat record leaves email and phone alternatives independently present, so the operation case is not named."
+      "The flat record admits a deliveredAt timestamp while status is pending, where that timestamp has no meaning."
   }),
   makeExpectation({
-    fixtureId: fixture("noul-r1-negative").id,
-    ruleId: inferredCaseId,
+    fixtureId: fixture("noul-conditional-field-negative").id,
+    ruleId: conditionalFieldId,
     result: { kind: "clear", band: { minimum: 0, maximum: 0.3, minimumInclusive: true, maximumInclusive: false } },
-    rationale: "Each delivery variant names its operation and keeps only the fields for that case."
+    rationale: "Only the delivered variant admits a deliveredAt timestamp."
   }),
   makeExpectation({
-    fixtureId: fixture("noul-r1-negative-control").id,
-    ruleId: inferredCaseId,
+    fixtureId: fixture("noul-conditional-field-negative-control").id,
+    ruleId: conditionalFieldId,
     result: { kind: "clear", band: { minimum: 0, maximum: 0.3, minimumInclusive: true, maximumInclusive: false } },
     rationale:
-      "Optional nickname and phone are independent attributes of one customer meaning, not alternative operations."
+      "Optional nickname and phone are independent customer attributes with no conditional validity requirement."
   }),
   makeAmbiguousExpectation({
-    fixtureId: fixture("noul-r1-ambiguous").id,
-    ruleId: inferredCaseId,
+    fixtureId: fixture("noul-conditional-field-ambiguous").id,
+    ruleId: conditionalFieldId,
     reason: "legacy payload semantics are not established by the source alone",
     rationale:
-      "The legacy channel field may be descriptive metadata or an implicit operation selector; retain the case without a hard label."
+      "The legacy timestamp may be meaningful for every status or only some; retain the case without inventing domain requirements."
   })
 ]
 

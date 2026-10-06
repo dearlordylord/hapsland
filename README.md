@@ -97,13 +97,13 @@ and network calls remain native code. See [proof scope and evidence](./docs/arch
 
 <!-- shipped-rules:start -->
 
-With no explicit rule selection, authorized setup enables 9 editable JSON rule files with questions about code design, including whether a declaration allows meaningless combinations of values. Each rule declares supported languages, input forms, and required related code.
+With no explicit rule selection, authorized setup enables 7 editable JSON rule files with questions about code design, including whether a declaration allows meaningless combinations of values. Each rule declares supported languages, input forms, and required related code.
 
 <!-- shipped-rules:end -->
 
 <!-- rule-inspection:start -->
 
-Inspect them with `hapsland rules list` or `hapsland rules show --id r1_inferred_case`.
+Inspect them with `hapsland rules list` or `hapsland rules show --id meaningless_combinations`.
 
 <!-- rule-inspection:end -->
 Author one rule per file and enable it explicitly. Choose personal or project
@@ -119,13 +119,13 @@ See [supported languages and limits](#supported-languages) before setup.
 
 <!-- first-rule-defaults:start -->
 
-Start with the **9 editable default rules**.
+Start with the **7 editable default rules**.
 
 <!-- first-rule-defaults:end -->
 
 <!-- first-rule-inspection:start -->
 
-Run `hapsland rules list`, then `hapsland rules show --id r1_inferred_case` to inspect one and its source file.
+Run `hapsland rules list`, then `hapsland rules show --id meaningless_combinations` to inspect one and its source file.
 
 <!-- first-rule-inspection:end -->
 You may already have a rule for your concern. Setup enables defaults when no

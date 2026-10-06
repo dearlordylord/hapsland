@@ -56,8 +56,10 @@ use either a local path or an inherited rule ID, with optional activation,
 languages, paths, threshold, and message settings. Paths belong to configuration.
 A duplicate identity or rebinding to a different file is an error. Rule content and
 effective settings have content digests; there are no pack identities or content
-version labels. Existing default rule IDs (`r1_inferred_case` and the other `rN_*`
-IDs) remain stable. Initial setup provisions nine editable defaults only when no configuration layer
+version labels. Shipped default IDs use descriptive names without numeric prefixes (for example,
+`meaningless_combinations`). The #240 cleanup removes inferred-case and duplicate-encoding
+defaults and removes `rN_` prefixes from retained defaults. Existing authored files and
+explicit selections remain authoritative; setup does not rename or rewrite them. Initial setup provisions seven editable defaults only when no configuration layer
 declares `rules`. Any explicit selection, including `rules: []`, is authoritative:
 repeat setup preserves it and authored files, without enabling unselected defaults.
 Missing rule files fail validation instead of being recreated.

@@ -20,7 +20,7 @@ Each scenario page shows the problem, actual input code, final agent code and th
 
 ## What the current numbers mean
 
-The larger-declaration study contains **six scenarios: four types and two functions, covering five of the nine bundled Hapsland rules**. Each scenario has one compact defective input and one larger separated defective input in the native comparison.
+The larger-declaration study contains **six scenarios: four types and two functions, covering five of the nine Hapsland rules evaluated at execution time**. Each scenario has one compact defective input and one larger separated defective input in the native comparison.
 
 | Defective inputs in native sessions | Hapsland sessions repaired | Abide sessions repaired |
 | --- | ---: | ---: |
@@ -59,7 +59,7 @@ Each scenario has three layouts, each with a defective input and an authored val
 | [Compact examples across all nine rules](./abide-contextual-review-study.md) | A separate duplicate-fact matrix and a matrix for the eight other rules | Additional examples, per-rule results, false warnings and final source |
 | [Hapsland and Abide](./abide-comparison.md) | Review inputs, file access and data retention | Architecture, joint operation and links to measured review quality |
 
-The older “eight rules” count refers to the eight rules besides duplicate-fact rule `r4`, which had its own study. The product has **nine rules**. The studies use different inputs and repetitions; their repair counts are not pooled into a single rating.
+The older “eight rules” count refers to the eight rules besides duplicate-fact rule `r4`, which had its own study. New setup now provisions **seven defaults** after [the default review](./configuration.md#default-rule-dispositions). These historical studies evaluated nine rules, including the two removed defaults. The studies use different inputs and repetitions; their repair counts are not pooled into a single rating.
 
 ## Inspect the evidence
 

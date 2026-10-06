@@ -15,3 +15,5 @@ dist
 .test-runs/
 
 .husky/_/
+
+prototypes/canonical-defense/game-recording.bin

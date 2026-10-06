@@ -128,7 +128,7 @@ const makeScenarioSet = (backend: ReturnType<typeof backendIdentity>) => {
       id: input.id,
       name: input.name,
       interaction: input.interaction,
-      ...(input.interaction === "named" ? { interactionName: "inferred-case-related-pair" } : {}),
+      ...(input.interaction === "named" ? { interactionName: "conditional-field-related-pair" } : {}),
       fixtures: BUNDLED_EVALUATION_FIXTURES,
       ruleDefinitions: input.rules,
       configurationCaseId: configuration.id,
@@ -137,15 +137,15 @@ const makeScenarioSet = (backend: ReturnType<typeof backendIdentity>) => {
       inputContract,
       rendererAdapter
     })
-  const r1 = BUNDLED_EVALUATION_RULES.filter((rule) => rule.identity.ruleId === "r1_inferred_case")
-  const r2 = BUNDLED_EVALUATION_RULES.filter((rule) => rule.identity.ruleId === "r2_meaningless_combinations")
+  const correlated = BUNDLED_EVALUATION_RULES.filter((rule) => rule.identity.ruleId === "split_correlations")
+  const conditional = BUNDLED_EVALUATION_RULES.filter((rule) => rule.identity.ruleId === "meaningless_combinations")
   return {
     configuration,
     scenarios: [
       ...BUNDLED_EVALUATION_RULES.map((rule) =>
         scenario({
           id: `isolated-${rule.identity.ruleId}`,
-          name: "isolated inferred-case rule",
+          name: "isolated bundled rule",
           interaction: "isolated",
           rules: [rule]
         })
@@ -157,10 +157,10 @@ const makeScenarioSet = (backend: ReturnType<typeof backendIdentity>) => {
         rules: BUNDLED_EVALUATION_RULES
       }),
       scenario({
-        id: "named-inferred-case-pair",
-        name: "named related inferred-case pair",
+        id: "named-conditional-field-pair",
+        name: "named related conditional-field pair",
         interaction: "named",
-        rules: [...r1, ...r2]
+        rules: [...conditional, ...correlated]
       })
     ]
   }
