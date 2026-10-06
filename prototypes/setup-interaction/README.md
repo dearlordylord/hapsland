@@ -23,6 +23,21 @@ The first dialog focuses Continue with no agents selected. Enter with an empty s
 
 The terminal prints the relevant state before each action and a durable final result on stderr. Only the final JSON goes to stdout. With `NO_COLOR=1`, the adapter strips SGR styling while retaining cursor controls for interactive menus. Non-TTY stdin/stderr and `TERM=dumb` are rejected with a plain-text next step; they never receive default answers. The replay command below supplies a readable, non-interactive experiment instead of introducing another unattended product format.
 
+## Reducer replay diagram
+
+Open [the generated Mermaid Markdown](diagram.md) in a Mermaid-capable preview, then run `npm run demo` to try the corresponding console flow. The main graph contains observed state-changing transitions; a companion graph shows observed ignored inputs as self-loops. Replay tables retain event revisions and emitted command IDs without keys, raw owner payloads or approval digests. Prompt-only focus/warning changes and hidden key entry are outside this domain graph.
+
+```sh
+npm run diagram:write
+npm run diagram:check
+```
+
+The write command explicitly regenerates the artifact. The check compares current output without rewriting it and is included in `qualify`. Both use the same [named scenario drivers](scenarios.ts) as the controller comparison, with explicit starting sources and fresh initial contexts. Drivers contain independent behavioral assertions; the generator records transitions from the actual current reducer instead of maintaining expected edges. No real operation is executed.
+
+**Coverage limit:** This diagram shows transitions observed by the declared scenario replays through the current reducer. Regeneration keeps it current for those scenarios; it does not establish exhaustive coverage. New states, guards or context-dependent branches may remain absent until scenarios exercise them. Diagram freshness does not establish behavioral correctness. The graph's branch labels describe observed paths. For example, the console's first-dialog empty-Continue warning is not a reducer transition, and the headless reducer's legal empty-selection completion is currently absent from these eight diagram scenarios.
+
+Diagram presentation remains a prototype decision. Review the main graph's separation from ignored inputs and the multi-agent return to Hooks when comparing it with the console. This adds no transition-table migration or state-machine dependency.
+
 ## Reproduce the evidence
 
 ```sh
@@ -35,7 +50,7 @@ npm run swarm:terminal
 npm run qualify
 ```
 
-`qualify` has a 60-second aggregate deadline, typechecks the isolated package, compares both controllers, checks task lifetime, runs all three adversarial swarm probes and source PTY probes, compiles macOS/Linux arm64 standalone executables, and probes the host executable. It requires an arm64 macOS/Linux host and removes temporary binaries. `npm run qualify -- --write` refreshes [evidence.json](evidence.json) after a new experiment; the plain command leaves the recorded evidence unchanged.
+`qualify` has a 60-second aggregate deadline, typechecks the isolated package, compares both controllers, checks diagram freshness and task lifetime, runs all three adversarial swarm probes and source PTY probes, compiles macOS/Linux arm64 standalone executables, and probes the host executable. It requires an arm64 macOS/Linux host and removes temporary binaries. `npm run qualify -- --write` refreshes [evidence.json](evidence.json) after a new experiment; the plain command leaves the recorded evidence unchanged.
 
 The replay asserts matching state after each event in eight scenarios: two clients with a partial result; back and stale approval/result rejection; wrong command IDs; refusal of navigation during a write; each destination; skip; preserving a higher-priority environment source; keeping an existing credential; declined paid verification; and failed-save recovery. Keys never appear in events/model/command logs. These assertions are executable experiment probes, not a replacement production test suite.
 
@@ -64,7 +79,7 @@ Three independent Luna max agents tested flow semantics, command/state boundarie
 | Replaying command execution can repeat work | One executor per session deduplicates concurrent/replayed IDs; conflicting command fingerprints fail closed. |
 | Launcher-only SIGTERM exits Node but leaves Bun running | The asynchronous launcher forwards termination, awaits child close, and keeps pipes/terminal cleanup owned. |
 | A process-group signal reaches Bun twice and leaves the terminal raw | Bun runs in its own group; forwarding and persistent session cancellation restore terminal modes and produce a durable result. Resize signals are forwarded too. |
-| An empty agent selection is trapped at a minimum-one prompt | Empty selection completes as a no-op, distinct from cancellation, with no command. |
+| An empty agent selection is trapped at a minimum-one prompt | The headless reducer accepts empty selection as a no-op; the console guards empty Continue with a warning. |
 
 The final swarm reports no findings in its checked scope: 86 flow expectations, state/command boundary expectations recorded in `swarmInteraction`, and 33 adversarial console cases. The terminal cases cover hidden-input cancel/EOF, repeated EOF, multibyte hidden input at width 12, explicit Back paths, typeahead, asymmetric TTY streams, launcher/group termination, and empty Enter guarding Continue, Space toggling all/on/off, and Escape exiting. The first swarm's apparent wrong-screen failures were fixture errors, corrected by matching initial source metadata and structural comparison; they are not product defects.
 
@@ -74,10 +89,10 @@ This does not establish that arbitrary owner payloads are valid external input, 
 
 - The two controllers implement transitions independently. Shared domain helpers describe safe data, digests, context updates and view-derived commands; the machine does not call the reducer. No inspector, persistence or cluster features are enabled.
 - `Schema.declare` trusts in-process typed context/events for this experiment. It is not an accepted decoder for saved plans, IPC or external input.
-- Fake credential save previews/digests demonstrate where consent belongs. Production currently lacks the proposed destination-specific preview API; specification and owner changes are required before implementing it.
+- Real credential-owner integration follows prototype review and must use the existing setup/credential owners. Fake credential save previews/digests demonstrate where consent belongs. Production currently lacks the proposed destination-specific preview API; specification and owner changes are required before implementing it.
 - Hidden input yields `Redacted`; the fake adapter consumes and drops it immediately and invalidates the wrapper. This does not prove memory zeroization. No real key is used or retained in the evidence.
 - No filesystem preservation/permissions, Git-ignore changes, Keychain/Secret Service behavior, real engine partial writes, real cancellation during mutation, credential validity or paid checks were exercised. Cancel/back during simulated writes waits for the owner outcome rather than claiming rollback.
-- Linux execution, prior externally established raw terminal modes, screen readers, wide/multibyte labels and visual readability remain unvalidated. A resize input probe confirms continuation, not optimal redraw/layout. Multibyte hidden input is exercised, but multibyte label layout remains unvalidated.
+- Linux execution is deferred to a later milestone; compilation alone does not establish it. The user will review visual readability after this prototype. Screen-reader work is outside the current scope. Prior externally established raw terminal modes and wide/multibyte labels remain unvalidated. A resize input probe confirms continuation, not optimal redraw/layout. Multibyte hidden input is exercised, but multibyte label layout remains unvalidated.
 - The production CLI, unattended version-one JSON, saved plans, packaging assets and review policies are unchanged. Root `check:fast` excludes prototypes, so this package has its own typecheck and qualification.
 
 See the [preserved flow](../../docs/setup-interaction-proposal.md), [model research](../../docs/research/PRODUCT-RESEARCH-ADVISORY-2026-10-06-INTERACTION-MODEL.md) and [renderer research](../../docs/research/PRODUCT-RESEARCH-ADVISORY-2026-10-06-CONSOLE-RENDERING.md). This is evidence for a design choice, not owner acceptance or release support.

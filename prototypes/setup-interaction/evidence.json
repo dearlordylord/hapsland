@@ -1,6 +1,6 @@
 {
-  "observedAt": "2026-10-06T17:42:31.664Z",
-  "sourceDigest": "14941d876f7431de02cfe25366223695d0f417c292fb31939120a1e7c8c77624",
+  "observedAt": "2026-10-06T18:31:23.701Z",
+  "sourceDigest": "20d5c456a62c5c977a9dc1b9201e82217532199d072f2b4a3ab742e011186435",
   "host": "darwin-arm64",
   "bun": "1.3.14",
   "effect": "4.0.0",
@@ -192,6 +192,13 @@
     "providerRequests": 0,
     "storageWrites": 0
   },
+  "diagram": {
+    "scenarios": 8,
+    "transitions": 19,
+    "ignored": 5,
+    "freshness": "passed",
+    "realOperations": 0
+  },
   "lifetime": {
     "state": "Idle",
     "stateOwnedTaskReleased": true,
@@ -214,7 +221,7 @@
   },
   "swarmTerminal": {
     "runner": "node run.mjs cli.ts",
-    "seconds": 14.689,
+    "seconds": 16.098,
     "budgetSeconds": 55,
     "results": [
       {

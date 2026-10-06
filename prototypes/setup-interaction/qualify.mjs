@@ -33,6 +33,7 @@ function run(command, args) {
 try {
   run("node_modules/.bin/tsc", ["-p", "tsconfig.json"])
   const comparison = JSON.parse(run(executable, ["compare.ts"]))
+  const diagram = JSON.parse(run(executable, ["diagram.ts"]))
   const lifetime = JSON.parse(run(executable, ["lifetime.ts"]))
   const swarmFlow = JSON.parse(run(executable, ["swarm-flow.ts"]))
   const swarmInteraction = JSON.parse(run(executable, ["swarm-interaction.ts"]))
@@ -55,6 +56,7 @@ try {
     effectMachine: "0.28.0",
     typecheck: "passed",
     comparison,
+    diagram,
     lifetime,
     swarmFlow,
     swarmInteraction,
