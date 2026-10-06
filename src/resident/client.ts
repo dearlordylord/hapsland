@@ -21,10 +21,10 @@ import { resolve } from "node:path"
 import { closeSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import type { DirectObservation, DirectAdvicee } from "../direct-event/model.ts"
 
-import { ReviewConfigError } from "../runtime/review-config.ts"
+import { ReviewConfigError } from "../runtime/review-settings-error.ts"
 import { loadConfiguration } from "../configuration/load.ts"
 import type { ControlledDecisionModelOptions } from "../test-support/controlled-decision-model.ts"
-import { DEFAULT_CREDENTIAL_STATE_PATH, readCredentialState } from "../credentials/secret-service.ts"
+import { DEFAULT_CREDENTIAL_STATE_PATH, readCredentialState } from "../credentials/state.ts"
 import type { ClaudeHostOutput, CollectionMode } from "./collection.ts"
 import {
   prepareResidentDirectory,

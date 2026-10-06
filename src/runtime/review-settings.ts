@@ -4,7 +4,8 @@ import { freezeCanonicalData } from "../canonical/immutable.ts"
 import { DEFAULT_USER_CONFIGURATION_FILE, PROJECT_CONFIGURATION_FILE } from "../configuration/load.ts"
 import type { ConfigurationCapture } from "../configuration/types.ts"
 import type { CompiledRule } from "../rules/compiler.ts"
-import { loadReviewSettings, type ReviewConfigError, type ReviewSettings } from "./review-config.ts"
+import { loadReviewSettings, type ReviewSettings } from "./review-config.ts"
+import type { ReviewConfigError } from "./review-settings-error.ts"
 
 export const REVIEW_SETTINGS_CACHE_CAPACITY = 128
 export const REVIEW_SETTINGS_CACHE_TTL_MS = 5_000

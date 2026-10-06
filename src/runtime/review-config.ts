@@ -1,5 +1,5 @@
 import * as Effect from "effect/Effect"
-import * as Schema from "effect/Schema"
+import { ReviewConfigError } from "./review-settings-error.ts"
 import { loadConfiguration, type LoadConfigurationOptions } from "../configuration/load.ts"
 import type { ConfigurationError } from "../configuration/errors.ts"
 import { resolveConfiguration, effectiveReviewBackend } from "../configuration/resolve.ts"
@@ -15,13 +15,6 @@ export const DEFAULT_BACKEND = JEV_BACKEND
 export const DEFAULT_API_BASE = JEV_API_BASE
 export const DEFAULT_DESTINATION = JEV_DESTINATION
 export { DEFAULT_CREDENTIAL_ENV_VAR }
-
-/** Compatibility error for callers of the pre-#10 runtime configuration API. */
-export class ReviewConfigError extends Schema.TaggedError<ReviewConfigError>()("ReviewConfigError", {
-  source: Schema.String,
-  field: Schema.String,
-  reason: Schema.String
-}) {}
 
 export interface ReviewSettings {
   readonly backend: BackendId

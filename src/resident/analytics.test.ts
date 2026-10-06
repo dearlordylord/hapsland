@@ -20,7 +20,7 @@ import { makeResidentDispatchContextEffect as makeResidentDispatchContext } from
 import { residentPaths } from "./paths.ts"
 import { acquireResidentFixture } from "./runtime-fixture.ts"
 import type { ResidentDispatchContext } from "./protocol.ts"
-import { readCredentialState } from "../credentials/secret-service.ts"
+import { readCredentialState } from "../credentials/state.ts"
 
 const directories: string[] = []
 afterEach(() => {

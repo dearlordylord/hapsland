@@ -1,6 +1,11 @@
 import * as Redacted from "effect/Redacted"
 import { resolveCredentialInput, type CredentialInputOptions } from "./input.ts"
-import { HAPSLAND_STATE_DIRECTORY } from "../runtime/user-paths.ts"
+import {
+  DEFAULT_CREDENTIAL_STATE_PATH,
+  makeInitialCredentialState,
+  readCredentialState,
+  type CredentialState
+} from "./state.ts"
 import { packageAssetPath } from "../runtime/package-runtime.ts"
 import { execFileSync } from "node:child_process"
 import { createHash, randomUUID } from "node:crypto"
@@ -16,7 +21,6 @@ import * as Schema from "effect/Schema"
 import { runSecretServiceProcess, type SecretServiceOperation } from "./secret-service-process.ts"
 
 export const CREDENTIAL_LOOKUP_DEADLINE_MS = 750
-export const DEFAULT_CREDENTIAL_STATE_PATH = join(HAPSLAND_STATE_DIRECTORY, "credential-state.json")
 
 export type SecretServiceStatus =
   | "available"
@@ -34,13 +38,6 @@ export type SecretServiceStatus =
 
 export type SecretServiceResult = { readonly status: SecretServiceStatus; readonly value?: string }
 
-export const CredentialState = Schema.Struct({
-  version: Schema.Literal(1),
-  generation: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
-  savedUseSuspended: Schema.Boolean
-})
-export interface CredentialState extends Schema.Schema.Type<typeof CredentialState> {}
-
 export type CredentialStateLockStatus = "acquired" | "recovered" | "busy" | "unavailable"
 
 export type CredentialLifecycleResult = {
@@ -48,8 +45,6 @@ export type CredentialLifecycleResult = {
   readonly state: CredentialState
   readonly stateLock: CredentialStateLockStatus
 }
-
-const initialState: CredentialState = { version: 1, generation: 0, savedUseSuspended: false }
 
 const packagedHelper = packageAssetPath(
   "native",
@@ -68,22 +63,6 @@ const resolveStatePath = Effect.fn("Credentials.statePath")((path?: string) =>
     return path === undefined ? yield* statePathConfig : path
   })
 )
-
-const decodeState = (value: unknown): CredentialState =>
-  Option.getOrElse(Schema.decodeUnknownOption(CredentialState)(value), () => ({
-    ...initialState,
-    savedUseSuspended: true
-  }))
-
-export const readCredentialState = (statePath = DEFAULT_CREDENTIAL_STATE_PATH): CredentialState => {
-  try {
-    return decodeState(JSON.parse(readFileSync(statePath, "utf8")) as unknown)
-  } catch (cause) {
-    return typeof cause === "object" && cause !== null && "code" in cause && cause.code === "ENOENT"
-      ? initialState
-      : { ...initialState, savedUseSuspended: true }
-  }
-}
 
 const writeCredentialState = (statePath: string, state: CredentialState): void => {
   mkdirSync(dirname(statePath), { recursive: true, mode: 0o700 })
@@ -524,7 +503,7 @@ export const saveCredential = Effect.fn("Credentials.save")((value: string, path
     Effect.catch(() =>
       Effect.succeed<CredentialLifecycleResult>({
         status: "unavailable",
-        state: { ...initialState, savedUseSuspended: true },
+        state: { ...makeInitialCredentialState(), savedUseSuspended: true },
         stateLock: "unavailable"
       })
     )
@@ -553,7 +532,7 @@ export const logoutCredential = Effect.fn("Credentials.logout")((path?: string) 
     Effect.catch(() =>
       Effect.succeed<CredentialLifecycleResult>({
         status: "unavailable",
-        state: { ...initialState, savedUseSuspended: true },
+        state: { ...makeInitialCredentialState(), savedUseSuspended: true },
         stateLock: "unavailable"
       })
     )

@@ -24,7 +24,7 @@ import { nativeDeferred } from "../test-support/native-deferred.ts"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import { configuredRules, connectDefaultRuleFixture } from "../test-support/default-rules.ts"
-import { readCredentialState } from "../credentials/secret-service.ts"
+import { readCredentialState } from "../credentials/state.ts"
 import { decodeInspectionRecord } from "./contract.ts"
 
 it("exposes exact retained bytes from a real resident's production provider transport", async () => {

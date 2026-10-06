@@ -111,7 +111,8 @@ import {
   type OperationalNoticeKind
 } from "./collection.ts"
 import { residentEvaluationIdentity } from "./evaluation-reuse.ts"
-import { readCredentialState, resolveCredential, type CredentialResolution } from "../credentials/secret-service.ts"
+import { resolveCredential, type CredentialResolution } from "../credentials/secret-service.ts"
+import { readCredentialState } from "../credentials/state.ts"
 import { claimDemoBudget } from "../onboarding/demo-budget.ts"
 import { findingFromProbability } from "../rules/decision.ts"
 import { recordDemoTrace } from "../onboarding/demo-trace.ts"
