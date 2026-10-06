@@ -29,7 +29,7 @@ the agent runtime and configuration. See the [architecture guide](./docs/archite
 for the flow and its boundaries. Run `hapsland --feedback-preview` to see the
 shared agent instructions with a synthetic finding; no review request is made.
 
-## What can the checker see?
+## What leaves my repository?
 
 Sending source to a review service is a data-sharing decision. Your task prompt
 and conversation with the agent are not sent to the review backend.

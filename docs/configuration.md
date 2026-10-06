@@ -396,7 +396,7 @@ meaning.
 domain concepts use interchangeable primitive values?” State what counts
 as a violation and what should stay clear. Avoid combining unrelated concerns or
 asking about behavior that requires a task description, production data or a whole
-repository. See [what the checker can see](../README.md#what-can-the-checker-see).
+repository. See [what leaves your repository](../README.md#what-leaves-my-repository).
 
 **2. Create a starter, then keep it disabled while editing.**
 
