@@ -162,5 +162,63 @@
       "Strict resolver/compiler contribution evidence",
       "Full milestone gate and installed performance comparison"
     ]
+  },
+  "standaloneFeasibility": {
+    "scope": "Observed Linux arm64 candidate; not installed feature or build-integration milestone",
+    "probe": "scripts/probe-hook-standalone.ts",
+    "artifacts": {
+      "identity": "standalone-candidate-03-identity.json",
+      "emission": "standalone-candidate-03-emission.json",
+      "assembly": "standalone-candidate-03-assembly.json"
+    },
+    "observations": {
+      "compilerInputs": 201,
+      "assemblyInputs": 1,
+      "assemblySource": "Current emitted bundled JavaScript",
+      "artifactInventory": 19,
+      "allInputIdentitiesRecorded": true,
+      "toolchainAndAdapterIdentitiesRecorded": true
+    },
+    "architecturalReview": {
+      "agent": "architecture_inventory",
+      "disposition": "Favorable separated standalone artifact within feasibility scope",
+      "findings": [
+        {
+          "finding": "Missing complete compiler-input and copied-asset identities",
+          "disposition": "Probe now records hashes for201inputs and19artifact files/modes, plus toolchain and adapter"
+        }
+      ],
+      "remainingLimits": [
+        "Manual metadata authorization; no enforced publication gate",
+        "Copied component freshness not enforced by probe",
+        "Native loader plugin inputs absent from hook emission; rewritten native loaders not validated",
+        "Conditional resolvers and Pi host-loaded contribution validation pending"
+      ]
+    },
+    "validation": {
+      "fast": "passed",
+      "smoke02": "Expected quiet/protocol outputs for retired channels, malformed native inputs and admin flags",
+      "candidate02": {
+        "run": "20261006205559966-1137519-579997",
+        "tests": "24 passed"
+      },
+      "candidate03": {
+        "run": "20261006205906370-1142882-aeb325",
+        "build": "passed",
+        "pack": "passed",
+        "tests": "24 passed across installed CLI, dedicated source hook and candidate binary; same physical installed resident"
+      },
+      "checksumHandling": "New binary had different checksum despite identical emitted JS; validated that exact binary rather than transferring prior artifact results",
+      "coverage": "Focused validation, not full quality gate or installed routing/platform/performance acceptance"
+    },
+    "failedProbe01": "Actual pinned Bun returned object metafile; probe initially assumed string data from local bun-types docs. Preserved failure, serialized object and reran in fresh directory.",
+    "pending": [
+      "Required owner tooling decision before dependent integration",
+      "Dependency-ordered package compilation/cache/publication enforcement",
+      "Ordinary installed hook routing/setup/update/repair/diagnostics",
+      "Superseded CLI hook path deletion",
+      "Full milestone gate",
+      "Interleaved installed performance measurement"
+    ]
   }
 }

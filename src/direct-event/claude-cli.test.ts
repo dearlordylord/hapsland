@@ -143,12 +143,18 @@ const cliExitEvidence = (result: {
   stderrBytes: Buffer.byteLength(result.stderr)
 })
 
-describe.each(["installed CLI", "dedicated source hook"])("%s Claude synchronous delivery", (surface) => {
+describe.each([
+  "installed CLI",
+  "dedicated source hook",
+  ...(process.env.HAPSLAND_TEST_HOOK_EXECUTABLE ? ["standalone candidate hook"] : [])
+])("%s Claude synchronous delivery", (surface) => {
   beforeEach(() => {
     hookCommand =
       surface === "installed CLI"
         ? installed.cli
-        : { executable: bunExecutable(), args: [fileURLToPath(new URL("../hook-main.ts", import.meta.url))] }
+        : surface === "standalone candidate hook"
+          ? { executable: process.env.HAPSLAND_TEST_HOOK_EXECUTABLE!, args: [] }
+          : { executable: bunExecutable(), args: [fileURLToPath(new URL("../hook-main.ts", import.meta.url))] }
   })
   it("exits quietly when unsupported hook input meets closed stdout", async () => {
     const child = spawn(hookCommand.executable, cliArgs(CLAUDE_EDIT_FLAGS), {

@@ -1,0 +1,6448 @@
+{
+  "inputs": {
+    "src/hook-main.ts": {
+      "bytes": 447,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/src/resident/hook-clock.ts",
+          "kind": "import-statement",
+          "original": "./resident/hook-clock.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/hooks/command.ts",
+          "kind": "import-statement",
+          "original": "./hooks/command.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/hooks/program.ts",
+          "kind": "import-statement",
+          "original": "./hooks/program.ts"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/hooks/command.ts": {
+      "bytes": 2231,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/Command.js",
+          "kind": "import-statement",
+          "original": "effect/cli/Command"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/CliConfig.js",
+          "kind": "import-statement",
+          "original": "effect/cli/CliConfig"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/CliError.js",
+          "kind": "import-statement",
+          "original": "effect/cli/CliError"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/GlobalFlag.js",
+          "kind": "import-statement",
+          "original": "effect/cli/GlobalFlag"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Console.js",
+          "kind": "import-statement",
+          "original": "effect/Console"
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node/dist/NodeServices.js",
+          "kind": "import-statement",
+          "original": "@effect/platform-node/NodeServices"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/hooks/arguments.ts",
+          "kind": "import-statement",
+          "original": "./arguments.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/runtime/cli-names.ts",
+          "kind": "import-statement",
+          "original": "../runtime/cli-names.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/runtime/cli-information.ts",
+          "kind": "import-statement",
+          "original": "../runtime/cli-information.ts"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/resident/hook-clock.ts": {
+      "bytes": 843,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/src/runtime/machine-clock.ts",
+          "kind": "import-statement",
+          "original": "../runtime/machine-clock.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Clock.js",
+          "kind": "import-statement",
+          "original": "effect/Clock"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Effect.js",
+          "kind": "import-statement",
+          "original": "effect/Effect"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/hooks/program.ts": {
+      "bytes": 6348,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/ConfigProvider.js",
+          "kind": "import-statement",
+          "original": "effect/ConfigProvider"
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Fiber.js",
+          "kind": "import-statement",
+          "original": "effect/Fiber"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Option.js",
+          "kind": "import-statement",
+          "original": "effect/Option"
+        },
+        {
+          "path": "fs",
+          "kind": "import-statement",
+          "original": "node:fs",
+          "external": true
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/direct-event/adapter.ts",
+          "kind": "import-statement",
+          "original": "../direct-event/adapter.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/direct-event/observation.ts",
+          "kind": "import-statement",
+          "original": "../direct-event/observation.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/pi/transport.ts",
+          "kind": "import-statement",
+          "original": "../pi/transport.ts"
+        },
+        {
+          "path": "../resident/hook-clock.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/resident/client.ts",
+          "kind": "import-statement",
+          "original": "../resident/client.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/resident/hook-output.ts",
+          "kind": "import-statement",
+          "original": "../resident/hook-output.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/resident/direct-hook-output.ts",
+          "kind": "import-statement",
+          "original": "../resident/direct-hook-output.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/resident/composed-hook.ts",
+          "kind": "import-statement",
+          "original": "../resident/composed-hook.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/resident/controlled-options.ts",
+          "kind": "import-statement",
+          "original": "../resident/controlled-options.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/runtime/input-settings.ts",
+          "kind": "import-statement",
+          "original": "../runtime/input-settings.ts"
+        },
+        {
+          "path": "../runtime/machine-clock.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/hooks/direct.ts",
+          "kind": "import-statement",
+          "original": "./direct.ts"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/runtime/machine-clock.ts": {
+      "bytes": 3491,
+      "imports": [
+        {
+          "path": "effect/Clock",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Layer.js",
+          "kind": "import-statement",
+          "original": "effect/Layer"
+        },
+        {
+          "path": "bun:ffi",
+          "kind": "dynamic-import",
+          "external": true
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Clock.js": {
+      "bytes": 5752,
+      "imports": [
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Effect.js": {
+      "bytes": 258644,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Context.js",
+          "kind": "import-statement",
+          "original": "./Context.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Duration.js",
+          "kind": "import-statement",
+          "original": "./Duration.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Exit.js",
+          "kind": "import-statement",
+          "original": "./Exit.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Function.js",
+          "kind": "import-statement",
+          "original": "./Function.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/core.js",
+          "kind": "import-statement",
+          "original": "./internal/core.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js",
+          "kind": "import-statement",
+          "original": "./internal/effect.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/executionPlan.js",
+          "kind": "import-statement",
+          "original": "./internal/executionPlan.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/layer.js",
+          "kind": "import-statement",
+          "original": "./internal/layer.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/record.js",
+          "kind": "import-statement",
+          "original": "./internal/record.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/request.js",
+          "kind": "import-statement",
+          "original": "./internal/request.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schedule.js",
+          "kind": "import-statement",
+          "original": "./internal/schedule.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Metric.js",
+          "kind": "import-statement",
+          "original": "./Metric.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/References.js",
+          "kind": "import-statement",
+          "original": "./References.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Console.js": {
+      "bytes": 23228,
+      "imports": [
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/hooks/arguments.ts": {
+      "bytes": 2234,
+      "imports": [
+        {
+          "path": "effect/cli/Flag",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/runtime/argument-flags.ts",
+          "kind": "import-statement",
+          "original": "../runtime/argument-flags.ts"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/runtime/cli-names.ts": {
+      "bytes": 795,
+      "imports": [],
+      "format": "esm"
+    },
+    "node_modules/@effect/platform-node/dist/NodeServices.js": {
+      "bytes": 771,
+      "imports": [
+        {
+          "path": "effect/Layer",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node/dist/NodeChildProcessSpawner.js",
+          "kind": "import-statement",
+          "original": "./NodeChildProcessSpawner.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node/dist/NodeCrypto.js",
+          "kind": "import-statement",
+          "original": "./NodeCrypto.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node/dist/NodeFileSystem.js",
+          "kind": "import-statement",
+          "original": "./NodeFileSystem.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node/dist/NodePath.js",
+          "kind": "import-statement",
+          "original": "./NodePath.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node/dist/NodeStdio.js",
+          "kind": "import-statement",
+          "original": "./NodeStdio.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node/dist/NodeTerminal.js",
+          "kind": "import-statement",
+          "original": "./NodeTerminal.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/runtime/cli-information.ts": {
+      "bytes": 2940,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/package.json",
+          "kind": "import-statement",
+          "original": "../../package.json",
+          "with": {
+            "type": "json"
+          }
+        },
+        {
+          "path": "./cli-names.ts",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/GlobalFlag.js": {
+      "bytes": 7089,
+      "imports": [
+        {
+          "path": "../Console.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./CliOutput.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/Completions.js",
+          "kind": "import-statement",
+          "original": "./Completions.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/Flag.js",
+          "kind": "import-statement",
+          "original": "./Flag.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/completions/descriptor.js",
+          "kind": "import-statement",
+          "original": "./internal/completions/descriptor.js"
+        },
+        {
+          "path": "./internal/help.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/Command.js": {
+      "bytes": 36872,
+      "imports": [
+        {
+          "path": "../Console.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../References.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Result.js",
+          "kind": "import-statement",
+          "original": "../Result.js"
+        },
+        {
+          "path": "../Runtime.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Stdio.js",
+          "kind": "import-statement",
+          "original": "../Stdio.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Terminal.js",
+          "kind": "import-statement",
+          "original": "../Terminal.js"
+        },
+        {
+          "path": "./CliConfig.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./CliError.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/CliOutput.js",
+          "kind": "import-statement",
+          "original": "./CliOutput.js"
+        },
+        {
+          "path": "./GlobalFlag.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/command.js",
+          "kind": "import-statement",
+          "original": "./internal/command.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/config.js",
+          "kind": "import-statement",
+          "original": "./internal/config.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/help.js",
+          "kind": "import-statement",
+          "original": "./internal/help.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/lexer.js",
+          "kind": "import-statement",
+          "original": "./internal/lexer.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/parser.js",
+          "kind": "import-statement",
+          "original": "./internal/parser.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/wizard.js",
+          "kind": "import-statement",
+          "original": "./internal/wizard.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/Param.js",
+          "kind": "import-statement",
+          "original": "./Param.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/Prompt.js",
+          "kind": "import-statement",
+          "original": "./Prompt.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/CliConfig.js": {
+      "bytes": 1706,
+      "imports": [
+        {
+          "path": "../Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Layer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./GlobalFlag.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/CliError.js": {
+      "bytes": 16337,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Predicate.js",
+          "kind": "import-statement",
+          "original": "../Predicate.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Runtime.js",
+          "kind": "import-statement",
+          "original": "../Runtime.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Schema.js",
+          "kind": "import-statement",
+          "original": "../Schema.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/hooks/direct.ts": {
+      "bytes": 6416,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Config.js",
+          "kind": "import-statement",
+          "original": "effect/Config"
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Option",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../direct-event/adapter.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../resident/hook-clock.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/activity/status.ts",
+          "kind": "import-statement",
+          "original": "../activity/status.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/activity/demo-trace.ts",
+          "kind": "import-statement",
+          "original": "../activity/demo-trace.ts"
+        },
+        {
+          "path": "../resident/client.ts",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/resident/direct-hook-output.ts": {
+      "bytes": 5584,
+      "imports": [
+        {
+          "path": "effect/Config",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Context",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Layer",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Option",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../activity/status.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../activity/demo-trace.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/direct-event/claude-output.ts",
+          "kind": "import-statement",
+          "original": "../direct-event/claude-output.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/direct-event/writer.ts",
+          "kind": "import-statement",
+          "original": "../direct-event/writer.ts"
+        },
+        {
+          "path": "./client.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./hook-output.ts",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/resident/controlled-options.ts": {
+      "bytes": 1824,
+      "imports": [
+        {
+          "path": "effect/Config",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/resident/composed-hook.ts": {
+      "bytes": 17036,
+      "imports": [
+        {
+          "path": "./hook-clock.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "crypto",
+          "kind": "import-statement",
+          "original": "node:crypto",
+          "external": true
+        },
+        {
+          "path": "fs/promises",
+          "kind": "import-statement",
+          "original": "node:fs/promises",
+          "external": true
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Schedule",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Context",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Layer",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./hook-output.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../activity/status.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../direct-event/adapter.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./client.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./paths.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../direct-event/claude-output.ts",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/pi/transport.ts": {
+      "bytes": 7925,
+      "imports": [
+        {
+          "path": "crypto",
+          "kind": "import-statement",
+          "original": "node:crypto",
+          "external": true
+        },
+        {
+          "path": "effect/Clock",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/direct-event/pi-adapter.ts",
+          "kind": "import-statement",
+          "original": "../direct-event/pi-adapter.ts"
+        },
+        {
+          "path": "../resident/hook-clock.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/resident/paths.ts",
+          "kind": "import-statement",
+          "original": "../resident/paths.ts"
+        },
+        {
+          "path": "../resident/client.ts",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Option.js": {
+      "bytes": 56947,
+      "imports": [
+        {
+          "path": "./Combiner.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Equivalence.js",
+          "kind": "import-statement",
+          "original": "./Equivalence.js"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/doNotation.js",
+          "kind": "import-statement",
+          "original": "./internal/doNotation.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/option.js",
+          "kind": "import-statement",
+          "original": "./internal/option.js"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/result.js",
+          "kind": "import-statement",
+          "original": "./internal/result.js"
+        },
+        {
+          "path": "./Order.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Reducer.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/direct-event/observation.ts": {
+      "bytes": 2571,
+      "imports": [],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Fiber.js": {
+      "bytes": 11080,
+      "imports": [
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/resident/client.ts": {
+      "bytes": 32967,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Redacted.js",
+          "kind": "import-statement",
+          "original": "effect/Redacted"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/credentials/input.ts",
+          "kind": "import-statement",
+          "original": "../credentials/input.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/runtime/package-runtime.ts",
+          "kind": "import-statement",
+          "original": "../runtime/package-runtime.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/configuration/resolve.ts",
+          "kind": "import-statement",
+          "original": "../configuration/resolve.ts"
+        },
+        {
+          "path": "child_process",
+          "kind": "import-statement",
+          "original": "node:child_process",
+          "external": true
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Cause",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Clock",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Config",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Context",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Duration",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Layer",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Option",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Ref.js",
+          "kind": "import-statement",
+          "original": "effect/Ref"
+        },
+        {
+          "path": "effect/Schedule",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        },
+        {
+          "path": "net",
+          "kind": "import-statement",
+          "original": "node:net",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        },
+        {
+          "path": "fs",
+          "kind": "import-statement",
+          "original": "node:fs",
+          "external": true
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/runtime/review-settings-error.ts",
+          "kind": "import-statement",
+          "original": "../runtime/review-settings-error.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/configuration/load.ts",
+          "kind": "import-statement",
+          "original": "../configuration/load.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/resident/protocol.ts",
+          "kind": "import-statement",
+          "original": "./protocol.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/credentials/state.ts",
+          "kind": "import-statement",
+          "original": "../credentials/state.ts"
+        },
+        {
+          "path": "./paths.ts",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/resident/hook-output.ts": {
+      "bytes": 3805,
+      "imports": [
+        {
+          "path": "./hook-clock.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Context",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Layer",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/ConfigProvider.js": {
+      "bytes": 33532,
+      "imports": [
+        {
+          "path": "./Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Data.js",
+          "kind": "import-statement",
+          "original": "./Data.js"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/FileSystem.js",
+          "kind": "import-statement",
+          "original": "./FileSystem.js"
+        },
+        {
+          "path": "./Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Layer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Path.js",
+          "kind": "import-statement",
+          "original": "./Path.js"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./String.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/direct-event/adapter.ts": {
+      "bytes": 25561,
+      "imports": [
+        {
+          "path": "fs/promises",
+          "kind": "import-statement",
+          "original": "node:fs/promises",
+          "external": true
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/repository/root.ts",
+          "kind": "import-statement",
+          "original": "../repository/root.ts"
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../configuration/load.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/direct-event/capture.ts",
+          "kind": "import-statement",
+          "original": "./capture.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/direct-event/selection.ts",
+          "kind": "import-statement",
+          "original": "./selection.ts"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/runtime/input-settings.ts": {
+      "bytes": 792,
+      "imports": [
+        {
+          "path": "effect/Config",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Option",
+          "kind": "import-statement"
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/runtime/user-paths.ts",
+          "kind": "import-statement",
+          "original": "./user-paths.ts"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Layer.js": {
+      "bytes": 67250,
+      "imports": [
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Deferred.js",
+          "kind": "import-statement",
+          "original": "./Deferred.js"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/stackTraceLimit.js",
+          "kind": "import-statement",
+          "original": "./internal/stackTraceLimit.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/tracer.js",
+          "kind": "import-statement",
+          "original": "./internal/tracer.js"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./References.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Scope.js",
+          "kind": "import-statement",
+          "original": "./Scope.js"
+        },
+        {
+          "path": "./Tracer.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Context.js": {
+      "bytes": 24101,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Effectable.js",
+          "kind": "import-statement",
+          "original": "./Effectable.js"
+        },
+        {
+          "path": "./Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/effect.js": {
+      "bytes": 124607,
+      "imports": [
+        {
+          "path": "../Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Duration.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Filter.js",
+          "kind": "import-statement",
+          "original": "../Filter.js"
+        },
+        {
+          "path": "../Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Inspectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Iterable.js",
+          "kind": "import-statement",
+          "original": "../Iterable.js"
+        },
+        {
+          "path": "../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Order.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Redactable.js",
+          "kind": "import-statement",
+          "original": "../Redactable.js"
+        },
+        {
+          "path": "../Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Scheduler.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Tracer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Utils.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./doNotation.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./metric.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./references.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./stackTraceLimit.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./tracer.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schedule.js": {
+      "bytes": 3594,
+      "imports": [
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Pull.js",
+          "kind": "import-statement",
+          "original": "../Pull.js"
+        },
+        {
+          "path": "../Schedule.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Utils.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./effect.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Duration.js": {
+      "bytes": 41097,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Combiner.js",
+          "kind": "import-statement",
+          "original": "./Combiner.js"
+        },
+        {
+          "path": "./Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Inspectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Order.js",
+          "kind": "import-statement",
+          "original": "./Order.js"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Reducer.js",
+          "kind": "import-statement",
+          "original": "./Reducer.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Exit.js": {
+      "bytes": 21930,
+      "imports": [
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/References.js": {
+      "bytes": 18363,
+      "imports": [
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/references.js",
+          "kind": "import-statement",
+          "original": "./internal/references.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Scheduler.js",
+          "kind": "import-statement",
+          "original": "./Scheduler.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Tracer.js",
+          "kind": "import-statement",
+          "original": "./Tracer.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Scheduler.js",
+          "kind": "import-statement",
+          "original": "./Scheduler.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/record.js": {
+      "bytes": 546,
+      "imports": [],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Function.js": {
+      "bytes": 15283,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Pipeable.js",
+          "kind": "import-statement",
+          "original": "./Pipeable.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/core.js": {
+      "bytes": 12448,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Equal.js",
+          "kind": "import-statement",
+          "original": "../Equal.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Formatter.js",
+          "kind": "import-statement",
+          "original": "../Formatter.js"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Hash.js",
+          "kind": "import-statement",
+          "original": "../Hash.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Inspectable.js",
+          "kind": "import-statement",
+          "original": "../Inspectable.js"
+        },
+        {
+          "path": "../Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Utils.js",
+          "kind": "import-statement",
+          "original": "../Utils.js"
+        },
+        {
+          "path": "./record.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/layer.js": {
+      "bytes": 756,
+      "imports": [
+        {
+          "path": "../Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Layer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./effect.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Predicate.js": {
+      "bytes": 32531,
+      "imports": [
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Runtime.js": {
+      "bytes": 9454,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Cause.js",
+          "kind": "import-statement",
+          "original": "effect/Cause"
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Exit",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Function",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Schema.js": {
+      "bytes": 302483,
+      "imports": [
+        {
+          "path": "./Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/BigDecimal.js",
+          "kind": "import-statement",
+          "original": "./BigDecimal.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/ByteSize.js",
+          "kind": "import-statement",
+          "original": "./ByteSize.js"
+        },
+        {
+          "path": "./Cause.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Chunk.js",
+          "kind": "import-statement",
+          "original": "./Chunk.js"
+        },
+        {
+          "path": "./Data.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/DateTime.js",
+          "kind": "import-statement",
+          "original": "./DateTime.js"
+        },
+        {
+          "path": "./Duration.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/encoding/Base64.js",
+          "kind": "import-statement",
+          "original": "./encoding/Base64.js"
+        },
+        {
+          "path": "./Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Exit.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/HashMap.js",
+          "kind": "import-statement",
+          "original": "./HashMap.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/HashSet.js",
+          "kind": "import-statement",
+          "original": "./HashSet.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/http/Cookies.js",
+          "kind": "import-statement",
+          "original": "./http/Cookies.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/http/Headers.js",
+          "kind": "import-statement",
+          "original": "./http/Headers.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/http/UrlParams.js",
+          "kind": "import-statement",
+          "original": "./http/UrlParams.js"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/graph.js",
+          "kind": "import-statement",
+          "original": "./internal/graph.js"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/annotations.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/annotations.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/make.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/make.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/standardSchema.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/standardSchema.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/toCodec.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/toCodec.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/toDifferJsonPatch.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/toDifferJsonPatch.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/toEncoderXml.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/toEncoderXml.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/toEquivalence.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/toEquivalence.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/toFormatter.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/toFormatter.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/toIso.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/toIso.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/toJsonSchemaDocument.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/toJsonSchemaDocument.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/toRepresentation.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/toRepresentation.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schemaError.js",
+          "kind": "import-statement",
+          "original": "./internal/schemaError.js"
+        },
+        {
+          "path": "./internal/stackTraceLimit.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/net/IpInterface.js",
+          "kind": "import-statement",
+          "original": "./net/IpInterface.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/net/IpNetwork.js",
+          "kind": "import-statement",
+          "original": "./net/IpNetwork.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/net/NetAddress.js",
+          "kind": "import-statement",
+          "original": "./net/NetAddress.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Number.js",
+          "kind": "import-statement",
+          "original": "./Number.js"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Order.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Record.js",
+          "kind": "import-statement",
+          "original": "./Record.js"
+        },
+        {
+          "path": "./Redacted.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/RegExp.js",
+          "kind": "import-statement",
+          "original": "./RegExp.js"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/SchemaAST.js",
+          "kind": "import-statement",
+          "original": "./SchemaAST.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/SchemaGetter.js",
+          "kind": "import-statement",
+          "original": "./SchemaGetter.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/SchemaIssue.js",
+          "kind": "import-statement",
+          "original": "./SchemaIssue.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/SchemaParser.js",
+          "kind": "import-statement",
+          "original": "./SchemaParser.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/SchemaTransformation.js",
+          "kind": "import-statement",
+          "original": "./SchemaTransformation.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Struct.js",
+          "kind": "import-statement",
+          "original": "./Struct.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/Prompt.js": {
+      "bytes": 100166,
+      "imports": [
+        {
+          "path": "../Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Data.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Effectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../FileSystem.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Number.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Path.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Queue.js",
+          "kind": "import-statement",
+          "original": "../Queue.js"
+        },
+        {
+          "path": "../Redacted.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Terminal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/ansi.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/internal/config.js": {
+      "bytes": 5358,
+      "imports": [
+        {
+          "path": "../../internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Param.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Terminal.js": {
+      "bytes": 2448,
+      "imports": [
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Schema.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/internal/wizard.js": {
+      "bytes": 9026,
+      "imports": [
+        {
+          "path": "../../Console.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Redacted.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Param.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Primitive.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Prompt.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/ansi.js",
+          "kind": "import-statement",
+          "original": "./ansi.js"
+        },
+        {
+          "path": "./command.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/internal/lexer.js": {
+      "bytes": 1830,
+      "imports": [],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/Param.js": {
+      "bytes": 45311,
+      "imports": [
+        {
+          "path": "../Config.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Schema.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./CliError.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Primitive.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Prompt.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Result.js": {
+      "bytes": 38999,
+      "imports": [
+        {
+          "path": "./Equivalence.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/doNotation.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/internal/command.js": {
+      "bytes": 9655,
+      "imports": [
+        {
+          "path": "../../Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Effectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../CliError.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Param.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Primitive.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./config.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/CliOutput.js": {
+      "bytes": 12678,
+      "imports": [
+        {
+          "path": "../Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Layer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Option.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/internal/help.js": {
+      "bytes": 4681,
+      "imports": [
+        {
+          "path": "../../Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Param.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./command.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/internal/parser.js": {
+      "bytes": 22343,
+      "imports": [
+        {
+          "path": "../../Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../CliError.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Param.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/Primitive.js",
+          "kind": "import-statement",
+          "original": "../Primitive.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/auto-suggest.js",
+          "kind": "import-statement",
+          "original": "./auto-suggest.js"
+        },
+        {
+          "path": "./command.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Stdio.js": {
+      "bytes": 2998,
+      "imports": [
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Layer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Sink.js",
+          "kind": "import-statement",
+          "original": "./Sink.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Stream.js",
+          "kind": "import-statement",
+          "original": "./Stream.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/Flag.js": {
+      "bytes": 28016,
+      "imports": [
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Param.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/internal/completions/descriptor.js": {
+      "bytes": 4620,
+      "imports": [
+        {
+          "path": "../../../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Param.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Primitive.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../command.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/Completions.js": {
+      "bytes": 1372,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/completions/bash.js",
+          "kind": "import-statement",
+          "original": "./internal/completions/bash.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/completions/fish.js",
+          "kind": "import-statement",
+          "original": "./internal/completions/fish.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/completions/zsh.js",
+          "kind": "import-statement",
+          "original": "./internal/completions/zsh.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "package.json": {
+      "bytes": 6538,
+      "imports": [],
+      "format": "json"
+    },
+    "node_modules/@effect/platform-node/dist/NodeStdio.js": {
+      "bytes": 674,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node-shared/dist/NodeStdio.js",
+          "kind": "import-statement",
+          "original": "@effect/platform-node-shared/NodeStdio"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/@effect/platform-node/dist/NodeFileSystem.js": {
+      "bytes": 699,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node-shared/dist/NodeFileSystem.js",
+          "kind": "import-statement",
+          "original": "@effect/platform-node-shared/NodeFileSystem"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/@effect/platform-node/dist/NodePath.js": {
+      "bytes": 999,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node-shared/dist/NodePath.js",
+          "kind": "import-statement",
+          "original": "@effect/platform-node-shared/NodePath"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/@effect/platform-node/dist/NodeTerminal.js": {
+      "bytes": 863,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node-shared/dist/NodeTerminal.js",
+          "kind": "import-statement",
+          "original": "@effect/platform-node-shared/NodeTerminal"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/@effect/platform-node/dist/NodeCrypto.js": {
+      "bytes": 851,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node-shared/dist/NodeCrypto.js",
+          "kind": "import-statement",
+          "original": "@effect/platform-node-shared/NodeCrypto"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/runtime/argument-flags.ts": {
+      "bytes": 620,
+      "imports": [
+        {
+          "path": "effect/cli/Flag",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/activity/status.ts": {
+      "bytes": 21757,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/src/activity/storage.ts",
+          "kind": "import-statement",
+          "original": "./storage.ts"
+        },
+        {
+          "path": "crypto",
+          "kind": "import-statement",
+          "original": "node:crypto",
+          "external": true
+        },
+        {
+          "path": "fs",
+          "kind": "import-statement",
+          "original": "node:fs",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        }
+      ],
+      "format": "esm"
+    },
+    "src/activity/demo-trace.ts": {
+      "bytes": 3726,
+      "imports": [
+        {
+          "path": "crypto",
+          "kind": "import-statement",
+          "original": "node:crypto",
+          "external": true
+        },
+        {
+          "path": "fs",
+          "kind": "import-statement",
+          "original": "node:fs",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        },
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Config.js": {
+      "bytes": 37664,
+      "imports": [
+        {
+          "path": "./ConfigProvider.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/LogLevel.js",
+          "kind": "import-statement",
+          "original": "./LogLevel.js"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Schema.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaAST.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaGetter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaIssue.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaParser.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaTransformation.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Schedule.js": {
+      "bytes": 33770,
+      "imports": [
+        {
+          "path": "./Cause.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Cron.js",
+          "kind": "import-statement",
+          "original": "./Cron.js"
+        },
+        {
+          "path": "./Duration.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/random.js",
+          "kind": "import-statement",
+          "original": "./internal/random.js"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pull.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/references.js": {
+      "bytes": 1924,
+      "imports": [
+        {
+          "path": "../Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Scheduler.js": {
+      "bytes": 6561,
+      "imports": [
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Tracer.js": {
+      "bytes": 9758,
+      "imports": [
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/encoding/Hex.js",
+          "kind": "import-statement",
+          "original": "./encoding/Hex.js"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Cause.js": {
+      "bytes": 35498,
+      "imports": [
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Pipeable.js": {
+      "bytes": 3948,
+      "imports": [],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Equal.js": {
+      "bytes": 10990,
+      "imports": [
+        {
+          "path": "./Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Utils.js": {
+      "bytes": 2483,
+      "imports": [
+        {
+          "path": "./internal/stackTraceLimit.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Formatter.js": {
+      "bytes": 9270,
+      "imports": [
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Redactable.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Inspectable.js": {
+      "bytes": 6336,
+      "imports": [
+        {
+          "path": "./Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Redactable.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Hash.js": {
+      "bytes": 13033,
+      "imports": [
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/equal.js",
+          "kind": "import-statement",
+          "original": "./internal/equal.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/hash.js",
+          "kind": "import-statement",
+          "original": "./internal/hash.js"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Pull.js": {
+      "bytes": 7766,
+      "imports": [
+        {
+          "path": "./Cause.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Exit.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Filter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Order.js": {
+      "bytes": 24414,
+      "imports": [
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Reducer.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/runtime/user-paths.ts": {
+      "bytes": 635,
+      "imports": [
+        {
+          "path": "os",
+          "kind": "import-statement",
+          "original": "node:os",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Array.js": {
+      "bytes": 110188,
+      "imports": [
+        {
+          "path": "./Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Equivalence.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/array.js",
+          "kind": "import-statement",
+          "original": "./internal/array.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/count.js",
+          "kind": "import-statement",
+          "original": "./internal/count.js"
+        },
+        {
+          "path": "./internal/doNotation.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Iterable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Order.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Reducer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Tuple.js",
+          "kind": "import-statement",
+          "original": "./Tuple.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/metric.js": {
+      "bytes": 126,
+      "imports": [],
+      "format": "esm"
+    },
+    "src/direct-event/pi-adapter.ts": {
+      "bytes": 5961,
+      "imports": [
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../repository/root.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../configuration/load.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./capture.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./selection.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/direct-event/pi-patch-hunks.ts",
+          "kind": "import-statement",
+          "original": "./pi-patch-hunks.ts"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/resident/paths.ts": {
+      "bytes": 5757,
+      "imports": [
+        {
+          "path": "fs/promises",
+          "kind": "import-statement",
+          "original": "node:fs/promises",
+          "external": true
+        },
+        {
+          "path": "effect/Config",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/ConfigProvider",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Context",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Option",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        },
+        {
+          "path": "os",
+          "kind": "import-statement",
+          "original": "node:os",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Effectable.js": {
+      "bytes": 3099,
+      "imports": [
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/FileSystem.js": {
+      "bytes": 12606,
+      "imports": [
+        {
+          "path": "./Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./ByteSize.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Cause.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Layer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./PlatformError.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Sink.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Stream.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Path.js": {
+      "bytes": 20679,
+      "imports": [
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Layer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/PlatformError.js",
+          "kind": "import-statement",
+          "original": "./PlatformError.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Data.js": {
+      "bytes": 7324,
+      "imports": [
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Deferred.js": {
+      "bytes": 22814,
+      "imports": [
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/tracer.js": {
+      "bytes": 1124,
+      "imports": [
+        {
+          "path": "./stackTraceLimit.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/stackTraceLimit.js": {
+      "bytes": 1145,
+      "imports": [],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Scope.js": {
+      "bytes": 11092,
+      "imports": [
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/credentials/state.ts": {
+      "bytes": 1353,
+      "imports": [
+        {
+          "path": "effect/Option",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        },
+        {
+          "path": "fs",
+          "kind": "import-statement",
+          "original": "node:fs",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        },
+        {
+          "path": "../runtime/user-paths.ts",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Redacted.js": {
+      "bytes": 5425,
+      "imports": [
+        {
+          "path": "./Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Equivalence.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/redacted.js",
+          "kind": "import-statement",
+          "original": "./internal/redacted.js"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/runtime/review-settings-error.ts": {
+      "bytes": 302,
+      "imports": [
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/resident/protocol.ts": {
+      "bytes": 20466,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/src/inspection/contract.ts",
+          "kind": "import-statement",
+          "original": "../inspection/contract.ts"
+        },
+        {
+          "path": "../activity/status.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../direct-event/observation.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Option",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/configuration/load.ts": {
+      "bytes": 3990,
+      "imports": [
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "fs/promises",
+          "kind": "import-statement",
+          "original": "node:fs/promises",
+          "external": true
+        },
+        {
+          "path": "../runtime/user-paths.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/configuration/decode.ts",
+          "kind": "import-statement",
+          "original": "./decode.ts"
+        },
+        {
+          "path": "./errors.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./resolve.ts",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/credentials/input.ts": {
+      "bytes": 3483,
+      "imports": [
+        {
+          "path": "effect/Config",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Option",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Redacted",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        },
+        {
+          "path": "fs",
+          "kind": "import-statement",
+          "original": "node:fs",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        },
+        {
+          "path": "util",
+          "kind": "import-statement",
+          "original": "node:util",
+          "external": true
+        },
+        {
+          "path": "../runtime/user-paths.ts",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/runtime/package-runtime.ts": {
+      "bytes": 4157,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/src/runtime/bun-runtime.ts",
+          "kind": "import-statement",
+          "original": "./bun-runtime.ts"
+        },
+        {
+          "path": "fs",
+          "kind": "import-statement",
+          "original": "node:fs",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        },
+        {
+          "path": "url",
+          "kind": "import-statement",
+          "original": "node:url",
+          "external": true
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/runtime/source-runtime-layout.ts",
+          "kind": "import-statement",
+          "original": "./source-runtime-layout.ts"
+        },
+        {
+          "path": "./cli-information.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/runtime/bun-runtime.ts",
+          "kind": "import-statement",
+          "original": "./bun-runtime.ts"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/configuration/resolve.ts": {
+      "bytes": 16521,
+      "imports": [
+        {
+          "path": "crypto",
+          "kind": "import-statement",
+          "original": "node:crypto",
+          "external": true
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/runtime/backend.ts",
+          "kind": "import-statement",
+          "original": "../runtime/backend.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/configuration/types.ts",
+          "kind": "import-statement",
+          "original": "./types.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/configuration/errors.ts",
+          "kind": "import-statement",
+          "original": "./errors.ts"
+        },
+        {
+          "path": "./decision.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/configuration/graph-limits.ts",
+          "kind": "import-statement",
+          "original": "./graph-limits.ts"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Ref.js": {
+      "bytes": 17064,
+      "imports": [
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/MutableRef.js",
+          "kind": "import-statement",
+          "original": "./MutableRef.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/direct-event/claude-output.ts": {
+      "bytes": 1132,
+      "imports": [],
+      "format": "esm"
+    },
+    "src/direct-event/writer.ts": {
+      "bytes": 988,
+      "imports": [],
+      "format": "esm"
+    },
+    "src/direct-event/selection.ts": {
+      "bytes": 8765,
+      "imports": [
+        {
+          "path": "../repository/root.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        },
+        {
+          "path": "fs/promises",
+          "kind": "import-statement",
+          "original": "node:fs/promises",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/matcher/glob.ts",
+          "kind": "import-statement",
+          "original": "../matcher/glob.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/configuration/decision.ts",
+          "kind": "import-statement",
+          "original": "../configuration/decision.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/policy/file-policy.ts",
+          "kind": "import-statement",
+          "original": "../policy/file-policy.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/direct-event/languages/path-language.ts",
+          "kind": "import-statement",
+          "original": "./languages/path-language.ts"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/direct-event/capture.ts": {
+      "bytes": 10632,
+      "imports": [
+        {
+          "path": "../runtime/package-runtime.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "fs",
+          "kind": "import-statement",
+          "original": "node:fs",
+          "external": true
+        },
+        {
+          "path": "fs/promises",
+          "kind": "import-statement",
+          "original": "node:fs/promises",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        },
+        {
+          "path": "../process/closed-stdin.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "crypto",
+          "kind": "import-statement",
+          "original": "node:crypto",
+          "external": true
+        },
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/repository/root.ts": {
+      "bytes": 4022,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/src/process/closed-stdin.ts",
+          "kind": "import-statement",
+          "original": "../process/closed-stdin.ts"
+        },
+        {
+          "path": "fs",
+          "kind": "import-statement",
+          "original": "node:fs",
+          "external": true
+        },
+        {
+          "path": "fs/promises",
+          "kind": "import-statement",
+          "original": "node:fs/promises",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/result.js": {
+      "bytes": 2704,
+      "imports": [
+        {
+          "path": "../Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Inspectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Utils.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./option.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Equivalence.js": {
+      "bytes": 21503,
+      "imports": [
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Reducer.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/option.js": {
+      "bytes": 2259,
+      "imports": [
+        {
+          "path": "../Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Inspectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Utils.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./core.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Struct.js": {
+      "bytes": 19520,
+      "imports": [
+        {
+          "path": "./Combiner.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Equivalence.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Order.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Reducer.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/toCodec.js": {
+      "bytes": 9382,
+      "imports": [
+        {
+          "path": "../../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaAST.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaGetter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaTransformation.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./make.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/SchemaGetter.js": {
+      "bytes": 55935,
+      "imports": [
+        {
+          "path": "./Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./DateTime.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./encoding/Base64.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/encoding/Base64Url.js",
+          "kind": "import-statement",
+          "original": "./encoding/Base64Url.js"
+        },
+        {
+          "path": "./encoding/Hex.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaIssue.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./String.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schemaError.js": {
+      "bytes": 285,
+      "imports": [
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/SchemaTransformation.js": {
+      "bytes": 50320,
+      "imports": [
+        {
+          "path": "./BigDecimal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./ByteSize.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./DateTime.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Duration.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaGetter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaIssue.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Record.js": {
+      "bytes": 27534,
+      "imports": [
+        {
+          "path": "./Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Reducer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/SchemaParser.js": {
+      "bytes": 34535,
+      "imports": [
+        {
+          "path": "./Cause.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Exit.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/cause.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/cause.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/compilerRegistry.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/compilerRegistry.js"
+        },
+        {
+          "path": "./internal/schema/parser.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaAST.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaIssue.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/ByteSize.js": {
+      "bytes": 15492,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/BigInt.js",
+          "kind": "import-statement",
+          "original": "./BigInt.js"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/SchemaAST.js": {
+      "bytes": 102449,
+      "imports": [
+        {
+          "path": "./Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Cause.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Exit.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/schema/annotations.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/schema/cause.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/schema/parser.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaGetter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaIssue.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaTransformation.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/SchemaIssue.js": {
+      "bytes": 21283,
+      "imports": [
+        {
+          "path": "./Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/schema/annotations.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/parser.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/parser.js"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/annotations.js": {
+      "bytes": 1693,
+      "imports": [
+        {
+          "path": "../../Function.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/make.js": {
+      "bytes": 1782,
+      "imports": [
+        {
+          "path": "../../Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaAST.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaParser.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/encoding/Base64.js": {
+      "bytes": 5317,
+      "imports": [
+        {
+          "path": "../Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/encoding/EncodingError.js",
+          "kind": "import-statement",
+          "original": "./EncodingError.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Number.js": {
+      "bytes": 19180,
+      "imports": [
+        {
+          "path": "./Equivalence.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Order.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Reducer.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/equal.js": {
+      "bytes": 910,
+      "imports": [],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/hash.js": {
+      "bytes": 223,
+      "imports": [],
+      "format": "esm"
+    },
+    "node_modules/@effect/platform-node-shared/dist/NodePath.js": {
+      "bytes": 2046,
+      "imports": [
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Layer",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Path",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/PlatformError",
+          "kind": "import-statement"
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        },
+        {
+          "path": "url",
+          "kind": "import-statement",
+          "original": "node:url",
+          "external": true
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Iterable.js": {
+      "bytes": 65513,
+      "imports": [
+        {
+          "path": "./Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/count.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Tuple.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Redactable.js": {
+      "bytes": 3651,
+      "imports": [
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/Primitive.js": {
+      "bytes": 25540,
+      "imports": [
+        {
+          "path": "../Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/encoding/Ini.js",
+          "kind": "import-statement",
+          "original": "../encoding/Ini.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/encoding/Toml.js",
+          "kind": "import-statement",
+          "original": "../encoding/Toml.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/encoding/Yaml.js",
+          "kind": "import-statement",
+          "original": "../encoding/Yaml.js"
+        },
+        {
+          "path": "../FileSystem.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Path.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Redacted.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Schema.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/internal/auto-suggest.js": {
+      "bytes": 1109,
+      "imports": [],
+      "format": "esm"
+    },
+    "src/process/closed-stdin.ts": {
+      "bytes": 4444,
+      "imports": [
+        {
+          "path": "child_process",
+          "kind": "import-statement",
+          "original": "node:child_process",
+          "external": true
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/internal/completions/zsh.js": {
+      "bytes": 6550,
+      "imports": [],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/internal/completions/bash.js": {
+      "bytes": 12605,
+      "imports": [],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/internal/completions/fish.js": {
+      "bytes": 8135,
+      "imports": [],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Stream.js": {
+      "bytes": 239167,
+      "imports": [
+        {
+          "path": "./Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./ByteSize.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Cause.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Channel.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Clock.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Duration.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./ExecutionPlan.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Exit.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Fiber.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/count.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/executionPlan.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/stream.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/tracer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Iterable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Latch.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/MutableHashMap.js",
+          "kind": "import-statement",
+          "original": "./MutableHashMap.js"
+        },
+        {
+          "path": "./MutableList.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./PubSub.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pull.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Queue.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/RcMap.js",
+          "kind": "import-statement",
+          "original": "./RcMap.js"
+        },
+        {
+          "path": "./RcRef.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Schedule.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Scope.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Sink.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./String.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Sink.js": {
+      "bytes": 41765,
+      "imports": [
+        {
+          "path": "./Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Cause.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Channel.js",
+          "kind": "import-statement",
+          "original": "./Channel.js"
+        },
+        {
+          "path": "./Clock.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Duration.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Exit.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/count.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/stream.js",
+          "kind": "import-statement",
+          "original": "./internal/stream.js"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/PubSub.js",
+          "kind": "import-statement",
+          "original": "./PubSub.js"
+        },
+        {
+          "path": "./Pull.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Queue.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Scope.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/@effect/platform-node-shared/dist/NodeFileSystem.js": {
+      "bytes": 18471,
+      "imports": [
+        {
+          "path": "effect/BigInt",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/ByteSize",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Cause",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/FileSystem",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Function",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Layer",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Option",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/PlatformError",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Queue",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Stream",
+          "kind": "import-statement"
+        },
+        {
+          "path": "crypto",
+          "kind": "import-statement",
+          "original": "node:crypto",
+          "external": true
+        },
+        {
+          "path": "fs",
+          "kind": "import-statement",
+          "original": "node:fs",
+          "external": true
+        },
+        {
+          "path": "os",
+          "kind": "import-statement",
+          "original": "node:os",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node-shared/dist/internal/utils.js",
+          "kind": "import-statement",
+          "original": "./internal/utils.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/@effect/platform-node-shared/dist/NodeChildProcessSpawner.js": {
+      "bytes": 21914,
+      "imports": [
+        {
+          "path": "effect/Deferred",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Duration",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Exit",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/FileSystem",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Layer",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Path",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Predicate",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/process/ChildProcess.js",
+          "kind": "import-statement",
+          "original": "effect/process/ChildProcess"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/process/ChildProcessSpawner.js",
+          "kind": "import-statement",
+          "original": "effect/process/ChildProcessSpawner"
+        },
+        {
+          "path": "effect/Sink",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Stream",
+          "kind": "import-statement"
+        },
+        {
+          "path": "child_process",
+          "kind": "import-statement",
+          "original": "node:child_process",
+          "external": true
+        },
+        {
+          "path": "stream",
+          "kind": "import-statement",
+          "original": "node:stream",
+          "external": true
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node-shared/dist/internal/nodeChildProcessSpawner.js",
+          "kind": "import-statement",
+          "original": "./internal/nodeChildProcessSpawner.js"
+        },
+        {
+          "path": "./internal/utils.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./NodeSink.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./NodeStream.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/encoding/Hex.js": {
+      "bytes": 6796,
+      "imports": [
+        {
+          "path": "../Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./EncodingError.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/@effect/platform-node-shared/dist/NodeStdio.js": {
+      "bytes": 2024,
+      "imports": [
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Layer",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/PlatformError",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Stdio",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node-shared/dist/NodeSink.js",
+          "kind": "import-statement",
+          "original": "./NodeSink.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node-shared/dist/NodeStream.js",
+          "kind": "import-statement",
+          "original": "./NodeStream.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/policy/file-policy.ts": {
+      "bytes": 4506,
+      "imports": [
+        {
+          "path": "../matcher/glob.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../configuration/decision.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../direct-event/languages/path-language.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/policy/path-facts.ts",
+          "kind": "import-statement",
+          "original": "./path-facts.ts"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/direct-event/languages/path-language.ts": {
+      "bytes": 615,
+      "imports": [
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        }
+      ],
+      "format": "esm"
+    },
+    "src/matcher/glob.ts": {
+      "bytes": 9736,
+      "imports": [],
+      "format": "esm"
+    },
+    "src/configuration/decision.ts": {
+      "bytes": 3224,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/src/canonical/adapter.ts",
+          "kind": "import-statement",
+          "original": "../canonical/adapter.ts"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/random.js": {
+      "bytes": 1026,
+      "imports": [
+        {
+          "path": "../Context.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/cli/internal/ansi.js": {
+      "bytes": 2862,
+      "imports": [],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/MutableRef.js": {
+      "bytes": 21090,
+      "imports": [
+        {
+          "path": "./Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Inspectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/redacted.js": {
+      "bytes": 460,
+      "imports": [],
+      "format": "esm"
+    },
+    "src/inspection/contract.ts": {
+      "bytes": 12093,
+      "imports": [
+        {
+          "path": "crypto",
+          "kind": "import-statement",
+          "original": "node:crypto",
+          "external": true
+        },
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/BigInt.js": {
+      "bytes": 22673,
+      "imports": [
+        {
+          "path": "./Combiner.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Equivalence.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Order.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Reducer.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/configuration/types.ts": {
+      "bytes": 12273,
+      "imports": [
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/domain/rule-identity.ts",
+          "kind": "import-statement",
+          "original": "../domain/rule-identity.ts"
+        },
+        {
+          "path": "./graph-limits.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../runtime/backend.ts",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/configuration/graph-limits.ts": {
+      "bytes": 1520,
+      "imports": [],
+      "format": "esm"
+    },
+    "src/runtime/backend.ts": {
+      "bytes": 794,
+      "imports": [],
+      "format": "esm"
+    },
+    "src/configuration/errors.ts": {
+      "bytes": 1651,
+      "imports": [
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/SchemaIssue",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/@effect/platform-node-shared/dist/NodeCrypto.js": {
+      "bytes": 1572,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Crypto.js",
+          "kind": "import-statement",
+          "original": "effect/Crypto"
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Layer",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/PlatformError",
+          "kind": "import-statement"
+        },
+        {
+          "path": "crypto",
+          "kind": "import-statement",
+          "original": "node:crypto",
+          "external": true
+        }
+      ],
+      "format": "esm"
+    },
+    "src/activity/storage.ts": {
+      "bytes": 2740,
+      "imports": [
+        {
+          "path": "crypto",
+          "kind": "import-statement",
+          "original": "node:crypto",
+          "external": true
+        },
+        {
+          "path": "fs",
+          "kind": "import-statement",
+          "original": "node:fs",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        }
+      ],
+      "format": "esm"
+    },
+    "src/runtime/source-runtime-layout.ts": {
+      "bytes": 1536,
+      "imports": [
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        }
+      ],
+      "format": "esm"
+    },
+    "src/runtime/bun-runtime.ts": {
+      "bytes": 605,
+      "imports": [
+        {
+          "path": "fs",
+          "kind": "import-statement",
+          "original": "node:fs",
+          "external": true
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/count.js": {
+      "bytes": 417,
+      "imports": [],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/array.js": {
+      "bytes": 261,
+      "imports": [],
+      "format": "esm"
+    },
+    "src/configuration/decode.ts": {
+      "bytes": 3748,
+      "imports": [
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/configuration/jsonc.ts",
+          "kind": "import-statement",
+          "original": "./jsonc.ts"
+        },
+        {
+          "path": "./errors.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./types.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../matcher/glob.ts",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/@effect/platform-node-shared/dist/NodeTerminal.js": {
+      "bytes": 4772,
+      "imports": [
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Layer",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Option",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/PlatformError",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Predicate",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Queue",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/RcRef.js",
+          "kind": "import-statement",
+          "original": "effect/RcRef"
+        },
+        {
+          "path": "effect/Terminal",
+          "kind": "import-statement"
+        },
+        {
+          "path": "readline",
+          "kind": "import-statement",
+          "original": "node:readline",
+          "external": true
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/PlatformError.js": {
+      "bytes": 5730,
+      "imports": [
+        {
+          "path": "./Data.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/encoding/EncodingError.js": {
+      "bytes": 2210,
+      "imports": [
+        {
+          "path": "../Data.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/parser.js": {
+      "bytes": 815,
+      "imports": [
+        {
+          "path": "../../Exit.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../core.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/direct-event/pi-patch-hunks.ts": {
+      "bytes": 4403,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/src/direct-event/patch-hunks.ts",
+          "kind": "import-statement",
+          "original": "./patch-hunks.ts"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Queue.js": {
+      "bytes": 51832,
+      "imports": [
+        {
+          "path": "./Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/count.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/MutableList.js",
+          "kind": "import-statement",
+          "original": "./MutableList.js"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pull.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/cause.js": {
+      "bytes": 608,
+      "imports": [
+        {
+          "path": "../../Cause.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaIssue.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/compilerRegistry.js": {
+      "bytes": 4570,
+      "imports": [
+        {
+          "path": "../../Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/interpreter.js",
+          "kind": "import-statement",
+          "original": "./interpreter.js"
+        },
+        {
+          "path": "./parser.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/@effect/platform-node-shared/dist/NodeStream.js": {
+      "bytes": 10415,
+      "imports": [
+        {
+          "path": "effect/Array",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/ByteSize",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Cause",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Channel",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Context",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Exit",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Fiber",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Function",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Latch.js",
+          "kind": "import-statement",
+          "original": "effect/Latch"
+        },
+        {
+          "path": "effect/MutableRef",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Pull",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Scope",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Stream",
+          "kind": "import-statement"
+        },
+        {
+          "path": "stream",
+          "kind": "import-statement",
+          "original": "node:stream",
+          "external": true
+        },
+        {
+          "path": "./NodeSink.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/@effect/platform-node-shared/dist/NodeSink.js": {
+      "bytes": 2933,
+      "imports": [
+        {
+          "path": "effect/Cause",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Channel",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Function",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Pull",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Sink",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/policy/path-facts.ts": {
+      "bytes": 1414,
+      "imports": [
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        },
+        {
+          "path": "../matcher/glob.ts",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/canonical/adapter.ts": {
+      "bytes": 653,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/src/canonical/canonical-boundary.ts",
+          "kind": "import-statement",
+          "original": "./canonical-boundary.ts"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/@effect/platform-node-shared/dist/internal/utils.js": {
+      "bytes": 819,
+      "imports": [
+        {
+          "path": "effect/PlatformError",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/configuration/jsonc.ts": {
+      "bytes": 6519,
+      "imports": [],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/stream.js": {
+      "bytes": 484,
+      "imports": [
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Pipeable.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Channel.js": {
+      "bytes": 144664,
+      "imports": [
+        {
+          "path": "./Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Cause.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Chunk.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Exit.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Fiber.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/count.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/tracer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Iterable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Latch.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Layer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./MutableRef.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./PubSub.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pull.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Queue.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./References.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Schedule.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Scope.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Semaphore.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./String.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Take.js",
+          "kind": "import-statement",
+          "original": "./Take.js"
+        },
+        {
+          "path": "./Tracer.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/RcRef.js": {
+      "bytes": 3387,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/rcRef.js",
+          "kind": "import-statement",
+          "original": "./internal/rcRef.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/process/ChildProcessSpawner.js": {
+      "bytes": 2755,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Brand.js",
+          "kind": "import-statement",
+          "original": "../Brand.js"
+        },
+        {
+          "path": "../Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Inspectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Stream.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/@effect/platform-node-shared/dist/internal/nodeChildProcessSpawner.js": {
+      "bytes": 298,
+      "imports": [],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/process/ChildProcess.js": {
+      "bytes": 16293,
+      "imports": [
+        {
+          "path": "../Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Effectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./ChildProcessSpawner.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/direct-event/patch-hunks.ts": {
+      "bytes": 5828,
+      "imports": [],
+      "format": "esm"
+    },
+    "src/canonical/canonical-boundary.ts": {
+      "bytes": 118253,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-243/src/canonical/boundary-schema.ts",
+          "kind": "import-statement",
+          "original": "./boundary-schema.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/canonical/event-reader.ts",
+          "kind": "import-statement",
+          "original": "./event-reader.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/canonical/constructors.ts",
+          "kind": "import-statement",
+          "original": "./constructors.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/canonical/models.ts",
+          "kind": "import-statement",
+          "original": "./models.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/canonical/immutable.ts",
+          "kind": "import-statement",
+          "original": "./immutable.ts"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/src/canonical/canonical.generated.js",
+          "kind": "import-statement",
+          "original": "./canonical.generated.js"
+        },
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Crypto.js": {
+      "bytes": 4897,
+      "imports": [
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/random.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/ulid.js",
+          "kind": "import-statement",
+          "original": "./internal/ulid.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/uuid.js",
+          "kind": "import-statement",
+          "original": "./internal/uuid.js"
+        },
+        {
+          "path": "./PlatformError.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Latch.js": {
+      "bytes": 6936,
+      "imports": [
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/domain/rule-identity.ts": {
+      "bytes": 291,
+      "imports": [
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/ulid.js": {
+      "bytes": 908,
+      "imports": [],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/uuid.js": {
+      "bytes": 1456,
+      "imports": [],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/interpreter.js": {
+      "bytes": 8117,
+      "imports": [
+        {
+          "path": "../../Cause.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaAST.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaIssue.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./parser.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Brand.js": {
+      "bytes": 4516,
+      "imports": [
+        {
+          "path": "./Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaAST.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaIssue.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/rcRef.js": {
+      "bytes": 4356,
+      "imports": [
+        {
+          "path": "../Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Duration.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Exit.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Fiber.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Scope.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Semaphore.js",
+          "kind": "import-statement",
+          "original": "../Semaphore.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/MutableList.js": {
+      "bytes": 16230,
+      "imports": [
+        {
+          "path": "./Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/count.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Semaphore.js": {
+      "bytes": 11103,
+      "imports": [
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/canonical/canonical.generated.js": {
+      "bytes": 537512,
+      "imports": [
+        {
+          "path": "fs",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "bun:ffi",
+          "kind": "require-call",
+          "external": true
+        }
+      ],
+      "format": "esm"
+    },
+    "src/canonical/boundary-schema.ts": {
+      "bytes": 8613,
+      "imports": [
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/canonical/models.ts": {
+      "bytes": 47679,
+      "imports": [
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./boundary-schema.ts",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/canonical/immutable.ts": {
+      "bytes": 764,
+      "imports": [],
+      "format": "esm"
+    },
+    "src/canonical/constructors.ts": {
+      "bytes": 55351,
+      "imports": [
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./boundary-schema.ts",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/canonical/event-reader.ts": {
+      "bytes": 645,
+      "imports": [
+        {
+          "path": "./boundary-schema.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./immutable.ts",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./models.ts",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    }
+  },
+  "outputs": {
+    "./hook.js": {
+      "bytes": 1459784,
+      "inputs": {
+        "node_modules/effect/dist/Pipeable.js": {
+          "bytesInOutput": 1153
+        },
+        "node_modules/effect/dist/Function.js": {
+          "bytesInOutput": 1828
+        },
+        "node_modules/effect/dist/internal/equal.js": {
+          "bytesInOutput": 807
+        },
+        "node_modules/effect/dist/internal/hash.js": {
+          "bytesInOutput": 63
+        },
+        "node_modules/effect/dist/Predicate.js": {
+          "bytesInOutput": 1361
+        },
+        "node_modules/effect/dist/Hash.js": {
+          "bytesInOutput": 3580
+        },
+        "node_modules/effect/dist/Equal.js": {
+          "bytesInOutput": 4593
+        },
+        "node_modules/effect/dist/Equivalence.js": {
+          "bytesInOutput": 88
+        },
+        "node_modules/effect/dist/internal/array.js": {
+          "bytesInOutput": 49
+        },
+        "node_modules/effect/dist/internal/count.js": {
+          "bytesInOutput": 50
+        },
+        "node_modules/effect/dist/internal/record.js": {
+          "bytesInOutput": 458
+        },
+        "node_modules/effect/dist/Redactable.js": {
+          "bytesInOutput": 606
+        },
+        "node_modules/effect/dist/Formatter.js": {
+          "bytesInOutput": 4148
+        },
+        "node_modules/effect/dist/Inspectable.js": {
+          "bytesInOutput": 865
+        },
+        "node_modules/effect/dist/internal/stackTraceLimit.js": {
+          "bytesInOutput": 522
+        },
+        "node_modules/effect/dist/Utils.js": {
+          "bytesInOutput": 836
+        },
+        "node_modules/effect/dist/internal/core.js": {
+          "bytesInOutput": 9859
+        },
+        "node_modules/effect/dist/internal/option.js": {
+          "bytesInOutput": 1516
+        },
+        "node_modules/effect/dist/internal/result.js": {
+          "bytesInOutput": 1692
+        },
+        "node_modules/effect/dist/Order.js": {
+          "bytesInOutput": 768
+        },
+        "node_modules/effect/dist/Option.js": {
+          "bytesInOutput": 887
+        },
+        "node_modules/effect/dist/Result.js": {
+          "bytesInOutput": 778
+        },
+        "node_modules/effect/dist/Iterable.js": {
+          "bytesInOutput": 480
+        },
+        "node_modules/effect/dist/Record.js": {
+          "bytesInOutput": 228
+        },
+        "node_modules/effect/dist/Array.js": {
+          "bytesInOutput": 1428
+        },
+        "node_modules/effect/dist/Effectable.js": {
+          "bytesInOutput": 107
+        },
+        "node_modules/effect/dist/Context.js": {
+          "bytesInOutput": 5967
+        },
+        "node_modules/effect/dist/Duration.js": {
+          "bytesInOutput": 8483
+        },
+        "node_modules/effect/dist/Scheduler.js": {
+          "bytesInOutput": 2888
+        },
+        "node_modules/effect/dist/Data.js": {
+          "bytesInOutput": 583
+        },
+        "node_modules/effect/dist/encoding/EncodingError.js": {
+          "bytesInOutput": 188
+        },
+        "node_modules/effect/dist/encoding/Hex.js": {
+          "bytesInOutput": 2307
+        },
+        "node_modules/effect/dist/Tracer.js": {
+          "bytesInOutput": 1894
+        },
+        "node_modules/effect/dist/internal/metric.js": {
+          "bytesInOutput": 66
+        },
+        "node_modules/effect/dist/internal/references.js": {
+          "bytesInOutput": 1180
+        },
+        "node_modules/effect/dist/internal/tracer.js": {
+          "bytesInOutput": 965
+        },
+        "node_modules/effect/dist/internal/effect.js": {
+          "bytesInOutput": 71581
+        },
+        "node_modules/effect/dist/Clock.js": {
+          "bytesInOutput": 68
+        },
+        "node_modules/effect/dist/Exit.js": {
+          "bytesInOutput": 169
+        },
+        "node_modules/effect/dist/Deferred.js": {
+          "bytesInOutput": 1095
+        },
+        "node_modules/effect/dist/References.js": {
+          "bytesInOutput": 40
+        },
+        "node_modules/effect/dist/Scope.js": {
+          "bytesInOutput": 229
+        },
+        "node_modules/effect/dist/Layer.js": {
+          "bytesInOutput": 4783
+        },
+        "node_modules/effect/dist/Cause.js": {
+          "bytesInOutput": 227
+        },
+        "node_modules/effect/dist/Number.js": {
+          "bytesInOutput": 183
+        },
+        "node_modules/effect/dist/internal/random.js": {
+          "bytesInOutput": 435
+        },
+        "node_modules/effect/dist/Pull.js": {
+          "bytesInOutput": 1286
+        },
+        "node_modules/effect/dist/Schedule.js": {
+          "bytesInOutput": 2613
+        },
+        "node_modules/effect/dist/internal/layer.js": {
+          "bytesInOutput": 458
+        },
+        "node_modules/effect/dist/internal/schedule.js": {
+          "bytesInOutput": 1472
+        },
+        "node_modules/effect/dist/Effect.js": {
+          "bytesInOutput": 2408
+        },
+        "src/runtime/machine-clock.ts": {
+          "bytesInOutput": 2600
+        },
+        "src/resident/hook-clock.ts": {
+          "bytesInOutput": 242
+        },
+        "node_modules/effect/dist/Console.js": {
+          "bytesInOutput": 293
+        },
+        "node_modules/effect/dist/Runtime.js": {
+          "bytesInOutput": 106
+        },
+        "node_modules/effect/dist/Fiber.js": {
+          "bytesInOutput": 79
+        },
+        "node_modules/effect/dist/Latch.js": {
+          "bytesInOutput": 35
+        },
+        "node_modules/effect/dist/MutableRef.js": {
+          "bytesInOutput": 321
+        },
+        "node_modules/effect/dist/MutableList.js": {
+          "bytesInOutput": 2243
+        },
+        "node_modules/effect/dist/Queue.js": {
+          "bytesInOutput": 8101
+        },
+        "node_modules/effect/dist/Semaphore.js": {
+          "bytesInOutput": 2530
+        },
+        "node_modules/effect/dist/Channel.js": {
+          "bytesInOutput": 6741
+        },
+        "node_modules/effect/dist/internal/stream.js": {
+          "bytesInOutput": 332
+        },
+        "node_modules/effect/dist/Sink.js": {
+          "bytesInOutput": 1205
+        },
+        "node_modules/effect/dist/BigInt.js": {
+          "bytesInOutput": 197
+        },
+        "node_modules/effect/dist/ByteSize.js": {
+          "bytesInOutput": 3980
+        },
+        "node_modules/effect/dist/internal/rcRef.js": {
+          "bytesInOutput": 3139
+        },
+        "node_modules/effect/dist/RcRef.js": {
+          "bytesInOutput": 38
+        },
+        "node_modules/effect/dist/Stream.js": {
+          "bytesInOutput": 2390
+        },
+        "node_modules/effect/dist/Stdio.js": {
+          "bytesInOutput": 222
+        },
+        "node_modules/effect/dist/encoding/Base64.js": {
+          "bytesInOutput": 2794
+        },
+        "node_modules/effect/dist/internal/redacted.js": {
+          "bytesInOutput": 275
+        },
+        "node_modules/effect/dist/Redacted.js": {
+          "bytesInOutput": 812
+        },
+        "node_modules/effect/dist/internal/schema/annotations.js": {
+          "bytesInOutput": 461
+        },
+        "node_modules/effect/dist/internal/schema/parser.js": {
+          "bytesInOutput": 340
+        },
+        "node_modules/effect/dist/SchemaIssue.js": {
+          "bytesInOutput": 8662
+        },
+        "node_modules/effect/dist/internal/schema/cause.js": {
+          "bytesInOutput": 406
+        },
+        "node_modules/effect/dist/SchemaGetter.js": {
+          "bytesInOutput": 1237
+        },
+        "node_modules/effect/dist/SchemaTransformation.js": {
+          "bytesInOutput": 3188
+        },
+        "node_modules/effect/dist/SchemaAST.js": {
+          "bytesInOutput": 58189
+        },
+        "node_modules/effect/dist/internal/schema/interpreter.js": {
+          "bytesInOutput": 6734
+        },
+        "node_modules/effect/dist/internal/schema/compilerRegistry.js": {
+          "bytesInOutput": 3085
+        },
+        "node_modules/effect/dist/SchemaParser.js": {
+          "bytesInOutput": 5489
+        },
+        "node_modules/effect/dist/internal/schema/make.js": {
+          "bytesInOutput": 1512
+        },
+        "node_modules/effect/dist/internal/schema/toCodec.js": {
+          "bytesInOutput": 4201
+        },
+        "node_modules/effect/dist/Struct.js": {
+          "bytesInOutput": 23
+        },
+        "node_modules/effect/dist/internal/schemaError.js": {
+          "bytesInOutput": 174
+        },
+        "node_modules/effect/dist/Schema.js": {
+          "bytesInOutput": 28077
+        },
+        "node_modules/effect/dist/Terminal.js": {
+          "bytesInOutput": 431
+        },
+        "node_modules/effect/dist/cli/CliOutput.js": {
+          "bytesInOutput": 8373
+        },
+        "node_modules/effect/dist/cli/internal/completions/bash.js": {
+          "bytesInOutput": 11069
+        },
+        "node_modules/effect/dist/cli/internal/completions/fish.js": {
+          "bytesInOutput": 6246
+        },
+        "node_modules/effect/dist/cli/internal/completions/zsh.js": {
+          "bytesInOutput": 5555
+        },
+        "node_modules/effect/dist/cli/Completions.js": {
+          "bytesInOutput": 288
+        },
+        "node_modules/effect/dist/PlatformError.js": {
+          "bytesInOutput": 971
+        },
+        "node_modules/effect/dist/FileSystem.js": {
+          "bytesInOutput": 2283
+        },
+        "node_modules/effect/dist/Path.js": {
+          "bytesInOutput": 13076
+        },
+        "node_modules/effect/dist/ConfigProvider.js": {
+          "bytesInOutput": 2877
+        },
+        "node_modules/effect/dist/Config.js": {
+          "bytesInOutput": 6499
+        },
+        "node_modules/effect/dist/cli/CliError.js": {
+          "bytesInOutput": 4611
+        },
+        "node_modules/effect/dist/cli/Primitive.js": {
+          "bytesInOutput": 2044
+        },
+        "node_modules/effect/dist/cli/internal/ansi.js": {
+          "bytesInOutput": 1481
+        },
+        "node_modules/effect/dist/cli/Prompt.js": {
+          "bytesInOutput": 52063
+        },
+        "node_modules/effect/dist/cli/Param.js": {
+          "bytesInOutput": 9847
+        },
+        "node_modules/effect/dist/cli/Flag.js": {
+          "bytesInOutput": 907
+        },
+        "node_modules/effect/dist/cli/internal/config.js": {
+          "bytesInOutput": 1560
+        },
+        "node_modules/effect/dist/cli/internal/command.js": {
+          "bytesInOutput": 5379
+        },
+        "node_modules/effect/dist/cli/internal/completions/descriptor.js": {
+          "bytesInOutput": 3469
+        },
+        "node_modules/effect/dist/cli/internal/help.js": {
+          "bytesInOutput": 3293
+        },
+        "node_modules/effect/dist/cli/GlobalFlag.js": {
+          "bytesInOutput": 2553
+        },
+        "node_modules/effect/dist/cli/CliConfig.js": {
+          "bytesInOutput": 157
+        },
+        "node_modules/effect/dist/cli/internal/lexer.js": {
+          "bytesInOutput": 1712
+        },
+        "node_modules/effect/dist/cli/internal/auto-suggest.js": {
+          "bytesInOutput": 808
+        },
+        "node_modules/effect/dist/cli/internal/parser.js": {
+          "bytesInOutput": 15627
+        },
+        "node_modules/effect/dist/cli/internal/wizard.js": {
+          "bytesInOutput": 8093
+        },
+        "node_modules/effect/dist/cli/Command.js": {
+          "bytesInOutput": 5927
+        },
+        "node_modules/effect/dist/Brand.js": {
+          "bytesInOutput": 169
+        },
+        "node_modules/effect/dist/process/ChildProcessSpawner.js": {
+          "bytesInOutput": 1123
+        },
+        "node_modules/effect/dist/process/ChildProcess.js": {
+          "bytesInOutput": 4579
+        },
+        "node_modules/@effect/platform-node-shared/dist/internal/nodeChildProcessSpawner.js": {
+          "bytesInOutput": 238
+        },
+        "node_modules/@effect/platform-node-shared/dist/internal/utils.js": {
+          "bytesInOutput": 691
+        },
+        "node_modules/@effect/platform-node-shared/dist/NodeSink.js": {
+          "bytesInOutput": 1622
+        },
+        "node_modules/@effect/platform-node-shared/dist/NodeStream.js": {
+          "bytesInOutput": 1837
+        },
+        "node_modules/@effect/platform-node-shared/dist/NodeChildProcessSpawner.js": {
+          "bytesInOutput": 17507
+        },
+        "node_modules/effect/dist/internal/ulid.js": {
+          "bytesInOutput": 764
+        },
+        "node_modules/effect/dist/internal/uuid.js": {
+          "bytesInOutput": 1312
+        },
+        "node_modules/effect/dist/Crypto.js": {
+          "bytesInOutput": 2410
+        },
+        "node_modules/@effect/platform-node-shared/dist/NodeCrypto.js": {
+          "bytesInOutput": 728
+        },
+        "node_modules/@effect/platform-node/dist/NodeCrypto.js": {
+          "bytesInOutput": 21
+        },
+        "node_modules/@effect/platform-node-shared/dist/NodeFileSystem.js": {
+          "bytesInOutput": 16706
+        },
+        "node_modules/@effect/platform-node/dist/NodeFileSystem.js": {
+          "bytesInOutput": 21
+        },
+        "node_modules/@effect/platform-node-shared/dist/NodePath.js": {
+          "bytesInOutput": 935
+        },
+        "node_modules/@effect/platform-node/dist/NodePath.js": {
+          "bytesInOutput": 21
+        },
+        "node_modules/@effect/platform-node-shared/dist/NodeStdio.js": {
+          "bytesInOutput": 1025
+        },
+        "node_modules/@effect/platform-node/dist/NodeStdio.js": {
+          "bytesInOutput": 22
+        },
+        "node_modules/@effect/platform-node-shared/dist/NodeTerminal.js": {
+          "bytesInOutput": 3313
+        },
+        "node_modules/@effect/platform-node/dist/NodeTerminal.js": {
+          "bytesInOutput": 23
+        },
+        "node_modules/@effect/platform-node/dist/NodeServices.js": {
+          "bytesInOutput": 121
+        },
+        "src/runtime/argument-flags.ts": {
+          "bytesInOutput": 457
+        },
+        "src/hooks/arguments.ts": {
+          "bytesInOutput": 1757
+        },
+        "src/runtime/cli-names.ts": {
+          "bytesInOutput": 328
+        },
+        "package.json": {
+          "bytesInOutput": 6493
+        },
+        "src/runtime/cli-information.ts": {
+          "bytesInOutput": 196
+        },
+        "src/hooks/command.ts": {
+          "bytesInOutput": 1358
+        },
+        "src/process/closed-stdin.ts": {
+          "bytesInOutput": 2745
+        },
+        "src/repository/root.ts": {
+          "bytesInOutput": 2654
+        },
+        "src/runtime/user-paths.ts": {
+          "bytesInOutput": 417
+        },
+        "src/configuration/jsonc.ts": {
+          "bytesInOutput": 5875
+        },
+        "src/configuration/errors.ts": {
+          "bytesInOutput": 1151
+        },
+        "src/domain/rule-identity.ts": {
+          "bytesInOutput": 138
+        },
+        "src/configuration/graph-limits.ts": {
+          "bytesInOutput": 183
+        },
+        "src/runtime/backend.ts": {
+          "bytesInOutput": 424
+        },
+        "src/configuration/types.ts": {
+          "bytesInOutput": 8349
+        },
+        "src/matcher/glob.ts": {
+          "bytesInOutput": 8182
+        },
+        "src/configuration/decode.ts": {
+          "bytesInOutput": 2173
+        },
+        "src/canonical/boundary-schema.ts": {
+          "bytesInOutput": 6026
+        },
+        "src/canonical/immutable.ts": {
+          "bytesInOutput": 599
+        },
+        "src/canonical/models.ts": {
+          "bytesInOutput": 38905
+        },
+        "src/canonical/event-reader.ts": {
+          "bytesInOutput": 333
+        },
+        "src/canonical/constructors.ts": {
+          "bytesInOutput": 44472
+        },
+        "src/canonical/canonical.generated.js": {
+          "bytesInOutput": 515274
+        },
+        "src/canonical/canonical-boundary.ts": {
+          "bytesInOutput": 97956
+        },
+        "src/canonical/adapter.ts": {
+          "bytesInOutput": 0
+        },
+        "src/configuration/decision.ts": {
+          "bytesInOutput": 1717
+        },
+        "src/configuration/resolve.ts": {
+          "bytesInOutput": 10570
+        },
+        "src/configuration/load.ts": {
+          "bytesInOutput": 3024
+        },
+        "src/runtime/bun-runtime.ts": {
+          "bytesInOutput": 451
+        },
+        "src/runtime/source-runtime-layout.ts": {
+          "bytesInOutput": 1155
+        },
+        "src/runtime/package-runtime.ts": {
+          "bytesInOutput": 1493
+        },
+        "src/direct-event/capture.ts": {
+          "bytesInOutput": 8183
+        },
+        "src/direct-event/languages/path-language.ts": {
+          "bytesInOutput": 361
+        },
+        "src/policy/path-facts.ts": {
+          "bytesInOutput": 1244
+        },
+        "src/policy/file-policy.ts": {
+          "bytesInOutput": 674
+        },
+        "src/direct-event/selection.ts": {
+          "bytesInOutput": 5466
+        },
+        "src/direct-event/adapter.ts": {
+          "bytesInOutput": 19317
+        },
+        "src/direct-event/observation.ts": {
+          "bytesInOutput": 99
+        },
+        "src/direct-event/patch-hunks.ts": {
+          "bytesInOutput": 4295
+        },
+        "src/direct-event/pi-patch-hunks.ts": {
+          "bytesInOutput": 3588
+        },
+        "src/direct-event/pi-adapter.ts": {
+          "bytesInOutput": 4560
+        },
+        "src/resident/paths.ts": {
+          "bytesInOutput": 3842
+        },
+        "src/credentials/input.ts": {
+          "bytesInOutput": 2323
+        },
+        "node_modules/effect/dist/Ref.js": {
+          "bytesInOutput": 621
+        },
+        "src/runtime/review-settings-error.ts": {
+          "bytesInOutput": 132
+        },
+        "src/inspection/contract.ts": {
+          "bytesInOutput": 7890
+        },
+        "src/activity/storage.ts": {
+          "bytesInOutput": 2138
+        },
+        "src/activity/status.ts": {
+          "bytesInOutput": 7215
+        },
+        "src/resident/protocol.ts": {
+          "bytesInOutput": 9785
+        },
+        "src/credentials/state.ts": {
+          "bytesInOutput": 972
+        },
+        "src/resident/client.ts": {
+          "bytesInOutput": 23361
+        },
+        "src/pi/transport.ts": {
+          "bytesInOutput": 6007
+        },
+        "src/resident/hook-output.ts": {
+          "bytesInOutput": 2219
+        },
+        "src/activity/demo-trace.ts": {
+          "bytesInOutput": 2315
+        },
+        "src/direct-event/claude-output.ts": {
+          "bytesInOutput": 418
+        },
+        "src/direct-event/writer.ts": {
+          "bytesInOutput": 324
+        },
+        "src/resident/direct-hook-output.ts": {
+          "bytesInOutput": 3410
+        },
+        "src/resident/composed-hook.ts": {
+          "bytesInOutput": 11825
+        },
+        "src/resident/controlled-options.ts": {
+          "bytesInOutput": 1263
+        },
+        "src/runtime/input-settings.ts": {
+          "bytesInOutput": 486
+        },
+        "src/hooks/direct.ts": {
+          "bytesInOutput": 3767
+        },
+        "src/hooks/program.ts": {
+          "bytesInOutput": 4455
+        },
+        "src/hook-main.ts": {
+          "bytesInOutput": 191
+        }
+      },
+      "imports": [],
+      "exports": [],
+      "entryPoint": "src/hook-main.ts"
+    }
+  }
+}
