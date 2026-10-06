@@ -16,21 +16,21 @@ const ruleActions = [
     name: "show",
     description: "View a connected rule and its effective settings",
     flags: "id",
-    example: "--id team/domain-state",
+    example: "--id r1_inferred_case",
     detail: "Find identities with rules list. Edit the displayed JSON file to change the rule."
   },
   {
     name: "explain",
     description: "Explain activation and file/language selection",
     flags: "explain",
-    example: "--id team/domain-state --path src/example.ts",
+    example: "--id r1_inferred_case --path src/example.ts",
     detail: "Static configuration inspection only; source and required evidence are not examined."
   },
   {
     name: "check",
     description: "Review the declaration at a file and line with the classifier",
     flags: "check",
-    example: "--path src/example.ts --line 12 --id team/domain-state",
+    example: "--path src/example.ts --line 12 --id r1_inferred_case",
     callsClassifier: true,
     detail:
       "Selects the enclosing supported declaration and its bounded related code, not an arbitrary line window. Sends that code and eligible enabled rules to the configured external classifier (may incur charges); returns probabilities and findings. Uses normal key discovery. No resident or agent session. Exit 0 means evaluated (including findings); exit 6 means skipped/unavailable. --json includes the actual source-bearing classifier input."
@@ -39,28 +39,28 @@ const ruleActions = [
     name: "create",
     description: "Create and connect an editable rule",
     flags: "createId",
-    example: "--id team/domain-state --scope project",
+    example: "--id delivery-requires-address --scope project",
     detail: "Preserves existing authored files. Edit the created JSON file to define your concern."
   },
   {
     name: "connect",
     description: "Connect an existing local JSON rule",
     flags: "changePath",
-    example: "--path .hapsland/rules/custom/domain-state.json --scope project",
+    example: "--path .hapsland/rules/custom/delivery-requires-address.json --scope project",
     detail: "Validates the file before connecting it. A new connection enables the rule."
   },
   {
     name: "enable",
     description: "Enable a connected rule in the selected scope",
     flags: "changeId",
-    example: "--id team/domain-state --scope project",
+    example: "--id delivery-requires-address --scope project",
     detail: "Changes configuration, preserving the authored rule file."
   },
   {
     name: "disable",
     description: "Disable a connected rule in the selected scope",
     flags: "changeId",
-    example: "--id team/domain-state --scope project",
+    example: "--id delivery-requires-address --scope project",
     detail: "Keeps the rule connected and its authored file intact."
   }
 ] as const
@@ -125,7 +125,7 @@ const flags = {
     )
   },
   changeId: { id, scope },
-  createId: { id: textFlag("id", "New rule identity (required), such as team/domain-state"), scope },
+  createId: { id: textFlag("id", "New rule identity (required), such as delivery-requires-address"), scope },
   changePath: { path, scope }
 }
 
@@ -155,7 +155,7 @@ export const makeRulesCommand = (invoke: (options: RulesOptions) => void) => {
     ).pipe(
       Command.withShortDescription(action.description),
       Command.withDescription(
-        `${action.description}. ${action.detail} ${"callsClassifier" in action ? "" : "No classifier calls."} ${"scope" in flags[action.flags] ? "Interactive changes show a preview and ask for confirmation; unattended changes require --scope." : "callsClassifier" in action ? "Explicit one-off review." : "Read-only."}`
+        `${action.description}. ${action.detail}${action.name === "list" ? "" : "scope" in flags[action.flags] ? " Examples use delivery-requires-address, a custom rule ID. Create or connect it before using activation commands." : " Examples use the shipped default r1_inferred_case. Use rules list to find IDs connected in this project."} ${"callsClassifier" in action ? "" : "No classifier calls."} ${"scope" in flags[action.flags] ? "Interactive changes show a preview and ask for confirmation; unattended changes require --scope." : "callsClassifier" in action ? "Explicit one-off review." : "Read-only."}`
       ),
       Command.withExamples([
         {

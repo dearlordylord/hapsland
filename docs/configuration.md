@@ -83,7 +83,7 @@ related declarations from `shared`. A referenced `shared/private` file remains u
   "privacyExcludes": ["shared/private/**"],
   "rules": [
     {
-      "path": ".hapsland/rules/custom/domain-state.json",
+      "path": ".hapsland/rules/custom/delivery-requires-address.json",
       "languages": ["typescript"],
       "includes": ["src/api/**"]
     }
@@ -233,7 +233,7 @@ Each rule document has `version: 1`, a stable `id`, optional `title`, `question`
 The default threshold is 0.7; a finding requires a probability strictly greater than its threshold.
 
 <!-- rule-threshold:end -->
-An ID may use a namespace such as `team/domain-state`; it is not a filesystem path.
+An ID may use a namespace such as `team/delivery-requires-address`; it is not a filesystem path.
 There are no packs, content-version labels, authored path filters, or source-evidence
 rungs. Content digests identify actual definition changes.
 
@@ -269,7 +269,7 @@ under `~/.config/hapsland/rules/custom/`. Connect it explicitly using the
 [generated command reference](#rule-commands) below. Its examples come from the
 same definitions as terminal help, rather than a separate maintained command list.
 
-`hapsland rules create --id domain-state --scope project` creates a starting rule
+`hapsland rules create --id delivery-requires-address --scope project` creates a starting rule
 **and connects it**. Its preview states the activation, scope, and concrete files
 before interactive writes. Edit the created JSON to define the actual concern.
 Creation preserves an existing authored file. Interactive create/connect offers
@@ -332,9 +332,9 @@ repository. See [what the checker can see](../README.md#what-can-the-checker-see
 **2. Create a connected starter, then keep it disabled while editing.**
 
 ```sh
-hapsland rules create --id team/delivery-address --scope project
-hapsland rules disable --id team/delivery-address --scope project
-hapsland rules show --id team/delivery-address
+hapsland rules create --id delivery-requires-address --scope project
+hapsland rules disable --id delivery-requires-address --scope project
+hapsland rules show --id delivery-requires-address
 ```
 
 `create` writes a starter and connects it enabled; it does not open an editor.
@@ -348,7 +348,7 @@ save the following JSON in that created file, keeping the ID unchanged:
 ```json
 {
   "version": 1,
-  "id": "team/delivery-address",
+  "id": "delivery-requires-address",
   "title": "Delivery requires an address",
   "question": "Can the supplied order type represent mode delivery without a delivery address?",
   "criteria": {
@@ -377,7 +377,7 @@ overrides belong in configuration references, not the authored rule's path field
 If you prefer writing the JSON yourself, save one rule per file and connect it:
 
 ```sh
-hapsland rules connect --path .hapsland/rules/custom/delivery-address.json --scope project
+hapsland rules connect --path .hapsland/rules/custom/delivery-requires-address.json --scope project
 ```
 
 This is an alternative to `create`, not an extra step for an already connected
@@ -387,9 +387,9 @@ rule. `connect` validates the file and enables a new connection. You can also
 **4. Enable and inspect the effective selection.**
 
 ```sh
-hapsland rules enable --id team/delivery-address --scope project
-hapsland rules show --id team/delivery-address
-hapsland rules explain --id team/delivery-address --path src/delivery-rule-examples.ts
+hapsland rules enable --id delivery-requires-address --scope project
+hapsland rules show --id delivery-requires-address
+hapsland rules explain --id delivery-requires-address --path src/delivery-rule-examples.ts
 ```
 
 These commands make no classifier calls. `explain` checks configuration selection;
@@ -412,8 +412,8 @@ export type Delivery =
 Then run:
 
 ```sh
-hapsland rules check --path src/delivery-rule-examples.ts --line 2 --id team/delivery-address
-hapsland rules check --path src/delivery-rule-examples.ts --line 8 --id team/delivery-address
+hapsland rules check --path src/delivery-rule-examples.ts --line 2 --id delivery-requires-address
+hapsland rules check --path src/delivery-rule-examples.ts --line 8 --id delivery-requires-address
 ```
 
 The first type admits delivery without an address and should trigger; the second
@@ -437,8 +437,11 @@ remove the example source according to your project's conventions.
 
 ### Try a rule on a file and line
 
+`delivery-requires-address` is the example custom rule created in the walkthrough,
+not a shipped default. Substitute an enabled ID from `hapsland rules list`.
+
 ```sh
-hapsland rules check --path src/example.ts --line 12 --id team/domain-state
+hapsland rules check --path src/example.ts --line 12 --id delivery-requires-address
 hapsland rules check --path src/example.ts --line 12 --json
 ```
 
@@ -495,13 +498,13 @@ The command definitions generate this reference and terminal help. `hapsland rul
 
 ```sh
 hapsland rules list
-hapsland rules show --id team/domain-state
-hapsland rules explain --id team/domain-state --path src/example.ts
-hapsland rules check --path src/example.ts --line 12 --id team/domain-state
-hapsland rules create --id team/domain-state --scope project
-hapsland rules connect --path .hapsland/rules/custom/domain-state.json --scope project
-hapsland rules enable --id team/domain-state --scope project
-hapsland rules disable --id team/domain-state --scope project
+hapsland rules show --id r1_inferred_case
+hapsland rules explain --id r1_inferred_case --path src/example.ts
+hapsland rules check --path src/example.ts --line 12 --id r1_inferred_case
+hapsland rules create --id delivery-requires-address --scope project
+hapsland rules connect --path .hapsland/rules/custom/delivery-requires-address.json --scope project
+hapsland rules enable --id delivery-requires-address --scope project
+hapsland rules disable --id delivery-requires-address --scope project
 ```
 
 ### Rule example

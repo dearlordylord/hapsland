@@ -411,13 +411,13 @@ Inspect, manage and test local JSON rules. Only check sends code to the classifi
 
 ```sh
 hapsland rules list
-hapsland rules show --id team/domain-state
-hapsland rules explain --id team/domain-state --path src/example.ts
-hapsland rules check --path src/example.ts --line 12 --id team/domain-state
-hapsland rules create --id team/domain-state --scope project
-hapsland rules connect --path .hapsland/rules/custom/domain-state.json --scope project
-hapsland rules enable --id team/domain-state --scope project
-hapsland rules disable --id team/domain-state --scope project
+hapsland rules show --id r1_inferred_case
+hapsland rules explain --id r1_inferred_case --path src/example.ts
+hapsland rules check --path src/example.ts --line 12 --id r1_inferred_case
+hapsland rules create --id delivery-requires-address --scope project
+hapsland rules connect --path .hapsland/rules/custom/delivery-requires-address.json --scope project
+hapsland rules enable --id delivery-requires-address --scope project
+hapsland rules disable --id delivery-requires-address --scope project
 ```
 
 ### Flag-based operations
