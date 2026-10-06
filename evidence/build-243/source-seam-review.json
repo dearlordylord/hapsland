@@ -100,5 +100,17 @@
     "trigger": "Issue 243 completion",
     "action": "consolidate",
     "destination": "Current architecture/build owners and issue completion evidence; delete superseded checkpoints"
-  }
+  },
+  "amendments": [
+    {
+      "date": "2026-10-06",
+      "scope": "Demo budget activity ownership and rules argument type declaration ownership",
+      "review": "architecture_inventory: no findings; implementation and budget tests byte-for-byte moves, intended edges removed",
+      "validation": {
+        "fast": "npm run check:fast passed",
+        "invalidatedRun": "20261006211826311-1224058-056ea5: 73 tests passed but source formatting changed during verification; not accepted",
+        "unchangedRun": "20261006211854226-1227137-d8b1e8: 73 tests across 5 files passed; focused validation"
+      }
+    }
+  ]
 }

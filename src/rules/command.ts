@@ -1,5 +1,5 @@
 import { Config, Effect, Option } from "effect"
-import type { RulesOptions } from "../cli-command.ts"
+import type { RulesOptions } from "./cli-definition.ts"
 import { discoverWorkingTreeRoot } from "../repository/root.ts"
 import { askConfirmation } from "../onboarding/confirmation.ts"
 import { loadRuleInventory, formatRuleInventory, formatRule, explainRule } from "./inventory.ts"

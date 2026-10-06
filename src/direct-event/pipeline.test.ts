@@ -24,7 +24,7 @@ import {
   type DirectReviewContext,
   type EvaluationEvidence
 } from "./pipeline.ts"
-import { claimDemoBudget, readDemoBudgetUsage, writeDemoBudget } from "../onboarding/demo-budget.ts"
+import { claimDemoBudget, readDemoBudgetUsage, writeDemoBudget } from "../activity/demo-budget.ts"
 import { attemptCodexHostOutput } from "./writer.ts"
 import { Writable } from "node:stream"
 import { addEvent, makeGitFixture, put, advicee, updateEvent } from "./test-fixtures.ts"

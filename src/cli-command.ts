@@ -35,8 +35,6 @@ import {
   DEFAULT_UPDATE_CHANNEL
 } from "./runtime/cli-names.ts"
 
-export type { RulesOptions } from "./rules/cli-definition.ts"
-
 const validate = <A>(read: () => A) =>
   Effect.try({
     try: read,

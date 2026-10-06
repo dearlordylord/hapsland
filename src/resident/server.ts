@@ -108,7 +108,7 @@ import {
 import { residentEvaluationIdentity } from "./evaluation-reuse.ts"
 import { resolveCredential, type CredentialResolution } from "../credentials/secret-service.ts"
 import { readCredentialState } from "../credentials/state.ts"
-import { claimDemoBudget } from "../onboarding/demo-budget.ts"
+import { claimDemoBudget } from "../activity/demo-budget.ts"
 import { findingFromProbability } from "../rules/decision.ts"
 import { recordDemoTrace } from "../activity/demo-trace.ts"
 
