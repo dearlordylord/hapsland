@@ -15,7 +15,8 @@ import { resolveConfiguration } from "../configuration/resolve.ts"
 import { atomicInstallationFile } from "../onboarding/atomic-installation-file.ts"
 import { compileRules } from "./compiler.ts"
 import { loadRules } from "./loader.ts"
-import { decodeRuleDocument, decodeRuleText } from "./schema.ts"
+import { DEFAULT_RULE_THRESHOLD, decodeRuleDocument, decodeRuleText } from "./schema.ts"
+import { TYPE_CAPABILITIES, FUNCTION_CAPABILITIES } from "./targets.ts"
 
 export type RuleScope = "personal" | "project"
 export type RuleChange =
@@ -45,9 +46,32 @@ const generatedRule = (id: string) => ({
     true: "Visible evidence shows an admitted value that violates the intended constraint."
   },
   message: "Review the authored domain constraint.",
-  threshold: 0.7,
+  threshold: DEFAULT_RULE_THRESHOLD,
   inputs: [{ languages: ["typescript", "rust", "bend"], kind: "type", requires: ["root-declaration"] }]
 })
+
+const generatedRuleText = (id: string): string => {
+  const comments: Record<string, ReadonlyArray<string>> = {
+    question: ["Edit question, criteria and message for your concern."],
+    threshold: ["Finding when probability > threshold."],
+    inputs: [
+      'kind: "type" (TypeScript/Rust/Bend) or "function" (TypeScript only).',
+      "Type evidence: " + TYPE_CAPABILITIES.join(", ") + ".",
+      "Function evidence: " + FUNCTION_CAPABILITIES.join(", ") + ".",
+      "requires: needed evidence; missing evidence skips review."
+    ]
+  }
+  return (
+    JSON.stringify(generatedRule(id), null, 2)
+      .split("\n")
+      .map((line) => {
+        const field = /^  "([^"]+)":/.exec(line)?.[1]
+        const guidance = field === undefined ? undefined : comments[field]
+        return guidance === undefined ? line : [...guidance.map((text) => `  // ${text}`), line].join("\n")
+      })
+      .join("\n") + "\n"
+  )
+}
 
 const loadRuleChangeContext = Effect.fn("Rules.changeContext")(function* (
   root: string,
@@ -133,10 +157,10 @@ const authoredRulePath = (context: RuleChangeContext, change: AuthoredChange): s
         change.scope === "personal" ? dirname(context.configurationPath) : join(context.root, ".hapsland"),
         "rules",
         "custom",
-        `${encodeURIComponent(change.id)}.json`
+        `${encodeURIComponent(change.id)}.jsonc`
       )
 const authoredRuleText = (change: AuthoredChange, before: string | undefined): string =>
-  before ?? JSON.stringify(generatedRule(change.action === "create" ? change.id : ""), null, 2) + "\n"
+  before ?? generatedRuleText(change.action === "create" ? change.id : "")
 const readAuthoredRuleChange = Effect.fn("Rules.readAuthoredChange")(function* (
   context: RuleChangeContext,
   change: AuthoredChange

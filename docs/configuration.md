@@ -95,7 +95,7 @@ related declarations from `shared`. A referenced `shared/private` file remains u
   ],
   "rules": [
     {
-      "path": ".hapsland/rules/custom/no-primitive-obsession.json",
+      "path": ".hapsland/rules/custom/no-primitive-obsession.jsonc",
       "languages": [
         "typescript"
       ],
@@ -375,7 +375,9 @@ hapsland rules show --id no-primitive-obsession
 
 <!-- authoring-create:end -->
 
-`create` writes an enabled starter; it does not open an editor.
+`create` writes an enabled `.jsonc` starter with comments explaining type and function
+inputs and evidence requirements; it does not open an editor. Rule files accept
+comments with either a `.json` or `.jsonc` filename.
 Interactive changes show a preview and ask for confirmation. Open the source path
 shown by `show` in your editor. Project scope keeps the rule and configuration in the
 repository; choose `--scope personal` for your user configuration instead.
@@ -428,7 +430,7 @@ If you prefer writing the JSON yourself, save one rule per file and add it:
 <!-- authoring-connect:start -->
 
 ```sh
-hapsland rules connect --path .hapsland/rules/custom/no-primitive-obsession.json --scope project
+hapsland rules connect --path .hapsland/rules/custom/no-primitive-obsession.jsonc --scope project
 ```
 
 <!-- authoring-connect:end -->
@@ -578,7 +580,7 @@ hapsland rules show --id r1_inferred_case
 hapsland rules explain --id r1_inferred_case --path src/example.ts
 hapsland rules check --path src/example.ts --line 12 --id r1_inferred_case
 hapsland rules create --id no-primitive-obsession --scope project
-hapsland rules connect --path .hapsland/rules/custom/no-primitive-obsession.json --scope project
+hapsland rules connect --path .hapsland/rules/custom/no-primitive-obsession.jsonc --scope project
 hapsland rules enable --id no-primitive-obsession --scope project
 hapsland rules disable --id no-primitive-obsession --scope project
 ```

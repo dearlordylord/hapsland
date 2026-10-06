@@ -7,7 +7,7 @@ import { SHIPPED_DEFAULT_RULES } from "./shipped.ts"
 
 export const DEFAULT_RULE_EXAMPLE_ID = SHIPPED_DEFAULT_RULES[0]!.id
 export const CUSTOM_RULE_EXAMPLE_ID = "no-primitive-obsession"
-export const CUSTOM_RULE_EXAMPLE_PATH = `.hapsland/rules/custom/${encodeURIComponent(CUSTOM_RULE_EXAMPLE_ID)}.json`
+export const CUSTOM_RULE_EXAMPLE_PATH = `.hapsland/rules/custom/${encodeURIComponent(CUSTOM_RULE_EXAMPLE_ID)}.jsonc`
 export const RULE_CHECK_EXIT_CODES = { evaluated: 0, unavailable: 6 } as const
 
 const ruleActions = [
@@ -45,7 +45,8 @@ const ruleActions = [
     description: "Create an editable rule",
     flags: "createId",
     example: `--id ${CUSTOM_RULE_EXAMPLE_ID} --scope project`,
-    detail: "Preserves existing authored files. Edit the created JSON file to define your concern."
+    detail:
+      "Creates a commented .jsonc starter explaining type/function inputs and evidence requirements. Preserves existing authored files. Edit the created file to define your concern."
   },
   {
     name: "connect",

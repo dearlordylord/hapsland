@@ -1,5 +1,6 @@
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
 import { bunExecutable } from "../runtime/bun-runtime.ts"
+import { parseJsonc } from "../configuration/jsonc.ts"
 import { Effect } from "effect"
 import { loadReviewSettings } from "../runtime/review-config.ts"
 import { reviewCodexDirectEvent } from "../direct-event/pipeline.ts"
@@ -45,8 +46,11 @@ it("creates, inspects, disables and adds a project rule again through the CLI", 
   const created = run("create", "--id", "team", "--scope", "project", "--json")
   expect(created.stderr).toBe("")
   expect(created.status).toBe(0)
-  const path = join(root, ".hapsland/rules/custom/team.json")
+  const path = join(root, ".hapsland/rules/custom/team.jsonc")
   const authored = readFileSync(path, "utf8")
+  expect(authored).toContain('// kind: "type"')
+  expect(authored).toContain('"function" (TypeScript only)')
+  expect(authored).toContain("resolved-local-calls")
   writeFileSync(join(root, "type.ts"), "type OrderCount = number")
   let calls = 0
   const model = controlledDecisionModelLayer({
@@ -120,8 +124,9 @@ it("creates personal rules, adds a custom rule in defaults and rejects invalid i
       timeout: 20_000
     })
   expect(run("create", "--id", "mine", "--scope", "personal", "--json").status).toBe(0)
-  const original = join(root, "personal/rules/custom/mine.json")
-  const document = JSON.parse(readFileSync(original, "utf8"))
+  const original = join(root, "personal/rules/custom/mine.jsonc")
+  const document = parseJsonc(readFileSync(original, "utf8"))
+  if (document === null || typeof document !== "object") throw new Error("expected rule object")
   expect(JSON.parse(run("list", "--json").stdout)).toMatchObject({
     enabledCount: 1,
     rules: [{ origin: { layer: "user" }, id: "mine" }]
@@ -145,7 +150,7 @@ it("creates personal rules, adds a custom rule in defaults and rejects invalid i
   roots.push(outside)
   symlinkSync(outside, join(root, ".hapsland"), "dir")
   expect(run("create", "--id", "escaped", "--scope", "project").status).not.toBe(0)
-  expect(existsSync(join(outside, "rules/custom/escaped.json"))).toBe(false)
+  expect(existsSync(join(outside, "rules/custom/escaped.jsonc"))).toBe(false)
   expect(readFileSync(configurationPath, "utf8")).toBe(before)
   expect(existsSync(join(root, ".hapsland.jsonc"))).toBe(false)
   expect(run("list").stdout).toContain(original)
@@ -164,13 +169,14 @@ it("binds all authored sources to previews and rejects unsupported active schema
   expect(formatRuleChangePreview(initial)).toContain(
     `This will update the rule settings in ${join(root, ".hapsland.jsonc")}. The rule will be enabled.`
   )
-  expect(initial.path).toBe(join(root, ".hapsland/rules/custom/domain%2Fcount.json"))
+  expect(initial.path).toBe(join(root, ".hapsland/rules/custom/domain%2Fcount.jsonc"))
   const toggle = { action: "disable", scope: "project", id: "domain/count" } as const
   const plan = await Effect.runPromise(previewRuleChange(root, toggle, options))
   expect(formatRuleChangePreview(plan)).toContain("The rule will be disabled.")
   const path = initial.path
   if (path === undefined) throw new Error("missing authored file")
-  const document = JSON.parse(readFileSync(path, "utf8"))
+  const document = parseJsonc(readFileSync(path, "utf8"))
+  if (document === null || typeof document !== "object") throw new Error("expected rule object")
   writeFileSync(path, JSON.stringify({ ...document, question: "Edited after preview" }))
   const stale = await Effect.runPromise(applyRuleChange(root, toggle, plan.digest, options).pipe(Effect.result))
   expect(stale).toMatchObject({ _tag: "Failure", failure: { reason: expect.stringContaining("stale") } })
