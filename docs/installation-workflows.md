@@ -328,7 +328,7 @@ Run `hapsland --version` alone to identify the invoked package version. This doe
 | `repair` | Restore missing owned Hapsland hooks |
 | `reinstall` | Replace marked Hapsland hooks, preserving user settings |
 | `uninstall` | Remove owned Hapsland hooks from registered integrations |
-| `rules` | Inspect and manage local JSON rules; no classifier calls. Defaults to list. Edit connected JSON files in your editor; there is no editor or disconnect command. |
+| `rules` | Inspect, manage and test local JSON rules. Only check sends code to the classifier; other actions make no classifier calls. Defaults to list. Edit connected JSON files in your editor; there is no editor or disconnect command. |
 
 #### hapsland dashboard
 
@@ -407,12 +407,13 @@ hapsland uninstall pi
 
 #### hapsland rules
 
-Inspect and manage local JSON rules; no classifier calls. Defaults to list. Edit connected JSON files in your editor; there is no editor or disconnect command.
+Inspect, manage and test local JSON rules. Only check sends code to the classifier; other actions make no classifier calls. Defaults to list. Edit connected JSON files in your editor; there is no editor or disconnect command.
 
 ```sh
 hapsland rules list
 hapsland rules show --id team/domain-state
 hapsland rules explain --id team/domain-state --path src/example.ts
+hapsland rules check --path src/example.ts --line 12 --id team/domain-state
 hapsland rules create --id team/domain-state --scope project
 hapsland rules connect --path .hapsland/rules/custom/domain-state.json --scope project
 hapsland rules enable --id team/domain-state --scope project

@@ -306,6 +306,45 @@ separate from Hapsland policy. Rule JSON editor validation uses
 [`review-rule-v1.schema.json`](../schemas/review-rule-v1.schema.json); structural
 validity does not establish classifier judgment quality.
 
+### Try a rule on a file and line
+
+```sh
+hapsland rules check --path src/example.ts --line 12 --id team/domain-state
+hapsland rules check --path src/example.ts --line 12 --json
+```
+
+`--path` is relative to the current directory, inside its Git working tree;
+`--line` is a positive one-based line inside a supported declaration. The command
+selects that entire type declaration or TypeScript function signature and body,
+then resolves its bounded related code using the same capture, parser, graph,
+evidence admission and classifier path as ordinary review. It does not pick a
+fixed number of surrounding lines or send the entire file. Blank lines outside
+roots and lines shared by multiple roots do not authorize a request.
+
+Only eligible **enabled connected rules** run. `--id` selects one; omit it to run
+all eligible rules for that declaration. Normal root/context selection, privacy
+exclusions, ignored-file checks and resource limits still apply. Missing required
+evidence, no eligible rule, or a denied file produces an explained skip and no
+classifier request. The command uses the configured backend and its normal
+credential discovery (environment, eligible project key file, native saved key;
+explicit credential references remain environment-only). It starts no resident,
+requires no agent session, and does not modify source, rules or settings.
+
+This command explicitly sends the selected code and rule questions to the external
+classifier and may incur charges. Human output names the selected declaration,
+related source files, probabilities, thresholds and findings. `--json` includes
+the actual source-bearing classifier input, selection diagnostics and results;
+keep that output private when it contains private code. Source changes during
+review invalidate the result. Exit 0 means evaluated, **even with a finding**;
+exit 6 means skipped/unavailable or a local operation failure. Invalid command
+arguments are rejected before review. A clear result means no probability exceeded
+its configured threshold; it is not proof that the code or rule is correct.
+
+Try representative positive and negative examples, including edge cases where
+similar code should not trigger. The [inspection dashboard](status.md#opt-in-local-inspection)
+provides another view of actual agent reviews after enabling `sessionInspection`;
+its journal does not include this one-off command.
+
 <!-- rule-guide:start -->
 
 ### Rule commands
@@ -317,6 +356,7 @@ The command definitions generate this reference and terminal help. `hapsland rul
 | `list` | List connected rules, activation and source files |
 | `show` | View a connected rule and its effective settings |
 | `explain` | Explain activation and file/language selection |
+| `check` | Review the declaration at a file and line with the classifier |
 | `create` | Create and connect an editable rule |
 | `connect` | Connect an existing local JSON rule |
 | `enable` | Enable a connected rule in the selected scope |
@@ -326,6 +366,7 @@ The command definitions generate this reference and terminal help. `hapsland rul
 hapsland rules list
 hapsland rules show --id team/domain-state
 hapsland rules explain --id team/domain-state --path src/example.ts
+hapsland rules check --path src/example.ts --line 12 --id team/domain-state
 hapsland rules create --id team/domain-state --scope project
 hapsland rules connect --path .hapsland/rules/custom/domain-state.json --scope project
 hapsland rules enable --id team/domain-state --scope project

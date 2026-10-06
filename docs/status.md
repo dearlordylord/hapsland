@@ -98,6 +98,14 @@ that the agent read, acknowledged, or applied a finding.
 | Development | `npm run dev:inspection` from the repository root | Current checkout, with automatic browser reload |
 | Bundled production | `hapsland dashboard` | Installed package; source edits require a new package update |
 
+For **“Does my rule work?”**, use this debug dashboard to compare the declaration
+and related context captured for an ordinary agent edit with its classifier
+outcome and feedback. The opt-in setting is `sessionInspection`, not an analytics
+setting. Enable it as shown below before making the edit. For an immediate check
+without an agent edit or resident, run `hapsland rules check --path FILE --line N`
+(and optionally `--id RULE`); see [file/line rule checks](configuration.md#try-a-rule-on-a-file-and-line).
+That command returns its own results and does not append them to this journal.
+
 <!-- inspection-recording:start -->
 
 **Both dashboards need recorded history.** Recording is disabled by default.

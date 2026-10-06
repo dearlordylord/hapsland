@@ -27,6 +27,15 @@ const ruleActions = [
     detail: "Static configuration inspection only; source and required evidence are not examined."
   },
   {
+    name: "check",
+    description: "Review the declaration at a file and line with the classifier",
+    flags: "check",
+    example: "--path src/example.ts --line 12 --id team/domain-state",
+    callsClassifier: true,
+    detail:
+      "Selects the enclosing supported declaration and its bounded related code, not an arbitrary line window. Sends that code and eligible enabled rules to the configured external classifier (may incur charges); returns probabilities and findings. Uses normal key discovery. No resident or agent session. Exit 0 means evaluated (including findings); exit 6 means skipped/unavailable. --json includes the actual source-bearing classifier input."
+  },
+  {
     name: "create",
     description: "Create and connect an editable rule",
     flags: "createId",
@@ -63,6 +72,7 @@ export interface RulesOptions {
   readonly id: string | undefined
   readonly path: string | undefined
   readonly scope: "personal" | "project" | undefined
+  readonly line?: number | undefined
   readonly json: boolean
 }
 
@@ -98,6 +108,22 @@ const flags = {
       Flag.map(Option.getOrUndefined)
     )
   },
+  check: {
+    path: textFlag("path", "Source file relative to the current directory (required); normal source policy applies"),
+    line: Flag.Int("line").pipe(
+      Flag.between(1, 1),
+      Flag.map(([value]) => value ?? 0),
+      Flag.filter(
+        (value) => Number.isSafeInteger(value) && value > 0,
+        () => "a positive one-based line"
+      ),
+      Flag.withDescription("One-based line inside a supported declaration (required)")
+    ),
+    id: textFlag("id", "Enabled connected rule identity; omit to run all eligible enabled rules").pipe(
+      Flag.optional,
+      Flag.map(Option.getOrUndefined)
+    )
+  },
   changeId: { id, scope },
   createId: { id: textFlag("id", "New rule identity (required), such as team/domain-state"), scope },
   changePath: { path, scope }
@@ -121,6 +147,7 @@ export const makeRulesCommand = (invoke: (options: RulesOptions) => void) => {
           action: action.name,
           id: "id" in options ? options.id : undefined,
           path: "path" in options ? options.path : undefined,
+          line: "line" in options ? options.line : undefined,
           scope: "scope" in options ? options.scope : undefined,
           json: shared.json
         })
@@ -128,7 +155,7 @@ export const makeRulesCommand = (invoke: (options: RulesOptions) => void) => {
     ).pipe(
       Command.withShortDescription(action.description),
       Command.withDescription(
-        `${action.description}. ${action.detail} No classifier calls. ${"scope" in flags[action.flags] ? "Interactive changes show a preview and ask for confirmation; unattended changes require --scope." : "Read-only."}`
+        `${action.description}. ${action.detail} ${"callsClassifier" in action ? "" : "No classifier calls."} ${"scope" in flags[action.flags] ? "Interactive changes show a preview and ask for confirmation; unattended changes require --scope." : "callsClassifier" in action ? "Explicit one-off review." : "Read-only."}`
       ),
       Command.withExamples([
         {
@@ -140,7 +167,7 @@ export const makeRulesCommand = (invoke: (options: RulesOptions) => void) => {
   )
   return parent.pipe(
     Command.withDescription(
-      "Inspect and manage local JSON rules; no classifier calls. Defaults to list. Edit connected JSON files in your editor; there is no editor or disconnect command."
+      "Inspect, manage and test local JSON rules. Only check sends code to the classifier; other actions make no classifier calls. Defaults to list. Edit connected JSON files in your editor; there is no editor or disconnect command."
     ),
     Command.withSubcommands(commands),
     Command.withExamples(commands.flatMap((command) => command.examples))

@@ -105,6 +105,33 @@ describe("declarative CLI subprocess contracts", () => {
     }
   })
 
+  it("discovers live rule checks and rejects invalid coordinates before dispatch", async () => {
+    const help = await parse(["rules", "check", "--help"])
+    expect(help.invocation).toBeUndefined()
+    expect(help.output).toContain("bounded related code")
+    expect(help.output).toContain("external classifier")
+    expect(help.output).toContain("--line")
+    expect(help.output).not.toContain("--scope")
+    expect((await parse(["rules", "check", "--path", "src/example.ts", "--line", "12"])).invocation).toMatchObject({
+      kind: "rules",
+      options: { action: "check", path: "src/example.ts", line: 12, id: undefined }
+    })
+    for (const args of [
+      ["--path", "src/example.ts"],
+      ["--line", "12"],
+      ["--path", "src/example.ts", "--line", "0"],
+      ["--path", "src/example.ts", "--line", "-1"],
+      ["--path", "src/example.ts", "--line", "1.5"],
+      ["--path", "src/example.ts", "--line", "1", "--line", "2"],
+      ["--path", "src/example.ts", "--line", "1", "--scope", "project"]
+    ])
+      await expect(parse(["rules", "check", ...args])).rejects.toThrow()
+    const invalid = cli(["rules", "check", "--path", "src/example.ts", "--line", "0"], "not JSON")
+    expect(invalid.status).not.toBe(0)
+    expect(invalid.stdout).toBe("")
+    expect(invalid.files).toEqual([])
+  })
+
   it("provides focused rule help and rejects missing or irrelevant flags before dispatch", async () => {
     const show = await parse(["rules", "show", "--help"])
     expect(show.output).toContain("--id")

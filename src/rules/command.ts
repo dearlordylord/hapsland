@@ -9,7 +9,7 @@ export const formatRuleChangePreview = (plan: Effect.Success<ReturnType<typeof p
   `Scope: ${plan.change.scope}\nConfiguration: ${plan.configurationPath}\n${plan.path === undefined ? "" : `Rule file: ${plan.path}\n`}${plan.change.action === "create" || plan.change.action === "connect" ? `This will connect the rule in ${plan.configurationPath}. The rule will be ${plan.enabled ? "enabled" : "disabled"}.\n` : `The rule will be ${plan.enabled ? "enabled" : "disabled"}.\n`}`
 
 type RuleInspectionAction = "list" | "show" | "explain"
-const inspectionAction = (action: RuleInspectionAction | RuleChange["action"]): action is RuleInspectionAction =>
+const inspectionAction = (action: RulesOptions["action"]): action is RuleInspectionAction =>
   action === "list" || action === "show" || action === "explain"
 const inspectionOutput = (
   action: "show" | "explain",
@@ -86,6 +86,15 @@ const ruleChangeOutput = (
   return `${change.action} completed in ${change.scope} scope.${activation}\nConfiguration: ${result.configurationPath}\n${file}Local structural validation only; classifier quality was not validated.\n`
 }
 export const runRulesCommand = Effect.fn("Rules.command")(function* (options: RulesOptions) {
+  if (options.action === "check") {
+    if (options.path === undefined || options.line === undefined)
+      return yield* Effect.fail(new Error("rules check requires --path and --line."))
+    const { checkRuleAtLine, formatRuleCheck } = yield* Effect.promise(() => import("./check.ts"))
+    const result = yield* checkRuleAtLine({ path: options.path, line: options.line, id: options.id })
+    process.stdout.write(options.json ? JSON.stringify(result) + "\n" : formatRuleCheck(result))
+    if (result.status !== "evaluated") process.exitCode = 6
+    return
+  }
   const root = yield* discoverWorkingTreeRoot(process.cwd())
   const configured = Option.getOrUndefined(yield* Config.option(Config.NonEmptyString("REVIEW_USER_CONFIG_PATH")))
   const configuration = configured === undefined ? {} : { userConfigPath: configured }

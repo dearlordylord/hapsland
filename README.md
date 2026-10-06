@@ -29,7 +29,7 @@ the agent runtime and configuration. See the [architecture guide](./docs/archite
 for the flow and its boundaries. Run `hapsland --feedback-preview` to see the
 shared agent instructions with a synthetic finding; no review request is made.
 
-## Choose what leaves your repository
+## What can the checker see?
 
 Sending source to a review service is a data-sharing decision. Your task prompt
 and conversation with the agent are not sent to the review backend.
@@ -42,7 +42,10 @@ by project includes. Limits bound exploration and the code included in the revie
 Selected source code and rule questions are sent to the selected external
 classifier: [Jev](https://typesafe.ai) by default, or Cloudflare Clef/Clef-flash. It sees that code and those questions, not the agent’s
 task or conversation. Hapsland maps its results to configured feedback messages.
-The review input excludes the full file, edit diff, agent conversation, and
+The checker receives one supported type declaration, or a TypeScript function's
+signature and body, plus bounded related code reached through supported local
+references. Required evidence missing from that graph can prevent a rule from
+running. The review input excludes the full file, edit diff, agent conversation, and
 unrelated source. With review credentials and no
 file settings, all otherwise eligible files are selected. Set an explicit scope
 when you want a narrower boundary. See [configuration](./docs/configuration.md).
@@ -106,6 +109,36 @@ A configured rule runs only on supported inputs with sufficient evidence. See
 [type-design rules](./TYPE-DESIGN-RULES.md).
 
 See [supported languages and limits](#supported-languages) before setup.
+
+## Does my rule work?
+
+Try a rule against a specific declaration without making an agent edit:
+
+```sh
+hapsland rules check --path src/example.ts --line 12 --id team/domain-state
+```
+
+The line is one-based and selects its enclosing supported declaration. Hapsland
+captures that declaration and bounded related code with the normal parser, scope,
+privacy and evidence checks, then sends the eligible rule and code to your
+configured external classifier. This is a real request and may incur charges.
+Omit `--id` to check all eligible enabled rules. It uses normal key discovery and
+starts neither a resident nor an agent session. Add `--json` to see the actual
+source-bearing classifier input and probabilities. Exit 0 means evaluation
+completed, including findings; exit 6 means skipped or unavailable, not a passing
+check. Try both examples that should trigger and examples that should stay clear;
+one result does not establish rule accuracy.
+
+To inspect **ordinary agent reviews**, enable the debug recording setting by
+merging `"sessionInspection": true` into the repository's `.hapsland.jsonc`,
+make a new eligible edit through an installed integration, then run
+`hapsland dashboard`. The dashboard lets you inspect captured declarations,
+related context, classifier results, and feedback. Recording is off by default,
+contains source, and is independent of analytics. Opening the dashboard does not
+enable recording or backfill history. One-off `rules check` results are returned
+in the terminal; they are not recorded in the resident journal. See
+[rule checks](./docs/configuration.md#try-a-rule-on-a-file-and-line) and
+[dashboard setup](./docs/status.md#opt-in-local-inspection).
 
 ## A contextual comparison with Abide
 

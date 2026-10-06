@@ -1,3 +1,4 @@
+import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
 import { bunExecutable } from "../runtime/bun-runtime.ts"
 import { Effect } from "effect"
 import { loadReviewSettings } from "../runtime/review-config.ts"
@@ -252,4 +253,60 @@ it("preserves explicit empty, reduced and project selections during repeated def
   expect(project).toMatchObject({ changed: false, files: [], paths: [] })
   await Effect.runPromise(applyDefaultRules(configurationPath, project.digest, root))
   expect(existsSync(configurationPath)).toBe(false)
+})
+
+it("runs one-off rule checks without stdin or resident state and reports unavailable credentials", () => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "hapsland-check-cli-")))
+  roots.push(root)
+  execFileSync("git", ["init", "--quiet", root])
+  writeFileSync(join(root, "type.ts"), "type Selected = string")
+  writeFileSync(
+    join(root, "rule.json"),
+    JSON.stringify({
+      version: 1,
+      id: "example",
+      question: "Is this invalid?",
+      criteria: { false: "Valid", true: "Invalid" },
+      message: "Review it",
+      inputs: [{ languages: ["typescript"], kind: "type", requires: ["root-declaration"] }]
+    })
+  )
+  writeFileSync(
+    join(root, ".hapsland.jsonc"),
+    JSON.stringify({ version: 1, rules: ["rule.json"], credentialEnvVar: "HAPSLAND_TEST_MISSING_KEY" })
+  )
+  const run = (...args: string[]) =>
+    spawnSync(bunExecutable(), [join(process.cwd(), "src/cli.ts"), "rules", "check", ...args], {
+      cwd: root,
+      input: "not JSON",
+      encoding: "utf8",
+      timeout: DEFAULT_CHILD_TIMEOUT_MS,
+      env: {
+        ...process.env,
+        HOME: root,
+        REVIEW_USER_CONFIG_PATH: join(root, "missing-user.json"),
+        HAPSLAND_TEST_MISSING_KEY: "",
+        REVIEW_CONTROL_JSON: "not JSON",
+        REVIEW_STATE_PATH: join(root, "resident-state"),
+        REVIEW_ACTIVITY_PATH: join(root, "activity")
+      }
+    })
+  const json = run("--path", "type.ts", "--line", "1", "--json")
+  expect(json.status).toBe(6)
+  expect(json.stderr).toBe("")
+  expect(JSON.parse(json.stdout)).toMatchObject({
+    operation: "rule-check",
+    status: "unavailable",
+    reason: "credential-missing",
+    classifierCalls: 0,
+    declaration: { name: "Selected" },
+    results: []
+  })
+  const human = run("--path", "type.ts", "--line", "1")
+  expect(human.status).toBe(6)
+  expect(human.stdout).toContain("Selected")
+  expect(human.stdout).toContain("No resident or agent session")
+  expect(existsSync(join(root, "resident-state"))).toBe(false)
+  expect(existsSync(join(root, "activity"))).toBe(false)
+  expect(existsSync(join(root, ".hapsland", "runtime"))).toBe(false)
 })
