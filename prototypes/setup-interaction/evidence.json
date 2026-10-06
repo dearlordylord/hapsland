@@ -1,0 +1,524 @@
+{
+  "observedAt": "2026-10-06T15:45:15.045Z",
+  "sourceDigest": "b60d94f965c268ab3ab9aee4c805ff977f8618f3fafb49a2dfa20607c8c3fb11",
+  "host": "darwin-arm64",
+  "bun": "1.3.14",
+  "effect": "4.0.0",
+  "effectMachine": "0.28.0",
+  "typecheck": "passed",
+  "comparison": {
+    "runtime": "1.3.14",
+    "scenarios": [
+      {
+        "name": "two hosts, partial result, project save, separate check",
+        "transitions": 10,
+        "result": {
+          "phase": "Done",
+          "revision": 10,
+          "hosts": [
+            "Claude",
+            "Codex"
+          ],
+          "index": 2,
+          "results": {
+            "Claude": "complete",
+            "Codex": "partial: restart required"
+          },
+          "destination": "project",
+          "source": "project",
+          "digest": "synthetic-save:project",
+          "check": "synthetic success (zero requests)"
+        }
+      },
+      {
+        "name": "back invalidates approval, wrong command ID ignored, cancel pending ignored",
+        "transitions": 13,
+        "result": {
+          "phase": "Cancelled",
+          "revision": 8,
+          "hosts": [
+            "Codex"
+          ],
+          "index": 1,
+          "results": {
+            "Codex": "partial: restart required"
+          },
+          "destination": "user",
+          "source": "none",
+          "digest": "",
+          "check": "not requested"
+        }
+      },
+      {
+        "name": "destination project with higher-priority environment",
+        "transitions": 6,
+        "result": {
+          "phase": "Done",
+          "revision": 6,
+          "hosts": [
+            "Pi"
+          ],
+          "index": 1,
+          "results": {
+            "Pi": "declined"
+          },
+          "destination": "project",
+          "source": "environment (saved credential shadowed)",
+          "digest": "synthetic-save:project",
+          "check": "not requested"
+        }
+      },
+      {
+        "name": "destination user with higher-priority environment",
+        "transitions": 6,
+        "result": {
+          "phase": "Done",
+          "revision": 6,
+          "hosts": [
+            "Pi"
+          ],
+          "index": 1,
+          "results": {
+            "Pi": "declined"
+          },
+          "destination": "user",
+          "source": "environment (saved credential shadowed)",
+          "digest": "synthetic-save:user",
+          "check": "not requested"
+        }
+      },
+      {
+        "name": "destination native with higher-priority environment",
+        "transitions": 6,
+        "result": {
+          "phase": "Done",
+          "revision": 6,
+          "hosts": [
+            "Pi"
+          ],
+          "index": 1,
+          "results": {
+            "Pi": "declined"
+          },
+          "destination": "native",
+          "source": "environment (saved credential shadowed)",
+          "digest": "synthetic-save:native",
+          "check": "not requested"
+        }
+      },
+      {
+        "name": "destination skip with higher-priority environment",
+        "transitions": 3,
+        "result": {
+          "phase": "Done",
+          "revision": 3,
+          "hosts": [
+            "Pi"
+          ],
+          "index": 1,
+          "results": {
+            "Pi": "declined"
+          },
+          "destination": "skip",
+          "source": "environment",
+          "digest": "",
+          "check": "not requested"
+        }
+      },
+      {
+        "name": "keep existing, no save, decline check",
+        "transitions": 4,
+        "result": {
+          "phase": "Done",
+          "revision": 4,
+          "hosts": [
+            "Pi"
+          ],
+          "index": 1,
+          "results": {
+            "Pi": "declined"
+          },
+          "destination": "skip",
+          "source": "environment",
+          "digest": "",
+          "check": "not requested"
+        }
+      },
+      {
+        "name": "failed save recovers, retains outcomes",
+        "transitions": 6,
+        "result": {
+          "phase": "Cancelled",
+          "revision": 6,
+          "hosts": [
+            "Claude"
+          ],
+          "index": 1,
+          "results": {
+            "Claude": "declined"
+          },
+          "destination": "user",
+          "source": "none",
+          "digest": "synthetic-save:user",
+          "check": "not requested"
+        }
+      }
+    ],
+    "syntheticCommands": 16,
+    "providerRequests": 0,
+    "storageWrites": 0
+  },
+  "lifetime": {
+    "state": "Idle",
+    "stateOwnedTaskReleased": true,
+    "lateCompletionApplied": false
+  },
+  "sourcePTY": [
+    {
+      "name": "reducer-80",
+      "engine": "reducer",
+      "width": 80,
+      "result": "Done",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "reducer-40",
+      "engine": "reducer",
+      "width": 40,
+      "result": "Done",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "reducer-20",
+      "engine": "reducer",
+      "width": 20,
+      "result": "Done",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "reducer-interrupt",
+      "engine": "reducer",
+      "width": 80,
+      "result": "Cancelled",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "reducer-eof",
+      "engine": "reducer",
+      "width": 80,
+      "result": "Cancelled",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "reducer-SIGTERM",
+      "engine": "reducer",
+      "width": 80,
+      "result": "Cancelled",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "reducer-SIGINT",
+      "engine": "reducer",
+      "width": 80,
+      "result": "Cancelled",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "reducer-SIGHUP",
+      "engine": "reducer",
+      "width": 80,
+      "result": "Cancelled",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "machine-80",
+      "engine": "machine",
+      "width": 80,
+      "result": "Done",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "machine-40",
+      "engine": "machine",
+      "width": 40,
+      "result": "Done",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "machine-20",
+      "engine": "machine",
+      "width": 20,
+      "result": "Done",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "machine-interrupt",
+      "engine": "machine",
+      "width": 80,
+      "result": "Cancelled",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "machine-eof",
+      "engine": "machine",
+      "width": 80,
+      "result": "Cancelled",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "machine-SIGTERM",
+      "engine": "machine",
+      "width": 80,
+      "result": "Cancelled",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "machine-SIGINT",
+      "engine": "machine",
+      "width": 80,
+      "result": "Cancelled",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "machine-SIGHUP",
+      "engine": "machine",
+      "width": 80,
+      "result": "Cancelled",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "TERM=dumb-on-TTY",
+      "rejected": true,
+      "modesUnchanged": true
+    },
+    {
+      "name": "color-enabled",
+      "engine": "reducer",
+      "width": 80,
+      "result": "Done",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "redirected",
+      "rejected": true,
+      "stdoutEmpty": true
+    },
+    {
+      "name": "dumb",
+      "rejected": true,
+      "stdoutEmpty": true
+    }
+  ],
+  "compiledPTY": [
+    {
+      "name": "reducer-80",
+      "engine": "reducer",
+      "width": 80,
+      "result": "Done",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "reducer-40",
+      "engine": "reducer",
+      "width": 40,
+      "result": "Done",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "reducer-20",
+      "engine": "reducer",
+      "width": 20,
+      "result": "Done",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "reducer-interrupt",
+      "engine": "reducer",
+      "width": 80,
+      "result": "Cancelled",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "reducer-eof",
+      "engine": "reducer",
+      "width": 80,
+      "result": "Cancelled",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "reducer-SIGTERM",
+      "engine": "reducer",
+      "width": 80,
+      "result": "Cancelled",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "reducer-SIGINT",
+      "engine": "reducer",
+      "width": 80,
+      "result": "Cancelled",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "reducer-SIGHUP",
+      "engine": "reducer",
+      "width": 80,
+      "result": "Cancelled",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "machine-80",
+      "engine": "machine",
+      "width": 80,
+      "result": "Done",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "machine-40",
+      "engine": "machine",
+      "width": 40,
+      "result": "Done",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "machine-20",
+      "engine": "machine",
+      "width": 20,
+      "result": "Done",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "machine-interrupt",
+      "engine": "machine",
+      "width": 80,
+      "result": "Cancelled",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "machine-eof",
+      "engine": "machine",
+      "width": 80,
+      "result": "Cancelled",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "machine-SIGTERM",
+      "engine": "machine",
+      "width": 80,
+      "result": "Cancelled",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "machine-SIGINT",
+      "engine": "machine",
+      "width": 80,
+      "result": "Cancelled",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "machine-SIGHUP",
+      "engine": "machine",
+      "width": 80,
+      "result": "Cancelled",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "TERM=dumb-on-TTY",
+      "rejected": true,
+      "modesUnchanged": true
+    },
+    {
+      "name": "color-enabled",
+      "engine": "reducer",
+      "width": 80,
+      "result": "Done",
+      "modesRestored": true,
+      "secretAbsent": true,
+      "stdoutJSON": true
+    },
+    {
+      "name": "redirected",
+      "rejected": true,
+      "stdoutEmpty": true
+    },
+    {
+      "name": "dumb",
+      "rejected": true,
+      "stdoutEmpty": true
+    }
+  ],
+  "compileTargets": [
+    "bun-darwin-arm64",
+    "bun-linux-arm64"
+  ],
+  "executedTarget": "bun-darwin-arm64",
+  "realCredentialReads": 0,
+  "realStorageWrites": 0,
+  "providerRequests": 0
+}
