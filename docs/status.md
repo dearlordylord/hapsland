@@ -100,7 +100,7 @@ that the agent read, acknowledged, or applied a finding.
 
 <!-- rule-check-dashboard:start -->
 
-For **“Does my rule work?”**, use this debug dashboard to compare the declaration and related context captured for an ordinary agent edit with its classifier outcome and feedback. The opt-in setting is `sessionInspection`, not an analytics setting. Enable it as shown below before making the edit. For an immediate check without an agent edit or resident, run `hapsland rules check --path FILE --line N` (and optionally `--id RULE`); see [file/line rule checks](configuration.md#try-a-rule-on-a-file-and-line). That command returns its own results and does not append them to this journal.
+For **“Does my rule work?”**, use this debug dashboard to compare the declaration and related context captured for an ordinary agent edit with its classifier outcome and feedback. The opt-in setting is `sessionInspection`, not an analytics setting. Enable it as shown below before making the edit. For an immediate check without an agent edit, run `hapsland rules check --path FILE --line N` (and optionally `--id RULE`); see [file/line rule checks](configuration.md#try-a-rule-on-a-file-and-line). That command returns its own results and does not append them to this journal.
 
 <!-- rule-check-dashboard:end -->
 
@@ -141,7 +141,7 @@ Run `npm --prefix packages/agent-flow-viz run test:inspection-dev-browser` to
 check automatic reload, a stable private URL, syntax-error recovery, and HTTP
 route protection against the real page source.
 
-The **To agent** view renders the general Hapsland message saved by the resident
+The **To agent** view renders the general message saved by Hapsland
 before the final socket handoff, with its intended recipient and original
 finding/evaluation membership. Hooks and native extensions do not serialize
 inspection output or send inspection writer reports. Capture-aged consent,

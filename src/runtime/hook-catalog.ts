@@ -92,7 +92,7 @@ export const commandHooks = {
       flags: ["--composed-prompt-hook", "--composed-host=claude-code"],
       ownership: "composed",
       timeout: 4,
-      purpose: "Notify the resident of the user prompt; does not open a review round"
+      purpose: "Notify Hapsland of the user prompt; does not open a review round"
     }
   }
 } as const satisfies Record<string, Record<string, CommandHookDefinition>>

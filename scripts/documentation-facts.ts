@@ -56,7 +56,7 @@ export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocu
     {
       path: "docs/configuration.md",
       name: "authoring-check-result",
-      text: `The first type lets customer and order IDs be interchanged and should trigger; the second gives them distinct types and should stay clear. The primitive \`value\` inside each wrapper is its representation, not itself a violation. A plain alias such as \`type CustomerId = string\` would still be interchangeable; merely naming a primitive does not establish a distinct type. These are expectations to check, not guaranteed classifier outputs. Each command selects the enclosing declaration and related code, uses normal credential discovery and sends a real external classifier request that may incur charges. No resident or agent session is needed. Add \`--json\` to inspect the actual source-bearing input and probabilities. A skipped/unavailable result is not a clear result, and exit ${RULE_CHECK_EXIT_CODES.evaluated} also includes findings. See [file/line check details](#try-a-rule-on-a-file-and-line).`
+      text: `The first type lets customer and order IDs be interchanged and should trigger; the second gives them distinct types and should stay clear. The primitive \`value\` inside each wrapper is its representation, not itself a violation. A plain alias such as \`type CustomerId = string\` would still be interchangeable; merely naming a primitive does not establish a distinct type. These are expectations to check, not guaranteed classifier outputs. Each command selects the enclosing declaration and related code, uses normal credential discovery and sends a real external classifier request that may incur charges. No agent session is needed. Add \`--json\` to inspect the actual source-bearing input and probabilities. A skipped/unavailable result is not a clear result, and exit ${RULE_CHECK_EXIT_CODES.evaluated} also includes findings. See [file/line check details](#try-a-rule-on-a-file-and-line).`
     },
     {
       path: "docs/configuration.md",
@@ -109,12 +109,12 @@ export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocu
     {
       path: "README.md",
       name: "rule-check-dashboard",
-      text: `To inspect **ordinary agent reviews**, enable the debug recording setting by adding \`"${inspection}": true\` into the repository's \`${PROJECT_CONFIGURATION_FILE}\`, make a new edit through an agent with [installed Hapsland](#installation), then run \`${CLI_NAME} dashboard\`. The dashboard lets you inspect classifier requests and responses. Recording is off by default, contains source, and is independent of analytics. Opening the dashboard does not enable recording or backfill history. One-off \`${CLI_NAME} rules check\` results are returned in the terminal; they are not recorded in the resident journal. See [rule checks](./docs/configuration.md#try-a-rule-on-a-file-and-line) and [dashboard setup](./docs/status.md#opt-in-local-inspection).`
+      text: `To inspect **ordinary agent reviews**, enable the debug recording setting by adding \`"${inspection}": true\` into the repository's \`${PROJECT_CONFIGURATION_FILE}\`, make a new edit through an agent with [installed Hapsland](#installation), then run \`${CLI_NAME} dashboard\`. The dashboard lets you inspect classifier requests and responses. Recording is off by default, contains source, and is independent of analytics. Opening the dashboard does not enable recording or backfill history. One-off \`${CLI_NAME} rules check\` results are not recorded in the debug journal. See [rule checks](./docs/configuration.md#try-a-rule-on-a-file-and-line) and [dashboard setup](./docs/status.md#opt-in-local-inspection).`
     },
     {
       path: "docs/status.md",
       name: "rule-check-dashboard",
-      text: `For **“Does my rule work?”**, use this debug dashboard to compare the declaration and related context captured for an ordinary agent edit with its classifier outcome and feedback. The opt-in setting is \`${inspection}\`, not an analytics setting. Enable it as shown below before making the edit. For an immediate check without an agent edit or resident, run \`${ruleExampleCommand("check", "--path FILE --line N")}\` (and optionally \`--id RULE\`); see [file/line rule checks](configuration.md#try-a-rule-on-a-file-and-line). That command returns its own results and does not append them to this journal.`
+      text: `For **“Does my rule work?”**, use this debug dashboard to compare the declaration and related context captured for an ordinary agent edit with its classifier outcome and feedback. The opt-in setting is \`${inspection}\`, not an analytics setting. Enable it as shown below before making the edit. For an immediate check without an agent edit, run \`${ruleExampleCommand("check", "--path FILE --line N")}\` (and optionally \`--id RULE\`); see [file/line rule checks](configuration.md#try-a-rule-on-a-file-and-line). That command returns its own results and does not append them to this journal.`
     },
     {
       path: "docs/installation-workflows.md",
@@ -182,7 +182,7 @@ export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocu
       text: `| Layer | Location | Behavior |
 | --- | --- | --- |
 | Built-in | Non-rule settings defaults | Supplies omitted settings. |
-| User | \`REVIEW_USER_CONFIG_PATH\`, otherwise \`$XDG_CONFIG_HOME/hapsland/config.jsonc\` (normally \`~/.config/hapsland/config.jsonc\`) | Personal settings across repositories; owns review destination and shared resident resources. |
+| User | \`REVIEW_USER_CONFIG_PATH\`, otherwise \`$XDG_CONFIG_HOME/hapsland/config.jsonc\` (normally \`~/.config/hapsland/config.jsonc\`) | Personal settings across repositories; owns review destination and shared review resources. |
 | Project | \`${PROJECT_CONFIGURATION_FILE}\` at the canonical Git working-tree root | Overrides ordinary settings for this repository. There are no nested configuration layers. |
 | Rule documents | Explicit \`rules\` references in configuration | Definitions, not another configuration layer. Paths resolve from the declaring configuration. |`
     },

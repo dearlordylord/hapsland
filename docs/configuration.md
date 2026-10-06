@@ -25,7 +25,7 @@ the distinction between current recording and retained history.
 | Layer | Location | Behavior |
 | --- | --- | --- |
 | Built-in | Non-rule settings defaults | Supplies omitted settings. |
-| User | `REVIEW_USER_CONFIG_PATH`, otherwise `$XDG_CONFIG_HOME/hapsland/config.jsonc` (normally `~/.config/hapsland/config.jsonc`) | Personal settings across repositories; owns review destination and shared resident resources. |
+| User | `REVIEW_USER_CONFIG_PATH`, otherwise `$XDG_CONFIG_HOME/hapsland/config.jsonc` (normally `~/.config/hapsland/config.jsonc`) | Personal settings across repositories; owns review destination and shared review resources. |
 | Project | `.hapsland.jsonc` at the canonical Git working-tree root | Overrides ordinary settings for this repository. There are no nested configuration layers. |
 | Rule documents | Explicit `rules` references in configuration | Definitions, not another configuration layer. Paths resolve from the declaring configuration. |
 
@@ -42,7 +42,7 @@ independently by its stable identity. Individual path and language settings furt
 narrow global root selection and the rule's declared input support.
 
 User privacy exclusions cannot be removed by project settings. Review destination,
-shared resident limits, and stronger Claude blocking have user-owned restrictions;
+shared review limits, and stronger Claude blocking have user-owned restrictions;
 ordinary project precedence does not override those restrictions. User graph limits
 are ceilings that projects may lower. Session analytics use ordinary precedence,
 including an explicit project `false`.
@@ -523,7 +523,7 @@ hapsland rules check --path src/primitive-obsession-examples.ts --line 10 --id n
 
 <!-- authoring-check-result:start -->
 
-The first type lets customer and order IDs be interchanged and should trigger; the second gives them distinct types and should stay clear. The primitive `value` inside each wrapper is its representation, not itself a violation. A plain alias such as `type CustomerId = string` would still be interchangeable; merely naming a primitive does not establish a distinct type. These are expectations to check, not guaranteed classifier outputs. Each command selects the enclosing declaration and related code, uses normal credential discovery and sends a real external classifier request that may incur charges. No resident or agent session is needed. Add `--json` to inspect the actual source-bearing input and probabilities. A skipped/unavailable result is not a clear result, and exit 0 also includes findings. See [file/line check details](#try-a-rule-on-a-file-and-line).
+The first type lets customer and order IDs be interchanged and should trigger; the second gives them distinct types and should stay clear. The primitive `value` inside each wrapper is its representation, not itself a violation. A plain alias such as `type CustomerId = string` would still be interchangeable; merely naming a primitive does not establish a distinct type. These are expectations to check, not guaranteed classifier outputs. Each command selects the enclosing declaration and related code, uses normal credential discovery and sends a real external classifier request that may incur charges. No agent session is needed. Add `--json` to inspect the actual source-bearing input and probabilities. A skipped/unavailable result is not a clear result, and exit 0 also includes findings. See [file/line check details](#try-a-rule-on-a-file-and-line).
 
 <!-- authoring-check-result:end -->
 
@@ -566,8 +566,7 @@ classifier request. The command uses the configured backend and its normal
 credential discovery (environment, eligible project and user key files, native
 saved key). Explicit credential references use the named key from the environment
 or configured credential-file locations, without native-store fallback. See
-[credential lookup](installation-workflows.md#personal-development-on-your-own-clients). It starts no resident,
-requires no agent session, and does not modify source, rules or settings.
+[credential lookup](installation-workflows.md#personal-development-on-your-own-clients). It requires no agent session, and does not modify source, rules or settings.
 
 This command explicitly sends the selected code and rule questions to the external
 classifier and may incur charges. Human output names the selected declaration,

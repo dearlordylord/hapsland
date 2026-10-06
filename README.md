@@ -72,7 +72,7 @@ where documented, including Clef's 64-question limit. Token limits are recorded
 but require a tokenizer before they can be enforced. See
 [provider configuration and limits](./docs/review-providers.md) for details.
 
-Hapsland also manages review resources: each resident has separate pools for
+Hapsland also manages review resources: each background service has separate pools for
 eight preparation jobs and eight concurrent classifier request permits, plus
 limits on retained state and advice output. See
 [review resources and limits](./docs/review-resources.md) for saturation behavior,
@@ -165,7 +165,7 @@ one result does not establish rule accuracy.
 
 <!-- rule-check-dashboard:start -->
 
-To inspect **ordinary agent reviews**, enable the debug recording setting by adding `"sessionInspection": true` into the repository's `.hapsland.jsonc`, make a new edit through an agent with [installed Hapsland](#installation), then run `hapsland dashboard`. The dashboard lets you inspect classifier requests and responses. Recording is off by default, contains source, and is independent of analytics. Opening the dashboard does not enable recording or backfill history. One-off `hapsland rules check` results are returned in the terminal; they are not recorded in the resident journal. See [rule checks](./docs/configuration.md#try-a-rule-on-a-file-and-line) and [dashboard setup](./docs/status.md#opt-in-local-inspection).
+To inspect **ordinary agent reviews**, enable the debug recording setting by adding `"sessionInspection": true` into the repository's `.hapsland.jsonc`, make a new edit through an agent with [installed Hapsland](#installation), then run `hapsland dashboard`. The dashboard lets you inspect classifier requests and responses. Recording is off by default, contains source, and is independent of analytics. Opening the dashboard does not enable recording or backfill history. One-off `hapsland rules check` results are not recorded in the debug journal. See [rule checks](./docs/configuration.md#try-a-rule-on-a-file-and-line) and [dashboard setup](./docs/status.md#opt-in-local-inspection).
 
 <!-- rule-check-dashboard:end -->
 
@@ -421,7 +421,7 @@ without that facility are unsupported rather than falling back to path-only sour
 Offline readiness diagnosis and headless activity inspection are documented in
 [`docs/status.md`](./docs/status.md). Doctor checks the selected installed integration
 without prompts, repairs, source reads, or Jev calls. Status uses an explicit host session
-ID and source-free resident activity, and never treats silence or missing
+ID and source-free review activity, and never treats silence or missing
 instrumentation as a clear review. Optional [session analytics](./docs/status.md#optional-session-analytics)
 are disabled by default; user configuration can enable Jev outcome totals and recent
 rule-ID history. See the [shared activity storage limits](./docs/status.md).
@@ -464,7 +464,7 @@ Generated from [the hook catalog](./src/runtime/hook-catalog.ts). Command timeou
 | Claude Code | `PostToolUse` | `Edit\|Write` | Sync command | 5 s | Report the edit and collect ready advice |
 | Claude Code | `Stop` | All | Sync command | 5 s | Collect admitted review results before the agent finishes |
 | Claude Code | `SubagentStop` | All | Sync command | 5 s | Collect admitted review results before a subagent finishes |
-| Claude Code | `UserPromptSubmit` | All | Sync command | 4 s | Notify the resident of the user prompt; does not open a review round |
+| Claude Code | `UserPromptSubmit` | All | Sync command | 4 s | Notify Hapsland of the user prompt; does not open a review round |
 | Pi | `agent_start` | All | Extension callback | No IPC | Remember the agent identity for cleanup |
 | Pi | `tool_call` | `edit` | Extension callback | 7 s per IPC call | Register an edit attempt |
 | Pi | `tool_result` | `edit` | Extension callback | 7 s per IPC call | Report the edit and offer ready advice in the tool result |
