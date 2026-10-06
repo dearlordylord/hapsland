@@ -1,3 +1,4 @@
+import { readPackageGraph } from "./scripts/package-graph.mjs"
 import { resolveBunRuntime } from "./scripts/pinned-bun.mjs"
 import { join } from "node:path"
 import { defineConfig } from "vitest/config"
@@ -25,8 +26,11 @@ export default defineConfig({
       autoAttachSubprocess: true,
       reporter: ["json", "text-summary"],
       reportOnFailure: true,
-      include: ["src/**/*.ts"],
-      exclude: ["src/**/*.test.ts", "src/**/*.d.ts"]
+      include: [
+        "src/**/*.ts",
+        ...[...readPackageGraph(import.meta.dirname).packages.values()].map((node) => `${node.directory}/src/**/*.ts`)
+      ],
+      exclude: ["**/*.test.ts", "**/*.d.ts"]
     }
   }
 })

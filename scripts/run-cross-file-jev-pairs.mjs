@@ -4,12 +4,16 @@ import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promi
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import * as Effect from "effect/Effect"
-import { decide, Live } from "../src/jev-decision.ts"
+import { decide, Live } from "@hapsland/review-execution/jev-decision"
 import { configuredRules } from "../src/test-support/default-rules.ts"
-import { TYPE_INPUT_CONTRACT } from "../src/rules/targets.ts"
-import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../src/runtime/review-config.ts"
-import { adaptCodexAdd } from "../src/direct-event/adapter.ts"
-import { prepareObservation, preparedProviderInput, preparedUnitStillCurrent } from "../src/direct-event/pipeline.ts"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
+import { adaptCodexAdd } from "@hapsland/native-observation/direct-event/adapter"
+import {
+  prepareObservation,
+  preparedProviderInput,
+  preparedUnitStillCurrent
+} from "@hapsland/review-execution/direct-event/pipeline"
 const root = resolve(new URL("../", import.meta.url).pathname)
 const execute = process.argv.includes("--execute-paid")
 const prepareOnly = process.argv.includes("--prepare-only")

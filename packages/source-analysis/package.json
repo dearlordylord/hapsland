@@ -1,0 +1,91 @@
+{
+  "name": "@hapsland/source-analysis",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./direct-event/analyzer": {
+      "types": "./dist/direct-event/analyzer.d.ts",
+      "default": "./dist/direct-event/analyzer.js"
+    },
+    "./direct-event/function-analyzer": {
+      "types": "./dist/direct-event/function-analyzer.d.ts",
+      "default": "./dist/direct-event/function-analyzer.js"
+    },
+    "./direct-event/graph-resolver": {
+      "types": "./dist/direct-event/graph-resolver.d.ts",
+      "default": "./dist/direct-event/graph-resolver.js"
+    },
+    "./direct-event/languages/bend/adapter": {
+      "types": "./dist/direct-event/languages/bend/adapter.d.ts",
+      "default": "./dist/direct-event/languages/bend/adapter.js"
+    },
+    "./direct-event/languages/bend/extractor": {
+      "types": "./dist/direct-event/languages/bend/extractor.d.ts",
+      "default": "./dist/direct-event/languages/bend/extractor.js"
+    },
+    "./direct-event/languages/contracts": {
+      "types": "./dist/direct-event/languages/contracts.d.ts",
+      "default": "./dist/direct-event/languages/contracts.js"
+    },
+    "./direct-event/languages/function-facts": {
+      "types": "./dist/direct-event/languages/function-facts.d.ts",
+      "default": "./dist/direct-event/languages/function-facts.js"
+    },
+    "./direct-event/languages/native-parser": {
+      "types": "./dist/direct-event/languages/native-parser.d.ts",
+      "default": "./dist/direct-event/languages/native-parser.js"
+    },
+    "./direct-event/languages/registry": {
+      "types": "./dist/direct-event/languages/registry.d.ts",
+      "default": "./dist/direct-event/languages/registry.js"
+    },
+    "./direct-event/languages/rust-adapter": {
+      "types": "./dist/direct-event/languages/rust-adapter.d.ts",
+      "default": "./dist/direct-event/languages/rust-adapter.js"
+    },
+    "./direct-event/languages/rust-module-context": {
+      "types": "./dist/direct-event/languages/rust-module-context.d.ts",
+      "default": "./dist/direct-event/languages/rust-module-context.js"
+    },
+    "./direct-event/languages/rust": {
+      "types": "./dist/direct-event/languages/rust.d.ts",
+      "default": "./dist/direct-event/languages/rust.js"
+    },
+    "./direct-event/languages/typescript-functions": {
+      "types": "./dist/direct-event/languages/typescript-functions.d.ts",
+      "default": "./dist/direct-event/languages/typescript-functions.js"
+    },
+    "./direct-event/languages/typescript": {
+      "types": "./dist/direct-event/languages/typescript.d.ts",
+      "default": "./dist/direct-event/languages/typescript.js"
+    },
+    "./direct-event/demo-validation": {
+      "types": "./dist/direct-event/demo-validation.d.ts",
+      "default": "./dist/direct-event/demo-validation.js"
+    },
+    "./direct-event/function-resolver": {
+      "types": "./dist/direct-event/function-resolver.d.ts",
+      "default": "./dist/direct-event/function-resolver.js"
+    }
+  },
+  "dependencies": {
+    "@hapsland/canonical-policy": "workspace:*",
+    "@hapsland/native-observation": "workspace:*",
+    "@hapsland/runtime-environment": "workspace:*",
+    "@hapsland/source-artifacts": "workspace:*",
+    "effect": "4.0.0",
+    "smol-toml": "1.8.0",
+    "tree-sitter": "0.25.1",
+    "tree-sitter-rust": "0.24.0",
+    "tree-sitter-typescript": "0.23.2"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs"
+  },
+  "hapsland": {
+    "domain": "source-analysis",
+    "host": "bun",
+    "capabilities": []
+  }
+}

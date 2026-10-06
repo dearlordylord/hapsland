@@ -9,7 +9,7 @@ import {
   formatProposal,
   formatDoctor,
   formatInstallationRequirements
-} from "./client-lifecycle.ts"
+} from "@hapsland/administration/onboarding/client-lifecycle"
 
 it("explains missing agent hooks and damaged packaged components without blaming the user's runtime", () => {
   const output = formatInstallationRequirements({

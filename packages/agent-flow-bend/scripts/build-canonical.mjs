@@ -97,7 +97,7 @@ export const bendJevRequestLimit = () =>
 `
   )
   writeFileSync(
-    join(productRoot, "src/canonical/canonical.generated.js"),
+    join(productRoot, "packages/canonical-policy/src/canonical/canonical.generated.js"),
     `// hapsland-bend-source-sha256:${sourceHash}\n${source}`
   )
 } finally {

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { selectEditedRoots, type PostEditLocation, type SupportedRootDeclaration } from "./edit-attribution.ts"
+import {
+  selectEditedRoots,
+  type PostEditLocation,
+  type SupportedRootDeclaration
+} from "@hapsland/native-observation/direct-event/edit-attribution"
 
 const at = (line: number, column: number) => ({ line, column })
 const loc = (startLine: number, startColumn: number, endLine: number, endColumn: number): PostEditLocation => ({

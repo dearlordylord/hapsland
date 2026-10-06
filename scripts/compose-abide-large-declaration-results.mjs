@@ -22,7 +22,7 @@ assert.deepEqual(
   read(replacement, "manual-scoring-declaration.json").domains
 )
 const allowedChanges = new Set([
-  "src/direct-event/review-renderer.ts",
+  "packages/review-execution/src/direct-event/review-renderer.ts",
   "src/direct-event/review-renderer.test.ts",
   "src/direct-event/function-resource-review.test.ts"
 ])
@@ -32,7 +32,7 @@ for (const [file, digest] of Object.entries(a.protectedDigests))
     assert(allowedChanges.has(file), `Unexpected repair-batch source change: ${file}`)
     sourceChanges.push(file)
   }
-assert(sourceChanges.includes("src/direct-event/review-renderer.ts"))
+assert(sourceChanges.includes("packages/review-execution/src/direct-event/review-renderer.ts"))
 const domains = original.domains.map((d) => corrected.domains.find((r) => r.candidateId === d.candidateId) ?? d)
 const batches = Object.fromEntries(
   domains.map((d) => [

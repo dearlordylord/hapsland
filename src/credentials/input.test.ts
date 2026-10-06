@@ -1,4 +1,4 @@
-import { bunExecutable } from "../runtime/bun-runtime.ts"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { ConfigProvider, Effect, Redacted } from "effect"
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -6,7 +6,7 @@ import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { spawnSync } from "node:child_process"
 import { beforeEach, afterEach, expect, it } from "vitest"
-import { resolveCredentialInput } from "./input.ts"
+import { resolveCredentialInput } from "@hapsland/runtime-inputs/credentials/input"
 
 let root: string
 let userDirectory: string

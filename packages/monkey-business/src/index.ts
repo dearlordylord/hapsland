@@ -33,10 +33,21 @@ import {
   type CallbackTarget,
   type CallbackReport
 } from "./callback-controls.ts"
-import { decodeSharedValue } from "../../../src/canonical/simulation-codec.ts"
-import { GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimits } from "../../../src/canonical/graph-adapter.ts"
+import { decodeSharedValue } from "@hapsland/canonical-policy/canonical/simulation-codec"
+import {
+  GRAPH_LIMIT_CEILINGS,
+  validateGraphLimits,
+  type GraphLimits
+} from "@hapsland/canonical-policy/canonical/graph-adapter"
 import { SOURCE_IDENTITY, PREPARATION_SOURCE_IDENTITY } from "../../monkey-business-bend/engine.mjs"
-import { readRecord, readBool, readNat, readBendList, Nat, decoder } from "../../../src/canonical/boundary-schema.ts"
+import {
+  readRecord,
+  readBool,
+  readNat,
+  readBendList,
+  Nat,
+  decoder
+} from "@hapsland/canonical-policy/canonical/boundary-schema"
 import {
   decodeDriver,
   decodeDriverEvent,
@@ -46,7 +57,7 @@ import {
 } from "./driver-codec.ts"
 import { SharedCore, type WorkloadSource } from "./shared-core.ts"
 import { ResourceScenarios, demoResourceLimits, type ResourceScenarioConfig } from "./resource-scenarios.ts"
-import { freezeCanonicalData } from "../../../src/canonical/immutable.ts"
+import { freezeCanonicalData } from "@hapsland/canonical-policy/canonical/immutable"
 import { Schema } from "effect"
 import {
   generateFileTree,
@@ -88,7 +99,7 @@ import {
   type CanonicalCommand,
   type CanonicalProjection,
   type JevRequestOutcome
-} from "../../../src/canonical/adapter.ts"
+} from "@hapsland/canonical-policy/canonical/adapter"
 import type { LifecycleProfile, CapacityMetadata } from "./lifecycle-profile.ts"
 export * from "./writer-controls.ts"
 export * from "./output-controls.ts"

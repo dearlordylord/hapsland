@@ -4,12 +4,12 @@ import { spawnSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import { join } from "node:path"
 import * as Effect from "effect/Effect"
-import { adaptCodexDirectEvent } from "../src/direct-event/adapter.ts"
-import { prepareObservation, evaluatePrepared } from "../src/direct-event/pipeline.ts"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import { prepareObservation, evaluatePrepared } from "@hapsland/review-execution/direct-event/pipeline"
 import { configuredRules } from "../src/test-support/default-rules.ts"
-import { TYPE_INPUT_CONTRACT } from "../src/rules/targets.ts"
-import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../src/runtime/review-config.ts"
-import { Live } from "../src/jev-decision.ts"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
+import { Live } from "@hapsland/review-execution/jev-decision"
 const spec = JSON.parse(readFileSync(0, "utf8"))
 const graphSourcePaths = (unit) => {
   const paths = new Set(unit.sourceDependencies ?? []),

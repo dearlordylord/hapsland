@@ -6,7 +6,7 @@ import {
   isComparisonDigestValid,
   makeComparison,
   stableStringify
-} from "./digest.ts"
+} from "@hapsland/administration/evaluation/digest"
 
 it("canonicalizes nested values without losing array order or special scalar identities", () => {
   expect(stableStringify({ z: [2, 1], a: { y: undefined, x: NaN } })).toBe(

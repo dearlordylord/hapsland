@@ -31,8 +31,8 @@ const report = {
     helperSha256: digest(helper),
     replaySha256: digest(replay),
     publicationSha256: digest(resolve(root, "scripts/native-artifact.mjs")),
-    residentSha256: digest(resolve(root, "src/resident/server.ts")),
-    nativeParserSha256: digest(resolve(root, "src/direct-event/languages/native-parser.ts"))
+    residentSha256: digest(resolve(root, "packages/resident-runtime/src/resident/server.ts")),
+    nativeParserSha256: digest(resolve(root, "packages/source-analysis/src/direct-event/languages/native-parser.ts"))
   },
   trials,
   liveRequests: 0

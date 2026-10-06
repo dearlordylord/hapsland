@@ -12,6 +12,28 @@
         "@effect/platform-node": "4.0.0",
         "@effect/platform-node-shared": "4.0.0",
         "@effect/vitest": "4.0.0",
+        "@hapsland/activity-observation": "workspace:*",
+        "@hapsland/administration": "workspace:*",
+        "@hapsland/canonical-policy": "workspace:*",
+        "@hapsland/cli-entry": "workspace:*",
+        "@hapsland/credential-storage": "workspace:*",
+        "@hapsland/delivery-output": "workspace:*",
+        "@hapsland/doctor-entry": "workspace:*",
+        "@hapsland/hook-entry": "workspace:*",
+        "@hapsland/hook-runtime": "workspace:*",
+        "@hapsland/inspection-records": "workspace:*",
+        "@hapsland/native-observation": "workspace:*",
+        "@hapsland/parser-entry": "workspace:*",
+        "@hapsland/pi-extension": "workspace:*",
+        "@hapsland/resident-entry": "workspace:*",
+        "@hapsland/resident-runtime": "workspace:*",
+        "@hapsland/resident-transport": "workspace:*",
+        "@hapsland/review-definition": "workspace:*",
+        "@hapsland/review-execution": "workspace:*",
+        "@hapsland/runtime-environment": "workspace:*",
+        "@hapsland/runtime-inputs": "workspace:*",
+        "@hapsland/source-analysis": "workspace:*",
+        "@hapsland/source-artifacts": "workspace:*",
         "@types/bun": "1.3.14",
         "@vitest/coverage-v8": "5.0.1",
         "bun": "1.3.14",
@@ -31,6 +53,244 @@
         "vitest": "5.0.1",
         "zod": "4.6.5",
       },
+    },
+    "packages/activity-observation": {
+      "name": "@hapsland/activity-observation",
+      "version": "0.1.0",
+      "dependencies": {
+        "@hapsland/native-observation": "workspace:*",
+        "effect": "4.0.0",
+      },
+    },
+    "packages/administration": {
+      "name": "@hapsland/administration",
+      "version": "0.1.0",
+      "dependencies": {
+        "@effect/ai-typesafe": "4.0.0",
+        "@effect/platform-node": "4.0.0",
+        "@hapsland/activity-observation": "workspace:*",
+        "@hapsland/credential-storage": "workspace:*",
+        "@hapsland/delivery-output": "workspace:*",
+        "@hapsland/hook-runtime": "workspace:*",
+        "@hapsland/inspection-records": "workspace:*",
+        "@hapsland/native-observation": "workspace:*",
+        "@hapsland/resident-runtime": "workspace:*",
+        "@hapsland/resident-transport": "workspace:*",
+        "@hapsland/review-definition": "workspace:*",
+        "@hapsland/review-execution": "workspace:*",
+        "@hapsland/runtime-environment": "workspace:*",
+        "@hapsland/runtime-inputs": "workspace:*",
+        "@hapsland/source-analysis": "workspace:*",
+        "@hapsland/source-artifacts": "workspace:*",
+        "effect": "4.0.0",
+        "smol-toml": "1.8.0",
+      },
+    },
+    "packages/canonical-policy": {
+      "name": "@hapsland/canonical-policy",
+      "version": "0.1.0",
+      "dependencies": {
+        "effect": "4.0.0",
+      },
+    },
+    "packages/cli-entry": {
+      "name": "@hapsland/cli-entry",
+      "version": "0.1.0",
+      "dependencies": {
+        "@hapsland/activity-observation": "workspace:*",
+        "@hapsland/administration": "workspace:*",
+        "@hapsland/delivery-output": "workspace:*",
+        "@hapsland/hook-runtime": "workspace:*",
+        "@hapsland/native-observation": "workspace:*",
+        "@hapsland/resident-transport": "workspace:*",
+        "@hapsland/review-definition": "workspace:*",
+        "@hapsland/runtime-environment": "workspace:*",
+        "@hapsland/runtime-inputs": "workspace:*",
+        "effect": "4.0.0",
+      },
+    },
+    "packages/credential-storage": {
+      "name": "@hapsland/credential-storage",
+      "version": "0.1.0",
+      "dependencies": {
+        "@hapsland/runtime-environment": "workspace:*",
+        "@hapsland/runtime-inputs": "workspace:*",
+        "effect": "4.0.0",
+      },
+    },
+    "packages/delivery-output": {
+      "name": "@hapsland/delivery-output",
+      "version": "0.1.0",
+    },
+    "packages/doctor-entry": {
+      "name": "@hapsland/doctor-entry",
+      "version": "0.1.0",
+      "dependencies": {
+        "@hapsland/administration": "workspace:*",
+        "@hapsland/runtime-environment": "workspace:*",
+        "effect": "4.0.0",
+      },
+    },
+    "packages/hook-entry": {
+      "name": "@hapsland/hook-entry",
+      "version": "0.1.0",
+      "dependencies": {
+        "@hapsland/hook-runtime": "workspace:*",
+        "@hapsland/resident-transport": "workspace:*",
+      },
+    },
+    "packages/hook-runtime": {
+      "name": "@hapsland/hook-runtime",
+      "version": "0.1.0",
+      "dependencies": {
+        "@effect/platform-node": "4.0.0",
+        "@hapsland/activity-observation": "workspace:*",
+        "@hapsland/delivery-output": "workspace:*",
+        "@hapsland/native-observation": "workspace:*",
+        "@hapsland/resident-transport": "workspace:*",
+        "@hapsland/runtime-environment": "workspace:*",
+        "@hapsland/runtime-inputs": "workspace:*",
+        "effect": "4.0.0",
+      },
+    },
+    "packages/inspection-records": {
+      "name": "@hapsland/inspection-records",
+      "version": "0.1.0",
+      "dependencies": {
+        "@hapsland/runtime-environment": "workspace:*",
+        "@hapsland/runtime-inputs": "workspace:*",
+        "effect": "4.0.0",
+      },
+    },
+    "packages/native-observation": {
+      "name": "@hapsland/native-observation",
+      "version": "0.1.0",
+      "dependencies": {
+        "@hapsland/runtime-environment": "workspace:*",
+        "@hapsland/runtime-inputs": "workspace:*",
+        "effect": "4.0.0",
+      },
+    },
+    "packages/parser-entry": {
+      "name": "@hapsland/parser-entry",
+      "version": "0.1.0",
+      "dependencies": {
+        "@hapsland/runtime-environment": "workspace:*",
+        "@hapsland/source-analysis": "workspace:*",
+      },
+    },
+    "packages/pi-extension": {
+      "name": "@hapsland/pi-extension",
+      "version": "0.1.0",
+      "dependencies": {
+        "@hapsland/runtime-environment": "workspace:*",
+      },
+    },
+    "packages/resident-entry": {
+      "name": "@hapsland/resident-entry",
+      "version": "0.1.0",
+      "dependencies": {
+        "@hapsland/resident-runtime": "workspace:*",
+        "@hapsland/runtime-environment": "workspace:*",
+        "effect": "4.0.0",
+      },
+    },
+    "packages/resident-runtime": {
+      "name": "@hapsland/resident-runtime",
+      "version": "0.1.0",
+      "dependencies": {
+        "@hapsland/activity-observation": "workspace:*",
+        "@hapsland/canonical-policy": "workspace:*",
+        "@hapsland/credential-storage": "workspace:*",
+        "@hapsland/delivery-output": "workspace:*",
+        "@hapsland/inspection-records": "workspace:*",
+        "@hapsland/native-observation": "workspace:*",
+        "@hapsland/resident-transport": "workspace:*",
+        "@hapsland/review-definition": "workspace:*",
+        "@hapsland/review-execution": "workspace:*",
+        "@hapsland/runtime-environment": "workspace:*",
+        "@hapsland/runtime-inputs": "workspace:*",
+        "@hapsland/source-analysis": "workspace:*",
+        "effect": "4.0.0",
+      },
+    },
+    "packages/resident-transport": {
+      "name": "@hapsland/resident-transport",
+      "version": "0.1.0",
+      "dependencies": {
+        "@hapsland/activity-observation": "workspace:*",
+        "@hapsland/delivery-output": "workspace:*",
+        "@hapsland/inspection-records": "workspace:*",
+        "@hapsland/native-observation": "workspace:*",
+        "@hapsland/runtime-environment": "workspace:*",
+        "@hapsland/runtime-inputs": "workspace:*",
+        "effect": "4.0.0",
+      },
+    },
+    "packages/review-definition": {
+      "name": "@hapsland/review-definition",
+      "version": "0.1.0",
+      "dependencies": {
+        "@hapsland/canonical-policy": "workspace:*",
+        "@hapsland/native-observation": "workspace:*",
+        "@hapsland/runtime-environment": "workspace:*",
+        "@hapsland/runtime-inputs": "workspace:*",
+        "@hapsland/source-artifacts": "workspace:*",
+        "effect": "4.0.0",
+      },
+    },
+    "packages/review-execution": {
+      "name": "@hapsland/review-execution",
+      "version": "0.1.0",
+      "dependencies": {
+        "@effect/ai-typesafe": "4.0.0",
+        "@hapsland/canonical-policy": "workspace:*",
+        "@hapsland/delivery-output": "workspace:*",
+        "@hapsland/inspection-records": "workspace:*",
+        "@hapsland/native-observation": "workspace:*",
+        "@hapsland/review-definition": "workspace:*",
+        "@hapsland/runtime-environment": "workspace:*",
+        "@hapsland/runtime-inputs": "workspace:*",
+        "@hapsland/source-analysis": "workspace:*",
+        "@hapsland/source-artifacts": "workspace:*",
+        "effect": "4.0.0",
+      },
+    },
+    "packages/runtime-environment": {
+      "name": "@hapsland/runtime-environment",
+      "version": "0.1.0",
+      "dependencies": {
+        "bun": "1.3.14",
+        "effect": "4.0.0",
+      },
+    },
+    "packages/runtime-inputs": {
+      "name": "@hapsland/runtime-inputs",
+      "version": "0.1.0",
+      "dependencies": {
+        "@hapsland/canonical-policy": "workspace:*",
+        "@hapsland/runtime-environment": "workspace:*",
+        "effect": "4.0.0",
+      },
+    },
+    "packages/source-analysis": {
+      "name": "@hapsland/source-analysis",
+      "version": "0.1.0",
+      "dependencies": {
+        "@hapsland/canonical-policy": "workspace:*",
+        "@hapsland/native-observation": "workspace:*",
+        "@hapsland/runtime-environment": "workspace:*",
+        "@hapsland/source-artifacts": "workspace:*",
+        "effect": "4.0.0",
+        "smol-toml": "1.8.0",
+        "tree-sitter": "0.25.1",
+        "tree-sitter-rust": "0.24.0",
+        "tree-sitter-typescript": "0.23.2",
+      },
+    },
+    "packages/source-artifacts": {
+      "name": "@hapsland/source-artifacts",
+      "version": "0.1.0",
     },
   },
   "packages": {
@@ -107,6 +367,50 @@
     "@effect/platform-node-shared": ["@effect/platform-node-shared@4.0.0", "", { "dependencies": { "@types/ws": "^8.18.1", "ws": "^8.22.0" }, "peerDependencies": { "effect": "^4.0.0" } }, "sha512-VBXHJU9UXVZPdQGGDRjGXpo+TpOzRwZuMrdKAtIxi1qwcRftmacZ1zTgIrzBa0Z2RA2KVkoOecQUsTlt/nJZhw=="],
 
     "@effect/vitest": ["@effect/vitest@4.0.0", "", { "peerDependencies": { "effect": "^4.0.0", "vitest": ">=5.0.0 <6.0.0" } }, "sha512-kGElCPFGtP+CgMCwV/HjJWqtE3zYo6I1+8MSA54l+EI24lPU9p2Efa+TBp1jfkg9j711KKzEqgSAy3VzTsb76Q=="],
+
+    "@hapsland/activity-observation": ["@hapsland/activity-observation@workspace:packages/activity-observation"],
+
+    "@hapsland/administration": ["@hapsland/administration@workspace:packages/administration"],
+
+    "@hapsland/canonical-policy": ["@hapsland/canonical-policy@workspace:packages/canonical-policy"],
+
+    "@hapsland/cli-entry": ["@hapsland/cli-entry@workspace:packages/cli-entry"],
+
+    "@hapsland/credential-storage": ["@hapsland/credential-storage@workspace:packages/credential-storage"],
+
+    "@hapsland/delivery-output": ["@hapsland/delivery-output@workspace:packages/delivery-output"],
+
+    "@hapsland/doctor-entry": ["@hapsland/doctor-entry@workspace:packages/doctor-entry"],
+
+    "@hapsland/hook-entry": ["@hapsland/hook-entry@workspace:packages/hook-entry"],
+
+    "@hapsland/hook-runtime": ["@hapsland/hook-runtime@workspace:packages/hook-runtime"],
+
+    "@hapsland/inspection-records": ["@hapsland/inspection-records@workspace:packages/inspection-records"],
+
+    "@hapsland/native-observation": ["@hapsland/native-observation@workspace:packages/native-observation"],
+
+    "@hapsland/parser-entry": ["@hapsland/parser-entry@workspace:packages/parser-entry"],
+
+    "@hapsland/pi-extension": ["@hapsland/pi-extension@workspace:packages/pi-extension"],
+
+    "@hapsland/resident-entry": ["@hapsland/resident-entry@workspace:packages/resident-entry"],
+
+    "@hapsland/resident-runtime": ["@hapsland/resident-runtime@workspace:packages/resident-runtime"],
+
+    "@hapsland/resident-transport": ["@hapsland/resident-transport@workspace:packages/resident-transport"],
+
+    "@hapsland/review-definition": ["@hapsland/review-definition@workspace:packages/review-definition"],
+
+    "@hapsland/review-execution": ["@hapsland/review-execution@workspace:packages/review-execution"],
+
+    "@hapsland/runtime-environment": ["@hapsland/runtime-environment@workspace:packages/runtime-environment"],
+
+    "@hapsland/runtime-inputs": ["@hapsland/runtime-inputs@workspace:packages/runtime-inputs"],
+
+    "@hapsland/source-analysis": ["@hapsland/source-analysis@workspace:packages/source-analysis"],
+
+    "@hapsland/source-artifacts": ["@hapsland/source-artifacts@workspace:packages/source-artifacts"],
 
     "@istanbuljs/schema": ["@istanbuljs/schema@0.1.6", "", {}, "sha512-+Sg6GCR/wy1oSmQDFq4LQDAhm3ETKnorxN+y5nbLULOR3P0c14f2Wurzj3/xqPXtasLFfHd5iRFQ7AJt4KH2cw=="],
 

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { initialCanonical, probabilityWords, stepCanonical, type CanonicalEvent } from "../canonical/adapter.ts"
-import { findingFromProbability, compareAdviceOrder } from "./decision.ts"
+import {
+  initialCanonical,
+  probabilityWords,
+  stepCanonical,
+  type CanonicalEvent
+} from "@hapsland/canonical-policy/canonical/adapter"
+import { findingFromProbability, compareAdviceOrder } from "@hapsland/review-definition/rules/decision"
 
 const initial = initialCanonical({ globalItems: 1, globalBytes: 1, partitionItems: 1, partitionBytes: 1 })
 

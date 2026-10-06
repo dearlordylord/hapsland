@@ -3,8 +3,8 @@ import { spawnSync } from "node:child_process"
 import { readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { buildToolchain, ensurePackageArtifact } from "./artifact-store.mjs"
-import { stageRelease } from "../src/onboarding/distribution.ts"
-import { NEW_KEY_FLAG, SETUP_COMMAND } from "../src/runtime/cli-names.ts"
+import { stageRelease } from "@hapsland/administration/onboarding/distribution"
+import { NEW_KEY_FLAG, SETUP_COMMAND } from "@hapsland/runtime-environment/runtime/cli-names"
 
 const args = process.argv.slice(2)
 const host = args.find((arg) => arg.startsWith("--host="))?.slice("--host=".length)

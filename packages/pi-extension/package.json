@@ -1,0 +1,25 @@
+{
+  "name": "@hapsland/pi-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./pi/extension": {
+      "types": "./dist/pi/extension.d.ts",
+      "default": "./dist/pi/extension.js"
+    }
+  },
+  "dependencies": {
+    "@hapsland/runtime-environment": "workspace:*"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs"
+  },
+  "hapsland": {
+    "domain": "pi-extension",
+    "host": "node",
+    "capabilities": [],
+    "surface": "host-loaded-hook",
+    "entry": "src/pi/extension.ts"
+  }
+}

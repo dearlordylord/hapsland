@@ -1,27 +1,27 @@
 import { reviewControlsLayer } from "../test-support/review-controls.ts"
-import { ReviewControlError } from "./review-controls.ts"
+import { ReviewControlError } from "@hapsland/resident-runtime/resident/review-controls"
 import { nativeDeferred as deferred } from "../test-support/native-deferred.ts"
 import { Layer, Ref } from "effect"
 import {
   ResidentPreparationControls,
   PreparationControlError,
   defaultPreparationControls
-} from "./preparation-controls.ts"
+} from "@hapsland/resident-runtime/resident/preparation-controls"
 import { makePreparationControls } from "../test-support/preparation-controls.ts"
 import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts"
 import { describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
 import { join } from "node:path"
 import "node:fs"
-import { readActivity } from "../activity/status.ts"
-import { adaptClaudeDirectEvent } from "../direct-event/adapter.ts"
+import { readActivity } from "@hapsland/activity-observation/activity/status"
+import { adaptClaudeDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import { makeReviewGitFixture as makeGitFixture, put } from "../direct-event/test-fixtures.ts"
 import { configuredRules } from "../test-support/default-rules.ts"
-import { residentPaths } from "./paths.ts"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 
-import "./hook-clock.ts"
-import "./collection.ts"
-import type { ResidentDispatchContext, ResidentRequest } from "./protocol.ts"
+import "@hapsland/resident-transport/resident/hook-clock"
+import "@hapsland/resident-runtime/resident/collection"
+import type { ResidentDispatchContext, ResidentRequest } from "@hapsland/resident-transport/resident/protocol"
 
 const fixture = async () => {
   const root = await makeGitFixture()

@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { expect, it } from "vitest"
-import { makeInitialCredentialState, readCredentialState } from "./state.ts"
+import { makeInitialCredentialState, readCredentialState } from "@hapsland/runtime-inputs/credentials/state"
 
 it("keeps independent readers and lifecycle defaults isolated from returned-state mutation", () => {
   const root = mkdtempSync(join(tmpdir(), "hapsland-state-default-"))

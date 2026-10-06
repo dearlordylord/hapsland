@@ -3,8 +3,14 @@ import { spawn } from "node:child_process"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
-import type { DirectAdvicee } from "../direct-event/observation.ts"
-import { readActivity, formatActivityHuman, recordActivity, recordRoundClosure, type ActivityStage } from "./status.ts"
+import type { DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
+import {
+  readActivity,
+  formatActivityHuman,
+  recordActivity,
+  recordRoundClosure,
+  type ActivityStage
+} from "@hapsland/activity-observation/activity/status"
 
 const roots: Array<string> = []
 const makeRoot = () => {
@@ -178,7 +184,7 @@ describe("resident activity status", () => {
       stage: "pending",
       expectedUnitIdentities: units
     })
-    const modulePath = resolve("src/activity/status.ts")
+    const modulePath = resolve("packages/activity-observation/src/activity/status.ts")
     await Promise.all(
       units.map(
         (unitIdentity) =>

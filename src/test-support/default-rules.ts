@@ -1,10 +1,10 @@
 import { mkdirSync, readFileSync, existsSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
-import { decodeConfigurationText } from "../configuration/decode.ts"
-import { SHIPPED_DEFAULT_RULES } from "../rules/shipped.ts"
-import { compileRules } from "../rules/compiler.ts"
-import type { LoadedRule } from "../rules/loader.ts"
-import type { Rule } from "../policy/rules.ts"
+import { decodeConfigurationText } from "@hapsland/runtime-inputs/configuration/decode"
+import { SHIPPED_DEFAULT_RULES } from "@hapsland/review-definition/rules/shipped"
+import { compileRules } from "@hapsland/review-definition/rules/compiler"
+import type { LoadedRule } from "@hapsland/review-definition/rules/loader"
+import type { Rule } from "@hapsland/review-execution/policy/rules"
 const bundledRules: ReadonlyArray<LoadedRule> = SHIPPED_DEFAULT_RULES.map((rule) => ({
   ...rule,
   origin: { layer: "built-in", source: "built-in:noul", field: "bundled.noul" },

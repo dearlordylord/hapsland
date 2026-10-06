@@ -1,6 +1,10 @@
 import { expect, it } from "vitest"
 import { join } from "node:path"
-import { sourceRuntimeLayout, sourceRuntimeCommand, sourceRuntimeFromEntrypoint } from "./source-runtime-layout.ts"
+import {
+  sourceRuntimeLayout,
+  sourceRuntimeCommand,
+  sourceRuntimeFromEntrypoint
+} from "@hapsland/runtime-environment/runtime/source-runtime-layout"
 import {
   BUN_VERSION,
   commandEntrypoint,
@@ -17,9 +21,9 @@ import {
   runtimeVersion,
   standaloneCommand,
   versionProbeArguments
-} from "./package-runtime.ts"
+} from "@hapsland/runtime-environment/runtime/package-runtime"
 it("keeps executable argv distinct for development sources and standalone retained packages", () => {
-  const source = join(packageRoot, "src/cli.ts")
+  const source = join(packageRoot, "packages/cli-entry/src/cli.ts")
   const binary = join(packageRoot, "dist/bin/linux-arm64/hapsland")
   expect(commandFromEntrypoint(process.execPath, source)).toEqual({ executable: process.execPath, args: [source] })
   expect(commandFromEntrypoint(process.execPath, binary)).toEqual({ executable: binary, args: [] })
@@ -29,7 +33,7 @@ it("keeps executable argv distinct for development sources and standalone retain
   expect(packageRootFromEntrypoint(source)).toBe(packageRoot)
   expect(packageRootFromEntrypoint(binary)).toBe(packageRoot)
   expect(currentCommand()).toEqual(packageCommand("cli"))
-  expect(packageCommand("resident").args).toEqual([join(packageRoot, "src/resident/main.ts")])
+  expect(packageCommand("resident").args).toEqual([join(packageRoot, "packages/resident-entry/src/resident/main.ts")])
   expect(standaloneCommand(packageRoot, "doctor")).toEqual({
     executable: join(packageRoot, "dist/bin", `${process.platform}-${process.arch}`, "hapsland-doctor"),
     args: []

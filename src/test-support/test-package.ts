@@ -3,10 +3,11 @@ import { tmpdir } from "node:os"
 import { join, relative } from "node:path"
 import { execFileSync } from "../../scripts/test-harness/process.mjs"
 import { standaloneEnvironment } from "../../scripts/test-harness/standalone-environment.mjs"
-import { standaloneCommand, type RuntimeCommand } from "../runtime/package-runtime.ts"
+import { standaloneCommand, type RuntimeCommand } from "@hapsland/runtime-environment/runtime/package-runtime"
 
 export interface TestPackage {
   readonly packageRoot: string
+  readonly hook: RuntimeCommand
   readonly cli: RuntimeCommand
   readonly resident: RuntimeCommand
   readonly environment: NodeJS.ProcessEnv
@@ -56,12 +57,13 @@ export const prepareTestPackage = (): TestPackage => {
       accessSync(executable, constants.X_OK)
       symlinkSync(relative(binDirectory, executable), join(binDirectory, name))
     }
-    for (const role of ["cli", "doctor", "parser", "resident"] as const) {
+    for (const role of ["cli", "doctor", "hook", "parser", "resident"] as const) {
       accessSync(standaloneCommand(packageRoot, role).executable, constants.X_OK)
     }
     return {
       packageRoot,
       cli: standaloneCommand(packageRoot, "cli"),
+      hook: standaloneCommand(packageRoot, "hook"),
       resident: standaloneCommand(packageRoot, "resident"),
       environment: standaloneEnvironment(join(temporaryRoot, "standalone-path")),
       command: [join(installation, "node_modules/.bin/hapsland")],

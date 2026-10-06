@@ -1,4 +1,4 @@
-import { providerIdentity } from "../review-providers/catalog.ts"
+import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import { describe, expect, it } from "vitest"
 import { Effect } from "effect"
 import { it as effectIt } from "@effect/vitest"
@@ -8,13 +8,17 @@ import {
   semanticIdentity,
   type PreparedUnit,
   type ReviewInput
-} from "../direct-event/model.ts"
-import type { TypeDeclaration } from "../direct-event/artifact-model.ts"
+} from "@hapsland/review-definition/direct-event/model"
+import type { TypeDeclaration } from "@hapsland/source-artifacts/direct-event/artifact-model"
 import { advicee } from "../direct-event/test-fixtures.ts"
 import { configuredRules } from "../test-support/default-rules.ts"
-import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
-import { makeResidentState, MAX_PARTITION_KEY_BYTES } from "./capacity.ts"
-import { SUCCESS_CACHE_BYTE_LIMIT, SUCCESS_CACHE_ENTRY_LIMIT, residentEvaluationIdentity } from "./evaluation-reuse.ts"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import { makeResidentState, MAX_PARTITION_KEY_BYTES } from "@hapsland/resident-runtime/resident/capacity"
+import {
+  SUCCESS_CACHE_BYTE_LIMIT,
+  SUCCESS_CACHE_ENTRY_LIMIT,
+  residentEvaluationIdentity
+} from "@hapsland/resident-runtime/resident/evaluation-reuse"
 
 const artifact = (source: string): TypeDeclaration => ({
   id: "type.ts::OrderCount",

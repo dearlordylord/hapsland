@@ -4,11 +4,11 @@ import { resolve } from "node:path"
 const root = resolve(import.meta.dirname, "..")
 const read = (path) => readFileSync(resolve(root, path), "utf8")
 for (const path of [
-  "src/cli.ts",
-  "src/onboarding/setup.ts",
-  "src/onboarding/first-review-demo.ts",
-  "src/direct-event/pipeline.ts",
-  "src/resident/server.ts"
+  "packages/cli-entry/src/cli.ts",
+  "packages/administration/src/onboarding/setup.ts",
+  "packages/administration/src/onboarding/first-review-demo.ts",
+  "packages/review-execution/src/direct-event/pipeline.ts",
+  "packages/resident-runtime/src/resident/server.ts"
 ]) {
   const source = read(path)
   if (/\bconsent\.(authorize|enable|disable|preview|list)\s*\(/.test(source)) {
@@ -16,19 +16,19 @@ for (const path of [
   }
 }
 for (const [path, call] of [
-  ["src/configuration/resolve.ts", "replaceIncludes("],
-  ["src/policy/file-policy.ts", "selectFile("],
-  ["src/direct-event/selection.ts", "selectFile("],
-  ["src/direct-event/pipeline.ts", "admitReview("],
-  ["src/resident/server.ts", "admitReview("]
+  ["packages/runtime-inputs/src/configuration/resolve.ts", "replaceIncludes("],
+  ["packages/native-observation/src/policy/file-policy.ts", "selectFile("],
+  ["packages/native-observation/src/direct-event/selection.ts", "selectFile("],
+  ["packages/review-execution/src/direct-event/pipeline.ts", "admitReview("],
+  ["packages/resident-runtime/src/resident/server.ts", "admitReview("]
 ]) {
   if (!read(path).includes(call)) throw new Error(`canonical configuration route missing: ${path}`)
 }
 
-if (read("src/resident/server.ts").includes("process.env")) {
+if (read("packages/resident-runtime/src/resident/server.ts").includes("process.env")) {
   throw new Error("resident runtime configuration must use Effect Config")
 }
-const client = read("src/resident/client.ts")
+const client = read("packages/resident-transport/src/resident/client.ts")
 for (const access of [
   "process.env[settings.credentialEnvVar]",
   "process.env.REVIEW_CREDENTIAL_STATE_PATH",
@@ -36,7 +36,7 @@ for (const access of [
 ]) {
   if (client.includes(access)) throw new Error(`resident dispatch configuration bypass returned: ${access}`)
 }
-const credentialInput = read("src/credentials/input.ts")
+const credentialInput = read("packages/runtime-inputs/src/credentials/input.ts")
 if (
   !client.includes("resolveCredentialInput({ envVar: capture.policy.credentialEnvVar.value, root })") ||
   !client.includes("Redacted.value(credentialInput.value)") ||
@@ -48,7 +48,7 @@ if (
   throw new Error("resident dispatch credential configuration must remain redacted until IPC construction")
 }
 
-const evaluation = read("src/evaluation/command.ts")
+const evaluation = read("packages/administration/src/evaluation/command.ts")
 if (/Effect\.run(?:Sync|Promise|Fork)\(/u.test(evaluation) || evaluation.includes("process.env")) {
   throw new Error("evaluation planning must share the caller Effect runtime and ConfigProvider")
 }
@@ -56,7 +56,7 @@ if (!evaluation.includes("Config.Redacted(name)")) {
   throw new Error("evaluation credential presence must be read through redacted Effect Config")
 }
 
-const credentials = read("src/credentials/secret-service.ts")
+const credentials = read("packages/credential-storage/src/credentials/secret-service.ts")
 if (/Effect\.run(?:Sync|Promise|Fork)\(|new Promise|\basync\b|setTimeout\(/u.test(credentials)) {
   throw new Error("credential workflows must compose in the caller Effect runtime")
 }
@@ -68,22 +68,22 @@ if (
   throw new Error("credential configuration and lock polling must use redacted Config and Schedule")
 }
 
-const installationLock = read("src/onboarding/installation-lock.ts")
+const installationLock = read("packages/administration/src/onboarding/installation-lock.ts")
 for (const path of [
-  "src/onboarding/installation-lock.ts",
-  "src/credentials/secret-service.ts",
-  "src/onboarding/first-review-demo.ts",
-  "src/resident/client.ts"
+  "packages/administration/src/onboarding/installation-lock.ts",
+  "packages/credential-storage/src/credentials/secret-service.ts",
+  "packages/administration/src/onboarding/first-review-demo.ts",
+  "packages/resident-transport/src/resident/client.ts"
 ]) {
   if (/Clock\.currentTimeNanos/u.test(read(path))) {
     throw new Error(`${path} elapsed budgets must use monotonicTimeNanos, not wall-clock nanos`)
   }
 }
 for (const path of [
-  "src/cli.ts",
-  "src/resident/client.ts",
-  "src/resident/composed-hook.ts",
-  "src/resident/hook-output.ts"
+  "packages/cli-entry/src/cli.ts",
+  "packages/resident-transport/src/resident/client.ts",
+  "packages/hook-runtime/src/resident/composed-hook.ts",
+  "packages/hook-runtime/src/resident/hook-output.ts"
 ]) {
   if (/performance\.now\(/u.test(read(path))) {
     throw new Error(`${path} hook deadline consumers must share the caller monotonic Clock coordinate`)
@@ -109,7 +109,7 @@ for (const runtime of ["codex", "claude", "opencode"]) {
   }
 }
 
-const claudeInstallation = read("src/onboarding/claude-installation.ts")
+const claudeInstallation = read("packages/administration/src/onboarding/claude-installation.ts")
 if (
   /spawnSync\(|process\.env(?:\.|\[)/u.test(claudeInstallation) ||
   !claudeInstallation.includes('Config.NonEmptyString("REVIEW_INSTALL_RUNTIME")') ||
@@ -119,7 +119,7 @@ if (
   throw new Error("Claude installation must use caller Config and scoped native host processes")
 }
 
-const codexInstallation = read("src/onboarding/codex-installation.ts")
+const codexInstallation = read("packages/administration/src/onboarding/codex-installation.ts")
 if (
   /spawnSync\(|process\.env(?:\.|\[)/u.test(codexInstallation) ||
   !codexInstallation.includes('Config.NonEmptyString("CODEX_HOME")') ||
@@ -130,7 +130,7 @@ if (
   throw new Error("Codex installation must use caller Config and scoped native host processes")
 }
 
-const clientLifecycle = read("src/onboarding/client-lifecycle.ts")
+const clientLifecycle = read("packages/administration/src/onboarding/client-lifecycle.ts")
 if (
   /spawnSync\(|Effect\.run(?:Sync|Promise|Fork)\(|process\.env(?:\.|\[)/u.test(clientLifecycle) ||
   !clientLifecycle.includes('Config.NonEmptyString("HAPSLAND_ACTIVE_DISPATCH")') ||
@@ -138,29 +138,32 @@ if (
 ) {
   throw new Error("package lifecycle must compose caller Config and scoped inherited processes")
 }
-const distribution = read("src/onboarding/distribution.ts")
+const distribution = read("packages/administration/src/onboarding/distribution.ts")
 if (
   /spawnSync\(|Effect\.run(?:Sync|Promise|Fork)\(|\basync\b/u.test(distribution) ||
   !distribution.includes("yield* execFileClosedStdin(")
 ) {
   throw new Error("release staging must compose scoped native process Effects")
 }
-for (const path of ["src/rules/loader.ts", "src/configuration/load.ts"]) {
+for (const path of [
+  "packages/review-definition/src/rules/loader.ts",
+  "packages/runtime-inputs/src/configuration/load.ts"
+]) {
   if (/\basync\b|Effect\.run(?:Sync|Promise|Fork)\(/u.test(read(path))) {
     throw new Error(`${path} must compose Effects directly without an async facade`)
   }
 }
 for (const path of [
-  "src/repository/root.ts",
-  "src/direct-event/adapter.ts",
-  "src/direct-event/selection.ts",
-  "src/hosts/opencode/adapter.ts"
+  "packages/native-observation/src/repository/root.ts",
+  "packages/native-observation/src/direct-event/adapter.ts",
+  "packages/native-observation/src/direct-event/selection.ts",
+  "packages/native-observation/src/hosts/opencode/adapter.ts"
 ]) {
   if (/\basync\b|promisify\(execFile\)|Effect\.run(?:Sync|Promise|Fork)\(/u.test(read(path))) {
     throw new Error(`${path} Git observations must compose scoped Effect process adapters`)
   }
 }
-const capture = read("src/direct-event/capture.ts")
+const capture = read("packages/native-observation/src/direct-event/capture.ts")
 const captureWorkflow = capture.slice(capture.indexOf("export const captureStable"))
 if (
   /\basync\b|Effect\.tryPromise\(\{\s*try:\s*async/u.test(captureWorkflow) ||
@@ -171,7 +174,7 @@ if (
   throw new Error("stable capture must scope native reads and buffers without an async workflow facade")
 }
 
-const doctor = read("src/onboarding/doctor.ts")
+const doctor = read("packages/administration/src/onboarding/doctor.ts")
 if (
   /Effect\.run(?:Sync|Promise|Fork)\(|\basync\b|process\.env/u.test(doctor) ||
   !doctor.includes("yield* inspectResident()")
@@ -179,7 +182,7 @@ if (
   throw new Error("installed doctor must inspect the resident in the caller Effect runtime and configuration")
 }
 
-const demo = read("src/onboarding/first-review-demo.ts")
+const demo = read("packages/administration/src/onboarding/first-review-demo.ts")
 if (
   /Effect\.run(?:Sync|Promise|Fork)\(|\basync\b|Effect\.promise\(|new Promise|setTimeout\(|Date\.now\(/u.test(demo) ||
   !demo.includes('Schedule.spaced("250 millis")') ||
@@ -190,13 +193,16 @@ if (
 for (const key of ["REVIEW_ACTIVITY_PATH", "REVIEW_DEMO_TEST_SANDBOX_BYPASS", "REVIEW_DEMO_TEST_CODEX_MODEL"]) {
   if (demo.includes(`process.env.${key}`)) throw new Error(`demo configuration bypass returned: ${key}`)
 }
-for (const host of [read("src/onboarding/host-process.ts"), read("src/process/closed-stdin.ts")]) {
+for (const host of [
+  read("packages/administration/src/onboarding/host-process.ts"),
+  read("packages/runtime-environment/src/process/closed-stdin.ts")
+]) {
   if (/new Promise|Effect\.run(?:Sync|Promise|Fork)\(/u.test(host) || !host.includes("Effect.acquireUseRelease(")) {
     throw new Error("host processes must use scoped Effect ownership")
   }
 }
 
-const maskedInput = read("src/credentials/masked-input.ts")
+const maskedInput = read("packages/administration/src/credentials/masked-input.ts")
 if (
   /new Promise|\basync\b|setInterval\(|setTimeout\(|spawnSync\(|Effect\.run(?:Sync|Promise|Fork)\(/u.test(
     maskedInput
@@ -209,7 +215,7 @@ if (
     "masked credential input must use scoped Effect ownership, scheduled polling and scoped native processes"
   )
 }
-const clientSelection = read("src/onboarding/client-selection.ts")
+const clientSelection = read("packages/administration/src/onboarding/client-selection.ts")
 if (
   /new Promise|\basync\b|Effect\.run(?:Sync|Promise|Fork)\(/u.test(clientSelection) ||
   !clientSelection.includes("Effect.acquireUseRelease(")
@@ -217,12 +223,12 @@ if (
   throw new Error("interactive client selection must use caller Effect runtime and scoped terminal ownership")
 }
 
-const interactiveCli = read("src/cli.ts")
+const interactiveCli = read("packages/cli-entry/src/cli.ts")
 if (/new Promise|setInterval\(|spawnSync\(|\basync\b|process\.env(?:\.|\[)/u.test(interactiveCli)) {
   throw new Error("CLI workflows must compose Effects and use scoped native adapters")
 }
-const packageDoctor = read("src/package-doctor.ts")
-const packageDiagnostics = read("src/onboarding/package-diagnostics.ts")
+const packageDoctor = read("packages/doctor-entry/src/package-doctor.ts")
+const packageDiagnostics = read("packages/administration/src/onboarding/package-diagnostics.ts")
 if (
   /execFileSync\(|spawnSync\(/u.test(packageDoctor + packageDiagnostics) ||
   !packageDoctor.includes('import { diagnosePackage } from "./onboarding/package-diagnostics.ts"') ||
@@ -245,7 +251,7 @@ for (const workflow of [
     throw new Error(`${workflow} must be a named Effect workflow`)
   }
 }
-const confirmation = read("src/onboarding/confirmation.ts")
+const confirmation = read("packages/administration/src/onboarding/confirmation.ts")
 if (
   /new Promise|\basync\b|Effect\.run(?:Sync|Promise|Fork)\(/u.test(confirmation) ||
   !confirmation.includes("Effect.acquireUseRelease(")

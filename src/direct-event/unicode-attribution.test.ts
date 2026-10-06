@@ -3,12 +3,12 @@ import { describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
 import { rm } from "node:fs/promises"
 import { join } from "node:path"
-import { adaptClaudeDirectEvent, adaptCodexDirectEvent } from "./adapter.ts"
-import { adaptOpenCodeDirectEvent } from "../hosts/opencode/adapter.ts"
-import { prepareObservation } from "./pipeline.ts"
+import { adaptClaudeDirectEvent, adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import { adaptOpenCodeDirectEvent } from "@hapsland/native-observation/hosts/opencode/adapter"
+import { prepareObservation } from "@hapsland/review-execution/direct-event/pipeline"
 import { addEvent, updateEvent, makeReviewGitFixture as makeGitFixture, put } from "./test-fixtures.ts"
-import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
-import { TYPE_INPUT_CONTRACT, FUNCTION_INPUT_CONTRACT } from "../rules/targets.ts"
+import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
+import { TYPE_INPUT_CONTRACT, FUNCTION_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 
 const cases = [
   {

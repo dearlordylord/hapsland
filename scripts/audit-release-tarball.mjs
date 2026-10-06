@@ -97,7 +97,7 @@ const required = [
   "dist/runtime/hook-catalog.js"
 ]
 for (const profile of ["linux-arm64", "darwin-arm64"]) {
-  for (const command of ["hapsland", "hapsland-doctor", "hapsland-parser", "hapsland-resident"])
+  for (const command of ["hapsland", "hapsland-doctor", "hapsland-parser", "hapsland-resident", "hapsland-hook"])
     required.push(`dist/bin/${profile}/${command}`)
   for (const artifact of [
     "credential-secret-service",

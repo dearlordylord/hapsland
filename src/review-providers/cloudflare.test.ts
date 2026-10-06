@@ -4,10 +4,10 @@ import * as Effect from "effect/Effect"
 import { Decision } from "effect/ai"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
-import { decide } from "../jev-decision.ts"
-import { providerIdentity } from "./catalog.ts"
-import { liveLayer } from "./cloudflare.ts"
-import { encodedProviderHttpBodyBytes } from "../direct-event/provider-body-size.ts"
+import { decide } from "@hapsland/review-execution/jev-decision"
+import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
+import { liveLayer } from "@hapsland/review-execution/review-providers/cloudflare"
+import { encodedProviderHttpBodyBytes } from "@hapsland/review-execution/direct-event/provider-body-size"
 
 const decision = Decision.probability({
   instructions: "Is the type invalid?",

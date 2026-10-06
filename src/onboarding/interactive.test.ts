@@ -1,8 +1,14 @@
-import { bunExecutable } from "../runtime/bun-runtime.ts"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { connectDefaultRuleFixture } from "../test-support/default-rules.ts"
 import { ConfigProvider, Effect } from "effect"
-import { previewClaudeInstallation, installClaudeIntegration } from "./claude-installation.ts"
-import { previewCodexInstallation, installCodexIntegration } from "./codex-installation.ts"
+import {
+  previewClaudeInstallation,
+  installClaudeIntegration
+} from "@hapsland/administration/onboarding/claude-installation"
+import {
+  previewCodexInstallation,
+  installCodexIntegration
+} from "@hapsland/administration/onboarding/codex-installation"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
 import { createInstallationPackageFixture } from "../test-support/installation-package.ts"
 import { spawn } from "node:child_process"
@@ -33,7 +39,7 @@ const fixture = () => {
 }
 const terminal = async (test: ReturnType<typeof fixture>, args: string[], answer: "y" | "n", selection?: string) => {
   const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
-  const command = [bunExecutable(), join(process.cwd(), "src/cli.ts"), ...args].map(quote).join(" ")
+  const command = [bunExecutable(), join(process.cwd(), "packages/cli-entry/src/cli.ts"), ...args].map(quote).join(" ")
   const child = spawn("script", ["-qfec", command, "/dev/null"], {
     cwd: test.repository,
     env: test.environment,
@@ -104,7 +110,7 @@ const updaterFixture = (
     target,
     `#!/usr/bin/env node
 const fs=require('node:fs');
-if(process.argv.includes('--package-identity')) { console.log(JSON.stringify({name:'@hapsland/hapsland',executable:${JSON.stringify(bunExecutable())},args:[${JSON.stringify(join(process.cwd(), "src/cli.ts"))}]})); process.exit(0); }
+if(process.argv.includes('--package-identity')) { console.log(JSON.stringify({name:'@hapsland/hapsland',executable:${JSON.stringify(bunExecutable())},args:[${JSON.stringify(join(process.cwd(), "packages/cli-entry/src/cli.ts"))}]})); process.exit(0); }
 const r=JSON.parse(fs.readFileSync(0,'utf8'));
 fs.appendFileSync(${JSON.stringify(requests)},JSON.stringify(r)+'\\n');
 const options=${JSON.stringify(options)};

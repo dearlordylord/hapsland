@@ -2,9 +2,9 @@ import { existsSync, readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
 const root = resolve(import.meta.dirname, "..")
-const server = readFileSync(resolve(root, "src/resident/server.ts"), "utf8")
-const notices = readFileSync(resolve(root, "src/resident/notice-records.ts"), "utf8")
-const adapter = readFileSync(resolve(root, "src/canonical/canonical-boundary.ts"), "utf8")
+const server = readFileSync(resolve(root, "packages/resident-runtime/src/resident/server.ts"), "utf8")
+const notices = readFileSync(resolve(root, "packages/resident-runtime/src/resident/notice-records.ts"), "utf8")
+const adapter = readFileSync(resolve(root, "packages/canonical-policy/src/canonical/canonical-boundary.ts"), "utf8")
 if (existsSync(resolve(root, "src/resident/operational-notice-policy.ts"))) {
   throw new Error("superseded resident notice policy returned")
 }

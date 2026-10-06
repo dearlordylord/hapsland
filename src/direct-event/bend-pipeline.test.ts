@@ -1,18 +1,23 @@
 import { symlink } from "node:fs/promises"
 import { join } from "node:path"
-import { captureStable } from "./capture.ts"
-import { resolveGraphUnit } from "./graph-resolver.ts"
-import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "./selection.ts"
-import { GRAPH_LIMIT_CEILINGS } from "../canonical/graph-limits.ts"
-import type { ReviewNode } from "./artifact-model.ts"
+import { captureStable } from "@hapsland/native-observation/direct-event/capture"
+import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
+import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "@hapsland/native-observation/direct-event/selection"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
+import type { ReviewNode } from "@hapsland/source-artifacts/direct-event/artifact-model"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
-import { compileRule } from "../rules/compiler.ts"
-import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
-import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
-import { adaptCodexAdd } from "./adapter.ts"
-import { prepareObservation, preparedProviderInput, preparedUnitStillCurrent, evaluatePrepared } from "./pipeline.ts"
-import { controlledDecisionModelLayer } from "../review-execution/controlled-decision-model.ts"
+import { compileRule } from "@hapsland/review-definition/rules/compiler"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
+import { adaptCodexAdd } from "@hapsland/native-observation/direct-event/adapter"
+import {
+  prepareObservation,
+  preparedProviderInput,
+  preparedUnitStillCurrent,
+  evaluatePrepared
+} from "@hapsland/review-execution/direct-event/pipeline"
+import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
 import { configuredRules } from "../test-support/default-rules.ts"
 import { addEvent, makeGitFixture, put, updateEvent } from "./test-fixtures.ts"
 

@@ -1,5 +1,5 @@
-import { claudeStopHostOutput } from "../direct-event/claude-output.ts"
-import type { Finding } from "../direct-event/output.ts"
+import { claudeStopHostOutput } from "@hapsland/delivery-output/direct-event/claude-output"
+import type { Finding } from "@hapsland/delivery-output/direct-event/output"
 import { Effect } from "effect"
 import { describe, expect, it } from "vitest"
 
@@ -24,7 +24,7 @@ import {
   selectFittingClaudeStopNotices,
   selectFittingNotices,
   type FindingSelectionFacts
-} from "./collection.ts"
+} from "@hapsland/resident-runtime/resident/collection"
 
 const candidate = (overrides: Partial<{ sequence: number; pendingAt: number }> = {}) => ({
   sequence: 4,

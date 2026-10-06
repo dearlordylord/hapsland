@@ -11,7 +11,7 @@ import {
   previewOpenCodeUpdate,
   uninstallOpenCodeIntegration,
   updateOpenCodeIntegration
-} from "./opencode-installation.ts"
+} from "@hapsland/administration/onboarding/opencode-installation"
 
 const dirs: string[] = []
 const fixture = () => {

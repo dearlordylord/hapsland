@@ -1,0 +1,71 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "packages/runtime-environment/tsconfig.json"
+    },
+    {
+      "path": "packages/canonical-policy/tsconfig.json"
+    },
+    {
+      "path": "packages/runtime-inputs/tsconfig.json"
+    },
+    {
+      "path": "packages/native-observation/tsconfig.json"
+    },
+    {
+      "path": "packages/activity-observation/tsconfig.json"
+    },
+    {
+      "path": "packages/credential-storage/tsconfig.json"
+    },
+    {
+      "path": "packages/delivery-output/tsconfig.json"
+    },
+    {
+      "path": "packages/inspection-records/tsconfig.json"
+    },
+    {
+      "path": "packages/resident-transport/tsconfig.json"
+    },
+    {
+      "path": "packages/hook-runtime/tsconfig.json"
+    },
+    {
+      "path": "packages/source-artifacts/tsconfig.json"
+    },
+    {
+      "path": "packages/review-definition/tsconfig.json"
+    },
+    {
+      "path": "packages/source-analysis/tsconfig.json"
+    },
+    {
+      "path": "packages/review-execution/tsconfig.json"
+    },
+    {
+      "path": "packages/resident-runtime/tsconfig.json"
+    },
+    {
+      "path": "packages/administration/tsconfig.json"
+    },
+    {
+      "path": "packages/cli-entry/tsconfig.json"
+    },
+    {
+      "path": "packages/doctor-entry/tsconfig.json"
+    },
+    {
+      "path": "packages/hook-entry/tsconfig.json"
+    },
+    {
+      "path": "packages/parser-entry/tsconfig.json"
+    },
+    {
+      "path": "packages/pi-extension/tsconfig.json"
+    },
+    {
+      "path": "packages/resident-entry/tsconfig.json"
+    }
+  ]
+}

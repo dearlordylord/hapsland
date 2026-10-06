@@ -1,5 +1,5 @@
 import { rmSync } from "node:fs"
-import { physicalNativeBindings } from "../src/runtime/native-bindings.ts"
+import { physicalNativeBindings } from "@hapsland/runtime-environment/runtime/native-bindings"
 const [entrypoint, target, outfile] = process.argv.slice(2)
 if (!outfile) throw new Error("Standalone assembly requires an output path")
 rmSync(outfile, { force: true })

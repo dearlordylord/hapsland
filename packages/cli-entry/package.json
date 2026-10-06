@@ -1,0 +1,36 @@
+{
+  "name": "@hapsland/cli-entry",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./cli": {
+      "types": "./dist/cli.d.ts",
+      "default": "./dist/cli.js"
+    }
+  },
+  "dependencies": {
+    "@hapsland/activity-observation": "workspace:*",
+    "@hapsland/administration": "workspace:*",
+    "@hapsland/credential-storage": "workspace:*",
+    "@hapsland/delivery-output": "workspace:*",
+    "@hapsland/hook-runtime": "workspace:*",
+    "@hapsland/native-observation": "workspace:*",
+    "@hapsland/resident-transport": "workspace:*",
+    "@hapsland/review-definition": "workspace:*",
+    "@hapsland/runtime-environment": "workspace:*",
+    "@hapsland/runtime-inputs": "workspace:*",
+    "effect": "4.0.0"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs"
+  },
+  "hapsland": {
+    "domain": "cli-entry",
+    "host": "bun",
+    "capabilities": [],
+    "role": "cli",
+    "executable": "hapsland",
+    "entry": "src/cli.ts"
+  }
+}

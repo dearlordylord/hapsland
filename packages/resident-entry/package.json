@@ -1,0 +1,28 @@
+{
+  "name": "@hapsland/resident-entry",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./resident/main": {
+      "types": "./dist/resident/main.d.ts",
+      "default": "./dist/resident/main.js"
+    }
+  },
+  "dependencies": {
+    "@hapsland/resident-runtime": "workspace:*",
+    "@hapsland/runtime-environment": "workspace:*",
+    "effect": "4.0.0"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs"
+  },
+  "hapsland": {
+    "domain": "resident-entry",
+    "host": "bun",
+    "capabilities": [],
+    "role": "resident",
+    "executable": "hapsland-resident",
+    "entry": "src/resident/main.ts"
+  }
+}

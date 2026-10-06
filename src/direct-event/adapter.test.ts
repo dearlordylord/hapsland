@@ -3,7 +3,12 @@ import * as Effect from "effect/Effect"
 import { mkdtemp, readFile, rm, symlink } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { adaptCodexAdd, adaptComposedHookIdentity, MAX_CODEX_CANDIDATES, MAX_CODEX_COMMAND_BYTES } from "./adapter.ts"
+import {
+  adaptCodexAdd,
+  adaptComposedHookIdentity,
+  MAX_CODEX_CANDIDATES,
+  MAX_CODEX_COMMAND_BYTES
+} from "@hapsland/native-observation/direct-event/adapter"
 import { addEvent, makeGitFixture } from "./test-fixtures.ts"
 
 describe("direct-event Codex Add adapter", () => {

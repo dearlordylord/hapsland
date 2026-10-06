@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import { configuredRules } from "../test-support/default-rules.ts"
-import { validateAssessment } from "./assessment.ts"
+import { validateAssessment } from "@hapsland/review-execution/runtime/assessment"
 
 describe("assessment boundary", () => {
   it.effect("rejects answer keys beyond the exact requested set", () =>

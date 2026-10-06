@@ -1,10 +1,10 @@
-import { BUN_VERSION, bunExecutable } from "./runtime/bun-runtime.ts"
-import { SUPPORTED_CLIENTS, CLIENT_NAMES } from "./runtime/agent-clients.ts"
+import { BUN_VERSION, bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
+import { SUPPORTED_CLIENTS, CLIENT_NAMES } from "@hapsland/runtime-environment/runtime/agent-clients"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../scripts/test-harness/policy.mjs"
 import { describe, expect, it, vi } from "vitest"
-import { cliCommandReference, parseInvocation } from "./cli-command.ts"
-import { PACKAGE_VERSION } from "./runtime/cli-information.ts"
-import { ruleCommandReference } from "./rules/cli-definition.ts"
+import { cliCommandReference, parseInvocation } from "@hapsland/administration/cli-command"
+import { PACKAGE_VERSION } from "@hapsland/runtime-environment/runtime/cli-information"
+import { ruleCommandReference } from "@hapsland/administration/rules/cli-definition"
 import { spawnSync } from "../scripts/test-harness/process.mjs"
 import { mkdtempSync, readdirSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -13,7 +13,7 @@ import { join } from "node:path"
 const cli = (args: ReadonlyArray<string>, input = "") => {
   const home = mkdtempSync(join(tmpdir(), "hapsland-cli-arguments-"))
   try {
-    const result = spawnSync(bunExecutable(), ["src/cli.ts", ...args], {
+    const result = spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", ...args], {
       input,
       encoding: "utf8",
       timeout: DEFAULT_CHILD_TIMEOUT_MS,
@@ -324,7 +324,7 @@ describe("declarative CLI subprocess contracts", () => {
     expect(JSON.parse(result.stdout)).toEqual({
       name: "@hapsland/hapsland",
       executable: bunExecutable(),
-      args: [join(process.cwd(), "src/cli.ts")]
+      args: [join(process.cwd(), "packages/cli-entry/src/cli.ts")]
     })
     expect(result.stderr).toBe("")
     expect(result.files).toEqual([])

@@ -1,6 +1,28 @@
 {
   "sources": [
-    "src"
+    "src",
+    "packages/activity-observation/src",
+    "packages/administration/src",
+    "packages/canonical-policy/src",
+    "packages/cli-entry/src",
+    "packages/credential-storage/src",
+    "packages/delivery-output/src",
+    "packages/doctor-entry/src",
+    "packages/hook-entry/src",
+    "packages/hook-runtime/src",
+    "packages/inspection-records/src",
+    "packages/native-observation/src",
+    "packages/parser-entry/src",
+    "packages/pi-extension/src",
+    "packages/resident-entry/src",
+    "packages/resident-runtime/src",
+    "packages/resident-transport/src",
+    "packages/review-definition/src",
+    "packages/review-execution/src",
+    "packages/runtime-environment/src",
+    "packages/runtime-inputs/src",
+    "packages/source-analysis/src",
+    "packages/source-artifacts/src"
   ],
   "coverage": {
     "path": "coverage/coverage-final.json",

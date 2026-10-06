@@ -21,16 +21,20 @@ import {
 } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
-import { residentRequestEffect as residentRequest } from "../src/resident/client.ts"
-import { residentPaths } from "../src/resident/paths.ts"
+import { residentRequestEffect as residentRequest } from "@hapsland/resident-transport/resident/client"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import * as Effect from "effect/Effect"
 import { addEvent } from "../src/direct-event/test-fixtures.ts"
-import { adaptCodexAdd, adaptCodexDirectEvent, adaptClaudeDirectEvent } from "../src/direct-event/adapter.ts"
-import { prepareObservation } from "../src/direct-event/pipeline.ts"
-import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../src/runtime/review-config.ts"
+import {
+  adaptCodexAdd,
+  adaptCodexDirectEvent,
+  adaptClaudeDirectEvent
+} from "@hapsland/native-observation/direct-event/adapter"
+import { prepareObservation } from "@hapsland/review-execution/direct-event/pipeline"
+import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
 import { configuredRules, connectDefaultRuleFixture } from "../src/test-support/default-rules.ts"
-import { TYPE_INPUT_CONTRACT } from "../src/rules/targets.ts"
-import { verifyCodexPostEditHunks } from "../src/direct-event/codex-patch-hunks.ts"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import { verifyCodexPostEditHunks } from "@hapsland/native-observation/direct-event/codex-patch-hunks"
 import { COEXISTENCE_CASES, TASK_CANARY, setupAbideCoexistence } from "./native-abide-coexistence.mjs"
 
 import { faultProfile, assessPreFault } from "./native-hook-faults.mjs"
@@ -361,7 +365,7 @@ if(fault && (fault.phase==='pre'?kind==='before-edit':kind==='edit'||kind==='bac
 const flags=kind==='edit' ? ['--${host === "codex" ? "codex" : "claude"}-hook','--controlled-writer','--composed-edit-hook']
   : ['--composed-'+kind+'-hook','--composed-host=${host === "codex" ? "codex-cli" : "claude-code"}'];
 ${mode === "controlled-offline" ? "flags.push('--controlled-reviewer');" : ""}
-const result=spawnSync(${JSON.stringify(resolveBunRuntime().executable)},[${JSON.stringify(join(project, "src/cli.ts"))},...flags],
+const result=spawnSync(${JSON.stringify(resolveBunRuntime().executable)},[${JSON.stringify(join(project, "packages/cli-entry/src/cli.ts"))},...flags],
   {input,encoding:'utf8',env:process.env,timeout:30000,maxBuffer:1048576});
 let output; try { output=JSON.parse(result.stdout) } catch {}
 const message=output?.reason??output?.hookSpecificOutput?.additionalContext??output?.systemMessage??'';

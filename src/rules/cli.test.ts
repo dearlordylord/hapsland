@@ -1,9 +1,9 @@
-import { bunExecutable } from "../runtime/bun-runtime.ts"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { Effect } from "effect"
-import { loadReviewSettings } from "../runtime/review-config.ts"
-import { reviewCodexDirectEvent } from "../direct-event/pipeline.ts"
+import { loadReviewSettings } from "@hapsland/review-definition/runtime/review-config"
+import { reviewCodexDirectEvent } from "@hapsland/review-execution/direct-event/pipeline"
 import { addEvent, advicee } from "../direct-event/test-fixtures.ts"
-import { controlledDecisionModelLayer } from "../review-execution/controlled-decision-model.ts"
+import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
 import {
   mkdirSync,
   writeFileSync,
@@ -29,7 +29,7 @@ it("creates, inspects, disables and reconnects a project rule through the CLI", 
   roots.push(root)
   execFileSync("git", ["init", "--quiet", root])
   const run = (...args: string[]) =>
-    spawnSync(bunExecutable(), [join(process.cwd(), "src/cli.ts"), "rules", ...args], {
+    spawnSync(bunExecutable(), [join(process.cwd(), "packages/cli-entry/src/cli.ts"), "rules", ...args], {
       cwd: root,
       env: { ...process.env, REVIEW_USER_CONFIG_PATH: join(root, "personal/config.jsonc") },
       encoding: "utf8",
@@ -112,7 +112,7 @@ it("creates personal rules, connects a custom rule in defaults and rejects inval
   execFileSync("git", ["init", "--quiet", root])
   const configurationPath = join(root, "personal/config.jsonc")
   const run = (...args: string[]) =>
-    spawnSync(bunExecutable(), [join(process.cwd(), "src/cli.ts"), "rules", ...args], {
+    spawnSync(bunExecutable(), [join(process.cwd(), "packages/cli-entry/src/cli.ts"), "rules", ...args], {
       cwd: root,
       env: { ...process.env, REVIEW_USER_CONFIG_PATH: configurationPath },
       encoding: "utf8",
@@ -154,12 +154,12 @@ it("binds all connected authored sources to previews and rejects unsupported act
   const root = mkdtempSync(join(tmpdir(), "hapsland-rule-preview-"))
   roots.push(root)
   execFileSync("git", ["init", "--quiet", root])
-  const { previewRuleChange, applyRuleChange } = await import("./management.ts")
+  const { previewRuleChange, applyRuleChange } = await import("@hapsland/administration/rules/management")
   const options = { userConfigPath: join(root, "personal.jsonc") }
   const create = { action: "create", scope: "project", id: "domain/count" } as const
   const initial = await Effect.runPromise(previewRuleChange(root, create, options))
   await Effect.runPromise(applyRuleChange(root, create, initial.digest, options))
-  const { formatRuleChangePreview } = await import("./command.ts")
+  const { formatRuleChangePreview } = await import("@hapsland/administration/rules/command")
   expect(formatRuleChangePreview(initial)).toContain(
     `This will connect the rule in ${join(root, ".hapsland.jsonc")}. The rule will be enabled.`
   )
@@ -197,7 +197,7 @@ it("provisions seven separate defaults, preserves edits and binds every authored
   const root = mkdtempSync(join(tmpdir(), "hapsland-default-rule-plan-"))
   roots.push(root)
   execFileSync("git", ["init", "--quiet", root])
-  const { previewDefaultRules, applyDefaultRules } = await import("../onboarding/default-rules.ts")
+  const { previewDefaultRules, applyDefaultRules } = await import("@hapsland/administration/onboarding/default-rules")
   const configurationPath = join(root, "personal/config.jsonc")
   const plan = await Effect.runPromise(previewDefaultRules(configurationPath, root))
   expect(plan.files).toHaveLength(7)
@@ -228,7 +228,7 @@ it("preserves an existing authored selection with a retired numbered identity", 
   const root = mkdtempSync(join(tmpdir(), "hapsland-authored-default-selection-"))
   roots.push(root)
   execFileSync("git", ["init", "--quiet", root])
-  const { previewDefaultRules, applyDefaultRules } = await import("../onboarding/default-rules.ts")
+  const { previewDefaultRules, applyDefaultRules } = await import("@hapsland/administration/onboarding/default-rules")
   const configurationPath = join(root, "config.jsonc")
   const rulePath = join(root, "r1_inferred_case.json")
   const authored = JSON.stringify({
@@ -253,7 +253,7 @@ it("preserves explicit empty, reduced and project selections during repeated def
   const root = mkdtempSync(join(tmpdir(), "hapsland-explicit-default-selection-"))
   roots.push(root)
   execFileSync("git", ["init", "--quiet", root])
-  const { previewDefaultRules, applyDefaultRules } = await import("../onboarding/default-rules.ts")
+  const { previewDefaultRules, applyDefaultRules } = await import("@hapsland/administration/onboarding/default-rules")
   const configurationPath = join(root, "personal/config.jsonc")
   mkdirSync(join(root, "personal"))
   writeFileSync(configurationPath, JSON.stringify({ version: 1, rules: [] }))

@@ -1,5 +1,5 @@
 import { SharedCore } from "./shared-core.ts";
-import { type ImportGraphEvent, type ImportGraphProjection, type ImportGraphCommand, type GraphLimits } from "../../../src/canonical/graph-adapter.ts";
+import { type ImportGraphEvent, type ImportGraphProjection, type ImportGraphCommand, type GraphLimits } from "@hapsland/canonical-policy/canonical/graph-adapter";
 
 /** Source-free native facts for one synthetic A → B review artifact. */
 export const preparationFacts = (): readonly ImportGraphEvent[] => [

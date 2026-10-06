@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import { decoder, PositiveNat } from "../../../src/canonical/boundary-schema.ts"
+import { decoder, PositiveNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
 
 const Profile = Schema.Struct({ capacity: PositiveNat, lifetimeMs: PositiveNat })
 /** Capture the existing optional configuration, including its declared default. */

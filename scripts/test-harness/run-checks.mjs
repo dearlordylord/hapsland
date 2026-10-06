@@ -499,6 +499,20 @@ export async function createRun({
 }
 
 export async function runSelectedTests(run, root, selection, environment = {}) {
+  const manifest = await readFile(join(root, "package.json"), "utf8")
+    .then(JSON.parse)
+    .catch((error) => {
+      if (error.code === "ENOENT") return {}
+      throw error
+    })
+  if (manifest.workspaces) {
+    const result = await run.runStage({
+      name: "workspace-compilation",
+      command: process.execPath,
+      args: [join(root, "scripts/build-workspaces.mjs")]
+    })
+    if (result.state !== "passed") throw new Error("Workspace compilation failed before focused tests")
+  }
   if (selection.nodeFiles.length)
     await run.runStage({
       name: "node-focused",

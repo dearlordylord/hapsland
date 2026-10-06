@@ -12,16 +12,18 @@ assert(!fs.existsSync(output), "Fresh output required")
 const load = (relative) => import(pathToFileURL(path.join(project, relative)))
 const Effect = await load("node_modules/effect/dist/Effect.js")
 const { cases } = await load("scripts/abide-large-declaration-fixtures.mjs")
-const { adaptCodexDirectEvent } = await load("src/direct-event/adapter.ts")
+const { adaptCodexDirectEvent } = await load("packages/native-observation/src/direct-event/adapter.ts")
 const {
   prepareObservation,
   preparedProviderInput,
   encodedPreparedProviderInputBytes,
   encodedPreparedProviderHttpBodyBytes
-} = await load("src/direct-event/pipeline.ts")
+} = await load("packages/review-execution/src/direct-event/pipeline.ts")
 const { configuredRules } = await load("src/test-support/default-rules.ts")
-const { DEFAULT_BACKEND, DEFAULT_DESTINATION } = await load("src/runtime/review-config.ts")
-const { probabilityRequest, requestLimitViolation } = await load("src/review-providers/request.ts")
+const { DEFAULT_BACKEND, DEFAULT_DESTINATION } = await load("packages/review-definition/src/runtime/review-config.ts")
+const { probabilityRequest, requestLimitViolation } = await load(
+  "packages/review-execution/src/review-providers/request.ts"
+)
 const hash = (x) => crypto.createHash("sha256").update(x).digest("hex")
 const walk = (dir) =>
   fs

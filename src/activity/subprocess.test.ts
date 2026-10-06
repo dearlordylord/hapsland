@@ -1,4 +1,4 @@
-import { bunExecutable } from "../runtime/bun-runtime.ts"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
 import { execFileSync, spawnSync } from "../../scripts/test-harness/process.mjs"
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
@@ -134,7 +134,7 @@ describe("production resident activity subprocess", () => {
     }
     // This witness starts with a running resident and observes its loss. Cold
     // startup admission is covered separately by the resident startup suite.
-    const resident = spawn(bunExecutable(), ["src/resident/main.ts", runtime], {
+    const resident = spawn(bunExecutable(), ["packages/resident-entry/src/resident/main.ts", runtime], {
       cwd: process.cwd(),
       env: environment,
       detached: true,
@@ -146,7 +146,12 @@ describe("production resident activity subprocess", () => {
     waitFor(() => existsSync(join(runtime, "owner.json")) && existsSync(join(runtime, "resident.sock")))
     const before = spawnSync(
       bunExecutable(),
-      ["src/cli.ts", "--composed-before-edit-hook", "--composed-host=codex-cli", "--controlled-reviewer"],
+      [
+        "packages/cli-entry/src/cli.ts",
+        "--composed-before-edit-hook",
+        "--composed-host=codex-cli",
+        "--controlled-reviewer"
+      ],
       {
         cwd: process.cwd(),
         env: environment,
@@ -159,7 +164,13 @@ describe("production resident activity subprocess", () => {
     expect(JSON.parse(before.stdout)).toEqual({})
     const hook = spawnSync(
       bunExecutable(),
-      ["src/cli.ts", "--codex-hook", "--controlled-reviewer", "--controlled-writer", "--composed-edit-hook"],
+      [
+        "packages/cli-entry/src/cli.ts",
+        "--codex-hook",
+        "--controlled-reviewer",
+        "--controlled-writer",
+        "--composed-edit-hook"
+      ],
       {
         cwd: process.cwd(),
         env: environment,
@@ -171,7 +182,7 @@ describe("production resident activity subprocess", () => {
     expect(hook.status).toBe(0)
     expect(JSON.parse(hook.stdout)).toEqual({})
     const readStatus = () => {
-      const result = spawnSync(bunExecutable(), ["src/cli.ts", "--status"], {
+      const result = spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", "--status"], {
         cwd: process.cwd(),
         env: environment,
         input: JSON.stringify({ version: 1, operation: "status", cwd: repository, sessionId: "restart-session" }),

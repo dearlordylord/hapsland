@@ -6,8 +6,8 @@ import { join, resolve } from "node:path"
 import {
   ensureResidentEffect as ensureResident,
   residentRequestEffect as residentRequest
-} from "../src/resident/client.ts"
-import { residentPaths } from "../src/resident/paths.ts"
+} from "@hapsland/resident-transport/resident/client"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import { classifyHookOutput, classifyLiveOutcome } from "../src/conformance/live-evidence-outcome.ts"
 import {
   PaidExecutionNotAuthorized,
@@ -143,27 +143,30 @@ try {
       tool_input: { command: `*** Begin Patch\n*** Add File: profile.ts\n+${source.trimEnd()}\n*** End Patch` }
     }
     const started = performance.now()
-    const admitted = await run(process.execPath, [join(root, "src/cli.ts"), "--codex-hook", "--controlled-writer"], {
-      cwd: root,
-      env,
-      input: JSON.stringify(add),
-      timeoutMs: 20_000
-    })
+    const admitted = await run(
+      process.execPath,
+      [join(root, "packages/cli-entry/src/cli.ts"), "--codex-hook", "--controlled-writer"],
+      { cwd: root, env, input: JSON.stringify(add), timeoutMs: 20_000 }
+    )
     contractOutcome = admitted.code === 0 ? "admitted-completion-pending" : "admission-failed"
     for (let attempt = 0; attempt < 20 && admitted.code === 0; attempt += 1) {
       await new Promise((resolveWait) => setTimeout(resolveWait, 100))
-      const reply = await run(process.execPath, [join(root, "src/cli.ts"), "--codex-hook", "--controlled-writer"], {
-        cwd: root,
-        env,
-        input: JSON.stringify({
-          ...base,
-          turn_id: `collect-turn-${attempt}`,
-          tool_use_id: `collect-tool-${attempt}`,
-          tool_name: "Bash",
-          tool_input: { command: "true" }
-        }),
-        timeoutMs: 20_000
-      })
+      const reply = await run(
+        process.execPath,
+        [join(root, "packages/cli-entry/src/cli.ts"), "--codex-hook", "--controlled-writer"],
+        {
+          cwd: root,
+          env,
+          input: JSON.stringify({
+            ...base,
+            turn_id: `collect-turn-${attempt}`,
+            tool_use_id: `collect-tool-${attempt}`,
+            tool_name: "Bash",
+            tool_input: { command: "true" }
+          }),
+          timeoutMs: 20_000
+        }
+      )
       let output
       try {
         output = JSON.parse(reply.stdout)
@@ -191,18 +194,22 @@ try {
     // If evaluation completed after the ordinary collection loop, give the
     // finished result one final host opportunity before classification.
     if (hostOutputKind === "none" && terminalStats?.status === "stats") {
-      const reply = await run(process.execPath, [join(root, "src/cli.ts"), "--codex-hook", "--controlled-writer"], {
-        cwd: root,
-        env,
-        input: JSON.stringify({
-          ...base,
-          turn_id: "final-collect-turn",
-          tool_use_id: "final-collect-tool",
-          tool_name: "Bash",
-          tool_input: { command: "true" }
-        }),
-        timeoutMs: 20_000
-      })
+      const reply = await run(
+        process.execPath,
+        [join(root, "packages/cli-entry/src/cli.ts"), "--codex-hook", "--controlled-writer"],
+        {
+          cwd: root,
+          env,
+          input: JSON.stringify({
+            ...base,
+            turn_id: "final-collect-turn",
+            tool_use_id: "final-collect-tool",
+            tool_name: "Bash",
+            tool_input: { command: "true" }
+          }),
+          timeoutMs: 20_000
+        }
+      )
       let output
       try {
         output = JSON.parse(reply.stdout)

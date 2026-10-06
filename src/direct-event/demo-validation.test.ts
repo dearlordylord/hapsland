@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, expect, it } from "vitest"
-import { validateDemoSession } from "./demo-validation.ts"
+import { validateDemoSession } from "@hapsland/source-analysis/direct-event/demo-validation"
 const roots: string[] = []
 const fixture = (source: string) => {
   const root = mkdtempSync(join(tmpdir(), "hapsland-demo-validation-"))

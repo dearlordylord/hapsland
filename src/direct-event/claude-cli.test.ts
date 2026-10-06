@@ -1,5 +1,5 @@
-import { bunExecutable } from "../runtime/bun-runtime.ts"
-import type { RuntimeCommand } from "../runtime/package-runtime.ts"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
+import type { RuntimeCommand } from "@hapsland/runtime-environment/runtime/package-runtime"
 import { fileURLToPath } from "node:url"
 import { prepareTestPackage, type TestPackage } from "../test-support/test-package.ts"
 import { cleanupOwnedResident } from "../../scripts/test-harness/cleanup-owned-resident.mjs"
@@ -11,12 +11,12 @@ import { DEFAULT_CHILD_TIMEOUT_MS, FIXTURE_READY_TIMEOUT_MS } from "../../script
 import { createServer } from "node:net"
 import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
-import { readActivity } from "../activity/status.ts"
+import { readActivity } from "@hapsland/activity-observation/activity/status"
 import { configuredRules } from "../test-support/default-rules.ts"
 import { makeReviewGitFixture as makeGitFixture, put } from "./test-fixtures.ts"
-import { residentRequestEffect as residentRequest } from "../resident/client.ts"
-import { residentPaths } from "../resident/paths.ts"
-import { MAX_COMBINED_RESPONSE_BYTES } from "../resident/collection.ts"
+import { residentRequestEffect as residentRequest } from "@hapsland/resident-transport/resident/client"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
+import { MAX_COMBINED_RESPONSE_BYTES } from "@hapsland/resident-runtime/resident/collection"
 
 let installed: TestPackage
 let hookCommand: RuntimeCommand
@@ -144,17 +144,20 @@ const cliExitEvidence = (result: {
 })
 
 describe.each([
-  "installed CLI",
+  "installed hook",
   "dedicated source hook",
   ...(process.env.HAPSLAND_TEST_HOOK_EXECUTABLE ? ["standalone candidate hook"] : [])
 ])("%s Claude synchronous delivery", (surface) => {
   beforeEach(() => {
     hookCommand =
-      surface === "installed CLI"
-        ? installed.cli
+      surface === "installed hook"
+        ? installed.hook
         : surface === "standalone candidate hook"
           ? { executable: process.env.HAPSLAND_TEST_HOOK_EXECUTABLE!, args: [] }
-          : { executable: bunExecutable(), args: [fileURLToPath(new URL("../hook-main.ts", import.meta.url))] }
+          : {
+              executable: bunExecutable(),
+              args: [fileURLToPath(new URL("../../packages/hook-entry/src/hook-main.ts", import.meta.url))]
+            }
   })
   it("exits quietly when unsupported hook input meets closed stdout", async () => {
     const child = spawn(hookCommand.executable, cliArgs(CLAUDE_EDIT_FLAGS), {

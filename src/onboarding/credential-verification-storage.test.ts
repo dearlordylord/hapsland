@@ -4,9 +4,12 @@ import { mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { execFileSync } from "../../scripts/test-harness/process.mjs"
-import { saveCredential, resolveCredential } from "../credentials/secret-service.ts"
-import { runGuidedCredentialCheck, type KeyVerification } from "./credential-verification.ts"
-import { JEV_PROVIDER } from "../runtime/backend.ts"
+import { saveCredential, resolveCredential } from "@hapsland/credential-storage/credentials/secret-service"
+import {
+  runGuidedCredentialCheck,
+  type KeyVerification
+} from "@hapsland/administration/onboarding/credential-verification"
+import { JEV_PROVIDER } from "@hapsland/runtime-environment/runtime/backend"
 
 it.each(["rate-limited", "unconfirmed", "replace"] as const)(
   "preserves usable native storage through verification: %s",

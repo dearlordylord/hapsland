@@ -1,7 +1,7 @@
-import { bunExecutable } from "../runtime/bun-runtime.ts"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { ConfigProvider, Effect } from "effect"
 import { createHash } from "node:crypto"
-import { canonicalJson } from "./hook-reconciliation.ts"
+import { canonicalJson } from "@hapsland/administration/onboarding/hook-reconciliation"
 import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -14,7 +14,7 @@ import {
   previewClaudeUpdate,
   uninstallClaudeIntegration,
   updateClaudeIntegration
-} from "./claude-installation.ts"
+} from "@hapsland/administration/onboarding/claude-installation"
 
 const testConfiguration = () => ConfigProvider.layer(ConfigProvider.fromEnv({ preserveEmptyStrings: true }))
 const runPreview = <A, E>(effect: Effect.Effect<A, E>) =>

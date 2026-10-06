@@ -3,7 +3,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, expect, it } from "vitest"
 import { spawnSync } from "../scripts/test-harness/process.mjs"
-import { bunExecutable } from "./runtime/bun-runtime.ts"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 
 const roots: string[] = []
 afterEach(() => {
@@ -13,7 +13,7 @@ const invoke = (flags: ReadonlyArray<string>, input: string, control = "malforme
   const root = mkdtempSync(join(tmpdir(), "hapsland-hook-root-"))
   roots.push(root)
   const runtime = join(root, "runtime")
-  const child = spawnSync(bunExecutable(), ["src/hook-main.ts", ...flags], {
+  const child = spawnSync(bunExecutable(), ["packages/hook-entry/src/hook-main.ts", ...flags], {
     cwd: process.cwd(),
     input,
     encoding: "utf8",

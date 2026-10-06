@@ -1,4 +1,4 @@
-import { BUN_VERSION, bunExecutable } from "../runtime/bun-runtime.ts"
+import { BUN_VERSION, bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import {
   createInstallationPackageFixture,
   installationPackageDeclaration
@@ -29,7 +29,7 @@ import {
   previewCodexUpdate,
   uninstallCodexIntegration,
   updateCodexIntegration
-} from "./codex-installation.ts"
+} from "@hapsland/administration/onboarding/codex-installation"
 
 const runInstallation = <A, E>(effect: Effect.Effect<A, E>) =>
   Effect.runPromise(
@@ -112,7 +112,7 @@ const invokeCli = (operation: Record<string, unknown>, env: NodeJS.ProcessEnv = 
     env.REVIEW_INSTALL_ENTRYPOINT !== undefined || typeof operation.codexHome !== "string"
       ? env
       : { ...env, REVIEW_INSTALL_ENTRYPOINT: createInstallationPackageFixture(dirname(operation.codexHome)) }
-  const child = spawnSync(bunExecutable(), ["src/cli.ts", `--${String(operation.operation)}`], {
+  const child = spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", `--${String(operation.operation)}`], {
     cwd: process.cwd(),
     input: JSON.stringify({ version: 1, ...operation }),
     encoding: "utf8",
@@ -141,7 +141,7 @@ const invoke = async (operation: Record<string, unknown>, env: NodeJS.ProcessEnv
     env.REVIEW_INSTALL_ENTRYPOINT !== undefined || typeof operation.codexHome !== "string"
       ? env
       : { ...env, REVIEW_INSTALL_ENTRYPOINT: createInstallationPackageFixture(dirname(operation.codexHome)) }
-  const request = operation as import("./codex-installation.ts").InstallationRequest
+  const request = operation as import("@hapsland/administration/onboarding/codex-installation").InstallationRequest
   const operations = {
     "install-preview": previewCodexInstallation,
     install: installCodexIntegration,
@@ -221,7 +221,7 @@ const waitFor = async <A>(read: () => A | undefined, timeout = 5_000): Promise<A
 }
 
 const spawnOperation = (operation: Record<string, unknown>, env: NodeJS.ProcessEnv) => {
-  const child = spawn(bunExecutable(), ["src/cli.ts", `--${String(operation.operation)}`], {
+  const child = spawn(bunExecutable(), ["packages/cli-entry/src/cli.ts", `--${String(operation.operation)}`], {
     cwd: process.cwd(),
     env:
       env.REVIEW_INSTALL_ENTRYPOINT !== undefined || typeof operation.codexHome !== "string"
@@ -283,7 +283,11 @@ describe("public Codex installation operations", async () => {
     )
     const result = await invokeCli(
       { operation: "install-preview", codexHome: test.home, codexExecutable: test.bin },
-      { ...process.env, REVIEW_INSTALL_RUNTIME: runtime, REVIEW_INSTALL_ENTRYPOINT: join(process.cwd(), "src/cli.ts") }
+      {
+        ...process.env,
+        REVIEW_INSTALL_RUNTIME: runtime,
+        REVIEW_INSTALL_ENTRYPOINT: join(process.cwd(), "packages/cli-entry/src/cli.ts")
+      }
     )
     expect(result).toMatchObject({
       status: "unsupported",

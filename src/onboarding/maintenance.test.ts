@@ -1,9 +1,9 @@
-import { profileFields } from "./client-command.ts"
+import { profileFields } from "@hapsland/administration/onboarding/client-command"
 import * as Effect from "effect/Effect"
 import { expect, it, vi } from "vitest"
-import { maintainClients, maintainHost, type MaintenancePorts } from "./maintenance.ts"
-import { type invokeLifecycle } from "./client-lifecycle.ts"
-import type { SetupClient } from "./client-selection.ts"
+import { maintainClients, maintainHost, type MaintenancePorts } from "@hapsland/administration/onboarding/maintenance"
+import { type invokeLifecycle } from "@hapsland/administration/onboarding/client-lifecycle"
+import type { SetupClient } from "@hapsland/administration/onboarding/client-selection"
 
 type Result = Effect.Success<ReturnType<typeof invokeLifecycle>>
 const digest = "a".repeat(64)

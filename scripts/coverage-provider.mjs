@@ -1,3 +1,4 @@
+import { readPackageGraph } from "./package-graph.mjs"
 import { existsSync } from "node:fs"
 import { createHash } from "node:crypto"
 import { readFile, readdir } from "node:fs/promises"
@@ -6,8 +7,8 @@ import { join, resolve, relative } from "node:path"
 import { mergeScriptCovs } from "@bcoe/v8-coverage"
 import v8 from "@vitest/coverage-v8"
 import { V8CoverageProvider } from "@vitest/coverage-v8/dist/provider.js"
-import { configureNativeBindings } from "../src/runtime/native-bindings.ts"
-import { packageAssetPath } from "../src/runtime/package-runtime.ts"
+import { configureNativeBindings } from "@hapsland/runtime-environment/runtime/native-bindings"
+import { packageAssetPath } from "@hapsland/runtime-environment/runtime/package-runtime"
 
 configureNativeBindings(packageAssetPath("native", "prebuilt", `${process.platform}-${process.arch}`))
 const { default: Parser } = await import("tree-sitter")
@@ -145,6 +146,18 @@ export function mergeCoverageScripts(scripts, coverage) {
 // Those contexts execute different transformed code, so their offsets cannot
 // be merged. Preserve that distinction until both have Istanbul source ranges.
 export async function mergeBunCoverage(coverageMap, directory, root) {
+  const manifest = JSON.parse(
+    await readFile(join(root, "package.json"), "utf8").catch((error) => {
+      if (error.code === "ENOENT") return "{}"
+      throw error
+    })
+  )
+  const ownedRoots = [
+    resolve(root, "src"),
+    ...(manifest.workspaces
+      ? [...readPackageGraph(root).packages.values()].map((node) => resolve(node.path, "src"))
+      : [])
+  ]
   for (const name of (
     await readdir(directory).catch((error) => {
       if (error.code === "ENOENT") return []
@@ -159,14 +172,11 @@ export async function mergeBunCoverage(coverageMap, directory, root) {
       if (path.startsWith("/hapsland-source/")) {
         filename = resolve(root, path.slice("/hapsland-source/".length))
       }
-      const local = relative(resolve(root, "src"), filename)
-      if (
-        local.startsWith("..") ||
-        data.path !== path ||
-        !path.endsWith(".ts") ||
-        path.endsWith(".test.ts") ||
-        path.endsWith(".d.ts")
-      )
+      const owned = ownedRoots.some((directory) => {
+        const local = relative(directory, filename)
+        return local !== ".." && !local.startsWith("../") && !local.startsWith("..\\")
+      })
+      if (!owned || data.path !== path || !path.endsWith(".ts") || path.endsWith(".test.ts") || path.endsWith(".d.ts"))
         throw new Error("Bun coverage contains a foreign source file")
       if (filename !== path) {
         const digest = record.sourceManifest?.[path]

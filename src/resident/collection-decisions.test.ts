@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { collectionOrdering, findingCollectionOutcome, finalCollectionFits } from "./collection-decisions.ts"
+import {
+  collectionOrdering,
+  findingCollectionOutcome,
+  finalCollectionFits
+} from "@hapsland/resident-runtime/resident/collection-decisions"
 
 describe("checked collection command decoding", () => {
   it.each([

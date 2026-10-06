@@ -60,7 +60,7 @@ for(const name of ['hapsland','hapsland-doctor','hapsland-parser','hapsland-resi
 `,
   { mode: 0o700 }
 )
-const terminal = async (args, entrypoint = join(checkout, "src/cli.ts")) => {
+const terminal = async (args, entrypoint = join(checkout, "packages/cli-entry/src/cli.ts")) => {
   const command = [...(entrypoint.endsWith(".ts") ? [process.execPath, entrypoint] : [entrypoint]), ...args]
     .map(quote)
     .join(" ")
@@ -108,7 +108,7 @@ try {
     assert.equal(initial.declinedVerifications, 1, initial.output)
   }
   const originalClaude = readFileSync(join(claudeHome, "settings.json"), "utf8")
-  assert(originalClaude.includes(join(checkout, "src/cli.ts")))
+  assert(originalClaude.includes(join(checkout, "packages/cli-entry/src/cli.ts")))
   env.REVIEW_INSTALL_FAIL_AFTER_WRITES = "1"
   const interrupted = await terminal(["update", "codex"])
   assert.notEqual(interrupted.code, 0, interrupted.output)
@@ -166,7 +166,7 @@ try {
   assert.equal(fallback.code, 0, fallback.output)
   assert(fallback.output.includes("reinstalling from the package in PATH"), fallback.output)
   const fallbackActive = JSON.parse(readFileSync(join(root, ".local/share/hapsland/active.json"), "utf8"))
-  assert.deepEqual(fallbackActive.args, [join(checkout, "src/cli.ts")])
+  assert.deepEqual(fallbackActive.args, [join(checkout, "packages/cli-entry/src/cli.ts")])
   assert.equal(fallbackActive.executable, process.execPath)
   for (const [home, file] of [
     [claudeHome, "settings.json"],

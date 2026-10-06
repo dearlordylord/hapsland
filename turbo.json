@@ -1,0 +1,22 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tsconfig.json",
+        "$TURBO_ROOT$/tsconfig.package.json",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/bun.lock",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
+    }
+  }
+}

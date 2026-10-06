@@ -1,8 +1,12 @@
 import { join } from "node:path"
 import { execFileSync } from "../../scripts/test-harness/process.mjs"
-import { bunExecutable } from "../runtime/bun-runtime.ts"
-import type { PackageRole, RuntimeCommand } from "../runtime/package-runtime.ts"
-import { sourceRuntimeEntries, sourceRuntimeLayout, sourceRuntimeCommand } from "../runtime/source-runtime-layout.ts"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
+import type { PackageRole, RuntimeCommand } from "@hapsland/runtime-environment/runtime/package-runtime"
+import {
+  sourceRuntimeEntries,
+  sourceRuntimeLayout,
+  sourceRuntimeCommand
+} from "@hapsland/runtime-environment/runtime/source-runtime-layout"
 
 export interface TestSourceRuntime {
   readonly identity: string

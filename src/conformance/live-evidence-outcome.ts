@@ -1,4 +1,4 @@
-import { REVIEW_FEEDBACK_HEADING, REVIEW_FEEDBACK_INSTRUCTIONS } from "../feedback/message.ts"
+import { REVIEW_FEEDBACK_HEADING, REVIEW_FEEDBACK_INSTRUCTIONS } from "@hapsland/delivery-output/feedback/message"
 type Stats = {
   readonly status: "stats"
   readonly queued: number

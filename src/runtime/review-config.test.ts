@@ -3,11 +3,11 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import * as Effect from "effect/Effect"
 import { afterEach, expect, it, vi } from "vitest"
-import { loadReviewSettings } from "./review-config.ts"
+import { loadReviewSettings } from "@hapsland/review-definition/runtime/review-config"
 
 const compiler = vi.hoisted(() => ({ compileRules: vi.fn() }))
-vi.mock("../rules/compiler.ts", async (original) => ({
-  ...(await original<typeof import("../rules/compiler.ts")>()),
+vi.mock("@hapsland/review-definition/rules/compiler", async (original) => ({
+  ...(await original<typeof import("@hapsland/review-definition/rules/compiler")>()),
   compileRules: compiler.compileRules
 }))
 const roots: string[] = []

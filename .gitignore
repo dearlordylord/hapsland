@@ -17,3 +17,5 @@ dist
 .husky/_/
 
 prototypes/canonical-defense/game-recording.bin
+
+.turbo/

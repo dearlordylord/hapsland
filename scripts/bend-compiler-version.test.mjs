@@ -7,7 +7,7 @@ import { test } from "node:test"
 
 const root = resolve(import.meta.dirname, "..")
 for (const [name, artifact] of [
-  ["canonical", "src/canonical/canonical.generated.js"],
+  ["canonical", "packages/canonical-policy/src/canonical/canonical.generated.js"],
   ["import-graph", "packages/agent-flow-bend/import-graph.generated.js"],
   ["lifecycle", "packages/agent-flow-bend/lifecycle.generated.js"]
 ]) {

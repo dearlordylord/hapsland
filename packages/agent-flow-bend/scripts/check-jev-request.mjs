@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
-import { initialCanonical, projectCanonical, stepCanonical } from "../../../src/canonical/adapter.ts"
+import { initialCanonical, projectCanonical, stepCanonical } from "@hapsland/canonical-policy/canonical/adapter"
 
 const fixture = JSON.parse(
   readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-jev-request-v1.json"), "utf8")

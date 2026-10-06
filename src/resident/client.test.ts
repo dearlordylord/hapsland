@@ -20,9 +20,13 @@ import {
   ResidentStartup,
   ensureResidentEffect,
   type ResidentStartupOperations
-} from "./client.ts"
-import { prepareResidentDirectory, residentPaths, validateEndpointMetadata } from "./paths.ts"
-import type { DirectObservation } from "../direct-event/observation.ts"
+} from "@hapsland/resident-transport/resident/client"
+import {
+  prepareResidentDirectory,
+  residentPaths,
+  validateEndpointMetadata
+} from "@hapsland/resident-transport/resident/paths"
+import type { DirectObservation } from "@hapsland/native-observation/direct-event/observation"
 
 const directories: Array<string> = []
 const servers: Array<Server> = []
@@ -536,21 +540,22 @@ effectIt.effect("serializes only portable controlled dispatch options and keeps 
     const provider = ConfigProvider.layer(
       ConfigProvider.fromUnknown({ REVIEW_CREDENTIAL_STATE_PATH: join(root, "credential-state.json") })
     )
-    const options: import("../review-execution/controlled-decision-model.ts").ControlledDecisionModelOptions = {
-      answers: { fixture: { _tag: "Probability", probability: 0.5 } },
-      delayMs: 0,
-      failure: "fixture-failure",
-      failureOnSourceIncludes: "fail-marker",
-      findingOnSourceIncludes: "finding-marker",
-      syntheticR6BrandedRepair: "control",
-      capturePath: "capture",
-      requestSummaryPath: "summary",
-      outcomePath: "outcome",
-      requireCredential: false,
-      onRequest: Effect.void,
-      inspectRequest: () => Effect.void,
-      extraDecisionKey: "not-portable"
-    }
+    const options: import("@hapsland/review-execution/review-execution/controlled-decision-model").ControlledDecisionModelOptions =
+      {
+        answers: { fixture: { _tag: "Probability", probability: 0.5 } },
+        delayMs: 0,
+        failure: "fixture-failure",
+        failureOnSourceIncludes: "fail-marker",
+        findingOnSourceIncludes: "finding-marker",
+        syntheticR6BrandedRepair: "control",
+        capturePath: "capture",
+        requestSummaryPath: "summary",
+        outcomePath: "outcome",
+        requireCredential: false,
+        onRequest: Effect.void,
+        inspectRequest: () => Effect.void,
+        extraDecisionKey: "not-portable"
+      }
     const context = yield* makeResidentDispatchContextEffect(root, "consent", "activity", undefined, options).pipe(
       Effect.provide(provider)
     )
@@ -611,7 +616,7 @@ it("preserves edit polling and rejection outcomes through bounded IPC", async ()
     },
     candidates: []
   }
-  const dispatch: import("./protocol.ts").ResidentDispatchContext = {
+  const dispatch: import("@hapsland/resident-transport/resident/protocol").ResidentDispatchContext = {
     statePath: "/fixture/consent",
     activityPath: "/fixture/activity",
     sessionAnalytics: false,

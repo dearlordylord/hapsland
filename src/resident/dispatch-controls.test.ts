@@ -1,6 +1,6 @@
 import { expect, it } from "@effect/vitest"
 import { Context, Effect, Exit, Fiber, Layer, Ref, Scope } from "effect"
-import { ResidentDispatchControls } from "./dispatch-controls.ts"
+import { ResidentDispatchControls } from "@hapsland/resident-runtime/resident/dispatch-controls"
 import { makeDispatchControls } from "../test-support/dispatch-controls.ts"
 
 it.effect("holds only the selected dispatch boundary and consumes the hold once", () =>

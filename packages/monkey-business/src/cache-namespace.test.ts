@@ -1,5 +1,5 @@
-import { semanticIdentity, type ReviewInput } from "../../../src/direct-event/model.ts"
-import { TYPE_INPUT_CONTRACT } from "../../../src/rules/targets.ts"
+import { semanticIdentity, type ReviewInput } from "@hapsland/review-definition/direct-event/model"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { expect, it } from "vitest"
 import { createRun, restoreReplay } from "./index.ts"
 import {
@@ -7,7 +7,7 @@ import {
   stepCanonical,
   projectCanonical,
   type CanonicalEvent
-} from "../../../src/canonical/adapter.ts"
+} from "@hapsland/canonical-policy/canonical/adapter"
 import { sharingIdentityLabel, captureSharingIdentityFacts, type SharingIdentityFacts } from "./sharing-controls.ts"
 import {
   runWorkloadNative,

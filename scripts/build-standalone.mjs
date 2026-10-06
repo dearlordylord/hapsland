@@ -1,3 +1,4 @@
+import { generateReleaseIdentity } from "./generate-release-identity.mjs"
 import { resolveBunRuntime } from "./pinned-bun.mjs"
 import { spawnSync } from "node:child_process"
 import { existsSync, mkdirSync } from "node:fs"
@@ -5,12 +6,8 @@ import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const bun = resolveBunRuntime().executable
-const entries = [
-  ["hapsland", "dist/cli.js"],
-  ["hapsland-doctor", "dist/package-doctor.js"],
-  ["hapsland-parser", "dist/parser-main.js"],
-  ["hapsland-resident", "dist/resident/main.js"]
-]
+const identity = generateReleaseIdentity(root, true)
+const entries = Object.entries(identity.emitted).map(([role, entry]) => [identity.commands[role], entry])
 const profiles = process.env.HAPSLAND_BUILD_PROFILE
   ? [process.env.HAPSLAND_BUILD_PROFILE]
   : ["linux-arm64", "darwin-arm64"]

@@ -1,8 +1,11 @@
 import { isDeepStrictEqual } from "node:util"
-import { readBendList, readBool, readNat, readRecord } from "../../../src/canonical/boundary-schema.ts"
-import { decodeTrustedCanonicalStep, projectTrustedCanonical } from "../../../src/canonical/canonical-boundary.ts"
-import { decodeImportGraphStep, projectImportGraph } from "../../../src/canonical/graph-adapter.ts"
-import { freezeCanonicalData } from "../../../src/canonical/immutable.ts"
+import { readBendList, readBool, readNat, readRecord } from "@hapsland/canonical-policy/canonical/boundary-schema"
+import {
+  decodeTrustedCanonicalStep,
+  projectTrustedCanonical
+} from "@hapsland/canonical-policy/canonical/canonical-boundary"
+import { decodeImportGraphStep, projectImportGraph } from "@hapsland/canonical-policy/canonical/graph-adapter"
+import { freezeCanonicalData } from "@hapsland/canonical-policy/canonical/immutable"
 import { decodeAdviceeLifecycles } from "./advicee-lifecycle.ts"
 import { decodeCallbackTarget, type CallbackTarget } from "./callback-controls.ts"
 import { decodePrefixCanonicalEvent, decodePrefixGraphEvent } from "./callback-native-codec.ts"

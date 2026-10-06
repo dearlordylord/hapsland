@@ -56,19 +56,19 @@ const hostPaths = [
   .map((name) => `../monkey-business/src/${name}`)
   .concat([
     "../../src/canonical/simulation-adapter.ts",
-    "../../src/canonical/simulation-codec.ts",
-    "../../src/canonical/canonical-boundary.ts",
-    "../../src/canonical/constructors.ts",
-    "../../src/canonical/event-reader.ts",
-    "../../src/canonical/boundary-schema.ts",
-    "../../src/canonical/immutable.ts",
-    "../../src/canonical/graph-adapter.ts"
+    "../../packages/canonical-policy/src/canonical/simulation-codec.ts",
+    "../../packages/canonical-policy/src/canonical/canonical-boundary.ts",
+    "../../packages/canonical-policy/src/canonical/constructors.ts",
+    "../../packages/canonical-policy/src/canonical/event-reader.ts",
+    "../../packages/canonical-policy/src/canonical/boundary-schema.ts",
+    "../../packages/canonical-policy/src/canonical/immutable.ts",
+    "../../packages/canonical-policy/src/canonical/graph-adapter.ts"
   ])
 const hostHash = hash(hostPaths.map((path) => `${path}\0${readFileSync(join(root, path))}\0`).join(""))
 const identityHash = hash(`${sourceHash}\0${hostHash}\0${buildHash}\0${declarationHash}`)
 const preparationHash = hash(
   [
-    "../../src/canonical/import-graph.generated.js",
+    "../../packages/canonical-policy/src/canonical/import-graph.generated.js",
     "../monkey-business/src/preparation.ts",
     "../monkey-business/src/file-trees.ts"
   ]

@@ -1,7 +1,7 @@
 import { decodeCallbackNativePrefix } from "./callback-native-prefix.ts"
 import { expect, it } from "vitest"
 import { createRun, restoreReplay, type Run, DEFAULT_FILE_TREE_PROFILE } from "./index.ts"
-import { encodeCanonicalEvent } from "../../../src/canonical/adapter.ts"
+import { encodeCanonicalEvent } from "@hapsland/canonical-policy/canonical/adapter"
 import { callbackPublicBoundary, decodeCallbackNativeBoundary } from "./callback-native-codec.ts"
 import type { CallbackTarget } from "./callback-controls.ts"
 import {

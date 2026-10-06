@@ -1,10 +1,10 @@
-import { hookMonotonicMillis } from "./hook-clock.ts"
+import { hookMonotonicMillis } from "@hapsland/resident-transport/resident/hook-clock"
 import { it } from "@effect/vitest"
 import { expect } from "vitest"
 import { Deferred, Effect, Fiber } from "effect"
 import * as TestClock from "effect/testing/TestClock"
 import { Writable } from "node:stream"
-import { makeHookOutput, makeWritableHookOutput } from "./hook-output.ts"
+import { makeHookOutput, makeWritableHookOutput } from "@hapsland/hook-runtime/resident/hook-output"
 
 it.effect("uses caller monotonic time for expired output and the unchanged 50ms write reserve", () =>
   Effect.gen(function* () {

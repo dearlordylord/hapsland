@@ -1,0 +1,28 @@
+{
+  "name": "@hapsland/hook-entry",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./hook-main": {
+      "types": "./dist/hook-main.d.ts",
+      "default": "./dist/hook-main.js"
+    }
+  },
+  "dependencies": {
+    "@hapsland/hook-runtime": "workspace:*",
+    "@hapsland/resident-transport": "workspace:*",
+    "@hapsland/runtime-environment": "workspace:*"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs"
+  },
+  "hapsland": {
+    "domain": "hook-entry",
+    "host": "bun",
+    "capabilities": [],
+    "role": "hook",
+    "executable": "hapsland-hook",
+    "entry": "src/hook-main.ts"
+  }
+}

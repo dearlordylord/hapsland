@@ -1,20 +1,29 @@
-import { resolveConfiguration } from "../configuration/resolve.ts"
-import { resolvedDirectFilePolicy, DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "./selection.ts"
+import { resolveConfiguration } from "@hapsland/runtime-inputs/configuration/resolve"
+import {
+  resolvedDirectFilePolicy,
+  DEFAULT_DIRECT_FILE_POLICY,
+  eligibleNamedPath
+} from "@hapsland/native-observation/direct-event/selection"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import { put, makeGitFixture, addEvent } from "./test-fixtures.ts"
-import { adaptCodexAdd } from "./adapter.ts"
-import { evaluatePrepared, prepareObservation, preparedProviderInput, preparedUnitStillCurrent } from "./pipeline.ts"
-import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
+import { adaptCodexAdd } from "@hapsland/native-observation/direct-event/adapter"
+import {
+  evaluatePrepared,
+  prepareObservation,
+  preparedProviderInput,
+  preparedUnitStillCurrent
+} from "@hapsland/review-execution/direct-event/pipeline"
+import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
 import { configuredRules } from "../test-support/default-rules.ts"
-import { inspectGraphFile } from "./analyzer.ts"
-import { captureStable } from "./capture.ts"
-import { resolveGraphUnit } from "./graph-resolver.ts"
-import { GRAPH_LIMIT_CEILINGS } from "../canonical/graph-limits.ts"
-import { compileRule } from "../rules/compiler.ts"
-import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
-import type { ReviewNode } from "./artifact-model.ts"
-import { controlledDecisionModelLayer } from "../review-execution/controlled-decision-model.ts"
+import { inspectGraphFile } from "@hapsland/source-analysis/direct-event/analyzer"
+import { captureStable } from "@hapsland/native-observation/direct-event/capture"
+import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
+import { compileRule } from "@hapsland/review-definition/rules/compiler"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import type { ReviewNode } from "@hapsland/source-artifacts/direct-event/artifact-model"
+import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
 
 const hasOmitted = (node: ReviewNode): boolean =>
   node.references.some(

@@ -40,17 +40,31 @@ import {
 } from "../../packages/monkey-business/src/driver-codec.ts"
 import SharedEngine, { type EngineState } from "../../packages/monkey-business-bend/engine.mjs"
 import { Schema } from "effect"
-import { decoder, readRecord, readBendList, readNat, readBool, Nat } from "./boundary-schema.ts"
-import { CanonicalLimitsSchema, type CanonicalEvent, type CanonicalProjection } from "./models.ts"
-import { freezeCanonicalData } from "./immutable.ts"
+import {
+  decoder,
+  readRecord,
+  readBendList,
+  readNat,
+  readBool,
+  Nat
+} from "@hapsland/canonical-policy/canonical/boundary-schema"
+import {
+  CanonicalLimitsSchema,
+  type CanonicalEvent,
+  type CanonicalProjection
+} from "@hapsland/canonical-policy/canonical/models"
+import { freezeCanonicalData } from "@hapsland/canonical-policy/canonical/immutable"
 import {
   encodeCanonicalEvent,
   projectCanonical,
   decodeTrustedCanonicalStep,
   projectTrustedCanonical
-} from "./canonical-boundary.ts"
-import { encodeEngineValue as encodeSharedValue, decodeSharedValue } from "./simulation-codec.ts"
-import { projectImportGraph, decodeImportGraphStep } from "./graph-adapter.ts"
+} from "@hapsland/canonical-policy/canonical/canonical-boundary"
+import {
+  encodeEngineValue as encodeSharedValue,
+  decodeSharedValue
+} from "@hapsland/canonical-policy/canonical/simulation-codec"
+import { projectImportGraph, decodeImportGraphStep } from "@hapsland/canonical-policy/canonical/graph-adapter"
 const graphKey = decoder(
   Schema.Struct({
     $: Schema.Literal("Types.GraphKey"),

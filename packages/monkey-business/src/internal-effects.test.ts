@@ -1,6 +1,6 @@
 import { expect, it } from "vitest"
 import Engine from "../../monkey-business-bend/engine.mjs"
-import { readRecord } from "../../../src/canonical/boundary-schema.ts"
+import { readRecord } from "@hapsland/canonical-policy/canonical/boundary-schema"
 
 it("a refused external retirement cannot clear an internally issued owner's effect", () => {
   const initial = Engine.initial({

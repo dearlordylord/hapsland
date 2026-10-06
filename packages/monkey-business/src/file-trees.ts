@@ -1,9 +1,9 @@
 import Shared from "../../monkey-business-bend/engine.mjs";
 import { Schema } from "effect";
-import { decoder, Nat, readNat, readBool, readRecord, readBendList } from "../../../src/canonical/boundary-schema.ts";
-import { decodeGraphEvent } from "../../../src/canonical/graph-schema.ts";
-import { type ImportGraphEvent, GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimits } from "../../../src/canonical/graph-adapter.ts";
-import { encodeSharedValue, decodeSharedValue } from "../../../src/canonical/simulation-codec.ts";
+import { decoder, Nat, readNat, readBool, readRecord, readBendList } from "@hapsland/canonical-policy/canonical/boundary-schema";
+import { decodeGraphEvent } from "@hapsland/canonical-policy/canonical/graph-schema";
+import { type ImportGraphEvent, GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimits } from "@hapsland/canonical-policy/canonical/graph-adapter";
+import { encodeSharedValue, decodeSharedValue } from "@hapsland/canonical-policy/canonical/simulation-codec";
 
 export type FileTreeProfile = Readonly<{
   minFiles: number; maxFiles: number; maxImports: number; maxDepth: number;

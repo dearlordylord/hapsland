@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { analyzeFunctionFile } from "./function-analyzer.ts"
-import { resolveFunctionUnit } from "./function-resolver.ts"
+import { analyzeFunctionFile } from "@hapsland/source-analysis/direct-event/function-analyzer"
+import { resolveFunctionUnit } from "@hapsland/source-analysis/direct-event/function-resolver"
 
 describe("function native facts", () => {
   it("retains the full function body and binds ordered type/call references", () => {

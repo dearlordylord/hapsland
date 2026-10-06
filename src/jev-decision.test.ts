@@ -1,4 +1,4 @@
-import { InspectionTransportObservation, inspectHttpTransport } from "./inspection/transport.ts"
+import { InspectionTransportObservation, inspectHttpTransport } from "@hapsland/inspection-records/inspection/transport"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
@@ -7,8 +7,8 @@ import * as DecisionModel from "effect/ai/DecisionModel"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import { TypeSafeClient, TypeSafeDecisionModel } from "@effect/ai-typesafe"
-import { decide } from "./jev-decision.ts"
-import { probability } from "./probability.ts"
+import { decide } from "@hapsland/review-execution/jev-decision"
+import { probability } from "@hapsland/review-definition/probability"
 
 describe("Jev Decision adapter", () => {
   it.effect("renders structured Noul wording and batches typed answers", () =>

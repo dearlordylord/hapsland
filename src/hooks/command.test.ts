@@ -1,5 +1,5 @@
 import { expect, it, vi } from "vitest"
-import { parseHookArguments } from "./command.ts"
+import { parseHookArguments } from "@hapsland/hook-runtime/hooks/command"
 
 it.each(["codex", "claude", "pi", "opencode"])("parses the %s native channel", async (host) => {
   expect(await parseHookArguments([`--${host}-hook`])).toMatchObject({ [`${host}-hook`]: true })

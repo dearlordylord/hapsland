@@ -1,4 +1,4 @@
-import { readCredentialState } from "./state.ts"
+import { readCredentialState } from "@hapsland/runtime-inputs/credentials/state"
 import { ConfigProvider, Effect } from "effect"
 import {
   chmodSync,
@@ -15,7 +15,12 @@ import { join } from "node:path"
 import { spawn } from "node:child_process"
 import { execFileSync, spawnSync } from "../../scripts/test-harness/process.mjs"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { logoutCredential, resolveCredential, runSecretService, saveCredential } from "./secret-service.ts"
+import {
+  logoutCredential,
+  resolveCredential,
+  runSecretService,
+  saveCredential
+} from "@hapsland/credential-storage/credentials/secret-service"
 
 const run = <A, E>(effect: Effect.Effect<A, E>) =>
   Effect.runPromise(

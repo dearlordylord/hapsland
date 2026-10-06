@@ -1,4 +1,4 @@
-import { bunExecutable } from "../runtime/bun-runtime.ts"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { createInstallationPackageFixture } from "../test-support/installation-package.ts"
 import { ConfigProvider, Effect } from "effect"
 import { it as effectIt } from "@effect/vitest"
@@ -7,8 +7,11 @@ import { execFileSync, spawnSync } from "../../scripts/test-harness/process.mjs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
-import { installCodexIntegration, previewCodexInstallation } from "./codex-installation.ts"
-import { diagnoseInstalledIntegration, type DoctorCheck } from "./doctor.ts"
+import {
+  installCodexIntegration,
+  previewCodexInstallation
+} from "@hapsland/administration/onboarding/codex-installation"
+import { diagnoseInstalledIntegration, type DoctorCheck } from "@hapsland/administration/onboarding/doctor"
 
 const runDoctor = <A, E>(effect: Effect.Effect<A, E>) =>
   Effect.runPromise(
@@ -96,7 +99,7 @@ describe("offline installed integration doctor", () => {
     const hooksBefore = readFileSync(join(codexHome, "hooks.json"), "utf8")
     const secret = "doctor-secret-must-not-appear"
     execFileSync("git", ["init", "--quiet", "--initial-branch=master", root])
-    const publicDoctor = spawnSync(bunExecutable(), ["src/cli.ts", "--doctor"], {
+    const publicDoctor = spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", "--doctor"], {
       cwd: process.cwd(),
       input: JSON.stringify({ version: 1, operation: "doctor", cwd: root, ...request }),
       encoding: "utf8",
@@ -130,7 +133,7 @@ else console.log('{"version":1,"status":"available"}');
 `,
       { mode: 0o700 }
     )
-    const savedCredentialDoctor = spawnSync(bunExecutable(), ["src/cli.ts", "--doctor"], {
+    const savedCredentialDoctor = spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", "--doctor"], {
       cwd: process.cwd(),
       input: JSON.stringify({ version: 1, operation: "doctor", cwd: root, ...request }),
       encoding: "utf8",

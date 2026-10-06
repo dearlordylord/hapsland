@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { bendAdapter, bendImportCandidates, parseBendDeclarations } from "./adapter.ts"
+import {
+  bendAdapter,
+  bendImportCandidates,
+  parseBendDeclarations
+} from "@hapsland/source-analysis/direct-event/languages/bend/adapter"
 
 describe("Bend normalized adapter facts", () => {
   it("retains declaration source and source coordinates without parser-node shims", () => {

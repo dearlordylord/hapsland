@@ -1,7 +1,7 @@
 import { afterEach } from "vitest"
 import { Effect, Exit, Scope } from "effect"
-import { makeResidentRuntime, type ResidentRuntime } from "./server.ts"
-export type { ResidentRuntime } from "./server.ts"
+import { makeResidentRuntime, type ResidentRuntime } from "@hapsland/resident-runtime/resident/server"
+export type { ResidentRuntime } from "@hapsland/resident-runtime/resident/server"
 
 const scopes = new Set<Scope.Closeable>()
 afterEach(async () => {

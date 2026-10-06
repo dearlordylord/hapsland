@@ -1,31 +1,31 @@
 import { Writable } from "node:stream"
-import { submitDirectHookOutput, DirectHookSubmission } from "../resident/direct-hook-output.ts"
-import { HookOutput, makeWritableHookOutput } from "../resident/hook-output.ts"
-import { hookMonotonicMillis } from "../resident/hook-clock.ts"
+import { submitDirectHookOutput, DirectHookSubmission } from "@hapsland/hook-runtime/resident/direct-hook-output"
+import { HookOutput, makeWritableHookOutput } from "@hapsland/hook-runtime/resident/hook-output"
+import { hookMonotonicMillis } from "@hapsland/resident-transport/resident/hook-clock"
 import {
   collectReadyEffect,
   beginComposedSubmissionEffect,
   releaseComposedSubmissionEffect,
   acknowledgeAdviceEffect
-} from "../resident/client.ts"
+} from "@hapsland/resident-transport/resident/client"
 import { runClient } from "../test-support/client-runtime.ts"
 import { request } from "node:http"
 import { Effect, Scope, Exit, ConfigProvider } from "effect"
 import { expect, it } from "vitest"
 import { join } from "node:path"
 import { writeFile, readFile, chmod } from "node:fs/promises"
-import { makeInspectionHttpServer } from "./http.ts"
-import { makeInspectionStorage } from "./storage.ts"
+import { makeInspectionHttpServer } from "@hapsland/administration/inspection/http"
+import { makeInspectionStorage } from "@hapsland/inspection-records/inspection/storage"
 import { acquireResidentFixture } from "../resident/runtime-fixture.ts"
-import { residentPaths } from "../resident/paths.ts"
-import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts"
 import { nativeDeferred } from "../test-support/native-deferred.ts"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import { configuredRules, connectDefaultRuleFixture } from "../test-support/default-rules.ts"
-import { readCredentialState } from "../credentials/state.ts"
-import { decodeInspectionRecord } from "./contract.ts"
+import { readCredentialState } from "@hapsland/runtime-inputs/credentials/state"
+import { decodeInspectionRecord } from "@hapsland/inspection-records/inspection/contract"
 
 it("exposes exact retained bytes from a real resident's production provider transport", async () => {
   const root = await makeGitFixture()

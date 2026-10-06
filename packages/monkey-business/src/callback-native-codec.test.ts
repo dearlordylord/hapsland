@@ -1,6 +1,6 @@
 import { expect, it } from "vitest"
-import { initialCanonical } from "../../../src/canonical/adapter.ts"
-import { readRecord } from "../../../src/canonical/boundary-schema.ts"
+import { initialCanonical } from "@hapsland/canonical-policy/canonical/adapter"
+import { readRecord } from "@hapsland/canonical-policy/canonical/boundary-schema"
 import { decodeCallbackNativeBoundary } from "./callback-native-codec.ts"
 
 it("rejects excess envelope fields and over-bound vectors before publication", () => {

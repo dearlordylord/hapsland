@@ -1,4 +1,4 @@
-import { BUN_VERSION, bunExecutable } from "./runtime/bun-runtime.ts"
+import { BUN_VERSION, bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { spawnSync } from "../scripts/test-harness/process.mjs"
 import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"

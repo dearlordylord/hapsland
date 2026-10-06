@@ -3,10 +3,14 @@ import { Clock, Config, ConfigProvider, Effect, Layer, Ref } from "effect"
 import { mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { residentRequestEffect } from "./client.ts"
-import { residentPaths } from "./paths.ts"
-import { defaultReviewControls, ResidentReviewControls, ReviewControlError } from "./review-controls.ts"
-import { makeResidentRuntime } from "./server.ts"
+import { residentRequestEffect } from "@hapsland/resident-transport/resident/client"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
+import {
+  defaultReviewControls,
+  ResidentReviewControls,
+  ReviewControlError
+} from "@hapsland/resident-runtime/resident/review-controls"
+import { makeResidentRuntime } from "@hapsland/resident-runtime/resident/server"
 
 it.live("native IPC request fibers preserve the listener's caller Clock and ConfigProvider", () =>
   Effect.gen(function* () {

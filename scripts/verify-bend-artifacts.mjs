@@ -5,8 +5,14 @@ import { resolve } from "node:path"
 const root = resolve(import.meta.dirname, "..")
 const packageRoot = resolve(root, "packages/agent-flow-bend")
 for (const name of ["import-graph.generated.js", "import-graph.generated.d.ts"]) {
-  if (!readFileSync(resolve(packageRoot, name)).equals(readFileSync(resolve(root, "src/canonical", name)))) {
-    throw new Error(`${name} production copy is stale; copy the checked Bend artifact into src/canonical`)
+  if (
+    !readFileSync(resolve(packageRoot, name)).equals(
+      readFileSync(resolve(root, "packages/canonical-policy/src/canonical", name))
+    )
+  ) {
+    throw new Error(
+      `${name} production copy is stale; copy the checked Bend artifact into packages/canonical-policy/src/canonical`
+    )
   }
 }
 const canonicalSources = [
@@ -43,7 +49,10 @@ for (const source of canonicalSources) {
     .update(readFileSync(resolve(packageRoot, source)))
     .update("\0")
 }
-const canonicalFirstLine = readFileSync(resolve(root, "src/canonical/canonical.generated.js"), "utf8").split("\n", 1)[0]
+const canonicalFirstLine = readFileSync(
+  resolve(root, "packages/canonical-policy/src/canonical/canonical.generated.js"),
+  "utf8"
+).split("\n", 1)[0]
 if (canonicalFirstLine !== `// hapsland-bend-source-sha256:${canonicalDigest.digest("hex")}`) {
   throw new Error("canonical.generated.js is stale; run node packages/agent-flow-bend/scripts/build-canonical.mjs")
 }

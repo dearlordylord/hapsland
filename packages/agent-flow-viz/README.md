@@ -90,7 +90,7 @@ are implementation observations and Astra design review inputs, not owner
 acceptance, native capture evidence, or release claims.
 
 This page replays source-free example events through the same checked
-`src/canonical/adapter.ts` and compiled `Canonical.step` used by the resident.
+`packages/canonical-policy/src/canonical/adapter.ts` and compiled `Canonical.step` used by the resident.
 The main flow has 14 distinct places from agent-runtime observation through
 preparation, Jev authorization/attempt/response, advice, delivery, and round
 closure. A connected SVG draws numbered paths between those places, following

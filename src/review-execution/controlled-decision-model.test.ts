@@ -6,7 +6,7 @@ import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import * as Schema from "effect/Schema"
 import { Decision, DecisionModel } from "effect/ai"
-import { controlledDecisionModelLayer } from "./controlled-decision-model.ts"
+import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
 
 const before = "type OrderCount = number"
 const after = 'type OrderCount = number & { readonly __brand: "OrderCount" }'

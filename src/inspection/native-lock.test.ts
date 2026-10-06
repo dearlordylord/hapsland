@@ -4,8 +4,8 @@ import { fileURLToPath } from "node:url"
 import { join, resolve } from "node:path"
 import { expect, it } from "vitest"
 import { spawnSync } from "node:child_process"
-import { lockInspectionDirectory } from "./native-lock.ts"
-import { packageAssetPath } from "../runtime/package-runtime.ts"
+import { lockInspectionDirectory } from "@hapsland/inspection-records/inspection/native-lock"
+import { packageAssetPath } from "@hapsland/runtime-environment/runtime/package-runtime"
 
 it("allows simultaneous read-only owners and excludes a writer until both release", async () => {
   const directory = await realpath(await mkdtemp(join(tmpdir(), "hapsland-shared-lock-")))

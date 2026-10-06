@@ -1,4 +1,4 @@
-import type { ResidentRequest } from "../resident/protocol.ts"
+import type { ResidentRequest } from "@hapsland/resident-transport/resident/protocol"
 
 /** Structural IPC cases use a deliberately obsolete lifetime to avoid resident work. */
 export const requestConformanceCases: ReadonlyArray<ResidentRequest> = (() => {

@@ -1,16 +1,21 @@
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
-import { compileRule } from "../rules/compiler.ts"
-import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
-import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
-import { adaptCodexAdd } from "./adapter.ts"
-import { prepareObservation, preparedProviderInput, preparedUnitStillCurrent, evaluatePrepared } from "./pipeline.ts"
-import { controlledDecisionModelLayer } from "../review-execution/controlled-decision-model.ts"
+import { compileRule } from "@hapsland/review-definition/rules/compiler"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
+import { adaptCodexAdd } from "@hapsland/native-observation/direct-event/adapter"
+import {
+  prepareObservation,
+  preparedProviderInput,
+  preparedUnitStillCurrent,
+  evaluatePrepared
+} from "@hapsland/review-execution/direct-event/pipeline"
+import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
 import { configuredRules } from "../test-support/default-rules.ts"
-import { resolveRustModuleContext } from "./languages/rust-module-context.ts"
-import { captureStable } from "./capture.ts"
-import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "./selection.ts"
-import { GRAPH_LIMIT_CEILINGS } from "../canonical/graph-limits.ts"
+import { resolveRustModuleContext } from "@hapsland/source-analysis/direct-event/languages/rust-module-context"
+import { captureStable } from "@hapsland/native-observation/direct-event/capture"
+import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { addEvent, makeGitFixture, put, updateEvent } from "./test-fixtures.ts"
 
 const rules = (closure: boolean) =>

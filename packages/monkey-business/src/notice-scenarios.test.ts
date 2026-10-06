@@ -4,7 +4,7 @@ import {
   WORKLOAD_CONFORMANCE_TIMEOUT_MS
 } from "../../monkey-business-bend/conformance/workload-native-runner.mjs"
 import { createRun, replayRun, type RunInput } from "./index.ts"
-import type { CanonicalEvent } from "../../../src/canonical/adapter.ts"
+import type { CanonicalEvent } from "@hapsland/canonical-policy/canonical/adapter"
 
 /** Expected counts come from the accepted notice/cooldown contract, not the
  * implementation's projection or a second copy of notice policy. */

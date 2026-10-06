@@ -1,7 +1,7 @@
 import test from "node:test"
 import assert from "node:assert/strict"
 import { resolveBunRuntime } from "./pinned-bun.mjs"
-import { BUN_VERSION } from "../src/runtime/bun-runtime.ts"
+import { BUN_VERSION } from "@hapsland/runtime-environment/runtime/bun-runtime"
 
 test("resolves the exact product runtime and preserves an explicit selection", () => {
   const resolved = resolveBunRuntime()

@@ -1,0 +1,71 @@
+{
+  "name": "@hapsland/canonical-policy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./canonical/adapter": {
+      "types": "./dist/canonical/adapter.d.ts",
+      "default": "./dist/canonical/adapter.js"
+    },
+    "./canonical/boundary-schema": {
+      "types": "./dist/canonical/boundary-schema.d.ts",
+      "default": "./dist/canonical/boundary-schema.js"
+    },
+    "./canonical/canonical-boundary": {
+      "types": "./dist/canonical/canonical-boundary.d.ts",
+      "default": "./dist/canonical/canonical-boundary.js"
+    },
+    "./canonical/constructors": {
+      "types": "./dist/canonical/constructors.d.ts",
+      "default": "./dist/canonical/constructors.js"
+    },
+    "./canonical/event-reader": {
+      "types": "./dist/canonical/event-reader.d.ts",
+      "default": "./dist/canonical/event-reader.js"
+    },
+    "./canonical/graph-adapter": {
+      "types": "./dist/canonical/graph-adapter.d.ts",
+      "default": "./dist/canonical/graph-adapter.js"
+    },
+    "./canonical/graph-limits": {
+      "types": "./dist/canonical/graph-limits.d.ts",
+      "default": "./dist/canonical/graph-limits.js"
+    },
+    "./canonical/graph-schema": {
+      "types": "./dist/canonical/graph-schema.d.ts",
+      "default": "./dist/canonical/graph-schema.js"
+    },
+    "./canonical/immutable": {
+      "types": "./dist/canonical/immutable.d.ts",
+      "default": "./dist/canonical/immutable.js"
+    },
+    "./canonical/models": {
+      "types": "./dist/canonical/models.d.ts",
+      "default": "./dist/canonical/models.js"
+    },
+    "./canonical/simulation-codec": {
+      "types": "./dist/canonical/simulation-codec.d.ts",
+      "default": "./dist/canonical/simulation-codec.js"
+    },
+    "./canonical/canonical.generated": {
+      "types": "./dist/canonical/canonical.generated.d.ts",
+      "default": "./dist/canonical/canonical.generated.js"
+    },
+    "./canonical/import-graph.generated": {
+      "types": "./dist/canonical/import-graph.generated.d.ts",
+      "default": "./dist/canonical/import-graph.generated.js"
+    }
+  },
+  "dependencies": {
+    "effect": "4.0.0"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs"
+  },
+  "hapsland": {
+    "domain": "canonical-policy",
+    "host": "bun",
+    "capabilities": []
+  }
+}

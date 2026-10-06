@@ -6,10 +6,10 @@ import { resolve } from "node:path"
 const root = resolve(import.meta.dirname, "..")
 const read = (path) => readFileSync(resolve(root, path), "utf8")
 const required = [
-  "src/resident/capacity.ts",
-  "src/resident/collection.ts",
-  "src/rules/decision.ts",
-  "src/configuration/decision.ts",
+  "packages/resident-runtime/src/resident/capacity.ts",
+  "packages/resident-runtime/src/resident/collection.ts",
+  "packages/review-definition/src/rules/decision.ts",
+  "packages/runtime-inputs/src/configuration/decision.ts",
   "packages/agent-flow-viz/src/canonical-replay.ts"
 ]
 for (const path of required) {
@@ -20,27 +20,27 @@ for (const path of required) {
   )
 }
 assert.doesNotMatch(
-  read("src/resident/bend-work.ts"),
+  read("packages/resident-runtime/src/resident/bend-work.ts"),
   /#state|bendWork[A-Z]/,
   "composed work must be a read-only canonical view"
 )
 assert.doesNotMatch(
-  read("src/resident/composed-delivery.ts"),
+  read("packages/resident-runtime/src/resident/composed-delivery.ts"),
   /BendRound|\.policy|policy:\s*Bend/,
   "composed rounds must not advance independent policy state"
 )
 assert.doesNotMatch(
-  read("src/resident/client.ts"),
+  read("packages/resident-transport/src/resident/client.ts"),
   /EnsureResidentDependencies|liveEnsureDependencies|dependencies\s*===|const launches = new Map|return residentRequest\(/,
   "resident client startup must use layer-owned services and admission must await its IPC Effect"
 )
 assert.doesNotMatch(
-  read("src/resident/client.ts"),
+  read("packages/resident-transport/src/resident/client.ts"),
   /Effect\.runPromise|Effect\.runSync|ManagedRuntime|processClientRuntime|process\.once\("beforeExit"/,
   "resident client workflows must compose Effects; their process callers own execution and disposal"
 )
 assert.doesNotMatch(
-  read("src/resident/paths.ts"),
+  read("packages/resident-transport/src/resident/paths.ts"),
   /process\.env/,
   "resident endpoint configuration must use Config at Effect execution time"
 )
@@ -61,11 +61,15 @@ const scan = (directory) => {
     )
     if (/from ["'][^"']*(?:flow\.generated|lifecycle\.generated|bend-policy\.generated)\.js["']/.test(source))
       obsoleteImports.push(path)
-    if (path !== "src/canonical/canonical-boundary.ts" && /from ["'][^"']*canonical\.generated\.js["']/.test(source))
+    if (
+      path !== "packages/canonical-policy/src/canonical/canonical-boundary.ts" &&
+      /from ["'][^"']*canonical\.generated(?:\.js)?["']/.test(source)
+    )
       obsoleteImports.push(path)
   }
 }
 scan("src")
+for (const workspace of JSON.parse(read("package.json")).workspaces ?? []) scan(`${workspace}/src`)
 scan("packages/agent-flow-viz/src")
 assert.deepEqual(obsoleteImports, [], "production or visualization still consumes an obsolete direct policy path")
 console.log(`checked ${required.length} shared-adapter imports and zero direct policy consumers`)

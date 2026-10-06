@@ -8,11 +8,11 @@ import { execFileAsync } from "../../scripts/test-harness/process.mjs"
 import { writeFile, rm, symlink, rename, mkdir } from "node:fs/promises"
 import { join } from "node:path"
 import { configuredRules } from "../test-support/default-rules.ts"
-import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
+import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
 import {
   controlledDecisionModelLayer,
   type ControlledDecisionModelOptions
-} from "../review-execution/controlled-decision-model.ts"
+} from "@hapsland/review-execution/review-execution/controlled-decision-model"
 import {
   DIRECT_EVENT_DEADLINE_MS,
   encodedPreparedProviderInputBytes,
@@ -23,13 +23,17 @@ import {
   reviewObservation,
   type DirectReviewContext,
   type EvaluationEvidence
-} from "./pipeline.ts"
-import { claimDemoBudget, readDemoBudgetUsage, writeDemoBudget } from "../activity/demo-budget.ts"
-import { attemptCodexHostOutput } from "./writer.ts"
+} from "@hapsland/review-execution/direct-event/pipeline"
+import {
+  claimDemoBudget,
+  readDemoBudgetUsage,
+  writeDemoBudget
+} from "@hapsland/activity-observation/activity/demo-budget"
+import { attemptCodexHostOutput } from "@hapsland/delivery-output/direct-event/writer"
 import { Writable } from "node:stream"
 import { addEvent, makeGitFixture, put, advicee, updateEvent } from "./test-fixtures.ts"
-import { adaptCodexAdd } from "./adapter.ts"
-import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
+import { adaptCodexAdd } from "@hapsland/native-observation/direct-event/adapter"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 
 const findingAnswers = (): Readonly<Record<string, DecisionModel.ProviderAnswer>> =>
   Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability" as const, probability: 0.91 }]))

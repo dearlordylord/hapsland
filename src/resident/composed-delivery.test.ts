@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest"
 import { Effect } from "effect"
 import { it as effectIt } from "@effect/vitest"
-import { makeResidentState } from "./capacity.ts"
-import { BACKGROUND_WAITER_EXPIRY_MS, EDIT_PERMIT_EXPIRY_MS, VIRTUAL_ROUND_QUIET_MS } from "./composed-delivery.ts"
-import { monotonicNow } from "./hook-clock.ts"
-import { DELIVERY_LEASE_MS } from "./protocol.ts"
+import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
+import {
+  BACKGROUND_WAITER_EXPIRY_MS,
+  EDIT_PERMIT_EXPIRY_MS,
+  VIRTUAL_ROUND_QUIET_MS
+} from "@hapsland/resident-runtime/resident/composed-delivery"
+import { monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"
+import { DELIVERY_LEASE_MS } from "@hapsland/resident-transport/resident/protocol"
 
 const makeDeliveryFixture = (...args: Parameters<typeof makeResidentState>) => {
   const canonical = Effect.runSync(makeResidentState(...args))

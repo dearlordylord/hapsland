@@ -8,7 +8,7 @@ import {
   probeScopedResident,
   stopScopedResident
 } from "../../scripts/first-review-resident-cleanup.mjs"
-import { CURRENT_IPC_VERSION } from "../resident/protocol.ts"
+import { CURRENT_IPC_VERSION } from "@hapsland/resident-transport/resident/protocol"
 
 const roots: Array<string> = []
 afterEach(() => {

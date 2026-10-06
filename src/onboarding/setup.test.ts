@@ -1,5 +1,5 @@
-import { bunExecutable } from "../runtime/bun-runtime.ts"
-import { SHIPPED_DEFAULT_RULES } from "../rules/shipped.ts"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
+import { SHIPPED_DEFAULT_RULES } from "@hapsland/review-definition/rules/shipped"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
 import { createInstallationPackageFixture } from "../test-support/installation-package.ts"
 import {

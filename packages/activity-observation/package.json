@@ -1,0 +1,40 @@
+{
+  "name": "@hapsland/activity-observation",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./activity/analytics": {
+      "types": "./dist/activity/analytics.d.ts",
+      "default": "./dist/activity/analytics.js"
+    },
+    "./activity/demo-budget": {
+      "types": "./dist/activity/demo-budget.d.ts",
+      "default": "./dist/activity/demo-budget.js"
+    },
+    "./activity/demo-trace": {
+      "types": "./dist/activity/demo-trace.d.ts",
+      "default": "./dist/activity/demo-trace.js"
+    },
+    "./activity/status": {
+      "types": "./dist/activity/status.d.ts",
+      "default": "./dist/activity/status.js"
+    },
+    "./activity/storage": {
+      "types": "./dist/activity/storage.d.ts",
+      "default": "./dist/activity/storage.js"
+    }
+  },
+  "dependencies": {
+    "@hapsland/native-observation": "workspace:*",
+    "effect": "4.0.0"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs"
+  },
+  "hapsland": {
+    "domain": "activity-observation",
+    "host": "bun",
+    "capabilities": []
+  }
+}

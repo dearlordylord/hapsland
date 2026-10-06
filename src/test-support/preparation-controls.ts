@@ -1,5 +1,5 @@
 import { Deferred, Effect, Layer, Queue, Ref } from "effect"
-import { ResidentPreparationControls } from "../resident/preparation-controls.ts"
+import { ResidentPreparationControls } from "@hapsland/resident-runtime/resident/preparation-controls"
 
 /** One-shot fixture coordination; the resident layer owns gate retirement. */
 export const makePreparationControls = Effect.fn("PreparationControlsFixture.make")(function* () {

@@ -2,8 +2,8 @@ import { afterEach, expect, it } from "vitest"
 import { mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import type { DirectAdvicee } from "../direct-event/observation.ts"
-import { demoSourceHash, readDemoTrace, recordDemoTrace } from "./demo-trace.ts"
+import type { DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
+import { demoSourceHash, readDemoTrace, recordDemoTrace } from "@hapsland/activity-observation/activity/demo-trace"
 const roots: string[] = []
 const fixture = () => {
   const root = mkdtempSync(join(tmpdir(), "demo-trace-"))

@@ -6,11 +6,14 @@ import { pathToFileURL } from "node:url"
 import { chromium } from "playwright"
 import { Effect, Scope, Exit } from "effect"
 import { makeDevelopmentInspectionPage } from "../../../scripts/dev-inspection.mjs"
-import { makeInspectionHttpServer } from "../../../src/inspection/http.ts"
+import { makeInspectionHttpServer } from "@hapsland/administration/inspection/http"
 
 const fixture = await mkdtemp(join(tmpdir(), "hapsland-inspection-dev-"))
 const source = join(fixture, "page.ts")
-const original = await readFile(new URL("../../../src/inspection/page.ts", import.meta.url), "utf8")
+const original = await readFile(
+  new URL("../../../packages/administration/src/inspection/page.ts", import.meta.url),
+  "utf8"
+)
 const scope = await Effect.runPromise(Scope.make())
 let browser
 let phase = "server startup"

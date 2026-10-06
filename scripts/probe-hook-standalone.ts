@@ -10,8 +10,8 @@ import {
   writeFileSync
 } from "node:fs"
 import { join, relative, resolve } from "node:path"
-import { physicalNativeBindings } from "../src/runtime/native-bindings.ts"
-import { BUN_VERSION } from "../src/runtime/bun-runtime.ts"
+import { physicalNativeBindings } from "@hapsland/runtime-environment/runtime/native-bindings"
+import { BUN_VERSION } from "@hapsland/runtime-environment/runtime/bun-runtime"
 
 // Candidate evidence only. This does not wire a production build or publish a release.
 const destination = process.argv[2]
@@ -26,7 +26,7 @@ mkdirSync(emitted)
 const nativeRoot =
   'require("node:path").resolve(require("node:path").dirname(process.execPath), "../../../native/prebuilt", process.platform + "-" + process.arch)'
 const emission = await Bun.build({
-  entrypoints: [resolve("src/hook-main.ts")],
+  entrypoints: [resolve("packages/hook-entry/src/hook-main.ts")],
   outdir: emitted,
   naming: "hook.js",
   target: "bun",
@@ -91,7 +91,7 @@ writeFileSync(
       artifacts: inventory(release),
       platform: process.platform,
       architecture: process.arch,
-      source: { path: "src/hook-main.ts", sha256: sha256("src/hook-main.ts") },
+      source: { path: "packages/hook-entry/src/hook-main.ts", sha256: sha256("packages/hook-entry/src/hook-main.ts") },
       emitted: { path: join(emitted, "hook.js"), sha256: sha256(join(emitted, "hook.js")) },
       executable: { path: executable, sha256: sha256(executable) },
       emissionMetafile: sha256(join(root, "emission-metafile.json")),

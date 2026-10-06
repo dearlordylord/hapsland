@@ -1,7 +1,7 @@
 import { expect, it } from "vitest"
-import { compileRule } from "../rules/compiler.ts"
-import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
-import { freezeRules } from "./model.ts"
+import { compileRule } from "@hapsland/review-definition/rules/compiler"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import { freezeRules } from "@hapsland/review-definition/direct-event/model"
 it("freezes requirements from the selected language/kind pair", () => {
   const rule = compileRule(
     {

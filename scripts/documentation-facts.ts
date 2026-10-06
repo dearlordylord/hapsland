@@ -1,13 +1,16 @@
-import { JEV_PROVIDER, CLOUDFLARE_PROVIDER } from "../src/runtime/backend.ts"
-import { PROJECT_CONFIGURATION_FILE } from "../src/configuration/load.ts"
+import { JEV_PROVIDER, CLOUDFLARE_PROVIDER } from "@hapsland/runtime-environment/runtime/backend"
+import { PROJECT_CONFIGURATION_FILE } from "@hapsland/runtime-inputs/configuration/load"
 import * as Schema from "effect/Schema"
-import { ACTIVITY_RETENTION_MS, MAX_ACTIVITY_STORAGE_BYTES } from "../src/activity/storage.ts"
-import { ConfigurationDocument, CONFIGURATION_VERSION } from "../src/configuration/types.ts"
-import { GRAPH_LIMIT_CEILINGS, graphLimitFields } from "../src/canonical/graph-limits.ts"
-import { MAX_INSPECTION_MESSAGE_BYTES } from "../src/inspection/contract.ts"
-import { DEFAULT_RULE_THRESHOLD } from "../src/rules/schema.ts"
-import { PROVIDER_LIMITS } from "../src/review-providers/catalog.ts"
-import { REVIEW_SETTINGS_CACHE_CAPACITY, REVIEW_SETTINGS_CACHE_TTL_MS } from "../src/runtime/review-settings.ts"
+import { ACTIVITY_RETENTION_MS, MAX_ACTIVITY_STORAGE_BYTES } from "@hapsland/activity-observation/activity/storage"
+import { ConfigurationDocument, CONFIGURATION_VERSION } from "@hapsland/runtime-inputs/configuration/types"
+import { GRAPH_LIMIT_CEILINGS, graphLimitFields } from "@hapsland/canonical-policy/canonical/graph-limits"
+import { MAX_INSPECTION_MESSAGE_BYTES } from "@hapsland/inspection-records/inspection/contract"
+import { DEFAULT_RULE_THRESHOLD } from "@hapsland/review-definition/rules/schema"
+import { PROVIDER_LIMITS } from "@hapsland/review-definition/review-providers/catalog"
+import {
+  REVIEW_SETTINGS_CACHE_CAPACITY,
+  REVIEW_SETTINGS_CACHE_TTL_MS
+} from "@hapsland/review-definition/runtime/review-settings"
 
 export const recordingFieldName = (schema: Schema.Constraint, identifier: string): string => {
   const document = Schema.toJsonSchemaDocument(schema, { onExcessProperty: "error" })

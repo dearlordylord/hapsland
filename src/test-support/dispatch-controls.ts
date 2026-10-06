@@ -1,5 +1,5 @@
 import { Deferred, Effect, Layer, Ref } from "effect"
-import { ResidentDispatchControls, type DispatchBoundary } from "../resident/dispatch-controls.ts"
+import { ResidentDispatchControls, type DispatchBoundary } from "@hapsland/resident-runtime/resident/dispatch-controls"
 
 /** One selected boundary can be held; its resident-owned layer retires the gate. */
 export const makeDispatchControls = Effect.fn("DispatchControlsFixture.make")(function* () {

@@ -1,6 +1,6 @@
 import { Script } from "node:vm"
 import { describe, expect, it } from "vitest"
-import { defaultInspectionFilters, inspectionPage } from "./page.ts"
+import { defaultInspectionFilters, inspectionPage } from "@hapsland/administration/inspection/page"
 
 const script = inspectionPage.match(/<script>([\s\S]*?)<\/script>/u)![1]!
 const badges = new Script(

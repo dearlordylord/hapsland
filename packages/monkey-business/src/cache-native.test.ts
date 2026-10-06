@@ -4,7 +4,7 @@ import {
   stepCanonical,
   projectCanonical,
   type CanonicalEvent
-} from "../../../src/canonical/adapter.ts"
+} from "@hapsland/canonical-policy/canonical/adapter"
 import {
   runWorkloadNative,
   WORKLOAD_CONFORMANCE_TIMEOUT_MS

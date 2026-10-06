@@ -48,11 +48,23 @@ test("portable instrumented bundles retain nested, untouched and fresh counters 
   for (const root of [first, second]) {
     await mkdir(join(root, "src/resident"), { recursive: true })
     await writeFile(join(root, "src/subject.ts"), source)
-    for (const entry of ["cli.ts", "package-doctor.ts", "parser-main.ts", "resident/main.ts"]) {
-      const relative = entry.startsWith("resident/") ? "../subject.ts" : "./subject.ts"
+    const roles = ["cli", "doctor", "parser", "resident", "hook"]
+    await writeFile(join(root, "package.json"), JSON.stringify({ workspaces: roles.map((role) => `packages/${role}`) }))
+    for (const role of roles) {
+      const directory = join(root, "packages", role)
+      await mkdir(join(directory, "src"), { recursive: true })
       await writeFile(
-        join(root, "src", entry),
-        `import {choose} from ${JSON.stringify(relative)};export {untouched} from ${JSON.stringify(relative)};console.log(choose(process.argv[2]==="yes"));\n`
+        join(directory, "package.json"),
+        JSON.stringify({
+          name: `@hapsland/${role}`,
+          private: true,
+          type: "module",
+          hapsland: { role, entry: "src/main.ts" }
+        })
+      )
+      await writeFile(
+        join(directory, "src/main.ts"),
+        `import {choose} from "../../../src/subject.ts";export {untouched} from "../../../src/subject.ts";console.log(choose(process.argv[2]==="yes"));\n`
       )
     }
   }

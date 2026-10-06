@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import fc from "fast-check"
-import { encodeSharedValue, decodeSharedValue } from "./simulation-codec.ts"
+import { encodeSharedValue, decodeSharedValue } from "@hapsland/canonical-policy/canonical/simulation-codec"
 
 const prefix = "../agent-flow-bend/"
 

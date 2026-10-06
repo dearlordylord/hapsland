@@ -4,8 +4,8 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import * as Effect from "effect/Effect"
 import { afterEach, describe, expect, it } from "vitest"
-import { adaptOpenCodeDirectEvent } from "./adapter.ts"
-import { MAX_SOURCE_BYTES } from "../../direct-event/capture.ts"
+import { adaptOpenCodeDirectEvent } from "@hapsland/native-observation/hosts/opencode/adapter"
+import { MAX_SOURCE_BYTES } from "@hapsland/native-observation/direct-event/capture"
 
 const dirs: string[] = []
 const fixture = () => {

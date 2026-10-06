@@ -1,4 +1,4 @@
-import { REVIEW_FEEDBACK_HEADING, REVIEW_FEEDBACK_INSTRUCTIONS } from "../feedback/message.ts"
+import { REVIEW_FEEDBACK_HEADING, REVIEW_FEEDBACK_INSTRUCTIONS } from "@hapsland/delivery-output/feedback/message"
 import { describe, expect, it } from "vitest"
 import { classifyHookOutput, classifyLiveOutcome } from "./live-evidence-outcome.ts"
 const stats = (overrides = {}) => ({

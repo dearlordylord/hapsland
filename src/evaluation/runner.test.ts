@@ -1,14 +1,18 @@
-import { bunExecutable } from "../runtime/bun-runtime.ts"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import { ConfigProvider } from "effect"
 import { spawnSync } from "../../scripts/test-harness/process.mjs"
-import { controlledDecisionModelLayer } from "../review-execution/controlled-decision-model.ts"
-import { ReviewBackend } from "../ports/review-backend.ts"
-import { makeDefaultEvaluationSuite, runEvaluationCommand } from "./command.ts"
-import { BUNDLED_EVALUATION_EXPECTATIONS, BUNDLED_EVALUATION_FIXTURES, BUNDLED_EVALUATION_RULES } from "./fixtures.ts"
-import { executeEvaluation } from "./runner.ts"
+import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
+import { ReviewBackend } from "@hapsland/review-execution/ports/review-backend"
+import { makeDefaultEvaluationSuite, runEvaluationCommand } from "@hapsland/administration/evaluation/command"
+import {
+  BUNDLED_EVALUATION_EXPECTATIONS,
+  BUNDLED_EVALUATION_FIXTURES,
+  BUNDLED_EVALUATION_RULES
+} from "@hapsland/administration/evaluation/fixtures"
+import { executeEvaluation } from "@hapsland/administration/evaluation/runner"
 
 const controlledBackend = ReviewBackend.layerWithOptions({ transientRetries: 2 }).pipe(
   Layer.provide(controlledDecisionModelLayer({}))
@@ -94,7 +98,7 @@ describe("evaluation execution and commands", () => {
   )
 
   it("accepts plan/run/report through the real JSON process boundary", () => {
-    const planned = spawnSync(bunExecutable(), ["src/cli.ts", "--evaluation-plan"], {
+    const planned = spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", "--evaluation-plan"], {
       cwd: process.cwd(),
       input: JSON.stringify({ version: 1, operation: "plan" }),
       encoding: "utf8"
@@ -107,7 +111,7 @@ describe("evaluation execution and commands", () => {
     }
     expect(plan).toMatchObject({ operation: "plan", plan: { plannedRequests: 36, worstCaseRequests: 108 } })
 
-    const run = spawnSync(bunExecutable(), ["src/cli.ts", "--evaluation-run"], {
+    const run = spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", "--evaluation-run"], {
       cwd: process.cwd(),
       input: JSON.stringify({ version: 1, operation: "run" }),
       encoding: "utf8"
@@ -124,7 +128,7 @@ describe("evaluation execution and commands", () => {
     expect(run.stdout).not.toContain("unconstrained delivery timestamp")
     expect(run.stdout).not.toContain("SOURCE")
 
-    const verified = spawnSync(bunExecutable(), ["src/cli.ts", "--evaluation-report"], {
+    const verified = spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", "--evaluation-report"], {
       cwd: process.cwd(),
       input: JSON.stringify({ version: 1, operation: "report", report: report.report }),
       encoding: "utf8"

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { dirname, relative, resolve } from "node:path"
 import { expect, it } from "vitest"
-import { descendants, typeScriptRoot } from "../src/direct-event/languages/native-parser.ts"
+import { descendants, typeScriptRoot } from "@hapsland/source-analysis/direct-event/languages/native-parser"
 
 // Follow static runtime imports/re-exports only. Dynamic workflow imports are
 // deliberately outside the startup graph; type references execute no code.
@@ -29,7 +29,7 @@ const eagerImports = (file: string) => {
 
 it("keeps administrative workflows, parsers and provider execution outside the shared CLI eager import graph", () => {
   const root = resolve(import.meta.dirname, "..")
-  const pending = [resolve(root, "src/cli.ts")]
+  const pending = [resolve(root, "packages/cli-entry/src/cli.ts")]
   const seen = new Set<string>()
   const external = new Set<string>()
   while (pending.length) {
@@ -42,23 +42,23 @@ it("keeps administrative workflows, parsers and provider execution outside the s
     }
   }
   const paths = [...seen].map((file) => relative(root, file))
-  expect(paths).toContain("src/cli-command.ts")
-  expect(paths).toContain("src/runtime/hook-invocation.ts")
-  expect(eagerImports(resolve(root, "src/runtime/hook-invocation.ts"))).toEqual([])
-  expect(paths).toContain("src/pi/transport.ts")
-  expect(paths).toContain("src/resident/client.ts")
+  expect(paths).toContain("packages/administration/src/cli-command.ts")
+  expect(paths).toContain("packages/runtime-environment/src/runtime/hook-invocation.ts")
+  expect(eagerImports(resolve(root, "packages/runtime-environment/src/runtime/hook-invocation.ts"))).toEqual([])
+  expect(paths).toContain("packages/hook-runtime/src/pi/transport.ts")
+  expect(paths).toContain("packages/resident-transport/src/resident/client.ts")
   expect(
     paths.filter(
       (path) =>
         /^src\/onboarding\/(?:.*-installation|setup|doctor|maintenance|client-lifecycle|first-review-demo)\.ts$/u.test(
           path
         ) ||
-        path === "src/evaluation/command.ts" ||
-        path === "src/direct-event/pipeline.ts" ||
-        path === "src/direct-event/languages/native-parser.ts" ||
-        path === "src/jev-decision.ts" ||
-        path === "src/direct-event/languages/bend/extractor.ts" ||
-        path === "src/review-providers/cloudflare.ts"
+        path === "packages/administration/src/evaluation/command.ts" ||
+        path === "packages/review-execution/src/direct-event/pipeline.ts" ||
+        path === "packages/source-analysis/src/direct-event/languages/native-parser.ts" ||
+        path === "packages/review-execution/src/jev-decision.ts" ||
+        path === "packages/source-analysis/src/direct-event/languages/bend/extractor.ts" ||
+        path === "packages/review-execution/src/review-providers/cloudflare.ts"
     )
   ).toEqual([])
   expect(

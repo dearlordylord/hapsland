@@ -9,7 +9,7 @@ import {
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
-import { commandEntrypoint } from "../runtime/package-runtime.ts"
+import { commandEntrypoint } from "@hapsland/runtime-environment/runtime/package-runtime"
 import { afterEach, beforeAll, describe, expect, it } from "vitest"
 import {
   cleanupPiFixtures,

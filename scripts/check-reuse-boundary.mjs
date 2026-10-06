@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
 const root = resolve(import.meta.dirname, "..")
-const server = readFileSync(resolve(root, "src/resident/server.ts"), "utf8")
-const reuse = readFileSync(resolve(root, "src/resident/evaluation-reuse.ts"), "utf8")
+const server = readFileSync(resolve(root, "packages/resident-runtime/src/resident/server.ts"), "utf8")
+const reuse = readFileSync(resolve(root, "packages/resident-runtime/src/resident/evaluation-reuse.ts"), "utf8")
 for (const name of ["bendReuseRoute", "bendReuseCacheRoute", "bendCacheAdmit", "bendCacheEvict"]) {
   if (server.includes(name) || reuse.includes(name)) throw new Error(`resident reuse bypass returned: ${name}`)
 }

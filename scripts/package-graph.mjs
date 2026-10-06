@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs"
+import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -70,6 +70,22 @@ export const packageTypeScriptConfig = (graph, name) => {
       path: relative(node.path, resolve(graph.packages.get(dependency).path, "tsconfig.json")).replaceAll("\\", "/")
     }))
   }
+}
+
+/** Resolve explicit emitted exports to their compiler-owned source for source analysis. */
+export const resolveWorkspaceSource = (graph, specifier) => {
+  const match = /^(@[^/]+\/[^/]+|[^/]+)(\/.*)?$/.exec(specifier)
+  const node = match && graph.packages.get(match[1])
+  if (!node) return undefined
+  const key = match[2] ? `.${match[2]}` : "."
+  const target = node.manifest.exports?.[key]?.default
+  if (typeof target !== "string" || !target.startsWith("./dist/") || !target.endsWith(".js"))
+    throw new Error(`Unsupported or undeclared workspace export: ${specifier}`)
+  const source = resolve(node.path, target.replace("./dist/", "./src/"))
+  const candidates = [source.replace(/\.js$/, ".ts"), source]
+  const path = candidates.find((candidate) => existsSync(candidate))
+  if (!path) throw new Error(`Missing workspace source for ${specifier}`)
+  return path
 }
 
 export const generatePackageConfigs = (root, check = false) => {

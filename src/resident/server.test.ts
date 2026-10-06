@@ -1,19 +1,19 @@
-import { REVIEW_FEEDBACK_HEADING, REVIEW_FEEDBACK_INSTRUCTIONS } from "../feedback/message.ts"
+import { REVIEW_FEEDBACK_HEADING, REVIEW_FEEDBACK_INSTRUCTIONS } from "@hapsland/delivery-output/feedback/message"
 import { runClient } from "../test-support/client-runtime.ts"
 import { reviewControlsLayer } from "../test-support/review-controls.ts"
-import { ReviewControlError } from "./review-controls.ts"
+import { ReviewControlError } from "@hapsland/resident-runtime/resident/review-controls"
 import { nativeDeferred as deferred } from "../test-support/native-deferred.ts"
-import { ResidentDispatchControls, DispatchControlError } from "./dispatch-controls.ts"
+import { ResidentDispatchControls, DispatchControlError } from "@hapsland/resident-runtime/resident/dispatch-controls"
 import { makeDispatchControls } from "../test-support/dispatch-controls.ts"
 import { Layer } from "effect"
 import {
   ResidentPreparationControls,
   PreparationControlError,
   defaultPreparationControls
-} from "./preparation-controls.ts"
+} from "@hapsland/resident-runtime/resident/preparation-controls"
 import { makePreparationControls } from "../test-support/preparation-controls.ts"
 import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts"
-import { monotonicNow } from "./hook-clock.ts"
+import { monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"
 import { describe, expect, it, vi } from "vitest"
 import * as Effect from "effect/Effect"
 import * as Deferred from "effect/Deferred"
@@ -21,7 +21,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { spawn } from "node:child_process"
 import { createHash } from "node:crypto"
 import { join } from "node:path"
-import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import {
   addEvent,
   makeReviewGitFixture as makeGitFixture,
@@ -30,21 +30,25 @@ import {
   advicee
 } from "../direct-event/test-fixtures.ts"
 import { configuredRules } from "../test-support/default-rules.ts"
-import { analyzerMaterializationPreflight } from "../direct-event/analyzer.ts"
-import { readActivity } from "../activity/status.ts"
-import { claudeHostOutputText } from "../direct-event/claude-output.ts"
-import { residentPaths } from "./paths.ts"
-import { residentRequestEffect as residentRequest } from "./client.ts"
+import { analyzerMaterializationPreflight } from "@hapsland/source-analysis/direct-event/analyzer"
+import { readActivity } from "@hapsland/activity-observation/activity/status"
+import { claudeHostOutputText } from "@hapsland/delivery-output/direct-event/claude-output"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
+import { residentRequestEffect as residentRequest } from "@hapsland/resident-transport/resident/client"
 import {
   DELIVERY_LEASE_MS,
   decodeResidentRequest,
   type ResidentDispatchContext,
   type ResidentRequest
-} from "./protocol.ts"
+} from "@hapsland/resident-transport/resident/protocol"
 
-import { PARTITION_BYTE_LIMIT } from "./capacity.ts"
-import { VIRTUAL_ROUND_QUIET_MS } from "./composed-delivery.ts"
-import { MAX_COMBINED_RESPONSE_BYTES, PENDING_ADVICE_EXPIRY_MS, encodedHostOutputBytes } from "./collection.ts"
+import { PARTITION_BYTE_LIMIT } from "@hapsland/resident-runtime/resident/capacity"
+import { VIRTUAL_ROUND_QUIET_MS } from "@hapsland/resident-runtime/resident/composed-delivery"
+import {
+  MAX_COMBINED_RESPONSE_BYTES,
+  PENDING_ADVICE_EXPIRY_MS,
+  encodedHostOutputBytes
+} from "@hapsland/resident-runtime/resident/collection"
 
 const findingDispatch = (statePath: string): ResidentDispatchContext => ({
   statePath,

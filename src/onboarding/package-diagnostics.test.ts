@@ -1,9 +1,9 @@
 import { Effect } from "effect"
 import { expect, it, vi } from "vitest"
-import { diagnosePackage } from "./package-diagnostics.ts"
-import { analyzeTypeFile } from "../direct-event/analyzer.ts"
+import { diagnosePackage } from "@hapsland/administration/onboarding/package-diagnostics"
+import { analyzeTypeFile } from "@hapsland/source-analysis/direct-event/analyzer"
 
-vi.mock("../direct-event/analyzer.ts", () => ({ analyzeTypeFile: vi.fn() }))
+vi.mock("@hapsland/source-analysis/direct-event/analyzer", () => ({ analyzeTypeFile: vi.fn() }))
 
 it.each([
   { cause: Object.assign(new Error("binding failed"), { code: "ERR_DLOPEN_FAILED" }), observed: "load-failed" },

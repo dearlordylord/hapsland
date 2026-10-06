@@ -1,7 +1,7 @@
 import type { Effect } from "effect"
 import { ManagedRuntime } from "effect"
-import type { ResidentStartup } from "../resident/client.ts"
-import { residentStartupLayer } from "../resident/client.ts"
+import type { ResidentStartup } from "@hapsland/resident-transport/resident/client"
+import { residentStartupLayer } from "@hapsland/resident-transport/resident/client"
 
 /** Native fixture process boundary; all calls share its startup service lifetime. */
 const runtime = ManagedRuntime.make(residentStartupLayer)

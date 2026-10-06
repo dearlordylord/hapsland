@@ -1,14 +1,14 @@
 import { Effect, Exit, Schedule, Scope } from "effect"
 import { reviewControlsLayer } from "../../src/test-support/review-controls.ts"
-import { ReviewControlError } from "../../src/resident/review-controls.ts"
+import { ReviewControlError } from "@hapsland/resident-runtime/resident/review-controls"
 /** Dedicated offline resident process for the security wire witness. */
 import { appendFileSync } from "node:fs"
 import nodeHttp from "node:http"
 import nodeHttps from "node:https"
 import { access, writeFile } from "node:fs/promises"
 import { join } from "node:path"
-import { makeResidentRuntime } from "../../src/resident/server.ts"
-import { residentPaths } from "../../src/resident/paths.ts"
+import { makeResidentRuntime } from "@hapsland/resident-runtime/resident/server"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import { makeOfflineSecurityHttpClient } from "./security-wire-observer.ts"
 
 const root = process.argv[2]

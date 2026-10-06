@@ -34,7 +34,7 @@ for (const [name, overrides] of [
           outDir: join(directory, "dist"),
           noEmitOnError: true
         },
-        files: [resolve("src/pi/extension.ts")],
+        files: [resolve("packages/pi-extension/src/pi/extension.ts")],
         include: [],
         exclude: []
       },
@@ -58,7 +58,13 @@ for (const [name, overrides] of [
   const owned = inputs.filter((path) => path.startsWith(join(repository, "src") + "/"))
   if (
     owned.length !== 2 ||
-    owned.some((path) => !["src/pi/extension.ts", "src/runtime/hook-catalog.ts"].includes(relative(repository, path)))
+    owned.some(
+      (path) =>
+        ![
+          "packages/pi-extension/src/pi/extension.ts",
+          "packages/runtime-environment/src/runtime/hook-catalog.ts"
+        ].includes(relative(repository, path))
+    )
   )
     throw new Error("Unexpected Pi compiler source input")
   if (

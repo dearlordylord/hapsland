@@ -2,7 +2,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
-import { claimDemoBudget, initializeDemoBudget, readDemoBudgetUsage, writeDemoBudget } from "./demo-budget.ts"
+import {
+  claimDemoBudget,
+  initializeDemoBudget,
+  readDemoBudgetUsage,
+  writeDemoBudget
+} from "@hapsland/activity-observation/activity/demo-budget"
 
 const roots: Array<string> = []
 afterEach(() => {

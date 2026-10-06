@@ -1,0 +1,58 @@
+{
+  "name": "@hapsland/hook-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./hooks/arguments": {
+      "types": "./dist/hooks/arguments.d.ts",
+      "default": "./dist/hooks/arguments.js"
+    },
+    "./hooks/command": {
+      "types": "./dist/hooks/command.d.ts",
+      "default": "./dist/hooks/command.js"
+    },
+    "./hooks/direct": {
+      "types": "./dist/hooks/direct.d.ts",
+      "default": "./dist/hooks/direct.js"
+    },
+    "./hooks/program": {
+      "types": "./dist/hooks/program.d.ts",
+      "default": "./dist/hooks/program.js"
+    },
+    "./pi/transport": {
+      "types": "./dist/pi/transport.d.ts",
+      "default": "./dist/pi/transport.js"
+    },
+    "./resident/composed-hook": {
+      "types": "./dist/resident/composed-hook.d.ts",
+      "default": "./dist/resident/composed-hook.js"
+    },
+    "./resident/direct-hook-output": {
+      "types": "./dist/resident/direct-hook-output.d.ts",
+      "default": "./dist/resident/direct-hook-output.js"
+    },
+    "./resident/hook-output": {
+      "types": "./dist/resident/hook-output.d.ts",
+      "default": "./dist/resident/hook-output.js"
+    }
+  },
+  "dependencies": {
+    "@hapsland/activity-observation": "workspace:*",
+    "@hapsland/delivery-output": "workspace:*",
+    "@hapsland/native-observation": "workspace:*",
+    "@hapsland/resident-transport": "workspace:*",
+    "@hapsland/runtime-environment": "workspace:*",
+    "@hapsland/runtime-inputs": "workspace:*",
+    "@effect/platform-node": "4.0.0",
+    "effect": "4.0.0"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs"
+  },
+  "hapsland": {
+    "domain": "hook-runtime",
+    "host": "bun",
+    "capabilities": []
+  }
+}

@@ -1,5 +1,5 @@
 import { expect, it } from "vitest"
-import { freezeCanonicalData } from "./immutable.ts"
+import { freezeCanonicalData } from "@hapsland/canonical-policy/canonical/immutable"
 
 it("freezes cyclic and shared graphs and preserves repeated snapshot identity", () => {
   const child = { value: 1 }

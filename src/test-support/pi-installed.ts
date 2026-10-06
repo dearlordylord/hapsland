@@ -6,15 +6,15 @@ import { dirname, isAbsolute, join } from "node:path"
 import assert from "node:assert/strict"
 import { configuredRules, connectDefaultRuleFixture } from "./default-rules.ts"
 import { pathToFileURL } from "node:url"
-import { residentRequestEffect } from "../resident/client.ts"
-import { residentPaths } from "../resident/paths.ts"
+import { residentRequestEffect } from "@hapsland/resident-transport/resident/client"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import { prepareTestPackage, type TestPackage } from "./test-package.ts"
 import { runClient } from "./client-runtime.ts"
-import type { ResidentResponse } from "../resident/protocol.ts"
-import { commandEntrypoint, type RuntimeCommand } from "../runtime/package-runtime.ts"
+import type { ResidentResponse } from "@hapsland/resident-transport/resident/protocol"
+import { commandEntrypoint, type RuntimeCommand } from "@hapsland/runtime-environment/runtime/package-runtime"
 import { prepareTestSourceRuntime } from "./source-runtime.ts"
 
-let createPiExtension: (typeof import("../pi/extension.ts"))["createPiExtension"]
+let createPiExtension: (typeof import("@hapsland/pi-extension/pi/extension"))["createPiExtension"]
 export let installedCli: string
 export let installedCommand: readonly string[]
 let fixtureMode: "source" | "installed"
@@ -38,18 +38,18 @@ export const setupInstalledPi = async (mode: "source" | "installed" | "candidate
   }
   if (mode === "source") {
     const runtime = prepareTestSourceRuntime()
-    installedCli = commandEntrypoint(runtime.commands.cli)
-    installedCommand = [runtime.commands.cli.executable, ...runtime.commands.cli.args]
+    installedCli = commandEntrypoint(runtime.commands.hook)
+    installedCommand = [runtime.commands.hook.executable, ...runtime.commands.hook.args]
     installedResidentCommand = runtime.commands.resident
     sourceEnvironment = runtime.environment
-    createPiExtension = (await import("../pi/extension.ts")).createPiExtension
+    createPiExtension = (await import("@hapsland/pi-extension/pi/extension")).createPiExtension
     return
   }
   installedPackage = prepareTestPackage()
-  installedCli = installedPackage.cli.executable
+  installedCli = installedPackage.hook.executable
   installedResidentCommand = installedPackage.resident
   installedEnvironment = installedPackage.environment
-  installedCommand = installedPackage.command
+  installedCommand = [installedPackage.hook.executable, ...installedPackage.hook.args]
   try {
     const extension = await import(
       /* @vite-ignore */ pathToFileURL(join(installedPackage.packageRoot, "dist/pi/extension.js")).href

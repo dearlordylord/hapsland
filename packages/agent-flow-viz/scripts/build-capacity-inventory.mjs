@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs"
 import { resolve } from "node:path"
-import { initialCanonical, projectCanonical } from "../../../src/canonical/adapter.ts"
+import { initialCanonical, projectCanonical } from "@hapsland/canonical-policy/canonical/adapter"
 
 // Distinct sample limits expose every connection to the four admission limits.
 const limits = { globalItems: 11, globalBytes: 101, partitionItems: 7, partitionBytes: 71 }

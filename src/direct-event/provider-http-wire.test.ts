@@ -11,8 +11,8 @@ import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import * as Decision from "effect/ai/Decision"
 import * as DecisionModel from "effect/ai/DecisionModel"
-import { DEFAULT_API_BASE, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
-import { encodedProviderHttpBodyBytes } from "./provider-body-size.ts"
+import { DEFAULT_API_BASE, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
+import { encodedProviderHttpBodyBytes } from "@hapsland/review-execution/direct-event/provider-body-size"
 
 type LocalRequest = {
   readonly input: unknown

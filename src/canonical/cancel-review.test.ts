@@ -1,5 +1,10 @@
 import { expect, it } from "vitest"
-import { initialCanonical, projectCanonical, stepCanonical, type CanonicalEvent } from "./adapter.ts"
+import {
+  initialCanonical,
+  projectCanonical,
+  stepCanonical,
+  type CanonicalEvent
+} from "@hapsland/canonical-policy/canonical/adapter"
 
 const fixture = () => {
   let state = initialCanonical({ globalItems: 16, globalBytes: 1000, partitionItems: 16, partitionBytes: 1000 })

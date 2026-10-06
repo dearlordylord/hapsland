@@ -7,11 +7,11 @@ import { fileURLToPath } from "node:url"
 import { fromJSONSchema } from "zod/v4"
 import * as Schema from "effect/Schema"
 import { describe, expect, it } from "vitest"
-import { decodeConfigurationText } from "../src/configuration/decode.ts"
-import { decodeRuleText } from "../src/rules/schema.ts"
+import { decodeConfigurationText } from "@hapsland/runtime-inputs/configuration/decode"
+import { decodeRuleText } from "@hapsland/review-definition/rules/schema"
 import { renderConfigurationArtifacts, renderInspectionArtifacts } from "./generate-configuration.ts"
 
-import { AnalyticsRecordingEnabled, InspectionRecordingEnabled } from "../src/configuration/types.ts"
+import { AnalyticsRecordingEnabled, InspectionRecordingEnabled } from "@hapsland/runtime-inputs/configuration/types"
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const generator = join(repositoryRoot, "scripts/generate-configuration.ts")
@@ -68,7 +68,7 @@ const generatedFiles = (root: string): ReadonlyArray<string> => [
   join(root, "docs/pi-installation.md"),
   join(root, "docs/review-providers.md"),
   join(root, "docs/review-resources.md"),
-  join(root, "src/inspection/brand.ts")
+  join(root, "packages/administration/src/inspection/brand.ts")
 ]
 
 const codeBlocks = (markdown: string): ReadonlyArray<string> =>

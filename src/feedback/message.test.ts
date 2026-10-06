@@ -1,9 +1,13 @@
-import { toCodexDirectEventOutput, type Finding } from "../direct-event/output.ts"
+import { toCodexDirectEventOutput, type Finding } from "@hapsland/delivery-output/direct-event/output"
 import { describe, expect, it } from "vitest"
-import { formatReviewFeedback, REVIEW_FEEDBACK_HEADING, REVIEW_FEEDBACK_INSTRUCTIONS } from "./message.ts"
+import {
+  formatReviewFeedback,
+  REVIEW_FEEDBACK_HEADING,
+  REVIEW_FEEDBACK_INSTRUCTIONS
+} from "@hapsland/delivery-output/feedback/message"
 
-import { combinedClaudeOutput, combinedReviewOutput } from "../resident/collection.ts"
-import { claudeStopHostOutput } from "../direct-event/claude-output.ts"
+import { combinedClaudeOutput, combinedReviewOutput } from "@hapsland/resident-runtime/resident/collection"
+import { claudeStopHostOutput } from "@hapsland/delivery-output/direct-event/claude-output"
 
 const finding = {
   path: "example.ts",

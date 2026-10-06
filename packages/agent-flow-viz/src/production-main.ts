@@ -683,7 +683,11 @@ const examplesView = (
                 [
                   "Native facts and effects outside Bend: agent-runtime observation, source capture, clocks, Jev I/O, and host writes. ",
                   h.a(
-                    [h.Href("https://github.com/dearlordylord/hapsland/blob/master/src/resident/server.ts")],
+                    [
+                      h.Href(
+                        "https://github.com/dearlordylord/hapsland/blob/master/packages/resident-runtime/src/resident/server.ts"
+                      )
+                    ],
                     ["Resident boundary"]
                   ),
                   ". Production review uses bounded cross-file evidence. The separate import-graph example below replays source-free facts; it does not read files or call Jev."

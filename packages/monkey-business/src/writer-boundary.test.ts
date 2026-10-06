@@ -12,7 +12,7 @@ import {
   expireSharedResponses,
   type SharedWriterPending
 } from "../../../src/canonical/simulation-adapter.ts"
-import { encodeSharedValue } from "../../../src/canonical/simulation-codec.ts"
+import { encodeSharedValue } from "@hapsland/canonical-policy/canonical/simulation-codec"
 import { encodeWriterCapture } from "./writer-controls.ts"
 
 const limits = { globalItems: 32, globalBytes: 4096, partitionItems: 16, partitionBytes: 2048 }

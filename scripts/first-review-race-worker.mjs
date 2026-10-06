@@ -1,7 +1,7 @@
 import * as Effect from "effect/Effect"
 import { appendFileSync, readFileSync } from "node:fs"
-import { claimDemoBudget } from "../src/activity/demo-budget.ts"
-import { runFirstReviewDemo } from "../src/onboarding/first-review-demo.ts"
+import { claimDemoBudget } from "@hapsland/activity-observation/activity/demo-budget"
+import { runFirstReviewDemo } from "@hapsland/administration/onboarding/first-review-demo"
 
 const input = JSON.parse(readFileSync(process.argv[2] ?? "", "utf8"))
 const result = await Effect.runPromise(

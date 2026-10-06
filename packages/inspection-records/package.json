@@ -1,0 +1,49 @@
+{
+  "name": "@hapsland/inspection-records",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./inspection/contract": {
+      "types": "./dist/inspection/contract.d.ts",
+      "default": "./dist/inspection/contract.js"
+    },
+    "./inspection/native-lock": {
+      "types": "./dist/inspection/native-lock.d.ts",
+      "default": "./dist/inspection/native-lock.js"
+    },
+    "./inspection/recorder": {
+      "types": "./dist/inspection/recorder.d.ts",
+      "default": "./dist/inspection/recorder.js"
+    },
+    "./inspection/replay": {
+      "types": "./dist/inspection/replay.d.ts",
+      "default": "./dist/inspection/replay.js"
+    },
+    "./inspection/settings": {
+      "types": "./dist/inspection/settings.d.ts",
+      "default": "./dist/inspection/settings.js"
+    },
+    "./inspection/storage": {
+      "types": "./dist/inspection/storage.d.ts",
+      "default": "./dist/inspection/storage.js"
+    },
+    "./inspection/transport": {
+      "types": "./dist/inspection/transport.d.ts",
+      "default": "./dist/inspection/transport.js"
+    }
+  },
+  "dependencies": {
+    "@hapsland/runtime-environment": "workspace:*",
+    "@hapsland/runtime-inputs": "workspace:*",
+    "effect": "4.0.0"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs"
+  },
+  "hapsland": {
+    "domain": "inspection-records",
+    "host": "bun",
+    "capabilities": []
+  }
+}

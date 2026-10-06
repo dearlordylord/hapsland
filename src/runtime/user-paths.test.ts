@@ -1,5 +1,5 @@
 import { expect, it } from "vitest"
-import { xdgProductDirectory } from "./user-paths.ts"
+import { xdgProductDirectory } from "@hapsland/runtime-environment/runtime/user-paths"
 
 it("uses absolute XDG bases and ignores absent, empty or relative values", () => {
   expect(xdgProductDirectory("/custom/config", "/home/me/.config")).toBe("/custom/config/hapsland")

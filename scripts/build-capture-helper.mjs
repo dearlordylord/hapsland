@@ -3,7 +3,7 @@ import { existsSync, mkdirSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { buildNativeArtifact, copyNativeArtifact } from "./native-artifact.mjs"
-import { configureNativeBindings, nativeParserBindings } from "../src/runtime/native-bindings.ts"
+import { configureNativeBindings, nativeParserBindings } from "@hapsland/runtime-environment/runtime/native-bindings"
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const nativeDirectory = resolve(root, "native/prebuilt", `${process.platform}-${process.arch}`)

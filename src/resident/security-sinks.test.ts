@@ -1,4 +1,4 @@
-import { bunExecutable } from "../runtime/bun-runtime.ts"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { runClient } from "../test-support/client-runtime.ts"
 /** Resident source-free diagnostic and process-sink regression witnesses. */
 import { afterEach, describe, expect, it } from "vitest"
@@ -9,12 +9,12 @@ import { mkdtemp, readFile, readdir, rm } from "node:fs/promises"
 import { connect } from "node:net"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import { makeReviewGitFixture as makeGitFixture, put, updateEvent } from "../direct-event/test-fixtures.ts"
-import { residentRequestEffect as residentRequest } from "./client.ts"
-import { residentPaths } from "./paths.ts"
-import { monotonicNow } from "./hook-clock.ts"
-import type { ResidentDispatchContext } from "./protocol.ts"
+import { residentRequestEffect as residentRequest } from "@hapsland/resident-transport/resident/client"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
+import { monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"
+import type { ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
 
 const marker = "SYNTHETIC_SOURCE_MARKER_7fb741a1"
 const processes: number[] = []
@@ -62,7 +62,7 @@ describe("security sink prototype", () => {
     const runtime = join(temporary, "runtime")
 
     const launchScript =
-      "import {ensureResidentEffect as ensureResident} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));"
+      "import {ensureResidentEffect as ensureResident} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));"
     const child = spawn(bunExecutable(), ["--input-type=module", "-e", launchScript], {
       cwd: process.cwd(),
       env: {
@@ -170,11 +170,11 @@ describe("security sink prototype", () => {
     const script = [
       "import * as Effect from 'effect/Effect';",
       "import {Layer} from 'effect';",
-      "import {ResidentPreparationControls,PreparationControlError,defaultPreparationControls} from './src/resident/preparation-controls.ts';",
-      "import {adaptCodexDirectEvent} from './src/direct-event/adapter.ts';",
+      "import {ResidentPreparationControls,PreparationControlError,defaultPreparationControls} from './packages/resident-runtime/src/resident/preparation-controls.ts';",
+      "import {adaptCodexDirectEvent} from './packages/native-observation/src/direct-event/adapter.ts';",
       "import {updateEvent} from './src/direct-event/test-fixtures.ts';",
-      "import {makeResidentRuntime} from './src/resident/server.ts';",
-      "import {residentPaths} from './src/resident/paths.ts';",
+      "import {makeResidentRuntime} from './packages/resident-runtime/src/resident/server.ts';",
+      "import {residentPaths} from './packages/resident-transport/src/resident/paths.ts';",
       `const root=${JSON.stringify(root)};`,
       `const marker=${JSON.stringify(marker)};`,
       `const statePath=${JSON.stringify(statePath)};`,

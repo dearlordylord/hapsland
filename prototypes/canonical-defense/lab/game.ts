@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto"
 import { readFileSync } from "node:fs"
 import Game from "./game.generated.mjs"
-import { readNat, readRecord } from "../../../src/canonical/boundary-schema.ts"
-import { projectTrustedCanonical } from "../../../src/canonical/canonical-boundary.ts"
+import { readNat, readRecord } from "@hapsland/canonical-policy/canonical/boundary-schema"
+import { projectTrustedCanonical } from "@hapsland/canonical-policy/canonical/canonical-boundary"
 import { configurationIdentity } from "./identity.ts"
 import { createGameBusinessReplay } from "./business-replay.ts"
 import { restoreReplay } from "../../../packages/monkey-business/src/index.ts"
@@ -98,7 +98,7 @@ function sourceIdentity() {
   const metadata = JSON.parse(readFileSync(new URL("./game.generated.json", import.meta.url), "utf8")) as GameArtifactManifest
   verifyGeneratedGameIdentity(metadata)
   for (const path of ["game.ts", "identity.ts", "business-replay.ts", "../compare-native-runtime.mjs", "game.generated.mjs", "game.generated.d.mts", "game.generated.json",
-    "../../../src/canonical/canonical-boundary.ts", "../../../src/canonical/boundary-schema.ts"])
+    "../../../packages/canonical-policy/src/canonical/canonical-boundary.ts", "../../../packages/canonical-policy/src/canonical/boundary-schema.ts"])
     hash.update(path).update(readFileSync(new URL(path, import.meta.url)))
   for (const path of metadata.sources)
     hash.update(path).update(readFileSync(new URL(`../../../${path}`, import.meta.url)))

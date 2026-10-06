@@ -3,8 +3,13 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { advicee } from "../direct-event/test-fixtures.ts"
-import { recordAnalytics, readAnalytics, MAX_ANALYTICS_DETAILS, formatAnalyticsHuman } from "./analytics.ts"
-import { activitySessionKey } from "./storage.ts"
+import {
+  recordAnalytics,
+  readAnalytics,
+  MAX_ANALYTICS_DETAILS,
+  formatAnalyticsHuman
+} from "@hapsland/activity-observation/activity/analytics"
+import { activitySessionKey } from "@hapsland/activity-observation/activity/storage"
 
 const directories: string[] = []
 const fixture = () => {

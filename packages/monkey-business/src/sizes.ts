@@ -1,4 +1,4 @@
-import { CANONICAL_MAX_BYTES, CANONICAL_MAX_UNITS } from "../../../src/canonical/adapter.ts"
+import { CANONICAL_MAX_BYTES, CANONICAL_MAX_UNITS } from "@hapsland/canonical-policy/canonical/adapter"
 import {
   initialImportGraph,
   projectImportGraph,

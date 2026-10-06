@@ -6,8 +6,8 @@ import {
 } from "./output-controls.ts"
 import SharedEngine from "../../monkey-business-bend/engine.mjs"
 import { Schema } from "effect"
-import { decodeSharedValue } from "../../../src/canonical/simulation-codec.ts"
-import { decoder, Nat, PositiveNat, readBendList, readNat } from "../../../src/canonical/boundary-schema.ts"
+import { decodeSharedValue } from "@hapsland/canonical-policy/canonical/simulation-codec"
+import { decoder, Nat, PositiveNat, readBendList, readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
 import { validateLiveControl } from "./controls.ts"
 import { decodeDriver, type DriverAction, decodeDriverEvent } from "./driver-codec.ts"
 

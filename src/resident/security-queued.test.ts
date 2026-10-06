@@ -7,11 +7,11 @@ import * as Effect from "effect/Effect"
 import { existsSync, readFileSync } from "node:fs"
 import { rm } from "node:fs/promises"
 import { join } from "node:path"
-import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import { addEvent, makeReviewGitFixture as makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { residentPaths } from "./paths.ts"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 
-import type { ResidentDispatchContext } from "./protocol.ts"
+import type { ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
 
 // Regresses edit-owned configuration across waits. The
 // controlled provider writes one line per DecisionModel call.

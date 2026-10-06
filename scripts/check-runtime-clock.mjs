@@ -17,7 +17,9 @@ const bun = process.env.HAPSLAND_BUILD_BUN ?? "bun"
 const version = spawnSync(bun, ["--version"], { encoding: "utf8", timeout: 10_000 })
 assert.equal(version.status, 0, "pinned Bun must be available")
 assert.equal(version.stdout.trim(), "1.3.14", "clock witness requires Bun 1.3.14")
-const source = pathToFileURL(resolve(dirname(import.meta.filename), "../src/resident/hook-clock.ts")).href
+const source = pathToFileURL(
+  resolve(dirname(import.meta.filename), "../packages/resident-transport/src/resident/hook-clock.ts")
+).href
 const env = Object.fromEntries(
   Object.entries(process.env).filter(
     ([key]) => !/^(?:REVIEW_|HAPSLAND_)/u.test(key) && !["NODE_OPTIONS", "NODE_V8_COVERAGE"].includes(key)

@@ -6,8 +6,8 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { reviewControlsLayer } from "../test-support/review-controls.ts"
 import { acquireResidentFixture } from "./runtime-fixture.ts"
-import { residentPaths } from "./paths.ts"
-import { encodeCurrentResidentRequest, MAX_IPC_FRAME_BYTES } from "./protocol.ts"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
+import { encodeCurrentResidentRequest, MAX_IPC_FRAME_BYTES } from "@hapsland/resident-transport/resident/protocol"
 import { requestConformanceCases } from "../test-support/resident-request-conformance.ts"
 
 const exchange = (path: string, frame: string) =>

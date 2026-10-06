@@ -4,10 +4,10 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { Effect } from "effect"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
-import { makeInspectionHttpServer } from "../inspection/http.ts"
+import { makeInspectionHttpServer } from "@hapsland/administration/inspection/http"
 import { connectDefaultRuleFixture } from "../test-support/default-rules.ts"
-import { makeInspectionStorage } from "../inspection/storage.ts"
-import type { InspectionRecord } from "../inspection/contract.ts"
+import { makeInspectionStorage } from "@hapsland/inspection-records/inspection/storage"
+import type { InspectionRecord } from "@hapsland/inspection-records/inspection/contract"
 import {
   setupInstalledPi,
   cleanupInstalledPi,

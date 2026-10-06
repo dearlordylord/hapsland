@@ -120,7 +120,7 @@ Jev Effect calls, IPC, and output formatting in TypeScript. The accepted
 contract in `../../docs/advicing-target-contract.md` remains the target for
 the aggregate lifecycle and installed runtime behavior.
 
-`Canonical.bend` and [`src/canonical/adapter.ts`](../../src/canonical/adapter.ts)
+`Canonical.bend` and [`packages/canonical-policy/src/canonical/adapter.ts`](../../packages/canonical-policy/src/canonical/adapter.ts)
 define the resident's checked state/event/command interface. It composes a
 global ledger across advicee partitions with round and operation identities,
 Stop waiting and cutoff, and uncertain background output. The resident uses
@@ -179,6 +179,6 @@ or running dispatch operation. Issued physical requests remain unchanged until
 their original callback settles them. The commands are `ReservationReleased`,
 `CancelWork`, and applicable `DispatchDiscarded`; cancellation does not record a
 review outcome. Missing/wrong tuples and other work kinds refuse atomically.
-This represents the existing scoped release behavior in `src/resident/capacity.ts`
+This represents the existing scoped release behavior in `packages/resident-runtime/src/resident/capacity.ts`
 without using a fabricated backend completion; accepted release/retention
 behavior remains owned by `docs/advicing-target-contract.md`.

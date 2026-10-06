@@ -12,8 +12,8 @@ import {
 } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { activitySessionKey, pruneActivityStore } from "./storage.ts"
-import { recordActivity } from "./status.ts"
+import { activitySessionKey, pruneActivityStore } from "@hapsland/activity-observation/activity/storage"
+import { recordActivity } from "@hapsland/activity-observation/activity/status"
 import { advicee } from "../direct-event/test-fixtures.ts"
 
 const directories: string[] = []

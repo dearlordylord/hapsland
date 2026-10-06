@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { decodeCurrentResidentRequest, decodeResidentRequest, encodeCurrentResidentRequest } from "./protocol.ts"
+import {
+  decodeCurrentResidentRequest,
+  decodeResidentRequest,
+  encodeCurrentResidentRequest
+} from "@hapsland/resident-transport/resident/protocol"
 import { requestConformanceCases } from "../test-support/resident-request-conformance.ts"
 
 const decode = (value: unknown) => decodeResidentRequest(JSON.stringify(value))

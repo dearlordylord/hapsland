@@ -1,0 +1,44 @@
+{
+  "extends": "../../tsconfig.package.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "tsBuildInfoFile": "dist/.tsbuildinfo"
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.json"
+  ],
+  "exclude": [
+    "src/**/*.test.ts"
+  ],
+  "references": [
+    {
+      "path": "../canonical-policy/tsconfig.json"
+    },
+    {
+      "path": "../delivery-output/tsconfig.json"
+    },
+    {
+      "path": "../inspection-records/tsconfig.json"
+    },
+    {
+      "path": "../native-observation/tsconfig.json"
+    },
+    {
+      "path": "../review-definition/tsconfig.json"
+    },
+    {
+      "path": "../runtime-environment/tsconfig.json"
+    },
+    {
+      "path": "../runtime-inputs/tsconfig.json"
+    },
+    {
+      "path": "../source-analysis/tsconfig.json"
+    },
+    {
+      "path": "../source-artifacts/tsconfig.json"
+    }
+  ]
+}

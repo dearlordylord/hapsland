@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync, symlinkSync } from "node:fs"
 import { join } from "node:path"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
-import "../policy/rules.ts"
+import "@hapsland/review-execution/policy/rules"
 import {
   setupInstalledPi,
   cleanupInstalledPi,

@@ -1,0 +1,31 @@
+{
+  "name": "@hapsland/credential-storage",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./credentials/secret-service": {
+      "types": "./dist/credentials/secret-service.d.ts",
+      "default": "./dist/credentials/secret-service.js"
+    },
+    "./credentials/secret-service-process": {
+      "types": "./dist/credentials/secret-service-process.d.ts",
+      "default": "./dist/credentials/secret-service-process.js"
+    }
+  },
+  "dependencies": {
+    "@hapsland/runtime-environment": "workspace:*",
+    "@hapsland/runtime-inputs": "workspace:*",
+    "effect": "4.0.0"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs"
+  },
+  "hapsland": {
+    "domain": "credential-storage",
+    "host": "bun",
+    "capabilities": [
+      "credential-mutation"
+    ]
+  }
+}

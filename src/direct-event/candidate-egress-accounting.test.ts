@@ -8,12 +8,21 @@ import * as Layer from "effect/Layer"
 import * as Redacted from "effect/Redacted"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
-import { DEFAULT_API_BASE, DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
-import { compileRule } from "../rules/compiler.ts"
-import { SHIPPED_DEFAULT_RULES } from "../rules/shipped.ts"
-import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
-import { adaptCodexDirectEvent } from "./adapter.ts"
-import { encodedFullJevRequestBytes, evaluatePrepared, prepareObservation, preparedProviderInput } from "./pipeline.ts"
+import {
+  DEFAULT_API_BASE,
+  DEFAULT_BACKEND,
+  DEFAULT_DESTINATION
+} from "@hapsland/review-definition/runtime/review-config"
+import { compileRule } from "@hapsland/review-definition/rules/compiler"
+import { SHIPPED_DEFAULT_RULES } from "@hapsland/review-definition/rules/shipped"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import {
+  encodedFullJevRequestBytes,
+  evaluatePrepared,
+  prepareObservation,
+  preparedProviderInput
+} from "@hapsland/review-execution/direct-event/pipeline"
 import { addEvent, makeGitFixture, put } from "./test-fixtures.ts"
 
 type Source = { readonly path: string; readonly sha256: string; readonly bytes: number }

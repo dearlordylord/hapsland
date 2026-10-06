@@ -18,7 +18,7 @@ import { execFile } from "node:child_process"
 import { promisify } from "node:util"
 import { basename, dirname, join, resolve } from "node:path"
 import { sourceIdentity } from "./test-harness/source-identity.mjs"
-import { BUN_VERSION } from "../src/runtime/bun-runtime.ts"
+import { BUN_VERSION } from "../packages/runtime-environment/src/runtime/bun-runtime.ts"
 import { resolveBunRuntime } from "./pinned-bun.mjs"
 import { npmToolingRequire, npmPackageFiles } from "./npm-tooling.mjs"
 import { dependencyDigestMemo } from "./dependency-digests.mjs"
@@ -110,6 +110,19 @@ export async function dependencyIdentity(root, { deadline = Date.now() + 30000, 
     deadline,
     metrics
   })
+  const manifest = await json(join(root, "package.json")).catch((error) => {
+    if (error.code === "ENOENT") return {}
+    throw error
+  })
+  const workspaceRoots = new Map()
+  for (const directory of manifest.workspaces ?? []) {
+    if (typeof directory !== "string" || !/^packages\/[a-z0-9-]+$/.test(directory))
+      throw new Error("Unsupported workspace dependency declaration")
+    const path = await realpath(join(root, directory))
+    const workspace = await json(join(path, "package.json"))
+    if (!workspace.private || typeof workspace.name !== "string") throw new Error("Invalid workspace dependency owner")
+    workspaceRoots.set(path, workspace.name)
+  }
   const directories = new Map()
   const visit = async (path, ancestors) => {
     if (Date.now() >= deadline) throw new Error("Dependency identity deadline exceeded")
@@ -121,6 +134,9 @@ export async function dependencyIdentity(root, { deadline = Date.now() + 30000, 
       if (error.code !== "ENOENT") throw error
       return { digest: hash("missing-target"), cyclic: false }
     }
+    // Workspace code/configuration belongs to source identity. Its generated
+    // outputs must not recursively change the external dependency identity.
+    if (workspaceRoots.has(actual)) return { digest: hash(`workspace:${workspaceRoots.get(actual)}`), cyclic: false }
     const metadata = await lstat(actual, { bigint: true })
     if (metadata.isFile()) {
       const digest = await readDependency(actual, metadata, deadline, memo)
@@ -160,7 +176,16 @@ export async function artifactIdentities(
     path !== nativeOutput &&
     !path.startsWith(`${nativeOutput}/`) &&
     (["src", "scripts", "native", "vendor", "bin", "packages"].includes(path.split("/")[0]) ||
-      ["package.json", "package-runtime.json", "bun.lock", "tsconfig.json", "tsconfig.build.json"].includes(path))
+      [
+        "package.json",
+        "package-runtime.json",
+        "bun.lock",
+        "tsconfig.json",
+        "tsconfig.build.json",
+        "tsconfig.package.json",
+        "tsconfig.packages.json",
+        "turbo.json"
+      ].includes(path))
   const manifest = await json(join(root, "package.json"))
   const selections = (manifest.files ?? []).map((path) => path.replace(/\/$/, "").split(/[?*[]/, 1)[0])
   const packageInput = (path) =>

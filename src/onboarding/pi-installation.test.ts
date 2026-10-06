@@ -1,4 +1,4 @@
-import { BUN_VERSION } from "../runtime/bun-runtime.ts"
+import { BUN_VERSION } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { execFileSync } from "node:child_process"
 import { pathToFileURL } from "node:url"
 import { ConfigProvider, Effect } from "effect"
@@ -15,7 +15,7 @@ import {
   inspectPiInstallation,
   diagnosePiIntegration,
   hasPiRegistration
-} from "./pi-installation.ts"
+} from "@hapsland/administration/onboarding/pi-installation"
 const directories: string[] = []
 const fixture = () => {
   const root = mkdtempSync(join(tmpdir(), "hapsland-pi-install-"))

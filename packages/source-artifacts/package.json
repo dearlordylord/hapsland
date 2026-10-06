@@ -1,0 +1,21 @@
+{
+  "name": "@hapsland/source-artifacts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./direct-event/artifact-model": {
+      "types": "./dist/direct-event/artifact-model.d.ts",
+      "default": "./dist/direct-event/artifact-model.js"
+    }
+  },
+  "dependencies": {},
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs"
+  },
+  "hapsland": {
+    "domain": "source-artifacts",
+    "host": "bun",
+    "capabilities": []
+  }
+}

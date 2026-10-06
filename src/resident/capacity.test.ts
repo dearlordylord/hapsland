@@ -6,7 +6,7 @@ import {
   MAX_COLLECTION_TOKEN_IDENTITIES,
   MAX_PARTITION_IDENTITIES,
   encodedBytesWithin
-} from "./capacity.ts"
+} from "@hapsland/resident-runtime/resident/capacity"
 
 describe("resident logical capacity ledger", () => {
   it("keeps reservation metadata private and fences a reused numeric ID", () => {

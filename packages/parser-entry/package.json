@@ -1,0 +1,27 @@
+{
+  "name": "@hapsland/parser-entry",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./parser-main": {
+      "types": "./dist/parser-main.d.ts",
+      "default": "./dist/parser-main.js"
+    }
+  },
+  "dependencies": {
+    "@hapsland/runtime-environment": "workspace:*",
+    "@hapsland/source-analysis": "workspace:*"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs"
+  },
+  "hapsland": {
+    "domain": "parser-entry",
+    "host": "bun",
+    "capabilities": [],
+    "role": "parser",
+    "executable": "hapsland-parser",
+    "entry": "src/parser-main.ts"
+  }
+}
