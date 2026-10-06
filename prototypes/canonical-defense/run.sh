@@ -25,4 +25,4 @@ if [[ "$(uname -s)" == Darwin && "$(uname -m)" == arm64 \
 else
   prototype_binary="$(node "$prototype_dir/cached-build.mjs")"
 fi
-exec "$prototype_binary" --threads 4 "$@"
+exec node "$prototype_dir/recording-launch.mjs" "$prototype_binary" "$@"

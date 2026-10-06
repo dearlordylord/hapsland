@@ -12,6 +12,48 @@ The completed performance investigation and its decisions are recorded below, wi
 
 Run `./prototypes/canonical-defense/run.sh` with Bend, Node.js and native graphics prerequisites installed. **1–3** choose towers; click ground to build, click a tower to select, **U** upgrades. **Space/P** pauses virtual time. The game initially waits for construction. **N/Enter** starts arrivals from the entrance and submits a generic workload burst; subsequent presses add bursts. **B** selects 1, 5, 10 or 20 edits for the next release; **+ / =** and **−** adjust the exact batch size within 1–1024. Repeated releases remain available at any time. Before the first **N**, **F** selects an explicit source-and-credential outage scenario. A connected Access Repair restores both channels once; work already refused is not resurrected. **A** suspends or resumes future recurring arrivals, and **]** speeds up arrivals and **[** slows them down. **R** resets this game instance to construction before N/Enter; **Escape** closes the window. Tab changes an uninvested empty map.
 
+### Save and replay
+
+The native game appends controls, mouse positions and exact 20 ms tick batches
+in realtime to **`prototypes/canonical-defense/game-recording.bin`** (ignored by
+Git). Writes go to the operating system before the corresponding game change;
+closing the window is not required to retain the complete prefix. The log binds
+the initial map and the cached build identity, which includes the shared engine,
+configuration and seeded game rules. It reconstructs the complete game World,
+including towers, investment, health and presentation history, through the actual
+Host. It is a local input journal, separate from the laboratory experiment format.
+
+- `./prototypes/canonical-defense/run.sh` resumes the recording if present and
+  starts a new game otherwise.
+- `./prototypes/canonical-defense/run.sh --new` starts fresh and replaces the
+  same file after the window opens. **R** also replaces that file, retaining the
+  currently selected map.
+- `./prototypes/canonical-defense/run.sh --resume` requires an existing recording.
+- `./prototypes/canonical-defense/run.sh --replay` watches the saved run without
+  writing it. **Space/P** pauses or resumes playback; **Escape** exits. Gameplay
+  controls are disabled during replay, and the final state stays visible.
+
+Set `HAPSLAND_GAME_RECORDING` to override the file path. Resume reconstructs the
+entire journal before opening it for append; there are no checkpoints yet. Replay
+shows one recorded tick batch every 20 ms and skips pauses and other periods with
+no simulation steps; it preserves simulation order rather than wall-clock idle
+time. An incomplete final record from an interrupted write is discarded on resume
+and ignored during read-only playback. Invalid complete records or a different
+build identity are rejected without replacing the save; explicitly use `--new`
+to replace it after a mechanics change. Operating-system writes establish process
+interruption recovery, not a guarantee against power loss. Use one live game per
+recording path.
+
+Run `node --test prototypes/canonical-defense/recording-launch.test.mjs
+prototypes/canonical-defense/cached-build.test.mjs` for launcher/file validation,
+and `node prototypes/canonical-defense/check-recording.mjs` for bounded native
+and emitted-JavaScript checks at the actual event/tick seam. The latter compares
+complete encoded Worlds for restore and playback, reads realtime writes while the
+writer is still open, checks playback isolation, and verifies R leaves only the
+new initial map record. Its 380-second deadline includes compilation and execution;
+logs remain under ignored `.test-runs/`. These are focused host checks, separate
+from the shared-engine consumer and motion proof boundaries.
+
 The interactive game captures **four rule checks at 100% Finding per check** for each newly issued Jev request. Preparing currently supplies two synthetic review units per edit (`[10,20]`); the shared simulator admits those two units, and this fixture count is not a product rule. Each unit remains one request and one result. Inside Jev, three reserved horizontal presentation lanes each show one request and its four captured checks moving together; a fourth request waits outside. A lane remains reserved until its last outgoing fragment leaves the room. These are game history lanes; the shared simulator retains its eight request permits. Findings start on the left and Clear checks on the right, with original rule identities preserved and no reordering at the fork; at the exit each check takes Clear or the finding/send route, with independent speed and a spatial queue. Hover a rule body to see its parent, captured profile, scheduled/result multiplicity and submission evidence.
 
 **J/K** reduce/increase Finding chance by ten percentage points; **comma/period** reduce/increase the rule count (1–4). These game-owned controls affect future issuance only; current request receipts keep their profiles. Existing towers still preserve outcomes. Future towers can use `Host.configure_rules`; a chance-changing tower is not implemented. The shared request sampler receives the probability of at least one successful check. A separate seeded game stream chooses individual checks conditioned on the actual request receipt, preserving its aggregate outcome. Aggregate probabilities use six-decimal fixed point and individual thresholds use 24 random bits. Explicit forced outcomes remain authoritative, including Clear fixtures. This is a synthetic training scenario, not live Jev's probability model.
