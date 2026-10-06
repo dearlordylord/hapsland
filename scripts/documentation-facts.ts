@@ -99,7 +99,7 @@ export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocu
     {
       path: "README.md",
       name: "rule-check-exits",
-      text: `Exit ${RULE_CHECK_EXIT_CODES.evaluated} means evaluation completed, including findings; exit ${RULE_CHECK_EXIT_CODES.unavailable} means skipped or unavailable, not a passing check.`
+      text: `Exit ${RULE_CHECK_EXIT_CODES.evaluated} means evaluation completed, including findings; exit ${RULE_CHECK_EXIT_CODES.unavailable} means skipped or unavailable.`
     },
     {
       path: "docs/configuration.md",
@@ -109,7 +109,7 @@ export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocu
     {
       path: "README.md",
       name: "rule-check-dashboard",
-      text: `To inspect **ordinary agent reviews**, enable the debug recording setting by merging \`"${inspection}": true\` into the repository's \`${PROJECT_CONFIGURATION_FILE}\`, make a new eligible edit through an installed integration, then run \`${CLI_NAME} dashboard\`. The dashboard lets you inspect captured declarations, related context, classifier results, and feedback. Recording is off by default, contains source, and is independent of analytics. Opening the dashboard does not enable recording or backfill history. One-off \`${CLI_NAME} rules check\` results are returned in the terminal; they are not recorded in the resident journal. See [rule checks](./docs/configuration.md#try-a-rule-on-a-file-and-line) and [dashboard setup](./docs/status.md#opt-in-local-inspection).`
+      text: `To inspect **ordinary agent reviews**, enable the debug recording setting by adding \`"${inspection}": true\` into the repository's \`${PROJECT_CONFIGURATION_FILE}\`, make a new edit through an installed integration, then run \`${CLI_NAME} dashboard\`. The dashboard lets you inspect captured declarations, related context, classifier results, and feedback. Recording is off by default, contains source, and is independent of analytics. Opening the dashboard does not enable recording or backfill history. One-off \`${CLI_NAME} rules check\` results are returned in the terminal; they are not recorded in the resident journal. See [rule checks](./docs/configuration.md#try-a-rule-on-a-file-and-line) and [dashboard setup](./docs/status.md#opt-in-local-inspection).`
     },
     {
       path: "docs/status.md",

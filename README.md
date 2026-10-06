@@ -151,17 +151,12 @@ hapsland rules check --path src/primitive-obsession-examples.ts --line 2 --id no
 
 <!-- rule-check-example:end -->
 
-The line is one-based and selects its enclosing declaration. Hapsland
-captures that declaration and related code with the normal parser, scope,
-privacy and evidence checks, then sends the eligible rule and code to your
-configured external classifier. This is a real request and may incur charges.
-Omit `--id` to check all eligible enabled rules. It uses normal key discovery and
-starts neither a resident nor an agent session. Add `--json` to see the actual
-source-bearing classifier input and probabilities.
+The line is one-based and selects its enclosing declaration. Hapsland sends the
+declaration to the classifier you configured in the [setup guide](#installation).
 
 <!-- rule-check-exits:start -->
 
-Exit 0 means evaluation completed, including findings; exit 6 means skipped or unavailable, not a passing check.
+Exit 0 means evaluation completed, including findings; exit 6 means skipped or unavailable.
 
 <!-- rule-check-exits:end -->
 
@@ -170,7 +165,7 @@ one result does not establish rule accuracy.
 
 <!-- rule-check-dashboard:start -->
 
-To inspect **ordinary agent reviews**, enable the debug recording setting by merging `"sessionInspection": true` into the repository's `.hapsland.jsonc`, make a new eligible edit through an installed integration, then run `hapsland dashboard`. The dashboard lets you inspect captured declarations, related context, classifier results, and feedback. Recording is off by default, contains source, and is independent of analytics. Opening the dashboard does not enable recording or backfill history. One-off `hapsland rules check` results are returned in the terminal; they are not recorded in the resident journal. See [rule checks](./docs/configuration.md#try-a-rule-on-a-file-and-line) and [dashboard setup](./docs/status.md#opt-in-local-inspection).
+To inspect **ordinary agent reviews**, enable the debug recording setting by adding `"sessionInspection": true` into the repository's `.hapsland.jsonc`, make a new edit through an installed integration, then run `hapsland dashboard`. The dashboard lets you inspect captured declarations, related context, classifier results, and feedback. Recording is off by default, contains source, and is independent of analytics. Opening the dashboard does not enable recording or backfill history. One-off `hapsland rules check` results are returned in the terminal; they are not recorded in the resident journal. See [rule checks](./docs/configuration.md#try-a-rule-on-a-file-and-line) and [dashboard setup](./docs/status.md#opt-in-local-inspection).
 
 <!-- rule-check-dashboard:end -->
 
