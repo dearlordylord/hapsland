@@ -19,7 +19,7 @@ Each shared resident has two separate pools in the checked
 
 | Resource | Current bound | What occupies it |
 | --- | --- | --- |
-| Preparation jobs | 8 | Running native preparation jobs that capture and analyze eligible source |
+| Preparation jobs | 8 | Running native preparation jobs that capture and analyze source |
 | Classifier request permits | 8 | Issued backend requests, from reservation through physical effect settlement |
 
 Preparation does not consume a classifier request permit. Ready review work
@@ -28,7 +28,7 @@ issue a request command. The TypeScript executor performs the external effect
 and reports whether it started, failed before sending, completed, timed out, or
 was interrupted. Command issuance alone is not evidence that source was sent.
 
-When all eight request permits are occupied, another eligible ready review is
+When all eight request permits are occupied, another ready review is
 settled as unavailable immediately. Hapsland does not retain it in a backend
 wait queue or automatically retry it when a permit becomes free. Preparation
 scheduling and resident capacity admission have their own behavior. Future

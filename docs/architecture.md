@@ -25,7 +25,7 @@ flowchart LR
 
 Hapsland uses the local edit to find the changed type or function. It expands beyond the edited lines to the complete declaration, then follows local references to collect related definitions. The resulting tree marks references it could not include. Files, traversal work, and selected code have limits. The edit diff stays local; it is not sent to Jev. The request contains neither a whole file nor agent transcript, absolute path, or unrelated source. Related definitions provide context; they are not separate review targets. This makes questions about representable states and API relationships possible beyond the changed lines.
 
-The tree still contains selected code. Structure provides focused context; it does not anonymize source or detect secrets embedded in otherwise eligible declarations. Related definitions let rules examine relationships beyond the changed lines. This does not establish better judgment accuracy. See the [accepted input contract](review-contract-compatibility.md#review-input-and-result-identity) and [review profiles](type-function-review-proposal.md).
+The tree still contains selected code. Structure provides focused context; it does not anonymize source or detect secrets embedded in declarations. Related definitions let rules examine relationships beyond the changed lines. This does not establish better judgment accuracy. See the [accepted input contract](review-contract-compatibility.md#review-input-and-result-identity) and [review profiles](type-function-review-proposal.md).
 
 ![Illustrative repair loop: an edit gains related code context, receives feedback, and is repaired and reviewed again](../assets/review-flow.gif)
 
@@ -37,7 +37,7 @@ Each local JSONC document defines one rule with a stable identity. Configuration
 
 ## The user controls the source boundary
 
-Sending source to an external review service is a data-sharing decision. Hapsland controls which code enters its review requests; it does not set the review service’s data-retention policy. The user’s task prompt and conversation with the agent are not review inputs. Jev receives eligible source definitions and rule questions.
+Sending source to an external review service is a data-sharing decision. Hapsland controls which code enters its review requests; it does not set the review service’s data-retention policy. The user’s task prompt and conversation with the agent are not review inputs. Jev receives source definitions and rule questions.
 
 Every file must pass repository containment, protected-path, Git-ignore, and capture checks before its source is read. Root files additionally pass global root selection and rule settings; supporting files pass context selection. Omitted context settings inherit root file scope, while explicit context settings may permit related files outside root scope. `privacyExcludes` applies to both roles and cannot be overridden. Exclusions accumulate across user and project settings; a user `excludes: ["**/*"]` leaves no review roots and turns review off.
 

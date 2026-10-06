@@ -18,7 +18,7 @@ unsupported. Bend supports transitive context through explicit relative
 hub, bare, or absolute imports are unsupported; this profile also skips files
 with string literals and requires single-line constructors indented with two spaces.
 See the [language table](../README.md#languages-and-limits) for file
-extensions and limitations. An eligible file can still be skipped when its
+extensions and limitations. A file can still be skipped when its
 syntax or supporting evidence is unsupported; a skipped edit is not a clean
 review result.
 

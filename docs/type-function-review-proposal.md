@@ -40,7 +40,7 @@ still does not show that the new input gives better advice.
 - One selected root yields one candidate review unit. Rules whose declared
   evidence needs are met may share one logical Jev evaluation. Several changed
   roots yield independent units.
-- Stable eligible capture, exact advicee attribution, file selection before
+- Stable capture, exact advicee attribution, file selection before
   every source read, source sent to Jev within graph limits, and a fresh check before
   advice are mandatory. There is no separate repository approval step in
   the target behavior.

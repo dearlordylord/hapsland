@@ -97,7 +97,7 @@ does not enable unselected defaults. Repeat setup preserves authored content. A 
 Creating a custom rule also enables it, and its preview states that activation
 before interactive writes. Merely saving a rule file does not activate it.
 
-The selected profile is user-wide by default. File settings control eligible repositories and files; invoking setup from a repository does not restrict the installed hooks to that repository. Use [configuration](configuration.md) to bound review scope. `--claude-home=PATH`, `--codex-home=PATH`, or `--pi-home=PATH` and the corresponding `--claude-executable=PATH`, `--codex-executable=PATH`, or `--pi-executable=PATH` select the registration and compatibility probe. An alternate registration home alone does not configure the client process to use that home.
+The selected profile is user-wide by default. File settings control repositories and files; invoking setup from a repository does not restrict the installed hooks to that repository. Use [configuration](configuration.md) to bound review scope. `--claude-home=PATH`, `--codex-home=PATH`, or `--pi-home=PATH` and the corresponding `--claude-executable=PATH`, `--codex-executable=PATH`, or `--pi-executable=PATH` select the registration and compatibility probe. An alternate registration home alone does not configure the client process to use that home.
 
 Finish current client work, restart the client normally, and complete its native repository/hook trust prompts. Edit a type or function and inspect [session activity](status.md). Installation and offline readiness do not prove a review or model repair happened. Diagnose without a JSON request:
 
