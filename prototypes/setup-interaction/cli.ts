@@ -5,7 +5,7 @@ import { activeHost, command, initial, readiness, type Action, type Model } from
 import { createFakeExecutor } from "./fake.ts"
 import { withMachine } from "./machine.ts"
 import { reduce } from "./reducer.ts"
-import { terminal } from "./terminal.ts"
+import { selectionTerminal, terminal } from "./terminal.ts"
 // Signal cancellation is session-wide; repeated/group signals must not bypass cleanup.
 const signals = ["SIGINT", "SIGTERM", "SIGHUP"] as const
 let signalCancelled = false
@@ -18,15 +18,15 @@ for (const signal of signals) process.on(signal, onSignal)
 const plain = !!process.env.NO_COLOR
 const theme = plain ? { primaryColor: "", mutedColor: "", successColor: "", errorColor: "", submittedColor: "" } : {}
 const choice = (title: string, value: Action) => ({ title, value })
-const runPrompt = <A>(prompt: Prompt.Prompt<A>) =>
+const runPrompt = <A>(prompt: Prompt.Prompt<A>, inputTerminal = terminal) =>
   Effect.scoped(
-    Prompt.run(prompt).pipe(Effect.provideService(Terminal.Terminal, terminal), Effect.provide(NodeServices.layer))
+    Prompt.run(prompt).pipe(Effect.provideService(Terminal.Terminal, inputTerminal), Effect.provide(NodeServices.layer))
   )
 function action(m: Model): Effect.Effect<Action, unknown> {
   if (m.phase === "Select")
     return runPrompt(
       Prompt.MultiSelect({
-        message: "Select synthetic agents (Space, Enter; Ctrl+C cancels)",
+        message: "Select synthetic agents (Enter/Space toggles; Esc continues; Ctrl+C cancels)",
         choices: ["Claude", "Codex", "Pi"].map((host) => ({
           title: host,
           value: host,
@@ -34,7 +34,8 @@ function action(m: Model): Effect.Effect<Action, unknown> {
         })),
         min: 0,
         theme
-      })
+      }),
+      selectionTerminal
     ).pipe(Effect.map((hosts) => ({ kind: "select", hosts })))
   if (m.phase === "Credential") {
     const options = [

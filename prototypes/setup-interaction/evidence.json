@@ -1,6 +1,6 @@
 {
-  "observedAt": "2026-10-06T16:42:07.990Z",
-  "sourceDigest": "f4b44e67a02c2712798cf1bcf8bb078c25f0fcd12ae745e9024683482f764033",
+  "observedAt": "2026-10-06T17:29:04.596Z",
+  "sourceDigest": "a15c0f7138b89dec660c03471a931446b4379c2fd9549c5404712824ac00aeb9",
   "host": "darwin-arm64",
   "bun": "1.3.14",
   "effect": "4.0.0",
@@ -214,9 +214,41 @@
   },
   "swarmTerminal": {
     "runner": "node run.mjs cli.ts",
-    "seconds": 5.664,
+    "seconds": 16.691,
     "budgetSeconds": 55,
     "results": [
+      {
+        "name": "reducer-enter-toggle-escape-False",
+        "ok": true,
+        "phase": "Cancelled",
+        "enterTogglesWithoutClosing": true,
+        "escapeSubmits": true,
+        "empty": false
+      },
+      {
+        "name": "reducer-enter-toggle-escape-True",
+        "ok": true,
+        "phase": "Done",
+        "enterTogglesWithoutClosing": true,
+        "escapeSubmits": true,
+        "empty": true
+      },
+      {
+        "name": "machine-enter-toggle-escape-False",
+        "ok": true,
+        "phase": "Cancelled",
+        "enterTogglesWithoutClosing": true,
+        "escapeSubmits": true,
+        "empty": false
+      },
+      {
+        "name": "machine-enter-toggle-escape-True",
+        "ok": true,
+        "phase": "Done",
+        "enterTogglesWithoutClosing": true,
+        "escapeSubmits": true,
+        "empty": true
+      },
       {
         "name": "idle-ctrl-d",
         "ok": true,
@@ -301,15 +333,17 @@
       {
         "name": "typeahead-boundary",
         "ok": true,
-        "phase": "Done",
+        "phase": "Cancelled",
         "approvalLeakedAcrossPrompt": false,
+        "destinationLeakedAcrossPrompt": false,
         "finalTranscript": true
       },
       {
         "name": "machine-typeahead-boundary",
         "ok": true,
-        "phase": "Done",
+        "phase": "Cancelled",
         "approvalLeakedAcrossPrompt": false,
+        "destinationLeakedAcrossPrompt": false,
         "finalTranscript": true
       },
       {
