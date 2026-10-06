@@ -23,12 +23,13 @@ configuration and seeded game rules. It reconstructs the complete game World,
 including towers, investment, health and presentation history, through the actual
 Host. It is a local input journal, separate from the laboratory experiment format.
 
-- `./prototypes/canonical-defense/run.sh` resumes the recording if present and
-  starts a new game otherwise.
+- `./prototypes/canonical-defense/run.sh` starts a new game and overwrites the
+  recording after the window opens.
 - `./prototypes/canonical-defense/run.sh --new` starts fresh and replaces the
   same file after the window opens. **R** also replaces that file, retaining the
   currently selected map.
-- `./prototypes/canonical-defense/run.sh --resume` requires an existing recording.
+- `./prototypes/canonical-defense/run.sh --resume` explicitly resumes an existing
+  recording.
 - `./prototypes/canonical-defense/run.sh --replay` watches the saved run without
   writing it. **Space/P** pauses or resumes playback; **Escape** exits. Gameplay
   controls are disabled during replay, and the final state stays visible.
@@ -39,8 +40,8 @@ shows one recorded tick batch every 20 ms and skips pauses and other periods wit
 no simulation steps; it preserves simulation order rather than wall-clock idle
 time. An incomplete final record from an interrupted write is discarded on resume
 and ignored during read-only playback. Invalid complete records or a different
-build identity are rejected without replacing the save; explicitly use `--new`
-to replace it after a mechanics change. Operating-system writes establish process
+build identity are rejected by resume and replay without replacing the save;
+normal launch or `--new` replaces it after a mechanics change. Operating-system writes establish process
 interruption recovery, not a guarantee against power loss. Use one live game per
 recording path.
 

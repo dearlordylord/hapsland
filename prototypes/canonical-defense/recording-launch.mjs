@@ -1,4 +1,4 @@
-import { openSync, closeSync, fstatSync, readSync, truncateSync, existsSync, realpathSync } from "node:fs"
+import { openSync, closeSync, fstatSync, readSync, truncateSync, realpathSync } from "node:fs"
 import { basename, resolve } from "node:path"
 import { spawnSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
@@ -15,7 +15,7 @@ export function prepareRecording(binary, args, environment = process.env) {
   if (!/^[a-f0-9]{64}$/.test(identity)) throw new Error("Recording requires a source-identified cached game build")
   const path = resolve(environment.HAPSLAND_GAME_RECORDING ?? "game-recording.bin")
   const mode = args[0] === "--new" ? "new" : args[0] === "--replay" ? "replay"
-    : args[0] === "--resume" || existsSync(path) ? "resume" : "new"
+    : args[0] === "--resume" ? "resume" : "new"
   const header = magic + identity
   if (mode !== "new") {
     const fd = openSync(path, "r")

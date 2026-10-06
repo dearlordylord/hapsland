@@ -20,13 +20,14 @@ function fixture(t) {
   return { path, saved, prepare: args => prepareRecording(join(dir, identity), args, environment) }
 }
 
-test("default starts new without creating a file, then resumes the sole existing recording", t => {
+test("default always starts new; resume requires an explicit option", t => {
   const f = fixture(t)
   assert.equal(f.prepare([]).mode, "new")
   assert.equal(existsSync(f.path), false)
   writeFileSync(f.path, f.saved(record(1, 110), record(4, 8)))
   const before = readFileSync(f.path)
-  assert.equal(f.prepare([]).mode, "resume")
+  assert.equal(f.prepare([]).mode, "new")
+  assert.equal(f.prepare(["--resume"]).mode, "resume")
   assert.deepEqual(readFileSync(f.path), before)
   assert.equal(f.prepare(["--new"]).mode, "new")
   assert.deepEqual(readFileSync(f.path), before, "native startup owns replacing the save")
@@ -50,6 +51,7 @@ test("stale identities and malformed complete records fail without replacing the
     assert.throws(() => f.prepare(["--resume"]))
     assert.deepEqual(readFileSync(f.path), bytes)
     assert.equal(f.prepare(["--new"]).mode, "new")
+    assert.equal(f.prepare([]).mode, "new")
   }
   assert.throws(() => f.prepare(["--unknown"]), /Usage/)
   assert.throws(() => f.prepare(["--new", "--replay"]), /Usage/)
