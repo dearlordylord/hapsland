@@ -95,10 +95,11 @@ and network calls remain native code. See [proof scope and evidence](./docs/arch
 
 ## Built-in rules and your own
 
-With no explicit rule selection, authorized setup connects nine editable JSON rule
-files with questions about code
-design, including whether a declaration allows meaningless combinations of values.
-Each rule declares supported languages, input forms, and required related code.
+<!-- shipped-rules:start -->
+
+With no explicit rule selection, authorized setup connects 9 editable JSON rule files with questions about code design, including whether a declaration allows meaningless combinations of values. Each rule declares supported languages, input forms, and required related code.
+
+<!-- shipped-rules:end -->
 
 Inspect them with `hapsland rules list` or `hapsland rules show --id r1_inferred_case`.
 Author one rule per file and connect it explicitly. Choose personal or project
@@ -112,7 +113,13 @@ See [supported languages and limits](#supported-languages) before setup.
 
 ## Write your first rule
 
-Start with the **nine editable default rules**: run `hapsland rules list`, then
+<!-- first-rule-defaults:start -->
+
+Start with the **9 editable default rules**.
+
+<!-- first-rule-defaults:end -->
+
+Run `hapsland rules list`, then
 `hapsland rules show --id r1_inferred_case` to inspect one and its source file.
 You may already have a rule for your concern. Setup connects defaults when no
 explicit rule selection is configured; your current inventory shows what is

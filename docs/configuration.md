@@ -215,10 +215,13 @@ and Stop behavior follows the shared delivery contract.
 
 ## Declarative rules
 
-When no loaded configuration layer declares a `rules` field, authorized initial
-setup materializes nine editable default rule files under
-`~/.config/hapsland/rules/defaults/`, respecting XDG conventions, and explicitly
-connects them. Any explicit `rules` field, including `rules: []`, is authoritative:
+<!-- shipped-rules:start -->
+
+When no loaded configuration layer declares a `rules` field, authorized initial setup materializes 9 editable default rule files under `~/.config/hapsland/rules/defaults/`, respecting XDG conventions, and explicitly connects them.
+
+<!-- shipped-rules:end -->
+
+Any explicit `rules` field, including `rules: []`, is authoritative:
 setup does not add or reconnect defaults alongside that selection. For example, `r1_inferred_case.json` retains the stable rule ID
 `r1_inferred_case`. The selected file is authoritative: editing it changes the rule;
 disabling or disconnecting it changes effective review. Deleting a connected file
@@ -308,20 +311,22 @@ validity does not establish classifier judgment quality.
 
 ### Write your first rule
 
-Run these commands from the root of your project's Git working tree. Hapsland ships **nine
-editable default rules**; before writing another, inspect the rules you already
-have:
+Run these commands from the root of your project's Git working tree.
+
+<!-- first-rule-defaults:start -->
+
+Hapsland ships **9 editable default rules**.
+
+<!-- first-rule-defaults:end -->
+
+Before writing another, inspect the rules you already have:
 
 ```sh
 hapsland rules list
 hapsland rules show --id r1_inferred_case
 ```
 
-`list` shows connected rules, including disabled ones. `show` names the local JSON
-source you can edit; you do not need Hapsland's sources. Initial setup connects
-defaults only when no configuration layer declares `rules`. An explicit selection
-(including an empty list) may mean this default is absent; choose an ID from your
-inventory instead. See the [default concerns](../TYPE-DESIGN-RULES.md). The default
+See the [default concerns](../TYPE-DESIGN-RULES.md). The default
 `r6_bare_domain_value` already addresses primitive domain values; inspect it before
 adding a custom variant. `no-primitive-obsession` below teaches custom authoring,
 not an additional default you must enable alongside it.

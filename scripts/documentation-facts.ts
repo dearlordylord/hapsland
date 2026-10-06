@@ -6,6 +6,7 @@ import { ConfigurationDocument, CONFIGURATION_VERSION } from "../src/configurati
 import { GRAPH_LIMIT_CEILINGS, graphLimitFields } from "../src/configuration/graph-limits.ts"
 import { MAX_INSPECTION_MESSAGE_BYTES } from "../src/inspection/contract.ts"
 import { DEFAULT_RULE_THRESHOLD } from "../src/rules/schema.ts"
+import { SHIPPED_DEFAULT_RULES } from "../src/rules/shipped.ts"
 import { PROVIDER_LIMITS } from "../src/review-providers/catalog.ts"
 import { REVIEW_SETTINGS_CACHE_CAPACITY, REVIEW_SETTINGS_CACHE_TTL_MS } from "../src/runtime/review-settings.ts"
 
@@ -29,6 +30,26 @@ export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocu
   const analytics = recordingFieldName(schema, "AnalyticsRecordingEnabled")
   const inspection = recordingFieldName(schema, "InspectionRecordingEnabled")
   return [
+    {
+      path: "README.md",
+      name: "shipped-rules",
+      text: `With no explicit rule selection, authorized setup connects ${SHIPPED_DEFAULT_RULES.length} editable JSON rule files with questions about code design, including whether a declaration allows meaningless combinations of values. Each rule declares supported languages, input forms, and required related code.`
+    },
+    {
+      path: "README.md",
+      name: "first-rule-defaults",
+      text: `Start with the **${SHIPPED_DEFAULT_RULES.length} editable default rules**.`
+    },
+    {
+      path: "docs/configuration.md",
+      name: "shipped-rules",
+      text: `When no loaded configuration layer declares a \`rules\` field, authorized initial setup materializes ${SHIPPED_DEFAULT_RULES.length} editable default rule files under \`~/.config/hapsland/rules/defaults/\`, respecting XDG conventions, and explicitly connects them.`
+    },
+    {
+      path: "docs/configuration.md",
+      name: "first-rule-defaults",
+      text: `Hapsland ships **${SHIPPED_DEFAULT_RULES.length} editable default rules**.`
+    },
     {
       path: "docs/configuration.md",
       name: "credential-reference",
