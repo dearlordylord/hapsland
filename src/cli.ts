@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { makeDirectHookDispatch } from "./hooks/direct.ts"
 import { SUPPORTED_CLIENTS, CLIENT_NAMES } from "./runtime/agent-clients.ts"
 import { formatOutcome, formatStatusOutcome } from "./onboarding/human-output.ts"
 import { NEW_KEY_FLAG, CLI_NAME, LOGIN_FLAG, setupCommand, DEFAULT_UPDATE_CHANNEL } from "./runtime/cli-names.ts"
@@ -38,25 +39,10 @@ import { discoverWorkingTreeRoot, rootRelativePath } from "./repository/root.ts"
 import { selectFile } from "./configuration/decision.ts"
 import { DEFAULT_CREDENTIAL_ENV_VAR, loadReviewSettings, type ReviewSettings } from "./runtime/review-config.ts"
 import type { ResidentControlledOptions } from "./resident/protocol.ts"
-import {
-  adaptCodexDirectEvent,
-  adaptCodexReply,
-  adaptClaudeDirectEvent,
-  isCodexNativeApplyPatch
-} from "./direct-event/adapter.ts"
-import { isCodexHostVersion, type CodexHostVersion, type DirectObservation } from "./direct-event/observation.ts"
-import { type ClaudeHostOutput } from "./direct-event/claude-output.ts"
+import { adaptClaudeDirectEvent } from "./direct-event/adapter.ts"
+import { isCodexHostVersion, type CodexHostVersion } from "./direct-event/observation.ts"
 import { directHookSubmissionLayer, submitDirectHookOutput } from "./resident/direct-hook-output.ts"
-import {
-  type ResidentStartup,
-  admitObservationEffect,
-  admitAndCollectEffect,
-  ensureResidentEffect,
-  residentStartupLayer,
-  inspectResidentEffect,
-  makeResidentDispatchContextEffect,
-  type CollectedAdvice
-} from "./resident/client.ts"
+import { residentStartupLayer, inspectResidentEffect } from "./resident/client.ts"
 import { HookOutput, hookOutputLayer } from "./resident/hook-output.ts"
 import {
   composedHookRuntimeLayer,
@@ -65,8 +51,7 @@ import {
   type ComposedHookHost
 } from "./resident/composed-hook.ts"
 import { logoutCredential, resolveCredential, runSecretService, saveCredential } from "./credentials/secret-service.ts"
-import { readActivity, recordActivity } from "./activity/status.ts"
-import { recordDemoTrace } from "./activity/demo-trace.ts"
+import { readActivity } from "./activity/status.ts"
 
 const localFailureMessage = (cause: unknown): string => {
   if (typeof cause === "object" && cause !== null && "reason" in cause && typeof cause.reason === "string") {
@@ -397,124 +382,11 @@ const requestedOperation = forcedOperation()
 const requestedInstallationOperation = forcedInstallationOperation()
 const requestedEvaluationOperation = forcedEvaluationOperation()
 
-type DirectHookDispatch = { readonly handled: false } | { readonly handled: true; readonly output: unknown }
-
-const recordCodexHookActivity = (
-  subject: Pick<DirectObservation, "root" | "advicee"> | undefined,
-  statePath: string,
-  lifetime: string,
-  stage: "unavailable" | "incomplete"
-): void => {
-  if (subject === undefined) return
-  recordActivity({ statePath, root: subject.root, advicee: subject.advicee, lifetime, stage })
-}
-const recordCodexObservationTrace = Effect.fn("CodexHook.recordEditTrace")(function* (
-  observation: DirectObservation | undefined
-) {
-  if (observation === undefined) return
-  const path = yield* Config.option(Config.NonEmptyString("REVIEW_DEMO_BUDGET_PATH"))
-  recordDemoTrace(Option.getOrUndefined(path), observation.root, observation.advicee, { kind: "edit" })
+const { runDirectCodexHook, runDirectBoundedHook, isDirectEventReady } = makeDirectHookDispatch({
+  deadline: directHookDeadline,
+  controlledWriter: isControlledWriter,
+  composedEdit: isComposedEditHook
 })
-const admitCodexHookObservation = Effect.fn("CodexHook.admitObservation")(function* (
-  observation: DirectObservation,
-  dispatch: Effect.Success<ReturnType<typeof makeResidentDispatchContextEffect>> | undefined,
-  activityPath: string,
-  lifetime: string
-) {
-  if (dispatch === undefined || !isControlledWriter) {
-    recordCodexHookActivity(observation, activityPath, lifetime, "unavailable")
-    return
-  }
-  yield* admitObservationEffect(observation, true, dispatch, undefined, isComposedEditHook).pipe(
-    Effect.catch(() => {
-      recordCodexHookActivity(observation, activityPath, lifetime, "unavailable")
-      return Effect.void
-    })
-  )
-})
-const runDirectCodexHook = (
-  nativeEvent: unknown,
-  hostVersion: CodexHostVersion,
-  controlled: ResidentControlledOptions | undefined,
-  statePath: string,
-  activityPath: string,
-  userConfigPath: string | undefined
-): Effect.Effect<DirectHookDispatch, unknown, ResidentStartup> =>
-  Effect.gen(function* () {
-    if (!isCodexNativeApplyPatch(nativeEvent)) return { handled: false } as const
-    const reply = yield* adaptCodexReply(nativeEvent, hostVersion)
-    const owner = yield* ensureResidentEffect(
-      undefined,
-      Math.max(1, directHookDeadline - (yield* hookMonotonicMillis) - 500)
-    ).pipe(Effect.option)
-    if (Option.isNone(owner)) {
-      recordCodexHookActivity(reply, activityPath, "resident-unavailable", "unavailable")
-      return { handled: true, output: {} } as const
-    }
-    const dispatch =
-      reply === undefined
-        ? undefined
-        : yield* makeResidentDispatchContextEffect(
-            reply.root,
-            statePath,
-            activityPath,
-            userConfigPath,
-            controlled
-          ).pipe(Effect.catch(() => Effect.succeed(undefined)))
-    const observation = yield* adaptCodexDirectEvent(nativeEvent, hostVersion)
-    yield* recordCodexObservationTrace(observation)
-    // The direct dispatcher owns every native apply_patch event. Unsupported
-    // shapes remain quiet and can never create review work.
-    if (observation === undefined) {
-      recordCodexHookActivity(reply, activityPath, owner.value.lifetime, "incomplete")
-      return { handled: true, output: {} } as const
-    }
-    // Matching reads are not attribution. The hook command must explicitly be
-    // installed with this controlled-writer assertion for the supported Add profile.
-    yield* admitCodexHookObservation(observation, dispatch, activityPath, owner.value.lifetime)
-    return { handled: true, output: {} } as const
-  })
-
-const runDirectBoundedHook = Effect.fn("ClaudeHook.collectBounded")(function* (
-  observation: DirectObservation | undefined,
-  controlled: ResidentControlledOptions | undefined,
-  statePath: string,
-  activityPath: string,
-  userConfigPath: string | undefined
-): Effect.fn.Return<unknown, never, ResidentStartup> {
-  const deadline = directHookDeadline
-  if (observation === undefined) return {}
-  const bounded = <A, E, R>(task: Effect.Effect<A, E, R>): Effect.Effect<A | undefined, never, R> =>
-    Effect.gen(function* () {
-      const time = Math.max(0, deadline - (yield* hookMonotonicMillis))
-      if (time <= 0) return undefined
-      return yield* task.pipe(
-        Effect.timeoutOrElse({ duration: time, orElse: () => Effect.succeed(undefined) }),
-        Effect.catch(() => Effect.succeed(undefined))
-      )
-    })
-  const dispatch = yield* bounded(
-    makeResidentDispatchContextEffect(observation.root, statePath, activityPath, userConfigPath, controlled)
-  )
-  if (dispatch === undefined) return {}
-  const outcome = yield* bounded(admitAndCollectEffect(observation, dispatch, deadline - 150))
-  return outcome?.status === "advice"
-    ? { _tag: "DirectEventReady", value: outcome.advice.output, collected: outcome.advice }
-    : {}
-})
-
-const isDirectEventReady = (
-  value: unknown
-): value is {
-  readonly _tag: "DirectEventReady"
-  readonly value: ClaudeHostOutput
-  readonly collected: CollectedAdvice
-} =>
-  typeof value === "object" &&
-  value !== null &&
-  "_tag" in value &&
-  value._tag === "DirectEventReady" &&
-  "value" in value
 
 type StatusOperation = Extract<ReviewOperation, { readonly operation: "status" }>
 type StatusCredential = Effect.Success<ReturnType<typeof resolveCredential>>

@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "issue": 243,
+  "scope": "Partial direct native hook behavior extraction; no executable separation milestone",
+  "owner": {
+    "module": "src/hooks/direct.ts",
+    "concept": "Native Codex admission and Claude bounded advice dispatch",
+    "consumers": [
+      "CLI composition; future dedicated hook composition"
+    ],
+    "direction": "Composition supplies deadline/writer inputs; hook behavior consumes native observations, IPC, output contracts, clock and activity",
+    "contractOwners": [
+      "docs/direct-event-v1-supported-profile.md",
+      "docs/advicing-target-contract.md"
+    ],
+    "behavioralChecks": [
+      "src/cli.test.ts",
+      "src/direct-event/claude-cli.test.ts",
+      "src/resident/client.test.ts"
+    ]
+  },
+  "architectureReview": {
+    "agent": "architecture_inventory",
+    "sourceComparison": "Extracted dispatch body byte-for-byte identical before formatting; option values captured at same initialization point",
+    "findings": [],
+    "limits": "Not dedicated executable/source/emitted isolation acceptance"
+  },
+  "validation": {
+    "fast": "npm run check:fast passed after import formatting repair",
+    "boundary": {
+      "run": "20261006204108096-1090492-66fb56",
+      "build": "passed",
+      "pack": "passed",
+      "tests": "54 passed across 5 files"
+    },
+    "scope": "Focused validation; not full quality gate"
+  },
+  "remaining": [
+    "Hook argument parsing and dedicated composition",
+    "Installed hook routing",
+    "Production workspace/cache/isolation integration",
+    "Installed interleaved measurements"
+  ],
+  "lifecycle": {
+    "trigger": "Issue243 completion",
+    "action": "consolidate",
+    "destination": "Maintained architecture/build owners and issue evidence; delete superseded checkpoints"
+  }
+}
