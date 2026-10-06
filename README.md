@@ -96,7 +96,7 @@ and network calls remain native code. See [proof scope and evidence](./docs/arch
 
 <!-- shipped-rules:start -->
 
-By default, authorized setup enables 7 editable JSON rule files with questions about code design, including whether a declaration allows meaningless combinations of values. Each rule declares supported languages, input forms, and required related code.
+By default, authorized setup enables 7 editable JSON rule files with questions about code design.
 
 <!-- shipped-rules:end -->
 
