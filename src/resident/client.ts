@@ -16,7 +16,10 @@ import * as Option from "effect/Option"
 import * as Ref from "effect/Ref"
 import * as Schedule from "effect/Schedule"
 import * as Schema from "effect/Schema"
-import { Socket } from "node:net"
+import type { TLSSocket } from "node:tls"
+import { StringDecoder } from "node:string_decoder"
+import { connectResidentPort } from "./port.ts"
+import { readResidentEndpoint, type ResidentEndpoint } from "./endpoint.ts"
 import { resolve } from "node:path"
 import { closeSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import type { DirectObservation, DirectAdvicee } from "../direct-event/model.ts"
@@ -29,7 +32,6 @@ import type { ClaudeHostOutput, CollectionMode } from "./collection.ts"
 import {
   prepareResidentDirectory,
   resolveResidentPaths,
-  verifyResidentSocket,
   type ResidentPaths,
   type ResidentEndpointError
 } from "./paths.ts"
@@ -52,34 +54,34 @@ export class ResidentIpcError extends Schema.TaggedError<ResidentIpcError>()("Re
 }) {}
 
 const requestConnected = Effect.fn("ResidentClient.requestConnected")(function* (
-  paths: ResidentPaths,
+  endpoint: ResidentEndpoint,
   request: ResidentRequest,
   timeoutMs: number
 ) {
   const frame = `${encodeCurrentResidentRequest(request)}\n`
-  if (Buffer.byteLength(frame, "utf8") > MAX_IPC_FRAME_BYTES) {
+  if (Buffer.byteLength(frame, "utf8") > MAX_IPC_FRAME_BYTES)
     return yield* Effect.fail(new ResidentIpcError({ message: "resident request exceeded frame bound" }))
-  }
-  return yield* Effect.acquireUseRelease(
-    Effect.try({ try: () => new Socket(), catch: () => new ResidentIpcError({ message: "resident IPC unavailable" }) }),
-    (socket) =>
-      Effect.callback<ResidentResponse, ResidentIpcError>((resume) => {
-        let settled = false
-        let bytes = 0
-        let encoded = ""
-        const finish = (result: Effect.Effect<ResidentResponse, ResidentIpcError>) => {
-          if (settled) return
-          settled = true
-          resume(result)
-        }
-        socket.once("connect", () => socket.write(frame))
-        socket.on("data", (chunk: Buffer) => {
+  return yield* Effect.callback<ResidentResponse, ResidentIpcError>((resume) => {
+    let settled = false
+    let bytes = 0
+    let encoded = ""
+    const decoder = new StringDecoder("utf8")
+    const finish = (result: Effect.Effect<ResidentResponse, ResidentIpcError>) => {
+      if (settled) return
+      settled = true
+      resume(result)
+    }
+    let socket: TLSSocket
+    try {
+      socket = connectResidentPort(endpoint, (authenticated) => {
+        if (settled) return
+        authenticated.on("data", (chunk: Buffer) => {
           bytes += chunk.byteLength
           if (bytes > MAX_IPC_FRAME_BYTES) {
             finish(Effect.fail(new ResidentIpcError({ message: "resident response exceeded frame bound" })))
             return
           }
-          encoded += chunk.toString("utf8")
+          encoded += decoder.write(chunk)
           const newline = encoded.indexOf("\n")
           if (newline < 0) return
           try {
@@ -91,32 +93,26 @@ const requestConnected = Effect.fn("ResidentClient.requestConnected")(function* 
             finish(Effect.fail(new ResidentIpcError({ message: "resident response was invalid" })))
           }
         })
-        socket.once("error", () => finish(Effect.fail(new ResidentIpcError({ message: "resident IPC unavailable" }))))
-        socket.once("close", () =>
-          finish(Effect.fail(new ResidentIpcError({ message: "resident response closed before acknowledgement" })))
-        )
-        // Connect only after the callback owns every event. The acquisition
-        // can yield before this callback, so an already-connecting socket can
-        // emit its one-shot connect event before our frame writer is attached.
-        try {
-          socket.connect(paths.socket)
-        } catch {
-          finish(Effect.fail(new ResidentIpcError({ message: "resident IPC unavailable" })))
-        }
-        return Effect.sync(() => {
-          settled = true
-        })
-      }).pipe(
-        Effect.timeoutOrElse({
-          duration: timeoutMs,
-          orElse: () =>
-            Effect.fail(new ResidentIpcError({ message: "resident request deadline exceeded; outcome is uncertain" }))
-        })
-      ),
-    (socket) =>
-      Effect.sync(() => {
-        socket.destroy()
+        authenticated.write(frame)
       })
+    } catch {
+      finish(Effect.fail(new ResidentIpcError({ message: "resident IPC unavailable" })))
+      return Effect.void
+    }
+    socket.once("error", () => finish(Effect.fail(new ResidentIpcError({ message: "resident IPC unavailable" }))))
+    socket.once("close", () =>
+      finish(Effect.fail(new ResidentIpcError({ message: "resident response closed before acknowledgement" })))
+    )
+    return Effect.sync(() => {
+      settled = true
+      socket.destroy()
+    })
+  }).pipe(
+    Effect.timeoutOrElse({
+      duration: timeoutMs,
+      orElse: () =>
+        Effect.fail(new ResidentIpcError({ message: "resident request deadline exceeded; outcome is uncertain" }))
+    })
   )
 })
 
@@ -126,7 +122,7 @@ export const residentRequestEffect = Effect.fn("ResidentClient.request")(functio
   timeoutMs = CLIENT_REQUEST_DEADLINE_MS
 ) {
   const deadline = (yield* monotonicMillis) + timeoutMs
-  yield* verifyResidentSocket(paths).pipe(
+  const endpoint = yield* readResidentEndpoint(paths).pipe(
     Effect.timeoutOrElse({
       duration: timeoutMs,
       orElse: () => Effect.fail(new ResidentIpcError({ message: "resident endpoint verification timed out" }))
@@ -134,7 +130,7 @@ export const residentRequestEffect = Effect.fn("ResidentClient.request")(functio
   )
   const remaining = deadline - (yield* monotonicMillis)
   if (remaining <= 0) return yield* Effect.fail(new ResidentIpcError({ message: "resident request deadline exceeded" }))
-  return yield* requestConnected(paths, request, remaining)
+  return yield* requestConnected(endpoint, request, remaining)
 })
 
 export interface ResidentStartupOperations {

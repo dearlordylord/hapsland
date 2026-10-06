@@ -226,7 +226,7 @@ The [source discovery tests](../src/inspection/registry.test.ts) connect two rea
 residents through retained private registrations and the public inspection API.
 They reject changed private permissions, owner symlinks and FIFOs, distinguish
 resident exit from lifetime replacement, and check bounded metadata and source
-counts. Inspection probes use a separate private `inspection.sock` endpoint accepting only hello and lifetime-bound recording-status reads. Its four connection slots and 300 ms total connection deadline are independent of the 32 hook-control slots. The socket saturation test verifies control requests while inspection is full, read-only probes while control is full, and rejection of cleanup on the inspection endpoint, and closure despite trickled incomplete input. Probes do not start residents or extend review lifetime.
+counts. Inspection probes use a separate authenticated loopback port advertised in private `inspection.endpoint.json` accepting only hello and lifetime-bound recording-status reads. Its four connection slots and 300 ms total connection deadline are independent of the 32 hook-control slots. The connection saturation test verifies control requests while inspection is full, read-only probes while control is full, and rejection of cleanup on the inspection endpoint, and closure despite trickled incomplete input. Probes do not start residents or extend review lifetime.
 The Pi browser gate exercises distinct residents and roots with native selectors;
 its keyboard checks cover focus traversal and button activation, not native popup
 menu keystrokes. These checks do not establish replay or all runtime/child filters.

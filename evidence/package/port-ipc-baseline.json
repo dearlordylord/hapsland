@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "startedAt": "2026-10-06T20:09:17.864Z",
+  "declaration": {
+    "version": 1,
+    "declaredAt": "2026-10-06T20:09:09Z",
+    "readySamples": 15,
+    "coldSamples": 3,
+    "hosts": [
+      "pi",
+      "claude-code",
+      "codex-cli"
+    ],
+    "timeoutMs": 240000,
+    "output": "evidence/package/port-ipc-baseline.json",
+    "variants": [
+      {
+        "name": "unix-bun-baseline",
+        "transport": "unix",
+        "root": "/workspace/typescript/jev-port-ipc-prototype/.test-runs/port-ipc/baseline-package"
+      }
+    ]
+  },
+  "declarationSha256": "2d99323a7fb53e97fc96a4389d609b6e5609d26d90b05edea4faa8f9486f1769",
+  "runnerSha256": "8249b80cd60b85536ed1e68d4ce4b081c08f68e9be782b051259fea6d90801d1",
+  "platform": "linux",
+  "architecture": "arm64",
+  "node": "v24.20.0",
+  "scope": "Offline installed-layout standalone hook processes; no source edits or provider calls. OS cache and scheduler uncontrolled.",
+  "variants": [
+    {
+      "name": "unix-bun-baseline",
+      "transport": "unix",
+      "root": "/workspace/typescript/jev-port-ipc-prototype/.test-runs/port-ipc/baseline-package",
+      "cliSha256": "ec5b1705980e36b27162a72240de856c0d6ea49941eb95a5ac9c536d55fbce02",
+      "residentSha256": "1c2c048712a8cb80fe1e3afbcf85ae2836fadafe70bbc65e16462746c932802f"
+    }
+  ],
+  "samples": [],
+  "cleanup": [
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    }
+  ],
+  "status": "failed",
+  "failure": "Resident readiness failed",
+  "finishedAt": "2026-10-06T20:09:33.440Z"
+}

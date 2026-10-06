@@ -27,7 +27,7 @@ const workerInformation = {
   resident: {
     arguments: "RUNTIME_DIRECTORY",
     description:
-      "Internal review worker, normally started by Hapsland hooks. RUNTIME_DIRECTORY is required; normal startup creates private state and listens on its socket until idle shutdown or a signal. This is not the inspection dashboard. Use hapsland dashboard for inspection.",
+      "Internal review worker, normally started by Hapsland hooks. RUNTIME_DIRECTORY is required; normal startup creates private state and listens on authenticated loopback ports until idle shutdown or a signal. This is not the inspection dashboard. Use hapsland dashboard for inspection.",
     exampleArguments: ["/absolute/private/runtime-directory"]
   }
 } as const

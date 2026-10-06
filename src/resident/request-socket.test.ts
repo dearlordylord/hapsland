@@ -1,6 +1,6 @@
 import { expect, it } from "vitest"
 import { Effect } from "effect"
-import { createConnection } from "node:net"
+import { connectTestPort } from "../test-support/resident-port.ts"
 import { mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -10,9 +10,9 @@ import { residentPaths } from "./paths.ts"
 import { encodeCurrentResidentRequest, MAX_IPC_FRAME_BYTES } from "./protocol.ts"
 import { requestConformanceCases } from "../test-support/resident-request-conformance.ts"
 
-const exchange = (path: string, frame: string) =>
-  new Promise<unknown>((resolve, reject) => {
-    const socket = createConnection(path)
+const exchange = async (path: string, frame: string) => {
+  const socket = await connectTestPort(path)
+  return new Promise<unknown>((resolve, reject) => {
     let response = ""
     socket.on("error", reject)
     socket.on("data", (chunk: Buffer) => {
@@ -25,8 +25,9 @@ const exchange = (path: string, frame: string) =>
         reject(error)
       }
     })
-    socket.on("connect", () => socket.write(`${frame}\n`))
+    socket.write(`${frame}\n`)
   })
+}
 
 it("dispatches every valid v1 alternative over real sockets and rejects malformed inputs before handlers", async () => {
   const directory = await mkdtemp(join(tmpdir(), "hapsland-request-schema-"))
@@ -45,7 +46,7 @@ it("dispatches every valid v1 alternative over real sockets and rejects malforme
     await Effect.runPromise(server.listen())
     for (const request of requestConformanceCases) {
       const before = handlerHandoffs
-      const response = await exchange(paths.socket, encodeCurrentResidentRequest(request))
+      const response = await exchange(paths.endpoint, encodeCurrentResidentRequest(request))
       expect(response).toMatchObject({
         version: 1,
         status:
@@ -58,7 +59,7 @@ it("dispatches every valid v1 alternative over real sockets and rejects malforme
       expect(handlerHandoffs, request.operation).toBe(before + 1)
       const wire = JSON.parse(encodeCurrentResidentRequest(request))
       for (const field of ["unknown", "ticket", "ticketed", "requestRoute"]) {
-        expect(await exchange(paths.socket, JSON.stringify({ ...wire, [field]: true }))).toEqual({
+        expect(await exchange(paths.endpoint, JSON.stringify({ ...wire, [field]: true }))).toEqual({
           version: 1,
           status: "unsupported"
         })
@@ -70,7 +71,7 @@ it("dispatches every valid v1 alternative over real sockets and rejects malforme
         if (!["operation", "lifetime", "version"].includes(field)) continue
         const invalid = { ...wire }
         Reflect.deleteProperty(invalid, field)
-        expect(await exchange(paths.socket, JSON.stringify(invalid))).toEqual({ version: 1, status: "unsupported" })
+        expect(await exchange(paths.endpoint, JSON.stringify(invalid))).toEqual({ version: 1, status: "unsupported" })
         expect(handlerHandoffs).toBe(before + 1)
       }
     }
@@ -96,7 +97,7 @@ it("dispatches every valid v1 alternative over real sockets and rejects malforme
         }
       }
     ]) {
-      expect(await exchange(paths.socket, JSON.stringify({ ...wire, ...change }))).toEqual({
+      expect(await exchange(paths.endpoint, JSON.stringify({ ...wire, ...change }))).toEqual({
         version: 1,
         status: "unsupported"
       })
@@ -110,9 +111,9 @@ it("dispatches every valid v1 alternative over real sockets and rejects malforme
       '{"version":1,"operation":"shutdown","lifetime":"old"}',
       '{"version":1,"operation":"collect","lifetime":"old"}'
     ]) {
-      expect(await exchange(paths.socket, frame)).toEqual({ version: 1, status: "unsupported" })
+      expect(await exchange(paths.endpoint, frame)).toEqual({ version: 1, status: "unsupported" })
     }
-    expect(await exchange(paths.socket, "x".repeat(MAX_IPC_FRAME_BYTES + 1))).toEqual({
+    expect(await exchange(paths.endpoint, "x".repeat(MAX_IPC_FRAME_BYTES + 1))).toEqual({
       version: 1,
       status: "rejected-capacity"
     })

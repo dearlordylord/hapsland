@@ -1,0 +1,120 @@
+diff --git a/packages/compiler/src/frontend/lowering/lower-exprs.test.ts b/packages/compiler/src/frontend/lowering/lower-exprs.test.ts
+new file mode 100644
+index 0000000..0bfe38a
+--- /dev/null
++++ b/packages/compiler/src/frontend/lowering/lower-exprs.test.ts
+@@ -0,0 +1,39 @@
++import { expect, test, vi } from "vitest";
++import { BOOL, JSVAL, type IrExpr } from "../../ir/ir.js";
++import {
++  SyntaxKind,
++  type Expression,
++  type PropertyAccessExpression,
++  type Type,
++} from "../ts7/adapter.js";
++import { lowerUnionProperty } from "./lower-exprs.js";
++import { Lowerer } from "./lowerer.js";
++
++test.each([false, true])(
++  "union-declared island property reads preserve runtime dispatch (optional=%s)",
++  (optional) => {
++    const loc = { file: "island.ts", start: 0, end: 20 };
++    const receiver = { kind: SyntaxKind.PropertyAccessExpression } as Expression;
++    const expr = {
++      expression: receiver,
++      name: { text: "exists" },
++      questionDotToken: optional ? {} : undefined,
++      getSourceFile: () => ({ fileName: loc.file }),
++      getStart: () => loc.start,
++      getEnd: () => loc.end,
++    } as unknown as PropertyAccessExpression;
++    const lowerer = Object.create(Lowerer.prototype) as Lowerer;
++    vi.spyOn(lowerer, "chainBlocked").mockReturnValue(false);
++    vi.spyOn(lowerer, "typeOf").mockImplementation((node) => node as unknown as Type);
++    vi.spyOn(lowerer, "mapTypeOf").mockImplementation((type) =>
++      type === (receiver as unknown as Type) ? { kind: "union", unionId: "optional-record" } : BOOL,
++    );
++    const value: IrExpr = { kind: "chainRecv", id: "chain.0", type: JSVAL, loc };
++    vi.spyOn(lowerer, "lowerExpr").mockReturnValue(value);
++    const read = { kind: "jsOp", op: "getProp", name: "exists", args: [value], type: JSVAL, loc };
++    expect(lowerUnionProperty(lowerer, expr)).toEqual(
++      optional ? read : { kind: "jsExit", value: read, type: BOOL, loc },
++    );
++    expect(lowerer.lowerExpr).toHaveBeenCalledTimes(1);
++  },
++);
+diff --git a/packages/compiler/src/frontend/lowering/lower-exprs.ts b/packages/compiler/src/frontend/lowering/lower-exprs.ts
+index 3d789f7..ed07a04 100644
+--- a/packages/compiler/src/frontend/lowering/lower-exprs.ts
++++ b/packages/compiler/src/frontend/lowering/lower-exprs.ts
+@@ -13406,6 +13406,29 @@ export function lowerUnionProperty(
+     };
+     return { kind: "dynKeyGet", key, value, type: DYN, loc: locOf(expr) };
+   }
++  if (value.type.kind === "jsval") {
++    const read: IrExpr = {
++      kind: "jsOp",
++      op: "getProp",
++      name: expr.name.text,
++      args: [value],
++      type: JSVAL,
++      loc: locOf(expr),
++    };
++    if (!expr.questionDotToken) {
++      const declared = lowerer.mapTypeOf(lowerer.typeOf(expr));
++      if (
++        declared &&
++        (declared.kind === "f64" ||
++          declared.kind === "bool" ||
++          declared.kind === "string" ||
++          (declared.kind === "bytes" && declared.elem === "u8"))
++      ) {
++        return { kind: "jsExit", value: read, type: declared, loc: locOf(expr) };
++      }
++    }
++    return read;
++  }
+   if (value.type.kind === "record") {
+     const shape = lowerer.shapes.get(value.type.shapeId);
+     const f = shape?.fields.find((x) => x.name === expr.name.text);
+diff --git a/packages/compiler/src/frontend/lowering/lower-island.test.ts b/packages/compiler/src/frontend/lowering/lower-island.test.ts
+index 525a569..5ca30fe 100644
+--- a/packages/compiler/src/frontend/lowering/lower-island.test.ts
++++ b/packages/compiler/src/frontend/lowering/lower-island.test.ts
+@@ -20,6 +20,20 @@ const context = (dynamic: boolean) =>
+     dynamic,
+   );
+ 
++test("optional-chain receiver overrides dispatch by their runtime representation", () => {
++  const lowerer = context(true);
++  const receiver = { kind: SyntaxKind.PropertyAccessExpression } as Expression;
++  vi.spyOn(lowerer, "typeOf").mockReturnValue({} as Type);
++  vi.spyOn(lowerer, "mapTypeOf").mockReturnValue({ kind: "union", unionId: "optional-record" });
++  const loc = { file: "island.ts", start: 0, end: 1 };
++  lowerer.chainRecvByNode.set(receiver, { kind: "chainRecv", id: "chain.0", type: JSVAL, loc });
++  expect(isIslandExpr(lowerer, receiver)).toBe(true);
++  lowerer.chainRecvByNode.set(receiver, { kind: "chainRecv", id: "chain.0", type: F64, loc });
++  expect(isIslandExpr(lowerer, receiver)).toBe(false);
++  lowerer.chainRecvByNode.delete(receiver);
++  expect(isIslandExpr(lowerer, receiver)).toBe(false);
++});
++
+ test("static island probes do not query the checker or map receiver and callee types", () => {
+   const lowerer = context(false);
+   const typeOf = vi.spyOn(lowerer, "typeOf");
+diff --git a/packages/compiler/src/frontend/lowering/lower-island.ts b/packages/compiler/src/frontend/lowering/lower-island.ts
+index b9d925a..1183c6c 100644
+--- a/packages/compiler/src/frontend/lowering/lower-island.ts
++++ b/packages/compiler/src/frontend/lowering/lower-island.ts
+@@ -69,6 +69,11 @@ export function isIslandExpr(lowerer: Lowerer, node: ts.Expression): boolean {
+   // Static builds cannot contain island handles. Avoid mapping entire
+   // receiver/callee types (and their checker RPCs) just to prove that.
+   if (!lowerer.dynamic) return false;
++  // Optional-chain bodies bind the receiver's actual representation. A
++  // composite package value can remain an island handle even when its
++  // declaration maps to a native record/undefined union.
++  const chainReceiver = lowerer.chainRecvByNode.get(node);
++  if (chainReceiver) return chainReceiver.type.kind === "jsval";
+   const mapped = lowerer.mapTypeOf(lowerer.typeOf(node));
+   if (mapped?.kind === "jsval") return true;
+   if (mapped?.kind !== "promise" && ts.isIdentifier(node)) {

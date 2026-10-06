@@ -10,7 +10,7 @@ const scope = {
   sessionId: "session",
   subagentId: null
 }
-const source = { endpoint: "/private/resident.sock", lifetime: "lifetime" }
+const source = { endpoint: "/private/endpoint.json", lifetime: "lifetime" }
 const edit = { kind: "edit-received" as const, candidates: [{ operation: "update" as const, path: "a.ts" }] }
 
 describe("optional inspection recording", () => {

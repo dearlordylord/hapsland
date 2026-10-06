@@ -29,7 +29,7 @@ const unsafe = () => new Error("unsafe inspection endpoint")
 const same = (a: Stats, b: Stats) => a.dev === b.dev && a.ino === b.ino
 const endpointIdentity = async (endpoint: string) => {
   const paths = residentPaths(dirname(endpoint))
-  if (!isAbsolute(endpoint) || paths.socket !== endpoint) throw unsafe()
+  if (!isAbsolute(endpoint) || paths.endpoint !== endpoint) throw unsafe()
   const directory = await lstat(paths.directory)
   if (
     !validateEndpointMetadata(metadata(directory), "directory") ||
@@ -61,11 +61,11 @@ const endpointIdentity = async (endpoint: string) => {
         data.lifetime.length > 256
       )
         throw unsafe()
-      const inspectionPaths = { ...paths, socket: join(paths.directory, "inspection.sock") }
-      const socket = await lstat(paths.socket)
-      const inspectionSocket = await lstat(inspectionPaths.socket)
-      if (!validateEndpointMetadata(metadata(inspectionSocket), "socket")) throw unsafe()
-      if (!validateEndpointMetadata(metadata(socket), "socket") || !same(directory, await lstat(paths.directory)))
+      const inspectionPaths = { ...paths, endpoint: join(paths.directory, "inspection.endpoint.json") }
+      const socket = await lstat(paths.endpoint)
+      const inspectionSocket = await lstat(inspectionPaths.endpoint)
+      if (!validateEndpointMetadata(metadata(inspectionSocket), "regular")) throw unsafe()
+      if (!validateEndpointMetadata(metadata(socket), "regular") || !same(directory, await lstat(paths.directory)))
         throw unsafe()
       return {
         pid: data.pid,
@@ -73,7 +73,7 @@ const endpointIdentity = async (endpoint: string) => {
         paths: inspectionPaths,
         directory,
         owner: status,
-        socket,
+        endpoint: socket,
         inspectionSocket
       }
     } finally {
@@ -110,7 +110,7 @@ const probe = (endpoint: string): Effect.Effect<Probe> =>
       after.lifetime !== before.lifetime ||
       !same(before.directory, after.directory) ||
       !same(before.owner, after.owner) ||
-      !same(before.socket, after.socket) ||
+      !same(before.endpoint, after.endpoint) ||
       !same(before.inspectionSocket, after.inspectionSocket)
     )
       return { health: "unavailable" as const }
@@ -157,7 +157,7 @@ export const makeInspectionRegistry = () => {
     discover: (records: ReadonlyArray<InspectionRecord>, standard: ResidentPaths | undefined) =>
       Effect.gen(function* () {
         const standardEndpoint =
-          standard !== undefined && Buffer.byteLength(standard.socket) <= 4096 ? standard.socket : undefined
+          standard !== undefined && Buffer.byteLength(standard.endpoint) <= 4096 ? standard.endpoint : undefined
         const entries = new Map<string, InspectionSource>()
         for (const record of records) {
           const previous = entries.get(record.source.id)

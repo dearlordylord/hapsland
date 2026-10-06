@@ -10,7 +10,7 @@ import { join } from "node:path"
 
 export type ResidentPaths = {
   readonly directory: string
-  readonly socket: string
+  readonly endpoint: string
   readonly lock: string
   readonly owner: string
 }
@@ -20,7 +20,7 @@ export type ResidentPaths = {
 // ownership files, not source or ledger data.
 export const residentPaths = (directory: string): ResidentPaths => ({
   directory,
-  socket: join(directory, "resident.sock"),
+  endpoint: join(directory, "endpoint.json"),
   lock: join(directory, "owner.lock"),
   owner: join(directory, "owner.json")
 })
@@ -56,12 +56,11 @@ export const resolveResidentPaths = Effect.fn("ResidentEndpoint.resolvePaths")(f
   return residentPaths(directory)
 })
 
-type EndpointKind = "directory" | "socket" | "regular"
+type EndpointKind = "directory" | "regular"
 export type EndpointMetadata = {
   readonly uid: number
   readonly mode: number
   readonly isDirectory: boolean
-  readonly isSocket: boolean
   readonly isFile: boolean
   readonly isSymbolicLink: boolean
 }
@@ -74,15 +73,16 @@ export const validateEndpointMetadata = (
   metadata.uid === uid &&
   !metadata.isSymbolicLink &&
   (metadata.mode & 0o077) === 0 &&
-  (kind === "directory" ? metadata.isDirectory : kind === "socket" ? metadata.isSocket : metadata.isFile)
+  (kind === "directory" ? metadata.isDirectory : metadata.isFile)
 
 const EndpointOperation = Schema.Literals([
   "resolveConfiguration",
   "createDirectory",
   "inspectEndpoint",
   "verifyDirectory",
-  "verifySocket",
-  "verifyRemovableSocket"
+  "readEndpoint",
+  "publishEndpoint",
+  "verifyRemovableEndpoint"
 ])
 type EndpointOperation = typeof EndpointOperation.Type
 
@@ -111,7 +111,6 @@ const metadata = Effect.fn("ResidentEndpoint.metadata")(function* (path: string)
     uid: value.uid,
     mode: value.mode,
     isDirectory: value.isDirectory(),
-    isSocket: value.isSocket(),
     isFile: value.isFile(),
     isSymbolicLink: value.isSymbolicLink()
   }
@@ -129,33 +128,6 @@ export const prepareResidentDirectory = Effect.fn("ResidentEndpoint.prepareDirec
         operation: "verifyDirectory",
         message: "resident runtime directory is not a private user-owned directory"
       })
-    )
-  }
-})
-
-export const verifyResidentSocket = Effect.fn("ResidentEndpoint.verifySocket")(function* (paths: ResidentPaths) {
-  // Node 24's net.Socket does not expose Linux SO_PEERCRED. The supported
-  // profile therefore authenticates the endpoint through a private uid-owned
-  // directory plus uid/type/mode checks on the socket itself.
-  if (!validateEndpointMetadata(yield* metadata(paths.socket), "socket")) {
-    return yield* Effect.fail(
-      new ResidentEndpointError({
-        operation: "verifySocket",
-        message: "resident socket is not a private user-owned socket"
-      })
-    )
-  }
-})
-
-export const verifyRemovableSocket = Effect.fn("ResidentEndpoint.verifyRemovableSocket")(function* (
-  paths: ResidentPaths
-) {
-  const value = yield* metadata(paths.socket).pipe(
-    Effect.catch((error) => (error.code === "ENOENT" ? Effect.succeed(undefined) : Effect.fail(error)))
-  )
-  if (value !== undefined && !validateEndpointMetadata(value, "socket")) {
-    return yield* Effect.fail(
-      new ResidentEndpointError({ operation: "verifyRemovableSocket", message: "resident socket pathname is unsafe" })
     )
   }
 })

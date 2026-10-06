@@ -1,0 +1,1223 @@
+{
+  "version": 1,
+  "startedAt": "2026-10-06T20:47:45.033Z",
+  "declaration": {
+    "version": 1,
+    "declaredAt": "2026-10-06T20:47:44.979380+00:00",
+    "readySamples": 15,
+    "coldSamples": 3,
+    "hosts": [
+      "pi",
+      "claude-code",
+      "codex-cli"
+    ],
+    "timeoutMs": 240000,
+    "output": "evidence/package/port-ipc-paired-04.json",
+    "variants": [
+      {
+        "name": "unix-bun-baseline",
+        "transport": "unix",
+        "root": "/workspace/typescript/jev-port-ipc-prototype/.test-runs/port-ipc/baseline-package"
+      },
+      {
+        "name": "tls-port-packed-bun-candidate",
+        "transport": "tls",
+        "root": "/workspace/typescript/jev-port-ipc-prototype/.test-runs/port-ipc/packed-final-candidate/package"
+      }
+    ],
+    "archiveProvenance": {
+      "archiveDigest": "6e1e201f141940122d21e5420b67b166447ef4d6065767ce6f16a0bb878a5071",
+      "sourceDigest": "777dfb5bf0f972d2dd6400e782d967475eea74db68585251fb3be35311593d7d",
+      "buildIdentity": "ec65c2e960636c04f34d75fdc1e33360a6a36ae4bb6d2231ca447c9c993828d4",
+      "packageIdentity": "2a10b23012170760e8f8c653a6fac137e774874ab2421816c3be29754867f0ef"
+    }
+  },
+  "declarationSha256": "9e29c31980d6e5c95994c99989c1067d32149fa909e639fe62c4f777d7bfa8b0",
+  "runnerSha256": "5cf219c2eddf59c735533491fb5a4c85ad930b4c9ff0df34d77f4c73aed7bcef",
+  "platform": "linux",
+  "architecture": "arm64",
+  "node": "v24.20.0",
+  "scope": "Offline installed-layout standalone hook processes; no source edits or provider calls. OS cache and scheduler uncontrolled.",
+  "variants": [
+    {
+      "name": "unix-bun-baseline",
+      "transport": "unix",
+      "root": "/workspace/typescript/jev-port-ipc-prototype/.test-runs/port-ipc/baseline-package",
+      "cliSha256": "ec5b1705980e36b27162a72240de856c0d6ea49941eb95a5ac9c536d55fbce02",
+      "residentSha256": "1c2c048712a8cb80fe1e3afbcf85ae2836fadafe70bbc65e16462746c932802f"
+    },
+    {
+      "name": "tls-port-packed-bun-candidate",
+      "transport": "tls",
+      "root": "/workspace/typescript/jev-port-ipc-prototype/.test-runs/port-ipc/packed-final-candidate/package",
+      "cliSha256": "f1d25f17b9757ea4f571debe1e577de9f3b155b510be04a96d8d1718639a848d",
+      "residentSha256": "bf5af704c43234617900e4c098a9bc0707612519494208e0f654ac789109c980"
+    }
+  ],
+  "samples": [
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 0,
+      "elapsedMs": 107.18300499999998,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 0,
+      "elapsedMs": 93.36056900000005,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 0,
+      "elapsedMs": 100.63920700000006,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 0,
+      "elapsedMs": 131.138101,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 0,
+      "elapsedMs": 103.87943900000005,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 0,
+      "elapsedMs": 105.16861599999993,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 1,
+      "elapsedMs": 92.41060400000015,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 1,
+      "elapsedMs": 86.65281099999993,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 1,
+      "elapsedMs": 89.92862800000012,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 1,
+      "elapsedMs": 103.12014299999987,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 1,
+      "elapsedMs": 103.49126999999999,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 1,
+      "elapsedMs": 101.06891799999994,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 2,
+      "elapsedMs": 92.1931860000002,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 2,
+      "elapsedMs": 249.16014499999983,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 2,
+      "elapsedMs": 94.40628599999991,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 2,
+      "elapsedMs": 105.85299600000008,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 2,
+      "elapsedMs": 103.7699389999998,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 2,
+      "elapsedMs": 101.93521600000031,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 3,
+      "elapsedMs": 95.59933600000022,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 3,
+      "elapsedMs": 86.56910300000027,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 3,
+      "elapsedMs": 87.18852300000026,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 3,
+      "elapsedMs": 113.08567499999981,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 3,
+      "elapsedMs": 98.82102699999996,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 3,
+      "elapsedMs": 107.81421799999998,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 4,
+      "elapsedMs": 98.0952299999999,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 4,
+      "elapsedMs": 92.7306480000002,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 4,
+      "elapsedMs": 86.88856299999998,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 4,
+      "elapsedMs": 108.53730799999994,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 4,
+      "elapsedMs": 108.21068000000014,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 4,
+      "elapsedMs": 105.16578200000004,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 5,
+      "elapsedMs": 96.82792900000004,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 5,
+      "elapsedMs": 105.44490999999971,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 5,
+      "elapsedMs": 103.05218299999979,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 5,
+      "elapsedMs": 109.96402699999999,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 5,
+      "elapsedMs": 106.62533499999972,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 5,
+      "elapsedMs": 114.38114300000052,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 6,
+      "elapsedMs": 109.93331799999942,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 6,
+      "elapsedMs": 108.60230700000011,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 6,
+      "elapsedMs": 94.22561700000006,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 6,
+      "elapsedMs": 119.15588600000046,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 6,
+      "elapsedMs": 135.1523390000002,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 6,
+      "elapsedMs": 159.3156859999999,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 7,
+      "elapsedMs": 105.03786500000024,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 7,
+      "elapsedMs": 138.35990399999991,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 7,
+      "elapsedMs": 107.6321340000004,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 7,
+      "elapsedMs": 131.87402199999997,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 7,
+      "elapsedMs": 169.84347200000047,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 7,
+      "elapsedMs": 160.04685700000027,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 8,
+      "elapsedMs": 167.32020300000022,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 8,
+      "elapsedMs": 118.22767099999965,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 8,
+      "elapsedMs": 108.32863999999972,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 8,
+      "elapsedMs": 118.21008799999981,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 8,
+      "elapsedMs": 119.32472099999995,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 8,
+      "elapsedMs": 107.58300800000052,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 9,
+      "elapsedMs": 105.00028100000054,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 9,
+      "elapsedMs": 104.26877599999989,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 9,
+      "elapsedMs": 112.48071100000016,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 9,
+      "elapsedMs": 114.67947800000002,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 9,
+      "elapsedMs": 103.53052000000025,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 9,
+      "elapsedMs": 112.23320999999942,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 10,
+      "elapsedMs": 105.92262200000005,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 10,
+      "elapsedMs": 90.08862899999986,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 10,
+      "elapsedMs": 99.93507599999975,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 10,
+      "elapsedMs": 118.30079600000045,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 10,
+      "elapsedMs": 99.05869499999972,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 10,
+      "elapsedMs": 104.83302999999978,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 11,
+      "elapsedMs": 103.2066850000001,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 11,
+      "elapsedMs": 98.2323980000001,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 11,
+      "elapsedMs": 94.72691300000042,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 11,
+      "elapsedMs": 106.6239600000008,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 11,
+      "elapsedMs": 109.54710599999999,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 11,
+      "elapsedMs": 104.08439900000121,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 12,
+      "elapsedMs": 100.55016499999874,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 12,
+      "elapsedMs": 84.56658699999934,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 12,
+      "elapsedMs": 98.72706800000014,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 12,
+      "elapsedMs": 120.615937999999,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 12,
+      "elapsedMs": 105.94120500000099,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 12,
+      "elapsedMs": 106.59816800000044,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 13,
+      "elapsedMs": 96.65476099999978,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 13,
+      "elapsedMs": 89.59825000000092,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 13,
+      "elapsedMs": 97.59480900000017,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 13,
+      "elapsedMs": 106.07408100000066,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 13,
+      "elapsedMs": 99.3295309999994,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 13,
+      "elapsedMs": 111.94366599999921,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 14,
+      "elapsedMs": 96.53851000000031,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 14,
+      "elapsedMs": 119.35567900000024,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 14,
+      "elapsedMs": 95.24016699999993,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 14,
+      "elapsedMs": 113.63359500000115,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 14,
+      "elapsedMs": 108.81189300000005,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 14,
+      "elapsedMs": 102.45976199999859,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "cold-resident",
+      "index": 0,
+      "elapsedMs": 207.73683700000038,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "cold-resident",
+      "index": 0,
+      "elapsedMs": 212.73016599999937,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "cold-resident",
+      "index": 0,
+      "elapsedMs": 221.60206499999913,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "pi",
+      "mode": "cold-resident",
+      "index": 0,
+      "elapsedMs": 220.13013800000044,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "claude-code",
+      "mode": "cold-resident",
+      "index": 0,
+      "elapsedMs": 217.71295199999986,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "codex-cli",
+      "mode": "cold-resident",
+      "index": 0,
+      "elapsedMs": 227.33635800000047,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "cold-resident",
+      "index": 1,
+      "elapsedMs": 215.8733140000004,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "cold-resident",
+      "index": 1,
+      "elapsedMs": 207.27691699999923,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "cold-resident",
+      "index": 1,
+      "elapsedMs": 211.9971600000008,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "pi",
+      "mode": "cold-resident",
+      "index": 1,
+      "elapsedMs": 235.77266999999847,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "claude-code",
+      "mode": "cold-resident",
+      "index": 1,
+      "elapsedMs": 213.83809099999962,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "codex-cli",
+      "mode": "cold-resident",
+      "index": 1,
+      "elapsedMs": 210.5711080000001,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "cold-resident",
+      "index": 2,
+      "elapsedMs": 216.39315100000022,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "cold-resident",
+      "index": 2,
+      "elapsedMs": 219.57221600000048,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "cold-resident",
+      "index": 2,
+      "elapsedMs": 209.2184730000008,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "pi",
+      "mode": "cold-resident",
+      "index": 2,
+      "elapsedMs": 232.60297999999966,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "claude-code",
+      "mode": "cold-resident",
+      "index": 2,
+      "elapsedMs": 219.62796700000035,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "host": "codex-cli",
+      "mode": "cold-resident",
+      "index": 2,
+      "elapsedMs": 228.71657700000105,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    }
+  ],
+  "cleanup": [
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "removed": true
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "removed": true
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "removed": true
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "removed": true
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "removed": true
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "removed": true
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "removed": true
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "removed": true
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "removed": true
+    },
+    {
+      "variant": "tls-port-packed-bun-candidate",
+      "removed": true
+    }
+  ],
+  "status": "passed",
+  "finishedAt": "2026-10-06T20:48:00.189Z"
+}

@@ -1,7 +1,7 @@
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { createServer } from "node:net"
+import { createTestPort, listenTestPort } from "../test-support/resident-port.ts"
 import { afterEach, describe, expect, it } from "vitest"
 import {
   ResidentCleanupLimitation,
@@ -30,9 +30,9 @@ const ownerFixture = () => {
 describe("first-review scoped resident cleanup", () => {
   it("probes the current resident wire version", async () => {
     const stateRoot = ownerFixture()
-    const socketPath = join(stateRoot, "resident", "resident.sock")
+    const socketPath = join(stateRoot, "resident", "endpoint.json")
     let observed: unknown
-    const server = createServer((socket) => {
+    const server = await createTestPort((socket) => {
       socket.once("data", (chunk) => {
         observed = JSON.parse(chunk.toString("utf8").trim()) as unknown
         socket.end(
@@ -45,7 +45,7 @@ describe("first-review scoped resident cleanup", () => {
         )
       })
     })
-    await new Promise<void>((resolve, reject) => server.listen(socketPath, () => resolve()).once("error", reject))
+    await listenTestPort(server, socketPath)
     try {
       await expect(probeScopedResident(join(stateRoot, "resident"))).resolves.toEqual({
         pid: 41_000,

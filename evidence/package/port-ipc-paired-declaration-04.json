@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "declaredAt": "2026-10-06T20:47:44.979380+00:00",
+  "readySamples": 15,
+  "coldSamples": 3,
+  "hosts": [
+    "pi",
+    "claude-code",
+    "codex-cli"
+  ],
+  "timeoutMs": 240000,
+  "output": "evidence/package/port-ipc-paired-04.json",
+  "variants": [
+    {
+      "name": "unix-bun-baseline",
+      "transport": "unix",
+      "root": "/workspace/typescript/jev-port-ipc-prototype/.test-runs/port-ipc/baseline-package"
+    },
+    {
+      "name": "tls-port-packed-bun-candidate",
+      "transport": "tls",
+      "root": "/workspace/typescript/jev-port-ipc-prototype/.test-runs/port-ipc/packed-final-candidate/package"
+    }
+  ],
+  "archiveProvenance": {
+    "archiveDigest": "6e1e201f141940122d21e5420b67b166447ef4d6065767ce6f16a0bb878a5071",
+    "sourceDigest": "777dfb5bf0f972d2dd6400e782d967475eea74db68585251fb3be35311593d7d",
+    "buildIdentity": "ec65c2e960636c04f34d75fdc1e33360a6a36ae4bb6d2231ca447c9c993828d4",
+    "packageIdentity": "2a10b23012170760e8f8c653a6fac137e774874ab2421816c3be29754867f0ef"
+  }
+}

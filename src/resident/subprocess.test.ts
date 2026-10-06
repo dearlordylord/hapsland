@@ -1,3 +1,4 @@
+import { connectTestPort } from "../test-support/resident-port.ts"
 import { bunExecutable } from "../runtime/bun-runtime.ts"
 import { runClient } from "../test-support/client-runtime.ts"
 import { afterEach, describe, expect, it } from "vitest"
@@ -112,10 +113,10 @@ describe("resident separate-process lifecycle", () => {
     const child = spawn(executable, [paths.directory], { stdio: "pipe" })
     if (child.pid !== undefined) processes.push(child.pid)
     const result = childResult(child)
-    await waitFor(async () => (existsSync(paths.socket) ? true : undefined), 8_000)
+    await waitFor(async () => (existsSync(paths.endpoint) ? true : undefined), 8_000)
     await result
     expect(child.exitCode).toBe(0)
-    expect(existsSync(paths.socket)).toBe(false)
+    expect(existsSync(paths.endpoint)).toBe(false)
     expect(existsSync(paths.owner)).toBe(false)
     expect(existsSync(paths.lock)).toBe(false)
   })
@@ -125,16 +126,16 @@ describe("resident separate-process lifecycle", () => {
     directories.push(temporary)
     const paths = residentPaths(join(temporary, "runtime"))
     await mkdir(paths.directory, { mode: 0o700 })
-    await writeFile(paths.socket, "unowned endpoint\n", { mode: 0o600 })
+    await writeFile(paths.endpoint, "unowned endpoint\n", { mode: 0o600 })
     const failed = spawn(bunExecutable(), ["src/resident/main.ts", paths.directory], {
       cwd: process.cwd(),
       stdio: "pipe"
     })
-    await expect(childResult(failed)).rejects.toThrow("resident startup failed: listen on resident socket")
-    expect(await readFile(paths.socket, "utf8")).toBe("unowned endpoint\n")
+    await expect(childResult(failed)).rejects.toThrow("resident startup failed: listen on resident ports")
+    expect(await readFile(paths.endpoint, "utf8")).toBe("unowned endpoint\n")
     expect(existsSync(paths.lock)).toBe(false)
     expect(existsSync(paths.owner)).toBe(false)
-    await rm(paths.socket)
+    await rm(paths.endpoint)
     const next = await runClient(ensureResident(paths, 5_000))
     processes.push(next.pid)
     expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "hello" }))).status).toBe(
@@ -184,7 +185,7 @@ describe("resident separate-process lifecycle", () => {
       }
     }, 26_000)
     expect(existsSync(paths.owner)).toBe(false)
-    expect(existsSync(paths.socket)).toBe(false)
+    expect(existsSync(paths.endpoint)).toBe(false)
     expect(existsSync(paths.lock)).toBe(false)
     const second = await runClient(ensureResident(paths, 5_000))
     processes.push(second.pid)
@@ -201,13 +202,9 @@ describe("resident separate-process lifecycle", () => {
     const paths = residentPaths(join(temporary, "runtime"))
     const owner = await runClient(ensureResident(paths, 5_000))
     processes.push(owner.pid)
-    const client = (await import("node:net")).connect(paths.socket)
+    const client = await connectTestPort(paths.endpoint)
     const heartbeat = setInterval(() => client.write(" "), 500)
     try {
-      await new Promise<void>((resolve, reject) => {
-        client.once("connect", resolve)
-        client.once("error", reject)
-      })
       await new Promise<void>((resolve) => setTimeout(resolve, 5_500))
       expect(() => process.kill(owner.pid, 0)).not.toThrow()
     } finally {
@@ -426,13 +423,12 @@ describe("resident separate-process lifecycle", () => {
     // Losing the pathname is not evidence that the lock owner died. A stale
     // endpoint cannot make a contender displace that still-live owner, and
     // the readiness attempt remains bounded.
-    const liveSocket = `${residentPaths(runtime).socket}.live`
-    await rename(residentPaths(runtime).socket, liveSocket)
+    const liveSocket = `${residentPaths(runtime).endpoint}.live`
+    await rename(residentPaths(runtime).endpoint, liveSocket)
     const staleScript = [
-      "import {createServer} from 'node:net';",
-      "import {chmodSync} from 'node:fs';",
-      `const path=${JSON.stringify(residentPaths(runtime).socket)};`,
-      "const server=createServer();server.listen(path,()=>{chmodSync(path,0o600);console.log('ready')});"
+      "import {createTestPort,listenTestPort} from './src/test-support/resident-port.ts';",
+      `const path=${JSON.stringify(residentPaths(runtime).endpoint)};`,
+      "const server=await createTestPort(()=>{});await listenTestPort(server,path);console.log('ready');"
     ].join("")
     const stale = spawn(bunExecutable(), ["--input-type=module", "-e", staleScript], {
       cwd: process.cwd(),
@@ -460,28 +456,28 @@ describe("resident separate-process lifecycle", () => {
     await expect(childResult(bounded)).rejects.toThrow()
     expect(performance.now() - readinessStarted).toBeLessThan(2_000)
     expect(() => process.kill(identities[0]!.pid, 0)).not.toThrow()
-    await rm(residentPaths(runtime).socket, { force: true })
-    await rename(liveSocket, residentPaths(runtime).socket)
+    await rm(residentPaths(runtime).endpoint, { force: true })
+    await rename(liveSocket, residentPaths(runtime).endpoint)
 
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
     expect(observation).toBeDefined()
     if (observation === undefined) return
     const admissionScript = [
       "import * as Effect from 'effect/Effect';",
-      "import {connect} from 'node:net';",
+      "import {connectTestPort} from './src/test-support/resident-port.ts';",
       "import { adaptCodexDirectEvent } from './src/direct-event/adapter.ts';",
       "import {residentRequestEffect as residentRequest} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts';",
       "import {monotonicNow} from './src/resident/hook-clock.ts';",
       `const event=${JSON.stringify(addEvent(root))};`,
       `const dispatch=${JSON.stringify(dispatchFor(statePath))};`,
-      `const socketPath=${JSON.stringify(residentPaths(runtime).socket)};`,
+      `const socketPath=${JSON.stringify(residentPaths(runtime).endpoint)};`,
       `const paths=${JSON.stringify(residentPaths(runtime))};`,
       `const lifetime=${JSON.stringify(identities[0]!.lifetime)};`,
       "const observation=await Effect.runPromise(adaptCodexDirectEvent(event));",
       "const registered=await runClient(residentRequest(paths,{requestRoute:'shared',operation:'register-edit',lifetime,root:observation.root,advicee:observation.advicee,startedAt:monotonicNow()}));",
       "if(registered.status!=='advanced')throw new Error('edit permit was not registered');",
-      "const socket=connect(socketPath);",
-      "socket.once('connect',()=>socket.write(JSON.stringify({version:1,operation:'admit',lifetime,observation,controlledWriter:true,dispatch,composed:true})+'\\n'));"
+      "const socket=await connectTestPort(socketPath);",
+      "socket.write(JSON.stringify({version:1,operation:'admit',lifetime,observation,controlledWriter:true,dispatch,composed:true})+'\\n');"
     ].join("")
     const admitGate = env.REVIEW_RESIDENT_ADMIT_RESPONSE_GATE_PATH
     await writeFile(`${admitGate}.enabled`, "enabled\n")
@@ -882,7 +878,12 @@ describe("resident separate-process lifecycle", () => {
         )
       ).status
     ).toBe("busy")
-    expect((await readdir(runtime)).sort()).toEqual(["inspection.sock", "owner.json", "owner.lock", "resident.sock"])
+    expect((await readdir(runtime)).sort()).toEqual([
+      "endpoint.json",
+      "inspection.endpoint.json",
+      "owner.json",
+      "owner.lock"
+    ])
     process.kill(first.pid, "SIGKILL")
     await waitFor(async () => {
       try {

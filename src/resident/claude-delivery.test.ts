@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
 import { join } from "node:path"
 import { readFileSync, writeFileSync } from "node:fs"
-import { connect } from "node:net"
+import { connectTestPort } from "../test-support/resident-port.ts"
 import { adaptClaudeDirectEvent } from "../direct-event/adapter.ts"
 import type { DirectObservation } from "../direct-event/model.ts"
 import { makeReviewGitFixture as makeGitFixture, put } from "../direct-event/test-fixtures.ts"
@@ -527,11 +527,9 @@ describe("registry-free Claude edit response", () => {
     await Effect.runPromise(server.listen())
     try {
       await permit(server, observation)
-      const socket = connect(server.paths.socket)
+      const socket = await connectTestPort(server.paths.endpoint)
       socket.on("error", () => undefined)
-      socket.once("connect", () =>
-        socket.write(encodeCurrentResidentRequest(request(server, observation, data.dispatch)) + "\n")
-      )
+      socket.write(encodeCurrentResidentRequest(request(server, observation, data.dispatch)) + "\n")
       await entered.promise
       const closed = new Promise<void>((resolve) => socket.once("close", () => resolve()))
       socket.destroy()
@@ -567,11 +565,9 @@ describe("registry-free Claude edit response", () => {
     await Effect.runPromise(server.listen())
     try {
       await permit(server, first)
-      const socket = connect(server.paths.socket)
+      const socket = await connectTestPort(server.paths.endpoint)
       socket.on("error", () => undefined)
-      socket.once("connect", () =>
-        socket.write(encodeCurrentResidentRequest(request(server, first, data.dispatch)) + "\n")
-      )
+      socket.write(encodeCurrentResidentRequest(request(server, first, data.dispatch)) + "\n")
       await entered.promise
       const closed = new Promise<void>((resolve) => socket.once("close", () => resolve()))
       socket.destroy()
@@ -609,11 +605,9 @@ describe("registry-free Claude edit response", () => {
     try {
       await permit(server, observation)
       gated = true
-      const socket = connect(server.paths.socket)
+      const socket = await connectTestPort(server.paths.endpoint)
       socket.on("error", () => undefined)
-      socket.once("connect", () =>
-        socket.write(encodeCurrentResidentRequest(request(server, observation, data.dispatch)) + "\n")
-      )
+      socket.write(encodeCurrentResidentRequest(request(server, observation, data.dispatch)) + "\n")
       await entered.promise
       expect(Effect.runSync(server.pendingAdviceMetadata())[0]?.delivery).toBe("leased-unacknowledged")
       const closed = new Promise<void>((resolve) => socket.once("close", () => resolve()))

@@ -1,64 +1,22 @@
 import { readFile } from "node:fs/promises"
-import { connect } from "node:net"
+import { Effect } from "effect"
+import { residentRequestEffect } from "../src/resident/client.ts"
+import { residentPaths } from "../src/resident/paths.ts"
 import { join } from "node:path"
 
 export class ResidentCleanupLimitation extends Error {}
 
-const RESIDENT_WIRE_VERSION = 1
-
-export const probeScopedResident = (directory, timeoutMs = 1_000) =>
-  new Promise((resolve, reject) => {
-    const socket = connect(join(directory, "resident.sock"))
-    let settled = false
-    let encoded = ""
-    const finish = (error, value) => {
-      if (settled) return
-      settled = true
-      clearTimeout(timer)
-      socket.destroy()
-      if (error !== undefined) reject(error)
-      else resolve(value)
-    }
-    const timer = setTimeout(
-      () => finish(new ResidentCleanupLimitation("scoped resident identity probe timed out")),
-      timeoutMs
+export const probeScopedResident = async (directory, timeoutMs = 1_000) => {
+  try {
+    const response = await Effect.runPromise(
+      residentRequestEffect(residentPaths(directory), { requestRoute: "shared", operation: "hello" }, timeoutMs)
     )
-    socket.setEncoding("utf8")
-    socket.once("connect", () =>
-      socket.write(`${JSON.stringify({ version: RESIDENT_WIRE_VERSION, operation: "hello" })}\n`)
-    )
-    socket.on("data", (chunk) => {
-      encoded += chunk
-      if (Buffer.byteLength(encoded, "utf8") > 65_536) {
-        finish(new ResidentCleanupLimitation("scoped resident identity response exceeded its bound"))
-        return
-      }
-      const newline = encoded.indexOf("\n")
-      if (newline < 0) return
-      try {
-        const response = JSON.parse(encoded.slice(0, newline))
-        if (
-          response?.version !== RESIDENT_WIRE_VERSION ||
-          response.status !== "ready" ||
-          !Number.isSafeInteger(response.pid) ||
-          response.pid <= 0 ||
-          typeof response.lifetime !== "string" ||
-          response.lifetime.length === 0
-        ) {
-          throw new Error("invalid identity response")
-        }
-        finish(undefined, { pid: response.pid, lifetime: response.lifetime })
-      } catch {
-        finish(new ResidentCleanupLimitation("scoped resident identity response was invalid"))
-      }
-    })
-    socket.once("error", () =>
-      finish(new ResidentCleanupLimitation("scoped resident identity endpoint was unavailable"))
-    )
-    socket.once("close", () =>
-      finish(new ResidentCleanupLimitation("scoped resident identity endpoint closed before responding"))
-    )
-  })
+    if (response.status !== "ready") throw new Error("invalid identity response")
+    return { pid: response.pid, lifetime: response.lifetime }
+  } catch {
+    throw new ResidentCleanupLimitation("scoped resident identity endpoint was unavailable or invalid")
+  }
+}
 
 export const stopScopedResident = async (stateRoot, dependencies = {}) => {
   const directory = join(stateRoot, "resident")

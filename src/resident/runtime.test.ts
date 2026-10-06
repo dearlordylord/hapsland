@@ -43,12 +43,12 @@ it.effect("scope closure removes owned endpoints and fences the retired lifetime
           const runtime = yield* makeResidentRuntime(paths).pipe(Effect.provideService(Scope.Scope, scope))
           const completed = yield* Effect.forkChild(runtime.operations.whenClosed)
           yield* runtime.listen()
-          expect(existsSync(paths.socket)).toBe(true)
+          expect(existsSync(paths.endpoint)).toBe(true)
           expect(existsSync(paths.owner)).toBe(true)
           expect(completed.pollUnsafe()).toBeUndefined()
           yield* Scope.close(scope, Exit.void)
           yield* Fiber.join(completed)
-          expect(existsSync(paths.socket)).toBe(false)
+          expect(existsSync(paths.endpoint)).toBe(false)
           expect(existsSync(paths.owner)).toBe(false)
           expect(yield* runtime.handle({ requestRoute: "shared", operation: "hello" })).toMatchObject({
             status: "obsolete-lifetime"

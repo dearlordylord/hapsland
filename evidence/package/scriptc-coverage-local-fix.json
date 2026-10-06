@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "observedAt": "2026-10-06T21:14:34.254406+00:00",
+  "authority": "Local compiler diagnosis and focused validation evidence; not a product contract or released compiler fix.",
+  "upstreamSourceCommit": "9482cbadcbe7730269854d72d96e35fac06b1fb8",
+  "publishedCompilerVersion": "0.2.4",
+  "publishedCompilerUnmodified": true,
+  "patch": "scriptc-coverage-local-fix.patch",
+  "patchSha256": "7364baf6303e769d6bd64e107bda506db80af9166214f648822591ebda34edf2",
+  "cause": "Native union property dispatch ignored the actual island-handle representation, including optional-chain receiver overrides. First located at plan.resetJournal?.exists in src/onboarding/codex-installation.ts.",
+  "fix": "Dispatch optional-chain receivers by their bound representation; lower island-backed union property reads as engine operations with validated primitive exits.",
+  "validation": {
+    "compilerBuild": {
+      "command": "pnpm --filter @scriptc/compiler run build",
+      "exitCode": 0
+    },
+    "focusedTests": {
+      "files": [
+        "packages/compiler/src/frontend/lowering/lower-exprs.test.ts",
+        "packages/compiler/src/frontend/lowering/lower-island.test.ts",
+        "tests/harness/coverage.test.ts"
+      ],
+      "passed": 16,
+      "skipped": 24,
+      "exitCode": 0
+    },
+    "ownedFileLint": {
+      "tool": "oxlint --deny-warnings",
+      "exitCode": 0
+    },
+    "ownedFileFormatting": {
+      "tool": "oxfmt --check",
+      "exitCode": 0
+    },
+    "cliCoverage": {
+      "command": "node --import tsx packages/cli/src/main.ts coverage /workspace/typescript/jev-port-ipc-prototype/src/cli.ts --dynamic",
+      "exitCode": 0,
+      "statementsAnalyzed": 14728,
+      "compileStatically": 11508,
+      "compileDynamically": 1694,
+      "signatureBlockedFunctions": 37,
+      "remainingCompatibilityDiagnostics": true
+    },
+    "initialSuiteFailure": {
+      "cause": "Two CLI subprocess tests started before compiler dist was built. Both passed in the focused rerun after building. Initial broader run also passed the other 32 coverage cases, but started before the final patch was frozen."
+    }
+  },
+  "setupPrototype": {
+    "path": "/workspace/typescript/jev-setup-interaction",
+    "branch": "research/setup-interaction-model",
+    "command": "scriptc build prototypes/setup-interaction/cli.ts --dynamic --emit=ir",
+    "compiler": "published 0.2.4",
+    "exitCode": 1,
+    "reportedErrors": 25,
+    "examples": [
+      "ReadStream types",
+      "Effect generator and callback boundaries",
+      "typed Map containing Effect values"
+    ],
+    "interpretation": "Does not establish compatibility of an eventual production setup rewrite or an isolated HTTP hook executable."
+  },
+  "limitations": [
+    "No upstream PR or publication.",
+    "No full compiler differential/native/sanitizer gate.",
+    "Fixing analysis does not fix remaining compilation blockers.",
+    "Current production port probe is raw framed TLS/TCP; a proposed HTTP-only hook client was not tested.",
+    "Hapsland production source was not changed by this follow-up."
+  ]
+}

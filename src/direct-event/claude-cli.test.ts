@@ -5,8 +5,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { spawn } from "node:child_process"
 import { spawnSync } from "../../scripts/test-harness/process.mjs"
 import { DEFAULT_CHILD_TIMEOUT_MS, FIXTURE_READY_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
-import { createServer } from "node:net"
-import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { createTestPort, listenTestPort } from "../test-support/resident-port.ts"
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { readActivity } from "../activity/status.ts"
 import { configuredRules } from "../test-support/default-rules.ts"
@@ -448,29 +448,30 @@ describe("Claude synchronous hook CLI", () => {
     mkdirSync(paths.directory, { recursive: true, mode: 0o700 })
     const operations: string[] = []
     const versions: number[] = []
-    const fakeResident = createServer((socket) => {
+    const fakeResident = await createTestPort((socket) => {
       let frame = ""
       socket.on("data", (chunk: Buffer) => {
         frame += chunk.toString("utf8")
         const newline = frame.indexOf("\n")
         if (newline < 0) return
-        const request = JSON.parse(frame.slice(0, newline)) as { operation: string; version: number }
+        const request = JSON.parse(frame.slice(0, newline)) as { operation: string; version: number; lifetime?: string }
         operations.push(request.operation)
         versions.push(request.version)
+        if (request.operation !== "hello") expect(request.lifetime).toBe("日本語-fake-lifetime")
         const response =
           request.operation === "hello"
-            ? JSON.stringify({ version: 1, status: "ready", lifetime: "fake-lifetime", pid: process.pid })
+            ? JSON.stringify({ version: 1, status: "ready", lifetime: "日本語-fake-lifetime", pid: process.pid })
             : request.operation === "admit-and-collect"
               ? reply
               : JSON.stringify({ version: 1, status: "unsupported" })
-        socket.end(`${response}\n`)
+        if (request.operation === "hello") {
+          const bytes = Buffer.from(`${response}\n`)
+          const split = bytes.indexOf(Buffer.from("日")) + 1
+          socket.write(bytes.subarray(0, split), () => setImmediate(() => socket.end(bytes.subarray(split))))
+        } else socket.end(`${response}\n`)
       })
     })
-    await new Promise<void>((resolve, reject) => {
-      fakeResident.once("error", reject)
-      fakeResident.listen(paths.socket, resolve)
-    })
-    chmodSync(paths.socket, 0o600)
+    await listenTestPort(fakeResident, paths.endpoint)
     try {
       const env = {
         ...installed.environment,

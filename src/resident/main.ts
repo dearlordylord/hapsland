@@ -1,10 +1,13 @@
 #!/usr/bin/env node
+// Initialize reflection before Bun evaluates the lazy certificate module.
+import "reflect-metadata"
 import { machineClockLayer } from "../runtime/machine-clock.ts"
 import * as Config from "effect/Config"
 import * as ConfigProvider from "effect/ConfigProvider"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
+import { residentPaths } from "./paths.ts"
 import { join } from "node:path"
 import { readFileSync } from "node:fs"
 import { mkdir, rm } from "node:fs/promises"
@@ -53,15 +56,12 @@ const run = Effect.fn("ResidentProcess.run")(function* () {
   )
   const clockPath = yield* Config.option(Config.String("REVIEW_RESIDENT_CLOCK_PATH"))
   const now = Option.isNone(clockPath) ? () => performance.now() : () => Number(readFileSync(clockPath.value, "utf8"))
-  const runtimeLayer = residentRuntimeLayer(
-    { directory, socket: join(directory, "resident.sock"), lock, owner: join(directory, "owner.json") },
-    now
-  )
+  const runtimeLayer = residentRuntimeLayer(residentPaths(directory), now)
   yield* Effect.gen(function* () {
     const server = yield* ResidentRuntimeService
     yield* server
       .listen()
-      .pipe(Effect.mapError(() => new ResidentProcessError({ operation: "listen on resident socket" })))
+      .pipe(Effect.mapError(() => new ResidentProcessError({ operation: "listen on resident ports" })))
     yield* processEffect("clear startup diagnostic", () => rm(`${lock}.startup-error`, { force: true }))
     yield* server.whenClosed
   }).pipe(Effect.provide(runtimeLayer))

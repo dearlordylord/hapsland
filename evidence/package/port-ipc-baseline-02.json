@@ -1,0 +1,625 @@
+{
+  "version": 1,
+  "startedAt": "2026-10-06T20:10:50.696Z",
+  "declaration": {
+    "version": 1,
+    "declaredAt": "2026-10-06T20:10:00.130Z",
+    "readySamples": 15,
+    "coldSamples": 3,
+    "hosts": [
+      "pi",
+      "claude-code",
+      "codex-cli"
+    ],
+    "timeoutMs": 240000,
+    "output": "evidence/package/port-ipc-baseline-02.json",
+    "variants": [
+      {
+        "name": "unix-bun-baseline",
+        "transport": "unix",
+        "root": "/workspace/typescript/jev-port-ipc-prototype/.test-runs/port-ipc/baseline-package"
+      }
+    ]
+  },
+  "declarationSha256": "98e367f3fc05ad7880f7eca2379b5bdada7b8332d848aaffbc0e1cd6cbc6a90a",
+  "runnerSha256": "d64d3800fb267b0268ed64ebc6728c06c18aa8ffba5bc49729bb3369609811b6",
+  "platform": "linux",
+  "architecture": "arm64",
+  "node": "v24.20.0",
+  "scope": "Offline installed-layout standalone hook processes; no source edits or provider calls. OS cache and scheduler uncontrolled.",
+  "variants": [
+    {
+      "name": "unix-bun-baseline",
+      "transport": "unix",
+      "root": "/workspace/typescript/jev-port-ipc-prototype/.test-runs/port-ipc/baseline-package",
+      "cliSha256": "ec5b1705980e36b27162a72240de856c0d6ea49941eb95a5ac9c536d55fbce02",
+      "residentSha256": "1c2c048712a8cb80fe1e3afbcf85ae2836fadafe70bbc65e16462746c932802f"
+    }
+  ],
+  "samples": [
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 0,
+      "elapsedMs": 141.94131900000002,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 0,
+      "elapsedMs": 135.96502500000008,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 0,
+      "elapsedMs": 159.943532,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 1,
+      "elapsedMs": 170.39577400000007,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 1,
+      "elapsedMs": 170.78519400000005,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 1,
+      "elapsedMs": 153.104149,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 2,
+      "elapsedMs": 214.103382,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 2,
+      "elapsedMs": 176.72265300000004,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 2,
+      "elapsedMs": 127.84109199999989,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 3,
+      "elapsedMs": 161.1087070000001,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 3,
+      "elapsedMs": 132.24745600000006,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 3,
+      "elapsedMs": 135.83089900000004,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 4,
+      "elapsedMs": 169.1173899999999,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 4,
+      "elapsedMs": 154.24465800000007,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 4,
+      "elapsedMs": 182.9320319999997,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 5,
+      "elapsedMs": 147.6482350000001,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 5,
+      "elapsedMs": 126.21245500000032,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 5,
+      "elapsedMs": 135.16614500000014,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 6,
+      "elapsedMs": 142.71169899999995,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 6,
+      "elapsedMs": 162.7890110000003,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 6,
+      "elapsedMs": 177.47003399999994,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 7,
+      "elapsedMs": 179.82146699999976,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 7,
+      "elapsedMs": 124.19923199999994,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 7,
+      "elapsedMs": 166.12682700000005,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 8,
+      "elapsedMs": 245.30269099999987,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 8,
+      "elapsedMs": 163.10230499999943,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 8,
+      "elapsedMs": 183.43599300000005,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 9,
+      "elapsedMs": 183.48524400000042,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 9,
+      "elapsedMs": 201.86462699999993,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 9,
+      "elapsedMs": 157.456639,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 10,
+      "elapsedMs": 189.7055389999996,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 10,
+      "elapsedMs": 139.99280400000043,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 10,
+      "elapsedMs": 162.21025699999973,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 11,
+      "elapsedMs": 150.81075800000053,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 11,
+      "elapsedMs": 161.61991899999975,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 11,
+      "elapsedMs": 179.71184200000062,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 12,
+      "elapsedMs": 163.03363799999988,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 12,
+      "elapsedMs": 151.2183439999999,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 12,
+      "elapsedMs": 142.6349479999999,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 13,
+      "elapsedMs": 143.10220200000003,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 13,
+      "elapsedMs": 218.60245599999962,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 13,
+      "elapsedMs": 296.93439800000033,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "ready-resident",
+      "index": 14,
+      "elapsedMs": 208.21871399999964,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "ready-resident",
+      "index": 14,
+      "elapsedMs": 163.15326399999958,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "ready-resident",
+      "index": 14,
+      "elapsedMs": 222.5418180000006,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "cold-resident",
+      "index": 0,
+      "elapsedMs": 313.14913999999953,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "cold-resident",
+      "index": 0,
+      "elapsedMs": 291.63473499999964,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "cold-resident",
+      "index": 0,
+      "elapsedMs": 537.71839,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "cold-resident",
+      "index": 1,
+      "elapsedMs": 279.2971870000001,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "cold-resident",
+      "index": 1,
+      "elapsedMs": 496.65600900000027,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "cold-resident",
+      "index": 1,
+      "elapsedMs": 260.323382999999,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "pi",
+      "mode": "cold-resident",
+      "index": 2,
+      "elapsedMs": 364.72726299999886,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "registered"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "claude-code",
+      "mode": "cold-resident",
+      "index": 2,
+      "elapsedMs": 366.18689900000027,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "host": "codex-cli",
+      "mode": "cold-resident",
+      "index": 2,
+      "elapsedMs": 327.51857700000073,
+      "exitCode": 0,
+      "timedOut": false,
+      "responseStatus": "silent"
+    }
+  ],
+  "cleanup": [
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    },
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    }
+  ],
+  "status": "passed",
+  "finishedAt": "2026-10-06T20:11:02.576Z"
+}

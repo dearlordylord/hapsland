@@ -43,8 +43,10 @@ import * as Schema from "effect/Schema"
 import type * as HttpClient from "effect/http/HttpClient"
 import { createHash, randomUUID } from "node:crypto"
 import { appendFileSync, statSync, writeFileSync } from "node:fs"
-import { access, appendFile, chmod, rm, writeFile } from "node:fs/promises"
-import { createServer, type Server, type Socket } from "node:net"
+import { access, appendFile, rm, writeFile } from "node:fs/promises"
+import type { Server, Socket } from "node:net"
+import { createResidentPort, RESIDENT_LOOPBACK } from "./port.ts"
+import { publishResidentEndpoint, verifyRemovableEndpoint } from "./endpoint.ts"
 import { join, resolve } from "node:path"
 import {
   canonicalValue,
@@ -74,7 +76,7 @@ import {
   controlledDecisionModelLayer,
   type ControlledDecisionModelOptions
 } from "../test-support/controlled-decision-model.ts"
-import { prepareResidentDirectory, resolveResidentPaths, verifyRemovableSocket, type ResidentPaths } from "./paths.ts"
+import { prepareResidentDirectory, resolveResidentPaths, type ResidentPaths } from "./paths.ts"
 import {
   DELIVERY_LEASE_MS,
   EDIT_REQUEST_DEADLINE_MS,
@@ -579,7 +581,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }
     | undefined
   const inspection = yield* makeInspectionRecorder(
-    { endpoint: paths.socket, lifetime },
+    { endpoint: paths.endpoint, lifetime },
     options.inspectionPersistence ?? {
       write: (record, encoded, publication) =>
         Effect.suspend(() => {
@@ -4767,7 +4769,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (request.operation === "inspection-status")
       return residentResponse({
         status: "inspection-status",
-        sourceId: inspectionSourceId(paths.socket, lifetime),
+        sourceId: inspectionSourceId(paths.endpoint, lifetime),
         observedAt: Date.now(),
         ...inspection.currentRecording()
       })
@@ -5475,7 +5477,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               : request?.operation === "inspection-status"
                 ? ((yield* residentRequestLifetime(request)) ?? {
                     status: "inspection-status" as const,
-                    sourceId: inspectionSourceId(paths.socket, lifetime),
+                    sourceId: inspectionSourceId(paths.endpoint, lifetime),
                     observedAt: Date.now(),
                     ...inspection.currentRecording()
                   })
@@ -5548,7 +5550,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const listen = Effect.fn("ResidentIpc.listen")(() => {
     const owner = runtime
     // Endpoint publication is a bounded acquisition. Signal interruption must
-    // wait for binding to settle so its owning finalizer can remove the socket.
+    // wait for binding to settle so its owning finalizer can remove the endpoint records.
     return Effect.uninterruptible(
       Effect.gen(function* () {
         if (process.platform !== "linux" && process.platform !== "darwin") {
@@ -5557,52 +5559,68 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         yield* prepareResidentDirectory(owner.paths).pipe(
           Effect.mapError(() => new ResidentAdapterError({ operation: "prepare resident directory" }))
         )
-        // The launcher holds the live-owner directory. A socket pathname alone is
-        // never treated as ownership evidence.
-        yield* verifyRemovableSocket(owner.paths).pipe(
-          Effect.mapError(() => new ResidentAdapterError({ operation: "verify removable socket" }))
+        const inspectionPaths = { ...owner.paths, endpoint: join(owner.paths.directory, "inspection.endpoint.json") }
+        yield* verifyRemovableEndpoint(owner.paths).pipe(
+          Effect.mapError(() => new ResidentAdapterError({ operation: "verify removable endpoint" }))
         )
-        yield* residentAdapter("remove stale socket", () => rm(owner.paths.socket, { force: true }))
+        yield* verifyRemovableEndpoint(inspectionPaths).pipe(
+          Effect.mapError(() => new ResidentAdapterError({ operation: "verify inspection endpoint" }))
+        )
+        yield* residentAdapter("remove stale endpoint", () => rm(owner.paths.endpoint, { force: true }))
+        yield* residentAdapter("remove stale inspection endpoint", () => rm(inspectionPaths.endpoint, { force: true }))
+        const identity = yield* residentAdapter("generate resident TLS identity", async () => {
+          const { generateResidentIdentity } = await import("./tls-identity.ts")
+          return generateResidentIdentity()
+        })
         const runSocket = Effect.runForkWith(yield* Effect.context())
-        const server = createServer((socket) => {
-          if (!server.listening) {
-            socket.destroy()
-            return
-          }
-          // This native callback only starts a fiber in the socket owner scope.
-          runSocket(Effect.forkIn(residentAccept(socket), residentIpcScope, { startImmediately: true }))
-        })
-        server.maxConnections = MAX_IPC_CONNECTIONS
-        yield* Effect.callback<void, ResidentAdapterError>((resume) => {
-          server.once("error", () =>
-            resume(Effect.fail(new ResidentAdapterError({ operation: "bind resident socket" })))
-          )
-          server.listen(owner.paths.socket, () => resume(Effect.void))
-        })
-        residentServer = server
-        yield* residentAdapter("secure resident socket", () => chmod(owner.paths.socket, 0o600))
-        const inspectionPaths = { ...owner.paths, socket: join(owner.paths.directory, "inspection.sock") }
-        yield* verifyRemovableSocket(inspectionPaths).pipe(
-          Effect.mapError(() => new ResidentAdapterError({ operation: "verify inspection socket" }))
+        const main = createResidentPort(
+          identity,
+          (socket) => {
+            if (!main.server.listening) {
+              socket.destroy()
+              return
+            }
+            runSocket(Effect.forkIn(residentAccept(socket), residentIpcScope, { startImmediately: true }))
+          },
+          MAX_IPC_CONNECTIONS
         )
-        yield* residentAdapter("remove stale inspection socket", () => rm(inspectionPaths.socket, { force: true }))
-        const readonlyServer = createServer((socket) => {
-          if (!readonlyServer.listening || inspectionConnections >= 4) {
-            socket.destroy()
-            return
-          }
-          inspectionConnections += 1
-          runSocket(Effect.forkIn(inspectionAccept(socket), residentIpcScope, { startImmediately: true }))
-        })
-        readonlyServer.maxConnections = 4
-        yield* Effect.callback<void, ResidentAdapterError>((resume) => {
-          readonlyServer.once("error", () =>
-            resume(Effect.fail(new ResidentAdapterError({ operation: "bind inspection socket" })))
-          )
-          readonlyServer.listen(inspectionPaths.socket, () => resume(Effect.void))
-        })
-        inspectionServer = readonlyServer
-        yield* residentAdapter("secure inspection socket", () => chmod(inspectionPaths.socket, 0o600))
+        residentServer = main.server
+        const readonly = createResidentPort(
+          identity,
+          (socket) => {
+            if (!readonly.server.listening || inspectionConnections >= 4) {
+              socket.destroy()
+              return
+            }
+            inspectionConnections += 1
+            runSocket(Effect.forkIn(inspectionAccept(socket), residentIpcScope, { startImmediately: true }))
+          },
+          4
+        )
+        inspectionServer = readonly.server
+        for (const [port, endpointPaths] of [
+          [main, owner.paths],
+          [readonly, inspectionPaths]
+        ] as const) {
+          yield* Effect.callback<void, ResidentAdapterError>((resume) => {
+            port.server.once("error", () =>
+              resume(Effect.fail(new ResidentAdapterError({ operation: "bind resident port" })))
+            )
+            port.server.listen(0, RESIDENT_LOOPBACK, () => resume(Effect.void))
+          })
+          const address = port.server.address()
+          if (address === null || typeof address === "string")
+            return yield* Effect.fail(new ResidentAdapterError({ operation: "resolve resident port" }))
+          yield* publishResidentEndpoint(endpointPaths, {
+            version: 1,
+            host: RESIDENT_LOOPBACK,
+            port: address.port,
+            certificate: identity.certificate,
+            token: port.token,
+            pid: process.pid,
+            lifetime: owner.lifetime
+          }).pipe(Effect.mapError(() => new ResidentAdapterError({ operation: "publish resident port" })))
+        }
         residentOwnsOwnerRecord = true
         yield* residentAdapter("publish resident endpoint", () =>
           writeFile(owner.paths.owner, `${JSON.stringify({ pid: process.pid, lifetime: owner.lifetime })}\n`, {
@@ -5674,15 +5692,15 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         if (inspectionClosed !== undefined) yield* Fiber.join(inspectionClosed)
         if (readonlyServer !== undefined) {
           inspectionServer = undefined
-          yield* residentAdapter("remove owned inspection socket", () =>
-            rm(join(owner.paths.directory, "inspection.sock"), { force: true })
+          yield* residentAdapter("remove owned inspection endpoint", () =>
+            rm(join(owner.paths.directory, "inspection.endpoint.json"), { force: true })
           )
         }
         if (endpointClosed !== undefined) yield* Fiber.join(endpointClosed)
         yield* residentLedger.clear()
         if (server !== undefined) {
           residentServer = undefined
-          yield* residentAdapter("remove owned socket", () => rm(owner.paths.socket, { force: true }))
+          yield* residentAdapter("remove owned endpoint", () => rm(owner.paths.endpoint, { force: true }))
         }
         if (residentOwnsOwnerRecord) {
           residentOwnsOwnerRecord = false

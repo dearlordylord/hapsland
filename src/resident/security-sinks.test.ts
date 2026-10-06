@@ -6,7 +6,7 @@ import * as Effect from "effect/Effect"
 import { spawn } from "node:child_process"
 import { existsSync } from "node:fs"
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises"
-import { connect } from "node:net"
+import { connectTestPort } from "../test-support/resident-port.ts"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
@@ -124,12 +124,12 @@ describe("security sink prototype", () => {
         )
       ).status
     ).toBe("advanced")
+    const socket = await connectTestPort(paths.endpoint)
     const admissionResponse = await new Promise<string>((resolve, reject) => {
-      const socket = connect(paths.socket)
       let response = ""
       socket.setEncoding("utf8")
       socket.once("error", reject)
-      socket.once("connect", () => socket.write(admissionFrame))
+      socket.write(admissionFrame)
       socket.on("data", (chunk: string) => {
         response += chunk
         if (response.includes("\n")) socket.end()

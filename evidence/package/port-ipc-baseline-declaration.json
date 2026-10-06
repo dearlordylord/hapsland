@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "declaredAt": "2026-10-06T20:09:09Z",
+  "readySamples": 15,
+  "coldSamples": 3,
+  "hosts": [
+    "pi",
+    "claude-code",
+    "codex-cli"
+  ],
+  "timeoutMs": 240000,
+  "output": "evidence/package/port-ipc-baseline.json",
+  "variants": [
+    {
+      "name": "unix-bun-baseline",
+      "transport": "unix",
+      "root": "/workspace/typescript/jev-port-ipc-prototype/.test-runs/port-ipc/baseline-package"
+    }
+  ]
+}

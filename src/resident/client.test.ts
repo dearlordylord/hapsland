@@ -6,7 +6,8 @@ import { ConfigProvider, Deferred, Effect, Fiber, Layer } from "effect"
 import * as Scheduler from "effect/Scheduler"
 import { afterEach, describe, expect, it } from "vitest"
 import { chmod, mkdtemp, rm, symlink } from "node:fs/promises"
-import { createServer, type Server, type Socket } from "node:net"
+import type { Server, Socket } from "node:net"
+import { createTestPort, listenTestPort } from "../test-support/resident-port.ts"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
@@ -37,6 +38,28 @@ afterEach(async () => {
 })
 
 describe("resident client trust boundary", () => {
+  it("preserves a Unicode lifetime split across TLS response chunks", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "hapsland-unicode-response-"))
+    directories.push(directory)
+    const paths = residentPaths(directory)
+    const lifetime = "日本語-resident"
+    const server = await createTestPort((socket) => {
+      sockets.push(socket)
+      socket.once("data", () => {
+        const response = Buffer.from(`${JSON.stringify({ version: 1, status: "ready", lifetime, pid: process.pid })}\n`)
+        const split = response.indexOf(Buffer.from("日")) + 1
+        socket.write(response.subarray(0, split), () => setImmediate(() => socket.end(response.subarray(split))))
+      })
+    })
+    servers.push(server)
+    await listenTestPort(server, paths.endpoint)
+    expect(await runClient(residentRequest(paths, { requestRoute: "shared", operation: "hello" }))).toEqual({
+      status: "ready",
+      lifetime,
+      pid: process.pid
+    })
+  })
+
   it("does not launch a resident just to release a background claim", async () => {
     const directory = await mkdtemp(join(tmpdir(), "haps-background-missing-"))
     directories.push(directory)
@@ -52,7 +75,7 @@ describe("resident client trust boundary", () => {
     await chmod(directory, 0o700)
     const paths = residentPaths(directory)
     const requests: unknown[] = []
-    const server = createServer((socket) => {
+    const server = await createTestPort((socket) => {
       sockets.push(socket)
       let frame = ""
       socket.on("data", (chunk) => {
@@ -68,11 +91,8 @@ describe("resident client trust boundary", () => {
       })
     })
     servers.push(server)
-    await new Promise<void>((resolve, reject) => {
-      server.once("error", reject)
-      server.listen(paths.socket, resolve)
-    })
-    await chmod(paths.socket, 0o600)
+    await listenTestPort(server, paths.endpoint)
+    await chmod(paths.endpoint, 0o600)
     const advicee = fixtureAdvicee()
     const result = await runClient(
       releaseComposedBackgroundEffect("/repo", advicee, "claim").pipe(
@@ -92,7 +112,7 @@ describe("resident client trust boundary", () => {
     await chmod(directory, 0o700)
     const paths = residentPaths(directory)
     let received = 0
-    const server = createServer((socket) => {
+    const server = await createTestPort((socket) => {
       sockets.push(socket)
       let frame = ""
       socket.on("data", (chunk) => {
@@ -104,11 +124,8 @@ describe("resident client trust boundary", () => {
       })
     })
     servers.push(server)
-    await new Promise<void>((resolve, reject) => {
-      server.once("error", reject)
-      server.listen(paths.socket, resolve)
-    })
-    await chmod(paths.socket, 0o600)
+    await listenTestPort(server, paths.endpoint)
+    await chmod(paths.endpoint, 0o600)
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const response = await Effect.runPromise(
         residentRequestEffect(paths, { requestRoute: "shared", operation: "hello" }, 300).pipe(
@@ -216,12 +233,12 @@ describe("resident client trust boundary", () => {
 
   it("rejects wrong ownership, unsafe mode, symlinks, and wrong endpoint types", () => {
     const uid = typeof process.getuid === "function" ? process.getuid() : process.pid
-    const safe = { uid, mode: 0o140600, isDirectory: false, isSocket: true, isFile: false, isSymbolicLink: false }
-    expect(validateEndpointMetadata(safe, "socket", uid)).toBe(true)
-    expect(validateEndpointMetadata({ ...safe, uid: uid + 1 }, "socket", uid)).toBe(false)
-    expect(validateEndpointMetadata({ ...safe, mode: 0o140666 }, "socket", uid)).toBe(false)
-    expect(validateEndpointMetadata({ ...safe, isSymbolicLink: true }, "socket", uid)).toBe(false)
-    expect(validateEndpointMetadata({ ...safe, isSocket: false, isFile: true }, "socket", uid)).toBe(false)
+    const safe = { uid, mode: 0o100600, isDirectory: false, isFile: true, isSymbolicLink: false }
+    expect(validateEndpointMetadata(safe, "regular", uid)).toBe(true)
+    expect(validateEndpointMetadata({ ...safe, uid: uid + 1 }, "regular", uid)).toBe(false)
+    expect(validateEndpointMetadata({ ...safe, mode: 0o100666 }, "regular", uid)).toBe(false)
+    expect(validateEndpointMetadata({ ...safe, isSymbolicLink: true }, "regular", uid)).toBe(false)
+    expect(validateEndpointMetadata({ ...safe, isFile: false }, "regular", uid)).toBe(false)
   })
 
   it("rejects a precreated symlink runtime directory", async () => {
@@ -243,14 +260,11 @@ describe("resident client trust boundary", () => {
     directories.push(directory)
     await chmod(directory, 0o700)
     const paths = residentPaths(directory)
-    const server = createServer((socket) => socket.end(response))
+    const server = await createTestPort((socket) => socket.once("data", () => socket.end(response)))
     server.on("connection", (socket) => sockets.push(socket))
     servers.push(server)
-    await new Promise<void>((resolve, reject) => {
-      server.once("error", reject)
-      server.listen(paths.socket, resolve)
-    })
-    await chmod(paths.socket, 0o600)
+    await listenTestPort(server, paths.endpoint)
+    await chmod(paths.endpoint, 0o600)
     await expect(
       runClient(residentRequest(paths, { requestRoute: "shared", operation: "hello" }, 500))
     ).rejects.toThrow("resident response was invalid")
@@ -262,20 +276,17 @@ describe("resident client trust boundary", () => {
     await chmod(directory, 0o700)
     const paths = residentPaths(directory)
     let connections = 0
-    const server = createServer((socket) => {
+    const server = await createTestPort((socket) => {
       connections += 1
       socket.end('{"status":"ready","lifetime":"forged","pid":1}\n')
     })
     server.on("connection", (socket) => sockets.push(socket))
     servers.push(server)
-    await new Promise<void>((resolve, reject) => {
-      server.once("error", reject)
-      server.listen(paths.socket, resolve)
-    })
-    await chmod(paths.socket, 0o666)
+    await listenTestPort(server, paths.endpoint)
+    await chmod(paths.endpoint, 0o666)
     await expect(
       runClient(residentRequest(paths, { requestRoute: "shared", operation: "hello" }, 500))
-    ).rejects.toThrow("private user-owned socket")
+    ).rejects.toThrow("resident endpoint unavailable or unsafe")
     expect(connections).toBe(0)
   })
 
@@ -292,17 +303,14 @@ describe("resident client trust boundary", () => {
     const connectionClosed = new Promise<void>((resolve) => {
       closed = resolve
     })
-    const server = createServer((socket) => {
+    const server = await createTestPort((socket) => {
       sockets.push(socket)
       socket.once("data", entered)
       socket.once("close", closed)
     })
     servers.push(server)
-    await new Promise<void>((resolve, reject) => {
-      server.once("error", reject)
-      server.listen(paths.socket, resolve)
-    })
-    await chmod(paths.socket, 0o600)
+    await listenTestPort(server, paths.endpoint)
+    await chmod(paths.endpoint, 0o600)
     const request = Effect.runFork(residentRequestEffect(paths, { requestRoute: "shared", operation: "hello" }, 5_000))
     try {
       await requestEntered
@@ -322,23 +330,19 @@ describe("resident client trust boundary", () => {
       const paths = residentPaths(directory)
       const entered = yield* Deferred.make<void>()
       const closed = yield* Deferred.make<void>()
-      const server = createServer((socket) => {
-        sockets.push(socket)
-        socket.once("data", (chunk) => {
-          expect(JSON.parse(chunk.toString("utf8")).operation).toBe("admit")
-          Effect.runSync(Deferred.succeed(entered, undefined))
-        })
-        socket.once("close", () => Effect.runSync(Deferred.succeed(closed, undefined)))
-      })
-      servers.push(server)
-      yield* Effect.promise(
-        () =>
-          new Promise<void>((resolve, reject) => {
-            server.once("error", reject)
-            server.listen(paths.socket, resolve)
+      const server = yield* Effect.promise(() =>
+        createTestPort((socket) => {
+          sockets.push(socket)
+          socket.once("data", (chunk) => {
+            expect(JSON.parse(chunk.toString("utf8")).operation).toBe("admit")
+            Effect.runSync(Deferred.succeed(entered, undefined))
           })
+          socket.once("close", () => Effect.runSync(Deferred.succeed(closed, undefined)))
+        })
       )
-      yield* Effect.promise(() => chmod(paths.socket, 0o600))
+      servers.push(server)
+      yield* Effect.promise(() => listenTestPort(server, paths.endpoint))
+      yield* Effect.promise(() => chmod(paths.endpoint, 0o600))
       const startup = ResidentStartup.of({
         now: Effect.sync(() => performance.now()),
         prepare: () => Effect.void,
@@ -380,14 +384,11 @@ describe("resident client trust boundary", () => {
     directories.push(directory)
     await chmod(directory, 0o700)
     const paths = residentPaths(directory)
-    const server = createServer(() => undefined)
+    const server = await createTestPort(() => undefined)
     server.on("connection", (socket) => sockets.push(socket))
     servers.push(server)
-    await new Promise<void>((resolve, reject) => {
-      server.once("error", reject)
-      server.listen(paths.socket, resolve)
-    })
-    await chmod(paths.socket, 0o600)
+    await listenTestPort(server, paths.endpoint)
+    await chmod(paths.endpoint, 0o600)
     await expect(
       runClient(
         residentRequest(
@@ -420,18 +421,15 @@ describe("resident client trust boundary", () => {
     await chmod(directory, 0o700)
     const paths = residentPaths(directory)
     let received = 0
-    const server = createServer((socket) =>
+    const server = await createTestPort((socket) =>
       socket.on("data", (chunk) => {
         received += typeof chunk === "string" ? Buffer.byteLength(chunk, "utf8") : chunk.byteLength
       })
     )
     server.on("connection", (socket) => sockets.push(socket))
     servers.push(server)
-    await new Promise<void>((resolve, reject) => {
-      server.once("error", reject)
-      server.listen(paths.socket, resolve)
-    })
-    await chmod(paths.socket, 0o600)
+    await listenTestPort(server, paths.endpoint)
+    await chmod(paths.endpoint, 0o600)
     await expect(
       runClient(
         residentRequest(
@@ -576,16 +574,13 @@ it("preserves edit polling and rejection outcomes through bounded IPC", async ()
   await chmod(directory, 0o700)
   const paths = residentPaths(directory)
   let reply: { readonly status: string; readonly reason?: string } = { status: "empty" }
-  const server = createServer((socket) => {
+  const server = await createTestPort((socket) => {
     sockets.push(socket)
     socket.once("data", () => socket.end(`${JSON.stringify({ version: 1, ...reply })}\n`))
   })
   servers.push(server)
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject)
-    server.listen(paths.socket, resolve)
-  })
-  await chmod(paths.socket, 0o600)
+  await listenTestPort(server, paths.endpoint)
+  await chmod(paths.endpoint, 0o600)
   const startup = Layer.succeed(
     ResidentStartup,
     ResidentStartup.of({

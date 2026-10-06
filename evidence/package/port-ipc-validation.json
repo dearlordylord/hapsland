@@ -1,0 +1,290 @@
+{
+  "version": 1,
+  "purpose": "Evidence-backed audit of the five-step port IPC worktree experiment; not a release declaration.",
+  "recordedAt": "2026-10-06T20:48:36.851876+00:00",
+  "branch": "prototype/port-ipc",
+  "baseCommit": "1569d076d2599c52d095d6aab1b97183c13aa044",
+  "platform": "linux-arm64",
+  "requirements": [
+    {
+      "step": 1,
+      "requirement": "Establish current hook timing and behavior baseline",
+      "state": "verified",
+      "evidence": [
+        "evidence/package/port-ipc-paired-04.json",
+        "evidence/package/port-ipc-baseline-02.json"
+      ],
+      "scope": "Frozen pre-change standalone Unix comparator; successful Pi/Claude/Codex hook invocations and resident readiness, with explicit registration responses only for Pi."
+    },
+    {
+      "step": 2,
+      "requirement": "Replace Unix IPC with authenticated loopback connections, including inspection",
+      "state": "verified",
+      "evidence": [
+        "src/resident/port.ts",
+        "src/resident/endpoint.ts",
+        "src/resident/server.ts",
+        "src/inspection/registry.ts"
+      ],
+      "scope": "Production-code worktree, version-one frames, private endpoint records, verified TLS then token authentication; independent control/inspection ports."
+    },
+    {
+      "step": 3,
+      "requirement": "Verify startup, concurrency, restarts, stale ports, cancellation and unauthorized connections",
+      "state": "verified",
+      "evidence": [
+        ".test-runs/20261006204309429-1098076-24d090",
+        ".test-runs/20261006204233746-1096487-de8303",
+        ".test-runs/20261006203215416-1049385-38d63c",
+        ".test-runs/20261006203215292-1049427-4a190b",
+        ".test-runs/20261006202342026-1017584-fba3ce",
+        ".test-runs/20261006202837778-1033559-d87c14"
+      ],
+      "scope": "Selected source, compiled-resident and installed-hook cases on Linux arm64; no general interleaving proof."
+    },
+    {
+      "step": 4,
+      "requirement": "Compare complete hook process latency on current Bun runtime",
+      "state": "verified",
+      "evidence": [
+        "evidence/package/port-ipc-paired-declaration-04.json",
+        "evidence/package/port-ipc-paired-04.json"
+      ],
+      "scope": "108 completed offline CLI hook invocations using the tested production archive for the port candidate; Pi reports registered, Claude/Codex complete quietly. No real-agent/reviewer latency claim."
+    },
+    {
+      "step": 5,
+      "requirement": "Evaluate ScriptC separately against the working implementation",
+      "state": "disproved-for-current-compiler",
+      "evidence": [
+        "evidence/package/scriptc-port-evaluation.json"
+      ],
+      "scope": "Published ScriptC 0.2.4 compiled/executed simple TCP; actual CLI and production authenticated-port client fail compilation. No upstream PR."
+    }
+  ],
+  "checks": [
+    {
+      "id": "20261006204309429-1098076-24d090",
+      "status": {
+        "id": "20261006204309429-1098076-24d090",
+        "mode": "focused",
+        "state": "passed",
+        "exitCode": 0,
+        "startedAt": "2026-10-06T20:43:09.430Z",
+        "finishedAt": "2026-10-06T20:47:08.229Z",
+        "elapsedMs": 238799,
+        "failedStages": [],
+        "skippedStages": [],
+        "failures": 0
+      },
+      "testsPassed": 111,
+      "selectedTestFiles": [
+        "src/activity/subprocess.test.ts",
+        "src/cli.test.ts",
+        "src/direct-event/claude-cli.test.ts",
+        "src/onboarding/client-lifecycle.test.ts",
+        "src/pi/installed-boundary.test.ts",
+        "src/pi/installed-faults.test.ts",
+        "src/resident/composed-hook.test.ts",
+        "src/resident/subprocess.test.ts"
+      ],
+      "sourceDigest": "777dfb5bf0f972d2dd6400e782d967475eea74db68585251fb3be35311593d7d",
+      "records": ".test-runs/20261006204309429-1098076-24d090"
+    },
+    {
+      "id": "20261006204233746-1096487-de8303",
+      "status": {
+        "id": "20261006204233746-1096487-de8303",
+        "mode": "focused",
+        "state": "passed",
+        "exitCode": 0,
+        "startedAt": "2026-10-06T20:42:33.747Z",
+        "finishedAt": "2026-10-06T20:42:40.302Z",
+        "elapsedMs": 6555,
+        "failedStages": [],
+        "skippedStages": [],
+        "failures": 0
+      },
+      "testsPassed": 28,
+      "selectedTestFiles": [
+        "src/resident/client.test.ts",
+        "src/resident/request-socket.test.ts",
+        "src/resident/port.test.ts"
+      ],
+      "sourceDigest": null,
+      "records": ".test-runs/20261006204233746-1096487-de8303"
+    },
+    {
+      "id": "20261006203215416-1049385-38d63c",
+      "status": {
+        "id": "20261006203215416-1049385-38d63c",
+        "mode": "focused",
+        "state": "passed",
+        "exitCode": 0,
+        "startedAt": "2026-10-06T20:32:15.418Z",
+        "finishedAt": "2026-10-06T20:36:06.931Z",
+        "elapsedMs": 231513,
+        "failedStages": [],
+        "skippedStages": [],
+        "failures": 0
+      },
+      "testsPassed": 111,
+      "selectedTestFiles": [
+        "src/activity/subprocess.test.ts",
+        "src/cli.test.ts",
+        "src/direct-event/claude-cli.test.ts",
+        "src/onboarding/client-lifecycle.test.ts",
+        "src/pi/installed-boundary.test.ts",
+        "src/pi/installed-faults.test.ts",
+        "src/resident/composed-hook.test.ts",
+        "src/resident/subprocess.test.ts"
+      ],
+      "sourceDigest": "d84bb42efdcba54dbf271234ee158b02a9f28798b859917552007ccb5ff47433",
+      "records": ".test-runs/20261006203215416-1049385-38d63c"
+    },
+    {
+      "id": "20261006203215292-1049427-4a190b",
+      "status": {
+        "id": "20261006203215292-1049427-4a190b",
+        "mode": "focused",
+        "state": "passed",
+        "exitCode": 0,
+        "startedAt": "2026-10-06T20:32:15.293Z",
+        "finishedAt": "2026-10-06T20:33:01.242Z",
+        "elapsedMs": 45949,
+        "failedStages": [],
+        "skippedStages": [],
+        "failures": 0
+      },
+      "testsPassed": 79,
+      "selectedTestFiles": [
+        "src/resident/endpoint.test.ts",
+        "src/resident/port.test.ts",
+        "src/resident/paths.test.ts",
+        "src/resident/client.test.ts",
+        "src/resident/request-socket.test.ts",
+        "src/resident/runtime.test.ts",
+        "src/conformance/first-review-resident-cleanup.test.ts",
+        "src/resident/ipc-context.test.ts",
+        "src/resident/edit-settings.test.ts",
+        "src/resident/inspection.test.ts",
+        "src/inspection/command.test.ts",
+        "src/inspection/recording-current.test.ts"
+      ],
+      "sourceDigest": null,
+      "records": ".test-runs/20261006203215292-1049427-4a190b"
+    },
+    {
+      "id": "20261006202342026-1017584-fba3ce",
+      "status": {
+        "id": "20261006202342026-1017584-fba3ce",
+        "mode": "focused",
+        "state": "passed",
+        "exitCode": 0,
+        "startedAt": "2026-10-06T20:23:42.027Z",
+        "finishedAt": "2026-10-06T20:24:12.846Z",
+        "elapsedMs": 30819,
+        "failedStages": [],
+        "skippedStages": [],
+        "failures": 0
+      },
+      "testsPassed": 72,
+      "selectedTestFiles": [
+        "src/resident/port.test.ts",
+        "src/resident/claude-delivery.test.ts",
+        "src/resident/security-sinks.test.ts",
+        "src/inspection/registry.test.ts",
+        "src/inspection/consumer.test.ts",
+        "src/inspection/recorder.test.ts",
+        "src/inspection/storage.test.ts"
+      ],
+      "sourceDigest": null,
+      "records": ".test-runs/20261006202342026-1017584-fba3ce"
+    },
+    {
+      "id": "20261006202837778-1033559-d87c14",
+      "status": {
+        "id": "20261006202837778-1033559-d87c14",
+        "mode": "focused",
+        "state": "passed",
+        "exitCode": 0,
+        "startedAt": "2026-10-06T20:28:37.779Z",
+        "finishedAt": "2026-10-06T20:29:15.002Z",
+        "elapsedMs": 37223,
+        "failedStages": [],
+        "skippedStages": [],
+        "failures": 0
+      },
+      "testsPassed": 154,
+      "selectedTestFiles": [
+        "src/runtime/review-engine-boundary.test.ts",
+        "scripts/cli-import-boundary.test.mts",
+        "src/runtime/cli-information.test.ts",
+        "src/resident/socket-frame.test.ts",
+        "src/resident/server.test.ts",
+        "src/resident/protocol.test.ts"
+      ],
+      "sourceDigest": null,
+      "records": ".test-runs/20261006202837778-1033559-d87c14"
+    }
+  ],
+  "archive": {
+    "archivePath": "/workspace/typescript/jev/.git/hapsland-artifacts/packages/2a10b23012170760e8f8c653a6fac137e774874ab2421816c3be29754867f0ef/hapsland-hapsland-0.1.0.tgz",
+    "archiveDigest": "6e1e201f141940122d21e5420b67b166447ef4d6065767ce6f16a0bb878a5071",
+    "buildIdentity": "ec65c2e960636c04f34d75fdc1e33360a6a36ae4bb6d2231ca447c9c993828d4",
+    "packageIdentity": "2a10b23012170760e8f8c653a6fac137e774874ab2421816c3be29754867f0ef",
+    "buildReused": false,
+    "packageReused": false,
+    "sourceDigest": "777dfb5bf0f972d2dd6400e782d967475eea74db68585251fb3be35311593d7d"
+  },
+  "productionFiles": {
+    "package.json": "37570343b7ecc2e0bee142f598d7f9f1e62011e9423a1fe95d420347fcbd1f89",
+    "bun.lock": "050f548abd3d3ce8a53ca53f32ac0b49de79499ee8854522512fa7ca4120218e",
+    "src/resident/port.ts": "144cb448908b16bfafde45a0d0b52d7be6d51ef1326814e185b4361716997703",
+    "src/resident/endpoint.ts": "79f61d0f41974dbb724fa1301b65705eaaea21983c057b0cead7561aeab8ab0f",
+    "src/resident/tls-identity.ts": "69cdef65a94dc411a1b0989b344f9bc5112c6dd2061347dde27ab3f52fa8b263",
+    "src/resident/client.ts": "9db50d9e160e282cdb8fee667a45c1bcbf454e803afef58b04a7524ac0823f3a",
+    "src/resident/server.ts": "cb07e081a2ee4231cc760d02d88a98c4082902a56d1dc8682981885eb8f963cb",
+    "src/resident/main.ts": "5a2354813af847f94db163ef21a09abe85b187a1ec02b25e53b4cc8be683b3f4",
+    "src/resident/paths.ts": "d120c053f54e5852b9f0c27bfe16688da9ef5a87614fdd2e23333511fe3a3354",
+    "src/resident/socket-frame.ts": "d27695aab4f58d2e5981857821fec53a6b50d1478bf2c7944bf6401ddbcf5cce",
+    "src/inspection/registry.ts": "135bea455dfd8458726003a977d34083426cd27e078245d4bb5d0ef688955431",
+    "scripts/first-review-resident-cleanup.mjs": "c9b99deb2113d885fc8457d186a0ae5d7da8d26684998745993983ffd85b881d",
+    "src/runtime/cli-information.ts": "caf027c6f014da5d7f121cf3cc517dbdfa4e627a8e7b4b643b0a98b3f3bae49c"
+  },
+  "limitations": [
+    "Focused validation only; full-project coverage gate not run.",
+    "macOS arm64 built but not executed; no Windows or x64 support extension.",
+    "No real agent sessions or external Jev requests in this experiment.",
+    "Prototype remains isolated and unmerged; production adoption and dependency ownership remain separate decisions.",
+    "The timing runner does not inspect Claude/Codex permit state; their admission/delivery behavior is verified separately by focused source/installed tests."
+  ],
+  "postGateChanges": "Generated final benchmark/validation evidence and report updates only; production code unchanged after the final passing boundary gate.",
+  "additionalChecks": [
+    {
+      "command": "npm run check:fast",
+      "status": "passed",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run docs:check",
+      "status": "passed",
+      "exitCode": 0
+    },
+    {
+      "command": "explicit lint of nine new authored code files",
+      "status": "passed",
+      "exitCode": 0
+    }
+  ],
+  "regressions": [
+    {
+      "case": "Unicode character split across TLS response chunks",
+      "failingRun": "20261006204207520-1095180-f859ac",
+      "passingRun": "20261006204233746-1096487-de8303",
+      "installedPassingRun": "20261006204309429-1098076-24d090",
+      "fix": "Streaming UTF-8 response decoder"
+    }
+  ],
+  "audit": "All five requirements verified within their recorded prototype scope; ScriptC adoption disproved for 0.2.4. Production-file and executable hashes checked against current files; no required prototype work remains."
+}

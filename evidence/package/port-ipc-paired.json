@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "startedAt": "2026-10-06T20:26:20.523Z",
+  "declaration": {
+    "version": 1,
+    "declaredAt": "2026-10-06T20:26:20.468278+00:00",
+    "readySamples": 15,
+    "coldSamples": 3,
+    "hosts": [
+      "pi",
+      "claude-code",
+      "codex-cli"
+    ],
+    "timeoutMs": 240000,
+    "output": "evidence/package/port-ipc-paired.json",
+    "variants": [
+      {
+        "name": "unix-bun-baseline",
+        "transport": "unix",
+        "root": "/workspace/typescript/jev-port-ipc-prototype/.test-runs/port-ipc/baseline-package"
+      },
+      {
+        "name": "tls-port-bun-candidate",
+        "transport": "tls",
+        "root": "/workspace/typescript/jev-port-ipc-prototype/.test-runs/port-ipc/candidate-package"
+      }
+    ]
+  },
+  "declarationSha256": "128f1d50825524b82a19247890b60d4f7c171b7e6e4ec100615c2c2690fc9294",
+  "runnerSha256": "5cf219c2eddf59c735533491fb5a4c85ad930b4c9ff0df34d77f4c73aed7bcef",
+  "platform": "linux",
+  "architecture": "arm64",
+  "node": "v24.20.0",
+  "scope": "Offline installed-layout standalone hook processes; no source edits or provider calls. OS cache and scheduler uncontrolled.",
+  "variants": [
+    {
+      "name": "unix-bun-baseline",
+      "transport": "unix",
+      "root": "/workspace/typescript/jev-port-ipc-prototype/.test-runs/port-ipc/baseline-package",
+      "cliSha256": "ec5b1705980e36b27162a72240de856c0d6ea49941eb95a5ac9c536d55fbce02",
+      "residentSha256": "1c2c048712a8cb80fe1e3afbcf85ae2836fadafe70bbc65e16462746c932802f"
+    },
+    {
+      "name": "tls-port-bun-candidate",
+      "transport": "tls",
+      "root": "/workspace/typescript/jev-port-ipc-prototype/.test-runs/port-ipc/candidate-package",
+      "cliSha256": "02d5b557aa7387b70d7fbdfa2c4eacd7de2e3ebe80986f8ebea78a1a309cbd8b",
+      "residentSha256": "673bafe186727f1e1f769966216ec30e8116e75d9606d9dde3887d07f5761e41"
+    }
+  ],
+  "samples": [],
+  "cleanup": [
+    {
+      "variant": "unix-bun-baseline",
+      "removed": true
+    },
+    {
+      "variant": "tls-port-bun-candidate",
+      "removed": true
+    }
+  ],
+  "status": "failed",
+  "failure": "Resident readiness failed",
+  "finishedAt": "2026-10-06T20:26:36.195Z"
+}

@@ -38,7 +38,7 @@ it("retains an incoming edit after another inspector releases the real journal l
     Effect.scoped(
       Effect.gen(function* () {
         const recorder = yield* makeInspectionRecorder(
-          { endpoint: "/retry/resident.sock", lifetime: "retry" },
+          { endpoint: "/retry/endpoint.json", lifetime: "retry" },
           {
             write: (record, encoded, publication) =>
               store.write(record, encoded, publication).pipe(
@@ -127,7 +127,7 @@ const fixture = async () => {
 }
 const record = (sequence: number, capturedAt = 100, lifetime = "first"): InspectionRecord => ({
   version: 1,
-  source: { id: inspectionSourceId("/private/resident.sock", lifetime), endpoint: "/private/resident.sock", lifetime },
+  source: { id: inspectionSourceId("/private/endpoint.json", lifetime), endpoint: "/private/endpoint.json", lifetime },
   sequence,
   capturedAt,
   consentEpoch: 1,
@@ -259,7 +259,7 @@ describe("private inspection journal", () => {
     try {
       const recorder = await Effect.runPromise(
         makeInspectionRecorder(
-          { endpoint: "/private/resident.sock", lifetime: "first" },
+          { endpoint: "/private/endpoint.json", lifetime: "first" },
           {
             write: (value, encoded, publication) =>
               Effect.suspend(() => {

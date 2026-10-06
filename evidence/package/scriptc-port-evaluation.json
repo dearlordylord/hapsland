@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "observedAt": "2026-10-06T20:31:19.605176+00:00",
+  "compilerVersion": "0.2.4",
+  "compilerPackage": "scriptc",
+  "compilerPackageIntegrity": "sha512-ebNuUABCue0USfVx2qgyNeRoF5a0AYXURCb0ronV3tMq9JqqDh9MioZrcvfeJYN2G9YCUFhaRV3Ao3hX/2KNJA==",
+  "compilerSha256": "090d51302b2e3558b91464cf46a6880d94c3074c043082951d68508e94332643",
+  "platform": "linux-arm64",
+  "classification": "REJECT",
+  "scope": "Current production CLI and authenticated port client; simple TCP capability confirmed separately. No upstream patch.",
+  "sources": {
+    "scripts/scriptc-tcp-probe.ts": "92fa0931a6da2d118354ce76edf98279844bdc92bd6322189505f3197cc9578c",
+    "scripts/scriptc-resident-port-probe.ts": "cba082e84bc3f57738bf4d168cfcf6969b236a8fcb2680be4081135889ca7355",
+    "src/resident/port.ts": "144cb448908b16bfafde45a0d0b52d7be6d51ef1326814e185b4361716997703",
+    "src/cli.ts": "2b51a6689453dcaaaaa74f06f228451b41f0d9e613cf773f878c81264c75c8e6",
+    "src/resident/client.ts": "9db50d9e160e282cdb8fee667a45c1bcbf454e803afef58b04a7524ac0823f3a"
+  },
+  "results": [
+    {
+      "name": "cli-coverage",
+      "command": "scriptc coverage src/cli.ts --dynamic",
+      "exitCode": 1,
+      "diagnostics": "scriptc: lowerer bug: union-typed receiver lowered to a non-union\n"
+    },
+    {
+      "name": "cli-build",
+      "command": "scriptc build src/cli.ts --dynamic --emit=ir",
+      "exitCode": 1,
+      "diagnostics": "/workspace/typescript/jev-port-ipc-prototype/src/onboarding/confirmation.ts:2:1 - error SC1010: the 'node:readline/promises' module is not supported yet\n\n  1 | import { Effect, Schema } from \"effect\"\n  2 | import { createInterface } from \"node:readline/promises\"\n    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n  3 | import type { Readable, Writable } from \"node:stream\"\n\n  hint: relative imports (./file, ../dir/file), package.json-mediated project imports (#alias via the imports field, self-name references via exports), installed npm packages (their code runs under --dynamic), and the built-in fs, fs/promises, path, os, url, crypto, zlib, child_process, net, http, tls, https, http2, dgram, dns, util, util/types, string_decoder, querystring, readline, events, stream, stream/promises, stream/consumers, buffer, assert, assert/strict, worker_threads, cluster, tty, async_hooks, timers, timers/promises, diagnostics_channel, perf_hooks, module, and console modules (bare or node:-prefixed) and node:test (node:-prefixed only, like in Node) are supported\n\n1 error.\n"
+    },
+    {
+      "name": "production-port-build",
+      "command": "scriptc build scripts/scriptc-resident-port-probe.ts --dynamic --emit=ir",
+      "exitCode": 1,
+      "diagnostics": "/workspace/typescript/jev-port-ipc-prototype/src/resident/port.ts:76:7 - error SC2020: 'destroy with 1 arguments' is part of the standard library types but has no scriptc lowering yet\n\n  75 |     if (reply.length > RESIDENT_AUTH_REPLY.length || !RESIDENT_AUTH_REPLY.startsWith(reply)) {\n  76 |       socket.destroy(new Error(\"resident authentication failed\"))\n     |       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n  77 |       return\n\n  hint: destroy() takes no arguments here\n\n/workspace/typescript/jev-port-ipc-prototype/src/resident/port.ts:80:5 - error SC2020: 'Socket.removeListener' is typed by @types/node but has no scriptc lowering yet\n\n  79 |     if (reply !== RESIDENT_AUTH_REPLY) return\n  80 |     socket.removeListener(\"data\", authenticate)\n     |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n  81 |     ready(socket)\n\n  hint: write, end, destroy, pipe, setTimeout, remoteAddress, read, unshift, and on/once of data/end/close/error/connect/timeout/readable are the supported Socket members\n\n2 errors.\n"
+    },
+    {
+      "name": "tcp-probe-build",
+      "command": "scriptc build scripts/scriptc-tcp-probe.ts",
+      "exitCode": 0,
+      "diagnostics": "/workspace/typescript/jev-port-ipc-prototype/.test-runs/port-ipc/maintained-tcp-probe\n"
+    },
+    {
+      "name": "tcp-probe-execution",
+      "command": "compiled TCP probe",
+      "exitCode": 0,
+      "diagnostics": "port IPC works\n"
+    },
+    {
+      "name": "final-cli-build-after-unicode-fix",
+      "command": "scriptc build src/cli.ts --dynamic --emit=ir",
+      "exitCode": 1,
+      "diagnostics": "/workspace/typescript/jev-port-ipc-prototype/src/onboarding/confirmation.ts:2:1 - error SC1010: the 'node:readline/promises' module is not supported yet\n\n  1 | import { Effect, Schema } from \"effect\"\n  2 | import { createInterface } from \"node:readline/promises\"\n    | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n  3 | import type { Readable, Writable } from \"node:stream\"\n\n  hint: relative imports (./file, ../dir/file), package.json-mediated project imports (#alias via the imports field, self-name references via exports), installed npm packages (their code runs under --dynamic), and the built-in fs, fs/promises, path, os, url, crypto, zlib, child_process, net, http, tls, https, http2, dgram, dns, util, util/types, string_decoder, querystring, readline, events, stream, stream/promises, stream/consumers, buffer, assert, assert/strict, worker_threads, cluster, tty, async_hooks, timers, timers/promises, diagnostics_channel, perf_hooks, module, and console modules (bare or node:-prefixed) and node:test (node:-prefixed only, like in Node) are supported\n\n1 error.\n"
+    }
+  ]
+}

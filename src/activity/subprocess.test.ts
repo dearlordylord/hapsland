@@ -143,7 +143,7 @@ describe("production resident activity subprocess", () => {
     fixture.child = resident
     fixture.spawnedPid = resident.pid
     resident.unref()
-    waitFor(() => existsSync(join(runtime, "owner.json")) && existsSync(join(runtime, "resident.sock")))
+    waitFor(() => existsSync(join(runtime, "owner.json")) && existsSync(join(runtime, "endpoint.json")))
     const before = spawnSync(
       bunExecutable(),
       ["src/cli.ts", "--composed-before-edit-hook", "--composed-host=codex-cli", "--controlled-reviewer"],

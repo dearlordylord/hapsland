@@ -3,7 +3,8 @@ import { ConfigProvider, Effect } from "effect"
 import { mkdtemp, rm, symlink, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { prepareResidentDirectory, residentPaths, resolveResidentPaths, verifyRemovableSocket } from "./paths.ts"
+import { prepareResidentDirectory, residentPaths, resolveResidentPaths } from "./paths.ts"
+import { verifyRemovableEndpoint } from "./endpoint.ts"
 
 const directory = Effect.fn("ResidentEndpointFixture.directory")(function* () {
   const root = yield* Effect.promise(() => mkdtemp(join(tmpdir(), "hapsland-endpoint-")))
@@ -11,12 +12,12 @@ const directory = Effect.fn("ResidentEndpointFixture.directory")(function* () {
   return root
 })
 
-it.effect("allows an absent socket pathname after private directory preparation", () =>
+it.effect("allows an absent endpoint record after private directory preparation", () =>
   Effect.scoped(
     Effect.gen(function* () {
       const paths = residentPaths(yield* directory())
       yield* prepareResidentDirectory(paths)
-      yield* verifyRemovableSocket(paths)
+      yield* verifyRemovableEndpoint(paths)
     })
   )
 )
@@ -27,13 +28,13 @@ for (const kind of ["regular", "dangling-symlink"] as const) {
       Effect.gen(function* () {
         const paths = residentPaths(yield* directory())
         if (kind === "regular")
-          yield* Effect.promise(() => writeFile(paths.socket, "retained fixture", { mode: 0o600 }))
-        else yield* Effect.promise(() => symlink(join(paths.directory, "missing-target"), paths.socket))
-        const failure = yield* verifyRemovableSocket(paths).pipe(Effect.flip)
+          yield* Effect.promise(() => writeFile(paths.endpoint, "retained fixture", { mode: 0o600 }))
+        else yield* Effect.promise(() => symlink(join(paths.directory, "missing-target"), paths.endpoint))
+        const failure = yield* verifyRemovableEndpoint(paths).pipe(Effect.flip)
         expect(failure).toMatchObject({
           _tag: "ResidentEndpointError",
-          operation: "verifyRemovableSocket",
-          message: "resident socket pathname is unsafe"
+          operation: "readEndpoint",
+          message: "resident endpoint unavailable or unsafe"
         })
       })
     )
@@ -46,7 +47,7 @@ it.effect("preserves metadata errors other than an absent endpoint", () =>
       const root = yield* directory()
       const parent = join(root, "regular-parent")
       yield* Effect.promise(() => writeFile(parent, "fixture", { mode: 0o600 }))
-      const failure = yield* verifyRemovableSocket(residentPaths(parent)).pipe(Effect.flip)
+      const failure = yield* verifyRemovableEndpoint(residentPaths(parent)).pipe(Effect.flip)
       expect(failure).toMatchObject({ _tag: "ResidentEndpointError", operation: "inspectEndpoint", code: "ENOTDIR" })
       expect(failure.message).not.toContain(root)
     })

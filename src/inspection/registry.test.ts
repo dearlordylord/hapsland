@@ -2,7 +2,8 @@ import { chmod, open, rename, symlink, unlink, writeFile } from "node:fs/promise
 import { constants } from "node:fs"
 import { execFileSync } from "../../scripts/test-harness/process.mjs"
 import { join } from "node:path"
-import { Socket } from "node:net"
+import type { Socket } from "node:net"
+import { connectTestPort } from "../test-support/resident-port.ts"
 import { once } from "node:events"
 import { residentRequestEffect } from "../resident/client.ts"
 import { Effect, Scope, Exit, ConfigProvider } from "effect"
@@ -88,7 +89,7 @@ it("discovers opted-in additional endpoints and isolates retained lifetimes thro
       expect.arrayContaining(
         residents.map((resident) =>
           expect.objectContaining({
-            source: expect.objectContaining({ endpoint: resident.paths.socket, lifetime: resident.lifetime }),
+            source: expect.objectContaining({ endpoint: resident.paths.endpoint, lifetime: resident.lifetime }),
             registered: true,
             health: "connected"
           })
@@ -101,7 +102,7 @@ it("discovers opted-in additional endpoints and isolates retained lifetimes thro
     for (const [path, original] of [
       [second.paths.directory, 0o700],
       [second.paths.owner, 0o600],
-      [second.paths.socket, 0o600]
+      [second.paths.endpoint, 0o600]
     ] as const) {
       try {
         await chmod(path, 0o777)
@@ -161,7 +162,7 @@ it("discovers opted-in additional endpoints and isolates retained lifetimes thro
 
 it("bounds registry metadata and reports omitted sources without accepting browser paths", async () => {
   const records: InspectionRecord[] = Array.from({ length: 130 }, (_, index) => {
-    const endpoint = `/private/${"x".repeat(7800)}/${index}/resident.sock`
+    const endpoint = `/private/${"x".repeat(7800)}/${index}/endpoint.json`
     return {
       version: 1,
       source: { id: inspectionSourceId(endpoint, "bounded"), endpoint, lifetime: "bounded" },
@@ -205,7 +206,7 @@ it("bounds registry metadata and reports omitted sources without accepting brows
           const resumed = await fetch(`${server.url}snapshot`, { headers: { "last-event-id": body.watermark.cursor } })
           expect(resumed.status).toBe(200)
           expect(Buffer.byteLength(await resumed.text())).toBeLessThanOrEqual(MAX_INSPECTION_HTTP_BYTES)
-          expect((await fetch(`${server.url}snapshot?endpoint=/untrusted/resident.sock`)).status).toBe(404)
+          expect((await fetch(`${server.url}snapshot?endpoint=/untrusted/endpoint.json`)).status).toBe(404)
         })
       })
     )
@@ -219,15 +220,13 @@ it("isolates saturated read-only discovery sockets from hook-control capacity", 
   try {
     await Effect.runPromise(resident.listen())
     for (let i = 0; i < 4; i += 1) {
-      const socket = new Socket()
+      const socket = await connectTestPort(join(resident.paths.directory, "inspection.endpoint.json"))
       viewers.push(socket)
-      socket.connect(join(resident.paths.directory, "inspection.sock"))
-      await once(socket, "connect")
     }
     expect(
       await Effect.runPromise(residentRequestEffect(resident.paths, { requestRoute: "shared", operation: "hello" }))
     ).toMatchObject({ status: "ready", lifetime: resident.lifetime })
-    const readonlyPaths = { ...resident.paths, socket: join(resident.paths.directory, "inspection.sock") }
+    const readonlyPaths = { ...resident.paths, endpoint: join(resident.paths.directory, "inspection.endpoint.json") }
     for (const socket of viewers) socket.destroy()
     await Promise.all(viewers.map((socket) => (socket.closed ? Promise.resolve() : once(socket, "close"))))
     expect(
@@ -245,10 +244,8 @@ it("isolates saturated read-only discovery sockets from hook-control capacity", 
     const hooks: Socket[] = []
     try {
       for (let i = 0; i < 32; i += 1) {
-        const socket = new Socket()
+        const socket = await connectTestPort(resident.paths.endpoint)
         hooks.push(socket)
-        socket.connect(resident.paths.socket)
-        await once(socket, "connect")
       }
       expect(
         await Effect.runPromise(residentRequestEffect(readonlyPaths, { requestRoute: "shared", operation: "hello" }))
@@ -265,24 +262,23 @@ it("isolates saturated read-only discovery sockets from hook-control capacity", 
 it("closes incomplete inspection frames despite continuous input", async () => {
   const root = await makeGitFixture()
   const resident = await acquireResidentFixture(residentPaths(join(root, "runtime")))
-  const socket = new Socket()
+  let socket: Socket | undefined
   let trickle: ReturnType<typeof setInterval> | undefined
   let deadline: ReturnType<typeof setTimeout> | undefined
   try {
     await Effect.runPromise(resident.listen())
-    socket.connect(join(resident.paths.directory, "inspection.sock"))
-    await once(socket, "connect")
+    socket = await connectTestPort(join(resident.paths.directory, "inspection.endpoint.json"))
     const socketErrors: NodeJS.ErrnoException[] = []
     socket.on("error", (error) => socketErrors.push(error))
     // A trickled write can race the peer's deadline close. Require close itself,
     // and check its transport errors instead of rejecting Node's once(close).
     const closed = new Promise<void>((resolve) =>
-      socket.once("close", () => {
+      socket?.once("close", () => {
         clearInterval(trickle)
         resolve()
       })
     )
-    trickle = setInterval(() => socket.write(" "), 50)
+    trickle = setInterval(() => socket?.write(" "), 50)
     await Promise.race([
       closed,
       new Promise((_, reject) => {
@@ -296,7 +292,7 @@ it("closes incomplete inspection frames despite continuous input", async () => {
   } finally {
     clearInterval(trickle)
     clearTimeout(deadline)
-    socket.destroy()
+    socket?.destroy()
     await Effect.runPromise(resident.close)
   }
 })

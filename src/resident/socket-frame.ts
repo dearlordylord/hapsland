@@ -94,6 +94,7 @@ export const makeSocketFramePort = Effect.fn("ResidentSocket.make")((socket: Soc
         }
         socket.once("close", onClose)
         socket.on("data", onData)
+        socket.resume()
         if (socket.closed) onClose()
         return Effect.sync(cleanup)
       })
