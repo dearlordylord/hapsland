@@ -1,0 +1,7 @@
+// Merge these fields into the project's existing .hapsland.jsonc.
+// Preserve its rules, file scope, and other settings.
+// Enables source-bearing local history for subsequent edits, without backfilling old edits.
+{
+  "version": 1,
+  "sessionInspection": true
+}

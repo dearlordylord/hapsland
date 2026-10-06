@@ -94,6 +94,25 @@ that the agent read, acknowledged, or applied a finding.
 | Development | `npm run dev:inspection` from the repository root | Current checkout, with automatic browser reload |
 | Bundled production | `hapsland dashboard` | Installed package; source edits require a new package update |
 
+**Both dashboards need recorded history.** Recording is disabled by default.
+Merge this [tracked configuration template](examples/session-inspection.jsonc)
+into the repository-root `.hapsland.jsonc`, preserving existing rules and scope:
+
+```jsonc
+{
+  "version": 1,
+  "sessionInspection": true
+}
+```
+
+Then make a new eligible edit through an installed Hapsland integration. The
+setting applies on the next edit; enabling it does not backfill earlier edits.
+A fresh journal stays empty until new events are recorded. Opening either
+dashboard does not enable recording. Existing retained history can still be
+shown after recording is disabled. This history contains captured source and
+review messages; `sessionAnalytics` does not enable it. A user default can also
+enable recording, but an explicit project `sessionInspection: false` overrides it.
+
 `hapsland dashboard` runs the private loopback inspector in the foreground and
 prints its launch URL. It does not enable recording or start a resident. Enable
 `sessionInspection` through [configuration](configuration.md) to record new work;

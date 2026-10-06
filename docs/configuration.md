@@ -13,6 +13,13 @@ backend returns a probability; Choice and Score are separate unsupported result 
 
 ## Configuration locations and precedence
 
+For source-bearing inspection history, merge the
+[inspection configuration template](examples/session-inspection.jsonc) into the
+project's `.hapsland.jsonc`. `sessionInspection` defaults to false; dev and bundled
+dashboards only display recorded events and do not enable capture. See the
+[inspection guide](status.md#opt-in-local-inspection) for enabling new capture and
+the distinction between current recording and retained history.
+
 | Layer | Location | Behavior |
 | --- | --- | --- |
 | Built-in | Non-rule settings defaults | Supplies omitted settings. |
