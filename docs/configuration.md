@@ -306,6 +306,135 @@ separate from Hapsland policy. Rule JSON editor validation uses
 [`review-rule-v1.schema.json`](../schemas/review-rule-v1.schema.json); structural
 validity does not establish classifier judgment quality.
 
+### Write your first rule
+
+Run these commands from the root of your project's Git working tree. Hapsland ships **nine
+editable default rules**; before writing another, inspect the rules you already
+have:
+
+```sh
+hapsland rules list
+hapsland rules show --id r1_inferred_case
+```
+
+`list` shows connected rules, including disabled ones. `show` names the local JSON
+source you can edit; you do not need Hapsland's sources. Initial setup connects
+defaults only when no configuration layer declares `rules`. An explicit selection
+(including an empty list) may mean this default is absent; choose an ID from your
+inventory instead. See the [default concerns](../TYPE-DESIGN-RULES.md).
+
+**1. Choose one concern that the captured code can answer.** For example: “Can an
+order for delivery be represented without a delivery address?” State what counts
+as a violation and what should stay clear. Avoid combining unrelated concerns or
+asking about behavior that requires a task description, production data or a whole
+repository. See [what the checker can see](../README.md#what-can-the-checker-see).
+
+**2. Create a connected starter, then keep it disabled while editing.**
+
+```sh
+hapsland rules create --id team/delivery-address --scope project
+hapsland rules disable --id team/delivery-address --scope project
+hapsland rules show --id team/delivery-address
+```
+
+`create` writes a starter and connects it enabled; it does not open an editor.
+Interactive changes show a preview and ask for confirmation. Open the source path
+shown by `show` in your editor. Project scope keeps the rule and connection in the
+repository; choose `--scope personal` for your user configuration instead.
+
+**3. Replace the starter's generic concern with your own.** For this example,
+save the following JSON in that created file, keeping the ID unchanged:
+
+```json
+{
+  "version": 1,
+  "id": "team/delivery-address",
+  "title": "Delivery requires an address",
+  "question": "Can the supplied order type represent mode delivery without a delivery address?",
+  "criteria": {
+    "false": "Every representable order with mode delivery requires an address.",
+    "true": "An order with mode delivery can omit its address."
+  },
+  "message": "Require an address in the delivery variant of the order type.",
+  "threshold": 0.7,
+  "inputs": [
+    {
+      "languages": ["typescript"],
+      "kind": "type",
+      "requires": ["root-declaration"]
+    }
+  ]
+}
+```
+
+The question asks about one violation; `criteria.true` describes a finding and
+`criteria.false` describes the acceptable case. `message` gives actionable feedback.
+This rule needs only the declaration. If your concern needs related types or
+function bodies, declare the appropriate [input kind and required evidence](#declarative-rules);
+missing required evidence prevents evaluation. File filters and language/threshold
+overrides belong in configuration references, not the authored rule's path fields.
+
+If you prefer writing the JSON yourself, save one rule per file and connect it:
+
+```sh
+hapsland rules connect --path .hapsland/rules/custom/delivery-address.json --scope project
+```
+
+This is an alternative to `create`, not an extra step for an already connected
+rule. `connect` validates the file and enables a new connection. You can also
+[declare its path directly in configuration](#author-connect-and-inspect).
+
+**4. Enable and inspect the effective selection.**
+
+```sh
+hapsland rules enable --id team/delivery-address --scope project
+hapsland rules show --id team/delivery-address
+hapsland rules explain --id team/delivery-address --path src/delivery-rule-examples.ts
+```
+
+These commands make no classifier calls. `explain` checks configuration selection;
+it does not parse the source or establish whether the necessary evidence exists.
+
+**5. Test a violation and an acceptable case.** Create
+`src/delivery-rule-examples.ts` with these two supported type declarations:
+
+```ts
+export type LooseDelivery = {
+  mode: "pickup" | "delivery"
+  address?: string
+}
+
+export type Delivery =
+  | { mode: "pickup" }
+  | { mode: "delivery"; address: string }
+```
+
+Then run:
+
+```sh
+hapsland rules check --path src/delivery-rule-examples.ts --line 2 --id team/delivery-address
+hapsland rules check --path src/delivery-rule-examples.ts --line 8 --id team/delivery-address
+```
+
+The first type admits delivery without an address and should trigger; the second
+requires an address for delivery and should stay clear. These are expectations to
+check, not guaranteed classifier outputs. Each command selects the enclosing
+declaration and bounded related code, uses normal credential discovery and sends
+a real external classifier request that may incur charges. No resident or agent
+session is needed. Add `--json` to inspect the actual source-bearing input and
+probabilities. A skipped/unavailable result is not a clear result, and exit 0 also
+includes findings. See [file/line check details](#try-a-rule-on-a-file-and-line).
+
+**6. Refine against more examples before relying on it.** Try edge cases and
+similar code that should not trigger. Inspect the captured input before changing
+the question or evidence requirements; check effective settings for overrides.
+A probability strictly above the threshold produces a finding, but adjusting the
+threshold alone does not fix an unclear concern. Once satisfied, use ordinary
+agent edits and the [opt-in inspection dashboard](status.md#opt-in-local-inspection)
+to inspect reviews and feedback. Disable the rule if you are still tuning it.
+Commit the project rule and configuration when you want to share them; keep or
+remove the example source according to your project's conventions.
+
 ### Try a rule on a file and line
 
 ```sh
@@ -326,8 +455,10 @@ all eligible rules for that declaration. Normal root/context selection, privacy
 exclusions, ignored-file checks and resource limits still apply. Missing required
 evidence, no eligible rule, or a denied file produces an explained skip and no
 classifier request. The command uses the configured backend and its normal
-credential discovery (environment, eligible project key file, native saved key;
-explicit credential references remain environment-only). It starts no resident,
+credential discovery (environment, eligible project and user key files, native
+saved key). Explicit credential references use the named key from the environment
+or supported key files, without native-store fallback. See
+[credential lookup](installation-workflows.md#personal-development-on-your-own-clients). It starts no resident,
 requires no agent session, and does not modify source, rules or settings.
 
 This command explicitly sends the selected code and rule questions to the external

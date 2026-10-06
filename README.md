@@ -110,6 +110,20 @@ A configured rule runs only on supported inputs with sufficient evidence. See
 
 See [supported languages and limits](#supported-languages) before setup.
 
+## Write your first rule
+
+Start with the **nine editable default rules**: run `hapsland rules list`, then
+`hapsland rules show --id r1_inferred_case` to inspect one and its source file.
+You may already have a rule for your concern. Setup connects defaults when no
+explicit rule selection is configured; your current inventory shows what is
+actually connected and enabled.
+
+For a custom concern, follow the [first-rule walkthrough](./docs/configuration.md#write-your-first-rule):
+create and connect a starter with `hapsland rules create`, edit its JSON in your
+editor, then test examples that should trigger and stay clear with `rules check`.
+You can also write a JSON file yourself and use `rules connect`. These are local
+editable files; you do not need the Hapsland source checkout.
+
 ## Does my rule work?
 
 Try a rule against a specific declaration without making an agent edit:
