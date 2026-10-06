@@ -4,7 +4,8 @@ const { executable } = resolveBunRuntime()
 const child = spawn(executable, process.argv.slice(2), {
   cwd: import.meta.dirname,
   stdio: "inherit",
-  detached: process.platform !== "win32"
+  // Explicit controlling-terminal probes must retain the caller's terminal session.
+  detached: process.platform !== "win32" && !process.argv.includes("--controlling-terminal")
 })
 const signals = ["SIGINT", "SIGTERM", "SIGHUP", "SIGWINCH"]
 const forward = (signal) => {

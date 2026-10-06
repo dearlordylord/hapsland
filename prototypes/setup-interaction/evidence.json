@@ -1,11 +1,211 @@
 {
-  "observedAt": "2026-10-06T20:35:11.692Z",
-  "sourceDigest": "133da36554834c058146431ff4403959f4aa4bc9976db67d7bbb9b9796d83249",
+  "observedAt": "2026-10-06T21:22:41.940Z",
+  "sourceDigest": "7d6ca52de7a45910091e7c95666ce8835c22132f1a53bce6549c4169f6a31497",
   "host": "darwin-arm64",
   "bun": "1.3.14",
   "effect": "4.0.0",
   "effectMachine": "0.28.0",
   "typecheck": "passed",
+  "interaction": {
+    "hiddenTermination": "passed",
+    "explicitSyntheticCapture": "passed",
+    "multipleChoiceIdentity": "passed",
+    "closedSession": "passed",
+    "serializedInput": "passed",
+    "realCredentialReads": 0
+  },
+  "interactionSourcePTY": {
+    "runner": "source",
+    "cases": [
+      {
+        "name": "hidden-False",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "hidden-cancel-Falseb'\\x1b'",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "hidden-cancel-Falseb'\\x03'",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "hidden-cancel-Falseb'\\x04'",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "hidden-signal-False",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "hidden-True",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "hidden-cancel-Trueb'\\x1b'",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "hidden-cancel-Trueb'\\x03'",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "hidden-cancel-Trueb'\\x04'",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "hidden-signal-True",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "many-empty-guard",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "many-back",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "confirm-default",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "confirm-y",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "confirm-back",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      }
+    ],
+    "realCredentialReads": 0
+  },
+  "interactionCompiledPTY": {
+    "runner": "compiled",
+    "cases": [
+      {
+        "name": "hidden-False",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "hidden-cancel-Falseb'\\x1b'",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "hidden-cancel-Falseb'\\x03'",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "hidden-cancel-Falseb'\\x04'",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "hidden-signal-False",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "hidden-True",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "hidden-cancel-Trueb'\\x1b'",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "hidden-cancel-Trueb'\\x03'",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "hidden-cancel-Trueb'\\x04'",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "hidden-signal-True",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "many-empty-guard",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "many-back",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "confirm-default",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "confirm-y",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      },
+      {
+        "name": "confirm-back",
+        "restored": true,
+        "secretAbsent": true,
+        "stdoutJSON": true
+      }
+    ],
+    "realCredentialReads": 0
+  },
   "comparison": {
     "runtime": "1.3.14",
     "scenarios": [
@@ -486,6 +686,12 @@
     "freshness": "passed",
     "realOperations": 0
   },
+  "rulesDiagram": {
+    "scenarios": 19,
+    "transitions": 15,
+    "freshness": "passed",
+    "realOperations": 0
+  },
   "lifetime": {
     "state": "Idle",
     "stateOwnedTaskReleased": true,
@@ -508,7 +714,7 @@
   },
   "swarmTerminal": {
     "runner": "node run.mjs cli.ts",
-    "seconds": 19.941,
+    "seconds": 19.891,
     "budgetSeconds": 55,
     "results": [
       {

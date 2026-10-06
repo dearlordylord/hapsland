@@ -18,7 +18,7 @@ for (const file of readdirSync(import.meta.dirname)
     .update("\0")
 }
 const sourceDigest = sourceHash.digest("hex")
-const end = Date.now() + 60_000
+const end = Date.now() + 90_000
 const directory = mkdtempSync(join(tmpdir(), "hapsland-interaction-prototype-"))
 function run(command, args) {
   const result = spawnSync(command, args, {
@@ -32,10 +32,13 @@ function run(command, args) {
 }
 try {
   run("node_modules/.bin/tsc", ["-p", "tsconfig.json"])
+  const interaction = JSON.parse(run(executable, ["interaction-probe.ts"]))
+  const interactionSourcePTY = JSON.parse(run("python3", ["interaction-terminal.py"]))
   const comparison = JSON.parse(run(executable, ["compare.ts"]))
   const rules = JSON.parse(run(executable, ["rules-probe.ts"]))
   const rulesSourcePTY = JSON.parse(run("python3", ["rules-terminal.py"]))
   const diagram = JSON.parse(run(executable, ["diagram.ts"]))
+  const rulesDiagram = JSON.parse(run(executable, ["rules-diagram.ts"]))
   const lifetime = JSON.parse(run(executable, ["lifetime.ts"]))
   const swarmFlow = JSON.parse(run(executable, ["swarm-flow.ts"]))
   const swarmInteraction = JSON.parse(run(executable, ["swarm-interaction.ts"]))
@@ -54,6 +57,17 @@ try {
     "--outfile",
     join(directory, "rules-host")
   ])
+  run(executable, [
+    "build",
+    "--compile",
+    `--target=${hostTarget}`,
+    "interaction-cli.ts",
+    "--outfile",
+    join(directory, "interaction-host")
+  ])
+  const interactionCompiledPTY = JSON.parse(
+    run("python3", ["interaction-terminal.py", "--compiled", join(directory, "interaction-host")])
+  )
   const rulesCompiledPTY = JSON.parse(
     run("python3", ["rules-terminal.py", "--compiled", join(directory, "rules-host")])
   )
@@ -68,11 +82,15 @@ try {
     effect: "4.0.0",
     effectMachine: "0.28.0",
     typecheck: "passed",
+    interaction,
+    interactionSourcePTY,
+    interactionCompiledPTY,
     comparison,
     rules,
     rulesSourcePTY,
     rulesCompiledPTY,
     diagram,
+    rulesDiagram,
     lifetime,
     swarmFlow,
     swarmInteraction,

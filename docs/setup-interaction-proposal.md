@@ -137,7 +137,7 @@ The user intends eventual production integration to use idiomatic Effect through
 
 ## CLI-wide interaction scope
 
-The broader CLI handoff is now in work. The user accepts sharing interaction conventions and rendering while retaining workflow-specific models and domain owners. Complete coverage means inventorying every human-input entry point and documenting deliberate exceptions, not forcing all commands into a wizard. The diagram generator remains bounded to the setup prototype; a CLI-wide diagram system is not required by this decision.
+The broader CLI handoff is now in work. The user accepts sharing interaction conventions and rendering while retaining workflow-specific models and domain owners. Complete coverage means inventorying every human-input entry point and documenting deliberate exceptions, not forcing all commands into a wizard. The owner subsequently extended diagram generation to every modeled interactive CLI workflow. Each Mermaid Markdown graph remains bounded to named executable replay scenarios; direct/headless exceptions do not acquire invented dialog states.
 
 ### Observed entry points and ownership
 
@@ -176,7 +176,7 @@ Read-only source review found that `runSetup` already combines credential resolu
 
 Credential verification currently owns source-dependent replacement and retry consent inside its loop. Make those decisions inspectable through the credential workflow rather than copying that loop into setup. Owner request execution retains its existing bounded request and sanitized-response implementation.
 
-The prototype terminal adapter currently fails `readLine` and assumes stdin/stderr TTYs. It is not a production-ready confirmation or controlling-terminal adapter. Implement and verify full-line confirmation support, authorized `/dev/tty` input, and terminal acquisition/cleanup explicitly before replacing production input. Retain the built-in `Prompt.Hidden` constraint; do not add a custom hidden prompt or reinterpret hidden cancellation as navigation.
+The original prototype terminal adapter fails `readLine`; built-in Prompt.String uses its scoped raw input path for full-line confirmation. The shared interaction milestone adds an explicitly authorized controlling-terminal transport and source/compiled PTY probes. It remains prototype evidence, not validation of production JSON setup or the real credential owner. Implement and verify full-line confirmation support, authorized `/dev/tty` input, and terminal acquisition/cleanup explicitly before replacing production input. Retain the built-in `Prompt.Hidden` constraint; do not add a custom hidden prompt or reinterpret hidden cancellation as navigation.
 
 ### Integration decisions already settled
 
@@ -191,7 +191,7 @@ The prototype terminal adapter currently fails `readLine` and assumes stdin/stde
 ### Implementation and acceptance sequence
 
 1. Audit all inventory rows against the shared interface and retain deliberate exceptions. Use the requested Astra architecture review to catch missing surfaces or duplicated policy.
-2. Extend the throwaway prototype with representative rule scope/approval, batch update, maintenance recovery and credential verification/replacement flows. Drive distinct models through the same renderer/interpreter conventions with fake owners, including Back, decline, stale approval, partial outcomes and input termination. Keep login secret behavior unchanged and setup Mermaid generation bounded.
+2. Extend the throwaway prototype with representative rule scope/approval, batch update, maintenance recovery and credential verification/replacement flows. Drive distinct models through the same renderer/interpreter conventions with fake owners, including Back, decline, stale approval, partial outcomes and input termination. Keep login secret behavior unchanged and emit workflow-specific Mermaid Markdown from executable replay scenarios, with explicit regeneration and non-writing freshness checks.
 3. Integrate shared Effect input/output/lifetime wiring and then workflow models with actual existing owners. Preserve proposal digests, multi-client consent cardinality, structured/headless behavior and secret isolation. Remove superseded production orchestration rather than retaining parallel implementations.
 4. Create the additional credential-destination follow-up task, settle success presentation using real owner outcomes, and make the Codex wording correction.
 5. Run focused model/owner tests and affected process/PTY and packaging checks from the testing matrix. Validate actual Linux arm64 execution near the end; record platform, executable and cleanup evidence. A broad CLI migration requires the full quality gate once its candidate is frozen, with its finite deadline declared before execution.

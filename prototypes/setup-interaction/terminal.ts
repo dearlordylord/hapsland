@@ -1,7 +1,9 @@
 import { Cause, Effect, Option, Queue, Terminal } from "effect"
+import type { Readable } from "node:stream"
 import { emitKeypressEvents, type Key } from "node:readline"
 // Prototype-owned stdin/stderr scope. No production Terminal layer involved.
-export const makeTerminal = (onEscape?: () => void) =>
+export type TerminalInput = Readable & { isRaw: boolean; setRawMode: (raw: boolean) => unknown }
+export const makeTerminal = (onEscape?: () => void, stdin: TerminalInput = process.stdin) =>
   Terminal.make({
     columns: Effect.sync(() => process.stderr.columns || 80),
     rows: Effect.sync(() => process.stderr.rows || 24),
@@ -12,7 +14,6 @@ export const makeTerminal = (onEscape?: () => void) =>
     readLine: Effect.fail(new Terminal.QuitError({})),
     readInput: Effect.gen(function* () {
       const queue = yield* Queue.make<Terminal.UserInput, Cause.Done>()
-      const stdin = process.stdin
       const raw = !!stdin.isRaw
       const flowing = stdin.readableFlowing
       emitKeypressEvents(stdin)
@@ -37,7 +38,7 @@ export const makeTerminal = (onEscape?: () => void) =>
         Effect.sync(() => {
           stdin.off("keypress", keypress)
           stdin.off("end", end)
-          stdin.setRawMode(raw)
+          if (!stdin.destroyed) stdin.setRawMode(raw)
           if (flowing !== true) stdin.pause()
           process.stderr.write("\u001b[?25h")
         })

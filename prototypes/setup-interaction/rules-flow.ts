@@ -7,11 +7,18 @@ import {
   rulesCommand,
   rulesPreview,
   type RuleAction,
-  type RulesEvent
+  type RulesEvent,
+  type RulesModel
 } from "./rules-model.ts"
 import type { RulesOwner } from "./rules-owner.ts"
 const navigation = (kind: "back" | "exit") => ({ kind })
-export function runRules(interaction: Interaction, owner: RulesOwner, action: RuleAction = "create") {
+export type RulesTransition = { before: RulesModel; event: RulesEvent; after: RulesModel }
+export function runRules(
+  interaction: Interaction,
+  owner: RulesOwner,
+  action: RuleAction = "create",
+  observe: (transition: RulesTransition) => Effect.Effect<void> = () => Effect.void
+) {
   return Effect.gen(function* () {
     let model = initialRules(action)
     while (model.phase !== "Done" && model.phase !== "Cancelled") {
@@ -64,7 +71,10 @@ export function runRules(interaction: Interaction, owner: RulesOwner, action: Ru
       const event = yield* prompt.pipe(
         Effect.catchTag("QuitError", () => Effect.succeed<RulesEvent["action"]>({ kind: "exit" }))
       )
-      model = reduceRules(model, { revision: model.revision, action: event })
+      const before = model
+      const input = { revision: model.revision, action: event }
+      model = reduceRules(model, input)
+      yield* observe({ before, event: input, after: model })
     }
     yield* interaction.present(
       `Rules: ${model.phase === "Cancelled" ? "cancelled" : model.outcome} (simulated).\nNext: ${model.outcome === "partial" ? "Inspect recovery before retrying; storage may have changed." : model.outcome === "failed" ? "Inspect the owner failure before retrying." : "No production rule changes were made."}\nRESULT ${JSON.stringify(model)}\n`

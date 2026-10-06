@@ -1,6 +1,7 @@
 // THROWAWAY: standalone rules demo; one top-level Effect runtime.
-import { Deferred, Effect, Exit } from "effect"
+import { Effect, Exit } from "effect"
 import { liveInteraction } from "./interaction.ts"
+import { withInteractionSession } from "./interaction-session.ts"
 import { runRules } from "./rules-flow.ts"
 import { createRulesOwner, type OwnerOutcome } from "./rules-owner.ts"
 import type { RuleAction } from "./rules-model.ts"
@@ -19,29 +20,19 @@ if (
   )
   process.exitCode = 2
 } else {
-  const program = Effect.scoped(
+  const owner = createRulesOwner(outcome as OwnerOutcome)
+  const program = withInteractionSession(
+    (interaction) =>
+      runRules(interaction, owner, action as RuleAction).pipe(
+        Effect.map((model) => ({ ...model, simulatedWrites: owner.writes() }))
+      ),
     Effect.gen(function* () {
-      const stop = yield* Deferred.make<void>()
-      const signals = ["SIGINT", "SIGTERM", "SIGHUP"] as const
-      const cancel = () => Deferred.doneUnsafe(stop, Effect.void)
-      yield* Effect.acquireRelease(
-        Effect.sync(() => signals.forEach((signal) => process.on(signal, cancel))),
-        () => Effect.sync(() => signals.forEach((signal) => process.off(signal, cancel)))
+      yield* liveInteraction.present(
+        "Rules: interrupted (simulated).\nNext: inspect any observed owner outcome before retrying.\n"
       )
-      const owner = createRulesOwner(outcome as OwnerOutcome)
-      const result = yield* Effect.raceFirst(
-        runRules(liveInteraction, owner, action as RuleAction).pipe(
-          Effect.map((model) => ({ ...model, simulatedWrites: owner.writes() }))
-        ),
-        Deferred.await(stop).pipe(Effect.map(() => ({ phase: "Cancelled", simulatedWrites: owner.writes() })))
-      )
-      if (!("revision" in result))
-        yield* liveInteraction.present(
-          "Rules: interrupted (simulated).\nNext: inspect any observed owner outcome before retrying.\n"
-        )
-      yield* Effect.sync(() => process.stdout.write(JSON.stringify(result) + "\n"))
+      return { phase: "Cancelled", simulatedWrites: owner.writes() }
     })
-  )
+  ).pipe(Effect.flatMap((result) => Effect.sync(() => process.stdout.write(JSON.stringify(result) + "\n"))))
   const exit = await Effect.runPromiseExit(program)
   if (Exit.isFailure(exit)) {
     process.stderr.write("Rules prototype failed; inspect the owner before retrying.\n")
