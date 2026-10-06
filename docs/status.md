@@ -49,9 +49,13 @@ identities are hashed before persistence. At most 256 events and 72 current sema
 markers per event are retained per session. Markers contain only stage,
 timestamps, resident lifetime, bounded counts, and hashed identities; they never contain
 source, paths, credentials, advice, probabilities, or provider responses.
-The shared activity store (including optional analytics) expires sessions after 30 days
-without a write and evicts the oldest sessions to stay within 20 MiB of allocated file
-and session-directory storage. Cleanup runs on activity writes and status reads; it does
+<!-- activity-retention:start -->
+
+The shared activity store (including optional analytics) expires sessions after 30 days without a write and evicts the oldest sessions to stay within 20 MiB of allocated file and session-directory storage.
+
+<!-- activity-retention:end -->
+
+Cleanup runs on activity writes and status reads; it does
 not run a background timer. Limits are best effort during concurrent writes and filesystem
 errors. Expiry and eviction remove whole sessions, including their totals. Unrelated
 directories and symlink targets are not followed or deleted.
@@ -135,8 +139,15 @@ The **To agent** view renders the general Hapsland message saved by the resident
 before the final socket handoff, with its intended recipient and original
 finding/evaluation membership. Hooks and native extensions do not serialize
 inspection output or send inspection writer reports. Capture-aged consent,
-retention, and quota limits still apply; messages exceeding 16 KiB UTF-8 are
-explicitly marked oversized. This records preparation, not native output,
+retention, and quota limits still apply.
+
+<!-- inspection-message-limit:start -->
+
+Messages exceeding 16 KiB UTF-8 are explicitly marked oversized.
+
+<!-- inspection-message-limit:end -->
+
+This records preparation, not native output,
 agent receipt, model visibility, or repair. **Finding state changes** hides
 repeated observations of the same finding state.
 
@@ -200,8 +211,9 @@ being presented as healthy review.
 
 ## Optional session analytics
 
-Analytics recording is **disabled by default**. Enable it for a repository in
-its root `.hapsland.jsonc` (merge this field into an existing version-one document):
+<!-- analytics-recording:start -->
+
+Analytics recording is **disabled by default**. Merge this field into the repository-root configuration, preserving existing settings:
 
 ```jsonc
 {
@@ -210,10 +222,11 @@ its root `.hapsland.jsonc` (merge this field into an existing version-one docume
 }
 ```
 
-Project configuration overrides the user default in either direction. User defaults
-are read from `$XDG_CONFIG_HOME/hapsland/config.jsonc`, normally
-`~/.config/hapsland/config.jsonc`. Set `sessionAnalytics` to `false` in a project
-to stop future recording there; omission inherits the user default. Existing recorded
+Project configuration overrides the user default in either direction. Set `sessionAnalytics: false` in a project to stop future recording there; omission inherits the user default. User defaults follow the [configuration lookup](configuration.md).
+
+<!-- analytics-recording:end -->
+
+Existing recorded
 analytics remain readable until expiry or eviction; enablement never reconstructs earlier
 work. Each work item captures the recording setting, which is refreshed before provider
 dispatch; already-started work can still finish recording after the setting changes.
@@ -227,8 +240,7 @@ recording setting is reported separately from historical evidence. Missing evide
 Analytics retain compact totals per session, repository, and resident lifetime, plus
 at most 256 recent detail entries per lifetime. The report combines lifetimes, presents
 at most 256 details, and reports `detailsDropped`. Totals survive detail pruning and
-resident restarts while their session remains in storage. The shared 30-day / 20 MiB
-retention above applies even when analytics is disabled.
+resident restarts while their session remains in storage. The shared activity retention limits above apply even when analytics is disabled.
 
 | Counter | Meaning |
 |---|---|

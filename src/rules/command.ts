@@ -33,7 +33,9 @@ const inspectRules = Effect.fn("Rules.inspectCommand")(function* (
   else {
     const rule = inventory.rules.find((candidate) => candidate.id === options.id)
     if (rule === undefined)
-      return yield* Effect.fail(new Error("Use rules show --id with an identity from rules list."))
+      return yield* Effect.fail(
+        new Error(`Unknown rule identity '${options.id}'. Run hapsland rules list to find connected identities.`)
+      )
     const explanation = explainRule(rule, inventory, options.path)
     process.stdout.write(inspectionOutput(action, options, rule, explanation))
   }
@@ -87,7 +89,7 @@ export const runRulesCommand = Effect.fn("Rules.command")(function* (options: Ru
   const root = yield* discoverWorkingTreeRoot(process.cwd())
   const configured = Option.getOrUndefined(yield* Config.option(Config.NonEmptyString("REVIEW_USER_CONFIG_PATH")))
   const configuration = configured === undefined ? {} : { userConfigPath: configured }
-  const action = Option.getOrElse(options.action, () => "list" as const)
+  const action = options.action
   const terminal = Boolean(process.stdin.isTTY && process.stderr.isTTY)
   if (inspectionAction(action)) return yield* inspectRules(action, options, root, configuration)
   const scope = yield* changeScope(options.scope, terminal)

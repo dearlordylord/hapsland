@@ -50,8 +50,14 @@ The materialized runtime is kept outside `dist` so production builds and package
 restoration cannot remove entrypoints used by a running CLI or resident.
 
 Run `npm run hooks:install` once per repository. The shared Git dispatcher invokes
-the current worktree's maintained `.husky/pre-commit`, including lint-staged and
-typechecking, for existing and newly created worktrees.
+the current worktree's maintained `.husky/pre-commit`, including lint-staged,
+typechecking, and `config:check` (rejects stale generated documentation and schemas), for existing and newly created worktrees.
+Run `npm run config:generate` after changing schema metadata or documented runtime
+constants; `npm run config:check` verifies the checked-in schemas and marked Markdown
+sections without rewriting them. [Fact renderers](../scripts/documentation-facts.ts)
+import limits and names from their implementation owners. Edit those owners and
+renderers, rather than generated sections.
+
 Historical worktrees without that file use the maintained command captured by
 the installer in the common Git directory, executed in the current worktree.
 

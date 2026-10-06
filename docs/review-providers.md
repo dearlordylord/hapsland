@@ -38,18 +38,19 @@ UTF-8 JSON body bytes, including questions, criteria, escaping and metadata.
 constraints before calling the model. The Cloudflare adapter repeats validation
 at its transport boundary for callers outside that pipeline.
 
-| Model | Declared question limit | Declared HTTP body limit | Declared token limit | Local enforcement |
-| --- | --- | --- | --- | --- |
-| `jev-latest` | Unknown | Unknown | 64,000 per request; 32,000 for state plus longest question | Existing source/graph bounds; token counts are unmeasured |
-| `clef` | 64 | 13 MiB | 65,536 context window | Question count and exact HTTP body bytes; existing source/graph bounds |
-| `clef-flash` | 64 | 13 MiB | 65,536 context window | Same native checks as Clef |
+<!-- provider-limits:start -->
 
-Sources checked on 2026-10-02: [TypeSafe models](https://docs.typesafe.ai/models),
-[Clef](https://developers.cloudflare.com/workers-ai/models/clef/),
-[Clef-flash](https://developers.cloudflare.com/workers-ai/models/clef-flash/).
-These values are provider declarations, not results of live boundary tests.
+| Model | Declared question limit | Declared HTTP body limit | Declared token limit | Checked on | Source |
+| --- | --- | --- | --- | --- | --- |
+| `jev-latest` | Unknown | Unknown | 64,000 per request; 32,000 for state plus longest question | 2026-10-02 | [Provider declaration](https://docs.typesafe.ai/models) |
+| `clef` | 64 | 13 MiB | 65,536 context window | 2026-10-02 | [Provider declaration](https://developers.cloudflare.com/workers-ai/models/clef/) |
+| `clef-flash` | 64 | 13 MiB | 65,536 context window | 2026-10-02 | [Provider declaration](https://developers.cloudflare.com/workers-ai/models/clef-flash/) |
 
-The 20,480-byte evidence-tree ceiling belongs to Hapsland's graph profile,
+These values are provider declarations, not results of live boundary tests. Native question-count and HTTP-body limits are enforced; token counts are unmeasured.
+
+<!-- provider-limits:end -->
+
+The [evidence-tree ceiling](review-resources.md#source-collection-and-provider-input) belongs to Hapsland's graph profile,
 not to Jev. It applies independently of the selected provider. Selecting a model
 with a larger context window does not expand collection limits.
 
@@ -75,7 +76,11 @@ are not hardcoded as model input limits in this catalog.
 
 Set the following in the **user** configuration file described in
 [configuration](configuration.md). Project configuration cannot set `reviewBackend`.
+<!-- jev-selection:start -->
+
 Omission selects Jev with `jev-latest` and `TYPESAFE_API_KEY`.
+
+<!-- jev-selection:end -->
 
 ```jsonc
 {
@@ -88,8 +93,11 @@ Omission selects Jev with `jev-latest` and `TYPESAFE_API_KEY`.
 }
 ```
 
-Use `clef-flash` to select the other Cloudflare model. Make
-`CLOUDFLARE_API_TOKEN` available to the installed runtime's hook environment.
+<!-- cloudflare-credential:start -->
+
+Use `clef-flash` to select the other Cloudflare model. Make `CLOUDFLARE_API_TOKEN` available to the installed runtime's hook environment.
+
+<!-- cloudflare-credential:end -->
 An explicit user `credentialEnvVar` can name another variable. Configuration
 contains the account ID and variable reference, never the token value.
 Cloudflare's derived credential reference is user-owned and uses environment/file lookup without native fallback:

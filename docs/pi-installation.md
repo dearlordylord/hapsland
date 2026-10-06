@@ -42,7 +42,11 @@ Native `write` is explicitly unsupported/incomplete in this profile. Matching wr
 
 Advice submitted through an extension result is a handoff observation. A finding observed in a native provider request establishes the tested request's model-visible input; it does not guarantee compliance. A repair and its correlated clear follow-up are separate assertions. The resident owns pending work, freshness, finish wait, continuation budgets, and expiry. The extension does not introduce another review queue or repair policy.
 
+<!-- inspection-handoff:start -->
+
 With effective `sessionInspection` opt-in, the resident records the general Hapsland message, intended recipient, and final finding/evaluation membership before handing advice to the runtime over its socket. The dashboard renders this message directly, independently of Pi's native return-value format. Messages exceeding 16 KiB UTF-8 are explicitly marked oversized. The extension does not serialize output for inspection or attach inspection reports to acknowledgement calls. Preparation does not establish native acceptance, model visibility, reading, agreement, or repair. The existing delivery acknowledgement and lease behavior remain unchanged; optional capture failure does not refuse the native mutation or offer.
+
+<!-- inspection-handoff:end -->
 
 ## Validation boundary
 

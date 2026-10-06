@@ -1,3 +1,4 @@
+import { documentationFacts } from "./documentation-facts.ts"
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join, resolve } from "node:path"
@@ -10,7 +11,7 @@ import { decodeConfigurationText } from "../src/configuration/decode.ts"
 import { decodeRuleText } from "../src/rules/schema.ts"
 import { renderConfigurationArtifacts, renderInspectionArtifacts } from "./generate-configuration.ts"
 
-import { InspectionRecordingEnabled } from "../src/configuration/types.ts"
+import { AnalyticsRecordingEnabled, InspectionRecordingEnabled } from "../src/configuration/types.ts"
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const generator = join(repositoryRoot, "scripts/generate-configuration.ts")
@@ -35,6 +36,14 @@ const withFixture = (run: (root: string) => void): void => {
     const text = name === "docs/status.md" ? "Authored status guide.\n" : readFileSync(path, "utf8")
     writeFileSync(path, text + "\n<!-- inspection-recording:start -->\nold\n<!-- inspection-recording:end -->\n")
   }
+  for (const fact of documentationFacts()) {
+    const path = join(root, fact.path)
+    let text = "Authored facts document.\n"
+    try {
+      text = readFileSync(path, "utf8")
+    } catch {}
+    writeFileSync(path, text + `\n<!-- ${fact.name}:start -->\nold\n<!-- ${fact.name}:end -->\n`)
+  }
   try {
     run(root)
   } finally {
@@ -55,7 +64,10 @@ const generatedFiles = (root: string): ReadonlyArray<string> => [
   join(root, "schemas/review-config-v1.schema.json"),
   join(root, "schemas/review-rule-v1.schema.json"),
   join(root, "docs/status.md"),
-  join(root, "docs/examples/session-inspection.jsonc")
+  join(root, "docs/examples/session-inspection.jsonc"),
+  join(root, "docs/pi-installation.md"),
+  join(root, "docs/review-providers.md"),
+  join(root, "docs/review-resources.md")
 ]
 
 const codeBlocks = (markdown: string): ReadonlyArray<string> =>
@@ -106,7 +118,24 @@ describe("configuration documentation generator", () => {
     )
   })
 
-  it("updates the seven artifacts deterministically and preserves authored guide text", () => {
+  it("propagates renamed recording settings into all fact sections", () => {
+    const renamed = Schema.Struct({
+      version: Schema.Literal(1),
+      analyticsRenamed: Schema.optionalKey(AnalyticsRecordingEnabled),
+      inspectionRenamed: Schema.optionalKey(InspectionRecordingEnabled)
+    })
+    const facts = documentationFacts(renamed)
+    const text = facts.map((fact) => fact.text).join("\n")
+    expect(text).toContain("analyticsRenamed")
+    expect(text).toContain("inspectionRenamed")
+    expect(text).not.toContain("sessionAnalytics")
+    expect(text).not.toContain("sessionInspection")
+    for (const example of codeBlocks(facts.find((fact) => fact.name === "analytics-recording")!.text)) {
+      expect(Schema.decodeUnknownSync(renamed)(JSON.parse(example))).toEqual({ version: 1, analyticsRenamed: true })
+    }
+  })
+
+  it("updates all artifacts deterministically and preserves authored guide text", () => {
     withFixture((root) => {
       const first = runGenerator(root, "--update")
       expect(first.status, first.stderr).toBe(0)
@@ -185,12 +214,19 @@ describe("configuration documentation generator", () => {
       rmSync(schema)
       const template = join(root, "docs/examples/session-inspection.jsonc")
       writeFileSync(template, readFileSync(template, "utf8").replace(": true", ": false"))
+      const factPaths = [...new Set(documentationFacts().map((fact) => fact.path))]
+      for (const name of factPaths) {
+        const path = join(root, name)
+        const fact = documentationFacts().find((fact) => fact.path === name)!
+        writeFileSync(path, readFileSync(path, "utf8").replace(fact.text, "Stale fact"))
+      }
       const before = generatedFiles(root)
         .filter((path) => path !== schema)
         .map((path) => [path, readFileSync(path, "utf8")] as const)
 
       const checked = runGenerator(root, "--check")
       expect(checked.status).toBe(1)
+      for (const name of factPaths) expect(checked.stdout).toContain(name)
       expect(checked.stdout).toContain("README.md")
       expect(checked.stdout).toContain("review-config-v1.schema.json")
       expect(checked.stdout).toContain("docs/examples/session-inspection.jsonc")

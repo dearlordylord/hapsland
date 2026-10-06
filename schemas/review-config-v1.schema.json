@@ -80,9 +80,7 @@
       "default": "TYPESAFE_API_KEY"
     },
     "sessionAnalytics": {
-      "type": "boolean",
-      "description": "Opt-in session analytics. Project configuration overrides the user default; disabled by default; retains source-free totals and bounded rule-ID history for 30 days within a shared 20 MiB activity store.",
-      "default": false
+      "$ref": "#/$defs/AnalyticsRecordingEnabled"
     },
     "sessionInspection": {
       "$ref": "#/$defs/InspectionRecordingEnabled"
@@ -188,6 +186,14 @@
         }
       ],
       "description": "User-owned review destination. Jev is the default; Cloudflare requires a model and account ID. Projects cannot set this field."
+    },
+    "AnalyticsRecordingEnabled": {
+      "type": "boolean",
+      "description": "Opt-in source-free session analytics. Project configuration overrides the user default; disabled by default; subject to the shared activity storage limits.",
+      "default": false,
+      "examples": [
+        true
+      ]
     },
     "InspectionRecordingEnabled": {
       "type": "boolean",

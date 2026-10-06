@@ -16,6 +16,7 @@ import * as NodeServices from "@effect/platform-node/NodeServices"
 import { clientCommands, type ClientCommand } from "./onboarding/client-command.ts"
 import type { SetupClient } from "./onboarding/client-selection.ts"
 import { JEV_PROVIDER } from "./runtime/backend.ts"
+import { makeRulesCommand, type RulesOptions } from "./rules/cli-definition.ts"
 import {
   NEW_KEY_OPTION,
   NEW_KEY_FLAG,
@@ -24,6 +25,8 @@ import {
   SETUP_COMMAND,
   CLI_NAME
 } from "./runtime/cli-names.ts"
+
+export type { RulesOptions } from "./rules/cli-definition.ts"
 
 const validate = <A>(read: () => A) =>
   Effect.try({
@@ -153,19 +156,6 @@ export interface ClientArguments {
   readonly host: SetupClient | undefined
   readonly flags: ReadonlyMap<string, string>
 }
-const rulesOptions = {
-  action: Argument.Literals("action", ["list", "show", "explain", "enable", "disable", "create", "connect"]).pipe(
-    Argument.optional
-  ),
-  id: valueFlag("id"),
-  path: valueFlag("path"),
-  scope: Flag.Literals("scope", ["personal", "project"]).pipe(
-    Flag.atMost(1),
-    Flag.map((values) => values[0])
-  ),
-  json: switchFlag("json", [], false)
-}
-export type RulesOptions = Command.Command.Config.Infer<typeof rulesOptions>
 export type Invocation =
   | { readonly kind: "dashboard"; readonly host: string; readonly port: number }
   | { readonly kind: "rules"; readonly options: RulesOptions }
@@ -263,11 +253,9 @@ export const parseInvocation = async (args: ReadonlyArray<string>): Promise<Invo
       invocation = { kind: "automation", options: values, client: clientArguments(values) }
     })
   ).pipe(Command.withDescription(`Hapsland — ${supportedClientNames} review integration`))
-  const rulesCommand = Command.make("rules", rulesOptions, (options) =>
-    Effect.sync(() => {
-      invocation = { kind: "rules", options }
-    })
-  ).pipe(Command.withDescription("Inspect, toggle, create or connect local JSON rules; no classifier calls"))
+  const rulesCommand = makeRulesCommand((options) => {
+    invocation = { kind: "rules", options }
+  })
   const root = parent.pipe(
     Command.withSubcommands([
       Command.make("dashboard", { host: valueFlag("host"), port: valueFlag("port") }, (values) =>

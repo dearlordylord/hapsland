@@ -64,7 +64,10 @@ test("real pre-commit formats staged code and rejects a lint defect", () => {
       join(root, "package.json"),
       JSON.stringify({
         private: true,
-        scripts: { typecheck: "tsc --noEmit --skipLibCheck --types node src/example.ts" },
+        scripts: {
+          typecheck: "tsc --noEmit --skipLibCheck --types node src/example.ts",
+          "config:check": `node -e "process.exit(require('node:fs').existsSync('stale-docs') ? 1 : 0)"`
+        },
         "lint-staged": { "*.ts": `${process.execPath} ${runner} --staged --fix` }
       })
     )
@@ -88,6 +91,9 @@ test("real pre-commit formats staged code and rejects a lint defect", () => {
     assert.equal(run("git", ["show", "HEAD:src/example.ts"]).stdout, 'export const value = { nested: "staged" }\n')
     assert.match(readFileSync(join(root, "src/example.ts"), "utf8"), /export const unstaged = "preserved"/)
     assert.match(run("git", ["diff", "--", "src/example.ts"]).stdout, /unstaged/)
+    writeFileSync(join(root, "stale-docs"), "stale")
+    assert.notEqual(commit().status, 0, "stale generated docs must reject a commit")
+    rmSync(join(root, "stale-docs"))
     writeFileSync(join(root, "src/example.ts"), "const unused = 1\n")
     assert.equal(run("git", ["add", "src/example.ts"]).status, 0)
     const rejected = commit()

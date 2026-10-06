@@ -6,6 +6,9 @@ import type { ConfigurationCapture } from "../configuration/types.ts"
 import type { CompiledRule } from "../rules/compiler.ts"
 import { loadReviewSettings, type ReviewConfigError, type ReviewSettings } from "./review-config.ts"
 
+export const REVIEW_SETTINGS_CACHE_CAPACITY = 128
+export const REVIEW_SETTINGS_CACHE_TTL_MS = 5_000
+
 export const WorkingTreeRoot = Schema.NonEmptyString.check(Schema.isPattern(/^\//)).pipe(
   Schema.brand("WorkingTreeRoot")
 )
@@ -61,7 +64,10 @@ export const makeReviewSettings = Effect.fn("ReviewSettings.make")(function* () 
         ruleDigests: settings.ruleDigests ?? []
       })
     }),
-    { capacity: 128, timeToLive: (exit) => (Exit.isSuccess(exit) ? "5 seconds" : 0) }
+    {
+      capacity: REVIEW_SETTINGS_CACHE_CAPACITY,
+      timeToLive: (exit) => (Exit.isSuccess(exit) ? REVIEW_SETTINGS_CACHE_TTL_MS : 0)
+    }
   )
   return ReviewSettingsService.of({
     capture: Effect.fn("ReviewSettings.capture")((source) => Cache.get(cache, Object.freeze({ ...source })))

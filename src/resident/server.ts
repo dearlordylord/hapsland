@@ -1,6 +1,12 @@
 import { InspectionTransportObservation } from "../inspection/transport.ts"
 import { captureInspectionPolicy, captureInspectionFindings, captureInspectionFate } from "../inspection/capture.ts"
-import { inspectionSourceId, type InspectionScope, type InspectionCorrelation } from "../inspection/contract.ts"
+import {
+  MAX_INSPECTION_MESSAGE_BYTES,
+  MAX_INSPECTION_INPUT_BYTES,
+  inspectionSourceId,
+  type InspectionScope,
+  type InspectionCorrelation
+} from "../inspection/contract.ts"
 import { makeInspectionRecorder, type InspectionPersistence } from "../inspection/recorder.ts"
 import { makeInspectionStorage } from "../inspection/storage.ts"
 import { readInspectionSettings } from "../inspection/settings.ts"
@@ -3709,7 +3715,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                         kind: "model-input" as const,
                         representation: "decision-model-json" as const,
                         payload:
-                          byteLength > 16384
+                          byteLength > MAX_INSPECTION_INPUT_BYTES
                             ? { status: "missing" as const, reason: "oversized" as const }
                             : {
                                 status: "available" as const,
@@ -3741,7 +3747,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                   const payload =
                     body === undefined
                       ? { status: "missing" as const, reason: "unavailable" as const }
-                      : body.byteLength > 16384
+                      : body.byteLength > MAX_INSPECTION_INPUT_BYTES
                         ? { status: "missing" as const, reason: "oversized" as const }
                         : {
                             status: "available" as const,
@@ -5297,7 +5303,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               ]
             }),
             message:
-              Buffer.byteLength(text, "utf8") <= 16384
+              Buffer.byteLength(text, "utf8") <= MAX_INSPECTION_MESSAGE_BYTES
                 ? { status: "available", text }
                 : { status: "missing", reason: "oversized" }
           }

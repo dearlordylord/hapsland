@@ -80,10 +80,23 @@ independent identity, round, and cleanup bounds.
 
 ## Source collection and provider input
 
-The configured graph profile bounds the evidence for one review unit. Its
-maximum defaults include 256 KiB per source file, 20 KiB of encoded evidence,
-eight files, and 1.5 MiB of total source reads. Depth, outgoing edges, and work
-steps have separate finite limits. Every root and supporting file passes file
+<!-- graph-ceilings:start -->
+
+The configured graph profile bounds the evidence for one review unit. Projects may lower these ceilings:
+
+| Field | Ceiling |
+| --- | --- |
+| `sourceBytes` | 262,144 bytes |
+| `treeBytes` | 20,480 bytes |
+| `files` | 8 |
+| `readBytes` | 1,572,864 bytes |
+| `outgoingEdges` | 16 |
+| `depth` | 4 |
+| `work` | 128 |
+
+<!-- graph-ceilings:end -->
+
+Every root and supporting file passes file
 selection before source capture. A marked omission can make some rules
 inapplicable without making an independent eligible rule or unit unavailable.
 
@@ -94,8 +107,7 @@ limits or allow excluded source to be read.
 
 The [provider catalog](../src/review-providers/catalog.ts) and
 [provider guide](review-providers.md) own model-specific declarations and local
-transport checks. For example, the current Clef adapters enforce 64 questions
-and a 13 MiB HTTP body bound, measuring the actual encoded request including
+transport checks. The adapters enforce their catalogued question and HTTP body bounds, measuring the actual encoded request including
 questions, criteria, and escaping. There is no separate provider-independent
 ceiling on the total backend request body; the evidence-tree ceiling still
 applies.

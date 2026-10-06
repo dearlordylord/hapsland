@@ -4,7 +4,16 @@ import { loadReviewSettings } from "../runtime/review-config.ts"
 import { reviewCodexDirectEvent } from "../direct-event/pipeline.ts"
 import { addEvent, advicee } from "../direct-event/test-fixtures.ts"
 import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts"
-import { mkdirSync, writeFileSync, symlinkSync, existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs"
+import {
+  mkdirSync,
+  writeFileSync,
+  symlinkSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, expect, it } from "vitest"
@@ -16,7 +25,7 @@ afterEach(() => {
 })
 
 it("creates, inspects, disables and reconnects a project rule through the CLI", async () => {
-  const root = mkdtempSync(join(tmpdir(), "hapsland-rules-cli-"))
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "hapsland-rules-cli-")))
   roots.push(root)
   execFileSync("git", ["init", "--quiet", root])
   const run = (...args: string[]) =>

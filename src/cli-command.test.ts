@@ -3,6 +3,7 @@ import { SUPPORTED_CLIENTS, CLIENT_NAMES } from "./runtime/agent-clients.ts"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../scripts/test-harness/policy.mjs"
 import { describe, expect, it, vi } from "vitest"
 import { parseInvocation } from "./cli-command.ts"
+import { ruleCommandReference } from "./rules/cli-definition.ts"
 import { spawnSync } from "../scripts/test-harness/process.mjs"
 import { mkdtempSync, readdirSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -48,6 +49,60 @@ const parse = async (args: ReadonlyArray<string>) => {
 }
 
 describe("declarative CLI subprocess contracts", () => {
+  it("discovers rule commands and validates every documented example through the parser", async () => {
+    const help = await parse(["rules", "--help"])
+    expect(help.invocation).toBeUndefined()
+    expect(help.output).toContain("SUBCOMMANDS")
+    expect(help.output).toContain("Defaults to list")
+    for (const command of ruleCommandReference()) {
+      expect(help.output).toContain(command.name)
+      expect(help.output).toContain(command.description)
+      for (const example of command.examples) {
+        const result = await parse(example.command.split(" ").slice(1))
+        expect(result.invocation).toMatchObject({ kind: "rules", options: { action: command.name } })
+      }
+    }
+    expect((await parse(["rules", "--json"])).invocation).toMatchObject({
+      kind: "rules",
+      options: { action: "list", json: true }
+    })
+    for (const args of [
+      ["rules", "--json", "show", "--id", "team"],
+      ["rules", "show", "--id", "team", "--json"]
+    ]) {
+      expect((await parse(args)).invocation).toMatchObject({ kind: "rules", options: { action: "show", json: true } })
+    }
+  })
+
+  it("provides focused rule help and rejects missing or irrelevant flags before dispatch", async () => {
+    const show = await parse(["rules", "show", "--help"])
+    expect(show.output).toContain("--id")
+    expect(show.output).toContain("EXAMPLES")
+    expect(show.output).not.toContain("--scope")
+    expect(show.output).not.toContain("--path")
+    const connect = await parse(["rules", "connect", "--help"])
+    expect(connect.output).toContain("--path")
+    expect(connect.output).toContain("--scope")
+    expect(connect.output).not.toContain("--id")
+    const create = await parse(["rules", "create", "--help"])
+    expect(create.output).toContain("New rule identity (required)")
+    for (const args of [
+      ["show"],
+      ["connect"],
+      ["create"],
+      ["show", "--id", "first", "--id", "second"],
+      ["list", "--id", "team"],
+      ["show", "--id", "team", "--scope", "project"]
+    ]) {
+      await expect(parse(["rules", ...args])).rejects.toThrow()
+    }
+    const result = cli(["rules", "show"])
+    expect(result.status).not.toBe(0)
+    expect(result.stdout).toBe("")
+    expect(result.stderr).toContain("--id")
+    expect(result.files).toEqual([])
+  })
+
   it("lists every supported client in public help and accepts it for setup", async () => {
     const help = await parse(["--help"])
     for (const client of SUPPORTED_CLIENTS) {

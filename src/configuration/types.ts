@@ -3,6 +3,14 @@ import { RuleIdentitySchema } from "../domain/rule-identity.ts"
 import { GRAPH_LIMIT_CEILINGS, type GraphLimitField } from "./graph-limits.ts"
 import { JEV_PROVIDER } from "../runtime/backend.ts"
 
+export const AnalyticsRecordingEnabled = Schema.Boolean.annotate({
+  identifier: "AnalyticsRecordingEnabled",
+  description:
+    "Opt-in source-free session analytics. Project configuration overrides the user default; disabled by default; subject to the shared activity storage limits.",
+  default: false,
+  examples: [true]
+})
+
 /** The only configuration format accepted by the product in this phase. */
 export const CONFIGURATION_VERSION = 1 as const
 export const DEFAULT_CREDENTIAL_ENV_VAR = JEV_PROVIDER.credentialEnvVar
@@ -171,13 +179,7 @@ export const ConfigurationDocument = Schema.Struct({
   ),
   reviewBackend: Schema.optionalKey(ReviewBackendSettings),
   credentialEnvVar: Schema.optionalKey(EnvironmentVariableName),
-  sessionAnalytics: Schema.optionalKey(
-    Schema.Boolean.annotate({
-      description:
-        "Opt-in session analytics. Project configuration overrides the user default; disabled by default; retains source-free totals and bounded rule-ID history for 30 days within a shared 20 MiB activity store.",
-      default: false
-    })
-  ),
+  sessionAnalytics: Schema.optionalKey(AnalyticsRecordingEnabled),
   sessionInspection: Schema.optionalKey(InspectionRecordingEnabled),
   inspectionRetentionDays: Schema.optionalKey(
     Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 3650 })).annotate({

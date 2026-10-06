@@ -15,10 +15,12 @@ backend returns a probability; Choice and Score are separate unsupported result 
 
 For source-bearing inspection history, merge the
 [inspection configuration template](examples/session-inspection.jsonc) into the
-project's `.hapsland.jsonc`. Inspection recording defaults to off; dev and bundled
+project configuration. Inspection recording defaults to off; dev and bundled
 dashboards only display recorded events and do not enable capture. See the
 [inspection guide](status.md#opt-in-local-inspection) for enabling new capture and
 the distinction between current recording and retained history.
+
+<!-- project-location:start -->
 
 | Layer | Location | Behavior |
 | --- | --- | --- |
@@ -26,6 +28,8 @@ the distinction between current recording and retained history.
 | User | `REVIEW_USER_CONFIG_PATH`, otherwise `$XDG_CONFIG_HOME/hapsland/config.jsonc` (normally `~/.config/hapsland/config.jsonc`) | Personal settings across repositories; owns review destination and shared resident resources. |
 | Project | `.hapsland.jsonc` at the canonical Git working-tree root | Overrides ordinary settings for this repository. There are no nested configuration layers. |
 | Rule documents | Explicit `rules` references in configuration | Definitions, not another configuration layer. Paths resolve from the declaring configuration. |
+
+<!-- project-location:end -->
 
 An absent, empty, or relative XDG base uses `~/.config`. An explicitly empty
 `REVIEW_USER_CONFIG_PATH` is an error; only an absent override selects the default.
@@ -40,7 +44,7 @@ narrow global root selection and the rule's declared input support.
 User privacy exclusions cannot be removed by project settings. Review destination,
 shared resident limits, and stronger Claude blocking have user-owned restrictions;
 ordinary project precedence does not override those restrictions. User graph limits
-are ceilings that projects may lower. `sessionAnalytics` uses ordinary precedence,
+are ceilings that projects may lower. Session analytics use ordinary precedence,
 including an explicit project `false`.
 
 Configuration and rule documents support JSONC comments and trailing commas.
@@ -144,7 +148,7 @@ resolved selection before expecting a review result.
 | `reviewBackend.model` | "clef" or "clef-flash" | Required (provider = "cloudflare") | — | Cloudflare model selector. |
 | `reviewBackend.accountId` | string matching a pattern | Required (provider = "cloudflare") | — | Cloudflare account ID, 32 hexadecimal characters. |
 | `credentialEnvVar` | string matching a pattern | Optional | "TYPESAFE_API_KEY" | Name of the environment variable that supplies the review credential. Store the secret value outside configuration. |
-| `sessionAnalytics` | boolean | Optional | false | Opt-in session analytics. Project configuration overrides the user default; disabled by default; retains source-free totals and bounded rule-ID history for 30 days within a shared 20 MiB activity store. |
+| `sessionAnalytics` | boolean | Optional | false | Opt-in source-free session analytics. Project configuration overrides the user default; disabled by default; subject to the shared activity storage limits. |
 | `sessionInspection` | boolean | Optional | false | Opt-in source-bearing local inspection history. Project configuration overrides the user default in either direction; independent of source-free analytics and disabled by default. Opening the dashboard never enables recording. |
 | `inspectionRetentionDays` | integer (1–3650) | Optional | 7 | User-owned capture-aged inspection retention in days, shared across residents and projects. |
 | `inspectionStorageBytes` | integer (1–9007199254740991) | Optional | 134217728 | User-owned shared allocated inspection-storage cap, including records, indices, payloads and temporary allocations. Unavailable quota drops capture; review continues. |
@@ -192,12 +196,17 @@ limits independently constrain the HTTP request; see [review providers](review-p
 
 Credential environment-variable selection has a user-owned exception: a user
 `credentialEnvVar` wins over a project value; otherwise a project value may supply it.
-The built-in reference is `TYPESAFE_API_KEY`. Inspection reports its name and presence,
-never its value. See [credential lookup](installation-workflows.md#personal-development-on-your-own-clients).
+<!-- credential-reference:start -->
 
-Session analytics are disabled by default. Set `sessionAnalytics: true` to retain
-source-free session totals and bounded rule-ID history, subject to the limits in
-[status and analytics](status.md#optional-session-analytics).
+The built-in credential reference is `TYPESAFE_API_KEY`. Inspection reports its name and presence, never its value. See [credential lookup](installation-workflows.md#personal-development-on-your-own-clients).
+
+<!-- credential-reference:end -->
+
+<!-- analytics-enablement:start -->
+
+Session analytics are disabled by default. Set `sessionAnalytics: true` to retain source-free session totals and bounded rule-ID history, subject to the limits in [status and analytics](status.md#optional-session-analytics).
+
+<!-- analytics-enablement:end -->
 
 Claude feedback defaults to `advisory`. Only user configuration may enable
 `claudeFeedbackMode: "block-current-findings"`; a project may restrict it to
@@ -217,8 +226,13 @@ reports a missing-source error, rather than restoring a hidden default. Repeated
 setup preserves authored files. An unreferenced file is inactive in every directory.
 
 Each rule document has `version: 1`, a stable `id`, optional `title`, `question`,
-`criteria`, `message`, optional `threshold`, and a nonempty `inputs` list. The default
-threshold is 0.7; a finding requires a probability strictly greater than its threshold.
+`criteria`, `message`, optional `threshold`, and a nonempty `inputs` list.
+
+<!-- rule-threshold:start -->
+
+The default threshold is 0.7; a finding requires a probability strictly greater than its threshold.
+
+<!-- rule-threshold:end -->
 An ID may use a namespace such as `team/domain-state`; it is not a filesystem path.
 There are no packs, content-version labels, authored path filters, or source-evidence
 rungs. Content digests identify actual definition changes.
@@ -251,14 +265,9 @@ that rule's evaluation. Findings may concern pre-existing code within the change
 ### Author, connect, and inspect
 
 Write a project rule under `<Git root>/.hapsland/rules/custom/`, or a personal rule
-under `~/.config/hapsland/rules/custom/`. Connect it explicitly:
-
-```sh
-hapsland rules connect --path .hapsland/rules/custom/domain-state.json --scope project
-hapsland rules list
-hapsland rules show --id team/domain-state
-hapsland rules disable --id team/domain-state --scope project
-```
+under `~/.config/hapsland/rules/custom/`. Connect it explicitly using the
+[generated command reference](#rule-commands) below. Its examples come from the
+same definitions as terminal help, rather than a separate maintained command list.
 
 `hapsland rules create --id domain-state --scope project` creates a starting rule
 **and connects it**. Its preview states the activation, scope, and concrete files
@@ -298,6 +307,30 @@ separate from Hapsland policy. Rule JSON editor validation uses
 validity does not establish classifier judgment quality.
 
 <!-- rule-guide:start -->
+
+### Rule commands
+
+The command definitions generate this reference and terminal help. `hapsland rules` defaults to `list`; use `hapsland rules <command> --help` for command-specific flags and examples.
+
+| Command | Purpose |
+|---|---|
+| `list` | List connected rules, activation and source files |
+| `show` | View a connected rule and its effective settings |
+| `explain` | Explain activation and file/language selection |
+| `create` | Create and connect an editable rule |
+| `connect` | Connect an existing local JSON rule |
+| `enable` | Enable a connected rule in the selected scope |
+| `disable` | Disable a connected rule in the selected scope |
+
+```sh
+hapsland rules list
+hapsland rules show --id team/domain-state
+hapsland rules explain --id team/domain-state --path src/example.ts
+hapsland rules create --id team/domain-state --scope project
+hapsland rules connect --path .hapsland/rules/custom/domain-state.json --scope project
+hapsland rules enable --id team/domain-state --scope project
+hapsland rules disable --id team/domain-state --scope project
+```
 
 ### Rule example
 
@@ -359,12 +392,11 @@ Hapsland dispatches only when the selected language/kind pair and required evide
 
 ## Runtime behavior
 
-The resident loads configuration and rule documents together, validates them and
-compiles the rules into an immutable edit settings snapshot. A resident-owned
-Effect cache retains successful snapshots for five seconds after loading finishes;
-hits do not extend that interval, and concurrent requests for the same project and
-configuration paths share a load. The cache holds at most 128 sources. A failed
-load is not cached and does not silently reuse an expired snapshot.
+<!-- settings-cache:start -->
+
+The resident loads configuration and rule documents together, validates them and compiles the rules into an immutable edit settings snapshot. A resident-owned Effect cache retains successful snapshots for 5 seconds after loading finishes; hits do not extend that interval, and concurrent requests for the same project and configuration paths share a load. The cache holds at most 128 sources. A failed load is not cached and does not silently reuse an expired snapshot.
+
+<!-- settings-cache:end -->
 
 An edit captures its snapshot at pre-edit registration, or at observation admission
 when no registration exists. Duplicate pending registration preserves the original

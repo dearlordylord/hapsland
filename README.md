@@ -362,8 +362,7 @@ without prompts, repairs, source reads, or Jev calls. Status uses an explicit ho
 ID and bounded source-free resident activity, and never treats silence or missing
 instrumentation as a clear review. Optional [session analytics](./docs/status.md#optional-session-analytics)
 are disabled by default; user configuration can enable Jev outcome totals and recent
-rule-ID history. The shared activity store expires inactive sessions after 30 days and
-is capped at 20 MiB.
+rule-ID history. See the [shared activity storage limits](./docs/status.md).
 
 The maintainer-only semantic evaluation protocol and its sanitized offline milestone
 evidence are documented in [`docs/evaluation.md`](./docs/evaluation.md) and

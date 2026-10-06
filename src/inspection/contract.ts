@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto"
 import * as Schema from "effect/Schema"
 
+export const MAX_INSPECTION_MESSAGE_BYTES = 16 * 1024
+export const MAX_INSPECTION_INPUT_BYTES = 16 * 1024
 export const INSPECTION_VERSION = 1 as const
 export const MAX_INSPECTION_RECORD_BYTES = 128 * 1024
 export const MAX_INSPECTION_QUEUE_BYTES = 4 * 1024 * 1024
@@ -178,7 +180,7 @@ export const InspectionFact = Schema.Union([
     payload: Schema.Union([
       Schema.Struct({
         status: Schema.Literal("available"),
-        encoded: Schema.String.check(Schema.isMaxLength(16384)),
+        encoded: Schema.String.check(Schema.isMaxLength(MAX_INSPECTION_INPUT_BYTES)),
         byteLength: Count,
         sha256: Hash
       }),
@@ -240,7 +242,9 @@ export const InspectionFact = Schema.Union([
     message: Schema.Union([
       Schema.Struct({
         status: Schema.Literal("available"),
-        text: Schema.String.check(Schema.makeFilter((value) => Buffer.byteLength(value, "utf8") <= 16384))
+        text: Schema.String.check(
+          Schema.makeFilter((value) => Buffer.byteLength(value, "utf8") <= MAX_INSPECTION_MESSAGE_BYTES)
+        )
       }),
       Schema.Struct({ status: Schema.Literal("missing"), reason: Schema.Literal("oversized") })
     ])
@@ -293,7 +297,7 @@ export const decodeInspectionRecord = (value: unknown): InspectionRecord => {
     const payload = record.fact.payload
     if (
       Buffer.byteLength(payload.encoded) !== payload.byteLength ||
-      payload.byteLength > 16384 ||
+      payload.byteLength > MAX_INSPECTION_INPUT_BYTES ||
       createHash("sha256").update(payload.encoded).digest("hex") !== payload.sha256
     )
       throw new Error("inspection payload identity mismatch")
@@ -304,7 +308,7 @@ export const decodeInspectionRecord = (value: unknown): InspectionRecord => {
     const bytes = Buffer.from(payload.encoded, "base64")
     if (
       bytes.byteLength !== payload.byteLength ||
-      bytes.byteLength > 16384 ||
+      bytes.byteLength > MAX_INSPECTION_INPUT_BYTES ||
       bytes.toString("base64") !== payload.encoded ||
       createHash("sha256").update(bytes).digest("hex") !== payload.sha256
     )
