@@ -34,7 +34,7 @@ def run(name, engine='reducer', width=80, action='complete', color=False):
             assert p.returncode == 2 and stdout == b'' and before == termios.tcgetattr(slave)
             reports.append(dict(name=name, rejected=True, modesUnchanged=True))
             return
-        until(b'Select synthetic agents')
+        until(b'Select agents')
         if action != 'complete':
             if action in ('SIGTERM', 'SIGINT', 'SIGHUP'): p.send_signal(getattr(signal, action))
             elif action == 'interrupt': os.write(master, b'\x03')
@@ -44,7 +44,7 @@ def run(name, engine='reducer', width=80, action='complete', color=False):
             # Resize before selection; return one fake host.
             fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', 12, max(20, width-10), 0, 0))
             p.send_signal(signal.SIGWINCH)
-            os.write(master, b'\x1b[B\x1b[B\r\x1b')
+            os.write(master, b'\x1b[B\x1b[B \r')
             until(b'Preview Claude hooks'); os.write(master, b'\x1b[B\r')
             until(b'Where should the credential'); os.write(master, b'\r')
             until(b'Save fake key'); os.write(master, b'\x1b[B\r')

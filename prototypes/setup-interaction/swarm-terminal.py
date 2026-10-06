@@ -247,12 +247,12 @@ def make(name, **kwargs):
 
 
 def await_initial(c):
-    assert c.until(b"Select synthetic agents"), c.diag("initial selection prompt")
+    assert c.until(b"0 selected"), c.diag("initial selection prompt")
     assert c.raw(), c.diag("initial prompt enters raw/no-echo mode")
     c.snapshot_descendants()
 
 
-def initial(c, select=b"\x1b[B\x1b[B\r\x1b"):
+def initial(c, select=b"\x1b[B\x1b[B \r"):
     await_initial(c)
     c.send(select)
     return c
@@ -317,22 +317,9 @@ def escape_and_back():
         assert c.until(b"Preview Claude hooks"), c.diag("hook prompt")
         assert c.raw(), c.diag("hook prompt enters raw mode")
         c.send(b"\x1b")
-        c._read_ready(0.15)
-        escaped_before_enter = b"RESULT " in c.terminal_data or b'"phase":"Applying"' in c.terminal_data
-        if b"RESULT " in c.terminal_data:
-            result, transcript = c.finish("Cancelled")
-            disposition = "escape-cancelled"
-        else:
-            # Enter accepts the currently highlighted default, which is Decline.
-            c.send(b"\r")
-            assert c.until(b"Where should the credential"), c.diag("escape did not approve; default decline prompt")
-            assert c.raw(), c.diag("destination prompt enters raw mode")
-            c.send(b"\x1b[B\x1b[B\x1b[B\r")
-            result, transcript = c.finish("Done")
-            disposition = "escape-ignored-until-enter"
-        if result.get("results", {}).get("Claude") == "complete":
-            raise AssertionError(c.diag("Escape unexpectedly approved the hook operation"))
-        return {"phase": result["phase"], "escape": disposition, "escapeAdvancedBeforeEnter": escaped_before_enter, "finalTranscript": "RESULT" in transcript}
+        result, transcript = c.finish("Cancelled")
+        assert result.get("results", {}).get("Claude") != "complete", c.diag("Escape must not approve")
+        return {"phase": result["phase"], "escapeExits": True}
     finally:
         c.cleanup()
 
@@ -360,31 +347,34 @@ def typeahead_boundary(engine="reducer"):
 
 
 def selection_bindings(engine="reducer", empty=False):
-    name = f"{engine}-enter-toggle-escape-{'empty' if empty else 'all'}"
-    c = make(name, engine=engine)
+    c = make(f"{engine}-guarded-continue-{empty}", engine=engine)
     try:
         await_initial(c)
         start = len(c.terminal_data)
         c.send(b"\r")
-        assert c.until(b"Select None", start=start), c.diag("Enter selects all without closing")
-        assert b"Preview " not in c.terminal_data and b"RESULT " not in c.terminal_data, c.diag("Enter keeps selection dialog open")
+        assert c.until(b"Select at least one agent.", start=start), c.diag("empty Enter warns")
+        assert b"Preview " not in c.terminal_data and b"RESULT " not in c.terminal_data, c.diag("empty Enter stays")
+        assert b"Inverse" not in c.terminal_data, c.diag("inverse selection removed")
+        assert c.raw(), c.diag("selection stays active")
+        c.send(b"\x1b[B ")
+        assert c.until(b"3 selected"), c.diag("Space selects all")
         assert c.raw(), c.diag("selection stays active")
         if empty:
             start = len(c.terminal_data)
-            c.send(b"\r")
-            assert c.until(b"Select All", start=start), c.diag("second Enter toggles all off without closing")
-            assert b"RESULT " not in c.terminal_data, c.diag("toggle off keeps selection open")
-        c.send(b"\x1b")
-        if empty:
-            result, transcript = c.finish("Done")
-            assert result["hosts"] == [] and result["results"] == {}, c.diag("Escape with no selections is a no-op")
-        else:
-            assert c.until(b"Preview Claude hooks"), c.diag("Escape submits current selection")
-            assert c.raw(), c.diag("hook prompt active")
-            c.send(b"\x04")
+            c.send(b" \r")
+            assert c.until(b"Select at least one agent.", start=start), c.diag("clear all guards Enter")
+            assert c.raw(), c.diag("selection stays active")
+            c.send(b"\x1b")
             result, transcript = c.finish("Cancelled")
-            assert result["hosts"] == ["Claude", "Codex", "Pi"], c.diag("Escape retains all selected agents")
-        return {"phase": result["phase"], "enterTogglesWithoutClosing": True, "escapeSubmits": True, "empty": empty}
+            assert result["hosts"] == [], c.diag("Escape does not submit selection")
+        else:
+            c.send(b"\r")
+            assert c.until(b"Preview Claude hooks"), c.diag("Enter continues selection")
+            assert c.raw(), c.diag("hook prompt active")
+            c.send(b"\x1b")
+            result, transcript = c.finish("Cancelled")
+            assert result["hosts"] == ["Claude", "Codex", "Pi"], c.diag("Enter retains selection")
+        return {"phase": result["phase"], "emptyEnterGuarded": True, "spaceSelects": True, "escapeExits": True}
     finally:
         c.cleanup()
 
@@ -432,10 +422,10 @@ def back_to_agents(engine="reducer"):
         assert c.raw(), c.diag("credential prompt enters raw mode")
         selection_start = len(c.terminal_data)
         c.send(b"\x1b[B\x1b[B\x1b[B\x1b[B\r")  # Back to agents, after Skip.
-        assert c.until(b"Select synthetic agents", start=selection_start), c.diag("Back returns to agent selection")
+        assert c.until(b"Select agents", start=selection_start), c.diag("Back returns to agent selection")
         assert c.raw(), c.diag("returned selection enters raw mode")
         hook_start = len(c.terminal_data)
-        c.send(b"\x1b")
+        c.send(b"\r")
         assert c.until(b"Preview Claude hooks", start=hook_start), c.diag("previous agent selection remains available")
         c.send(b"\x04")
         result, transcript = c.finish("Cancelled")
@@ -514,7 +504,7 @@ def signal_active_step(engine="reducer"):
     c = make(name, engine=engine)
     try:
         await_initial(c)
-        c.send(b"\x1b[B\x1b[B\r\x1b")
+        c.send(b"\x1b[B\x1b[B \r")
         assert c.until(b"Preview Claude hooks"), c.diag("hook prompt before signal")
         assert c.raw(), c.diag("hook prompt is active before signal")
         os.killpg(c.process.pid, signal.SIGTERM)
@@ -538,10 +528,32 @@ def signal_active_step(engine="reducer"):
         c.cleanup()
 
 
+def selection_exit(engine, selected, explicit):
+    c = make(f"{engine}-selection-exit-{selected}-{explicit}", engine=engine)
+    try:
+        await_initial(c)
+        if selected:
+            c.send(b"\x1b[B ")
+            assert c.until(b"3 selected"), c.diag("selected before exit")
+            assert c.raw(), c.diag("selection active")
+        c.send(b"\x1b[F\r" if explicit else b"\x1b")
+        result, transcript = c.finish("Cancelled")
+        assert result["hosts"] == [] and result["results"] == {}, c.diag("Exit never submits draft selection")
+        return {"phase": result["phase"], "draftSelectionDiscarded": True, "explicitExit": explicit}
+    finally:
+        c.cleanup()
+
+
 def run_all():
     for engine in ("reducer", "machine"):
+        for selected in (False, True):
+            for explicit in (False, True):
+                record(f"{engine}-selection-exit-{selected}-{explicit}", lambda engine=engine, selected=selected, explicit=explicit: selection_exit(engine, selected, explicit))
+    record("hidden-escape", lambda: hidden_abort("hidden-escape", b"\x1b"))
+    record("machine-hidden-escape", lambda: hidden_abort("machine-hidden-escape", b"\x1b", "machine"))
+    for engine in ("reducer", "machine"):
         for empty in (False, True):
-            record(f"{engine}-enter-toggle-escape-{empty}", lambda engine=engine, empty=empty: selection_bindings(engine, empty))
+            record(f"{engine}-guarded-continue-{empty}", lambda engine=engine, empty=empty: selection_bindings(engine, empty))
     record("idle-ctrl-d", lambda: idle_control("idle-ctrl-d", b"\x04"))
     record("idle-repeated-ctrl-d", lambda: idle_control("idle-repeated-ctrl-d", b"\x04\x04\x04"))
     record("hidden-ctrl-d", lambda: hidden_abort("hidden-ctrl-d", b"\x04"))

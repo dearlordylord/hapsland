@@ -5,7 +5,8 @@ import { activeHost, command, initial, readiness, type Action, type Model } from
 import { createFakeExecutor } from "./fake.ts"
 import { withMachine } from "./machine.ts"
 import { reduce } from "./reducer.ts"
-import { selectionTerminal, terminal } from "./terminal.ts"
+import { selectionPrompt } from "./selection.ts"
+import { terminal } from "./terminal.ts"
 // Signal cancellation is session-wide; repeated/group signals must not bypass cleanup.
 const signals = ["SIGINT", "SIGTERM", "SIGHUP"] as const
 let signalCancelled = false
@@ -18,25 +19,12 @@ for (const signal of signals) process.on(signal, onSignal)
 const plain = !!process.env.NO_COLOR
 const theme = plain ? { primaryColor: "", mutedColor: "", successColor: "", errorColor: "", submittedColor: "" } : {}
 const choice = (title: string, value: Action) => ({ title, value })
-const runPrompt = <A>(prompt: Prompt.Prompt<A>, inputTerminal = terminal) =>
+const runPrompt = <A>(prompt: Prompt.Prompt<A>) =>
   Effect.scoped(
-    Prompt.run(prompt).pipe(Effect.provideService(Terminal.Terminal, inputTerminal), Effect.provide(NodeServices.layer))
+    Prompt.run(prompt).pipe(Effect.provideService(Terminal.Terminal, terminal), Effect.provide(NodeServices.layer))
   )
 function action(m: Model): Effect.Effect<Action, unknown> {
-  if (m.phase === "Select")
-    return runPrompt(
-      Prompt.MultiSelect({
-        message: "Select synthetic agents (Enter/Space toggles; Esc continues; Ctrl+C cancels)",
-        choices: ["Claude", "Codex", "Pi"].map((host) => ({
-          title: host,
-          value: host,
-          selected: m.hosts.includes(host)
-        })),
-        min: 0,
-        theme
-      }),
-      selectionTerminal
-    ).pipe(Effect.map((hosts) => ({ kind: "select", hosts })))
+  if (m.phase === "Select") return runPrompt(selectionPrompt(m.hosts))
   if (m.phase === "Credential") {
     const options = [
       choice("Project: /fake/project/.env.local", { kind: "destination", destination: "project" }),
@@ -44,7 +32,7 @@ function action(m: Model): Effect.Effect<Action, unknown> {
       choice("Native store (simulated, no store access)", { kind: "destination", destination: "native" }),
       choice("Skip credential setup", { kind: "destination", destination: "skip" }),
       choice("Back to agents", { kind: "back" }),
-      choice("Cancel", { kind: "cancel" })
+      choice("Exit", { kind: "cancel" })
     ]
     if (m.source !== "none") options.unshift(choice(`Keep existing: ${m.source}`, { kind: "keep" }))
     process.stderr.write(`Credential result: ${m.credentialOutcome}. Last saved destination: ${m.savedDestination}.\n`)
@@ -64,7 +52,7 @@ function action(m: Model): Effect.Effect<Action, unknown> {
         choice("Decline", { kind: "approve", yes: false }),
         choice("Approve", { kind: "approve", yes: true }),
         choice("Back", { kind: "back" }),
-        choice("Cancel", { kind: "cancel" })
+        choice("Exit", { kind: "cancel" })
       ],
       theme
     })
