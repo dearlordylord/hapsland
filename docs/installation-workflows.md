@@ -8,6 +8,98 @@
 
 See the [generated command reference](#command-reference) for help and examples.
 
+## Choose your installation path
+
+The public npm package returned **404 on 2026-10-06** when checked with
+`npm view @hapsland/hapsland version`. The published commands below require a
+release; they are not currently a working first-install path.
+
+| What you have | Start here |
+| --- | --- |
+| A source checkout, before publication | [Build and install a local snapshot](#install-before-publication) |
+| A published stable package | [Stable installation](#stable-installation-and-ordinary-use) |
+| An installed Hapsland integration | [Update it](#client-updates-and-published-candidates) |
+| A failure during setup or review | [Troubleshooting](#setup-troubleshooting) |
+
+### Before setup
+
+You need Git, your coding agent installed and runnable, and a Git repository for
+checking review readiness. Hapsland supplies its own runtime in installed
+packages. Building from source requires additional tools listed below.
+
+| Agent | Setup choice | Compatibility requirement |
+| --- | --- | --- |
+| Claude Code | `claude` | Claude Code 2.1.218 |
+| Codex CLI | `codex` | Lifecycle-hook capability; setup probes your executable |
+| Pi | `pi` | Pi 1.0.0 on Linux arm64 |
+| OpenCode | Unavailable | [Current integration limitation](opencode-installation.md) |
+
+Standalone build targets are macOS arm64 and Linux arm64. Builds and offline
+checks do not establish current native client support; see the
+[compatibility evidence](installed-release-compatibility.md).
+
+Setup installs hooks for a **user profile across repositories**. Running it in a
+repository does not limit installation to that repository. Before your first
+agent edit, choose what source can leave your machine. For example, create or
+merge this into `.hapsland.jsonc` at the repository root:
+
+```jsonc
+{
+  "version": 1,
+  "includes": ["src/**"]
+}
+```
+
+Preserve existing settings. This selects files in this repository, not other
+repositories. To turn review off across repositories, use user exclusions as
+explained in [file selection](configuration.md). With credentials and no file
+settings, all otherwise eligible files are selected.
+
+A Jev key comes from [TypeSafe](https://console.typesafe.ai/keys), separately from
+your coding agent subscription. Enter it only in the masked terminal prompt.
+Without a key you can install hooks, but Jev review cannot run. The optional key
+check may use paid credits and sends a built-in greeting, not project code.
+[Cloudflare setup](review-providers.md) uses different credentials.
+
+### Install before publication
+
+For a local source build, install Git, Node.js with `--experimental-strip-types`
+support, npm, mise, the Bend toolchain and a C compiler first. macOS needs Xcode
+Command Line Tools; Linux additionally needs `pkg-config` and libsecret development
+files. The build invokes `bend version` even when using checked-in generated
+artifacts. On Linux, `node scripts/install-bend-toolchain.mjs` installs the
+repository's pinned toolchain; follow its printed PATH instructions. That
+installer has no macOS target, so macOS currently requires an independently
+installed Bend compiler. `npm run docs:install` skips Bend installation outside
+GitHub Actions; it does not satisfy this prerequisite locally.
+
+If you do not already have the checkout:
+
+```sh
+git clone https://github.com/dearlordylord/hapsland.git
+cd hapsland
+```
+
+From the checkout root:
+
+```sh
+mise install bun@1.3.14
+mise exec bun@1.3.14 -- bun install
+mise exec bun@1.3.14 -- npm run dev-install -- --host=codex
+# Choose --host=claude or --host=pi instead for those agents.
+```
+
+The last command builds, packs and stages a local snapshot, prints its exact
+executable path, then opens guided setup. Keep that path: a local candidate is
+not a global `hapsland` installation. Use the printed executable for doctor,
+updates and removal if `hapsland` is not on PATH. Run it from the repository you
+want reviewed when checking readiness. The hooks retain that packaged executable
+and do not need the checkout on PATH.
+
+Rerun `dev-install` after source changes to activate a new snapshot. See
+[personal development](#personal-development-on-your-own-clients) for cache,
+credential and update details.
+
 ## Stable installation and ordinary use
 
 You can ask your coding agent to handle installation:
@@ -136,7 +228,7 @@ An installed integration can still end setup with:
 
 Use an absolute executable path if the prefix's `bin` directory is not on PATH. See the [Claude guide](claude-installation.md) , [Codex guide](codex-installation.md), and [Pi guide](pi-installation.md) for automation, ownership, credentials, and host-specific limits. Saved login uses the native credential store; hooks do not prompt.
 
-Registry latest lookup returned HTTP 404 on 2026-10-01 before these changes. The commands above become usable after publication; this document does not claim an existing registry release. Pi installation targets exact 1.0.0 on Linux arm64; its installed native evidence and limitations are tracked separately in the [Pi guide](pi-installation.md). Claude targets 2.1.218. Codex installation checks lifecycle-hook capability rather than a fixed version allowlist; 0.155.1/0.156.0 are historical tested profiles. Hapsland commands now contain Bun 1.3.14; agent runtimes remain separate. The standalone build targets Linux/macOS arm64, with execution validation recorded separately. See [installed-release compatibility](installed-release-compatibility.md): its pinned evidence predates current composed delivery and does not establish current interactive or registry-artifact support.
+Registry lookup returned HTTP 404 on 2026-10-06; no public package was available at that check. The commands above become usable after publication; this document does not claim an existing registry release. Pi installation targets exact 1.0.0 on Linux arm64; its installed native evidence and limitations are tracked separately in the [Pi guide](pi-installation.md). Claude targets 2.1.218. Codex installation checks lifecycle-hook capability rather than a fixed version allowlist; 0.155.1/0.156.0 are historical tested profiles. Hapsland commands now contain Bun 1.3.14; agent runtimes remain separate. The standalone build targets Linux/macOS arm64, with execution validation recorded separately. See [installed-release compatibility](installed-release-compatibility.md): its pinned evidence predates current composed delivery and does not establish current interactive or registry-artifact support.
 
 ### User-owned prefix alternative
 
@@ -151,6 +243,26 @@ npm install --global --prefix "$HOME/.local" --ignore-scripts=true --include=opt
 Use that full executable path for later commands too, or add `$HOME/.local/bin`
 to PATH. The prefix changes where the package is installed; setup still registers
 hooks in the selected client profile.
+
+## Setup troubleshooting
+
+| What you see | What to do |
+| --- | --- |
+| npm reports `E404` | Use the [local checkout path](#install-before-publication) until publication. |
+| A source `npm pack` archive is stale or missing executables | Check `npm config get ignore-scripts`. Run `npm run pack:release` to build explicitly; plain `npm pack` skips its build when that setting is true. Installed packages still use `--ignore-scripts`. |
+| npm reports a permissions error, or `hapsland` is missing | Use a [user-owned prefix](#user-owned-prefix-alternative); for a local candidate, use its printed executable path. |
+| Setup requires a terminal | Run guided setup in your own terminal. For automation, use [explicit unattended choices](#unattended-setup); suppressing prompts alone does not authorize installation. |
+| Agent executable missing or unsupported | Install the agent, check its version and PATH, or pass the matching `--CLIENT-executable=/absolute/path` option. Check the compatibility table above. |
+| Credential store locked or unavailable | Unlock the login keyring/Keychain, or use an ignored, owner-only credential file as described in [credential lookup](#personal-development-on-your-own-clients). |
+| A new saved key is not active | Environment and file keys take precedence. Replace the source shown by setup; `--new-key` changes saved login only. |
+| Hooks installed, readiness still `unknown` | Finish current work, restart the agent, complete native trust prompts, make a supported edit, then inspect [session activity](status.md#session-status). |
+| No feedback after an edit | Run `hapsland doctor CLIENT` from that repository; check credentials, file scope, rules and supported syntax. Silence does not mean a review passed. |
+| Changed hooks or an interrupted install | Run doctor, then [repair or reinstall](#disablement-removal-and-recovery) after reviewing the proposed changes. |
+
+Use the full candidate executable path in place of `hapsland` for a local install.
+`hapsland-doctor` checks the package; `hapsland doctor CLIENT` checks agent setup.
+Neither proves a review ran. Do not remove an installed prefix before removing
+its registered hooks.
 
 ## Client updates and published candidates
 

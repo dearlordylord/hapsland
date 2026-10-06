@@ -447,7 +447,7 @@ const establishNativeTrust = (codexHome, repository, env) =>
     })
   })
 
-const temporary = await mkdtemp(join(tmpdir(), "review-package-conformance-"))
+const temporary = await realpath(await mkdtemp(join(tmpdir(), "review-package-conformance-")))
 const ownedResidents = new Map()
 let separateRuntime
 let testKeychainPath

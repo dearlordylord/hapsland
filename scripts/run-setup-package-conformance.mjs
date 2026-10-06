@@ -2,7 +2,7 @@ import { isDeepStrictEqual } from "node:util"
 import { standaloneEnvironment } from "./test-harness/standalone-environment.mjs"
 import { preparePackageInstall } from "./test-harness/package-install.mjs"
 import { spawn } from "node:child_process"
-import { access, chmod, copyFile, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises"
+import { access, chmod, copyFile, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises"
 import { homedir, tmpdir } from "node:os"
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -175,7 +175,7 @@ const readOptional = async (path) => {
   }
 }
 const outsideActiveBefore = await readOptional(outsideActivePath)
-const temporary = await mkdtemp(join(tmpdir(), "review-setup-package-"))
+const temporary = await realpath(await mkdtemp(join(tmpdir(), "review-setup-package-")))
 try {
   const artifacts = join(temporary, "artifacts")
   const installation = join(temporary, "installation")

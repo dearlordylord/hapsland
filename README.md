@@ -131,7 +131,15 @@ Ask your coding agent to install it:
 
 > Install Hapsland for my coding agent using https://github.com/dearlordylord/hapsland/blob/master/docs/installation-workflows.md. Let me review and approve the setup changes interactively. Ask me to enter any Jev key in the masked setup prompt, not in chat.
 
-Or install manually after a stable release is published and verified:
+The public npm package returned **404 on 2026-10-06**. Until a release is
+published, use the [local checkout installation](./docs/installation-workflows.md#install-before-publication)
+instead of the npm command below. This builds a fixed snapshot and opens guided
+setup; it requires the development toolchain.
+
+Before setup, choose your agent and [review file scope](./docs/installation-workflows.md#before-setup).
+Hooks apply to the selected user profile across repositories.
+
+After a stable release is published and verified, install manually:
 
 1. Install Hapsland:
 
@@ -145,10 +153,11 @@ Or install manually after a stable release is published and verified:
    hapsland setup
    ```
 
-   Select Claude Code, Codex CLI, or both with the checkboxes (arrows to move,
+   Select Claude Code, Codex CLI, and/or Pi with the checkboxes (arrows to move,
    Space to toggle, Enter to continue). Installed clients are checked and labeled.
    Unchecking a client leaves its installation intact. To skip the selector, use
-   `hapsland setup claude` or `hapsland setup codex`.
+   `hapsland setup claude`, `hapsland setup codex`, or `hapsland setup pi`.
+   Pi requires Linux arm64 and Pi 1.0.0; OpenCode setup is unavailable.
 
    Setup previews owned hooks, asks before applying them, accepts a missing Jev key
    through masked input, shows the selected key source and replacement instructions,
@@ -172,7 +181,7 @@ Public registry availability is not established by this guide. See the
 [installation lanes](./docs/installation-workflows.md#stable-installation-and-ordinary-use)
 for current distribution and host evidence.
 
-Update installed integrations with `hapsland update`; add `claude` or `codex`
+Update installed integrations with `hapsland update`; add `claude`, `codex`, or `pi`
 to select one client. The command previews hook changes and asks before applying
 them. Use `--channel=next` for a published candidate.
 

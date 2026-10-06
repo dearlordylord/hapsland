@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process"
 import { existsSync, mkdirSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import { buildNativeArtifact, copyNativeArtifact } from "./native-artifact.mjs"
+import { buildNativeArtifact, copyNativeArtifact, selectNativeArtifact } from "./native-artifact.mjs"
 import { configureNativeBindings, nativeParserBindings } from "../src/runtime/native-bindings.ts"
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..")
@@ -132,8 +132,11 @@ for (const [packageName, localBuildName] of Object.entries(nativeParserBindings)
   // Frozen installs can omit local compilation. Retain the maintained target
   // binding before considering an npm prebuild with a different host ABI.
   const candidates = [localBuild, output, publishedPrebuild]
-  const source = candidates.find(existsSync)
-  if (source === undefined) throw new Error(`release build is missing the ${binding.packageName} native binding`)
+  const source = selectNativeArtifact(candidates, `${process.platform}-${process.arch}`)
+  if (source === undefined)
+    throw new Error(
+      `release build is missing a compatible ${process.platform}-${process.arch} ${binding.packageName} native binding`
+    )
   mkdirSync(dirname(output), { recursive: true, mode: 0o755 })
   if (source !== output) copyNativeArtifact(source, output)
 }
