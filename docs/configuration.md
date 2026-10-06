@@ -83,7 +83,7 @@ related declarations from `shared`. A referenced `shared/private` file remains u
   "privacyExcludes": ["shared/private/**"],
   "rules": [
     {
-      "path": ".hapsland/rules/custom/delivery-requires-address.json",
+      "path": ".hapsland/rules/custom/no-primitive-obsession.json",
       "languages": ["typescript"],
       "includes": ["src/api/**"]
     }
@@ -233,7 +233,7 @@ Each rule document has `version: 1`, a stable `id`, optional `title`, `question`
 The default threshold is 0.7; a finding requires a probability strictly greater than its threshold.
 
 <!-- rule-threshold:end -->
-An ID may use a namespace such as `team/delivery-requires-address`; it is not a filesystem path.
+An ID may use a namespace such as `team/no-primitive-obsession`; it is not a filesystem path.
 There are no packs, content-version labels, authored path filters, or source-evidence
 rungs. Content digests identify actual definition changes.
 
@@ -269,7 +269,7 @@ under `~/.config/hapsland/rules/custom/`. Connect it explicitly using the
 [generated command reference](#rule-commands) below. Its examples come from the
 same definitions as terminal help, rather than a separate maintained command list.
 
-`hapsland rules create --id delivery-requires-address --scope project` creates a starting rule
+`hapsland rules create --id no-primitive-obsession --scope project` creates a starting rule
 **and connects it**. Its preview states the activation, scope, and concrete files
 before interactive writes. Edit the created JSON to define the actual concern.
 Creation preserves an existing authored file. Interactive create/connect offers
@@ -321,10 +321,19 @@ hapsland rules show --id r1_inferred_case
 source you can edit; you do not need Hapsland's sources. Initial setup connects
 defaults only when no configuration layer declares `rules`. An explicit selection
 (including an empty list) may mean this default is absent; choose an ID from your
-inventory instead. See the [default concerns](../TYPE-DESIGN-RULES.md).
+inventory instead. See the [default concerns](../TYPE-DESIGN-RULES.md). The default
+`r6_bare_domain_value` already addresses primitive domain values; inspect it before
+adding a custom variant. `no-primitive-obsession` below teaches custom authoring,
+not an additional default you must enable alongside it.
 
-**1. Choose one concern that the captured code can answer.** For example: “Can an
-order for delivery be represented without a delivery address?” State what counts
+[Refactoring.Guru describes primitive obsession](https://refactoring.guru/smells/primitive-obsession)
+as using primitives or type codes where small objects should express domain
+meaning. This walkthrough checks the domain-value part visible in type
+declarations; it is not a ban on primitives or a check of every symptom in that
+article.
+
+**1. Choose one concern that the captured code can answer.** For example: “Do distinct
+domain concepts use interchangeable primitive values?” State what counts
 as a violation and what should stay clear. Avoid combining unrelated concerns or
 asking about behavior that requires a task description, production data or a whole
 repository. See [what the checker can see](../README.md#what-can-the-checker-see).
@@ -332,9 +341,9 @@ repository. See [what the checker can see](../README.md#what-can-the-checker-see
 **2. Create a connected starter, then keep it disabled while editing.**
 
 ```sh
-hapsland rules create --id delivery-requires-address --scope project
-hapsland rules disable --id delivery-requires-address --scope project
-hapsland rules show --id delivery-requires-address
+hapsland rules create --id no-primitive-obsession --scope project
+hapsland rules disable --id no-primitive-obsession --scope project
+hapsland rules show --id no-primitive-obsession
 ```
 
 `create` writes a starter and connects it enabled; it does not open an editor.
@@ -348,20 +357,20 @@ save the following JSON in that created file, keeping the ID unchanged:
 ```json
 {
   "version": 1,
-  "id": "delivery-requires-address",
-  "title": "Delivery requires an address",
-  "question": "Can the supplied order type represent mode delivery without a delivery address?",
+  "id": "no-primitive-obsession",
+  "title": "No primitive obsession",
+  "question": "Does the supplied domain type use bare primitives or primitive type codes where a small domain-specific type should express identity, units, allowed values or constraints?",
   "criteria": {
-    "false": "Every representable order with mode delivery requires an address.",
-    "true": "An order with mode delivery can omit its address."
+    "false": "Distinct domain concepts have distinct types. Free text and primitives in storage or wire formats alone are not violations.",
+    "true": "A domain identity, quantity, constrained value or category uses an unconstrained primitive or opaque type code, losing a meaningful domain distinction."
   },
-  "message": "Require an address in the delivery variant of the order type.",
+  "message": "Give distinct domain concepts distinct types so their values cannot be accidentally interchanged.",
   "threshold": 0.7,
   "inputs": [
     {
       "languages": ["typescript"],
       "kind": "type",
-      "requires": ["root-declaration"]
+      "requires": ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"]
     }
   ]
 }
@@ -369,15 +378,16 @@ save the following JSON in that created file, keeping the ID unchanged:
 
 The question asks about one violation; `criteria.true` describes a finding and
 `criteria.false` describes the acceptable case. `message` gives actionable feedback.
-This rule needs only the declaration. If your concern needs related types or
-function bodies, declare the appropriate [input kind and required evidence](#declarative-rules);
+This rule needs the declaration and its related type definitions to distinguish
+bare primitives from domain-specific types. If your concern needs different
+evidence or function bodies, declare the appropriate [input kind and required evidence](#declarative-rules);
 missing required evidence prevents evaluation. File filters and language/threshold
 overrides belong in configuration references, not the authored rule's path fields.
 
 If you prefer writing the JSON yourself, save one rule per file and connect it:
 
 ```sh
-hapsland rules connect --path .hapsland/rules/custom/delivery-requires-address.json --scope project
+hapsland rules connect --path .hapsland/rules/custom/no-primitive-obsession.json --scope project
 ```
 
 This is an alternative to `create`, not an extra step for an already connected
@@ -387,38 +397,46 @@ rule. `connect` validates the file and enables a new connection. You can also
 **4. Enable and inspect the effective selection.**
 
 ```sh
-hapsland rules enable --id delivery-requires-address --scope project
-hapsland rules show --id delivery-requires-address
-hapsland rules explain --id delivery-requires-address --path src/delivery-rule-examples.ts
+hapsland rules enable --id no-primitive-obsession --scope project
+hapsland rules show --id no-primitive-obsession
+hapsland rules explain --id no-primitive-obsession --path src/primitive-obsession-examples.ts
 ```
 
 These commands make no classifier calls. `explain` checks configuration selection;
 it does not parse the source or establish whether the necessary evidence exists.
 
 **5. Test a violation and an acceptable case.** Create
-`src/delivery-rule-examples.ts` with these two supported type declarations:
+`src/primitive-obsession-examples.ts` with a loose domain type and a version using
+distinct ID types:
 
 ```ts
-export type LooseDelivery = {
-  mode: "pickup" | "delivery"
-  address?: string
+export type LooseOrder = {
+  customerId: string
+  orderId: string
 }
 
-export type Delivery =
-  | { mode: "pickup" }
-  | { mode: "delivery"; address: string }
+export type CustomerId = { readonly kind: "customer-id"; readonly value: string }
+export type OrderId = { readonly kind: "order-id"; readonly value: string }
+
+export type Order = {
+  customerId: CustomerId
+  orderId: OrderId
+}
 ```
 
 Then run:
 
 ```sh
-hapsland rules check --path src/delivery-rule-examples.ts --line 2 --id delivery-requires-address
-hapsland rules check --path src/delivery-rule-examples.ts --line 8 --id delivery-requires-address
+hapsland rules check --path src/primitive-obsession-examples.ts --line 2 --id no-primitive-obsession
+hapsland rules check --path src/primitive-obsession-examples.ts --line 10 --id no-primitive-obsession
 ```
 
-The first type admits delivery without an address and should trigger; the second
-requires an address for delivery and should stay clear. These are expectations to
-check, not guaranteed classifier outputs. Each command selects the enclosing
+The first type lets customer and order IDs be interchanged and should trigger;
+the second gives them distinct types and should stay clear. The primitive `value`
+inside each wrapper is its representation, not itself a violation. A plain alias
+such as `type CustomerId = string` would still be interchangeable; merely naming
+a primitive does not establish a distinct type. These are expectations to check,
+not guaranteed classifier outputs. Each command selects the enclosing
 declaration and bounded related code, uses normal credential discovery and sends
 a real external classifier request that may incur charges. No resident or agent
 session is needed. Add `--json` to inspect the actual source-bearing input and
@@ -437,11 +455,11 @@ remove the example source according to your project's conventions.
 
 ### Try a rule on a file and line
 
-`delivery-requires-address` is the example custom rule created in the walkthrough,
+`no-primitive-obsession` is the example custom rule created in the walkthrough,
 not a shipped default. Substitute an enabled ID from `hapsland rules list`.
 
 ```sh
-hapsland rules check --path src/example.ts --line 12 --id delivery-requires-address
+hapsland rules check --path src/example.ts --line 12 --id no-primitive-obsession
 hapsland rules check --path src/example.ts --line 12 --json
 ```
 
@@ -501,10 +519,10 @@ hapsland rules list
 hapsland rules show --id r1_inferred_case
 hapsland rules explain --id r1_inferred_case --path src/example.ts
 hapsland rules check --path src/example.ts --line 12 --id r1_inferred_case
-hapsland rules create --id delivery-requires-address --scope project
-hapsland rules connect --path .hapsland/rules/custom/delivery-requires-address.json --scope project
-hapsland rules enable --id delivery-requires-address --scope project
-hapsland rules disable --id delivery-requires-address --scope project
+hapsland rules create --id no-primitive-obsession --scope project
+hapsland rules connect --path .hapsland/rules/custom/no-primitive-obsession.json --scope project
+hapsland rules enable --id no-primitive-obsession --scope project
+hapsland rules disable --id no-primitive-obsession --scope project
 ```
 
 ### Rule example

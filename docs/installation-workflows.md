@@ -414,10 +414,10 @@ hapsland rules list
 hapsland rules show --id r1_inferred_case
 hapsland rules explain --id r1_inferred_case --path src/example.ts
 hapsland rules check --path src/example.ts --line 12 --id r1_inferred_case
-hapsland rules create --id delivery-requires-address --scope project
-hapsland rules connect --path .hapsland/rules/custom/delivery-requires-address.json --scope project
-hapsland rules enable --id delivery-requires-address --scope project
-hapsland rules disable --id delivery-requires-address --scope project
+hapsland rules create --id no-primitive-obsession --scope project
+hapsland rules connect --path .hapsland/rules/custom/no-primitive-obsession.json --scope project
+hapsland rules enable --id no-primitive-obsession --scope project
+hapsland rules disable --id no-primitive-obsession --scope project
 ```
 
 ### Flag-based operations

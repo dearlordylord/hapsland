@@ -131,7 +131,7 @@ example uses the custom rule created in the walkthrough; substitute an enabled I
 from `hapsland rules list` to check another rule:
 
 ```sh
-hapsland rules check --path src/example.ts --line 12 --id delivery-requires-address
+hapsland rules check --path src/example.ts --line 12 --id no-primitive-obsession
 ```
 
 The line is one-based and selects its enclosing supported declaration. Hapsland

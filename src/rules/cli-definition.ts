@@ -39,28 +39,28 @@ const ruleActions = [
     name: "create",
     description: "Create and connect an editable rule",
     flags: "createId",
-    example: "--id delivery-requires-address --scope project",
+    example: "--id no-primitive-obsession --scope project",
     detail: "Preserves existing authored files. Edit the created JSON file to define your concern."
   },
   {
     name: "connect",
     description: "Connect an existing local JSON rule",
     flags: "changePath",
-    example: "--path .hapsland/rules/custom/delivery-requires-address.json --scope project",
+    example: "--path .hapsland/rules/custom/no-primitive-obsession.json --scope project",
     detail: "Validates the file before connecting it. A new connection enables the rule."
   },
   {
     name: "enable",
     description: "Enable a connected rule in the selected scope",
     flags: "changeId",
-    example: "--id delivery-requires-address --scope project",
+    example: "--id no-primitive-obsession --scope project",
     detail: "Changes configuration, preserving the authored rule file."
   },
   {
     name: "disable",
     description: "Disable a connected rule in the selected scope",
     flags: "changeId",
-    example: "--id delivery-requires-address --scope project",
+    example: "--id no-primitive-obsession --scope project",
     detail: "Keeps the rule connected and its authored file intact."
   }
 ] as const
@@ -125,7 +125,7 @@ const flags = {
     )
   },
   changeId: { id, scope },
-  createId: { id: textFlag("id", "New rule identity (required), such as delivery-requires-address"), scope },
+  createId: { id: textFlag("id", "New rule identity (required), such as no-primitive-obsession"), scope },
   changePath: { path, scope }
 }
 
@@ -155,7 +155,7 @@ export const makeRulesCommand = (invoke: (options: RulesOptions) => void) => {
     ).pipe(
       Command.withShortDescription(action.description),
       Command.withDescription(
-        `${action.description}. ${action.detail}${action.name === "list" ? "" : "scope" in flags[action.flags] ? " Examples use delivery-requires-address, a custom rule ID. Create or connect it before using activation commands." : " Examples use the shipped default r1_inferred_case. Use rules list to find IDs connected in this project."} ${"callsClassifier" in action ? "" : "No classifier calls."} ${"scope" in flags[action.flags] ? "Interactive changes show a preview and ask for confirmation; unattended changes require --scope." : "callsClassifier" in action ? "Explicit one-off review." : "Read-only."}`
+        `${action.description}. ${action.detail}${action.name === "list" ? "" : "scope" in flags[action.flags] ? " Examples use no-primitive-obsession, a custom rule ID. Create or connect it before using activation commands." : " Examples use the shipped default r1_inferred_case. Use rules list to find IDs connected in this project."} ${"callsClassifier" in action ? "" : "No classifier calls."} ${"scope" in flags[action.flags] ? "Interactive changes show a preview and ask for confirmation; unattended changes require --scope." : "callsClassifier" in action ? "Explicit one-off review." : "Read-only."}`
       ),
       Command.withExamples([
         {
