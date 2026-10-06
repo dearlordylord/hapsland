@@ -1,7 +1,7 @@
 import type * as Effect from "effect/Effect"
 import type { GraphLimits } from "../../configuration/graph-limits.ts"
 import { type captureStable, type CaptureHooks, type StableCapture } from "../capture.ts"
-import type { ReviewArtifact, TypeDeclaration } from "../model.ts"
+import type { ReviewArtifact, TypeDeclaration } from "../artifact-model.ts"
 import type { PhysicalRootIdentity } from "../observation.ts"
 import type { DirectFilePolicy } from "../selection.ts"
 export type TypeExtractionFailure = {

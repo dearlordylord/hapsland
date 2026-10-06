@@ -13,7 +13,7 @@ import { GRAPH_LIMIT_CEILINGS, type GraphLimits } from "../configuration/graph-l
 import { languageForPath } from "./languages/registry.ts"
 import type { GraphFacts, LanguageGraphHost, PreparedGraph } from "./languages/contracts.ts"
 import { captureStable, type StableCapture } from "./capture.ts"
-import type { ArtifactReference, ReviewArtifact, ReviewNode, ReviewUnit } from "./model.ts"
+import type { ArtifactReference, ReviewArtifact, ReviewNode, ReviewUnit } from "./artifact-model.ts"
 import { contextDirectFilePolicy, eligibleNamedPath } from "./selection.ts"
 
 type MutableNode = { artifact: ReviewNode["artifact"]; references: ArtifactReference[] }

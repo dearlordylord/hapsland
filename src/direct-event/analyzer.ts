@@ -4,7 +4,7 @@ import type {
   GraphDeclaration,
   GraphFile
 } from "./languages/contracts.ts"
-import type { ArtifactReference, ReviewArtifact, ReviewNode, ReviewUnit, TypeDeclaration } from "./model.ts"
+import type { ArtifactReference, ReviewArtifact, ReviewNode, ReviewUnit, TypeDeclaration } from "./artifact-model.ts"
 import { languageForPath } from "./languages/registry.ts"
 export type { GraphDeclaration, GraphFile }
 type ParsedDeclaration = GraphDeclaration

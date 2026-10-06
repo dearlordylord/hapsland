@@ -1,11 +1,6 @@
 import { providerIdentity } from "../review-providers/catalog.ts"
-import {
-  freezeInput,
-  freezeRules,
-  semanticIdentity,
-  type PreparedUnit,
-  type TypeDeclaration
-} from "../direct-event/model.ts"
+import { freezeInput, freezeRules, semanticIdentity, type PreparedUnit } from "../direct-event/model.ts"
+import type { TypeDeclaration } from "../direct-event/artifact-model.ts"
 import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
 import { it } from "@effect/vitest"
 import { expect } from "vitest"

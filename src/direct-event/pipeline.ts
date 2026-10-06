@@ -45,10 +45,10 @@ import {
   semanticIdentity,
   type PreparedUnit,
   type ReviewInput,
-  type ReviewUnit,
   type ObservationResult,
   type PathObservationOutcome
 } from "./model.ts"
+import type { ReviewUnit } from "./artifact-model.ts"
 import { type DirectObservation, type DirectAdvicee } from "./observation.ts"
 import {
   DEFAULT_DIRECT_FILE_POLICY,

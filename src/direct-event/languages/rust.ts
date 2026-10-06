@@ -1,7 +1,7 @@
 import { descendants, sameSyntaxNode, Parser, Rust, type SyntaxNode } from "./native-parser.ts"
 import { createHash } from "node:crypto"
 import { basename } from "node:path"
-import type { TypeDeclaration } from "../model.ts"
+import type { TypeDeclaration } from "../artifact-model.ts"
 import {
   MAX_TYPE_DECLARATIONS,
   type TypeExtractionFailure,

@@ -13,7 +13,7 @@ import { resolveGraphUnit } from "./graph-resolver.ts"
 import { GRAPH_LIMIT_CEILINGS } from "../configuration/graph-limits.ts"
 import { compileRule } from "../rules/compiler.ts"
 import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
-import type { ReviewNode } from "./model.ts"
+import type { ReviewNode } from "./artifact-model.ts"
 import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts"
 
 const hasOmitted = (node: ReviewNode): boolean =>

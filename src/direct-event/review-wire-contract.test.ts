@@ -4,7 +4,8 @@ import { readFile, writeFile } from "node:fs/promises"
 import { describe, expect, it } from "vitest"
 import { compileRule } from "../rules/compiler.ts"
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
-import { canonicalValue, freezeRules, type PreparedUnit, type ReviewArtifact, type ReviewNode } from "./model.ts"
+import { canonicalValue, freezeRules, type PreparedUnit } from "./model.ts"
+import type { ReviewArtifact, ReviewNode } from "./artifact-model.ts"
 import {
   candidateReviewInput,
   encodedFullJevRequestBytes,

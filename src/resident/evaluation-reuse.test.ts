@@ -7,9 +7,9 @@ import {
   freezeRules,
   semanticIdentity,
   type PreparedUnit,
-  type ReviewInput,
-  type TypeDeclaration
+  type ReviewInput
 } from "../direct-event/model.ts"
+import type { TypeDeclaration } from "../direct-event/artifact-model.ts"
 import { advicee } from "../direct-event/test-fixtures.ts"
 import { configuredRules } from "../test-support/default-rules.ts"
 import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"

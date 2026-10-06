@@ -1,6 +1,7 @@
 export * from "./adapter.ts"
 export * from "./analyzer.ts"
 export * from "./capture.ts"
+export * from "./artifact-model.ts"
 export * from "./model.ts"
 export * from "./pipeline.ts"
 export * from "./selection.ts"
