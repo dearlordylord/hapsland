@@ -220,5 +220,67 @@
       "Full milestone gate",
       "Interleaved installed performance measurement"
     ]
+  },
+  "piAssetFeasibility": {
+    "scope": "Selected compiler and emitted-asset/command boundary; not production build or installed/native Pi acceptance",
+    "probe": "scripts/probe-pi-asset.mjs",
+    "evidence": "pi-selected-compiler-03.json",
+    "compiler": "TypeScript7.0.2 wrapper and native hashes recorded",
+    "observations": {
+      "currentBunConditionInputs": 244,
+      "prospectiveNodeConditionInputs": 215,
+      "ownedImplementationInputs": 2,
+      "emittedAssets": 2,
+      "crossConditionByteEquality": true,
+      "actualReleaseComparisons": [
+        {
+          "configuration": "current-bun-conditions",
+          "path": "dist/runtime/hook-catalog.js",
+          "sha256": "f64b7e941d884ecf7020838d76baef89609c5cf18c5f768acef597d26ed66b84"
+        },
+        {
+          "configuration": "current-bun-conditions",
+          "path": "dist/pi/extension.js",
+          "sha256": "f71ad1ee853b5b33c318e42e6f9b72b4ba58852afcdda8e61d7b13fff0779bcd"
+        },
+        {
+          "configuration": "node-host-conditions",
+          "path": "dist/runtime/hook-catalog.js",
+          "sha256": "f64b7e941d884ecf7020838d76baef89609c5cf18c5f768acef597d26ed66b84"
+        },
+        {
+          "configuration": "node-host-conditions",
+          "path": "dist/pi/extension.js",
+          "sha256": "f71ad1ee853b5b33c318e42e6f9b72b4ba58852afcdda8e61d7b13fff0779bcd"
+        }
+      ]
+    },
+    "architectureReview": {
+      "agent": "architecture_inventory",
+      "disposition": "No structural defects in selected compiler boundary or optional candidate fixture",
+      "limits": [
+        "Authorize all nonambient inputs in future enforcement; current assertion is selected src ownership",
+        "No conditional external exports imported; equality is not general resolver acceptance",
+        "Candidate child command is separately selected, not ordinary installed routing"
+      ]
+    },
+    "validation": {
+      "fast": "passed",
+      "boundary": {
+        "run": "20261006210553093-1161495-d6c58c",
+        "build": "passed",
+        "pack": "passed",
+        "tests": "26passed; source, installed and candidate variants",
+        "candidate": "Node-condition emitted asset + standalone candidate03hook/resident; delayedfinish and preservednativecontent/permit assertions"
+      },
+      "scope": "Test-host asset loading and real product command/resident; not native Pi trust, native host adoption, new platform support or full quality gate"
+    },
+    "failure01": "Temporary external configuration could not resolve bun ambient types. Retained compiler.log; explicit worktree typeRoots fixed it in fresh directories.",
+    "pending": [
+      "Production dependency-authority wiring, package-ordered compilation and caching",
+      "Strict source/resolver/contribution publication enforcement",
+      "Default installed dedicated-hook routing and native Pi validation",
+      "Owner tooling decision before dependent integration"
+    ]
   }
 }

@@ -14,8 +14,8 @@ import {
   result
 } from "../test-support/pi-installed.ts"
 
-describe.each(["source", "installed"] as const)(
-  "Pi %s extension through the production command and resident",
+describe.each(["source", "installed", ...(process.env.HAPSLAND_TEST_PI_ASSET ? ["candidate" as const] : [])] as const)(
+  "Pi %s extension through command and resident",
   { timeout: 30_000 },
   (mode) => {
     beforeAll(() => setupInstalledPi(mode), 240_000)

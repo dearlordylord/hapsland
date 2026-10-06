@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from "node:child_process"
 import { execFileSync } from "../../scripts/test-harness/process.mjs"
 import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { dirname, isAbsolute, join } from "node:path"
 import assert from "node:assert/strict"
 import { configuredRules, connectDefaultRuleFixture } from "./default-rules.ts"
 import { pathToFileURL } from "node:url"
@@ -22,8 +22,20 @@ let installedPackage: TestPackage | undefined
 export let installedResidentCommand: RuntimeCommand
 let sourceEnvironment: Readonly<Record<string, string>> = {}
 let installedEnvironment: NodeJS.ProcessEnv
-export const setupInstalledPi = async (mode: "source" | "installed" = "installed") => {
-  fixtureMode = mode
+export const setupInstalledPi = async (mode: "source" | "installed" | "candidate" = "installed") => {
+  fixtureMode = mode === "candidate" ? "source" : mode
+  if (mode === "candidate") {
+    const executable = process.env.HAPSLAND_TEST_HOOK_EXECUTABLE
+    const asset = process.env.HAPSLAND_TEST_PI_ASSET
+    if (!executable || !asset || !isAbsolute(executable) || !isAbsolute(asset))
+      throw new Error("Candidate Pi mode requires absolute hook executable and emitted asset paths")
+    installedCli = executable
+    installedCommand = [executable]
+    installedResidentCommand = { executable: join(dirname(executable), "hapsland-resident"), args: [] }
+    sourceEnvironment = {}
+    createPiExtension = (await import(/* @vite-ignore */ pathToFileURL(asset).href)).createPiExtension
+    return
+  }
   if (mode === "source") {
     const runtime = prepareTestSourceRuntime()
     installedCli = commandEntrypoint(runtime.commands.cli)
