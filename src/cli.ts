@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { controlledOptions } from "./resident/controlled-options.ts"
+import { statePathConfig, activityPathConfig, userConfigPathConfig } from "./runtime/input-settings.ts"
 import { makeDirectHookDispatch } from "./hooks/direct.ts"
 import { SUPPORTED_CLIENTS, CLIENT_NAMES } from "./runtime/agent-clients.ts"
 import { formatOutcome, formatStatusOutcome } from "./onboarding/human-output.ts"
@@ -122,47 +124,6 @@ const readStdin = Effect.try({ try: () => readFileSync(0, "utf8"), catch: () => 
 const decodeJson = (input: string) =>
   Effect.try({ try: () => JSON.parse(input) as unknown, catch: () => new Error("stdin is not valid JSON") })
 
-const ControlledOptions = Schema.Struct({
-  answers: Schema.optionalKey(
-    Schema.Record(
-      Schema.String,
-      Schema.Union([
-        Schema.Struct({ _tag: Schema.Literal("Probability"), probability: Schema.Number }),
-        Schema.Struct({
-          _tag: Schema.Literal("Classify"),
-          label: Schema.String,
-          probabilities: Schema.Record(Schema.String, Schema.Number),
-          confidence: Schema.optionalKey(Schema.Number)
-        }),
-        Schema.Struct({
-          _tag: Schema.Literal("Rate"),
-          rating: Schema.Number,
-          probabilities: Schema.Record(Schema.String, Schema.Number),
-          confidence: Schema.optionalKey(Schema.Number)
-        })
-      ])
-    )
-  ),
-  delayMs: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
-  failure: Schema.optionalKey(Schema.String),
-  failureOnSourceIncludes: Schema.optionalKey(Schema.String),
-  findingOnSourceIncludes: Schema.optionalKey(Schema.String),
-  capturePath: Schema.optionalKey(Schema.String),
-  requestSummaryPath: Schema.optionalKey(Schema.String),
-  outcomePath: Schema.optionalKey(Schema.String),
-  requireCredential: Schema.optionalKey(Schema.Boolean),
-  syntheticR6BrandedRepair: Schema.optionalKey(Schema.Literals(["control", "finding"]))
-})
-
-const controlledOptions = Config.String("REVIEW_CONTROL_JSON").pipe(
-  Config.withDefault("{}"),
-  Effect.flatMap((encoded) =>
-    decodeJson(encoded).pipe(
-      Effect.flatMap(Schema.decodeUnknownEffect(ControlledOptions, { onExcessProperty: "error" }))
-    )
-  )
-)
-
 const ReviewOperation = Schema.Union([
   Schema.Struct({ version: Schema.Literal(1), operation: Schema.Literal("credentials"), cwd: Schema.String }),
   Schema.Struct({
@@ -246,24 +207,6 @@ const FirstReviewDemoOperation = Schema.Struct({
   selectionDigest: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)))
 })
 type FirstReviewDemoOperation = typeof FirstReviewDemoOperation.Type
-
-const statePathConfig = Config.option(Config.NonEmptyString("REVIEW_STATE_PATH")).pipe(
-  Config.flatMap(
-    Option.match({
-      onSome: Config.succeed,
-      onNone: () =>
-        Config.NonEmptyString("REVIEW_CONSENT_FILE").pipe(
-          Config.withDefault(join(HAPSLAND_CONFIG_DIRECTORY, "consent"))
-        )
-    })
-  )
-)
-
-const activityPathConfig = Config.NonEmptyString("REVIEW_ACTIVITY_PATH").pipe(
-  Config.withDefault(join(HAPSLAND_STATE_DIRECTORY, "activity"))
-)
-
-const userConfigPathConfig = Config.option(Config.NonEmptyString("REVIEW_USER_CONFIG_PATH"))
 
 const forcedOperation = (): ReviewOperation["operation"] | undefined => {
   if (cliSwitch("credentials")) {

@@ -1,7 +1,10 @@
+import { bunExecutable } from "../runtime/bun-runtime.ts"
+import type { RuntimeCommand } from "../runtime/package-runtime.ts"
+import { fileURLToPath } from "node:url"
 import { prepareTestPackage, type TestPackage } from "../test-support/test-package.ts"
 import { cleanupOwnedResident } from "../../scripts/test-harness/cleanup-owned-resident.mjs"
 import { runClient } from "../test-support/client-runtime.ts"
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { spawn } from "node:child_process"
 import { spawnSync } from "../../scripts/test-harness/process.mjs"
 import { DEFAULT_CHILD_TIMEOUT_MS, FIXTURE_READY_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
@@ -16,6 +19,7 @@ import { residentPaths } from "../resident/paths.ts"
 import { MAX_COMBINED_RESPONSE_BYTES } from "../resident/collection.ts"
 
 let installed: TestPackage
+let hookCommand: RuntimeCommand
 beforeAll(() => {
   installed = prepareTestPackage()
 }, 240_000)
@@ -36,7 +40,7 @@ afterEach(async () => {
   }
   if (failures.length > 0) throw new AggregateError(failures, "Retaining uncertain Claude fixture ownership")
 })
-const cliArgs = (flags: readonly string[]) => [...installed.cli.args, ...flags]
+const cliArgs = (flags: readonly string[]) => [...hookCommand.args, ...flags]
 const observeResident = async (paths: ReturnType<typeof residentPaths>) => {
   const response = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "hello" }))
   if (response.status !== "ready") throw new Error("installed resident observer did not receive ready")
@@ -44,7 +48,7 @@ const observeResident = async (paths: ReturnType<typeof residentPaths>) => {
 }
 
 const preClaudeEdit = (event: Readonly<Record<string, unknown>>, env: NodeJS.ProcessEnv) =>
-  spawnSync(installed.cli.executable, cliArgs(["--composed-before-edit-hook", "--composed-host=claude-code"]), {
+  spawnSync(hookCommand.executable, cliArgs(["--composed-before-edit-hook", "--composed-host=claude-code"]), {
     cwd: process.cwd(),
     input: JSON.stringify({ ...event, hook_event_name: "PreToolUse" }),
     encoding: "utf8",
@@ -139,9 +143,15 @@ const cliExitEvidence = (result: {
   stderrBytes: Buffer.byteLength(result.stderr)
 })
 
-describe("Claude synchronous hook CLI", () => {
+describe.each(["installed CLI", "dedicated source hook"])("%s Claude synchronous delivery", (surface) => {
+  beforeEach(() => {
+    hookCommand =
+      surface === "installed CLI"
+        ? installed.cli
+        : { executable: bunExecutable(), args: [fileURLToPath(new URL("../hook-main.ts", import.meta.url))] }
+  })
   it("exits quietly when unsupported hook input meets closed stdout", async () => {
-    const child = spawn(installed.cli.executable, cliArgs(CLAUDE_EDIT_FLAGS), {
+    const child = spawn(hookCommand.executable, cliArgs(CLAUDE_EDIT_FLAGS), {
       cwd: process.cwd(),
       stdio: ["pipe", "pipe", "pipe"],
       env: installed.environment
@@ -211,7 +221,7 @@ describe("Claude synchronous hook CLI", () => {
     await prepareResident(env)
     expect(preClaudeEdit(event, env).status).toBe(0)
     writeFileSync(`${gate}.enabled`, "enabled\n")
-    const child = spawn(installed.cli.executable, cliArgs(CLAUDE_EDIT_FLAGS), {
+    const child = spawn(hookCommand.executable, cliArgs(CLAUDE_EDIT_FLAGS), {
       cwd: process.cwd(),
       env,
       stdio: ["pipe", "pipe", "pipe"]
@@ -292,7 +302,7 @@ describe("Claude synchronous hook CLI", () => {
     }
     const owner = await prepareResident(env)
     expect(preClaudeEdit(event, env).status).toBe(0)
-    const edit = spawnSync(installed.cli.executable, cliArgs(CLAUDE_EDIT_FLAGS), {
+    const edit = spawnSync(hookCommand.executable, cliArgs(CLAUDE_EDIT_FLAGS), {
       cwd: process.cwd(),
       input: JSON.stringify(event),
       encoding: "utf8",
@@ -323,7 +333,7 @@ describe("Claude synchronous hook CLI", () => {
       JSON.stringify({ stats: lastStats, edit: cliExitEvidence(edit), ...controlledFixtureEvidence(root) })
     ).toBe(true)
     const stop = spawnSync(
-      installed.cli.executable,
+      hookCommand.executable,
       cliArgs(["--controlled-reviewer", "--composed-stop-hook", "--composed-host=claude-code"]),
       {
         cwd: process.cwd(),
@@ -378,7 +388,7 @@ describe("Claude synchronous hook CLI", () => {
     const delayedEnv = { ...baseEnv, REVIEW_RESIDENT_BACKEND_GATE_PATH: join(root, "held-backend") }
     await prepareResident(delayedEnv)
     expect(preClaudeEdit(first, delayedEnv).status).toBe(0)
-    const firstResult = spawnSync(installed.cli.executable, cliArgs(CLAUDE_EDIT_FLAGS), {
+    const firstResult = spawnSync(hookCommand.executable, cliArgs(CLAUDE_EDIT_FLAGS), {
       cwd: process.cwd(),
       input: JSON.stringify(first),
       encoding: "utf8",
@@ -399,7 +409,7 @@ describe("Claude synchronous hook CLI", () => {
     const second = event(await put(root, "second.ts", "type FreshCount = number\n"), "FreshCount", "fresh-tool")
     await prepareResident(baseEnv)
     expect(preClaudeEdit(second, baseEnv).status).toBe(0)
-    const secondResult = spawnSync(installed.cli.executable, cliArgs(CLAUDE_EDIT_FLAGS), {
+    const secondResult = spawnSync(hookCommand.executable, cliArgs(CLAUDE_EDIT_FLAGS), {
       cwd: process.cwd(),
       input: JSON.stringify(second),
       encoding: "utf8",
@@ -478,7 +488,7 @@ describe("Claude synchronous hook CLI", () => {
         REVIEW_ACTIVITY_PATH: activityPath,
         REVIEW_RESIDENT_DIR: paths.directory
       }
-      const child = spawn(installed.cli.executable, cliArgs(CLAUDE_EDIT_FLAGS), {
+      const child = spawn(hookCommand.executable, cliArgs(CLAUDE_EDIT_FLAGS), {
         cwd: process.cwd(),
         env,
         stdio: ["pipe", "pipe", "pipe"]
@@ -557,7 +567,7 @@ describe("Claude synchronous hook CLI", () => {
     await prepareResident(env)
     expect(preClaudeEdit(event, env).status).toBe(0)
     const started = performance.now()
-    const result = spawnSync(installed.cli.executable, cliArgs(CLAUDE_EDIT_FLAGS), {
+    const result = spawnSync(hookCommand.executable, cliArgs(CLAUDE_EDIT_FLAGS), {
       cwd: process.cwd(),
       input: JSON.stringify(event),
       encoding: "utf8",
@@ -568,7 +578,7 @@ describe("Claude synchronous hook CLI", () => {
     expect(JSON.parse(result.stdout)).toEqual({})
     expect(performance.now() - started).toBeLessThan(5_000)
     const background = spawnSync(
-      installed.cli.executable,
+      hookCommand.executable,
       cliArgs(["--controlled-reviewer", "--composed-background-hook", "--composed-host=claude-code"]),
       { cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS, env }
     )
@@ -618,7 +628,7 @@ describe("Claude synchronous hook CLI", () => {
     writeFileSync(`${ackGatePath}.enabled`, "enabled\n")
     await prepareResident(env)
     expect(preClaudeEdit(event, env).status).toBe(0)
-    const child = spawn(installed.cli.executable, cliArgs(CLAUDE_EDIT_FLAGS), {
+    const child = spawn(hookCommand.executable, cliArgs(CLAUDE_EDIT_FLAGS), {
       cwd: process.cwd(),
       stdio: ["pipe", "pipe", "pipe"],
       env

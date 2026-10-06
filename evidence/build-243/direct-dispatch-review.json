@@ -99,5 +99,68 @@
       }
     },
     "initialTestFailure": "Vitest table spread argument arrays; corrected table objects, then all cases passed"
+  },
+  "sourceComposition": {
+    "scope": "Dedicated source hook entry; not standalone or installed executable separation milestone",
+    "entry": "src/hook-main.ts",
+    "composition": "src/hooks/program.ts",
+    "newReadOwners": [
+      {
+        "module": "src/runtime/input-settings.ts",
+        "concept": "Runtime input path configuration",
+        "consumers": [
+          "CLI",
+          "hook program"
+        ],
+        "direction": "Capability compositions consume read-only configuration with unchanged precedence/defaults",
+        "contract": "docs/configuration.md"
+      },
+      {
+        "module": "src/resident/controlled-options.ts",
+        "concept": "Controlled resident wire-options decoding",
+        "consumers": [
+          "CLI evaluation/hook modes",
+          "hook program"
+        ],
+        "direction": "Consumers decode serializable options without provider implementation",
+        "contract": "docs/testing-matrix.md"
+      }
+    ],
+    "architectureReview": {
+      "agent": "architecture_inventory",
+      "findings": [],
+      "conclusion": "Inspected native behavior preserved; admin JSON routing intentionally excluded",
+      "limitations": [
+        "Canonical contract/authority modules remain permitted; do not claim all policy code absent",
+        "External resolution and emitted contributions remain unproved",
+        "No installed hook performance claim"
+      ]
+    },
+    "inventory": {
+      "file": "hook-source-composition-imports.json",
+      "hookLocalModules": 65,
+      "piLocalModules": 2,
+      "parseErrors": 0,
+      "unknownLiteralLoaders": 0,
+      "limits": "Literal local inventory only; external/resolver/aliased-loader/compiler contribution enforcement pending"
+    },
+    "validation": {
+      "fast": "passed",
+      "boundary": {
+        "run": "20261006205115147-1125746-85f83d",
+        "build": "passed",
+        "pack": "passed",
+        "tests": "135 passed across6files",
+        "sourceHookDelivery": "8 Claude cases through source hook using actual installed resident, alongside8 installed CLI cases",
+        "scope": "Existing release build plus source-entry behavior; hook is not yet a release artifact"
+      }
+    },
+    "pending": [
+      "Owner tooling/architecture decision before dependent integration",
+      "Dedicated standalone assembly and installed routing",
+      "Remove old shared CLI hook dispatch once routing migrates",
+      "Strict resolver/compiler contribution evidence",
+      "Full milestone gate and installed performance comparison"
+    ]
   }
 }
