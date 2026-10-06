@@ -44,7 +44,7 @@ classifier: [Jev](https://typesafe.ai) by default, or Cloudflare Clef/Clef-flash
 task or conversation. Hapsland maps its results to configured feedback messages.
 The checker receives one type declaration, or a TypeScript function's
 signature and body, plus related code reached through local
-references. The review input excludes the full file, edit diff, agent conversation, and
+references. What is NOT sent: the full file, edit diff, agent conversation, and
 unrelated source. With review credentials and no
 file settings, all otherwise eligible files are selected. Set an explicit scope
 when you want a narrower boundary. See [configuration](./docs/configuration.md).
