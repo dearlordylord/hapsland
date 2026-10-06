@@ -105,7 +105,7 @@ By default, authorized setup enables 7 editable JSON rule files with questions a
 Inspect them with `hapsland rules list` or `hapsland rules show --id meaningless_combinations`.
 
 <!-- rule-inspection:end -->
-Author one rule per file and enable it explicitly. Choose personal or project
+Author one rule per file and enable it. Choose personal or project
 settings for activation, languages, file scope, threshold, and feedback messages.
 File paths belong to settings; the rule defines the concern and evidence it needs.
 A configured rule runs only on supported inputs with sufficient evidence. See
