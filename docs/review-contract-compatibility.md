@@ -68,24 +68,13 @@ Other inputs retain their declared evidence requirements. Every shipped and cust
 rule uses the same validation, compilation, and evidence-admission boundary.
 Choice and Score result forms remain separate decisions.
 
-## Explicit file/line rule checks
+## Smoke test the rule
 
-The user-authorized one-off `hapsland rules check --path FILE --line N` workflow
-selects the enclosing supported declaration at a one-based line rather than
-requiring an attributed agent edit. It uses the same source policy, stable capture,
-parser, bounded graph, evidence admission, configured backend, credential discovery,
-probability interpretation and input limits as ordinary review. Optional `--id`
-selects one enabled rule; otherwise all eligible enabled rules run.
-This explicit command authorizes that classifier request; it starts no resident,
-fabricates no agent identity, publishes no agent advice and writes no inspection
-journal. A request at an ambiguous or unsupported line is skipped. Source changes
-before dispatch or during review invalidate the result.
-
-The version-one `rule-check` result reports selection, classifier input, per-rule
-probabilities and strict threshold findings, or skipped/unavailable diagnostics.
-JSON output is source-bearing. Exit 0 denotes completed evaluation including
-findings; exit 6 denotes skipped/unavailable or a local operation failure. Neither
-structural rule validation nor one evaluated example proves classifier accuracy.
+`hapsland rules check --path FILE --line N` sends the enclosing declaration and
+bounded related code to the classifier, without an agent session or resident.
+Add `--id` to select one enabled rule. Results include probabilities and findings;
+`--json` includes code. Unsupported, ambiguous or stale selections cannot yield a
+valid result. See [usage and limits](configuration.md#try-a-rule-on-a-file-and-line).
 
 ## Review input and result identity
 
