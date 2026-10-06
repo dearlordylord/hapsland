@@ -30,15 +30,15 @@ describe("evaluation execution and commands", () => {
         },
         controlledBackend
       )
-      expect(result.observations).toHaveLength(88)
-      expect(result.report.coverage.isolatedScenarios).toBe(9)
+      expect(result.observations).toHaveLength(72)
+      expect(result.report.coverage.isolatedScenarios).toBe(7)
       expect(result.report.coverage.fullBatchScenarios).toBe(1)
       expect(result.report.coverage.namedInteractionScenarios).toBe(1)
       expect(result.report.crossBatch.total).toBeGreaterThan(0)
       expect(result.report.deterministic.total).toBeGreaterThan(0)
       expect(result.report.transport.failed).toBe(0)
       expect(result.report.conformance.failed).toBe(0)
-      expect(result.report.timing.sampleCount).toBe(88)
+      expect(result.report.timing.sampleCount).toBe(72)
       expect(result.report.timing.totalDurationMs).toBe(0)
     })
   )
@@ -58,13 +58,13 @@ describe("evaluation execution and commands", () => {
         },
         controlledBackend
       )
-      expect(result.observations).toHaveLength(132)
-      expect(result.report.timing.sampleCount).toBe(132)
-      expect(result.report.semantic.total).toBe(108)
-      expect(result.report.crossBatch.total).toBe(216)
-      expect(result.report.deterministic.total).toBe(72)
-      expect(result.report.coverage.observedComparisons).toBe(396)
-      expect(result.report.coverage.plannedFixtures).toBe(132)
+      expect(result.observations).toHaveLength(108)
+      expect(result.report.timing.sampleCount).toBe(108)
+      expect(result.report.semantic.total).toBe(84)
+      expect(result.report.crossBatch.total).toBe(168)
+      expect(result.report.deterministic.total).toBe(56)
+      expect(result.report.coverage.observedComparisons).toBe(308)
+      expect(result.report.coverage.plannedFixtures).toBe(108)
     })
   )
 
@@ -79,8 +79,8 @@ describe("evaluation execution and commands", () => {
       })
       expect(plan.operation).toBe("plan")
       if (plan.operation !== "plan") return
-      expect(plan.plan.plannedRequests).toBe(88)
-      expect(plan.plan.worstCaseRequests).toBe(264)
+      expect(plan.plan.plannedRequests).toBe(72)
+      expect(plan.plan.worstCaseRequests).toBe(216)
       expect(plan.plan.permitted).toBe(false)
 
       const live = yield* runEvaluationCommand({ version: 1, operation: "run", liveOptIn: true }).pipe(
@@ -105,7 +105,7 @@ describe("evaluation execution and commands", () => {
       operation: string
       plan: { plannedRequests: number; worstCaseRequests: number }
     }
-    expect(plan).toMatchObject({ operation: "plan", plan: { plannedRequests: 44, worstCaseRequests: 132 } })
+    expect(plan).toMatchObject({ operation: "plan", plan: { plannedRequests: 36, worstCaseRequests: 108 } })
 
     const run = spawnSync(bunExecutable(), ["src/cli.ts", "--evaluation-run"], {
       cwd: process.cwd(),
@@ -121,7 +121,7 @@ describe("evaluation execution and commands", () => {
     expect(report.status).toBe("complete")
     expect(report.report.transport.failed).toBe(0)
     expect(report.report.semantic.unchecked).toBeGreaterThan(0)
-    expect(run.stdout).not.toContain("flat delivery alternatives")
+    expect(run.stdout).not.toContain("unconstrained delivery timestamp")
     expect(run.stdout).not.toContain("SOURCE")
 
     const verified = spawnSync(bunExecutable(), ["src/cli.ts", "--evaluation-report"], {

@@ -50,7 +50,7 @@ const sentinel = "OFFLINE_CANDIDATE_EGRESS_SENTINEL"
 describe("T-case candidate HTTP body and source scope", () => {
   it("matches all 12 source-backed candidate rows through the pinned injected client", async () => {
     const manifest = await readJson<{ readonly cases: ReadonlyArray<Fixture> }>("manifest.json")
-    const rule = SHIPPED_DEFAULT_RULES.find((item) => item.id === "r2_meaningless_combinations")
+    const rule = SHIPPED_DEFAULT_RULES.find((item) => item.id === "meaningless_combinations")
     if (rule === undefined) throw new Error("missing built-in probe rule")
     const { source: _source, origin: _origin, definitionDigest: _digest, ...definition } = rule
     const rules = [compileRule(definition, "proposal:issue-138-candidate-egress")]

@@ -42,8 +42,8 @@ const defaultRuleFiles = command("git", ["ls-tree", "-r", "--name-only", commit,
   .toString()
   .trim()
   .split("\n")
-  .filter((name) => /^src\/rules\/defaults\/r[1-9]_[a-z_]+\.json$/.test(name))
-if (defaultRuleFiles.length !== 9) throw new Error("release must contain nine individual default rules")
+  .filter((name) => /^src\/rules\/defaults\/[a-z_]+\.json$/.test(name))
+if (defaultRuleFiles.length !== 7) throw new Error("release must contain seven individual default rules")
 const allowed = (name) =>
   name === "package.json" ||
   name === "package-runtime.json" ||

@@ -30,8 +30,15 @@ describe("individual rules", () => {
     ).toHaveLength(1)
   })
   it("preserves default identities and semantic definition digests", () => {
-    expect(SHIPPED_DEFAULT_RULES).toHaveLength(9)
-    expect(SHIPPED_DEFAULT_RULES[0]?.id).toBe("r1_inferred_case")
+    expect(SHIPPED_DEFAULT_RULES.map((rule) => rule.id)).toEqual([
+      "meaningless_combinations",
+      "split_correlations",
+      "absence_confusion",
+      "bare_domain_value",
+      "name_wider_than_type",
+      "name_claims_resource",
+      "body_reaches_undeclared"
+    ])
     expect(digestRuleDefinition(decodeRuleDocument(rule, "a"))).toBe(
       digestRuleDefinition(decodeRuleDocument({ ...rule }, "b"))
     )

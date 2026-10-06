@@ -85,7 +85,7 @@ unknown trust/readiness can therefore return 6 after installation succeeds.
 Setup shows the effective rule inventory once per guided invocation, including
 when several clients are selected. See [editable and custom rules](configuration.md#declarative-rules)
 for their paths, eligibility and management commands. Authorized initial setup
-connects nine individual editable default files only when no configuration layer
+connects seven individual editable default files only when no configuration layer
 declares `rules`. An explicit selection, including `rules: []`, is preserved; setup
 does not reconnect disconnected defaults. Repeat setup preserves authored content. A missing connected rule is reported rather than silently recreated.
 Creating a custom rule also connects it, and its preview states that activation

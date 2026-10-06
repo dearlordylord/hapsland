@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "id": "r5_absence_confusion",
+  "id": "absence_confusion",
   "question": "Does `artifact` offer two encodings of one state, or collapse two states that the domain distinguishes, around missing values?\n\nFocus: \"Not supplied\", \"known to be nothing\", and \"known to be empty\" are three different facts.",
   "criteria": {
     "false": "Collections are required and emptiness carries the nothing meaning, or absence has its own named meaning\n\nExamples:\n- a required `tags` list where empty is how a caller says there are none\n- permissions are `{ kind: \"inherited\" } | { kind: \"own\", granted: Permission[] }`, so inheritance is a named state rather than a missing field\n- an attachment list typed non-empty, so the invariant holds at construction",

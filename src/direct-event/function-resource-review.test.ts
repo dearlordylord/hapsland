@@ -52,7 +52,7 @@ export function check(input: ModerationInput): ModerationDecision {
         const observation = yield* adaptCodexAdd(addEvent(root))
         expect(observation).toBeDefined()
         if (observation === undefined) return
-        const rule = configuredRules.find((rule) => rule.id === "r9_body_reaches_undeclared")
+        const rule = configuredRules.find((rule) => rule.id === "body_reaches_undeclared")
         expect(rule).toBeDefined()
         if (rule === undefined) return
         const context = {

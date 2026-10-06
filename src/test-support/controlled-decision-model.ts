@@ -51,7 +51,7 @@ const syntheticAnswers = (
   const source = artifactRecord?.source
   const before = exactLine(source, syntheticBefore)
   const expected = syntheticDomain(artifactRecord) && syntheticSourceExpected(source, scenario, before)
-  if (!expected || !Object.hasOwn(request.decisions, "r6_bare_domain_value")) {
+  if (!expected || !Object.hasOwn(request.decisions, "bare_domain_value")) {
     return Effect.fail(
       AiError.make({
         module: "ControlledDecisionModel",
@@ -64,10 +64,7 @@ const syntheticAnswers = (
     Object.fromEntries(
       Object.keys(request.decisions).map((key) => [
         key,
-        {
-          _tag: "Probability",
-          probability: scenario === "finding" && before && key === "r6_bare_domain_value" ? 0.9 : 0
-        }
+        { _tag: "Probability", probability: scenario === "finding" && before && key === "bare_domain_value" ? 0.9 : 0 }
       ])
     )
   )
@@ -93,7 +90,7 @@ const sourceFindingAnswers = (request: DecisionModel.ProviderOptions): ProviderA
   Object.fromEntries(
     Object.keys(request.decisions).map((key) => [
       key,
-      { _tag: "Probability" as const, probability: key === "r2_meaningless_combinations" ? 0.91 : 0 }
+      { _tag: "Probability" as const, probability: key === "meaningless_combinations" ? 0.91 : 0 }
     ])
   )
 const defaultAnswers = (request: DecisionModel.ProviderOptions): ProviderAnswers =>

@@ -216,14 +216,49 @@ and Stop behavior follows the shared delivery contract.
 ## Declarative rules
 
 When no loaded configuration layer declares a `rules` field, authorized initial
-setup materializes nine editable default rule files under
+setup materializes seven editable default rule files under
 `~/.config/hapsland/rules/defaults/`, respecting XDG conventions, and explicitly
 connects them. Any explicit `rules` field, including `rules: []`, is authoritative:
-setup does not add or reconnect defaults alongside that selection. For example, `r1_inferred_case.json` retains the stable rule ID
-`r1_inferred_case`. The selected file is authoritative: editing it changes the rule;
+setup does not add or reconnect defaults alongside that selection. For example, `meaningless_combinations.json` retains the stable rule ID
+`meaningless_combinations`. The selected file is authoritative: editing it changes the rule;
 disabling or disconnecting it changes effective review. Deleting a connected file
 reports a missing-source error, rather than restoring a hidden default. Repeated
 setup preserves authored files. An unreferenced file is inactive in every directory.
+
+### Default rule dispositions
+
+The [#240 cleanup](https://github.com/dearlordylord/hapsland/issues/240) removes
+`inferred_case` and `duplicate_encoding` from shipped defaults and removes `rN_`
+prefixes from retained IDs and filenames. This changes new provisioning only.
+Existing selections and user-edited files are neither renamed nor overwritten;
+use `hapsland rules disable --id <authored-id> --scope user` to stop a connected rule.
+
+The dispositions below use the predefined defective and clean examples in the
+[compact study](./abide-contextual-review-study.md#results-by-rule) and the separate
+[larger study](./abide-large-declaration-study.md#results). Counts are historical
+observations of the recorded definitions, with repeated inputs, not independent
+samples or fresh classifier validation. The retained questions, criteria and
+0.7 thresholds are unchanged. Renaming an ID does not validate classifier accuracy.
+
+| Recorded ID | Current default | Supported concern and disposition |
+| --- | --- | --- |
+| `r1_inferred_case` | Removed | Unnamed operation alternatives: 0/6 defects detected, 0/3 clean warnings, 0/2 checked repairs. No demonstrated unique acceptance value in this set. |
+| `r2_meaningless_combinations` | `meaningless_combinations` | Conditional fields reachable where meaningless. Compact 6/6 detections, 0/3 clean warnings, 1/2 repairs; report-delivery larger study supplies separate positive, clean and layout cases. |
+| `r3_split_correlations` | `split_correlations` | Parts of one fact independently settable. Compact 3/6 detections, 0/3 clean warnings, 0/2 repairs; color-channels repair was unassessed. Map-camera study detected 6/6 defects and repaired 2/2, with 1/6 clean warnings. Retain with that isolated warning recorded, without pooling batches. |
+| `r4_duplicate_fact` / `r4_duplicate_encoding` | Removed | Contradictory stored copies of one fact. Separate compact batch: 12/12 detections, 6/6 clean warnings, 12/12 repairs. Attachment-manifest batch had 6/6 detections, 0/6 clean warnings and 2/2 repairs. Useful in that domain, but systematic compact clean warnings remain unexplained; unsuitable as a general default. |
+| `r5_absence_confusion` | `absence_confusion` | Missing, empty and null states with ambiguous or duplicate meanings. Compact 3/6 detections, 0/3 clean warnings, 0/2 repairs. Retain demonstrated findings; repair failure is a separate limitation. |
+| `r6_bare_domain_value` | `bare_domain_value` | Domain distinctions lost in broad primitives. Compact 3/6 detections, 0/3 clean warnings, 1/2 repairs. |
+| `r7_name_wider_than_type` | `name_wider_than_type` | Values contradicting constraints promised by a name. Compact 6/6 detections, 0/3 clean warnings, 2/2 repairs. |
+| `r8_name_claims_resource` | `name_claims_resource` | Resource claimed by an operation name but absent from its declaration. Compact 6/6 detections, 0/3 clean warnings, 0/2 repairs; publish-bulletin was unassessed. Retain detection value without claiming repair success. |
+| `r9_body_reaches_undeclared` | `body_reaches_undeclared` | Visible body dependencies absent from the declaration. Compact 6/6 detections, 0/3 clean warnings, 2/2 repairs. Omitted source remains unknown. |
+
+No question revision or new live study is part of this cleanup. Historical edge
+cases and unfavorable outcomes remain in their study owners. The executable default
+evaluation suite now uses conditional-field positive, negative, independent-attribute
+and ambiguous examples; its controlled tests establish transport and reporting
+behavior, not classifier efficacy or native repair.
+
+### Rule document contract
 
 Each rule document has `version: 1`, a stable `id`, optional `title`, `question`,
 `criteria`, `message`, optional `threshold`, and a nonempty `inputs` list.

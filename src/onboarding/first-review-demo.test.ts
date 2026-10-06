@@ -84,10 +84,15 @@ describe("installed-product first-review demo", () => {
       toolUseId: "tool",
       subagentId: null
     }
-    recordDemoTrace(budget, join(test.root, "other"), advicee, { kind: "delivery", ruleIds: ["r1_inferred_case"] })
+    recordDemoTrace(budget, join(test.root, "other"), advicee, {
+      kind: "delivery",
+      ruleIds: ["meaningless_combinations"]
+    })
     expect(readDemoTrace(budget, "session")).toHaveLength(0)
-    recordDemoTrace(budget, test.root, advicee, { kind: "delivery", ruleIds: ["r1_inferred_case"] })
-    expect(readDemoTrace(budget, "session")).toMatchObject([{ kind: "delivery", ruleIds: ["r1_inferred_case"] }])
+    recordDemoTrace(budget, test.root, advicee, { kind: "delivery", ruleIds: ["meaningless_combinations"] })
+    expect(readDemoTrace(budget, "session")).toMatchObject([
+      { kind: "delivery", ruleIds: ["meaningless_combinations"] }
+    ])
     expect(readFileSync(join(`${budget}.trace`, readdirSync(`${budget}.trace`)[0] ?? ""), "utf8")).not.toContain(
       "private synthetic source"
     )
@@ -111,7 +116,7 @@ describe("installed-product first-review demo", () => {
         at: 3,
         kind: "delivery" as const,
         sourceHash: first,
-        ruleIds: ["r1_inferred_case"]
+        ruleIds: ["meaningless_combinations"]
       },
       { version: 1 as const, sessionId: "session", at: 4, kind: "edit" as const, sourceHash: repaired },
       {
@@ -127,7 +132,7 @@ describe("installed-product first-review demo", () => {
       correlatedHostEvidence({
         trace,
         finalSourceHash: repaired,
-        finalMessages: ["Addressed r1_inferred_case; validation passed."],
+        finalMessages: ["Addressed meaningless_combinations; validation passed."],
         repairValidated: true
       })
     ).toMatchObject({
@@ -138,7 +143,7 @@ describe("installed-product first-review demo", () => {
       correlatedHostEvidence({
         trace: trace.slice(0, 4),
         finalSourceHash: repaired,
-        finalMessages: ["Addressed r1_inferred_case"],
+        finalMessages: ["Addressed meaningless_combinations"],
         repairValidated: true
       }).followUp.status
     ).toBe("not-observed")
@@ -154,7 +159,7 @@ describe("installed-product first-review demo", () => {
       correlatedHostEvidence({
         trace,
         finalSourceHash: repaired,
-        finalMessages: ["Addressed r1_inferred_case"],
+        finalMessages: ["Addressed meaningless_combinations"],
         repairValidated: false
       }).followUp.status
     ).toBe("not-observed")
@@ -164,7 +169,7 @@ describe("installed-product first-review demo", () => {
           entry.kind === "terminal" && entry.sourceHash === repaired ? { ...entry, sourceHash: first } : entry
         ),
         finalSourceHash: repaired,
-        finalMessages: ["Addressed r1_inferred_case"],
+        finalMessages: ["Addressed meaningless_combinations"],
         repairValidated: true
       }).followUp.status
     ).toBe("not-observed")

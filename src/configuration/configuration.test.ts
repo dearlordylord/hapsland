@@ -247,7 +247,7 @@ describe("configuration v1 decoding", () => {
     ["negated include", '{"version":1,"includes":["!src/**"]}', "includes[0]"],
     ["traversal include", '{"version":1,"includes":["../src/**"]}', "includes[0]"],
     ["reversed glob range", '{"version":1,"includes":["[z-a]"]}', "includes[0]"],
-    ["removed rule surface", '{"version":1,"rules":{"r2_meaningless_combinations":{"threshold":0.8}}}', "rules"],
+    ["removed rule surface", '{"version":1,"rules":{"meaningless_combinations":{"threshold":0.8}}}', "rules"],
     [
       "array rule override shorthand",
       '{"version":1,"ruleOverrides":[{"ruleId":"team/check","enabled":true}]}',

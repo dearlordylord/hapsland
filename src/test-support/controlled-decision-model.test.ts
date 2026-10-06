@@ -13,7 +13,7 @@ const after = 'type OrderCount = number & { readonly __brand: "OrderCount" }'
 const definition = Decision.make({
   input: Schema.Json,
   decisions: {
-    r6_bare_domain_value: Decision.probability({
+    bare_domain_value: Decision.probability({
       instructions: "Is this a bare domain value?",
       criteria: { true: "bare", false: "branded" }
     })
@@ -33,9 +33,9 @@ describe("source-sensitive synthetic r6 fixture", () => {
         const initial = yield* decide(`${before}${ending}`, "finding")
         const repaired = yield* decide(`${after}${ending}`, "finding")
         const control = yield* decide(`${before}${ending}`, "control")
-        expect(initial.answers.r6_bare_domain_value.probability).toBe(0.9)
-        expect(repaired.answers.r6_bare_domain_value.probability).toBe(0)
-        expect(control.answers.r6_bare_domain_value.probability).toBe(0)
+        expect(initial.answers.bare_domain_value.probability).toBe(0.9)
+        expect(repaired.answers.bare_domain_value.probability).toBe(0)
+        expect(control.answers.bare_domain_value.probability).toBe(0)
       }
     })
   )
@@ -56,7 +56,7 @@ describe("source-sensitive native stale-result control", () => {
       const paymentDefinition = Decision.make({
         input: Schema.Json,
         decisions: {
-          r2_meaningless_combinations: Decision.probability({
+          meaningless_combinations: Decision.probability({
             instructions: "Can this state admit impossible combinations?",
             criteria: { true: "yes", false: "no" }
           })
@@ -68,8 +68,8 @@ describe("source-sensitive native stale-result control", () => {
       const repaired = yield* model.decide(paymentDefinition, {
         input: { artifact: { source: "export type PaymentState = { status: 'pending' }" } }
       })
-      expect(initial.answers.r2_meaningless_combinations.probability).toBe(0.91)
-      expect(repaired.answers.r2_meaningless_combinations.probability).toBe(0)
+      expect(initial.answers.meaningless_combinations.probability).toBe(0.91)
+      expect(repaired.answers.meaningless_combinations.probability).toBe(0)
     }).pipe(Effect.provide(controlledDecisionModelLayer({ findingOnSourceIncludes: "interface PaymentState" })))
   )
 })
@@ -144,7 +144,7 @@ describe("controlled request summaries", () => {
           controlledDecisionModelLayer({ requestSummaryPath: join(directory, "missing", "summary.jsonl") })
         )
       )
-      expect(result.answers.r6_bare_domain_value.probability).toBe(0)
+      expect(result.answers.bare_domain_value.probability).toBe(0)
     })
   )
 })

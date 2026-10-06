@@ -193,14 +193,14 @@ it("binds all connected authored sources to previews and rejects unsupported act
   expect(readFileSync(join(root, ".hapsland.jsonc"), "utf8")).toBe(before)
 })
 
-it("provisions nine separate defaults, preserves edits and binds every authored file", async () => {
+it("provisions seven separate defaults, preserves edits and binds every authored file", async () => {
   const root = mkdtempSync(join(tmpdir(), "hapsland-default-rule-plan-"))
   roots.push(root)
   execFileSync("git", ["init", "--quiet", root])
   const { previewDefaultRules, applyDefaultRules } = await import("../onboarding/default-rules.ts")
   const configurationPath = join(root, "personal/config.jsonc")
   const plan = await Effect.runPromise(previewDefaultRules(configurationPath, root))
-  expect(plan.files).toHaveLength(9)
+  expect(plan.files).toHaveLength(7)
   expect(existsSync(configurationPath)).toBe(false)
   await Effect.runPromise(applyDefaultRules(configurationPath, plan.digest, root))
   const last = plan.files.at(-1)
@@ -224,6 +224,31 @@ it("provisions nine separate defaults, preserves edits and binds every authored 
   expect(existsSync(last.path)).toBe(false)
 })
 
+it("preserves an existing authored selection with a retired numbered identity", async () => {
+  const root = mkdtempSync(join(tmpdir(), "hapsland-authored-default-selection-"))
+  roots.push(root)
+  execFileSync("git", ["init", "--quiet", root])
+  const { previewDefaultRules, applyDefaultRules } = await import("../onboarding/default-rules.ts")
+  const configurationPath = join(root, "config.jsonc")
+  const rulePath = join(root, "r1_inferred_case.json")
+  const authored = JSON.stringify({
+    version: 1,
+    id: "r1_inferred_case",
+    question: "An existing user-authored concern",
+    criteria: { true: "present", false: "absent" },
+    message: "User-authored feedback",
+    inputs: [{ languages: ["typescript"], kind: "type", requires: [] }]
+  })
+  writeFileSync(rulePath, authored)
+  const selected = JSON.stringify({ version: 1, rules: [rulePath] })
+  writeFileSync(configurationPath, selected)
+  const plan = await Effect.runPromise(previewDefaultRules(configurationPath, root))
+  expect(plan).toMatchObject({ changed: false, files: [], paths: [] })
+  await Effect.runPromise(applyDefaultRules(configurationPath, plan.digest, root))
+  expect(readFileSync(rulePath, "utf8")).toBe(authored)
+  expect(readFileSync(configurationPath, "utf8")).toBe(selected)
+})
+
 it("preserves explicit empty, reduced and project selections during repeated default setup", async () => {
   const root = mkdtempSync(join(tmpdir(), "hapsland-explicit-default-selection-"))
   roots.push(root)
@@ -245,7 +270,7 @@ it("preserves explicit empty, reduced and project selections during repeated def
   const reduced = await Effect.runPromise(previewDefaultRules(configurationPath, root))
   expect(reduced).toMatchObject({ changed: false, files: [] })
   await Effect.runPromise(applyDefaultRules(configurationPath, reduced.digest, root))
-  expect(JSON.parse(readFileSync(configurationPath, "utf8")).rules).toHaveLength(8)
+  expect(JSON.parse(readFileSync(configurationPath, "utf8")).rules).toHaveLength(6)
   rmSync(configurationPath)
   writeFileSync(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, rules: [] }))
   const project = await Effect.runPromise(previewDefaultRules(configurationPath, root))

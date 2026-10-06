@@ -54,7 +54,7 @@ const findingDispatch = (statePath: string): ResidentDispatchContext => ({
     answers: Object.fromEntries(
       configuredRules.map((rule) => [
         rule.id,
-        { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 }
+        { _tag: "Probability", probability: rule.id === "bare_domain_value" ? 0.9 : 0 }
       ])
     )
   }
@@ -3135,7 +3135,7 @@ describe("resident delivery lease", () => {
         answers: Object.fromEntries(
           configuredRules.map((rule) => [
             rule.id,
-            { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 }
+            { _tag: "Probability", probability: rule.id === "bare_domain_value" ? 0.9 : 0 }
           ])
         )
       }
@@ -3372,7 +3372,7 @@ describe("resident delivery lease", () => {
         answers: Object.fromEntries(
           configuredRules.map((rule) => [
             rule.id,
-            { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 }
+            { _tag: "Probability", probability: rule.id === "bare_domain_value" ? 0.9 : 0 }
           ])
         )
       }
@@ -4166,7 +4166,7 @@ describe("resident delivery lease", () => {
 })
 
 describe("resident bounded advice batches", () => {
-  it("delivers all nine short findings from one unit when they fit", async () => {
+  it("delivers all seven default findings from one unit when they fit", async () => {
     const root = await makeGitFixture()
     await put(root, "type.ts", "type OrderCount = number\n")
     const statePath = join(root, "consent")
@@ -4188,9 +4188,9 @@ describe("resident bounded advice batches", () => {
     ])
     expect(
       first.output.hookSpecificOutput.additionalContext.split("\n").filter((line) => /^.+ :: .+: /.test(line))
-    ).toHaveLength(9)
+    ).toHaveLength(7)
     expect(await Effect.runPromise(server.pendingAdviceMetadata())).toMatchObject([
-      { pendingFindings: 9, deliveryFindings: 9 }
+      { pendingFindings: 7, deliveryFindings: 7 }
     ])
     expect((await Effect.runPromise(server.acknowledge(first.token))).status).toBe("acknowledged")
     expect((await Effect.runPromise(server.finalize(first.token))).status).toBe("finalized")

@@ -92,12 +92,12 @@ and network calls remain native code. See [proof scope and evidence](./docs/arch
 
 ## Built-in rules and your own
 
-With no explicit rule selection, authorized setup connects nine editable JSON rule
+With no explicit rule selection, authorized setup connects seven editable JSON rule
 files with questions about code
 design, including whether a declaration allows meaningless combinations of values.
 Each rule declares supported languages, input forms, and required related code.
 
-Inspect them with `hapsland rules list` or `hapsland rules show --id r1_inferred_case`.
+Inspect them with `hapsland rules list` or `hapsland rules show --id meaningless_combinations`.
 Author one rule per file and connect it explicitly. Choose personal or project
 settings for activation, languages, file scope, threshold, and feedback messages.
 File paths belong to settings; the rule defines the concern and evidence it needs.

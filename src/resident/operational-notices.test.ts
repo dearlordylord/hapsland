@@ -17,7 +17,7 @@ import { initialCanonical, projectCanonical, stepCanonical } from "../canonical/
 const answers = Object.fromEntries(
   configuredRules.map((rule) => [
     rule.id,
-    { _tag: "Probability" as const, probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 }
+    { _tag: "Probability" as const, probability: rule.id === "bare_domain_value" ? 0.9 : 0 }
   ])
 )
 
