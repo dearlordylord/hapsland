@@ -214,13 +214,8 @@ try {
     assert.ok(metadata.evaluations.length > 0)
     assert.ok(metadata.batchId)
     assert.ok((await page.locator("#handoff-edits button").count()) >= 1)
-    assert.equal(await page.locator("#handoff-copy").isEnabled(), true)
     const text = await page.locator("#handoff-message").textContent()
     assert.match(text, /Hapsland/)
-    await page.locator("#handoff-copy").focus()
-    await page.keyboard.press("Enter")
-    await page.waitForFunction(() => document.querySelector("#handoff-copy-status").textContent === "Message copied")
-    assert.equal(await page.evaluate(() => navigator.clipboard.readText()), text)
     output.message = text
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
   }
@@ -228,6 +223,7 @@ try {
   await edit.focus()
   await page.keyboard.press("Enter")
   await page.waitForFunction(() => document.querySelector("#files").textContent.includes("type.ts"))
+  assert.equal(await page.locator("#panel-files").evaluate((panel) => panel.open), true)
   assert.equal(await page.locator("#handoff-message").textContent(), outputs.at(-1).message)
   await cleanupPiFixtures()
   await page.waitForFunction(
@@ -247,7 +243,7 @@ try {
   assert.equal(disconnectedRecording.sources.filter((entry) => entry.status === "disconnected").length, 4)
   assert.ok(disconnectedRecording.sources.every((entry) => entry.roots.length === 0))
   console.log(
-    "Pi inspection browser: native fixtures, resident message copy independent of native output and lost ACK, original edit links, verified multi-source health and exit history, identity filters, keyboard controls and 375px layout passed"
+    "Pi inspection browser: native fixtures, resident messages independent of native output and lost ACK, original edit links, verified multi-source health and exit history, identity filters, keyboard controls and 375px layout passed"
   )
 } finally {
   clearTimeout(deadline)

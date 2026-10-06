@@ -363,15 +363,16 @@ try {
   await revealInspection(page, "#all-handoffs")
   await page.getByRole("button", { name: "Show all messages", exact: true }).click()
   await page.waitForFunction(() => document.querySelectorAll("#handoffs button").length === 1)
+  const messages = (await (await fetch(`${server.url}snapshot`)).json()).records.filter(
+    (record) => record.fact.kind === "agent-message"
+  )
   const messageText = response.output.hookSpecificOutput.additionalContext
-  await page.getByRole("button", { name: "Copy message", exact: true }).click()
-  await page.waitForFunction(() => document.querySelector("#handoff-copy-status").textContent === "Message copied")
-  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), messageText)
   assert.equal(await page.locator("#handoff-message").textContent(), messageText)
   assert.match(await page.locator("#handoff-output-status").textContent(), /Prepared by the resident/)
   assert.equal(await page.locator("#handoff-edits button").count(), 3)
-  await page.getByRole("button", { name: /Inspect batch edit · mixed\.ts/ }).click()
+  await page.getByRole("button", { name: /Open source edit · mixed\.ts/ }).click()
   await page.waitForFunction(() => document.querySelector("#files").textContent.includes("mixed.ts"))
+  assert.equal(await page.locator("#panel-files").evaluate((panel) => panel.open), true)
   await page.evaluate(() => {
     const output = document.querySelector("#handoff-message")
     const range = document.createRange()
@@ -432,27 +433,19 @@ try {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
   await page.getByRole("button", { name: "Pause updates", exact: true }).click()
   const frozen = await page.locator("#detail").textContent()
-  const copiedBeforeExpiry = await page.evaluate(() => navigator.clipboard.readText())
   phase = "paused resident message expiry"
   historyNow += 2 * 86400000
-  await page.evaluate(() => {
-    document.querySelector("#handoff-copy-status").textContent = ""
-  })
-  await page.getByRole("button", { name: "Copy message", exact: true }).click()
-  await page.waitForFunction(
-    () =>
-      document.querySelector("#handoff-copy-status").textContent.length > 0 &&
-      document.querySelector("#handoff-copy-status").textContent !== "Retrieving message"
-  )
-  assert.match(await page.locator("#handoff-copy-status").textContent(), /expired/)
+  const expiredMessage = await (
+    await fetch(`${server.url}payload/${messages[0].source.id}/${messages[0].sequence}`)
+  ).json()
+  assert.equal(expiredMessage.reason, "expired")
   await page.waitForFunction(() =>
     document.querySelector("#history-status").textContent.includes("Retained records expired")
   )
-  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), copiedBeforeExpiry)
   assert.equal(await page.locator("#detail").textContent(), frozen)
   assert.deepEqual(errors, [])
   console.log(
-    "inspection browser: real review history, per-unit request selection and exact copy, resident-owned messages and exact copy, batch edit links, keyboard controls, live reading stability, paused reconnect and recovery gaps, observed recording periods, paused payload expiry and narrow layout passed"
+    "inspection browser: real review history, per-unit request selection and exact copy, resident-owned messages, batch edit links, keyboard controls, live reading stability, paused reconnect and recovery gaps, observed recording periods, paused payload expiry and narrow layout passed"
   )
 } finally {
   clearTimeout(deadline)
