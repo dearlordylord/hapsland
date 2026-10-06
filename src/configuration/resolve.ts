@@ -20,7 +20,12 @@ import {
 } from "./types.ts"
 import { ConfigurationError } from "./errors.ts"
 import { replaceIncludes } from "./decision.ts"
-import { GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimitField, type GraphLimits } from "./graph-limits.ts"
+import {
+  GRAPH_LIMIT_CEILINGS,
+  validateGraphLimits,
+  type GraphLimitField,
+  type GraphLimits
+} from "../canonical/graph-limits.ts"
 
 export type ConfigurationLayer = {
   readonly name: ConfigurationLayerName

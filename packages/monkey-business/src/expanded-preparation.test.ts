@@ -12,7 +12,7 @@ import {
   restoreReplay,
   type FileTreeProfile
 } from "./index.ts"
-import { GRAPH_LIMIT_CEILINGS, type GraphLimits } from "../../../src/configuration/graph-limits.ts"
+import { GRAPH_LIMIT_CEILINGS, type GraphLimits } from "../../../src/canonical/graph-limits.ts"
 import type { PreparationFrame } from "./preparation.ts"
 
 const base: FileTreeProfile = {

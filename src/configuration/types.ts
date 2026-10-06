@@ -1,6 +1,6 @@
 import * as Schema from "effect/Schema"
 import { RuleIdentitySchema } from "../domain/rule-identity.ts"
-import { GRAPH_LIMIT_CEILINGS, type GraphLimitField } from "./graph-limits.ts"
+import { GRAPH_LIMIT_CEILINGS, type GraphLimitField } from "../canonical/graph-limits.ts"
 import { JEV_PROVIDER } from "../runtime/backend.ts"
 
 export const AnalyticsRecordingEnabled = Schema.Boolean.annotate({

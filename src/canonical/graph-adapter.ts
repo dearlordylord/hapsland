@@ -1,5 +1,5 @@
 import { bendImportGraphInitial, bendImportGraphStep, bendImportGraphLocalBudget } from "./import-graph.generated.js"
-import { GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimits } from "../configuration/graph-limits.ts"
+import { GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimits } from "./graph-limits.ts"
 import {
   decodeGraphEvent,
   decodeGraphState,
@@ -14,7 +14,7 @@ import {
 import { readNat, readBendList, readRecord } from "./boundary-schema.ts"
 import { freezeCanonicalData } from "./immutable.ts"
 
-export { GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimits } from "../configuration/graph-limits.ts"
+export { GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimits } from "./graph-limits.ts"
 
 export type { ImportGraphEvent, ImportGraphCommand, ImportGraphProjection } from "./graph-schema.ts"
 

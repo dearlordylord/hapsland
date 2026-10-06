@@ -5,7 +5,7 @@ import {
   validateGraphLimits,
   type GraphLimits,
   type GraphLimitField
-} from "../../../src/configuration/graph-limits.ts"
+} from "../../../src/canonical/graph-limits.ts"
 
 export const GRAPH_LIMIT_LABELS: Readonly<Record<GraphLimitField, string>> = {
   sourceBytes: "Maximum source bytes per file",

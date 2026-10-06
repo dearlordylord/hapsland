@@ -9,7 +9,7 @@ import {
   type ImportGraphCommand,
   type ImportGraphEvent
 } from "../canonical/graph-adapter.ts"
-import { GRAPH_LIMIT_CEILINGS, type GraphLimits } from "../configuration/graph-limits.ts"
+import { GRAPH_LIMIT_CEILINGS, type GraphLimits } from "../canonical/graph-limits.ts"
 import { languageForPath } from "./languages/registry.ts"
 import type { GraphFacts, LanguageGraphHost, PreparedGraph } from "./languages/contracts.ts"
 import { captureStable, type StableCapture } from "./capture.ts"

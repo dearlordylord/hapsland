@@ -10,7 +10,7 @@ import { configuredRules } from "../test-support/default-rules.ts"
 import { resolveRustModuleContext } from "./languages/rust-module-context.ts"
 import { captureStable } from "./capture.ts"
 import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "./selection.ts"
-import { GRAPH_LIMIT_CEILINGS } from "../configuration/graph-limits.ts"
+import { GRAPH_LIMIT_CEILINGS } from "../canonical/graph-limits.ts"
 import { addEvent, makeGitFixture, put, updateEvent } from "./test-fixtures.ts"
 
 const rules = (closure: boolean) =>

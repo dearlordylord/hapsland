@@ -3,7 +3,7 @@ import { basename, dirname, extname, isAbsolute, join, normalize, relative, sep 
 import * as Effect from "effect/Effect"
 import { parse } from "smol-toml"
 import { initialImportGraph, projectImportGraph, stepImportGraph } from "../../canonical/graph-adapter.ts"
-import type { GraphLimits } from "../../configuration/graph-limits.ts"
+import type { GraphLimits } from "../../canonical/graph-limits.ts"
 import { inspectRustModules, type GraphInspectionOptions } from "./rust.ts"
 import { captureStable, type StableCapture } from "../capture.ts"
 import { contextDirectFilePolicy, eligibleNamedPath } from "../selection.ts"

@@ -6,7 +6,7 @@ import { reviewTargetForInput, type CompiledRule } from "../rules/compiler.ts"
 import type { ReviewTarget } from "../rules/targets.ts"
 import type { RuleLanguage } from "../rules/schema.ts"
 import type { PostEditLocation } from "./edit-attribution.ts"
-import type { GraphLimits } from "../configuration/graph-limits.ts"
+import type { GraphLimits } from "../canonical/graph-limits.ts"
 
 import type { ReviewArtifact, ReviewUnit } from "./artifact-model.ts"
 

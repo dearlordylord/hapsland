@@ -6,7 +6,7 @@ import { adaptCodexAdd } from "./adapter.ts"
 import { captureStable } from "./capture.ts"
 import { resolveGraphUnit } from "./graph-resolver.ts"
 import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "./selection.ts"
-import { GRAPH_LIMIT_CEILINGS } from "../configuration/graph-limits.ts"
+import { GRAPH_LIMIT_CEILINGS } from "../canonical/graph-limits.ts"
 
 const gate = vi.hoisted(() => ({
   denyAtLocalWork: 0,

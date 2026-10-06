@@ -121,6 +121,24 @@
         "boundary": "20261006211953312-1231197-83a24c: 140 tests across 8 files passed",
         "scope": "Focused parser, graph, pipeline and resident consumers; no full-project coverage"
       }
+    },
+    {
+      "date": "2026-10-06",
+      "scope": "Canonical graph-profile policy ownership",
+      "review": "architecture_inventory: exact graph-limit move removes canonical/configuration direction cycle; entire proposed graph not yet verified",
+      "validation": {
+        "fast": "npm run check:fast passed",
+        "boundary": "20261006212057824-1236170-848fc0: 151 tests across 7 files passed",
+        "visualization": "Typecheck passed after npm ci installed locked dependencies",
+        "simulator": {
+          "scope": "Optional simulator typecheck, graph-limit move compared to HEAD 2ff00fc9 with same installed dependencies",
+          "currentExit": 1,
+          "baselineExit": 1,
+          "identicalDiagnostics": true,
+          "diagnostics": "packages/monkey-business/src/freshness-native.test.ts(37,37): error TS2554: Expected 1 arguments, but got 2.\npackages/monkey-business/src/source-job-public.test.ts(60,29): error TS2339: Property 'observation' does not exist on type 'RunStructuralFrame'.\n  Property 'observation' does not exist on type '{ readonly kind: \"finishRegistration\"; readonly scheduled: Readonly<Scheduled>; readonly registration: { state: EngineState; finish: Readonly<{ partition: number; ... 11 more ...; output: { ...; } | undefined; }> | undefined; created: boolean; }; } & { ...; }'.\npackages/monkey-business/src/source-job-public.test.ts(62,30): error TS2339: Property 'observation' does not exist on type 'RunStructuralFrame'.\n  Property 'observation' does not exist on type '{ readonly kind: \"finishRegistration\"; readonly scheduled: Readonly<Scheduled>; readonly registration: { state: EngineState; finish: Readonly<{ partition: number; ... 11 more ...; output: { ...; } | undefined; }> | undefined; created: boolean; }; } & { ...; }'.\npackages/monkey-business/src/source-job-public.test.ts(62,57): error TS7006: Parameter 'command' implicitly has an 'any' type.\npackages/monkey-business/src/stop-native-boundary.ts(232,11): error TS2783: '$' is specified more than once, so this usage will be overwritten.\npackages/monkey-business/src/stop-original-native.test.ts(448,39): error TS2353: Object literal may only specify known properties, and 'privateDiagnostic' does not exist in type 'EngineState'.\npackages/monkey-business/src/writer-native.test.ts(557,45): error TS2379: Argument of type '{ emissionTimeoutMs: number; clangTimeoutMs: number; executionTimeoutMs: number; resumeNativeCompilerReceipt: string | undefined; }' is not assignable to parameter of type '{ readonly emissionTimeoutMs?: number; readonly clangTimeoutMs?: number; readonly executionTimeoutMs?: number; readonly resumeNativeCompilerReceipt?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.\n  Types of property 'resumeNativeCompilerReceipt' are incompatible.\n    Type 'string | undefined' is not assignable to type 'string'.\n      Type 'undefined' is not assignable to type 'string'.\n",
+          "limitation": "Existing optional simulator type failures remain; focused changed consumer test passed"
+        }
+      }
     }
   ]
 }
