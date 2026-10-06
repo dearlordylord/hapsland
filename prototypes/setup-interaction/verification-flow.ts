@@ -8,7 +8,7 @@ import {
   type SaveOutcome,
   type VerificationOutcome
 } from "./credential-owner.ts"
-import { replayStep, unobserved, type Observe } from "./workflow-replay.ts"
+import { replayStep, unobserved, ignoreState, type Observe, type PublishState } from "./workflow-replay.ts"
 export const MAX_CHECKS = 3
 export const CHECK_TIMEOUT = "15 seconds"
 export type VerificationModel = {
@@ -119,13 +119,20 @@ export function reduceVerification(
     })
   return model
 }
-export function runVerification(interaction: Interaction, owner: CredentialOwner, observe: Observe = unobserved) {
+export function runVerification(
+  interaction: Interaction,
+  owner: CredentialOwner,
+  observe: Observe = unobserved,
+  publish: PublishState<VerificationModel> = ignoreState
+) {
   return Effect.gen(function* () {
     let model = initialVerification()
+    publish(model)
     const dispatch = (action: VerificationAction) =>
       Effect.gen(function* () {
         const before = model
         model = reduceVerification(before, { revision: before.revision, action })
+        publish(model)
         const label =
           action.kind === "consent"
             ? action.yes

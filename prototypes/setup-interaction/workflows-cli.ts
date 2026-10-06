@@ -1,11 +1,17 @@
 // Prototype: one administration-like process runtime, synthetic owners only.
 import { Effect, Exit } from "effect"
 import { withInteractionSession } from "./interaction-session.ts"
-import { runUpdate, fakeUpdateOwner } from "./update-flow.ts"
-import { runMaintenance, fakeMaintenanceOwner, type MaintenanceCommand } from "./maintenance-flow.ts"
-import { runLogin } from "./login-flow.ts"
-import { runVerification } from "./verification-flow.ts"
+import { runUpdate, fakeUpdateOwner, type UpdateModel } from "./update-flow.ts"
+import {
+  runMaintenance,
+  fakeMaintenanceOwner,
+  type MaintenanceModel,
+  type MaintenanceCommand
+} from "./maintenance-flow.ts"
+import { runLogin, type LoginModel } from "./login-flow.ts"
+import { runVerification, type VerificationModel } from "./verification-flow.ts"
 import { fakeCredentialOwner, type CredentialSource } from "./credential-owner.ts"
+import { unobserved } from "./workflow-replay.ts"
 const flow = process.argv[2]
 const option = (name: string) => process.argv.find((value) => value.startsWith(`--${name}=`))?.slice(name.length + 3)
 const source = option("source") ?? "saved",
@@ -62,24 +68,54 @@ if (!valid) {
   })
   const observations = () =>
     flow === "update" ? update.observed() : flow === "maintenance" ? maintenance.observed() : credential.observed()
+  let snapshot: UpdateModel | MaintenanceModel | LoginModel | VerificationModel | undefined
+  const publish = (model: NonNullable<typeof snapshot>) => {
+    snapshot = model
+  }
   const program = withInteractionSession(
     (interaction) =>
       Effect.gen(function* () {
-        if (flow === "update") return { flow, model: yield* runUpdate(interaction, update), observed: observations() }
+        if (flow === "update")
+          return {
+            flow,
+            termination: "finished",
+            model: yield* runUpdate(interaction, update, unobserved, publish),
+            observed: observations()
+          }
         if (flow === "maintenance")
           return {
             flow,
-            model: yield* runMaintenance(interaction, maintenance, operation as MaintenanceCommand),
+            termination: "finished",
+            model: yield* runMaintenance(
+              interaction,
+              maintenance,
+              operation as MaintenanceCommand,
+              unobserved,
+              publish
+            ),
             observed: observations()
           }
-        if (flow === "login") return { flow, model: yield* runLogin(interaction, credential), observed: observations() }
-        return { flow, model: yield* runVerification(interaction, credential), observed: observations() }
+        if (flow === "login")
+          return {
+            flow,
+            termination: "finished",
+            model: yield* runLogin(interaction, credential, unobserved, publish),
+            observed: observations()
+          }
+        return {
+          flow,
+          termination: "finished",
+          model: yield* runVerification(interaction, credential, unobserved, publish),
+          observed: observations()
+        }
       }),
     Effect.gen(function* () {
       yield* Effect.sync(() =>
-        process.stderr.write("Session interrupted (simulated); inspect observed operations. No rollback is implied.\n")
+        process.stderr.write(
+          `Session interrupted (simulated). Last observed workflow state: ${JSON.stringify(snapshot ?? null)}.\nPending owner operations have no inferred outcome. No rollback is implied.\n`
+        )
       )
-      return { flow, model: { phase: "Interrupted" }, observed: observations() }
+      return { flow, termination: "interrupted", model: snapshot ?? null, observed: observations() }
     }),
     process.argv.includes("--controlling-terminal") ? "controlling-terminal" : "stdin"
   )

@@ -2,7 +2,7 @@
 import { Effect, Terminal } from "effect"
 import { createHash } from "node:crypto"
 import type { Interaction } from "./interaction.ts"
-import { replayStep, unobserved, type Observe } from "./workflow-replay.ts"
+import { replayStep, unobserved, ignoreState, type Observe, type PublishState } from "./workflow-replay.ts"
 export type MaintenanceCommand = "repair" | "reinstall" | "uninstall"
 export type MaintenanceOperation = "install" | "update" | "uninstall"
 export type MaintenanceOutcome = "complete" | "partial" | "failed" | "declined" | "intact"
@@ -160,10 +160,12 @@ export function runMaintenance(
   interaction: Interaction,
   owner: MaintenanceOwner,
   command: MaintenanceCommand = "repair",
-  observe: Observe = unobserved
+  observe: Observe = unobserved,
+  publish: PublishState<MaintenanceModel> = ignoreState
 ) {
   return Effect.gen(function* () {
     let model = initialMaintenance(command)
+    publish(model)
     while (model.phase !== "Done" && model.phase !== "Cancelled") {
       yield* interaction.present(`Maintenance: ${model.phase} (simulated)\n`)
       const before = model,
@@ -208,6 +210,7 @@ export function runMaintenance(
         Effect.catchTag("QuitError", () => Effect.succeed<MaintenanceAction>({ kind: "exit" }))
       )
       model = reduceMaintenance(before, { revision: id, action })
+      publish(model)
       yield* observe(
         replayStep(
           before,

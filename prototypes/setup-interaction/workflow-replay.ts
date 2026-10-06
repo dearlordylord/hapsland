@@ -23,3 +23,8 @@ export const replayStep = (
   nextRevision: after.revision,
   ...(event.commandId === undefined ? {} : { commandId: event.commandId })
 })
+
+// Synchronous publication keeps safe state and its transition in one execution turn.
+// This observes state only; owners and captured credentials never enter this seam.
+export type PublishState<Model> = (model: Model) => void
+export const ignoreState = () => {}

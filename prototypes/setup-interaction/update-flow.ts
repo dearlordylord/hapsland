@@ -2,7 +2,7 @@
 import { Effect, Terminal } from "effect"
 import { createHash } from "node:crypto"
 import type { Interaction } from "./interaction.ts"
-import { replayStep, unobserved, type Observe } from "./workflow-replay.ts"
+import { replayStep, unobserved, ignoreState, type Observe, type PublishState } from "./workflow-replay.ts"
 export type UpdateResult = "updated" | "already-current" | "partial" | "failed" | "declined"
 export type UpdatePlan = { host: string; digest: string; current: boolean }
 export type UpdateModel = {
@@ -154,13 +154,20 @@ export function fakeUpdateOwner(
 export type UpdateOwner = ReturnType<typeof fakeUpdateOwner>
 const previewText = (m: UpdateModel) =>
   `Batch update preview (simulated)\n${m.plans.map((p) => `${p.host}: ${p.current ? "already current" : "replace marked Hapsland integration"}; digest ${p.digest}`).join("\n")}\nStaged package retained; Back does not delete it. ${m.stale ? "Changed proposals require fresh approval." : ""}`
-export function runUpdate(interaction: Interaction, owner: UpdateOwner, observe: Observe = unobserved) {
+export function runUpdate(
+  interaction: Interaction,
+  owner: UpdateOwner,
+  observe: Observe = unobserved,
+  publish: PublishState<UpdateModel> = ignoreState
+) {
   return Effect.gen(function* () {
     let model = initialUpdate()
+    publish(model)
     const dispatch = (action: UpdateAction) =>
       Effect.gen(function* () {
         const before = model
         model = reduceUpdate(model, { revision: before.revision, action })
+        publish(model)
         yield* observe(
           replayStep(
             before,

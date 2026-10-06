@@ -7,7 +7,7 @@ args = parser.parse_args()
 HERE = Path(__file__).resolve().parent
 END = time.monotonic() + 40
 reports = []
-def case(name, flow, operations, phase='Done', extra=None, writes=0, checks=None):
+def case(name, flow, operations, phase='Done', extra=None, writes=0, checks=None, retained=None, interrupted=False, outcome=None):
     master, slave = pty.openpty()
     before = termios.tcgetattr(slave)
     command = [args.compiled] if args.compiled else ['node', 'run.mjs', 'workflows-cli.ts']
@@ -39,9 +39,13 @@ def case(name, flow, operations, phase='Done', extra=None, writes=0, checks=None
             if ready: data += os.read(master, 65536)
         stdout = p.communicate(timeout=.5)[0]
         result = json.loads(stdout)
-        assert p.returncode == 0 and result['model']['phase'] == phase, (name, result)
+        assert p.returncode == 0, (name, result)
+        if phase is not None: assert result['model']['phase'] == phase, (name, result)
+        if interrupted: assert result['termination'] == 'interrupted', (name, result)
+        if outcome is not None: assert result['model']['outcome'] == outcome, (name, result)
         assert result['observed'].get('writes', result['observed'].get('saves', 0)) == writes, (name, result)
         if checks is not None: assert result['observed']['checks'] == checks, (name, result)
+        if retained is not None: assert result['model']['results'] == retained, (name, result)
         assert termios.tcgetattr(slave) == before, (name, 'terminal mode leak')
         assert b'FAKE_PTY_WORKFLOW_SENTINEL' not in data + stdout
         assert b'\x1b' not in stdout
@@ -62,6 +66,7 @@ case('update-back', 'update', [(b'\r', approval), (b'\x1b', b'Review batch updat
 case('update-stale', 'update', [(b'\r', approval), (b'y\r', b'Review batch update'), (b'\r', approval), (b'y\r', None)], extra=['--scenario=stale'], writes=2)
 case('maintenance-per-agent', 'maintenance', [(b'\r', approval), (b'y\r', b'Review maintenance'), (b'\r', approval), (b'\r', None)], writes=1)
 case('maintenance-partial-exit', 'maintenance', [(b'\r', approval), (b'y\r', b'Review maintenance'), (b'\x1b', None)], phase='Cancelled', extra=['--scenario=partial'], writes=1)
+case('maintenance-partial-signal', 'maintenance', [(b'\r', approval), (b'y\r', b'Review maintenance'), (signal.SIGTERM, None)], phase='Preview', interrupted=True, extra=['--scenario=partial'], writes=1, retained={'Claude': 'partial'})
 case('maintenance-back', 'maintenance', [(b'\r', approval), (b'\x1b', b'Review maintenance'), (b'\x1b', None)], phase='Cancelled')
 case('login-hidden', 'login', [(b'FAKE_PTY_WORKFLOW_SENTINEL\r', None)], writes=1)
 case('login-escape', 'login', [(b'\x1b', None)], phase='Cancelled')
@@ -71,8 +76,10 @@ case('verification-file-recheck', 'verification', [(b'y\r', b'Credential correct
 case('verification-decline', 'verification', [(b'\r', None)], checks=0)
 case('verification-env-guidance', 'verification', [(b'y\r', None)], extra=['--source=environment'], checks=1)
 case('verification-hidden-cancel', 'verification', [(b'y\r', b'Credential correction'), (b'\r', approval), (b'y\r', b'Enter fake replacement key'), (b'\x1b', None)], phase='Cancelled', checks=1)
+case('verification-result-signal', 'verification', [(b'y\r', b'Credential correction'), (signal.SIGTERM, None)], phase='Recovery', interrupted=True, checks=1, outcome='rejected')
+case('verification-hidden-signal', 'verification', [(b'y\r', b'Credential correction'), (b'\r', approval), (b'y\r', b'Enter fake replacement key'), (signal.SIGTERM, None)], phase='Capturing', interrupted=True, checks=1, outcome='rejected')
 for flow in ['update', 'maintenance', 'login', 'verification']:
-    case(flow + '-signal', flow, [(signal.SIGTERM, None)], phase='Interrupted', checks=0 if flow == 'verification' else None)
+    case(flow + '-signal', flow, [(signal.SIGTERM, None)], phase=None, interrupted=True, checks=0 if flow == 'verification' else None)
     case(flow + '-eof', flow, [(b'\x04', None)], phase='Cancelled', checks=0 if flow == 'verification' else None)
 base = [args.compiled] if args.compiled else ['node', 'run.mjs', 'workflows-cli.ts']
 for flow in ['update', 'maintenance', 'login', 'verification']:

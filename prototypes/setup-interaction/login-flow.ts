@@ -2,7 +2,7 @@
 import { Effect } from "effect"
 import type { Interaction } from "./interaction.ts"
 import { captureAndSave, type CredentialOwner, type CredentialSnapshot, type SaveOutcome } from "./credential-owner.ts"
-import { replayStep, unobserved, type Observe } from "./workflow-replay.ts"
+import { replayStep, unobserved, ignoreState, type Observe, type PublishState } from "./workflow-replay.ts"
 export type LoginModel = {
   phase: "Resolving" | "Capturing" | "Saving" | "Done" | "Cancelled"
   revision: number
@@ -41,13 +41,20 @@ export function reduceLogin(model: LoginModel, event: { revision: number; action
     return move("Done", { credential: action.credential, outcome: action.outcome })
   return model
 }
-export function runLogin(interaction: Interaction, owner: CredentialOwner, observe: Observe = unobserved) {
+export function runLogin(
+  interaction: Interaction,
+  owner: CredentialOwner,
+  observe: Observe = unobserved,
+  publish: PublishState<LoginModel> = ignoreState
+) {
   return Effect.gen(function* () {
     let model = initialLogin()
+    publish(model)
     const dispatch = (action: LoginAction) =>
       Effect.gen(function* () {
         const before = model
         model = reduceLogin(before, { revision: before.revision, action })
+        publish(model)
         yield* observe(
           replayStep(before, model, action, action.kind === "saved" ? `save ${action.outcome}` : action.kind)
         )
