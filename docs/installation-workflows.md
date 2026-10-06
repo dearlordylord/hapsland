@@ -190,11 +190,11 @@ served from the current checkout. Browser pages reload when
 and requires no package rebuild or hook update. See the
 [inspection guide](status.md#opt-in-local-inspection) for port selection and limits.
 
-Both dev and bundled dashboards require previously recorded events. Recording
-defaults to off: merge the [inspection template](examples/session-inspection.jsonc)
-into the project's `.hapsland.jsonc`, then make a new eligible edit through the
-installed integration. Opening the page does not enable recording or backfill
-earlier edits. Existing retained events remain viewable when recording is off.
+<!-- inspection-recording:start -->
+
+Recording is off by default: merge `"sessionInspection": true` into your project's `.hapsland.jsonc` using the [configuration template](examples/session-inspection.jsonc), then make a new eligible edit. Neither dashboard enables recording or backfills old edits; retained history can remain visible after recording is turned off.
+
+<!-- inspection-recording:end -->
 
 For bundled production, run `hapsland dashboard`: its page comes from the
 installed package. Use the fixed-snapshot workflow below when you want to update

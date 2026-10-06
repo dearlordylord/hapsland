@@ -8,7 +8,9 @@ import * as Schema from "effect/Schema"
 import { describe, expect, it } from "vitest"
 import { decodeConfigurationText } from "../src/configuration/decode.ts"
 import { decodeRuleText } from "../src/rules/schema.ts"
-import { renderConfigurationArtifacts } from "./generate-configuration.ts"
+import { renderConfigurationArtifacts, renderInspectionArtifacts } from "./generate-configuration.ts"
+
+import { InspectionRecordingEnabled } from "../src/configuration/types.ts"
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const generator = join(repositoryRoot, "scripts/generate-configuration.ts")
@@ -28,6 +30,11 @@ const withFixture = (run: (root: string) => void): void => {
     join(root, "docs/configuration.md"),
     "# Configuration\n\nAuthored guide before.\n\n<!-- configuration-guide:start -->\nold\n<!-- configuration-guide:end -->\n\nAuthored pack notes before.\n\n<!-- rule-guide:start -->\nold\n<!-- rule-guide:end -->\n\nAuthored guide after.\n"
   )
+  for (const name of ["README.md", "docs/installation-workflows.md", "docs/status.md"]) {
+    const path = join(root, name)
+    const text = name === "docs/status.md" ? "Authored status guide.\n" : readFileSync(path, "utf8")
+    writeFileSync(path, text + "\n<!-- inspection-recording:start -->\nold\n<!-- inspection-recording:end -->\n")
+  }
   try {
     run(root)
   } finally {
@@ -46,7 +53,9 @@ const generatedFiles = (root: string): ReadonlyArray<string> => [
   join(root, "docs/configuration.md"),
   join(root, "docs/installation-workflows.md"),
   join(root, "schemas/review-config-v1.schema.json"),
-  join(root, "schemas/review-rule-v1.schema.json")
+  join(root, "schemas/review-rule-v1.schema.json"),
+  join(root, "docs/status.md"),
+  join(root, "docs/examples/session-inspection.jsonc")
 ]
 
 const codeBlocks = (markdown: string): ReadonlyArray<string> =>
@@ -72,7 +81,32 @@ describe("configuration documentation generator", () => {
     expect(generated.documentation).toContain("Declared on the Effect Schema for this test.")
   })
 
-  it("updates the five artifacts deterministically and preserves authored guide text", () => {
+  it("renames the inspection field in every generated template and notice from the schema", () => {
+    const renamed = Schema.Struct({
+      version: Schema.Literal(1),
+      renamedRecording: Schema.optionalKey(InspectionRecordingEnabled)
+    })
+    const artifacts = renderInspectionArtifacts(renamed)
+    for (const text of [artifacts.template, artifacts.documentation, artifacts.notice("template.jsonc")]) {
+      expect(text).toContain("renamedRecording")
+      expect(text).not.toContain("sessionInspection")
+    }
+    expect(
+      Schema.decodeUnknownSync(renamed)(
+        JSON.parse(
+          artifacts.template
+            .split("\n")
+            .filter((line) => !line.startsWith("//"))
+            .join("\n")
+        )
+      )
+    ).toEqual({ version: 1, renamedRecording: true })
+    expect(() => renderInspectionArtifacts(Schema.Struct({ version: Schema.Literal(1) }))).toThrow(
+      "expected one inspection recording field"
+    )
+  })
+
+  it("updates the seven artifacts deterministically and preserves authored guide text", () => {
     withFixture((root) => {
       const first = runGenerator(root, "--update")
       expect(first.status, first.stderr).toBe(0)
@@ -149,6 +183,8 @@ describe("configuration documentation generator", () => {
       const schema = join(root, "schemas/review-config-v1.schema.json")
       writeFileSync(readme, readFileSync(readme, "utf8").replace("Configure file selection", "Stale generated text"))
       rmSync(schema)
+      const template = join(root, "docs/examples/session-inspection.jsonc")
+      writeFileSync(template, readFileSync(template, "utf8").replace(": true", ": false"))
       const before = generatedFiles(root)
         .filter((path) => path !== schema)
         .map((path) => [path, readFileSync(path, "utf8")] as const)
@@ -157,6 +193,7 @@ describe("configuration documentation generator", () => {
       expect(checked.status).toBe(1)
       expect(checked.stdout).toContain("README.md")
       expect(checked.stdout).toContain("review-config-v1.schema.json")
+      expect(checked.stdout).toContain("docs/examples/session-inspection.jsonc")
       expect(before.map(([path]) => readFileSync(path, "utf8"))).toEqual(before.map(([, contents]) => contents))
       expect(() => readFileSync(schema, "utf8")).toThrow()
     })

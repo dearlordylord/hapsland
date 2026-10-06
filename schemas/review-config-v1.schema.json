@@ -85,9 +85,7 @@
       "default": false
     },
     "sessionInspection": {
-      "type": "boolean",
-      "description": "Opt-in source-bearing local inspection history. Project configuration overrides the user default in either direction; independent of source-free analytics and disabled by default. Opening the dashboard never enables recording.",
-      "default": false
+      "$ref": "#/$defs/InspectionRecordingEnabled"
     },
     "inspectionRetentionDays": {
       "type": "integer",
@@ -190,6 +188,14 @@
         }
       ],
       "description": "User-owned review destination. Jev is the default; Cloudflare requires a model and account ID. Projects cannot set this field."
+    },
+    "InspectionRecordingEnabled": {
+      "type": "boolean",
+      "description": "Opt-in source-bearing local inspection history. Project configuration overrides the user default in either direction; independent of source-free analytics and disabled by default. Opening the dashboard never enables recording.",
+      "default": false,
+      "examples": [
+        true
+      ]
     },
     "EditPermitLimitsSettings": {
       "type": "object",

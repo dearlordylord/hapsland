@@ -24,6 +24,15 @@ export const DEFAULT_INSPECTION_RETENTION_DAYS = 7
 export const DEFAULT_INSPECTION_STORAGE_BYTES = 128 * 1024 * 1024
 export const DEFAULT_VIRTUAL_ROUND_QUIET_MS = 5 * 60_000
 
+/** Semantic identity used to generate inspection opt-in docs independently of the wire field name. */
+export const InspectionRecordingEnabled = Schema.Boolean.annotate({
+  identifier: "InspectionRecordingEnabled",
+  description:
+    "Opt-in source-bearing local inspection history. Project configuration overrides the user default in either direction; independent of source-free analytics and disabled by default. Opening the dashboard never enables recording.",
+  default: false,
+  examples: [true]
+})
+
 export const EditPermitLimitsSettings = Schema.Struct({
   perAdvicee: Schema.optionalKey(
     Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 65536 })).annotate({
@@ -169,13 +178,7 @@ export const ConfigurationDocument = Schema.Struct({
       default: false
     })
   ),
-  sessionInspection: Schema.optionalKey(
-    Schema.Boolean.annotate({
-      description:
-        "Opt-in source-bearing local inspection history. Project configuration overrides the user default in either direction; independent of source-free analytics and disabled by default. Opening the dashboard never enables recording.",
-      default: false
-    })
-  ),
+  sessionInspection: Schema.optionalKey(InspectionRecordingEnabled),
   inspectionRetentionDays: Schema.optionalKey(
     Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 3650 })).annotate({
       description: "User-owned capture-aged inspection retention in days, shared across residents and projects.",

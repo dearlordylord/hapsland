@@ -242,11 +242,11 @@ Both read the same local inspection journal. Page development needs no package
 build or installation update. See [inspection development](./docs/status.md#opt-in-local-inspection)
 for the source owner, port selection, and checks.
 
-Recording is off by default: merge `"sessionInspection": true` into your
-project's `.hapsland.jsonc` using the
-[configuration template](./docs/examples/session-inspection.jsonc), then make a
-new eligible edit. Neither dashboard enables recording or backfills old edits;
-retained history can remain visible after recording is turned off.
+<!-- inspection-recording:start -->
+
+Recording is off by default: merge `"sessionInspection": true` into your project's `.hapsland.jsonc` using the [configuration template](./docs/examples/session-inspection.jsonc), then make a new eligible edit. Neither dashboard enables recording or backfills old edits; retained history can remain visible after recording is turned off.
+
+<!-- inspection-recording:end -->
 
 Install a fresh local snapshot on your own client without publishing:
 
