@@ -5,23 +5,32 @@ import { acquireInteraction, type Interaction } from "./interaction.ts"
 export const scopeInteraction = (adapter: Interaction) =>
   Effect.gen(function* () {
     const gate = yield* Semaphore.make(1)
-    const closed = yield* Deferred.make<void>()
+    const inputEnded = yield* Deferred.make<void>()
     let released = false
+    let terminated = false
     yield* Effect.addFinalizer(() =>
       Effect.gen(function* () {
         released = true
-        yield* Deferred.succeed(closed, undefined)
+        yield* Deferred.succeed(inputEnded, undefined)
       })
     )
     const input = <A>(effect: Effect.Effect<A, Terminal.QuitError>) =>
       gate.withPermit(
         Effect.suspend(() =>
-          released
+          released || terminated
             ? Effect.fail(new Terminal.QuitError({}))
             : Effect.raceFirst(
                 effect,
-                Deferred.await(closed).pipe(Effect.flatMap(() => Effect.fail(new Terminal.QuitError({}))))
+                Deferred.await(inputEnded).pipe(Effect.flatMap(() => Effect.fail(new Terminal.QuitError({}))))
               )
+        ).pipe(
+          Effect.catchTag("QuitError", (error) =>
+            Effect.gen(function* () {
+              terminated = true
+              yield* Deferred.succeed(inputEnded, undefined)
+              return yield* Effect.fail(error)
+            })
+          )
         )
       )
     const interaction: Interaction = {

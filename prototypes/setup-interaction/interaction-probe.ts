@@ -39,6 +39,51 @@ assert(
   )
 )
 assert.equal(pending.remaining(), 1, "a closed session cannot consume another input")
+const ended = scriptedInteraction([{ kind: "eof" }, { kind: "choose", index: 0 }])
+await Effect.runPromise(
+  Effect.scoped(
+    Effect.gen(function* () {
+      const interaction = yield* scopeInteraction(ended.interaction)
+      yield* interaction.hidden("Fake key").pipe(Effect.catchTag("QuitError", () => Effect.void))
+      const resumed = yield* interaction
+        .choose({ message: "After EOF", back: false, choices: [{ title: "A", value: 1 }] })
+        .pipe(
+          Effect.map(() => true),
+          Effect.catchTag("QuitError", () => Effect.succeed(false))
+        )
+      assert.equal(resumed, false, "terminal termination must prevent reopening this input session")
+      yield* interaction.present("Cancelled input; no credential was saved.")
+    })
+  )
+)
+assert.equal(ended.remaining(), 1, "EOF cannot consume later scripted input")
+assert(
+  ended.transcript.includes("Cancelled input; no credential was saved."),
+  "termination must preserve durable outcome presentation"
+)
+const queued = scriptedInteraction([{ kind: "eof" }, { kind: "choose", index: 0 }])
+await Effect.runPromise(
+  Effect.scoped(
+    Effect.gen(function* () {
+      const interaction = yield* scopeInteraction(queued.interaction)
+      const completed = yield* Effect.all(
+        [
+          interaction.hidden("Fake key").pipe(
+            Effect.map(() => true),
+            Effect.catchTag("QuitError", () => Effect.succeed(false))
+          ),
+          interaction.choose({ message: "Queued after EOF", back: false, choices: [{ title: "A", value: 1 }] }).pipe(
+            Effect.map(() => true),
+            Effect.catchTag("QuitError", () => Effect.succeed(false))
+          )
+        ],
+        { concurrency: "unbounded" }
+      )
+      assert.deepEqual(completed, [false, false])
+    })
+  )
+)
+assert.equal(queued.remaining(), 1, "a queued caller cannot reopen terminated input")
 const concurrent = scriptedInteraction([
   { kind: "choose", index: 0 },
   { kind: "choose", index: 1 }
@@ -89,6 +134,7 @@ console.log(
     explicitSyntheticCapture: "passed",
     multipleChoiceIdentity: "passed",
     closedSession: "passed",
+    terminalTermination: "passed",
     serializedInput: "passed",
     realCredentialReads: 0
   })

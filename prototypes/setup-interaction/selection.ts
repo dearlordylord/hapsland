@@ -21,8 +21,8 @@ export function selectionUpdate(
   key: string,
   options: SelectionOptions = defaults
 ): Prompt.Action<SelectionState, SelectionAnswer> {
-  const agents = options.choices.map((choice) => choice.id)
-  const lastRow = agents.length + 2 + Number(options.back)
+  const choiceIds = options.choices.map((choice) => choice.id)
+  const lastRow = choiceIds.length + 2 + Number(options.back)
   if (key === "escape") return { _tag: "Submit", value: { kind: options.back ? "back" : "cancel" } }
   if (key === "up" || key === "down" || key === "tab")
     return {
@@ -42,13 +42,13 @@ export function selectionUpdate(
     if (state.focus === 1)
       return {
         _tag: "NextFrame",
-        state: { ...state, selected: state.selected.length === agents.length ? [] : [...agents], warning: false }
+        state: { ...state, selected: state.selected.length === choiceIds.length ? [] : [...choiceIds], warning: false }
       }
-    const host = agents[state.focus - 2]
-    if (host) {
-      const selected = state.selected.includes(host)
-        ? state.selected.filter((item) => item !== host)
-        : agents.filter((item) => item === host || state.selected.includes(item))
+    const choiceId = choiceIds[state.focus - 2]
+    if (choiceId) {
+      const selected = state.selected.includes(choiceId)
+        ? state.selected.filter((item) => item !== choiceId)
+        : choiceIds.filter((item) => item === choiceId || state.selected.includes(item))
       return { _tag: "NextFrame", state: { ...state, selected, warning: false } }
     }
   }
@@ -70,8 +70,8 @@ export function selectionFrame(
   rows: number,
   options: SelectionOptions = defaults
 ): string[] {
-  const agents = options.choices.map((choice) => choice.id)
-  const lastRow = agents.length + 2 + Number(options.back)
+  const choiceIds = options.choices.map((choice) => choice.id)
+  const lastRow = choiceIds.length + 2 + Number(options.back)
   const width = Math.max(1, columns)
   const header = [
     options.message,
@@ -87,7 +87,7 @@ export function selectionFrame(
         : "Enter: Continue",
     options.back ? "Esc: Back" : "Esc: Exit"
   ].flatMap((line) => wrap(line, width))
-  const all = state.selected.length === agents.length ? "x" : state.selected.length ? "-" : " "
+  const all = state.selected.length === choiceIds.length ? "x" : state.selected.length ? "-" : " "
   const labels = [
     "Continue",
     `[${all}] Select All`,
@@ -111,10 +111,10 @@ export function selectionPrompt(
   selected: readonly string[],
   options: SelectionOptions = defaults
 ): Prompt.Prompt<SelectionAnswer> {
-  const agents = options.choices.map((choice) => choice.id)
+  const choiceIds = options.choices.map((choice) => choice.id)
   let lastFrame: string[] = []
   return Prompt.Custom<SelectionState, SelectionAnswer>(
-    { focus: 0, selected: agents.filter((host) => selected.includes(host)), warning: false },
+    { focus: 0, selected: choiceIds.filter((choiceId) => selected.includes(choiceId)), warning: false },
     {
       render: (state, action) =>
         Effect.gen(function* () {

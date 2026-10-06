@@ -1,6 +1,6 @@
 {
-  "observedAt": "2026-10-06T21:22:41.940Z",
-  "sourceDigest": "7d6ca52de7a45910091e7c95666ce8835c22132f1a53bce6549c4169f6a31497",
+  "observedAt": "2026-10-06T21:26:18.915Z",
+  "sourceDigest": "a87903329f0dad7b3b1f98d1b11bd62d3084f351f8181ca663fef5823ec80af4",
   "host": "darwin-arm64",
   "bun": "1.3.14",
   "effect": "4.0.0",
@@ -11,6 +11,7 @@
     "explicitSyntheticCapture": "passed",
     "multipleChoiceIdentity": "passed",
     "closedSession": "passed",
+    "terminalTermination": "passed",
     "serializedInput": "passed",
     "realCredentialReads": 0
   },
@@ -714,7 +715,7 @@
   },
   "swarmTerminal": {
     "runner": "node run.mjs cli.ts",
-    "seconds": 19.891,
+    "seconds": 20.323,
     "budgetSeconds": 55,
     "results": [
       {
