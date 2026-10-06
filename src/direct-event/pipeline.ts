@@ -1160,6 +1160,32 @@ export type EvaluationEvidence =
         | "interrupted"
     }
 
+const invalidModelOutput = (failure: unknown): boolean =>
+  AiError.isAiError(failure) &&
+  (failure.reason._tag === "InvalidOutputError" || failure.reason._tag === "StructuredOutputError")
+
+const interpretEvaluationAnswers = (
+  prepared: PreparedSource,
+  answers: ProbabilityAnswers,
+  emit: (evidence: EvaluationEvidence) => void
+): Evaluation => {
+  if (!expectedProbabilityAnswers(prepared, answers) || !Object.values(answers).every(validProbabilityAnswer)) {
+    emit({ kind: "evaluation-outcome", outcome: "invalid-response" })
+    return { status: "backend" } as const
+  }
+  emit({
+    kind: "validated-answers",
+    answers: Object.entries(answers).map(([ruleId, answer]) => ({ ruleId, probability: answer.probability }))
+  })
+  const result = evaluateProbabilityAnswers(prepared, answers)
+  if (result.status === "evaluated") emit({ kind: "interpreted-findings", findings: result.findings })
+  emit({
+    kind: "evaluation-outcome",
+    outcome: result.status === "evaluated" ? (result.findings.length ? "findings" : "clear") : "invalid-response"
+  })
+  return result
+}
+
 /** One DecisionModel call, no retry wrapper, with a fixed total call deadline. */
 export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(function* (
   prepared: PreparedSource,
@@ -1200,10 +1226,7 @@ export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(functi
     Effect.onInterrupt(() => Effect.sync(() => emit({ kind: "evaluation-outcome", outcome: "interrupted" })))
   )
   if (Result.isFailure(evaluated)) {
-    const invalid =
-      AiError.isAiError(evaluated.failure) &&
-      (evaluated.failure.reason._tag === "InvalidOutputError" ||
-        evaluated.failure.reason._tag === "StructuredOutputError")
+    const invalid = invalidModelOutput(evaluated.failure)
     emit({ kind: "evaluation-outcome", outcome: invalid ? "invalid-response" : "backend" })
     return { status: "backend" } as const
   }
@@ -1211,22 +1234,7 @@ export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(functi
     emit({ kind: "evaluation-outcome", outcome: "timeout" })
     return { status: "timeout" } as const
   }
-  const answers = evaluated.success.value.answers
-  if (!expectedProbabilityAnswers(prepared, answers) || !Object.values(answers).every(validProbabilityAnswer)) {
-    emit({ kind: "evaluation-outcome", outcome: "invalid-response" })
-    return { status: "backend" } as const
-  }
-  emit({
-    kind: "validated-answers",
-    answers: Object.entries(answers).map(([ruleId, answer]) => ({ ruleId, probability: answer.probability }))
-  })
-  const result = evaluateProbabilityAnswers(prepared, answers)
-  if (result.status === "evaluated") emit({ kind: "interpreted-findings", findings: result.findings })
-  emit({
-    kind: "evaluation-outcome",
-    outcome: result.status === "evaluated" ? (result.findings.length ? "findings" : "clear") : "invalid-response"
-  })
-  return result
+  return interpretEvaluationAnswers(prepared, evaluated.success.value.answers, emit)
 })
 
 /** Core path consumes the one immutable observation produced at the host boundary. */

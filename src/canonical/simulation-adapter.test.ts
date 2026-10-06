@@ -307,6 +307,7 @@ describe("trusted simulation composition boundary", () => {
     ]) {
       expect(() => interveneSharedOutput(state, scope, outcome)).toThrow()
     }
+    expect(() => interveneSharedOutput(state, target, "certain", {})).toThrow("foreign output receipt")
     expect(sharedCallbackOriginals(state)).toEqual([])
     expect(queuedShared(state)).toEqual([])
   })

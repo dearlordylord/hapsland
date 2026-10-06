@@ -618,14 +618,25 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       captureInspectionFate(findings, fate, reason, advice.id)
     )
   }
+  const refreshInspectionConsent = (root: string, dispatch: ResidentDispatchContext): void => {
+    const settings = readInspectionSettings(root, dispatch.userConfigPath ?? undefined)
+    if (settings && (inspectionLimits.has(root) || inspectionLimits.size < 128)) inspectionLimits.set(root, settings)
+    inspection.observeRecording(root, inspectionLimits.has(root) ? settings?.enabled : undefined)
+  }
+  const registerInspectionSource = (scope: InspectionScope): void => {
+    const epoch = inspection.consentEpoch(scope.root)
+    const registered = inspectionRegistrations.get(scope.root)
+    const registrationTime = monotonicNow()
+    if (
+      epoch !== undefined &&
+      (registered === undefined || registered.epoch !== epoch || registrationTime - registered.at >= 60000)
+    ) {
+      if (inspection.offer(scope, {}, { kind: "source-registration" }) === "queued")
+        inspectionRegistrations.set(scope.root, { epoch, at: registrationTime })
+    }
+  }
   const inspectionReceive = (observation: DirectObservation, dispatch: ResidentDispatchContext) => {
-    const settings = readInspectionSettings(observation.root, dispatch.userConfigPath ?? undefined)
-    if (settings && (inspectionLimits.has(observation.root) || inspectionLimits.size < 128))
-      inspectionLimits.set(observation.root, settings)
-    inspection.observeRecording(
-      observation.root,
-      inspectionLimits.has(observation.root) ? settings?.enabled : undefined
-    )
+    refreshInspectionConsent(observation.root, dispatch)
     const scope = {
       root: observation.root,
       runtime: observation.advicee.host,
@@ -634,16 +645,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       subagentId: observation.advicee.subagentId
     }
     const correlation = { receiptId: randomUUID() }
-    const epoch = inspection.consentEpoch(observation.root)
-    const registered = inspectionRegistrations.get(observation.root)
-    const registrationTime = monotonicNow()
-    if (
-      epoch !== undefined &&
-      (registered === undefined || registered.epoch !== epoch || registrationTime - registered.at >= 60000)
-    ) {
-      if (inspection.offer(scope, {}, { kind: "source-registration" }) === "queued")
-        inspectionRegistrations.set(observation.root, { epoch, at: registrationTime })
-    }
+    registerInspectionSource(scope)
     inspection.offer(scope, correlation, {
       kind: "edit-received",
       candidates: observation.candidates.map(({ operation, path }) => ({ operation, path }))
@@ -2347,6 +2349,122 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     yield* residentReleaseCurrentWork(job.revision)
   }, Effect.uninterruptible)
 
+  const inspectionUnitCorrelation = (
+    job: UnitJob,
+    receipt: InspectionReceipt,
+    request?: number
+  ): InspectionCorrelation => ({
+    ...receipt.correlation,
+    ...(job.inspectionEvaluationId === undefined ? {} : { evaluationId: job.inspectionEvaluationId }),
+    unitId: createHash("sha256").update(`${job.partition}:${job.canonicalOperationId}`).digest("hex"),
+    ...(request === undefined
+      ? {}
+      : { requestId: createHash("sha256").update(`${job.partition}:${request}`).digest("hex") })
+  })
+  const inspectionObservePreparedUnit = (unit: UnitJob): void => {
+    if (unit.inspectionReceipt !== undefined) {
+      inspection.offer(unit.inspectionReceipt.scope, inspectionUnitCorrelation(unit, unit.inspectionReceipt), {
+        kind: "unit-prepared",
+        semanticIdentity: unit.prepared.identity,
+        path: unit.prepared.input.path,
+        declaration: unit.prepared.input.declaration.name,
+        completeness: unit.prepared.input.completeness
+      })
+      if (inspection.isEnabled(unit.inspectionReceipt.scope.root)) {
+        inspection.offer(
+          unit.inspectionReceipt.scope,
+          inspectionUnitCorrelation(unit, unit.inspectionReceipt),
+          captureInspectionPolicy(unit.prepared, unit.dispatch.controlled !== null)
+        )
+      }
+    }
+  }
+  const inspectionObserveUnitFate = (
+    job: UnitJob,
+    findings: ReadonlyArray<Finding>,
+    fate: Parameters<typeof captureInspectionFate>[1],
+    reason: Parameters<typeof captureInspectionFate>[2]
+  ): void => {
+    const receipt = job.inspectionReceipt
+    if (!findings.length || receipt === undefined || !inspection.isEnabled(receipt.scope.root)) return
+    inspection.offer(
+      receipt.scope,
+      {
+        ...receipt.correlation,
+        ...(job.inspectionEvaluationId === undefined ? {} : { evaluationId: job.inspectionEvaluationId })
+      },
+      captureInspectionFate(findings, fate, reason)
+    )
+  }
+  const preparationInspectionPorts = (
+    job: IngressJob
+  ): Pick<Parameters<typeof prepareObservation>[1], "observePreparationOmission" | "captureHooks"> => ({
+    observePreparationOmission: (path, declaration, reason) => {
+      const receipt = job.inspectionReceipt
+      if (receipt !== undefined && inspection.isEnabled(receipt.scope.root))
+        inspection.offer(receipt.scope, receipt.correlation, {
+          kind: "preparation-omission",
+          path,
+          declaration,
+          reason
+        })
+    },
+    ...(job.inspectionReceipt === undefined
+      ? {}
+      : {
+          captureHooks: {
+            sourceRead: (path: string) => {
+              const receipt = job.inspectionReceipt
+              if (receipt === undefined || !inspection.isEnabled(receipt.scope.root)) return
+              try {
+                inspection.offer(receipt.scope, receipt.correlation, { kind: "preparation-read", path })
+              } catch {
+                /* Optional observation cannot invalidate the actual source read. */
+              }
+            }
+          }
+        })
+  })
+  const inspectionObserveAnalysis = (
+    outcome: PreparedObservation["observation"]["outcomes"][number],
+    receipt: InspectionReceipt
+  ): void => {
+    if (outcome.status === "incomplete") {
+      inspection.offer(receipt.scope, receipt.correlation, {
+        kind: "preparation-omission",
+        path: outcome.path,
+        reason: outcome.reason
+      })
+    } else if (outcome.analysis.status === "incomplete") {
+      for (const failure of outcome.analysis.failures) {
+        inspection.offer(receipt.scope, receipt.correlation, {
+          kind: "preparation-omission",
+          path: outcome.path,
+          reason: failure.reason,
+          ...(failure.root === undefined ? {} : { declaration: failure.root })
+        })
+      }
+    }
+  }
+  const inspectionObservePreparation = (job: IngressJob, prepared: PreparedObservation): void => {
+    if (job.inspectionReceipt !== undefined) {
+      const receipt = job.inspectionReceipt
+      for (const outcome of prepared.outcomes) {
+        if (outcome.status === "skipped")
+          inspection.offer(receipt.scope, receipt.correlation, { kind: "preparation-skipped", path: outcome.path })
+      }
+      for (const outcome of prepared.observation.outcomes) {
+        inspectionObserveAnalysis(outcome, receipt)
+      }
+    }
+  }
+  const registerInspectionOrigin = (evaluationKey: string): void => {
+    if (inspectionOrigins.size >= 512) {
+      const oldest = inspectionOrigins.keys().next().value
+      if (oldest !== undefined) inspectionOrigins.delete(oldest)
+    }
+    inspectionOrigins.set(evaluationKey, randomUUID())
+  }
   const residentRemoveAdvice = Effect.fn("ResidentRuntime.removeAdvice")(function* (
     id: string,
     token?: string,
@@ -2360,25 +2478,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const expired = yield* residentAdviceExpired(advice, residentNow())
     const findings = (yield* residentLedger.advice.current(advice)).findings
     const removed = yield* residentLedger.advice.remove(advice, expired ? "expired" : "stale", token)
-    if (removed && inspection.isEnabled(advice.observation.root)) {
-      const evaluationId = inspectionOrigins.get(advice.evaluationKey)
-      inspection.offer(
-        {
-          root: advice.observation.root,
-          runtime: advice.observation.advicee.host,
-          runtimeVersion: advice.observation.advicee.hostVersion,
-          sessionId: advice.observation.advicee.sessionId,
-          subagentId: advice.observation.advicee.subagentId
-        },
-        evaluationId === undefined ? {} : { evaluationId },
-        captureInspectionFate(
-          findings,
-          expired ? "expired" : (retirement?.fate ?? "discarded"),
-          expired ? "retention-expired" : (retirement?.reason ?? "publication-retired"),
-          advice.id
-        )
+    if (removed)
+      inspectionObserveAdviceFate(
+        advice,
+        findings,
+        expired ? "expired" : (retirement?.fate ?? "discarded"),
+        expired ? "retention-expired" : (retirement?.reason ?? "publication-retired")
       )
-    }
     return removed
   }, Effect.uninterruptible)
 
@@ -2755,31 +2861,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               controlledWriter: true,
               advicee: pathObservation.advicee,
               settings,
-              observePreparationOmission: (path, declaration, reason) => {
-                const receipt = job.inspectionReceipt
-                if (receipt !== undefined && inspection.isEnabled(receipt.scope.root))
-                  inspection.offer(receipt.scope, receipt.correlation, {
-                    kind: "preparation-omission",
-                    path,
-                    declaration,
-                    reason
-                  })
-              },
-              ...(job.inspectionReceipt === undefined
-                ? {}
-                : {
-                    captureHooks: {
-                      sourceRead: (path: string) => {
-                        const receipt = job.inspectionReceipt
-                        if (receipt === undefined || !inspection.isEnabled(receipt.scope.root)) return
-                        try {
-                          inspection.offer(receipt.scope, receipt.correlation, { kind: "preparation-read", path })
-                        } catch {
-                          /* Optional observation cannot invalidate the actual source read. */
-                        }
-                      }
-                    }
-                  }),
+              ...preparationInspectionPorts(job),
               ...(residentCaptureSource === undefined ? {} : { captureSource: residentCaptureSource }),
               beforeAnalyze: (path, sourceBytes, preflight) =>
                 Effect.gen(function* () {
@@ -2795,31 +2877,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           }),
           preparationSignal
         ).pipe(Effect.onError(() => residentLedger.release(workspace)))
-        if (job.inspectionReceipt !== undefined) {
-          const receipt = job.inspectionReceipt
-          for (const outcome of prepared.outcomes) {
-            if (outcome.status === "skipped")
-              inspection.offer(receipt.scope, receipt.correlation, { kind: "preparation-skipped", path: outcome.path })
-          }
-          for (const outcome of prepared.observation.outcomes) {
-            if (outcome.status === "incomplete") {
-              inspection.offer(receipt.scope, receipt.correlation, {
-                kind: "preparation-omission",
-                path: outcome.path,
-                reason: outcome.reason
-              })
-            } else if (outcome.analysis.status === "incomplete") {
-              for (const failure of outcome.analysis.failures) {
-                inspection.offer(receipt.scope, receipt.correlation, {
-                  kind: "preparation-omission",
-                  path: outcome.path,
-                  reason: failure.reason,
-                  ...(failure.root === undefined ? {} : { declaration: failure.root })
-                })
-              }
-            }
-          }
-        }
+        inspectionObservePreparation(job, prepared)
         if (!(yield* residentJobActive(job))) {
           yield* residentLedger.release(workspace)
           return false
@@ -2900,43 +2958,42 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             }
           })
         )
-        for (const item of planned) {
+        const inspectionEvaluationRouteFact = (
+          item: (typeof planned)[number],
+          evaluationId: string | undefined
+        ): Parameters<typeof inspection.offer>[2] => ({
+          kind: "evaluation-route",
+          route:
+            item.kind === "owner"
+              ? "fresh"
+              : item.kind === "cached"
+                ? "cached"
+                : item.join === "advice"
+                  ? "existing-advice"
+                  : item.join === "pending"
+                    ? "joined-pending"
+                    : "joined-claimed",
+          semanticIdentity: item.outcome.prepared.identity,
+          path: item.outcome.path,
+          declaration: item.outcome.prepared.input.declaration.name,
+          original:
+            evaluationId === undefined
+              ? { status: "missing", reason: "not-captured" }
+              : { status: "linked", evaluationId }
+        })
+        const observePlannedEvaluation = (item: (typeof planned)[number]): void => {
           const receipt = job.inspectionReceipt
           if (item.kind === "owner") inspectionOrigins.delete(item.evaluationKey)
-          if (receipt === undefined || !inspection.isEnabled(receipt.scope.root)) continue
-          if (item.kind === "owner") {
-            if (inspectionOrigins.size >= 512) {
-              const oldest = inspectionOrigins.keys().next().value
-              if (oldest !== undefined) inspectionOrigins.delete(oldest)
-            }
-            inspectionOrigins.set(item.evaluationKey, randomUUID())
-          }
+          if (receipt === undefined || !inspection.isEnabled(receipt.scope.root)) return
+          if (item.kind === "owner") registerInspectionOrigin(item.evaluationKey)
           const evaluationId = inspectionOrigins.get(item.evaluationKey)
           inspection.offer(
             receipt.scope,
             { ...receipt.correlation, ...(evaluationId === undefined ? {} : { evaluationId }) },
-            {
-              kind: "evaluation-route",
-              route:
-                item.kind === "owner"
-                  ? "fresh"
-                  : item.kind === "cached"
-                    ? "cached"
-                    : item.join === "advice"
-                      ? "existing-advice"
-                      : item.join === "pending"
-                        ? "joined-pending"
-                        : "joined-claimed",
-              semanticIdentity: item.outcome.prepared.identity,
-              path: item.outcome.path,
-              declaration: item.outcome.prepared.input.declaration.name,
-              original:
-                evaluationId === undefined
-                  ? { status: "missing", reason: "not-captured" }
-                  : { status: "linked", evaluationId }
-            }
+            inspectionEvaluationRouteFact(item, evaluationId)
           )
         }
+        for (const item of planned) observePlannedEvaluation(item)
         const recordReuseAnalytics = Effect.fn("ResidentRuntime.recordReuseAnalytics")(function* () {
           for (const item of planned) {
             if (item.kind === "cached")
@@ -3156,34 +3213,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             }
           }
           const unit = makePreparedUnit()
-          if (unit.inspectionReceipt !== undefined) {
-            inspection.offer(
-              unit.inspectionReceipt.scope,
-              {
-                ...unit.inspectionReceipt.correlation,
-                ...(unit.inspectionEvaluationId === undefined ? {} : { evaluationId: unit.inspectionEvaluationId }),
-                unitId: createHash("sha256").update(`${unit.partition}:${unit.canonicalOperationId}`).digest("hex")
-              },
-              {
-                kind: "unit-prepared",
-                semanticIdentity: unit.prepared.identity,
-                path: unit.prepared.input.path,
-                declaration: unit.prepared.input.declaration.name,
-                completeness: unit.prepared.input.completeness
-              }
-            )
-            if (inspection.isEnabled(unit.inspectionReceipt.scope.root)) {
-              inspection.offer(
-                unit.inspectionReceipt.scope,
-                {
-                  ...unit.inspectionReceipt.correlation,
-                  ...(unit.inspectionEvaluationId === undefined ? {} : { evaluationId: unit.inspectionEvaluationId }),
-                  unitId: createHash("sha256").update(`${unit.partition}:${unit.canonicalOperationId}`).digest("hex")
-                },
-                captureInspectionPolicy(unit.prepared, unit.dispatch.controlled !== null)
-              )
-            }
-          }
+          inspectionObservePreparedUnit(unit)
           if (item.kind === "cached") {
             const settleCachedUnit = Effect.fn("ResidentRuntime.settleCachedUnit")(function* () {
               if (
@@ -3252,8 +3282,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           }
           return true
         })
-        if (!(yield* retainPreparedUnits())) return false
-        return true
+        return yield* retainPreparedUnits()
       })
       for (const candidate of job.observation.candidates) {
         if (!(yield* prepareCandidate(candidate))) return
@@ -3445,6 +3474,20 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         )
         if (interruptionReported) yield* observeRequest("interrupted", issuedRequest)
       }, Effect.uninterruptible)
+      const observeEscapedEvaluation = (): void => {
+        const receipt = job.inspectionReceipt
+        if (
+          requestStarted &&
+          !evaluationOutcomeObserved &&
+          receipt !== undefined &&
+          inspection.isEnabled(receipt.scope.root)
+        ) {
+          inspection.offer(receipt.scope, inspectionUnitCorrelation(job, receipt, issuedRequest), {
+            kind: "evaluation-outcome",
+            outcome: signal.aborted ? "interrupted" : "backend"
+          })
+        }
+      }
       return Effect.gen(function* () {
         const startCanonicalUnit = Effect.fn("ResidentRuntime.startCanonicalUnit")(function* () {
           if (job.round === undefined || job.workUnitId === undefined) return true
@@ -3730,12 +3773,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                     : evidence
               inspection.offer(
                 job.inspectionReceipt.scope,
-                {
-                  ...job.inspectionReceipt.correlation,
-                  ...(job.inspectionEvaluationId === undefined ? {} : { evaluationId: job.inspectionEvaluationId }),
-                  unitId: createHash("sha256").update(`${job.partition}:${job.canonicalOperationId}`).digest("hex"),
-                  requestId: createHash("sha256").update(`${job.partition}:${ready.request}`).digest("hex")
-                },
+                inspectionUnitCorrelation(job, job.inspectionReceipt, ready.request),
                 fact
               )
             }).pipe(
@@ -3755,16 +3793,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                             byteLength: body.byteLength,
                             sha256: createHash("sha256").update(body).digest("hex")
                           }
-                  inspection.offer(
-                    receipt.scope,
-                    {
-                      ...receipt.correlation,
-                      ...(job.inspectionEvaluationId === undefined ? {} : { evaluationId: job.inspectionEvaluationId }),
-                      unitId: createHash("sha256").update(`${job.partition}:${job.canonicalOperationId}`).digest("hex"),
-                      requestId: createHash("sha256").update(`${job.partition}:${ready.request}`).digest("hex")
-                    },
-                    { kind: "transport-invoked", representation: "http-body-base64", payload }
-                  )
+                  inspection.offer(receipt.scope, inspectionUnitCorrelation(job, receipt, ready.request), {
+                    kind: "transport-invoked",
+                    representation: "http-body-base64",
+                    payload
+                  })
                 }
               })
             )
@@ -3853,28 +3886,19 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             residentEvaluatedOutcome(result.findings.length),
             result.findings
           )
-          if (disposition === "ignored" || disposition === "stale") {
-            if (
-              result.findings.length &&
-              job.inspectionReceipt !== undefined &&
-              inspection.isEnabled(job.inspectionReceipt.scope.root)
+          const discardSettledUnit = Effect.fn("ResidentRuntime.discardSettledUnit")(function* () {
+            if (disposition !== "ignored" && disposition !== "stale") return false
+            inspectionObserveUnitFate(
+              job,
+              result.findings,
+              disposition === "stale" ? "stale" : "discarded",
+              disposition === "stale" ? "resident-stale" : "settlement-ignored"
             )
-              inspection.offer(
-                job.inspectionReceipt.scope,
-                {
-                  ...job.inspectionReceipt.correlation,
-                  ...(job.inspectionEvaluationId === undefined ? {} : { evaluationId: job.inspectionEvaluationId })
-                },
-                captureInspectionFate(
-                  result.findings,
-                  disposition === "stale" ? "stale" : "discarded",
-                  disposition === "stale" ? "resident-stale" : "settlement-ignored"
-                )
-              )
             yield* residentReleaseReuseClaim(job.evaluationKey)
             yield* residentReleaseUnit(job)
-            return
-          }
+            return true
+          })
+          if (yield* discardSettledUnit()) return
           const recordEvaluatedUnit = Effect.fn("ResidentRuntime.recordEvaluatedUnit")(function* () {
             recordDemoTrace(job.dispatch.demoBudgetPath, job.observation.root, job.observation.advicee, {
               kind: "terminal",
@@ -3915,26 +3939,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           })
           const settleNonRetainedOutcome = Effect.fn("ResidentRuntime.settleNonRetainedOutcome")(function* () {
             if (disposition !== "retainFinding") {
-              if (
-                result.findings.length &&
-                job.inspectionReceipt !== undefined &&
-                inspection.isEnabled(job.inspectionReceipt.scope.root)
+              inspectionObserveUnitFate(
+                job,
+                result.findings,
+                disposition === "retireStaleFinding" ? "stale" : "discarded",
+                disposition === "retireStaleFinding" ? "resident-stale" : "settlement-ignored"
               )
-                inspection.offer(
-                  job.inspectionReceipt.scope,
-                  {
-                    ...job.inspectionReceipt.correlation,
-                    ...(job.inspectionEvaluationId === undefined ? {} : { evaluationId: job.inspectionEvaluationId })
-                  },
-                  captureInspectionFate(
-                    result.findings,
-                    disposition === "retireStaleFinding" ? "stale" : "discarded",
-                    disposition === "retireStaleFinding" ? "resident-stale" : "settlement-ignored"
-                  )
-                )
-              if (disposition === "retireStaleFinding" && job.round !== undefined && job.workUnitId !== undefined) {
-                ;(yield* residentLedger.rounds.policyWork(job.round)).retire(job.workUnitId)
-              }
+              if (disposition === "retireStaleFinding") yield* residentRetireUnitWork(job)
               yield* residentSettleJoined(
                 job.evaluationKey,
                 disposition === "settleClear" ? "clear" : "unavailable",
@@ -4041,26 +4052,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             // A provider defect can escape the pipeline's checked-error result.
             // Record its unavailable outcome without hiding the original cause
             // or duplicating an outcome already observed by the pipeline.
-            const receipt = job.inspectionReceipt
-            if (
-              requestStarted &&
-              !evaluationOutcomeObserved &&
-              receipt !== undefined &&
-              inspection.isEnabled(receipt.scope.root)
-            ) {
-              inspection.offer(
-                receipt.scope,
-                {
-                  ...receipt.correlation,
-                  ...(job.inspectionEvaluationId === undefined ? {} : { evaluationId: job.inspectionEvaluationId }),
-                  unitId: createHash("sha256").update(`${job.partition}:${job.canonicalOperationId}`).digest("hex"),
-                  ...(issuedRequest === undefined
-                    ? {}
-                    : { requestId: createHash("sha256").update(`${job.partition}:${issuedRequest}`).digest("hex") })
-                },
-                { kind: "evaluation-outcome", outcome: signal.aborted ? "interrupted" : "backend" }
-              )
-            }
+            observeEscapedEvaluation()
             if (
               !readyReported &&
               (yield* residentLedger.canonicalProjection()).work.some(
@@ -4753,17 +4745,19 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (request.operation === "collect") return yield* residentHandleCollect(request)
     return undefined
   })
+  const residentTokenAdministration = Effect.fn("ResidentRuntime.tokenAdministration")(function* (
+    request: Extract<ResidentRequest, { operation: "acknowledge" | "finalize" }>
+  ) {
+    if (!(yield* residentComposedDelivery.hasToken(request.token))) return residentResponse({ status: "empty" })
+    if (request.operation === "acknowledge") return residentResponse(yield* runtime.acknowledge(request.token))
+    return residentResponse(yield* runtime.finalize(request.token))
+  })
   const residentRouteAdministration = Effect.fn("ResidentRuntime.routeAdministration")(function* (
     request: ResidentRequest,
     _context: Ref.Ref<ResponseContext>
   ) {
-    if (
-      (request.operation === "acknowledge" || request.operation === "finalize") &&
-      !(yield* residentComposedDelivery.hasToken(request.token))
-    )
-      return residentResponse({ status: "empty" })
-    if (request.operation === "acknowledge") return residentResponse(yield* runtime.acknowledge(request.token))
-    if (request.operation === "finalize") return residentResponse(yield* runtime.finalize(request.token))
+    if (request.operation === "acknowledge" || request.operation === "finalize")
+      return yield* residentTokenAdministration(request)
     if (request.operation === "inspection-status")
       return residentResponse({
         status: "inspection-status",
@@ -4779,6 +4773,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     (context: Ref.Ref<ResponseContext> | undefined) =>
       context === undefined ? Ref.make<ResponseContext>({}) : Effect.succeed(context)
   )
+  const inspectRefusedRequest = (request: ResidentRequest, reason: "obsolete-lifetime" | "unsupported"): void => {
+    if (request.operation === "admit" || request.operation === "admit-and-collect")
+      inspectionRefuse(request.observation, request.dispatch, reason)
+  }
   const residentHandle = Effect.fn("ResidentRuntime.handle")(function* (
     request: ResidentRequest,
     responseContext?: Ref.Ref<ResponseContext>
@@ -4786,14 +4784,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const context = yield* residentResponseContext(responseContext)
     const lifetime = yield* residentRequestLifetime(request)
     if (lifetime !== undefined) {
-      if (request.operation === "admit" || request.operation === "admit-and-collect")
-        inspectionRefuse(request.observation, request.dispatch, "obsolete-lifetime")
+      inspectRefusedRequest(request, "obsolete-lifetime")
       return lifetime
     }
     if (residentRequestNeedsSweep(request)) yield* sweepQuietRounds(residentNow())
     if (residentRequestUnsupported(request)) {
-      if (request.operation === "admit" || request.operation === "admit-and-collect")
-        inspectionRefuse(request.observation, request.dispatch, "unsupported")
+      inspectRefusedRequest(request, "unsupported")
       return residentResponse({ status: "unsupported" })
     }
     for (const route of [residentRouteBoundary, residentRouteReview, residentRouteAdministration]) {
@@ -4973,6 +4969,58 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     residentSharedWorkStateRequest(request) && residentPendingResponse(response)
   const residentMissingEditAuthority = (request: HandoffRequest, authority: ResponseAuthority | undefined): boolean =>
     residentEditCollectRequest(request) && authority === undefined
+  const inspectionMessageOwner = (
+    request: HandoffRequest
+  ): { root: string; advicee: DirectObservation["advicee"] } | undefined => {
+    const owner = request.operation === "admit-and-collect" ? request.observation : request
+    if (!("root" in owner) || !("advicee" in owner) || !inspection.isEnabled(owner.root)) return undefined
+    return owner
+  }
+  const inspectionObserveHandoffMessage = (
+    request: HandoffRequest,
+    finalResponse: ResidentResponse,
+    findings: ReadonlyArray<Finding>,
+    finalContents: ReadonlyArray<AdviceContent>,
+    handoff: ReadonlyArray<Advice>
+  ): void => {
+    if (finalResponse.status !== "advice") return
+    const messageOwner = inspectionMessageOwner(request)
+    if (messageOwner === undefined) return
+    const payload = captureInspectionFate(findings, "retained", "pending-advice").payload
+    if (payload.status === "available") {
+      const text =
+        "hookSpecificOutput" in finalResponse.output
+          ? finalResponse.output.hookSpecificOutput.additionalContext
+          : finalResponse.output.reason
+      inspection.offer(
+        {
+          root: messageOwner.root,
+          runtime: messageOwner.advicee.host,
+          runtimeVersion: messageOwner.advicee.hostVersion,
+          sessionId: messageOwner.advicee.sessionId,
+          subagentId: messageOwner.advicee.subagentId
+        },
+        { batchId: finalResponse.token },
+        {
+          kind: "agent-message",
+          findingIds: payload.findingIds,
+          recipient: { turnId: messageOwner.advicee.turnId, toolUseId: messageOwner.advicee.toolUseId },
+          evaluations: finalContents.flatMap((content, index) => {
+            if (!content.delivery?.findings.length) return []
+            const advice = handoff[index]!
+            const evaluationId = inspectionOrigins.get(advice.evaluationKey)
+            return [
+              { semanticIdentity: advice.prepared.identity, ...(evaluationId === undefined ? {} : { evaluationId }) }
+            ]
+          }),
+          message:
+            Buffer.byteLength(text, "utf8") <= MAX_INSPECTION_MESSAGE_BYTES
+              ? { status: "available", text }
+              : { status: "missing", reason: "oversized" }
+        }
+      )
+    }
+  }
   const residentResponseForHandoff = Effect.fn("ResidentRuntime.responseForHandoff")(function* (
     request: HandoffRequest,
     response: ResidentResponse,
@@ -5268,48 +5316,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     )
     const finalResponse = yield* finishEditHandoff()
     // Capture the final resident message before the socket write, independently of hook output.
-    const messageOwner = request.operation === "admit-and-collect" ? request.observation : request
-    if (
-      finalResponse.status === "advice" &&
-      "root" in messageOwner &&
-      "advicee" in messageOwner &&
-      inspection.isEnabled(messageOwner.root)
-    ) {
-      const payload = captureInspectionFate(findings, "retained", "pending-advice").payload
-      if (payload.status === "available") {
-        const text =
-          "hookSpecificOutput" in finalResponse.output
-            ? finalResponse.output.hookSpecificOutput.additionalContext
-            : finalResponse.output.reason
-        inspection.offer(
-          {
-            root: messageOwner.root,
-            runtime: messageOwner.advicee.host,
-            runtimeVersion: messageOwner.advicee.hostVersion,
-            sessionId: messageOwner.advicee.sessionId,
-            subagentId: messageOwner.advicee.subagentId
-          },
-          { batchId: finalResponse.token },
-          {
-            kind: "agent-message",
-            findingIds: payload.findingIds,
-            recipient: { turnId: messageOwner.advicee.turnId, toolUseId: messageOwner.advicee.toolUseId },
-            evaluations: finalContents.flatMap((content, index) => {
-              if (!content.delivery?.findings.length) return []
-              const advice = handoff[index]!
-              const evaluationId = inspectionOrigins.get(advice.evaluationKey)
-              return [
-                { semanticIdentity: advice.prepared.identity, ...(evaluationId === undefined ? {} : { evaluationId }) }
-              ]
-            }),
-            message:
-              Buffer.byteLength(text, "utf8") <= MAX_INSPECTION_MESSAGE_BYTES
-                ? { status: "available", text }
-                : { status: "missing", reason: "oversized" }
-          }
-        )
-      }
-    }
+    inspectionObserveHandoffMessage(request, finalResponse, findings, finalContents, handoff)
     return finalResponse
   }, Effect.uninterruptible)
 
@@ -5616,6 +5623,15 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     )
   })
 
+  const beginServerClose = Effect.fn("ResidentRuntime.beginServerClose")(function* (server: Server | undefined) {
+    if (server === undefined) return undefined
+    return yield* Effect.forkChild(
+      Effect.callback<void>((resume) => {
+        server.close(() => resume(Effect.void))
+      }),
+      { startImmediately: true }
+    )
+  })
   const residentDispose = Effect.fn("ResidentRuntime.close")(() => {
     const owner = runtime
     return Effect.uninterruptible(
@@ -5639,10 +5655,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           }
         })
         yield* closeDispatchedJobs()
-        for (const advice of yield* residentAdvice())
-          yield* residentRemoveAdvice(advice.id, undefined, { fate: "discarded", reason: "resident-disposed" })
-        for (const key of [...(yield* residentNotices.entries()).map(([key]) => key)])
-          yield* residentReleaseNoticeCooldown(key)
+        const retirePendingOnClose = Effect.fn("ResidentRuntime.retirePendingOnClose")(function* () {
+          for (const advice of yield* residentAdvice())
+            yield* residentRemoveAdvice(advice.id, undefined, { fate: "discarded", reason: "resident-disposed" })
+          for (const key of [...(yield* residentNotices.entries()).map(([key]) => key)])
+            yield* residentReleaseNoticeCooldown(key)
+        })
+        yield* retirePendingOnClose()
         // Running work may be interrupted by process exit or finish later. Clear
         // its logical ownership after native effects settle. Issued Jev permits
         // remain reserved through an interruption attempt.
@@ -5651,25 +5670,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         yield* Scope.close(residentDispatchScope, Exit.void)
         yield* Scope.close(residentControlScope, Exit.void)
         const server = residentServer
-        const endpointClosed =
-          server === undefined
-            ? undefined
-            : yield* Effect.forkChild(
-                Effect.callback<void>((resume) => {
-                  server.close(() => resume(Effect.void))
-                }),
-                { startImmediately: true }
-              )
+        const endpointClosed = yield* beginServerClose(server)
         const readonlyServer = inspectionServer
-        const inspectionClosed =
-          readonlyServer === undefined
-            ? undefined
-            : yield* Effect.forkChild(
-                Effect.callback<void>((resume) => {
-                  readonlyServer.close(() => resume(Effect.void))
-                }),
-                { startImmediately: true }
-              )
+        const inspectionClosed = yield* beginServerClose(readonlyServer)
         yield* Scope.close(residentIpcScope, Exit.void)
         if (inspectionClosed !== undefined) yield* Fiber.join(inspectionClosed)
         if (readonlyServer !== undefined) {

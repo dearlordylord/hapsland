@@ -52,10 +52,13 @@ export type PathEligibilityReason =
   | "git-ignored"
   | "path-observation-unavailable"
 
+const languageAllowed = (path: string, policy: DirectFilePolicy): boolean =>
+  policy.languages === undefined || policy.languages.includes(rootLanguageForPath(path) ?? "")
+
 /** Pure path-policy decision shared by initial capture and queued dispatch. */
 const directFilePolicyReason = (path: string, policy: DirectFilePolicy): PathEligibilityReason | undefined => {
   const gate = protectedPathReason(path)
-  const languageEnabled = policy.languages === undefined || policy.languages.includes(rootLanguageForPath(path) ?? "")
+  const languageEnabled = languageAllowed(path, policy)
   const decision = selectFile({
     protected: gate !== undefined,
     excluded: matchesAnyGlob(policy.excludes, path),
@@ -96,6 +99,41 @@ const hasSymlinkOrNonDirectoryAncestor = Effect.fn("DirectEvent.inspectAncestors
   return false
 })
 
+const inspectPhysicalCandidate = Effect.fn("DirectEvent.inspectPhysicalCandidate")(function* (
+  root: string,
+  normalized: EligiblePath
+) {
+  if (yield* hasSymlinkOrNonDirectoryAncestor(root, normalized.relativePath))
+    return { physicalSafe: false, gitAllowed: false }
+  if ((yield* fileObservation(() => realpath(normalized.absolutePath))) !== normalized.absolutePath)
+    return { physicalSafe: false, gitAllowed: false }
+  const tracked = (yield* gitOutput(root, ["ls-files", "-z", "--", normalized.relativePath]))
+    .split("\0")
+    .includes(normalized.relativePath)
+  if (tracked) return { physicalSafe: true, gitAllowed: true }
+  // Only per-directory ignores participate; global excludes and .git/info/exclude are omitted.
+  const ignored = (yield* gitOutput(root, [
+    "ls-files",
+    "--others",
+    "--ignored",
+    "--exclude-per-directory=.gitignore",
+    "-z",
+    "--",
+    normalized.relativePath
+  ]))
+    .split("\0")
+    .includes(normalized.relativePath)
+  return { physicalSafe: true, gitAllowed: !ignored }
+})
+
+const physicalCandidateSelection = (normalized: EligiblePath, safe: { physicalSafe: boolean; gitAllowed: boolean }) => {
+  const admission = admitCandidateFile({ gitAdmin: false, ...safe })
+  if (admission === "refuseFileKind") return { status: "denied" as const, reason: "unsafe-file-kind" as const }
+  if (admission === "refuseGitIgnore") return { status: "denied" as const, reason: "git-ignored" as const }
+  if (admission === "refuseGitAdmin") return { status: "denied" as const, reason: "git-administrative-path" as const }
+  return { status: "selected" as const, path: normalized }
+}
+
 /**
  * Selects one event-named path without walking source directories. Only tracked
  * state and per-directory .gitignore files participate in Git ignore checks.
@@ -117,35 +155,9 @@ export const inspectNamedPath = Effect.fn("DirectEvent.inspectNamedPath")(functi
   const gitAdmin = rootIdentity !== undefined && equalToOrWithin(rootIdentity.gitDirectory, normalized.absolutePath)
   if (admitCandidateFile({ gitAdmin, physicalSafe: true, gitAllowed: true }) !== "candidateAllowed")
     return { status: "denied" as const, reason: "git-administrative-path" as const }
-  const safe = yield* Effect.gen(function* () {
-    if (yield* hasSymlinkOrNonDirectoryAncestor(root, normalized.relativePath))
-      return { physicalSafe: false, gitAllowed: false }
-    if ((yield* fileObservation(() => realpath(normalized.absolutePath))) !== normalized.absolutePath)
-      return { physicalSafe: false, gitAllowed: false }
-    const tracked = (yield* gitOutput(root, ["ls-files", "-z", "--", normalized.relativePath]))
-      .split("\0")
-      .includes(normalized.relativePath)
-    if (tracked) return { physicalSafe: true, gitAllowed: true }
-    // Only per-directory ignores participate; global excludes and .git/info/exclude are omitted.
-    const ignored = (yield* gitOutput(root, [
-      "ls-files",
-      "--others",
-      "--ignored",
-      "--exclude-per-directory=.gitignore",
-      "-z",
-      "--",
-      normalized.relativePath
-    ]))
-      .split("\0")
-      .includes(normalized.relativePath)
-    return { physicalSafe: true, gitAllowed: !ignored }
-  }).pipe(Effect.catch(() => Effect.succeed(undefined)))
+  const safe = yield* inspectPhysicalCandidate(root, normalized).pipe(Effect.catch(() => Effect.succeed(undefined)))
   if (safe === undefined) return { status: "denied" as const, reason: "path-observation-unavailable" as const }
-  const admission = admitCandidateFile({ gitAdmin: false, ...safe })
-  if (admission === "refuseFileKind") return { status: "denied" as const, reason: "unsafe-file-kind" as const }
-  if (admission === "refuseGitIgnore") return { status: "denied" as const, reason: "git-ignored" as const }
-  if (admission === "refuseGitAdmin") return { status: "denied" as const, reason: "git-administrative-path" as const }
-  return { status: "selected" as const, path: normalized }
+  return physicalCandidateSelection(normalized, safe)
 })
 
 export const eligibleNamedPath = Effect.fn("DirectEvent.eligibleNamedPath")(function* (
