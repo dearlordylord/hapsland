@@ -217,7 +217,7 @@ and Stop behavior follows the shared delivery contract.
 
 <!-- shipped-rules:start -->
 
-When no loaded configuration layer declares a `rules` field, authorized initial setup materializes 9 editable default rule files under `~/.config/hapsland/rules/defaults/`, respecting XDG conventions, and explicitly connects them.
+When no loaded configuration layer declares a `rules` field, authorized initial setup materializes 9 editable default rule files under `~/.config/hapsland/rules/defaults/`.
 
 <!-- shipped-rules:end -->
 

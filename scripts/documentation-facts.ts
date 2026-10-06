@@ -43,7 +43,7 @@ export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocu
     {
       path: "docs/configuration.md",
       name: "shipped-rules",
-      text: `When no loaded configuration layer declares a \`rules\` field, authorized initial setup materializes ${SHIPPED_DEFAULT_RULES.length} editable default rule files under \`~/.config/hapsland/rules/defaults/\`, respecting XDG conventions, and explicitly connects them.`
+      text: `When no loaded configuration layer declares a \`rules\` field, authorized initial setup materializes ${SHIPPED_DEFAULT_RULES.length} editable default rule files under \`~/.config/hapsland/rules/defaults/\`.`
     },
     {
       path: "docs/configuration.md",
