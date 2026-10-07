@@ -1,0 +1,16 @@
+{
+  "id": "20261007154130033-1589640-50e8e1",
+  "mode": "quality",
+  "state": "aborted",
+  "exitCode": 1,
+  "startedAt": "2026-10-07T15:41:30.036Z",
+  "finishedAt": "2026-10-07T16:16:30.280Z",
+  "elapsedMs": 2100244,
+  "reason": "deadline",
+  "failedStages": [
+    "quality",
+    "vitest"
+  ],
+  "skippedStages": [],
+  "failures": 3
+}

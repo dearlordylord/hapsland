@@ -1,0 +1,23 @@
+
+ RUN  v5.0.1 /workspace/typescript/hapsland-243
+      Coverage enabled with v8
+
+ ✓ src/cli-command.test.ts (80 tests | 79 skipped) 35569ms
+   ✓ declarative CLI subprocess contracts (71)
+     ✓ accepts an installed composed hook ownership marker before quieting unsupported input 35553ms
+(node:1888095) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 79 skipped (80)
+   Start at  12:20:02
+   Duration  54.81s (tests 98%, import 1%, transform 1%)
+
+ % Coverage report from v8
+
+=============================== Coverage summary ===============================
+Statements   : 7.02% ( 1600/22791 )
+Branches     : 2.07% ( 283/13617 )
+Functions    : 2.81% ( 173/6139 )
+Lines        : 7.72% ( 1522/19706 )
+================================================================================
