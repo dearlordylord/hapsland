@@ -15,6 +15,7 @@ import {
   mkdtempSync,
   mkdirSync,
   readFileSync,
+  realpathSync,
   readdirSync,
   readlinkSync,
   rmSync,
@@ -62,7 +63,7 @@ afterEach(() => {
 })
 
 const fixture = () => {
-  const root = mkdtempSync(join(tmpdir(), "review install 'quoted path' "))
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "review install 'quoted path' ")))
   roots.push(root)
   const home = join(root, "custom codex home 'one'")
   const bin = join(root, "fake codex")
@@ -833,16 +834,21 @@ responses_websockets_v2 = true`)
     expect(existsSync(join(missingRuntime.home, ".hapsland"))).toBe(false)
 
     const nonRuntime = fixture()
+    const nonRuntimeExecutable = join(nonRuntime.root, "not-a-runtime")
+    writeFileSync(nonRuntimeExecutable, "#!/bin/sh\nexit 0\n", { mode: 0o700 })
     const trueResult = await invoke(
       { operation: "install-preview", codexHome: nonRuntime.home, codexExecutable: nonRuntime.bin },
-      { ...process.env, REVIEW_INSTALL_RUNTIME: "/bin/true" }
+      { ...process.env, REVIEW_INSTALL_RUNTIME: nonRuntimeExecutable }
     )
     expect(trueResult).toMatchObject({
       status: "unsupported",
       host: {
         compatibility: {
           runtime: {
-            checks: { runtime: { ready: true }, engine: { ready: false, observed: "not-a-supported-runtime" } }
+            checks: {
+              runtime: { ready: true, observed: "regular-file" },
+              engine: { ready: false, observed: "not-a-supported-runtime" }
+            }
           }
         }
       }

@@ -96,7 +96,10 @@
     "test:game": "node scripts/run-optional-development.mjs game",
     "test:simulation": "node scripts/run-optional-development.mjs simulation",
     "build:configure": "node scripts/package-graph.mjs && node scripts/generate-release-identity.mjs && node scripts/generate-turbo-config.mjs",
-    "build:watch": "node scripts/build-watch.mjs"
+    "build:watch": "node scripts/build-watch.mjs",
+    "test:content-isolation": "node packages/agent-flow-bend/scripts/check-content-isolation.mjs && node scripts/check-content-wire-mutants.mjs",
+    "format:fix": "python3 scripts/bend-format.py fix",
+    "format:check": "python3 scripts/bend-format.py check"
   },
   "devDependencies": {
     "@babel/parser": "catalog:",

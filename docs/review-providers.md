@@ -119,6 +119,13 @@ and criteria, decodes the Workers AI success envelope, and requires exactly the
 requested answers and model selector. Invalid output or HTTP errors produce
 sanitized failures without raw credentials or source-bearing responses.
 
+Both providers use the shared [review transport](../packages/review-execution/src/review-providers/transport.ts).
+It passes every top-level JSON field through the compiled Bend projector, which
+selects `model`, `state`, and `questions` and constructs the final body. It disables ambient trace-header propagation, and local inspection receives a copy
+of encoded bytes so its callback cannot modify the outgoing request. The
+[content-isolation contract](review-contract-compatibility.md#review-content-isolation)
+states permitted inputs and the limits of the formal evidence.
+
 ## Evidence and checks
 
 Run `npx vitest run --maxWorkers=1 src/review-providers` for offline validation.

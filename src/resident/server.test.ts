@@ -16,6 +16,7 @@ import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.
 import { monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"
 import { describe, expect, it, vi } from "vitest"
 import * as Effect from "effect/Effect"
+import { makeReviewSettings, settingsSource } from "@hapsland/review-definition/runtime/review-settings"
 import * as Deferred from "effect/Deferred"
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { spawn } from "node:child_process"
@@ -29,7 +30,7 @@ import {
   stageFiles,
   advicee
 } from "@hapsland/build-tooling/test-support/test-fixtures"
-import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
+import { configuredRules, connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
 import { analyzerMaterializationPreflight } from "@hapsland/source-analysis/direct-event/analyzer"
 import { readActivity } from "@hapsland/activity-observation/activity/status"
 import { claudeHostOutputText } from "@hapsland/delivery-output/direct-event/claude-output"
@@ -52,7 +53,7 @@ import {
 
 const findingDispatch = (statePath: string): ResidentDispatchContext => ({
   statePath,
-  userConfigPath: null,
+  userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
   credential: null,
   controlled: {
     answers: Object.fromEntries(
@@ -66,7 +67,7 @@ const findingDispatch = (statePath: string): ResidentDispatchContext => ({
 
 const allFindingsDispatch = (statePath: string): ResidentDispatchContext => ({
   statePath,
-  userConfigPath: null,
+  userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
   credential: null,
   controlled: {
     answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0.9 }]))
@@ -76,6 +77,24 @@ const allFindingsDispatch = (statePath: string): ResidentDispatchContext => ({
 const singleFindingDispatch = findingDispatch
 
 describe("virtual round quiescence", () => {
+  it("isolates resident dispatch fixtures from conflicting user default rules", async () => {
+    const root = await makeGitFixture()
+    const userRoot = join(root, "user-layer")
+    mkdirSync(userRoot)
+    const conflictingUserConfiguration = join(userRoot, "config.jsonc")
+    connectDefaultRuleFixture(userRoot, conflictingUserConfiguration)
+    const settings = await Effect.runPromise(makeReviewSettings())
+    const conflicting = await Effect.runPromiseExit(
+      settings.capture(settingsSource(root, conflictingUserConfiguration))
+    )
+    expect(conflicting._tag).toBe("Failure")
+    for (const dispatch of [findingDispatch(join(root, "consent")), allFindingsDispatch(join(root, "consent"))]) {
+      expect(dispatch.userConfigPath).not.toBeNull()
+      const captured = await Effect.runPromise(settings.capture(settingsSource(root, dispatch.userConfigPath!)))
+      expect(captured.rules).toHaveLength(configuredRules.length)
+    }
+  })
+
   it("retires a settled advice-free round without Stop", async () => {
     const root = await makeGitFixture()
     await put(root, "quiet.ts", "type QuietCount = number\n")
@@ -950,6 +969,7 @@ describe("resident delivery lease", () => {
             residentRequest(paths, {
               requestRoute: "shared",
               operation: "register-edit",
+              userConfigPath: join(root, "consent", "absent-fixture-user.jsonc"),
               lifetime: server.lifetime,
               root,
               advicee: observation.advicee,
@@ -991,6 +1011,7 @@ describe("resident delivery lease", () => {
             residentRequest(paths, {
               requestRoute: "shared",
               operation: "register-edit",
+              userConfigPath: join(root, "consent", "absent-fixture-user.jsonc"),
               lifetime: server.lifetime,
               root,
               advicee: observation.advicee,
@@ -1138,6 +1159,7 @@ describe("resident delivery lease", () => {
         {
           requestRoute: "shared",
           operation: "register-edit",
+          userConfigPath: join(root, "consent", "absent-fixture-user.jsonc"),
           lifetime: server.lifetime,
           root,
           advicee: observation.advicee,
@@ -1208,6 +1230,7 @@ describe("resident delivery lease", () => {
           server.handle({
             requestRoute: "shared",
             operation: "register-edit",
+            userConfigPath: join(root, "consent", "absent-fixture-user.jsonc"),
             lifetime: server.lifetime,
             root,
             advicee: observation.advicee,
@@ -1223,6 +1246,7 @@ describe("resident delivery lease", () => {
           server.handle({
             requestRoute: "shared",
             operation: "register-edit",
+            userConfigPath: join(root, "consent", "absent-fixture-user.jsonc"),
             lifetime: server.lifetime,
             root,
             advicee: observation.advicee,
@@ -1430,6 +1454,7 @@ describe("resident delivery lease", () => {
           server.handle({
             requestRoute: "shared",
             operation: "register-edit",
+            userConfigPath: join(root, "consent", "absent-fixture-user.jsonc"),
             lifetime: server.lifetime,
             root,
             advicee: successor.advicee,
@@ -2723,6 +2748,7 @@ describe("resident delivery lease", () => {
           server.handle({
             requestRoute: "shared",
             operation: "register-edit",
+            userConfigPath: join(root, "consent", "absent-fixture-user.jsonc"),
             lifetime: server.lifetime,
             root,
             advicee: selected,
@@ -2828,6 +2854,7 @@ describe("resident delivery lease", () => {
               residentRequest(paths, {
                 requestRoute: "shared",
                 operation: "register-edit",
+                userConfigPath: join(root, "consent", "absent-fixture-user.jsonc"),
                 lifetime: server.lifetime,
                 root,
                 advicee: selected,
@@ -2988,7 +3015,7 @@ describe("resident delivery lease", () => {
     })
     const dispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: {
         name: "TYPESAFE_API_KEY",
         environmentValue: "synthetic-race-marker",
@@ -3132,7 +3159,7 @@ describe("resident delivery lease", () => {
     if (observation === undefined) return
     const dispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: {
         capturePath,
@@ -3186,7 +3213,7 @@ describe("resident delivery lease", () => {
     if (observation === undefined) return
     const dispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: {
         answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 9 }]))
@@ -3246,7 +3273,7 @@ describe("resident delivery lease", () => {
     if (observation === undefined) return
     const dispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: {
         capturePath,
@@ -3316,7 +3343,7 @@ describe("resident delivery lease", () => {
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const dispatch: ResidentDispatchContext = {
         statePath,
-        userConfigPath: null,
+        userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
         credential: null,
         controlled: {
           capturePath,
@@ -3370,7 +3397,7 @@ describe("resident delivery lease", () => {
     if (observation === undefined) return
     const dispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: {
         answers: Object.fromEntries(
@@ -3437,7 +3464,7 @@ describe("resident delivery lease", () => {
     if (observation === undefined) return
     const dispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: { capturePath }
     }
@@ -3514,7 +3541,7 @@ describe("resident delivery lease", () => {
     const capturePath = join(root, "backend-calls")
     const dispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: {
         capturePath,
@@ -3672,7 +3699,7 @@ describe("resident delivery lease", () => {
     const capturePath = join(root, "backend-calls")
     const clearDispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: { capturePath }
     }
@@ -3974,7 +4001,7 @@ describe("resident delivery lease", () => {
     const clearCalls = join(root, "clear-calls")
     const clearDispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: { capturePath: clearCalls }
     }
@@ -4022,7 +4049,7 @@ describe("resident delivery lease", () => {
     const capturePath = join(root, "backend-calls")
     const dispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: {
         capturePath,
@@ -4067,7 +4094,7 @@ describe("resident delivery lease", () => {
     const capturePath = join(root, "backend-calls")
     const dispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: { capturePath }
     }
@@ -4113,7 +4140,7 @@ describe("resident delivery lease", () => {
     }
     const dispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: {
         capturePath,

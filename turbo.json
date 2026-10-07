@@ -1780,6 +1780,7 @@
     },
     "@hapsland/review-execution#build": {
       "dependsOn": [
+        "@hapsland/agent-flow-bend#build",
         "@hapsland/canonical-policy#build",
         "@hapsland/delivery-output#build",
         "@hapsland/inspection-records#build",

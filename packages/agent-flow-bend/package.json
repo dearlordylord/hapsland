@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "build": "node ../../scripts/bend-producer.mjs",
-    "test": "node --test ../../scripts/bend-compiler-version.test.mjs && node scripts/build-import-graph.mjs && node scripts/build-canonical.mjs && node scripts/check-progress.mjs && bend PROOF.bend && bend import-graph-proof/PROOF.bend --verdict && bend PolicyRuntime.bend && node scripts/check-lifecycle.mjs && node --experimental-strip-types scripts/check-import-graph.mjs && node --experimental-strip-types scripts/check-canonical.mjs && node --experimental-strip-types scripts/check-jev-request.mjs",
+    "test": "node --test ../../scripts/bend-compiler-version.test.mjs && node scripts/build-import-graph.mjs && node scripts/build-canonical.mjs && node scripts/check-progress.mjs && node scripts/check-content-isolation.mjs && bend PROOF.bend && bend import-graph-proof/PROOF.bend --verdict && bend PolicyRuntime.bend && node scripts/check-lifecycle.mjs && node --experimental-strip-types scripts/check-import-graph.mjs && node --experimental-strip-types scripts/check-canonical.mjs && node --experimental-strip-types scripts/check-jev-request.mjs",
     "test:import-graph": "node scripts/build-import-graph.mjs && bend PROOF.bend && bend import-graph-proof/PROOF.bend --verdict && node --experimental-strip-types scripts/check-import-graph.mjs",
     "test:canonical": "node scripts/build-canonical.mjs && node scripts/check-progress.mjs && bend PROOF.bend && node --experimental-strip-types scripts/check-canonical.mjs && node --experimental-strip-types scripts/check-jev-request.mjs",
     "test:progress": "node scripts/check-progress.mjs",
-    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs",
+    "test:content-isolation": "node scripts/check-content-isolation.mjs"
   },
   "exports": {
     "./canonical": {
@@ -19,6 +20,10 @@
     "./import-graph": {
       "types": "./dist/import-graph.generated.d.ts",
       "default": "./dist/import-graph.generated.js"
+    },
+    "./request-content": {
+      "types": "./dist/request-content.generated.d.ts",
+      "default": "./dist/request-content.generated.js"
     }
   },
   "hapsland": {
@@ -29,11 +34,13 @@
     "capabilities": [],
     "abi": {
       "./canonical": "./abi/canonical.generated.d.ts",
-      "./import-graph": "./abi/import-graph.generated.d.ts"
+      "./import-graph": "./abi/import-graph.generated.d.ts",
+      "./request-content": "./abi/request-content.generated.d.ts"
     },
     "loaderPolicies": {
       "dist/canonical.generated.js": "bend-system-ffi",
-      "dist/import-graph.generated.js": "bend-system-ffi"
+      "dist/import-graph.generated.js": "bend-system-ffi",
+      "dist/request-content.generated.js": "bend-system-ffi"
     },
     "toolchain": {
       "bend": {

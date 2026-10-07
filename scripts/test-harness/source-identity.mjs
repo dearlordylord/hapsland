@@ -2,7 +2,7 @@ import { createHash } from "node:crypto"
 import { createReadStream } from "node:fs"
 import { execFile } from "node:child_process"
 import { lstat, readFile, readlink, realpath, readdir } from "node:fs/promises"
-import { isAbsolute, join, relative, resolve } from "node:path"
+import { isAbsolute, join, relative } from "node:path"
 import { promisify } from "node:util"
 
 const execute = promisify(execFile)
@@ -170,7 +170,8 @@ async function identifyInputs(root, excludedDirectory, selectVerificationInputs,
       let checkout
       try {
         const top = await execute("git", ["rev-parse", "--show-toplevel"], { cwd: directory, encoding: "utf8" })
-        if (resolve(top.stdout.trim()) !== resolve(directory)) throw new Error("No submodule checkout")
+        if ((await realpath(top.stdout.trim())) !== (await realpath(directory)))
+          throw new Error("No submodule checkout")
         checkout = await execute("git", ["rev-parse", "HEAD"], { cwd: directory, encoding: "utf8" })
       } catch {
         throw new Error(`Archive input submodule is missing or uninitialized: ${file}`)

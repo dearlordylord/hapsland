@@ -125,6 +125,7 @@
     "./test-support/test-package": {
       "types": "./test-support/test-package.ts",
       "default": "./test-support/test-package.ts"
-    }
+    },
+    "./test-harness/terminal": "./test-harness/terminal.mjs"
   }
 }

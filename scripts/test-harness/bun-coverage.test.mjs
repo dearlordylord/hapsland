@@ -7,6 +7,35 @@ import { pathToFileURL } from "node:url"
 import { tmpdir } from "node:os"
 import { resolveBunRuntime } from "../pinned-bun.mjs"
 import provider, { mergeBunCoverage } from "../coverage-provider.mjs"
+import { prepareBunCoveragePreload } from "./bun-coverage-preload-build.mjs"
+
+test("compiled executables load the owned coverage preload without embedded development dependencies", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "hapsland-compiled-coverage-"))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  await mkdir(join(root, "src"))
+  const entrypoint = join(root, "src/main.ts"),
+    executable = join(root, "main")
+  await writeFile(entrypoint, 'console.log("ready")\n')
+  const bun = resolveBunRuntime().executable
+  execFileSync(bun, ["build", "--compile", entrypoint, "--outfile", executable], {
+    env: { ...process.env, BUN_OPTIONS: "" },
+    encoding: "utf8",
+    timeout: 10000
+  })
+  assert.equal(
+    execFileSync(executable, [], {
+      env: {
+        ...process.env,
+        HAPSLAND_BUN_COVERAGE_DIRECTORY: join(root, "coverage"),
+        HAPSLAND_BUN_COVERAGE_ROOT: root,
+        BUN_OPTIONS: `--preload=${pathToFileURL(prepareBunCoveragePreload(join(root, "tooling"))).href}`
+      },
+      encoding: "utf8",
+      timeout: 10000
+    }),
+    "ready\n"
+  )
+})
 
 test("Bun source subprocess coverage preserves original branches and merges fresh process counters", async (t) => {
   const root = await mkdtemp(join(tmpdir(), "hapsland-bun-coverage-"))
@@ -22,7 +51,7 @@ test("Bun source subprocess coverage preserves original branches and merges fres
     ...process.env,
     HAPSLAND_BUN_COVERAGE_DIRECTORY: directory,
     HAPSLAND_BUN_COVERAGE_ROOT: root,
-    BUN_OPTIONS: `--preload=${pathToFileURL(resolve("scripts/test-harness/bun-coverage-preload.mjs")).href}`
+    BUN_OPTIONS: `--preload=${pathToFileURL(prepareBunCoveragePreload(join(root, "tooling"))).href}`
   }
   const bun = resolveBunRuntime().executable
   assert.equal(execFileSync(bun, [path, "yes"], { env, encoding: "utf8", timeout: 10000 }), "yes\n")
@@ -83,7 +112,7 @@ test("portable instrumented bundles retain nested, untouched and fresh counters 
     HAPSLAND_BUN_COVERAGE_DIRECTORY: directory,
     HAPSLAND_BUN_COVERAGE_ROOT: second,
     HAPSLAND_BUN_COVERAGE_MANIFEST: join(secondBundle, "source-manifest.json"),
-    BUN_OPTIONS: `--preload=${pathToFileURL(resolve("scripts/test-harness/bun-coverage-preload.mjs")).href}`
+    BUN_OPTIONS: `--preload=${pathToFileURL(prepareBunCoveragePreload(join(second, "tooling"))).href}`
   }
   for (const flag of ["yes", "no"])
     assert.equal(

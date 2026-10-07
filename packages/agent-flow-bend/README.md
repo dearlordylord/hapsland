@@ -157,6 +157,59 @@ decision-affecting value as an explicit fact to Bend. TypeScript measures time
 and supplies clock and deadline facts; pure Bend decisions do not read an
 implicit host clock.
 
+## Content isolation proofs
+
+The production HTTP boundary for both Jev and Cloudflare calls
+[`request-content/core.bend`](request-content/core.bend), compiled into
+`dist/request-content.generated.js` by the [producer](scripts/build-request-content.mjs).
+The [host bridge](../review-execution/src/review-providers/request-content.ts) parses the provider's
+JSON object and encodes **every** top-level field into the Bend ABI. Bend selects
+only `model`, `state`, and `questions` and constructs the outgoing body. Inspection
+observes this final body through a defensive copy; ambient trace propagation is disabled.
+
+The five [laws](request-content/LAWS.bend) and [proofs](request-content/PROOF.bend)
+cover the actual functions used by production:
+
+- Empty lookup preserves its fallback.
+- A matching field supplies its value; later matching fields replace earlier ones.
+- A nonmatching field leaves lookup unchanged, whatever its value.
+- Encoding preserves the three supplied JSON fragments with exact fixed framing.
+- Projection constructs the body exclusively from the three named lookups.
+
+Missing fields become JSON `null`; normal provider validation supplies all three.
+JSON parsing resolves duplicate keys before the bridge, following native JSON semantics.
+There is no private-envelope, request-history, retry, recovery or scheduler model in
+this proof. The earlier disconnected content model has been deleted.
+
+Run `npm run test:content-isolation`. Use Bend 2.0.35 on PATH or set
+`HAPSLAND_CONTENT_BEND` to its executable. The gate checks 320 literal instances and
+all equality premises, rejects five compiling mutants at their own law proofs,
+requires the BendTT kernel verdict, and verifies that disabling the kernel fails.
+It freshly compiles the production source and compares the complete JavaScript
+artifact byte for byte. Build validation repeats that comparison; packaging copies
+the artifact into the runtime. Every compiler call has a five-second deadline.
+To regenerate after an intentional source change, run
+`node packages/agent-flow-bend/scripts/build-request-content.mjs` from the repository root.
+
+The root gate also runs five [production mutants](../../scripts/check-content-wire-mutants.mjs):
+bypassing Bend, corrupting its compiled question encoder, injecting private text
+into source upstream, sharing the inspection buffer, and propagating ambient traces.
+Each must fail a named assertion; compilation errors and timeouts do not count.
+Tests check the shared transport, both providers, a Jev loopback socket, Unicode and
+JSON values, a three-megabyte source, and 20,000 extra fields. The generated lookup
+uses a loop rather than recursion on the JavaScript stack.
+
+**The formal guarantee is deliberately limited to top-level request-content selection
+and framing by the production Bend functions.** It is not end-to-end conversation
+noninterference. A prompt already copied into `state`, a question, or a model value
+is retained. Source and rule provenance have [capture tests](../../src/direct-event/content-provenance.test.ts)
+and [wire tests](../../src/direct-event/content-isolation.test.ts), not a universal proof.
+JSON parsing/fragment encoding, the ABI bridge, compiler, Base string operations,
+Effect transport, runtime and OS remain trusted implementation boundaries. Header,
+destination, timing/count, lifecycle and backend retention claims are outside these
+laws. General `decide` callers supply their own JSON. Review these laws and boundary
+tests whenever provider serialization or transport changes.
+
 ## Conditional progress proofs
 
 Run `npm run test:progress` for `progress-proof/LAWS.bend` and

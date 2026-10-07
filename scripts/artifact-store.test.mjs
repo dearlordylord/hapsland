@@ -303,3 +303,19 @@ test("symbolic runtime outputs are rejected before packing", async (t) => {
   )
   assert.equal(f.calls.includes("package-pack"), false)
 })
+
+test("linked authored source and package selection controls remain strong archive inputs", async (t) => {
+  const f = await fixture(t)
+  await symlink(join(f.dependencies, "dependency.js"), join(f.root, "src/linked.ts"))
+  let before = await packageSourceIdentity(f.root)
+  await writeFile(join(f.dependencies, "dependency.js"), "edited linked source")
+  assert.notEqual(await packageSourceIdentity(f.root), before)
+  for (const [filename, contents] of [
+    ["src/.npmignore", "main.ts\n"],
+    ["LICENSE", "package license"]
+  ]) {
+    before = await packageSourceIdentity(f.root)
+    await writeFile(join(f.root, filename), contents)
+    assert.notEqual(await packageSourceIdentity(f.root), before)
+  }
+})

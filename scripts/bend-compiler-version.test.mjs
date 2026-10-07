@@ -7,6 +7,7 @@ import { test } from "node:test"
 
 const root = resolve(import.meta.dirname, "..")
 for (const [name, artifact] of [
+  ["request-content", "request-content.generated.js"],
   ["canonical", "canonical.generated.js"],
   ["import-graph", "import-graph.generated.js"],
   ["lifecycle", "packages/agent-flow-bend/lifecycle.generated.js"]
@@ -31,7 +32,11 @@ for (const [name, artifact] of [
         [join(root, `packages/agent-flow-bend/scripts/build-${name}.mjs`), output],
         {
           cwd: root,
-          env: { ...process.env, PATH: `${directory}:${process.env.PATH}` },
+          env: {
+            ...process.env,
+            HAPSLAND_CONTENT_BEND: join(directory, "bend"),
+            PATH: `${directory}:${process.env.PATH}`
+          },
           encoding: "utf8",
           timeout: 10_000
         }

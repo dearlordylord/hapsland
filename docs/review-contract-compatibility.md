@@ -6,7 +6,7 @@
 **Expected use:** Check changes to configuration, rule definitions, review input, and review result reuse.
 **Lifecycle:** Review when any of those boundaries or the #93 type/function contract changes.
 
-The owner approved bounded cross-file source use for direct-edit type and
+The owner approved cross-file source use within graph limits for direct-edit type and
 function review on 2026-09-29. The earlier one-file named-type input is retired
 as a production route. A later comparison of advice quality is a separate task;
 this decision does not claim measured live Jev quality. The [#93 contract](type-function-review-proposal.md)
@@ -37,21 +37,21 @@ read. No include can restore a privacy-denied file. Freshness checks retain each
 file's root or context role.
 
 Each version-one JSONC rule document declares a stable ID, optional display title,
-question, criteria, message, threshold, and `inputs`. Each input declares supported
+question, criteria, message, threshold, and `inputs`. Each input declares
 `languages`, `kind` (`type` or `function`), and required evidence in `requires`.
-The compiler maps supported combinations to the exact direct-review contract;
+The compiler maps accepted combinations to the exact direct-review contract;
 authors do not supply transport contract identifiers. TypeScript, Rust, and Bend
-types and TypeScript functions are supported within their bounded analyzer profiles.
+types and TypeScript functions can be reviewed within their analyzer profiles.
 Unknown fields or versions fail validation. Enabled input combinations selected by
-configured languages must be supported, including their evidence requirements.
+configured languages must be accepted by the compiler, including their evidence requirements.
 A disabled rule may retain an unsupported schema input for future use; enabling it
 fails. Configured languages must be a subset of authored languages, or configuration
-fails. A supported subset of a multi-input rule may be selected explicitly. Runtime
+fails. An eligible subset of a multi-input rule may be selected explicitly. Runtime
 schemas have no execution support, and concrete values are unsupported roots; a
 schema is not implicitly a type declaration or a higher evidence rung.
 
 One file defines one rule. Files become active only through explicit configuration
-`rules` references. New connections enable their rule unless disabled. References
+`rules` references. New rule references enable their rule unless disabled. References
 use either a local path or an inherited rule ID, with optional activation,
 languages, paths, threshold, and message settings. Paths belong to configuration.
 A duplicate identity or rebinding to a different file is an error. Rule content and
@@ -61,8 +61,8 @@ version labels. Shipped default IDs use descriptive names without numeric prefix
 defaults and removes `rN_` prefixes from retained defaults. Existing authored files and
 explicit selections remain authoritative; setup does not rename or rewrite them. Initial setup provisions seven editable defaults only when no configuration layer
 declares `rules`. Any explicit selection, including `rules: []`, is authoritative:
-repeat setup preserves it and authored files, without reconnecting removed defaults.
-Missing connected files fail validation instead of being recreated.
+repeat setup preserves it and authored files, without enabling unselected defaults.
+Missing rule files fail validation instead of being recreated.
 
 The default body rule requires the exact function signature and body, not complete
 call/type closure. Missing references are explicit omissions and are not findings.
@@ -70,19 +70,54 @@ Other inputs retain their declared evidence requirements. Every shipped and cust
 rule uses the same validation, compilation, and evidence-admission boundary.
 Choice and Score result forms remain separate decisions.
 
+## Smoke test the rule
+
+`hapsland rules check --path FILE --line N` sends the enclosing declaration and
+related code to the classifier, without an agent session or resident.
+Add `--id` to select one enabled rule. Results include probabilities and findings;
+`--json` includes code. Unsupported, ambiguous or stale selections cannot yield a
+valid result. See [usage and limits](configuration.md#try-a-rule-on-a-file-and-line).
+
 ## Review input and result identity
 
 The active input contracts are direct-event/type-shape/v1 and
 direct-event/function/v1. Each request carries one changed root and its
-bounded evidence tree with marked omissions. Supporting declarations can come from other
-selected files through supported local imports. They do not become separate
+evidence tree within graph limits with marked omissions. Supporting declarations can come from other
+selected files through local imports the analyzer resolves. They do not become separate
 edited roots. Omitted reference sites may contain opaque expression text, such
 as an anonymous callback or dynamic call, rather than a named binding. This
-text remains a bounded JSON string with its omission reason; it neither adds
+text remains a size-limited JSON string with its omission reason; it neither adds
 a resolved node nor makes the graph complete. Resolved edges retain their
 named-reference grammar, and the aggregate evidence-size limit still applies.
 The request contains neither a whole file nor an edit diff,
 agent transcript, absolute path, or unrelated source.
+
+### Review content isolation
+
+For fixed selected source, selected rule questions and criteria, and provider
+configuration, request content must not depend on task prompts, conversation
+history, prompt/transcript digests, local inspection records, or agent attribution.
+These private values must not be copied into otherwise valid source, rule, URL,
+or header fields. A schema-valid request alone does not establish this property.
+The same boundary applies to retained snapshots and subsequent dispatches.
+Inspection observes a copy of encoded request bytes and cannot rewrite them;
+review transports disable ambient trace-header propagation.
+
+Permitted review content includes the selected declaration/evidence tree (with
+relative source identities and renderer metadata), authored rule IDs, questions
+and criteria, and provider framing. Authentication is sent separately in the
+provider's authorization header. A user or agent can copy conversation text into
+selected source or rule files; that text then belongs to the explicitly permitted
+input. This contract does not require semantic redaction of code or rules.
+
+The content guarantee does not claim independence of request timing, count,
+admission, cancellation, or reviewed edits from the conversation. The agent's work
+and prompt lifecycle can affect those. The [production Bend content laws and host
+obligations](../packages/agent-flow-bend/README.md#content-isolation-proofs) distinguish
+the proved top-level selection/framing properties from implementation evidence
+and remaining gaps. These laws do not prove the full content-isolation contract.
+
+### Freshness and result reuse
 
 Hapsland selects each rule only when its declared evidence needs are met. A
 rule may run with a marked omission that is irrelevant to it. If no rule applies,
@@ -106,7 +141,7 @@ Update attribution currently requires an exact verified post-edit span. Codex
 `apply_patch` hunks, Claude `Edit`/`Write` native content evidence, and Pi 1.0.0
 native `edit` unified-result patches can supply one. Codex and Pi share post-edit
 patch verification with explicit placement rules: Codex requires a unique text
-match; Pi verifies native line coordinates against bounded current source without
+match; Pi verifies native line coordinates against current source within capture limits without
 a text-search fallback or a separate pre-edit image. Pi derives ranges from the
 successful result patch independently of how `oldText`/`newText` replacements are
 grouped, including replacements spanning omitted context across hunks. Claude

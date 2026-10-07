@@ -9,6 +9,7 @@ import v8 from "@vitest/coverage-v8"
 import { V8CoverageProvider } from "@vitest/coverage-v8/dist/provider.js"
 import { configureNativeBindings } from "../packages/source-analysis/src/direct-event/languages/native-bindings.ts"
 import { packageAssetPath } from "@hapsland/runtime-environment/runtime/package-runtime"
+import { prepareBunCoveragePreload } from "./test-harness/bun-coverage-preload-build.mjs"
 
 configureNativeBindings(packageAssetPath("native", "prebuilt", `${process.platform}-${process.arch}`))
 const { default: Parser } = await import("tree-sitter")
@@ -197,7 +198,9 @@ class ContextAwareV8CoverageProvider extends V8CoverageProvider {
     this.bunCoverageDirectory = join(this.coverageFilesDirectory, "bun")
     process.env.HAPSLAND_BUN_COVERAGE_DIRECTORY = this.bunCoverageDirectory
     process.env.HAPSLAND_BUN_COVERAGE_ROOT = ctx.config.root
-    const preload = resolve(import.meta.dirname, "test-harness/bun-coverage-preload.mjs")
+    const preload = prepareBunCoveragePreload(
+      join(ctx.config.root, ".test-runs", "coverage-preload", String(process.pid))
+    )
     const flag = `--preload=${pathToFileURL(preload).href}`
     const options = (process.env.BUN_OPTIONS ?? "").split(/\s+/).filter((option) => option && option !== flag)
     process.env.BUN_OPTIONS = [...options, flag].join(" ")

@@ -1,6 +1,15 @@
 import assert from "node:assert/strict"
 import { spawnSync } from "node:child_process"
-import { copyFileSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync, symlinkSync, rmSync } from "node:fs"
+import {
+  realpathSync,
+  copyFileSync,
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  readFileSync,
+  symlinkSync,
+  rmSync
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { test } from "node:test"
@@ -8,7 +17,7 @@ import { installGitHooks } from "./install-git-hooks.mjs"
 
 const runner = resolve("scripts/run-quality-lint.mjs")
 test("lint failure prevents formatting; explicit and changed selection stay bounded", () => {
-  const root = mkdtempSync(join(tmpdir(), "hapsland-lint-runner-"))
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "hapsland-lint-runner-")))
   try {
     mkdirSync(join(root, "node_modules/.bin"), { recursive: true })
     mkdirSync(join(root, "src"))
@@ -59,6 +68,8 @@ test("real pre-commit formats staged code and rejects a lint defect", () => {
     symlinkSync(resolve("node_modules"), join(root, "node_modules"), "dir")
     mkdirSync(join(root, ".husky"))
     mkdirSync(join(root, "src"))
+    mkdirSync(join(root, "scripts"))
+    copyFileSync("scripts/bend-format.py", join(root, "scripts/bend-format.py"))
     for (const file of [".oxlintrc.json", "dprint.json"]) copyFileSync(file, join(root, file))
     writeFileSync(
       join(root, "package.json"),

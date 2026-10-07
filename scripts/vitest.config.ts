@@ -1,3 +1,4 @@
+import { realpathSync } from "node:fs"
 import { readPackageGraph } from "./package-graph.mjs"
 import { resolveBunRuntime } from "./pinned-bun.mjs"
 import { join, resolve } from "node:path"
@@ -7,6 +8,9 @@ import { testDiscovery } from "./test-harness/test-scope.mjs"
 import { UNIT_TEST_TIMEOUT_MS } from "./test-harness/policy.mjs"
 
 const repositoryRoot = resolve(import.meta.dirname, "..")
+
+// Keep fixture sockets within macOS path limits and remove /var aliases.
+if (process.platform === "darwin") process.env.TMPDIR = realpathSync("/tmp")
 
 process.env.HAPSLAND_BUILD_BUN = resolveBunRuntime().executable
 // Keep runtime transpilation outside isolated product homes.

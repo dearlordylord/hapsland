@@ -10,3 +10,9 @@ trim_trailing_whitespace = true
 
 [*.md]
 trim_trailing_whitespace = false
+
+[*.bend]
+indent_style = space
+indent_size = 2
+tab_width = 4
+bend_max_line_length = 100

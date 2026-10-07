@@ -1,12 +1,12 @@
 import { plugin } from "bun"
-import { readFileSync, mkdirSync, writeFileSync, renameSync } from "node:fs"
+import { readFileSync, realpathSync, mkdirSync, writeFileSync, renameSync } from "node:fs"
 import { resolve, relative, join, dirname } from "node:path"
 import { randomBytes } from "node:crypto"
 
 const directory = process.env.HAPSLAND_BUN_COVERAGE_DIRECTORY
 const root = process.env.HAPSLAND_BUN_COVERAGE_ROOT
 if (!directory || !root) throw new Error("Bun coverage requires an owned directory and source root")
-const sourceRoot = resolve(root, "src")
+const sourceRoot = realpathSync(resolve(root, "src"))
 const manifestPath = process.env.HAPSLAND_BUN_COVERAGE_MANIFEST
 if (!manifestPath) {
   const { createInstrumenter } = await import("istanbul-lib-instrument")
@@ -15,9 +15,13 @@ if (!manifestPath) {
     name: "hapsland-source-coverage",
     setup(build) {
       build.onLoad({ filter: /\.ts$/ }, ({ path }) => {
-        const local = relative(sourceRoot, path)
-        if (local.startsWith("..") || local.endsWith(".test.ts") || local.endsWith(".d.ts")) return
-        return { contents: instrumenter.instrumentSync(readFileSync(path, "utf8"), path), loader: "ts" }
+        const local = relative(sourceRoot, realpathSync(path))
+        if (local.startsWith("..") || local.endsWith(".test.ts") || local.endsWith(".d.ts"))
+          return { contents: readFileSync(path, "utf8"), loader: "ts" }
+        return {
+          contents: instrumenter.instrumentSync(readFileSync(path, "utf8"), resolve(root, "src", local)),
+          loader: "ts"
+        }
       })
     }
   })

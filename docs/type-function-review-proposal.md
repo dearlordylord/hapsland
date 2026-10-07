@@ -1,12 +1,12 @@
 # Issue #93: diff-selected type and function review target specification
 
 **Purpose:** Define the direct-edit type and function review behavior.
-**Status:** Accepted target, amended by owner decisions on 2026-09-29 to restore rule-level evidence checks and remove the total-request byte ceiling, and by the 2026-09-30 request to add bounded Rust support and the 2026-10-01 request to add bounded Bend support and cross-file support for both languages, and the 2026-10-04 decision to assume valid source syntax and isolate unrelated Bend literals, followed by the 2026-10-05 authorization of individual rules and distinct root/context policy.
+**Status:** Accepted target, amended by owner decisions on 2026-09-29 to restore rule-level evidence checks and remove the total-request byte ceiling, and by the 2026-09-30 request to add Rust support and the 2026-10-01 request to add Bend support and cross-file support for both languages, and the 2026-10-04 decision to assume valid source syntax and isolate unrelated Bend literals, followed by the 2026-10-05 authorization of individual rules and distinct root/context policy.
 **Authority:** Accepted product contract. Implementation and tests are separate evidence.
-**Expected use:** Build and review the supported direct-edit path.
+**Expected use:** Build and review the direct-edit path.
 **Lifecycle:** Maintained as that path changes; review after a new owner decision or a changed runtime boundary.
 
-The owner approved the bounded cross-file type and function path for users on
+The owner approved the cross-file type and function path for users on
 2026-09-29. The one-file named-type input is retired as a production route.
 The owner did not require a comparative study before this change. A later study
 can measure advice quality as a separate task. The file-selection, rule-evidence,
@@ -28,25 +28,25 @@ exact captured source and `ReviewProjectionFingerprint` covers canonical semanti
 evidence. Queues and pending advice are memory-only and may be lost on restart.
 
 Issue #16's **final** input comparison was `reject-or-narrow`: declaration plus
-bounded context passed context-required accuracy, focused-diff controls, negative
+selected context passed context-required accuracy, focused-diff controls, negative
 controls, timing, and request size, but failed both required paired superiority
 gates (context-only 0/3 and whole-file-dilution 0/2). The 2026-09-29 owner
-decision authorizes bounded cross-file source use despite that result. The result
+decision authorizes cross-file source use within graph limits despite that result. The result
 still does not show that the new input gives better advice.
 
 ### Accepted constraints carried into this specification
 
 - A review is advisory after an edit; it never blocks or rolls back the edit.
-- One selected root yields one bounded candidate review unit. Rules whose declared
+- One selected root yields one candidate review unit. Rules whose declared
   evidence needs are met may share one logical Jev evaluation. Several changed
   roots yield independent units.
-- Stable eligible capture, exact advicee attribution, file selection before
-  every source read, bounded source sent to Jev, and a fresh check before
+- Stable capture, exact advicee attribution, file selection before
+  every source read, source sent to Jev within graph limits, and a fresh check before
   advice are mandatory. There is no separate repository approval step in
   the target behavior.
 - Unsupported analysis, uncertain attribution, missing evidence needed by a rule,
   and clear assessments yield no agent-facing advice. Human status retains only
-  bounded, source-free reason codes and counts.
+  source-free reason codes and counts.
 - Directly changed roots are the only targets. Checkpoint reconciliation,
   shell/Stop discovery, and re-review of unchanged dependents are outside #93.
 
@@ -62,15 +62,15 @@ is outside the review contract. No compiler invocation is required to establish
 this assumption at runtime.
 
 Syntactic validity does not establish complete review evidence. A valid program
-can use types, bindings or dependencies outside the supported analysis profile;
+can use types, bindings or dependencies outside the analysis profile;
 those remain unsupported or explicitly incomplete. Rule evidence gates still
 apply, and missing evidence is never a clear review result.
 
-## Supported event and selection contract
+## Event and selection contract
 
 `direct-root-selection` takes an attributed, completed direct edit event,
 canonical working root, eligible repository-relative named paths, stable post-edit
-snapshots, and bounded patch structure. Codex CLI `apply_patch` supplies patch
+snapshots, and patch-size and structure limits. Codex CLI `apply_patch` supplies patch
 hunks; Hapsland verifies their location against the captured post-edit snapshot.
 Claude Code `Edit` and `Write` supply edit data; Hapsland verifies it against the
 captured snapshot and derives post-edit spans. Host delivery
@@ -81,7 +81,7 @@ and paths outside the existing capture/selection boundary are inapplicable.
 The adapter must preserve each patch hunk's file and changed-line coordinates or
 derive an equivalent verified location against the stable post-edit snapshot.
 Textual line equality alone is insufficient when the same line occurs in multiple
-declarations. Every changed post-edit span maps to the smallest supported enclosing
+declarations. Every changed post-edit span maps to the smallest eligible enclosing
 root declaration. A signature/header change maps to its declaration. A change in
 shared top-level material, an unmatched deletion with no stable root location,
 or any location with more than one possible root is `ambiguous-attribution` and
@@ -90,7 +90,7 @@ candidate contains both uniquely attributed and ambiguous spans, the unique root
 may proceed independently; the ambiguous spans remain unreviewed and counted.
 
 For Add, every eligible named root in the newly added file is selected. For Update,
-deduplicate the uniquely mapped roots across hunks. If no supported root maps,
+deduplicate the uniquely mapped roots across hunks. If no eligible root maps,
 the path is quietly `no-supported-root`. A change only to a reference declaration
 selects that declaration; it does not automatically select unchanged users of it.
 Selections are deduplicated by canonical path, branch, root identity, and captured
@@ -105,10 +105,10 @@ candidate conventions. The shared analysis and traversal host consumes common
 artifact, reference, visibility, and location facts. Language context remains
 inside adapter sessions; generic traversal does not carry Rust-specific flags,
 interpret Cargo manifests, or select TS/TSX grammars. A static registry selects
-supported adapters and supplies their offline parser probes. Shared selection,
+adapters and supplies their offline parser probes. Shared selection,
 stable capture, canonical graph budgets, rule admission, freshness, rendering,
 and backend dispatch remain product responsibilities. This boundary does not
-expand supported syntax, external crates, Bend hub imports, or ambiguous binding.
+expand syntax coverage, external crates, Bend hub imports, or ambiguous binding.
 
 ## Branch contracts
 
@@ -118,10 +118,10 @@ amend the contracts below.
 
 | Contract | Artifact root | Proposed evidence projection | Inapplicable examples |
 | --- | --- | --- | --- |
-| `direct-event/type-shape/v1` | One uniquely named TypeScript `interface` or `type` alias in `.ts`, `.tsx`, `.mts`, or `.cts` | Exact root declaration and bounded outbound named-type reference graph with marked omissions, following supported local imports across selected files | Declaration merging, ambiguous binding, unsupported graph syntax, unresolved or excluded evidence needed by a selected rule |
-| `direct-event/type-shape/v1` | One uniquely named, explicit top-level Bend `type` in `.bend` | Exact datatype declaration, constructors, and bounded outbound named-type references within the same file or through explicit relative `.bend` alias imports | Dependent/computed types, unsupported surface syntax, hub/bare/absolute imports, ambiguous binding, or missing evidence required by a selected rule |
-| `direct-event/type-shape/v1` | One uniquely named, explicit top-level Rust `struct`, `enum`, or `type` alias in `.rs` | Exact root declaration and bounded outbound named-type references across verified local Cargo modules | Conditional compilation, macro-dependent declarations, unsupported type syntax, ambiguous binding, unresolved module/external paths, or missing evidence needed by a selected rule |
-| `direct-event/function/v1` | One uniquely named, top-level TypeScript function declaration in those extensions | Exact signature and body and bounded directly referenced type and named-function graph with marked omissions, following supported local imports across selected files | Anonymous functions, methods, overload groups without unique implementation, dynamic/computed calls, unresolved or excluded evidence needed by a selected rule |
+| `direct-event/type-shape/v1` | One uniquely named TypeScript `interface` or `type` alias in `.ts`, `.tsx`, `.mts`, or `.cts` | Exact root declaration and outbound named-type reference graph within graph limits with marked omissions, following local imports the analyzer resolves across selected files | Declaration merging, ambiguous binding, unsupported graph syntax, unresolved or excluded evidence needed by a selected rule |
+| `direct-event/type-shape/v1` | One uniquely named, explicit top-level Bend `type` in `.bend` | Exact datatype declaration, constructors, and outbound named-type references within the same file or through explicit relative `.bend` alias imports, subject to graph limits | Dependent/computed types, unsupported surface syntax, hub/bare/absolute imports, ambiguous binding, or missing evidence required by a selected rule |
+| `direct-event/type-shape/v1` | One uniquely named, explicit top-level Rust `struct`, `enum`, or `type` alias in `.rs` | Exact root declaration and outbound named-type references within graph limits across verified local Cargo modules | Conditional compilation, macro-dependent declarations, unsupported type syntax, ambiguous binding, unresolved module/external paths, or missing evidence needed by a selected rule |
+| `direct-event/function/v1` | One uniquely named, top-level TypeScript function declaration in those extensions | Exact signature and body and directly referenced type and named-function graph within graph limits with marked omissions, following local imports the analyzer resolves across selected files | Anonymous functions, methods, overload groups without unique implementation, dynamic/computed calls, unresolved or excluded evidence needed by a selected rule |
 
 These contract IDs replace the former production
 `direct-event/same-file-named-types/v1` input. A type declaration and function with the
@@ -131,7 +131,7 @@ and independently selected cross-file roots are deferred. A referenced declarati
 in another file is supporting evidence, not a new changed root. The function branch must identify its body and
 signature together; signature-only input cannot answer body-dependent rules.
 
-Rust uses the active type-shape v1 input, with bounded local cross-file projection. Rust
+Rust uses the active type-shape v1 input, with local cross-file projection. Rust
 functions and external-crate resolution are deferred. Parsing a
 file does not establish Rust compiler validity or macro expansion. Unsupported
 syntax and unresolved references must remain explicit limitations; rules needing
@@ -144,9 +144,9 @@ payloads and defaults still require reference resolution. Same-file declarations
 take precedence over these wrapper names; same-file trait and union names cannot
 be treated as builtins and remain unresolved supporting evidence. Explicit qualified local paths and aliases resolve through the module bindings
 described below. Trait bounds, `where` clauses, const generics, and dynamic or
-abstract types are unsupported evidence. Arrays require integer-literal lengths; named
+abstract types are unavailable evidence. Arrays require integer-literal lengths; named
 constants and computed lengths are omitted. Non-integer enum discriminants and
-const generic arguments are also unsupported evidence. Raw identifiers are
+const generic arguments are also unavailable evidence. Raw identifiers are
 conservatively rejected by this parser profile. Unsupported imports or modules, an extern-crate
 declaration, foreign extern block, macro definition/invocation, or attribute
 anywhere in the file makes the scope uncertain for every root. This includes
@@ -157,8 +157,8 @@ permit the omissions can run; root-declaration-only rules may review partial
 evidence, while rules requiring complete type closure cannot.
 
 Rust module resolution requires an eligible nearest `Cargo.toml` with explicit
-package edition 2018, 2021, or 2024 and a supported local library or binary target.
-The supported manifest subset includes default or explicit relative library paths
+package edition 2018, 2021, or 2024 and an accepted local library or binary target.
+Accepted manifest forms include default or explicit relative library paths
 and explicit binary name/path pairs. Explicit binary tables disable automatic
 binary inference conservatively. Workspace-inherited editions, target edition
 overrides, custom build targets, test/example/bench target tables, and source
@@ -168,10 +168,10 @@ come from the manifest, not source filenames. Explicit external
 ancestor chain. Exactly one of `child.rs` and `child/mod.rs` must exist. A module
 named `lib.rs` or `main.rs` uses ordinary module layout when declared as a child.
 Direct `use child::Type`, `self::child::Type`, their aliases and flat lists, and
-qualified references through those bindings are supported. `crate::child::Type`
+qualified references through those bindings resolve. `crate::child::Type`
 uses the verified crate-root module map. Re-exports, glob imports, inline modules,
 external crates, path attributes, and unsupported module chains remain omitted.
-Supporting declarations must have supported public visibility. Namespace
+Supporting declarations must have accepted public visibility. Namespace
 collisions and generic parameter shadowing cannot establish a binding.
 
 Cargo metadata and captured crate/ancestor modules count toward graph file,
@@ -183,8 +183,8 @@ are included in provider input; Cargo contents and unrelated ancestor bodies
 are binding evidence retained locally.
 
 Bend uses type-shape v1 with concrete artifact kind `datatype`. This is a
-bounded Bend 2 surface extractor, not a compiler dependency or proof checker.
-A supported header is a single line `type Name is Data:` or `is Type:`, optionally
+Bend 2 surface extractor, not a compiler dependency or proof checker.
+The header must be a single line `type Name is Data:` or `is Type:`, optionally
 with erased type parameters `type Box<-A: Data> is Data:` (also `Type`).
 Constructors use two spaces and one line `Name{field: Type, ...}`; empty
 datatypes and recursive references are permitted. Field types are simple names
@@ -206,7 +206,7 @@ Leading imports of the form `import ./receipt.bend as R` or
 `import ../shared/receipt.bend as R` bind the first dotted segment of a type
 reference to that file; `R.Receipt` resolves `Receipt` there. Paths use plain
 ASCII name segments (letters, digits, underscores, and hyphens) and a `.bend`
-extension. Traversal can follow supported aliases transitively; imported
+extension. Traversal can follow resolvable aliases transitively; imported
 declarations remain supporting evidence, never independently selected roots.
 Aliases must be unique and cannot conflict with local binding prefixes or
 constructors. With `import Base`, alias prefixes matching the inspected Base
@@ -232,10 +232,10 @@ Quantity-polymorphic kinds, term applications,
 dependent fields, proof/equality terms, function/product/sum types, reusable
 `+` types, and unsupported parameter forms remain explicit omissions.
 Multiline constructors and other indentation styles remain incomplete evidence;
-unsupported headers and unrecognized top-level syntax are outside the bounded
+unsupported headers and unrecognized top-level syntax are outside the
 profile. Bend defs/laws are not review roots; their bodies are not checked.
 Comments and single/double quoted literals in unrelated bodies cannot introduce
-type declarations or import bindings, and do not prevent supported datatype
+type declarations or import bindings, and do not prevent eligible datatype
 extraction. Literal-dependent syntax inside a datatype remains incomplete;
 masking literal contents must not manufacture complete type evidence. Exact
 datatype source and coordinates still come from the original captured text.
@@ -244,8 +244,8 @@ Extraction does not establish compiler validity,
 termination, law coverage, or proof correctness. Rule evidence gates and all
 existing shared source, graph, work, and freshness limits apply.
 
-The supported candidate projection walks outbound references from the root,
-including statically bound local imports of supported TypeScript declarations.
+The candidate projection walks outbound references from the root,
+including statically bound local imports of eligible TypeScript declarations.
 Cross-language imports do not provide supporting evidence. Resolve an import to a
 canonical repository-relative path and declaration identity; a text-name match
 alone never establishes a binding. Before reading **each** newly discovered
@@ -264,7 +264,7 @@ transitions before implementing the cross-file pipeline. Native code supplies
 syntax, import-binding, path, identity, and capture facts; Bend decides the
 next eligible edge, budget progression, and complete/incomplete outcome
 without retaining source. [#141](https://github.com/dearlordylord/hapsland/issues/141)
-tracks the precise supported resolution scope and a separate dashboard
+tracks the precise resolution scope and a separate dashboard
 state-machine diagram. That diagram uses the same checked transition adapter
 as production and distinguishes native facts from Bend decisions.
 
@@ -277,7 +277,7 @@ Independent roots pass root selection. Neither privacy-denied source nor context
 supporting source is copied into an allowed root's review input.
 
 The target per-source-file stable-capture ceiling is **256 KiB inclusive**. A
-lower configured ceiling applies on every supported platform; native capture
+lower configured ceiling applies on every declared platform; native capture
 enforces it before reading source.
 
 The target evidence-tree ceiling is **20 KiB of canonical UTF-8 encoded root, nodes,
@@ -299,7 +299,7 @@ zero automatic retries, queue capacity, and host response limits remain
 independent ceilings. Source and ledger limits must be reconciled so the
 256 KiB target can be admitted without an unbounded parser or resident workspace.
 
-`EvidenceCompleteness` is checked **for each rule** against the bounded candidate.
+`EvidenceCompleteness` is checked **for each rule** against the candidate.
 `complete` means no graph edge was omitted. `incomplete-irrelevant` means an edge
 was omitted but the selected rule does not require that evidence. Both states may
 form an input with the omission marked; a rule with missing required evidence
@@ -316,28 +316,28 @@ corresponding #220 decisions; no compatibility loader or parallel legacy definit
 is retained. The [configuration guide](configuration.md#declarative-rules) describes
 authoring and the amended [Phase F contract](../PRODUCT-PHASE-F-SPEC.md) owns layering.
 
-Each rule declares `inputs`: supported combinations of `languages`, `kind`, and
-`requires`. Supported kinds are `type` for TypeScript/Rust/Bend and `function` for
+Each rule declares `inputs`: accepted combinations of `languages`, `kind`, and
+`requires`. Input kinds are `type` for TypeScript/Rust/Bend and `function` for
 TypeScript. The compiler maps those combinations to the exact input contracts in
 this document. Authors specify semantic requirements, not wire contract identifiers.
 Type requirements are `root-declaration`, `resolved-outbound-types`, and
 `selected-source-type-closure`; function requirements are `signature`, `body`,
 `resolved-local-calls`, and `resolved-outbound-types`. A root with no outbound
 references can satisfy complete closure. Each entry has distinct, nonempty languages and distinct requirements. `requires`
-may be empty: it adds no evidence requirement beyond a supported extracted root,
+may be empty: it adds no evidence requirement beyond an extracted root,
 and does not establish complete dependency evidence. Duplicate language/kind combinations fail validation. Enabled inputs selected by
-configured languages must have supported combinations and requirements; otherwise
+configured languages must have accepted combinations and requirements; otherwise
 configuration fails before source capture.
 
 Runtime validation schemas, including Zod and Effect Schema, are a separate future
-input form requiring an explicit supported dialect and extraction contract. A disabled rule may store such an input, but enabling a selected schema input fails.
-A multi-input definition may run its supported combinations if its configured
+input form requiring an explicitly implemented dialect and extraction contract. A disabled rule may store such an input, but enabling a selected schema input fails.
+A multi-input definition may run its accepted combinations if its configured
 languages exclude all unsupported inputs. This does not add schema execution support.
 Concrete values are not supported roots.
-The evidence model has no raw/type/schema ranking: capabilities and bounded observed
+The evidence model has no raw/type/schema ranking: capabilities and observed
 evidence establish eligibility. Rule-file validation schemas are not review inputs.
 
-Configuration explicitly connects each rule by path. An inherited identity can be
+Configuration declares each rule by path. An inherited identity can be
 configured by ID without redefining its source. Settings select enablement, languages,
 root paths, threshold, and message. The rule itself contains no file applicability
 policy. Configured rule languages must be a subset of authored languages; a language outside
@@ -350,7 +350,7 @@ roots does not silently expand reads. An explicit context scope may add `shared/
 without selecting unchanged or edited roots there. Every read still passes
 `privacyExcludes`, containment, protected paths, Git ignore, and capture limits.
 No context or rule setting bypasses these restrictions. Language settings select
-roots; dependency traversal remains bounded by the root's language adapter.
+roots; dependency traversal remains subject to the root's language-adapter limits.
 
 A selected rule runs only when its language, kind, configured paths, and required
 evidence all match. No backend request is sent if no rule remains. Rule identity
@@ -369,7 +369,7 @@ and types. For each unit, record:
 - The root's repository-relative path, kind, name, and location.
 - A fingerprint of the exact bytes captured from each contributing file and
   each declaration used in the unit.
-- One fingerprint of the bounded, ordered evidence tree and omission markers
+- One fingerprint of the ordered evidence tree and omission markers
   that Jev will see.
 - Which evidence types the candidate supports and which rules need omitted evidence.
 
@@ -380,7 +380,7 @@ agent.
 
 `ReviewInput` is versioned separately for each branch. The Jev payload is
 a JSON value containing `artifact` (`kind`, `name`, repository-relative `domain`,
-exact root `source`), `evidence` (bounded ordered nodes and typed edges, including
+exact root `source`), `evidence` (ordered nodes and typed edges, including
 omission markers), and `inputContract` (`id`, `completeness: "complete"` or
 `"incomplete-irrelevant"`, projection fingerprint).
 For a function, `artifact.source` contains the full declaration including body;
@@ -401,7 +401,7 @@ rule, or review input has changed, Hapsland discards the old Jev result.
 It also discards the result if it can no longer identify the advicee or
 working root with confidence.
 
-Hapsland may reuse an earlier result only when the selected root, bounded
+Hapsland may reuse an earlier result only when the selected root,
 evidence tree, selected rules, effective settings, and exact Jev input format
 are the same. A comment outside the review unit can change the file's exact
 bytes without changing the review question; reuse is allowed only after the
@@ -414,7 +414,7 @@ Keep each contributing file's fingerprint so Hapsland can perform the checks.
 
 Agent-facing output contains actionable findings only. Ordinary inapplicability,
 analysis uncertainty and missing evidence needed by a rule produce no advice or generic
-error message. A bounded source-free local status may aggregate counts by branch
+error message. A source-free local status may aggregate counts by branch
 and code: `unsupported-event`, `ineligible-path`, `capture-unavailable`,
 `no-supported-root`, `ambiguous-attribution`, `unsupported-syntax`,
 `incomplete-graph`, `expansion-limit`, `input-limit`,
@@ -437,14 +437,14 @@ delivery policy. Coverage is never reported as a clean semantic judgment.
    per-rule evidence checks and strict version-one input validation,
    exact request shape, root/context selection and privacy checks before any source read
    (including A → B → excluded C),
-   no read of excluded C, continued bounded traversal after a contribution
+   no read of excluded C, continued traversal within graph limits after a contribution
    exceeds the remaining tree budget,
    accepted tree size at or below 20 KiB, stale suppression, and source-free
    coverage. A controlled backend checks one request per eligible unit and no
    request when no rule has sufficient evidence. Typecheck and run the
    focused and full suites as implementation validation.
 3. A later paired, pre-registered live plan can compare each branch input with
-   the currently supported input where applicable and an honest focused-diff or
+   the applicable input contract and an honest focused-diff or
    whole-file baseline on the *same* fixtures, rules, backend, and rule batch.
    Rules with missing required evidence and other inapplicable arms are marked
    before execution and excluded from semantic denominators; they may be tested offline without a
@@ -463,7 +463,7 @@ delivery policy. Coverage is never reported as a clean semantic judgment.
 - Keep the narrow function scope. Tests must establish the capabilities claimed
   for each maintained rule; a rule can proceed past an omitted edge only when
   that edge is irrelevant to its declared evidence needs.
-- Revisit graph and resident limits only with bounded evidence and
+- Revisit graph and resident limits only with evidence and
   contract review.
 - If a later paired study is run, declare its thresholds and source scope
   before live calls. The final #16 outcome remains prior evidence.

@@ -24,6 +24,8 @@ export const precheckStages = [
     "rule-boundary"
   ].map((name) => [name, `scripts/check-${name}.mjs`]),
   ["bend-progress", "packages/agent-flow-bend/scripts/check-progress.mjs"],
+  ["content-isolation", "packages/agent-flow-bend/scripts/check-content-isolation.mjs"],
+  ["content-wire-mutants", "scripts/check-content-wire-mutants.mjs"],
   [
     "native-pi-observation",
     "--test",

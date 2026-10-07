@@ -26,7 +26,7 @@ const configurationExample = JSON.stringify({ version: CONFIGURATION_VERSION, in
 const ruleExample = JSON.stringify(
   {
     version: RULE_SCHEMA_VERSION,
-    id: "team/meaningful-combinations",
+    id: "namespace/meaningful-combinations",
     question: "Does the artifact make an invalid state representable?",
     criteria: {
       false: "Every representable state has a domain meaning.",
@@ -415,7 +415,7 @@ export const renderInspectionArtifacts = (schema: Schema.Constraint) => {
     throw new Error("inspection opt-in must declare a true example and false default")
   const template = JSON.stringify({ version: CONFIGURATION_VERSION, [fieldName]: example }, null, 2)
   const notice = (href: string) =>
-    `Recording is off by default: merge \`"${fieldName}": true\` into your project's \`${PROJECT_CONFIGURATION_FILE}\` using the [configuration template](${href}), then make a new eligible edit. Neither dashboard enables recording or backfills old edits; retained history can remain visible after recording is turned off.`
+    `Recording is off by default: add \`"${fieldName}": true\` into your project's \`${PROJECT_CONFIGURATION_FILE}\` using the [configuration template](${href}), then make a new edit. Neither dashboard enables recording or backfills old edits; retained history can remain visible after recording is turned off.`
   const documentation = [
     "**Both dashboards need recorded history.** Recording is disabled by default.",
     `Merge this [generated configuration template](examples/session-inspection.jsonc) into the repository-root \`${PROJECT_CONFIGURATION_FILE}\`, preserving existing rules and scope:`,
@@ -424,7 +424,7 @@ export const renderInspectionArtifacts = (schema: Schema.Constraint) => {
     template,
     "```",
     "",
-    "Then make a new eligible edit through an installed Hapsland integration. The setting applies on the next edit; enabling it does not backfill earlier edits. A fresh journal stays empty until new events are recorded. Opening either dashboard does not enable recording. Existing retained history can still be shown after recording is disabled. This history contains captured source and review messages; source-free analytics does not enable it.",
+    "Then make a new edit through an installed Hapsland integration. The setting applies on the next edit; enabling it does not backfill earlier edits. A fresh journal stays empty until new events are recorded. Opening either dashboard does not enable recording. Existing retained history can still be shown after recording is disabled. This history contains captured source and review messages; source-free analytics does not enable it.",
     `A user default can also enable recording, but an explicit project \`${fieldName}: false\` overrides it.`
   ].join("\n")
   return {

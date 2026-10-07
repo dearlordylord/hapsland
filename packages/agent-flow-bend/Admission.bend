@@ -62,7 +62,11 @@ def prospective_gate_ordered(clock_valid: Bool, within: Bool) -> ProspectiveDeci
         clock_valid,
         PermitAllowed{}, PermitDenied{})
 
-def prospective_gate_window(facts: ProspectiveFacts, within: Bool, ordered: Bool) -> ProspectiveDecision:
+def prospective_gate_window(
+  facts: ProspectiveFacts,
+  within: Bool,
+  ordered: Bool
+) -> ProspectiveDecision:
   match facts:
     case ProspectiveFacts{clock_valid, hook_window, started_upper, now_lower,
         advicee_permit_limit, resident_permit_limit}:
@@ -95,13 +99,6 @@ def has_tool(+tool: Nat, permits: List<&2, Permit>) -> Bool:
     case Permit{_, current, _, _, _} <> rest:
       Bool.or(Nat.is_eq(tool, current), has_tool(tool, rest))
 
-def find_permit.pick(permit: Permit, fallback: Maybe<&2, Permit>, hit: Bool) -> Maybe<&2, Permit>:
-  match hit:
-    case True{}:
-      Some{permit}
-    case False{}:
-      fallback
-
 def find_permit(+token: Nat, permits: List<&2, Permit>) -> Maybe<&2, Permit>:
   match permits:
     case Nil{}:
@@ -109,14 +106,7 @@ def find_permit(+token: Nat, permits: List<&2, Permit>) -> Maybe<&2, Permit>:
     case +permit <> rest:
       match permit:
         case Permit{current, _, _, _, _}:
-          find_permit.pick(permit, find_permit(token, rest), Nat.is_eq(current, token))
-
-def remove_permit.pick(permit: Permit, tail: List<&2, Permit>, hit: Bool) -> List<&2, Permit>:
-  match hit:
-    case True{}:
-      tail
-    case False{}:
-      permit <> tail
+          List.find.put(Permit, permit, find_permit(token, rest), Nat.is_eq(current, token))
 
 def remove_permit(+token: Nat, permits: List<&2, Permit>) -> List<&2, Permit>:
   match permits:
@@ -125,7 +115,12 @@ def remove_permit(+token: Nat, permits: List<&2, Permit>) -> List<&2, Permit>:
     case +permit <> rest:
       match permit:
         case Permit{current, _, _, _, _}:
-          remove_permit.pick(permit, remove_permit(token, rest), Nat.is_eq(current, token))
+          List.filter.put(
+            Permit,
+            permit,
+            remove_permit(token, rest),
+            Bool.not(Nat.is_eq(current, token))
+          )
 
 def candidate_round(round: Nat, active: Bool) -> Nat:
   match active:
@@ -134,30 +129,119 @@ def candidate_round(round: Nat, active: Bool) -> Nat:
     case False{}:
       (round + 1n : Nat)
 
-def issue.tool(state: AdmissionState, partition: Nat, lifetime: Nat, +round: Nat, +active: Bool, closed_at: Nat, +next_token: Nat, permits: List<&2, Permit>, tool: Nat, started: Nat, deadline: Nat, duplicate: Bool) -> AdmissionResult:
+def issue.tool(
+  state: AdmissionState,
+  partition: Nat,
+  lifetime: Nat,
+  +round: Nat,
+  +active: Bool,
+  closed_at: Nat,
+  +next_token: Nat,
+  permits: List<&2, Permit>,
+  tool: Nat,
+  started: Nat,
+  deadline: Nat,
+  duplicate: Bool
+) -> AdmissionResult:
   match duplicate:
     case True{}:
       Rejected{state, DuplicateTool{}}
     case False{}:
       +expected_round = candidate_round(round, active)
-      Accepted{AdmissionState{partition, lifetime, round, active, closed_at, (next_token + 1n : Nat),
-        List.append(&2, Permit, permits, Permit{next_token, tool, expected_round, started, deadline} <> Nil{})},
-        Some{next_token}, Some{expected_round}}
+      Accepted{
+        AdmissionState{
+          partition,
+          lifetime,
+          round,
+          active,
+          closed_at,
+          (next_token + 1n : Nat),
+          List.append(
+            &2,
+            Permit,
+            permits,
+            Permit{next_token, tool, expected_round, started, deadline} <> Nil{}
+          )
+        },
+        Some{next_token},
+        Some{expected_round}
+      }
 
-def issue.guard(state: AdmissionState, partition: Nat, lifetime: Nat, round: Nat, active: Bool, closed_at: Nat, +next_token: Nat, +permits: List<&2, Permit>, +tool: Nat, started: Nat, deadline: Nat, now: Nat, clock_valid: Bool) -> AdmissionResult:
+def issue.guard(
+  state: AdmissionState,
+  partition: Nat,
+  lifetime: Nat,
+  round: Nat,
+  active: Bool,
+  closed_at: Nat,
+  +next_token: Nat,
+  +permits: List<&2, Permit>,
+  +tool: Nat,
+  started: Nat,
+  deadline: Nat,
+  now: Nat,
+  clock_valid: Bool
+) -> AdmissionResult:
   match clock_valid:
     case False{}:
       Rejected{state, StaleInvocation{}}
     case True{}:
-      issue.tool(state, partition, lifetime, round, active, closed_at, next_token, permits, tool, started, deadline, has_tool(tool, permits))
+      issue.tool(
+        state,
+        partition,
+        lifetime,
+        round,
+        active,
+        closed_at,
+        next_token,
+        permits,
+        tool,
+        started,
+        deadline,
+        has_tool(tool, permits)
+      )
 
-def issue(+state: AdmissionState, tool: Nat, +started: Nat, +deadline: Nat, +now: Nat) -> AdmissionResult:
+def issue(
+  +state: AdmissionState,
+  tool: Nat,
+  +started: Nat,
+  +deadline: Nat,
+  +now: Nat
+) -> AdmissionResult:
   match state:
     case AdmissionState{partition, lifetime, round, active, closed_at, next_token, permits}:
-      issue.guard(state, partition, lifetime, round, active, closed_at, next_token, permits, tool, started, deadline, now,
-        Bool.and(Nat.is_gt(started, closed_at), Bool.and(Nat.is_le(started, now), Nat.is_le(now, deadline))))
+      issue.guard(
+        state,
+        partition,
+        lifetime,
+        round,
+        active,
+        closed_at,
+        next_token,
+        permits,
+        tool,
+        started,
+        deadline,
+        now,
+        Bool.and(
+          Nat.is_gt(started, closed_at),
+          Bool.and(Nat.is_le(started, now), Nat.is_le(now, deadline))
+        )
+      )
 
-def consume.round(state: AdmissionState, partition: Nat, lifetime: Nat, round: Nat, active: Bool, closed_at: Nat, +next_token: Nat, +permits: List<&2, Permit>, +token: Nat, +permitted_round: Nat, correct_round: Bool) -> AdmissionResult:
+def consume.round(
+  state: AdmissionState,
+  partition: Nat,
+  lifetime: Nat,
+  round: Nat,
+  active: Bool,
+  closed_at: Nat,
+  +next_token: Nat,
+  +permits: List<&2, Permit>,
+  +token: Nat,
+  +permitted_round: Nat,
+  correct_round: Bool
+) -> AdmissionResult:
   match correct_round:
     case False{}:
       Rejected{state, OldRound{}}
@@ -165,28 +249,114 @@ def consume.round(state: AdmissionState, partition: Nat, lifetime: Nat, round: N
       Accepted{AdmissionState{partition, lifetime, permitted_round, True{}, closed_at, next_token,
         remove_permit(token, permits)}, Some{token}, Some{permitted_round}}
 
-def consume.time(state: AdmissionState, partition: Nat, lifetime: Nat, +round: Nat, +active: Bool, closed_at: Nat, +next_token: Nat, permits: List<&2, Permit>, token: Nat, now: Nat, +permitted_round: Nat, valid: Bool) -> AdmissionResult:
+def consume.time(
+  state: AdmissionState,
+  partition: Nat,
+  lifetime: Nat,
+  +round: Nat,
+  +active: Bool,
+  closed_at: Nat,
+  +next_token: Nat,
+  permits: List<&2, Permit>,
+  token: Nat,
+  now: Nat,
+  +permitted_round: Nat,
+  valid: Bool
+) -> AdmissionResult:
   match valid:
     case False{}:
       Rejected{state, Expired{}}
     case True{}:
-      consume.round(state, partition, lifetime, round, active, closed_at, next_token, permits, token, permitted_round,
-        Nat.is_eq(permitted_round, candidate_round(round, active)))
+      consume.round(
+        state,
+        partition,
+        lifetime,
+        round,
+        active,
+        closed_at,
+        next_token,
+        permits,
+        token,
+        permitted_round,
+        Nat.is_eq(permitted_round, candidate_round(round, active))
+      )
 
-def consume.tool(state: AdmissionState, partition: Nat, lifetime: Nat, round: Nat, active: Bool, +closed_at: Nat, +next_token: Nat, permits: List<&2, Permit>, token: Nat, tool: Nat, +now: Nat, permitted_round: Nat, +started: Nat, deadline: Nat, correct_tool: Bool) -> AdmissionResult:
+def consume.tool(
+  state: AdmissionState,
+  partition: Nat,
+  lifetime: Nat,
+  round: Nat,
+  active: Bool,
+  +closed_at: Nat,
+  +next_token: Nat,
+  permits: List<&2, Permit>,
+  token: Nat,
+  tool: Nat,
+  +now: Nat,
+  permitted_round: Nat,
+  +started: Nat,
+  deadline: Nat,
+  correct_tool: Bool
+) -> AdmissionResult:
   match correct_tool:
     case False{}:
       Rejected{state, WrongTool{}}
     case True{}:
-      consume.time(state, partition, lifetime, round, active, closed_at, next_token, permits, token, now, permitted_round,
-        Bool.and(Nat.is_gt(started, closed_at), Bool.and(Nat.is_le(started, now), Nat.is_le(now, deadline))))
+      consume.time(
+        state,
+        partition,
+        lifetime,
+        round,
+        active,
+        closed_at,
+        next_token,
+        permits,
+        token,
+        now,
+        permitted_round,
+        Bool.and(
+          Nat.is_gt(started, closed_at),
+          Bool.and(Nat.is_le(started, now), Nat.is_le(now, deadline))
+        )
+      )
 
-def consume.check(+state: AdmissionState, token: Nat, +tool: Nat, now: Nat, permitted_tool: Nat, permitted_round: Nat, started: Nat, deadline: Nat) -> AdmissionResult:
+def consume.check(
+  +state: AdmissionState,
+  token: Nat,
+  +tool: Nat,
+  now: Nat,
+  permitted_tool: Nat,
+  permitted_round: Nat,
+  started: Nat,
+  deadline: Nat
+) -> AdmissionResult:
   match state:
     case AdmissionState{partition, lifetime, round, active, closed_at, next_token, permits}:
-      consume.tool(state, partition, lifetime, round, active, closed_at, next_token, permits, token, tool, now, permitted_round, started, deadline, Nat.is_eq(tool, permitted_tool))
+      consume.tool(
+        state,
+        partition,
+        lifetime,
+        round,
+        active,
+        closed_at,
+        next_token,
+        permits,
+        token,
+        tool,
+        now,
+        permitted_round,
+        started,
+        deadline,
+        Nat.is_eq(tool, permitted_tool)
+      )
 
-def consume.found(state: AdmissionState, token: Nat, tool: Nat, now: Nat, permit: Maybe<&2, Permit>) -> AdmissionResult:
+def consume.found(
+  state: AdmissionState,
+  token: Nat,
+  tool: Nat,
+  now: Nat,
+  permit: Maybe<&2, Permit>
+) -> AdmissionResult:
   match permit:
     case None{}:
       Rejected{state, NoPermit{}}
@@ -203,7 +373,10 @@ def release.found(state: AdmissionState, +token: Nat, found: Maybe<&2, Permit>) 
     case AdmissionState{partition, lifetime, round, active, closed_at, next_token, +permits}:
       match found:
         case None{}:
-          Rejected{AdmissionState{partition, lifetime, round, active, closed_at, next_token, permits}, NoPermit{}}
+          Rejected{
+            AdmissionState{partition, lifetime, round, active, closed_at, next_token, permits},
+            NoPermit{}
+          }
         case Some{_}:
           Accepted{AdmissionState{partition, lifetime, round, active, closed_at, next_token,
             remove_permit(token, permits)}, None{}, None{}}
@@ -229,14 +402,35 @@ def expire(+state: AdmissionState, token: Nat, deadline_reached: Bool) -> Expiry
     case True{}:
       expire.due(state, token)
 
-def close_round.time(state: AdmissionState, partition: Nat, lifetime: Nat, +round: Nat, next_token: Nat, at: Nat, valid: Bool) -> AdmissionResult:
+def close_round.time(
+  state: AdmissionState,
+  partition: Nat,
+  lifetime: Nat,
+  +round: Nat,
+  next_token: Nat,
+  at: Nat,
+  valid: Bool
+) -> AdmissionResult:
   match valid:
     case False{}:
       Rejected{state, InvalidClock{}}
     case True{}:
-      Accepted{AdmissionState{partition, lifetime, round, False{}, at, next_token, Nil{}}, None{}, Some{round}}
+      Accepted{
+        AdmissionState{partition, lifetime, round, False{}, at, next_token, Nil{}},
+        None{},
+        Some{round}
+      }
 
-def close_round.active(state: AdmissionState, partition: Nat, lifetime: Nat, round: Nat, active: Bool, closed_at: Nat, next_token: Nat, +at: Nat) -> AdmissionResult:
+def close_round.active(
+  state: AdmissionState,
+  partition: Nat,
+  lifetime: Nat,
+  round: Nat,
+  active: Bool,
+  closed_at: Nat,
+  next_token: Nat,
+  +at: Nat
+) -> AdmissionResult:
   match active:
     case False{}:
       Rejected{state, RoundAlreadyClosed{}}
@@ -248,7 +442,15 @@ def close_round(+state: AdmissionState, at: Nat) -> AdmissionResult:
     case AdmissionState{partition, lifetime, round, active, closed_at, next_token, permits}:
       close_round.active(state, partition, lifetime, round, active, closed_at, next_token, at)
 
-def restart.fresh(state: AdmissionState, partition: Nat, lifetime: Nat, closed_at: Nat, new_lifetime: Nat, at: Nat, valid: Bool) -> AdmissionResult:
+def restart.fresh(
+  state: AdmissionState,
+  partition: Nat,
+  lifetime: Nat,
+  closed_at: Nat,
+  new_lifetime: Nat,
+  at: Nat,
+  valid: Bool
+) -> AdmissionResult:
   match valid:
     case False{}:
       Rejected{state, LifetimeNotFresh{}}
@@ -264,7 +466,13 @@ def restart(+state: AdmissionState, +new_lifetime: Nat, +at: Nat) -> AdmissionRe
 def callback_current(state: AdmissionState, partition: Nat, lifetime: Nat, round: Nat) -> Bool:
   match state:
     case AdmissionState{owner, live, current, active, _, _, _}:
-      Bool.and(active, Bool.and(Nat.is_eq(owner, partition), Bool.and(Nat.is_eq(live, lifetime), Nat.is_eq(current, round))))
+      Bool.and(
+        active,
+        Bool.and(
+          Nat.is_eq(owner, partition),
+          Bool.and(Nat.is_eq(live, lifetime), Nat.is_eq(current, round))
+        )
+      )
 
 def apply_event(state: AdmissionState, event: AdmissionEvent) -> AdmissionResult:
   match event:
@@ -279,7 +487,14 @@ def apply_event(state: AdmissionState, event: AdmissionEvent) -> AdmissionResult
     case Restart{new_lifetime, at}:
       restart(state, new_lifetime, at)
 
-def step.partition(state: AdmissionState, partition: Nat, lifetime: Nat, event: AdmissionEvent, correct_partition: Bool, correct_lifetime: Bool) -> AdmissionResult:
+def step.partition(
+  state: AdmissionState,
+  partition: Nat,
+  lifetime: Nat,
+  event: AdmissionEvent,
+  correct_partition: Bool,
+  correct_lifetime: Bool
+) -> AdmissionResult:
   match correct_partition correct_lifetime:
     case False{} _:
       Rejected{state, WrongPartition{}}
@@ -288,10 +503,22 @@ def step.partition(state: AdmissionState, partition: Nat, lifetime: Nat, event: 
     case True{} True{}:
       apply_event(state, event)
 
-def step(+state: AdmissionState, +partition: Nat, +lifetime: Nat, event: AdmissionEvent) -> AdmissionResult:
+def step(
+  +state: AdmissionState,
+  +partition: Nat,
+  +lifetime: Nat,
+  event: AdmissionEvent
+) -> AdmissionResult:
   match state:
     case AdmissionState{owner, live, _, _, _, _, _}:
-      step.partition(state, partition, lifetime, event, Nat.is_eq(owner, partition), Nat.is_eq(live, lifetime))
+      step.partition(
+        state,
+        partition,
+        lifetime,
+        event,
+        Nat.is_eq(owner, partition),
+        Nat.is_eq(live, lifetime)
+      )
 
 def main() -> AdmissionResult:
   step(initial(7n, 3n), 7n, 3n, Issue{42n, 10n, 20n, 11n})

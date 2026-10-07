@@ -29,7 +29,9 @@ export const bendProducerOutputs = Object.freeze([
   "canonical.generated.d.ts",
   "canonical.generated.js",
   "import-graph.generated.d.ts",
-  "import-graph.generated.js"
+  "import-graph.generated.js",
+  "request-content.generated.d.ts",
+  "request-content.generated.js"
 ])
 const digest = (value) => createHash("sha256").update(JSON.stringify(value)).digest("hex")
 const packagePath = (root, node) => node?.path ?? resolve(root, "packages/agent-flow-bend")
@@ -233,15 +235,21 @@ export function bendGeneratedLoaderEvidence(text, file) {
 }
 function contextInputs(root, node, toolchain) {
   const directory = packagePath(root, node)
-  const generators = ["build-canonical.mjs", "build-import-graph.mjs"].map((name) =>
+  const generators = ["build-canonical.mjs", "build-import-graph.mjs", "build-request-content.mjs"].map((name) =>
     resolve(directory, "scripts", name)
   )
-  const declarations = ["canonical.generated.d.ts", "import-graph.generated.d.ts"].map((name) =>
-    resolve(directory, "abi", name)
-  )
+  const declarations = [
+    "canonical.generated.d.ts",
+    "import-graph.generated.d.ts",
+    "request-content.generated.d.ts"
+  ].map((name) => resolve(directory, "abi", name))
   const sources = bendImportInputs(
     root,
-    [resolve(directory, "CanonicalRuntime.bend"), resolve(directory, "ImportGraphRuntime.bend")],
+    [
+      resolve(directory, "CanonicalRuntime.bend"),
+      resolve(directory, "ImportGraphRuntime.bend"),
+      resolve(directory, "request-content/Runtime.bend")
+    ],
     toolchain.base.requested
   )
   return {
@@ -402,7 +410,7 @@ export function checkBendProducerReceipt(root, node, currentContext) {
       .join("\0") !== bendProducerOutputs.join("\0")
   )
     throw new Error("Incomplete or changed Bend producer output inventory")
-  for (const name of ["canonical.generated.d.ts", "import-graph.generated.d.ts"])
+  for (const name of ["canonical.generated.d.ts", "import-graph.generated.d.ts", "request-content.generated.d.ts"])
     if (!readFileSync(resolve(directory, "dist", name)).equals(readFileSync(resolve(directory, "abi", name))))
       throw new Error("Generated Bend declarations differ from authored ABI")
   const loaderEvidence = inventory
@@ -430,7 +438,7 @@ export async function buildBendProducer(root, node) {
     try {
       const before = await bendProducerContext(root, node)
       const authored = verifyAuthoredInputStamp(root, node, undefined, { bendToolchain: before.toolchain })
-      for (const generator of ["build-canonical.mjs", "build-import-graph.mjs"])
+      for (const generator of ["build-canonical.mjs", "build-import-graph.mjs", "build-request-content.mjs"])
         await runBuildProcess(
           resolve(root, before.toolchain.node.path),
           [resolve(directory, "scripts", generator), stage],
@@ -444,7 +452,7 @@ export async function buildBendProducer(root, node) {
           .join("\0") !== bendProducerOutputs.join("\0")
       )
         throw new Error("Bend generator output inventory differs from the declared ABI")
-      for (const name of ["canonical.generated.d.ts", "import-graph.generated.d.ts"])
+      for (const name of ["canonical.generated.d.ts", "import-graph.generated.d.ts", "request-content.generated.d.ts"])
         if (!readFileSync(resolve(stage, name)).equals(readFileSync(resolve(directory, "abi", name))))
           throw new Error("Generated Bend declarations differ from authored ABI")
       for (const input of staged.filter((input) => input.path.endsWith(".js")))

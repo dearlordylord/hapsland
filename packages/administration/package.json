@@ -219,6 +219,10 @@
     "./explanation/explain": {
       "types": "./dist/explanation/explain.d.ts",
       "default": "./dist/explanation/explain.js"
+    },
+    "./rules/check": {
+      "types": "./dist/rules/check.d.ts",
+      "default": "./dist/rules/check.js"
     }
   },
   "dependencies": {

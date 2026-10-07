@@ -291,6 +291,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@effect/ai-typesafe": "catalog:",
+        "@hapsland/agent-flow-bend": "workspace:*",
         "@hapsland/canonical-policy": "workspace:*",
         "@hapsland/delivery-output": "workspace:*",
         "@hapsland/inspection-records": "workspace:*",

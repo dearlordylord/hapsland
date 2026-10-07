@@ -87,7 +87,14 @@ def advance_applied(state: State, record: Record, action: Notice.Advance,
     case Record{id, partition, group, reservation, _, _} Notice.CreatePending{+count}:
       CreatePending{replace(state, Record{id, partition, group, reservation, 0n,
         Some{Pending{proposed, count, sequence, False{}}}}), count}
-    case Record{id, partition, group, reservation, _, Some{Pending{pending_id, _, previous, leased}}} Notice.MergePending{+count}:
+    case Record{
+      id,
+      partition,
+      group,
+      reservation,
+      _,
+      Some{Pending{pending_id, _, previous, leased}}
+    } Notice.MergePending{+count}:
       MergePending{replace(state, Record{id, partition, group, reservation, 0n,
         Some{Pending{pending_id, count, previous, leased}}}), count}
     case Record{id, partition, group, reservation, _, pending} Notice.KeepLeased{}:
@@ -140,9 +147,18 @@ def prune_pending(pending: Maybe<&2, Pending>, drop_lease: Bool,
 
 def prune_applied(+state: State, record: Record, decision: Notice.Prune) -> PruneResult:
   match record decision:
-    case Record{id, partition, group, reservation, suppressed, pending} Notice.Prune{+drop_lease, +drop_pending, +drop_key}:
+    case Record{id, partition, group, reservation, suppressed, pending} Notice.Prune{
+      +drop_lease,
+      +drop_pending,
+      +drop_key
+    }:
       match drop_key:
-        case True{}: Pruned{State{without(id, records_of(state))}, drop_lease, drop_pending, drop_key}
+        case True{}: Pruned{
+          State{without(id, records_of(state))},
+          drop_lease,
+          drop_pending,
+          drop_key
+        }
         case False{}:
           Pruned{replace(state, Record{id, partition, group, reservation, suppressed,
             prune_pending(pending, drop_lease, drop_pending)}),
@@ -201,10 +217,8 @@ def clear_pending(+state: State, key: Nat) -> Decision:
   match state:
     case State{records}: clear_pending_found(state, find_record(key, records))
 
-def contains(+id: Nat, items: List<&2, Nat>) -> Bool:
-  match items:
-    case Nil{}: False{}
-    case item <> rest: Bool.or(Nat.is_eq(id, item), contains(id, rest))
+def contains(id: Nat, items: List<&2, Nat>) -> Bool:
+  List.contains(~Nat, ~Nat.is_eq, items, id)
 
 def candidate(record: Record, partition: Nat, group: Nat, composed: Bool,
     authority_bound: Bool, allowed: List<&2, Nat>) -> Maybe<&2, Pending>:

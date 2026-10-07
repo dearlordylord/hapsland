@@ -62,15 +62,18 @@ async function fixture(t) {
       }
     })
   )
-  for (const name of ["CanonicalRuntime.bend", "ImportGraphRuntime.bend"])
+  mkdirSync(resolve(directory, "request-content"), { recursive: true })
+  for (const name of ["CanonicalRuntime.bend", "ImportGraphRuntime.bend", "request-content/Runtime.bend"])
     writeFileSync(resolve(directory, name), "import Base\n")
-  for (const name of ["build-canonical.mjs", "build-import-graph.mjs"])
+  writeFileSync(resolve(directory, "request-content/Runtime.bend"), "import Base\nimport ./core.bend as Core\n")
+  writeFileSync(resolve(directory, "request-content/core.bend"), "// Actual projector input fixture\n")
+  for (const name of ["build-canonical.mjs", "build-import-graph.mjs", "build-request-content.mjs"])
     writeFileSync(resolve(directory, "scripts", name), "// Generator fixture identity\n")
-  for (const name of ["canonical.generated.d.ts", "import-graph.generated.d.ts"]) {
+  for (const name of ["canonical.generated.d.ts", "import-graph.generated.d.ts", "request-content.generated.d.ts"]) {
     writeFileSync(resolve(directory, "abi", name), "export declare const fixture: number;\n")
     writeFileSync(resolve(directory, "dist", name), "export declare const fixture: number;\n")
   }
-  for (const name of ["canonical.generated.js", "import-graph.generated.js"])
+  for (const name of ["canonical.generated.js", "import-graph.generated.js", "request-content.generated.js"])
     writeFileSync(resolve(directory, "dist", name), "export const fixture=1;\n")
   const node = { path: directory },
     context = await bendProducerContext(root, node)
@@ -138,13 +141,13 @@ test("Darwin library evidence accepts absolute install names and rejects unresol
   )
   assert.throws(() => bendDarwinLibraries("/compiler:"), /Missing Darwin/)
 })
-test("valid receipt binds actual compiler/support/input bytes and exact four outputs", async (t) => {
+test("valid receipt binds actual compiler/support/input bytes and exact six outputs", async (t) => {
   const f = await fixture(t)
   assert.equal(f.verify().format, 1)
   assert.equal(f.context.toolchain.version, "bend 2.0.35")
   assert.ok(f.context.toolchain.support.inventory.length)
   assert.ok(f.context.toolchain.toolLibraries.length)
-  assert.equal(f.receipt.outputs.length, 4)
+  assert.equal(f.receipt.outputs.length, 6)
 })
 test("source repair and ABI edits cannot reuse a retained receipt", async (t) => {
   const f = await fixture(t)
@@ -272,6 +275,7 @@ test("Bend producer rejects unconsumed authored input drift and clears owned out
     `import {writeFileSync,copyFileSync,mkdirSync} from 'node:fs';import {resolve} from 'node:path';const output=resolve(process.argv[2]);mkdirSync(output,{recursive:true});writeFileSync(resolve(output,'${name}.generated.js'),'export const fixture=1;\\n');copyFileSync(resolve(import.meta.dirname,'../abi/${name}.generated.d.ts'),resolve(output,'${name}.generated.d.ts'));`
   writeFileSync(resolve(f.directory, "scripts/build-canonical.mjs"), generator("canonical"))
   writeFileSync(resolve(f.directory, "scripts/build-import-graph.mjs"), generator("import-graph"))
+  writeFileSync(resolve(f.directory, "scripts/build-request-content.mjs"), generator("request-content"))
   let toolchain = await bendProducerToolchain(f.root)
   prepareAuthoredTaskInputs(f.root, { packages: new Map([[manifest.name, owner]]) }, { bendToolchain: toolchain })
   await buildBendProducer(f.root, owner)
@@ -285,3 +289,16 @@ test("Bend producer rejects unconsumed authored input drift and clears owned out
   await assert.rejects(buildBendProducer(f.root, owner), /Authored task inputs changed/)
   assert.equal(existsSync(resolve(f.directory, "dist")), false)
 })
+
+test("request-content core and authored ABI remain producer receipt authority", async (t) => {
+  const f = await fixture(t)
+  f.verify()
+  writeFileSync(resolve(f.directory, "request-content/core.bend"), "// Changed projection policy\n")
+  assert.throws(f.verify, /Stale Bend producer receipt context|caller context is stale/)
+})
+for (const file of ["request-content.generated.js", "request-content.generated.d.ts"])
+  test(`omitted third producer output ${file} cannot pass a receipt`, async (t) => {
+    const f = await fixture(t)
+    rmSync(resolve(f.directory, "dist", file))
+    assert.throws(f.verify, /Incomplete or changed Bend producer output inventory/)
+  })

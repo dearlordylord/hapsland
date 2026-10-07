@@ -88,7 +88,7 @@ export const formatRuleInventory = (inventory: RuleInventory): string =>
           .join("\n")}`
     ),
     ...(inventory.enabledCount === 0 ? ["Warning: zero enabled rules; edits receive no rule evaluations."] : []),
-    "Edit the connected JSON files to author questions and feedback. Use hapsland rules create or rules connect to add a rule."
+    "Edit the rule JSON files to author questions and feedback. Use hapsland rules create or rules connect to add a rule."
   ].join("\n") + "\n"
 export const formatRule = (rule: RuleInventoryEntry): string =>
   [

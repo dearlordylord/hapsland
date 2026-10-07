@@ -110,7 +110,9 @@ export const nativeDirectCandidates = (command: string): ReadonlyArray<DirectCan
 const canonicalGitRoot = Effect.fn("DirectEvent.canonicalGitRoot")((cwd: string) =>
   discoverPhysicalWorkingTreeRoot(cwd).pipe(Effect.option)
 )
-export const verifyObservationRoot = Effect.fn("DirectEvent.verifyRoot")(function* (observation: DirectObservation) {
+export const verifyObservationRoot = Effect.fn("DirectEvent.verifyRoot")(function* (
+  observation: Pick<DirectObservation, "root" | "rootIdentity">
+) {
   const current = yield* discoverPhysicalWorkingTreeRoot(observation.root).pipe(Effect.option)
   if (current._tag === "None") return false
   return (

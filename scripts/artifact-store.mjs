@@ -66,7 +66,7 @@ export async function treeInventory(root, { deadline = Date.now() + 30000 } = {}
 }
 export async function artifactStoreDirectory(root) {
   const result = await execute("git", ["-C", root, "rev-parse", "--git-common-dir"], { timeout: 5000 })
-  return join(resolve(root, result.stdout.trim()), "hapsland-artifacts")
+  return join(await realpath(resolve(root, result.stdout.trim())), "hapsland-artifacts")
 }
 // Hash dependency contents under logical names, following workspace links without
 // putting a checkout's physical path or timestamps into the artifact identity.

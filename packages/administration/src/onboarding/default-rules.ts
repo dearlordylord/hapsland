@@ -35,7 +35,7 @@ const validateDefaultRuleIdentity = (
     throw configurationError(
       path,
       "id",
-      `default rule identity is already connected to a different file: '${existing.path}' and '${path}'`
+      `default rule identity already uses a different file: '${existing.path}' and '${path}'`
     )
   if (
     !connected &&
@@ -44,7 +44,7 @@ const validateDefaultRuleIdentity = (
     throw configurationError(
       configurationPath,
       "rules",
-      "default rule identity already has an inherited reference; connect its source explicitly"
+      "default rule identity already has an inherited reference; add its source explicitly"
     )
 }
 const defaultRulesChanged = (
@@ -80,7 +80,7 @@ export const previewDefaultRules = Effect.fn("Setup.previewDefaultRules")(functi
         throw configurationError(
           path,
           "$",
-          "connected default rule is missing; restore your authored file or remove its configuration reference"
+          "default rule file is missing; restore your authored file or remove its configuration reference"
         )
       const { source: _source, origin: _origin, definitionDigest: _digest, ...definition } = shipped
       const after = before ?? JSON.stringify(definition, null, 2) + "\n"

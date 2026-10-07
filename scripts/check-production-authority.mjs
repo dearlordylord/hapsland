@@ -68,6 +68,13 @@ const scan = (directory) => {
     )
       obsoleteImports.push(path)
     if (
+      path !== "packages/review-execution/src/review-providers/request-content.ts" &&
+      /from ["'](?:[^"']*request-content\.generated(?:\.js)?|@hapsland\/agent-flow-bend\/request-content)["']/.test(
+        source
+      )
+    )
+      obsoleteImports.push(path)
+    if (
       path !== "packages/canonical-policy/src/canonical/graph-adapter.ts" &&
       /from ["']@hapsland\/agent-flow-bend\/import-graph["']/.test(source)
     )

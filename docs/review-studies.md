@@ -41,7 +41,7 @@ These are selected synthetic examples. Differences also appeared on compact inpu
 | Report delivery | Type | Invalid delivery/recipient combinations (`r2`) | [Email needs recipients](./examples/large-declarations/report-delivery/README.md) |
 | Map camera | Type | Partial geographic center (`r3`) | [Both coordinates belong together](./examples/large-declarations/map-camera/README.md) |
 | Attachment manifest | Type | Count can disagree with attachments (`r4`) | [One source for the count](./examples/large-declarations/attachment-manifest/README.md) |
-| Render pool | Type | Unsupported worker counts (`r7`) | [Supported values and the compact counterexample](./examples/large-declarations/render-pool/README.md) |
+| Render pool | Type | Unallowed worker counts (`r7`) | [Allowed values and the compact counterexample](./examples/large-declarations/render-pool/README.md) |
 | Reservation window | Function | Hidden clock dependency (`r9`) | [Make the clock explicit](./examples/large-declarations/reservation-window/README.md) |
 | Moderation decision | Function | Hidden audit-writing dependency (`r9`) | [Make the writer explicit](./examples/large-declarations/moderation-decision/README.md) |
 

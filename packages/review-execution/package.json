@@ -55,6 +55,14 @@
     "./policy/index": {
       "types": "./dist/policy/index.d.ts",
       "default": "./dist/policy/index.js"
+    },
+    "./review-providers/request-content": {
+      "types": "./dist/review-providers/request-content.d.ts",
+      "default": "./dist/review-providers/request-content.js"
+    },
+    "./review-providers/transport": {
+      "types": "./dist/review-providers/transport.d.ts",
+      "default": "./dist/review-providers/transport.js"
     }
   },
   "dependencies": {
@@ -68,7 +76,8 @@
     "@hapsland/source-analysis": "workspace:*",
     "@hapsland/source-artifacts": "workspace:*",
     "@effect/ai-typesafe": "catalog:",
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "@hapsland/agent-flow-bend": "workspace:*"
   },
   "scripts": {
     "build": "node ../../scripts/compile-package.mjs",

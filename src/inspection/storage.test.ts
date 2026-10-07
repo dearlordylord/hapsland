@@ -306,7 +306,7 @@ describe("private inspection journal", () => {
       await publish(store, first)
       const script = `
       import { Effect } from "effect";
-      import { makeInspectionStorage } from ${JSON.stringify(new URL("./storage.ts", import.meta.url).href)};
+      import { makeInspectionStorage } from ${JSON.stringify("@hapsland/inspection-records/inspection/storage")};
       const value = JSON.parse(process.argv[2]);
       let allowed = true;
       const store = makeInspectionStorage(process.argv[1], { retentionMs: 1000, storageBytes: 1048576, now: () => 100 }, {
@@ -618,7 +618,7 @@ describe("private inspection journal", () => {
       const directory = await fixture()
       const script = `
       import { Effect } from "effect";
-      import { makeInspectionStorage } from ${JSON.stringify(new URL("./storage.ts", import.meta.url).href)};
+      import { makeInspectionStorage } from ${JSON.stringify("@hapsland/inspection-records/inspection/storage")};
       let now = 100;
       const store = makeInspectionStorage(process.argv[1], { retentionMs: 50, storageBytes: 1048576, now: () => now }, {
         ${boundary}: () => { process.stdout.write("pending-loss\\n"); return new Promise(() => {}); }

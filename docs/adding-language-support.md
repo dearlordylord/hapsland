@@ -3,16 +3,16 @@
 **Purpose:** Describe the current adapter architecture and the repeatable workflow for adding a source language to Hapsland.
 **Status:** Maintained contributor guidance.
 **Authority:** Implementation guidance and links to validation evidence. The [accepted type/function review contract](type-function-review-proposal.md), [rule evaluation model](../PRODUCT-RULE-EVALUATION-MODEL.md), and runtime contracts own product requirements; this guide does not amend them.
-**Expected use:** Implement, test, and review a bounded source-language adapter.
-**Lifecycle:** Update with adapter interfaces, supported profiles, validation tools, or new binding counterexamples. Review whenever parser/compiler assumptions, capture boundaries, rule capabilities, or agent-runtime profiles change.
+**Expected use:** Implement, test, and review a source-language adapter.
+**Lifecycle:** Update with adapter interfaces, analysis profiles, validation tools, or new binding counterexamples. Review whenever parser/compiler assumptions, capture boundaries, rule capabilities, or agent-runtime profiles change.
 
 ## Current implementation
 
 TypeScript, Rust, and Bend use the shared review pipeline. The
-[README language table](../README.md#supported-languages) describes user-facing
+[README language table](../README.md#languages-and-limits) describes user-facing
 support; the [branch contracts](type-function-review-proposal.md#branch-contracts)
 own exact syntax, binding, and omission rules. External crates, Bend hub imports,
-and unsupported or ambiguous bindings remain outside supported resolution.
+and unsupported or ambiguous bindings remain outside resolution scope.
 
 Source-language code lives in
 [`src/direct-event/languages/`](../src/direct-event/languages). The static
@@ -25,8 +25,7 @@ Hapsland is not a syntax checker and does not guarantee analysis of incomplete o
 malformed source. Do not introduce editor-style recovery merely to support such
 inputs. Keep syntax validity separate from evidence completeness: unsupported
 types and missing or ambiguous dependencies still require omissions and rule
-gating. For Bend, unrelated def/law bodies and literals must not obscure supported
-datatype declarations or create bindings from literal text.
+gating. For Bend, unrelated def/law bodies and literals must not obscure datatype declarations or create bindings from literal text.
 
 | Responsibility | Owner |
 | --- | --- |
@@ -45,7 +44,7 @@ language flags, grammar selection, or filename conventions.
 
 ## Adding a language
 
-1. Decide the bounded profile in the contract owner: extensions, root families,
+1. Decide the analysis profile in the contract owner: extensions, root families,
    syntax, builtin assumptions, bindings, module authority, omissions, and rule
    capabilities. Supporting a parser does not establish language-wide support.
 2. Implement a cohesive adapter against `LanguageAdapter`. Return exact source,
@@ -76,7 +75,7 @@ It uses a separate boundary projection and a semantic projection with literal
 markers, while source and positions come from the original capture. This adopts
 neither the editor's malformed-input recovery nor its JVM/IntelliJ dependency.
 Compare new lexical examples with the development compiler when changing the
-profile; compiler acceptance and supported evidence are separate assertions.
+profile; compiler acceptance and available evidence are separate assertions.
 
 Test plausible-looking bindings as well as happy paths:
 

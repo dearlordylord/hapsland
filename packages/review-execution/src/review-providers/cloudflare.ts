@@ -1,4 +1,4 @@
-import { inspectHttpTransport } from "@hapsland/inspection-records/inspection/transport"
+import { reviewHttpTransport } from "./transport.ts"
 import { assertReviewEngineBoundary } from "@hapsland/runtime-environment/runtime/review-engine-boundary"
 import * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
@@ -132,9 +132,9 @@ export const liveLayer = (options: {
   ).pipe(
     Layer.provide(
       options.httpClient === undefined
-        ? Layer.effect(HttpClient.HttpClient, Effect.map(HttpClient.HttpClient, inspectHttpTransport)).pipe(
+        ? Layer.effect(HttpClient.HttpClient, Effect.map(HttpClient.HttpClient, reviewHttpTransport)).pipe(
             Layer.provide(FetchHttpClient.layer)
           )
-        : Layer.succeed(HttpClient.HttpClient, inspectHttpTransport(options.httpClient))
+        : Layer.succeed(HttpClient.HttpClient, reviewHttpTransport(options.httpClient))
     )
   )

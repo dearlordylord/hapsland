@@ -1,4 +1,6 @@
+import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
 import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
+import { parseJsonc } from "@hapsland/runtime-inputs/configuration/jsonc"
 import { Effect } from "effect"
 import { loadReviewSettings } from "@hapsland/review-definition/runtime/review-config"
 import { reviewCodexDirectEvent } from "@hapsland/review-execution/direct-event/pipeline"
@@ -24,7 +26,7 @@ afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
-it("creates, inspects, disables and reconnects a project rule through the CLI", async () => {
+it("creates, inspects, disables and adds a project rule again through the CLI", async () => {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "hapsland-rules-cli-")))
   roots.push(root)
   execFileSync("git", ["init", "--quiet", root])
@@ -44,8 +46,11 @@ it("creates, inspects, disables and reconnects a project rule through the CLI", 
   const created = run("create", "--id", "team", "--scope", "project", "--json")
   expect(created.stderr).toBe("")
   expect(created.status).toBe(0)
-  const path = join(root, ".hapsland/rules/custom/team.json")
+  const path = join(root, ".hapsland/rules/custom/team.jsonc")
   const authored = readFileSync(path, "utf8")
+  expect(authored).toContain('// kind: "type"')
+  expect(authored).toContain('"function" (TypeScript only)')
+  expect(authored).toContain("resolved-local-calls")
   writeFileSync(join(root, "type.ts"), "type OrderCount = number")
   let calls = 0
   const model = controlledDecisionModelLayer({
@@ -106,7 +111,7 @@ it("creates, inspects, disables and reconnects a project rule through the CLI", 
   expect(JSON.parse(run("list", "--json").stdout).rules).toHaveLength(1)
 })
 
-it("creates personal rules, connects a custom rule in defaults and rejects invalid inputs before writes", () => {
+it("creates personal rules, adds a custom rule in defaults and rejects invalid inputs before writes", () => {
   const root = mkdtempSync(join(tmpdir(), "hapsland-personal-rules-"))
   roots.push(root)
   execFileSync("git", ["init", "--quiet", root])
@@ -119,8 +124,9 @@ it("creates personal rules, connects a custom rule in defaults and rejects inval
       timeout: 20_000
     })
   expect(run("create", "--id", "mine", "--scope", "personal", "--json").status).toBe(0)
-  const original = join(root, "personal/rules/custom/mine.json")
-  const document = JSON.parse(readFileSync(original, "utf8"))
+  const original = join(root, "personal/rules/custom/mine.jsonc")
+  const document = parseJsonc(readFileSync(original, "utf8"))
+  if (document === null || typeof document !== "object") throw new Error("expected rule object")
   expect(JSON.parse(run("list", "--json").stdout)).toMatchObject({
     enabledCount: 1,
     rules: [{ origin: { layer: "user" }, id: "mine" }]
@@ -144,13 +150,13 @@ it("creates personal rules, connects a custom rule in defaults and rejects inval
   roots.push(outside)
   symlinkSync(outside, join(root, ".hapsland"), "dir")
   expect(run("create", "--id", "escaped", "--scope", "project").status).not.toBe(0)
-  expect(existsSync(join(outside, "rules/custom/escaped.json"))).toBe(false)
+  expect(existsSync(join(outside, "rules/custom/escaped.jsonc"))).toBe(false)
   expect(readFileSync(configurationPath, "utf8")).toBe(before)
   expect(existsSync(join(root, ".hapsland.jsonc"))).toBe(false)
   expect(run("list").stdout).toContain(original)
 })
 
-it("binds all connected authored sources to previews and rejects unsupported active schema rules before writes", async () => {
+it("binds all authored sources to previews and rejects unsupported active schema rules before writes", async () => {
   const root = mkdtempSync(join(tmpdir(), "hapsland-rule-preview-"))
   roots.push(root)
   execFileSync("git", ["init", "--quiet", root])
@@ -161,15 +167,16 @@ it("binds all connected authored sources to previews and rejects unsupported act
   await Effect.runPromise(applyRuleChange(root, create, initial.digest, options))
   const { formatRuleChangePreview } = await import("@hapsland/administration/rules/command")
   expect(formatRuleChangePreview(initial)).toContain(
-    `This will connect the rule in ${join(root, ".hapsland.jsonc")}. The rule will be enabled.`
+    `This will update the rule settings in ${join(root, ".hapsland.jsonc")}. The rule will be enabled.`
   )
-  expect(initial.path).toBe(join(root, ".hapsland/rules/custom/domain%2Fcount.json"))
+  expect(initial.path).toBe(join(root, ".hapsland/rules/custom/domain%2Fcount.jsonc"))
   const toggle = { action: "disable", scope: "project", id: "domain/count" } as const
   const plan = await Effect.runPromise(previewRuleChange(root, toggle, options))
   expect(formatRuleChangePreview(plan)).toContain("The rule will be disabled.")
   const path = initial.path
   if (path === undefined) throw new Error("missing authored file")
-  const document = JSON.parse(readFileSync(path, "utf8"))
+  const document = parseJsonc(readFileSync(path, "utf8"))
+  if (document === null || typeof document !== "object") throw new Error("expected rule object")
   writeFileSync(path, JSON.stringify({ ...document, question: "Edited after preview" }))
   const stale = await Effect.runPromise(applyRuleChange(root, toggle, plan.digest, options).pipe(Effect.result))
   expect(stale).toMatchObject({ _tag: "Failure", failure: { reason: expect.stringContaining("stale") } })
@@ -277,4 +284,60 @@ it("preserves explicit empty, reduced and project selections during repeated def
   expect(project).toMatchObject({ changed: false, files: [], paths: [] })
   await Effect.runPromise(applyDefaultRules(configurationPath, project.digest, root))
   expect(existsSync(configurationPath)).toBe(false)
+})
+
+it("runs one-off rule checks without stdin or resident state and reports unavailable credentials", () => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "hapsland-check-cli-")))
+  roots.push(root)
+  execFileSync("git", ["init", "--quiet", root])
+  writeFileSync(join(root, "type.ts"), "type Selected = string")
+  writeFileSync(
+    join(root, "rule.json"),
+    JSON.stringify({
+      version: 1,
+      id: "example",
+      question: "Is this invalid?",
+      criteria: { false: "Valid", true: "Invalid" },
+      message: "Review it",
+      inputs: [{ languages: ["typescript"], kind: "type", requires: ["root-declaration"] }]
+    })
+  )
+  writeFileSync(
+    join(root, ".hapsland.jsonc"),
+    JSON.stringify({ version: 1, rules: ["rule.json"], credentialEnvVar: "HAPSLAND_TEST_MISSING_KEY" })
+  )
+  const run = (...args: string[]) =>
+    spawnSync(bunExecutable(), [join(process.cwd(), "packages/cli-entry/src/cli.ts"), "rules", "check", ...args], {
+      cwd: root,
+      input: "not JSON",
+      encoding: "utf8",
+      timeout: DEFAULT_CHILD_TIMEOUT_MS,
+      env: {
+        ...process.env,
+        HOME: root,
+        REVIEW_USER_CONFIG_PATH: join(root, "missing-user.json"),
+        HAPSLAND_TEST_MISSING_KEY: "",
+        REVIEW_CONTROL_JSON: "not JSON",
+        REVIEW_STATE_PATH: join(root, "resident-state"),
+        REVIEW_ACTIVITY_PATH: join(root, "activity")
+      }
+    })
+  const json = run("--path", "type.ts", "--line", "1", "--json")
+  expect(json.status).toBe(6)
+  expect(json.stderr).toBe("")
+  expect(JSON.parse(json.stdout)).toMatchObject({
+    operation: "rule-check",
+    status: "unavailable",
+    reason: "credential-missing",
+    classifierCalls: 0,
+    declaration: { name: "Selected" },
+    results: []
+  })
+  const human = run("--path", "type.ts", "--line", "1")
+  expect(human.status).toBe(6)
+  expect(human.stdout).toContain("Selected")
+  expect(human.stdout).toContain("No resident or agent session")
+  expect(existsSync(join(root, "resident-state"))).toBe(false)
+  expect(existsSync(join(root, "activity"))).toBe(false)
+  expect(existsSync(join(root, ".hapsland", "runtime"))).toBe(false)
 })

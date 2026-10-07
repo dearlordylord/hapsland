@@ -11,7 +11,7 @@ import { SHIPPED_DEFAULT_RULES } from "@hapsland/review-definition/rules/shipped
 import { TYPE_INPUT_CONTRACT, TYPE_CAPABILITIES } from "@hapsland/review-definition/rules/targets"
 const rule = {
   version: 1,
-  id: "team/state",
+  id: "namespace/state",
   question: "Is state invalid?",
   criteria: { false: "valid", true: "invalid" },
   message: "Fix state",
@@ -42,7 +42,7 @@ describe("individual rules", () => {
     expect(digestRuleDefinition(decodeRuleDocument(rule, "a"))).toBe(
       digestRuleDefinition(decodeRuleDocument({ ...rule }, "b"))
     )
-    expect(compileRule(rule, "a").id).toBe("team/state")
+    expect(compileRule(rule, "a").id).toBe("namespace/state")
   })
   it("rejects removed fields and malformed input pairs", () => {
     for (const field of ["minimumRung", "applicability", "contentVersion", "reviewTargets"])

@@ -1,5 +1,7 @@
 set -eu
 
+python3 scripts/bend-format.py check --staged
+
 npm exec --no -- lint-staged
 
 npm run typecheck

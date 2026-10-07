@@ -25,12 +25,12 @@ flow or provider request was executed for this investigation.
 
 Abide's [shared credential resolver](https://github.com/coldteadotai/abide/blob/a4c33c5e0f8fe5a8fa30c1757c6d54598da073ac/packages/cli/src/lib/credentials.ts#L28-L109)
 searches process environment, repository `.env.local`, repository `.env`, then
-`~/.abide/.env`, choosing the first source with a nonempty supported key.
+`~/.abide/.env`, choosing the first source with a nonempty recognized key.
 [Init](https://github.com/coldteadotai/abide/blob/a4c33c5e0f8fe5a8fa30c1757c6d54598da073ac/packages/cli/src/commands/init.ts#L49-L55)
 and [session-start hooks](https://github.com/coldteadotai/abide/blob/a4c33c5e0f8fe5a8fa30c1757c6d54598da073ac/packages/cli/src/hooks/sessionStart.ts#L64-L76)
 use that resolver; edit and stop hooks do too. A new hook process reads the file
 sources itself rather than depending on environment injected during installation.
-The reader extracts supported credential fields without loading the whole file
+The reader extracts recognized credential fields without loading the whole file
 into process environment. Login writes an owner-only file; it does not use a
 native credential store. These are SRC / SOURCE-INSPECTED claims.
 

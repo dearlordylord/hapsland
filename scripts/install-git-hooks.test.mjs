@@ -1,14 +1,14 @@
 import test from "node:test"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs"
+import { realpathSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { installGitHooks } from "./install-git-hooks.mjs"
 
 const git = (root, ...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8", timeout: 5000 }).trim()
 test("one shared dispatcher runs maintained hooks in existing and future worktrees", () => {
-  const temp = mkdtempSync(join(tmpdir(), "hapsland-hooks-test-"))
+  const temp = realpathSync(mkdtempSync(join(tmpdir(), "hapsland-hooks-test-")))
   try {
     const root = join(temp, "main")
     mkdirSync(root)
@@ -28,7 +28,7 @@ test("one shared dispatcher runs maintained hooks in existing and future worktre
     assert.equal(installGitHooks(root).hooksPath, installed.hooksPath)
     rmSync(join(existing, ".husky/pre-commit"))
     git(existing, "hook", "run", "pre-commit")
-    assert.equal(readFileSync(join(existing, "hook-working-directory"), "utf8").trim(), existing)
+    assert.equal(readFileSync(join(existing, "hook-working-directory"), "utf8").trim(), realpathSync(existing))
     installGitHooks(existing)
     writeFileSync(join(existing, ".husky/pre-commit"), "set -eu\npwd > hook-working-directory\n")
     const future = join(temp, "future")
