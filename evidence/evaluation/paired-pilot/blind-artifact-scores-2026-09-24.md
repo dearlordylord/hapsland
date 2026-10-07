@@ -1,5 +1,7 @@
 # Issue #95 initial blind artifact scores — 2026-09-24
 
+**Provenance clarification (2026-10-07):** References below to `TYPE-DESIGN-RULES.md` name the [frozen five-rule rubric](https://github.com/dearlordylord/hapsland/blob/2d5ec8f3e2359dd4aa3bf37a0588d9e69e3b2496/TYPE-DESIGN-RULES.md). Its removal from current guidance does not amend this historical declaration or scoring.
+
 These scores were frozen from the source-only `blind-score-2026-09-24/` package, accepted prompt, `TYPE-DESIGN-RULES.md`, and preregistered Stage 2 rubric. Candidate labels are arbitrary. I did not inspect the mapping key, run records, Hapsland findings, prior scores, or host ledger. This is descriptive artifact scoring of an incomplete pilot, not a paired quality effect claim. Hapsland-supported-unit status cannot be determined from the blind source package and is **unassessed** for every defect below.
 
 | Frozen cell | Maximum | candidate-r4 | candidate-m7 |

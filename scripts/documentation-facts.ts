@@ -84,7 +84,7 @@ export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocu
     {
       path: "docs/configuration.md",
       name: "authoring-default",
-      text: `See the [default rules](../TYPE-DESIGN-RULES.md). The default \`${primitiveDomainDefinition.id}\` already addresses primitive domain values; inspect it before adding a custom variant. \`${CUSTOM_RULE_EXAMPLE_ID}\` below teaches custom authoring.`
+      text: `Inspect [the enabled rules](#declarative-rules). The default \`${primitiveDomainDefinition.id}\` already addresses primitive domain values; inspect it before adding a custom variant. \`${CUSTOM_RULE_EXAMPLE_ID}\` below teaches custom authoring.`
     },
     { path: "README.md", name: "rule-check-example", text: ["```sh", authoringCheckCommands[0], "```"].join("\n") },
     {

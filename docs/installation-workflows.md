@@ -24,8 +24,8 @@ release; they are not currently a working first-install path.
 ### Before setup
 
 You need Git, your coding agent installed and runnable, and a Git repository for
-checking review readiness. Hapsland supplies its own runtime in installed
-packages. Building from source requires additional tools listed below.
+checking review readiness. Installed Hapsland executables include their runtime
+and need neither Node nor Bun on PATH. Building from source requires the development tools listed below.
 
 | Agent | Setup choice | Compatibility requirement |
 | --- | --- | --- |
@@ -63,9 +63,10 @@ check may use paid credits and sends a built-in greeting, not project code.
 
 ### Install before publication
 
-For a local source build, install Git, Node.js with `--experimental-strip-types`
-support, npm, mise, the Bend toolchain and a C compiler first. macOS needs Xcode
-Command Line Tools; Linux additionally needs `pkg-config` and libsecret development
+For a local source build, install Git, Node.js 24.20.0, npm, mise, the Bend
+toolchain and a C compiler first. Select Node 24.20.0 for the commands below;
+this development prerequisite does not apply to installed Hapsland executables.
+macOS needs Xcode Command Line Tools; Linux additionally needs `pkg-config` and libsecret development
 files. Turbo compiles the Bend producer from authored sources with the
 manifest-pinned Bend and Lean tools. On Linux, `node scripts/install-bend-toolchain.mjs` installs the
 repository's pinned toolchain; follow its printed PATH instructions. That
@@ -83,9 +84,9 @@ cd hapsland
 From the checkout root:
 
 ```sh
-mise install bun@1.3.14
-mise exec bun@1.3.14 -- bun install
-mise exec bun@1.3.14 -- npm run dev-install -- --host=codex
+mise install node@24.20.0 bun@1.3.14
+mise exec node@24.20.0 bun@1.3.14 -- bun install
+mise exec node@24.20.0 bun@1.3.14 -- npm run dev-install -- --host=codex
 # Choose --host=claude or --host=pi instead for those agents.
 ```
 
@@ -191,7 +192,8 @@ before interactive writes. Merely saving a rule file does not activate it.
 
 The selected profile is user-wide by default. File settings control repositories and files; invoking setup from a repository does not restrict the installed hooks to that repository. Use [configuration](configuration.md) to bound review scope. `--claude-home=PATH`, `--codex-home=PATH`, or `--pi-home=PATH` and the corresponding `--claude-executable=PATH`, `--codex-executable=PATH`, or `--pi-executable=PATH` select the registration and compatibility probe. An alternate registration home alone does not configure the client process to use that home.
 
-Finish current client work, restart the client normally, and complete its native repository/hook trust prompts. Edit a type or function and inspect [session activity](status.md). Installation and offline readiness do not prove a review or model repair happened. Diagnose without a JSON request:
+Finish current client work, restart the client normally, and complete its native repository/hook trust prompts. Enable [inspection recording](status.md#opt-in-local-inspection), make a new supported
+agent edit, then run `hapsland dashboard` and open its printed URL. Installation and offline readiness do not prove a review or model repair happened. Diagnose without a JSON request:
 
 ```sh
 hapsland doctor              # All registered clients, read-only
@@ -261,7 +263,7 @@ hooks in the selected client profile.
 | Agent executable missing or unsupported | Install the agent, check its version and PATH, or pass the matching `--CLIENT-executable=/absolute/path` option. Check the compatibility table above. |
 | Credential store locked or unavailable | Unlock the login keyring/Keychain, or use an ignored, owner-only credential file as described in [credential lookup](#personal-development-on-your-own-clients). |
 | A new saved key is not active | Environment and file keys take precedence. Replace the source shown by setup; `--new-key` changes saved login only. |
-| Hooks installed, readiness still `unknown` | Finish current work, restart the agent, complete native trust prompts, make a supported edit, then inspect [session activity](status.md#session-status). |
+| Hooks installed, readiness still `unknown` | Finish current work, restart the agent, complete native trust prompts, make a supported edit, then use the [opt-in inspection dashboard](status.md#opt-in-local-inspection). |
 | No feedback after an edit | Run `hapsland doctor CLIENT` from that repository; check credentials, file scope, rules and supported syntax. Silence does not mean a review passed. |
 | Changed hooks or an interrupted install | Run doctor, then [repair or reinstall](#disablement-removal-and-recovery) after reviewing the proposed changes. |
 
@@ -327,13 +329,14 @@ useful for testing an installation candidate; it does not run hooks from the
 changing checkout. Code changes require an ordinary build, freshly packed archive and activation. Every preparation invokes the ordinary build and fresh validation; Turbo may reuse individual build tasks. Identical archive bytes may reuse a verified installed snapshot.
 Do not present this command as a workflow that immediately picks up source edits.
 
-Builds require exact Bun 1.3.14. With mise installed, select it explicitly:
+Source development uses Node 24.20.0 and exact Bun 1.3.14. With mise installed,
+select both explicitly:
 
 ```sh
-mise install bun@1.3.14
-mise exec bun@1.3.14 -- npm run dev-install -- --host=claude
+mise install node@24.20.0 bun@1.3.14
+mise exec node@24.20.0 bun@1.3.14 -- npm run dev-install -- --host=claude
 # Or:
-mise exec bun@1.3.14 -- npm run dev-install -- --host=codex
+mise exec node@24.20.0 bun@1.3.14 -- npm run dev-install -- --host=codex
 ```
 
 The standalone builder also discovers an already installed mise Bun 1.3.14
@@ -344,14 +347,14 @@ standalone packages embed Bun and do not require users to install it separately.
 `dev-install` invokes the ordinary build, validates the selected native profile, and packs an archive on every run. Turbo owns build-task reuse and output restoration. Completed archives are retained by SHA-256 under the shared Git artifact store; retained bytes never skip build, validation or packing. Preparation holds the checkout build lease through packing and rejects changed source, dependency or runtime-output evidence. Native outputs generated on this host belong to their declared producers; retained foreign binaries and parser bindings remain inputs. Development builds select the current platform; release preparation explicitly builds and validates both supported profiles. Setup still runs every time, including `--new-key`. The script stages a verified installed candidate, records Git commit/dirty-tree/checksum identity, and launches the package's guided setup. It does not publish. Use the same command for first installation and subsequent source updates: guided setup previews and replaces healthy owned hooks with the newly built target, preserving unrelated hooks. `--update` selects the dedicated update flow instead of guided setup. To choose that flow explicitly:
 
 ```sh
-mise exec bun@1.3.14 -- npm run dev-install -- --host=claude --update
-mise exec bun@1.3.14 -- npm run dev-install -- --host=codex --update
+mise exec node@24.20.0 bun@1.3.14 -- npm run dev-install -- --host=claude --update
+mise exec node@24.20.0 bun@1.3.14 -- npm run dev-install -- --host=codex --update
 ```
 
 To request a replacement key during development installation:
 
 ```sh
-mise exec bun@1.3.14 -- npm run dev-install -- --host=codex --new-key
+mise exec node@24.20.0 bun@1.3.14 -- npm run dev-install -- --host=codex --new-key
 ```
 
 Setup, status, doctor and installed hooks share credential lookup: explicit process environment, repository-root `.env.local`, repository-root `.env`, then `$XDG_CONFIG_HOME/hapsland/.env` (default `~/.config/hapsland/.env`). Missing or empty file keys allow the next source; an explicitly present environment variable, including an empty value, takes precedence over files. Without a file or environment key, the default credential reference falls back to native storage. An explicitly configured `credentialEnvVar` selects that named key from environment/files without native fallback.
@@ -414,7 +417,10 @@ An interrupted Codex operation with a resumable journal resumes after approval. 
 
 Uninstall previews removal of Hapsland-owned hooks and its owned feature entry. Remove hooks **before** uninstalling any npm package they reference. An already missing owned hook is safe to remove; locally modified entries require explicit reinstall or manual reconciliation first. User settings, credentials, independent hooks and native trust are preserved. Unchecking a client in setup only skips that profile and does not uninstall it.
 
-Set user `excludes` to `["**/*"]` to stop future review dispatch without uninstalling. Requests already sent cannot be recalled. `hapsland --logout` separately removes the saved key.
+To disable review without uninstalling, set user `excludes` to `["**/*"]`; see
+[edit-owned settings](review-contract-compatibility.md#edit-owned-settings) for
+when saved settings take effect. Requests already sent cannot be recalled. `hapsland --logout`
+separately removes the saved key.
 
 Remaining work outside this implementation: authenticated candidate-to-stable trials on each advertised client/platform, host upgrade cadence, project-level installation scope, coexistence trials with other hook tools, release account ownership, and how deprecation notices reach installed users. Ordinary tests remain offline; installation itself performs no paid review.
 

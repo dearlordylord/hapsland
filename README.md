@@ -124,8 +124,7 @@ Author one rule per file and enable it. Choose personal or project
 settings for activation, languages, file scope, threshold, and feedback messages.
 File paths belong to settings; the rule defines the concern and evidence it needs.
 A configured rule runs only on inputs with sufficient evidence. See
-[custom rules](./docs/configuration.md#declarative-rules) and the
-[type-design rules](./TYPE-DESIGN-RULES.md).
+[custom rules](./docs/configuration.md#declarative-rules).
 
 See [languages and limits](#languages-and-limits) before setup.
 
@@ -242,7 +241,8 @@ After a stable release is published and verified, install manually:
    using a built-in greeting; it sends no project code and may use paid credits.
 
 3. Finish current client work, restart the client normally, complete its native
-   trust prompts, and edit a type or function. Follow the [status guide](./docs/status.md) to inspect observed review activity;
+   trust prompts. Follow the [inspection guide](./docs/status.md#opt-in-local-inspection)
+   to enable recording, make a new supported edit, and inspect its review;
    installation alone does not establish that a review ran.
 
 The hooks apply across the selected user profile, not just the repository where
@@ -334,12 +334,14 @@ Recording is off by default: add `"sessionInspection": true` into your project's
 
 <!-- inspection-recording:end -->
 
-Install a fresh local snapshot on your own client without publishing:
+Install a fresh local snapshot on your own client without publishing. First install
+the [source-build prerequisites](./docs/installation-workflows.md#install-before-publication),
+including Node 24.20.0; installed Hapsland executables need neither Node nor Bun on PATH.
 
 ```sh
-mise install bun@1.3.14
-mise exec bun@1.3.14 -- npm run dev-install -- --host=claude
-mise exec bun@1.3.14 -- npm run dev-install -- --host=codex
+mise install node@24.20.0 bun@1.3.14
+mise exec node@24.20.0 bun@1.3.14 -- npm run dev-install -- --host=claude
+mise exec node@24.20.0 bun@1.3.14 -- npm run dev-install -- --host=codex
 # Rerun the same command after source changes; --update optionally selects the update flow.
 ```
 

@@ -4,6 +4,6 @@ python3 scripts/bend-format.py check --staged
 
 npm exec --no -- lint-staged
 
-npm run typecheck
-
 npm run docs:generated:check
+
+npm run typecheck:source

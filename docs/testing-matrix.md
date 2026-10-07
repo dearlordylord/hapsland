@@ -81,13 +81,19 @@ Run `npm run hooks:install` once per repository. The shared Git dispatcher invok
 the current worktree's maintained `.husky/pre-commit`, including lint-staged,
 typechecking, and `docs:generated:check`, for existing and newly created worktrees.
 Run `npm run docs:generate` after changing schemas, documented runtime constants,
-hook definitions, or the dashboard flow model. One generator inventory updates
-configuration schemas/references, the hook table, the architecture Mermaid, and
-comparison pages from frozen evidence. It makes no provider requests or new measurements.
+workspace manifests, boundary schemas, hook definitions, interaction models or
+the dashboard flow model. One generator inventory prepares private packages
+through the existing Turbo build, then updates configuration schemas/references,
+the hook table, architecture views, decision-boundary inventories, interaction
+diagrams and comparison pages from frozen evidence. It makes no provider requests
+or new measurements.
 `docs:generated:check` verifies those artifacts without rewriting them; fast checks,
 pre-commit and the deterministic runner precheck invoke it. A stale artifact blocks
-the workflow with its generator's diagnostic. The focused `config:generate`,
-`hooks:generate` and `architecture:generate` commands remain available.
+the workflow with its generator's diagnostic. The focused owner commands assume their compiled prerequisites already exist.
+Use the common commands on a fresh checkout. `check:fast` and pre-commit run
+package preparation once through the common drift check, then `typecheck:source`
+runs the remaining compiler/import checks; ordinary `typecheck` still prepares
+packages itself.
 [Fact renderers](../scripts/documentation-facts.ts)
 import limits and names from their implementation owners. Edit those owners and
 renderers, rather than generated sections.

@@ -1,0 +1,109 @@
+[
+  {
+    "id": "TS-001",
+    "owners": [
+      "@hapsland/native-observation/direct-event/adapter",
+      "@hapsland/native-observation/direct-event/pi-adapter"
+    ]
+  },
+  {
+    "id": "TS-002",
+    "owners": [
+      "@hapsland/native-observation/direct-event/adapter",
+      "@hapsland/native-observation/direct-event/pi-adapter"
+    ]
+  },
+  {
+    "id": "TS-003",
+    "owners": [
+      "@hapsland/resident-runtime/resident/composed-delivery"
+    ]
+  },
+  {
+    "id": "TS-004",
+    "owners": [
+      "@hapsland/resident-runtime/resident/composed-delivery"
+    ]
+  },
+  {
+    "id": "TS-005a",
+    "owners": [
+      "@hapsland/resident-runtime/resident/composed-delivery"
+    ]
+  },
+  {
+    "id": "TS-005b",
+    "owners": [
+      "@hapsland/resident-runtime/resident/composed-delivery"
+    ]
+  },
+  {
+    "id": "TS-005c",
+    "owners": [
+      "@hapsland/resident-runtime/resident/composed-delivery"
+    ]
+  },
+  {
+    "id": "TS-005d",
+    "owners": [
+      "@hapsland/resident-runtime/resident/composed-delivery"
+    ]
+  },
+  {
+    "id": "TS-005h",
+    "owners": [
+      "@hapsland/resident-runtime/resident/capacity",
+      "@hapsland/resident-runtime/resident/composed-delivery"
+    ]
+  },
+  {
+    "id": "TS-006",
+    "owners": [
+      "@hapsland/source-analysis/direct-event/analyzer",
+      "@hapsland/source-analysis/direct-event/graph-resolver",
+      "@hapsland/native-observation/direct-event/selection",
+      "@hapsland/review-definition/rules/compiler",
+      "@hapsland/review-definition/rules/decision"
+    ],
+    "events": [
+      "ruleApplicabilityCheck",
+      "ruleEnableCheck",
+      "ruleFindingCheck"
+    ]
+  },
+  {
+    "id": "TS-007",
+    "owners": [
+      "@hapsland/resident-runtime/resident/capacity",
+      "@hapsland/resident-runtime/resident/composed-delivery"
+    ]
+  },
+  {
+    "id": "TS-008",
+    "owners": [
+      "@hapsland/resident-runtime/resident/server",
+      "@hapsland/resident-runtime/resident/composed-delivery"
+    ]
+  },
+  {
+    "id": "TS-009a",
+    "owners": [
+      "@hapsland/resident-runtime/resident/server",
+      "@hapsland/resident-runtime/resident/composed-delivery"
+    ]
+  },
+  {
+    "id": "TS-009b",
+    "owners": [
+      "@hapsland/resident-runtime/resident/server",
+      "@hapsland/resident-runtime/resident/composed-delivery"
+    ]
+  },
+  {
+    "id": "TS-010",
+    "owners": [
+      "@hapsland/review-definition/review-providers/catalog",
+      "@hapsland/review-execution/jev-decision"
+    ]
+  }
+]

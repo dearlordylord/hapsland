@@ -92,7 +92,13 @@ With credentials available and no file settings, all otherwise eligible files ar
 
 Access exclusions and size limits act at different points. An excluded dependency is refused before its source is read. A dependency's source may already have been read when its contribution is found not to fit the evidence tree; that contribution is then omitted. A walkthrough must distinguish local reads from code included in the request.
 
-Before dispatch, captured files must still match. Before advice is delivered, Hapsland rebuilds the unit and checks current source, policy, rules, and attribution. Changing exclusions affects future dispatches; it cannot recall a request already sent. The user configuration selects Jev or Cloudflare Clef/Clef-flash through Effect's provider-neutral `DecisionModel`. The [provider boundary and limit catalog](review-providers.md) separate model input constraints from graph and resident limits and identify unmeasured token budgets. See [configuration](configuration.md) for exact controls and precedence.
+Each edit retains its captured configuration and compiled rules; changing exclusions
+affects later edit snapshots. The [edit-owned settings contract](review-contract-compatibility.md#edit-owned-settings)
+owns that boundary. [Source freshness](review-contract-compatibility.md#freshness-and-result-reuse)
+and [credential and handoff authority](advicing-target-contract.md#handoff-reoffer-and-continuation-count)
+are rechecked independently. The [provider boundary and limit catalog](review-providers.md)
+describe provider selection, model input constraints and unmeasured token budgets;
+[configuration](configuration.md) describes the controls and precedence.
 
 ## Runtime ownership
 

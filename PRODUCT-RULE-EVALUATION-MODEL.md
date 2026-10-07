@@ -9,12 +9,7 @@
 Formal checking with Quint and `quint-connect-ts` remains later work; this document
 does not establish tool compatibility or an implemented reference model.
 
-Related: [Phase F configuration](./PRODUCT-PHASE-F-SPEC.md) and
-[combinatorics test specification](./PRODUCT-RULE-COMBINATORICS-TEST-SPEC.md).
-This is a specification model, not an update to CONTEXT.md.
-The implementation handoff is Phase F issue #3.
-The separate input-contract comparison is tracked by
-issue #16.
+The [compatibility contract](docs/review-contract-compatibility.md) owns current rule identity, configuration and source-selection behavior. This document owns the accepted evaluation model and deterministic composition test design; the testing matrix owns check commands and measured coverage.
 
 ## Core distinction
 
@@ -35,7 +30,7 @@ that the backend understands a domain or that a fixture label is correct.
 | Rule definition | Stable rule ID and exact definition digest, covering question, criteria, supported language/kind/evidence combinations, default message and threshold. File placement does not define identity; path policy belongs to configuration. |
 | Fixture | Stable ID, synthetic source file, domain/path presented to the backend, and content hash. Path is part of semantic context and must not change accidentally between comparisons. |
 | Expectation | Fixture ID + rule identity + intended result and explanation. This is authored test data, independent of an observed probability. Missing expectations mean unchecked, never clear. |
-| Configuration case | Explicit built-in/user/project layers and consent state, with expected effective settings and provenance. |
+| Configuration case | Explicit built-in/user/project layers with expected effective settings and provenance. |
 | Evaluation scenario | Fixture(s), exact rule set and order, effective configuration, backend mode, and, when relevant, an event sequence. Defines an experiment independently of its result. |
 | Observation | Actual request shape, backend outcome, validated assessment, selected findings, timing/attempt metadata, and resulting review status. Raw live observations are transient unless an explicitly approved retention policy permits more. |
 | Comparison | A declared relationship between observations: exact deterministic equality, semantic-band acceptance, or measured change across batching/fixture transformations. |
@@ -58,6 +53,18 @@ denial, and intrinsic versus configured languages. Include a root under `src`, a
 related declaration under `shared`, and a privacy-denied dependency. Assert both
 root eligibility and actual captured/sent supporting source. A path-only explanation
 must report unexamined kind/evidence instead of claiming semantic eligibility.
+
+## Deterministic composition test design
+
+Preserved from the accepted configuration/rule test design; current review and advice contracts supersede its historical per-file batching, retry, consent and delivery scenarios.
+
+For one supported root/rule, exhaust the 32 combinations of global inclusion, global exclusion, rule enablement, rule inclusion and rule exclusion. Selection requires both inclusions and activation, with neither exclusion. Independently cover intrinsic/configured languages and kinds, evidence requirements, context selection, privacy and filesystem eligibility; the 32 cases do not establish those additional axes.
+
+Use an independent expected-behavior table. Generate bounded valid and invalid configurations separately, retain reproducible seeds and shrinking, and turn discovered domain counterexamples into named regressions. Required properties are exclusion monotonicity; highest-layer include/language replacement; empty-layer inheritance; per-rule override locality; stable meaning under key reordering and duplicate exclusions; canonical serialization roundtrip; explanation/runtime provenance agreement; scope intersection; and root/subdirectory independence. Layers do not commute.
+
+Cover explicit empty rules and repeat setup preserving authored selections; duplicate/rebound IDs and missing references; disabled unsupported inputs and supported language subsets; invalid selected configuration preventing all source capture; context-only dependencies and unread privacy-denied paths. Assessment cases include exact selected keys, missing/extra/wrong-kind/non-finite/out-of-range answers, probabilities zero/one and threshold equality/adjacent values, local messages, and distinct reviewed-without-findings, skipped and unavailable outcomes. A finding requires `probability > threshold`; equality emits none.
+
+Run affected configuration/rule behavior through the real subprocess boundary with temporary state and controlled Effect decisions. Use actual provider serialization with fake HTTP to check allowed content and secret/source-free diagnostics. Lifecycle scenarios follow the current advice contract and use controlled clocks/barriers for deadline, stale-source, cancellation, concurrent completion and duplicate-delivery cases. Status observations distinguish missing, incomplete, skipped, reviewed and unavailable work; suppressed diagnostics cannot fabricate successful outcomes. Required checks and their evidence boundaries are selected through [CHECKS.md](CHECKS.md) and the [testing matrix](docs/testing-matrix.md), rather than the retired Phase F completion gate.
 
 ## Fixture expectations
 
@@ -88,7 +95,7 @@ targeting one rule does not imply that every other rule should be clear.
 
 The model separates three forms of combination so coverage is explicit:
 
-1. **Configuration combinations:** layer precedence, activation, file filters, consent,
+1. **Configuration combinations:** layer precedence, activation, file filters,
    thresholds, and limits. Assert exact behavior with controlled backend answers.
 2. **Rule-set combinations:** one rule alone, selected related pairs, and the full
    enabled batch against the identical fixture and rule definitions. Measure whether
@@ -101,7 +108,7 @@ Do not automatically expand to every subset of every rule. Use the exhaustive bo
 Boolean matrix for gating; all single-rule semantic baselines; the full configured
 batch; and explicitly named interaction pairs. If a pairwise or other covering-array
 suite is introduced, report its covered axes and strength, not an exhaustive claim.
-The existing nine-rule set alone has 512 subsets; live enumeration is not a default.
+Live enumeration of all rule subsets is not a default.
 
 An isolated run and batched run need not return identical probabilities. Record changes
 and semantic-band crossings for the same fixture/rule. Define repetition counts and
@@ -123,7 +130,7 @@ by an independent small reference model and by the real subprocess boundary.
 Suggested abstract state:
 
 - Effective configuration and its validity/provenance.
-- Repository/backend grants and source snapshot identities.
+- User-owned review destination authority and source snapshot identities.
 - Observed edit events and per-file review state.
 - Selected rule IDs, attempt counts, available concurrency, and logical deadlines.
 - Validated assessments or explicit unavailability.
@@ -132,20 +139,20 @@ Suggested abstract state:
 
 Suggested observable actions:
 
-- Observe a completed edit; resolve configuration; check consent/eligibility.
+- Observe a completed edit; resolve configuration; check eligibility and destination authority.
 - Capture a snapshot and select rules; start a backend attempt.
 - Receive a valid answer, invalid answer, or transient/permanent failure.
-- Advance logical time; mutate/delete a file; update consent/configuration.
+- Advance logical time; mutate/delete a file; update user authority/configuration.
 - Check the current snapshot before delivery; publish advice/status; record a receipt.
 
 Actions that change files represent the host/environment, not an edit permission
 decision by the review integration. The implementation must document when configuration
-and consent are sampled; a model must not silently assume continuous enforcement for
+and user authority are sampled; a model must not silently assume continuous enforcement for
 already-sent requests.
 
 ## Properties suitable for later formal checking
 
-- No backend attempt without valid configuration, matching consent, an eligible snapshot,
+- No backend attempt without valid configuration, current destination authority, an eligible snapshot,
   and at least one selected rule at the dispatch authorization checkpoint.
 - Rule-level selection never expands global root eligibility or intrinsic input support. Supporting source separately satisfies context and privacy policy.
 - A successful assessment has exactly the selected rule keys with valid probabilities.
@@ -179,7 +186,7 @@ the implementation and how failing traces become replayable tests. This document
 not assume a particular API, package version, or existing compatibility. Keep the
 independent model from delegating expected answers to the implementation under test.
 
-Both tools are deferred. They are not Phase F acceptance gates unless separately adopted.
+Both tools are deferred unless separately adopted.
 Current test design should preserve explicit states, actions, identities, and observations
 so later model-based checks can reuse the scenarios.
 

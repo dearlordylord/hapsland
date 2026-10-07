@@ -308,7 +308,7 @@ The implementation must check the graph boundary and each rule's declared needs;
 
 Rules use one version-one JSONC document per file. Configuration owns path policy.
 The [configuration guide](configuration.md#declarative-rules) describes authoring;
-the [Phase F contract](../PRODUCT-PHASE-F-SPEC.md) owns layering.
+[compatibility contract](review-contract-compatibility.md#configuration-and-individual-rules) owns layering.
 
 Each rule declares `inputs`: accepted combinations of `languages`, `kind`, and
 `requires`. Input kinds are `type` for TypeScript/Rust/Bend and `function` for
@@ -387,22 +387,10 @@ digest; rendered evidence input is checked against its 20 KiB budget before
 dispatch. The versioned renderer defines the exact wire shape; changes to it
 require contract review. Internal `ReviewUnit` records are not serialized directly.
 
-Before Hapsland sends a review unit to Jev, it checks that the root and every
-supporting file are still allowed and still match the captured source. Before
-Hapsland gives advice, it reads those files again and rebuilds the review
-unit under the current file settings and rules. If a required file, root,
-rule, or review input has changed, Hapsland discards the old Jev result.
-It also discards the result if it can no longer identify the advicee or
-working root with confidence.
-
-Hapsland may reuse an earlier result only when the selected root,
-evidence tree, selected rules, effective settings, and exact Jev input format
-are the same. A comment outside the review unit can change the file's exact
-bytes without changing the review question; reuse is allowed only after the
-fresh checks above confirm that the review input is still the same. The
-unit's exact input identity must include the input format, renderer, root,
-evidence-tree fingerprint, omissions, rules, effective settings, and evidence state.
-Keep each contributing file's fingerprint so Hapsland can perform the checks.
+The compatibility contract owns [edit-owned settings](review-contract-compatibility.md#edit-owned-settings)
+and [source freshness, review identity and result reuse](review-contract-compatibility.md#freshness-and-result-reuse).
+The advice contract owns [recipient and physical-root identity](advicing-target-contract.md#advicee-identity-and-admission)
+and [final handoff authority](advicing-target-contract.md#handoff-reoffer-and-continuation-count).
 
 ## Quiet skip and human coverage
 

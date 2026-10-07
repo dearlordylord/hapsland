@@ -34,7 +34,7 @@ Run the offline, read-only doctor with an explicit repository and selected Codex
 ```
 
 The equivalent command is `hapsland --doctor`. Doctor checks the packaged runtime,
-parser and resident entry point, exact Codex version, selected configuration, the owned
+parser and resident entry point, Codex lifecycle-hook capability, selected configuration, the owned
 feature/hook record, duplicates and local drift, resident reachability, credential
 presence in the doctor process, and effective file settings for the canonical repository. The doctor
 names that inspected context; actual-hook and saved-credential accessibility remain
@@ -74,8 +74,14 @@ exists. Missing instrumentation and silence are never reported as `clear`.
 ## Preview the message sent to the agent
 
 Run `hapsland --feedback-preview` to display the shared feedback heading,
-response instructions, and a synthetic finding. From a source checkout, run
-`node packages/cli-entry/src/cli.ts --feedback-preview`. This command does not read stdin or project
+response instructions, and a synthetic finding. From a built source checkout with
+workspace dependencies installed, use Node 24.20.0:
+
+```sh
+mise exec node@24.20.0 -- node --experimental-strip-types packages/cli-entry/src/cli.ts --feedback-preview
+```
+
+This command does not read stdin or project
 source, resolve credentials, call a review backend, or persist activity. It is a
 format preview, not a replay of your session or a positive review result.
 
@@ -198,24 +204,29 @@ keeping the selected edit open across ordinary live updates.
 
 ## Session status
 
-Use an explicit session ID with the status operation:
+For ordinary post-setup verification, use the [opt-in inspection dashboard](#opt-in-local-inspection): enable recording, make a new supported agent edit, run `hapsland dashboard`, and open the printed URL. It discovers retained sessions without requiring a raw session ID. Recording contains source; it is separate from the source-free status API below.
+
+The advanced `--status` API requires the original runtime session ID. Claude and Codex adapters use the native hook payload's `session_id`; Pi uses `ctx.sessionManager.getSessionId()` in its extension context. These are runtime integration inputs, not the hashed session identifiers shown in Hapsland storage. Hapsland currently has no status session-list command. If you do not already have that raw ID from your runtime integration, use the dashboard instead of guessing it.
+
+When you have the raw ID, save this request as `status-request.json`, replacing both placeholders. `cwd` must name the Git working copy whose activity you want:
 
 ```json
 {
   "version": 1,
   "operation": "status",
-  "cwd": "/worktree",
-  "sessionId": "host-session-123"
+  "cwd": "/absolute/path/to/repository",
+  "sessionId": "<original-runtime-session-id>"
 }
 ```
 
-The JSON response reports readiness and resident activity separately. Missing
-instrumentation is `no-observation`, never successful review. Status reads do
-not call Jev.
+Then run:
 
-For a human-readable response, pass `"format": "human"` in the same operation or use
-the `--status-human` flag. Corrupt or unreadable activity state is reported as a limitation rather than
-being presented as healthy review.
+```sh
+hapsland --status < status-request.json
+hapsland --status-human < status-request.json
+```
+
+Use the printed candidate executable path instead of `hapsland` for a local snapshot that is not on PATH. Status reads do not call a review backend. The response reports readiness and resident activity separately. Missing instrumentation is `no-observation`, never successful review; corrupt or unreadable activity state is reported as a limitation. Submission evidence does not establish model visibility or repair.
 
 ## Optional session analytics
 
