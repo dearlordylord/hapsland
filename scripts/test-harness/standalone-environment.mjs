@@ -38,5 +38,13 @@ export const standaloneEnvironment = (directory, environment = process.env, extr
       if (error.code === "EEXIST") continue
     }
   }
-  return { ...environment, PATH: directory }
+  const flag = environment.HAPSLAND_BUN_COVERAGE_PRELOAD_FLAG
+  const options =
+    flag === undefined
+      ? environment.BUN_OPTIONS
+      : environment.BUN_OPTIONS?.replace(
+          new RegExp(`(^|\\s)${flag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?=\\s|$)`, "g"),
+          "$1"
+        ).trim()
+  return { ...environment, PATH: directory, BUN_OPTIONS: options }
 }

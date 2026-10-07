@@ -13,6 +13,10 @@ its resolved plan and finite deadline under `.test-runs`; build and archive reus
 never reuses test outcomes or coverage. Source application commands and resident fixtures select pinned Bun;
 Node runs the test harness and synthetic process fixtures. Coverage runs attach a Bun
 preload and merge original-source Istanbul counters with Vitest/V8 counters.
+Compiled fixture commands use `standaloneEnvironment` to remove only the owned
+source preload token; unrelated Bun options remain. Its real compiled/source
+regression runs in cheap quality preflight. Host-loaded Pi and source clients
+retain their coverage settings.
 Incomplete statement ends need unique authored AST ranges; positive aliases also
 need precise same-context hits. Unknown ends cannot inflate exact-zero counters.
 Coverage-provider regressions preserve ambiguous and uncovered evidence across contexts.
@@ -732,6 +736,9 @@ home where personal state is outside the scenario; registration and dispatch use
 the same configuration selector. Keep tests of intentional precedence explicit.
 Installed focused checks supply the reviewed archive above rather than rebuilding
 inside an instrumented child. A passing build does not establish these assertions.
+Resident installed canaries launch the extracted native command through the existing
+startup test port in both Node and independent Bun clients. Stale-probe timing
+starts after the child import handshake; readiness and IPC deadlines stay unchanged.
 Positive Pi finding assertions observe the actual classified batch through the
 configured resident before collection. A source recovery regression delays the
 reviewer beyond the finish window, then requires fresh advice after readiness;

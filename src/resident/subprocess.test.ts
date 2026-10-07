@@ -2,7 +2,7 @@ import { prepareTestPackage } from "@hapsland/build-tooling/test-support/test-pa
 import { cleanupOwnedResident } from "../../scripts/test-harness/cleanup-owned-resident.mjs"
 import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
-import { afterEach, describe, expect, it } from "vitest"
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process"
 import { execFileAsync } from "../../scripts/test-harness/process.mjs"
@@ -37,6 +37,26 @@ import {
 
 const processes: Array<number> = []
 const directories: Array<string> = []
+let restoreSourceRuntime: (() => void) | undefined
+beforeAll(() => {
+  const installed = prepareTestPackage()
+  const previousLaunch = process.env.HAPSLAND_TEST_RESIDENT_LAUNCH
+  // Every independent client launches the actual installed resident. Source
+  // client coverage stays active; native startup does not inherit its preload.
+  process.env.HAPSLAND_TEST_RESIDENT_LAUNCH = JSON.stringify({
+    command: installed.resident,
+    environment: {
+      BUN_OPTIONS: installed.environment.BUN_OPTIONS ?? "",
+      ...(installed.environment.PATH === undefined ? {} : { PATH: installed.environment.PATH })
+    }
+  })
+  restoreSourceRuntime = () => {
+    if (previousLaunch === undefined) delete process.env.HAPSLAND_TEST_RESIDENT_LAUNCH
+    else process.env.HAPSLAND_TEST_RESIDENT_LAUNCH = previousLaunch
+    installed.cleanup()
+  }
+}, 125_000)
+afterAll(() => restoreSourceRuntime?.())
 
 afterEach(async () => {
   for (const pid of processes.splice(0)) {
@@ -473,6 +493,7 @@ describe("resident separate-process lifecycle", () => {
     await staleClosed
     const boundedScript = [
       "import {ensureResidentEffect as ensureResident} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime';",
+      "await new Promise(resolve=>{process.stdin.once('data',resolve);console.log('ready')});process.stdin.pause();",
       `const paths=${JSON.stringify(residentPaths(runtime))};`,
       "await runClient(ensureResident(paths,250));"
     ].join("")
@@ -481,8 +502,15 @@ describe("resident separate-process lifecycle", () => {
       env,
       stdio: ["pipe", "pipe", "pipe"]
     })
+    await new Promise<void>((resolve, reject) => {
+      bounded.once("error", reject)
+      bounded.stdout.once("data", () => resolve())
+      bounded.once("exit", () => reject(new Error("bounded client exited before readiness")))
+    })
+    const boundedResult = childResult(bounded)
     const readinessStarted = performance.now()
-    await expect(childResult(bounded)).rejects.toThrow()
+    bounded.stdin.end("release\n")
+    await expect(boundedResult).rejects.toThrow()
     expect(performance.now() - readinessStarted).toBeLessThan(2_000)
     expect(() => process.kill(identities[0]!.pid, 0)).not.toThrow()
     await rm(residentPaths(runtime).socket, { force: true })

@@ -1,8 +1,7 @@
 import {
   emittedReleaseEntrypoints,
   sourceReleaseEntrypoints,
-  packageRootFromEntrypoint,
-  type RuntimeCommand
+  packageRootFromEntrypoint
 } from "@hapsland/runtime-environment/runtime/package-runtime"
 import { BUN_VERSION, bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import {
@@ -27,7 +26,7 @@ import { createHash, randomUUID } from "node:crypto"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { spawn, type ChildProcess } from "node:child_process"
-import { prepareTestPackage } from "../../scripts/test-support/test-package.ts"
+import { prepareTestPackage, type TestPackage } from "../../scripts/test-support/test-package.ts"
 import { spawnSync } from "../../scripts/test-harness/process.mjs"
 import { afterEach, describe, expect, it } from "vitest"
 import {
@@ -235,11 +234,16 @@ const waitFor = async <A>(read: () => A | undefined, timeout = 5_000): Promise<A
   throw new Error("timed out waiting for controlled lock state")
 }
 
-const spawnOperation = (operation: Record<string, unknown>, env: NodeJS.ProcessEnv, command: RuntimeCommand) => {
+const spawnOperation = (operation: Record<string, unknown>, env: NodeJS.ProcessEnv, runtime: TestPackage) => {
+  const command = runtime.cli
   const child = spawn(command.executable, [...command.args, `--${String(operation.operation)}`], {
     cwd: process.cwd(),
-    // Compiled executables have no authored source for the Bun transpilation coverage preload.
-    env: { ...env, BUN_OPTIONS: undefined },
+    env: {
+      ...runtime.environment,
+      ...env,
+      PATH: runtime.environment.PATH,
+      BUN_OPTIONS: runtime.environment.BUN_OPTIONS
+    },
     stdio: ["pipe", "pipe", "pipe"]
   })
   let diagnostics = ""
@@ -1398,7 +1402,7 @@ responses_websockets_v2 = true`)
     const owner = spawnOperation(
       operation,
       { ...targetEnvironment, REVIEW_INSTALL_TEST_HOLD_LOCK_MS: "10000" },
-      runtime.cli
+      runtime
     )
     const deadGeneration = await waitFor(() => {
       if (owner.child.exitCode !== null) throw new Error(`Lock owner exited: ${owner.diagnostics()}`)
@@ -1414,8 +1418,8 @@ responses_websockets_v2 = true`)
     await new Promise((resolveWait) => setTimeout(resolveWait, 5_100))
 
     const contenderEnvironment = { ...targetEnvironment, REVIEW_INSTALL_TEST_HOLD_LOCK_MS: "10000" }
-    const first = spawnOperation(operation, contenderEnvironment, runtime.cli)
-    const second = spawnOperation(operation, contenderEnvironment, runtime.cli)
+    const first = spawnOperation(operation, contenderEnvironment, runtime)
+    const second = spawnOperation(operation, contenderEnvironment, runtime)
     const replacement = await waitFor(() => {
       const current = currentLockGeneration(lockPath)
       return current !== undefined && current.number > deadGeneration.number ? current : undefined

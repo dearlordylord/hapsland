@@ -6,7 +6,8 @@ export const qualityPreflight = [
   "scripts/test-harness/immediate-errors.test.mjs",
   "scripts/test-harness/verification-plan.test.mjs",
   "scripts/test-harness/verify.test.mjs",
-  "scripts/test-harness/check-complexity.test.mjs"
+  "scripts/test-harness/check-complexity.test.mjs",
+  "scripts/test-harness/standalone-environment.test.mjs"
 ]
 export const precheckStages = [
   qualityPreflight,

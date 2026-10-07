@@ -1,0 +1,74 @@
+
+> @hapsland/hapsland@0.1.0 test:coverage
+> npm test -- --coverage
+
+
+> @hapsland/hapsland@0.1.0 test
+> node scripts/test-harness/run-checks.mjs test --coverage
+
+RUN 20261007163111203-1961522-f64914 test; deadline 2026-10-07T17:16:11.204Z; records /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914
+START configuration; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-001-configuration.log
+PASSED configuration 1.88s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-001-configuration.log
+START bend-generation; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-002-bend-generation.log
+PASSED bend-generation 4.24s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-002-bend-generation.log
+START bend-artifacts; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-003-bend-artifacts.log
+PASSED bend-artifacts 2.40s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-003-bend-artifacts.log
+START canonical-authority; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-004-canonical-authority.log
+PASSED canonical-authority 1.34s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-004-canonical-authority.log
+START jev-request; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-005-jev-request.log
+PASSED jev-request 1.41s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-005-jev-request.log
+START production-authority; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-006-production-authority.log
+PASSED production-authority 0.59s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-006-production-authority.log
+START capacity-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-007-capacity-boundary.log
+PASSED capacity-boundary 0.35s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-007-capacity-boundary.log
+START permit-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-008-permit-boundary.log
+PASSED permit-boundary 0.47s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-008-permit-boundary.log
+START review-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-009-review-boundary.log
+PASSED review-boundary 0.34s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-009-review-boundary.log
+START dispatch-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-010-dispatch-boundary.log
+PASSED dispatch-boundary 0.43s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-010-dispatch-boundary.log
+START stop-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-011-stop-boundary.log
+PASSED stop-boundary 0.37s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-011-stop-boundary.log
+START collection-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-012-collection-boundary.log
+PASSED collection-boundary 0.58s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-012-collection-boundary.log
+START delivery-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-013-delivery-boundary.log
+PASSED delivery-boundary 0.32s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-013-delivery-boundary.log
+START revision-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-014-revision-boundary.log
+PASSED revision-boundary 0.38s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-014-revision-boundary.log
+START response-authority-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-015-response-authority-boundary.log
+PASSED response-authority-boundary 0.22s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-015-response-authority-boundary.log
+START reuse-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-016-reuse-boundary.log
+PASSED reuse-boundary 0.42s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-016-reuse-boundary.log
+START notice-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-017-notice-boundary.log
+PASSED notice-boundary 0.21s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-017-notice-boundary.log
+START retention-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-018-retention-boundary.log
+PASSED retention-boundary 0.35s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-018-retention-boundary.log
+START configuration-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-019-configuration-boundary.log
+PASSED configuration-boundary 0.26s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-019-configuration-boundary.log
+START file-eligibility-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-020-file-eligibility-boundary.log
+PASSED file-eligibility-boundary 0.25s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-020-file-eligibility-boundary.log
+START rule-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-021-rule-boundary.log
+PASSED rule-boundary 0.51s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-021-rule-boundary.log
+START bend-progress; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-022-bend-progress.log
+PASSED bend-progress 23.81s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-022-bend-progress.log
+START content-isolation; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-023-content-isolation.log
+PASSED content-isolation 8.41s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-023-content-isolation.log
+START content-wire-mutants; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-024-content-wire-mutants.log
+PASSED content-wire-mutants 24.95s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-024-content-wire-mutants.log
+START native-pi-observation; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-025-native-pi-observation.log
+PASSED native-pi-observation 1.24s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-025-native-pi-observation.log
+START native-rule-observation; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-026-native-rule-observation.log
+PASSED native-rule-observation 0.79s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-026-native-rule-observation.log
+START verification-infrastructure; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-027-verification-infrastructure.log
+PASSED verification-infrastructure 35.99s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-027-verification-infrastructure.log
+START build-workflow; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-028-build-workflow.log
+PASSED build-workflow 75.75s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-028-build-workflow.log
+START test-harness; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-029-test-harness.log
+PASSED test-harness 2.13s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-029-test-harness.log
+START package-build; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-030-package-build.log
+PASSED package-build 129.41s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-030-package-build.log
+START package-validation; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-031-package-validation.log
+PASSED package-validation 0.85s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-031-package-validation.log
+START package-pack; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-032-package-pack.log
+PASSED package-pack 16.44s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-032-package-pack.log
+START vitest; log /workspace/typescript/hapsland-243/.test-runs/20261007163111203-1961522-f64914/1966274-033-vitest.log

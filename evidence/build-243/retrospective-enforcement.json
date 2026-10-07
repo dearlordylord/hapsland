@@ -40,6 +40,19 @@
       "scripts/test-harness/check-complexity.mjs",
       "scripts/test-harness/check-complexity.test.mjs",
       "scripts/test-harness/run-checks.test.mjs"
+    ],
+    "compiledFixturePreloadOwnership": [
+      "scripts/coverage-provider.mjs",
+      "scripts/test-harness/standalone-environment.mjs",
+      "scripts/test-harness/standalone-environment.test.mjs",
+      "scripts/test-harness/check-stages.mjs"
+    ],
+    "installedResidentRoutingAndProbeTiming": [
+      "src/resident/subprocess.test.ts",
+      "scripts/test-support/client-runtime.ts"
+    ],
+    "sourceHookPreparationOutsideInvocationDeadline": [
+      "src/hook-main.test.ts"
     ]
   },
   "guidanceOnly": [
@@ -54,7 +67,9 @@
     "Harness tests validate known shebang, repair ordering, receipt mutation and unpack-limit failures; future changes still require focused acceptance preflight.",
     "Coverage fixtures enforce compiled private exports, unowned CommonJS native interop and nested cold source-runtime construction; process readiness under instrumentation still needs affected consumer checks.",
     "Fresh-edit composition fixtures enforce matching physical mutation, patch and new finding; a changed tool-call ID alone is not freshness evidence.",
-    "Incomplete statement ends require unique authored range; positive aliases also require same-context precise hits. Unresolved geometry and counters remain strict."
+    "Incomplete statement ends require unique authored range; positive aliases also require same-context precise hits. Unresolved geometry and counters remain strict.",
+    "Compiled-preload regression proves exact owned token removal while unrelated preload/options and raw source preload remain active. It does not qualify process readiness under arbitrary host contention.",
+    "Installed resident canaries execute packaged bytes through the existing launcher test port; source clients retain instrumentation. Exact archive identity and focused/full scope remain separate. Host scheduling cannot be guaranteed by these tests."
   ],
   "candidateBaseCommit": "d7f44786"
 }
