@@ -1,3 +1,4 @@
+import { JEV_PROVIDER } from "@hapsland/runtime-environment/runtime/backend"
 import * as Context from "effect/Context"
 import * as Clock from "effect/Clock"
 import * as Effect from "effect/Effect"
@@ -92,8 +93,8 @@ export const layerWithOptions = (layerOptions: ReviewBackendLayerOptions = {}) =
         return {
           answers: response.answers,
           backend: {
-            id: "jev",
-            model: "jev-latest",
+            id: JEV_PROVIDER.id,
+            model: JEV_PROVIDER.defaultModel,
             durationMs: Math.max(0, Number((yield* Clock.monotonicTimeNanos) - started) / 1_000_000),
             retries: Math.max(0, attempts - 1),
             usage: {

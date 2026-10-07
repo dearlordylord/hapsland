@@ -92,7 +92,8 @@ const productionRules: ReadonlyArray<LoadedRule> = SHIPPED_DEFAULT_RULES.map((ru
 
 const compiledRules = compileRules({ rules: productionRules })
 const allRuleIds = BUNDLED_EVALUATION_RULES.map((rule) => rule.identity.ruleId)
-const backendIdentity = (mode: "controlled" | "live") => makeBackendIdentity({ id: "jev", version: "1", mode })
+const backendIdentity = (mode: "controlled" | "live") =>
+  makeBackendIdentity({ id: JEV_PROVIDER.id, version: "1", mode })
 const inputContract = makeInputContractIdentity({
   id: "full-file-plus-path",
   version: "1",
@@ -113,7 +114,7 @@ const makeScenarioSet = (backend: ReturnType<typeof backendIdentity>) => {
     consent: {
       repositoryId: "evaluation-repository",
       backendId: backend.id,
-      destinationId: "https://api.typesafe.ai/v1/systemone",
+      destinationId: JEV_PROVIDER.destination,
       granted: true
     },
     expectedEffective: makeEffectiveConfiguration({ selectedRuleIds: allRuleIds })

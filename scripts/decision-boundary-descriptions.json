@@ -102,8 +102,9 @@
   {
     "id": "TS-010",
     "owners": [
+      "@hapsland/runtime-environment/runtime/backend",
       "@hapsland/review-definition/review-providers/catalog",
-      "@hapsland/review-execution/jev-decision"
+      "@hapsland/review-execution/review-providers/live"
     ]
   }
 ]

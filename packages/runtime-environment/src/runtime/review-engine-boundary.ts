@@ -1,7 +1,13 @@
+import type { BackendId, JEV_BACKEND } from "./backend.ts"
 import { writeSync } from "node:fs"
 import { isHookInvocation } from "./hook-invocation.ts"
 
-type ReviewEngineModule = "pipeline" | "native-parser" | "jev-decision" | "bend-extractor" | "cloudflare" | "openai"
+type ReviewEngineModule =
+  | "pipeline"
+  | "native-parser"
+  | "jev-decision"
+  | "bend-extractor"
+  | Exclude<BackendId, typeof JEV_BACKEND>
 
 /** A hook-client import violation is observable even when its caller fails open. */
 export const assertReviewEngineBoundary = (module: ReviewEngineModule): void => {

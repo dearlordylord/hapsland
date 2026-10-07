@@ -105,7 +105,7 @@ maximum values. Project limits may lower user limits, not raise them.
 Increasing a provider's context window does not increase Hapsland's collection
 limits or allow excluded source to be read.
 
-The [provider catalog](../packages/review-definition/src/review-providers/catalog.ts) and
+The [provider declarations](../packages/runtime-environment/src/runtime/backend.ts) and
 [provider guide](review-providers.md) own model-specific declarations and local
 transport checks. The adapters enforce their catalogued question and HTTP body bounds, measuring the actual encoded request including
 questions, criteria, and escaping. There is no separate provider-independent

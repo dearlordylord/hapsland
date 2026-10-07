@@ -11,6 +11,7 @@ import {
   JEV_DESTINATION,
   JEV_PROVIDER,
   REVIEW_PROVIDERS,
+  providerEnvironmentOnly,
   type BackendId
 } from "@hapsland/runtime-environment/runtime/backend"
 import { captureCredential, MaskedInputError } from "../credentials/masked-input.ts"
@@ -111,8 +112,11 @@ export const runVerificationConversation = Effect.fn("Verification.run")(functio
     }
     const result = loaded.success
     credential = result.credential
-    const eligibility =
-      result.provider !== "jev" ? "other provider" : credential.status !== "present" ? "unavailable" : "ready"
+    const eligibility = providerEnvironmentOnly(result.provider)
+      ? "other provider"
+      : credential.status !== "present"
+        ? "unavailable"
+        : "ready"
     yield* dispatch({ kind: "loaded", commandId: command.id, source: sourceOf(credential), eligibility })
     for (const line of result.guidance) yield* interaction.present(`${formatOutcome("info", line)}\n`)
     if (eligibility === "other provider")

@@ -1,3 +1,4 @@
+import { JEV_PROVIDER, type RequestContentProfile } from "@hapsland/runtime-environment/runtime/backend"
 import * as Effect from "effect/Effect"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientRequest from "effect/http/HttpClientRequest"
@@ -7,7 +8,7 @@ import { inspectHttpTransport } from "@hapsland/inspection-records/inspection/tr
 /** Review requests carry provider framing, not ambient agent trace context. */
 export const reviewHttpTransport = (
   client: HttpClient.HttpClient,
-  profile: "state" | "openai" = "state"
+  profile: RequestContentProfile = JEV_PROVIDER.requestContent
 ): HttpClient.HttpClient =>
   HttpClient.transformResponse(
     HttpClient.mapRequest(inspectHttpTransport(client), (request) => {

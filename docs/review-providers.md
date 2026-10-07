@@ -29,7 +29,7 @@ flowchart LR
   G --> H[Revalidate and deliver advice]
 ```
 
-The [catalog](../packages/review-definition/src/review-providers/catalog.ts) records model-specific declared
+The [provider declarations](../packages/runtime-environment/src/runtime/backend.ts) record model-specific declared
 limits with their source and check date. An absent limit means **unknown**;
 it must never be interpreted as unlimited or copied from another provider.
 The [request serializer](../packages/review-execution/src/review-providers/request.ts) measures actual
@@ -38,14 +38,38 @@ UTF-8 JSON body bytes, including questions, criteria, escaping and metadata.
 constraints before calling the model. The Cloudflare adapter repeats validation
 at its transport boundary for callers outside that pipeline.
 
+## Adding a provider
+
+The closed `ReviewProviderId` set and `REVIEW_PROVIDERS` declarations live in
+[runtime/backend.ts](../packages/runtime-environment/src/runtime/backend.ts).
+Each declaration owns its discriminator, display name, credential environment
+variable and storage mode, configuration fields, models and limits, API base,
+destination template, request-content profile, and wire question IDs.
+Model selectors are unique across providers; duplicate declarations are rejected.
+Configuration and model unions are derived from these declarations; consumers
+reuse the provider IDs and schemas instead of repeating literals.
+
+Add the ID and its declaration there, then register its implementation in the
+exhaustive `REVIEW_PROVIDER_LAYERS` map in
+[live.ts](../packages/review-execution/src/review-providers/live.ts).
+Typechecking rejects either missing registration. No other provider list,
+configuration union, model union, limit table, credential branch, or transport
+selection needs a manual entry. A new wire protocol also needs its serializer
+and checked Bend content projection; existing profiles can be reused.
+
+The compiler regression in `scripts/provider-registry.test.mjs` adds a provider
+to the real closed set and verifies that both incomplete mappings fail.
+Existing offline configuration, adapter, pipeline and resident tests validate
+consumer behavior; documentation and checks do not establish live API support.
+
 <!-- provider-limits:start -->
 
 | Model | Declared question limit | Declared HTTP body limit | Declared token limit | Checked on | Source |
 | --- | --- | --- | --- | --- | --- |
 | `jev-latest` | Unknown | Unknown | 64,000 per request; 32,000 for state plus longest question | 2026-10-02 | [Provider declaration](https://docs.typesafe.ai/models) |
-| `gpt-6-luna` | Unknown | Unknown | Unknown | 2026-10-07 | [Provider declaration](https://developers.openai.com/api/reference/resources/decisions/methods/create) |
 | `clef` | 64 | 13 MiB | 65,536 context window | 2026-10-02 | [Provider declaration](https://developers.cloudflare.com/workers-ai/models/clef/) |
 | `clef-flash` | 64 | 13 MiB | 65,536 context window | 2026-10-02 | [Provider declaration](https://developers.cloudflare.com/workers-ai/models/clef-flash/) |
+| `gpt-6-luna` | Unknown | Unknown | Unknown | 2026-10-07 | [Provider declaration](https://developers.openai.com/api/reference/resources/decisions/methods/create) |
 
 These values are provider declarations, not results of live boundary tests. Native question-count and HTTP-body limits are enforced; token counts are unmeasured.
 

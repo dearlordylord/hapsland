@@ -1,4 +1,4 @@
-import { JEV_PROVIDER, CLOUDFLARE_PROVIDER } from "@hapsland/runtime-environment/runtime/backend"
+import { JEV_PROVIDER, CLOUDFLARE_PROVIDER, REVIEW_PROVIDERS } from "@hapsland/runtime-environment/runtime/backend"
 import { PROJECT_CONFIGURATION_FILE } from "@hapsland/runtime-inputs/configuration/load"
 import * as Schema from "effect/Schema"
 import { ACTIVITY_RETENTION_MS, MAX_ACTIVITY_STORAGE_BYTES } from "@hapsland/activity-observation/activity/storage"
@@ -6,7 +6,6 @@ import { ConfigurationDocument, CONFIGURATION_VERSION } from "@hapsland/runtime-
 import { GRAPH_LIMIT_CEILINGS, graphLimitFields } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { MAX_INSPECTION_MESSAGE_BYTES } from "@hapsland/inspection-records/inspection/contract"
 import { DEFAULT_RULE_THRESHOLD } from "@hapsland/review-definition/rules/schema"
-import { PROVIDER_LIMITS } from "@hapsland/review-definition/review-providers/catalog"
 import {
   REVIEW_SETTINGS_CACHE_CAPACITY,
   REVIEW_SETTINGS_CACHE_TTL_MS
@@ -238,21 +237,23 @@ export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocu
       text: [
         "| Model | Declared question limit | Declared HTTP body limit | Declared token limit | Checked on | Source |",
         "| --- | --- | --- | --- | --- | --- |",
-        ...Object.entries(PROVIDER_LIMITS).map(([model, limits]) => {
-          const tokens =
-            [
-              limits.requestTokens === undefined ? undefined : `${number(limits.requestTokens)} per request`,
-              limits.stateAndLongestQuestionTokens === undefined
-                ? undefined
-                : `${number(limits.stateAndLongestQuestionTokens)} for state plus longest question`,
-              limits.contextWindowTokens === undefined
-                ? undefined
-                : `${number(limits.contextWindowTokens)} context window`
-            ]
-              .filter(Boolean)
-              .join("; ") || "Unknown"
-          return `| \`${model}\` | ${limits.questions ?? "Unknown"} | ${limits.httpBodyBytes === undefined ? "Unknown" : mib(limits.httpBodyBytes)} | ${tokens} | ${limits.checkedOn} | [Provider declaration](${limits.source}) |`
-        }),
+        ...Object.values(REVIEW_PROVIDERS)
+          .flatMap((provider) => Object.entries(provider.models))
+          .map(([model, limits]) => {
+            const tokens =
+              [
+                limits.requestTokens === undefined ? undefined : `${number(limits.requestTokens)} per request`,
+                limits.stateAndLongestQuestionTokens === undefined
+                  ? undefined
+                  : `${number(limits.stateAndLongestQuestionTokens)} for state plus longest question`,
+                limits.contextWindowTokens === undefined
+                  ? undefined
+                  : `${number(limits.contextWindowTokens)} context window`
+              ]
+                .filter(Boolean)
+                .join("; ") || "Unknown"
+            return `| \`${model}\` | ${limits.questions ?? "Unknown"} | ${limits.httpBodyBytes === undefined ? "Unknown" : mib(limits.httpBodyBytes)} | ${tokens} | ${limits.checkedOn} | [Provider declaration](${limits.source}) |`
+          }),
         "",
         "These values are provider declarations, not results of live boundary tests. Native question-count and HTTP-body limits are enforced; token counts are unmeasured."
       ].join("\n")

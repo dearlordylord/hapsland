@@ -143,30 +143,6 @@
             "provider": {
               "type": "string",
               "enum": [
-                "openai"
-              ],
-              "description": "Review backend provider."
-            },
-            "model": {
-              "type": "string",
-              "enum": [
-                "gpt-6-luna"
-              ],
-              "description": "OpenAI Decisions model selector."
-            }
-          },
-          "required": [
-            "provider",
-            "model"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "provider": {
-              "type": "string",
-              "enum": [
                 "jev"
               ],
               "description": "Review backend provider."
@@ -207,9 +183,37 @@
             "accountId"
           ],
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": [
+                "openai"
+              ],
+              "description": "Review backend provider."
+            },
+            "model": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "gpt-6-luna"
+                  ]
+                }
+              ],
+              "description": "OpenAI Decisions model selector."
+            }
+          },
+          "required": [
+            "provider",
+            "model"
+          ],
+          "additionalProperties": false
         }
       ],
-      "description": "User-owned review destination. Jev is the default; Cloudflare requires a model and account ID; OpenAI requires a Decisions model. Projects cannot set this field."
+      "description": "User-owned review destination and provider-specific model/account selection. Projects cannot set this field."
     },
     "AnalyticsRecordingEnabled": {
       "type": "boolean",

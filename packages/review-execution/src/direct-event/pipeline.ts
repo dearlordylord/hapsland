@@ -1,3 +1,4 @@
+import { DEFAULT_REVIEW_BACKEND } from "@hapsland/runtime-environment/runtime/backend"
 import { languageForPath } from "@hapsland/source-analysis/direct-event/languages/registry"
 import { assertReviewEngineBoundary } from "@hapsland/runtime-environment/runtime/review-engine-boundary"
 import {
@@ -333,7 +334,7 @@ const freezePreparedUnitInput = (
     providerIdentity:
       frame.context.settings.configuration !== undefined
         ? providerIdentity(effectiveReviewBackend(frame.context.settings.configuration.policy))
-        : (frame.context.settings.providerIdentity ?? providerIdentity({ provider: "jev" })),
+        : (frame.context.settings.providerIdentity ?? providerIdentity(DEFAULT_REVIEW_BACKEND)),
     graphLimits: frame.graphLimits,
     candidateProjection: true,
     ...(rootLocation === undefined ? {} : { rootLocation }),

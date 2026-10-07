@@ -11,10 +11,10 @@ import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientRequest from "effect/http/HttpClientRequest"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import type { ProviderIdentity } from "@hapsland/review-definition/review-providers/catalog"
-import { OPENAI_DESTINATION } from "@hapsland/runtime-environment/runtime/backend"
+import { OPENAI_DESTINATION, OPENAI_PROVIDER } from "@hapsland/runtime-environment/runtime/backend"
 import { probabilityRequest, requestLimitViolation, type ProbabilityRule } from "./request.ts"
 
-assertReviewEngineBoundary("openai")
+assertReviewEngineBoundary(OPENAI_PROVIDER.id)
 
 const TokenCount = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))
 const ResponseBody = Schema.Struct({
@@ -88,8 +88,8 @@ export const liveLayer = (options: {
       return yield* DecisionModel.make({
         decide: Effect.fn("OpenAIDecisionModel.decide")(function* ({ state, decisions }) {
           if (
-            options.identity.provider !== "openai" ||
-            options.identity.model !== "gpt-6-luna" ||
+            options.identity.provider !== OPENAI_PROVIDER.id ||
+            !Schema.is(OPENAI_PROVIDER.model)(options.identity.model) ||
             options.identity.destination !== OPENAI_DESTINATION
           ) {
             return yield* Effect.fail(inputError("invalid OpenAI model selection"))
@@ -126,8 +126,8 @@ export const liveLayer = (options: {
       options.httpClient === undefined
         ? Layer.effect(
             HttpClient.HttpClient,
-            Effect.map(HttpClient.HttpClient, (client) => reviewHttpTransport(client, "openai"))
+            Effect.map(HttpClient.HttpClient, (client) => reviewHttpTransport(client, OPENAI_PROVIDER.requestContent))
           ).pipe(Layer.provide(FetchHttpClient.layer))
-        : Layer.succeed(HttpClient.HttpClient, reviewHttpTransport(options.httpClient, "openai"))
+        : Layer.succeed(HttpClient.HttpClient, reviewHttpTransport(options.httpClient, OPENAI_PROVIDER.requestContent))
     )
   )

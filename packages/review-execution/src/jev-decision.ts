@@ -12,7 +12,7 @@ import { JEV_API_BASE, JEV_PROVIDER } from "@hapsland/runtime-environment/runtim
 
 assertReviewEngineBoundary("jev-decision")
 
-export const MODEL = "jev-latest"
+export const MODEL = JEV_PROVIDER.defaultModel
 
 type ProbabilityDecisions = Readonly<Record<string, Decision.Probability>>
 
@@ -47,10 +47,11 @@ export const liveLayer = (options: {
   ).pipe(
     Layer.provide(
       options.httpClient === undefined
-        ? Layer.effect(HttpClient.HttpClient, Effect.map(HttpClient.HttpClient, reviewHttpTransport)).pipe(
-            Layer.provide(FetchHttpClient.layer)
-          )
-        : Layer.succeed(HttpClient.HttpClient, reviewHttpTransport(options.httpClient))
+        ? Layer.effect(
+            HttpClient.HttpClient,
+            Effect.map(HttpClient.HttpClient, (client) => reviewHttpTransport(client, JEV_PROVIDER.requestContent))
+          ).pipe(Layer.provide(FetchHttpClient.layer))
+        : Layer.succeed(HttpClient.HttpClient, reviewHttpTransport(options.httpClient, JEV_PROVIDER.requestContent))
     )
   )
   return TypeSafeDecisionModel.model(MODEL).pipe(Layer.provide(client))

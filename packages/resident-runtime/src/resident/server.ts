@@ -1,3 +1,4 @@
+import { providerEnvironmentOnly } from "@hapsland/runtime-environment/runtime/backend"
 import { InspectionTransportObservation } from "@hapsland/inspection-records/inspection/transport"
 import {
   captureInspectionPolicy,
@@ -4512,7 +4513,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (job.round !== undefined) yield* residentRetireRoundUnit(job.round, job.workUnitId)
   })
   const residentSettingsEnvironmentOnly = (settings: ReviewSettingsSnapshot): boolean =>
-    settings.backend !== "jev" || settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in"
+    providerEnvironmentOnly(settings.backend) ||
+    settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in"
   const residentRetainedCredentialRequired = (dispatch: ResidentDispatchContext): boolean =>
     dispatch.controlled === null || dispatch.controlled.requireCredential === true
   const residentRetainedCredentialFields = (job: UnitJob) => {

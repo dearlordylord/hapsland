@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto"
-import { REVIEW_PROVIDERS } from "@hapsland/runtime-environment/runtime/backend"
+import { REVIEW_PROVIDERS, DEFAULT_REVIEW_BACKEND } from "@hapsland/runtime-environment/runtime/backend"
 import {
   BUILT_IN_INCLUDES,
   BUILT_IN_PROTECTED_EXCLUDES,
@@ -166,7 +166,7 @@ export const effectiveVirtualRoundQuietMs = (policy: ResolvedPolicy): number =>
   policy.layers.find((layer) => layer.name === "user")?.document.virtualRoundQuietMs ?? DEFAULT_VIRTUAL_ROUND_QUIET_MS
 
 export const effectiveReviewBackend = (policy: Pick<ResolvedPolicy, "layers">): ReviewBackendSettings =>
-  policy.layers.find((layer) => layer.name === "user")?.document.reviewBackend ?? { provider: "jev" }
+  policy.layers.find((layer) => layer.name === "user")?.document.reviewBackend ?? DEFAULT_REVIEW_BACKEND
 
 const userOwnedControls = [
   { field: "inspectionRetentionDays", reason: "only user configuration may set shared inspection retention" },
@@ -297,9 +297,9 @@ const resolveCredentialReference = (layers: ReadonlyArray<ConfigurationLayer>) =
     (layer) =>
       layer.name === "user" &&
       layer.document.reviewBackend !== undefined &&
-      layer.document.reviewBackend.provider !== "jev"
+      layer.document.reviewBackend.provider !== DEFAULT_REVIEW_BACKEND.provider
   )
-  const selectedProvider = backendOwner?.document.reviewBackend?.provider ?? "jev"
+  const selectedProvider = backendOwner?.document.reviewBackend?.provider ?? DEFAULT_REVIEW_BACKEND.provider
   let credentialEnvVar: Originated<string> = originated(
     REVIEW_PROVIDERS[selectedProvider].credentialEnvVar,
     backendOwner === undefined

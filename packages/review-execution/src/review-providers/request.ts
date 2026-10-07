@@ -1,6 +1,11 @@
 import * as Schema from "effect/Schema"
 import type { Decision } from "effect/ai"
-import { PROVIDER_LIMITS, type ReviewModel } from "@hapsland/review-definition/review-providers/catalog"
+import {
+  reviewModelDefinition,
+  type ReviewModel,
+  type WireQuestionIdProfile,
+  type RequestContentProfile
+} from "@hapsland/runtime-environment/runtime/backend"
 
 export type ProbabilityRule = Readonly<{ id: string; decision: Decision.Probability }>
 export type RequestLimitViolation = "invalid-input" | "questions" | "http-body-bytes" | "question-instructions"
@@ -14,9 +19,15 @@ const validRule = ({ id, decision }: ProbabilityRule, keys: ReadonlySet<string>)
   )
 }
 
+const WIRE_QUESTION_IDS = { "rule-id": (id, _index) => id, opaque: (_id, index) => `q${index}` } satisfies Record<
+  WireQuestionIdProfile,
+  (id: string, index: number) => string
+>
+
 /** One exact serializer for transport and accounting. Cloudflare IDs are opaque and reversible. */
 export const probabilityRequest = (model: ReviewModel, state: unknown, rules: ReadonlyArray<ProbabilityRule>) => {
   if (!Schema.is(Schema.Json)(state) || rules.length === 0) return undefined
+  const definition = reviewModelDefinition(model)
   const keys = new Set<string>()
   const questions: Record<string, { type: "noul"; instructions: string; criteria?: Decision.Probability["criteria"] }> =
     Object.create(null)
@@ -25,7 +36,7 @@ export const probabilityRequest = (model: ReviewModel, state: unknown, rules: Re
     const { id, decision } = rule
     if (!validRule(rule, keys)) return undefined
     keys.add(id)
-    const wireId = model === "jev-latest" ? id : `q${index}`
+    const wireId = WIRE_QUESTION_IDS[definition.provider.wireIds](id, index)
     ids[wireId] = id
     questions[wireId] = {
       type: "noul",
@@ -33,21 +44,22 @@ export const probabilityRequest = (model: ReviewModel, state: unknown, rules: Re
       ...(decision.criteria === undefined ? {} : { criteria: decision.criteria })
     }
   }
-  const payload =
-    model === "gpt-6-luna"
-      ? {
-          model,
-          input: JSON.stringify(state),
-          questions: Object.entries(questions).map(([name, question]) => ({
-            type: "predicate" as const,
-            name,
-            instructions:
-              question.criteria === undefined
-                ? question.instructions
-                : `${question.instructions}\n\nOutcome criteria (JSON): ${JSON.stringify(question.criteria)}`
-          }))
-        }
-      : { model, state, questions }
+  const payloadBuilders = {
+    openai: () => ({
+      model,
+      input: JSON.stringify(state),
+      questions: Object.entries(questions).map(([name, question]) => ({
+        type: "predicate" as const,
+        name,
+        instructions:
+          question.criteria === undefined
+            ? question.instructions
+            : `${question.instructions}\n\nOutcome criteria (JSON): ${JSON.stringify(question.criteria)}`
+      }))
+    }),
+    state: () => ({ model, state, questions })
+  } satisfies Record<RequestContentProfile, () => unknown>
+  const payload = payloadBuilders[definition.provider.requestContent]()
   const body = JSON.stringify(payload)
   return { payload, body, bytes: Buffer.byteLength(body, "utf8"), ids }
 }
@@ -58,7 +70,7 @@ export const requestLimitViolation = (
   request: ReturnType<typeof probabilityRequest>
 ): RequestLimitViolation | undefined => {
   if (request === undefined) return "invalid-input"
-  const limits = PROVIDER_LIMITS[model]
+  const limits = reviewModelDefinition(model).limits
   if (limits.questions !== undefined && Object.keys(request.ids).length > limits.questions) return "questions"
   if (limits.httpBodyBytes !== undefined && request.bytes > limits.httpBodyBytes) return "http-body-bytes"
   if (limits.questionInstructionsCharacters !== undefined && Array.isArray(request.payload.questions)) {

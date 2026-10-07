@@ -1,3 +1,4 @@
+import { CLOUDFLARE_PROVIDER } from "@hapsland/runtime-environment/runtime/backend"
 import { reviewHttpTransport } from "./transport.ts"
 import { assertReviewEngineBoundary } from "@hapsland/runtime-environment/runtime/review-engine-boundary"
 import * as Config from "effect/Config"
@@ -13,7 +14,7 @@ import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import type { ProviderIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import { probabilityRequest, requestLimitViolation, type ProbabilityRule } from "./request.ts"
 
-assertReviewEngineBoundary("cloudflare")
+assertReviewEngineBoundary(CLOUDFLARE_PROVIDER.id)
 
 const ResponseBody = Schema.Struct({
   success: Schema.Literal(true),
@@ -97,8 +98,8 @@ export const liveLayer = (options: {
       return yield* DecisionModel.make({
         decide: Effect.fn("CloudflareDecisionModel.decide")(function* ({ state, decisions }) {
           if (
-            options.identity.provider !== "cloudflare" ||
-            (options.identity.model !== "clef" && options.identity.model !== "clef-flash")
+            options.identity.provider !== CLOUDFLARE_PROVIDER.id ||
+            !Schema.is(CLOUDFLARE_PROVIDER.model)(options.identity.model)
           ) {
             return yield* Effect.fail(inputError("invalid Cloudflare model selection"))
           }
@@ -135,9 +136,15 @@ export const liveLayer = (options: {
   ).pipe(
     Layer.provide(
       options.httpClient === undefined
-        ? Layer.effect(HttpClient.HttpClient, Effect.map(HttpClient.HttpClient, reviewHttpTransport)).pipe(
-            Layer.provide(FetchHttpClient.layer)
+        ? Layer.effect(
+            HttpClient.HttpClient,
+            Effect.map(HttpClient.HttpClient, (client) =>
+              reviewHttpTransport(client, CLOUDFLARE_PROVIDER.requestContent)
+            )
+          ).pipe(Layer.provide(FetchHttpClient.layer))
+        : Layer.succeed(
+            HttpClient.HttpClient,
+            reviewHttpTransport(options.httpClient, CLOUDFLARE_PROVIDER.requestContent)
           )
-        : Layer.succeed(HttpClient.HttpClient, reviewHttpTransport(options.httpClient))
     )
   )

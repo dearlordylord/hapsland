@@ -1,7 +1,7 @@
 import * as Schema from "effect/Schema"
 import { RuleIdentitySchema } from "../domain/rule-identity.ts"
 import { GRAPH_LIMIT_CEILINGS, type GraphLimitField } from "@hapsland/canonical-policy/canonical/graph-limits"
-import { JEV_PROVIDER } from "@hapsland/runtime-environment/runtime/backend"
+import { JEV_PROVIDER, ReviewBackendSettings } from "@hapsland/runtime-environment/runtime/backend"
 
 export const AnalyticsRecordingEnabled = Schema.Boolean.annotate({
   identifier: "AnalyticsRecordingEnabled",
@@ -117,25 +117,7 @@ export interface GraphLimitsSettings extends Schema.Schema.Type<typeof GraphLimi
  * Lists intentionally remain optional: omission inherits while [] is an explicit
  * empty selection.
  */
-export const ReviewBackendSettings = Schema.Union([
-  Schema.Struct({
-    provider: Schema.Literal("openai").annotate({ description: "Review backend provider." }),
-    model: Schema.Literal("gpt-6-luna").annotate({ description: "OpenAI Decisions model selector." })
-  }),
-  Schema.Struct({ provider: Schema.Literal("jev").annotate({ description: "Review backend provider." }) }),
-  Schema.Struct({
-    provider: Schema.Literal("cloudflare").annotate({ description: "Review backend provider." }),
-    model: Schema.Literals(["clef", "clef-flash"]).annotate({ description: "Cloudflare model selector." }),
-    accountId: Schema.String.check(Schema.isPattern(/^[a-fA-F0-9]{32}$/u)).annotate({
-      description: "Cloudflare account ID, 32 hexadecimal characters."
-    })
-  })
-]).annotate({
-  identifier: "ReviewBackendSettings",
-  description:
-    "User-owned review destination. Jev is the default; Cloudflare requires a model and account ID; OpenAI requires a Decisions model. Projects cannot set this field."
-})
-export type ReviewBackendSettings = typeof ReviewBackendSettings.Type
+export { ReviewBackendSettings } from "@hapsland/runtime-environment/runtime/backend"
 
 export const ConfigurationDocument = Schema.Struct({
   version: Schema.Literal(CONFIGURATION_VERSION).annotate({ description: "Configuration wire-format version." }),

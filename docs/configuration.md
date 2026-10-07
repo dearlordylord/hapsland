@@ -193,9 +193,9 @@ resolved selection before expecting a review result.
 | `contextExcludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
 | `privacyExcludes` | array of non-empty string (may be empty) | Optional | — | Additional protected-path exclusions. These accumulate and cannot be overridden by lower-privacy layers. |
 | `privacyExcludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
-| `reviewBackend` | object with `provider` and `model` or object with `provider` or object with `provider` and `model` and `accountId` | Optional | — | User-owned review destination. Jev is the default; Cloudflare requires a model and account ID; OpenAI requires a Decisions model. Projects cannot set this field. |
-| `reviewBackend.provider` | fixed value "openai" or fixed value "jev" or fixed value "cloudflare" | Required (provider = "openai" or provider = "jev" or provider = "cloudflare") | — | Review backend provider. |
-| `reviewBackend.model` | fixed value "gpt-6-luna" or "clef" or "clef-flash" | Required (provider = "openai" or provider = "cloudflare") | — | OpenAI Decisions model selector. |
+| `reviewBackend` | object with `provider` or object with `provider` and `model` and `accountId` or object with `provider` and `model` | Optional | — | User-owned review destination and provider-specific model/account selection. Projects cannot set this field. |
+| `reviewBackend.provider` | fixed value "jev" or fixed value "cloudflare" or fixed value "openai" | Required (provider = "jev" or provider = "cloudflare" or provider = "openai") | — | Review backend provider. |
+| `reviewBackend.model` | "clef" or "clef-flash" or fixed value "gpt-6-luna" | Required (provider = "cloudflare" or provider = "openai") | — | Cloudflare model selector. |
 | `reviewBackend.accountId` | string matching a pattern | Required (provider = "cloudflare") | — | Cloudflare account ID, 32 hexadecimal characters. |
 | `credentialEnvVar` | string matching a pattern | Optional | "TYPESAFE_API_KEY" | Name of the environment variable that supplies the review credential. Store the secret value outside configuration. |
 | `sessionAnalytics` | boolean | Optional | false | Opt-in source-free session analytics. Project configuration overrides the user default; disabled by default; subject to the shared activity storage limits. |
