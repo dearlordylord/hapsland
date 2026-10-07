@@ -8,7 +8,7 @@
 
 ## Guided setup and updates
 
-`hapsland setup` opens a checkbox selector for Claude Code and Codex CLI. Installed clients are checked by default. Choose either or both; unchecking a client preserves its installation. Each selected client gets its own preview and confirmation. The named commands below bypass selection. `hapsland update` updates every registered Claude/Codex client with one target and one confirmation of the previewed changes; `hapsland update codex` limits the operation to this client.
+`hapsland setup` opens a checkbox selector for Claude Code, Codex CLI, and Pi. Installed clients are checked by default. Choose the clients to set up; unchecking a client preserves its installation. Each selected client gets its own preview and confirmation. The named commands below bypass selection. `hapsland update` updates every registered Claude/Codex/Pi client with one target and one confirmation of the previewed changes; `hapsland update codex` limits the operation to this client.
 
 After acquiring a verified package through the [installation lanes](installation-workflows.md):
 

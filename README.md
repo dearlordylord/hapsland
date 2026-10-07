@@ -2,35 +2,48 @@
 
 <p align="center"><img src="./assets/brand/readme-splash.svg" alt="Hapsland: a human hand correcting a skeletal robot hand" width="900"></p>
 
-Review changed types and functions with their related code.
+Catch design mistakes before your agent builds on them. Immediately slap its hand.
 
-Hapsland gives your coding agent early feedback on changed types and functions,
-using their related code. Start with built-in checks or add rules for your team's
-code-design concerns.
+Hapsland lets you apply auto-review your coding agent changes and give it immediate feedback.
 
-## Review the decisions behind an edit
+It does so in a smart way, collecting semantic context from the agent's diff.
 
-A type can allow a state that makes no sense. A function can make an assumption
-its inputs do not support. Those choices can spread as the agent writes more code.
-Hapsland reviews edits while the agent is working, giving it a chance
-to revisit the decision early.
+It does it keeping your privacy in mind: no prompts or unrelated changes are sent to the classifier,
+and the review requests are built with respect to your access settings.
 
-Hapsland starts from the edited lines, finds the changed type or function, then
-follows its references to build a tree of related definitions. Checks use that declaration and the related code they
-need. This lets review consider relationships beyond the changed lines. A check
-that lacks necessary code is skipped.
+It sends findings back to the agent in realtime,
+so it can address a mistake before building more code around it.
+
+It cares about your agents' context and attention, batching reviews together and discarding any stale reviews.
+
+It is fully observable: you can see what goes to the classifier (e.g. Jev) and what comes to the agent.
+
+No more AGENTS.md begging "please use domain types". Elevate your AGENTS.md instructions to realtime, and **slap that robot hand** immediately when your code style rule is violated.
+
+## Review the decisions behind code edits
+
+A type can allow combinations of values that make no sense. A function can assume
+its inputs satisfy a constraint that their types do not enforce. Spotting these
+problems can require reading definitions beyond the edited lines.
+
+Hapsland finds the changed type or function and follows its references to gather
+related definitions, including those in other files. Each rule reviews the
+changed declaration with the related code it needs. If the necessary code is
+unavailable, Hapsland skips that rule.
 
 ## What leaves my repository?
 
-Sending source to a review service is a data-sharing decision. Your task prompt
-and conversation with the agent are not review inputs. Text copied into selected
-source code or configured rule questions can be sent as part of those inputs.
-See the [content-isolation contract and proof limits](./docs/review-contract-compatibility.md#review-content-isolation).
+Sending source to a review service is a data-sharing decision.
+
+Some classifiers like Jev store your data and can do with it whatever they want.
+
+Your task prompt and conversation with the agent are not sent to the review backend.
+
+Text copied into selected source code or configured rule questions can be sent as
+part of those inputs. See the [content-isolation contract and proof limits](./docs/review-contract-compatibility.md#review-content-isolation).
 
 You choose which changed files can be reviewed and which files can supply related
-code. Related code follows the review file scope unless you explicitly configure a
-context scope. Privacy exclusions protect both kinds of reads and cannot be undone
-by project includes. Limits bound exploration and the code included in the review tree.
+code.
 
 Selected source code and rule questions are sent to the selected external
 classifier: [Jev](https://typesafe.ai) by default, or Cloudflare Clef/Clef-flash. It sees that code and those questions, not the agent’s
@@ -195,7 +208,15 @@ Ask your coding agent to install it:
 
 > Install Hapsland for my coding agent using https://github.com/dearlordylord/hapsland/blob/master/docs/installation-workflows.md. Let me review and approve the setup changes interactively. Ask me to enter any Jev key in the masked setup prompt, not in chat.
 
-Or install manually after a stable release is published and verified:
+The public npm package returned **404 on 2026-10-06**. Until a release is
+published, use the [local checkout installation](./docs/installation-workflows.md#install-before-publication)
+instead of the npm command below. This builds a fixed snapshot and opens guided
+setup; it requires the development toolchain.
+
+Before setup, choose your agent and [review file scope](./docs/installation-workflows.md#before-setup).
+Hooks apply to the selected user profile across repositories.
+
+After a stable release is published and verified, install manually:
 
 1. Install Hapsland:
 
@@ -209,10 +230,11 @@ Or install manually after a stable release is published and verified:
    hapsland setup
    ```
 
-   Select Claude Code, Codex CLI, or both with the checkboxes (arrows to move,
+   Select Claude Code, Codex CLI, and/or Pi with the checkboxes (arrows to move,
    Space to toggle, Enter to continue). Installed clients are checked and labeled.
    Unchecking a client leaves its installation intact. To skip the selector, use
-   `hapsland setup claude` or `hapsland setup codex`.
+   `hapsland setup claude`, `hapsland setup codex`, or `hapsland setup pi`.
+   Pi requires Linux arm64 and Pi 1.0.0; OpenCode setup is unavailable.
 
    Setup previews owned hooks, asks before applying them, accepts a missing Jev key
    through masked input, shows the selected key source and replacement instructions,
@@ -236,7 +258,7 @@ Public registry availability is not established by this guide. See the
 [installation lanes](./docs/installation-workflows.md#stable-installation-and-ordinary-use)
 for current distribution and host evidence.
 
-Update installed integrations with `hapsland update`; add `claude` or `codex`
+Update installed integrations with `hapsland update`; add `claude`, `codex`, or `pi`
 to select one client. The command previews hook changes and asks before applying
 them. Use `--channel=next` for a published candidate.
 

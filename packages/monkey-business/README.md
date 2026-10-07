@@ -102,7 +102,7 @@ accepts per-input tree identities/profiles/limits; NativeRun's base job instead
 uses its captured environment and operation identity. Agreement between lanes
 does not establish production workspace accounting.
 
-Production [workspace calculation](../../src/resident/preparation-workspace.ts)
+Production [workspace calculation](../resident-runtime/src/resident/preparation-workspace.ts)
 reserves unknown-size capture first, then measured analysis before materializing
 units. With `L(x)` the UTF-8 byte length of `canonicalValue(x)`, it uses
 `C(path,s) = 8*s + 64*(L(path)+512)` and
@@ -110,7 +110,7 @@ units. With `L(x)` the UTF-8 byte length of `canonicalValue(x)`, it uses
 Initial `s` is 262,144; absent preflight uses 64 declarations and 64*262,144
 expanded bytes. The import margin is fixed, not the sum of traversed tree bytes.
 Source bytes, graph read bytes, evidence-tree bytes and retained workspace are
-therefore distinct facts. [Resident preparation](../../src/resident/server.ts)
+therefore distinct facts. [Resident preparation](../resident-runtime/src/resident/server.ts)
 processes candidate paths sequentially, checks resize before analysis and replaces
 workspace with admitted retained-unit charges after rule/reuse decisions.
 `residentUnitReservationBytes` measures the larger of complete retained unit and
