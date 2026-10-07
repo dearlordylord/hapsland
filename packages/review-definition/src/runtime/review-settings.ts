@@ -5,6 +5,7 @@ import {
   DEFAULT_USER_CONFIGURATION_FILE,
   PROJECT_CONFIGURATION_FILE
 } from "@hapsland/runtime-inputs/configuration/load"
+import type { PhysicalRootIdentity } from "@hapsland/native-observation/direct-event/observation"
 import type { ConfigurationCapture } from "@hapsland/runtime-inputs/configuration/types"
 import type { CompiledRule } from "../rules/compiler.ts"
 import { loadReviewSettings, type ReviewSettings } from "./review-config.ts"
@@ -41,6 +42,7 @@ export const settingsSource = (root: string, userConfigPath?: string): SettingsS
 
 /** Shared immutable configuration and compiled rules retained for an edit's entire lifetime. */
 export interface ReviewSettingsSnapshot extends ReviewSettings {
+  readonly rootIdentity?: PhysicalRootIdentity
   readonly source: SettingsSource
   readonly configuration: ConfigurationCapture
   readonly rules: ReadonlyArray<CompiledRule>

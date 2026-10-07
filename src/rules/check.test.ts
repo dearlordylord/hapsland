@@ -8,7 +8,7 @@ import { join } from "node:path"
 import { makeGitFixture, put, addEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { discoverPhysicalWorkingTreeRoot } from "@hapsland/native-observation/repository/root"
 import { prepareSourceLine, prepareObservation } from "@hapsland/review-execution/direct-event/pipeline"
-import { adaptCodexAdd } from "@hapsland/native-observation/direct-event/adapter"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import { loadReviewSettings } from "@hapsland/review-definition/runtime/review-config"
 import { checkRuleAtLine, formatRuleCheck } from "@hapsland/administration/rules/check"
 
@@ -102,7 +102,7 @@ describe("one-off file and line rule checks", () => {
     const manual = await Effect.runPromise(
       prepareSourceLine({ ...repository, path: "target.ts", line: 4 }, { settings })
     )
-    const observation = await Effect.runPromise(adaptCodexAdd(addEvent(root, ["target.ts"])))
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["target.ts"])))
     if (observation === undefined) throw new Error("Missing fixture observation")
     const hook = await Effect.runPromise(
       prepareObservation(observation, { settings, controlledWriter: true, advicee: observation.advicee })

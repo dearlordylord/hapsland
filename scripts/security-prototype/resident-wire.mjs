@@ -151,7 +151,8 @@ try {
     })
   )
   event("admit", { status: admit.status, repoId: "fixture-repo", path, source: "production" })
-  if (admit.status !== "accepted") throw new Error(`resident rejected fixture: ${admit.status}`)
+  const expectedAdmission = scenario === "exclude-at-admission" ? "rejected-stale" : "accepted"
+  if (admit.status !== expectedAdmission) throw new Error(`resident rejected fixture: ${admit.status}`)
   if (scenario !== "exclude-at-admission") await reachedPrepare
   // Optional build-overlap witness: preparation has loaded the native parsers,
   // and dispatch remains held until the parent finishes refreshing artifacts.

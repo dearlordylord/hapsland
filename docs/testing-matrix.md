@@ -6,6 +6,14 @@
 **Expected use:** Select the smallest relevant gate before a change, locate the current manual native integration runner, and distinguish source-checkout observations from package or platform support.
 **Lifecycle:** Update this matrix whenever a test scenario, runner, language or runtime profile, or evidence owner changes. Review it when a milestone retires or replaces a runner; delete obsolete instructions and retain evidence only while a current decision, claim, or open review needs its provenance.
 
+Target-root round changes use [real-Git resident routing fixtures](../src/resident/root-routing.test.ts)
+with offline reviewers, plus native path translation, edit-settings, physical
+capture, composed delivery and IPC checks. Verify concurrent first admission,
+other-root skip without source reads or authority, return to the pinned root,
+recipient-wide closure fences, and delivery across cwd changes. Linked worktrees
+and independent repositories are distinct physical sources. These checks prove
+local behavior; they do not extend declared native-host/platform support.
+
 ## Verification profiles
 
 Use `npm run verify -- --profile=PROFILE [explicit test files]`. Every run records

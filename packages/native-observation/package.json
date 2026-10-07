@@ -59,6 +59,10 @@
     "./hosts/opencode/adapter": {
       "types": "./dist/hosts/opencode/adapter.d.ts",
       "default": "./dist/hosts/opencode/adapter.js"
+    },
+    "./direct-event/target-observation": {
+      "types": "./dist/direct-event/target-observation.d.ts",
+      "default": "./dist/direct-event/target-observation.js"
     }
   },
   "dependencies": {

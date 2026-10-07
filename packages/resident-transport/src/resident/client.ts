@@ -31,6 +31,7 @@ import {
   STARTUP_READINESS_DEADLINE_MS,
   decodeCurrentResidentResponse,
   encodeCurrentResidentRequest,
+  type ResidentEditPolicy,
   type ResidentDispatchContext,
   type ResidentRequest,
   type ResidentResponse,
@@ -389,18 +390,49 @@ const nullableResolvedPath = (path: string | undefined) => (path === undefined ?
 const dispatchUsesCredential = (controlled: ReturnType<typeof controlledDispatchOptions>) =>
   controlled === null || controlled.requireCredential === true
 
+export const readComposedEditPolicyEffect = Effect.fn("ResidentClient.readComposedEditPolicy")(function* (
+  root: string,
+  advicee: DirectAdvicee,
+  paths: ResidentPaths | undefined = undefined,
+  targetPaths?: ReadonlyArray<string>
+) {
+  paths ??= yield* resolveResidentPaths()
+  const owner = yield* inspectResidentEffect(paths)
+  const lifetime = inspectedLifetime(owner)
+  if (lifetime === undefined) return undefined
+  const response = yield* residentRequestEffect(
+    paths,
+    {
+      requestRoute: "shared",
+      operation: "edit-policy",
+      lifetime,
+      root,
+      advicee,
+      ...(targetPaths === undefined ? {} : { targetPaths })
+    },
+    250
+  )
+  return response.status === "edit-policy" ? response.policy : undefined
+})
+
 export const makeResidentDispatchContextEffect = Effect.fn("ResidentClient.makeResidentDispatchContext")(function* (
   root: string,
   statePath: string,
   activityPath: string,
   userConfigPath: string | undefined,
-  controlledOptions: ResidentControlledOptions | undefined
+  controlledOptions: ResidentControlledOptions | undefined,
+  editPolicy?: ResidentEditPolicy
 ): Effect.fn.Return<ResidentDispatchContext, ResidentIpcError | ReviewConfigError> {
-  const capture = yield* loadConfiguration(root, userConfigurationOptions(userConfigPath)).pipe(
-    Effect.mapError(
-      (error) => new ReviewConfigError({ source: error.source, field: error.field, reason: error.reason })
-    )
-  )
+  const capture =
+    editPolicy === undefined
+      ? yield* loadConfiguration(root, userConfigurationOptions(userConfigPath)).pipe(
+          Effect.mapError(
+            (error) => new ReviewConfigError({ source: error.source, field: error.field, reason: error.reason })
+          )
+        )
+      : undefined
+  const credentialEnvVar = editPolicy?.credentialEnvVar ?? capture!.policy.credentialEnvVar.value
+  const sessionAnalytics = editPolicy?.sessionAnalytics ?? effectiveSessionAnalytics(capture!.policy)
   const controlled = controlledDispatchOptions(controlledOptions)
   const configuration = yield* Config.all({
     credentialStatePath: Config.NonEmptyString("REVIEW_CREDENTIAL_STATE_PATH").pipe(
@@ -410,7 +442,7 @@ export const makeResidentDispatchContextEffect = Effect.fn("ResidentClient.makeR
   }).pipe(Effect.mapError(() => new ResidentIpcError({ message: "resident dispatch configuration unavailable" })))
   const credentialInput = !dispatchUsesCredential(controlled)
     ? undefined
-    : yield* resolveCredentialInput({ envVar: capture.policy.credentialEnvVar.value, root }).pipe(
+    : yield* resolveCredentialInput({ envVar: credentialEnvVar, root }).pipe(
         Effect.mapError(() => new ResidentIpcError({ message: "resident credential input unavailable" }))
       )
   const credentialStatePath = resolve(configuration.credentialStatePath)
@@ -421,13 +453,13 @@ export const makeResidentDispatchContextEffect = Effect.fn("ResidentClient.makeR
   return {
     statePath: resolve(statePath),
     activityPath: resolve(activityPath),
-    sessionAnalytics: effectiveSessionAnalytics(capture.policy),
+    sessionAnalytics,
     userConfigPath: nullableResolvedPath(userConfigPath),
     demoBudgetPath: nullableResolvedPath(Option.getOrUndefined(configuration.demoBudgetPath)),
     credential: !dispatchUsesCredential(controlled)
       ? null
       : {
-          name: capture.policy.credentialEnvVar.value,
+          name: credentialEnvVar,
           environmentValue: credentialInput?.value === undefined ? null : Redacted.value(credentialInput.value),
           generation: credentialState.generation,
           statePath: credentialStatePath
@@ -486,6 +518,7 @@ const editNonAdviceStatuses = {
   unavailable: "unavailable",
   "rejected-capacity": "unavailable",
   "rejected-stale": "unavailable",
+  "skipped-other-root": "empty",
   "obsolete-lifetime": "unavailable",
   unsupported: "unavailable"
 } as const
@@ -652,6 +685,22 @@ export const collectAdviceeOutcomeEffect = Effect.fn("ResidentClient.collectAdvi
   return pendingOrEmpty(response)
 })
 
+/** Read an existing resident's pin without starting work or extending its lifetime. */
+export const resolveComposedRootEffect = Effect.fn("ResidentClient.resolveComposedRoot")(function* (
+  root: string,
+  advicee: DirectAdvicee,
+  paths: ResidentPaths
+) {
+  const owner = yield* inspectResidentEffect(paths)
+  if (owner.lifetime === undefined) return root
+  const response = yield* residentRequestEffect(
+    paths,
+    { requestRoute: "shared", operation: "recipient-root", lifetime: owner.lifetime, root, advicee },
+    250
+  )
+  return response.status === "recipient-root" ? (response.root ?? root) : root
+})
+
 export const markComposedUserPromptEffect = Effect.fn("ResidentClient.markComposedUserPrompt")(function* (
   root: string,
   advicee: DirectAdvicee,
@@ -779,6 +828,23 @@ export const composedStopBoundaryEffect = Effect.fn("ResidentClient.composedStop
   const response = yield* residentRequestEffect(
     paths,
     { requestRoute: "shared", operation, lifetime, root, advicee, token, close, reason },
+    250
+  )
+  return response.status === "advanced"
+})
+
+export const retireComposedEditEffect = Effect.fn("ResidentClient.retireComposedEdit")(function* (
+  root: string,
+  advicee: DirectAdvicee,
+  paths: ResidentPaths | undefined = undefined
+) {
+  paths ??= yield* resolveResidentPaths()
+  const owner = yield* inspectResidentEffect(paths)
+  const lifetime = inspectedLifetime(owner)
+  if (lifetime === undefined) return false
+  const response = yield* residentRequestEffect(
+    paths,
+    { requestRoute: "shared", operation: "retire-edit", lifetime, root, advicee, startedAt: 1 },
     250
   )
   return response.status === "advanced"

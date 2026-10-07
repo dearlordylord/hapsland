@@ -1,5 +1,10 @@
-import { realpath } from "node:fs/promises"
-import { discoverPhysicalWorkingTreeRoot } from "../repository/root.ts"
+import { captureOptionsForTarget, type DirectCaptureOptions } from "./capture-policy.ts"
+import {
+  discoverPhysicalWorkingTreeRoot,
+  discoverToolTargetRoot,
+  discoverAbsoluteToolTargetRoot,
+  absoluteToolTarget
+} from "../repository/root.ts"
 import { isAbsolute, relative, resolve, sep } from "node:path"
 import * as Effect from "effect/Effect"
 import { loadConfiguration } from "@hapsland/runtime-inputs/configuration/load"
@@ -12,7 +17,7 @@ import type {
 } from "./observation.ts"
 import type { PostEditLocation, VerifiedPatchHunk } from "./edit-attribution.ts"
 import { MAX_SOURCE_BYTES, captureStable, type CaptureHooks } from "./capture.ts"
-import { eligibleNamedPath, resolvedDirectFilePolicy } from "./selection.ts"
+import { eligibleNamedPath, resolvedDirectFilePolicy, type DirectFilePolicy } from "./selection.ts"
 
 export const MAX_CODEX_COMMAND_BYTES = 65_536
 export const MAX_CODEX_CANDIDATES = 16
@@ -138,22 +143,6 @@ const codexToolEvent = (event: EventRecord | undefined): event is ToolEvent =>
   nonEmpty(event.turn_id) &&
   nonEmpty(event.tool_use_id)
 const outsideParent = (path: string): boolean => path === ".." || path.startsWith(`..${sep}`) || isAbsolute(path)
-const rootRelativeCwd = Effect.fn("DirectEvent.rootRelativeCwd")(function* (root: string, cwd: string) {
-  const physical = yield* Effect.tryPromise({
-    try: () => realpath(cwd),
-    catch: () => new Error("working directory unavailable")
-  }).pipe(Effect.option)
-  if (physical._tag === "None") return undefined
-  const path = relative(root, physical.value)
-  return outsideParent(path) ? undefined : path
-})
-const normalizedCandidate = (candidate: DirectCandidate, cwd: string, cwdFromRoot: string): DirectCandidate => {
-  if (!isAbsolute(candidate.path)) return candidate
-  const fromCwd = relative(resolve(cwd), resolve(candidate.path))
-  if (outsideParent(fromCwd)) return candidate
-  const path = [cwdFromRoot, fromCwd].filter(Boolean).join(sep).replaceAll(sep, "/")
-  return { ...candidate, path }
-}
 const patchFailed = (response: EventRecord | undefined): boolean =>
   response?.success === false || response?.is_error === true
 const patchSucceeded = (event: EventRecord, response: EventRecord | undefined): boolean =>
@@ -185,6 +174,15 @@ const codexAdvicee = (event: ToolEvent, hostVersion: CodexHostVersion): Extract<
     toolUseId: event.tool_use_id,
     subagentId: event.agent_id ?? null
   })
+/** Explicit native directory arguments override the event base, never the hook process cwd. */
+const codexToolBase = (event: IdentifiedEvent): string | undefined => {
+  const input = record(event.tool_input)
+  const bases = [input?.cwd, input?.workdir].filter((base) => base !== undefined)
+  if (bases.some((base) => !nonEmpty(base) || (base as string).includes("\0"))) return undefined
+  if (bases.length === 0) return event.cwd
+  const resolved = bases.map((base) => resolve(event.cwd, base as string))
+  return resolved.every((base) => base === resolved[0]) ? resolved[0] : undefined
+}
 const codexPatchInput = (event: ToolEvent) => {
   const input = record(event.tool_input)
   if (input === undefined || !nonEmpty(input.command)) return undefined
@@ -204,19 +202,37 @@ export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEven
   const patch = codexPatchInput(event)
   if (patch === undefined) return undefined
   const { candidates, response } = patch
-  const root = yield* canonicalGitRoot(event.cwd)
-  if (root._tag === "None") return undefined
-  // Resolve physical cwd, but normalize absolute file headers using its lexical spelling.
-  // Selection still checks symlinks and the captured file's physical path.
-  const cwdFromRoot = yield* rootRelativeCwd(root.value.root, event.cwd)
-  if (cwdFromRoot === undefined) return undefined
-  const normalized = candidates.map((candidate) => normalizedCandidate(candidate, event.cwd, cwdFromRoot))
+  const base = codexToolBase(event)
+  if (base === undefined) return undefined
+  const absolutePaths = yield* Effect.forEach(candidates, (candidate) => absoluteToolTarget(base, candidate.path)).pipe(
+    Effect.option
+  )
+  if (absolutePaths._tag === "None") return undefined
+  const discoveries = yield* Effect.forEach(
+    absolutePaths.value,
+    (path) => discoverAbsoluteToolTargetRoot(path).pipe(Effect.option),
+    { concurrency: 4 }
+  )
+  const root = discoveries.find((discovered) => discovered._tag === "Some")
+  if (root === undefined) return undefined
+  const normalized = candidates.map((candidate, index) => {
+    const absolutePath = absolutePaths.value[index]!
+    const path = relative(root.value.root, absolutePath)
+    return { ...candidate, path: outsideParent(path) ? absolutePath : path.replaceAll(sep, "/") }
+  })
   const command = normalizedPatchCommand(patch.command, candidates, normalized)
   return Object.freeze({
     root: root.value.root,
     rootIdentity: root.value.rootIdentity,
     advicee: codexAdvicee(event, hostVersion),
     candidates: Object.freeze(normalized.map((candidate) => Object.freeze(candidate))),
+    candidateRoots: Object.freeze(
+      discoveries.map((discovered) =>
+        discovered._tag === "None"
+          ? null
+          : Object.freeze({ root: discovered.value.root, rootIdentity: discovered.value.rootIdentity })
+      )
+    ),
     ...(patchSucceeded(event, response) ? { nativePatchCommand: command } : {})
   } satisfies DirectObservation)
 })
@@ -265,6 +281,26 @@ const composedAdvicee = (event: IdentifiedEvent, host: ComposedHost, codexVersio
     subagentId: event.agent_id ?? null
   }
 }
+const composedTargetPaths = (event: IdentifiedEvent, host: ComposedHost): ReadonlyArray<string> => {
+  const input = record(event.tool_input)
+  if (host === "claude-code") return typeof input?.file_path === "string" ? [input.file_path] : []
+  return typeof input?.command === "string"
+    ? (nativeDirectCandidates(input.command)?.map((candidate) => candidate.path) ?? [])
+    : []
+}
+const composedEditRoots = Effect.fn("DirectEvent.composedEditRoots")(function* (
+  event: IdentifiedEvent,
+  host: ComposedHost
+) {
+  const base = host === "codex-cli" ? codexToolBase(event) : event.cwd
+  if (base === undefined) return undefined
+  const editRoots: string[] = []
+  for (const target of composedTargetPaths(event, host)) {
+    const discovered = yield* discoverToolTargetRoot(base, target).pipe(Effect.option)
+    if (discovered._tag === "Some" && !editRoots.includes(discovered.value.root)) editRoots.push(discovered.value.root)
+  }
+  return editRoots
+})
 /** Identity-only mapping for composed background, Stop, and prompt hooks. */
 export const adaptComposedHookIdentity = Effect.fn("DirectEvent.adaptComposedHookIdentity")(function* (
   value: unknown,
@@ -274,13 +310,15 @@ export const adaptComposedHookIdentity = Effect.fn("DirectEvent.adaptComposedHoo
 ) {
   const event = record(value)
   if (!identifiedEvent(event) || !composedEventMatches(event, host, eventName)) return undefined
+  const editRoots = eventName === "PreToolUse" ? yield* composedEditRoots(event, host) : []
+  if (editRoots === undefined) return undefined
   const root = yield* canonicalGitRoot(event.cwd)
-  if (root._tag === "None") return undefined
-  return Object.freeze({ root: root.value.root, advicee: Object.freeze(composedAdvicee(event, host, codexVersion)) })
+  return Object.freeze({
+    root: editRoots[0] ?? (root._tag === "Some" ? root.value.root : resolve(event.cwd)),
+    advicee: Object.freeze(composedAdvicee(event, host, codexVersion)),
+    ...(eventName === "PreToolUse" ? { editRoots: Object.freeze(editRoots) } : {})
+  })
 })
-
-/** Compatibility name retained for callers introduced by the Add-only slice. */
-export const adaptCodexAdd = adaptCodexDirectEvent
 
 const changedWholeLines = (before: string, after: string): ReadonlyArray<string> => {
   const prior = new Set(before.split(/\r?\n/u).map((line) => line.trim()))
@@ -383,17 +421,6 @@ const boundedClaudeWrite = (input: EventRecord, response: EventRecord): boolean 
   (response.originalFile === null || boundedSource(response.originalFile))
 const boundedClaudeSource = (event: ClaudeEvent, input: EventRecord, response: EventRecord): boolean =>
   event.tool_name === "Edit" ? boundedClaudeEdit(input, response) : boundedClaudeWrite(input, response)
-const claudeRelativePath = Effect.fn("DirectEvent.claudeRelativePath")(function* (
-  root: string,
-  cwd: string,
-  path: string
-) {
-  const fromRoot = yield* rootRelativeCwd(root, cwd)
-  if (fromRoot === undefined) return undefined
-  const fromCwd = relative(resolve(cwd), resolve(path))
-  if (outsideParent(fromCwd)) return undefined
-  return [fromRoot, fromCwd].filter(Boolean).join(sep).replaceAll(sep, "/")
-})
 type ClaudeEditInput = EventRecord & {
   readonly old_string: string
   readonly new_string: string
@@ -521,16 +548,28 @@ const captureSelectedClaudeFile = Effect.fn("DirectEvent.captureSelectedClaudeFi
   root: string,
   rootIdentity: PhysicalRootIdentity,
   relativePath: string,
-  options: { readonly userConfigPath?: string; readonly captureHooks?: CaptureHooks }
+  options: {
+    readonly userConfigPath?: string
+    readonly captureHooks?: CaptureHooks
+    readonly filePolicy?: DirectFilePolicy
+    readonly capturePolicy?: (
+      root: string,
+      advicee: DirectAdvicee,
+      path: string
+    ) => Effect.Effect<DirectFilePolicy | undefined>
+  }
 ) {
-  const configuration = yield* loadConfiguration(
-    root,
-    options.userConfigPath === undefined ? {} : { userConfigPath: options.userConfigPath }
-  )
+  const configuration =
+    options.filePolicy === undefined
+      ? yield* loadConfiguration(
+          root,
+          options.userConfigPath === undefined ? {} : { userConfigPath: options.userConfigPath }
+        )
+      : undefined
   const eligible = yield* eligibleNamedPath(
     root,
     relativePath,
-    resolvedDirectFilePolicy(configuration.policy),
+    options.filePolicy ?? resolvedDirectFilePolicy(configuration!.policy),
     rootIdentity
   )
   if (eligible === undefined) return undefined
@@ -539,18 +578,29 @@ const captureSelectedClaudeFile = Effect.fn("DirectEvent.captureSelectedClaudeFi
 /** Claude has no observed turn ID; preserve supplied child identity. */
 export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEvent")(function* (
   value: unknown,
-  options: { readonly userConfigPath?: string; readonly captureHooks?: CaptureHooks } = {}
+  options: DirectCaptureOptions = {}
 ) {
   const event = record(value)
   if (!claudeEvent(event)) return undefined
   const payload = claudePayload(event)
   if (payload === undefined) return undefined
   const { input, response, path } = payload
-  const root = yield* canonicalGitRoot(event.cwd)
+  const root = yield* discoverToolTargetRoot(event.cwd, path).pipe(Effect.option)
   if (root._tag === "None") return undefined
-  const relativePath = yield* claudeRelativePath(root.value.root, event.cwd, path)
-  if (relativePath === undefined) return undefined
-  const content = yield* captureSelectedClaudeFile(root.value.root, root.value.rootIdentity, relativePath, options)
+  const relativePath = relative(root.value.root, root.value.absolutePath).replaceAll(sep, "/")
+  const selectedOptions = yield* captureOptionsForTarget(
+    options,
+    root.value.root,
+    claudeAdvicee(event),
+    root.value.absolutePath
+  )
+  if (selectedOptions === undefined) return undefined
+  const content = yield* captureSelectedClaudeFile(
+    root.value.root,
+    root.value.rootIdentity,
+    relativePath,
+    selectedOptions
+  )
   if (content === undefined) return undefined
   const change = verifiedClaudeChange(event, input, response, path, relativePath, content.text)
   if (change === undefined) return undefined

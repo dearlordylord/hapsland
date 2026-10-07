@@ -605,11 +605,10 @@ describe("resident separate-process lifecycle", () => {
     })
 
     expect(await runClient(collectReady(root, advicee({ subagentId: "other-child" }), dispatch, paths))).toBeUndefined()
-    expect(await runClient(collectReady(otherRoot, advicee(), dispatch, paths))).toBeUndefined()
     await writeFile(`${collectGate}.enabled`, "enabled\n")
     const disconnectScript = [
       "import {collectReadyEffect as collectReady} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime';",
-      `const root=${JSON.stringify(root)};`,
+      `const root=${JSON.stringify(otherRoot)};`,
       `const advicee=${JSON.stringify(advicee({ turnId: "later", toolUseId: "disconnect" }))};`,
       `const dispatch=${JSON.stringify(dispatch)};`,
       `const paths=${JSON.stringify(paths)};`,
@@ -980,20 +979,13 @@ describe("resident separate-process lifecycle", () => {
     })
     expect(await runClient(collectReady(root, advicee(), dispatch, paths))).toBeUndefined()
 
-    // One two-unit batch with a same-round join, one child partition, and one
-    // distinct existing Git worktree travel through the new process. Exclusion
-    // after admission keeps the other worktree from dispatching and cannot
-    // leak its advice.
+    // A two-unit batch, same-round join and independent child survive another
+    // worktree's skipped edit. Delivery follows the recipient across cwd changes.
     const batch = await observe(root, ["type.ts", "second.ts"], { tool_use_id: "batch" })
     const child = await observe(root, ["type.ts"], { agent_id: "child-2", tool_use_id: "child" })
     const other = await observe(otherRoot, ["type.ts"], { tool_use_id: "other-worktree" })
     await rm(backendGate, { force: true })
-    for (const observation of [
-      batch,
-      { ...batch, advicee: { ...batch.advicee, toolUseId: "batch-join" } },
-      child,
-      other
-    ]) {
+    for (const observation of [batch, { ...batch, advicee: { ...batch.advicee, toolUseId: "batch-join" } }, child]) {
       expect(
         (
           await admitComposed(paths, {
@@ -1007,7 +999,31 @@ describe("resident separate-process lifecycle", () => {
         ).status
       ).toBe("accepted")
     }
-    await put(otherRoot, ".hapsland.jsonc", '{"version":1,"excludes":["type.ts"]}')
+    expect(
+      await runClient(
+        residentRequest(paths, {
+          requestRoute: "shared",
+          operation: "register-edit",
+          lifetime: second.lifetime,
+          root: other.root,
+          advicee: other.advicee,
+          startedAt: monotonicNow()
+        })
+      )
+    ).toEqual({ status: "skipped-other-root" })
+    expect(
+      await runClient(
+        residentRequest(paths, {
+          requestRoute: "shared",
+          operation: "admit",
+          lifetime: second.lifetime,
+          observation: other,
+          controlledWriter: true,
+          dispatch,
+          composed: true
+        })
+      )
+    ).toEqual({ status: "skipped-other-root" })
     await writeFile(backendGate, "release\n")
     await waitFor(async () => {
       const stats = await runClient(
@@ -1017,11 +1033,10 @@ describe("resident separate-process lifecycle", () => {
         ? stats
         : undefined
     })
-    expect(await runClient(collectReady(otherRoot, advicee(), dispatch, paths))).toBeUndefined()
     const rootBatch = await runClient(
-      collectReady(root, advicee({ turnId: "collect", toolUseId: "batch" }), dispatch, paths)
+      collectReady(otherRoot, advicee({ turnId: "collect", toolUseId: "batch" }), dispatch, paths)
     )
-    expect(rootBatch?.output.hookSpecificOutput.additionalContext).toContain("type.ts")
+    expect(rootBatch?.output.hookSpecificOutput.additionalContext).toContain(join(root, "type.ts"))
     expect(rootBatch?.output.hookSpecificOutput.additionalContext).toContain("second.ts")
     if (rootBatch === undefined) return
     expect(
@@ -1048,8 +1063,7 @@ describe("resident separate-process lifecycle", () => {
     expect(beforeClosure).toMatchObject({ status: "stats", pendingAdvice: 3 })
     for (const [roundRoot, agent, token] of [
       [root, advicee(), "root-stop"],
-      [root, advicee({ subagentId: "child-2" }), "child-stop"],
-      [otherRoot, advicee(), "other-stop"]
+      [root, advicee({ subagentId: "child-2" }), "child-stop"]
     ] as const) {
       expect(await runClient(composedStopBoundary("begin-stop", roundRoot, agent, token, false, paths))).toBe(true)
       expect(await runClient(composedStopBoundary("finish-stop", roundRoot, agent, token, true, paths))).toBe(true)

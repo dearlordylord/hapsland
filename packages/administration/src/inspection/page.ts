@@ -288,7 +288,7 @@ function renderFiles(records, inputs, artifacts) {
     ['Edited:', records.filter(record => record.fact.kind === 'edit-received').flatMap(record => record.fact.candidates.map(item => [item.path, item.operation]))],
     ['Prepared declarations:', records.filter(record => record.fact.kind === 'unit-prepared').map(record => [record.fact.path, record.fact.declaration + ' · ' + record.fact.completeness])],
     ['Physically read:', records.filter(record => record.fact.kind === 'preparation-read').map(record => [record.fact.path, ''])],
-    ['Skipped:', records.filter(record => record.fact.kind === 'preparation-skipped').map(record => [record.fact.path, ''])],
+    ['Skipped:', [...records.filter(record => record.fact.kind === 'preparation-skipped').map(record => [record.fact.path, '']), ...records.filter(record => record.fact.kind === 'round-membership').flatMap(record => record.fact.skippedPaths.map(path => [path, 'Another working root is pinned · ' + record.fact.roundId]))]],
     ['Omitted:', [...records.filter(record => record.fact.kind === 'preparation-omission').map(record => [record.fact.path, (record.fact.declaration ? record.fact.declaration + ' · ' : '') + omissionLabel(record.fact.reason) + (omissionLabel(record.fact.reason) === record.fact.reason ? '' : ' (' + record.fact.reason + ')')]), ...omittedReferences]],
     ['Unavailable:', records.filter(record => record.fact.kind === 'model-input' && record.fact.payload.status !== 'available').map(record => ['Model input', record.fact.payload.reason])]
   ];
@@ -364,6 +364,8 @@ function editReviewBadges(records) {
   const missing = findings.some(record => record.fact.payload.status !== 'available') || outcomes.some(record => record.fact.outcome === 'findings') && !count;
   const settled = completed > 0 && completed >= calls && !failed && !missing;
   const badges = [{ text: 'Decision · ' + calls, tone: calls ? 'decision' : 'muted', title: 'Captured DecisionModel calls; HTTP retries are counted separately.' }];
+  if (unique.some(record => record.fact.kind === 'edit-admission' && record.fact.outcome === 'skipped-other-root'))
+    badges.push({ text: 'Skipped · another working root', tone: 'muted' });
   if (count) badges.push({ text: 'Findings · ' + count, tone: 'findings' });
   else if (settled) badges.push({ text: 'Findings · 0', tone: 'clear' });
   if (failed) badges.push({ text: 'Review failed', tone: 'failed' });
@@ -447,7 +449,8 @@ function render(snapshot) {
   document.querySelector('#edit-empty').textContent = 'Select an edit';
   const receipt = records.find(record => record.fact.kind === 'edit-received');
   document.querySelector('#edit-title').textContent = receipt ? receipt.fact.candidates.map(item => item.path).join(', ') : 'Captured edit';
-  document.querySelector('#edit-context').textContent = records.length ? records[0].scope.root + ' · ' + (records[0].scope.runtime || 'Runtime unavailable') + ' · ' + new Date(records[0].capturedAt).toLocaleString() : '';
+  const round = records.find(record => record.fact.kind === 'round-membership');
+  document.querySelector('#edit-context').textContent = records.length ? records[0].scope.root + ' · ' + (records[0].scope.runtime || 'Runtime unavailable') + ' · ' + new Date(records[0].capturedAt).toLocaleString() + (round ? ' · Round ' + round.fact.roundId : '') : '';
   renderFindings(records);
   const activeRoute = document.activeElement?.dataset.route;
   routes.replaceChildren();

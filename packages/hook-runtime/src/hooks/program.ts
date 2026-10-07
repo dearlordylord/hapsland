@@ -7,7 +7,8 @@ import { adaptClaudeDirectEvent } from "@hapsland/native-observation/direct-even
 import { isCodexHostVersion } from "@hapsland/native-observation/direct-event/observation"
 import { runPiHook } from "../pi/transport.ts"
 import { hookMonotonicMillis } from "@hapsland/resident-transport/resident/hook-clock"
-import { residentStartupLayer } from "@hapsland/resident-transport/resident/client"
+import type { ResidentEditPolicy } from "@hapsland/resident-transport/resident/protocol"
+import { readComposedEditPolicyEffect, residentStartupLayer } from "@hapsland/resident-transport/resident/client"
 import { HookOutput, hookOutputLayer } from "../resident/hook-output.ts"
 import { directHookSubmissionLayer, submitDirectHookOutput } from "../resident/direct-hook-output.ts"
 import { composedHookRuntimeLayer, runComposedHookEffect, type ComposedHookKind } from "../resident/composed-hook.ts"
@@ -99,9 +100,25 @@ const runNative = Effect.fn("Hook.runNative")(function* (
     )
   if (options["claude-hook"]) {
     if (!options["composed-edit-hook"]) return {}
-    const observation = yield* adaptClaudeDirectEvent(event, userConfigPath === undefined ? {} : { userConfigPath })
+    let editPolicy: ResidentEditPolicy | undefined
+    const callerCwd =
+      event !== null && typeof event === "object" && "cwd" in event && typeof event.cwd === "string"
+        ? event.cwd
+        : undefined
+    const observation = yield* adaptClaudeDirectEvent(event, {
+      ...(userConfigPath === undefined ? {} : { userConfigPath }),
+      capturePolicy: (root, advicee, path) =>
+        readComposedEditPolicyEffect(root, advicee, undefined, [path]).pipe(
+          Effect.catch(() => Effect.succeed(undefined)),
+          Effect.map((policy) => {
+            editPolicy = policy
+            return policy?.filePolicy
+          })
+        )
+    })
+    if (observation === undefined) yield* dispatch.retireNativeEditPermits(event, "claude-code")
     return yield* dispatch
-      .runDirectBoundedHook(observation, controlled, statePath, activityPath, userConfigPath)
+      .runDirectBoundedHook(observation, controlled, statePath, activityPath, userConfigPath, editPolicy, callerCwd)
       .pipe(Effect.catch(() => Effect.succeed({})))
   }
   if (options["codex-hook"]) {

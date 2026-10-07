@@ -37,6 +37,7 @@ const runtime = (
     startedAt: 0,
     identity: () => Effect.succeed({ root: "/fixture", advicee }),
     client: {
+      resolveComposedRootEffect: (root) => Effect.succeed(root),
       acknowledgeAdviceEffect: unused,
       registerComposedEditEffect: unused,
       composedStopBoundaryEffect: unused,

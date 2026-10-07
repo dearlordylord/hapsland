@@ -23,6 +23,8 @@ export const requestConformanceCases: ReadonlyArray<ResidentRequest> = (() => {
   const collect = { ...owner, operation: "collect", dispatch, composed: true } as const
   return [
     { requestRoute: "shared", operation: "hello" },
+    { ...owner, operation: "recipient-root" },
+    { ...owner, operation: "edit-policy" },
     { ...owner, operation: "prompt-marker", marker: "a".repeat(64) },
     { ...owner, operation: "prompt-marker", marker: "a".repeat(64), promptDigest: "b".repeat(64), onlyIfMissing: true },
     ...(["begin-stop", "finish-stop"] as const).map((operation) => ({ ...owner, operation, token: "attempt" })),

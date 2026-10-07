@@ -1,9 +1,10 @@
+import { captureOptionsForTarget, type DirectCaptureOptions } from "./capture-policy.ts"
 import { relative, resolve, isAbsolute, sep } from "node:path"
 import * as Effect from "effect/Effect"
-import { discoverPhysicalWorkingTreeRoot } from "../repository/root.ts"
+import { discoverPhysicalWorkingTreeRoot, discoverToolTargetRoot } from "../repository/root.ts"
 import { loadConfiguration } from "@hapsland/runtime-inputs/configuration/load"
 import { captureStable, MAX_SOURCE_BYTES, type CaptureHooks } from "./capture.ts"
-import { eligibleNamedPath, resolvedDirectFilePolicy } from "./selection.ts"
+import { eligibleNamedPath, resolvedDirectFilePolicy, type DirectFilePolicy } from "./selection.ts"
 import type { DirectAdvicee, DirectObservation, PhysicalRootIdentity } from "./observation.ts"
 import { verifyPiPostEditHunks } from "./pi-patch-hunks.ts"
 
@@ -39,8 +40,13 @@ const identity = (value: unknown) => {
 export const adaptPiHookIdentity = Effect.fn("DirectEvent.adaptPiHookIdentity")(function* (value: unknown) {
   const identified = identity(value)
   if (identified === undefined) return undefined
-  const root = yield* discoverPhysicalWorkingTreeRoot(identified.event.cwd as string).pipe(Effect.option)
-  return root._tag === "None" ? undefined : { root: root.value.root, advicee: identified.advicee }
+  const cwd = identified.event.cwd as string
+  const input = record(identified.event.input)
+  const target = typeof identified.event.target_path === "string" ? identified.event.target_path : input?.path
+  const root = yield* (
+    typeof target === "string" ? discoverToolTargetRoot(cwd, target) : discoverPhysicalWorkingTreeRoot(cwd)
+  ).pipe(Effect.option)
+  return { root: root._tag === "Some" ? root.value.root : resolve(cwd), advicee: identified.advicee }
 })
 
 type NativeEdit = { oldText: string; newText: string }
@@ -73,7 +79,16 @@ const payload = (event: Record<string, unknown>) => {
   if (!boundedAscii(input.path, 16_384) || !boundedAscii(details.patch, MAX_SOURCE_BYTES)) return undefined
   return validNativeEdits(input.edits) ? { path: input.path, patch: details.patch } : undefined
 }
-type AdapterOptions = { readonly userConfigPath?: string; readonly captureHooks?: CaptureHooks }
+type AdapterOptions = {
+  readonly userConfigPath?: string
+  readonly captureHooks?: CaptureHooks
+  readonly filePolicy?: DirectFilePolicy
+  readonly capturePolicy?: (
+    root: string,
+    advicee: DirectAdvicee,
+    path: string
+  ) => Effect.Effect<DirectFilePolicy | undefined>
+}
 const rootRelativePath = (root: string, cwd: string, namedPath: string): string | undefined => {
   const path = relative(root, resolve(cwd, namedPath))
   return isAbsolute(path) || path === ".." || path.startsWith(`..${sep}`) ? undefined : path
@@ -86,14 +101,17 @@ const captureSelectedPiFile = Effect.fn("DirectEvent.captureSelectedPiFile")(fun
 ) {
   const path = rootRelativePath(root.root, cwd, namedPath)
   if (path === undefined) return undefined
-  const configuration = yield* loadConfiguration(
-    root.root,
-    options.userConfigPath === undefined ? {} : { userConfigPath: options.userConfigPath }
-  )
+  const configuration =
+    options.filePolicy === undefined
+      ? yield* loadConfiguration(
+          root.root,
+          options.userConfigPath === undefined ? {} : { userConfigPath: options.userConfigPath }
+        )
+      : undefined
   const eligible = yield* eligibleNamedPath(
     root.root,
     path,
-    resolvedDirectFilePolicy(configuration.policy),
+    options.filePolicy ?? resolvedDirectFilePolicy(configuration!.policy),
     root.rootIdentity
   )
   if (eligible === undefined) return undefined
@@ -102,16 +120,23 @@ const captureSelectedPiFile = Effect.fn("DirectEvent.captureSelectedPiFile")(fun
 })
 export const adaptPiDirectEvent = Effect.fn("DirectEvent.adaptPiDirectEvent")(function* (
   value: unknown,
-  options: { readonly userConfigPath?: string; readonly captureHooks?: CaptureHooks } = {}
+  options: DirectCaptureOptions = {}
 ) {
   const identified = identity(value)
   if (identified === undefined) return undefined
   const input = payload(identified.event)
   if (input === undefined) return undefined
   const cwd = identified.event.cwd as string
-  const root = yield* discoverPhysicalWorkingTreeRoot(cwd).pipe(Effect.option)
+  const root = yield* discoverToolTargetRoot(cwd, input.path).pipe(Effect.option)
   if (root._tag === "None") return undefined
-  const captured = yield* captureSelectedPiFile(root.value, cwd, input.path, options)
+  const selectedOptions = yield* captureOptionsForTarget(
+    options,
+    root.value.root,
+    identified.advicee,
+    root.value.absolutePath
+  )
+  if (selectedOptions === undefined) return undefined
+  const captured = yield* captureSelectedPiFile(root.value, cwd, root.value.absolutePath, selectedOptions)
   if (captured === undefined) return undefined
   const { source, eligible } = captured
   const evidence = verifyPiPostEditHunks(input.patch, input.path, source.text, eligible.relativePath)

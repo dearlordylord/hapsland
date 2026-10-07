@@ -33,6 +33,7 @@ export type InspectionRecordingRoot = typeof InspectionRecordingRoot.Type
 
 export const InspectionCorrelation = Schema.Struct({
   receiptId: Schema.optionalKey(Id),
+  roundId: Schema.optionalKey(Id),
   unitId: Schema.optionalKey(Id),
   requestId: Schema.optionalKey(Id),
   evaluationId: Schema.optionalKey(Id),
@@ -43,6 +44,12 @@ export const InspectionCorrelation = Schema.Struct({
 export type InspectionCorrelation = typeof InspectionCorrelation.Type
 
 export const InspectionFact = Schema.Union([
+  Schema.Struct({
+    kind: Schema.Literal("round-membership"),
+    roundId: Id,
+    pinnedRoot: Path,
+    skippedPaths: Schema.Array(Path).check(Schema.isMaxLength(16))
+  }),
   Schema.Struct({ kind: Schema.Literal("source-registration") }),
   Schema.Struct({
     kind: Schema.Literal("finding-fate"),
@@ -224,6 +231,7 @@ export const InspectionFact = Schema.Union([
     kind: Schema.Literal("edit-admission"),
     outcome: Schema.Literals([
       "accepted",
+      "skipped-other-root",
       "rejected-capacity",
       "rejected-stale",
       "unsupported",

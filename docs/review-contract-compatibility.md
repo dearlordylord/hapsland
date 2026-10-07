@@ -128,7 +128,11 @@ themselves change semantic identity when an unrelated comment moves. Before
 dispatch, Hapsland requires the captured files to match exactly. Before
 advice, it rereads contributing files and rebuilds the unit using the edit-owned
 configuration and compiled rules snapshot; changed source input, attribution, or
-working root retires the result. Saved configuration and rule changes apply only
+physical source identity retires the result. A caller cwd change alone does not.
+Recipient identity is root-independent; source revisions and evaluation identities
+remain qualified by the original physical working root. A round pins that root on
+its first admitted eligible edit and explicitly skips other-root edits until
+closure, as specified in the [advice contract](advicing-target-contract.md#advicee-identity-and-admission). Saved configuration and rule changes apply only
 to subsequently captured edit snapshots, with the five-second cache behavior in
 [configuration](configuration.md#runtime-behavior). The snapshot stays with the
 edit through advice and delivery, including later collect or Stop requests.

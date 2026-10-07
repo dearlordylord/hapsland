@@ -32,11 +32,7 @@ import { residentRequestEffect as residentRequest } from "@hapsland/resident-tra
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import * as Effect from "effect/Effect"
 import { addEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
-import {
-  adaptCodexAdd,
-  adaptCodexDirectEvent,
-  adaptClaudeDirectEvent
-} from "@hapsland/native-observation/direct-event/adapter"
+import { adaptCodexDirectEvent, adaptClaudeDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import { prepareObservation } from "@hapsland/review-execution/direct-event/pipeline"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
 import { configuredRules, connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
@@ -711,7 +707,7 @@ globalThis.fetch=async (...args)=>{
         event.kind === "edit" && event.at > finding.at && event.sourceHash && event.sourceHash !== finding.sourceHash
     )
   const source = existsSync(rootFile) ? readFileSync(rootFile, "utf8") : ""
-  const diagnosticObservation = await Effect.runPromise(adaptCodexAdd(addEvent(repo, [fixture.entry])))
+  const diagnosticObservation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(repo, [fixture.entry])))
   const postEditPreparation =
     diagnosticObservation === undefined
       ? { status: "adaptation-failed" }

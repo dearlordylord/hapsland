@@ -71,7 +71,7 @@ export const machineClockLayer = Layer.effect(
       currentTimeNanosUnsafe: () => clock.currentTimeNanosUnsafe(),
       currentTimeMillis: clock.currentTimeMillis,
       currentTimeNanos: clock.currentTimeNanos,
-      sleep: (duration) => clock.sleep(duration),
+      sleep: (duration: Parameters<Clock.Clock["sleep"]>[0]) => clock.sleep(duration),
       monotonicTimeNanosUnsafe: machineMonotonicNanos,
       monotonicTimeNanos: Effect.sync(machineMonotonicNanos)
     }))

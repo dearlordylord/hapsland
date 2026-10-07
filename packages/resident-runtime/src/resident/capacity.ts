@@ -838,6 +838,10 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
             (...args: Parameters<ComposedDelivery["registerEditDecision"]>) =>
               deliveryCommitEffect((operations) => operations.registerEditDecision(...args))
           ),
+          admitEditObservation: Effect.fn("ComposedDelivery.admitEditObservation")(
+            (...args: Parameters<ComposedDelivery["admitEditObservation"]>) =>
+              deliveryCommitEffect((operations) => operations.admitEditObservation(...args))
+          ),
           admitEdit: Effect.fn("ComposedDelivery.admitEdit")((...args: Parameters<ComposedDelivery["admitEdit"]>) =>
             deliveryCommitEffect((operations) => operations.admitEdit(...args))
           ),

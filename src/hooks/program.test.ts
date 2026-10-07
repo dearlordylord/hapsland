@@ -12,6 +12,7 @@ const ports = vi.hoisted(() => ({
   codex: vi.fn(),
   ready: vi.fn(),
   write: vi.fn(),
+  retire: vi.fn(),
   submit: vi.fn()
 }))
 vi.mock("node:fs", async (original) => ({ ...(await original<typeof import("node:fs")>()), readFileSync: ports.input }))
@@ -24,7 +25,8 @@ vi.mock("../../packages/hook-runtime/src/hooks/direct.ts", () => ({
   makeDirectHookDispatch: () => ({
     runDirectCodexHook: ports.codex,
     runDirectBoundedHook: ports.claude,
-    isDirectEventReady: ports.ready
+    isDirectEventReady: ports.ready,
+    retireNativeEditPermits: ports.retire
   })
 }))
 vi.mock("../../packages/hook-runtime/src/resident/composed-hook.ts", async () => ({
@@ -48,6 +50,7 @@ vi.mock("../../packages/hook-runtime/src/resident/hook-output.ts", async (origin
 
 beforeEach(() => {
   vi.clearAllMocks()
+  ports.retire.mockReturnValue(Effect.void)
   ports.input.mockReturnValue('{"fixture":true}')
   ports.composed.mockReturnValue(Effect.void)
   ports.pi.mockReturnValue(Effect.succeed({ status: "empty" }))
@@ -106,7 +109,10 @@ it.each(["before-edit", "background", "stop", "prompt"])(
 )
 it("routes direct Claude with its checked observation", async () => {
   await run(["--claude-hook", "--composed-edit-hook"])
-  expect(ports.adaptClaude).toHaveBeenCalledWith({ fixture: true }, { userConfigPath: "/tmp/fixture-user.json" })
+  expect(ports.adaptClaude).toHaveBeenCalledWith(
+    { fixture: true },
+    { userConfigPath: "/tmp/fixture-user.json", capturePolicy: expect.any(Function) }
+  )
   expect(ports.write).toHaveBeenCalledWith('{"channel":"claude"}\n', expect.any(Number))
 })
 it("routes direct Codex with its explicit supported version", async () => {
