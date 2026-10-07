@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process"
-import { existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync } from "node:fs"
+import { existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync, realpathSync } from "node:fs"
 import { join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -17,7 +17,7 @@ exec sh "$common/hapsland-hooks/maintained-pre-commit"
 `
 export function installGitHooks(root = process.cwd()) {
   const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8", timeout: 5000 }).trim()
-  const common = resolve(root, git("rev-parse", "--git-common-dir"))
+  const common = realpathSync(resolve(root, git("rev-parse", "--git-common-dir")))
   const hooks = join(common, "hapsland-hooks")
   const readConfig = (worktree, scope, key) => {
     try {

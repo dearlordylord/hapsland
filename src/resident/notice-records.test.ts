@@ -1,7 +1,7 @@
 import { it } from "@effect/vitest"
 import { expect } from "vitest"
 import { Cause, Effect, Exit } from "effect"
-import { makeResidentState } from "./capacity.ts"
+import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
 const measure = (value: unknown) => Buffer.byteLength(JSON.stringify(value))
 
 it.effect("commits bounded notice metadata, suppression and capacity together", () =>

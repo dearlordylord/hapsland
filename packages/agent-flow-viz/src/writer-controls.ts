@@ -1,5 +1,5 @@
 import type { HtmlBuilder } from "foldkit/html"
-import type { CanonicalProjection } from "../../../src/canonical/adapter"
+import type { CanonicalProjection } from "@hapsland/canonical-policy/canonical/adapter"
 import { validateWriterControl, type WriterControl, type WriterReport } from "../../monkey-business/src/writer-controls"
 
 export function writerAction(action: string): WriterControl | undefined {

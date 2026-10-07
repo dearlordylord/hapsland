@@ -1,0 +1,44 @@
+{
+  "name": "@hapsland/cli-entry",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./cli": {
+      "types": "./dist/cli.d.ts",
+      "default": "./dist/cli.js"
+    }
+  },
+  "dependencies": {
+    "@hapsland/activity-observation": "workspace:*",
+    "@hapsland/administration": "workspace:*",
+    "@hapsland/credential-storage": "workspace:*",
+    "@hapsland/delivery-output": "workspace:*",
+    "@hapsland/native-observation": "workspace:*",
+    "@hapsland/resident-transport": "workspace:*",
+    "@hapsland/review-definition": "workspace:*",
+    "@hapsland/runtime-environment": "workspace:*",
+    "@hapsland/runtime-inputs": "workspace:*",
+    "effect": "catalog:"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs",
+    "assemble:linux-arm64": "node ../../scripts/assemble-entry.mjs linux-arm64",
+    "assemble:darwin-arm64": "node ../../scripts/assemble-entry.mjs darwin-arm64",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
+  },
+  "hapsland": {
+    "domain": "cli-entry",
+    "host": "bun",
+    "capabilities": [],
+    "role": "cli",
+    "executable": "hapsland",
+    "entry": "src/cli.ts",
+    "assembly": {
+      "profiles": [
+        "linux-arm64",
+        "darwin-arm64"
+      ]
+    }
+  }
+}

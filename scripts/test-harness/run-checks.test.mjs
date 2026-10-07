@@ -1,17 +1,41 @@
 import { execFileSync, spawnSync } from "node:child_process"
+import { writeFileSync } from "node:fs"
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import { mkdtemp, mkdir, writeFile, readFile, rm, chmod, symlink } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { createRun, stageResults, runQualityStages, focusedSelection } from "./run-checks.mjs"
+import { createRun, stageResults, runQualityStages, focusedSelection, main } from "./run-checks.mjs"
+import { withBuildLock } from "../build-lock.mjs"
 
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), "hapsland-checks-"))
   t.after(() => rm(root, { recursive: true, force: true }))
+  await mkdir(join(root, "scripts/test-harness"), { recursive: true })
+  for (const file of [
+    "run-checks.test.mjs",
+    "immediate-errors.test.mjs",
+    "verification-plan.test.mjs",
+    "verify.test.mjs",
+    "check-complexity.test.mjs"
+  ])
+    await writeFile(join(root, "scripts/test-harness", file), "// Passing prerequisite fixture\n")
+  await writeFile(join(root, "scripts/test-harness/check-complexity.mjs"), "process.exit(0)\n")
   return root
 }
+test("a stage inside its authenticated checkout lease passes before the enclosing transaction releases ownership", async (t) => {
+  const root = await fixture(t)
+  const run = await createRun({ root, mode: "focused", timeoutMs: 10000, output() {} })
+  await withBuildLock(root, async (env) => {
+    const stage = await run.runStage({ ...command("owned-child", "process.exit(0)"), env })
+    assert.equal(stage.state, "passed")
+    assert.equal(stage.groupUnresolved, undefined)
+    assert.equal(JSON.parse(await readFile(join(root, ".test-runs/product-build/lease.json"))).state, "open")
+  })
+  assert.equal(await run.finish(), 0)
+  await assert.rejects(readFile(join(root, ".test-runs/product-build/lease.json")), /ENOENT/)
+})
 // Temporary fixture runs are independent of the harness running this test.
 // Tests of nesting explicitly supply their own authenticated context instead.
 const fixtureEnvironment = () => {
@@ -183,6 +207,11 @@ test("quality preserves threshold breach exit two but test failure stays exit on
   const ordinary = await createRun({ root, mode: "test", timeoutMs: 30_000, output() {} })
   await ordinary.runStage(command("quality", "process.exit(2)"))
   assert.equal(await ordinary.finish(), 1)
+  const mixed = await createRun({ root, mode: "quality", timeoutMs: 30_000, output() {} })
+  await mixed.runStage(command("quality-complexity", "process.exit(2)"))
+  await mixed.runStage(command("independent-error", "process.exit(1)"))
+  await mixed.recordSkippedStage({ name: "quality", reason: "prerequisite-failed", dependsOn: ["quality-complexity"] })
+  assert.equal(await mixed.finish(), 1)
 })
 
 test("failure events are surfaced during the run and retained in the final result", async (t) => {
@@ -247,7 +276,7 @@ test("CLI records focused scope without forwarding it and reports different comm
   await writeFile(
     tool,
     `#!${process.execPath}
-require('node:assert/strict').deepEqual(process.argv.slice(2), ['run', '--maxWorkers=1', 'one.test.ts']);
+require('node:assert/strict').deepEqual(process.argv.slice(2), ['run', '--config', 'scripts/vitest.config.ts', '--maxWorkers=1', 'one.test.ts']);
 `
   )
   await chmod(tool, 0o755)
@@ -292,7 +321,7 @@ require('node:assert/strict').deepEqual(process.argv.slice(2), ['run', '--maxWor
   const qualityTool = join(root, "node_modules", ".bin", "crap4ts")
   await writeFile(qualityTool, `#!${process.execPath}\nprocess.exit(0);\n`)
   await chmod(qualityTool, 0o755)
-  cli(["quality", "--scope=quality-slice", "--timeout-ms=5000"])
+  cli(["quality", "--ack-checks-policy", "--scope=quality-slice", "--timeout-ms=5000"])
   const qualityId = JSON.parse(await readFile(join(root, ".test-runs", "latest.json"), "utf8")).id
   const qualityManifest = JSON.parse(await readFile(join(root, ".test-runs", qualityId, "manifest.json"), "utf8"))
   assert.match(qualityManifest.sourceDigest, /^[a-f0-9]{64}$/)
@@ -335,8 +364,9 @@ test("actual focused CLI rejects an all-skipped selector and permits selected ex
   await symlink(join(repository, "node_modules"), join(root, "node_modules"), "dir")
   await writeFile(join(root, "one.test.ts"), 'import { it } from "vitest"; it("actual selected case", () => {});')
   const reporter = fileURLToPath(new URL("./immediate-errors.mjs", import.meta.url))
+  await mkdir(join(root, "scripts"), { recursive: true })
   await writeFile(
-    join(root, "vitest.config.mjs"),
+    join(root, "scripts/vitest.config.ts"),
     `const selected = JSON.parse(process.env.HAPSLAND_FOCUSED_TEST_SELECTION); if (selected.files.length !== 1 || selected.files[0] !== "one.test.ts") throw new Error("focused selection did not reach config"); export default { test: { reporters: ["default", ${JSON.stringify(reporter)}] } };`
   )
   const cli = (pattern) =>
@@ -378,9 +408,56 @@ for (const lintExit of [0, 1]) {
     const stages = await stageResults(run.runDirectory)
     assert.deepEqual(
       stages.map((stage) => stage.name),
-      lintExit === 0 ? ["lint-code", "quality"] : ["lint-code"]
+      lintExit === 0
+        ? ["quality-preflight", "lint-code", "quality-complexity", "quality"]
+        : ["quality-preflight", "lint-code"]
     )
-    assert.match(await readFile(stages[0].logPath, "utf8"), /lint witness/u)
+    assert.match(await readFile(stages[1].logPath, "utf8"), /lint witness/u)
+  })
+}
+
+for (const branches of [0, 8]) {
+  test(`real complexity prerequisite with ${branches} branches preserves the final coverage boundary`, async (t) => {
+    const root = await fixture(t)
+    await mkdir(join(root, "src"))
+    await writeFile(
+      join(root, "src/main.ts"),
+      `export function choose(value: number) { ${Array.from({ length: branches }, (_, index) => `if (value === ${index}) return ${index};`).join(" ")} return -1; }`
+    )
+    await symlink(fileURLToPath(new URL("../../node_modules", import.meta.url)), join(root, "node_modules"), "dir")
+    await writeFile(join(root, "scripts/run-quality-lint.mjs"), "process.exit(0)\n")
+    await writeFile(
+      join(root, "scripts/test-harness/check-complexity.mjs"),
+      await readFile(new URL("./check-complexity.mjs", import.meta.url))
+    )
+    await writeFile(
+      join(root, "crap4ts.json"),
+      JSON.stringify({
+        sources: ["src"],
+        threshold: 8,
+        missing_evidence: "error",
+        coverage: {
+          path: "coverage.json",
+          command: [process.execPath, "-e", "require('node:fs').writeFileSync('coverage.json', '{}')"]
+        }
+      })
+    )
+    const run = await createRun({ root, mode: "quality", timeoutMs: 10000, output() {} })
+    await runQualityStages(run, root)
+    assert.equal(await run.finish(), branches === 8 ? 2 : 1)
+    const stages = await stageResults(run.runDirectory)
+    assert.deepEqual(
+      stages.slice(2).map(({ name, state }) => [name, state]),
+      [
+        ["quality-complexity", branches === 8 ? "failed" : "passed"],
+        ["quality", branches === 8 ? "not-started" : "failed"]
+      ]
+    )
+    if (branches === 8) await assert.rejects(readFile(join(root, "coverage.json")), /ENOENT/)
+    else {
+      assert.equal(await readFile(join(root, "coverage.json"), "utf8"), "{}")
+      assert.match(await readFile(stages.at(-1).logPath, "utf8"), /missing coverage evidence/)
+    }
   })
 }
 
@@ -399,4 +476,281 @@ test("artifact preparation shares a focused parent's records and cannot extend i
   assert.equal(await child.finish(), 0)
   assert.equal(JSON.parse(await readFile(join(parent.runDirectory, "status.json"), "utf8")).state, "running")
   assert.equal(await parent.finish(), 0)
+})
+
+test("surviving product ownership fails the stage and retains the enclosing full lock", async (t) => {
+  const root = await fixture(t)
+  const run = await createRun({ root, mode: "test", timeoutMs: 30000, inherited: undefined, output() {} })
+  const directory = join(root, ".test-runs/product-build")
+  await run.runStage(
+    command(
+      "abandoned-build",
+      `const fs=require('node:fs');
+    fs.mkdirSync(${JSON.stringify(join(directory, "lock"))},{recursive:true});
+    fs.writeFileSync(${JSON.stringify(join(directory, "lock/owner.json"))},JSON.stringify({pid:process.pid}));
+    fs.writeFileSync(${JSON.stringify(join(directory, "lease.json"))},JSON.stringify({pid:process.pid}));`
+    )
+  )
+  const stages = await stageResults(run.runDirectory)
+  assert.equal(stages[0].exitCode, 0)
+  assert.equal(stages[0].state, "failed")
+  assert.equal(stages[0].groupUnresolved, true)
+  assert.equal(await run.finish(), 1)
+  assert.ok(await readFile(join(root, ".test-runs/full.lock"), "utf8"))
+  assert.ok(await readFile(join(directory, "lease.json"), "utf8"))
+})
+
+const waitForFile = async (path) => {
+  const deadline = Date.now() + 5000
+  while (Date.now() < deadline) {
+    try {
+      return await readFile(path, "utf8")
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error
+    }
+    await new Promise((done) => setTimeout(done, 10))
+  }
+  throw new Error(`Fixture readiness deadline: ${path}`)
+}
+
+test("verification mutation cancels a long child, keeps completed evidence and admits no later stage", async (t) => {
+  const root = await fixture(t)
+  execFileSync("git", ["init", "-q", root])
+  await mkdir(join(root, "src"))
+  await writeFile(join(root, "src/input.ts"), "before")
+  const run = await createRun({ root, mode: "test", timeoutMs: 10000, output() {} })
+  await run.observeInputs()
+  await run.runStage(command("completed", "process.exit(0)"))
+  const ready = join(root, ".test-runs", "ready")
+  const child = run.runStage(
+    command("long", `require('node:fs').writeFileSync(${JSON.stringify(ready)}, 'ready'); setInterval(()=>{}, 1000)`)
+  )
+  await waitForFile(ready)
+  await writeFile(join(root, "src/input.ts"), "after")
+  const result = await child
+  assert.equal(result.state, "failed")
+  assert.equal(result.timedOut, false)
+  assert.equal((await run.runStage(command("later", "process.exit(0)"))).state, "not-started")
+  assert.equal(await run.finish(), 1)
+  const records = JSON.parse(await readFile(join(run.runDirectory, "results.json"), "utf8"))
+  assert.equal(records.stages.find((stage) => stage.name === "completed").state, "passed")
+  assert.match(records.reason, /src\/input.ts/)
+  assert.equal(records.stages.find((stage) => stage.name === "long").signal, "SIGTERM")
+})
+
+test("unrelated documents during a long stage do not invalidate verification", async (t) => {
+  const root = await fixture(t)
+  execFileSync("git", ["init", "-q", root])
+  await mkdir(join(root, "src"))
+  await writeFile(join(root, "src/input.ts"), "unchanged")
+  const run = await createRun({ root, mode: "test", timeoutMs: 10000, output() {} })
+  await run.observeInputs()
+  const ready = join(root, ".test-runs", "ready"),
+    release = join(root, ".test-runs", "release")
+  const child = run.runStage(
+    command(
+      "long",
+      `const fs=require('node:fs'); fs.writeFileSync(${JSON.stringify(ready)}, 'ready'); const timer=setInterval(()=>{if(fs.existsSync(${JSON.stringify(release)})){clearInterval(timer)}}, 10)`
+    )
+  )
+  await waitForFile(ready)
+  await mkdir(join(root, "quint-specs"))
+  await writeFile(join(root, "quint-specs/quint.lock"), "parallel survey")
+  await mkdir(join(root, "docs"))
+  await writeFile(join(root, "docs/research.md"), "unrelated")
+  await new Promise((done) => setTimeout(done, 1300)) // Exercise the observer while the unrelated edit and child coexist.
+  await writeFile(release, "done")
+  assert.equal((await child).state, "passed")
+  assert.equal((await run.runStage(command("later", "process.exit(0)"))).state, "passed")
+  assert.equal(await run.finish(), 0)
+})
+
+for (const mutation of ["addition", "deletion"]) {
+  test(`relevant ${mutation} between stages blocks admission`, async (t) => {
+    const root = await fixture(t)
+    execFileSync("git", ["init", "-q", root])
+    await mkdir(join(root, "src"))
+    await writeFile(join(root, "src/input.ts"), "before")
+    execFileSync("git", ["-C", root, "add", "."])
+    const run = await createRun({ root, mode: "test", timeoutMs: 10000, output() {} })
+    await run.observeInputs()
+    await run.runStage(command("completed", "process.exit(0)"))
+    if (mutation === "addition") await writeFile(join(root, "src/new.ts"), "new")
+    else await rm(join(root, "src/input.ts"))
+    assert.equal((await run.runStage(command("later", "process.exit(0)"))).state, "not-started")
+    assert.equal(await run.finish(), 1)
+    const records = await stageResults(run.runDirectory)
+    assert.deepEqual(records.find((stage) => stage.name === "source-identity").evidence.changedPaths, [
+      mutation === "addition" ? "src/new.ts" : "src/input.ts"
+    ])
+  })
+}
+
+test("invalidated run retains its exclusive lock until the child and descendant stop", async (t) => {
+  const root = await fixture(t)
+  execFileSync("git", ["init", "-q", root])
+  await mkdir(join(root, "src"))
+  await writeFile(join(root, "src/input.ts"), "before")
+  const run = await createRun({ root, mode: "test", timeoutMs: 10000, output() {} })
+  await run.observeInputs()
+  const ready = join(root, ".test-runs", "ready"),
+    stopping = join(root, ".test-runs", "stopping"),
+    release = join(root, ".test-runs", "release")
+  const descendantProgram = `const fs=require('node:fs'); fs.writeFileSync(${JSON.stringify(ready)}, String(process.pid)); process.on('SIGTERM',()=>{fs.writeFileSync(${JSON.stringify(stopping)}, 'stopping'); const poll=setInterval(()=>{if(fs.existsSync(${JSON.stringify(release)}))process.exit(0)},10)});setInterval(()=>{},1000)`
+  const program = `const child=require('node:child_process').spawn(process.execPath,['-e',${JSON.stringify(descendantProgram)}],{stdio:'ignore'}); process.on('SIGTERM',()=>{}); child.on('exit',()=>process.exit(0)); setInterval(()=>{},1000)`
+  const child = run.runStage(command("long", program))
+  const descendantPid = Number(await waitForFile(ready))
+  await writeFile(join(root, "src/input.ts"), "after")
+  await waitForFile(stopping)
+  const lock = JSON.parse(await readFile(join(root, ".test-runs/full.lock"), "utf8"))
+  assert.equal(lock.token, run.context.token)
+  process.kill(descendantPid, 0)
+  await writeFile(release, "exit")
+  assert.equal((await child).state, "failed")
+  assert.throws(() => process.kill(descendantPid, 0), { code: "ESRCH" })
+  assert.equal(await run.finish(), 1)
+  await assert.rejects(readFile(join(root, ".test-runs/full.lock")), { code: "ENOENT" })
+})
+
+test(
+  "cancellation escalates to kill for a child and descendant that ignore termination",
+  { skip: process.platform !== "linux" },
+  async (t) => {
+    const root = await fixture(t)
+    execFileSync("git", ["init", "-q", root])
+    await mkdir(join(root, "src"))
+    await writeFile(join(root, "src/input.ts"), "before")
+    const run = await createRun({ root, mode: "test", timeoutMs: 10000, output() {} })
+    await run.observeInputs()
+    const ready = join(root, ".test-runs", "ready")
+    const descendantProgram = `require('node:fs').writeFileSync(${JSON.stringify(ready)}, String(process.pid));process.on('SIGTERM',()=>{});setInterval(()=>{},1000)`
+    const program = `require('node:child_process').spawn(process.execPath,['-e',${JSON.stringify(descendantProgram)}],{stdio:'ignore'});process.on('SIGTERM',()=>{});setInterval(()=>{},1000)`
+    const child = run.runStage(command("stubborn", program))
+    const pid = Number(await waitForFile(ready))
+    await writeFile(join(root, "src/input.ts"), "after")
+    const result = await child
+    assert.equal(result.signal, "SIGKILL")
+    // An orphan zombie can await the container init's reaper; it executes no work.
+    const descendant = await readFile(`/proc/${pid}/stat`, "utf8").catch((error) => {
+      if (error.code === "ENOENT") return null
+      throw error
+    })
+    if (descendant !== null) assert.match(descendant, /\) Z /)
+    assert.equal(await run.finish(), 1)
+    if (result.groupUnresolved) {
+      const lock = JSON.parse(await readFile(join(root, ".test-runs/full.lock"), "utf8"))
+      assert.equal(lock.token, run.context.token)
+    }
+  }
+)
+
+test("final input identity catches a mutation after the last completed stage", async (t) => {
+  const root = await fixture(t)
+  execFileSync("git", ["init", "-q", root])
+  await mkdir(join(root, "src"))
+  await writeFile(join(root, "src/input.ts"), "before")
+  const run = await createRun({ root, mode: "test", timeoutMs: 10000, output() {} })
+  await run.observeInputs()
+  assert.equal((await run.runStage(command("completed", "process.exit(0)"))).state, "passed")
+  await writeFile(join(root, "src/input.ts"), "after")
+  assert.equal(await run.finish(), 1)
+  const results = JSON.parse(await readFile(join(run.runDirectory, "results.json"), "utf8"))
+  assert.match(results.reason, /src\/input.ts/)
+})
+
+for (const input of ["linked target", "submodule content"]) {
+  test(`observation preserves ${input} identity through cached scans`, async (t) => {
+    const root = await fixture(t)
+    execFileSync("git", ["init", "-q", root])
+    let target, changedPath
+    if (input === "linked target") {
+      const external = await fixture(t)
+      target = join(external, "input.ts")
+      await writeFile(target, "before")
+      await mkdir(join(root, "src"))
+      await symlink(target, join(root, "src/linked.ts"))
+      changedPath = "src/linked.ts"
+    } else {
+      const module = join(root, "vendor/module")
+      await mkdir(module, { recursive: true })
+      execFileSync("git", ["init", "-q", module])
+      target = join(module, "input.ts")
+      await writeFile(target, "before")
+      execFileSync("git", ["-C", module, "add", "."])
+      execFileSync("git", [
+        "-C",
+        module,
+        "-c",
+        "user.name=Fixture",
+        "-c",
+        "user.email=fixture@example.invalid",
+        "commit",
+        "-qm",
+        "initial"
+      ])
+      execFileSync("git", ["-C", root, "add", "vendor/module"], { stdio: "ignore" })
+      changedPath = "vendor/module"
+    }
+    const run = await createRun({ root, mode: "test", timeoutMs: 10000, output() {} })
+    await run.observeInputs()
+    await run.runStage(command("completed", "process.exit(0)"))
+    await writeFile(target, "after")
+    assert.equal((await run.runStage(command("later", "process.exit(0)"))).state, "not-started")
+    assert.equal(await run.finish(), 1)
+    const records = await stageResults(run.runDirectory)
+    assert.deepEqual(records.find((stage) => stage.name === "source-identity").evidence.changedPaths, [changedPath])
+  })
+}
+
+test("input invalidation during stage admission does not launch the child", async (t) => {
+  const root = await fixture(t)
+  execFileSync("git", ["init", "-q", root])
+  await mkdir(join(root, "src"))
+  const input = join(root, "src/input.ts"),
+    launched = join(root, ".test-runs/launched")
+  await writeFile(input, "before")
+  const run = await createRun({
+    root,
+    mode: "test",
+    timeoutMs: 10000,
+    output(message) {
+      if (message.startsWith("START admission;")) writeFileSync(input, "after")
+    }
+  })
+  await run.observeInputs()
+  const stage = await run.runStage(
+    command("admission", `require('node:fs').writeFileSync(${JSON.stringify(launched)}, 'launched')`)
+  )
+  assert.equal(stage.state, "not-started")
+  await assert.rejects(readFile(launched), { code: "ENOENT" })
+  assert.equal(await run.finish(), 1)
+  assert.match(stage.reason, /src\/input.ts/)
+})
+
+test("quality acknowledgment fails before creating run state", async (t) => {
+  const root = await fixture(t)
+  await assert.rejects(main(["quality"], root), /read CHECKS.md.*--ack-checks-policy/)
+  await assert.rejects(readFile(join(root, ".test-runs/latest.json")), /ENOENT/)
+})
+
+test("failed quality prerequisite blocks lint and coverage with retained diagnostics", async (t) => {
+  const root = await fixture(t)
+  await writeFile(
+    join(root, "scripts/test-harness/immediate-errors.test.mjs"),
+    "throw new Error('broken harness witness')"
+  )
+  const run = await createRun({ root, mode: "quality", timeoutMs: 10000, output() {} })
+  await runQualityStages(run, root)
+  assert.equal(await run.finish(), 1)
+  const stages = await stageResults(run.runDirectory)
+  assert.deepEqual(
+    stages.map(({ name, state }) => [name, state]),
+    [
+      ["quality-preflight", "failed"],
+      ["lint-code", "not-started"],
+      ["quality-complexity", "not-started"],
+      ["quality", "not-started"]
+    ]
+  )
+  assert.match(await readFile(stages[0].logPath, "utf8"), /broken harness witness/)
 })

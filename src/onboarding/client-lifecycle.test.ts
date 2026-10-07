@@ -1,15 +1,16 @@
-import { expect, it } from "vitest"
+import { expect, it, vi } from "vitest"
 import { ConfigProvider, Effect } from "effect"
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
+  registeredClients,
   dispatchActivePackage,
   dispatchSelectedPackage,
   formatProposal,
   formatDoctor,
   formatInstallationRequirements
-} from "./client-lifecycle.ts"
+} from "@hapsland/administration/onboarding/client-lifecycle"
 
 it("explains missing agent hooks and damaged packaged components without blaming the user's runtime", () => {
   const output = formatInstallationRequirements({
@@ -171,4 +172,66 @@ it.each([
   const lines = formatDoctor({ status, checks: [] }, "codex")
   expect(lines[0]).toBe(`${marker} codex doctor: local checks ${status}.`)
   expect(lines.at(-1)).toContain("a real review was not verified")
+})
+
+it("handles absent, damaged and unavailable active-package records in an isolated home", async () => {
+  const root = mkdtempSync(join(tmpdir(), "active-package-"))
+  vi.stubEnv("HOME", root)
+  const directory = join(root, ".local", "share", "hapsland")
+  const path = join(directory, "active.json")
+  const dispatch = (args: string[]) =>
+    Effect.runPromise(
+      dispatchActivePackage(args).pipe(
+        Effect.result,
+        Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({ HAPSLAND_ACTIVE_DISPATCH: "0" })))
+      )
+    )
+  try {
+    expect(await dispatch(["doctor"])).toMatchObject({ _tag: "Success", success: undefined })
+    mkdirSync(directory, { recursive: true })
+    for (const text of ["{", JSON.stringify({ version: 1, executable: "relative", args: [] })]) {
+      writeFileSync(path, text)
+      expect(await dispatch(["doctor"])).toMatchObject({
+        _tag: "Failure",
+        failure: {
+          message:
+            "Hapsland active-package record is damaged. Run hapsland reinstall to rebuild it from the package in PATH."
+        }
+      })
+      const warning = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
+      try {
+        expect(await dispatch(["reinstall"])).toMatchObject({ _tag: "Success", success: undefined })
+        expect(warning).toHaveBeenCalledWith("Active-package record is damaged; reinstalling from PATH.\n")
+      } finally {
+        warning.mockRestore()
+      }
+    }
+    writeFileSync(path, JSON.stringify({ version: 1, executable: join(root, "missing"), args: [] }))
+    expect(await dispatch(["doctor"])).toMatchObject({ _tag: "Failure" })
+  } finally {
+    vi.unstubAllEnvs()
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+it("discovers owned registrations including interrupted and damaged installations", () => {
+  const root = mkdtempSync(join(tmpdir(), "registered-clients-"))
+  const flags = new Map(["claude", "codex", "pi"].map((client) => [`--${client}-home`, join(root, client)]))
+  try {
+    expect(registeredClients(flags)).toEqual([])
+    for (const client of ["claude", "codex", "pi"]) mkdirSync(join(root, client, ".hapsland"), { recursive: true })
+    writeFileSync(join(root, "pi", ".hapsland", "pi-installation-v1.json"), "damaged")
+    writeFileSync(join(root, "codex", ".hapsland", "installation-v1.json"), "damaged")
+    expect(registeredClients(flags)).toEqual(["codex", "pi"])
+    rmSync(join(root, "codex", ".hapsland", "installation-v1.json"))
+    writeFileSync(join(root, "codex", ".hapsland", "journal-v1.json"), "interrupted")
+    expect(registeredClients(flags)).toEqual(["codex", "pi"])
+    rmSync(join(root, "codex", ".hapsland", "journal-v1.json"))
+    writeFileSync(join(root, "codex", "hooks.json"), "--review-tool-owned=codex-v1")
+    expect(registeredClients(flags)).toEqual(["codex", "pi"])
+    writeFileSync(join(root, "codex", "hooks.json"), "--review-tool-composed-owned=codex-v1")
+    expect(registeredClients(flags)).toEqual(["codex", "pi"])
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
 })

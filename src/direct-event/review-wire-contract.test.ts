@@ -1,22 +1,23 @@
-import { providerIdentity } from "../review-providers/catalog.ts"
+import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import { createHash } from "node:crypto"
 import { readFile, writeFile } from "node:fs/promises"
 import { describe, expect, it } from "vitest"
-import { compileRule } from "../rules/compiler.ts"
-import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
-import { canonicalValue, freezeRules, type PreparedUnit, type ReviewArtifact, type ReviewNode } from "./model.ts"
+import { compileRule } from "@hapsland/review-definition/rules/compiler"
+import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import { canonicalValue, freezeRules, type PreparedUnit } from "@hapsland/review-definition/direct-event/model"
+import type { ReviewArtifact, ReviewNode } from "@hapsland/source-artifacts/direct-event/artifact-model"
 import {
   candidateReviewInput,
   encodedFullJevRequestBytes,
   encodedPreparedProviderInputBytes,
   preparedProviderInput
-} from "./pipeline.ts"
+} from "@hapsland/review-execution/direct-event/pipeline"
 import {
   CANDIDATE_RENDERER_DIGEST,
   CANDIDATE_RENDERER_VERSION,
   MAX_CANDIDATE_TREE_BYTES,
   renderCandidateReviewInput
-} from "./review-renderer.ts"
+} from "@hapsland/review-execution/direct-event/review-renderer"
 
 const hash = (source: string): string => createHash("sha256").update(source, "utf8").digest("hex")
 const artifact = (path: string, kind: ReviewArtifact["kind"], name: string, source: string): ReviewArtifact => ({

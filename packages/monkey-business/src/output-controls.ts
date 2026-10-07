@@ -1,9 +1,9 @@
 import { CallbackTargetSchema } from "./callback-controls.ts"
 import SharedEngine from "../../monkey-business-bend/engine.mjs"
-import { encodeSharedValue, decodeSharedValue } from "../../../src/canonical/simulation-codec.ts"
+import { encodeSharedValue, decodeSharedValue } from "@hapsland/canonical-policy/canonical/simulation-codec"
 import { decodeDriver } from "./driver-codec.ts"
 import { Schema } from "effect"
-import { decoder, Nat, PositiveNat, readBendList } from "../../../src/canonical/boundary-schema.ts"
+import { decoder, Nat, PositiveNat, readBendList } from "@hapsland/canonical-policy/canonical/boundary-schema"
 
 const Duration = Nat.check(Schema.isLessThanOrEqualTo(1_000_000_000))
 export const OutputScenarioProfileSchema = Schema.Struct({

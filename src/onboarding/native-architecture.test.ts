@@ -2,7 +2,7 @@ import { afterEach, expect, it } from "vitest"
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { nativeArchitecture } from "./native-architecture.ts"
+import { nativeArchitecture } from "@hapsland/administration/onboarding/native-architecture"
 
 const roots: string[] = []
 afterEach(() => {

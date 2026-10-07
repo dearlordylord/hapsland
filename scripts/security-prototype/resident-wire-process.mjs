@@ -1,16 +1,16 @@
-import { runClient } from "../../src/test-support/client-runtime.ts"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
 /** Distinct-process resident witness: parent drives Unix IPC, child owns TypeSafe encoding. */
 import { spawn } from "node:child_process"
 import { readFile, rm, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import * as Effect from "effect/Effect"
-import { adaptCodexDirectEvent } from "../../src/direct-event/adapter.ts"
-import { makeGitFixture, put, updateEvent } from "../../src/direct-event/test-fixtures.ts"
-import { DEFAULT_DESTINATION } from "../../src/runtime/review-config.ts"
-import { residentRequestEffect as residentRequest } from "../../src/resident/client.ts"
-import { monotonicNow } from "../../src/resident/hook-clock.ts"
-import { residentPaths } from "../../src/resident/paths.ts"
-import { decodeResidentRequest } from "../../src/resident/protocol.ts"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import { makeGitFixture, put, updateEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
+import { residentRequestEffect as residentRequest } from "@hapsland/resident-transport/resident/client"
+import { monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
+import { decodeResidentRequest } from "@hapsland/resident-transport/resident/protocol"
 import { securityWireManifest, securityWireRule } from "./security-wire-observer.ts"
 
 const scenario = process.argv[process.argv.indexOf("--scenario") + 1]
@@ -81,7 +81,7 @@ try {
   ]
   const dispatch = {
     statePath,
-    userConfigPath: null,
+    userConfigPath: join(root, "absent-fixture-user.jsonc"),
     credential: {
       name: "TYPESAFE_API_KEY",
       environmentValue: "WIRE_KEY_SENTINEL",
@@ -107,6 +107,7 @@ try {
     residentRequest(paths, {
       requestRoute: "shared",
       operation: "register-edit",
+      userConfigPath: join(root, "absent-fixture-user.jsonc"),
       lifetime,
       root: observation.root,
       advicee: observation.advicee,

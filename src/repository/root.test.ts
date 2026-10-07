@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import * as fc from "fast-check"
-import { hasGitMetadata, rootRelativePath } from "./root.ts"
+import { hasGitMetadata, rootRelativePath } from "@hapsland/native-observation/repository/root"
 
 const roots: string[] = []
 const fixture = () => {

@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import { decoder, Nat, PositiveNat, readBendList } from "../../../src/canonical/boundary-schema.ts"
+import { decoder, Nat, PositiveNat, readBendList } from "@hapsland/canonical-policy/canonical/boundary-schema"
 
 const Owner = Schema.Struct({
   partition: PositiveNat,

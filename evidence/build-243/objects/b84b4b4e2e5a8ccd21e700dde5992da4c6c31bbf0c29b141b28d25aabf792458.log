@@ -1,0 +1,191 @@
+
+> @hapsland/hapsland@0.1.0 build
+> node scripts/build-product.mjs
+
+ WARNING  Circular package dependency detected: @hapsland/monkey-business-bend, @hapsland/canonical-defense, @hapsland/build-tooling, @hapsland/verification, @hapsland/monkey-business, @hapsland/agent-flow-viz
+
+   • turbo 2.11.7
+   • Packages in scope: @hapsland/activity-observation, @hapsland/administration, @hapsland/agent-flow-bend, @hapsland/canonical-policy, @hapsland/cli-entry, @hapsland/credential-storage, @hapsland/delivery-output, @hapsland/doctor-entry, @hapsland/hook-entry, @hapsland/hook-runtime, @hapsland/inspection-records, @hapsland/native-observation, @hapsland/parser-entry, @hapsland/pi-extension, @hapsland/resident-entry, @hapsland/resident-runtime, @hapsland/resident-transport, @hapsland/review-definition, @hapsland/review-execution, @hapsland/runtime-environment, @hapsland/runtime-inputs, @hapsland/source-analysis, @hapsland/source-artifacts
+   • Running build, native:linux-arm64 in 23 packages
+   • Remote caching disabled
+
+@hapsland/source-artifacts:build: cache miss, executing cbfedc483240bf19
+@hapsland/runtime-environment:build: cache miss, executing d22f642ef63521a6
+@hapsland/source-artifacts:build: $ node ../../scripts/compile-package.mjs
+@hapsland/runtime-environment:build: $ node ../../scripts/compile-package.mjs
+@hapsland/source-artifacts:build: Compiled @hapsland/source-artifacts: 243 recorded inputs
+@hapsland/agent-flow-bend:build: cache miss, executing 4a6185323faa657c
+@hapsland/agent-flow-bend:build: $ node ../../scripts/bend-producer.mjs
+@hapsland/runtime-environment:build: Compiled @hapsland/runtime-environment: 375 recorded inputs
+@hapsland/delivery-output:build: cache miss, executing 4f464110f17c7e1d
+@hapsland/delivery-output:build: $ node ../../scripts/compile-package.mjs
+@hapsland/delivery-output:build: Compiled @hapsland/delivery-output: 246 recorded inputs
+@hapsland/credential-storage:native:linux-arm64: cache miss, executing 51fc464efa60244d
+@hapsland/credential-storage:native:linux-arm64: $ node ../../scripts/native-task.mjs linux-arm64
+@hapsland/source-analysis:native:linux-arm64: cache miss, executing 4afbd06f2b31eef1
+@hapsland/source-analysis:native:linux-arm64: $ node ../../scripts/native-task.mjs linux-arm64
+@hapsland/inspection-records:native:linux-arm64: cache miss, executing 3e3565f86daad46a
+@hapsland/inspection-records:native:linux-arm64: $ node ../../scripts/native-task.mjs linux-arm64
+@hapsland/pi-extension:build: cache miss, executing 91b9e0ac8d2a45ac
+@hapsland/pi-extension:build: $ node ../../scripts/compile-package.mjs
+@hapsland/pi-extension:build: Compiled @hapsland/pi-extension: 215 recorded inputs
+@hapsland/canonical-policy:build: cache miss, executing da75aaa8c5f0253f
+@hapsland/canonical-policy:build: $ node ../../scripts/compile-package.mjs
+@hapsland/canonical-policy:build: Compiled @hapsland/canonical-policy: 356 recorded inputs
+@hapsland/runtime-inputs:build: cache miss, executing 87972e2f3a7987b9
+@hapsland/runtime-inputs:build: $ node ../../scripts/compile-package.mjs
+@hapsland/runtime-inputs:build: Compiled @hapsland/runtime-inputs: 367 recorded inputs
+@hapsland/native-observation:build: cache miss, executing 3ca4c6aeed951e2b
+@hapsland/credential-storage:build: cache miss, executing 491f478e06eef131
+@hapsland/credential-storage:build: $ node ../../scripts/compile-package.mjs
+@hapsland/native-observation:build: $ node ../../scripts/compile-package.mjs
+@hapsland/credential-storage:build: Compiled @hapsland/credential-storage: 352 recorded inputs
+@hapsland/inspection-records:build: cache miss, executing a6dae220acf9b1e6
+@hapsland/inspection-records:build: $ node ../../scripts/compile-package.mjs
+@hapsland/native-observation:build: Compiled @hapsland/native-observation: 367 recorded inputs
+@hapsland/activity-observation:build: cache miss, executing 3a536e63cfc85357
+@hapsland/activity-observation:build: $ node ../../scripts/compile-package.mjs
+@hapsland/inspection-records:build: Compiled @hapsland/inspection-records: 423 recorded inputs
+@hapsland/source-analysis:build: cache miss, executing 67c485af19b11377
+@hapsland/source-analysis:build: $ node ../../scripts/compile-package.mjs
+@hapsland/activity-observation:build: Compiled @hapsland/activity-observation: 405 recorded inputs
+@hapsland/review-definition:build: cache miss, executing eda39b46b21f92e5
+@hapsland/review-definition:build: $ node ../../scripts/compile-package.mjs
+@hapsland/source-analysis:build: Compiled @hapsland/source-analysis: 382 recorded inputs
+@hapsland/resident-transport:build: cache miss, executing 71c2ee2eecad4c7b
+@hapsland/resident-transport:build: $ node ../../scripts/compile-package.mjs
+@hapsland/review-definition:build: Compiled @hapsland/review-definition: 440 recorded inputs
+@hapsland/parser-entry:build: cache miss, executing 220ca0a89e5ca672
+@hapsland/parser-entry:build: $ node ../../scripts/compile-package.mjs
+@hapsland/resident-transport:build: Compiled @hapsland/resident-transport: 422 recorded inputs
+@hapsland/review-execution:build: cache miss, executing 86600c9c286a736c
+@hapsland/review-execution:build: $ node ../../scripts/compile-package.mjs
+@hapsland/parser-entry:build: Compiled @hapsland/parser-entry: 355 recorded inputs
+@hapsland/hook-runtime:build: cache miss, executing e8b2cbc3dea59503
+@hapsland/hook-runtime:build: $ node ../../scripts/compile-package.mjs
+@hapsland/review-execution:build: Compiled @hapsland/review-execution: 514 recorded inputs
+@hapsland/resident-runtime:build: cache miss, executing b8f1124037c5a217
+@hapsland/resident-runtime:build: $ node ../../scripts/compile-package.mjs
+@hapsland/hook-runtime:build: Compiled @hapsland/hook-runtime: 396 recorded inputs
+@hapsland/hook-entry:build: cache miss, executing 52f21e1f47df14a3
+@hapsland/hook-entry:build: $ node ../../scripts/compile-package.mjs
+@hapsland/hook-entry:build: Compiled @hapsland/hook-entry: 369 recorded inputs
+@hapsland/resident-runtime:build: Compiled @hapsland/resident-runtime: 534 recorded inputs
+@hapsland/resident-entry:build: cache miss, executing e2fe60f2289a87f7
+@hapsland/administration:build: cache miss, executing ab00d3e6849fca28
+@hapsland/administration:build: $ node ../../scripts/compile-package.mjs
+@hapsland/resident-entry:build: $ node ../../scripts/compile-package.mjs
+@hapsland/resident-entry:build: Compiled @hapsland/resident-entry: 518 recorded inputs
+@hapsland/administration:build: Compiled @hapsland/administration: 610 recorded inputs
+@hapsland/doctor-entry:build: cache miss, executing 21e6310aa0a95191
+@hapsland/cli-entry:build: cache miss, executing 07ca749882025b5b
+@hapsland/doctor-entry:build: $ node ../../scripts/compile-package.mjs
+@hapsland/cli-entry:build: $ node ../../scripts/compile-package.mjs
+@hapsland/doctor-entry:build: Compiled @hapsland/doctor-entry: 402 recorded inputs
+@hapsland/cli-entry:build: Compiled @hapsland/cli-entry: 551 recorded inputs
+
+ Tasks:    26 successful, 26 total
+Cached:    0 cached, 26 total
+  Time:    29.509s 
+
+checked 136 event kinds, 215 command variants, 401 consumed tags, 346 exact constructor schemas, and 5 compiled exports
+checked 5 shared-adapter imports and zero direct policy consumers
+ WARNING  Circular package dependency detected: @hapsland/verification, @hapsland/agent-flow-viz, @hapsland/monkey-business, @hapsland/monkey-business-bend, @hapsland/canonical-defense, @hapsland/build-tooling
+
+   • turbo 2.11.7
+   • Packages in scope: @hapsland/activity-observation, @hapsland/administration, @hapsland/agent-flow-bend, @hapsland/canonical-policy, @hapsland/cli-entry, @hapsland/credential-storage, @hapsland/delivery-output, @hapsland/doctor-entry, @hapsland/hook-entry, @hapsland/hook-runtime, @hapsland/inspection-records, @hapsland/native-observation, @hapsland/parser-entry, @hapsland/pi-extension, @hapsland/resident-entry, @hapsland/resident-runtime, @hapsland/resident-transport, @hapsland/review-definition, @hapsland/review-execution, @hapsland/runtime-environment, @hapsland/runtime-inputs, @hapsland/source-analysis, @hapsland/source-artifacts
+   • Running assemble:linux-arm64, assemble:host in 23 packages
+   • Remote caching disabled
+
+@hapsland/credential-storage:native:linux-arm64: cache hit, replaying logs 51fc464efa60244d
+@hapsland/credential-storage:native:linux-arm64: $ node ../../scripts/native-task.mjs linux-arm64
+@hapsland/inspection-records:native:linux-arm64: cache hit, replaying logs 3e3565f86daad46a
+@hapsland/inspection-records:native:linux-arm64: $ node ../../scripts/native-task.mjs linux-arm64
+@hapsland/agent-flow-bend:build: cache hit, replaying logs 4a6185323faa657c
+@hapsland/agent-flow-bend:build: $ node ../../scripts/bend-producer.mjs
+@hapsland/runtime-environment:build: cache hit, replaying logs d22f642ef63521a6
+@hapsland/runtime-environment:build: $ node ../../scripts/compile-package.mjs
+@hapsland/runtime-environment:build: Compiled @hapsland/runtime-environment: 375 recorded inputs
+@hapsland/source-artifacts:build: cache hit, replaying logs cbfedc483240bf19
+@hapsland/source-analysis:native:linux-arm64: cache hit, replaying logs 4afbd06f2b31eef1
+@hapsland/source-artifacts:build: $ node ../../scripts/compile-package.mjs
+@hapsland/source-artifacts:build: Compiled @hapsland/source-artifacts: 243 recorded inputs
+@hapsland/delivery-output:build: cache hit, replaying logs 4f464110f17c7e1d
+@hapsland/delivery-output:build: $ node ../../scripts/compile-package.mjs
+@hapsland/delivery-output:build: Compiled @hapsland/delivery-output: 246 recorded inputs
+@hapsland/source-analysis:native:linux-arm64: $ node ../../scripts/native-task.mjs linux-arm64
+@hapsland/pi-extension:build: cache hit, replaying logs 91b9e0ac8d2a45ac
+@hapsland/pi-extension:build: $ node ../../scripts/compile-package.mjs
+@hapsland/pi-extension:build: Compiled @hapsland/pi-extension: 215 recorded inputs
+@hapsland/canonical-policy:build: cache hit, replaying logs da75aaa8c5f0253f
+@hapsland/canonical-policy:build: $ node ../../scripts/compile-package.mjs
+@hapsland/canonical-policy:build: Compiled @hapsland/canonical-policy: 356 recorded inputs
+@hapsland/pi-extension:assemble:host: cache miss, executing af2d3913678982a6
+@hapsland/runtime-inputs:build: cache hit, replaying logs 87972e2f3a7987b9
+@hapsland/runtime-inputs:build: $ node ../../scripts/compile-package.mjs
+@hapsland/runtime-inputs:build: Compiled @hapsland/runtime-inputs: 367 recorded inputs
+@hapsland/inspection-records:build: cache hit, replaying logs a6dae220acf9b1e6
+@hapsland/inspection-records:build: $ node ../../scripts/compile-package.mjs
+@hapsland/inspection-records:build: Compiled @hapsland/inspection-records: 423 recorded inputs
+@hapsland/native-observation:build: cache hit, replaying logs 3ca4c6aeed951e2b
+@hapsland/native-observation:build: $ node ../../scripts/compile-package.mjs
+@hapsland/native-observation:build: Compiled @hapsland/native-observation: 367 recorded inputs
+@hapsland/credential-storage:build: cache hit, replaying logs 491f478e06eef131
+@hapsland/credential-storage:build: $ node ../../scripts/compile-package.mjs
+@hapsland/credential-storage:build: Compiled @hapsland/credential-storage: 352 recorded inputs
+@hapsland/activity-observation:build: cache hit, replaying logs 3a536e63cfc85357
+@hapsland/activity-observation:build: $ node ../../scripts/compile-package.mjs
+@hapsland/activity-observation:build: Compiled @hapsland/activity-observation: 405 recorded inputs
+@hapsland/review-definition:build: cache hit, replaying logs eda39b46b21f92e5
+@hapsland/review-definition:build: $ node ../../scripts/compile-package.mjs
+@hapsland/review-definition:build: Compiled @hapsland/review-definition: 440 recorded inputs
+@hapsland/source-analysis:build: cache hit, replaying logs 67c485af19b11377
+@hapsland/source-analysis:build: $ node ../../scripts/compile-package.mjs
+@hapsland/source-analysis:build: Compiled @hapsland/source-analysis: 382 recorded inputs
+@hapsland/resident-transport:build: cache hit, replaying logs 71c2ee2eecad4c7b
+@hapsland/resident-transport:build: $ node ../../scripts/compile-package.mjs
+@hapsland/resident-transport:build: Compiled @hapsland/resident-transport: 422 recorded inputs
+@hapsland/review-execution:build: cache hit, replaying logs 86600c9c286a736c
+@hapsland/review-execution:build: $ node ../../scripts/compile-package.mjs
+@hapsland/review-execution:build: Compiled @hapsland/review-execution: 514 recorded inputs
+@hapsland/parser-entry:build: cache hit, replaying logs 220ca0a89e5ca672
+@hapsland/parser-entry:build: $ node ../../scripts/compile-package.mjs
+@hapsland/parser-entry:build: Compiled @hapsland/parser-entry: 355 recorded inputs
+@hapsland/hook-runtime:build: cache hit, replaying logs e8b2cbc3dea59503
+@hapsland/hook-runtime:build: $ node ../../scripts/compile-package.mjs
+@hapsland/hook-runtime:build: Compiled @hapsland/hook-runtime: 396 recorded inputs
+@hapsland/resident-runtime:build: cache hit, replaying logs b8f1124037c5a217
+@hapsland/resident-runtime:build: $ node ../../scripts/compile-package.mjs
+@hapsland/resident-runtime:build: Compiled @hapsland/resident-runtime: 534 recorded inputs
+@hapsland/pi-extension:assemble:host: $ node ../../scripts/assemble-host-modules.mjs
+@hapsland/parser-entry:assemble:linux-arm64: cache miss, executing 624485f8722b498d
+@hapsland/parser-entry:assemble:linux-arm64: $ node ../../scripts/assemble-entry.mjs linux-arm64
+@hapsland/hook-entry:build: cache hit, replaying logs 52f21e1f47df14a3
+@hapsland/hook-entry:build: $ node ../../scripts/compile-package.mjs
+@hapsland/hook-entry:build: Compiled @hapsland/hook-entry: 369 recorded inputs
+@hapsland/administration:build: cache hit, replaying logs ab00d3e6849fca28
+@hapsland/administration:build: $ node ../../scripts/compile-package.mjs
+@hapsland/administration:build: Compiled @hapsland/administration: 610 recorded inputs
+@hapsland/resident-entry:build: cache hit, replaying logs e2fe60f2289a87f7
+@hapsland/resident-entry:build: $ node ../../scripts/compile-package.mjs
+@hapsland/resident-entry:build: Compiled @hapsland/resident-entry: 518 recorded inputs
+@hapsland/hook-entry:assemble:linux-arm64: cache miss, executing 5e890044ddf13eb1
+@hapsland/hook-entry:assemble:linux-arm64: $ node ../../scripts/assemble-entry.mjs linux-arm64
+@hapsland/cli-entry:build: cache hit, replaying logs 07ca749882025b5b
+@hapsland/cli-entry:build: $ node ../../scripts/compile-package.mjs
+@hapsland/cli-entry:build: Compiled @hapsland/cli-entry: 551 recorded inputs
+@hapsland/doctor-entry:build: cache hit, replaying logs 21e6310aa0a95191
+@hapsland/doctor-entry:build: $ node ../../scripts/compile-package.mjs
+@hapsland/doctor-entry:build: Compiled @hapsland/doctor-entry: 402 recorded inputs
+@hapsland/resident-entry:assemble:linux-arm64: cache miss, executing 48ed61b2d13d10cb
+@hapsland/resident-entry:assemble:linux-arm64: $ node ../../scripts/assemble-entry.mjs linux-arm64
+@hapsland/cli-entry:assemble:linux-arm64: cache miss, executing 9afd4339c609a5ad
+@hapsland/cli-entry:assemble:linux-arm64: $ node ../../scripts/assemble-entry.mjs linux-arm64
+@hapsland/doctor-entry:assemble:linux-arm64: cache miss, executing e95cb04e53fb7be7
+@hapsland/doctor-entry:assemble:linux-arm64: $ node ../../scripts/assemble-entry.mjs linux-arm64
+
+ Tasks:    32 successful, 32 total
+Cached:    26 cached, 32 total
+  Time:    31.82s 
+
+Published product: fresh source, compiler, native and artifact evidence verified

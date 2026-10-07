@@ -1,0 +1,45 @@
+{
+  "authority": "Implementation/validation evidence; accepted product contracts unchanged",
+  "status": "focused-passed",
+  "requirementSource": "CHECKS.md: full-run acknowledgment and prerequisite ordering; user requested executable workflow safeguards",
+  "policyTestsPassed": 47,
+  "verifyTestsOnFormattedSourcePassed": 8,
+  "hookRoutingTestsPassed": 41,
+  "hookRoutingScorerExit": 0,
+  "hookRoutingMaxComplexity": 7,
+  "hookRoutingMaxCRAP": 7.142857142857143,
+  "threshold": 8,
+  "astraPolicyReview": "No actionable findings; single policy owner, explicit acknowledgment is responsibility rather than proof",
+  "logs": {
+    "policyFocused": {
+      "path": "evidence/build-243/hapsland-243-new-checks-policy-focused-02.log",
+      "sha256": "5e0dac59819adc2d62f8b32379dff8470a078f8cf09dd73483b0cd9b34230794"
+    },
+    "verifyFormatted": {
+      "path": "evidence/build-243/hapsland-243-verify-policy-final.log",
+      "sha256": "11e5df9e095d464cbb8cd15bc006747ace8598123d27065fc491e8c71607a85f"
+    },
+    "hookRouting": {
+      "path": "evidence/build-243/hapsland-243-hook-routing-final-02.log",
+      "sha256": "f32200f8161c6d1de2c8db514b1de57e90d3477e4b1eff7401b74068874babd6"
+    },
+    "hookRoutingScorer": {
+      "path": "evidence/build-243/hapsland-243-hook-routing-score-final.json",
+      "sha256": "a7fe761e9df98a82e3fe98f00d19544ce0097c94ab2b1ccd878b6620d5125670"
+    }
+  },
+  "inputs": {
+    "AGENTS.md": "5921e128443e119c771772655131f387792247fb1f0a5fa34ccced6cb6fa2f82",
+    "CHECKS.md": "fb38add204881b2b5c87f62637ac3cc2fed751d9e5c7a66a1fc608d4a9bd5bea",
+    "scripts/test-harness/check-stages.mjs": "1fa3a7ec77b97d26b665d85dbab4c6cd1d142f7775210f140567d8df04e36661",
+    "scripts/test-harness/run-checks.mjs": "7d2829fd812f808540aa6d4d8461aa20903e63036bc97b30729f0176a10bf4fb",
+    "scripts/test-harness/run-checks.test.mjs": "746f3873553ca0f32913ee8a0eaa78b0b87f1b71216a70518596d15f58f3aa84",
+    "scripts/test-harness/verify.mjs": "3f5b229158733971d0f0e9e19e9a79efcd0014580fbd9dc6679ef2a11082be15",
+    "scripts/test-harness/verify.test.mjs": "14d947eadf8f1c78ac016feb4fa1d3267238145ae1ecb5c0e89afebc9c94c8ed",
+    ".github/workflows/check.yml": "98172c20c910f672e32679cfb4d8effdd41d3c5e39b30b1d1f25ba96d54a3161"
+  },
+  "limitations": [
+    "Focused evidence is not full-project coverage.",
+    "Goal relevance and adequacy of selected checks still require contributor judgment; acknowledgment cannot prove the policy was read."
+  ]
+}

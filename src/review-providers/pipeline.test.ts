@@ -4,12 +4,20 @@ import * as Effect from "effect/Effect"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import { join } from "node:path"
-import { adaptCodexAdd } from "../direct-event/adapter.ts"
-import { addEvent, makeReviewGitFixture as makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { evaluatePrepared, prepareObservation, revalidateEvaluations } from "../direct-event/pipeline.ts"
-import { loadReviewSettings } from "../runtime/review-config.ts"
-import { reviewDecisionModelLayer } from "./live.ts"
-import { residentEvaluationIdentity } from "../resident/evaluation-reuse.ts"
+import { adaptCodexAdd } from "@hapsland/native-observation/direct-event/adapter"
+import {
+  addEvent,
+  makeReviewGitFixture as makeGitFixture,
+  put
+} from "@hapsland/build-tooling/test-support/test-fixtures"
+import {
+  evaluatePrepared,
+  prepareObservation,
+  revalidateEvaluations
+} from "@hapsland/review-execution/direct-event/pipeline"
+import { loadReviewSettings } from "@hapsland/review-definition/runtime/review-config"
+import { reviewDecisionModelLayer } from "@hapsland/review-execution/review-providers/live"
+import { residentEvaluationIdentity } from "@hapsland/resident-runtime/resident/evaluation-reuse"
 
 const userConfig = (model: "clef" | "clef-flash") =>
   JSON.stringify({ version: 1, reviewBackend: { provider: "cloudflare", model, accountId: "a".repeat(32) } })

@@ -1,40 +1,55 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs"
 import { dirname, extname, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import { typeScriptRoot, descendants } from "../../src/direct-event/languages/native-parser.ts"
+import { parse } from "@babel/parser"
+import { readPackageGraph, resolveDevelopmentWorkspaceSource } from "../package-graph.mjs"
 import { isOptionalDevelopmentTest } from "./test-scope.mjs"
 import { boundedScenarioFiles, timeoutForKind } from "./policy.mjs"
 
 const processModules = new Set(["node:child_process", "child_process", "node:worker_threads", "worker_threads"])
 const sourceExtensions = new Set([".ts", ".tsx", ".mts", ".mjs", ".js"])
 const importsOf = (file) => {
-  const tree = typeScriptRoot(file, readFileSync(file, "utf8"))
+  const ast = parse(readFileSync(file, "utf8"), {
+    sourceType: "unambiguous",
+    plugins: [
+      ["typescript", { dts: /\.d\.[cm]?ts$/.test(file) }],
+      "importAttributes",
+      ...(file.endsWith(".tsx") ? ["jsx"] : [])
+    ]
+  })
   const modules = []
-  for (const node of descendants(tree)) {
-    if (["import_statement", "export_statement"].includes(node.type)) {
-      if (/^(import|export)\s+type\b/u.test(node.text)) continue
-      const source = node.childForFieldName("source")
-      const specifiers = descendants(node).filter((child) =>
-        ["import_specifier", "export_specifier"].includes(child.type)
-      )
-      const clause = node.namedChildren.find((child) => child.type === "import_clause")
+  const pending = [ast]
+  while (pending.length) {
+    const node = pending.pop()
+    if (!node || typeof node !== "object") continue
+    if (["ImportDeclaration", "ExportNamedDeclaration", "ExportAllDeclaration"].includes(node.type)) {
+      const kind = node.importKind ?? node.exportKind
+      const specifiers = node.specifiers ?? []
       if (
-        specifiers.length &&
-        specifiers.every((child) => /^type\s/u.test(child.text)) &&
-        (node.type === "export_statement" || clause?.namedChildren.every((child) => child.type === "named_imports"))
+        kind !== "type" &&
+        !(specifiers.length && specifiers.every((value) => (value.importKind ?? value.exportKind) === "type")) &&
+        node.source
       )
-        continue
-      if (source?.type === "string") modules.push(source.text.slice(1, -1))
-    } else if (node.type === "call_expression" && node.childForFieldName("function")?.text === "import") {
-      const argument = node.childForFieldName("arguments")?.namedChildren[0]
-      if (argument?.type === "string") modules.push(argument.text.slice(1, -1))
+        modules.push(node.source.value)
+    } else if (node.type === "CallExpression" && (node.callee?.type === "Import" || node.callee?.name === "require")) {
+      const argument = node.arguments?.[0]
+      if (argument?.type === "StringLiteral") modules.push(argument.value)
+    }
+    for (const [key, value] of Object.entries(node)) {
+      if (["loc", "start", "end", "comments", "tokens"].includes(key)) continue
+      if (Array.isArray(value)) pending.push(...value)
+      else if (value && typeof value === "object") pending.push(value)
     }
   }
   return modules
 }
 
-const localModule = (file, specifier) => {
-  if (!specifier.startsWith(".")) return undefined
+const localModule = (root, file, specifier) => {
+  if (!specifier.startsWith(".")) {
+    const manifestPath = resolve(root, "package.json")
+    if (!existsSync(manifestPath) || !JSON.parse(readFileSync(manifestPath, "utf8")).workspaces) return undefined
+    return resolveDevelopmentWorkspaceSource(readPackageGraph(root), specifier)
+  }
   const target = resolve(dirname(file), specifier)
   const candidates = [
     target,
@@ -69,9 +84,9 @@ export const requiredTestArtifacts = (root, selectedFiles) => {
     const file = pending.pop()
     if (seen.has(file)) continue
     seen.add(file)
-    if (relative(root, file).replaceAll("\\", "/") === "src/test-support/test-package.ts") return ["package"]
+    if (relative(root, file).replaceAll("\\", "/") === "scripts/test-support/test-package.ts") return ["package"]
     for (const specifier of importsOf(file)) {
-      const dependency = localModule(file, specifier)
+      const dependency = localModule(root, file, specifier)
       if (dependency) pending.push(dependency)
     }
   }
@@ -111,7 +126,7 @@ export const inventoryTestHarness = (root, selectedFiles) => {
           evidence = relative(root, current).replaceAll("\\", "/")
           break
         }
-        const dependency = localModule(current, specifier)
+        const dependency = localModule(root, current, specifier)
         if (dependency !== undefined) pending.push(dependency)
       }
     }

@@ -1,0 +1,25 @@
+
+ RUN  v5.0.1 /workspace/typescript/hapsland-243
+      Coverage enabled with v8
+
+ ✓ src/pi/installed-boundary.test.ts (24 tests | 21 skipped) 12316ms
+   ✓ Pi source extension through command and resident (22)
+     ✓ closes offered advice after replaced composition and permits a fresh edit 3104ms
+     ✓ closes offered advice after final-refusal composition and permits a fresh edit 3035ms
+     ✓ closes offered advice after aborted composition and permits a fresh edit 3112ms
+(node:1032381) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+ Test Files  1 passed (1)
+      Tests  3 passed | 21 skipped (24)
+   Start at  09:59:20
+   Duration  20.53s (tests 96%, transform 2%, import 2%)
+
+ % Coverage report from v8
+
+=============================== Coverage summary ===============================
+Statements   : 41.57% ( 10118/24336 )
+Branches     : 23.4% ( 3332/14238 )
+Functions    : 38.26% ( 2349/6139 )
+Lines        : 42.67% ( 8410/19706 )
+================================================================================

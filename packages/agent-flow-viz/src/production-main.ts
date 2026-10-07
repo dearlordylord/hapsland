@@ -40,7 +40,7 @@ import {
 import { productionFlowView } from "./production-flow-view"
 import { numberRecords, recordLabel, type RecordNumbers } from "@hapsland/agent-flow-projection"
 import { PLACE_ORDER, SQUARES } from "./production-flow-presentation"
-import type { CapacityPurpose, CanonicalCommand } from "../../../src/canonical/adapter"
+import type { CapacityPurpose, CanonicalCommand } from "@hapsland/canonical-policy/canonical/adapter"
 
 export const Model = Schema.Struct({
   simulation: SimulationModel,
@@ -683,7 +683,11 @@ const examplesView = (
                 [
                   "Native facts and effects outside Bend: agent-runtime observation, source capture, clocks, Jev I/O, and host writes. ",
                   h.a(
-                    [h.Href("https://github.com/dearlordylord/hapsland/blob/master/src/resident/server.ts")],
+                    [
+                      h.Href(
+                        "https://github.com/dearlordylord/hapsland/blob/master/packages/resident-runtime/src/resident/server.ts"
+                      )
+                    ],
                     ["Resident boundary"]
                   ),
                   ". Production review uses bounded cross-file evidence. The separate import-graph example below replays source-free facts; it does not read files or call Jev."

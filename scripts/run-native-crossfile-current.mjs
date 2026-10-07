@@ -1,6 +1,13 @@
+import { cleanupOwnedResident } from "./test-harness/cleanup-owned-resident.mjs"
+import {
+  validateClaudeArchiveProfile,
+  installClaudeNativeArchive,
+  setupClaudeNativeArchive,
+  instrumentClaudeRegistrations
+} from "./native-claude-package.mjs"
 import { NATIVE_AGENT_PROFILES, resolveNativeAgentProfile } from "./native-agent-profiles.mjs"
 import { resolveBunRuntime } from "./pinned-bun.mjs"
-import { runClient } from "../src/test-support/client-runtime.ts"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
 // Bounded real-host observation of TypeScript, Rust and Bend cross-file review.
 // Raw host streams, source, provider bodies, and credentials stay in a disposable directory.
 import { spawnSync } from "node:child_process"
@@ -21,16 +28,20 @@ import {
 } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
-import { residentRequestEffect as residentRequest } from "../src/resident/client.ts"
-import { residentPaths } from "../src/resident/paths.ts"
+import { residentRequestEffect as residentRequest } from "@hapsland/resident-transport/resident/client"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import * as Effect from "effect/Effect"
-import { addEvent } from "../src/direct-event/test-fixtures.ts"
-import { adaptCodexAdd, adaptCodexDirectEvent, adaptClaudeDirectEvent } from "../src/direct-event/adapter.ts"
-import { prepareObservation } from "../src/direct-event/pipeline.ts"
-import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../src/runtime/review-config.ts"
-import { configuredRules, connectDefaultRuleFixture } from "../src/test-support/default-rules.ts"
-import { TYPE_INPUT_CONTRACT } from "../src/rules/targets.ts"
-import { verifyCodexPostEditHunks } from "../src/direct-event/codex-patch-hunks.ts"
+import { addEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
+import {
+  adaptCodexAdd,
+  adaptCodexDirectEvent,
+  adaptClaudeDirectEvent
+} from "@hapsland/native-observation/direct-event/adapter"
+import { prepareObservation } from "@hapsland/review-execution/direct-event/pipeline"
+import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
+import { configuredRules, connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import { verifyCodexPostEditHunks } from "@hapsland/native-observation/direct-event/codex-patch-hunks"
 import { COEXISTENCE_CASES, TASK_CANARY, setupAbideCoexistence } from "./native-abide-coexistence.mjs"
 
 import { faultProfile, assessPreFault } from "./native-hook-faults.mjs"
@@ -140,8 +151,18 @@ const initialSourceMarker =
 const feedbackMessages = Object.fromEntries(configuredRules.map((rule) => [rule.id, rule.message]))
 const mode = process.argv.includes("--live") ? "live-jev" : "controlled-offline"
 const archiveArgument = process.argv.find((argument) => argument.startsWith("--archive="))
-if (archiveArgument !== undefined && (host !== "pi" || archiveArgument === "--archive="))
-  throw new Error("--archive=PATH requires a local production tarball and the Pi profile")
+if (archiveArgument !== undefined && (!["pi", "claude"].includes(host) || archiveArgument === "--archive="))
+  throw new Error("--archive=PATH requires a local production tarball and the Pi or Claude profile")
+if (host === "claude")
+  validateClaudeArchiveProfile({
+    host,
+    language,
+    scenario,
+    mode,
+    coexistence,
+    unicodeUpdate,
+    archivePath: archiveArgument?.slice("--archive=".length)
+  })
 if (host === "pi") {
   await runPiNativeProfile({
     project,
@@ -198,6 +219,7 @@ const declaration = {
   maximumSourceEditCalls: scenario === "stale-result" || scenario === "adoption" ? 2 : 1,
   sourceProfile: "bounded local cross-file types",
   runtimeVersion: version,
+  runtimeSurface: host === "claude" && archiveArgument ? "installed-artifact" : "source-checkout",
   ...(coexistence
     ? {
         coexistence,
@@ -284,6 +306,10 @@ const hookScript = join(temp, "hook.mjs")
 const observer = join(temp, "observe-fetch.mjs")
 let owner
 let abide
+let installedClaude
+let installedClaudeSetup
+const installedCommandsPath = join(temp, "installed-claude-commands.json")
+const installedClaudeHome = join(temp, "claude-home")
 try {
   mkdirSync(repo)
   const init = spawnSync("git", ["init", "--quiet", "--initial-branch=master", repo])
@@ -329,6 +355,13 @@ try {
   )
   spawnSync("git", ["-C", repo, "add", "README.md", "support.ts", "tsconfig.json", "package.json"])
 
+  if (host === "claude" && archiveArgument)
+    installedClaude = await installClaudeNativeArchive({
+      project,
+      archivePath: archiveArgument.slice("--archive=".length),
+      installation: join(temp, "installed-package")
+    })
+
   writeFileSync(
     hookScript,
     `import { readFileSync, appendFileSync, existsSync } from 'node:fs';
@@ -361,7 +394,13 @@ if(fault && (fault.phase==='pre'?kind==='before-edit':kind==='edit'||kind==='bac
 const flags=kind==='edit' ? ['--${host === "codex" ? "codex" : "claude"}-hook','--controlled-writer','--composed-edit-hook']
   : ['--composed-'+kind+'-hook','--composed-host=${host === "codex" ? "codex-cli" : "claude-code"}'];
 ${mode === "controlled-offline" ? "flags.push('--controlled-reviewer');" : ""}
-const result=spawnSync(${JSON.stringify(resolveBunRuntime().executable)},[${JSON.stringify(join(project, "src/cli.ts"))},...flags],
+${
+  installedClaude
+    ? `const registeredCommands=JSON.parse(readFileSync(${JSON.stringify(installedCommandsPath)},'utf8'));
+if(typeof registeredCommands[kind]!=='string')throw new Error('Unaccounted installed Claude hook kind');
+const result=spawnSync('/bin/sh',['-c',registeredCommands[kind]+' --controlled-reviewer'],`
+    : `const result=spawnSync(${JSON.stringify(resolveBunRuntime().executable)},[${JSON.stringify(join(project, "packages/hook-entry/src/hook-main.ts"))},...flags],`
+}
   {input,encoding:'utf8',env:process.env,timeout:30000,maxBuffer:1048576});
 let output; try { output=JSON.parse(result.stdout) } catch {}
 const message=output?.reason??output?.hookSpecificOutput?.additionalContext??output?.systemMessage??'';
@@ -467,7 +506,7 @@ globalThis.fetch=async (...args)=>{
     chmodSync(join(home, "auth.json"), 0o600)
     writeFileSync(join(home, "config.toml"), "[features]\nhooks = true\n")
     writeFileSync(join(home, "hooks.json"), JSON.stringify(settings))
-  } else {
+  } else if (!installedClaude) {
     mkdirSync(join(repo, ".claude"))
     writeFileSync(join(repo, ".claude", "settings.json"), JSON.stringify(settings))
   }
@@ -476,6 +515,13 @@ globalThis.fetch=async (...args)=>{
     REVIEW_RESIDENT_DIR: runtime,
     REVIEW_ACTIVITY_PATH: activity,
     REVIEW_USER_CONFIG_PATH: config,
+    ...(installedClaude
+      ? {
+          REVIEW_STATE_PATH: join(temp, "setup-state"),
+          REVIEW_CREDENTIAL_STATE_PATH: join(temp, "credential-state.json"),
+          HAPSLAND_ACTIVE_DISPATCH: "1"
+        }
+      : {}),
     HAPSLAND_NATIVE_LOG: log,
     HAPSLAND_NATIVE_SUMMARIES: summaries,
     HAPSLAND_NATIVE_CALLS: calls,
@@ -504,6 +550,22 @@ globalThis.fetch=async (...args)=>{
       env.TYPESAFE_API_KEY = raw?.replace(/^(['"])(.*)\1$/, "$2")
     }
     if (!env.TYPESAFE_API_KEY) throw new Error("Jev credential unavailable")
+  }
+  if (installedClaude) {
+    installedClaudeSetup = await setupClaudeNativeArchive({
+      installed: installedClaude,
+      repository: repo,
+      claudeHome: installedClaudeHome,
+      binary,
+      env
+    })
+    writeFileSync(installedCommandsPath, JSON.stringify(installedClaudeSetup.commands), { mode: 0o600 })
+    const instrumented = instrumentClaudeRegistrations(
+      installedClaudeSetup.settings,
+      installedClaudeSetup.commands,
+      command
+    )
+    writeFileSync(installedClaudeSetup.settingsPath, JSON.stringify(instrumented), { mode: 0o600 })
   }
   delete env.OPENAI_API_KEY
   if (coexistence)
@@ -556,7 +618,11 @@ globalThis.fetch=async (...args)=>{
           "Read,Edit,Write,Bash",
           "--permission-mode",
           "acceptEdits",
-          ...(coexistence ? ["--setting-sources", "project,local"] : []),
+          ...(installedClaudeSetup
+            ? ["--settings", installedClaudeSetup.settingsPath, "--setting-sources", "project,local"]
+            : coexistence
+              ? ["--setting-sources", "project,local"]
+              : []),
           prompt
         ]
   const runnerHash = createHash("sha256")
@@ -942,8 +1008,16 @@ globalThis.fetch=async (...args)=>{
     scenario,
     runnerHash,
     executionProfile: {
-      runtime: "source-checkout",
-      installedPackageValidated: false,
+      runtime: installedClaude ? "installed-artifact" : "source-checkout",
+      installedPackageValidated: installedClaudeSetup !== undefined,
+      ...(installedClaude
+        ? {
+            installedArchive: installedClaude.evidence,
+            installation: installedClaudeSetup?.evidence,
+            observation:
+              "native registration observer delegates installed dedicated hook commands with explicit controlled reviewer test selector"
+          }
+        : {}),
       normalTrustValidated: false,
       syntheticRepositoryOnly: true
     },
@@ -1057,18 +1131,27 @@ globalThis.fetch=async (...args)=>{
 } finally {
   mutationWatcher?.close()
   await abide?.close()
-  try {
-    owner = JSON.parse(readFileSync(residentPaths(runtime).owner, "utf8"))
-    await runClient(
-      residentRequest(residentPaths(runtime), {
-        requestRoute: "shared",
-        operation: "cleanup",
-        lifetime: owner.lifetime
-      })
-    ).catch(() => {})
-    process.kill(owner.pid, "SIGTERM")
-  } catch {
-    /* resident may never have started */
+  if (installedClaude) {
+    await cleanupOwnedResident(runtime, [
+      {
+        executable: join(installedClaude.root, "dist/bin", `${process.platform}-${process.arch}`, "hapsland-resident"),
+        args: []
+      }
+    ])
+  } else {
+    try {
+      owner = JSON.parse(readFileSync(residentPaths(runtime).owner, "utf8"))
+      await runClient(
+        residentRequest(residentPaths(runtime), {
+          requestRoute: "shared",
+          operation: "cleanup",
+          lifetime: owner.lifetime
+        })
+      ).catch(() => {})
+      process.kill(owner.pid, "SIGTERM")
+    } catch {
+      /* resident may never have started */
+    }
   }
   rmSync(temp, { recursive: true, force: true })
 }

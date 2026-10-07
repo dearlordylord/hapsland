@@ -1,8 +1,10 @@
+import { createHash } from "node:crypto"
+import { commandHooks } from "@hapsland/runtime-environment/runtime/hook-catalog"
 import { isDeepStrictEqual } from "node:util"
 import { standaloneEnvironment } from "./test-harness/standalone-environment.mjs"
 import { preparePackageInstall } from "./test-harness/package-install.mjs"
 import { spawn } from "node:child_process"
-import { access, chmod, copyFile, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises"
+import { access, chmod, copyFile, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises"
 import { homedir, tmpdir } from "node:os"
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -13,6 +15,10 @@ const suppliedArchive =
   (archiveArgumentIndex < 0 ? undefined : process.argv[archiveArgumentIndex + 1])
 if (archiveArgumentIndex >= 0 && (!suppliedArchive || suppliedArchive.startsWith("--")))
   throw new Error("--archive requires a local archive path")
+const selectedProfile = process.argv.find((argument) => argument.startsWith("--profile="))?.slice("--profile=".length)
+if (selectedProfile !== undefined && !["linux-arm64", "darwin-arm64"].includes(selectedProfile))
+  throw new Error("--profile requires linux-arm64 or darwin-arm64")
+const archiveProfiles = selectedProfile === undefined ? ["linux-arm64", "darwin-arm64"] : [selectedProfile]
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const run = (command, args, options = {}) =>
   new Promise((resolveRun, rejectRun) => {
@@ -175,7 +181,7 @@ const readOptional = async (path) => {
   }
 }
 const outsideActiveBefore = await readOptional(outsideActivePath)
-const temporary = await mkdtemp(join(tmpdir(), "review-setup-package-"))
+const temporary = await realpath(await mkdtemp(join(tmpdir(), "review-setup-package-")))
 try {
   const artifacts = join(temporary, "artifacts")
   const installation = join(temporary, "installation")
@@ -212,8 +218,8 @@ try {
     ),
     "packed archive lacks the selected platform's credential helper"
   )
-  for (const profile of ["linux-arm64", "darwin-arm64"]) {
-    for (const role of ["hapsland", "hapsland-doctor", "hapsland-parser", "hapsland-resident"]) {
+  for (const profile of archiveProfiles) {
+    for (const role of ["hapsland", "hapsland-hook", "hapsland-doctor", "hapsland-parser", "hapsland-resident"]) {
       expect(
         archiveContents.stdout.includes(`package/dist/bin/${profile}/${role}\n`),
         `packed archive lacks standalone ${profile}/${role}`
@@ -334,7 +340,7 @@ try {
     resumed.stages.some((stage) => stage.stage === "repository" && stage.status === "complete"),
     "file settings were not loaded"
   )
-  const shippedDirectory = join(installation, "node_modules/@hapsland/hapsland/src/rules/defaults")
+  const shippedDirectory = join(installation, "node_modules/@hapsland/hapsland/dist/rules/defaults")
   const filenames = (await readdir(shippedDirectory)).filter((name) => name.endsWith(".json")).sort()
   expect(filenames.length === 7, "installed package must contain seven individual default rules")
   const editablePaths = filenames.map((name) => join(stateRoot, "rules/defaults", name))
@@ -394,6 +400,34 @@ try {
   )
   const hooks = JSON.parse(await readFile(join(codexHome, "hooks.json"), "utf8"))
   expect(hooks.hooks.PostToolUse.length === 1, "repeat setup duplicated the owned hook")
+  const definitions = Object.values(commandHooks.codex)
+  for (const event of new Set(definitions.map((definition) => definition.event))) {
+    const handlers = hooks.hooks[event]?.flatMap((group) => group.hooks ?? []) ?? []
+    expect(
+      handlers.length === definitions.filter((definition) => definition.event === event).length,
+      `installed Codex ${event} registration is incomplete or duplicated`
+    )
+    expect(
+      handlers.every(
+        (handler) =>
+          typeof handler.command === "string" &&
+          handler.command.includes("/hapsland-hook'") &&
+          !handler.command.includes("/hapsland'")
+      ),
+      `installed Codex ${event} did not target the dedicated hook executable`
+    )
+    for (const definition of definitions.filter((definition) => definition.event === event)) {
+      const matches = handlers.filter((handler) =>
+        definition.flags.every((flag) => handler.command.split(" ").includes(flag))
+      )
+      expect(
+        matches.length === 1 &&
+          matches[0].timeout === definition.timeout &&
+          (matches[0].async === true) === (definition.async === true),
+        `installed Codex ${event} catalog variant is missing, duplicated or changed: ${definition.flags.join(" ")}`
+      )
+    }
+  }
   expect(
     JSON.parse(await readFile(editablePath, "utf8")).question === "Is the installed edited concern present?",
     "repeat setup overwrote authored JSON"
@@ -626,6 +660,12 @@ else if (operation === "probe") console.log('{"status":"available"}');
       operation: "setup-package-conformance",
       status: "passed",
       packageManager: installer.manager,
+      archiveSha256: createHash("sha256")
+        .update(await readFile(join(artifacts, artifact)))
+        .digest("hex"),
+      inspectedArchiveProfiles: archiveProfiles,
+      operatingSystem: process.platform,
+      architecture: process.arch,
       providerCalls: 0,
       journeys: [
         "noninteractive-handoff",

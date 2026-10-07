@@ -1,7 +1,9 @@
-import { bunExecutable } from "../runtime/bun-runtime.ts"
-import { SHIPPED_DEFAULT_RULES } from "../rules/shipped.ts"
+import { terminalAvailable, terminalArguments, terminalCommand } from "@hapsland/build-tooling/test-harness/terminal"
+import { sourceReleaseEntrypoints } from "@hapsland/runtime-environment/runtime/package-runtime"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
+import { SHIPPED_DEFAULT_RULES } from "@hapsland/review-definition/rules/shipped"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
-import { createInstallationPackageFixture } from "../test-support/installation-package.ts"
+import { createInstallationPackageFixture } from "@hapsland/build-tooling/test-support/installation-package"
 import {
   chmodSync,
   existsSync,
@@ -19,7 +21,7 @@ import { execFileSync, spawnSync } from "../../scripts/test-harness/process.mjs"
 import { afterEach, describe, expect, it } from "vitest"
 
 const roots: Array<string> = []
-const setupEntrypoint = () => process.env.REVIEW_SETUP_ENTRYPOINT ?? join(process.cwd(), "src", "cli.ts")
+const setupEntrypoint = () => process.env.REVIEW_SETUP_ENTRYPOINT ?? join(process.cwd(), sourceReleaseEntrypoints.cli)
 
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
@@ -42,6 +44,9 @@ const fixture = () => {
   chmodSync(codexExecutable, 0o700)
   const environment: NodeJS.ProcessEnv = {
     ...process.env,
+    HOME: root,
+    XDG_CONFIG_HOME: join(root, "config"),
+    XDG_STATE_HOME: join(root, "state"),
     REVIEW_INSTALL_ENTRYPOINT: createInstallationPackageFixture(root),
     REVIEW_STATE_PATH: join(root, "consent"),
     REVIEW_USER_CONFIG_PATH: join(root, "user.jsonc"),
@@ -166,7 +171,7 @@ const invokeMaskedSetup = async (
   )
   const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
   const command = `${quote(bunExecutable())} ${quote(setupEntrypoint())} --setup < ${quote(requestPath)}`
-  const child = spawn("script", ["-qfec", command, "/dev/null"], {
+  const child = spawn(terminalCommand, terminalArguments(command), {
     cwd: test.repository,
     env: environment,
     stdio: ["pipe", "pipe", "pipe"]
@@ -194,7 +199,7 @@ const invokeMaskedSetup = async (
     })
     child.once("error", rejectExit)
   })
-  expect(exit).toBe(6)
+  expect(exit, output).toBe(6)
   expect(supplied).toBe(true)
   if (credential.length > 0) expect(output).not.toContain(credential)
   const encoded = output.split(/\r?\n/).find((line) => line.startsWith('{"version":1,"operation":"setup"'))
@@ -440,7 +445,7 @@ describe("public resumable setup operation", () => {
     expect(result.providerCalls).toBe(0)
   })
 
-  it.skipIf(process.platform !== "linux").each([
+  it.skipIf(!terminalAvailable).each([
     { newKey: false, fileOverride: false },
     { newKey: true, fileOverride: false },
     { newKey: true, fileOverride: true }
@@ -493,7 +498,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
       delete environment.TYPESAFE_API_KEY
       const keyFile = join(test.repository, ".env.local")
       if (fileOverride) writeFileSync(keyFile, "TYPESAFE_API_KEY=project-override-key\n")
-      const child = spawn("script", ["-qfec", command, "/dev/null"], {
+      const child = spawn(terminalCommand, terminalArguments(command), {
         cwd: test.repository,
         env: environment,
         stdio: ["pipe", "pipe", "pipe"]
@@ -522,7 +527,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
         })
         child.once("error", rejectExit)
       })
-      expect(exit).toBe(6)
+      expect(exit, output).toBe(6)
       expect(supplied).toBe(true)
       expect(output).not.toContain(marker)
       expect(readFileSync(vault, "utf8")).toBe(marker)
@@ -603,7 +608,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
         resolve(code)
       })
     })
-    expect(exit).toBe(6)
+    expect(exit, output).toBe(6)
     expect(errors).toBe("")
     const result = JSON.parse(output) as SetupOutput
     expect(result.stages).toEqual(
@@ -625,7 +630,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
     )
   })
 
-  it.skipIf(process.platform !== "linux")(
+  it.skipIf(!terminalAvailable)(
     "reports invalid, unavailable, and indeterminate interactive storage outcomes",
     async () => {
       const cases = [
@@ -774,7 +779,7 @@ it.each(["changed", "malformed"])("rejects %s default rules before installing an
   const path = join(test.root, "rules", "defaults", `${SHIPPED_DEFAULT_RULES[0]?.id}.json`)
   mkdirSync(join(test.root, "rules", "defaults"), { recursive: true })
   const original = readFileSync(
-    join(process.cwd(), "src", "rules", "defaults", "meaningless_combinations.json"),
+    join(process.cwd(), "packages/review-definition/src/rules/defaults/meaningless_combinations.json"),
     "utf8"
   )
   writeFileSync(

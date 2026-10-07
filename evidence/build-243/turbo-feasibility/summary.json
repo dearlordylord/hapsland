@@ -1,0 +1,416 @@
+{
+  "scope": "Isolated architectural feasibility evidence only; no production source mutations or production acceptance claims.",
+  "tools": {
+    "turbo": "2.11.7",
+    "typescript": "7.0.2",
+    "bun": "1.3.14",
+    "bend": "bend 2.0.35"
+  },
+  "primarySchema": {
+    "owner": "installed turbo@2.11.7 schema.json",
+    "sha256": "3b3a7b9e1fd804b4661003bc4e8af9e5cee6225bc447b0f9b614a1be2956fd1d",
+    "taskInput": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/String"
+        },
+        {
+          "$ref": "#/definitions/StructuredInput"
+        }
+      ]
+    },
+    "structuredInput": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/String"
+          }
+        },
+        "globs": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/String"
+          }
+        },
+        "mode": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/String"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "withDefaults": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "supported": {
+    "scheduler": "Actual shared TypeScript/native C/Bend producers precede distinct Linux/Darwin Bun standalone task IDs",
+    "structuredInputs": {
+      "dependencyOutputs": {
+        "mode": "dependencyOutputs",
+        "from": [
+          "shared#build",
+          "native#build",
+          "bend#build"
+        ],
+        "globs": [
+          "dist/**"
+        ]
+      },
+      "jit": {
+        "mode": "jit",
+        "globs": [
+          "$TURBO_ROOT$/identity.json"
+        ]
+      }
+    },
+    "outputs": [
+      "dist/**",
+      "dist/linux/**",
+      "dist/darwin/**",
+      "$TURBO_ROOT$/published/**"
+    ],
+    "linuxRuntimeBehavior": {
+      "shared": 7,
+      "native": "7",
+      "bend": "7n",
+      "target": "linux"
+    },
+    "darwin": "Actual cross-compilation/file output only; runtime unverified"
+  },
+  "results": [
+    {
+      "case": "cold-multilang-targets",
+      "taskSuccess": true,
+      "actualExecutedRoles": [
+        "bend",
+        "shared",
+        "native",
+        "darwin",
+        "linux",
+        "verify",
+        "publish"
+      ]
+    },
+    {
+      "case": "warm-cache",
+      "taskSuccess": true,
+      "actualExecutedRoles": [
+        "verify",
+        "publish"
+      ]
+    },
+    {
+      "case": "deleted-outputs-restored",
+      "taskSuccess": true,
+      "actualExecutedRoles": [
+        "verify",
+        "publish"
+      ]
+    },
+    {
+      "case": "shared-body-unchanged-DTS",
+      "taskSuccess": true,
+      "actualExecutedRoles": [
+        "shared",
+        "darwin",
+        "linux",
+        "verify",
+        "publish"
+      ]
+    },
+    {
+      "case": "external-identity-stamp",
+      "taskSuccess": true,
+      "actualExecutedRoles": [
+        "native",
+        "bend",
+        "shared",
+        "linux",
+        "darwin",
+        "verify",
+        "publish"
+      ]
+    },
+    {
+      "case": "always-run-gate-refusal-after-cachehits",
+      "taskSuccess": false,
+      "actualExecutedRoles": [
+        "verify"
+      ]
+    },
+    {
+      "case": "gate-repair",
+      "taskSuccess": true,
+      "actualExecutedRoles": [
+        "verify",
+        "publish"
+      ]
+    },
+    {
+      "case": "failed-task-old-publication-limit",
+      "taskSuccess": false,
+      "actualExecutedRoles": [
+        "shared"
+      ],
+      "observedLimit": "Turbo prevents dependent execution but does not revoke prior publication or partial failed producer outputs"
+    },
+    {
+      "case": "failed-producer-repair",
+      "taskSuccess": true,
+      "actualExecutedRoles": [
+        "shared",
+        "linux",
+        "darwin",
+        "verify",
+        "publish"
+      ]
+    },
+    {
+      "case": "cache-key-identification",
+      "taskSuccess": true,
+      "actualExecutedRoles": [
+        "verify",
+        "publish"
+      ]
+    },
+    {
+      "case": "corrupt-task-cache",
+      "taskSuccess": true,
+      "actualExecutedRoles": [
+        "shared",
+        "verify",
+        "publish"
+      ],
+      "observedLimit": "Regenerated corrupt local archive"
+    },
+    {
+      "case": "GNU-incomplete-valid-cache-archive",
+      "taskSuccess": false,
+      "actualExecutedRoles": [
+        "linux",
+        "darwin"
+      ],
+      "missingRequiredOutput": true
+    },
+    {
+      "case": "incomplete-repair",
+      "taskSuccess": true,
+      "actualExecutedRoles": [
+        "verify",
+        "publish"
+      ]
+    },
+    {
+      "case": "producer-before-after-stamp-drift",
+      "taskSuccess": false,
+      "actualExecutedRoles": [
+        "shared",
+        "bend",
+        "native",
+        "darwin",
+        "linux"
+      ]
+    },
+    {
+      "case": "drift-repair",
+      "taskSuccess": true,
+      "actualExecutedRoles": [
+        "native",
+        "bend",
+        "shared",
+        "darwin",
+        "linux",
+        "verify",
+        "publish"
+      ]
+    },
+    {
+      "case": "globalgate-prime",
+      "taskSuccess": true,
+      "actualExecutedRoles": [
+        "linux"
+      ]
+    },
+    {
+      "case": "globalgate-warm-control",
+      "taskSuccess": true,
+      "actualExecutedRoles": []
+    },
+    {
+      "case": "globalgate-admin-only",
+      "taskSuccess": true,
+      "actualExecutedRoles": [
+        "linux"
+      ]
+    },
+    {
+      "case": "independent-assembly-prime",
+      "taskSuccess": true,
+      "actualExecutedRoles": [
+        "linux"
+      ]
+    },
+    {
+      "case": "independent-assembly-admin-only",
+      "taskSuccess": true,
+      "actualExecutedRoles": []
+    }
+  ],
+  "globalGateFanout": {
+    "observed": true,
+    "proof": "Actual linux assembly executes for admin-only source change while globalgate depends on all builds despite cache:false"
+  },
+  "withoutGlobalGateFanout": {
+    "observed": true,
+    "proof": "Actual linux assembly cache hits for admin-only source change without globalgate edge"
+  },
+  "architecturalLimits": [
+    "Turbo failure blocks dependent execution but leaves prior published artifacts and partial failed task outputs; publication revocation/staging remains owned work.",
+    "A valid cache archive can restore incomplete declared outputs as a hit; structural/semantic proof of restored artifacts is required.",
+    "Corrupt decompression archive regenerated upstream in this experiment; no general corruption safety claim.",
+    "Global cache:false gate dependency still propagates all upstream task hashes into each role assembler, including unrelated admin changes. Use separate global validation/publication phases or scope validation task dependencies per role.",
+    "Deferred jit/dependencyOutputs task hashes are null in dry reports; actual execution/cache traces are necessary.",
+    "Producer before/after stamp proof rejected during-builder changes; mutation after initial Turbo key snapshot but before producer starts was not tested."
+  ],
+  "harnessFinding": "Actual Turbo GNU ustar header does not use POSIXprefix at byte345; existing production omitCacheTarMember fixture needs GNU-aware parsing before executing its incomplete-cache case.",
+  "phaseProvenance": [
+    {
+      "id": "01",
+      "declaration": {
+        "startedAt": "2026-10-07T02:35:25.153Z",
+        "stopAt": "2026-10-07T02:38:25.153Z",
+        "scope": "Isolated feasibility only, not production acceptance",
+        "root": "/tmp/hapsland-turbo-feasibility-PfKYsH"
+      },
+      "failure": {
+        "message": "Build process failed (1): /workspace/typescript/hapsland-243/node_modules/@turbo/linux-arm64/bin/turbo",
+        "at": "2026-10-07T02:35:25.833Z"
+      },
+      "reportPath": "/tmp/hapsland-243-turbo-feasibility-01.json"
+    },
+    {
+      "id": "02",
+      "declaration": {
+        "startedAt": "2026-10-07T02:35:39.927Z",
+        "stopAt": "2026-10-07T02:38:25.153Z",
+        "scope": "Isolated feasibility only, not production acceptance",
+        "root": "/tmp/hapsland-turbo-feasibility-jCqOWf"
+      },
+      "failure": {
+        "message": "Build process failed (1): /workspace/typescript/hapsland-243/node_modules/@turbo/linux-arm64/bin/turbo",
+        "at": "2026-10-07T02:35:40.619Z"
+      },
+      "reportPath": "/tmp/hapsland-243-turbo-feasibility-02.json"
+    },
+    {
+      "id": "03",
+      "declaration": {
+        "startedAt": "2026-10-07T02:35:59.071Z",
+        "stopAt": "2026-10-07T02:38:25.153Z",
+        "scope": "Isolated feasibility only, not production acceptance",
+        "root": "/tmp/hapsland-turbo-feasibility-Gdc1Py"
+      },
+      "failure": {
+        "message": "Build process failed (1): /workspace/typescript/hapsland-243/node_modules/@turbo/linux-arm64/bin/turbo",
+        "at": "2026-10-07T02:35:59.767Z"
+      },
+      "reportPath": "/tmp/hapsland-243-turbo-feasibility-03.json"
+    },
+    {
+      "id": "04",
+      "declaration": {
+        "startedAt": "2026-10-07T02:36:25.342Z",
+        "stopAt": "2026-10-07T02:38:25.153Z",
+        "scope": "Isolated feasibility only, not production acceptance",
+        "root": "/tmp/hapsland-turbo-feasibility-Dh7aiL"
+      },
+      "failure": {
+        "message": "Required emitted member absent from original cache",
+        "at": "2026-10-07T02:36:36.902Z"
+      },
+      "reportPath": "/tmp/hapsland-243-turbo-feasibility-04.json"
+    },
+    {
+      "id": "05",
+      "declaration": {
+        "startedAt": "2026-10-07T02:37:57.482Z",
+        "stopAt": "2026-10-07T02:38:25.153Z",
+        "scope": "Isolated feasibility only, not production acceptance",
+        "root": "/tmp/hapsland-turbo-feasibility-Dh7aiL"
+      },
+      "failure": {
+        "message": "Expected \"actual\" to be strictly unequal to: null",
+        "at": "2026-10-07T02:38:02.704Z"
+      },
+      "reportPath": "/tmp/hapsland-243-turbo-feasibility-05.json"
+    },
+    {
+      "id": "06",
+      "declaration": {
+        "startedAt": "2026-10-07T02:38:32.192Z",
+        "stopAt": "2026-10-07T02:38:25.153Z",
+        "scope": "Isolated feasibility only, not production acceptance",
+        "root": "/tmp/hapsland-turbo-feasibility-Dh7aiL"
+      },
+      "failure": {
+        "message": "The expression evaluated to a falsy value:\n\n  assert((await run('globalgate-prime')).success)\n",
+        "at": "2026-10-07T02:38:32.207Z"
+      },
+      "reportPath": "/tmp/hapsland-243-turbo-feasibility-06.json"
+    },
+    {
+      "id": "07",
+      "declaration": {
+        "startedAt": "2026-10-07T02:40:02.252Z",
+        "stopAt": "2026-10-07T02:41:32.252Z",
+        "scope": "Isolated feasibility only, not production acceptance",
+        "root": "/tmp/hapsland-turbo-feasibility-Dh7aiL"
+      },
+      "failure": {
+        "message": "The expression evaluated to a falsy value:\n\n  assert((await run('globalgate-prime')).success)\n",
+        "at": "2026-10-07T02:40:02.834Z"
+      },
+      "reportPath": "/tmp/hapsland-243-turbo-feasibility-07.json"
+    },
+    {
+      "id": "08",
+      "declaration": {
+        "startedAt": "2026-10-07T02:40:21.688Z",
+        "stopAt": "2026-10-07T02:41:32.252Z",
+        "scope": "Isolated feasibility only, not production acceptance",
+        "root": "/tmp/hapsland-turbo-feasibility-Dh7aiL"
+      },
+      "finishedAt": "2026-10-07T02:40:26.460Z",
+      "completed": true,
+      "reportPath": "/tmp/hapsland-243-turbo-feasibility-08.json"
+    }
+  ],
+  "recommendedShape": [
+    "Global external toolchain/dependency stamp before scheduler",
+    "Turbo compile producers with package-local authored inputs and own dist outputs",
+    "Fresh global validation independent of role assembly task hashes",
+    "Turbo per-role/per-target assembly depending only its declared producer/native closure, dependencyOutputs/jit inputs",
+    "Uncached final receipt/artifact validation and owned publication; revoke stale prior public artifacts on rejection"
+  ]
+}

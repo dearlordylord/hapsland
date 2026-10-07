@@ -1,7 +1,7 @@
-import { decodeSharedValue } from "../../../src/canonical/simulation-codec.ts"
+import { decodeSharedValue } from "@hapsland/canonical-policy/canonical/simulation-codec"
 import type { CollectionResponseIdentity, CollectionResponseReport } from "./collection-scenario.ts"
 import { Schema } from "effect"
-import { decoder, Nat, PositiveNat, readBendList } from "../../../src/canonical/boundary-schema.ts"
+import { decoder, Nat, PositiveNat, readBendList } from "@hapsland/canonical-policy/canonical/boundary-schema"
 import { CollectionResponseSchema, encodeCollectionResponse } from "./collection-scenario.ts"
 import { decodeDriverEvent } from "./driver-codec.ts"
 

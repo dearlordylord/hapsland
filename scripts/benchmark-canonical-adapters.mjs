@@ -6,10 +6,10 @@ import { resolve } from "node:path"
 const root = process.argv[2] ?? resolve(import.meta.dirname, "..")
 console.log(JSON.stringify({ node: process.version, arch: process.arch, samples: 5, loops: 500 }))
 const { initialCanonical, stepCanonical, projectCanonical } = await import(
-  pathToFileURL(`${root}/src/canonical/adapter.ts`)
+  pathToFileURL(`${root}/packages/canonical-policy/src/canonical/adapter.ts`)
 )
 const { initialImportGraph, stepImportGraph, projectImportGraph } = await import(
-  pathToFileURL(`${root}/src/canonical/graph-adapter.ts`)
+  pathToFileURL(`${root}/packages/canonical-policy/src/canonical/graph-adapter.ts`)
 )
 const loops = 500
 function canonical() {

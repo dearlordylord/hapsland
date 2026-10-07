@@ -1,7 +1,7 @@
 import { it, expect } from "@effect/vitest"
 import { Deferred, Effect, Fiber } from "effect"
 import { PassThrough } from "node:stream"
-import { askConfirmation } from "./confirmation.ts"
+import { askConfirmation } from "@hapsland/administration/onboarding/confirmation"
 
 const streams = (ready: Deferred.Deferred<void>) => {
   const input = new PassThrough()

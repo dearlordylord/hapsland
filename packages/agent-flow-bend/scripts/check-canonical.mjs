@@ -1,12 +1,12 @@
 import assert from "node:assert/strict"
-import { bendCanonicalStep } from "../../../src/canonical/canonical.generated.js"
+import { bendCanonicalStep } from "@hapsland/agent-flow-bend/canonical"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import {
   initialCanonical,
   projectCanonical,
   stepCanonical as rawStepCanonical
-} from "../../../src/canonical/adapter.ts"
+} from "@hapsland/canonical-policy/canonical/adapter"
 
 // Assert the partition uniqueness invariant after every checked transition,
 // including rejected events and transitions unrelated to round admission.

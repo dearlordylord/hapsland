@@ -1,0 +1,525 @@
+{
+  "schemaVersion": 1,
+  "status": "pre-extraction inventory; replacements are proposed, not validated",
+  "surfaces": [
+    {
+      "runtime": "codex",
+      "name": "beforeEdit",
+      "event": "PreToolUse",
+      "flags": [
+        "--composed-before-edit-hook",
+        "--composed-host=codex-cli"
+      ],
+      "ownership": "composed",
+      "timeout": 5,
+      "matcher": "^(apply_patch|Edit|Write|Bash)$",
+      "exec": true,
+      "purpose": "Register an edit attempt before the tool runs",
+      "currentEntry": "src/cli.ts",
+      "replacementEntry": "src/hook-main.ts (proposed; not implemented)",
+      "registrationOwner": "src/onboarding/codex-installation.ts",
+      "contracts": [
+        "docs/advicing-target-contract.md",
+        "docs/direct-event-v1-supported-profile.md",
+        "docs/installation-workflows.md",
+        "docs/pi-installation.md",
+        "docs/adr/0003-claude-direct-edit-blocking-authority.md"
+      ],
+      "tests": [
+        "src/onboarding/codex-installation.test.ts",
+        "src/runtime/hook-catalog.test.ts",
+        "src/resident/composed-hook.test.ts",
+        "src/cli.test.ts"
+      ],
+      "installedValidation": "scripts/run-setup-package-conformance.mjs"
+    },
+    {
+      "runtime": "codex",
+      "name": "afterEdit",
+      "event": "PostToolUse",
+      "flags": [
+        "--codex-hook",
+        "--controlled-writer",
+        "--composed-edit-hook"
+      ],
+      "ownership": "edit",
+      "timeout": 10,
+      "matcher": "^(apply_patch|Edit|Write|Bash)$",
+      "purpose": "Report the edit and collect ready advice",
+      "currentEntry": "src/cli.ts",
+      "replacementEntry": "src/hook-main.ts (proposed; not implemented)",
+      "registrationOwner": "src/onboarding/codex-installation.ts",
+      "contracts": [
+        "docs/advicing-target-contract.md",
+        "docs/direct-event-v1-supported-profile.md",
+        "docs/installation-workflows.md",
+        "docs/pi-installation.md",
+        "docs/adr/0003-claude-direct-edit-blocking-authority.md"
+      ],
+      "tests": [
+        "src/onboarding/codex-installation.test.ts",
+        "src/runtime/hook-catalog.test.ts",
+        "src/resident/composed-hook.test.ts",
+        "src/cli.test.ts"
+      ],
+      "installedValidation": "scripts/run-setup-package-conformance.mjs"
+    },
+    {
+      "runtime": "codex",
+      "name": "background",
+      "event": "PostToolUse",
+      "flags": [
+        "--composed-background-hook",
+        "--composed-host=codex-cli"
+      ],
+      "ownership": "composed",
+      "timeout": 25,
+      "matcher": "^(apply_patch|Edit|Write|Bash)$",
+      "async": true,
+      "purpose": "Deliver advice that finishes after the edit response",
+      "currentEntry": "src/cli.ts",
+      "replacementEntry": "src/hook-main.ts (proposed; not implemented)",
+      "registrationOwner": "src/onboarding/codex-installation.ts",
+      "contracts": [
+        "docs/advicing-target-contract.md",
+        "docs/direct-event-v1-supported-profile.md",
+        "docs/installation-workflows.md",
+        "docs/pi-installation.md",
+        "docs/adr/0003-claude-direct-edit-blocking-authority.md"
+      ],
+      "tests": [
+        "src/onboarding/codex-installation.test.ts",
+        "src/runtime/hook-catalog.test.ts",
+        "src/resident/composed-hook.test.ts",
+        "src/cli.test.ts"
+      ],
+      "installedValidation": "scripts/run-setup-package-conformance.mjs"
+    },
+    {
+      "runtime": "codex",
+      "name": "stop",
+      "event": "Stop",
+      "flags": [
+        "--composed-stop-hook",
+        "--composed-host=codex-cli"
+      ],
+      "ownership": "composed",
+      "timeout": 5,
+      "purpose": "Collect admitted review results before the agent finishes",
+      "currentEntry": "src/cli.ts",
+      "replacementEntry": "src/hook-main.ts (proposed; not implemented)",
+      "registrationOwner": "src/onboarding/codex-installation.ts",
+      "contracts": [
+        "docs/advicing-target-contract.md",
+        "docs/direct-event-v1-supported-profile.md",
+        "docs/installation-workflows.md",
+        "docs/pi-installation.md",
+        "docs/adr/0003-claude-direct-edit-blocking-authority.md"
+      ],
+      "tests": [
+        "src/onboarding/codex-installation.test.ts",
+        "src/runtime/hook-catalog.test.ts",
+        "src/resident/composed-hook.test.ts",
+        "src/cli.test.ts"
+      ],
+      "installedValidation": "scripts/run-setup-package-conformance.mjs"
+    },
+    {
+      "runtime": "codex",
+      "name": "subagentStop",
+      "event": "SubagentStop",
+      "flags": [
+        "--composed-stop-hook",
+        "--composed-host=codex-cli"
+      ],
+      "ownership": "composed",
+      "timeout": 5,
+      "purpose": "Collect admitted review results before a subagent finishes",
+      "currentEntry": "src/cli.ts",
+      "replacementEntry": "src/hook-main.ts (proposed; not implemented)",
+      "registrationOwner": "src/onboarding/codex-installation.ts",
+      "contracts": [
+        "docs/advicing-target-contract.md",
+        "docs/direct-event-v1-supported-profile.md",
+        "docs/installation-workflows.md",
+        "docs/pi-installation.md",
+        "docs/adr/0003-claude-direct-edit-blocking-authority.md"
+      ],
+      "tests": [
+        "src/onboarding/codex-installation.test.ts",
+        "src/runtime/hook-catalog.test.ts",
+        "src/resident/composed-hook.test.ts",
+        "src/cli.test.ts"
+      ],
+      "installedValidation": "scripts/run-setup-package-conformance.mjs"
+    },
+    {
+      "runtime": "claude",
+      "name": "beforeEdit",
+      "event": "PreToolUse",
+      "flags": [
+        "--composed-before-edit-hook",
+        "--composed-host=claude-code"
+      ],
+      "ownership": "composed",
+      "timeout": 5,
+      "matcher": "Edit|Write",
+      "exec": true,
+      "purpose": "Register an edit attempt before the tool runs",
+      "currentEntry": "src/cli.ts",
+      "replacementEntry": "src/hook-main.ts (proposed; not implemented)",
+      "registrationOwner": "src/onboarding/claude-installation.ts",
+      "contracts": [
+        "docs/advicing-target-contract.md",
+        "docs/direct-event-v1-supported-profile.md",
+        "docs/installation-workflows.md",
+        "docs/pi-installation.md",
+        "docs/adr/0003-claude-direct-edit-blocking-authority.md"
+      ],
+      "tests": [
+        "src/onboarding/claude-installation.test.ts",
+        "src/runtime/hook-catalog.test.ts",
+        "src/resident/composed-hook.test.ts",
+        "src/direct-event/claude-cli.test.ts"
+      ],
+      "installedValidation": "scripts/run-setup-package-conformance.mjs"
+    },
+    {
+      "runtime": "claude",
+      "name": "afterEdit",
+      "event": "PostToolUse",
+      "flags": [
+        "--claude-hook",
+        "--controlled-writer",
+        "--composed-edit-hook"
+      ],
+      "ownership": "edit",
+      "timeout": 5,
+      "matcher": "Edit|Write",
+      "purpose": "Report the edit and collect ready advice",
+      "currentEntry": "src/cli.ts",
+      "replacementEntry": "src/hook-main.ts (proposed; not implemented)",
+      "registrationOwner": "src/onboarding/claude-installation.ts",
+      "contracts": [
+        "docs/advicing-target-contract.md",
+        "docs/direct-event-v1-supported-profile.md",
+        "docs/installation-workflows.md",
+        "docs/pi-installation.md",
+        "docs/adr/0003-claude-direct-edit-blocking-authority.md"
+      ],
+      "tests": [
+        "src/onboarding/claude-installation.test.ts",
+        "src/runtime/hook-catalog.test.ts",
+        "src/resident/composed-hook.test.ts",
+        "src/direct-event/claude-cli.test.ts"
+      ],
+      "installedValidation": "scripts/run-setup-package-conformance.mjs"
+    },
+    {
+      "runtime": "claude",
+      "name": "stop",
+      "event": "Stop",
+      "flags": [
+        "--composed-stop-hook",
+        "--composed-host=claude-code"
+      ],
+      "ownership": "composed",
+      "timeout": 5,
+      "purpose": "Collect admitted review results before the agent finishes",
+      "currentEntry": "src/cli.ts",
+      "replacementEntry": "src/hook-main.ts (proposed; not implemented)",
+      "registrationOwner": "src/onboarding/claude-installation.ts",
+      "contracts": [
+        "docs/advicing-target-contract.md",
+        "docs/direct-event-v1-supported-profile.md",
+        "docs/installation-workflows.md",
+        "docs/pi-installation.md",
+        "docs/adr/0003-claude-direct-edit-blocking-authority.md"
+      ],
+      "tests": [
+        "src/onboarding/claude-installation.test.ts",
+        "src/runtime/hook-catalog.test.ts",
+        "src/resident/composed-hook.test.ts",
+        "src/direct-event/claude-cli.test.ts"
+      ],
+      "installedValidation": "scripts/run-setup-package-conformance.mjs"
+    },
+    {
+      "runtime": "claude",
+      "name": "subagentStop",
+      "event": "SubagentStop",
+      "flags": [
+        "--composed-stop-hook",
+        "--composed-host=claude-code"
+      ],
+      "ownership": "composed",
+      "timeout": 5,
+      "purpose": "Collect admitted review results before a subagent finishes",
+      "currentEntry": "src/cli.ts",
+      "replacementEntry": "src/hook-main.ts (proposed; not implemented)",
+      "registrationOwner": "src/onboarding/claude-installation.ts",
+      "contracts": [
+        "docs/advicing-target-contract.md",
+        "docs/direct-event-v1-supported-profile.md",
+        "docs/installation-workflows.md",
+        "docs/pi-installation.md",
+        "docs/adr/0003-claude-direct-edit-blocking-authority.md"
+      ],
+      "tests": [
+        "src/onboarding/claude-installation.test.ts",
+        "src/runtime/hook-catalog.test.ts",
+        "src/resident/composed-hook.test.ts",
+        "src/direct-event/claude-cli.test.ts"
+      ],
+      "installedValidation": "scripts/run-setup-package-conformance.mjs"
+    },
+    {
+      "runtime": "claude",
+      "name": "prompt",
+      "event": "UserPromptSubmit",
+      "flags": [
+        "--composed-prompt-hook",
+        "--composed-host=claude-code"
+      ],
+      "ownership": "composed",
+      "timeout": 4,
+      "purpose": "Notify the resident of the user prompt; does not open a review round",
+      "currentEntry": "src/cli.ts",
+      "replacementEntry": "src/hook-main.ts (proposed; not implemented)",
+      "registrationOwner": "src/onboarding/claude-installation.ts",
+      "contracts": [
+        "docs/advicing-target-contract.md",
+        "docs/direct-event-v1-supported-profile.md",
+        "docs/installation-workflows.md",
+        "docs/pi-installation.md",
+        "docs/adr/0003-claude-direct-edit-blocking-authority.md"
+      ],
+      "tests": [
+        "src/onboarding/claude-installation.test.ts",
+        "src/runtime/hook-catalog.test.ts",
+        "src/resident/composed-hook.test.ts",
+        "src/direct-event/claude-cli.test.ts"
+      ],
+      "installedValidation": "scripts/run-setup-package-conformance.mjs"
+    },
+    {
+      "runtime": "pi",
+      "name": "agentStart",
+      "event": "agent_start",
+      "purpose": "Remember the agent identity for cleanup",
+      "callsResident": false,
+      "currentEntry": "src/pi/extension.ts",
+      "replacementEntry": "src/pi/extension.ts (preserved)",
+      "subprocess": {
+        "flags": [
+          "--pi-hook"
+        ],
+        "timeoutMs": 7000
+      },
+      "subprocessReplacement": "src/hook-main.ts (proposed; not implemented)",
+      "registrationOwner": "src/onboarding/pi-installation.ts",
+      "contracts": [
+        "docs/pi-installation.md",
+        "docs/advicing-target-contract.md"
+      ],
+      "tests": [
+        "src/pi/installed-boundary.test.ts",
+        "src/pi/installed-faults.test.ts",
+        "src/onboarding/pi-installation.test.ts"
+      ],
+      "installedValidation": "scripts/native-pi-observation.test.mjs"
+    },
+    {
+      "runtime": "pi",
+      "name": "toolCall",
+      "event": "tool_call",
+      "tool": "edit",
+      "purpose": "Register a supported edit attempt",
+      "callsResident": true,
+      "currentEntry": "src/pi/extension.ts",
+      "replacementEntry": "src/pi/extension.ts (preserved)",
+      "subprocess": {
+        "flags": [
+          "--pi-hook"
+        ],
+        "timeoutMs": 7000
+      },
+      "subprocessReplacement": "src/hook-main.ts (proposed; not implemented)",
+      "registrationOwner": "src/onboarding/pi-installation.ts",
+      "contracts": [
+        "docs/pi-installation.md",
+        "docs/advicing-target-contract.md"
+      ],
+      "tests": [
+        "src/pi/installed-boundary.test.ts",
+        "src/pi/installed-faults.test.ts",
+        "src/onboarding/pi-installation.test.ts"
+      ],
+      "installedValidation": "scripts/native-pi-observation.test.mjs"
+    },
+    {
+      "runtime": "pi",
+      "name": "toolResult",
+      "event": "tool_result",
+      "tool": "edit",
+      "purpose": "Report the edit and offer ready advice in the tool result",
+      "callsResident": true,
+      "currentEntry": "src/pi/extension.ts",
+      "replacementEntry": "src/pi/extension.ts (preserved)",
+      "subprocess": {
+        "flags": [
+          "--pi-hook"
+        ],
+        "timeoutMs": 7000
+      },
+      "subprocessReplacement": "src/hook-main.ts (proposed; not implemented)",
+      "registrationOwner": "src/onboarding/pi-installation.ts",
+      "contracts": [
+        "docs/pi-installation.md",
+        "docs/advicing-target-contract.md"
+      ],
+      "tests": [
+        "src/pi/installed-boundary.test.ts",
+        "src/pi/installed-faults.test.ts",
+        "src/onboarding/pi-installation.test.ts"
+      ],
+      "installedValidation": "scripts/native-pi-observation.test.mjs"
+    },
+    {
+      "runtime": "pi",
+      "name": "beforeSettle",
+      "event": "agent_before_settle",
+      "purpose": "Offer review advice before the agent settles",
+      "callsResident": true,
+      "currentEntry": "src/pi/extension.ts",
+      "replacementEntry": "src/pi/extension.ts (preserved)",
+      "subprocess": {
+        "flags": [
+          "--pi-hook"
+        ],
+        "timeoutMs": 7000
+      },
+      "subprocessReplacement": "src/hook-main.ts (proposed; not implemented)",
+      "registrationOwner": "src/onboarding/pi-installation.ts",
+      "contracts": [
+        "docs/pi-installation.md",
+        "docs/advicing-target-contract.md"
+      ],
+      "tests": [
+        "src/pi/installed-boundary.test.ts",
+        "src/pi/installed-faults.test.ts",
+        "src/onboarding/pi-installation.test.ts"
+      ],
+      "installedValidation": "scripts/native-pi-observation.test.mjs"
+    },
+    {
+      "runtime": "pi",
+      "name": "beforeSwitch",
+      "event": "session_before_switch",
+      "purpose": "Retire edit attempts and close owned partitions",
+      "callsResident": true,
+      "currentEntry": "src/pi/extension.ts",
+      "replacementEntry": "src/pi/extension.ts (preserved)",
+      "subprocess": {
+        "flags": [
+          "--pi-hook"
+        ],
+        "timeoutMs": 7000
+      },
+      "subprocessReplacement": "src/hook-main.ts (proposed; not implemented)",
+      "registrationOwner": "src/onboarding/pi-installation.ts",
+      "contracts": [
+        "docs/pi-installation.md",
+        "docs/advicing-target-contract.md"
+      ],
+      "tests": [
+        "src/pi/installed-boundary.test.ts",
+        "src/pi/installed-faults.test.ts",
+        "src/onboarding/pi-installation.test.ts"
+      ],
+      "installedValidation": "scripts/native-pi-observation.test.mjs"
+    },
+    {
+      "runtime": "pi",
+      "name": "shutdown",
+      "event": "session_shutdown",
+      "purpose": "Retire edit attempts and close owned partitions",
+      "callsResident": true,
+      "currentEntry": "src/pi/extension.ts",
+      "replacementEntry": "src/pi/extension.ts (preserved)",
+      "subprocess": {
+        "flags": [
+          "--pi-hook"
+        ],
+        "timeoutMs": 7000
+      },
+      "subprocessReplacement": "src/hook-main.ts (proposed; not implemented)",
+      "registrationOwner": "src/onboarding/pi-installation.ts",
+      "contracts": [
+        "docs/pi-installation.md",
+        "docs/advicing-target-contract.md"
+      ],
+      "tests": [
+        "src/pi/installed-boundary.test.ts",
+        "src/pi/installed-faults.test.ts",
+        "src/onboarding/pi-installation.test.ts"
+      ],
+      "installedValidation": "scripts/native-pi-observation.test.mjs"
+    },
+    {
+      "runtime": "pi",
+      "name": "settled",
+      "event": "agent_settled",
+      "purpose": "Close the originating agent partition",
+      "callsResident": true,
+      "currentEntry": "src/pi/extension.ts",
+      "replacementEntry": "src/pi/extension.ts (preserved)",
+      "subprocess": {
+        "flags": [
+          "--pi-hook"
+        ],
+        "timeoutMs": 7000
+      },
+      "subprocessReplacement": "src/hook-main.ts (proposed; not implemented)",
+      "registrationOwner": "src/onboarding/pi-installation.ts",
+      "contracts": [
+        "docs/pi-installation.md",
+        "docs/advicing-target-contract.md"
+      ],
+      "tests": [
+        "src/pi/installed-boundary.test.ts",
+        "src/pi/installed-faults.test.ts",
+        "src/onboarding/pi-installation.test.ts"
+      ],
+      "installedValidation": "scripts/native-pi-observation.test.mjs"
+    }
+  ],
+  "transportOperations": [
+    "before",
+    "edit",
+    "finish",
+    "ack",
+    "retire",
+    "close"
+  ],
+  "transportOwner": "src/pi/transport.ts",
+  "retired": [
+    {
+      "surface": "--opencode-hook",
+      "behavior": "quiet retired output; administration retains removal and diagnosis",
+      "owner": "src/cli.ts:1062",
+      "contract": "docs/opencode-installation.md"
+    },
+    {
+      "surface": "Codex direct hook without composed edit",
+      "behavior": "retired; preserve accepted composed route",
+      "owner": "src/cli.ts:1062",
+      "contract": "docs/advicing-target-contract.md"
+    }
+  ],
+  "pending": [
+    "Inventory new entries after extraction",
+    "Validate retained registrations after installed setup/update",
+    "Check all host-loaded resolver and emitted contribution branches"
+  ]
+}

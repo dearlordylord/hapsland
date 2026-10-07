@@ -1,22 +1,26 @@
-import { chmod, open, rename, symlink, unlink, writeFile } from "node:fs/promises"
+import { chmod, open, rename, readFile, symlink, unlink, writeFile } from "node:fs/promises"
 import { constants } from "node:fs"
 import { execFileSync } from "../../scripts/test-harness/process.mjs"
 import { join } from "node:path"
 import { Socket } from "node:net"
 import { once } from "node:events"
-import { residentRequestEffect } from "../resident/client.ts"
+import { residentRequestEffect } from "@hapsland/resident-transport/resident/client"
 import { Effect, Scope, Exit, ConfigProvider } from "effect"
 import { expect, it } from "vitest"
-import { inspectionSourceId, type InspectionRecord } from "./contract.ts"
-import type { InspectionSource } from "./registry.ts"
-import { MAX_INSPECTION_HTTP_BYTES, makeInspectionHttpServer } from "./http.ts"
-import { makeInspectionStorage } from "./storage.ts"
+import { inspectionSourceId, type InspectionRecord } from "@hapsland/inspection-records/inspection/contract"
+import {
+  makeInspectionRegistry,
+  MAX_INSPECTION_SOURCES,
+  type InspectionSource
+} from "@hapsland/administration/inspection/registry"
+import { MAX_INSPECTION_HTTP_BYTES, makeInspectionHttpServer } from "@hapsland/administration/inspection/http"
+import { makeInspectionStorage } from "@hapsland/inspection-records/inspection/storage"
 import { acquireResidentFixture } from "../resident/runtime-fixture.ts"
-import { residentPaths } from "../resident/paths.ts"
-import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
-import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { nativeDeferred } from "../test-support/native-deferred.ts"
-import { configuredRules, connectDefaultRuleFixture } from "../test-support/default-rules.ts"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { nativeDeferred } from "@hapsland/build-tooling/test-support/native-deferred"
+import { configuredRules, connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
 
 it("discovers opted-in additional endpoints and isolates retained lifetimes through the public feed", async () => {
   const roots = [await makeGitFixture(), await makeGitFixture()]
@@ -98,6 +102,39 @@ it("discovers opted-in additional endpoints and isolates retained lifetimes thro
     expect(
       connected.records.some((record: { fact: { kind: string } }) => record.fact.kind === "source-registration")
     ).toBe(true)
+    const registry = makeInspectionRegistry()
+    const liveOnly = await Effect.runPromise(registry.discover([], first.paths))
+    expect(liveOnly.discovery).toMatchObject({ known: 1, connected: 1, omitted: 0 })
+    expect(liveOnly.sources[0]?.source.lifetime).toBe(first.lifetime)
+    const historical = Array.from({ length: MAX_INSPECTION_SOURCES }, (_, index): InspectionRecord => {
+      const endpoint = `/unregistered/${index}/resident.sock`,
+        lifetime = `historical-${index}`
+      return {
+        ...connected.records[0]!,
+        source: { id: inspectionSourceId(endpoint, lifetime), endpoint, lifetime },
+        fact: { kind: "recording-state", state: "enabled" }
+      }
+    })
+    const capped = await Effect.runPromise(registry.discover(historical, first.paths))
+    expect(capped.discovery).toMatchObject({ known: MAX_INSPECTION_SOURCES + 1, connected: 1, omitted: 1 })
+    expect(capped.sources).toHaveLength(MAX_INSPECTION_SOURCES)
+    expect(capped.sources.some((entry) => entry.source.lifetime === first.lifetime)).toBe(true)
+    const originalOwner = await readFile(second.paths.owner, "utf8")
+    try {
+      for (const owner of [
+        { pid: 0, lifetime: second.lifetime },
+        { pid: process.pid, lifetime: "" },
+        { pid: process.pid, lifetime: "x".repeat(257) },
+        { pid: process.pid, lifetime: second.lifetime, extra: true }
+      ]) {
+        await writeFile(second.paths.owner, JSON.stringify(owner))
+        const unsafe = await snapshot()
+        expect(unsafe.sources.find((entry) => entry.source.lifetime === second.lifetime)?.health).toBe("unsafe")
+        expect(unsafe.records).toEqual(connected.records)
+      }
+    } finally {
+      await writeFile(second.paths.owner, originalOwner)
+    }
     for (const [path, original] of [
       [second.paths.directory, 0o700],
       [second.paths.owner, 0o600],

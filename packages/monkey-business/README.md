@@ -84,6 +84,84 @@ Every observation has ordered `event`, `commands`, checked canonical `before`/`a
 
 Size facts distinguish source bytes, evidence-tree bytes, preparation reservation bytes, review-unit bytes and encoded output bytes. `sizePreparationInput` maps only reservation/review-unit facts into canonical inputs. `runSizeGraph` separately runs supplied source-free graph events through the checked import-graph adapter and emits identified `model:'import-graph'` frames with replayable events/limits. Its tests cover exact source boundary, tree overflow, exclusion without a read, and deadline incompleteness. Reservation experiments alone do not validate capture or import traversal. Encoded output facts require an explicit `collectionFitCheck`; generated submission does not model actual serialization size.
 
+### Preparation accounting recommendation (#236)
+
+This is advisory research for [#236](https://github.com/dearlordylord/hapsland/issues/236),
+not an accepted accounting contract. Review this recommendation when a separate
+implementation decision is accepted; consolidate that decision into the supported
+API guidance here and remove superseded proposal text.
+
+The [TS Run](src/index.ts) generates a tree per supplied review unit and schedules
+graph facts during preparation; completion still uses the supplied `unitBytes`.
+[NativeRun](../monkey-business-bend/NativeRun.bend) does the same through
+`unit_inputs`, `preparation_inputs` and `preparation_completed`. Both use the
+shared [TreeFacts](../monkey-business-bend/TreeFacts.bend) generator and checked
+ImportGraph decisions. Neither derives or resizes the preparation reservation
+from the generated root, preflight metadata or graph observations. TS additionally
+accepts per-input tree identities/profiles/limits; NativeRun's base job instead
+uses its captured environment and operation identity. Agreement between lanes
+does not establish production workspace accounting.
+
+Production [workspace calculation](../resident-runtime/src/resident/preparation-workspace.ts)
+reserves unknown-size capture first, then measured analysis before materializing
+units. With `L(x)` the UTF-8 byte length of `canonicalValue(x)`, it uses
+`C(path,s) = 8*s + 64*(L(path)+512)` and
+`A = C(path,s) + (hasImports ? 8 MiB : 0) + expandedUnitBytes + declarations*(L(rules)+s+4*L(path)+4096)`.
+Initial `s` is 262,144; absent preflight uses 64 declarations and 64*262,144
+expanded bytes. The import margin is fixed, not the sum of traversed tree bytes.
+Source bytes, graph read bytes, evidence-tree bytes and retained workspace are
+therefore distinct facts. [Resident preparation](../resident-runtime/src/resident/server.ts)
+processes candidate paths sequentially, checks resize before analysis and replaces
+workspace with admitted retained-unit charges after rule/reuse decisions.
+`residentUnitReservationBytes` measures the larger of complete retained unit and
+promised advice, plus overhead; it is neither graph tree bytes nor wire input size.
+
+Recommend **BORROW** these production calculations and stage ordering in a
+source-free shared accounting owner, consumed by both Run lanes. Keep Canonical /
+Ledger authoritative for admission, resize, replacement and release. Have the
+synthetic source/preflight owner supply stable path length, root source size,
+declaration count, expansion bound, import presence and serialized rules size;
+the present tree profile lacks the preflight/rule facts needed to derive them.
+Have the artifact owner supply independently justified retained-unit measurements
+or bounds, including outcome overhead. Reuse the TS production functions as the
+comparison oracle; model equivalent arithmetic in the common Bend owner rather
+than copy constants into UI or game. **REJECT** deriving workspace or unit charges
+from tree totals alone, and rejecting all incomplete graphs: rule requirements
+must determine whether missing evidence prevents a usable unit.
+
+The actual [tower defence consumer](../../prototypes/canonical-defense/DefenseConsumer.bend)
+uses NativeRun with reservation 100, units [10,20], ledger 480 bytes and generated
+sources 4–8 / trees 3–6 bytes per file. These intentionally tiny independent
+facts would refuse even initial production capture. Its consumer configuration
+must explicitly adopt byte-accurate budgets or a clearly labelled teaching scale;
+game buildings must not own accounting formulas. The separate
+[road-game abstraction](../../prototypes/bend-tower-defense/README.md) approximates
+service/storage and encoded output; it does not capture production workspaces.
+
+Focused acceptance examples for a later decision:
+
+- For path `a.ts`, rules `[]`, source 100, one declaration and expansion 20,
+  initial capture is 2,130,304 bytes; analysis is 38,194 without imports or
+  8,426,802 with imports. Exactly sufficient free global **and** partition bytes
+  admit; one byte short refuses. Successful shrinking releases the difference;
+  failed growth leaves the old charge intact and prevents materialization.
+- With global 100 / partition 80 and item bounds 4 / 3, workspace 20 resizes to
+  80, refuses 81, then atomically replaces with [30,30,20,1]: first three admit,
+  fourth refuses, leaving 80 bytes / 3 items. Existing
+  [capacity tests](../../src/resident/capacity.test.ts) establish this ledger case.
+- After skipped/unsupported capture, resize refusal, cancellation or preparation
+  error, release workspace exactly once; no rejected unit starts Jev. Completion
+  releases workspace before admitting units, and each terminal unit releases its
+  own charge. Test another partition's admission after release and replay the
+  same ordered facts through TS, NativeRun and the actual game consumer.
+
+Source class: first-party source and accepted contract links. Verification state:
+the current formulas and lane gaps are source-traced. The three concrete workspace
+values above were also evaluated with the production functions; existing workspace,
+capacity, size and generated-tree suites passed locally. Acceptance examples
+describe proposed accounting coverage, not an implemented simulator change,
+native execution, game qualification or live measurement.
+
 Coverage excludes actual filesystem measurement, native capture, runtime hooks, real Jev, semantic repair quality and complete resident execution. The synthetic environment covers supported adapters, not empirical performance or a new proof of all product logic. Revisit native gaps at an explicitly bounded validation milestone or when an applicable deterministic adapter becomes available. The dashboard owns presentation and playback; graph observations remain separate from canonical frames.
 
 A multi-agent example is `createRun({seed:7,sessions:[{agent:"alpha",seed:11},{agent:"beta",seed:29}]})`.
@@ -301,3 +379,145 @@ and eight Jev execution slots. Internally duplicated retirement batches coalesce
 while their original effect remains pending; external facts still reach Canonical
 and refusals remain observable. Native/public directed fixtures and finite recovery
 experiments establish their stated synthetic paths, not native runtime support.
+
+## Edit opening and same-time retry
+
+The #235 investigation is advisory implementation evidence, not approval to
+change Canonical semantics. This is a targeted comparison of three orchestration
+choices, using repository source (`SRC`) and deterministic executable probes;
+there is no external dependency or ecosystem-completeness claim. Review these
+findings when Driver admission, metadata fuel, activity scopes or replay
+checkpoints change. The independently expected probes are in
+[edit-requeue-research.test.ts](src/edit-requeue-research.test.ts) and
+[edit-opening.bend](conformance/edit-opening.bend). Run them through
+`npm run test:focused -- packages/monkey-business/src/edit-requeue-research.test.ts`.
+
+### Call and state ownership
+
+For a base edit without permits, TypeScript `Run.step` takes the original edit
+through SharedCore/Engine's scheduler. A recurring arrival advances its Workload
+owner once, before opening is attempted; the retry has `recurring:false`, so it
+cannot generate another workload arrival. Run freezes `driverSourceJob` (original
+partition, lifetime, bytes, units and optional outcome), preserving it when the
+edit is issued again. The original revision, repair and other edit facts remain
+in the copied input; activity incarnation remains captured independently.
+`Engine.activity_edit` checks that activity scope and invokes `edit_attempt`.
+`AdmissionAttempts.edit` owns the pending-opening partition list; `Driver.edit`
+reads Canonical rounds and plans OpenRound plus retry, or AdmitObservation.
+Pending attempts suppress another OpenRound, but still request retry.
+
+Run issues Driver actions through Engine's insertion-ordered Scheduler, then
+issues the copied edit at the same time. Native `NativeRun.edit` calls the same
+`Engine.edit_attempt`; `edit_planned` installs its updated core, `issue` schedules
+actions, and `retry_edit` enqueues the same `T.Job`. Native recurring workload
+advancement happens in `arrival_kind/recurring_next`, before creating that job;
+`T.Edit` retry does not run the arrival generator. Both preserve original source
+facts rather than resampling outcomes or reconstructing them from a new round.
+
+Canonical alone owns round and observation state: `open_found` allocates a
+round ID, emits RoundStarted and leaves work empty. `admit_observation_found`
+checks current lifetime/round and non-deciding state, then allocates a distinct
+zero-charge AwaitingSourceRead operation. Engine `settle` removes pending opening
+only for an *accepted* OpenRound; a rejected step preserves it. Lifecycle
+activity changes also clear pending opening (`lifecycle_opening`), and resumed
+activity receives a new incarnation. Run validates the captured incarnation
+before consuming retried edits. Native initial arrivals are activity-checked too, but the retried `T.Edit`
+carries a `T.Job` without incarnation and calls `edit_attempt` directly rather
+than `activity_edit`. That is a source-verified difference at this intermediate
+boundary; the TypeScript disconnect probe does not qualify native equivalence.
+A native continuation must explicitly retain/check incarnation, not rely on
+arrival validation that already happened. Driver selects a currently existing
+round, so original source lifetime alone is not an activity fence. A lifetime
+change must not authorize reparenting an old job into fresh activity.
+
+### Distinguishing observations and alternatives
+
+| Choice | Classification | Ordering/checkpoint consequence | Failure ownership |
+| --- | --- | --- | --- |
+| Retain same-time copied edit | BORROW existing mechanism | Separate public OpenRound and AdmitObservation; queued work and owner controls can intervene; retry is a scheduler take in replay | Current pending marker survives rejection; caller must not assume time/event limits bound metadata |
+| Explicit queued continuation | BORROW candidate for follow-up | Can preserve event order and public frames if queued at the exact retry insertion position and carrying original source/activity facts; changes private queue input kind and replay takes unless deliberately preserved | Can represent opening refusal and termination explicitly; must share/deduplicate opening and wake every waiting edit |
+| Immediate continuation after opening | REJECT as an equivalent simplification | Removes the intervening control/scheduler boundary even if it emits two frames; cannot preserve current step/checkpoint behavior | Must specify refusal and cancellation before executing the second action |
+| Composed open-and-admit reducer operation | REJECT for this issue | Deliberately changes atomicity, operation allocation, command grouping and public event count; open-only checkpoint disappears | Requires accepted core laws for refusal rollback and observation admission, not just host refactoring |
+
+The two-edit probe expects exactly one opening, two admissions at time zero,
+no work immediately after opening, and retained source values 10 and 20. Equal
+time uses insertion order: initially queued edits run before actions appended by
+the first edit, then the opening precedes its retry. Thus pending opening is
+needed to deduplicate concurrent requests; requeueing the *whole original edit*
+is not itself a business requirement. A continuation that preserves that position
+can be equivalent on business frames, but this is not proof of equivalence on
+structural snapshots or exact replay. A continuation run immediately at opening
+would admit the first observation before work that currently precedes the retry.
+
+The disconnect probe intervenes at the exact open-only public checkpoint and
+expects zero admissions afterward. This independently distinguishes current
+separation from an atomic composed transition: an atomic transition would already
+have admitted work before the caller could disconnect. Existing
+[outcome tests](src/outcomes.test.ts) cover exact original source tuple and replay;
+[workload conformance](src/workload-public-conformance.test.ts) covers generator
+controls at the opening boundary; [lifecycle tests](src/advicee-lifecycle.test.ts)
+cover departure/resume, fresh lifetime and stale captured activity. Those scopes
+remain required and are not replaced by the new four focused probes.
+
+`consume_permit` is a useful atomicity comparison, not an observation substitute.
+It first validates/consumes a native permit in Admission, then Canonical
+`consume_existing/consume_opened` either installs the admission and round together
+or returns the *original* state on opening refusal. It emits PermitConsumed and
+possibly RoundStarted, but allocates no AwaitingSourceRead observation. The
+[canonical checks](../agent-flow-bend/scripts/check-canonical.mjs) separately assert
+that the 65th round refusal leaves its permit unconsumed and inactive. A composed
+observation transition would need its own checked admission/rollback properties.
+
+### Rejected opening and bounded progress
+
+Canonical has a fixed 64-active-round ceiling (not a configurable `maxRounds` in
+this simulator). The test opens exactly 64 rounds, requests partition 65, expects
+RoundLimit, and then counts exactly 16 attempts: all request retry, none issues
+another opening. The native bookkeeping probe independently expects counts
+`[1,1,0,1,0]`: one marker, one opening action, zero duplicate actions, marker
+unchanged by an unrelated event, marker removed by consuming OpenRound. It tests
+AdmissionAttempts directly, not a full compiled NativeRun retry campaign; the
+RoundLimit rejection/retained-marker composition is exercised through the emitted
+Engine in SharedCore. InvalidIdentity has the same source-level rejected-settle
+path; public TypeScript boundary validation rejects invalid identities before
+Canonical, so no claim of a public invalid-identity runtime experiment is made.
+An already-open partition instead returns StaleRound; that round lets the copied
+edit take the ordinary admission route on retry, so rejection alone does not
+imply a stuck loop.
+
+If the 65th round remains unavailable, TypeScript's copied edit repeatedly takes
+and enqueues metadata with no observed event. `step` recursively calls itself;
+`advance.maxEvents` counts observations and `untilTime` cannot exclude a retry at
+the current time. Neither is a bound on this loop: stack exhaustion or resource
+exhaustion is possible. The finite 16-attempt seam proves the repeating plan,
+not a wall-clock hang claim. Native `step_carrier` has 1,000 metadata takes per
+step, and `advance_carrier` has finite outer fuel; it returns after those bounds,
+with queued work still present. That is source-verified execution boundedness,
+not eventual business progress or a fresh native full-driver measurement. Later
+scheduled cleanup cannot help a permanently repeating earlier-time edit; a
+same-time cleanup already ahead of retry can change the premise. Freeing capacity
+alone does not clear a retained pending marker, so recovery additionally needs
+an explicit accepted opening or lifecycle reset.
+
+Recommendation: retain the two checked transitions and same-time retry for now;
+first fix the independent failed-opening progress gap in a separate accepted
+implementation scope. Decide whether rejection terminates each original edit or
+parks it behind an explicit capacity/lifecycle wakeup; do not silently clear the
+marker and create endless rejected openings. Add finite metadata fuel to the
+TypeScript host with an explicit non-idle endpoint, preserving replay coordinates.
+Only then evaluate queued continuation as an orchestration simplification. It
+must retain source facts, deduplicate openings, never advance workload twice,
+invalidate stale activity, and record intermediate checkpoints. No speed claim
+or accepted semantic change follows from this investigation.
+
+Follow-up owners: AdmissionAttempts/Engine for rejected-opening completion and
+waiting edits; Run/NativeRun/Scheduler for metadata budget and same-time insertion;
+Workload/AdviceeActivity for recurrence and invalidation; replay for endpoint and
+queue-take coordinates. Canonical/LAWS/PROOF own any proposed composed operation.
+Focused validation must cover this probe, outcomes, workload-public-conformance,
+advicee-lifecycle, replay-progress and advance-cooperative, plus fresh native and
+emitted original scopes for whichever host actually changes. A metadata-budget
+fix additionally needs an externally bounded failed-opening execution, refusal
+then recovery, and independently expected non-idle/replay endpoints. A reducer
+change needs its existing canonical proofs and authority/artifact checks; a host
+refactor must not claim them from native/TypeScript agreement alone.

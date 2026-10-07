@@ -1,6 +1,6 @@
 import { Schema } from "effect"
-import { decoder, readNat } from "../../../src/canonical/boundary-schema.ts"
-import { freezeCanonicalData } from "../../../src/canonical/immutable.ts"
+import { decoder, readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
+import { freezeCanonicalData } from "@hapsland/canonical-policy/canonical/immutable"
 import { callbackNativeDescriptors } from "./callback-native-metadata.ts"
 
 type Fields = ReadonlyArray<readonly [string, string]>

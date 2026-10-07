@@ -1,5 +1,7 @@
-import { bunExecutable } from "../runtime/bun-runtime.ts"
-import { runClient } from "../test-support/client-runtime.ts"
+import { prepareTestPackage } from "@hapsland/build-tooling/test-support/test-package"
+import { cleanupOwnedResident } from "../../scripts/test-harness/cleanup-owned-resident.mjs"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
 import { afterEach, describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process"
@@ -7,11 +9,16 @@ import { execFileAsync } from "../../scripts/test-harness/process.mjs"
 import { existsSync } from "node:fs"
 import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
-import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
-import type { DirectObservation } from "../direct-event/model.ts"
-import { addEvent, makeReviewGitFixture as makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../test-support/default-rules.ts"
+import { dirname, join } from "node:path"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import type { DirectObservation } from "@hapsland/native-observation/direct-event/observation"
+import {
+  addEvent,
+  makeReviewGitFixture as makeGitFixture,
+  put,
+  advicee
+} from "@hapsland/build-tooling/test-support/test-fixtures"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import {
   acknowledgeAdviceEffect as acknowledgeAdvice,
   beginComposedSubmissionEffect as beginComposedSubmission,
@@ -19,10 +26,14 @@ import {
   composedStopBoundaryEffect as composedStopBoundary,
   ensureResidentEffect as ensureResident,
   residentRequestEffect as residentRequest
-} from "./client.ts"
-import { monotonicNow } from "./hook-clock.ts"
-import { residentPaths } from "./paths.ts"
-import { DELIVERY_LEASE_MS, type ResidentDispatchContext, type ResidentRequest } from "./protocol.ts"
+} from "@hapsland/resident-transport/resident/client"
+import { monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
+import {
+  DELIVERY_LEASE_MS,
+  type ResidentDispatchContext,
+  type ResidentRequest
+} from "@hapsland/resident-transport/resident/protocol"
 
 const processes: Array<number> = []
 const directories: Array<string> = []
@@ -71,7 +82,7 @@ const answers = Object.fromEntries(configuredRules.map((rule) => [rule.id, { _ta
 
 const dispatchFor = (statePath: string, options: { readonly capturePath?: string } = {}): ResidentDispatchContext => ({
   statePath,
-  userConfigPath: null,
+  userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
   credential: null,
   controlled: { answers, ...(options.capturePath === undefined ? {} : { capturePath: options.capturePath }) }
 })
@@ -79,12 +90,14 @@ const dispatchFor = (statePath: string, options: { readonly capturePath?: string
 const registerEdit = async (
   paths: ReturnType<typeof residentPaths>,
   lifetime: string,
-  observation: DirectObservation
+  observation: DirectObservation,
+  userConfigPath: string | null
 ) => {
   const registered = await runClient(
     residentRequest(paths, {
       requestRoute: "shared",
       operation: "register-edit",
+      ...(userConfigPath === null ? {} : { userConfigPath }),
       lifetime,
       root: observation.root,
       advicee: observation.advicee,
@@ -99,7 +112,7 @@ const admitComposed = async (
   request: Omit<Extract<ResidentRequest, { readonly operation: "admit"; readonly requestRoute: "shared" }>, "composed">,
   timeoutMs?: number
 ) => {
-  await registerEdit(paths, request.lifetime, request.observation)
+  await registerEdit(paths, request.lifetime, request.observation, request.dispatch.userConfigPath)
   return runClient(residentRequest(paths, { ...request, composed: true }, timeoutMs))
 }
 
@@ -108,16 +121,27 @@ describe("resident separate-process lifecycle", () => {
     const temporary = await mkdtemp(join(tmpdir(), "product-resident-native-idle-"))
     directories.push(temporary)
     const paths = residentPaths(join(temporary, "runtime"))
-    const executable = join(process.cwd(), "dist", "bin", `${process.platform}-${process.arch}`, "hapsland-resident")
-    const child = spawn(executable, [paths.directory], { stdio: "pipe" })
+    const installed = prepareTestPackage()
+    const child = spawn(installed.resident.executable, [...installed.resident.args, paths.directory], {
+      env: installed.environment,
+      stdio: "pipe"
+    })
     if (child.pid !== undefined) processes.push(child.pid)
     const result = childResult(child)
-    await waitFor(async () => (existsSync(paths.socket) ? true : undefined), 8_000)
-    await result
-    expect(child.exitCode).toBe(0)
-    expect(existsSync(paths.socket)).toBe(false)
-    expect(existsSync(paths.owner)).toBe(false)
-    expect(existsSync(paths.lock)).toBe(false)
+    void result.catch(() => {})
+    try {
+      await waitFor(async () => (existsSync(paths.socket) ? true : undefined), 8_000)
+      await result
+      expect(child.exitCode).toBe(0)
+      expect(existsSync(paths.socket)).toBe(false)
+      expect(existsSync(paths.owner)).toBe(false)
+      expect(existsSync(paths.lock)).toBe(false)
+    } finally {
+      await cleanupOwnedResident(paths.directory, [installed.resident])
+      if (child.exitCode === null && child.signalCode === null) child.kill("SIGTERM")
+      await childClosed(child)
+      installed.cleanup()
+    }
   })
 
   it("releases ownership after startup failure without deleting an unsafe endpoint", async () => {
@@ -126,7 +150,7 @@ describe("resident separate-process lifecycle", () => {
     const paths = residentPaths(join(temporary, "runtime"))
     await mkdir(paths.directory, { mode: 0o700 })
     await writeFile(paths.socket, "unowned endpoint\n", { mode: 0o600 })
-    const failed = spawn(bunExecutable(), ["src/resident/main.ts", paths.directory], {
+    const failed = spawn(bunExecutable(), ["packages/resident-entry/src/resident/main.ts", paths.directory], {
       cwd: process.cwd(),
       stdio: "pipe"
     })
@@ -135,7 +159,8 @@ describe("resident separate-process lifecycle", () => {
     expect(existsSync(paths.lock)).toBe(false)
     expect(existsSync(paths.owner)).toBe(false)
     await rm(paths.socket)
-    const next = await runClient(ensureResident(paths, 5_000))
+    // Exercise repair within the documented production readiness deadline.
+    const next = await runClient(ensureResident(paths))
     processes.push(next.pid)
     expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "hello" }))).status).toBe(
       "ready"
@@ -147,7 +172,7 @@ describe("resident separate-process lifecycle", () => {
     directories.push(temporary)
     const paths = residentPaths(join(temporary, "runtime"))
     const contenders = Array.from({ length: 3 }, () =>
-      spawn(bunExecutable(), ["src/resident/main.ts", paths.directory], {
+      spawn(bunExecutable(), ["packages/resident-entry/src/resident/main.ts", paths.directory], {
         cwd: process.cwd(),
         stdio: ["ignore", "ignore", "pipe"]
       })
@@ -229,7 +254,7 @@ describe("resident separate-process lifecycle", () => {
       [
         "--input-type=module",
         "-e",
-        "import {ensureResidentEffect as ensureResident} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));"
+        "import {ensureResidentEffect as ensureResident} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime'; console.log(JSON.stringify(await runClient(ensureResident())));"
       ],
       {
         cwd: process.cwd(),
@@ -288,7 +313,7 @@ describe("resident separate-process lifecycle", () => {
       [
         "--input-type=module",
         "-e",
-        "import {ensureResidentEffect as ensureResident} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));"
+        "import {ensureResidentEffect as ensureResident} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime'; console.log(JSON.stringify(await runClient(ensureResident())));"
       ],
       {
         cwd: process.cwd(),
@@ -375,7 +400,7 @@ describe("resident separate-process lifecycle", () => {
       REVIEW_CONTROL_JSON: JSON.stringify({ answers })
     }
     const ensureScript = [
-      "import { ensureResidentEffect as ensureResident } from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts';",
+      "import { ensureResidentEffect as ensureResident } from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime';",
       "import {writeFileSync} from 'node:fs';",
       "const count=Number(process.argv[1]);",
       "await new Promise(resolve=>{process.stdin.once('data',resolve);writeFileSync(process.argv[2],'ready\\n')});",
@@ -447,7 +472,7 @@ describe("resident separate-process lifecycle", () => {
     stale.kill("SIGKILL")
     await staleClosed
     const boundedScript = [
-      "import {ensureResidentEffect as ensureResident} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts';",
+      "import {ensureResidentEffect as ensureResident} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime';",
       `const paths=${JSON.stringify(residentPaths(runtime))};`,
       "await runClient(ensureResident(paths,250));"
     ].join("")
@@ -469,16 +494,16 @@ describe("resident separate-process lifecycle", () => {
     const admissionScript = [
       "import * as Effect from 'effect/Effect';",
       "import {connect} from 'node:net';",
-      "import { adaptCodexDirectEvent } from './src/direct-event/adapter.ts';",
-      "import {residentRequestEffect as residentRequest} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts';",
-      "import {monotonicNow} from './src/resident/hook-clock.ts';",
+      "import { adaptCodexDirectEvent } from './packages/native-observation/src/direct-event/adapter.ts';",
+      "import {residentRequestEffect as residentRequest} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime';",
+      "import {monotonicNow} from './packages/resident-transport/src/resident/hook-clock.ts';",
       `const event=${JSON.stringify(addEvent(root))};`,
       `const dispatch=${JSON.stringify(dispatchFor(statePath))};`,
       `const socketPath=${JSON.stringify(residentPaths(runtime).socket)};`,
       `const paths=${JSON.stringify(residentPaths(runtime))};`,
       `const lifetime=${JSON.stringify(identities[0]!.lifetime)};`,
       "const observation=await Effect.runPromise(adaptCodexDirectEvent(event));",
-      "const registered=await runClient(residentRequest(paths,{requestRoute:'shared',operation:'register-edit',lifetime,root:observation.root,advicee:observation.advicee,startedAt:monotonicNow()}));",
+      "const registered=await runClient(residentRequest(paths,{requestRoute:'shared',operation:'register-edit',userConfigPath:dispatch.userConfigPath,lifetime,root:observation.root,advicee:observation.advicee,startedAt:monotonicNow()}));",
       "if(registered.status!=='advanced')throw new Error('edit permit was not registered');",
       "const socket=connect(socketPath);",
       "socket.once('connect',()=>socket.write(JSON.stringify({version:1,operation:'admit',lifetime,observation,controlledWriter:true,dispatch,composed:true})+'\\n'));"
@@ -555,7 +580,7 @@ describe("resident separate-process lifecycle", () => {
     expect(await runClient(collectReady(otherRoot, advicee(), dispatch, paths))).toBeUndefined()
     await writeFile(`${collectGate}.enabled`, "enabled\n")
     const disconnectScript = [
-      "import {collectReadyEffect as collectReady} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts';",
+      "import {collectReadyEffect as collectReady} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime';",
       `const root=${JSON.stringify(root)};`,
       `const advicee=${JSON.stringify(advicee({ turnId: "later", toolUseId: "disconnect" }))};`,
       `const dispatch=${JSON.stringify(dispatch)};`,
@@ -583,7 +608,7 @@ describe("resident separate-process lifecycle", () => {
     await writeFile(`${ackGate}.enabled`, "enabled\n")
     expect(await runClient(beginComposedSubmission(advice, "edit"))).toBe(true)
     const ackScript = [
-      "import {acknowledgeAdviceEffect as acknowledgeAdvice} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts';",
+      "import {acknowledgeAdviceEffect as acknowledgeAdvice} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime';",
       `const advice=${JSON.stringify(advice)};`,
       "await runClient(acknowledgeAdvice(advice));"
     ].join("")
@@ -629,7 +654,7 @@ describe("resident separate-process lifecycle", () => {
       REVIEW_CONTROL_JSON: JSON.stringify({ answers, capturePath })
     }
     const script =
-      "import {ensureResidentEffect as ensureResident} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));"
+      "import {ensureResidentEffect as ensureResident} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime'; console.log(JSON.stringify(await runClient(ensureResident())));"
     const child = spawn(bunExecutable(), ["--input-type=module", "-e", script], {
       cwd: process.cwd(),
       env,
@@ -685,7 +710,7 @@ describe("resident separate-process lifecycle", () => {
       REVIEW_CONTROL_JSON: JSON.stringify({ answers, capturePath })
     }
     const script =
-      "import {ensureResidentEffect as ensureResident} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));"
+      "import {ensureResidentEffect as ensureResident} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime'; console.log(JSON.stringify(await runClient(ensureResident())));"
     const child = spawn(bunExecutable(), ["--input-type=module", "-e", script], {
       cwd: process.cwd(),
       env,
@@ -745,7 +770,7 @@ describe("resident separate-process lifecycle", () => {
       REVIEW_RESIDENT_CLEANUP_RESPONSE_GATE_PATH: cleanupGate
     }
     const ensureScript =
-      "import {ensureResidentEffect as ensureResident} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));"
+      "import {ensureResidentEffect as ensureResident} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime'; console.log(JSON.stringify(await runClient(ensureResident())));"
     const start = async () => {
       const child = spawn(bunExecutable(), ["--input-type=module", "-e", ensureScript], {
         cwd: process.cwd(),
@@ -1008,7 +1033,7 @@ describe("resident separate-process lifecycle", () => {
     if (beforeCleanup.status === "stats") expect(beforeCleanup.successfulCacheEntries).toBe(0)
     await writeFile(`${cleanupGate}.enabled`, "enabled\n")
     const cleanupScript = [
-      "import {residentRequestEffect as residentRequest} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts';",
+      "import {residentRequestEffect as residentRequest} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime';",
       `const paths=${JSON.stringify(paths)};`,
       `const lifetime=${JSON.stringify(second.lifetime)};`,
       "console.log(JSON.stringify(await runClient(residentRequest(paths,{requestRoute:'shared',operation:'cleanup',lifetime}))));"

@@ -1,0 +1,42 @@
+{
+  "authority": "Validation evidence; unchanged accepted response byte bound",
+  "status": "focused-passed",
+  "source": "docs/advicing-target-contract.md; bounded Claude Stop output",
+  "behavior": "Skip longer unfitting notice, preserve fitting shorter notice and retained finding at exact serialized byte boundary.",
+  "productionChanged": false,
+  "runId": "20261007143302895-1208070-31c613",
+  "elapsedMs": 4522,
+  "testExit": 0,
+  "scorerExit": 0,
+  "threshold": 8,
+  "target": {
+    "id": "packages/resident-runtime/src/resident/collection.ts::selectFittingClaudeStopNotices@14507-15197",
+    "path": "packages/resident-runtime/src/resident/collection.ts",
+    "name": "selectFittingClaudeStopNotices",
+    "kind": "arrow",
+    "range": {
+      "start": {
+        "offset": 14507,
+        "line": 388,
+        "column": 46
+      },
+      "end": {
+        "offset": 15197,
+        "line": 408,
+        "column": 1
+      }
+    },
+    "complexity": 7,
+    "coverage": {
+      "status": "measured",
+      "covered": 12,
+      "total": 15,
+      "fraction": 0.8
+    },
+    "crap": 7.3919999999999995
+  },
+  "logs": [
+    "evidence/build-243/stop-notice-focused.log",
+    "evidence/build-243/stop-notice-focused-score.json"
+  ]
+}

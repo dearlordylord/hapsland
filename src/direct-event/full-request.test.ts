@@ -1,17 +1,17 @@
-import { providerIdentity } from "../review-providers/catalog.ts"
+import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import { Decision } from "effect/ai"
-import { configuredRules } from "../test-support/default-rules.ts"
-import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
+import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
 import {
   encodedPreparedProviderInputBytes,
   encodedPreparedProviderHttpBodyBytes,
   evaluatePrepared
-} from "./pipeline.ts"
-import type { PreparedUnit } from "./model.ts"
-import { encodedProviderHttpBodyBytes } from "./provider-body-size.ts"
-import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
+} from "@hapsland/review-execution/direct-event/pipeline"
+import type { PreparedUnit } from "@hapsland/review-definition/direct-event/model"
+import { encodedProviderHttpBodyBytes } from "@hapsland/review-execution/direct-event/provider-body-size"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 
 describe("complete Jev request measurement", () => {
   it("marks unsupported or invalid provider bodies as unmeasurable", () => {

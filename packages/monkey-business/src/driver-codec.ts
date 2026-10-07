@@ -1,9 +1,16 @@
-import { encodeCanonicalEvent } from "../../../src/canonical/canonical-boundary.ts"
-import { decodeCanonicalConstructor } from "../../../src/canonical/constructors.ts"
-import { freezeCanonicalData } from "../../../src/canonical/immutable.ts"
-import { readCanonicalEvent } from "../../../src/canonical/event-reader.ts"
-import { readRecord, readNat, readBool, readBendList, decoder, Word } from "../../../src/canonical/boundary-schema.ts"
-import type { CanonicalEvent, JevRequestOutcome } from "../../../src/canonical/adapter.ts"
+import { encodeCanonicalEvent } from "@hapsland/canonical-policy/canonical/canonical-boundary"
+import { decodeCanonicalConstructor } from "@hapsland/canonical-policy/canonical/constructors"
+import { freezeCanonicalData } from "@hapsland/canonical-policy/canonical/immutable"
+import { readCanonicalEvent } from "@hapsland/canonical-policy/canonical/event-reader"
+import {
+  readRecord,
+  readNat,
+  readBool,
+  readBendList,
+  decoder,
+  Word
+} from "@hapsland/canonical-policy/canonical/boundary-schema"
+import type { CanonicalEvent, JevRequestOutcome } from "@hapsland/canonical-policy/canonical/adapter"
 
 export type DriverCandidate = {
   partition: number

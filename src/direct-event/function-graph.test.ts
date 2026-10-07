@@ -1,10 +1,10 @@
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
-import { addEvent, makeGitFixture, put } from "./test-fixtures.ts"
-import { adaptCodexDirectEvent } from "./adapter.ts"
-import { captureStable } from "./capture.ts"
-import { resolveGraphUnit } from "./graph-resolver.ts"
-import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "./selection.ts"
+import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import { captureStable } from "@hapsland/native-observation/direct-event/capture"
+import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
+import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "@hapsland/native-observation/direct-event/selection"
 
 describe("bounded function graph candidate", () => {
   it.effect("keeps same-spelling type and function artifacts distinct", () =>

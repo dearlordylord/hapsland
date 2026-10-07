@@ -5,9 +5,12 @@ import * as TestClock from "effect/testing/TestClock"
 import { mkdtemp, rm, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
-import { makeResidentState } from "../resident/capacity.ts"
-import { DEFAULT_EDIT_PERMIT_LIMITS, DEFAULT_VIRTUAL_ROUND_QUIET_MS } from "../configuration/types.ts"
-import { makeReviewSettings, settingsSource } from "./review-settings.ts"
+import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
+import {
+  DEFAULT_EDIT_PERMIT_LIMITS,
+  DEFAULT_VIRTUAL_ROUND_QUIET_MS
+} from "@hapsland/runtime-inputs/configuration/types"
+import { makeReviewSettings, settingsSource } from "@hapsland/review-definition/runtime/review-settings"
 
 const directories: string[] = []
 afterEach(async () => {

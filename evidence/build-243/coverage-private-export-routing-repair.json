@@ -1,0 +1,75 @@
+{
+  "purpose": "Focused coverage routing repair after issue243 physical owner migration",
+  "authority": "Validation evidence; full gate remains separate",
+  "preservedFullCoverage": "/tmp/hapsland-243-full-coverage-04.json",
+  "routing": {
+    "v8": "Admit manifest-owned emitted JS only through validated physical compiler maps, then retain original configured authored-source selection",
+    "bun": "Instrument original source selected by validated compiler map and preserve exact AST-corresponding emitted module edges",
+    "freshness": "Ordinary build/compiler receipt admission and frozen runner source identity remain required; maps alone do not prove producer freshness"
+  },
+  "actualIntegration": {
+    "source": "/workspace/typescript/hapsland-243/packages/activity-observation/src/activity/analytics.ts",
+    "sourceSha256": "b3ff7b133ae8c29f22c49856e5c7f095954ed008edc05dc83d95a9f58be50f09",
+    "beforeHitFunctions": 0,
+    "afterHitFunctions": 27,
+    "originalFunctionCounters": {
+      "0": 58,
+      "1": 36,
+      "2": 317,
+      "3": 19,
+      "4": 8,
+      "5": 28,
+      "6": 20,
+      "7": 19,
+      "8": 75,
+      "9": 19,
+      "10": 19,
+      "11": 20,
+      "12": 21,
+      "13": 8,
+      "14": 9,
+      "15": 8,
+      "16": 8,
+      "17": 8,
+      "18": 5,
+      "19": 5,
+      "20": 7,
+      "21": 772,
+      "22": 7,
+      "23": 7,
+      "24": 7,
+      "25": 8,
+      "26": 1
+    },
+    "emittedDistFilesInFinal": 0
+  },
+  "focused": {
+    "vitestTestsPassed": 12,
+    "bunTestsPassed": 5,
+    "typecheck": "passed",
+    "lintAndFormatting": "passed",
+    "fullCoverageClaim": false
+  },
+  "refusals": [
+    "missing/malformed/ambiguous compiler map",
+    "escaped original source",
+    "symlink map",
+    "stale embedded original bytes",
+    "missing or ambiguous compiler import correspondence",
+    "instrumentation-introduced edge"
+  ],
+  "logs": {
+    "/tmp/hapsland-243-coverage-routing-final-focused.log": {
+      "path": "evidence/build-243/objects/b3088c3b056ae8df9bfa7103305a985e26a667185a063e3e93f22b75f2caa88b.log",
+      "sha256": "b3088c3b056ae8df9bfa7103305a985e26a667185a063e3e93f22b75f2caa88b"
+    },
+    "/tmp/hapsland-243-bun-coverage-private-final.log": {
+      "path": "evidence/build-243/objects/938fd1d78e959c69313d028614af0f1593a7f0ce27e652033b05ce9596e32e05.log",
+      "sha256": "938fd1d78e959c69313d028614af0f1593a7f0ce27e652033b05ce9596e32e05"
+    },
+    "/tmp/hapsland-243-coverage-routing-typecheck.log": {
+      "path": "evidence/build-243/objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

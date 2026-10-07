@@ -6,7 +6,7 @@ import { resolveBunRuntime } from "./pinned-bun.mjs"
 test("source Bun loads physical TypeScript and Rust parser bindings", () => {
   const runtime = resolveBunRuntime()
   const probe = `
-    const { Parser, Rust, typeScriptRoot } = await import("./src/direct-event/languages/native-parser.ts");
+    const { Parser, Rust, typeScriptRoot } = await import("./packages/source-analysis/src/direct-event/languages/native-parser.ts");
     const ts = typeScriptRoot("fixture.ts", "type Count = number");
     const parser = new Parser();
     parser.setLanguage(Rust);

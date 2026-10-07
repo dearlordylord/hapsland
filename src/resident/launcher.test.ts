@@ -6,8 +6,8 @@ import { EventEmitter } from "node:events"
 import { mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { ResidentStartup, residentStartupLayer } from "./client.ts"
-import { residentPaths } from "./paths.ts"
+import { ResidentStartup, residentStartupLayer } from "@hapsland/resident-transport/resident/client"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 
 const native = vi.hoisted(() => ({ spawn: vi.fn() }))
 vi.mock("node:child_process", async (importOriginal) => ({

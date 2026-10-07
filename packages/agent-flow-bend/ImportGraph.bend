@@ -44,9 +44,19 @@ type Phase is Data:
   Incomplete{reason: Reason}
 
 type Graph is Data:
-  Graph{phase: Phase, pending: List<&2, Edge>, visited: List<&2, Nat>,
-    files: Nat, read_bytes: Nat, tree_bytes: Nat, work: Nat, skipped_tree: Bool, skipped_excluded: Bool, skipped_other: Bool,
-    limits: Limits}
+  Graph{
+    phase: Phase,
+    pending: List<&2, Edge>,
+    visited: List<&2, Nat>,
+    files: Nat,
+    read_bytes: Nat,
+    tree_bytes: Nat,
+    work: Nat,
+    skipped_tree: Bool,
+    skipped_excluded: Bool,
+    skipped_other: Bool,
+    limits: Limits
+  }
 
 type GraphEvent is Data:
   Root{target: Nat, source_bytes: Nat, tree_bytes: Nat, local_work: Nat, edges: List<&2, Nat>}
@@ -123,19 +133,8 @@ def read_after(total: Nat, contribution: Nat) -> Nat:
 def initial(+limits: Limits) -> Graph:
   Graph{Idle{}, Nil{}, Nil{}, 0n, 0n, 0n, 0n, False{}, False{}, False{}, limits}
 
-def edge_count(edges: List<&2, Nat>) -> Nat:
-  match edges:
-    case Nil{}:
-      0n
-    case _ <> rest:
-      (1n + edge_count(rest) : Nat)
-
-def contains(+target: Nat, visited: List<&2, Nat>) -> Bool:
-  match visited:
-    case Nil{}:
-      False{}
-    case head <> rest:
-      Bool.or(Nat.is_eq(target, head), contains(target, rest))
+def contains(target: Nat, visited: List<&2, Nat>) -> Bool:
+  List.contains(~Nat, ~Nat.is_eq, visited, target)
 
 def with_depth(edges: List<&2, Nat>, +depth: Nat) -> List<&2, Edge>:
   match edges:
@@ -149,51 +148,232 @@ def pending_after(+pending: List<&2, Edge>, +edges: List<&2, Nat>, +depth: Nat,
   Bool.pick(List<&2, Edge>, overflow, pending,
     List.append(&2, Edge, pending, with_depth(edges, (depth + 1n : Nat))))
 
-def fail(+limits: Limits, pending: List<&2, Edge>, visited: List<&2, Nat>, files: Nat,
-    read_bytes: Nat, tree_bytes: Nat, work: Nat, skipped_tree: Bool, +skipped_excluded: Bool, +skipped_other: Bool,
-    +reason: Reason) -> Step:
-  Step{Graph{Incomplete{reason}, pending, visited, files, read_bytes, tree_bytes, work, skipped_tree, skipped_excluded, skipped_other, limits},
-    UnitIncomplete{reason}}
+def fail(
+  +limits: Limits,
+  pending: List<&2, Edge>,
+  visited: List<&2, Nat>,
+  files: Nat,
+  read_bytes: Nat,
+  tree_bytes: Nat,
+  work: Nat,
+  skipped_tree: Bool,
+  +skipped_excluded: Bool,
+  +skipped_other: Bool,
+  +reason: Reason
+) -> Step:
+  Step{
+    Graph{
+      Incomplete{reason},
+      pending,
+      visited,
+      files,
+      read_bytes,
+      tree_bytes,
+      work,
+      skipped_tree,
+      skipped_excluded,
+      skipped_other,
+      limits
+    },
+    UnitIncomplete{reason}
+  }
 
 def root(+limits: Limits, +target: Nat, +source_bytes: Nat, +tree_bytes: Nat,
     +local_work: Nat, +edges: List<&2, Nat>) -> Step:
-  Bool.pick(Step, Bool.or(Nat.is_gt(source_bytes, source_cap(limits)), Nat.is_gt(source_bytes, read_cap(limits))),
+  Bool.pick(
+    Step,
+    Bool.or(Nat.is_gt(source_bytes, source_cap(limits)), Nat.is_gt(source_bytes, read_cap(limits))),
     fail(limits, Nil{}, Nil{}, 0n, 0n, 0n, 0n, False{}, False{}, False{}, ReadLimit{}),
-    Bool.pick(Step, Nat.is_gt(tree_bytes, tree_cap(limits)),
+    Bool.pick(
+      Step,
+      Nat.is_gt(tree_bytes, tree_cap(limits)),
       fail(limits, Nil{}, Nil{}, 0n, 0n, 0n, 0n, False{}, False{}, False{}, TreeLimit{}),
-      Bool.pick(Step, Bool.or(Nat.is_gt(edge_count(edges), edge_cap(limits)), Nat.is_gt(local_work, work_cap(limits))),
+      Bool.pick(
+        Step,
+        Bool.or(
+          Nat.is_gt(List.length(&2, Nat, edges), edge_cap(limits)),
+          Nat.is_gt(local_work, work_cap(limits))
+        ),
         fail(limits, Nil{}, Nil{}, 0n, 0n, 0n, 0n, False{}, False{}, False{}, WorkLimit{}),
-        Step{Graph{Ready{}, with_depth(edges, 1n), target <> Nil{},
-          1n, source_bytes, tree_bytes, local_work, False{}, False{}, False{}, limits}, NoCommand{}})))
+        Step{
+          Graph{
+            Ready{},
+            with_depth(edges, 1n),
+            target <> Nil{},
+            1n,
+            source_bytes,
+            tree_bytes,
+            local_work,
+            False{},
+            False{},
+            False{},
+            limits
+          },
+          NoCommand{}
+        }
+      )
+    )
+  )
 
-def next(+limits: Limits, +pending: List<&2, Edge>, +visited: List<&2, Nat>, +files: Nat,
-    +read_bytes: Nat, +tree_bytes: Nat, +work: Nat, +skipped_tree: Bool, +skipped_excluded: Bool, +skipped_other: Bool) -> Step:
+def next(
+  +limits: Limits,
+  +pending: List<&2, Edge>,
+  +visited: List<&2, Nat>,
+  +files: Nat,
+  +read_bytes: Nat,
+  +tree_bytes: Nat,
+  +work: Nat,
+  +skipped_tree: Bool,
+  +skipped_excluded: Bool,
+  +skipped_other: Bool
+) -> Step:
   match pending:
     case Nil{}:
-      Bool.pick(Step, skipped_tree,
-        Step{Graph{Incomplete{TreeLimit{}}, Nil{}, visited, files, read_bytes,
-          tree_bytes, work, True{}, skipped_excluded, skipped_other, limits}, UnitIncomplete{TreeLimit{}}},
-        Bool.pick(Step, skipped_excluded,
-          Step{Graph{Incomplete{Excluded{}}, Nil{}, visited, files, read_bytes,
-            tree_bytes, work, False{}, True{}, skipped_other, limits}, UnitIncomplete{Excluded{}}},
-          Bool.pick(Step, skipped_other,
-            Step{Graph{Incomplete{Omitted{}}, Nil{}, visited, files, read_bytes,
-              tree_bytes, work, False{}, False{}, True{}, limits}, UnitIncomplete{Omitted{}}},
-            Step{Graph{Complete{}, Nil{}, visited, files, read_bytes,
-              tree_bytes, work, False{}, False{}, False{}, limits}, UnitComplete{}})))
+      Bool.pick(
+        Step,
+        skipped_tree,
+        Step{
+          Graph{
+            Incomplete{TreeLimit{}},
+            Nil{},
+            visited,
+            files,
+            read_bytes,
+            tree_bytes,
+            work,
+            True{},
+            skipped_excluded,
+            skipped_other,
+            limits
+          },
+          UnitIncomplete{TreeLimit{}}
+        },
+        Bool.pick(
+          Step,
+          skipped_excluded,
+          Step{
+            Graph{
+              Incomplete{Excluded{}},
+              Nil{},
+              visited,
+              files,
+              read_bytes,
+              tree_bytes,
+              work,
+              False{},
+              True{},
+              skipped_other,
+              limits
+            },
+            UnitIncomplete{Excluded{}}
+          },
+          Bool.pick(
+            Step,
+            skipped_other,
+            Step{
+              Graph{
+                Incomplete{Omitted{}},
+                Nil{},
+                visited,
+                files,
+                read_bytes,
+                tree_bytes,
+                work,
+                False{},
+                False{},
+                True{},
+                limits
+              },
+              UnitIncomplete{Omitted{}}
+            },
+            Step{
+              Graph{
+                Complete{},
+                Nil{},
+                visited,
+                files,
+                read_bytes,
+                tree_bytes,
+                work,
+                False{},
+                False{},
+                False{},
+                limits
+              },
+              UnitComplete{}
+            }
+          )
+        )
+      )
     case edge <> rest:
       match edge:
         case Edge{id, depth}:
-          Bool.pick(Step, Nat.is_ge(work, work_cap(limits)),
-            fail(limits, pending, visited, files, read_bytes, tree_bytes, work, skipped_tree, skipped_excluded, skipped_other, WorkLimit{}),
-            Bool.pick(Step, Nat.is_gt(depth, depth_cap(limits)),
-              fail(limits, pending, visited, files, read_bytes, tree_bytes, work, skipped_tree, skipped_excluded, skipped_other, DepthLimit{}),
-              Step{Graph{Resolving{edge}, rest, visited, files, read_bytes, tree_bytes,
-                (work + 1n : Nat), skipped_tree, skipped_excluded, skipped_other, limits}, ResolveEdge{id}}))
+          Bool.pick(
+            Step,
+            Nat.is_ge(work, work_cap(limits)),
+            fail(
+              limits,
+              pending,
+              visited,
+              files,
+              read_bytes,
+              tree_bytes,
+              work,
+              skipped_tree,
+              skipped_excluded,
+              skipped_other,
+              WorkLimit{}
+            ),
+            Bool.pick(
+              Step,
+              Nat.is_gt(depth, depth_cap(limits)),
+              fail(
+                limits,
+                pending,
+                visited,
+                files,
+                read_bytes,
+                tree_bytes,
+                work,
+                skipped_tree,
+                skipped_excluded,
+                skipped_other,
+                DepthLimit{}
+              ),
+              Step{
+                Graph{
+                  Resolving{edge},
+                  rest,
+                  visited,
+                  files,
+                  read_bytes,
+                  tree_bytes,
+                  (work + 1n : Nat),
+                  skipped_tree,
+                  skipped_excluded,
+                  skipped_other,
+                  limits
+                },
+                ResolveEdge{id}
+              }
+            )
+          )
 
-def resolved(+limits: Limits, +edge: Edge, +target: Nat, +result: Resolution,
-    +pending: List<&2, Edge>, +visited: List<&2, Nat>, +files: Nat,
-    +read_bytes: Nat, +tree_bytes: Nat, +work: Nat, +skipped_tree: Bool, +skipped_excluded: Bool, +skipped_other: Bool) -> Step:
+def resolved(
+  +limits: Limits,
+  +edge: Edge,
+  +target: Nat,
+  +result: Resolution,
+  +pending: List<&2, Edge>,
+  +visited: List<&2, Nat>,
+  +files: Nat,
+  +read_bytes: Nat,
+  +tree_bytes: Nat,
+  +work: Nat,
+  +skipped_tree: Bool,
+  +skipped_excluded: Bool,
+  +skipped_other: Bool
+) -> Step:
   match result:
     case NotFound{}:
       Step{Graph{Ready{}, pending, visited, files, read_bytes, tree_bytes, work,
@@ -205,28 +385,133 @@ def resolved(+limits: Limits, +edge: Edge, +target: Nat, +result: Resolution,
       Step{Graph{Ready{}, pending, visited, files, read_bytes, tree_bytes, work,
         skipped_tree, skipped_excluded, True{}, limits}, SkipImport{target, Unsupported{}}}
     case Found{}:
-      Bool.pick(Step, contains(target, visited),
-        Step{Graph{Ready{}, pending, visited, files, read_bytes, tree_bytes,
-          work, skipped_tree, skipped_excluded, skipped_other, limits}, NoCommand{}},
-        Step{Graph{Checking{edge, target}, pending, visited, files, read_bytes,
-          tree_bytes, work, skipped_tree, skipped_excluded, skipped_other, limits}, CheckPath{target}})
+      Bool.pick(
+        Step,
+        contains(target, visited),
+        Step{
+          Graph{
+            Ready{},
+            pending,
+            visited,
+            files,
+            read_bytes,
+            tree_bytes,
+            work,
+            skipped_tree,
+            skipped_excluded,
+            skipped_other,
+            limits
+          },
+          NoCommand{}
+        },
+        Step{
+          Graph{
+            Checking{edge, target},
+            pending,
+            visited,
+            files,
+            read_bytes,
+            tree_bytes,
+            work,
+            skipped_tree,
+            skipped_excluded,
+            skipped_other,
+            limits
+          },
+          CheckPath{target}
+        }
+      )
 
-def checked(+limits: Limits, +edge: Edge, +target: Nat, +allowed: Bool,
-    +pending: List<&2, Edge>, +visited: List<&2, Nat>, +files: Nat,
-    +read_bytes: Nat, +tree_bytes: Nat, +work: Nat, +skipped_tree: Bool, +skipped_excluded: Bool, +skipped_other: Bool) -> Step:
+def checked(
+  +limits: Limits,
+  +edge: Edge,
+  +target: Nat,
+  +allowed: Bool,
+  +pending: List<&2, Edge>,
+  +visited: List<&2, Nat>,
+  +files: Nat,
+  +read_bytes: Nat,
+  +tree_bytes: Nat,
+  +work: Nat,
+  +skipped_tree: Bool,
+  +skipped_excluded: Bool,
+  +skipped_other: Bool
+) -> Step:
   match allowed:
     case False{}:
-      Step{Graph{Ready{}, pending, target <> visited, files, read_bytes,
-        tree_bytes, work, skipped_tree, True{}, skipped_other, limits}, SkipImport{target, Excluded{}}}
+      Step{
+        Graph{
+          Ready{},
+          pending,
+          target <> visited,
+          files,
+          read_bytes,
+          tree_bytes,
+          work,
+          skipped_tree,
+          True{},
+          skipped_other,
+          limits
+        },
+        SkipImport{target, Excluded{}}
+      }
     case True{}:
-      Bool.pick(Step, Nat.is_ge(files, file_cap(limits)),
-        Step{Graph{Ready{}, pending, target <> visited, files, read_bytes, tree_bytes,
-          work, skipped_tree, skipped_excluded, True{}, limits}, SkipImport{target, FileLimit{}}},
-        Bool.pick(Step, Nat.is_gt((read_bytes + source_cap(limits) : Nat), read_cap(limits)),
-          Step{Graph{Ready{}, pending, target <> visited, files, read_bytes, tree_bytes,
-            work, skipped_tree, skipped_excluded, True{}, limits}, SkipImport{target, ReadLimit{}}},
-          Step{Graph{Capturing{edge, target}, pending, visited, files, read_bytes,
-            tree_bytes, work, skipped_tree, skipped_excluded, skipped_other, limits}, ReadSource{target}}))
+      Bool.pick(
+        Step,
+        Nat.is_ge(files, file_cap(limits)),
+        Step{
+          Graph{
+            Ready{},
+            pending,
+            target <> visited,
+            files,
+            read_bytes,
+            tree_bytes,
+            work,
+            skipped_tree,
+            skipped_excluded,
+            True{},
+            limits
+          },
+          SkipImport{target, FileLimit{}}
+        },
+        Bool.pick(
+          Step,
+          Nat.is_gt((read_bytes + source_cap(limits) : Nat), read_cap(limits)),
+          Step{
+            Graph{
+              Ready{},
+              pending,
+              target <> visited,
+              files,
+              read_bytes,
+              tree_bytes,
+              work,
+              skipped_tree,
+              skipped_excluded,
+              True{},
+              limits
+            },
+            SkipImport{target, ReadLimit{}}
+          },
+          Step{
+            Graph{
+              Capturing{edge, target},
+              pending,
+              visited,
+              files,
+              read_bytes,
+              tree_bytes,
+              work,
+              skipped_tree,
+              skipped_excluded,
+              skipped_other,
+              limits
+            },
+            ReadSource{target}
+          }
+        )
+      )
 
 def captured(+limits: Limits, +edge: Edge, +target: Nat, +source_bytes: Nat, +node_bytes: Nat,
     +local_work: Nat, +edges: List<&2, Nat>, +pending: List<&2, Edge>, +visited: List<&2, Nat>,
@@ -234,72 +519,361 @@ def captured(+limits: Limits, +edge: Edge, +target: Nat, +source_bytes: Nat, +no
     +skipped_tree: Bool, +skipped_excluded: Bool, +skipped_other: Bool) -> Step:
   match edge:
     case Edge{_, depth}:
-      Bool.pick(Step, Bool.or(Nat.is_gt(source_bytes, source_cap(limits)), Nat.is_gt((read_bytes + source_bytes : Nat), read_cap(limits))),
-        fail(limits, pending, visited, files, read_bytes, tree_bytes, work, skipped_tree, skipped_excluded, skipped_other, ReadLimit{}),
-        Bool.pick(Step, Bool.or(Nat.is_gt(edge_count(edges), edge_cap(limits)),
-            Nat.is_gt((work + local_work : Nat), work_cap(limits))),
-          fail(limits, pending, visited, files, read_bytes, tree_bytes, work, skipped_tree, skipped_excluded, skipped_other, WorkLimit{}),
-          Bool.pick(Step, Nat.is_gt((tree_bytes + node_bytes : Nat), tree_cap(limits)),
-            Step{Graph{Ready{}, pending_after(pending, edges, depth, True{}), target <> visited, (files + 1n : Nat),
-              read_after(read_bytes, source_bytes), tree_bytes, (work + local_work : Nat), True{}, skipped_excluded, skipped_other, limits},
-              SkipImport{target, TreeLimit{}}},
-            Step{Graph{Ready{}, pending_after(pending, edges, depth, False{}),
-              target <> visited, (files + 1n : Nat), read_after(read_bytes, source_bytes),
-              tree_after(tree_bytes, node_bytes, tree_cap(limits)), (work + local_work : Nat), skipped_tree, skipped_excluded, skipped_other, limits}, NoCommand{}})))
+      Bool.pick(
+        Step,
+        Bool.or(
+          Nat.is_gt(source_bytes, source_cap(limits)),
+          Nat.is_gt((read_bytes + source_bytes : Nat), read_cap(limits))
+        ),
+        fail(
+          limits,
+          pending,
+          visited,
+          files,
+          read_bytes,
+          tree_bytes,
+          work,
+          skipped_tree,
+          skipped_excluded,
+          skipped_other,
+          ReadLimit{}
+        ),
+        Bool.pick(
+          Step,
+          Bool.or(
+            Nat.is_gt(List.length(&2, Nat, edges), edge_cap(limits)),
+            Nat.is_gt((work + local_work : Nat), work_cap(limits))
+          ),
+          fail(
+            limits,
+            pending,
+            visited,
+            files,
+            read_bytes,
+            tree_bytes,
+            work,
+            skipped_tree,
+            skipped_excluded,
+            skipped_other,
+            WorkLimit{}
+          ),
+          Bool.pick(
+            Step,
+            Nat.is_gt((tree_bytes + node_bytes : Nat), tree_cap(limits)),
+            Step{
+              Graph{
+                Ready{},
+                pending_after(pending, edges, depth, True{}),
+                target <> visited,
+                (files + 1n : Nat),
+                read_after(read_bytes, source_bytes),
+                tree_bytes,
+                (work + local_work : Nat),
+                True{},
+                skipped_excluded,
+                skipped_other,
+                limits
+              },
+              SkipImport{target, TreeLimit{}}
+            },
+            Step{
+              Graph{
+                Ready{},
+                pending_after(pending, edges, depth, False{}),
+                target <> visited,
+                (files + 1n : Nat),
+                read_after(read_bytes, source_bytes),
+                tree_after(tree_bytes, node_bytes, tree_cap(limits)),
+                (work + local_work : Nat),
+                skipped_tree,
+                skipped_excluded,
+                skipped_other,
+                limits
+              },
+              NoCommand{}
+            }
+          )
+        )
+      )
 
 def apply(+state: Graph, +event: GraphEvent) -> Step:
   match state:
-    case Graph{phase, +pending, +visited, files, read_bytes, tree_bytes, work, skipped_tree, skipped_excluded, skipped_other, limits}:
+    case Graph{
+      phase,
+      +pending,
+      +visited,
+      files,
+      read_bytes,
+      tree_bytes,
+      work,
+      skipped_tree,
+      skipped_excluded,
+      skipped_other,
+      limits
+    }:
       match phase:
         case Idle{}:
           match event:
             case Root{target, source_bytes, tree_bytes, local_work, edges}:
               root(limits, target, source_bytes, tree_bytes, local_work, edges)
             case _:
-              fail(limits, pending, visited, files, read_bytes, tree_bytes, work, skipped_tree, skipped_excluded, skipped_other, ProtocolViolation{})
+              fail(
+                limits,
+                pending,
+                visited,
+                files,
+                read_bytes,
+                tree_bytes,
+                work,
+                skipped_tree,
+                skipped_excluded,
+                skipped_other,
+                ProtocolViolation{}
+              )
         case Ready{}:
           match event:
             case Next{}:
-              next(limits, pending, visited, files, read_bytes, tree_bytes, work, skipped_tree, skipped_excluded, skipped_other)
+              next(
+                limits,
+                pending,
+                visited,
+                files,
+                read_bytes,
+                tree_bytes,
+                work,
+                skipped_tree,
+                skipped_excluded,
+                skipped_other
+              )
             case _:
-              fail(limits, pending, visited, files, read_bytes, tree_bytes, work, skipped_tree, skipped_excluded, skipped_other, ProtocolViolation{})
+              fail(
+                limits,
+                pending,
+                visited,
+                files,
+                read_bytes,
+                tree_bytes,
+                work,
+                skipped_tree,
+                skipped_excluded,
+                skipped_other,
+                ProtocolViolation{}
+              )
         case Resolving{edge}:
           match event:
             case Resolved{target, result}:
-              resolved(limits, edge, target, result, pending, visited, files, read_bytes, tree_bytes, work, skipped_tree, skipped_excluded, skipped_other)
+              resolved(
+                limits,
+                edge,
+                target,
+                result,
+                pending,
+                visited,
+                files,
+                read_bytes,
+                tree_bytes,
+                work,
+                skipped_tree,
+                skipped_excluded,
+                skipped_other
+              )
             case _:
-              fail(limits, pending, visited, files, read_bytes, tree_bytes, work, skipped_tree, skipped_excluded, skipped_other, ProtocolViolation{})
+              fail(
+                limits,
+                pending,
+                visited,
+                files,
+                read_bytes,
+                tree_bytes,
+                work,
+                skipped_tree,
+                skipped_excluded,
+                skipped_other,
+                ProtocolViolation{}
+              )
         case Checking{edge, target}:
           match event:
             case PathChecked{allowed}:
-              checked(limits, edge, target, allowed, pending, visited, files, read_bytes, tree_bytes, work, skipped_tree, skipped_excluded, skipped_other)
+              checked(
+                limits,
+                edge,
+                target,
+                allowed,
+                pending,
+                visited,
+                files,
+                read_bytes,
+                tree_bytes,
+                work,
+                skipped_tree,
+                skipped_excluded,
+                skipped_other
+              )
             case _:
-              fail(limits, pending, visited, files, read_bytes, tree_bytes, work, skipped_tree, skipped_excluded, skipped_other, ProtocolViolation{})
+              fail(
+                limits,
+                pending,
+                visited,
+                files,
+                read_bytes,
+                tree_bytes,
+                work,
+                skipped_tree,
+                skipped_excluded,
+                skipped_other,
+                ProtocolViolation{}
+              )
         case Capturing{edge, target}:
           match event:
             case Captured{source_bytes, node_bytes, local_work, edges}:
-              captured(limits, edge, target, source_bytes, node_bytes, local_work, edges,
-                pending, visited, files, read_bytes, tree_bytes, work, skipped_tree, skipped_excluded, skipped_other)
+              captured(
+                limits,
+                edge,
+                target,
+                source_bytes,
+                node_bytes,
+                local_work,
+                edges,
+                pending,
+                visited,
+                files,
+                read_bytes,
+                tree_bytes,
+                work,
+                skipped_tree,
+                skipped_excluded,
+                skipped_other
+              )
             case CaptureFailed{}:
-              Step{Graph{Ready{}, pending, target <> visited, files, read_bytes, tree_bytes,
-                work, skipped_tree, skipped_excluded, True{}, limits}, SkipImport{target, CaptureUnavailable{}}}
+              Step{
+                Graph{
+                  Ready{},
+                  pending,
+                  target <> visited,
+                  files,
+                  read_bytes,
+                  tree_bytes,
+                  work,
+                  skipped_tree,
+                  skipped_excluded,
+                  True{},
+                  limits
+                },
+                SkipImport{target, CaptureUnavailable{}}
+              }
             case _:
-              fail(limits, pending, visited, files, read_bytes, tree_bytes, work, skipped_tree, skipped_excluded, skipped_other, ProtocolViolation{})
+              fail(
+                limits,
+                pending,
+                visited,
+                files,
+                read_bytes,
+                tree_bytes,
+                work,
+                skipped_tree,
+                skipped_excluded,
+                skipped_other,
+                ProtocolViolation{}
+              )
         case Complete{}:
-          Step{Graph{Complete{}, pending, visited, files, read_bytes, tree_bytes, work, skipped_tree, skipped_excluded, skipped_other, limits}, NoCommand{}}
+          Step{
+            Graph{
+              Complete{},
+              pending,
+              visited,
+              files,
+              read_bytes,
+              tree_bytes,
+              work,
+              skipped_tree,
+              skipped_excluded,
+              skipped_other,
+              limits
+            },
+            NoCommand{}
+          }
         case Incomplete{reason}:
-          Step{Graph{Incomplete{reason}, pending, visited, files, read_bytes, tree_bytes, work, skipped_tree, skipped_excluded, skipped_other, limits}, NoCommand{}}
+          Step{
+            Graph{
+              Incomplete{reason},
+              pending,
+              visited,
+              files,
+              read_bytes,
+              tree_bytes,
+              work,
+              skipped_tree,
+              skipped_excluded,
+              skipped_other,
+              limits
+            },
+            NoCommand{}
+          }
 
 def deadline(state: Graph) -> Step:
   match state:
-    case Graph{phase, +pending, +visited, files, read_bytes, tree_bytes, work, skipped_tree, skipped_excluded, skipped_other, limits}:
+    case Graph{
+      phase,
+      +pending,
+      +visited,
+      files,
+      read_bytes,
+      tree_bytes,
+      work,
+      skipped_tree,
+      skipped_excluded,
+      skipped_other,
+      limits
+    }:
       match phase:
         case Complete{}:
-          Step{Graph{Complete{}, pending, visited, files, read_bytes, tree_bytes, work, skipped_tree, skipped_excluded, skipped_other, limits}, NoCommand{}}
+          Step{
+            Graph{
+              Complete{},
+              pending,
+              visited,
+              files,
+              read_bytes,
+              tree_bytes,
+              work,
+              skipped_tree,
+              skipped_excluded,
+              skipped_other,
+              limits
+            },
+            NoCommand{}
+          }
         case Incomplete{reason}:
-          Step{Graph{Incomplete{reason}, pending, visited, files, read_bytes, tree_bytes, work, skipped_tree, skipped_excluded, skipped_other, limits}, NoCommand{}}
+          Step{
+            Graph{
+              Incomplete{reason},
+              pending,
+              visited,
+              files,
+              read_bytes,
+              tree_bytes,
+              work,
+              skipped_tree,
+              skipped_excluded,
+              skipped_other,
+              limits
+            },
+            NoCommand{}
+          }
         case _:
-          fail(limits, pending, visited, files, read_bytes, tree_bytes, work, skipped_tree, skipped_excluded, skipped_other, Deadline{})
+          fail(
+            limits,
+            pending,
+            visited,
+            files,
+            read_bytes,
+            tree_bytes,
+            work,
+            skipped_tree,
+            skipped_excluded,
+            skipped_other,
+            Deadline{}
+          )
 
 def step(+state: Graph, +event: GraphEvent) -> Step:
   match event:
@@ -402,7 +976,12 @@ def event_rest(events: List<&2, GraphEvent>) -> List<&2, GraphEvent>:
     case _ <> rest:
       rest
 
-def responsive_run(steps: Nat, +state: Bounded, +events: List<&2, GraphEvent>, +fallback: GraphEvent) -> Bounded:
+def responsive_run(
+  steps: Nat,
+  +state: Bounded,
+  +events: List<&2, GraphEvent>,
+  +fallback: GraphEvent
+) -> Bounded:
   match steps:
     case 0n:
       bounded_state(bounded_step(state, event_value(events, fallback)))

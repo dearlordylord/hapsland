@@ -2,12 +2,12 @@ import { expect, it } from "vitest"
 import * as Effect from "effect/Effect"
 import { writeFile, mkdir } from "node:fs/promises"
 import { join } from "node:path"
-import { makeGitFixture } from "./test-fixtures.ts"
-import { adaptPiDirectEvent, adaptPiHookIdentity } from "./pi-adapter.ts"
-import { MAX_SOURCE_BYTES } from "./capture.ts"
-import { analyzeFunctionFile } from "./function-analyzer.ts"
-import { selectEditedRoots } from "./edit-attribution.ts"
-import { verifyCodexPostEditHunks } from "./codex-patch-hunks.ts"
+import { makeGitFixture } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { adaptPiDirectEvent, adaptPiHookIdentity } from "@hapsland/native-observation/direct-event/pi-adapter"
+import { MAX_SOURCE_BYTES } from "@hapsland/native-observation/direct-event/capture"
+import { analyzeFunctionFile } from "@hapsland/source-analysis/direct-event/function-analyzer"
+import { selectEditedRoots } from "@hapsland/native-observation/direct-event/edit-attribution"
+import { verifyCodexPostEditHunks } from "@hapsland/native-observation/direct-event/codex-patch-hunks"
 
 const fixture = async () => {
   const root = await makeGitFixture()

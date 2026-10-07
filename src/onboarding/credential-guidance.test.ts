@@ -1,5 +1,5 @@
 import { expect, it } from "vitest"
-import { credentialSourceGuidance } from "./credential-guidance.ts"
+import { credentialSourceGuidance } from "@hapsland/administration/onboarding/credential-guidance"
 
 it.each(["claude", "codex", "pi"] as const)("names the actual source and replacement for %s", (host) => {
   const common = { envVar: "CUSTOM_KEY", provider: "jev", environmentOnly: false }

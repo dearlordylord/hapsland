@@ -6,7 +6,7 @@ import {
   permitLocalGraphFacts,
   projectImportGraph,
   stepImportGraph
-} from "../import-graph-adapter.ts"
+} from "@hapsland/canonical-policy/canonical/graph-adapter"
 
 const fixture = JSON.parse(
   readFileSync(resolve(import.meta.dirname, "../../../conformance/import-graph-v1.json"), "utf8")

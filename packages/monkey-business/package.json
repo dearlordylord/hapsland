@@ -4,10 +4,112 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./advicee-lifecycle": {
+      "types": "./src/advicee-lifecycle.ts",
+      "default": "./src/advicee-lifecycle.ts"
+    },
+    "./callback-controls": {
+      "types": "./src/callback-controls.ts",
+      "default": "./src/callback-controls.ts"
+    },
+    "./callback-native-codec": {
+      "types": "./src/callback-native-codec.ts",
+      "default": "./src/callback-native-codec.ts"
+    },
+    "./callback-native-prefix": {
+      "types": "./src/callback-native-prefix.ts",
+      "default": "./src/callback-native-prefix.ts"
+    },
+    "./collection-scenario": {
+      "types": "./src/collection-scenario.ts",
+      "default": "./src/collection-scenario.ts"
+    },
+    "./collector-codec": {
+      "types": "./src/collector-codec.ts",
+      "default": "./src/collector-codec.ts"
+    },
+    "./driver-codec": {
+      "types": "./src/driver-codec.ts",
+      "default": "./src/driver-codec.ts"
+    },
+    "./expiry-controls": {
+      "types": "./src/expiry-controls.ts",
+      "default": "./src/expiry-controls.ts"
+    },
+    "./file-trees": {
+      "types": "./src/file-trees.ts",
+      "default": "./src/file-trees.ts"
+    },
+    "./index": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./jev-interventions": {
+      "types": "./src/jev-interventions.ts",
+      "default": "./src/jev-interventions.ts"
+    },
+    "./notice-controls": {
+      "types": "./src/notice-controls.ts",
+      "default": "./src/notice-controls.ts"
+    },
+    "./numeric-codec": {
+      "types": "./src/numeric-codec.ts",
+      "default": "./src/numeric-codec.ts"
+    },
+    "./outcomes": {
+      "types": "./src/outcomes.ts",
+      "default": "./src/outcomes.ts"
+    },
+    "./output-controls": {
+      "types": "./src/output-controls.ts",
+      "default": "./src/output-controls.ts"
+    },
+    "./permit-controls": {
+      "types": "./src/permit-controls.ts",
+      "default": "./src/permit-controls.ts"
+    },
+    "./preparation": {
+      "types": "./src/preparation.ts",
+      "default": "./src/preparation.ts"
+    },
+    "./sharing-native-boundary": {
+      "types": "./src/sharing-native-boundary.ts",
+      "default": "./src/sharing-native-boundary.ts"
+    },
+    "./stop-codec": {
+      "types": "./src/stop-codec.ts",
+      "default": "./src/stop-codec.ts"
+    },
+    "./writer-controls": {
+      "types": "./src/writer-controls.ts",
+      "default": "./src/writer-controls.ts"
+    }
   },
   "scripts": {
-    "test": "vitest run src/*.test.ts --config ../../vitest.config.ts --maxWorkers=1",
-    "typecheck": "tsc -p tsconfig.json"
+    "test": "vitest run src/*.test.ts --config ../../scripts/vitest.config.ts --maxWorkers=1",
+    "typecheck": "node ../../scripts/pinned-typescript.mjs -p tsconfig.json"
+  },
+  "dependencies": {
+    "@hapsland/agent-flow-bend": "workspace:*",
+    "@hapsland/agent-flow-viz": "workspace:*",
+    "@hapsland/build-tooling": "workspace:*",
+    "@hapsland/canonical-policy": "workspace:*",
+    "@hapsland/monkey-business-bend": "workspace:*",
+    "@hapsland/review-definition": "workspace:*",
+    "@hapsland/runtime-inputs": "workspace:*",
+    "@hapsland/verification": "workspace:*",
+    "effect": "catalog:",
+    "fast-check": "catalog:",
+    "vitest": "catalog:"
+  },
+  "hapsland": {
+    "workspaceRole": "verification"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
   }
 }

@@ -1,6 +1,10 @@
 import { it, expect } from "@effect/vitest"
 import { Deferred, Effect, Fiber } from "effect"
-import { selectSetupClients, type SelectionKey, type SelectionTerminal } from "./client-selection.ts"
+import {
+  selectSetupClients,
+  type SelectionKey,
+  type SelectionTerminal
+} from "@hapsland/administration/onboarding/client-selection"
 
 const choices = [
   { host: "claude", name: "Claude Code", status: "installed" },

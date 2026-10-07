@@ -71,7 +71,7 @@ Detection uses all three layouts with two reviews per input and product. Native 
 
 ## Inspect the checks
 
-Compiler probes supply complete variable assignments for both valid modes and invalid combinations, and check that independent configuration fields retain their original types and requiredness.
+Compiler probes supply complete variable assignments for both valid modes and inaccepted combinations, and check that independent configuration fields retain their original types and requiredness.
 
 Detection false warnings on six clean observations: **Hapsland 0/6; Abide 0/6**. Those six observations repeat the three valid layouts; they are not six independent clean designs.
 

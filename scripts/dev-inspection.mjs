@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises"
 import { resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { Effect } from "effect"
-import { runInspectionDashboard } from "../src/inspection/command.ts"
+import { runInspectionDashboard } from "@hapsland/administration/inspection/command"
 
 const reloadScript = `
 const revision = document.querySelector('meta[name="hapsland-dev-revision"]').content;
@@ -24,7 +24,9 @@ const hash = (value) => createHash("sha256").update(value).digest("hex")
 const reloadHash = createHash("sha256").update(reloadScript).digest("base64")
 
 /** Reload only the page module; the journal server and its capability stay alive. */
-export const makeDevelopmentInspectionPage = (source = new URL("../src/inspection/page.ts", import.meta.url)) => {
+export const makeDevelopmentInspectionPage = (
+  source = new URL("../packages/administration/src/inspection/page.ts", import.meta.url)
+) => {
   let revision
   let page
   return async () => {

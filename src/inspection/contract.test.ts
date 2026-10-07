@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto"
 import { expect, it } from "vitest"
-import { decodeInspectionRecord, inspectionSourceId } from "./contract.ts"
+import { decodeInspectionRecord, inspectionSourceId } from "@hapsland/inspection-records/inspection/contract"
 
 it("bounds general agent messages by UTF-8 bytes and rejects native output envelopes", () => {
   const record = {

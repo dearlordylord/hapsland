@@ -1,11 +1,11 @@
-import { runClient } from "../src/test-support/client-runtime.ts"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
 // One bounded real Claude Code + Jev observation. Raw host and backend data stay temporary.
 import { spawn, spawnSync } from "node:child_process"
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
-import { residentRequestEffect as residentRequest } from "../src/resident/client.ts"
-import { residentPaths } from "../src/resident/paths.ts"
+import { residentRequestEffect as residentRequest } from "@hapsland/resident-transport/resident/client"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 
 const project = resolve(import.meta.dirname, "..")
 const key = process.env.TYPESAFE_API_KEY
@@ -146,7 +146,7 @@ import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 const input=readFileSync(0,'utf8');let event;try{event=JSON.parse(input)}catch{}
 const at=Date.now();
-const result=spawnSync(process.execPath,[${JSON.stringify(join(project, "src/cli.ts"))},'--claude-hook','--controlled-writer','--composed-edit-hook'${offlineControl ? ",'--controlled-reviewer'" : ""}],{input,encoding:'utf8',env:process.env,timeout:30000,maxBuffer:1048576});
+const result=spawnSync(process.execPath,[${JSON.stringify(join(project, "packages/hook-entry/src/hook-main.ts"))},'--claude-hook','--controlled-writer','--composed-edit-hook'${offlineControl ? ",'--controlled-reviewer'" : ""}],{input,encoding:'utf8',env:process.env,timeout:30000,maxBuffer:1048576});
 let out;try{out=JSON.parse(result.stdout)}catch{}
 const reason=out?.reason??out?.hookSpecificOutput?.additionalContext??'';
 const source=${JSON.stringify(sourcePath)};
@@ -163,7 +163,7 @@ import {spawnSync} from 'node:child_process';
 const kind=process.argv[2];
 const input=readFileSync(0,'utf8');
 const at=Date.now();
-const result=spawnSync(process.execPath,[${JSON.stringify(join(project, "src/cli.ts"))},'--composed-'+kind+'-hook','--composed-host=claude-code'${offlineControl ? ",'--controlled-reviewer'" : ""}],{input,encoding:'utf8',env:process.env,timeout:30000,maxBuffer:1048576});
+const result=spawnSync(process.execPath,[${JSON.stringify(join(project, "packages/hook-entry/src/hook-main.ts"))},'--composed-'+kind+'-hook','--composed-host=claude-code'${offlineControl ? ",'--controlled-reviewer'" : ""}],{input,encoding:'utf8',env:process.env,timeout:30000,maxBuffer:1048576});
 let output;try{output=JSON.parse(result.stdout)}catch{}
 const message=output?.reason??output?.hookSpecificOutput?.additionalContext??output?.systemMessage??'';
 appendFileSync(process.env.HAPSLAND_136_EVENTS,JSON.stringify({kind:'composed-'+kind,at,doneAt:Date.now(),exitCode:result.status,decision:output?.decision??null,finding:output?.decision==='block'||message.includes('[r6_bare_domain_value, p='),notice:message.includes('Operational notice:'),ruleIds:[...message.matchAll(/\\[([a-z0-9_]+), p=/g)].map(match=>match[1])})+'\\n',{mode:0o600});

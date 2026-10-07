@@ -1,18 +1,22 @@
-import { reviewControlsLayer } from "../test-support/review-controls.ts"
-import { makePreparationControls } from "../test-support/preparation-controls.ts"
+import { reviewControlsLayer } from "@hapsland/build-tooling/test-support/review-controls"
+import { makePreparationControls } from "@hapsland/build-tooling/test-support/preparation-controls"
 import { acquireResidentFixture } from "./runtime-fixture.ts"
 import { describe, expect, it, vi } from "vitest"
 import * as Effect from "effect/Effect"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { existsSync } from "node:fs"
-import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
-import { addEvent, makeReviewGitFixture as makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../test-support/default-rules.ts"
-import { residentPaths } from "./paths.ts"
-import { type JevRequestObservation } from "./server.ts"
-import { makeResidentState } from "./capacity.ts"
-import { captureStable } from "../direct-event/capture.ts"
-import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import {
+  addEvent,
+  makeReviewGitFixture as makeGitFixture,
+  put
+} from "@hapsland/build-tooling/test-support/test-fixtures"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
+import { type JevRequestObservation } from "@hapsland/resident-runtime/resident/server"
+import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
+import { captureStable } from "@hapsland/native-observation/direct-event/capture"
+import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 
 const deferred = () => {
   let resolve!: () => void
@@ -65,7 +69,7 @@ describe("canonical Jev request boundary", () => {
           await Effect.runPromise(
             server.admit(observation, {
               statePath: join(root, "consent"),
-              userConfigPath: null,
+              userConfigPath: join(root, "absent-fixture-user.jsonc"),
               credential: null,
               controlled: { capturePath }
             })
@@ -114,7 +118,7 @@ describe("canonical Jev request boundary", () => {
           await Effect.runPromise(
             server.admit(observation, {
               statePath,
-              userConfigPath: null,
+              userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
               credential: null,
               controlled: { capturePath }
             })
@@ -164,7 +168,7 @@ describe("canonical Jev request boundary", () => {
           await Effect.runPromise(
             server.admit(observation, {
               statePath,
-              userConfigPath: null,
+              userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
               credential: null,
               controlled: { capturePath }
             })
@@ -201,7 +205,12 @@ describe("canonical Jev request boundary", () => {
         identity
       )
     const capturePath = join(root, "provider-calls.txt")
-    const dispatch = { statePath, userConfigPath: null, credential: null, controlled: { capturePath } }
+    const dispatch = {
+      statePath,
+      userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
+      credential: null,
+      controlled: { capturePath }
+    }
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, { captureSource })
     try {
       expect((await Effect.runPromise(server.admit(observation, dispatch))).status).toBe("accepted")
@@ -261,7 +270,12 @@ describe("canonical Jev request boundary", () => {
     }
     const capturePath = join(root, "provider-calls.txt")
     const observations: JevRequestObservation[] = []
-    const dispatch = { statePath, userConfigPath: null, credential: null, controlled: { capturePath } }
+    const dispatch = {
+      statePath,
+      userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
+      credential: null,
+      controlled: { capturePath }
+    }
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       jevRequestObserver: (observation) => {
         observations.push(observation)
@@ -335,7 +349,7 @@ describe("canonical Jev request boundary", () => {
     }
     const dispatch = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
       credential: null,
       controlled: {
         answers: Object.fromEntries(
@@ -422,7 +436,7 @@ describe("canonical Jev request boundary", () => {
     }
     const dispatch = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
       credential: null,
       controlled: {
         answers: Object.fromEntries(
@@ -582,7 +596,12 @@ describe("canonical Jev request boundary", () => {
         }
       }
     })
-    const dispatch = { statePath, userConfigPath: null, credential: null, controlled: { delayMs: 16_000 } }
+    const dispatch = {
+      statePath,
+      userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
+      credential: null,
+      controlled: { delayMs: 16_000 }
+    }
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] })
     try {
       expect((await Effect.runPromise(server.admit(prepared[0]!, dispatch))).status).toBe("accepted")

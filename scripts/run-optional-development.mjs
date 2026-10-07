@@ -1,3 +1,4 @@
+import { resolvePinnedTypeScript } from "./pinned-typescript.mjs"
 import { readdirSync } from "node:fs"
 import { resolve, relative } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -42,7 +43,7 @@ try {
       scope === "game"
         ? await run.runStage({
             name: "game-lab-types",
-            command: resolve(root, "node_modules/.bin/tsc"),
+            command: (await resolvePinnedTypeScript()).executable,
             args: ["-p", "prototypes/canonical-defense/lab/tsconfig.json", "--noEmit"]
           })
         : undefined

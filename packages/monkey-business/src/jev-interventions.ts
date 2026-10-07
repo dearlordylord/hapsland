@@ -1,4 +1,4 @@
-import type { JevRequestOutcome } from "../../../src/canonical/adapter.ts"
+import type { JevRequestOutcome } from "@hapsland/canonical-policy/canonical/adapter"
 
 export type JevRequestTarget = {
   readonly partition: number

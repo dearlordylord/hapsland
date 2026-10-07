@@ -1,8 +1,9 @@
+import { BUN_VERSION } from "./pinned-bun.mjs"
 import { spawnSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import { readFileSync } from "node:fs"
 import { basename } from "node:path"
-import { ensurePackageArtifact } from "./artifact-store.mjs"
+import { preparePackageArchive } from "./artifact-store.mjs"
 import { validateReleaseCoordinates } from "./release-coordinates.mjs"
 
 if (process.argv.length > 2)
@@ -54,7 +55,7 @@ if (
   manifest.name !== packageName ||
   manifest.version !== version ||
   manifest.private === true ||
-  manifest.packageManager !== "bun@1.3.14"
+  manifest.packageManager !== `bun@${BUN_VERSION}`
 ) {
   throw new Error(`release manifest does not match ${packageName}@${version}`)
 }
@@ -65,15 +66,14 @@ checked("mise", ["exec", manifest.packageManager, "--", "bun", "install", "--fro
   env: { ...process.env, CI: "true" }
 })
 if (!clean()) throw new Error("frozen dependency installation changed tracked or untracked files")
-const artifact = await ensurePackageArtifact({
+const artifact = await preparePackageArchive({
   root: process.cwd(),
   recipe: "release",
-  runStage: async ({ command, args }) => {
-    checked(command, args, { stdio: "inherit" })
+  runStage: async ({ command, args, env }) => {
+    checked(command, args, { stdio: "inherit", env })
     return { exitCode: 0 }
   }
 })
-checked("npm", ["run", "verify:release-native"], { stdio: "inherit" })
 if (!clean()) throw new Error("release build changed tracked or untracked files")
 const archive = artifact.archivePath
 if (basename(archive) !== releasePin.archiveFilename)

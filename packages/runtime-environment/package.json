@@ -1,0 +1,83 @@
+{
+  "name": "@hapsland/runtime-environment",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./process/closed-stdin": {
+      "types": "./dist/process/closed-stdin.d.ts",
+      "default": "./dist/process/closed-stdin.js"
+    },
+    "./runtime/agent-clients": {
+      "types": "./dist/runtime/agent-clients.d.ts",
+      "default": "./dist/runtime/agent-clients.js"
+    },
+    "./runtime/argument-flags": {
+      "types": "./dist/runtime/argument-flags.d.ts",
+      "default": "./dist/runtime/argument-flags.js"
+    },
+    "./runtime/backend": {
+      "types": "./dist/runtime/backend.d.ts",
+      "default": "./dist/runtime/backend.js"
+    },
+    "./runtime/bun-runtime": {
+      "types": "./dist/runtime/bun-runtime.d.ts",
+      "default": "./dist/runtime/bun-runtime.js"
+    },
+    "./runtime/cli-information": {
+      "types": "./dist/runtime/cli-information.d.ts",
+      "default": "./dist/runtime/cli-information.js"
+    },
+    "./runtime/cli-names": {
+      "types": "./dist/runtime/cli-names.d.ts",
+      "default": "./dist/runtime/cli-names.js"
+    },
+    "./runtime/hook-catalog": {
+      "types": "./dist/runtime/hook-catalog.d.ts",
+      "default": "./dist/runtime/hook-catalog.js"
+    },
+    "./runtime/hook-invocation": {
+      "types": "./dist/runtime/hook-invocation.d.ts",
+      "default": "./dist/runtime/hook-invocation.js"
+    },
+    "./runtime/machine-clock": {
+      "types": "./dist/runtime/machine-clock.d.ts",
+      "default": "./dist/runtime/machine-clock.js"
+    },
+    "./runtime/package-runtime": {
+      "types": "./dist/runtime/package-runtime.d.ts",
+      "default": "./dist/runtime/package-runtime.js"
+    },
+    "./runtime/review-engine-boundary": {
+      "types": "./dist/runtime/review-engine-boundary.d.ts",
+      "default": "./dist/runtime/review-engine-boundary.js"
+    },
+    "./runtime/source-runtime-layout": {
+      "types": "./dist/runtime/source-runtime-layout.d.ts",
+      "default": "./dist/runtime/source-runtime-layout.js"
+    },
+    "./runtime/user-paths": {
+      "types": "./dist/runtime/user-paths.d.ts",
+      "default": "./dist/runtime/user-paths.js"
+    }
+  },
+  "dependencies": {
+    "effect": "catalog:"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
+  },
+  "hapsland": {
+    "domain": "runtime-environment",
+    "host": "bun",
+    "hostOutputDirectory": "dist",
+    "capabilities": [],
+    "generated": [
+      "src/runtime/release-identity.generated.ts"
+    ],
+    "loaderPolicies": {
+      "src/runtime/machine-clock.ts": "machine-clock-ffi"
+    }
+  }
+}

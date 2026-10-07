@@ -5,6 +5,7 @@ import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { test } from "node:test"
 import { prepareArchive } from "./prepare-archive.mjs"
+import { packageSourceIdentity } from "../artifact-store.mjs"
 import { sourceIdentity } from "./source-identity.mjs"
 
 async function fixture(t) {
@@ -53,15 +54,15 @@ test("builds and packs once, records fresh archive evidence, refuses an occupied
   const result = await prepareArchive({ ...settings, runStage })
   assert.deepEqual(
     calls.map((stage) => stage.name),
-    ["package-build", "package-pack"]
+    ["package-build", "package-validation", "package-pack"]
   )
-  assert.equal(calls[1].command, process.execPath)
-  assert.equal(calls[1].args[0], join(settings.root, "scripts/dev-pack.mjs"))
-  assert.equal(result.sourceDigest, await sourceIdentity(settings.root))
+  assert.equal(calls[2].command, process.execPath)
+  assert.equal(calls[2].args[0], join(settings.root, "scripts/dev-pack.mjs"))
+  assert.equal(result.sourceDigest, await packageSourceIdentity(settings.root))
   assert.match(result.archiveDigest, /^[a-f0-9]{64}$/)
   assert.deepEqual(JSON.parse(await readFile(join(settings.runDirectory, "archive.json"), "utf8")), result)
   await assert.rejects(prepareArchive({ ...settings, runStage }), /must be empty/)
-  assert.equal(calls.length, 2)
+  assert.equal(calls.length, 3)
 })
 
 test("source mutation during build rejects the archive before packing", async (t) => {
@@ -156,4 +157,41 @@ test("changes to manifests, test fixtures and newly added tooling remain verific
     await writeFile(join(root, path), "new input")
     assert.notEqual(await sourceIdentity(root), before, path)
   }
+})
+test("exact generated-output exclusions preserve foreign supplier and authored-input evidence", async (t) => {
+  const { root } = await fixture(t)
+  for (const name of [
+    "native/prebuilt/linux-arm64/helper",
+    "native/prebuilt/darwin-arm64/helper",
+    "native/prebuilt/linux-arm64/tree-sitter/binding.node",
+    "packages/owner/dist/module.js"
+  ]) {
+    await mkdir(dirname(join(root, name)), { recursive: true })
+    await writeFile(join(root, name), "before")
+  }
+  const options = {
+    excludedFiles: ["native/prebuilt/linux-arm64/helper"],
+    excludedDirectories: ["packages/owner/dist"]
+  }
+  const before = await sourceIdentity(root, undefined, undefined, options)
+  await writeFile(join(root, "native/prebuilt/linux-arm64/helper"), "regenerated")
+  await writeFile(join(root, "packages/owner/dist/module.js"), "regenerated")
+  assert.equal(await sourceIdentity(root, undefined, undefined, options), before)
+  await writeFile(join(root, "native/prebuilt/darwin-arm64/helper"), "changed supplier")
+  assert.notEqual(await sourceIdentity(root, undefined, undefined, options), before)
+  await writeFile(join(root, "native/prebuilt/darwin-arm64/helper"), "before")
+  await writeFile(join(root, "native/prebuilt/linux-arm64/tree-sitter/binding.node"), "changed parser supplier")
+  assert.notEqual(await sourceIdentity(root, undefined, undefined, options), before)
+})
+test("output exclusions do not widen the default verification input scope", async (t) => {
+  const { root } = await fixture(t),
+    options = { excludedFiles: ["native/generated-helper"] }
+  await mkdir(join(root, "docs"))
+  const before = await sourceIdentity(root, undefined, undefined, options)
+  await writeFile(join(root, "docs/unused-research.md"), "unrelated")
+  assert.equal(await sourceIdentity(root, undefined, undefined, options), before)
+  assert.throws(
+    () => sourceIdentity(root, undefined, undefined, { excludedDirectories: ["../src"] }),
+    /exact relative owner paths/
+  )
 })

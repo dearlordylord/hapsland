@@ -1,10 +1,15 @@
+import { readCredentialState } from "@hapsland/runtime-inputs/credentials/state"
 import { expect, it } from "@effect/vitest"
 import { ConfigProvider, Effect, Fiber } from "effect"
 import { existsSync, mkdtempSync, readFileSync, rmSync, watch, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { runSecretServiceProcess } from "./secret-service-process.ts"
-import { readCredentialState, resolveCredential, runSecretService, saveCredential } from "./secret-service.ts"
+import { runSecretServiceProcess } from "@hapsland/credential-storage/credentials/secret-service-process"
+import {
+  resolveCredential,
+  runSecretService,
+  saveCredential
+} from "@hapsland/credential-storage/credentials/secret-service"
 
 const fixture = (body: string) =>
   Effect.acquireRelease(

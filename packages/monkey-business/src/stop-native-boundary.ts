@@ -3,9 +3,9 @@ import {
   encodeCanonicalEvent,
   decodeTrustedCanonicalStep,
   projectTrustedCanonical
-} from "../../../src/canonical/canonical-boundary.ts"
-import { encodeImportGraphEvent, projectImportGraph } from "../../../src/canonical/graph-adapter.ts"
-import { readBendList, readRecord, readNat, readBool } from "../../../src/canonical/boundary-schema.ts"
+} from "@hapsland/canonical-policy/canonical/canonical-boundary"
+import { encodeImportGraphEvent, projectImportGraph } from "@hapsland/canonical-policy/canonical/graph-adapter"
+import { readBendList, readRecord, readNat, readBool } from "@hapsland/canonical-policy/canonical/boundary-schema"
 import { decodePrefixCanonicalEvent, decodePrefixGraphEvent } from "./callback-native-codec.ts"
 import { decodeDriver, encodeDriverOutcome } from "./driver-codec.ts"
 import { decodeOutputCapture } from "./output-controls.ts"

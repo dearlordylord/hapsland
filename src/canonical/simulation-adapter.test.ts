@@ -16,8 +16,12 @@ import {
   afterSharedNotice
 } from "./simulation-adapter.ts"
 import SharedEngine from "../../packages/monkey-business-bend/engine.mjs"
-import { encodeCanonicalEvent } from "./canonical-boundary.ts"
-import { encodeEngineValue, encodeSharedValue, decodeSharedValue } from "./simulation-codec.ts"
+import { encodeCanonicalEvent } from "@hapsland/canonical-policy/canonical/canonical-boundary"
+import {
+  encodeEngineValue,
+  encodeSharedValue,
+  decodeSharedValue
+} from "@hapsland/canonical-policy/canonical/simulation-codec"
 
 const limits = { globalItems: 32, globalBytes: 4096, partitionItems: 16, partitionBytes: 2048 }
 describe("trusted simulation composition boundary", () => {
@@ -307,6 +311,7 @@ describe("trusted simulation composition boundary", () => {
     ]) {
       expect(() => interveneSharedOutput(state, scope, outcome)).toThrow()
     }
+    expect(() => interveneSharedOutput(state, target, "certain", {})).toThrow("foreign output receipt")
     expect(sharedCallbackOriginals(state)).toEqual([])
     expect(queuedShared(state)).toEqual([])
   })

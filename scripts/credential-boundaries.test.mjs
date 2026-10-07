@@ -32,7 +32,7 @@ function fixture(script, check) {
 
 test("configuration boundary rejects unredacted shared credential input", () => {
   fixture("check-configuration-boundary.mjs", (root, run) => {
-    const file = join(root, "src/credentials/input.ts")
+    const file = join(root, "packages/runtime-inputs/src/credentials/input.ts")
     writeFileSync(
       file,
       readFileSync(file, "utf8").replace("readonly value?: Redacted.Redacted", "readonly value?: string")
@@ -45,7 +45,7 @@ test("configuration boundary rejects unredacted shared credential input", () => 
 
 test("configuration boundary rejects unwrapping a key in the shared input reader", () => {
   fixture("check-configuration-boundary.mjs", (root, run) => {
-    const file = join(root, "src/credentials/input.ts")
+    const file = join(root, "packages/runtime-inputs/src/credentials/input.ts")
     writeFileSync(file, readFileSync(file, "utf8") + "\n// Redacted.value(input.value)\n")
     assert.notEqual(run().status, 0)
   })
@@ -53,7 +53,7 @@ test("configuration boundary rejects unwrapping a key in the shared input reader
 
 test("retention boundary accepts formatting but rejects a changed peak operand", () => {
   fixture("check-retention-boundary.mjs", (root, run) => {
-    const file = join(root, "src/resident/capacity.ts")
+    const file = join(root, "packages/resident-runtime/src/resident/capacity.ts")
     writeFileSync(
       file,
       readFileSync(file, "utf8").replace(

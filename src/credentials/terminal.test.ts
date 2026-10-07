@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { terminalModeArguments } from "./terminal.ts"
+import { terminalModeArguments } from "@hapsland/administration/credentials/terminal"
 
 describe("terminal mode arguments", () => {
   it("uses the GNU device flag on Linux", () => {

@@ -127,7 +127,7 @@ The no-review arm is a methodology control, not a third review product: 1/16 def
 
 ### What reaches the agent
 
-Hapsland's [shared formatter](../src/feedback/message.ts) sends:
+Hapsland's [shared formatter](../packages/delivery-output/src/feedback/message.ts) sends:
 
 ```text
 Hapsland

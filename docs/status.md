@@ -6,19 +6,19 @@
 **Expected use:** Diagnose readiness and inspect recorded session work.
 **Lifecycle:** Update with status, analytics, inspection, configuration, or retention changes; review when runtime instrumentation or storage behavior changes.
 
-## Supported source languages
+## Source languages
 
 Hapsland reviews TypeScript interfaces, type aliases, and named functions, plus
 Rust structs, enums, and type aliases, and Bend `type` datatypes. Rust type
 context follows explicit local module bindings whose crate and module roles
 are verified from Cargo metadata and `mod` declarations. External crates,
 re-exports, inline modules, functions, macros, and conditional compilation are
-unsupported. Bend supports bounded transitive context through explicit relative
+unsupported. Bend supports transitive context through explicit relative
 `.bend` imports with aliases. Bend functions, dependent types, laws/proofs, and
 hub, bare, or absolute imports are unsupported; this profile also skips files
 with string literals and requires single-line constructors indented with two spaces.
-See the [supported-language table](../README.md#supported-languages) for file
-extensions and limitations. An eligible file can still be skipped when its
+See the [language table](../README.md#languages-and-limits) for file
+extensions and limitations. A file can still be skipped when its
 syntax or supporting evidence is unsupported; a skipped edit is not a clean
 review result.
 
@@ -40,14 +40,14 @@ presence in the doctor process, and effective file settings for the canonical re
 names that inspected context; actual-hook and saved-credential accessibility remain
 `unknown` until an independent, nonprompting probe verifies them. It
 does not prompt, repair configuration, launch the resident, read source, or call Jev.
-Host trust and saved-credential accessibility are `unknown` when no bounded,
+Host trust and saved-credential accessibility are `unknown` when no time-limited,
 nonprompting query exists. Every non-ready stage includes one action in `nextSteps`.
 
-The production hooks and resident record bounded, immutable, source-free activity
+The production hooks and resident record immutable, source-free activity
 markers for each observed event. Session, child, repository, event, and semantic unit
 identities are hashed before persistence. At most 256 events and 72 current semantic
 markers per event are retained per session. Markers contain only stage,
-timestamps, resident lifetime, bounded counts, and hashed identities; they never contain
+timestamps, resident lifetime, counts, and hashed identities; they never contain
 source, paths, credentials, advice, probabilities, or provider responses.
 <!-- activity-retention:start -->
 
@@ -75,11 +75,11 @@ exists. Missing instrumentation and silence are never reported as `clear`.
 
 Run `hapsland --feedback-preview` to display the shared feedback heading,
 response instructions, and a synthetic finding. From a source checkout, run
-`node src/cli.ts --feedback-preview`. This command does not read stdin or project
+`node packages/cli-entry/src/cli.ts --feedback-preview`. This command does not read stdin or project
 source, resolve credentials, call a review backend, or persist activity. It is a
 format preview, not a replay of your session or a positive review result.
 
-The text is owned by [one runtime-neutral formatter](../src/feedback/message.ts).
+The text is owned by [one runtime-neutral formatter](../packages/delivery-output/src/feedback/message.ts).
 It names Hapsland, lists the file, declaration, and configured message for each
 finding, and asks the agent to check the findings, fix valid issues and verify,
 or explain disagreement. Rule IDs and classification probabilities remain
@@ -98,6 +98,12 @@ that the agent read, acknowledged, or applied a finding.
 | Development | `npm run dev:inspection` from the repository root | Current checkout, with automatic browser reload |
 | Bundled production | `hapsland dashboard` | Installed package; source edits require a new package update |
 
+<!-- rule-check-dashboard:start -->
+
+For **“Does my rule work?”**, use this debug dashboard to compare the declaration and related context captured for an ordinary agent edit with its classifier outcome and feedback. The opt-in setting is `sessionInspection`, not an analytics setting. Enable it as shown below before making the edit. For an immediate check without an agent edit, run `hapsland rules check --path FILE --line N` (and optionally `--id RULE`); see [file/line rule checks](configuration.md#try-a-rule-on-a-file-and-line). That command returns its own results and does not append them to this journal.
+
+<!-- rule-check-dashboard:end -->
+
 <!-- inspection-recording:start -->
 
 **Both dashboards need recorded history.** Recording is disabled by default.
@@ -110,7 +116,7 @@ Merge this [generated configuration template](examples/session-inspection.jsonc)
 }
 ```
 
-Then make a new eligible edit through an installed Hapsland integration. The setting applies on the next edit; enabling it does not backfill earlier edits. A fresh journal stays empty until new events are recorded. Opening either dashboard does not enable recording. Existing retained history can still be shown after recording is disabled. This history contains captured source and review messages; source-free analytics does not enable it.
+Then make a new edit through an installed Hapsland integration. The setting applies on the next edit; enabling it does not backfill earlier edits. A fresh journal stays empty until new events are recorded. Opening either dashboard does not enable recording. Existing retained history can still be shown after recording is disabled. This history contains captured source and review messages; source-free analytics does not enable it.
 A user default can also enable recording, but an explicit project `sessionInspection: false` overrides it.
 
 <!-- inspection-recording:end -->
@@ -123,7 +129,7 @@ inspection history is separate from the source-free status and analytics below.
 
 From a checkout, `npm run dev:inspection` runs the same private, read-only
 inspector directly from source and prints its URL. Edits to
-[`src/inspection/page.ts`](../src/inspection/page.ts) automatically reload the
+[`packages/administration/src/inspection/page.ts`](../packages/administration/src/inspection/page.ts) automatically reload the
 visible browser page while keeping the server and capability URL alive. A page
 syntax error returns HTTP 503 until the source is fixed; the browser then reloads
 the repaired page. Server-side changes require restarting the command. Use
@@ -135,7 +141,7 @@ Run `npm --prefix packages/agent-flow-viz run test:inspection-dev-browser` to
 check automatic reload, a stable private URL, syntax-error recovery, and HTTP
 route protection against the real page source.
 
-The **To agent** view renders the general Hapsland message saved by the resident
+The **To agent** view renders the general message saved by Hapsland
 before the final socket handoff, with its intended recipient and original
 finding/evaluation membership. Hooks and native extensions do not serialize
 inspection output or send inspection writer reports. Capture-aged consent,
@@ -175,7 +181,7 @@ can leave these totals incomplete.
 
 Resumed live feeds send retained increments after each source's saved position.
 The inspector merges these by immutable source/sequence identity and removes rows
-no longer present in the retained view. A reset supplies a fresh bounded snapshot.
+no longer present in the retained view. A reset supplies a fresh snapshot.
 
 Retained records may expire or be evicted by the journal quota. Missing records
 are not evidence of a successful or inactive review. Payload reads return an
@@ -258,7 +264,7 @@ be counted retrospectively. Analytics do not count every native tool call or suc
 Controlled test-provider activity is separated in `controlledTotals` and marked
 `controlled` in details; it never contributes to Jev totals.
 
-Details contain timestamps, outcome kinds, finding counts, bounded rule IDs, and hashed
+Details contain timestamps, outcome kinds, finding counts, rule IDs with length limits, and hashed
 event/child identities. They never include source, file paths, advice text, probabilities,
 credentials, or provider responses. At most 64 rule IDs of 128 characters each are kept
 per detail; IDs outside the safe printable identifier subset are omitted, and

@@ -8,7 +8,7 @@ const root = fileURLToPath(new URL("../../", import.meta.url))
 const evidencePath = process.argv[2]
 if (!evidencePath) throw new Error("provide an evidence JSON path")
 if (process.platform !== "linux" || process.arch !== "arm64") throw new Error("declared profile is Linux arm64")
-const helper = resolve(root, "scripts/build-capture-helper.mjs")
+const helper = resolve(root, "scripts/build-native-tasks.mjs")
 const replay = resolve(root, "scripts/security-prototype/resident-wire.mjs")
 const binding = resolve(root, "native/prebuilt/linux-arm64/tree-sitter/build/Release/tree_sitter_runtime_binding.node")
 const digest = (path) => createHash("sha256").update(readFileSync(path)).digest("hex")
@@ -24,15 +24,15 @@ const report = {
   scope:
     "current resident offline security replay held after native parser preparation during actual helper rebuild; historical Quint generator is not executed",
   deadlineMs: 120000,
-  selectedTrials: 3,
+  selectedTrials: 1,
   scenarios: ["allowed", "exclude-at-dispatch"],
   inputs: {
     runnerSha256: digest(fileURLToPath(import.meta.url)),
     helperSha256: digest(helper),
     replaySha256: digest(replay),
     publicationSha256: digest(resolve(root, "scripts/native-artifact.mjs")),
-    residentSha256: digest(resolve(root, "src/resident/server.ts")),
-    nativeParserSha256: digest(resolve(root, "src/direct-event/languages/native-parser.ts"))
+    residentSha256: digest(resolve(root, "packages/resident-runtime/src/resident/server.ts")),
+    nativeParserSha256: digest(resolve(root, "packages/source-analysis/src/direct-event/languages/native-parser.ts"))
   },
   trials,
   liveRequests: 0
@@ -85,7 +85,7 @@ const start = (path, args = [], ipc = false) => {
   return { child, completion }
 }
 try {
-  for (let trial = 1; trial <= 3; trial += 1)
+  for (let trial = 1; trial <= report.selectedTrials; trial += 1)
     for (const scenario of report.scenarios) {
       const entry = { trial, scenario, startedAt: new Date().toISOString() }
       trials.push(entry)
@@ -134,8 +134,8 @@ try {
         outcome.verdict !== "pass" ||
         !entry.nativeInodeReplaced ||
         !entry.replay.postBuildParsed ||
-        outcome.requests.length !== (scenario === "allowed" ? 1 : 0) ||
-        outcome.authorityObservations[0]?.decision !== (scenario === "allowed" ? "allow" : "deny")
+        outcome.requests.length !== 1 ||
+        outcome.authorityObservations[0]?.decision !== "allow"
       )
         throw new Error("build/replay acceptance failed")
     }

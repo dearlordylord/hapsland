@@ -4,7 +4,7 @@ import {
   encodeClaudeHostOutputLine,
   type ClaudeBlockOutput,
   type ClaudeHostOutput
-} from "./claude-output.ts"
+} from "@hapsland/delivery-output/direct-event/claude-output"
 
 describe("Claude selected host output", () => {
   it("serializes a selected block object as one exact JSONL line", () => {

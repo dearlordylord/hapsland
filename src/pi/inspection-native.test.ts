@@ -4,10 +4,10 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { Effect } from "effect"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
-import { makeInspectionHttpServer } from "../inspection/http.ts"
-import { connectDefaultRuleFixture } from "../test-support/default-rules.ts"
-import { makeInspectionStorage } from "../inspection/storage.ts"
-import type { InspectionRecord } from "../inspection/contract.ts"
+import { makeInspectionHttpServer } from "@hapsland/administration/inspection/http"
+import { connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
+import { makeInspectionStorage } from "@hapsland/inspection-records/inspection/storage"
+import type { InspectionRecord } from "@hapsland/inspection-records/inspection/contract"
 import {
   setupInstalledPi,
   cleanupInstalledPi,
@@ -15,7 +15,7 @@ import {
   fixture,
   before,
   result
-} from "../test-support/pi-installed.ts"
+} from "@hapsland/build-tooling/test-support/pi-installed"
 
 describe("Pi native extension inspection through production command and public feed", () => {
   const stateHome = realpathSync(mkdtempSync(join(tmpdir(), "hapsland-pi-inspection-")))

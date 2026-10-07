@@ -3,15 +3,15 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { decodeConfigurationDocument } from "../configuration/decode.ts"
-import { compileRule, compileRules, selectApplicableRules } from "./compiler.ts"
-import { loadRules } from "./loader.ts"
-import { decodeRuleDocument, digestRuleDefinition } from "./schema.ts"
-import { SHIPPED_DEFAULT_RULES } from "./shipped.ts"
-import { TYPE_INPUT_CONTRACT, TYPE_CAPABILITIES } from "./targets.ts"
+import { decodeConfigurationDocument } from "@hapsland/runtime-inputs/configuration/decode"
+import { compileRule, compileRules, selectApplicableRules } from "@hapsland/review-definition/rules/compiler"
+import { loadRules } from "@hapsland/review-definition/rules/loader"
+import { decodeRuleDocument, digestRuleDefinition } from "@hapsland/review-definition/rules/schema"
+import { SHIPPED_DEFAULT_RULES } from "@hapsland/review-definition/rules/shipped"
+import { TYPE_INPUT_CONTRACT, TYPE_CAPABILITIES } from "@hapsland/review-definition/rules/targets"
 const rule = {
   version: 1,
-  id: "team/state",
+  id: "namespace/state",
   question: "Is state invalid?",
   criteria: { false: "valid", true: "invalid" },
   message: "Fix state",
@@ -42,7 +42,7 @@ describe("individual rules", () => {
     expect(digestRuleDefinition(decodeRuleDocument(rule, "a"))).toBe(
       digestRuleDefinition(decodeRuleDocument({ ...rule }, "b"))
     )
-    expect(compileRule(rule, "a").id).toBe("team/state")
+    expect(compileRule(rule, "a").id).toBe("namespace/state")
   })
   it("rejects removed fields and malformed input pairs", () => {
     for (const field of ["minimumRung", "applicability", "contentVersion", "reviewTargets"])

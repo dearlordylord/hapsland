@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { readBendList, readNat, readRecord } from "../../../src/canonical/boundary-schema.ts"
+import { readBendList, readNat, readRecord } from "@hapsland/canonical-policy/canonical/boundary-schema"
 import {
   createRun, restoreReplay, type Replay, type RunConfig, type RunStructuralFrame
 } from "../../../packages/monkey-business/src/index.ts"

@@ -111,14 +111,11 @@ export const makeOfflineSecurityHttpClient = (onRequest: (record: SecurityWireRe
     const classification =
       request.method === "POST" &&
       request.url === APPROVED_FIXTURE_DESTINATION &&
-      JSON.stringify(headerNames) ===
-        JSON.stringify(["accept", "authorization", "b3", "content-length", "content-type", "traceparent"]) &&
+      JSON.stringify(headerNames) === JSON.stringify(["accept", "authorization", "content-length", "content-type"]) &&
       headers.authorization === "Bearer WIRE_KEY_SENTINEL" &&
       headers.accept === "application/json" &&
       headers["content-type"]?.includes("application/json") &&
       headers["content-length"] === String(bodyBytes.length) &&
-      /^[a-f0-9-]+$/.test(headers.b3 ?? "") &&
-      /^00-[a-f0-9]{32}-[a-f0-9]{16}-[0-9a-f]{2}$/.test(headers.traceparent ?? "") &&
       parsedBody !== undefined &&
       bodyBytes.equals(securityWireExpectedBytes) &&
       securityWireManifest.positive.unrelated.every((marker) => !body.includes(marker)) &&

@@ -4,10 +4,64 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/build-lifecycle.mjs && node scripts/build-import-graph.mjs && node scripts/build-canonical.mjs",
-    "test": "node --test ../../scripts/bend-compiler-version.test.mjs && node scripts/build-import-graph.mjs && node scripts/build-canonical.mjs && node scripts/check-progress.mjs && bend PROOF.bend && bend import-graph-proof/PROOF.bend --verdict && bend PolicyRuntime.bend && node scripts/check-lifecycle.mjs && node --experimental-strip-types scripts/check-import-graph.mjs && node --experimental-strip-types scripts/check-canonical.mjs && node --experimental-strip-types scripts/check-jev-request.mjs",
+    "build": "node ../../scripts/bend-producer.mjs",
+    "test": "node --test ../../scripts/bend-compiler-version.test.mjs && node scripts/build-import-graph.mjs && node scripts/build-canonical.mjs && node scripts/check-progress.mjs && node scripts/check-content-isolation.mjs && bend PROOF.bend && bend import-graph-proof/PROOF.bend --verdict && bend PolicyRuntime.bend && node scripts/check-lifecycle.mjs && node --experimental-strip-types scripts/check-import-graph.mjs && node --experimental-strip-types scripts/check-canonical.mjs && node --experimental-strip-types scripts/check-jev-request.mjs",
     "test:import-graph": "node scripts/build-import-graph.mjs && bend PROOF.bend && bend import-graph-proof/PROOF.bend --verdict && node --experimental-strip-types scripts/check-import-graph.mjs",
     "test:canonical": "node scripts/build-canonical.mjs && node scripts/check-progress.mjs && bend PROOF.bend && node --experimental-strip-types scripts/check-canonical.mjs && node --experimental-strip-types scripts/check-jev-request.mjs",
-    "test:progress": "node scripts/check-progress.mjs"
+    "test:progress": "node scripts/check-progress.mjs",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs",
+    "test:content-isolation": "node scripts/check-content-isolation.mjs"
+  },
+  "exports": {
+    "./canonical": {
+      "types": "./dist/canonical.generated.d.ts",
+      "default": "./dist/canonical.generated.js"
+    },
+    "./import-graph": {
+      "types": "./dist/import-graph.generated.d.ts",
+      "default": "./dist/import-graph.generated.js"
+    },
+    "./request-content": {
+      "types": "./dist/request-content.generated.d.ts",
+      "default": "./dist/request-content.generated.js"
+    }
+  },
+  "hapsland": {
+    "domain": "agent-flow-bend",
+    "compiler": "bend",
+    "workspaceRole": "production",
+    "host": "bun",
+    "capabilities": [],
+    "abi": {
+      "./canonical": "./abi/canonical.generated.d.ts",
+      "./import-graph": "./abi/import-graph.generated.d.ts",
+      "./request-content": "./abi/request-content.generated.d.ts"
+    },
+    "loaderPolicies": {
+      "dist/canonical.generated.js": "bend-system-ffi",
+      "dist/import-graph.generated.js": "bend-system-ffi",
+      "dist/request-content.generated.js": "bend-system-ffi"
+    },
+    "toolchain": {
+      "bend": {
+        "version": "2.0.35",
+        "source": "79df8d9"
+      },
+      "lean": {
+        "version": "4.34.0"
+      },
+      "platforms": {
+        "linux-x64": {
+          "bend": "63039d1a119f716767ac5a7d8fe0717cfacf219c6c253c35192148e0dade722f",
+          "leanName": "linux",
+          "lean": "caaa98356098c85dc0fcbbd28e1ec66f39eb6551829972b752ff20e1286b646b"
+        },
+        "linux-arm64": {
+          "bend": "09b813073241628f590f2c2fe420299ec25e4dddd6cf3fdc49c9486339989564",
+          "leanName": "linux_aarch64",
+          "lean": "40b04fdb7fb849d3c80e10c3bbeebc7b7354b6d3f07450b9168c2149b40d2a82"
+        }
+      }
+    }
   }
 }

@@ -1,4 +1,4 @@
-import type { CanonicalProjection } from "../../../src/canonical/adapter.ts"
+import type { CanonicalProjection } from "@hapsland/canonical-policy/canonical/adapter"
 import Shared from "../../monkey-business-bend/engine.mjs"
 
 type Binding = { readonly owner: number; readonly id: number }

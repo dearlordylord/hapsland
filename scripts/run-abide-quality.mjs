@@ -14,7 +14,7 @@ import {
 } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
-import { configuredRules } from "../src/test-support/default-rules.ts"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 // Bounded, preregistered synthetic detection and native-agent comparison.
 
 const fixtureModule = resolve(
@@ -354,7 +354,7 @@ const env={...process.env,QUALITY_PHASE:kind,...(${deliveryDebug}?{QUALITY_DELIV
 const flags=${JSON.stringify(candidate)}==='hapsland'?(kind==='edit'?['--codex-hook','--controlled-writer','--composed-edit-hook']:['--composed-'+kind+'-hook','--composed-host=codex-cli']):[kind];
 const delay=kind==='edit'&&native?.tool_name==='apply_patch'?${debugEditDelayMs}:kind==='stop'?${debugStopDelayMs}:0;
 if(delay)Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,delay);
-const script=${JSON.stringify(candidate)}==='hapsland'?${JSON.stringify(join(project, "src/cli.ts"))}:${JSON.stringify(join(abideRoot, "dist/abide-hook.js"))};
+const script=${JSON.stringify(candidate)}==='hapsland'?${JSON.stringify(join(project, "packages/hook-entry/src/hook-main.ts"))}:${JSON.stringify(join(abideRoot, "dist/abide-hook.js"))};
 const result=spawnSync(process.execPath,[script,...flags],{input,env,encoding:'utf8',timeout:35000,maxBuffer:1048576});
 let output;try{output=JSON.parse(result.stdout)}catch{}
 const message=String(output?.reason??output?.hookSpecificOutput?.additionalContext??output?.systemMessage??'');
@@ -597,7 +597,7 @@ write(join(out, "declaration.json"), {
   deliveryDebug,
   debugEditDelayMs,
   debugStopDelayMs,
-  productionAdapterSha256: hash(readFileSync(join(project, "src/direct-event/adapter.ts"))),
+  productionAdapterSha256: hash(readFileSync(join(project, "packages/native-observation/src/direct-event/adapter.ts"))),
   feedbackReceiptProbe: receiptProbe,
   onlyCandidate: onlyCandidate ?? null,
   selectedTaskIds: tasks.map((task) => task.caseId),

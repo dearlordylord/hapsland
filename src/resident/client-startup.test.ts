@@ -2,8 +2,8 @@ import * as TestClock from "effect/testing/TestClock"
 import { it } from "@effect/vitest"
 import { expect } from "vitest"
 import { Clock, Deferred, Effect, Exit, Fiber, Layer, Ref } from "effect"
-import { ResidentIpcError, ResidentLauncher, makeResidentStartup } from "./client.ts"
-import { residentPaths } from "./paths.ts"
+import { ResidentIpcError, ResidentLauncher, makeResidentStartup } from "@hapsland/resident-transport/resident/client"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 
 const paths = residentPaths("/controlled-resident")
 

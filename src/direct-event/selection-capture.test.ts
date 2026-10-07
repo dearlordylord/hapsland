@@ -4,10 +4,10 @@ import { readdirSync, readlinkSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
-import { captureStable, MAX_SOURCE_BYTES } from "./capture.ts"
-import { eligibleNamedPath, inspectNamedPath } from "./selection.ts"
-import { adaptCodexAdd } from "./adapter.ts"
-import { addEvent, makeGitFixture, put } from "./test-fixtures.ts"
+import { captureStable, MAX_SOURCE_BYTES } from "@hapsland/native-observation/direct-event/capture"
+import { eligibleNamedPath, inspectNamedPath } from "@hapsland/native-observation/direct-event/selection"
+import { adaptCodexAdd } from "@hapsland/native-observation/direct-event/adapter"
+import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 const required = <A>(value: A | undefined): A => {
   if (value === undefined) throw new Error("expected fixture value")

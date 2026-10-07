@@ -1,9 +1,9 @@
 import * as Effect from "effect/Effect"
 import { expect, it, vi } from "vitest"
-import { runPilotSetup, type PilotOptions, type PilotPorts } from "./pilot.ts"
-import { profileFields } from "./client-command.ts"
-import type { runSetup } from "./setup.ts"
-import type { HostProcessResult } from "./host-process.ts"
+import { runPilotSetup, type PilotOptions, type PilotPorts } from "@hapsland/administration/onboarding/pilot"
+import { profileFields } from "@hapsland/administration/onboarding/client-command"
+import type { runSetup } from "@hapsland/administration/onboarding/setup"
+import type { HostProcessResult } from "@hapsland/runtime-environment/process/closed-stdin"
 
 type Result = Effect.Success<ReturnType<typeof runSetup>>
 type Stage = Result["stages"][number]
@@ -234,7 +234,7 @@ it("prints doctor actions and incomplete checks while omitting ready checks", as
   expect(f.output.join("")).toContain("Next: approve native trust")
   expect(f.output.join("")).toContain("trust: unknown")
   expect(f.output.join("")).not.toContain("profile: ready")
-  expect(f.output.join("")).toContain("Next: restart Codex, complete native repository and hook trust")
+  expect(f.output.join("")).toContain("Next: restart Codex CLI, complete native repository and hook trust")
   expect(f.exits).toEqual([])
 })
 

@@ -1,17 +1,18 @@
+import { resolvePinnedTypeScript } from "../pinned-typescript.mjs"
 import { readFile, writeFile } from "node:fs/promises"
 import { join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { createRun, focusedSelection, runSelectedTests, main as runChecks } from "./run-checks.mjs"
 import { resolveVerificationPlan } from "./verification-plan.mjs"
-import { sourceIdentity } from "./source-identity.mjs"
 import { requiredTestArtifacts } from "./inventory.mjs"
 import { prepareArchive } from "./prepare-archive.mjs"
 
 export async function verify(argv, root = resolve(import.meta.dirname, "../..")) {
+  const acknowledged = argv.includes("--ack-checks-policy")
   const inputs = {},
     tests = [],
     options = []
-  for (const argument of argv.filter((value) => value !== "--")) {
+  for (const argument of argv.filter((value) => value !== "--" && value !== "--ack-checks-policy")) {
     const match = /^--(profile|native-target|host|provider|model|scenario|timeout-ms)=(.+)$/.exec(argument)
     if (match) {
       const key = { "native-target": "nativeTarget", "timeout-ms": "timeoutMs" }[match[1]] ?? match[1]
@@ -20,6 +21,7 @@ export async function verify(argv, root = resolve(import.meta.dirname, "../.."))
     } else if (argument.startsWith("-")) options.push(argument)
     else tests.push(argument)
   }
+  if (acknowledged && inputs.profile !== "quality") throw new Error("Acknowledgment requires quality profile")
   const selection = tests.length ? await focusedSelection(root, [...tests, ...options]) : undefined
   if (!selection && options.length) throw new Error("Test options require explicit test files")
   const plan = resolveVerificationPlan({
@@ -28,7 +30,12 @@ export async function verify(argv, root = resolve(import.meta.dirname, "../.."))
     testOptions: options,
     consumerArtifacts: inputs.profile === "boundary" ? requiredTestArtifacts(root, tests) : []
   })
-  if (plan.profile === "quality") return runChecks(["quality", `--timeout-ms=${plan.timeoutMs}`], root, plan)
+  if (plan.profile === "quality")
+    return runChecks(
+      ["quality", `--timeout-ms=${plan.timeoutMs}`, ...(acknowledged ? ["--ack-checks-policy"] : [])],
+      root,
+      plan
+    )
   const run = await createRun({
     root,
     mode: "focused",
@@ -39,7 +46,7 @@ export async function verify(argv, root = resolve(import.meta.dirname, "../.."))
   })
   let archive, piPreflight
   try {
-    const digest = await sourceIdentity(root, undefined, undefined, { deadline: run.context.deadline })
+    const digest = await run.observeInputs()
     const manifestPath = join(run.runDirectory, "manifest.json")
     await writeFile(
       manifestPath,
@@ -62,7 +69,7 @@ export async function verify(argv, root = resolve(import.meta.dirname, "../.."))
               ? {
                   executable:
                     stage.target === "typescript"
-                      ? join(root, "node_modules/.bin/tsc")
+                      ? (await resolvePinnedTypeScript()).executable
                       : stage.target === "rust"
                         ? "rustc"
                         : "bend",
@@ -100,8 +107,6 @@ export async function verify(argv, root = resolve(import.meta.dirname, "../.."))
         selection,
         archive ? { HAPSLAND_TEST_PACKAGE_ARCHIVE: archive.archivePath } : {}
       )
-    if ((await sourceIdentity(root, undefined, undefined, { deadline: run.context.deadline })) !== digest)
-      throw new Error("Verification inputs changed during the run")
   } catch (error) {
     await run.recordFailedStage({ name: "verification", error })
   }

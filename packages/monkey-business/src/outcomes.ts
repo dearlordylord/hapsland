@@ -1,6 +1,6 @@
 import Shared from "../../monkey-business-bend/engine.mjs"
 import { doubleWords } from "./numeric-codec.ts"
-import type { JevRequestOutcome } from "../../../src/canonical/adapter.ts"
+import type { JevRequestOutcome } from "@hapsland/canonical-policy/canonical/adapter"
 
 /** Stable cumulative-distribution order, recorded with replay configuration. */
 export const JEV_OUTCOME_ORDER = [

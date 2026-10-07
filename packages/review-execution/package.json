@@ -1,0 +1,93 @@
+{
+  "name": "@hapsland/review-execution",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./direct-event/pipeline": {
+      "types": "./dist/direct-event/pipeline.d.ts",
+      "default": "./dist/direct-event/pipeline.js"
+    },
+    "./direct-event/provider-body-size": {
+      "types": "./dist/direct-event/provider-body-size.d.ts",
+      "default": "./dist/direct-event/provider-body-size.js"
+    },
+    "./direct-event/review-renderer": {
+      "types": "./dist/direct-event/review-renderer.d.ts",
+      "default": "./dist/direct-event/review-renderer.js"
+    },
+    "./inspection/capture": {
+      "types": "./dist/inspection/capture.d.ts",
+      "default": "./dist/inspection/capture.js"
+    },
+    "./jev-decision": {
+      "types": "./dist/jev-decision.d.ts",
+      "default": "./dist/jev-decision.js"
+    },
+    "./policy/rules": {
+      "types": "./dist/policy/rules.d.ts",
+      "default": "./dist/policy/rules.js"
+    },
+    "./ports/review-backend": {
+      "types": "./dist/ports/review-backend.d.ts",
+      "default": "./dist/ports/review-backend.js"
+    },
+    "./review-providers/cloudflare": {
+      "types": "./dist/review-providers/cloudflare.d.ts",
+      "default": "./dist/review-providers/cloudflare.js"
+    },
+    "./review-providers/live": {
+      "types": "./dist/review-providers/live.d.ts",
+      "default": "./dist/review-providers/live.js"
+    },
+    "./review-providers/request": {
+      "types": "./dist/review-providers/request.d.ts",
+      "default": "./dist/review-providers/request.js"
+    },
+    "./runtime/assessment": {
+      "types": "./dist/runtime/assessment.d.ts",
+      "default": "./dist/runtime/assessment.js"
+    },
+    "./review-execution/controlled-decision-model": {
+      "types": "./dist/review-execution/controlled-decision-model.d.ts",
+      "default": "./dist/review-execution/controlled-decision-model.js"
+    },
+    "./policy/index": {
+      "types": "./dist/policy/index.d.ts",
+      "default": "./dist/policy/index.js"
+    },
+    "./review-providers/request-content": {
+      "types": "./dist/review-providers/request-content.d.ts",
+      "default": "./dist/review-providers/request-content.js"
+    },
+    "./review-providers/transport": {
+      "types": "./dist/review-providers/transport.d.ts",
+      "default": "./dist/review-providers/transport.js"
+    }
+  },
+  "dependencies": {
+    "@hapsland/canonical-policy": "workspace:*",
+    "@hapsland/delivery-output": "workspace:*",
+    "@hapsland/inspection-records": "workspace:*",
+    "@hapsland/native-observation": "workspace:*",
+    "@hapsland/review-definition": "workspace:*",
+    "@hapsland/runtime-environment": "workspace:*",
+    "@hapsland/runtime-inputs": "workspace:*",
+    "@hapsland/source-analysis": "workspace:*",
+    "@hapsland/source-artifacts": "workspace:*",
+    "@effect/ai-typesafe": "catalog:",
+    "effect": "catalog:",
+    "@hapsland/agent-flow-bend": "workspace:*"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
+  },
+  "hapsland": {
+    "domain": "review-execution",
+    "host": "bun",
+    "capabilities": [
+      "provider-execution"
+    ]
+  }
+}

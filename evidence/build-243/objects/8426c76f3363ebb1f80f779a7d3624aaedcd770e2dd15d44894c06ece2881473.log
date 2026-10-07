@@ -1,0 +1,107 @@
+
+> @hapsland/hapsland@0.1.0 build
+> node scripts/build-product.mjs
+
+ WARNING  Circular package dependency detected: @hapsland/agent-flow-viz, @hapsland/verification, @hapsland/monkey-business, @hapsland/monkey-business-bend, @hapsland/canonical-defense, @hapsland/build-tooling
+
+   • turbo 2.11.7
+   • Packages in scope: @hapsland/activity-observation, @hapsland/administration, @hapsland/agent-flow-bend, @hapsland/canonical-policy, @hapsland/cli-entry, @hapsland/credential-storage, @hapsland/delivery-output, @hapsland/doctor-entry, @hapsland/hook-entry, @hapsland/hook-runtime, @hapsland/inspection-records, @hapsland/native-observation, @hapsland/parser-entry, @hapsland/pi-extension, @hapsland/resident-entry, @hapsland/resident-runtime, @hapsland/resident-transport, @hapsland/review-definition, @hapsland/review-execution, @hapsland/runtime-environment, @hapsland/runtime-inputs, @hapsland/source-analysis, @hapsland/source-artifacts
+   • Running build, native:linux-arm64 in 23 packages
+   • Remote caching disabled
+
+@hapsland/credential-storage:native:linux-arm64: cache hit, replaying logs fc4e5df8fd543be9
+@hapsland/credential-storage:native:linux-arm64: $ node ../../scripts/native-task.mjs linux-arm64
+@hapsland/source-artifacts:build: cache hit, replaying logs f1f4bb5f1b4106b7
+@hapsland/source-artifacts:build: $ node ../../scripts/compile-package.mjs
+@hapsland/source-artifacts:build: Compiled @hapsland/source-artifacts: 243 recorded inputs
+@hapsland/source-analysis:native:linux-arm64: cache hit, replaying logs 0c5be64d50043238
+@hapsland/source-analysis:native:linux-arm64: $ node ../../scripts/native-task.mjs linux-arm64
+@hapsland/delivery-output:build: cache hit, replaying logs 3f38bcb773f05624
+@hapsland/delivery-output:build: $ node ../../scripts/compile-package.mjs
+@hapsland/delivery-output:build: Compiled @hapsland/delivery-output: 246 recorded inputs
+@hapsland/agent-flow-bend:build: cache hit, replaying logs 9fbae85c7c61e241
+@hapsland/runtime-environment:build: cache hit, replaying logs 2f0e44dc51238a92
+@hapsland/agent-flow-bend:build: $ node ../../scripts/bend-producer.mjs
+@hapsland/runtime-environment:build: $ node ../../scripts/compile-package.mjs
+@hapsland/runtime-environment:build: Compiled @hapsland/runtime-environment: 375 recorded inputs
+@hapsland/inspection-records:native:linux-arm64: cache hit, replaying logs a263bb3cff3046a3
+@hapsland/canonical-policy:build: cache hit, replaying logs 2965a8ceedcbcd3b
+@hapsland/inspection-records:native:linux-arm64: $ node ../../scripts/native-task.mjs linux-arm64
+@hapsland/canonical-policy:build: $ node ../../scripts/compile-package.mjs
+@hapsland/canonical-policy:build: Compiled @hapsland/canonical-policy: 356 recorded inputs
+@hapsland/pi-extension:build: cache hit, replaying logs 9d81749ce6cd0a03
+@hapsland/pi-extension:build: $ node ../../scripts/compile-package.mjs
+@hapsland/pi-extension:build: Compiled @hapsland/pi-extension: 215 recorded inputs
+@hapsland/runtime-inputs:build: cache hit, replaying logs 6238cfc300c76d76
+@hapsland/runtime-inputs:build: $ node ../../scripts/compile-package.mjs
+@hapsland/runtime-inputs:build: Compiled @hapsland/runtime-inputs: 367 recorded inputs
+@hapsland/native-observation:build: cache hit, replaying logs 25b1cb904eda554a
+@hapsland/native-observation:build: $ node ../../scripts/compile-package.mjs
+@hapsland/native-observation:build: Compiled @hapsland/native-observation: 367 recorded inputs
+@hapsland/credential-storage:build: cache hit, replaying logs d33cd9dab03e17bd
+@hapsland/credential-storage:build: $ node ../../scripts/compile-package.mjs
+@hapsland/credential-storage:build: Compiled @hapsland/credential-storage: 352 recorded inputs
+@hapsland/inspection-records:build: cache hit, replaying logs 128e45e907558411
+@hapsland/inspection-records:build: $ node ../../scripts/compile-package.mjs
+@hapsland/inspection-records:build: Compiled @hapsland/inspection-records: 423 recorded inputs
+@hapsland/activity-observation:build: cache hit, replaying logs cb3440a11b7f682c
+@hapsland/activity-observation:build: $ node ../../scripts/compile-package.mjs
+@hapsland/activity-observation:build: Compiled @hapsland/activity-observation: 405 recorded inputs
+@hapsland/review-definition:build: cache hit, replaying logs 6341b2101875e57e
+@hapsland/review-definition:build: $ node ../../scripts/compile-package.mjs
+@hapsland/review-definition:build: Compiled @hapsland/review-definition: 440 recorded inputs
+@hapsland/source-analysis:build: cache hit, replaying logs 90a8e513174816cd
+@hapsland/source-analysis:build: $ node ../../scripts/compile-package.mjs
+@hapsland/source-analysis:build: Compiled @hapsland/source-analysis: 382 recorded inputs
+@hapsland/resident-transport:build: cache hit, replaying logs 4c350b408e12dbdd
+@hapsland/resident-transport:build: $ node ../../scripts/compile-package.mjs
+@hapsland/resident-transport:build: Compiled @hapsland/resident-transport: 422 recorded inputs
+@hapsland/review-execution:build: cache hit, replaying logs 81f997b682bf9818
+@hapsland/review-execution:build: $ node ../../scripts/compile-package.mjs
+@hapsland/review-execution:build: Compiled @hapsland/review-execution: 514 recorded inputs
+@hapsland/parser-entry:build: cache hit, replaying logs 536f1f974dc705df
+@hapsland/parser-entry:build: $ node ../../scripts/compile-package.mjs
+@hapsland/parser-entry:build: Compiled @hapsland/parser-entry: 355 recorded inputs
+@hapsland/hook-runtime:build: cache hit, replaying logs 6150e3af36050a2a
+@hapsland/hook-runtime:build: $ node ../../scripts/compile-package.mjs
+@hapsland/hook-runtime:build: Compiled @hapsland/hook-runtime: 396 recorded inputs
+@hapsland/resident-runtime:build: cache hit, replaying logs 0bb907b7c743af04
+@hapsland/resident-runtime:build: $ node ../../scripts/compile-package.mjs
+@hapsland/resident-runtime:build: Compiled @hapsland/resident-runtime: 534 recorded inputs
+@hapsland/administration:build: cache hit, replaying logs bc5e08b08cd56ef8
+@hapsland/administration:build: $ node ../../scripts/compile-package.mjs
+@hapsland/administration:build: Compiled @hapsland/administration: 610 recorded inputs
+@hapsland/resident-entry:build: cache hit, replaying logs 6a41a348caee8f5f
+@hapsland/resident-entry:build: $ node ../../scripts/compile-package.mjs
+@hapsland/resident-entry:build: Compiled @hapsland/resident-entry: 518 recorded inputs
+@hapsland/cli-entry:build: cache hit, replaying logs 872bfed8e0e8ae91
+@hapsland/cli-entry:build: $ node ../../scripts/compile-package.mjs
+@hapsland/cli-entry:build: Compiled @hapsland/cli-entry: 551 recorded inputs
+@hapsland/doctor-entry:build: cache hit, replaying logs 415850863969c0e7
+@hapsland/doctor-entry:build: $ node ../../scripts/compile-package.mjs
+@hapsland/doctor-entry:build: Compiled @hapsland/doctor-entry: 402 recorded inputs
+@hapsland/hook-entry:build: cache hit, replaying logs 86c1af2114ee9f41
+@hapsland/hook-entry:build: $ node ../../scripts/compile-package.mjs
+@hapsland/hook-entry:build: Compiled @hapsland/hook-entry: 370 recorded inputs
+
+ Tasks:    26 successful, 26 total
+Cached:    26 cached, 26 total
+  Time:    88ms >>> FULL TURBO
+
+file:///workspace/typescript/hapsland-243/scripts/check-workspace-imports.mjs:100
+        throw new Error(`Undeclared dependency: ${relative(root, path)} -> ${specifier}`)
+              ^
+
+Error: Undeclared dependency: packages/hook-entry/src/hook-main.ts -> @hapsland/administration/onboarding/native-architecture
+    at edge (file:///workspace/typescript/hapsland-243/scripts/check-workspace-imports.mjs:100:15)
+    at visit (file:///workspace/typescript/hapsland-243/scripts/check-workspace-imports.mjs:255:9)
+    at visit (file:///workspace/typescript/hapsland-243/scripts/check-workspace-imports.mjs:177:36)
+    at visit (file:///workspace/typescript/hapsland-243/scripts/check-workspace-imports.mjs:385:11)
+    at visit (file:///workspace/typescript/hapsland-243/scripts/check-workspace-imports.mjs:385:11)
+    at inspect (file:///workspace/typescript/hapsland-243/scripts/check-workspace-imports.mjs:388:5)
+    at walk (file:///workspace/typescript/hapsland-243/scripts/check-workspace-imports.mjs:404:87)
+    at checkWorkspaceImports (file:///workspace/typescript/hapsland-243/scripts/check-workspace-imports.mjs:418:9)
+    at file:///workspace/typescript/hapsland-243/scripts/build-product.mjs:51:22
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+Node.js v24.20.0

@@ -1,6 +1,6 @@
 import { Schema } from "effect"
-import { DEFAULT_EDIT_PERMIT_LIMITS, EditPermitLimitsSettings } from "../../../src/configuration/types.ts"
-import { decoder, Nat, PositiveNat, readBendList } from "../../../src/canonical/boundary-schema.ts"
+import { DEFAULT_EDIT_PERMIT_LIMITS, EditPermitLimitsSettings } from "@hapsland/runtime-inputs/configuration/types"
+import { decoder, Nat, PositiveNat, readBendList } from "@hapsland/canonical-policy/canonical/boundary-schema"
 import { decodeDriverEvent } from "./driver-codec.ts"
 
 const PermitLimit = PositiveNat.check(Schema.isLessThanOrEqualTo(65536))

@@ -1,5 +1,9 @@
 import { expect, it } from "vitest"
-import { formatOutcome, formatPackageDoctor, formatStatusOutcome } from "./human-output.ts"
+import {
+  formatOutcome,
+  formatPackageDoctor,
+  formatStatusOutcome
+} from "@hapsland/administration/onboarding/human-output"
 
 it.each([
   ["success", "[OK]"],

@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process"
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
-import { configuredRules } from "../test-support/default-rules.ts"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import {
   setupInstalledPi,
   cleanupInstalledPi,
@@ -12,10 +12,10 @@ import {
   input,
   before,
   result
-} from "../test-support/pi-installed.ts"
+} from "@hapsland/build-tooling/test-support/pi-installed"
 
-describe.each(["source", "installed"] as const)(
-  "Pi %s extension through the production command and resident",
+describe.each(["source", "installed", ...(process.env.HAPSLAND_TEST_PI_ASSET ? ["candidate" as const] : [])] as const)(
+  "Pi %s extension through command and resident",
   { timeout: 30_000 },
   (mode) => {
     beforeAll(() => setupInstalledPi(mode), 240_000)
@@ -170,9 +170,23 @@ describe.each(["source", "installed"] as const)(
           const oldRequests = readFileSync(capturePath, "utf8")
           expect(await call("tool_result", result)).toBeUndefined()
           expect(readFileSync(capturePath, "utf8")).toBe(oldRequests)
-          const fresh = { ...before, toolCallId: "fresh-after-composition" }
+          const fresh = {
+            ...before,
+            toolCallId: "fresh-after-composition",
+            input: {
+              path: "type.ts",
+              edits: [{ oldText: "type OrderCount = number", newText: "type FreshCount = number" }]
+            }
+          }
           await call("tool_call", fresh)
-          const native = await call("tool_result", { ...result, ...fresh })
+          writeFileSync(join(root, "type.ts"), "type FreshCount = number\n")
+          const native = await call("tool_result", {
+            ...result,
+            ...fresh,
+            details: {
+              patch: "--- type.ts\n+++ type.ts\n@@ -1 +1 @@\n-type OrderCount = number\n+type FreshCount = number\n"
+            }
+          })
           if (native === undefined) await waitForAdvice()
           const settled = await call("agent_before_settle", {
             entries: [],
@@ -180,7 +194,9 @@ describe.each(["source", "installed"] as const)(
             context: { canContinue: true },
             outcome: "completed"
           })
-          expect(native ?? settled).toBeDefined()
+          const freshOffer = JSON.stringify(native ?? settled)
+          expect(freshOffer).toContain("type.ts :: FreshCount")
+          expect(freshOffer).not.toContain("OrderCount")
         }
       )
     }

@@ -8,17 +8,20 @@ import {
   readNat,
   readBendList,
   readRecord
-} from "../../../src/canonical/boundary-schema.ts"
-import { CanonicalEventSchema } from "../../../src/canonical/models.ts"
-import { decodeTrustedCanonicalStep, projectTrustedCanonical } from "../../../src/canonical/canonical-boundary.ts"
-import { encodeCanonicalEvent } from "../../../src/canonical/adapter.ts"
+} from "@hapsland/canonical-policy/canonical/boundary-schema"
+import { CanonicalEventSchema } from "@hapsland/canonical-policy/canonical/models"
+import {
+  decodeTrustedCanonicalStep,
+  projectTrustedCanonical
+} from "@hapsland/canonical-policy/canonical/canonical-boundary"
+import { encodeCanonicalEvent } from "@hapsland/canonical-policy/canonical/adapter"
 import {
   encodeImportGraphEvent,
   projectImportGraph,
   decodeImportGraphStep
-} from "../../../src/canonical/graph-adapter.ts"
-import { decodeGraphEvent } from "../../../src/canonical/graph-schema.ts"
-import { freezeCanonicalData } from "../../../src/canonical/immutable.ts"
+} from "@hapsland/canonical-policy/canonical/graph-adapter"
+import { decodeGraphEvent } from "@hapsland/canonical-policy/canonical/graph-schema"
+import { freezeCanonicalData } from "@hapsland/canonical-policy/canonical/immutable"
 import { decodeDriverEvent } from "./driver-codec.ts"
 import { decodeCallbackTarget, validateCallbackControl } from "./callback-controls.ts"
 import { decodeAdviceeLifecycles } from "./advicee-lifecycle.ts"

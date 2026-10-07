@@ -1,0 +1,14 @@
+✔ coverage preload preserves a real unowned CommonJS dependency's named exports (474.755731ms)
+✔ coverage import correspondence preserves only exact compiler edges (10.370108ms)
+✔ compiled executables load the owned coverage preload without embedded development dependencies (888.909571ms)
+✔ Bun source subprocess coverage preserves original branches and merges fresh process counters (754.025367ms)
+✔ Bun private workspace exports record original source hits and uncalled functions (1050.215904ms)
+✔ portable instrumented bundles retain nested, untouched and fresh counters in another checkout (1085.244046ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4602.725917

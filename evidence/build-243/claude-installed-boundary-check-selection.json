@@ -1,0 +1,67 @@
+{
+  "format": 1,
+  "status": "focused-passed",
+  "policy": "CHECKS.md goal relevance before retaining expensive checks",
+  "goalSources": [
+    {
+      "issue": 243,
+      "requirement": "Dedicated installed standalone Bun hook and preserved runtime behavior",
+      "source": "https://github.com/dearlordylord/hapsland/issues/243"
+    },
+    {
+      "issue": 243,
+      "requirement": "Source/compiler/emitted ownership isolation through actual declared edges and Bun inputs",
+      "source": "https://github.com/dearlordylord/hapsland/issues/243"
+    }
+  ],
+  "removed": {
+    "parameter": "dedicated source hook",
+    "physicalCases": 8,
+    "reason": "Instrumented source entry timing is not a supported installed artifact requirement; duplicates installed physical cases"
+  },
+  "retained": {
+    "installedCases": 8,
+    "optionalStandaloneCandidateCases": 8,
+    "unchangedAssertions": [
+      "closed stdout",
+      "blocking settings snapshot",
+      "ready finding Stop submission",
+      "lost resident pending work",
+      "unversioned advice",
+      "malformed response",
+      "edit budget quiet/no background",
+      "write error no lease acknowledgment"
+    ],
+    "authoredRouting": "src/hooks/program.test.ts",
+    "sourceIsolation": "scripts/check-workspace-imports.test.mjs; scripts/source-loader-policy.test.mjs; scripts/hook-import-boundary.test.mjs",
+    "emittedIsolation": "Ordinary production build input/receipt acceptance"
+  },
+  "focused": {
+    "exitCode": 0,
+    "passed": 8,
+    "durationSeconds": 23.18,
+    "coverage": true,
+    "archiveDigest": "d312122f4060b4383f9c2c58518f1df92285a6d143705dc585b069962f80a07b",
+    "deadlineMs": 180000,
+    "stopUTC": "2026-10-07 13:08:16 UTC",
+    "log": "evidence/build-243/installed-claude-goal-a49401a85b5db187a5bf675dd0ce7da55c0f08f096e2620ca84febd19e7f6184.log",
+    "sha256": "a49401a85b5db187a5bf675dd0ce7da55c0f08f096e2620ca84febd19e7f6184"
+  },
+  "unchangedPolicies": [
+    "authored TypeScript coverage source selection",
+    "strict missing evidence",
+    "CRAP thresholds",
+    "native product deadlines"
+  ],
+  "limitations": [
+    "Focused installed validation, not full quality gate",
+    "Optional standalone candidate was not selected in this run"
+  ],
+  "directServiceReplacement": "evidence/build-243/direct-hook-service-focused.json",
+  "additionalDomainValidation": {
+    "testsPassed": 91,
+    "filesPassed": 6,
+    "commandExit": 0,
+    "scope": "Hook routing, direct/composed output and Claude delivery; direct dispatcher separately measured in its focused report."
+  }
+}

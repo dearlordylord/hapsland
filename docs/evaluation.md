@@ -12,9 +12,9 @@ The default command is controlled and offline:
 
 ```sh
 printf '%s\n' '{"version":1,"operation":"plan"}' \
-  | node src/cli.ts --evaluation-plan
+  | node packages/cli-entry/src/cli.ts --evaluation-plan
 printf '%s\n' '{"version":1,"operation":"run"}' \
-  | node src/cli.ts --evaluation-run
+  | node packages/cli-entry/src/cli.ts --evaluation-run
 ```
 
 `plan` reports logical requests and the worst-case attempt count (initial request
@@ -34,7 +34,7 @@ timing evidence contains no per-request durations:
 
 ```sh
 printf '%s\n' '{"version":1,"operation":"report","report":{...}}' \
-  | node src/cli.ts --evaluation-report
+  | node packages/cli-entry/src/cli.ts --evaluation-report
 ```
 
 The evaluation protocol is versioned independently from the unchanged version-1

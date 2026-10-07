@@ -1324,7 +1324,7 @@ export const simulationView = <Message>(
   changed: (field: string, raw: string) => Message,
   showDiagram = true,
   inspection?: {
-    readonly projection: import("../../../src/canonical/adapter").CanonicalProjection
+    readonly projection: import("@hapsland/canonical-policy/canonical/adapter").CanonicalProjection
     readonly observations: readonly Observation[]
     readonly partition?: number
     readonly numbers?: import("@hapsland/agent-flow-projection").RecordNumbers

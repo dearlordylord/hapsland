@@ -1,7 +1,7 @@
 import { validateExpiryControl, type ExpiryControl } from "../../monkey-business/src/expiry-controls"
 import type { HtmlBuilder } from "foldkit/html"
 import { validateNoticeControl, type NoticeControl } from "../../monkey-business/src/notice-controls"
-import type { CanonicalProjection } from "../../../src/canonical/adapter"
+import type { CanonicalProjection } from "@hapsland/canonical-policy/canonical/adapter"
 
 type NoticeAction = NoticeControl | ExpiryControl
 const validateAction = (control: NoticeAction): NoticeAction =>

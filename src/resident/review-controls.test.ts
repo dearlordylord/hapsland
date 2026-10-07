@@ -2,19 +2,23 @@ import { expect, it } from "@effect/vitest"
 import { Deferred, Effect, Exit, Layer, Ref } from "effect"
 import { rm } from "node:fs/promises"
 import { join } from "node:path"
-import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
-import { addEvent, makeReviewGitFixture as makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../test-support/default-rules.ts"
-import { reviewControlsLayer } from "../test-support/review-controls.ts"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import {
+  addEvent,
+  makeReviewGitFixture as makeGitFixture,
+  put
+} from "@hapsland/build-tooling/test-support/test-fixtures"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
+import { reviewControlsLayer } from "@hapsland/build-tooling/test-support/review-controls"
 import {
   ResidentReviewControls,
   ReviewControlError,
   defaultReviewControls,
   type ReviewControls
-} from "./review-controls.ts"
-import { makeResidentRuntime } from "./server.ts"
-import { residentPaths } from "./paths.ts"
-import type { ResidentDispatchContext } from "./protocol.ts"
+} from "@hapsland/resident-runtime/resident/review-controls"
+import { makeResidentRuntime } from "@hapsland/resident-runtime/resident/server"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
+import type { ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
 
 const fixture = Effect.fn("ReviewControlsFixture.acquire")(function* (controls: Layer.Layer<ResidentReviewControls>) {
   const root = yield* Effect.promise(() => makeGitFixture())
@@ -24,7 +28,7 @@ const fixture = Effect.fn("ReviewControlsFixture.acquire")(function* (controls: 
   if (observation === undefined) return yield* Effect.die(new Error("missing fixture observation"))
   const dispatch: ResidentDispatchContext = {
     statePath: join(root, "consent"),
-    userConfigPath: null,
+    userConfigPath: join(root, "absent-fixture-user.jsonc"),
     credential: null,
     controlled: {
       answers: Object.fromEntries(

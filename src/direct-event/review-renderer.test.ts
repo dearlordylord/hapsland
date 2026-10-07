@@ -4,7 +4,7 @@ import {
   CANDIDATE_RENDERER_VERSION,
   renderCandidateReviewInput,
   type CandidateReviewInput
-} from "./review-renderer.ts"
+} from "@hapsland/review-execution/direct-event/review-renderer"
 
 const fixture = (): CandidateReviewInput => ({
   contract: "direct-event/type-shape/v1",

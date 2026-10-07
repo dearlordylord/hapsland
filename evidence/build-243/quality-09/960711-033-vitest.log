@@ -1,0 +1,160 @@
+
+ RUN  v5.0.1 /workspace/typescript/hapsland-243
+      Coverage enabled with v8
+
+ ✓ src/direct-event/content-isolation.test.ts (5 tests) 180ms
+ ✓ src/onboarding/setup.test.ts (22 tests) 208122ms
+   ✓ public resumable setup operation (14)
+     ✓ installs with exact approval and effective file settings without a repository grant 20386ms
+     ✓ resumes an interrupted owned installation with the same approval 24946ms
+     ✓ asks for user exclude-all when review disabled is requested 3908ms
+     ✓ completes with review disabled and no credential 8330ms
+     ✓ bounds noninteractive missing-secret handoff 3208ms
+     ✓ setup and standalone credential inspection read the project file without inherited keys 4724ms
+     ✓ reports a rejected project key file without asking to repair native storage 2674ms
+     ✓ distinguishes inaccessible storage from an absent key 4330ms
+     ✓ does not inspect an existing key during forced-entry preview 2907ms
+     ✓ uses masked terminal entry with forced replacement=false and file override=false 9522ms
+     ✓ uses masked terminal entry with forced replacement=true and file override=false 9666ms
+     ✓ uses masked terminal entry with forced replacement=true and file override=true 9622ms
+     ✓ reports cancelled masked input without falling back to stale missing state 9133ms
+     ✓ reports invalid, unavailable, and indeterminate interactive storage outcomes 28593ms
+   ✓ setup repository failures (2)
+     ✓ reports an undiscoverable scope without claiming credential readiness 2674ms
+     ✓ reports invalid review configuration as a conflict without requesting a credential 2624ms
+   ✓ Claude setup shares the resumable credential and repository workflow (2)
+     ✓ requires digest approval, preserves independent hooks, and supports repeated setup 14793ms
+     ✓ rejects an unsupported Claude profile before writing hooks 3044ms
+   ✓ binds editable defaults and configuration to setup authorization and preserves authored content 12183ms
+   ✓ rejects changed default rules before installing an approved setup 5102ms
+   ✓ rejects malformed default rules before installing an approved setup 5634ms
+   ✓ unattended setup previews without writes, applies a saved plan and rejects stale authored bytes 20117ms
+ ✓ src/rules/cli.test.ts (7 tests) 54406ms
+   ✓ creates, inspects, disables and adds a project rule again through the CLI 28720ms
+   ✓ creates personal rules, adds a custom rule in defaults and rejects invalid inputs before writes 19535ms
+   ✓ runs one-off rule checks without stdin or resident state and reports unavailable credentials 5874ms
+ ✓ src/onboarding/interactive.test.ts (11 tests) 64525ms
+   ✓ declining guided setup leaves Claude settings absent 3124ms
+   ✓ interactive update carries the exact preview digest and selected home to the target 2561ms
+   ✓ declining update performs only a read-only preview 2518ms
+   ✓ guided Codex setup installs through the named client command 7657ms
+   ✓ bare setup selects and installs both clients with independent confirmation 14021ms
+   ✓ existing clients are checked and deselecting them preserves their registrations 17459ms
+   ✓ cancelling client selection writes no registrations 5324ms
+   ✓ bare update previews both installed clients, then applies both exact digests after one confirmation 3006ms
+   ✓ a failed client update reports failure and still updates the other installed client 2984ms
+   ✓ bare update acquires one target for both installed clients 3095ms
+   ✓ public setup uses the active package and cannot silently revert to the command in PATH 2773ms
+
+FAIL /workspace/typescript/hapsland-243/src/pi/installed-boundary.test.ts > Pi source extension through command and resident > closes offered advice after aborted composition and permits a fresh edit
+AssertionError: expected undefined to be defined
+    at /workspace/typescript/hapsland-243/src/pi/installed-boundary.test.ts:183:37
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2783:20
+Actual: undefined
+Expected: undefined
+ ❯ src/pi/installed-boundary.test.ts (24 tests | 1 failed) 57090ms
+   ❯ Pi source extension through command and resident (22)
+     ✓ does not continue when review is clear 1241ms
+     ✓ does not continue when review is unavailable 1262ms
+     ✓ cuts off delayed work at finish and withholds its late finding from a fresh edit 6282ms
+     ✓ abandons admitted delayed work on session switch before reviewing a fresh edit 2287ms
+     ✓ closes offered advice after replaced composition and permits a fresh edit 3375ms
+     ✓ closes offered advice after final-refusal composition and permits a fresh edit 3144ms
+     × closes offered advice after aborted composition and permits a fresh edit 6548ms
+     ✓ reviews a whole declaration replacement spanning omitted context between native hunks 1522ms
+     ✓ awaits a delayed review at finish with canContinue=true 1568ms
+     ✓ awaits a delayed review at finish with canContinue=false 1497ms
+     ✓ reviews the post-edit source and preserves native content, consuming a permit once 1517ms
+     ✓ does not infer edit evidence for unsupported write 6ms
+     ✓ does not infer edit evidence for unsupported bash 6ms
+     ✓ refuses a successful result without a before-tool permit 1176ms
+     ✓ does not review identity mismatches 619ms
+     ✓ does not review arguments mismatches 768ms
+     ✓ does not review source mismatches 1052ms
+     ✓ does not review failed mismatches 827ms
+     ✓ does not review unicode mismatches 941ms
+     ✓ retires pending permits on session_before_switch 952ms
+     ✓ retires pending permits on session_shutdown 1235ms
+     ✓ retires pending permits on agent_settled 945ms
+   ✓ Pi installed extension through command and resident (2)
+     ✓ awaits a delayed review at finish with canContinue=false 1218ms
+     ✓ reviews the post-edit source and preserves native content, consuming a permit once 1164ms
+ ✓ src/cli.test.ts (15 tests) 46767ms
+   ✓ JSON subprocess contract (15)
+     ✓ explains a repository path through the deferred command without reviewing source 1780ms
+     ✓ keeps Claude input quiet without valid dispatch metadata, composed=false 1634ms
+     ✓ keeps Claude input quiet without valid dispatch metadata, composed=true 1892ms
+     ✓ rejects empty REVIEW_STATE_PATH instead of falling back to another path 1771ms
+     ✓ rejects empty REVIEW_CONSENT_FILE instead of falling back to another path 1763ms
+     ✓ rejects empty REVIEW_ACTIVITY_PATH instead of falling back to another path 1758ms
+     ✓ rejects empty REVIEW_USER_CONFIG_PATH instead of falling back to another path 1734ms
+     ✓ rejects mixed installation host fields and accepts the host-omitted Codex v1 form 6760ms
+     ✓ rejects the retired whole-file review request without invoking Jev 1687ms
+     ✓ keeps the retired Codex 0.155.1 entry point quiet 1533ms
+     ✓ keeps the retired Codex 0.156.0 entry point quiet 1538ms
+     ✓ quiets retired native hooks before decoding input or reviewer settings 4863ms
+     ✓ keeps unsupported native apply_patch events quiet 14965ms
+     ✓ returns a bounded protocol error for malformed input 1554ms
+     ✓ inspects credential presence without exposing the value 1531ms
+ ✓ src/onboarding/codex-installation.test.ts (52 tests) 48245ms
+   ✓ public Codex installation operations (41)
+     ✓ rejects Linux x64 against the production arm64 declaration before mutation 1856ms
+     ✓ accepts pinned Bun against matching package profiles 1867ms
+     ✓ inspects the pinned hook runtime when the caller uses another Node path 421ms
+     ✓ accepts Codex 0.156.0 and binds its version into the owned hook 375ms
+     ✓ rejects a locally modified owned Stop hook 340ms
+     ✓ rejects a locally modified owned SubagentStop hook 343ms
+     ✓ retires the old owned prompt hook safely when present 518ms
+     ✓ retires the old owned prompt hook safely when missing 501ms
+     ✓ retires the old owned prompt hook safely when modified 334ms
+     ✓ updates an older owned installation to add SubagentStop 504ms
+     ✓ previews exact changes, quotes paths, installs idempotently, and preserves unrelated configuration 517ms
+     ✓ edits quoted feature tables without matching table text inside multiline strings 581ms
+     ✓ rejects unsupported hosts and malformed, duplicate, or modified owned configuration 845ms
+     ✓ exposes partial completion and resumes the journal without stale overwrite 1276ms
+     ✓ uninstalls only owned state and preserves hooks, rules, grants, and preexisting feature settings 580ms
+     ✓ conflicts and preserves a locally modified owned feature value 398ms
+     ✓ rechecks a preexisting hooks feature before journal recovery 425ms
+     ✓ previews and applies an explicit local-package update while preserving reusable state 1978ms
+     ✓ retains the previous working hook on partial update and resumes with an exact recovery request 749ms
+     ✓ preserves a concurrent independent-hook edit during update recovery 688ms
+     ✓ rejects missing-runtime target package metadata before update mutation 431ms
+     ✓ rejects malformed-runtime target package metadata before update mutation 419ms
+     ✓ rejects missing-protocol target package metadata before update mutation 423ms
+     ✓ rejects missing-version target package metadata before update mutation 408ms
+     ✓ rejects a self-consistent altered journal that would drop an unrelated hook 674ms
+     ✓ binds recovery to the exact target package version 659ms
+     ✓ serializes multiple stale reclaimers, a replacement owner, and a third contender 18341ms
+     ✓ bounds lock acquisition and reports no mutation 1687ms
+   ✓ Codex update and explicit reinstall journeys (4)
+     ✓ repairs missing Codex groups without losing settings 3064ms
+     ✓ repairs missing Codex foreground without losing settings 3006ms
+     ✓ reinstall replaces a damaged journal only after approval, backs it up, and preserves current user edits 497ms
+     ✓ resumes reinstall after restoring a deleted preexisting hooks feature and removes only the restored feature 837ms
+   ✓ resumes an interrupted uninstall using only its original approved digest 654ms
+ ✓ src/cli-command.test.ts (80 tests) 38553ms
+   ✓ declarative CLI subprocess contracts (71)
+     ✓ reports the invoked package version before reading invalid stdin or creating state 1543ms
+     ✓ discovers live rule checks and rejects invalid coordinates before dispatch 1742ms
+     ✓ provides focused rule help and rejects missing or irrelevant flags before dispatch 1548ms
+     ✓ previews agent feedback without stdin, credentials, or persisted activity 1572ms
+     ✓ rejects invalid arguments before stdin or filesystem effects 1557ms
+     ✓ bounds long invalid command or option errors 1538ms
+     ✓ bounds long invalid command or option errors 1558ms
+     ✓ rejects native routing through the administration CLI: --claude-hook 1578ms
+     ✓ rejects native routing through the administration CLI: --codex-hook 1529ms
+     ✓ rejects native routing through the administration CLI: --pi-hook 1494ms
+     ✓ rejects native routing through the administration CLI: --composed-stop-hook 1547ms
+     ✓ keeps the native hook subprocess quiet: "--claude-hook" 1631ms
+     ✓ keeps the native hook subprocess quiet: "--claude-hook" 1522ms
+     ✓ preserves positional client selection for the guided --pilot entry point 2118ms
+     ✓ accepts an installed composed hook ownership marker before quieting unsupported input 1535ms
+     ✓ allows JSON automation to select evaluation operation independently of the live opt-in 1960ms
+     ✓ keeps machine-readable package identity stdout stable 1490ms
+     ✓ reports the selected runtime without reading stdin or creating state 1504ms
+   ✓ rejects interactive repair without a terminal 1944ms
+   ✓ rejects interactive reinstall without a terminal 1954ms
+   ✓ rejects interactive uninstall without a terminal 2125ms
+   ✓ routes the version-one claude installation preview to the selected profile 1836ms
+   ✓ routes the version-one opencode installation preview to the selected profile 1566ms

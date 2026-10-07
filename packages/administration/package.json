@@ -1,0 +1,259 @@
+{
+  "name": "@hapsland/administration",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./cli-command": {
+      "types": "./dist/cli-command.d.ts",
+      "default": "./dist/cli-command.js"
+    },
+    "./cli-help": {
+      "types": "./dist/cli-help.d.ts",
+      "default": "./dist/cli-help.js"
+    },
+    "./credentials/masked-input": {
+      "types": "./dist/credentials/masked-input.d.ts",
+      "default": "./dist/credentials/masked-input.js"
+    },
+    "./credentials/terminal": {
+      "types": "./dist/credentials/terminal.d.ts",
+      "default": "./dist/credentials/terminal.js"
+    },
+    "./evaluation/command": {
+      "types": "./dist/evaluation/command.d.ts",
+      "default": "./dist/evaluation/command.js"
+    },
+    "./evaluation/comparison": {
+      "types": "./dist/evaluation/comparison.d.ts",
+      "default": "./dist/evaluation/comparison.js"
+    },
+    "./evaluation/digest": {
+      "types": "./dist/evaluation/digest.d.ts",
+      "default": "./dist/evaluation/digest.js"
+    },
+    "./evaluation/fixtures": {
+      "types": "./dist/evaluation/fixtures.d.ts",
+      "default": "./dist/evaluation/fixtures.js"
+    },
+    "./evaluation/model": {
+      "types": "./dist/evaluation/model.d.ts",
+      "default": "./dist/evaluation/model.js"
+    },
+    "./evaluation/plan": {
+      "types": "./dist/evaluation/plan.d.ts",
+      "default": "./dist/evaluation/plan.js"
+    },
+    "./evaluation/report": {
+      "types": "./dist/evaluation/report.d.ts",
+      "default": "./dist/evaluation/report.js"
+    },
+    "./evaluation/runner": {
+      "types": "./dist/evaluation/runner.d.ts",
+      "default": "./dist/evaluation/runner.js"
+    },
+    "./explanation/index": {
+      "types": "./dist/explanation/index.d.ts",
+      "default": "./dist/explanation/index.js"
+    },
+    "./inspection/brand": {
+      "types": "./dist/inspection/brand.d.ts",
+      "default": "./dist/inspection/brand.js"
+    },
+    "./inspection/command": {
+      "types": "./dist/inspection/command.d.ts",
+      "default": "./dist/inspection/command.js"
+    },
+    "./inspection/consumer": {
+      "types": "./dist/inspection/consumer.d.ts",
+      "default": "./dist/inspection/consumer.js"
+    },
+    "./inspection/http": {
+      "types": "./dist/inspection/http.d.ts",
+      "default": "./dist/inspection/http.js"
+    },
+    "./inspection/options": {
+      "types": "./dist/inspection/options.d.ts",
+      "default": "./dist/inspection/options.js"
+    },
+    "./inspection/page": {
+      "types": "./dist/inspection/page.d.ts",
+      "default": "./dist/inspection/page.js"
+    },
+    "./inspection/registry": {
+      "types": "./dist/inspection/registry.d.ts",
+      "default": "./dist/inspection/registry.js"
+    },
+    "./onboarding/atomic-installation-file": {
+      "types": "./dist/onboarding/atomic-installation-file.d.ts",
+      "default": "./dist/onboarding/atomic-installation-file.js"
+    },
+    "./onboarding/claude-installation": {
+      "types": "./dist/onboarding/claude-installation.d.ts",
+      "default": "./dist/onboarding/claude-installation.js"
+    },
+    "./onboarding/client-command": {
+      "types": "./dist/onboarding/client-command.d.ts",
+      "default": "./dist/onboarding/client-command.js"
+    },
+    "./onboarding/client-lifecycle": {
+      "types": "./dist/onboarding/client-lifecycle.d.ts",
+      "default": "./dist/onboarding/client-lifecycle.js"
+    },
+    "./onboarding/client-selection": {
+      "types": "./dist/onboarding/client-selection.d.ts",
+      "default": "./dist/onboarding/client-selection.js"
+    },
+    "./onboarding/codex-installation": {
+      "types": "./dist/onboarding/codex-installation.d.ts",
+      "default": "./dist/onboarding/codex-installation.js"
+    },
+    "./onboarding/confirmation": {
+      "types": "./dist/onboarding/confirmation.d.ts",
+      "default": "./dist/onboarding/confirmation.js"
+    },
+    "./onboarding/credential-diagnostics": {
+      "types": "./dist/onboarding/credential-diagnostics.d.ts",
+      "default": "./dist/onboarding/credential-diagnostics.js"
+    },
+    "./onboarding/credential-guidance": {
+      "types": "./dist/onboarding/credential-guidance.d.ts",
+      "default": "./dist/onboarding/credential-guidance.js"
+    },
+    "./onboarding/credential-verification": {
+      "types": "./dist/onboarding/credential-verification.d.ts",
+      "default": "./dist/onboarding/credential-verification.js"
+    },
+    "./onboarding/default-rules": {
+      "types": "./dist/onboarding/default-rules.d.ts",
+      "default": "./dist/onboarding/default-rules.js"
+    },
+    "./onboarding/distribution": {
+      "types": "./dist/onboarding/distribution.d.ts",
+      "default": "./dist/onboarding/distribution.js"
+    },
+    "./onboarding/doctor": {
+      "types": "./dist/onboarding/doctor.d.ts",
+      "default": "./dist/onboarding/doctor.js"
+    },
+    "./onboarding/first-review-demo": {
+      "types": "./dist/onboarding/first-review-demo.d.ts",
+      "default": "./dist/onboarding/first-review-demo.js"
+    },
+    "./onboarding/hook-reconciliation": {
+      "types": "./dist/onboarding/hook-reconciliation.d.ts",
+      "default": "./dist/onboarding/hook-reconciliation.js"
+    },
+    "./onboarding/host-process": {
+      "types": "./dist/onboarding/host-process.d.ts",
+      "default": "./dist/onboarding/host-process.js"
+    },
+    "./onboarding/human-output": {
+      "types": "./dist/onboarding/human-output.d.ts",
+      "default": "./dist/onboarding/human-output.js"
+    },
+    "./onboarding/installation-lock": {
+      "types": "./dist/onboarding/installation-lock.d.ts",
+      "default": "./dist/onboarding/installation-lock.js"
+    },
+    "./onboarding/maintenance": {
+      "types": "./dist/onboarding/maintenance.d.ts",
+      "default": "./dist/onboarding/maintenance.js"
+    },
+    "./onboarding/native-architecture": {
+      "types": "./dist/onboarding/native-architecture.d.ts",
+      "default": "./dist/onboarding/native-architecture.js"
+    },
+    "./onboarding/opencode-installation": {
+      "types": "./dist/onboarding/opencode-installation.d.ts",
+      "default": "./dist/onboarding/opencode-installation.js"
+    },
+    "./onboarding/package-diagnostics": {
+      "types": "./dist/onboarding/package-diagnostics.d.ts",
+      "default": "./dist/onboarding/package-diagnostics.js"
+    },
+    "./onboarding/pi-installation": {
+      "types": "./dist/onboarding/pi-installation.d.ts",
+      "default": "./dist/onboarding/pi-installation.js"
+    },
+    "./onboarding/pilot": {
+      "types": "./dist/onboarding/pilot.d.ts",
+      "default": "./dist/onboarding/pilot.js"
+    },
+    "./onboarding/setup-request": {
+      "types": "./dist/onboarding/setup-request.d.ts",
+      "default": "./dist/onboarding/setup-request.js"
+    },
+    "./onboarding/setup": {
+      "types": "./dist/onboarding/setup.d.ts",
+      "default": "./dist/onboarding/setup.js"
+    },
+    "./onboarding/unattended": {
+      "types": "./dist/onboarding/unattended.d.ts",
+      "default": "./dist/onboarding/unattended.js"
+    },
+    "./onboarding/update": {
+      "types": "./dist/onboarding/update.d.ts",
+      "default": "./dist/onboarding/update.js"
+    },
+    "./rules/cli-definition": {
+      "types": "./dist/rules/cli-definition.d.ts",
+      "default": "./dist/rules/cli-definition.js"
+    },
+    "./rules/command": {
+      "types": "./dist/rules/command.d.ts",
+      "default": "./dist/rules/command.js"
+    },
+    "./rules/inventory": {
+      "types": "./dist/rules/inventory.d.ts",
+      "default": "./dist/rules/inventory.js"
+    },
+    "./rules/management": {
+      "types": "./dist/rules/management.d.ts",
+      "default": "./dist/rules/management.js"
+    },
+    "./evaluation/index": {
+      "types": "./dist/evaluation/index.d.ts",
+      "default": "./dist/evaluation/index.js"
+    },
+    "./explanation/explain": {
+      "types": "./dist/explanation/explain.d.ts",
+      "default": "./dist/explanation/explain.js"
+    },
+    "./rules/check": {
+      "types": "./dist/rules/check.d.ts",
+      "default": "./dist/rules/check.js"
+    }
+  },
+  "dependencies": {
+    "@hapsland/activity-observation": "workspace:*",
+    "@hapsland/delivery-output": "workspace:*",
+    "@hapsland/inspection-records": "workspace:*",
+    "@hapsland/native-observation": "workspace:*",
+    "@hapsland/resident-runtime": "workspace:*",
+    "@hapsland/resident-transport": "workspace:*",
+    "@hapsland/review-definition": "workspace:*",
+    "@hapsland/review-execution": "workspace:*",
+    "@hapsland/runtime-environment": "workspace:*",
+    "@hapsland/runtime-inputs": "workspace:*",
+    "@hapsland/source-analysis": "workspace:*",
+    "@hapsland/source-artifacts": "workspace:*",
+    "@effect/ai-typesafe": "catalog:",
+    "@effect/platform-node": "catalog:",
+    "effect": "catalog:",
+    "smol-toml": "catalog:",
+    "@hapsland/credential-storage": "workspace:*"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
+  },
+  "hapsland": {
+    "domain": "administration",
+    "host": "bun",
+    "capabilities": [
+      "administration",
+      "credential-mutation"
+    ]
+  }
+}

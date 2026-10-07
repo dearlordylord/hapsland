@@ -35,6 +35,43 @@ async function records(root) {
     result: JSON.parse(await readFile(join(directory, "results.json"), "utf8"))
   }
 }
+test("quality profile rejects missing acknowledgment before creating run state", async (t) => {
+  const root = await fixture(t)
+  await assert.rejects(verify(["--profile=quality"], root), /read CHECKS.md.*--ack-checks-policy/)
+  await assert.rejects(readFile(join(root, ".test-runs/latest.json")), /ENOENT/)
+})
+test("acknowledged quality profile retains failed prerequisites without starting coverage", async (t) => {
+  const root = await fixture(t)
+  await mkdir(join(root, "scripts/test-harness"))
+  for (const name of [
+    "run-checks.test.mjs",
+    "verification-plan.test.mjs",
+    "verify.test.mjs",
+    "check-complexity.test.mjs"
+  ])
+    await writeFile(join(root, "scripts/test-harness", name), "// Passing prerequisite fixture\n")
+  await writeFile(join(root, "scripts/test-harness/immediate-errors.test.mjs"), "throw new Error('profile witness')")
+  // This fixture owns a separate checkout, rather than joining the enclosing gate.
+  const inheritedContext = process.env.HAPSLAND_CHECK_CONTEXT
+  delete process.env.HAPSLAND_CHECK_CONTEXT
+  try {
+    assert.equal(await verify(["--profile=quality", "--ack-checks-policy", "--timeout-ms=10000"], root), 1)
+  } finally {
+    if (inheritedContext !== undefined) process.env.HAPSLAND_CHECK_CONTEXT = inheritedContext
+  }
+  const { manifest, result } = await records(root)
+  assert.equal(manifest.checksPolicyAcknowledged, true)
+  assert.equal(manifest.verificationPlan.profile, "quality")
+  assert.deepEqual(
+    result.stages.map(({ name, state }) => [name, state]),
+    [
+      ["quality-preflight", "failed"],
+      ["lint-code", "not-started"],
+      ["quality-complexity", "not-started"],
+      ["quality", "not-started"]
+    ]
+  )
+})
 test("fast CLI executes one deduplicated selection and persists the resolved plan", async (t) => {
   const root = await fixture(t)
   assert.equal(
@@ -57,8 +94,8 @@ test("source changes during checks fail the profile instead of accepting mixed i
   const root = await fixture(t, true)
   assert.equal(await verify(["--profile=fast", "--timeout-ms=10000", "scripts/selected.test.mjs"], root), 1)
   const { result } = await records(root)
-  assert.equal(result.state, "failed")
-  assert.ok(result.stages.some((stage) => stage.name === "verification" && /inputs changed/.test(stage.error)))
+  assert.equal(result.state, "aborted")
+  assert.ok(result.stages.some((stage) => stage.name === "source-identity" && /src\/main.ts/.test(stage.error)))
 })
 test("a deadline during source identification still produces a terminal run record", async (t) => {
   const root = await fixture(t)
@@ -81,9 +118,12 @@ test("source boundary checks run without invoking package preparation", async (t
 
 test("package preparation requirements follow transitive consumer imports", async (t) => {
   const root = await fixture(t)
-  await mkdir(join(root, "src/test-support"))
-  await writeFile(join(root, "src/test-support/test-package.ts"), "export const packageFixture = true")
-  await writeFile(join(root, "src/consumer.ts"), 'export { packageFixture } from "./test-support/test-package.ts"')
+  await mkdir(join(root, "scripts/test-support"))
+  await writeFile(join(root, "scripts/test-support/test-package.ts"), "export const packageFixture = true")
+  await writeFile(
+    join(root, "src/consumer.ts"),
+    'export { packageFixture } from "../scripts/test-support/test-package.ts"'
+  )
   await writeFile(join(root, "scripts/selected.test.mjs"), 'import "../src/consumer.ts"')
   const { requiredTestArtifacts } = await import("./inventory.mjs")
   assert.deepEqual(requiredTestArtifacts(root, ["scripts/selected.test.mjs"]), ["package"])

@@ -3,8 +3,12 @@ import { expect } from "vitest"
 import * as Clock from "effect/Clock"
 import * as Effect from "effect/Effect"
 import * as TestClock from "effect/testing/TestClock"
-import { machineClockLayer } from "../runtime/machine-clock.ts"
-import { hookMonotonicMillis, monotonicNow, PRE_EDIT_ADMISSION_DEADLINE_MS } from "./hook-clock.ts"
+import { machineClockLayer } from "@hapsland/runtime-environment/runtime/machine-clock"
+import {
+  hookMonotonicMillis,
+  monotonicNow,
+  PRE_EDIT_ADMISSION_DEADLINE_MS
+} from "@hapsland/resident-transport/resident/hook-clock"
 
 it.effect("keeps hook deadlines on the injected caller Clock", () =>
   Effect.gen(function* () {

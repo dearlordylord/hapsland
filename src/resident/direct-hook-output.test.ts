@@ -1,10 +1,10 @@
 import { it } from "@effect/vitest"
 import { expect } from "vitest"
 import { Deferred, Effect, Fiber } from "effect"
-import { DirectHookSubmission, submitDirectHookOutput } from "./direct-hook-output.ts"
-import { HookOutput } from "./hook-output.ts"
-import { residentPaths } from "./paths.ts"
-import type { CollectedAdvice } from "./client.ts"
+import { DirectHookSubmission, submitDirectHookOutput } from "@hapsland/hook-runtime/resident/direct-hook-output"
+import { HookOutput } from "@hapsland/hook-runtime/resident/hook-output"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
+import type { CollectedAdvice } from "@hapsland/resident-transport/resident/client"
 
 const advice: CollectedAdvice = {
   output: { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "finding" } },

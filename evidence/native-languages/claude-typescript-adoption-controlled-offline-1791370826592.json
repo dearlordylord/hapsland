@@ -1,0 +1,282 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-07T11:01:14.944Z",
+  "commit": "922535fe93f2ea7523ef38ec4f63a8ba60757ffb",
+  "sourceWorktreeDirty": false,
+  "language": "typescript",
+  "scenario": "adoption",
+  "runnerHash": "7c06a83a21bb8ba13e6456a575baee262867c495532cabdff550a77c9fb464eb",
+  "executionProfile": {
+    "runtime": "installed-artifact",
+    "installedPackageValidated": true,
+    "installedArchive": {
+      "adapterSha256": "af5aa69eecd44d9593030f3455ef8bea6aa7f2003990e9d4543e7e38e023994a",
+      "archiveSha256": "2331142576cd8c6667de8a5c2432989ee7dcf913fa3bf0c41085046a4170a316",
+      "runtimeAssets": {
+        "sha256": "3a8755d6aad332db88a478f0ed84f76870d3897138c0d5272403de926c361fd3",
+        "files": 34
+      },
+      "packageManager": "bun",
+      "operatingSystem": "linux",
+      "architecture": "arm64",
+      "version": "0.1.0"
+    },
+    "installation": {
+      "setup": "installation-complete",
+      "doctor": "owned-registration-ready",
+      "registrationSha256": "462da617374bd155b918613e6e112b49e408314994bfcf30b018c7d02a09564a",
+      "commands": [
+        "before-edit",
+        "edit",
+        "stop",
+        "subagentStop",
+        "prompt"
+      ],
+      "normalTrustValidated": false
+    },
+    "observation": "native registration observer delegates installed dedicated hook commands with explicit controlled reviewer test selector",
+    "normalTrustValidated": false,
+    "syntheticRepositoryOnly": true
+  },
+  "runtime": "Claude Code",
+  "version": "2.1.218 (Claude Code)",
+  "mode": "controlled-offline",
+  "nativeRepairShape": {
+    "oldStringIncludesImport": false,
+    "oldStringBytes": 111,
+    "newStringBytes": 140
+  },
+  "declaration": {
+    "scenario": "adoption",
+    "maximumProviderRequests": 0,
+    "automaticHostRetries": 0,
+    "hostCeilingMs": 240000,
+    "syntheticRepositoryOnly": true,
+    "maximumSourceEditCalls": 2,
+    "sourceProfile": "bounded local cross-file types",
+    "runtimeVersion": "2.1.218 (Claude Code)",
+    "runtimeSurface": "installed-artifact"
+  },
+  "hostDiagnostics": {
+    "permissionDenials": 0,
+    "finalMentionsPermission": false,
+    "finalMentionsEditLimit": false,
+    "toolErrors": 0
+  },
+  "hostExitCode": 0,
+  "hostSignal": null,
+  "elapsedMs": 48364,
+  "providerCalls": 0,
+  "requestShapes": [
+    {
+      "rootKind": "interface",
+      "conditionalFindingSourceMatched": true,
+      "evidenceNodes": 2,
+      "expandedEdges": 2,
+      "includedEdges": 0,
+      "omittedEdges": 0
+    },
+    {
+      "rootKind": "type-alias",
+      "conditionalFindingSourceMatched": false,
+      "evidenceNodes": 1,
+      "expandedEdges": 1,
+      "includedEdges": 0,
+      "omittedEdges": 0
+    }
+  ],
+  "outcomeSummaries": [
+    {
+      "outcome": "completed-findings",
+      "toolUseHash": "6b3d5b8eac3f8641ece484a3b0e336c8235ddb851bf04666fe7198735e31ef34"
+    },
+    {
+      "outcome": "completed-clear",
+      "toolUseHash": "2e00c19c24b2abf743e5788d952fd1ebc2e8d7c92dc3119a4fc2857fd4c3d9d7"
+    }
+  ],
+  "postEditPreparation": {
+    "status": "complete",
+    "pathReasons": [],
+    "analysisFailures": [],
+    "readyUnits": 1
+  },
+  "nativeUpdatePreparation": {
+    "status": "complete",
+    "pathReasons": [],
+    "analysisFailures": [],
+    "readyUnits": 1,
+    "operations": [
+      "update"
+    ]
+  },
+  "activityStages": [
+    {
+      "stage": "pending",
+      "atMs": 24402
+    },
+    {
+      "stage": "pending",
+      "atMs": 24474
+    },
+    {
+      "stage": "findings",
+      "atMs": 24528
+    },
+    {
+      "stage": "pending",
+      "atMs": 38112
+    },
+    {
+      "stage": "pending",
+      "atMs": 38161
+    },
+    {
+      "stage": "clear",
+      "atMs": 38192
+    }
+  ],
+  "hookEvents": [
+    {
+      "kind": "prompt",
+      "monoMs": 6160.143389001489,
+      "atMs": 6160,
+      "durationMs": 329,
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 0,
+      "sessionHash": "327933a601b175d896252393d6757ce9d9d5b47f155ecbf7b402a3a81fde306a",
+      "rootHash": "f9c40db6a88714bd3a204a65b19926dda091a12c72f123aaf0a58bf089fcd83a",
+      "toolUseHash": null,
+      "injectedFault": null,
+      "targetKind": null,
+      "hold": null
+    },
+    {
+      "kind": "before-edit",
+      "monoMs": 24207.4912430048,
+      "atMs": 24207,
+      "durationMs": 78,
+      "event": "PreToolUse",
+      "tool": "Write",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 0,
+      "sessionHash": "327933a601b175d896252393d6757ce9d9d5b47f155ecbf7b402a3a81fde306a",
+      "rootHash": "f9c40db6a88714bd3a204a65b19926dda091a12c72f123aaf0a58bf089fcd83a",
+      "toolUseHash": "6b3d5b8eac3f8641ece484a3b0e336c8235ddb851bf04666fe7198735e31ef34",
+      "injectedFault": null,
+      "targetKind": null,
+      "hold": null
+    },
+    {
+      "kind": "edit",
+      "monoMs": 24314.38634300232,
+      "atMs": 24314,
+      "durationMs": 362,
+      "event": "PostToolUse",
+      "tool": "Write",
+      "exitCode": 0,
+      "decision": "block",
+      "finding": true,
+      "ruleIds": [
+        "meaningless_combinations"
+      ],
+      "initial": true,
+      "sourceBytes": 169,
+      "sessionHash": "327933a601b175d896252393d6757ce9d9d5b47f155ecbf7b402a3a81fde306a",
+      "rootHash": "f9c40db6a88714bd3a204a65b19926dda091a12c72f123aaf0a58bf089fcd83a",
+      "toolUseHash": "6b3d5b8eac3f8641ece484a3b0e336c8235ddb851bf04666fe7198735e31ef34",
+      "injectedFault": null,
+      "targetKind": null,
+      "hold": null
+    },
+    {
+      "kind": "before-edit",
+      "monoMs": 37771.632126003504,
+      "atMs": 37771,
+      "durationMs": 67,
+      "event": "PreToolUse",
+      "tool": "Edit",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": true,
+      "sourceBytes": 169,
+      "sessionHash": "327933a601b175d896252393d6757ce9d9d5b47f155ecbf7b402a3a81fde306a",
+      "rootHash": "f9c40db6a88714bd3a204a65b19926dda091a12c72f123aaf0a58bf089fcd83a",
+      "toolUseHash": "2e00c19c24b2abf743e5788d952fd1ebc2e8d7c92dc3119a4fc2857fd4c3d9d7",
+      "injectedFault": null,
+      "targetKind": null,
+      "hold": null
+    },
+    {
+      "kind": "edit",
+      "monoMs": 37872.82101999223,
+      "atMs": 37872,
+      "durationMs": 360,
+      "event": "PostToolUse",
+      "tool": "Edit",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 198,
+      "sessionHash": "327933a601b175d896252393d6757ce9d9d5b47f155ecbf7b402a3a81fde306a",
+      "rootHash": "f9c40db6a88714bd3a204a65b19926dda091a12c72f123aaf0a58bf089fcd83a",
+      "toolUseHash": "2e00c19c24b2abf743e5788d952fd1ebc2e8d7c92dc3119a4fc2857fd4c3d9d7",
+      "injectedFault": null,
+      "targetKind": null,
+      "hold": null
+    },
+    {
+      "kind": "stop",
+      "monoMs": 47671.50933100283,
+      "atMs": 47671,
+      "durationMs": 93,
+      "event": "Stop",
+      "tool": null,
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 198,
+      "sessionHash": "327933a601b175d896252393d6757ce9d9d5b47f155ecbf7b402a3a81fde306a",
+      "rootHash": "f9c40db6a88714bd3a204a65b19926dda091a12c72f123aaf0a58bf089fcd83a",
+      "toolUseHash": null,
+      "injectedFault": null,
+      "targetKind": null,
+      "hold": null
+    }
+  ],
+  "checks": {
+    "initialDraftObserved": true,
+    "crossFileExpanded": true,
+    "findingDelivered": true,
+    "editAfterFinding": true,
+    "agentAcknowledgesAdvice": true,
+    "agentQuotesFinding": true,
+    "sourceChanged": true,
+    "finalDesignConstrained": true,
+    "sourceCompiles": true,
+    "missingReceiptRejected": true,
+    "followupObserved": true
+  },
+  "rawHostStreamRetained": false,
+  "sourceRetained": false,
+  "providerBodyRetained": false,
+  "credentialsRetained": false,
+  "hostBytesDiscarded": 72675,
+  "verdict": "demonstrated"
+}

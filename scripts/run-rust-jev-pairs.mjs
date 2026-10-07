@@ -3,11 +3,11 @@ import { execFileSync } from "node:child_process"
 import { readFile, mkdir, writeFile } from "node:fs/promises"
 import { resolve, join } from "node:path"
 import * as Effect from "effect/Effect"
-import { decide, Live } from "../src/jev-decision.ts"
-import { E0 } from "../src/questions.ts"
-import { analyzeNamedUnit, inspectGraphFile } from "../src/direct-event/analyzer.ts"
-import { candidateReviewInput } from "../src/direct-event/pipeline.ts"
-import { renderCandidateReviewInput } from "../src/direct-event/review-renderer.ts"
+import { decide, Live } from "@hapsland/review-execution/jev-decision"
+import { E0 } from "@hapsland/review-definition/questions"
+import { analyzeNamedUnit, inspectGraphFile } from "@hapsland/source-analysis/direct-event/analyzer"
+import { candidateReviewInput } from "@hapsland/review-execution/direct-event/pipeline"
+import { renderCandidateReviewInput } from "@hapsland/review-execution/direct-event/review-renderer"
 const root = resolve(new URL("../", import.meta.url).pathname)
 const declaration = Object.freeze({
   attempt: 2,

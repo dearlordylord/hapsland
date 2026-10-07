@@ -1,4 +1,4 @@
-# Direct-event v1 supported production profile
+# Direct-event v1 production profile
 
 **Purpose:** Preserve the measured direct-event v1 conformance record.
 **Status:** Historical validation evidence; superseded as the active input by the 2026-09-29 owner decision.
@@ -7,11 +7,11 @@
 **Lifecycle:** Temporary; consolidate still-useful host evidence into the replacement direct-event conformance record and delete this snapshot when that record is accepted.
 
 The matrix below records the earlier one-file input. Hapsland now selects the
-bounded cross-file type/function path in production code. The new path has not
+cross-file type/function path in production code. The new path has not
 yet inherited the matrix's host or live Jev validation claims.
 The historical #7 dispatch evidence measured finite cycles and a 50 ms
 collection window. The active conformance mapping and row below now track
-available preparation slots and per-edit completion, with a bounded Stop
+available preparation slots and per-edit completion, with a Stop deadline
 exception; they do not retroactively validate the earlier host run.
 
 This document records the previously measured support boundary. Jev is the external
@@ -30,7 +30,7 @@ validate the current standalone Bun distribution; see
 
 The accepted [review specification](type-function-review-proposal.md)
 now requires checked cross-file supporting evidence, a 256 KiB per-source-file
-ceiling, and a 20 KiB evidence-tree ceiling. The active path prepares bounded
+ceiling, and a 20 KiB evidence-tree ceiling. The active path prepares size-limited
 type/function units under distinct contracts and explicit schema-1 rule targets.
 Expanded source egress is enabled by the 2026-09-29 owner decision.
 This matrix is the validated v1 record, not validation of cross-file Jev
@@ -53,13 +53,13 @@ secret- or source-bearing fields in the new evidence records.
 | --- | --- | --- | --- |
 | 1 | Codex native adapter and delivery-only hook | Successful native Add; Update only by a unique nonempty trimmed added line in the root declaration; 1–16 candidates; command at most 64 KiB; Delete/move/metadata-only and malformed input quiet; Bash collects only | 3 obligations |
 | 2 | Git-aware named-path selection | Named paths only; nested `.gitignore`; tracked-file semantics; no info/global excludes; highest include replaces; exclusions accumulate; hard floor before reads; ordinary build/generated/vendor/target names allowed | 3 obligations |
-| 3 | Stable capture and containment | Regular nonsymlink in-root files; two agreeing bounded reads; 32 KiB inclusive; UTF-8/BOM accepted; mutation, recreation, malformed UTF-8, NUL, cancellation contained; independent path outcomes | 3 obligations |
+| 3 | Stable capture and containment | Regular nonsymlink in-root files; two agreeing reads; 32 KiB inclusive; UTF-8/BOM accepted; mutation, recreation, malformed UTF-8, NUL, cancellation contained; independent path outcomes | 3 obligations |
 | 4 | TypeScript analyzer and `DecisionModel` | `.ts/.tsx/.mts/.cts` applicability; unique interface/type roots; 64 declarations inclusive; exactly 16 referenced names excluding root; finite same-file evidence; imports, merging, schema-only and unresolved shapes unsupported; one request per unit | 3 obligations |
 | 5 | Join and reuse identity | Complete partition/path/evidence/rules/contract input; event ID excluded; pending join independent of cache; success-only 8-entry/128 KiB LRU reuse; failure/malformed non-reuse; A→B→A restoration | 3 obligations |
 | 6 | Revalidation and publication authority | Relevant root/reference/rule/contract changes stale; unrelated comments/siblings remain current; no whole-file fallback; late/superseded work and uncertain writer attribution do not publish | 3 obligations |
 | 7 | Resident dispatch and collection | FIFO preparation fills up to 8 slots; review jobs use the separate Jev gate; ordinary advice waits for its edit's work to settle; Stop may use ready partial findings at its deadline; deterministic 10 KiB response with no separate finding-count cap; overflow retained; expiry at 600,000 ms equality | 4 obligations |
-| 8 | Logical capacity and transport | Global 512 items/256 MiB; partition 16 items/32 MiB; accounting through work/cache/outcomes/advice; bounded 256 KiB IPC before decode; explicit rejection and terminal cleanup; no RSS claim | 4 obligations |
-| 9 | Operational failure diagnostics | First capacity/backend failure recorded; same kind/partition suppressed before 60,000 ms and refreshed at equality; 64 bounded keys; restart reset; never included in agent output | 3 obligations |
+| 8 | Logical capacity and transport | Global 512 items/256 MiB; partition 16 items/32 MiB; accounting through work/cache/outcomes/advice; 256 KiB IPC before decode; explicit rejection and terminal cleanup; no RSS claim | 4 obligations |
+| 9 | Operational failure diagnostics | First capacity/backend failure recorded; same kind/partition suppressed before 60,000 ms and refreshed at equality; 64 length-limited keys; restart reset; never included in agent output | 3 obligations |
 | 10 | Singleton lifecycle | 10 s readiness; 1.5 s client deadline; 100 starters/eight processes converge; timeout/disconnect does not cancel accepted work; kill/restart loses memory; old lifetime rejected; cleanup only idle; worktree roots distinct | 4 obligations |
 | 11 | Effective file settings | Default selection, accumulated exclusions, protected paths, and current settings before dispatch; retired grant operations leave saved files untouched | 3 obligations |
 | 12 | Jev request/evidence boundary | One provider-neutral `DecisionModel` request per unit; 15-second deadline; zero automatic retries; source-free live outcome classification; admission is not a provider-call counter | 3 obligations |
@@ -81,7 +81,7 @@ occurs during hook edits.
 
 The issue-63 fixture additionally uses an isolated real Codex 0.155.1 home and temporary Git
 repository. It neither seeds repository trust nor bypasses hook trust, and drives both decisions
-through Codex's native interactive flow. The bounded PTY reconstructs Codex's rendered terminal
+through Codex's native interactive flow. The output-limited PTY reconstructs Codex's rendered terminal
 screen, waits for the repository and hook-review states, and confirms the native selections only
 after each state is visible. Two consecutive fresh isolated runs passed during issue acceptance.
 The retained second run separately observed one provider submission and one terminal
@@ -97,12 +97,12 @@ The macOS runner record is
 It establishes the clean packaged CLI, parser, descriptor-anchored capture, portable resident,
 controlled offline submission, advice-return path, and native Keychain credential lifecycle on
 macOS 14 arm64. The Keychain cell includes separate-process persistence, fresh-resident reuse,
-production resolver/provider-boundary access, logout dispatch blocking, and a bounded
-noninteractive ACL-restricted lookup. The repository had no isolated Codex authentication secret
+production resolver/provider-boundary access, logout dispatch blocking, and a noninteractive ACL-restricted lookup
+with a timeout. The repository had no isolated Codex authentication secret
 during validation, so it does not establish real Codex host execution on macOS; that cell remains
 unverified rather than inferred from the packaged hook run.
 
-## Supported limits
+## Limits
 
 | Limit | Value |
 | --- | --- |
@@ -118,7 +118,7 @@ unverified rather than inferred from the packaged hook run.
 | IPC | 256 KiB frame, 32 connections |
 | Empty resident retirement | Five seconds after the last resident connection activity; a busy resident retries every five seconds |
 
-These are supported profile boundaries, not latency or process-memory service levels.
+These are profile boundaries, not latency or process-memory service levels.
 Configuration may narrow paths and select applicable rules; it cannot broaden host,
 platform, extraction, attribution, or safety boundaries.
 
@@ -160,9 +160,9 @@ guaranteed final drain or durable replay.
 The external stages are kept separate:
 
 1. **Hook entry:** Codex invoked the configured `PostToolUse` command.
-2. **Adaptation:** the production adapter accepted the bounded native event and identity.
+2. **Adaptation:** the production adapter accepted the size-limited native event and identity.
 3. **Backend submission:** the resident invoked the controlled or live `DecisionModel`.
-4. **Host submission:** the product wrote a bounded hook response; this remains
+4. **Host submission:** the product wrote a size-limited hook response; this remains
    attempted/unacknowledged.
 5. **Model visibility:** only an independent host observation for that run, never inferred
    from response writing.
@@ -179,7 +179,7 @@ and their [Claude](../evidence/subagent-identity/claude-2.1.218-linux-arm64.json
 records verify child identity fields under Linux arm64, alongside deterministic
 partition isolation checks.
 
-## Bounded live Jev evidence and gaps
+## Live Jev evidence and gaps
 
 Issue #52 made two live-capable executions, both under declarations of one intended
 provider call maximum, a 256-byte synthetic fixture bound, the 32 KiB profile ceiling,

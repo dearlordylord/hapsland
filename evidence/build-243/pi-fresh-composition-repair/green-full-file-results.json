@@ -1,0 +1,151 @@
+{
+  "id": "20261007140025383-1035709-2ab378",
+  "mode": "focused",
+  "state": "passed",
+  "exitCode": 0,
+  "startedAt": "2026-10-07T14:00:25.384Z",
+  "finishedAt": "2026-10-07T14:01:43.785Z",
+  "elapsedMs": 78401,
+  "failedStages": [],
+  "skippedStages": [],
+  "failures": 0,
+  "stages": [
+    {
+      "name": "workspace-compilation",
+      "ownerPid": 1035709,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "/workspace/typescript/hapsland-243/scripts/build-workspaces.mjs"
+      ],
+      "startedAt": "2026-10-07T14:00:25.393Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 3671,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007140025383-1035709-2ab378/1035709-001-workspace-compilation.log",
+      "pid": 1035735
+    },
+    {
+      "name": "vitest-focused",
+      "ownerPid": 1035709,
+      "command": "/workspace/typescript/hapsland-243/node_modules/.bin/vitest",
+      "args": [
+        "run",
+        "--config",
+        "scripts/vitest.config.ts",
+        "--maxWorkers=1",
+        "src/pi/installed-boundary.test.ts",
+        "--coverage"
+      ],
+      "startedAt": "2026-10-07T14:00:29.064Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 74712,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007140025383-1035709-2ab378/1035709-002-vitest-focused.log",
+      "pid": 1036355
+    },
+    {
+      "name": "source-runtime-verification",
+      "ownerPid": 1036491,
+      "command": null,
+      "args": [],
+      "startedAt": "2026-10-07T14:00:33.075Z",
+      "state": "passed",
+      "exitCode": null,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 0,
+      "evidence": {
+        "identity": "91371b13f4845bd0925c52129fb4de2976648e32a3094d3987d0f7bbaf689433",
+        "sourceDigest": "86441735b736059fa347ba1b4024d6232c585d15915cd218d5fe143fe7921857",
+        "outputs": [
+          {
+            "path": "cli.mjs",
+            "mode": 493,
+            "sha256": "fb61f35003ac0c580a667cfd078064ecd4adce5138207d69c421465d1f6aa020"
+          },
+          {
+            "path": "doctor.mjs",
+            "mode": 493,
+            "sha256": "2be1bc0c66916ecf5ba068278fb16eabaaef95009d9ddd49a8ab3d3926f5bbfa"
+          },
+          {
+            "path": "hook.mjs",
+            "mode": 493,
+            "sha256": "601544dbff069d0c8f720e319caf99daaf7e2cf6434e0b13c52fbe9b34efc048"
+          },
+          {
+            "path": "parser.mjs",
+            "mode": 493,
+            "sha256": "6e01863953be7e55c27e04833661ff2d17411eaae37924d5c1e2ecd245ce823c"
+          },
+          {
+            "path": "resident.mjs",
+            "mode": 493,
+            "sha256": "8d95903d46ecf7ca01c87505144b8e91c06560a2e0e51ddc94ebff210bd24b10"
+          },
+          {
+            "path": "source-manifest.json",
+            "mode": 420,
+            "sha256": "06f36e02ea7a0cbc1d5111fdb53b54d7ca598d8529f8d4643783c627d1c053ba"
+          }
+        ],
+        "directory": "/workspace/typescript/hapsland-243/.test-runs/source-runtime/91371b13f4845bd0925c52129fb4de2976648e32a3094d3987d0f7bbaf689433",
+        "reused": true,
+        "environment": {
+          "HAPSLAND_BUN_COVERAGE_MANIFEST": "/workspace/typescript/hapsland-243/.test-runs/source-runtime/91371b13f4845bd0925c52129fb4de2976648e32a3094d3987d0f7bbaf689433/source-manifest.json"
+        },
+        "dependencyMeasurements": [
+          {
+            "elapsedMs": 808,
+            "hits": 13850
+          },
+          {
+            "elapsedMs": 791,
+            "hits": 13850
+          },
+          {
+            "elapsedMs": 652,
+            "hits": 13850
+          }
+        ],
+        "commands": {
+          "cli": {
+            "executable": "/home/node/.local/share/mise/installs/bun/1.3.14/bin/bun",
+            "args": [
+              "/workspace/typescript/hapsland-243/.test-runs/source-runtime/91371b13f4845bd0925c52129fb4de2976648e32a3094d3987d0f7bbaf689433/cli.mjs"
+            ]
+          },
+          "doctor": {
+            "executable": "/home/node/.local/share/mise/installs/bun/1.3.14/bin/bun",
+            "args": [
+              "/workspace/typescript/hapsland-243/.test-runs/source-runtime/91371b13f4845bd0925c52129fb4de2976648e32a3094d3987d0f7bbaf689433/doctor.mjs"
+            ]
+          },
+          "hook": {
+            "executable": "/home/node/.local/share/mise/installs/bun/1.3.14/bin/bun",
+            "args": [
+              "/workspace/typescript/hapsland-243/.test-runs/source-runtime/91371b13f4845bd0925c52129fb4de2976648e32a3094d3987d0f7bbaf689433/hook.mjs"
+            ]
+          },
+          "parser": {
+            "executable": "/home/node/.local/share/mise/installs/bun/1.3.14/bin/bun",
+            "args": [
+              "/workspace/typescript/hapsland-243/.test-runs/source-runtime/91371b13f4845bd0925c52129fb4de2976648e32a3094d3987d0f7bbaf689433/parser.mjs"
+            ]
+          },
+          "resident": {
+            "executable": "/home/node/.local/share/mise/installs/bun/1.3.14/bin/bun",
+            "args": [
+              "/workspace/typescript/hapsland-243/.test-runs/source-runtime/91371b13f4845bd0925c52129fb4de2976648e32a3094d3987d0f7bbaf689433/resident.mjs"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "testFailures": []
+}

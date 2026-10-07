@@ -1,4 +1,4 @@
-import { providerIdentity } from "../review-providers/catalog.ts"
+import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import { it } from "@effect/vitest"
 import { expect } from "vitest"
 import { Effect } from "effect"
@@ -6,12 +6,12 @@ import {
   freezeInput,
   freezeRules,
   semanticIdentity,
-  type PreparedUnit,
-  type TypeDeclaration
-} from "../direct-event/model.ts"
-import { advicee } from "../direct-event/test-fixtures.ts"
-import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
-import { makeResidentState } from "./capacity.ts"
+  type PreparedUnit
+} from "@hapsland/review-definition/direct-event/model"
+import type { TypeDeclaration } from "@hapsland/source-artifacts/direct-event/artifact-model"
+import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
 
 const prepared = (source = "type Count = number"): PreparedUnit => {
   const declaration: TypeDeclaration = {

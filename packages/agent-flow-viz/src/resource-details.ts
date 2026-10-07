@@ -1,5 +1,5 @@
 import type { HtmlBuilder } from "foldkit/html"
-import type { CanonicalProjection } from "../../../src/canonical/adapter"
+import type { CanonicalProjection } from "@hapsland/canonical-policy/canonical/adapter"
 import type { AgentScope } from "./shared-resident-view"
 import type { CapacityMetadata } from "../../monkey-business/src/index"
 

@@ -6,7 +6,7 @@ import {
   MAX_REFERENCED_NAMES,
   MAX_TYPE_DECLARATIONS,
   readyTypeUnits
-} from "./analyzer.ts"
+} from "@hapsland/source-analysis/direct-event/analyzer"
 
 describe("initial direct-event TypeScript analyzer", () => {
   it("reserves all type and function roots in a mixed file", () => {

@@ -3,7 +3,12 @@ import { ConfigProvider, Effect } from "effect"
 import { mkdtemp, rm, symlink, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { prepareResidentDirectory, residentPaths, resolveResidentPaths, verifyRemovableSocket } from "./paths.ts"
+import {
+  prepareResidentDirectory,
+  residentPaths,
+  resolveResidentPaths,
+  verifyRemovableSocket
+} from "@hapsland/resident-transport/resident/paths"
 
 const directory = Effect.fn("ResidentEndpointFixture.directory")(function* () {
   const root = yield* Effect.promise(() => mkdtemp(join(tmpdir(), "hapsland-endpoint-")))

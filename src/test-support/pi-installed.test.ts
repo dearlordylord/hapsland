@@ -9,18 +9,60 @@ import {
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
-import { commandEntrypoint } from "../runtime/package-runtime.ts"
-import { afterEach, beforeAll, describe, expect, it } from "vitest"
+import { commandEntrypoint } from "@hapsland/runtime-environment/runtime/package-runtime"
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import {
   cleanupPiFixtures,
   fixture,
   fixtureCommandMatches,
   setupInstalledPi,
+  installedCommand,
   installedResidentCommand
-} from "./pi-installed.ts"
+} from "@hapsland/build-tooling/test-support/pi-installed"
 
 beforeAll(() => setupInstalledPi("source"), 120000)
-afterEach(cleanupPiFixtures)
+afterEach(async () => {
+  vi.unstubAllEnvs()
+  await cleanupPiFixtures()
+})
+
+it.each([
+  { executable: undefined, asset: "/tmp/candidate-extension.js" },
+  { executable: "/tmp/candidate-hook", asset: undefined },
+  { executable: "", asset: "/tmp/candidate-extension.js" },
+  { executable: "/tmp/candidate-hook", asset: "" },
+  { executable: "relative-hook", asset: "/tmp/candidate-extension.js" },
+  { executable: "/tmp/candidate-hook", asset: "relative-extension.js" }
+])(
+  "refuses candidate paths without an absolute executable and asset: $executable / $asset",
+  async ({ executable, asset }) => {
+    vi.stubEnv("HAPSLAND_TEST_HOOK_EXECUTABLE", executable)
+    vi.stubEnv("HAPSLAND_TEST_PI_ASSET", asset)
+    await expect(setupInstalledPi("candidate")).rejects.toThrow(
+      "Candidate Pi mode requires absolute hook executable and emitted asset paths"
+    )
+  }
+)
+
+it("loads the emitted candidate extension and retains its exact standalone command", async () => {
+  const executable = join(process.cwd(), "dist/bin", `${process.platform}-${process.arch}`, "hapsland-hook")
+  const asset = join(process.cwd(), "dist/pi/extension.js")
+  vi.stubEnv("HAPSLAND_TEST_HOOK_EXECUTABLE", executable)
+  vi.stubEnv("HAPSLAND_TEST_PI_ASSET", asset)
+  try {
+    await setupInstalledPi("candidate")
+    expect(installedCommand).toEqual([executable])
+    expect(installedResidentCommand).toEqual({
+      executable: join(process.cwd(), "dist/bin", `${process.platform}-${process.arch}`, "hapsland-resident"),
+      args: []
+    })
+    const candidate = fixture()
+    await expect(candidate.call("agent_start", {})).resolves.toBeUndefined()
+  } finally {
+    vi.unstubAllEnvs()
+    await setupInstalledPi("source")
+  }
+})
 
 const waitFile = async (path: string) => {
   const deadline = Date.now() + 5_000

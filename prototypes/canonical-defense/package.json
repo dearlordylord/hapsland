@@ -1,0 +1,32 @@
+{
+  "name": "@hapsland/canonical-defense",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@hapsland/canonical-policy": "workspace:*",
+    "@hapsland/monkey-business": "workspace:*",
+    "@hapsland/monkey-business-bend": "workspace:*"
+  },
+  "exports": {
+    "./game-stream-runner": {
+      "types": "./game-stream-runner.mjs",
+      "default": "./game-stream-runner.mjs"
+    },
+    "./lab-trace-metadata": {
+      "types": "./lab-trace-metadata.ts",
+      "default": "./lab-trace-metadata.ts"
+    },
+    "./lab/game": {
+      "types": "./lab/game.ts",
+      "default": "./lab/game.ts"
+    },
+    "./lab/index": {
+      "types": "./lab/index.ts",
+      "default": "./lab/index.ts"
+    }
+  },
+  "hapsland": {
+    "workspaceRole": "verification"
+  }
+}

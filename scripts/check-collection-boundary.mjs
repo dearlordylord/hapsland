@@ -2,10 +2,10 @@ import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
 const root = resolve(import.meta.dirname, "..")
-const server = readFileSync(resolve(root, "src/resident/server.ts"), "utf8")
-const advice = readFileSync(resolve(root, "src/resident/advice-records.ts"), "utf8")
-const delivery = readFileSync(resolve(root, "src/resident/composed-delivery.ts"), "utf8")
-const collection = readFileSync(resolve(root, "src/resident/collection.ts"), "utf8")
+const server = readFileSync(resolve(root, "packages/resident-runtime/src/resident/server.ts"), "utf8")
+const advice = readFileSync(resolve(root, "packages/resident-runtime/src/resident/advice-records.ts"), "utf8")
+const delivery = readFileSync(resolve(root, "packages/resident-runtime/src/resident/composed-delivery.ts"), "utf8")
+const collection = readFileSync(resolve(root, "packages/resident-runtime/src/resident/collection.ts"), "utf8")
 for (const name of [
   "bendCollectionOrder",
   "bendCollectionEligible",

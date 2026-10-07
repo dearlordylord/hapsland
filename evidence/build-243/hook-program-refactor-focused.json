@@ -1,0 +1,53 @@
+{
+  "format": 1,
+  "kind": "focused-hook-program-refactor",
+  "recordedAt": "2026-10-07T10:50:23.225Z",
+  "commit": "31f06668481bd4d302ed32aaee9687e0a6ae0123",
+  "sources": [
+    {
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "sha256": "0861c65c7e1c9f8b74e168d6e4200795ec748802f8ffca57c431a9fc6ec77ae9"
+    },
+    {
+      "path": "src/hooks/program.test.ts",
+      "sha256": "6fd759dca1b62d0c86ca70de612c4fd3eebfb63fc5c6f4d1d1d9ba161b37dcca"
+    }
+  ],
+  "compiler": {
+    "owner": "@hapsland/hook-runtime",
+    "exitCode": 0,
+    "log": "/tmp/hapsland-243-hook-owner-compile-01.log",
+    "receiptSha256": "8d162acb37ab2d2578842befe2e114fa24edead9640167ca0e30372c9e01e437"
+  },
+  "unit": {
+    "tests": 41,
+    "exitCode": 0,
+    "log": "/tmp/hapsland-243-hook-program-coverage-02.log",
+    "logSha256": "0906b3262bc3fff7e8be600f9f2b0bfbf478222acef3857ff481563766068de7"
+  },
+  "coverage": {
+    "path": "/tmp/hapsland-243-hook-program-coverage-02/coverage-final.json",
+    "sha256": "087c4d4f8431317a770652aaaf84f324baaa5c303619bc2f12751bd10d732481"
+  },
+  "scorer": {
+    "executable": "/workspace/typescript/hapsland-243/node_modules/@crap4ts/crap4ts/bin/crap4ts.js",
+    "executableSha256": "fb06f032f03fd87a8f4c882f03fafd9062fdb7cd4b888f6e50c382b9d6b758ff",
+    "policyPath": "crap4ts.json",
+    "policySha256": "0a5a04d343a2cc0e589ea06c94a1e06d333c117b4a4250d18d5653379b3177c9",
+    "threshold": 8,
+    "exitCode": 0,
+    "maxComplexity": 7,
+    "maxCrap": 7.142857142857143,
+    "report": "/tmp/hapsland-243-hook-program-score-02.json",
+    "reportSha256": "a7fe761e9df98a82e3fe98f00d19544ce0097c94ab2b1ccd878b6620d5125670"
+  },
+  "sourceConsumers": {
+    "tests": 6,
+    "exitCode": 0,
+    "elapsedSeconds": 25.96,
+    "log": "/tmp/hapsland-243-hook-source-consumers-01.log",
+    "logSha256": "0b62f8575eac766ffbe5b996366fba48943be8f6640bfec4f4c5b2e433b450b9",
+    "unchangedResidentFixtureArchiveSha256": "7e8c12c7552a576efbcc8149bc2040caeca978ac2eb502c17300a8d001166de8"
+  },
+  "scope": "Authored hook routing and six affected source consumers; no full-project or rebuilt installed-release claim."
+}

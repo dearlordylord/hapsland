@@ -1,11 +1,11 @@
+// Research scoring retains the classic TypeScript 5.9.3 compiler API; production uses TypeScript 7.
+import ts from "@hapsland/scorer-typescript"
 // Anonymous finite-contract oracle. Does not read reviewer/candidate ledgers.
 import fs from "node:fs"
 import path from "node:path"
 import crypto from "node:crypto"
 import assert from "node:assert/strict"
-import { createRequire } from "node:module"
 import { tmpdir } from "node:os"
-const ts = createRequire(import.meta.url)("/tmp/hapsland-quality-scorer/node_modules/typescript")
 const hash = (data) => crypto.createHash("sha256").update(data).digest("hex")
 const options = {
   strict: true,

@@ -1,0 +1,164 @@
+{
+  "id": "20261007135328811-1017674-27bbe0",
+  "mode": "focused",
+  "state": "failed",
+  "exitCode": 1,
+  "startedAt": "2026-10-07T13:53:28.811Z",
+  "finishedAt": "2026-10-07T13:54:00.996Z",
+  "elapsedMs": 32185,
+  "failedStages": [
+    "vitest-focused"
+  ],
+  "skippedStages": [],
+  "failures": 1,
+  "stages": [
+    {
+      "name": "workspace-compilation",
+      "ownerPid": 1017674,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "/workspace/typescript/hapsland-243/scripts/build-workspaces.mjs"
+      ],
+      "startedAt": "2026-10-07T13:53:28.820Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 6590,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007135328811-1017674-27bbe0/1017674-001-workspace-compilation.log",
+      "pid": 1017687
+    },
+    {
+      "name": "vitest-focused",
+      "ownerPid": 1017674,
+      "command": "/workspace/typescript/hapsland-243/node_modules/.bin/vitest",
+      "args": [
+        "run",
+        "--config",
+        "scripts/vitest.config.ts",
+        "--maxWorkers=1",
+        "src/pi/installed-boundary.test.ts",
+        "--testNamePattern=closes offered advice after",
+        "--coverage"
+      ],
+      "startedAt": "2026-10-07T13:53:35.411Z",
+      "state": "failed",
+      "exitCode": 1,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 25577,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007135328811-1017674-27bbe0/1017674-002-vitest-focused.log",
+      "pid": 1018255
+    },
+    {
+      "name": "source-runtime-verification",
+      "ownerPid": 1018343,
+      "command": null,
+      "args": [],
+      "startedAt": "2026-10-07T13:53:39.789Z",
+      "state": "passed",
+      "exitCode": null,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 0,
+      "evidence": {
+        "identity": "91371b13f4845bd0925c52129fb4de2976648e32a3094d3987d0f7bbaf689433",
+        "sourceDigest": "86441735b736059fa347ba1b4024d6232c585d15915cd218d5fe143fe7921857",
+        "outputs": [
+          {
+            "path": "cli.mjs",
+            "mode": 493,
+            "sha256": "fb61f35003ac0c580a667cfd078064ecd4adce5138207d69c421465d1f6aa020"
+          },
+          {
+            "path": "doctor.mjs",
+            "mode": 493,
+            "sha256": "2be1bc0c66916ecf5ba068278fb16eabaaef95009d9ddd49a8ab3d3926f5bbfa"
+          },
+          {
+            "path": "hook.mjs",
+            "mode": 493,
+            "sha256": "601544dbff069d0c8f720e319caf99daaf7e2cf6434e0b13c52fbe9b34efc048"
+          },
+          {
+            "path": "parser.mjs",
+            "mode": 493,
+            "sha256": "6e01863953be7e55c27e04833661ff2d17411eaae37924d5c1e2ecd245ce823c"
+          },
+          {
+            "path": "resident.mjs",
+            "mode": 493,
+            "sha256": "8d95903d46ecf7ca01c87505144b8e91c06560a2e0e51ddc94ebff210bd24b10"
+          },
+          {
+            "path": "source-manifest.json",
+            "mode": 420,
+            "sha256": "06f36e02ea7a0cbc1d5111fdb53b54d7ca598d8529f8d4643783c627d1c053ba"
+          }
+        ],
+        "directory": "/workspace/typescript/hapsland-243/.test-runs/source-runtime/91371b13f4845bd0925c52129fb4de2976648e32a3094d3987d0f7bbaf689433",
+        "reused": true,
+        "environment": {
+          "HAPSLAND_BUN_COVERAGE_MANIFEST": "/workspace/typescript/hapsland-243/.test-runs/source-runtime/91371b13f4845bd0925c52129fb4de2976648e32a3094d3987d0f7bbaf689433/source-manifest.json"
+        },
+        "dependencyMeasurements": [
+          {
+            "elapsedMs": 861,
+            "hits": 13850
+          },
+          {
+            "elapsedMs": 827,
+            "hits": 13850
+          },
+          {
+            "elapsedMs": 811,
+            "hits": 13850
+          }
+        ],
+        "commands": {
+          "cli": {
+            "executable": "/home/node/.local/share/mise/installs/bun/1.3.14/bin/bun",
+            "args": [
+              "/workspace/typescript/hapsland-243/.test-runs/source-runtime/91371b13f4845bd0925c52129fb4de2976648e32a3094d3987d0f7bbaf689433/cli.mjs"
+            ]
+          },
+          "doctor": {
+            "executable": "/home/node/.local/share/mise/installs/bun/1.3.14/bin/bun",
+            "args": [
+              "/workspace/typescript/hapsland-243/.test-runs/source-runtime/91371b13f4845bd0925c52129fb4de2976648e32a3094d3987d0f7bbaf689433/doctor.mjs"
+            ]
+          },
+          "hook": {
+            "executable": "/home/node/.local/share/mise/installs/bun/1.3.14/bin/bun",
+            "args": [
+              "/workspace/typescript/hapsland-243/.test-runs/source-runtime/91371b13f4845bd0925c52129fb4de2976648e32a3094d3987d0f7bbaf689433/hook.mjs"
+            ]
+          },
+          "parser": {
+            "executable": "/home/node/.local/share/mise/installs/bun/1.3.14/bin/bun",
+            "args": [
+              "/workspace/typescript/hapsland-243/.test-runs/source-runtime/91371b13f4845bd0925c52129fb4de2976648e32a3094d3987d0f7bbaf689433/parser.mjs"
+            ]
+          },
+          "resident": {
+            "executable": "/home/node/.local/share/mise/installs/bun/1.3.14/bin/bun",
+            "args": [
+              "/workspace/typescript/hapsland-243/.test-runs/source-runtime/91371b13f4845bd0925c52129fb4de2976648e32a3094d3987d0f7bbaf689433/resident.mjs"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "testFailures": [
+    {
+      "timestamp": "2026-10-07T13:53:49.667Z",
+      "file": "/workspace/typescript/hapsland-243/src/pi/installed-boundary.test.ts",
+      "test": "Pi source extension through command and resident > closes offered advice after final-refusal composition and permits a fresh edit",
+      "message": "expected undefined to be defined",
+      "stack": "AssertionError: expected undefined to be defined\n    at /workspace/typescript/hapsland-243/src/pi/installed-boundary.test.ts:183:37\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2783:20",
+      "actual": "undefined",
+      "expected": "undefined"
+    }
+  ]
+}

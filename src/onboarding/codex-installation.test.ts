@@ -1,8 +1,13 @@
-import { bunExecutable } from "../runtime/bun-runtime.ts"
+import {
+  emittedReleaseEntrypoints,
+  sourceReleaseEntrypoints,
+  packageRootFromEntrypoint
+} from "@hapsland/runtime-environment/runtime/package-runtime"
+import { BUN_VERSION, bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import {
   createInstallationPackageFixture,
   installationPackageDeclaration
-} from "../test-support/installation-package.ts"
+} from "@hapsland/build-tooling/test-support/installation-package"
 import { ConfigProvider, Effect, Schema } from "effect"
 import {
   chmodSync,
@@ -10,6 +15,7 @@ import {
   mkdtempSync,
   mkdirSync,
   readFileSync,
+  realpathSync,
   readdirSync,
   readlinkSync,
   rmSync,
@@ -29,7 +35,7 @@ import {
   previewCodexUpdate,
   uninstallCodexIntegration,
   updateCodexIntegration
-} from "./codex-installation.ts"
+} from "@hapsland/administration/onboarding/codex-installation"
 
 const runInstallation = <A, E>(effect: Effect.Effect<A, E>) =>
   Effect.runPromise(
@@ -57,7 +63,7 @@ afterEach(() => {
 })
 
 const fixture = () => {
-  const root = mkdtempSync(join(tmpdir(), "review install 'quoted path' "))
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "review install 'quoted path' ")))
   roots.push(root)
   const home = join(root, "custom codex home 'one'")
   const bin = join(root, "fake codex")
@@ -73,8 +79,8 @@ const fixture = () => {
 
 const localPackage = (root: string, version: string, residentProtocol = 1) => {
   const packageRoot = join(root, `review-tool-${version}`)
-  const dist = join(packageRoot, "dist")
-  mkdirSync(join(dist, "resident"), { recursive: true })
+  for (const role of ["hook", "parser", "resident"] as const)
+    mkdirSync(dirname(join(packageRoot, emittedReleaseEntrypoints[role])), { recursive: true })
   writeFileSync(
     join(packageRoot, "package.json"),
     `${JSON.stringify({ name: "realtime-review-prototype", version, type: "module" }, null, 2)}\n`
@@ -93,7 +99,7 @@ const localPackage = (root: string, version: string, residentProtocol = 1) => {
       2
     )}\n`
   )
-  const entrypoint = join(dist, "cli.js")
+  const entrypoint = join(packageRoot, emittedReleaseEntrypoints.hook)
   writeFileSync(
     entrypoint,
     [
@@ -102,8 +108,8 @@ const localPackage = (root: string, version: string, residentProtocol = 1) => {
       "process.stdin.resume();"
     ].join("\n")
   )
-  writeFileSync(join(dist, "parser-main.js"), "process.stdin.resume();\n")
-  writeFileSync(join(dist, "resident", "main.js"), "process.stdin.resume();\n")
+  writeFileSync(join(packageRoot, emittedReleaseEntrypoints.parser), "process.stdin.resume();\n")
+  writeFileSync(join(packageRoot, emittedReleaseEntrypoints.resident), "process.stdin.resume();\n")
   return entrypoint
 }
 
@@ -112,7 +118,7 @@ const invokeCli = (operation: Record<string, unknown>, env: NodeJS.ProcessEnv = 
     env.REVIEW_INSTALL_ENTRYPOINT !== undefined || typeof operation.codexHome !== "string"
       ? env
       : { ...env, REVIEW_INSTALL_ENTRYPOINT: createInstallationPackageFixture(dirname(operation.codexHome)) }
-  const child = spawnSync(bunExecutable(), ["src/cli.ts", `--${String(operation.operation)}`], {
+  const child = spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", `--${String(operation.operation)}`], {
     cwd: process.cwd(),
     input: JSON.stringify({ version: 1, ...operation }),
     encoding: "utf8",
@@ -141,7 +147,7 @@ const invoke = async (operation: Record<string, unknown>, env: NodeJS.ProcessEnv
     env.REVIEW_INSTALL_ENTRYPOINT !== undefined || typeof operation.codexHome !== "string"
       ? env
       : { ...env, REVIEW_INSTALL_ENTRYPOINT: createInstallationPackageFixture(dirname(operation.codexHome)) }
-  const request = operation as import("./codex-installation.ts").InstallationRequest
+  const request = operation as import("@hapsland/administration/onboarding/codex-installation").InstallationRequest
   const operations = {
     "install-preview": previewCodexInstallation,
     install: installCodexIntegration,
@@ -221,7 +227,7 @@ const waitFor = async <A>(read: () => A | undefined, timeout = 5_000): Promise<A
 }
 
 const spawnOperation = (operation: Record<string, unknown>, env: NodeJS.ProcessEnv) => {
-  const child = spawn(bunExecutable(), ["src/cli.ts", `--${String(operation.operation)}`], {
+  const child = spawn(bunExecutable(), ["packages/cli-entry/src/cli.ts", `--${String(operation.operation)}`], {
     cwd: process.cwd(),
     env:
       env.REVIEW_INSTALL_ENTRYPOINT !== undefined || typeof operation.codexHome !== "string"
@@ -237,6 +243,38 @@ const spawnOperation = (operation: Record<string, unknown>, env: NodeJS.ProcessE
 }
 
 describe("public Codex installation operations", async () => {
+  it.each(["source", "emitted", "materialized"] as const)(
+    "resolves %s parser and resident from the runtime owner",
+    async (kind) => {
+      const { root, home, bin } = fixture()
+      const packageRoot = join(root, "runtime-package")
+      const entries = kind === "source" ? sourceReleaseEntrypoints : emittedReleaseEntrypoints
+      const materializedDirectory = join(packageRoot, ".test-runs", "source-runtime", "a".repeat(64))
+      const paths = Object.fromEntries(
+        (["hook", "parser", "resident"] as const).map((role) => [
+          role,
+          kind === "materialized" ? join(materializedDirectory, `${role}.mjs`) : join(packageRoot, entries[role])
+        ])
+      )
+      for (const path of Object.values(paths)) {
+        mkdirSync(dirname(path), { recursive: true })
+        writeFileSync(path, "// runtime owner fixture\n")
+      }
+      writeFileSync(
+        join(packageRoot, "package.json"),
+        JSON.stringify({ name: "@hapsland/hapsland", version: "0.1.0", type: "module" })
+      )
+      writeFileSync(join(packageRoot, "package-runtime.json"), JSON.stringify(installationPackageDeclaration()))
+      const preview = await invoke(
+        { operation: "install-preview", codexHome: home, codexExecutable: bin },
+        { ...process.env, REVIEW_INSTALL_ENTRYPOINT: paths.hook }
+      )
+      expect(preview.status).toBe("preview")
+      expect(preview.proposal).toMatchObject({
+        ownedChanges: { runtime: { parser: { args: [paths.parser] }, resident: { args: [paths.resident] } } }
+      })
+    }
+  )
   it.each([
     "REVIEW_INSTALL_RUNTIME",
     "REVIEW_INSTALL_ENTRYPOINT",
@@ -278,12 +316,16 @@ describe("public Codex installation operations", async () => {
     const runtime = join(test.root, "synthetic-x64-runtime")
     writeFileSync(
       runtime,
-      `#!/bin/sh\nprintf '%s' '${JSON.stringify({ version: "v24.20.0", platform: "linux", architecture: "x64" })}'\n`,
+      `#!/bin/sh\nprintf '%s' '${JSON.stringify({ version: BUN_VERSION, platform: "linux", architecture: "x64" })}'\n`,
       { mode: 0o700 }
     )
     const result = await invokeCli(
       { operation: "install-preview", codexHome: test.home, codexExecutable: test.bin },
-      { ...process.env, REVIEW_INSTALL_RUNTIME: runtime, REVIEW_INSTALL_ENTRYPOINT: join(process.cwd(), "src/cli.ts") }
+      {
+        ...process.env,
+        REVIEW_INSTALL_RUNTIME: runtime,
+        REVIEW_INSTALL_ENTRYPOINT: join(process.cwd(), "packages/cli-entry/src/cli.ts")
+      }
     )
     expect(result).toMatchObject({
       status: "unsupported",
@@ -292,7 +334,7 @@ describe("public Codex installation operations", async () => {
           runtime: {
             supported: false,
             checks: {
-              engine: { ready: true, required: "v24.20.0" },
+              engine: { ready: true, required: BUN_VERSION },
               platform: { ready: false, observed: "linux" },
               architecture: { ready: false, observed: "x64", required: "arm64" }
             }
@@ -303,7 +345,7 @@ describe("public Codex installation operations", async () => {
     expect(readdirSync(test.home)).toEqual([])
   })
 
-  it("accepts source Node against matching profiles even when package distribution declares Bun", async () => {
+  it("accepts pinned Bun against matching package profiles", async () => {
     const test = fixture()
     const entrypoint = createInstallationPackageFixture(test.root)
     const declaration = {
@@ -311,11 +353,11 @@ describe("public Codex installation operations", async () => {
       runtime: { name: "bun", version: "1.3.14" },
       profiles: [{ operatingSystem: "linux", architecture: "x64" }]
     }
-    writeFileSync(join(dirname(dirname(entrypoint)), "package-runtime.json"), JSON.stringify(declaration))
+    writeFileSync(join(packageRootFromEntrypoint(entrypoint), "package-runtime.json"), JSON.stringify(declaration))
     const runtime = join(test.root, "synthetic-x64-runtime")
     writeFileSync(
       runtime,
-      `#!/bin/sh\nprintf '%s' '${JSON.stringify({ version: process.version, platform: "linux", architecture: "x64" })}'\n`,
+      `#!/bin/sh\nprintf '%s' '${JSON.stringify({ version: BUN_VERSION, platform: "linux", architecture: "x64" })}'\n`,
       { mode: 0o700 }
     )
     const result = await invokeCli(
@@ -329,7 +371,7 @@ describe("public Codex installation operations", async () => {
           runtime: {
             supported: true,
             checks: {
-              engine: { ready: true, observed: "v24.20.0", required: "v24.20.0" },
+              engine: { ready: true, observed: BUN_VERSION, required: BUN_VERSION },
               platform: { ready: true, observed: "linux" },
               architecture: { ready: true, observed: "x64" }
             }
@@ -478,14 +520,16 @@ describe("public Codex installation operations", async () => {
 
   it("previews exact changes, quotes paths, installs idempotently, and preserves unrelated configuration", async () => {
     const { root, home, bin } = fixture()
-    const quotedEntrypoint = join(root, "packaged path 'quoted'", "cli.js")
-    mkdirSync(join(root, "packaged path 'quoted'"), { recursive: true })
+    const quotedPackageRoot = join(root, "packaged path 'quoted'")
+    const quotedEntrypoint = join(quotedPackageRoot, emittedReleaseEntrypoints.hook)
+    mkdirSync(dirname(quotedEntrypoint), { recursive: true })
+    for (const role of ["parser", "resident"] as const)
+      mkdirSync(dirname(join(quotedPackageRoot, emittedReleaseEntrypoints[role])), { recursive: true })
     writeFileSync(quotedEntrypoint, "#!/usr/bin/env node\n")
-    writeFileSync(join(dirname(quotedEntrypoint), "parser-main.js"), "#!/usr/bin/env node\n")
-    mkdirSync(join(dirname(quotedEntrypoint), "resident"))
-    writeFileSync(join(dirname(quotedEntrypoint), "resident", "main.js"), "#!/usr/bin/env node\n")
-    writeFileSync(join(root, "package.json"), readFileSync(join(process.cwd(), "package.json"), "utf8"))
-    writeFileSync(join(root, "package-runtime.json"), JSON.stringify(installationPackageDeclaration()))
+    writeFileSync(join(quotedPackageRoot, emittedReleaseEntrypoints.parser), "#!/usr/bin/env node\n")
+    writeFileSync(join(quotedPackageRoot, emittedReleaseEntrypoints.resident), "#!/usr/bin/env node\n")
+    writeFileSync(join(quotedPackageRoot, "package.json"), readFileSync(join(process.cwd(), "package.json"), "utf8"))
+    writeFileSync(join(quotedPackageRoot, "package-runtime.json"), JSON.stringify(installationPackageDeclaration()))
     const installEnvironment = { ...process.env, REVIEW_INSTALL_ENTRYPOINT: quotedEntrypoint }
     const independent = { type: "command", command: "independent-hook", timeout: 3 }
     writeFileSync(
@@ -518,9 +562,12 @@ describe("public Codex installation operations", async () => {
         runtime: {
           executable: bunExecutable(),
           args: [quotedEntrypoint],
-          parser: { executable: bunExecutable(), args: [join(dirname(quotedEntrypoint), "parser-main.js")] },
-          resident: { executable: bunExecutable(), args: [join(dirname(quotedEntrypoint), "resident", "main.js")] },
-          observed: { version: process.version, platform: process.platform, architecture: process.arch }
+          parser: { executable: bunExecutable(), args: [join(quotedPackageRoot, emittedReleaseEntrypoints.parser)] },
+          resident: {
+            executable: bunExecutable(),
+            args: [join(quotedPackageRoot, emittedReleaseEntrypoints.resident)]
+          },
+          observed: { version: BUN_VERSION, platform: process.platform, architecture: process.arch }
         },
         feature: { file: join(home, "config.toml"), table: "features", key: "hooks", value: true },
         hook: {
@@ -787,16 +834,21 @@ responses_websockets_v2 = true`)
     expect(existsSync(join(missingRuntime.home, ".hapsland"))).toBe(false)
 
     const nonRuntime = fixture()
+    const nonRuntimeExecutable = join(nonRuntime.root, "not-a-runtime")
+    writeFileSync(nonRuntimeExecutable, "#!/bin/sh\nexit 0\n", { mode: 0o700 })
     const trueResult = await invoke(
       { operation: "install-preview", codexHome: nonRuntime.home, codexExecutable: nonRuntime.bin },
-      { ...process.env, REVIEW_INSTALL_RUNTIME: "/bin/true" }
+      { ...process.env, REVIEW_INSTALL_RUNTIME: nonRuntimeExecutable }
     )
     expect(trueResult).toMatchObject({
       status: "unsupported",
       host: {
         compatibility: {
           runtime: {
-            checks: { runtime: { ready: true }, engine: { ready: false, observed: "not-a-supported-runtime" } }
+            checks: {
+              runtime: { ready: true, observed: "regular-file" },
+              engine: { ready: false, observed: "not-a-supported-runtime" }
+            }
           }
         }
       }
@@ -806,7 +858,7 @@ responses_websockets_v2 = true`)
     const missingEntrypoint = fixture()
     const entrypointEnvironment = {
       ...process.env,
-      REVIEW_INSTALL_ENTRYPOINT: join(missingEntrypoint.root, "missing-cli.js")
+      REVIEW_INSTALL_ENTRYPOINT: join(missingEntrypoint.root, emittedReleaseEntrypoints.hook)
     }
     const preview = await invoke(
       { operation: "install-preview", codexHome: missingEntrypoint.home, codexExecutable: missingEntrypoint.bin },
@@ -830,7 +882,7 @@ responses_websockets_v2 = true`)
     expect(existsSync(join(missingEntrypoint.home, "hooks.json"))).toBe(false)
 
     const missingCompanions = fixture()
-    const loneEntrypoint = join(missingCompanions.root, "dist", "cli.js")
+    const loneEntrypoint = join(missingCompanions.root, emittedReleaseEntrypoints.hook)
     mkdirSync(dirname(loneEntrypoint), { recursive: true })
     writeFileSync(loneEntrypoint, "#!/usr/bin/env node\n")
     const companions = await invoke(
@@ -933,6 +985,31 @@ responses_websockets_v2 = true`)
     expect(existsSync(join(home, ".hapsland", "journal-v1.json"))).toBe(true)
   })
 
+  it.each(["duplicate PostToolUse", "duplicate marker", "modified command"] as const)(
+    "preserves the installed files when update encounters a %s",
+    async (mutation) => {
+      const { home, bin } = fixture()
+      await previewAndInstall(home, bin)
+      const hooksPath = join(home, "hooks.json")
+      const hooks = JSON.parse(readFileSync(hooksPath, "utf8"))
+      const group = hooks.hooks.PostToolUse[0]
+      if (mutation === "duplicate PostToolUse") hooks.hooks.PostToolUse.push(structuredClone(group))
+      else if (mutation === "duplicate marker")
+        hooks.hooks.Unrelated = [{ hooks: [{ command: "user-command --review-tool-owned=codex-v1" }] }]
+      else group.hooks[0].command += " --unexpected-local-option"
+      writeFileSync(hooksPath, JSON.stringify(hooks))
+      const protectedPaths = [hooksPath, join(home, "config.toml"), join(home, ".hapsland", "installation-v1.json")]
+      const before = protectedPaths.map((path) => readFileSync(path, "utf8"))
+      for (const operation of ["update-preview", "update"] as const) {
+        expect(await invoke({ operation, codexHome: home, codexExecutable: bin })).toMatchObject({
+          status: "conflict",
+          error: { message: expect.stringContaining("owned Codex hook was locally modified") }
+        })
+        expect(protectedPaths.map((path) => readFileSync(path, "utf8"))).toEqual(before)
+      }
+    }
+  )
+
   it("previews and applies an explicit local-package update while preserving reusable state", async () => {
     const { root, home, bin } = fixture()
     const firstEntrypoint = localPackage(root, "1.0.0")
@@ -980,7 +1057,9 @@ responses_websockets_v2 = true`)
       restart: { required: true, processesStopped: false },
       preserved: expect.arrayContaining(["old grant files", "credentials", "independent hooks", "in-flight work"])
     })
-    expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain("review-tool-1.0.0/dist/cli.js")
+    expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain(
+      "review-tool-1.0.0/packages/hook-entry/dist/hook-main.js"
+    )
 
     const digest = (preview.proposal as { digest: string }).digest
     const updated = await invoke(
@@ -1000,7 +1079,9 @@ responses_websockets_v2 = true`)
       }
     }
     expect(hooks.hooks.PostToolUse[0]).toEqual(independent)
-    expect(hooks.hooks.PostToolUse[1]?.hooks[0]?.command).toContain("review-tool-1.1.0/dist/cli.js")
+    expect(hooks.hooks.PostToolUse[1]?.hooks[0]?.command).toContain(
+      "review-tool-1.1.0/packages/hook-entry/dist/hook-main.js"
+    )
     expect(hooks.hooks.PostToolUse[1]?.hooks[1]?.command).toContain("--composed-background-hook")
     expect(JSON.stringify(hooks.hooks.PreToolUse)).toContain("exec ")
     expect(JSON.stringify(hooks.hooks.PreToolUse)).toContain("--composed-before-edit-hook")
@@ -1083,8 +1164,12 @@ responses_websockets_v2 = true`)
       },
       completed: ["record the target packaged runtime"]
     })
-    expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain("review-tool-1.0.0/dist/cli.js")
-    expect(readFileSync(join(home, "hooks.json"), "utf8")).not.toContain("review-tool-1.1.0/dist/cli.js")
+    expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain(
+      "review-tool-1.0.0/packages/hook-entry/dist/hook-main.js"
+    )
+    expect(readFileSync(join(home, "hooks.json"), "utf8")).not.toContain(
+      "review-tool-1.1.0/packages/hook-entry/dist/hook-main.js"
+    )
 
     const hooksBeforePreview = readFileSync(join(home, "hooks.json"), "utf8")
     const journalBeforePreview = readFileSync(join(home, ".hapsland", "journal-v1.json"), "utf8")
@@ -1104,7 +1189,9 @@ responses_websockets_v2 = true`)
       targetEnvironment
     )
     expect(resumed).toMatchObject({ status: "updated", resumed: true })
-    expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain("review-tool-1.1.0/dist/cli.js")
+    expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain(
+      "review-tool-1.1.0/packages/hook-entry/dist/hook-main.js"
+    )
   })
 
   it("preserves a concurrent independent-hook edit during update recovery", async () => {
@@ -1150,7 +1237,7 @@ responses_websockets_v2 = true`)
       const firstEntrypoint = localPackage(root, `1.0.0-${corruption}`)
       const targetEntrypoint = localPackage(root, `1.1.0-${corruption}`)
       await previewAndInstall(home, bin, { ...process.env, REVIEW_INSTALL_ENTRYPOINT: firstEntrypoint })
-      const packageRoot = dirname(dirname(targetEntrypoint))
+      const packageRoot = packageRootFromEntrypoint(targetEntrypoint)
       if (corruption === "missing-runtime") rmSync(join(packageRoot, "package-runtime.json"))
       if (corruption === "malformed-runtime") writeFileSync(join(packageRoot, "package-runtime.json"), "{\n")
       if (corruption === "missing-protocol") {
@@ -1252,7 +1339,7 @@ responses_websockets_v2 = true`)
       ).status
     ).toBe("partial")
     writeFileSync(
-      join(dirname(dirname(targetEntrypoint)), "package.json"),
+      join(packageRootFromEntrypoint(targetEntrypoint), "package.json"),
       `${JSON.stringify({ name: "realtime-review-prototype", version: "1.1.1-binding", type: "module" }, null, 2)}\n`
     )
     const beforeHooks = readFileSync(join(home, "hooks.json"), "utf8")

@@ -1,26 +1,29 @@
-import { ReviewControlError } from "./review-controls.ts"
-import { runClient } from "../test-support/client-runtime.ts"
-import { nativeDeferred as deferred } from "../test-support/native-deferred.ts"
-import { reviewControlsLayer } from "../test-support/review-controls.ts"
+import { ReviewControlError } from "@hapsland/resident-runtime/resident/review-controls"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
+import { nativeDeferred as deferred } from "@hapsland/build-tooling/test-support/native-deferred"
+import { reviewControlsLayer } from "@hapsland/build-tooling/test-support/review-controls"
 import { describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
 import { join } from "node:path"
 import { readFileSync, writeFileSync } from "node:fs"
 import { connect } from "node:net"
-import { adaptClaudeDirectEvent } from "../direct-event/adapter.ts"
-import type { DirectObservation } from "../direct-event/model.ts"
-import { makeReviewGitFixture as makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../test-support/default-rules.ts"
-import { residentPaths } from "./paths.ts"
+import { adaptClaudeDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import type { DirectObservation } from "@hapsland/native-observation/direct-event/observation"
+import { makeReviewGitFixture as makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import { acquireResidentFixture, type ResidentRuntime as ResidentServer } from "./runtime-fixture.ts"
-import { admitAndCollectEffect as admitAndCollect, residentRequestEffect as residentRequest } from "./client.ts"
-import { monotonicNow } from "./hook-clock.ts"
+import {
+  admitAndCollectEffect as admitAndCollect,
+  residentRequestEffect as residentRequest
+} from "@hapsland/resident-transport/resident/client"
+import { monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"
 import {
   encodeCurrentResidentRequest,
   type ResidentDispatchContext,
   type ResidentRequest,
   type ResidentResponse
-} from "./protocol.ts"
+} from "@hapsland/resident-transport/resident/protocol"
 
 const fixture = async () => {
   const root = await makeGitFixture()

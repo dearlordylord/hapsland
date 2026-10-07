@@ -2,7 +2,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, expect, it } from "vitest"
-import { readInspectionSettings } from "./settings.ts"
+import { readInspectionSettings } from "@hapsland/inspection-records/inspection/settings"
 
 const roots: string[] = []
 afterEach(async () => {

@@ -1,0 +1,728 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-10-06T20:22:21.609Z",
+  "declaration": {
+    "schemaVersion": 1,
+    "phase": "pre-extraction baseline",
+    "baselineCommit": "16439f1d0",
+    "samples": 15,
+    "coldSamples": 5,
+    "healthyResidentVariant": "baseline",
+    "warmups": 0,
+    "clock": "parent performance.now monotonic",
+    "deadlineMs": 180000,
+    "comparisonCriteria": {
+      "materialRegression": "candidate median > baseline median by both 20 percent and 5 ms in the same measurement cell; investigate, do not silently accept",
+      "percentiles": "no tail percentile claims from these sample counts"
+    },
+    "initializationReadiness": "Parent monotonic elapsed time until the installed executable is observed blocked in arm64 read(0,...), with input withheld; 1 ms polling adds observation overhead. This is readiness to consume hook input, not resident readiness.",
+    "variants": [
+      {
+        "name": "baseline",
+        "prefix": "/tmp/hapsland-243-baseline/installed",
+        "archive": "/tmp/hapsland-243-baseline/hapsland-hapsland-0.1.0.tgz",
+        "archiveSha256": "0f146f86d4d286fbd223e5e8227d01d9b5b7b9119bafe287ce35c764a9cbd697"
+      }
+    ],
+    "output": "evidence/build-243/installed-baseline-03.json",
+    "amendment": "Adds external /proc syscall observation; no baseline executable changes. Final comparison must use same method for both variants.",
+    "initializationObservation": "linux-stdin-read"
+  },
+  "declarationSha256": "72b87522391c5c54590f7892dd06d67a9ed5e35cc14af54fc39ded9caf750544",
+  "runnerSha256": "d3dfd4ffa0432a6514aec5a10079b2e3801bd389cbc6d76da628acc56d87e88e",
+  "platform": "linux",
+  "architecture": "arm64",
+  "availableParallelism": 12,
+  "hardware": {
+    "model": "unknown",
+    "logicalCpus": 12
+  },
+  "operatingSystemRelease": "7.0.14-orbstack-00380-ga7e0a2dc9535",
+  "initialLoad": [
+    6.46,
+    5.05,
+    3.93
+  ],
+  "coverage": false,
+  "fileCache": "uncontrolled OS cache; new client process for every sample",
+  "measurement": "parent monotonic clock; full installed before-command wall time; outcomes retained on failure",
+  "samples": [
+    {
+      "variant": "baseline",
+      "mode": "healthy-resident",
+      "index": 0,
+      "residentBefore": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "residentAfter": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "reusedReadyResident": true,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 105.59993099999974,
+      "exitCode": 0,
+      "handlerReadyMs": 70.83917900000006
+    },
+    {
+      "variant": "baseline",
+      "mode": "healthy-resident",
+      "index": 1,
+      "residentBefore": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "residentAfter": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "reusedReadyResident": true,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 103.2765800000002,
+      "exitCode": 0,
+      "handlerReadyMs": 69.19837499999994
+    },
+    {
+      "variant": "baseline",
+      "mode": "healthy-resident",
+      "index": 2,
+      "residentBefore": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "residentAfter": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "reusedReadyResident": true,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 97.61641399999962,
+      "exitCode": 0,
+      "handlerReadyMs": 63.47454199999993
+    },
+    {
+      "variant": "baseline",
+      "mode": "healthy-resident",
+      "index": 3,
+      "residentBefore": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "residentAfter": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "reusedReadyResident": true,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 104.13442000000032,
+      "exitCode": 0,
+      "handlerReadyMs": 68.45337100000006
+    },
+    {
+      "variant": "baseline",
+      "mode": "healthy-resident",
+      "index": 4,
+      "residentBefore": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "residentAfter": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "reusedReadyResident": true,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 97.76424899999984,
+      "exitCode": 0,
+      "handlerReadyMs": 65.58114099999966
+    },
+    {
+      "variant": "baseline",
+      "mode": "healthy-resident",
+      "index": 5,
+      "residentBefore": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "residentAfter": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "reusedReadyResident": true,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 105.8828080000003,
+      "exitCode": 0,
+      "handlerReadyMs": 72.60415099999955
+    },
+    {
+      "variant": "baseline",
+      "mode": "healthy-resident",
+      "index": 6,
+      "residentBefore": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "residentAfter": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "reusedReadyResident": true,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 100.8758969999999,
+      "exitCode": 0,
+      "handlerReadyMs": 67.36386299999958
+    },
+    {
+      "variant": "baseline",
+      "mode": "healthy-resident",
+      "index": 7,
+      "residentBefore": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "residentAfter": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "reusedReadyResident": true,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 99.93188900000041,
+      "exitCode": 0,
+      "handlerReadyMs": 69.14666600000055
+    },
+    {
+      "variant": "baseline",
+      "mode": "healthy-resident",
+      "index": 8,
+      "residentBefore": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "residentAfter": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "reusedReadyResident": true,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 108.39761799999997,
+      "exitCode": 0,
+      "handlerReadyMs": 75.42700400000012
+    },
+    {
+      "variant": "baseline",
+      "mode": "healthy-resident",
+      "index": 9,
+      "residentBefore": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "residentAfter": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "reusedReadyResident": true,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 101.48460900000009,
+      "exitCode": 0,
+      "handlerReadyMs": 70.821054
+    },
+    {
+      "variant": "baseline",
+      "mode": "healthy-resident",
+      "index": 10,
+      "residentBefore": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "residentAfter": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "reusedReadyResident": true,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 96.90832599999976,
+      "exitCode": 0,
+      "handlerReadyMs": 67.66744800000015
+    },
+    {
+      "variant": "baseline",
+      "mode": "healthy-resident",
+      "index": 11,
+      "residentBefore": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "residentAfter": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "reusedReadyResident": true,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 106.54772899999989,
+      "exitCode": 0,
+      "handlerReadyMs": 71.80301899999995
+    },
+    {
+      "variant": "baseline",
+      "mode": "healthy-resident",
+      "index": 12,
+      "residentBefore": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "residentAfter": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "reusedReadyResident": true,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 101.54815099999996,
+      "exitCode": 0,
+      "handlerReadyMs": 68.65212100000008
+    },
+    {
+      "variant": "baseline",
+      "mode": "healthy-resident",
+      "index": 13,
+      "residentBefore": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "residentAfter": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "reusedReadyResident": true,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 96.66907399999945,
+      "exitCode": 0,
+      "handlerReadyMs": 66.30427099999997
+    },
+    {
+      "variant": "baseline",
+      "mode": "healthy-resident",
+      "index": 14,
+      "residentBefore": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "residentAfter": {
+        "pid": 1013134,
+        "start": "5589608",
+        "owned": true,
+        "lifetime": "a5076d7d-f96a-47c2-bb68-a6efad5fe5aa",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "reusedReadyResident": true,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 99.63509599999998,
+      "exitCode": 0,
+      "handlerReadyMs": 70.53255199999967
+    },
+    {
+      "variant": "baseline",
+      "mode": "cold-resident",
+      "index": 0,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 367.49786700000004,
+      "exitCode": 0,
+      "handlerReadyMs": 64.3275909999993,
+      "residentAfter": {
+        "pid": 1013974,
+        "start": "5590174",
+        "owned": true,
+        "lifetime": "6458d3e2-c646-4165-81d9-8fe51c62e1c8",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "startedFreshResident": true
+    },
+    {
+      "variant": "baseline",
+      "mode": "cold-resident",
+      "index": 1,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 365.9476059999997,
+      "exitCode": 0,
+      "handlerReadyMs": 59.67068199999994,
+      "residentAfter": {
+        "pid": 1014022,
+        "start": "5590221",
+        "owned": true,
+        "lifetime": "cac3eba5-301f-4ccd-a174-0bc2f7278416",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "startedFreshResident": true
+    },
+    {
+      "variant": "baseline",
+      "mode": "cold-resident",
+      "index": 2,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 381.4481759999999,
+      "exitCode": 0,
+      "handlerReadyMs": 64.23679799999991,
+      "residentAfter": {
+        "pid": 1014072,
+        "start": "5590269",
+        "owned": true,
+        "lifetime": "abfafab3-d2ba-41cc-a29a-ba1218e135de",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "startedFreshResident": true
+    },
+    {
+      "variant": "baseline",
+      "mode": "cold-resident",
+      "index": 3,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 376.14518000000135,
+      "exitCode": 0,
+      "handlerReadyMs": 65.27776400000039,
+      "residentAfter": {
+        "pid": 1014122,
+        "start": "5590319",
+        "owned": true,
+        "lifetime": "0a5f298a-9774-4f2c-9512-a2b6271b1b64",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "startedFreshResident": true
+    },
+    {
+      "variant": "baseline",
+      "mode": "cold-resident",
+      "index": 4,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 503.33122399999957,
+      "exitCode": 0,
+      "handlerReadyMs": 67.93149100000119,
+      "residentAfter": {
+        "pid": 1014192,
+        "start": "5590369",
+        "owned": true,
+        "lifetime": "0b967825-be5d-4dfc-a54f-5b012f0bdf99",
+        "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+      },
+      "startedFreshResident": true
+    }
+  ],
+  "retirements": [
+    {
+      "variant": "baseline",
+      "index": 0,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 97.17732799999976,
+      "exitCode": 0,
+      "handlerReadyMs": 64.91551200000004
+    },
+    {
+      "variant": "baseline",
+      "index": 1,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 99.01738299999988,
+      "exitCode": 0,
+      "handlerReadyMs": 68.28920199999993
+    },
+    {
+      "variant": "baseline",
+      "index": 2,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 99.61347100000012,
+      "exitCode": 0,
+      "handlerReadyMs": 66.6597740000002
+    },
+    {
+      "variant": "baseline",
+      "index": 3,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 101.06193900000017,
+      "exitCode": 0,
+      "handlerReadyMs": 66.96048400000018
+    },
+    {
+      "variant": "baseline",
+      "index": 4,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 102.16836400000011,
+      "exitCode": 0,
+      "handlerReadyMs": 71.09601400000065
+    },
+    {
+      "variant": "baseline",
+      "index": 5,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 107.21385900000041,
+      "exitCode": 0,
+      "handlerReadyMs": 70.95568000000003
+    },
+    {
+      "variant": "baseline",
+      "index": 6,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 99.3106770000004,
+      "exitCode": 0,
+      "handlerReadyMs": 71.3487240000004
+    },
+    {
+      "variant": "baseline",
+      "index": 7,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 97.79991599999994,
+      "exitCode": 0,
+      "handlerReadyMs": 66.65644100000009
+    },
+    {
+      "variant": "baseline",
+      "index": 8,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 96.95661800000016,
+      "exitCode": 0,
+      "handlerReadyMs": 65.28188900000077
+    },
+    {
+      "variant": "baseline",
+      "index": 9,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 94.73826800000006,
+      "exitCode": 0,
+      "handlerReadyMs": 65.88172600000053
+    },
+    {
+      "variant": "baseline",
+      "index": 10,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 108.99449600000025,
+      "exitCode": 0,
+      "handlerReadyMs": 71.50068300000021
+    },
+    {
+      "variant": "baseline",
+      "index": 11,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 101.83315299999958,
+      "exitCode": 0,
+      "handlerReadyMs": 69.3608349999995
+    },
+    {
+      "variant": "baseline",
+      "index": 12,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 95.25418900000022,
+      "exitCode": 0,
+      "handlerReadyMs": 66.50698099999954
+    },
+    {
+      "variant": "baseline",
+      "index": 13,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 104.41258900000048,
+      "exitCode": 0,
+      "handlerReadyMs": 70.07384100000036
+    },
+    {
+      "variant": "baseline",
+      "index": 14,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 93.30842500000017,
+      "exitCode": 0,
+      "handlerReadyMs": 64.80967799999962
+    }
+  ],
+  "variants": [
+    {
+      "name": "baseline",
+      "archiveSha256": "0f146f86d4d286fbd223e5e8227d01d9b5b7b9119bafe287ce35c764a9cbd697",
+      "launcherSha256": "29f1354dc0d4fcd68294695391becbf960cb5d2027d5259574e905f74247f82f",
+      "runtimeDeclaration": {
+        "schemaVersion": 1,
+        "runtime": {
+          "name": "bun",
+          "version": "1.3.14",
+          "distribution": "standalone-executables"
+        },
+        "codex": {
+          "testedVersions": [
+            "0.155.1",
+            "0.156.0"
+          ]
+        },
+        "profiles": [
+          {
+            "operatingSystem": "linux",
+            "architecture": "arm64",
+            "descriptorFacility": "/proc/self/fd",
+            "verification": "pending-standalone-validation"
+          },
+          {
+            "operatingSystem": "darwin",
+            "architecture": "arm64",
+            "descriptorFacility": "/dev/fd",
+            "verification": "cross-built-format-only"
+          }
+        ],
+        "requiredCommands": [
+          "git"
+        ],
+        "linuxCredentialStore": {
+          "implementation": "Secret Service through libsecret",
+          "releaseBuildDependency": "C compiler, pkg-config, and libsecret-1 development files",
+          "lookupDeadlineMs": 750,
+          "backgroundUnlockPrompts": false
+        },
+        "macOSCredentialStore": {
+          "implementation": "Keychain generic password through Security.framework",
+          "releaseBuildDependency": "Xcode Command Line Tools (cc)",
+          "service": "dev.typesafe.realtime-review-tool",
+          "account": "default",
+          "lookupDeadlineMs": 750,
+          "backgroundAuthenticationUI": "fail-without-prompt"
+        },
+        "parser": {
+          "implementation": "tree-sitter",
+          "languages": [
+            "typescript",
+            "tsx"
+          ]
+        },
+        "residentProtocol": 1
+      },
+      "installedArchiveInventoryVerified": true,
+      "archiveFileCount": 41,
+      "commands": {
+        "cli": {
+          "executableSha256": "b7a0d20282d651cfa7d67721dd08a2ff672b7b627d5671d093d2c530b6f3d75b"
+        },
+        "resident": {
+          "executableSha256": "f63cf247438f40972ae90ad1ad6e58ff949230d2fc3468e0ced7d00a0617417a"
+        }
+      }
+    }
+  ],
+  "completed": true,
+  "cleanup": {
+    "status": "complete",
+    "retainedFixtures": 0
+  }
+}

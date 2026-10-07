@@ -1,5 +1,5 @@
 import { expect, it } from "vitest"
-import { hookFlags, isHookInvocation } from "./hook-invocation.ts"
+import { hookFlags, isHookInvocation } from "@hapsland/runtime-environment/runtime/hook-invocation"
 
 const expectedFlags = [
   "--codex-hook",

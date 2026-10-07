@@ -1,12 +1,12 @@
-import { DEFAULT_RULE_MESSAGES } from "../src/rules/shipped.ts"
-import { runClient } from "../src/test-support/client-runtime.ts"
+import { DEFAULT_RULE_MESSAGES } from "@hapsland/review-definition/rules/shipped"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
 // Opt-in real Codex + real Jev demonstration. Retains only source-free evidence.
 import { spawn, execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, writeFile, readFile, copyFile, chmod, rm, readdir } from "node:fs/promises"
 import { tmpdir, homedir } from "node:os"
 import { join, resolve } from "node:path"
-import { residentRequestEffect as residentRequest } from "../src/resident/client.ts"
-import { residentPaths } from "../src/resident/paths.ts"
+import { residentRequestEffect as residentRequest } from "@hapsland/resident-transport/resident/client"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 const root = resolve(new URL("../", import.meta.url).pathname)
 const declaration = {
   attempt: 3,
@@ -157,7 +157,7 @@ const p=spawnSync('rustc',['--edition=2024','--crate-type=lib','payment.rs','-o'
   }
   delete env.REVIEW_CONTROL_JSON
   delete env.OPENAI_API_KEY
-  const cli = join(root, "src/cli.ts")
+  const cli = join(root, "packages/hook-entry/src/hook-main.ts")
   const preview = await run(process.execPath, [cli, "--install-preview"], {
     cwd: repo,
     env,

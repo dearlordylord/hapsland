@@ -1,0 +1,62 @@
+{
+  "format": 1,
+  "issue": 243,
+  "milestone": "installed-validation architectural review",
+  "reviewedAt": "2026-10-07T08:39:51.027Z",
+  "head": "36feade3e6852b3d7a7c24dfa5d7060135c9fba1",
+  "authority": "Structural implementation review; empirical results remain scoped to their retained records.",
+  "scope": [
+    "23 production workspace owners and auxiliary direction",
+    "request-content producer ABI and review-execution transport",
+    "hook and Node-hosted Pi isolation",
+    "Turbo producer outputs and scoped prerequisites",
+    "loader/native/public inventory mappings",
+    "enclosing build lease",
+    "PR241 installation boundary"
+  ],
+  "structuralConclusions": {
+    "productionGraph": "Acyclic; no production dependency on tooling or verification.",
+    "sharedDomains": "Explicit domain owners; request-content belongs to agent-flow-bend and review-execution is its declared direct consumer.",
+    "authority": "Bend transition/projector authority and resident process/state authority remain separate; TypeScript executes effects.",
+    "verticalCapabilities": "Installation, rules, review/advice, inspection and activity retain their named owner packages.",
+    "hook": "Dedicated entry composes hook-runtime; protected source and emitted contribution policies reject administration, mutation, parsing and provider execution.",
+    "pi": "Node-hosted extension depends only on runtime-environment; published relative hook path and rewritten runtime assets preserve installed geometry.",
+    "build": "Turbo owns scheduling and cached private artifacts; admission/source drift, actual loader supplier proofs, restored inventories and atomic publication retain independent guarantees.",
+    "lease": "Inherited token requires live owning process plus open matching lease; enclosed groups are registered and drained before release.",
+    "requestContent": "Private producer publishes exactly six ABI/runtime files; wrapper-only projector access, copied inspection bytes and disabled ambient trace preserve accepted content contract.",
+    "installation": "Launcher, retained root coordinates and native/prebuilt paths agree; PR241 remains administration/install ownership.",
+    "cleanup": "No duplicate root request-content generated copies or superseded assembly cache/manual scheduling implementation found."
+  },
+  "findings": [],
+  "architectureDecisionChanges": [],
+  "empirical": {
+    "archiveSha256": "2969f4aba8cdf4b0daf379077ebd2ac3bc0d9682e5ac2955d766b8dcba3f65c8",
+    "archiveInventory": "Read-only actual tar inventory agrees with both targets, five commands each, Pi assets, native suppliers and seven defaults.",
+    "buildAcceptance": "Parent reports 35 terminal cases across retained candidates; these do not substitute for final installed cells.",
+    "finalBenchmark": "Retained final ordinary cold/warm/restoration evidence.",
+    "startup": "Retained final installed comparison; host/load/runtime and artifact scope remain bounded.",
+    "claude": "Actual installed same-archive record demonstrates controlled TypeScript adoption with zero Jev.",
+    "codex": "Retained real-host log independently parses to realCodex:passed and clean-package-and-real-host-passed; current ordinary-clean JSON does not retain that real-host cell.",
+    "pi": "Pending: same-profile OAuth refresh invalid_grant before product execution; no success claim.",
+    "fullQuality": "Pending; not run by this reviewer.",
+    "darwin": "Cross-built/format evidence does not establish actual target-host execution."
+  },
+  "evidence": [
+    "docs/architecture.md",
+    "docs/review-contract-compatibility.md",
+    "docs/installed-release-compatibility.md",
+    "evidence/build-243/build-acceptance-ledger.json",
+    "evidence/build-243/turbo-architecture-benchmark-final-1791359834592.json",
+    "evidence/build-243/startup-comparison-linux-arm64-final-01.json",
+    "evidence/native-languages/claude-typescript-adoption-controlled-offline-1791362041464.json",
+    "evidence/package/clean-linux-bun-1.3.14-arm64.json",
+    "/tmp/hapsland-243-final-pi-diagnostic-05.json",
+    "/tmp/hapsland-243-final-codex-36feade3-04.log"
+  ],
+  "limitations": [
+    "Read-only architectural review, no builds/tests or new runtime probes.",
+    "No global platform or latency claim.",
+    "Dirty documentation/fixture work remains separately owned by root; final gate candidate must be frozen.",
+    "Current clean-package JSON is a later ordinary-clean record; retain the real Codex terminal record separately rather than presenting it as that cell."
+  ]
+}

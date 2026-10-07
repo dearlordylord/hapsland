@@ -7,7 +7,7 @@ export const FIXTURE_READY_TIMEOUT_MS = 20_000
 export const CLEANUP_TIMEOUT_MS = 10_000
 
 export const boundedScenarioFiles = new Map([
-  ["scripts/cli-import-boundary.test.mts", "bounded shared CLI import-closure validation"],
+  ["scripts/hook-import-boundary.test.mjs", "bounded dedicated hook source-closure validation"],
   ["src/resident/capacity.test.ts", "bounded metadata-capacity exhaustion"],
   ["packages/monkey-business/src/cache-scenarios.test.ts", "bounded seeded cache-pressure simulation and replay"],
   ["packages/monkey-business/src/outcomes.test.ts", "bounded seeded outcome simulation and replay"],

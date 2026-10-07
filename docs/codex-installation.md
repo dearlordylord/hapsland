@@ -2,13 +2,13 @@
 
 **Purpose:** Explain Codex CLI registration, setup, updates, and removal.
 **Status:** Maintained installation guidance.
-**Authority:** Operational guidance for implemented lifecycle operations; exact compatibility claims remain bounded by the evidence cited below.
+**Authority:** Operational guidance for implemented lifecycle operations; exact compatibility claims are limited to the evidence cited below.
 **Expected use:** Configure a selected client profile and diagnose ownership or readiness problems.
-**Lifecycle:** Update with installer or onboarding changes; review when supported host versions, runtime profiles, or trust behavior change.
+**Lifecycle:** Update with installer or onboarding changes; review when host versions accepted by the adapter, runtime profiles, or trust behavior change.
 
 ## Guided setup and updates
 
-`hapsland setup` opens a checkbox selector for Claude Code and Codex CLI. Installed clients are checked by default. Choose either or both; unchecking a client preserves its installation. Each selected client gets its own preview and confirmation. The named commands below bypass selection. `hapsland update` updates every registered Claude/Codex client with one target and one confirmation of the previewed changes; `hapsland update codex` limits the operation to this client.
+`hapsland setup` opens a checkbox selector for Claude Code, Codex CLI, and Pi. Installed clients are checked by default. Choose the clients to set up; unchecking a client preserves its installation. Each selected client gets its own preview and confirmation. The named commands below bypass selection. `hapsland update` updates every registered Claude/Codex/Pi client with one target and one confirmation of the previewed changes; `hapsland update codex` limits the operation to this client.
 
 After acquiring a verified package through the [installation lanes](installation-workflows.md):
 
@@ -49,7 +49,7 @@ Run recovery or removal only for the action you intend:
 
 | Command | Action |
 | --- | --- |
-| `hapsland repair codex` | Restore missing hooks or resume a supported interrupted operation. |
+| `hapsland repair codex` | Restore missing hooks or resume an interrupted operation with a resumable journal. |
 | `hapsland reinstall codex` | Replace damaged marked Hapsland handlers while preserving user settings and credentials. |
 | `hapsland uninstall codex` | Preview and remove this integration. |
 
@@ -59,8 +59,8 @@ checks or acts on every registered Claude/Codex profile; setup opens the selecto
 
 ## Lifecycle automation
 
-For supported source languages and limitations, see the
-[supported-language table](../README.md#supported-languages).
+For source languages and limitations, see the
+[language table](../README.md#languages-and-limits).
 
 For a person using a normal Codex profile, start with the
 [installation lanes](installation-workflows.md) and `hapsland setup codex` after the
@@ -86,7 +86,7 @@ Its public commands select the matching platform's standalone Bun executable.
 They run without Node or Bun on PATH.
 The archive carries prebuilt native helpers and parser bindings for each declared profile. Installation does not run
 the product's lifecycle scripts or require a compiler; `npm install --ignore-scripts=true` is a
-supported path. Release assembly uses the helper sources and platform build hosts. If a helper
+valid installation path. Release assembly uses the helper sources and platform build hosts. If a helper
 is missing or cannot start, setup and doctor report recovery instead of claiming credential
 readiness.
 Release assembly builds and probes the native helpers and parser bindings on each declared
@@ -100,7 +100,7 @@ The direct-event capture envelope remains narrower where documented. Every lifec
 stdin and every result is a single version-1 JSON object on stdout.
 Exit code 0 covers successful previews, completed operations, and idempotent no-ops. Code 2 is
 an invalid request, 3 is an unsupported host, 4 is a configuration/digest conflict, and 5 is
-journaled partial completion that requires recovery. Code 6 means setup needs bounded user action;
+journaled partial completion that requires recovery. Code 6 means setup needs user action;
 standalone credential-store failures also use code 6.
 
 On Linux, login stores one product-owned default Jev credential in the session's persistent
@@ -229,7 +229,7 @@ unrelated hooks, native trust records, and settings required by remaining hooks.
 `excludes` to `["**/*"]` when future review dispatch must stop.
 Requests already sent to Jev cannot be recalled.
 
-Before writing configuration, the installer executes a bounded probe through the selected
+Before writing configuration, the installer executes a probe with a timeout through the selected
 standalone executable and requires it to report Bun 1.3.14 on the declared arm64 platform. `/bin/true` or another merely
 executable file is not accepted as the package command. The CLI, parser, and resident packaged commands
 must all be executable regular files, and a declared Codex CLI version must be ready. The
@@ -239,12 +239,12 @@ locally changed owned entries. Missing recorded hooks can be restored by repair/
 reinstall replaces marked handlers and unusable journals while preserving independent handlers
 and current user settings. Explicit hook disablement remains authoritative. TOML edits locate parsed table/key spans, including quoted table
 names, and ignore table-like text inside multiline strings; the resulting TOML and hooks semantic
-state are parsed again before writing. It uses a bounded 1.5-second configuration lock, digest-based
+state are parsed again before writing. It uses a 1.5-second configuration lock, digest-based
 concurrent-change checks, atomic per-file replacement, and a versioned journal. The lock is a
 persistent generation directory: each generation points to a unique immutable owner record, and
 release or stale recovery marks that exact owner before a contender atomically creates the next
 generation. The canonical lock directory is never removed during recovery. A generation whose
-recorded process is dead can be reclaimed only after a bounded stale interval; live, recent, or
+recorded process is dead can be reclaimed only after a stale-owner recovery interval; live, recent, or
 malformed generations remain conflicts. After publishing a new owner, the installer retains at
 most eight generations and removes only inactive unreferenced owner directories; a live contender's
 unpublished owner directory is preserved. A `partial`
@@ -254,7 +254,7 @@ pending prerequisites, preexisting `features.hooks = true` state, and generated 
 If another tool changed a completed or
 pending file, recovery returns an actionable conflict and leaves the newer file untouched.
 Recovery conflicts remain `partial` outcomes and report the original proposal digest, completed
-and total file counts, completed step descriptions, and a bounded next action; the journal stays
+and total file counts, completed step descriptions, and a next action; the journal stays
 in place for an explicit retry.
 
 Codex owns repository and hook trust. The installer does not edit trust records or use bypass
@@ -299,7 +299,7 @@ event counts cannot establish either claim. When the host does not expose the re
 instrumentation, both stages remain `unavailable` and the result is `inconclusive`. A model miss,
 unavailable response, invalid repair, or exceeded budget is also `inconclusive`; it is never
 replaced with a controlled backend.
-Only bounded counts, versions, timestamps and stage outcomes are returned. The provider response
+Only counts, versions, timestamps and stage outcomes are returned. The provider response
 and synthetic source are not retained. The disposable root is removed after every live
 attempt. To abandon a preview without a Jev call, send `selection: "cancel"` with its `demoId`.
 
@@ -311,12 +311,12 @@ For automation, `install-preview` and `install` accept `reinstall: true` with th
 
 ## Codex upgrades and installation eligibility
 
-Installation does not use a version allowlist. A bounded `codex --version`
-probe must identify a stable semantic version, and `codex features list` must
+Installation does not use a version allowlist. A `codex --version` probe
+with a timeout must identify a stable semantic version, and `codex features list` must
 advertise the `hooks` capability. The enabled/disabled feature configuration,
 owned hooks and native trust are checked separately; an upgrade does not bypass
 those checks. Hook commands retain the observed version, while adapter and IPC
-validation enforce the actual supported payload and identity contract.
+validation enforce the payload and identity contract.
 
 `package-runtime.json` records `codex.testedVersions` as observation coverage,
 not allowed versions. Earlier exact-version trials remain historical evidence;

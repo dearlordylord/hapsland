@@ -1,4 +1,4 @@
-import { bunExecutable } from "./bun-runtime.ts"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { spawnSync } from "../../scripts/test-harness/process.mjs"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
 import { pathToFileURL } from "node:url"
@@ -17,16 +17,16 @@ const flags = [
   "--composed-prompt-hook"
 ]
 const modules = [
-  { module: "src/direct-event/pipeline.ts", label: "pipeline" },
-  { module: "src/direct-event/languages/native-parser.ts", label: "native-parser" },
-  { module: "src/jev-decision.ts", label: "jev-decision" },
-  { module: "src/direct-event/languages/bend/extractor.ts", label: "bend-extractor" },
-  { module: "src/review-providers/cloudflare.ts", label: "cloudflare" }
+  { module: "packages/review-execution/src/direct-event/pipeline.ts", label: "pipeline" },
+  { module: "packages/source-analysis/src/direct-event/languages/native-parser.ts", label: "native-parser" },
+  { module: "packages/review-execution/src/jev-decision.ts", label: "jev-decision" },
+  { module: "packages/source-analysis/src/direct-event/languages/bend/extractor.ts", label: "bend-extractor" },
+  { module: "packages/review-execution/src/review-providers/cloudflare.ts", label: "cloudflare" }
 ]
 const runImport = (module: string, flag?: string) => {
   const preload =
-    module === "src/direct-event/pipeline.ts"
-      ? `await import(${JSON.stringify(pathToFileURL(resolve("src/direct-event/languages/native-parser.ts")).href)}); await import(${JSON.stringify(pathToFileURL(resolve("src/direct-event/languages/bend/extractor.ts")).href)});`
+    module === "packages/review-execution/src/direct-event/pipeline.ts"
+      ? `await import("@hapsland/source-analysis/direct-event/languages/native-parser"); await import("@hapsland/source-analysis/direct-event/languages/bend/extractor");`
       : ""
   const code = `${preload} process.argv=${JSON.stringify([bunExecutable(), "boundary-probe", ...(flag ? [flag] : [])])};try { await import(${JSON.stringify(pathToFileURL(resolve(module)).href)}); process.stdout.write("allowed\\n"); } catch { process.stdout.write("caught\\n"); }`
   return spawnSync(bunExecutable(), ["--input-type=module", "-e", code], {

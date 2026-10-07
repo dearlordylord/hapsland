@@ -1,14 +1,14 @@
-import { configuredRules } from "../test-support/default-rules.ts"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import { describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
 import { symlink, writeFile } from "node:fs/promises"
 import { join } from "node:path"
-import { adaptClaudeDirectEvent } from "./adapter.ts"
-import { makeReviewGitFixture as makeGitFixture } from "./test-fixtures.ts"
-import { decodeResidentRequest } from "../resident/protocol.ts"
-import { MAX_SOURCE_BYTES } from "./capture.ts"
-import { prepareObservation } from "./pipeline.ts"
-import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
+import { adaptClaudeDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import { makeReviewGitFixture as makeGitFixture } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { decodeResidentRequest } from "@hapsland/resident-transport/resident/protocol"
+import { MAX_SOURCE_BYTES } from "@hapsland/native-observation/direct-event/capture"
+import { prepareObservation } from "@hapsland/review-execution/direct-event/pipeline"
+import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
 
 const base = (root: string, path: string) => ({
   hook_event_name: "PostToolUse",

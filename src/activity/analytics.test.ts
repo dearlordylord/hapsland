@@ -2,9 +2,14 @@ import { afterEach, describe, expect, it } from "vitest"
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { advicee } from "../direct-event/test-fixtures.ts"
-import { recordAnalytics, readAnalytics, MAX_ANALYTICS_DETAILS, formatAnalyticsHuman } from "./analytics.ts"
-import { activitySessionKey } from "./storage.ts"
+import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
+import {
+  recordAnalytics,
+  readAnalytics,
+  MAX_ANALYTICS_DETAILS,
+  formatAnalyticsHuman
+} from "@hapsland/activity-observation/activity/analytics"
+import { activitySessionKey } from "@hapsland/activity-observation/activity/storage"
 
 const directories: string[] = []
 const fixture = () => {
@@ -61,9 +66,9 @@ describe("opt-in session analytics", () => {
       lifetime: "two",
       kind: "request-findings",
       findings: 2,
-      ruleIds: ["r1", "team/check"]
+      ruleIds: ["r1", "namespace/check"]
     })
-    recordAnalytics({ ...record, lifetime: "two", kind: "cache-hit", findings: 2, ruleIds: ["r1", "team/check"] })
+    recordAnalytics({ ...record, lifetime: "two", kind: "cache-hit", findings: 2, ruleIds: ["r1", "namespace/check"] })
     const result = readAnalytics(input)
     expect(result).toMatchObject({
       status: "recorded",
@@ -79,7 +84,7 @@ describe("opt-in session analytics", () => {
     })
     expect(result.details).toHaveLength(MAX_ANALYTICS_DETAILS)
     expect(result.detailsDropped).toBe(2 * (MAX_ANALYTICS_DETAILS + 20) + 3 - MAX_ANALYTICS_DETAILS)
-    expect(formatAnalyticsHuman(result)).toContain("rules=r1,team/check")
+    expect(formatAnalyticsHuman(result)).toContain("rules=r1,namespace/check")
     expect(readAnalytics({ ...input, enabled: false })).toMatchObject({
       enabled: false,
       status: "recorded",
@@ -124,7 +129,7 @@ describe("opt-in session analytics", () => {
       controlled: false,
       kind: "request-findings",
       findings: 70,
-      ruleIds: [...Array.from({ length: 70 }, (_, i) => `team/rule-${i}`), "\u001b[31m"]
+      ruleIds: [...Array.from({ length: 70 }, (_, i) => `namespace/rule-${i}`), "\u001b[31m"]
     })
     const directory = join(input.statePath, activitySessionKey(input.sessionId))
     const raw = readdirSync(directory)

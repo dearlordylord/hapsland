@@ -4,11 +4,11 @@ import { resolve } from "node:path"
 
 const root = resolve(import.meta.dirname, "..")
 const read = (path) => readFileSync(resolve(root, path), "utf8")
-const server = read("src/resident/server.ts")
-const client = read("src/resident/client.ts")
+const server = read("packages/resident-runtime/src/resident/server.ts")
+const client = read("packages/resident-transport/src/resident/client.ts")
 const canonical = read("packages/agent-flow-bend/Canonical.bend")
 const collection = read("packages/agent-flow-bend/CollectionState.bend")
-const joined = read("src/resident/joined-reviews.ts")
+const joined = read("packages/resident-runtime/src/resident/joined-reviews.ts")
 for (const source of [server, client, canonical, collection]) {
   assert.doesNotMatch(
     source,

@@ -1,19 +1,23 @@
 import { execFileSync } from "node:child_process"
-import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs"
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, mkdirSync, copyFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
 // Generated bindings depend on this compiler's JavaScript ABI.
+const bendVersion = JSON.parse(readFileSync(resolve(import.meta.dirname, "../package.json"), "utf8")).hapsland.toolchain
+  .bend.version
+const bendCompilerVersion = `bend ${bendVersion}`
 const compilerVersion = execFileSync("bend", ["version"], { encoding: "utf8", timeout: 5_000 }).trim()
-if (compilerVersion !== "bend 2.0.35") {
-  throw new Error(`Bend artifact generation requires exact Bend 2.0.35; observed ${compilerVersion}`)
+if (compilerVersion !== bendCompilerVersion) {
+  throw new Error(`Bend artifact generation requires exact Bend ${bendVersion}; observed ${compilerVersion}`)
 }
 
 const root = resolve(import.meta.dirname, "..")
+const output = resolve(process.argv[2] ?? join(root, "dist"))
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-import-graph-bend-"))
 try {
   const compiled = join(temporary, "import-graph.js")
-  execFileSync("bend", [join(root, "ImportGraphRuntime.bend"), "-o", compiled], { stdio: "pipe" })
+  execFileSync("bend", [join(root, "ImportGraphRuntime.bend"), "-o", compiled], { stdio: "pipe", timeout: 120_000 })
   let source = readFileSync(compiled, "utf8")
   const footer = /\ncli\(process\.argv\.slice\(\d+\)\);\nio_exit\(\$main\$, [\s\S]*\);\s*$/
   if (
@@ -57,7 +61,9 @@ export const bendImportGraphLocalBudget = (limits, localWork, localDepth, distin
   run_loop($ImportGraph$058local_budget$(normalize(limits), nat(localWork), nat(localDepth), nat(distinctTargets), nat(graphWork)));
 `
   )
-  writeFileSync(join(root, "import-graph.generated.js"), source)
+  mkdirSync(output, { recursive: true })
+  writeFileSync(join(output, "import-graph.generated.js"), source)
+  copyFileSync(join(root, "abi/import-graph.generated.d.ts"), join(output, "import-graph.generated.d.ts"))
 } finally {
   rmSync(temporary, { recursive: true, force: true })
 }

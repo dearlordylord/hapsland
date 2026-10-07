@@ -4,7 +4,7 @@
 **Status:** Maintained testing guidance.
 **Authority:** Maintained guidance and implementation or validation evidence; product behavior remains defined by its named contracts.
 **Expected use:** Select the smallest relevant gate before a change, locate the current manual native integration runner, and distinguish source-checkout observations from package or platform support.
-**Lifecycle:** Update this matrix whenever a test scenario, runner, supported language or runtime profile, or evidence owner changes. Review it when a milestone retires or replaces a runner; delete obsolete instructions and retain evidence only while a current decision, claim, or open review needs its provenance.
+**Lifecycle:** Update this matrix whenever a test scenario, runner, language or runtime profile, or evidence owner changes. Review it when a milestone retires or replaces a runner; delete obsolete instructions and retain evidence only while a current decision, claim, or open review needs its provenance.
 
 ## Verification profiles
 
@@ -13,30 +13,47 @@ its resolved plan and finite deadline under `.test-runs`; build and archive reus
 never reuses test outcomes or coverage. Source application commands and resident fixtures select pinned Bun;
 Node runs the test harness and synthetic process fixtures. Coverage runs attach a Bun
 preload and merge original-source Istanbul counters with Vitest/V8 counters.
+Incomplete statement ends need unique authored AST ranges; positive aliases also
+need precise same-context hits. Unknown ends cannot inflate exact-zero counters.
+Coverage-provider regressions preserve ambiguous and uncovered evidence across contexts.
 The selected source files and CRAP thresholds remain unchanged. Killed fixtures
 retain conservative periodic snapshots; focused coverage is not a full gate.
+
+Pi composition fixtures keep replay separate from freshness: after closing a
+round, perform a physical edit with matching native patch and assert the new
+finding. A new tool-call ID alone is not a fresh edit under the
+[advice contract](advicing-target-contract.md#advicee-identity-and-admission).
 
 | Profile | Purpose | Selection |
 | --- | --- | --- |
 | `fast` | Typecheck, generated configuration, changed-file lint and selected component tests | Optional explicit files |
 | `boundary` | IPC, process, CLI, hooks and installation consumers | Required explicit files; package preparation follows the selected import closure |
 | `native` | Compiler checks or a real agent scenario | `--native-target=typescript\|rust\|bend` and compiler test files; or explicit `--host`, `--provider`, `--model`, `--scenario` |
-| `stress` | Long bounded saturation, seeded simulation or contention checks | Required explicit files; assertions and seeds stay unchanged |
+| `stress` | Saturation tests with a deadline, seeded simulation or contention checks | Required explicit files; assertions and seeds stay unchanged |
 | `quality` | Existing full deterministic gate and fresh coverage/CRAP analysis | Complete inventory; filters are refused |
+
+Quality runs harness preflight, lint, then the pinned crap4ts complexity lower
+bound before coverage generation. Complexity above the configured threshold
+ceiling guarantees a CRAP breach and stops expensive checks with exit 2. Path
+overrides use a conservative maximum; smaller path-specific breaches remain
+owned by the final gate. An early pass establishes no coverage result. The final
+CRAP gate still generates fresh coverage and enforces strict missing evidence.
 
 `--timeout-ms=N` sets the finite run deadline. Compiler version preflight alone
 is not compiler validation; select the compiler tests for the changed owner.
 Agent profiles select the declared model; Pi requires its existing
 `openai/gpt-6-luna` profile. Pi checks its pinned runtime and confirms that model
-with one bounded, tool-free request before preparing a package. A receipt is
+with one tool-free request with a timeout before preparing a package. A receipt is
 reused only within the same owned run and unchanged profile; model response and
 credentials are not retained. Real agent runs remain explicit.
 
-Build outputs and local archives share `.git/hapsland-artifacts` across worktrees.
-Content identities include dirty/new/deleted inputs, dependency contents and actual
-toolchain versions. Shipped-document changes repack without compiling. Outputs
-and archives are checked against stored inventories and SHA-256 before reuse;
-changed inputs during preparation and corruption fail the run.
+Turbo owns ordinary build scheduling, task caches and output restoration. Archive
+preparation always invokes the ordinary build, fresh native-profile validation and
+packing; it never restores a whole build or skips those stages from a source-keyed
+archive cache. Completed archives are retained by their SHA-256 under
+`.git/hapsland-artifacts/archives` so installed candidates and one test run can use
+immutable bytes. Preparation rejects source, dependency or runtime-output drift
+and corrupt retained archive bytes.
 Dependency hashing retains a filesystem-local digest memo. Every check still
 walks names and links and checks nanosecond file metadata; changed files are
 hashed through an open descriptor and checked again before publication. The
@@ -45,9 +62,8 @@ between filesystem namespaces. Invalid memo data causes fresh hashing.
 Atomic checkpoints retain completed file digests after interruption; they do
 not publish or validate an incomplete dependency fingerprint or build artifact.
 Prepared source roles share one immutable `.test-runs/source-runtime/<identity>` bundle set
-through the same artifact store; package compilation is a separate artifact.
-The materialized runtime is kept outside `dist` so production builds and package
-restoration cannot remove entrypoints used by a running CLI or resident.
+through the same artifact store; production task outputs are owned by Turbo.
+The materialized runtime is kept outside `dist` so production builds cannot remove entrypoints used by a running CLI or resident.
 
 Run `npm run hooks:install` once per repository. The shared Git dispatcher invokes
 the current worktree's maintained `.husky/pre-commit`, including lint-staged,
@@ -58,8 +74,40 @@ sections without rewriting them. [Fact renderers](../scripts/documentation-facts
 import limits and names from their implementation owners. Edit those owners and
 renderers, rather than generated sections.
 
+`npm run build:watch -- --timeout-ms=3600000` runs the ordinary production build
+serially when observed source or output identities change. Its default lifetime
+is one hour; SIGINT or SIGTERM ends the watcher. Only one watcher owns the shared
+`.test-runs/watch-build.json` status. `ready` records the source and output hashes
+observed after a successful build; source drift forces another build, and a
+failure waits for changed inputs before retrying. This status is development
+evidence, not a release acceptance or platform compatibility claim. Watch changes
+require coordinator tests and an actual production watch run, including failure
+and repair cases when those behaviors change.
+
 Historical worktrees without that file use the maintained command captured by
 the installer in the common Git directory, executed in the current worktree.
+
+## Bend formatting
+
+Use the standalone `bend-format` **0.1.19** (the bend-idea formatter), Python 3,
+and the repository's `.editorconfig`. Install the pinned release from
+[the formatter release](https://github.com/dearlordylord/bend-idea/releases/tag/v0.1.19)
+and put its executable on PATH, or set `BEND_FORMAT_BIN`. A separate JAR can use
+`BEND_FORMAT_JAR` and `BEND_FORMAT_JAVA` (Java 21+).
+
+- `npm run format:fix`: fix changed tracked and nonignored new Bend files.
+- `npm run format:check`: check the same selection.
+- `npm run format:check -- --base origin/master`: check the branch delta.
+- `npm run format:check -- --all`: check all tracked Bend files, including legacy style.
+- `npm run format:fix -- path/to/file.bend`: format explicit repository-relative paths.
+
+The commit hook checks exact staged Bend bytes without rewriting files or the
+index. Empty selections need no formatter. Exit 1 means formatting differs;
+exit 2 means an unavailable tool, unsupported source, or error, never success.
+Untouched sources need no bulk cleanup. Format before freezing source hashes or
+mutation anchors; after formatting executable Bend, rerun its affected proofs,
+mutation checks and artifact checks. Style checks do not establish semantics.
+Wrapper and staged-byte regression tests: `python3 scripts/test_bend_format.py`.
 
 ## Optional development modules
 
@@ -95,20 +143,22 @@ evidence before regenerating the scenario pages.
 | Installed hook inventory | `npm run hooks:generate`; `npm run docs:check` | README table generated from the shared Codex, Claude Code and Pi hook catalog | Documentation matches registration definitions; no native lifecycle execution claim |
 | Comparison scenario documentation | `node scripts/generate-abide-scenario-pages.mjs --check` | Six generated reader pages, 36 linked input variants and helpers, measured fixture digest and frozen per-scenario results | Inline code and displayed scenario outcomes match their owners; offline, no new measurement |
 | Native game recording | `node --test prototypes/canonical-defense/recording-launch.test.mjs prototypes/canonical-defense/cached-build.test.mjs`; `node prototypes/canonical-defense/check-recording.mjs` | Realtime file visibility, exact complete-World restore and full playback, playback isolation, reset replacement, stale identity rejection and interrupted-tail recovery | Focused native/emitted host and physical file checks within 380 seconds; no power-loss durability, old-build compatibility or shared-engine milestone claim |
-| Optional game balance laboratory | `node scripts/build-game-lab.mjs --check`; `npm run test:focused -- scripts/game-balance-lab.test.mts`; `node_modules/.bin/tsc -p prototypes/canonical-defense/lab/tsconfig.json --noEmit` | Shared game translation, actual-game placement/upgrades/health, bounded strength/radius, fixed investments, refusal, ordinary business replay, paired/interaction comparisons and held-out separation | Declared offline fixtures and finite search; see [current limits](../prototypes/canonical-defense/lab/README.md#actual-game-ability-boundary); Host changes also require the game-consumer runner |
+| Optional game balance laboratory | `node scripts/build-game-lab.mjs --check`; `npm run test:focused -- scripts/game-balance-lab.test.mts`; `node_modules/.bin/tsc -p prototypes/canonical-defense/lab/tsconfig.json --noEmit` | Shared game translation, actual-game placement/upgrades/health, strength/radius limits, fixed investments, refusal, ordinary business replay, paired/interaction comparisons and held-out separation | Declared offline fixtures and finite search; see [current limits](../prototypes/canonical-defense/lab/README.md#actual-game-ability-boundary); Host changes also require the game-consumer runner |
 | Actual-Lab native behavioral predicates | `node scripts/verify-game-lab-native-tests.mjs`; `node --test scripts/verify-game-lab-native-tests.test.mjs scripts/game-consumer-deadline.test.mjs` | 20 independently expected construction, budget, captured timing/lease and access-restoration predicates in native/emitted JavaScript; verifier rejection and deadline/identity sensitivity | Source5/C30/clang30/JS30/exec5 per root, finite30-minute runner; exact existing foreign numeric-IO declarations excluded from source checks, no universal proof or platform claim |
 | Laboratory native/emitted full traces | `python3 packages/monkey-business-bend/conformance/generate-callback-native-prefix.py --optional-profile prototypes/canonical-defense/lab-native-prefix-profile.json --check`; `node scripts/run-game-consumer.mjs --lab` | Seven declared scenarios × 40 ticks; complete before/intervention/after Worlds, frames and physical deliveries; exact scenario/tick and hard event-budget accounting | Source/tool-pinned native/emitted agreement; C emission within the authenticated 380s supervisor deadline (direct fixture command: 30s), clang preparation 120s as in the full game consumer, JS emission 30s, each scenario execution 5s; public replay and window behavior require their separate checks |
-| Focused implementation checks | `npm run test:focused -- <test files>`; `npm run check:fast` | Explicit test files and typing/configuration checks; no full suite or proof chain | Changed owners only; does not qualify full source coverage |
-| Development snapshot cache and packing | `node --test scripts/artifact-store.test.mjs scripts/dev-pack.test.mjs scripts/test-harness/prepare-archive.test.mjs` | Build-input changes, ignored tool caches, lock ownership, archive integrity, npm file selection and executable bins | Local dev archives use gzip level 1; npm release packing is unchanged. Identical worktrees share content-addressed build outputs and archives. Corruption and in-flight input changes are rejected; each check still executes afresh. |
+| Focused implementation checks | `npm run test:focused -- <test files>`; `npm run check:fast` | Explicit test files and typing/configuration checks; no full suite or proof chain | Changed owners and affected consumers; does not qualify full source coverage |
+| Development archive preparation and packing | `node --test scripts/artifact-store.test.mjs scripts/dev-pack.test.mjs scripts/test-harness/prepare-archive.test.mjs` | Every ordinary build/validation/pack invocation, inherited build leases, input and output drift, archive integrity, npm file selection and executable bins | Local dev archives use gzip level 1; npm release packing is unchanged. Turbo owns build reuse. Identical completed archive bytes share immutable retention; fresh preparation stages still execute. Corruption and in-flight input or output changes are rejected. |
 | Routine deterministic gate | `npm test` | Bend artifact and authority checks, boundary scripts, Vitest tests for the reducer, adapters, resident, and CLI | Logic and controlled fixtures; no native agent or Jev call |
-| Process harness contention | `npm run test:contention`; `npm run test:harness:inventory` | Full deterministic gate under bounded Linux CPU pressure; transitive process/scenario inventory; hung-child cleanup probes | Declared scheduling profile and finite harness failure; no product deadline, latency, or arbitrary-starvation claim |
-| TypeScript quality gate | `npm run quality:check` | Full deterministic gate with fresh Istanbul coverage, then pinned crap4ts analysis of `src` | Per-function complexity and coverage policy; strict missing evidence; no correctness or assertion-quality guarantee |
+| Process harness contention | `npm run test:contention`; `npm run test:harness:inventory` | Full deterministic gate under the declared Linux CPU-pressure profile; transitive process/scenario inventory; hung-child cleanup probes | Declared scheduling profile and finite harness failure; no product deadline, latency, or arbitrary-starvation claim |
+| TypeScript quality gate | `npm run quality:check -- --ack-checks-policy` | Full deterministic gate with fresh Istanbul coverage, then pinned crap4ts analysis of `src`, extracted production TypeScript owners, and `scripts/test-support`, as selected by `crap4ts.json` | Per-function complexity and coverage policy; strict missing evidence; no correctness or assertion-quality guarantee |
 | Compile/package source | `npm run typecheck`; `npm run build` | TypeScript typing, Bend artifacts, native helpers, standalone Bun commands and agent extension assets | Buildability of this checkout; unsupported hosts retain format-verified declared native artifacts without target-host validation |
-| Hook review-engine import invariant | `npx vitest run --maxWorkers=1 src/runtime/review-engine-boundary.test.ts scripts/cli-import-boundary.test.mts` | Five engine/parser/provider module boundaries under every hook flag; permitted manual imports; static eager import closure | Runtime import violations emit a fixed diagnostic and throw, including dynamic imports; static dependencies can initialize before their module assertion |
+| Build workflow adapters | `node --input-type=module -e 'import {precheckStages} from "./scripts/test-harness/check-stages.mjs"; import {spawnSync} from "node:child_process"; const stage=precheckStages.find(([name])=>name==="build-workflow"); const result=spawnSync(process.execPath,stage.slice(1),{stdio:"inherit",timeout:150000}); if(result.error) throw result.error; process.exit(result.status??1)'` | Manifest graph, compiler and assembly receipts, native cache inputs and restoration, process ownership, source loader policy, and watch coordination | Adapter tests; actual production builds, installed behavior and platform qualification require their own checks. |
+| Hook source and runtime import boundaries | `node --test scripts/check-workspace-imports.test.mjs scripts/source-loader-policy.test.mjs scripts/hook-import-boundary.test.mjs`; `npx vitest run --maxWorkers=1 src/runtime/review-engine-boundary.test.ts` | Declared hook/Pi entries, transitive local and workspace edges including type-only edges, forbidden owners, supported loader shapes and lexical bindings; runtime engine/parser/provider assertions | Source checks reject unsupported loaders. External dependency contributions and emitted/compiler closure require their separate build evidence; this gate alone does not establish emitted isolation. |
 | Runtime clock compatibility | `HAPSLAND_BUILD_BUN=/absolute/path/to/bun node scripts/check-runtime-clock.mjs --source-only`; pass a comparison declaration for the Linux installed witness | Separate Node/Bun OS-clock readings, pre-import delay, and installed admission/stale rejection | Shared monotonic coordinates and unchanged admission window; exact platform execution required |
-| Installed hook startup comparison | `node scripts/measure-hook-startup.mjs DECLARATION.json` | Three installed variants, 15 round-robin registrations per variant with a ready resident, and three separate cold-resident calls per variant | Observed registration outcomes and wall times without coverage; uncontrolled OS file cache, no population latency guarantee |
+| Installed hook startup comparison | `node scripts/measure-hook-startup.mjs DECLARATION.json` | One to three installed variants, 15–100 interleaved registrations per variant with its own verified ready resident, and 3–30 separate fresh-resident calls per variant; declare artifact hashes, sample counts and comparison criteria before execution | Parent monotonic elapsed times, registration outcomes and resident executable/lifetime identities without coverage; uncontrolled OS file cache, fresh resident does not imply cold file cache, no handler-readiness or population latency guarantee |
+| Review content isolation | `npm run test:content-isolation`; focused `src/review-providers/request-content.test.ts`, `src/direct-event/content-isolation.test.ts`, `src/direct-event/content-provenance.test.ts`, `src/jev-decision.test.ts`, `src/review-providers/cloudflare.test.ts` | Five kernel-checked laws over production Bend, 320 literal instances, five Bend mutants, five production mutants, fresh compiled-artifact equality, exact HTTP bodies/headers and a Jev loopback transport | Top-level field selection and framing only; source provenance, native JSON/ABI/compiler/transport correctness and traffic side channels remain outside the proof. Every Bend call is limited to 5 seconds; every wire-mutant test run to 20 seconds. |
 | Review provider adapters | `npx vitest run --maxWorkers=1 src/review-providers` | Jev/Cloudflare selection, Clef/Clef-flash HTTP fixtures, native input limits, model identity and revalidation | Offline controlled transport behavior; no live provider quality or token-limit enforcement |
-| Concurrent native helper build/security replay | `node scripts/security-prototype/concurrent-build-replay.mjs EVIDENCE.json` | Three selected pairs each for authorized send and dispatch denial, with an already-mapped native parser, actual helper publication and post-build parsing | Linux arm64 / current Node; 120-second bound, sanitized process exits and wire outcomes; current resident witness, not historical Quint generation or a full distribution build |
+| Concurrent native helper build/security replay | `node scripts/security-prototype/concurrent-build-replay.mjs EVIDENCE.json` | One pair per scenario: authorized send and edit-snapshot preservation after a saved exclusion, with an already-mapped native parser, actual helper publication and post-build parsing | Linux arm64 / current Node; 120-second bound, sanitized process exits and wire outcomes; current resident witness, not historical Quint generation or a full distribution build |
 | Direct-event conformance | `npm run conformance:direct-event` | Manifest, selected direct-event tests, retained evidence validation | Version-one event contract and sanitization; no new agent session |
 | Installed host | `npm run conformance:host -- --write-evidence` | Clean package with real Codex CLI and controlled reviewer | Pinned installed Codex profile, distinct from the source-checkout runner |
 | Package setup | `npm run conformance:package`; `npm run conformance:setup-package` | Clean install and first-review setup | Packaging and installation paths; run only when those paths change |
@@ -117,28 +167,33 @@ evidence before regenerating the scenario pages.
 | Pi native limits and reviewer failure | Same shared runner with `--host=pi --language=typescript --scenario=unsupported-write`, `--scenario=unicode-edit`, or `--scenario=reviewer-unavailable` | Installed isolated Pi native mutation and selected truthful failure paths | Selected observations only; no broad fault-matrix or platform claim |
 | Native Pi assertion regression | `node --test scripts/native-pi-observation.test.mjs` | Planted visibility, attribution, semantic expansion, and correlated follow-up failures | Runner verdict cannot conflate submitted advice with visible advice or repair |
 | Full native fault matrix | `node scripts/run-native-negative-matrix.mjs` | All 24 controlled negative cells, at most three real host sessions at once | Per-cell declarations, results, and batch summary; no Jev requests |
-| Paid source-checkout adoption | Same runner with `--scenario=adoption --live --execute-paid` | Real agent plus real Jev; six HTTP attempts maximum per invocation | Bounded selected live path, with each run's outcome retained separately |
+| Paid source-checkout adoption | Same runner with `--scenario=adoption --live --execute-paid` | Real agent plus real Jev; six HTTP attempts maximum per invocation | Selected live path within the request budget, with each run's outcome retained separately |
 | Source-checkout Abide coexistence | Same runner with `--host=HOST --language=typescript --coexistence=CASE --abide-prefix=PREFIX --hook-order=ORDER` | Real Codex/Claude, released Abide 0.0.7 handlers, controlled reviewers; `both` additionally accepts `--live --execute-paid` | Selected delivery, independent reviewer failure and file-exclusion cases; no general installed-package or native-trust declaration |
 | Abide installer coexistence | `node scripts/run-abide-installation-witness.mjs --abide-prefix=PREFIX` | Real source Hapsland and released Abide installers in isolated profiles; both orders, repeat init and each uninstall | Registration preservation only; no native agent session or Jev call |
 
-Local completion uses the smallest checks that establish the changed behavior:
+Build-workflow acceptance runs focused harness tests before baseline under its lock and deadline. Tests derive the context API from the runner and scenarios; missing providers fail before mutation. Require terminal `completed: true` and completed repair or recorded verified `repairSkipped`; report interruption separately. Measure an unchanged warm build in the same environment before choosing a campaign deadline.
 
-- TypeScript changes: `npm run check:fast`, focused tests for the changed owners,
-  and tests of affected consumers. Select by behavior and dependencies, rather
-  than only the edited filename; renames can affect discovery and dispatch.
-- Logic and configuration matrices: use direct component/unit tests. Run a
-  representative integration case when discovery, wiring or an installed
-  consumer changes. Unit tests cannot replace socket, process, TTY, packaging,
-  crash or ownership evidence when that physical boundary changes.
-- Documentation and tooling changes: affected tool tests and documentation or
-  consumer checks. Build/package checks apply when their inputs or output layout
-  change.
-- Full fresh-coverage CRAP gate: releases, declared milestones, large cross-cutting
-  features whose impact cannot be bounded by focused checks, and explicit
-  requests. State the additional evidence before running it. A filename or
-  literal replacement, or a bounded configuration fix, does not automatically
-  require a full gate. CI continues to run the full gate; local focused checks
-  do not claim full-project coverage.
+The [checks policy](../CHECKS.md) owns
+gate selection, prerequisite checks and retry decisions. This matrix supplies
+commands and evidence boundaries. Select consumers by dependencies and behavior;
+renames can affect discovery and dispatch. Socket, process, TTY, packaging,
+crash and ownership changes need their corresponding physical checks.
+
+Coverage/preload changes use existing provider tests plus a real source consumer,
+such as `src/resident/subprocess.test.ts`, with coverage enabled. Match the failing
+mode's environment and instrumentation; preserve product deadlines. Supply a
+reviewed current archive via `HAPSLAND_TEST_PACKAGE_ARCHIVE` for installed fixtures.
+The focused runner prepares current workspace outputs. One invocation is:
+
+```sh
+HAPSLAND_TEST_PACKAGE_ARCHIVE=/absolute/reviewed.tgz npm run test:focused -- src/resident/subprocess.test.ts --coverage
+```
+
+Startup/readiness and pending-work behavior must remain observable under the
+instrumentation. Successful toy counters do not establish lifecycle behavior.
+On timeout, compare matching instrumented/uninstrumented runs and measure startup
+and checkpoint costs before choosing a repair. This focused run does not qualify
+full source coverage.
 
 `HOST` is `codex`, `claude`, or `pi`; Pi currently accepts the controlled TypeScript profile above. Other source-checkout host/language combinations use the existing fixture table. `LANGUAGE` is `typescript`, `rust`, or `bend`. The native runner checks exact host versions, creates a disposable Git repository, records a declaration before execution, and retains source-free JSON under `evidence/native-languages/`. A failed run remains `incomplete`; it is never converted to a passing result by a later run. The [language evidence index](../evidence/native-languages/index.json) identifies the selected adoption runs and earlier incomplete attempts.
 
@@ -225,7 +280,7 @@ checks and the final milestone gate remain separate requirements.
 The [source discovery tests](../src/inspection/registry.test.ts) connect two real
 residents through retained private registrations and the public inspection API.
 They reject changed private permissions, owner symlinks and FIFOs, distinguish
-resident exit from lifetime replacement, and check bounded metadata and source
+resident exit from lifetime replacement, and check size-limited metadata and source
 counts. Inspection probes use a separate private `inspection.sock` endpoint accepting only hello and lifetime-bound recording-status reads. Its four connection slots and 300 ms total connection deadline are independent of the 32 hook-control slots. The socket saturation test verifies control requests while inspection is full, read-only probes while control is full, and rejection of cleanup on the inspection endpoint, and closure despite trickled incomplete input. Probes do not start residents or extend review lifetime.
 The Pi browser gate exercises distinct residents and roots with native selectors;
 its keyboard checks cover focus traversal and button activation, not native popup
@@ -250,7 +305,7 @@ checks do not establish replay cursors or complete recording coverage.
 The [public replay test](../src/inspection/replay.test.ts) records two real resident
 sources, takes a snapshot, records further edits, and resumes after each source's
 sequence position through HTTP and SSE `Last-Event-ID`. Resumed SSE frames carry
-only records after each saved source position, plus a bounded list of the current
+only records after each saved source position, plus a list with an entry limit of the current
 view's retained identities. An unchanged cursor sends no record payloads. The
 browser merges by source/sequence and removes identities no longer retained. Fresh or reset frames replace the retained view. Repeated
 source/sequence records are idempotent. Cursors are signed per inspector launch, carry at most 128
@@ -260,11 +315,11 @@ after actual journal expiry. Coverage is
 always limited to retained observations; this does not prove that silent capture
 failures are known. Exact loss markers distinguish known expiry and capacity eviction;
 missing markers keep the reason unknown. The [slow-consumer test](../src/inspection/consumer.test.ts) pauses a real TCP
-reader against a bounded saturated feed. A real resident review and private
+reader against a saturated feed with event-size limits. A real resident review and private
 journal publication continue, the stalled response closes, and a new connection
 retrieves that review with the saved cursor. Five seconds of continuous socket
 backpressure trigger closure, checked every 100 ms; draining resets the deadline.
-The HTTP adapter waits for drain before pulling another bounded event, so a slow
+The HTTP adapter waits for drain before pulling another size-limited event, so a slow
 feed retains one response frame rather than an unbounded event queue. This is an
 observed local transport case, not a general network latency guarantee.
 
@@ -273,8 +328,7 @@ real resident's disabled-state history write and verifies that the public API
 still reports the resident's disabled capture state separately from its last
 retained enabled observation. The lifetime-bound `inspection-status` operation
 reads only in-memory recorder state: it neither starts a resident nor changes
-recording, review, cleanup or submission state. Known roots and metadata are
-bounded, with omitted counts. The Pi browser checks enabled observations from
+recording, review, cleanup or submission state. Known roots and metadata have entry and size limits, with omitted counts. The Pi browser checks enabled observations from
 three live sources and unknown current root states after their disconnection.
 Configuration changes apply at the next edit admission; this observation does
 not reread project files or guarantee successful persistence. Paused displays
@@ -284,15 +338,15 @@ review policy. It verifies five retained state periods and three consent epochs,
 links each period to its next retained transition, and excludes disabled edits
 from source-bearing history. An open historical period does not claim current
 state or continuous coverage. Its configured 4 MiB fixture quota preserves the
-full bounded marker window for the selected older handoff's expiry check; the
-physical default-cap journal check is described above; bounded marker retention and
+full marker retention window for the selected older handoff's expiry check; the
+physical default-cap journal check is described above; marker retention limits and
 marker loss have separate journal checks.
 
 Loss markers are source-free, private, immutable version-one journal objects
 naming an exact removed source/sequence identity and the observed reason. They
 are published after successful unlink, under the journal lock, and count toward
 the same allocated cap with their temporary files. At most 128 markers are kept,
-further bounded by the configured quota; diagnostic retention ages from removal.
+further limited by the configured quota; diagnostic retention ages from removal.
 Older markers can be lost, so absence is not evidence of complete coverage.
 The journal samples records and markers together for HTTP, replay and payload
 reads. [Journal tests](../src/inspection/storage.test.ts) cover capacity markers
@@ -322,7 +376,7 @@ must land before its declared final full gate.
 
 ## Native compilation phase
 
-Ordinary `npm test` and `npm run quality:check` invoke Vitest directly after the
+Ordinary `npm test` and `npm run quality:check -- --ack-checks-policy` invoke Vitest directly after the
 maintained configuration, artifact, authority, boundary and progress checks,
 including the shared Engine `build.mjs --check`. They do not compile the entire
 native fixture registry before an unrelated test can start. Native tests still
@@ -372,34 +426,54 @@ unchanged. The release diagnostic observed those selected campaigns passing
 without coverage under their previous bounds, while coverage exceeded them.
 These watchdogs bound test computation; they make no product latency claim.
 
+## Dependency and compiler selection
+
+Shared external versions are declared once in the root manifest's standard Bun
+`catalog`; workspace manifests consume them through `catalog:` and private
+workspace dependencies through `workspace:*`. The manifest graph validates these
+values and derives production references. Seven auxiliary owners remain outside
+the 23-owner production schedule; their six-member test/simulation dependency
+component does not create a production cycle.
+
+Compiler callers use [the explicit TypeScript selector](../scripts/pinned-typescript.mjs),
+not the shared `.bin/tsc` link. Its catalog-driven version, selected native
+executable and compiler/platform support identity are distinct from the research
+scorer's older compiler API. Run `node --test scripts/pinned-typescript.test.mjs`
+for the collision and rejection cases. Those tests establish selection behavior,
+not package compilation or release acceptance. Current receipt checks validate
+the selected identity through [the compiler context](../scripts/compiler-context.mjs).
+
 ## Pull request checks
 
 [Offline CI](../.github/workflows/check.yml) runs on pull requests and pushes to
-`master`. It installs the frozen Bun lockfile and the checksum-pinned Bend 2.0.34
+`master`. It installs the frozen Bun lockfile and the checksum-pinned Bend 2.0.35
 and Lean 4.34.0 proof toolchain through its existing `npm run docs:install`
 tooling step, then runs documentation links,
-typecheck, `npm run quality:check`, and build. It does not invoke live Jev or native agent
+typecheck, `npm run quality:check -- --ack-checks-policy`, and build. It does not invoke live Jev or native agent
 milestones; those remain separate declared checks above.
 
 The [proof toolchain installer](../scripts/install-bend-toolchain.mjs) downloads
 first-party Linux x64/arm64 archives with pinned SHA256 digests and checks the
-progress proof with Bend’s bundled kernel before the bounded harness starts.
-Bend 2.0.34 is pinned to upstream source commit
-`7d8a3eb036042c6549461054d25a10f26d361c5c`; its kernel requires Lean 4.34.0.
+progress proof with Bend’s bundled kernel before the harness starts.
+Bend 2.0.35 is pinned to the upstream release source revision
+`79df8d9`; its kernel requires Lean 4.34.0.
 Run the installer once and add its printed bin directories to `PATH` for local
 `npm test`. The explicit `--github-actions` mode in `docs:install` installs this
 proof prerequisite only when `GITHUB_ACTIONS=true`; ordinary local documentation
 installs do not download Bend or Lean. Updating either pin requires proof
 validation and digest review.
 
-The [crap4ts configuration](../crap4ts.json) selects all TypeScript under `src`
-(the tool excludes conventional tests and declarations) and enforces a CRAP
+The [crap4ts configuration](../crap4ts.json) selects TypeScript under `src`,
+the 22 production TypeScript owners’ `src` directories and the moved
+`scripts/test-support` helpers (the tool excludes conventional tests and
+declarations). The Bend producer is checked through its separate generator,
+ABI, loader and proof gates. The configuration enforces a CRAP
 threshold of **8** with missing evidence treated as an error.
 [`@crap4ts/crap4ts`](https://www.npmjs.com/package/@crap4ts/crap4ts) is pinned
 to **1.0.5** (`DEPEND ON`); the V8 coverage provider is pinned to the same
 release as Vitest and emits Istanbul JSON, not raw V8 coverage.
 The [harness policy](../scripts/test-harness/policy.mjs) applies a five-second per-test watchdog in ordinary unit files and a
-60-second per-test watchdog in process-capable or explicitly named bounded
+60-second per-test watchdog in process-capable or explicitly named time-limited
 scenario files, in ordinary and coverage runs alike.
 `npm run test:harness:inventory` derives the classification from transitive
 runtime imports and reports the dependency that caused each process classification.
@@ -421,7 +495,7 @@ the test, file, class, and test or cleanup phase. Deliberately hung-child tests
 verify a finite failure and that the immediate child has been reaped.
 Asynchronous `spawn` fixtures retain their explicit lifecycle and cleanup controls.
 These scheduling allowances are harness limits, not product latency requirements;
-product runtime deadlines, retries, and supported profiles are unchanged.
+product runtime deadlines, retries, and runtime profiles are unchanged.
 
 Keep process tests for boundaries that require actual executable, socket, or host
 behavior. Test domain variants once at their owning layer rather than repeating
@@ -454,8 +528,7 @@ option does not remove test cases or replace source coverage evidence.
 the runner, suite, and two busy workers share the first four allowed CPUs
 (or fewer when unavailable). Worker readiness is acknowledged through IPC.
 A 30-minute fixture bound kills the suite process group; completion or interruption
-kills and reaps the owned pressure workers. This is a bounded scheduling-pressure
-check, not a throughput benchmark or proof for arbitrary host starvation.
+kills and reaps the owned pressure workers. This is a scheduling-pressure check with a deadline, not a throughput benchmark or proof for arbitrary host starvation.
 No sleep is used to establish correctness or concurrency ordering.
 
 Subprocess coverage is enabled so CLI and resident tests contribute evidence
@@ -473,15 +546,10 @@ checks separation of execution contexts and combination of source-map aliases
 without a nested test runner. The full quality gate validates the emitted
 Istanbul counters through strict crap4ts analysis.
 Review this adapter against upstream behavior whenever Vitest is updated.
-During implementation, run `npm run test:focused -- <test files>` for the
-changed owners and `npm run check:fast`. Explicit files are required: an omitted
-selection cannot silently start the full suite. Select the full quality gate using the behavior and milestone criteria above;
-when selected, run it on a coherent review-ready candidate.
-After a failed full run, inspect `npm run test:status`, diagnose every independent
-reported defect with its owner check, and observe those checks passing before
-another full run. After two attempts without new discriminating evidence, name
-competing causes and change the experiment. Additional broad runs or reviewers
-alone do not advance diagnosis.
+`npm run test:focused -- <test files>` requires explicit files; omitted selection
+cannot silently start the full suite. Follow the
+[checks policy](../CHECKS.md) for escalation
+to the full gate and diagnosis after failure.
 
 For a batch of issues, assess each slice against its own accepted criteria and
 the applicable owner checks. Record implementation, independent review and
@@ -541,7 +609,7 @@ and remove unsupported internal-shape assertions instead of inventing context.
 
 ### Stop-family observation owner
 
-The agreed Stop fixture projection is the bounded `BusinessState` containing
+The agreed Stop fixture projection is the finite-domain `BusinessState` containing
 `Canonical.State` and the relevant `StopScenario.Finish` records. Its
 implementation captures ordered event and command facts from actual transitions,
 rather than a second policy simulator. Recursive private Stop-driver `Runtime`,
@@ -601,7 +669,7 @@ phases, and unchanged C/binary hashes. Invalid receipts fail before spawning;
 ordinary checks remain fresh. Report resumed phases separately from fresh ones.
 
 Do not repeat an unchanged failed check. The next run must test a concrete repair,
-a competing cause, or an explicitly declared bounded budget amendment. Reuse a
+a competing cause, or an explicitly declared budget amendment. Reuse a
 successful result only for the exact inputs and scope it validated. Optional
 proposal proofs are separate from business qualification; do not make them a
 completion gate unless an accepted contract requires them. Accepted production
@@ -623,29 +691,52 @@ prechecks still report their failures, but a failed prerequisite must prevent
 dependent package preparation and the full test suite from starting. Skipped
 dependent stages are recorded with their reason and do not count as passing.
 
-Before a command expected to exceed one minute, declare its expected duration and
-wall-clock stop time. The runner supplies a finite deadline: five minutes for focused checks and
+The runner supplies a finite deadline: five minutes for focused checks and
 25 minutes for full checks, including nested coverage commands. Override it
 explicitly with `--timeout-ms=<milliseconds>` when the declared check needs a
-different bounded budget; nested commands cannot extend the parent deadline. Use its retained stage evidence to distinguish preparation,
-build, proof, test and analysis failures instead of blindly rerunning tests.
-These rules borrow the finite-work and retained-evidence approach from
+different budget; nested commands cannot extend the parent deadline. Stage logs
+retain preparation, build, proof, test and analysis outcomes separately.
+This runner borrows the finite-work and retained-evidence approach from
 [Dalph development guidance](https://github.com/dearlordylord/dalph/blob/master/docs/development/workflow.md#keeping-implementation-work-finite).
 When selected, the full Hapsland gate still requires strict fresh coverage.
 
 Full runs prepare one fresh production archive before installed tests. The
 [archive preparation](../scripts/test-harness/prepare-archive.mjs) records source
 and archive digests and rejects verification-input changes during preparation;
-the input scope is maintained in that module: source, scripts, workspace
-packages, native/build assets, schemas, vendored dependencies and test fixtures;
+the input scope is maintained in [source identity](../scripts/test-harness/source-identity.mjs): source, scripts, workspace
+packages, native/build assets, schemas, vendored dependencies, evidence and test fixtures;
 root build/test manifests and configuration; and paths shipped by `package.json`
-`files`. New, dirty and deleted files inside that scope remain inputs. Unrelated
+`files`. New, dirty and deleted files inside that scope remain inputs. Freeze
+these inputs during preparation and full runs; write new diagnostic evidence
+outside the checkout until the run is terminal. Unrelated
 research/specification documents (including `quint-specs/quint.lock`) do not
-invalidate a run. Update the scope when a new build/test input root is adopted. The same
+invalidate a run. Full and profile runs observe the same per-path input identities
+before each child stage, during long stages, and freshly at finish. Observations within a run do not overlap; unchanged regular-file metadata permits
+hash reuse. Each input tree uses up to eight workers. Incremental and final scans
+have a 30-second deadline capped by the run deadline; baseline uses the run deadline.
+Background polls pause at least one second and adapt toward 10% duty. Symlink
+targets and submodule contents remain inputs.
+A changed path aborts the active process group and blocks subsequent stages;
+completed results and changed-path failure evidence remain in the run record.
+The exclusive lock remains held while process groups are still present.
+Update the scope when a new build/test input root is adopted. The same
 archive supplies all installed fixtures. This is reuse within one run, not a
 cross-candidate build cache. Focused installed diagnostics may explicitly supply
 `HAPSLAND_TEST_PACKAGE_ARCHIVE`; name its provenance and do not treat an older
 archive as evidence for changed production code.
+
+After moving implementation owners or changing fixture contracts, first run the
+affected boundary fixtures against their current package exports and physical
+source paths. Process fixtures supply their own user configuration and credential
+home where personal state is outside the scenario; registration and dispatch use
+the same configuration selector. Keep tests of intentional precedence explicit.
+Installed focused checks supply the reviewed archive above rather than rebuilding
+inside an instrumented child. A passing build does not establish these assertions.
+Positive Pi finding assertions observe the actual classified batch through the
+configured resident before collection. A source recovery regression delays the
+reviewer beyond the finish window, then requires fresh advice after readiness;
+product callback deadlines stay unchanged. Queue idleness alone does not prove
+classification or delivery readiness.
 
 Keep essential behavioral coverage; delete repeated installed scenarios when
 source owners cover the semantics. A process test should establish one named
@@ -674,8 +765,13 @@ installed hook owners retain end-to-end admission checks. Intentional in-flight
 timeout and disconnect checks retain their gates.
 The installed Claude Stop smoke uses one ready finding; collection size boundaries
 and concurrent delivery ownership remain in their focused owner suites.
+Claude CLI delivery runs against the installed hook and an explicitly selected
+standalone candidate. It does not duplicate these timed subprocess cases through
+a coverage-instrumented source entry: #243 requires the installed Bun boundary;
+authored routing and source/emitted isolation remain covered by hook program
+fixtures, source policy checks and ordinary build acceptance.
 
-`npm run quality:check` regenerates coverage through
+`npm run quality:check -- --ack-checks-policy` regenerates coverage through
 `npm run test:coverage`, which includes the existing boundary checks and tests.
 The tool removes the previous JSON artifact before running that command and
 stops if tests fail, so stale coverage cannot produce a passing CI result.
@@ -689,8 +785,10 @@ Coverage is also written on test failures for diagnosis, but the gate stops
 on the failed command and does not analyze it as a successful run.
 A failing existing function
 needs meaningful tests or simpler branching; do not raise thresholds or switch
-to report-only mode to hide a failure. Separate packages and JavaScript/Bend
-sources are outside this gate's current `src` scope. Review this policy when
+to report-only mode to hide a failure. The source selection in `crap4ts.json`
+includes `src`, the extracted production TypeScript owner source directories,
+and moved helpers in `scripts/test-support`. Other auxiliary packages and
+JavaScript/Bend sources remain outside that selection. Review this policy when
 the production source roots, test runner, or pinned analysis tool change.
 
 The link checker is [Lychee](https://lychee.cli.rs/guides/cli/) 0.24.2
@@ -733,7 +831,7 @@ and follow-up review was observed. All 15 runner checks passed with zero Jev
 requests. This is source-checkout evidence with declared trust/sandbox bypasses,
 not installed-package or ordinary interactive trust validation.
 
-Run `node scripts/run-native-negative-matrix.mjs` to exercise all 24 negative cells in one bounded batch. Negative scenarios use the controlled offline reviewer and make **zero Jev requests**. The runner records hook event order, source-free request shape, outcome identity hashes, compiler status, and the exact checks used for its verdict. A native run is an observed case, not a frequency estimate or proof of every interleaving. The [negative scenario index](../evidence/native-negative/index.json) records the six cells per scenario and any incomplete attempts.
+Run `node scripts/run-native-negative-matrix.mjs` to exercise all 24 negative cells in one finite batch. Negative scenarios use the controlled offline reviewer and make **zero Jev requests**. The runner records hook event order, source-free request shape, outcome identity hashes, compiler status, and the exact checks used for its verdict. A native run is an observed case, not a frequency estimate or proof of every interleaving. The [negative scenario index](../evidence/native-negative/index.json) records the six cells per scenario and any incomplete attempts.
 
 The 2026-10-01 run has 24 selected demonstrated cells and zero Jev requests. Its first batch passed 23 of 24 cells. In the remaining Claude TypeScript case the first result finished before the second edit, so that attempt could not test a stale result. A separately declared 13-second controlled delay produced the intended order and passed. Both records remain linked in the index. The stale case allows the older review result to remain accounted for internally; it asserts that the old finding does not reach the agent after the newer edit and clear result.
 

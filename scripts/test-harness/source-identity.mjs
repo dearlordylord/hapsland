@@ -2,7 +2,7 @@ import { createHash } from "node:crypto"
 import { createReadStream } from "node:fs"
 import { execFile } from "node:child_process"
 import { lstat, readFile, readlink, realpath, readdir } from "node:fs/promises"
-import { isAbsolute, join, relative, resolve } from "node:path"
+import { isAbsolute, join, relative } from "node:path"
 import { promisify } from "node:util"
 
 const execute = promisify(execFile)
@@ -29,7 +29,9 @@ const verificationFiles = new Set([
   "crap4ts.json",
   "tsconfig.json",
   "tsconfig.build.json",
-  "vitest.config.ts",
+  "tsconfig.package.json",
+  "tsconfig.packages.json",
+  "turbo.json",
   ".gitignore",
   ".gitmodules",
   ".hapsland.jsonc"
@@ -54,8 +56,20 @@ const packagedInputs = async (root) => {
 }
 
 /** Identify verification inputs, including dirty, deleted and new files in their owners. */
-export const sourceIdentity = (root, excludedDirectory, selection, { deadline = Date.now() + 30000 } = {}) =>
-  identifyInputs(root, excludedDirectory, true, selection, deadline)
+export const sourceIdentity = (
+  root,
+  excludedDirectory,
+  selection,
+  { deadline = Date.now() + 30000, excludedFiles = [], excludedDirectories = [] } = {}
+) => {
+  for (const path of [...excludedFiles, ...excludedDirectories])
+    if (typeof path !== "string" || isAbsolute(path) || path.split("/").some((part) => ["", ".", ".."].includes(part)))
+      throw new Error("Source output exclusions require exact relative owner paths")
+  return identifyInputs(root, excludedDirectory, true, selection, deadline, false, undefined, {
+    excludedFiles,
+    excludedDirectories
+  })
+}
 
 async function linkedInputDigest(path, ancestors = new Set(), deadline) {
   if (Date.now() >= deadline) throw new Error("Source identity deadline exceeded")
@@ -81,7 +95,20 @@ async function linkedInputDigest(path, ancestors = new Set(), deadline) {
   return digest.digest("hex")
 }
 
-async function identifyInputs(root, excludedDirectory, selectVerificationInputs, selection, deadline) {
+/** Per-path evidence uses exactly the same selection and bytes as the final digest. */
+export const sourceSnapshot = (root, excludedDirectory, { deadline = Date.now() + 30000, cache } = {}) =>
+  identifyInputs(root, excludedDirectory, true, undefined, deadline, true, cache)
+
+async function identifyInputs(
+  root,
+  excludedDirectory,
+  selectVerificationInputs,
+  selection,
+  deadline,
+  snapshot = false,
+  cache,
+  exclusions = {}
+) {
   if (!Number.isFinite(deadline) || Date.now() >= deadline) throw new Error("Source identity deadline exceeded")
   const packaged = selectVerificationInputs ? await packagedInputs(root) : []
 
@@ -118,6 +145,10 @@ async function identifyInputs(root, excludedDirectory, selectVerificationInputs,
           verificationRoots.has(file.split("/")[0]) ||
           verificationFiles.has(file) ||
           packaged.some((path) => path === "" || file === path || file.startsWith(`${path}/`))) &&
+        !(exclusions.excludedFiles ?? []).includes(file) &&
+        !(exclusions.excludedDirectories ?? []).some(
+          (directory) => file === directory || file.startsWith(`${directory}/`)
+        ) &&
         !(
           excluded &&
           !isAbsolute(excluded) &&
@@ -132,13 +163,17 @@ async function identifyInputs(root, excludedDirectory, selectVerificationInputs,
     hash.update(`${file}\0`)
     let metadata
     try {
-      metadata = await lstat(join(root, file))
+      metadata = await lstat(join(root, file), { bigint: true })
     } catch (error) {
       if (error.code !== "ENOENT") throw error
       if (gitlinks.has(file)) throw new Error(`Archive input submodule is missing or uninitialized: ${file}`)
       hash.update("deleted\0")
       return hash.digest("hex")
     }
+    const cacheKey = join(root, file)
+    const signature = `${metadata.mode}:${metadata.ino}:${metadata.size}:${metadata.mtimeNs}:${metadata.ctimeNs}`
+    const cached = metadata.isFile() && cache?.get(cacheKey)
+    if (cached?.signature === signature) return cached.digest
     hash.update(`${metadata.mode}\0`)
     if (metadata.isSymbolicLink()) {
       hash.update(
@@ -155,16 +190,19 @@ async function identifyInputs(root, excludedDirectory, selectVerificationInputs,
       let checkout
       try {
         const top = await execute("git", ["rev-parse", "--show-toplevel"], { cwd: directory, encoding: "utf8" })
-        if (resolve(top.stdout.trim()) !== resolve(directory)) throw new Error("No submodule checkout")
+        if ((await realpath(top.stdout.trim())) !== (await realpath(directory)))
+          throw new Error("No submodule checkout")
         checkout = await execute("git", ["rev-parse", "HEAD"], { cwd: directory, encoding: "utf8" })
       } catch {
         throw new Error(`Archive input submodule is missing or uninitialized: ${file}`)
       }
       hash.update(`submodule\0${gitlinks.get(file)}\0${checkout.stdout.trim()}\0`)
       // The declared vendor dependency owns its complete checkout, including root files.
-      hash.update(await identifyInputs(directory, excludedDirectory, false, undefined, deadline))
+      hash.update(await identifyInputs(directory, excludedDirectory, false, undefined, deadline, false, cache))
     } else throw new Error(`Unsupported archive input: ${file}`)
-    return hash.digest("hex")
+    const digest = hash.digest("hex")
+    if (metadata.isFile()) cache?.set(cacheKey, { signature, digest })
+    return digest
   }
   let cursor = 0
   const identities = new Array(files.length)
@@ -177,5 +215,8 @@ async function identifyInputs(root, excludedDirectory, selectVerificationInputs,
     })
   )
   if (Date.now() >= deadline) throw new Error("Source identity deadline exceeded")
-  return createHash("sha256").update(JSON.stringify(identities)).digest("hex")
+  const digest = createHash("sha256").update(JSON.stringify(identities)).digest("hex")
+  return snapshot
+    ? { digest, paths: Object.fromEntries(files.map((file, index) => [file, identities[index]])) }
+    : digest
 }

@@ -1,12 +1,11 @@
-import { bunExecutable } from "../runtime/bun-runtime.ts"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { ConfigProvider, Effect, Redacted } from "effect"
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { fileURLToPath } from "node:url"
 import { spawnSync } from "node:child_process"
 import { beforeEach, afterEach, expect, it } from "vitest"
-import { resolveCredentialInput } from "./input.ts"
+import { resolveCredentialInput } from "@hapsland/runtime-inputs/credentials/input"
 
 let root: string
 let userDirectory: string
@@ -76,7 +75,7 @@ it("a fresh process independently reads the file without inherited key or enviro
   const environment = { ...process.env }
   delete environment.TYPESAFE_API_KEY
   delete environment.UNRELATED
-  const module = fileURLToPath(new URL("./input.ts", import.meta.url))
+  const module = "@hapsland/runtime-inputs/credentials/input"
   const script = `import {resolveCredentialInput} from ${JSON.stringify(module)};
     import {Effect,ConfigProvider,Redacted} from "effect";
     const input=await Effect.runPromise(resolveCredentialInput(${JSON.stringify({ envVar: "TYPESAFE_API_KEY", root, userDirectory })}).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({preserveEmptyStrings:true})))));

@@ -1,6 +1,6 @@
-import { runClient } from "../../src/test-support/client-runtime.ts"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
 import { Deferred, Exit, Scope } from "effect"
-import { reviewControlsLayer } from "../../src/test-support/review-controls.ts"
+import { reviewControlsLayer } from "@hapsland/build-tooling/test-support/review-controls"
 /** Offline resident wire witness. Run with node --experimental-strip-types. */
 import { createHash } from "node:crypto"
 import nodeHttp from "node:http"
@@ -9,14 +9,14 @@ import { rm } from "node:fs/promises"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import * as Effect from "effect/Effect"
-import { adaptCodexDirectEvent } from "../../src/direct-event/adapter.ts"
-import { typeScriptRoot } from "../../src/direct-event/languages/native-parser.ts"
-import { makeGitFixture, put, updateEvent } from "../../src/direct-event/test-fixtures.ts"
-import { DEFAULT_DESTINATION } from "../../src/runtime/review-config.ts"
-import { residentRequestEffect as residentRequest } from "../../src/resident/client.ts"
-import { monotonicNow } from "../../src/resident/hook-clock.ts"
-import { residentPaths } from "../../src/resident/paths.ts"
-import { makeResidentRuntime } from "../../src/resident/server.ts"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import { typeScriptRoot } from "@hapsland/source-analysis/direct-event/languages/native-parser"
+import { makeGitFixture, put, updateEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
+import { residentRequestEffect as residentRequest } from "@hapsland/resident-transport/resident/client"
+import { monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
+import { makeResidentRuntime } from "@hapsland/resident-runtime/resident/server"
 import { makeOfflineSecurityHttpClient, securityWireManifest, securityWireRule } from "./security-wire-observer.ts"
 
 const scenario = process.argv[process.argv.indexOf("--scenario") + 1]
@@ -117,7 +117,7 @@ try {
   await Effect.runPromise(server.listen())
   const dispatch = {
     statePath,
-    userConfigPath: null,
+    userConfigPath: join(root, "absent-fixture-user.jsonc"),
     credential: {
       name: "TYPESAFE_API_KEY",
       environmentValue: "WIRE_KEY_SENTINEL",
@@ -131,6 +131,7 @@ try {
     residentRequest(paths, {
       requestRoute: "shared",
       operation: "register-edit",
+      userConfigPath: join(root, "absent-fixture-user.jsonc"),
       lifetime: server.lifetime,
       root: observation.root,
       advicee: observation.advicee,

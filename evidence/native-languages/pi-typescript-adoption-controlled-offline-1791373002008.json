@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-07T11:36:47.035Z",
+  "runtime": "Pi",
+  "version": "1.0.0",
+  "language": "typescript",
+  "scenario": "adoption",
+  "mode": "controlled-offline",
+  "declaration": {
+    "maximumProviderRequests": 0,
+    "reviewer": "controlled-offline",
+    "agentModelAuthenticated": true,
+    "preflight": {
+      "status": "authenticated",
+      "runId": null,
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "version": "1.0.0",
+      "settingsDigest": "bbe450046d01a6056a975f47c9d66baabe9cbbd4530c041693221909218f1d45",
+      "elapsedMs": 2208
+    },
+    "model": {
+      "provider": "openai",
+      "model": "gpt-6-luna"
+    },
+    "maximumSourceEditCalls": 2,
+    "hostCeilingMs": 240000,
+    "automaticHostRetries": 0,
+    "syntheticRepositoryOnly": true,
+    "runtimeVersion": "1.0.0",
+    "executionMode": "print-json-no-session",
+    "trust": "isolated global agent extension; no project-local files approved",
+    "packageInstallation": "production tarball with lifecycle scripts disabled",
+    "archivePreparation": "provided; runtime assets must match current build",
+    "ordinaryProfileChanged": false
+  },
+  "verdict": "incomplete",
+  "failureBoundary": "Installed Pi archive runtime assets differ from the current build",
+  "rawHostStreamRetained": false,
+  "sourceRetained": false,
+  "providerBodyRetained": false,
+  "credentialsRetained": false
+}

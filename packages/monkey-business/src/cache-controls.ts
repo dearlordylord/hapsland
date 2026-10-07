@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import { decoder, PositiveNat, ByteCount } from "../../../src/canonical/boundary-schema.ts"
+import { decoder, PositiveNat, ByteCount } from "@hapsland/canonical-policy/canonical/boundary-schema"
 import { encodeDriverOutcome } from "./driver-codec.ts"
 import { SharingKeySchema, SharingScopeSchema } from "./sharing-controls.ts"
 

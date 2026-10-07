@@ -1,0 +1,155 @@
+
+FAIL case.ts > rejects stale work
+mismatch
+Actual: 1
+Expected: 2
+
+FAIL broken.ts (collection or suite hook)
+import failed
+Error: Focused selection executed zero tests (2 skipped, 0 pending); check selected files and testNamePattern: {"files":["case.ts"],"options":["--testNamePattern=missing"]}
+    at ImmediateErrors.onTestRunEnd (file:///workspace/typescript/hapsland-243/scripts/test-harness/immediate-errors.mjs:35:9)
+    at TestContext.<anonymous> (file:///workspace/typescript/hapsland-243/scripts/test-harness/immediate-errors.test.mjs:61:14)
+    at Test.runInAsyncScope (node:async_hooks:227:14)
+    at Test.run (node:internal/test_runner/test:1397:25)
+    at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+    at Test.postRun (node:internal/test_runner/test:1537:19)
+    at Test.run (node:internal/test_runner/test:1462:12)
+    at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+✔ retains case and collection failures independently of later console output (3.190733ms)
+✔ focused all-skipped structured results retain a failure; partial skips and full runs do not (2.268601ms)
+✔ a stage inside its authenticated checkout lease passes before the enclosing transaction releases ownership (48.264666ms)
+✔ ordinary failure preserves its log and does not suppress independent checks (56.448938ms)
+✔ source identity failures retain a terminal run record (46.980157ms)
+✔ prerequisite failures retain independent checks and record skipped dependents (52.198197ms)
+✔ deadline terminates a child, persists failure, and admits no later work (113.558632ms)
+✔ exclusive full gate fails immediately; valid nested test shares records (34.581852ms)
+✔ focused mode refuses empty and broad selections (2.573937ms)
+✔ persistent reporter failures prevent a nominal zero exit from passing (25.102736ms)
+✔ nested test cannot extend its parent's absolute deadline (11.882551ms)
+✔ quality preserves threshold breach exit two but test failure stays exit one (46.971031ms)
+✔ failure events are surfaced during the run and retained in the final result (279.077458ms)
+✔ real quality parent remains running while nested test can finish successfully (63.2832ms)
+file:///workspace/typescript/hapsland-243/scripts/test-harness/run-checks.mjs:81
+    if (!scopedId) throw new Error(`No recorded run for scope: ${scope}`)
+                         ^
+
+Error: No recorded run for scope: missing-slice
+    at showStatus (file:///workspace/typescript/hapsland-243/scripts/test-harness/run-checks.mjs:81:26)
+    at async main (file:///workspace/typescript/hapsland-243/scripts/test-harness/run-checks.mjs:662:5)
+    at async file:///workspace/typescript/hapsland-243/[eval1]:1:122
+
+Node.js v24.20.0
+file:///workspace/typescript/hapsland-243/scripts/test-harness/run-checks.mjs:68
+    if (id !== undefined) throw new Error("status accepts a run id or --scope, not both")
+                                ^
+
+Error: status accepts a run id or --scope, not both
+    at showStatus (file:///workspace/typescript/hapsland-243/scripts/test-harness/run-checks.mjs:68:33)
+    at main (file:///workspace/typescript/hapsland-243/scripts/test-harness/run-checks.mjs:662:11)
+    at file:///workspace/typescript/hapsland-243/[eval1]:1:128
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:223:26
+    at async ModuleLoader.executeModuleJob (node:internal/modules/esm/loader:220:20)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0
+file:///workspace/typescript/hapsland-243/scripts/test-harness/run-checks.mjs:81
+    if (!scopedId) throw new Error(`No recorded run for scope: ${scope}`)
+                         ^
+
+Error: No recorded run for scope: original-output
+    at showStatus (file:///workspace/typescript/hapsland-243/scripts/test-harness/run-checks.mjs:81:26)
+    at async main (file:///workspace/typescript/hapsland-243/scripts/test-harness/run-checks.mjs:662:5)
+    at async file:///workspace/typescript/hapsland-243/[eval1]:1:122
+
+Node.js v24.20.0
+✔ CLI records focused scope without forwarding it and reports different commits informationally (532.01188ms)
+✔ actual focused CLI rejects an all-skipped selector and permits selected execution (987.20883ms)
+✔ quality records lint exit 0 and starts coverage only after lint passes (85.799707ms)
+✔ quality records lint exit 1 and starts coverage only after lint passes (73.859365ms)
+✔ artifact preparation shares a focused parent's records and cannot extend its deadline (27.708632ms)
+✔ surviving product ownership fails the stage and retains the enclosing full lock (26.508289ms)
+✔ verification mutation cancels a long child, keeps completed evidence and admits no later stage (1043.451767ms)
+✔ unrelated documents during a long stage do not invalidate verification (1391.532178ms)
+✔ relevant addition between stages blocks admission (41.744241ms)
+✔ relevant deletion between stages blocks admission (37.204497ms)
+✔ invalidated run retains its exclusive lock until the child and descendant stop (1044.192482ms)
+✔ cancellation escalates to kill for a child and descendant that ignore termination (2040.772302ms)
+✔ final input identity catches a mutation after the last completed stage (41.863034ms)
+✔ observation preserves linked target identity through cached scans (54.304963ms)
+✔ observation preserves submodule content identity through cached scans (83.642274ms)
+✔ input invalidation during stage admission does not launch the child (25.802325ms)
+✔ quality acknowledgment fails before creating run state (2.76048ms)
+✔ failed quality prerequisite blocks lint and coverage with retained diagnostics (55.676099ms)
+✔ fast deduplicates explicit selections and does not prepare installed artifacts (1.090134ms)
+✔ boundary requires explicit consumers and a checked archive (0.956091ms)
+✔ native agents require explicit host/model/scenario and Pi selects its authenticated profile (0.233711ms)
+✔ native compiler checks require a target and actual selected tests (0.103459ms)
+✔ stress remains an explicit selection and quality preserves the complete deterministic prerequisites (0.19846ms)
+✔ every profile has a finite deadline and rejects native options on ordinary checks (0.108334ms)
+✔ native plans reject unsupported scenarios and provider/model mismatches before preparing artifacts (0.108167ms)
+✔ quality profile rejects missing acknowledgment before creating run state (11.649091ms)
+RUN 20261007133831926-955212-e82664 quality; deadline 2026-10-07T13:38:41.926Z; records /tmp/hapsland-verify-GTp6Jp/.test-runs/20261007133831926-955212-e82664
+START quality-preflight; log /tmp/hapsland-verify-GTp6Jp/.test-runs/20261007133831926-955212-e82664/955212-001-quality-preflight.log
+Node.js v24.20.0
+✖ scripts/test-harness/immediate-errors.test.mjs (21.450458ms)
+✔ scripts/test-harness/run-checks.test.mjs (16.69588ms)
+✔ scripts/test-harness/verification-plan.test.mjs (19.047606ms)
+✔ scripts/test-harness/verify.test.mjs (18.297058ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 3
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 29.178685
+
+✖ failing tests:
+
+test at scripts/test-harness/immediate-errors.test.mjs:1:1
+✖ scripts/test-harness/immediate-errors.test.mjs (21.450458ms)
+  'test failed'
+
+FAILED quality-preflight 0.06s; exit 1; log /tmp/hapsland-verify-GTp6Jp/.test-runs/20261007133831926-955212-e82664/955212-001-quality-preflight.log
+SKIP lint-code; prerequisite-failed
+SKIP quality; prerequisite-failed
+END failed; 0.095s; 3 failed stages, 0 test failures; results /tmp/hapsland-verify-GTp6Jp/.test-runs/20261007133831926-955212-e82664/results.json
+✔ acknowledged quality profile retains failed prerequisites without starting coverage (108.315591ms)
+RUN 20261007133832032-955212-b1c3b0 focused; deadline 2026-10-07T13:38:42.032Z; records /tmp/hapsland-verify-BMQbXP/.test-runs/20261007133832032-955212-b1c3b0
+START check-fast; log /tmp/hapsland-verify-BMQbXP/.test-runs/20261007133832032-955212-b1c3b0/955212-001-check-fast.log
+PASSED check-fast 0.12s; exit 0; log /tmp/hapsland-verify-BMQbXP/.test-runs/20261007133832032-955212-b1c3b0/955212-001-check-fast.log
+START node-focused; log /tmp/hapsland-verify-BMQbXP/.test-runs/20261007133832032-955212-b1c3b0/955212-002-node-focused.log
+PASSED node-focused 0.03s; exit 0; log /tmp/hapsland-verify-BMQbXP/.test-runs/20261007133832032-955212-b1c3b0/955212-002-node-focused.log
+END passed; 0.182s; 0 failed stages, 0 test failures; results /tmp/hapsland-verify-BMQbXP/.test-runs/20261007133832032-955212-b1c3b0/results.json
+✔ fast CLI executes one deduplicated selection and persists the resolved plan (189.269011ms)
+RUN 20261007133832221-955212-397e17 focused; deadline 2026-10-07T13:38:42.221Z; records /tmp/hapsland-verify-1pmuZn/.test-runs/20261007133832221-955212-397e17
+START check-fast; log /tmp/hapsland-verify-1pmuZn/.test-runs/20261007133832221-955212-397e17/955212-001-check-fast.log
+PASSED check-fast 0.10s; exit 0; log /tmp/hapsland-verify-1pmuZn/.test-runs/20261007133832221-955212-397e17/955212-001-check-fast.log
+FAIL source-identity; Verification inputs changed: src/main.ts
+END aborted; 0.113s; 1 failed stages, 0 test failures; results /tmp/hapsland-verify-1pmuZn/.test-runs/20261007133832221-955212-397e17/results.json
+✔ source changes during checks fail the profile instead of accepting mixed inputs (123.495792ms)
+RUN 20261007133832345-955212-f57101 focused; deadline 2026-10-07T13:38:32.347Z; records /tmp/hapsland-verify-dYKYnf/.test-runs/20261007133832345-955212-f57101
+FAIL verification; Source identity deadline exceeded
+END failed; 0.005s; 1 failed stages, 0 test failures; results /tmp/hapsland-verify-dYKYnf/.test-runs/20261007133832345-955212-f57101/results.json
+✔ a deadline during source identification still produces a terminal run record (14.688531ms)
+RUN 20261007133832365-955212-2c76e3 focused; deadline 2026-10-07T13:38:42.365Z; records /tmp/hapsland-verify-978ZUP/.test-runs/20261007133832365-955212-2c76e3
+START node-focused; log /tmp/hapsland-verify-978ZUP/.test-runs/20261007133832365-955212-2c76e3/955212-001-node-focused.log
+PASSED node-focused 0.03s; exit 0; log /tmp/hapsland-verify-978ZUP/.test-runs/20261007133832365-955212-2c76e3/955212-001-node-focused.log
+END passed; 0.051s; 0 failed stages, 0 test failures; results /tmp/hapsland-verify-978ZUP/.test-runs/20261007133832365-955212-2c76e3/results.json
+✔ source boundary checks run without invoking package preparation (64.973713ms)
+✔ package preparation requirements follow transitive consumer imports (7.587767ms)
+RUN 20261007133832432-955212-be1112 focused; deadline 2026-10-07T13:38:42.432Z; records /tmp/hapsland-verify-VxgFOG/.test-runs/20261007133832432-955212-be1112
+START native-auth-model; log /tmp/hapsland-verify-VxgFOG/.test-runs/20261007133832432-955212-be1112/955212-001-native-auth-model.log
+FAILED native-auth-model 0.02s; exit 7; log /tmp/hapsland-verify-VxgFOG/.test-runs/20261007133832432-955212-be1112/955212-001-native-auth-model.log
+FAIL verification; native-auth-model failed
+END failed; 0.037s; 2 failed stages, 0 test failures; results /tmp/hapsland-verify-VxgFOG/.test-runs/20261007133832432-955212-be1112/results.json
+✔ failed Pi auth preflight stops before package preparation (43.591464ms)
+ℹ tests 47
+ℹ suites 0
+ℹ pass 47
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8429.378858

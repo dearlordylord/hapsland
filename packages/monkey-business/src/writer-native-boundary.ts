@@ -1,7 +1,10 @@
 import { isDeepStrictEqual } from "node:util"
-import { readBendList, readBool, readNat, readRecord } from "../../../src/canonical/boundary-schema.ts"
-import { decodeTrustedCanonicalStep, projectTrustedCanonical } from "../../../src/canonical/canonical-boundary.ts"
-import { freezeCanonicalData } from "../../../src/canonical/immutable.ts"
+import { readBendList, readBool, readNat, readRecord } from "@hapsland/canonical-policy/canonical/boundary-schema"
+import {
+  decodeTrustedCanonicalStep,
+  projectTrustedCanonical
+} from "@hapsland/canonical-policy/canonical/canonical-boundary"
+import { freezeCanonicalData } from "@hapsland/canonical-policy/canonical/immutable"
 import { validateLiveControl } from "./controls.ts"
 import { decodeCollectionResponseIdentity, validateCollectionResponseControl } from "./collection-scenario.ts"
 import { decodeWriterPending, encodeWriterCapture, validateWriterControl } from "./writer-controls.ts"

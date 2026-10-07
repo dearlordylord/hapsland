@@ -1,0 +1,101 @@
+
+> @hapsland/hapsland@0.1.0 build
+> node scripts/build-product.mjs
+
+ WARNING  Circular package dependency detected: @hapsland/monkey-business-bend, @hapsland/build-tooling, @hapsland/verification, @hapsland/agent-flow-viz, @hapsland/monkey-business, @hapsland/canonical-defense
+
+   • turbo 2.11.7
+   • Packages in scope: @hapsland/activity-observation, @hapsland/administration, @hapsland/agent-flow-bend, @hapsland/canonical-policy, @hapsland/cli-entry, @hapsland/credential-storage, @hapsland/delivery-output, @hapsland/doctor-entry, @hapsland/hook-entry, @hapsland/hook-runtime, @hapsland/inspection-records, @hapsland/native-observation, @hapsland/parser-entry, @hapsland/pi-extension, @hapsland/resident-entry, @hapsland/resident-runtime, @hapsland/resident-transport, @hapsland/review-definition, @hapsland/review-execution, @hapsland/runtime-environment, @hapsland/runtime-inputs, @hapsland/source-analysis, @hapsland/source-artifacts
+   • Running build, native:linux-arm64 in 23 packages
+   • Remote caching disabled
+
+@hapsland/credential-storage:native:linux-arm64: cache hit, replaying logs fc4e5df8fd543be9
+@hapsland/source-analysis:native:linux-arm64: cache hit, replaying logs 0c5be64d50043238
+@hapsland/credential-storage:native:linux-arm64: $ node ../../scripts/native-task.mjs linux-arm64
+@hapsland/source-analysis:native:linux-arm64: $ node ../../scripts/native-task.mjs linux-arm64
+@hapsland/inspection-records:native:linux-arm64: cache hit, replaying logs a263bb3cff3046a3
+@hapsland/inspection-records:native:linux-arm64: $ node ../../scripts/native-task.mjs linux-arm64
+@hapsland/agent-flow-bend:build: cache hit, replaying logs 002c9c9562acf166
+@hapsland/agent-flow-bend:build: $ node ../../scripts/bend-producer.mjs
+@hapsland/source-artifacts:build: cache hit, replaying logs f1f4bb5f1b4106b7
+@hapsland/source-artifacts:build: $ node ../../scripts/compile-package.mjs
+@hapsland/source-artifacts:build: Compiled @hapsland/source-artifacts: 243 recorded inputs
+@hapsland/delivery-output:build: cache hit, replaying logs 3f38bcb773f05624
+@hapsland/delivery-output:build: $ node ../../scripts/compile-package.mjs
+@hapsland/delivery-output:build: Compiled @hapsland/delivery-output: 246 recorded inputs
+@hapsland/canonical-policy:build: cache hit, replaying logs d36516b081b05dc0
+@hapsland/canonical-policy:build: $ node ../../scripts/compile-package.mjs
+@hapsland/canonical-policy:build: Compiled @hapsland/canonical-policy: 356 recorded inputs
+@hapsland/runtime-environment:build: cache hit, replaying logs 0cd87fac96815dd9
+@hapsland/runtime-environment:build: $ node ../../scripts/compile-package.mjs
+@hapsland/runtime-environment:build: Compiled @hapsland/runtime-environment: 375 recorded inputs
+@hapsland/pi-extension:build: cache hit, replaying logs 100751cb3f18a0f1
+@hapsland/pi-extension:build: $ node ../../scripts/compile-package.mjs
+@hapsland/pi-extension:build: Compiled @hapsland/pi-extension: 215 recorded inputs
+@hapsland/runtime-inputs:build: cache hit, replaying logs e575fe62b32233f9
+@hapsland/runtime-inputs:build: $ node ../../scripts/compile-package.mjs
+@hapsland/runtime-inputs:build: Compiled @hapsland/runtime-inputs: 367 recorded inputs
+@hapsland/credential-storage:build: cache hit, replaying logs 356e0d9ec5e2aaee
+@hapsland/credential-storage:build: $ node ../../scripts/compile-package.mjs
+@hapsland/credential-storage:build: Compiled @hapsland/credential-storage: 352 recorded inputs
+@hapsland/inspection-records:build: cache hit, replaying logs 4fdc24a59fd1b953
+@hapsland/inspection-records:build: $ node ../../scripts/compile-package.mjs
+@hapsland/inspection-records:build: Compiled @hapsland/inspection-records: 423 recorded inputs
+@hapsland/native-observation:build: cache hit, replaying logs 19de3bc3442ec5ca
+@hapsland/native-observation:build: $ node ../../scripts/compile-package.mjs
+@hapsland/native-observation:build: Compiled @hapsland/native-observation: 367 recorded inputs
+@hapsland/activity-observation:build: cache hit, replaying logs 3955d9a35c794fac
+@hapsland/activity-observation:build: $ node ../../scripts/compile-package.mjs
+@hapsland/activity-observation:build: Compiled @hapsland/activity-observation: 405 recorded inputs
+@hapsland/source-analysis:build: cache hit, replaying logs 2e9abeabfdd86abe
+@hapsland/source-analysis:build: $ node ../../scripts/compile-package.mjs
+@hapsland/source-analysis:build: Compiled @hapsland/source-analysis: 382 recorded inputs
+@hapsland/resident-transport:build: cache miss, executing fe8006cff6549bbf
+@hapsland/resident-transport:build: $ node ../../scripts/compile-package.mjs
+@hapsland/review-definition:build: cache hit, replaying logs cabcca8283d05689
+@hapsland/review-definition:build: $ node ../../scripts/compile-package.mjs
+@hapsland/review-definition:build: Compiled @hapsland/review-definition: 440 recorded inputs
+@hapsland/parser-entry:build: cache miss, executing a8897851a96282fa
+@hapsland/parser-entry:build: $ node ../../scripts/compile-package.mjs
+@hapsland/parser-entry:build: packages/parser-entry/src/parser-main.ts(4,41): error TS2307: Cannot find module '@hapsland/runtime-environment/runtime/cli-information' or its corresponding type declarations.
+@hapsland/parser-entry:build: file:///workspace/typescript/hapsland-243/scripts/compile-package.mjs:68
+@hapsland/parser-entry:build:       throw result.error ?? new Error(`Package compiler failed: ${node.manifest.name}`)
+@hapsland/parser-entry:build:                             ^
+@hapsland/parser-entry:build: 
+@hapsland/parser-entry:build: Error: Package compiler failed: @hapsland/parser-entry
+@hapsland/parser-entry:build:     at file:///workspace/typescript/hapsland-243/scripts/compile-package.mjs:68:29
+@hapsland/parser-entry:build:     at async file:///workspace/typescript/hapsland-243/scripts/compile-package.mjs:12:1
+@hapsland/parser-entry:build: 
+@hapsland/parser-entry:build: Node.js v24.20.0
+@hapsland/parser-entry:build: error: script "build" exited with code 1
+@hapsland/review-execution:build: cache miss, executing 51adf33b9b974f58
+@hapsland/parser-entry#build:  ERROR  command (/workspace/typescript/hapsland-243/packages/parser-entry) /workspace/typescript/hapsland-243/node_modules/.bin/bun run build exited (1)
+
+ Tasks:    16 successful, 19 total
+Cached:    16 cached, 19 total
+  Time:    1.292s 
+Failed:    @hapsland/parser-entry#build
+
+ ERROR  run failed: command  exited (1)
+file:///workspace/typescript/hapsland-243/scripts/build-process.mjs:108
+    if (result.code !== 0) throw new Error(`Build process failed (${result.code ?? result.signal}): ${command}`)
+                                 ^
+
+Error: Build process failed (1): /workspace/typescript/hapsland-243/node_modules/.bin/turbo
+    at runBuildProcess (file:///workspace/typescript/hapsland-243/scripts/build-process.mjs:108:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///workspace/typescript/hapsland-243/scripts/build-workspaces.mjs:45:3
+    at async file:///workspace/typescript/hapsland-243/scripts/build-workspaces.mjs:20:1
+
+Node.js v24.20.0
+file:///workspace/typescript/hapsland-243/scripts/build-process.mjs:108
+    if (result.code !== 0) throw new Error(`Build process failed (${result.code ?? result.signal}): ${command}`)
+                                 ^
+
+Error: Build process failed (1): /home/node/.local/share/mise/installs/node/24.20.0/bin/node
+    at runBuildProcess (file:///workspace/typescript/hapsland-243/scripts/build-process.mjs:108:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///workspace/typescript/hapsland-243/scripts/build-product.mjs:39:5
+    at async file:///workspace/typescript/hapsland-243/scripts/build-product.mjs:19:1
+
+Node.js v24.20.0

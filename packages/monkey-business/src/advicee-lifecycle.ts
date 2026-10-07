@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import { decoder, PositiveNat, readBendList } from "../../../src/canonical/boundary-schema.ts"
+import { decoder, PositiveNat, readBendList } from "@hapsland/canonical-policy/canonical/boundary-schema"
 
 const Action = Schema.Literals(["disconnect", "remove", "resume"])
 const Control = Schema.Struct({

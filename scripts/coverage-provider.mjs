@@ -1,13 +1,18 @@
+import { compiledCoverageSource } from "./test-harness/coverage-source.mjs"
+import { readPackageGraph } from "./package-graph.mjs"
 import { existsSync } from "node:fs"
 import { createHash } from "node:crypto"
 import { readFile, readdir } from "node:fs/promises"
-import { pathToFileURL } from "node:url"
+import { pathToFileURL, fileURLToPath } from "node:url"
 import { join, resolve, relative } from "node:path"
 import { mergeScriptCovs } from "@bcoe/v8-coverage"
 import v8 from "@vitest/coverage-v8"
 import { V8CoverageProvider } from "@vitest/coverage-v8/dist/provider.js"
-import { configureNativeBindings } from "../src/runtime/native-bindings.ts"
-import { packageAssetPath } from "../src/runtime/package-runtime.ts"
+import { configureNativeBindings } from "../packages/source-analysis/src/direct-event/languages/native-bindings.ts"
+import { packageAssetPath } from "@hapsland/runtime-environment/runtime/package-runtime"
+import { prepareBunCoveragePreload } from "./test-harness/bun-coverage-preload-build.mjs"
+
+export { compiledCoverageSource } from "./test-harness/coverage-source.mjs"
 
 configureNativeBindings(packageAssetPath("native", "prebuilt", `${process.platform}-${process.arch}`))
 const { default: Parser } = await import("tree-sitter")
@@ -76,6 +81,53 @@ export async function mergeSourceFunctions(coverageMap) {
       } while (start)
     }
     const data = coverageMap.fileCoverageFor(filename).data
+    // A remapped V8 range can retain its end line but lose its end column.
+    // Resolve that omission only when the authored AST identifies one exact
+    // range. A positive partial range can describe an enclosing execution
+    // extent, so it also needs an independent precise hit in this context.
+    // Keep unsupported, ambiguous and unmatched ranges as separate evidence.
+    const statementRanges = new Map()
+    const pendingNodes = [tree.rootNode]
+    while (pendingNodes.length > 0) {
+      const node = pendingNodes.pop()
+      const key = `${node.startPosition.row + 1}:${node.startPosition.column}:${node.endPosition.row + 1}`
+      const ends = statementRanges.get(key) ?? new Set()
+      ends.add(node.endPosition.column)
+      statementRanges.set(key, ends)
+      pendingNodes.push(...node.namedChildren)
+    }
+    const preciseStatementHits = new Set(
+      Object.entries(data.statementMap)
+        .filter(([id, entry]) => Number.isInteger(entry.end.column) && data.s[id] > 0)
+        .map(([, entry]) => JSON.stringify(entry))
+    )
+    const statementMap = {}
+    const statementCounts = {}
+    const statementIdentities = new Map()
+    for (const [id, entry] of Object.entries(data.statementMap)) {
+      const ends = statementRanges.get(`${entry.start.line}:${entry.start.column}:${entry.end.line}`)
+      const candidate =
+        (entry.end.column === null || entry.end.column === Infinity) && ends?.size === 1
+          ? { ...entry, end: { ...entry.end, column: [...ends][0] } }
+          : undefined
+      // Istanbul treats Infinity as a containing source extent and can add
+      // its hits to an unrelated precise zero counter during context merge.
+      // An unresolved source-map end is unknown, never container evidence.
+      const unresolved = entry.end.column === Infinity ? { ...entry, end: { ...entry.end, column: null } } : entry
+      const normalized =
+        candidate && (data.s[id] === 0 || preciseStatementHits.has(JSON.stringify(candidate))) ? candidate : unresolved
+      const identity = JSON.stringify(normalized)
+      const prior = statementIdentities.get(identity)
+      if (prior !== undefined) {
+        statementCounts[prior] = Math.max(statementCounts[prior], data.s[id])
+      } else {
+        statementIdentities.set(identity, id)
+        statementMap[id] = normalized
+        statementCounts[id] = data.s[id]
+      }
+    }
+    data.statementMap = statementMap
+    data.s = statementCounts
     const fnMap = {}
     const counts = {}
     const identities = new Map()
@@ -145,6 +197,18 @@ export function mergeCoverageScripts(scripts, coverage) {
 // Those contexts execute different transformed code, so their offsets cannot
 // be merged. Preserve that distinction until both have Istanbul source ranges.
 export async function mergeBunCoverage(coverageMap, directory, root) {
+  const manifest = JSON.parse(
+    await readFile(join(root, "package.json"), "utf8").catch((error) => {
+      if (error.code === "ENOENT") return "{}"
+      throw error
+    })
+  )
+  const ownedRoots = [
+    resolve(root, "src"),
+    ...(manifest.workspaces
+      ? [...readPackageGraph(root).packages.values()].map((node) => resolve(node.path, "src"))
+      : [])
+  ]
   for (const name of (
     await readdir(directory).catch((error) => {
       if (error.code === "ENOENT") return []
@@ -159,14 +223,11 @@ export async function mergeBunCoverage(coverageMap, directory, root) {
       if (path.startsWith("/hapsland-source/")) {
         filename = resolve(root, path.slice("/hapsland-source/".length))
       }
-      const local = relative(resolve(root, "src"), filename)
-      if (
-        local.startsWith("..") ||
-        data.path !== path ||
-        !path.endsWith(".ts") ||
-        path.endsWith(".test.ts") ||
-        path.endsWith(".d.ts")
-      )
+      const owned = ownedRoots.some((directory) => {
+        const local = relative(directory, filename)
+        return local !== ".." && !local.startsWith("../") && !local.startsWith("..\\")
+      })
+      if (!owned || data.path !== path || !path.endsWith(".ts") || path.endsWith(".test.ts") || path.endsWith(".d.ts"))
         throw new Error("Bun coverage contains a foreign source file")
       if (filename !== path) {
         const digest = record.sourceManifest?.[path]
@@ -182,12 +243,31 @@ export async function mergeBunCoverage(coverageMap, directory, root) {
   }
 }
 class ContextAwareV8CoverageProvider extends V8CoverageProvider {
+  isIncluded(filename) {
+    if (super.isIncluded(filename)) return true
+    const emitted = compiledCoverageSource(this.ctx.config.root, filename)
+    return emitted ? super.isIncluded(emitted.source) : false
+  }
+  async getSources(url, onTransform, functions = [], isExtendedContext = false) {
+    const emitted = url.startsWith("file:")
+      ? compiledCoverageSource(this.ctx.config.root, fileURLToPath(url))
+      : undefined
+    if (!emitted) return super.getSources(url, onTransform, functions, isExtendedContext)
+    return super.getSources(
+      url,
+      async (...args) => (await onTransform(...args)) ?? { code: emitted.code, map: emitted.map },
+      functions,
+      isExtendedContext
+    )
+  }
   initialize(ctx) {
     super.initialize(ctx)
     this.bunCoverageDirectory = join(this.coverageFilesDirectory, "bun")
     process.env.HAPSLAND_BUN_COVERAGE_DIRECTORY = this.bunCoverageDirectory
     process.env.HAPSLAND_BUN_COVERAGE_ROOT = ctx.config.root
-    const preload = resolve(import.meta.dirname, "test-harness/bun-coverage-preload.mjs")
+    const preload = prepareBunCoveragePreload(
+      join(ctx.config.root, ".test-runs", "coverage-preload", String(process.pid))
+    )
     const flag = `--preload=${pathToFileURL(preload).href}`
     const options = (process.env.BUN_OPTIONS ?? "").split(/\s+/).filter((option) => option && option !== flag)
     process.env.BUN_OPTIONS = [...options, flag].join(" ")
@@ -217,9 +297,9 @@ class ContextAwareV8CoverageProvider extends V8CoverageProvider {
       await mergeSourceFunctions(uncoveredMap)
       coverageMap.merge(uncoveredMap)
     }
-    coverageMap.filter(
-      (filename) => existsSync(filename) && (!this.options.excludeAfterRemap || this.isIncluded(filename))
-    )
+    // Emitted files are admitted only for conversion; the report retains the
+    // configured authored-source selection, never the broadened capture input.
+    coverageMap.filter((filename) => existsSync(filename) && super.isIncluded(filename))
     return coverageMap
   }
 }

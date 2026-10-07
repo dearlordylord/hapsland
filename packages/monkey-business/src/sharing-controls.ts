@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import { decoder, PositiveNat, readBendList } from "../../../src/canonical/boundary-schema.ts"
+import { decoder, PositiveNat, readBendList } from "@hapsland/canonical-policy/canonical/boundary-schema"
 import { decodeDriverEvent } from "./driver-codec.ts"
 
 /** A member names its original admission/scope, not the current owner lookup. */

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
-import { decide, Live } from "./jev-decision.ts"
-import { E0, NOUL_KEYS } from "./questions.ts"
+import { decide, Live } from "@hapsland/review-execution/jev-decision"
+import { E0, NOUL_KEYS } from "@hapsland/review-definition/questions"
 
 const live = process.env.RUN_LIVE_JEV === "1"
 

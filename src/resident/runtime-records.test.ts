@@ -1,10 +1,15 @@
-import { providerIdentity } from "../review-providers/catalog.ts"
+import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import { expect, it } from "@effect/vitest"
 import { Cause, Effect } from "effect"
-import { freezeInput, freezeRules, semanticIdentity, type PreparedUnit } from "../direct-event/model.ts"
-import { advicee } from "../direct-event/test-fixtures.ts"
-import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
-import { makeResidentState } from "./capacity.ts"
+import {
+  freezeInput,
+  freezeRules,
+  semanticIdentity,
+  type PreparedUnit
+} from "@hapsland/review-definition/direct-event/model"
+import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
 
 it.effect("bounds connection leases and fences foreign and duplicate release", () =>
   Effect.gen(function* () {

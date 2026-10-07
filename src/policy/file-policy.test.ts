@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest"
-import { decodeConfigurationDocument } from "../configuration/decode.ts"
-import { resolveConfiguration, validateCapturedPolicy } from "../configuration/resolve.ts"
-import { selectContextPath, selectGlobalPath } from "./file-policy.ts"
+import { decodeConfigurationDocument } from "@hapsland/runtime-inputs/configuration/decode"
+import { resolveConfiguration, validateCapturedPolicy } from "@hapsland/runtime-inputs/configuration/resolve"
+import { selectContextPath, selectGlobalPath } from "@hapsland/native-observation/policy/file-policy"
 import {
   contextDirectFilePolicy,
   resolvedDirectFilePolicy,
   selectedByDirectFilePolicy
-} from "../direct-event/selection.ts"
+} from "@hapsland/native-observation/direct-event/selection"
 
 const resolve = (user: object = {}, project: object = {}) =>
   resolveConfiguration([

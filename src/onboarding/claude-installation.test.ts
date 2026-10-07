@@ -1,6 +1,7 @@
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { ConfigProvider, Effect } from "effect"
 import { createHash } from "node:crypto"
-import { canonicalJson } from "./hook-reconciliation.ts"
+import { canonicalJson } from "@hapsland/administration/onboarding/hook-reconciliation"
 import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -13,7 +14,7 @@ import {
   previewClaudeUpdate,
   uninstallClaudeIntegration,
   updateClaudeIntegration
-} from "./claude-installation.ts"
+} from "@hapsland/administration/onboarding/claude-installation"
 
 const testConfiguration = () => ConfigProvider.layer(ConfigProvider.fromEnv({ preserveEmptyStrings: true }))
 const runPreview = <A, E>(effect: Effect.Effect<A, E>) =>
@@ -38,7 +39,7 @@ const fixture = (version = "2.1.218") => {
   chmodSync(claudeExecutable, 0o700)
   const entrypoint = join(root, "cli.js")
   writeFileSync(entrypoint, "process.stdin.resume();\n")
-  process.env.REVIEW_INSTALL_RUNTIME = process.execPath
+  process.env.REVIEW_INSTALL_RUNTIME = bunExecutable()
   process.env.REVIEW_INSTALL_ENTRYPOINT = entrypoint
   return { root, home, claudeExecutable }
 }
@@ -82,7 +83,7 @@ describe("Claude installation lifecycle", () => {
         Effect.provide(
           ConfigProvider.layer(
             ConfigProvider.fromUnknown(
-              { REVIEW_INSTALL_RUNTIME: process.execPath, REVIEW_INSTALL_ENTRYPOINT: join(root, "cli.js") },
+              { REVIEW_INSTALL_RUNTIME: bunExecutable(), REVIEW_INSTALL_ENTRYPOINT: join(root, "cli.js") },
               { preserveEmptyStrings: true }
             )
           )

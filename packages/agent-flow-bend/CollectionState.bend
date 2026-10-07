@@ -13,21 +13,33 @@ type Claim is Data:
   Claim{group: Nat, owner: Nat}
 
 type State is Data:
-  State{ready: List<&2, Nat>, leases: List<&2, Lease>, claims: List<&2, Claim>, delivery: DeliveryState.State, revision: RevisionState.State, reuse: ReuseState.State, notices: NoticeState.State}
+  State{
+    ready: List<&2, Nat>,
+    leases: List<&2, Lease>,
+    claims: List<&2, Claim>,
+    delivery: DeliveryState.State,
+    revision: RevisionState.State,
+    reuse: ReuseState.State,
+    notices: NoticeState.State
+  }
 
 type Decision is Data:
   Accepted{state: State}
   Refused{state: State}
 
 def initial() -> State:
-  State{Nil{}, Nil{}, Nil{}, DeliveryState.initial(), RevisionState.initial(), ReuseState.initial(), NoticeState.initial()}
+  State{
+    Nil{},
+    Nil{},
+    Nil{},
+    DeliveryState.initial(),
+    RevisionState.initial(),
+    ReuseState.initial(),
+    NoticeState.initial()
+  }
 
-def contains(+id: Nat, items: List<&2, Nat>) -> Bool:
-  match items:
-    case Nil{}:
-      False{}
-    case item <> rest:
-      Bool.or(Nat.is_eq(id, item), contains(id, rest))
+def contains(id: Nat, items: List<&2, Nat>) -> Bool:
+  List.contains(~Nat, ~Nat.is_eq, items, id)
 
 def lease_exists(+id: Nat, items: List<&2, Lease>) -> Bool:
   match items:
@@ -43,19 +55,12 @@ def claim_exists(+group: Nat, items: List<&2, Claim>) -> Bool:
     case Claim{candidate_group, _} <> rest:
       Bool.or(Nat.is_eq(group, candidate_group), claim_exists(group, rest))
 
-def keep_ready(item: Nat, tail: List<&2, Nat>, remove: Bool) -> List<&2, Nat>:
-  match remove:
-    case True{}:
-      tail
-    case False{}:
-      item <> tail
-
 def remove_ready(+id: Nat, items: List<&2, Nat>) -> List<&2, Nat>:
   match items:
     case Nil{}:
       Nil{}
     case +item <> rest:
-      keep_ready(item, remove_ready(id, rest), Nat.is_eq(id, item))
+      List.filter.put(Nat, item, remove_ready(id, rest), Bool.not(Nat.is_eq(id, item)))
 
 def keep_lease(item: Lease, tail: List<&2, Lease>, remove: Bool) -> List<&2, Lease>:
   match remove:
@@ -132,16 +137,37 @@ def mark_ready(+state: State, +advice: Nat, eligible_now: Bool) -> Decision:
 def reserve(+state: State, +advice: Nat, +token: Nat) -> Decision:
   match state:
     case State{ready, leases, claims, delivery, revision, reuse, notices}:
-      Bool.pick(Decision, Bool.and(Nat.is_gt(token, 0n),
-          Bool.and(contains(advice, ready), Bool.not(lease_exists(advice, leases)))),
-        Accepted{State{ready, Lease{advice, token} <> leases, claims, delivery, revision, reuse, notices}}, Refused{state})
+      Bool.pick(
+        Decision,
+        Bool.and(
+          Nat.is_gt(token, 0n),
+          Bool.and(contains(advice, ready), Bool.not(lease_exists(advice, leases)))
+        ),
+        Accepted{
+          State{ready, Lease{advice, token} <> leases, claims, delivery, revision, reuse, notices}
+        },
+        Refused{state}
+      )
 
 def release(+state: State, +advice: Nat, +token: Nat) -> Decision:
   match state:
     case State{ready, leases, claims, delivery, revision, reuse, notices}:
-      Bool.pick(Decision, lease_owned(advice, token, leases),
-        Accepted{State{ready, remove_lease(advice, token, leases), claims, delivery, revision, reuse, notices}},
-        Refused{state})
+      Bool.pick(
+        Decision,
+        lease_owned(advice, token, leases),
+        Accepted{
+          State{
+            ready,
+            remove_lease(advice, token, leases),
+            claims,
+            delivery,
+            revision,
+            reuse,
+            notices
+          }
+        },
+        Refused{state}
+      )
 
 def retire(+state: State, +advice: Nat) -> State:
   match state:
@@ -157,17 +183,43 @@ def protected_advice(state: State, advice: Nat) -> Bool:
 def claim(+state: State, +group: Nat, +token: Nat, active: Bool, capacity: Nat) -> Decision:
   match state:
     case State{ready, leases, claims, delivery, revision, reuse, notices}:
-      Bool.pick(Decision, Bool.and(active, Bool.and(Nat.is_gt(token, 0n),
-        Bool.and(Bool.not(claim_exists(group, claims)),
-          Nat.is_lt(List.length(&2, Claim, claims), capacity)))),
-        Accepted{State{ready, leases, Claim{group, token} <> claims, delivery, revision, reuse, notices}}, Refused{state})
+      Bool.pick(
+        Decision,
+        Bool.and(
+          active,
+          Bool.and(
+            Nat.is_gt(token, 0n),
+            Bool.and(
+              Bool.not(claim_exists(group, claims)),
+              Nat.is_lt(List.length(&2, Claim, claims), capacity)
+            )
+          )
+        ),
+        Accepted{
+          State{ready, leases, Claim{group, token} <> claims, delivery, revision, reuse, notices}
+        },
+        Refused{state}
+      )
 
 def release_claim(+state: State, +group: Nat, +token: Nat) -> Decision:
   match state:
     case State{ready, leases, claims, delivery, revision, reuse, notices}:
-      Bool.pick(Decision, claim_owned(group, token, claims),
-        Accepted{State{ready, leases, remove_claim(group, token, claims), delivery, revision, reuse, notices}},
-        Refused{state})
+      Bool.pick(
+        Decision,
+        claim_owned(group, token, claims),
+        Accepted{
+          State{
+            ready,
+            leases,
+            remove_claim(group, token, claims),
+            delivery,
+            revision,
+            reuse,
+            notices
+          }
+        },
+        Refused{state}
+      )
 
 def expire_claim(+state: State, group: Nat, token: Nat,
     elapsed: Nat, lifetime: Nat) -> Decision:
@@ -247,7 +299,15 @@ def submission_release(+state: State, advice: Nat, token: Nat) -> Decision:
 def submission_forget(state: State, advice: Nat) -> State:
   match state:
     case State{ready, leases, claims, delivery, revision, reuse, notices}:
-      State{ready, leases, claims, DeliveryState.submission_forget(delivery, advice), revision, reuse, notices}
+      State{
+        ready,
+        leases,
+        claims,
+        DeliveryState.submission_forget(delivery, advice),
+        revision,
+        reuse,
+        notices
+      }
 
 def retire_round(state: State, group: Nat, round: Nat) -> State:
   match state:
@@ -298,7 +358,15 @@ def revision_replace(state: State, replacement: RevisionState.State) -> State:
 def revision_release(state: State, subject: Nat, generation: Nat) -> State:
   match state:
     case State{ready, leases, claims, delivery, revision, reuse, notices}:
-      State{ready, leases, claims, delivery, RevisionState.release(revision, subject, generation), reuse, notices}
+      State{
+        ready,
+        leases,
+        claims,
+        delivery,
+        RevisionState.release(revision, subject, generation),
+        reuse,
+        notices
+      }
 
 def revision_current(state: State, subject: Nat, input: Nat, generation: Nat) -> Bool:
   match state:

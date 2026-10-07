@@ -9,7 +9,7 @@ import {
   ResidentOwnershipControls,
   ResidentOwnershipError,
   ownershipControlsLayer
-} from "./ownership.ts"
+} from "@hapsland/resident-runtime/resident/ownership"
 
 const fixture = Effect.fn("ResidentOwnershipFixture.acquire")(function* () {
   const root = yield* Effect.promise(() => mkdtemp(join(tmpdir(), "resident-ownership-")))

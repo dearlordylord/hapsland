@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-10-04T02:22:12.216Z",
+  "recordedAt": "2026-10-07T08:20:23.339Z",
   "package": {
     "name": "@hapsland/hapsland",
     "version": "0.1.0",
     "artifact": "reviewed-local.tgz",
     "source": "reviewed-local-archive",
-    "sha256": "72897a8b18d746057e64021472803fa421dce51f5811700d77f082382defd8de"
+    "sha256": "2969f4aba8cdf4b0daf379077ebd2ac3bc0d9682e5ac2955d766b8dcba3f65c8"
   },
   "environment": {
     "harnessNode": "v24.20.0",
@@ -30,6 +30,13 @@
     "parser": "passed",
     "resident": "passed",
     "hook": "passed"
+  },
+  "retainedReleaseResidentReuse": {
+    "status": "passed",
+    "previousReleaseHook": true,
+    "unchangedPidAndLifetime": true,
+    "residentExecutableIdentity": "linux-proc-executable-path-and-sha256",
+    "residentSha256": "11de2cd186fc9608fe2e2a1db280c9b04beed3ba30944ad05b7eba997dbf73d9"
   },
   "rustPreparation": {
     "status": "passed",
@@ -61,7 +68,7 @@
       "partialRecovery": "resumed",
       "previousHookRetainedOnPartialFailure": true,
       "oldGrantFilesPreserved": true,
-      "credentialState": "preserved-controlled-helper",
+      "credentialState": "not-configured",
       "trustRecordsModified": false,
       "processesStopped": false,
       "controlledReviewAfterUpdate": "passed",
@@ -70,7 +77,7 @@
   },
   "review": {
     "backend": "controlled-offline",
-    "submissions": 2,
+    "submissions": 1,
     "adviceReturned": true,
     "activity": {
       "submitted": {
@@ -87,13 +94,7 @@
     }
   },
   "credentialLifecycle": {
-    "status": "controlled-helper",
-    "loginMs": 254,
-    "separateProcessLookupMs": 116,
-    "defaultKeychainIsolation": "not-applicable",
-    "residentRestartPersistence": "passed-distinct-pid-and-lifetime",
-    "residentControlledTransportResolution": "passed",
-    "logoutBeforeFutureDispatch": "passed"
+    "status": "not-requested"
   },
   "realCodex": {
     "status": "not-requested"

@@ -1,12 +1,12 @@
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import { vi } from "vitest"
-import { makeGitFixture, put, addEvent } from "./test-fixtures.ts"
-import { adaptCodexAdd } from "./adapter.ts"
-import { captureStable } from "./capture.ts"
-import { resolveGraphUnit } from "./graph-resolver.ts"
-import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "./selection.ts"
-import { GRAPH_LIMIT_CEILINGS } from "../configuration/graph-limits.ts"
+import { makeGitFixture, put, addEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { adaptCodexAdd } from "@hapsland/native-observation/direct-event/adapter"
+import { captureStable } from "@hapsland/native-observation/direct-event/capture"
+import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
+import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "@hapsland/native-observation/direct-event/selection"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 
 const gate = vi.hoisted(() => ({
   denyAtLocalWork: 0,
@@ -16,8 +16,8 @@ const gate = vi.hoisted(() => ({
   measuredCaptures: [] as { sourceBytes: number; reason: string | undefined }[]
 }))
 
-vi.mock("../canonical/graph-adapter.ts", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../canonical/graph-adapter.ts")>()
+vi.mock("@hapsland/canonical-policy/canonical/graph-adapter", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@hapsland/canonical-policy/canonical/graph-adapter")>()
   return {
     ...actual,
     permitLocalGraphFacts: (...args: Parameters<typeof actual.permitLocalGraphFacts>) => {

@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "issue": 104,
+  "status": "pass",
+  "declaredAt": "2026-10-07T08:44:22.989Z",
+  "profile": {
+    "platform": "linux",
+    "arch": "arm64",
+    "node": "v24.20.0"
+  },
+  "scope": "current resident offline security replay held after native parser preparation during actual helper rebuild; historical Quint generator is not executed",
+  "deadlineMs": 120000,
+  "selectedTrials": 1,
+  "scenarios": [
+    "allowed",
+    "exclude-at-dispatch"
+  ],
+  "inputs": {
+    "runnerSha256": "1e1f214d81877b713d523a1cfbff4b8b378b206905aa3e057b00a809b5e126e3",
+    "helperSha256": "195027a8dd832b0a445427a182b3fcd53c1146fd6e3dbc188954488be9d0c5b5",
+    "replaySha256": "5b86c8f7199784016787fe2e03da3e0d8ff221856ee2486f94fa56d1b9b9d1aa",
+    "publicationSha256": "8208fb904e3a35b3769ccc5d9d2832d8489678ac3e9e12e3351a5a34f1ee112a",
+    "residentSha256": "22f86a6a257fcd3474156010ec41c8bc8ffc8d2f11f06ac5c53f3587d37ac222",
+    "nativeParserSha256": "bcc1c72e1ad810a07ebe43c0c271aedfb2a21e65cd3e88c844c51c8361178981"
+  },
+  "trials": [
+    {
+      "trial": 1,
+      "scenario": "allowed",
+      "startedAt": "2026-10-07T08:44:22.993Z",
+      "preparedAt": "2026-10-07T08:44:23.563Z",
+      "loadedOriginalInode": true,
+      "build": {
+        "code": 0,
+        "signal": null,
+        "stderrSha256": "3b936cd51771002e9270723d58ff397b9cde666cc8b704b10c304182584048ae"
+      },
+      "nativeInodeReplaced": true,
+      "replay": {
+        "code": 0,
+        "signal": null,
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputOverflow": false,
+        "verdict": "pass",
+        "requestCount": 1,
+        "postBuildParsed": true,
+        "classifications": [
+          "allowed"
+        ],
+        "authorityDecisions": [
+          "allow"
+        ]
+      },
+      "completedAt": "2026-10-07T08:44:54.334Z"
+    },
+    {
+      "trial": 1,
+      "scenario": "exclude-at-dispatch",
+      "startedAt": "2026-10-07T08:44:54.334Z",
+      "preparedAt": "2026-10-07T08:44:54.952Z",
+      "loadedOriginalInode": true,
+      "build": {
+        "code": 0,
+        "signal": null,
+        "stderrSha256": "27257837cab3949e3c9390208869fa4a1d943e657dcd4f6afb0353e619f97851"
+      },
+      "nativeInodeReplaced": true,
+      "replay": {
+        "code": 0,
+        "signal": null,
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputOverflow": false,
+        "verdict": "pass",
+        "requestCount": 1,
+        "postBuildParsed": true,
+        "classifications": [
+          "allowed"
+        ],
+        "authorityDecisions": [
+          "allow"
+        ]
+      },
+      "completedAt": "2026-10-07T08:45:21.586Z"
+    }
+  ],
+  "liveRequests": 0,
+  "completedAt": "2026-10-07T08:45:21.587Z"
+}

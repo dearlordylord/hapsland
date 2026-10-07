@@ -1,3 +1,4 @@
+import { readBendToolchain } from "./bend-toolchain.mjs"
 // Official release archives; update versions and all digests together after proof validation.
 import { createHash } from "node:crypto"
 import { createReadStream, createWriteStream } from "node:fs"
@@ -14,25 +15,15 @@ if (process.argv.includes("--github-actions") && process.env.GITHUB_ACTIONS !== 
 }
 
 const root = resolve(import.meta.dirname, "..")
-// bendlang/bend v2.0.35, source 79df8d9.
-// Digests from first-party GitHub release asset metadata, not downloaded at install time.
-const platforms = {
-  "linux-x64": {
-    bend: "63039d1a119f716767ac5a7d8fe0717cfacf219c6c253c35192148e0dade722f",
-    leanName: "linux",
-    lean: "caaa98356098c85dc0fcbbd28e1ec66f39eb6551829972b752ff20e1286b646b"
-  },
-  "linux-arm64": {
-    bend: "09b813073241628f590f2c2fe420299ec25e4dddd6cf3fdc49c9486339989564",
-    leanName: "linux_aarch64",
-    lean: "40b04fdb7fb849d3c80e10c3bbeebc7b7354b6d3f07450b9168c2149b40d2a82"
-  }
-}
+const cohort = readBendToolchain(root)
+const bendVersion = cohort.bend.version
+const leanVersion = cohort.lean.version
+const bendToolchainPlatforms = cohort.platforms
 const platform = `${process.platform}-${process.arch}`
-const selected = platforms[platform]
+const selected = bendToolchainPlatforms[platform]
 if (!selected) throw new Error(`No pinned Bend proof toolchain for ${platform}`)
-const bendRoot = join(root, ".tools/bend", `2.0.35-${platform}`)
-const leanRoot = join(root, ".tools/lean", `4.34.0-${platform}`)
+const bendRoot = join(root, ".tools/bend", `${bendVersion}-${platform}`)
+const leanRoot = join(root, ".tools/lean", `${leanVersion}-${platform}`)
 await mkdir(join(root, ".tools/bend"), { recursive: true })
 const temporary = await mkdtemp(join(root, ".tools/bend", ".install-"))
 const run = (binary, args, env = process.env) => {
@@ -79,13 +70,13 @@ async function install(url, expected, destination, compressed) {
 }
 try {
   await install(
-    `https://github.com/bendlang/bend/releases/download/v2.0.35/bend-2.0.35-${platform}.tar.gz`,
+    `https://github.com/bendlang/bend/releases/download/v${bendVersion}/bend-${bendVersion}-${platform}.tar.gz`,
     selected.bend,
     bendRoot,
     "bend.tar.gz"
   )
   await install(
-    `https://github.com/leanprover/lean4/releases/download/v4.34.0/lean-4.34.0-${selected.leanName}.tar.zst`,
+    `https://github.com/leanprover/lean4/releases/download/v${leanVersion}/lean-${leanVersion}-${selected.leanName}.tar.zst`,
     selected.lean,
     leanRoot,
     "lean.tar.zst"

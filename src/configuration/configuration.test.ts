@@ -1,7 +1,7 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
-import { ConfigurationError } from "./errors.ts"
-import { decodeConfigurationText, serializeConfigurationDocument } from "./decode.ts"
+import { ConfigurationError } from "@hapsland/runtime-inputs/configuration/errors"
+import { decodeConfigurationText, serializeConfigurationDocument } from "@hapsland/runtime-inputs/configuration/decode"
 import {
   effectiveSessionAnalytics,
   effectiveSessionInspection,
@@ -11,10 +11,10 @@ import {
   effectiveVirtualRoundQuietMs,
   resolveConfiguration,
   stableConfigurationValue
-} from "./resolve.ts"
-import type { ConfigurationLayer } from "./resolve.ts"
-import { selectGlobalPath } from "../policy/file-policy.ts"
-import { explainPath } from "../explanation/index.ts"
+} from "@hapsland/runtime-inputs/configuration/resolve"
+import type { ConfigurationLayer } from "@hapsland/runtime-inputs/configuration/resolve"
+import { selectGlobalPath } from "@hapsland/native-observation/policy/file-policy"
+import { explainPath } from "@hapsland/administration/explanation/index"
 
 const source = (name: string, value: string): ConfigurationLayer => ({
   name: name as ConfigurationLayer["name"],
@@ -199,7 +199,7 @@ describe("configuration v1 decoding", () => {
     for (const [field, value] of [
       ["artifactKinds", ["function"]],
       ["resultForms", ["choice"]],
-      ["ruleOverrides", { "team/check": { resultForm: "score" } }]
+      ["ruleOverrides", { "namespace/check": { resultForm: "score" } }]
     ] as const) {
       expect(() =>
         decodeConfigurationText(JSON.stringify({ version: 1, [field]: value }), "future-config.jsonc")
@@ -250,7 +250,7 @@ describe("configuration v1 decoding", () => {
     ["removed rule surface", '{"version":1,"rules":{"meaningless_combinations":{"threshold":0.8}}}', "rules"],
     [
       "array rule override shorthand",
-      '{"version":1,"ruleOverrides":[{"ruleId":"team/check","enabled":true}]}',
+      '{"version":1,"ruleOverrides":[{"ruleId":"namespace/check","enabled":true}]}',
       "ruleOverrides"
     ]
   ])("reports bounded errors for %s", (_label, text, field) => {

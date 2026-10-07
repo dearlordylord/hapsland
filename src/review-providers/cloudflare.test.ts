@@ -1,13 +1,15 @@
 import { describe, expect, it } from "@effect/vitest"
 import * as ConfigProvider from "effect/ConfigProvider"
 import * as Effect from "effect/Effect"
+import * as Tracer from "effect/Tracer"
+import { InspectionTransportObservation } from "@hapsland/inspection-records/inspection/transport"
 import { Decision } from "effect/ai"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
-import { decide } from "../jev-decision.ts"
-import { providerIdentity } from "./catalog.ts"
-import { liveLayer } from "./cloudflare.ts"
-import { encodedProviderHttpBodyBytes } from "../direct-event/provider-body-size.ts"
+import { decide } from "@hapsland/review-execution/jev-decision"
+import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
+import { liveLayer } from "@hapsland/review-execution/review-providers/cloudflare"
+import { encodedProviderHttpBodyBytes } from "@hapsland/review-execution/direct-event/provider-body-size"
 
 const decision = Decision.probability({
   instructions: "Is the type invalid?",
@@ -28,18 +30,30 @@ describe("Cloudflare DecisionModel wire contract", () => {
       Effect.gen(function* () {
         const requests: Array<{ url: string; auth: string | undefined; body: string }> = []
         const httpClient = HttpClient.make((request) => {
+          expect(Object.keys(request.headers).sort()).toEqual([
+            "accept",
+            "authorization",
+            "content-length",
+            "content-type"
+          ])
           const body = request.body._tag === "Uint8Array" ? new TextDecoder().decode(request.body.body) : ""
           requests.push({ url: request.url, auth: request.headers.authorization, body })
           return Effect.succeed(HttpClientResponse.fromWeb(request, Response.json(envelope(model))))
         })
         const state = { artifact: { source: "SOURCE-SENTINEL", domain: "src/type.ts" } }
-        const result = yield* decide({ state, decisions: { "team/rule": decision } }).pipe(
+        const result = yield* decide({ state, decisions: { "namespace/rule": decision } }).pipe(
           Effect.provide(
             liveLayer({ identity: identity(model), credentialEnvVar: "CLOUDFLARE_API_TOKEN", httpClient })
           ),
-          Effect.provide(tokenLayer)
+          Effect.provide(tokenLayer),
+          Effect.provideService(InspectionTransportObservation, {
+            observe: (bytes) => {
+              if (bytes !== undefined) bytes.fill(0)
+            }
+          }),
+          Effect.withParentSpan(Tracer.externalSpan({ traceId: "PRIVATE_CONVERSATION", spanId: "PRIVATE_PARENT" }))
         )
-        expect(result.answers["team/rule"].probability).toBe(0.91)
+        expect(result.answers["namespace/rule"].probability).toBe(0.91)
         expect(result.usage.inputTokens).toBe(12)
         expect(requests).toHaveLength(1)
         const request = requests[0]
@@ -53,7 +67,7 @@ describe("Cloudflare DecisionModel wire contract", () => {
         })
         expect(request.body).not.toContain("SECRET-SENTINEL")
         expect(Buffer.byteLength(request.body)).toBe(
-          encodedProviderHttpBodyBytes(state, [{ id: "team/rule", decision }], model)
+          encodedProviderHttpBodyBytes(state, [{ id: "namespace/rule", decision }], model)
         )
       })
     )

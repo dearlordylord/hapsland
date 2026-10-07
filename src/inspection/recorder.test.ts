@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { Deferred, Effect } from "effect"
-import { makeInspectionRecorder } from "./recorder.ts"
-import { MAX_INSPECTION_RECORDING_BYTES, type InspectionRecord } from "./contract.ts"
+import { makeInspectionRecorder } from "@hapsland/inspection-records/inspection/recorder"
+import { MAX_INSPECTION_RECORDING_BYTES, type InspectionRecord } from "@hapsland/inspection-records/inspection/contract"
 
 const scope = {
   root: "/project",
@@ -14,6 +14,29 @@ const source = { endpoint: "/private/resident.sock", lifetime: "lifetime" }
 const edit = { kind: "edit-received" as const, candidates: [{ operation: "update" as const, path: "a.ts" }] }
 
 describe("optional inspection recording", () => {
+  it.each([{ items: 0 }, { items: 1000000 }, { bytes: 0 }, { bytes: Number.NaN }])(
+    "rejects invalid queue limits %j before starting persistence",
+    async (limits) => {
+      let writes = 0
+      await expect(
+        Effect.runPromise(
+          Effect.scoped(
+            makeInspectionRecorder(
+              source,
+              {
+                write: () =>
+                  Effect.sync(() => {
+                    writes += 1
+                  })
+              },
+              limits
+            )
+          )
+        )
+      ).rejects.toThrow("invalid inspection queue bounds")
+      expect(writes).toBe(0)
+    }
+  )
   it("bounds source-free current root states independently of retained history", async () => {
     await Effect.runPromise(
       Effect.scoped(
