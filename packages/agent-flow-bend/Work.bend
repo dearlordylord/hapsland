@@ -166,7 +166,11 @@ def pending_findings(work: Work) -> Nat:
     case Work{_, _, _, _, _, units}:
       pending_findings_in(units)
 
-def fill_source(observations: List<&2, Observation>, +capacity: Flow.Capacity, +occupied: Nat) -> List<&2, Observation>:
+def fill_source(
+  observations: List<&2, Observation>,
+  +capacity: Flow.Capacity,
+  +occupied: Nat
+) -> List<&2, Observation>:
   match observations:
     case Nil{}:
       Nil{}
@@ -175,11 +179,19 @@ def fill_source(observations: List<&2, Observation>, +capacity: Flow.Capacity, +
         case SourceQueued{}:
           +room = Flow.has_room(occupied, capacity)
           next_stage = Bool.pick(ObservationStage, room, SourceReading{}, SourceQueued{})
-          Observation{id, next_stage} <> fill_source(rest, capacity, (occupied + Bool.pick(Nat, room, 1n, 0n) : Nat))
+          Observation{id, next_stage} <> fill_source(
+            rest,
+            capacity,
+            (occupied + Bool.pick(Nat, room, 1n, 0n) : Nat)
+          )
         case SourceReading{}:
           Observation{id, SourceReading{}} <> fill_source(rest, capacity, occupied)
 
-def fill_review(units: List<&2, ReviewUnit>, +capacity: Flow.Capacity, +occupied: Nat) -> List<&2, ReviewUnit>:
+def fill_review(
+  units: List<&2, ReviewUnit>,
+  +capacity: Flow.Capacity,
+  +occupied: Nat
+) -> List<&2, ReviewUnit>:
   match units:
     case Nil{}:
       Nil{}
@@ -188,13 +200,28 @@ def fill_review(units: List<&2, ReviewUnit>, +capacity: Flow.Capacity, +occupied
         case ReviewQueued{}:
           +room = Flow.has_room(occupied, capacity)
           next_stage = Bool.pick(UnitStage, room, AtJev{}, ReviewQueued{})
-          ReviewUnit{id, observation, next_stage, findings, bytes} <> fill_review(rest, capacity, (occupied + Bool.pick(Nat, room, 1n, 0n) : Nat))
+          ReviewUnit{id, observation, next_stage, findings, bytes} <> fill_review(
+            rest,
+            capacity,
+            (occupied + Bool.pick(Nat, room, 1n, 0n) : Nat)
+          )
         case _:
-          ReviewUnit{id, observation, stage, findings, bytes} <> fill_review(rest, capacity, occupied)
+          ReviewUnit{id, observation, stage, findings, bytes} <> fill_review(
+            rest,
+            capacity,
+            occupied
+          )
 
 def settle(work: Work) -> Work:
   match work:
-    case Work{next_observation, next_unit, +source_capacity, +review_capacity, +observations, +units}:
+    case Work{
+      next_observation,
+      next_unit,
+      +source_capacity,
+      +review_capacity,
+      +observations,
+      +units
+    }:
       Work{next_observation, next_unit, source_capacity, review_capacity,
         fill_source(observations, source_capacity, reading_count(observations)),
         fill_review(units, review_capacity, at_jev_count(units))}
@@ -202,16 +229,24 @@ def settle(work: Work) -> Work:
 def admit(work: Work) -> WorkStep:
   match work:
     case Work{+next_observation, next_unit, source_capacity, review_capacity, observations, units}:
-      Accepted{settle(Work{(next_observation + 1n : Nat), next_unit, source_capacity, review_capacity,
-        List.append(&2, Observation, observations, Observation{next_observation, SourceQueued{}} <> Nil{}), units}),
-        next_observation <> Nil{}}
-
-def find_observation.pick(observation: Observation, fallback: Maybe<&2, Observation>, hit: Bool) -> Maybe<&2, Observation>:
-  match hit:
-    case True{}:
-      Some{observation}
-    case False{}:
-      fallback
+      Accepted{
+        settle(
+          Work{
+            (next_observation + 1n : Nat),
+            next_unit,
+            source_capacity,
+            review_capacity,
+            List.append(
+              &2,
+              Observation,
+              observations,
+              Observation{next_observation, SourceQueued{}} <> Nil{}
+            ),
+            units
+          }
+        ),
+        next_observation <> Nil{}
+      }
 
 def find_observation(+id: Nat, observations: List<&2, Observation>) -> Maybe<&2, Observation>:
   match observations:
@@ -220,14 +255,26 @@ def find_observation(+id: Nat, observations: List<&2, Observation>) -> Maybe<&2,
     case +observation <> rest:
       match observation:
         case Observation{current, _}:
-          find_observation.pick(observation, find_observation(id, rest), Nat.is_eq(current, id))
+          List.find.put(
+            Observation,
+            observation,
+            find_observation(id, rest),
+            Nat.is_eq(current, id)
+          )
 
-def start_observation.read(observation: Observation, tail: List<&2, Observation>) -> List<&2, Observation>:
+def start_observation.read(
+  observation: Observation,
+  tail: List<&2, Observation>
+) -> List<&2, Observation>:
   match observation:
     case Observation{id, _}:
       Observation{id, SourceReading{}} <> tail
 
-def start_observation.pick(observation: Observation, tail: List<&2, Observation>, hit: Bool) -> List<&2, Observation>:
+def start_observation.pick(
+  observation: Observation,
+  tail: List<&2, Observation>,
+  hit: Bool
+) -> List<&2, Observation>:
   match hit:
     case True{}:
       start_observation.read(observation, tail)
@@ -261,7 +308,11 @@ def start_source(+work: Work, +id: Nat) -> WorkStep:
     case Work{_, _, _, _, observations, _}:
       start_source.found(work, id, find_observation(id, observations))
 
-def remove_observation.pick(observation: Observation, tail: List<&2, Observation>, hit: Bool) -> List<&2, Observation>:
+def remove_observation.pick(
+  observation: Observation,
+  tail: List<&2, Observation>,
+  hit: Bool
+) -> List<&2, Observation>:
   match hit:
     case True{}:
       tail
@@ -298,8 +349,19 @@ def prepare.apply(work: Work, +observation: Nat, +count: Nat) -> WorkStep:
   match work:
     case Work{next_observation, +next_unit, source_capacity, review_capacity, observations, units}:
       +new_units = make_units(count, observation, next_unit)
-      Accepted{settle(Work{next_observation, (next_unit + count : Nat), source_capacity, review_capacity,
-        remove_observation(observation, observations), List.append(&2, ReviewUnit, units, new_units)}), unit_ids(new_units)}
+      Accepted{
+        settle(
+          Work{
+            next_observation,
+            (next_unit + count : Nat),
+            source_capacity,
+            review_capacity,
+            remove_observation(observation, observations),
+            List.append(&2, ReviewUnit, units, new_units)
+          }
+        ),
+        unit_ids(new_units)
+      }
 
 def prepare.count(work: Work, observation: Nat, count: Nat, within_limit: Bool) -> WorkStep:
   match within_limit:
@@ -315,7 +377,12 @@ def prepare.stage(work: Work, observation: Nat, +count: Nat, stage: ObservationS
     case SourceReading{}:
       prepare.count(work, observation, count, Nat.is_le(count, 16n))
 
-def prepare.found(work: Work, observation: Nat, count: Nat, found: Maybe<&2, Observation>) -> WorkStep:
+def prepare.found(
+  work: Work,
+  observation: Nat,
+  count: Nat,
+  found: Maybe<&2, Observation>
+) -> WorkStep:
   match found:
     case None{}:
       Rejected{work, MissingObservation{}}
@@ -334,8 +401,19 @@ def spawn.apply(work: Work, +observation: Nat, +count: Nat) -> WorkStep:
   match work:
     case Work{next_observation, +next_unit, source_capacity, review_capacity, observations, units}:
       +new_units = make_units(count, observation, next_unit)
-      Accepted{settle(Work{next_observation, (next_unit + count : Nat), source_capacity, review_capacity,
-        observations, List.append(&2, ReviewUnit, units, new_units)}), unit_ids(new_units)}
+      Accepted{
+        settle(
+          Work{
+            next_observation,
+            (next_unit + count : Nat),
+            source_capacity,
+            review_capacity,
+            observations,
+            List.append(&2, ReviewUnit, units, new_units)
+          }
+        ),
+        unit_ids(new_units)
+      }
 
 def spawn.count(work: Work, observation: Nat, count: Nat, valid: Bool) -> WorkStep:
   match valid:
@@ -344,7 +422,12 @@ def spawn.count(work: Work, observation: Nat, count: Nat, valid: Bool) -> WorkSt
     case True{}:
       spawn.apply(work, observation, count)
 
-def spawn.found(work: Work, observation: Nat, +count: Nat, found: Maybe<&2, Observation>) -> WorkStep:
+def spawn.found(
+  work: Work,
+  observation: Nat,
+  +count: Nat,
+  found: Maybe<&2, Observation>
+) -> WorkStep:
   match found:
     case None{}:
       Rejected{work, MissingObservation{}}
@@ -360,13 +443,6 @@ def spawn(+work: Work, +observation: Nat, +count: Nat) -> WorkStep:
     case Work{_, _, _, _, observations, _}:
       spawn.found(work, observation, count, find_observation(observation, observations))
 
-def find_unit.pick(unit: ReviewUnit, fallback: Maybe<&2, ReviewUnit>, hit: Bool) -> Maybe<&2, ReviewUnit>:
-  match hit:
-    case True{}:
-      Some{unit}
-    case False{}:
-      fallback
-
 def find_unit(+id: Nat, units: List<&2, ReviewUnit>) -> Maybe<&2, ReviewUnit>:
   match units:
     case Nil{}:
@@ -374,7 +450,7 @@ def find_unit(+id: Nat, units: List<&2, ReviewUnit>) -> Maybe<&2, ReviewUnit>:
     case +unit <> rest:
       match unit:
         case ReviewUnit{current, _, _, _, _}:
-          find_unit.pick(unit, find_unit(id, rest), Nat.is_eq(current, id))
+          List.find.put(ReviewUnit, unit, find_unit(id, rest), Nat.is_eq(current, id))
 
 def pending_for.found(found: Maybe<&2, ReviewUnit>) -> Nat:
   match found:
@@ -392,7 +468,12 @@ def pending_for(work: Work, id: Nat) -> Nat:
     case Work{_, _, _, _, _, units}:
       pending_for.found(find_unit(id, units))
 
-def replace_unit.pick(unit: ReviewUnit, replacement: ReviewUnit, tail: List<&2, ReviewUnit>, hit: Bool) -> List<&2, ReviewUnit>:
+def replace_unit.pick(
+  unit: ReviewUnit,
+  replacement: ReviewUnit,
+  tail: List<&2, ReviewUnit>,
+  hit: Bool
+) -> List<&2, ReviewUnit>:
   match hit:
     case True{}:
       replacement <> tail
@@ -404,14 +485,23 @@ type Outcome is Data:
   Clear{}
   Unavailable{}
 
-def replace_unit(+id: Nat, +replacement: ReviewUnit, units: List<&2, ReviewUnit>) -> List<&2, ReviewUnit>:
+def replace_unit(
+  +id: Nat,
+  +replacement: ReviewUnit,
+  units: List<&2, ReviewUnit>
+) -> List<&2, ReviewUnit>:
   match units:
     case Nil{}:
       Nil{}
     case +unit <> rest:
       match unit:
         case ReviewUnit{current, _, _, _, _}:
-          replace_unit.pick(unit, replacement, replace_unit(id, replacement, rest), Nat.is_eq(current, id))
+          replace_unit.pick(
+            unit,
+            replacement,
+            replace_unit(id, replacement, rest),
+            Nat.is_eq(current, id)
+          )
 
 def outcome.apply(work: Work, +unit: ReviewUnit) -> WorkStep:
   match work:
@@ -445,7 +535,14 @@ def start_unit(+work: Work, +id: Nat) -> WorkStep:
     case Work{_, _, _, _, _, units}:
       start_unit.found(work, id, find_unit(id, units))
 
-def outcome.finding(work: Work, id: Nat, observation: Nat, count: Nat, bytes: Nat, positive: Bool) -> WorkStep:
+def outcome.finding(
+  work: Work,
+  id: Nat,
+  observation: Nat,
+  count: Nat,
+  bytes: Nat,
+  positive: Bool
+) -> WorkStep:
   match positive:
     case False{}:
       Rejected{work, InvalidFinding{}}
@@ -461,7 +558,13 @@ def outcome.kind(work: Work, id: Nat, observation: Nat, result: Outcome) -> Work
     case Unavailable{}:
       outcome.apply(work, ReviewUnit{id, observation, UnavailableResult{}, 0n, 0n})
 
-def outcome.stage(work: Work, id: Nat, observation: Nat, stage: UnitStage, result: Outcome) -> WorkStep:
+def outcome.stage(
+  work: Work,
+  id: Nat,
+  observation: Nat,
+  stage: UnitStage,
+  result: Outcome
+) -> WorkStep:
   match stage:
     case AtJev{}:
       outcome.kind(work, id, observation, result)
@@ -535,7 +638,17 @@ def interrupt_observation.found(work: Work, id: Nat, found: Maybe<&2, Observatio
     case Work{next_observation, next_unit, source_capacity, review_capacity, observations, units}:
       match found:
         case None{}:
-          Rejected{Work{next_observation, next_unit, source_capacity, review_capacity, observations, units}, MissingObservation{}}
+          Rejected{
+            Work{
+              next_observation,
+              next_unit,
+              source_capacity,
+              review_capacity,
+              observations,
+              units
+            },
+            MissingObservation{}
+          }
         case Some{_}:
           Accepted{settle(Work{next_observation, next_unit, source_capacity, review_capacity,
             remove_observation(id, observations), units}), Nil{}}
@@ -564,11 +677,30 @@ def complete_source(+work: Work, +id: Nat) -> WorkStep:
 def cached_finding.apply(work: Work, observation: Nat, +count: Nat, +bytes: Nat) -> WorkStep:
   match work:
     case Work{next_observation, +next_unit, source_capacity, review_capacity, observations, units}:
-      Accepted{Work{next_observation, (next_unit + 1n : Nat), source_capacity, review_capacity,
-        observations, List.append(&2, ReviewUnit, units,
-          ReviewUnit{next_unit, observation, PendingFinding{}, count, bytes} <> Nil{})}, next_unit <> Nil{}}
+      Accepted{
+        Work{
+          next_observation,
+          (next_unit + 1n : Nat),
+          source_capacity,
+          review_capacity,
+          observations,
+          List.append(
+            &2,
+            ReviewUnit,
+            units,
+            ReviewUnit{next_unit, observation, PendingFinding{}, count, bytes} <> Nil{}
+          )
+        },
+        next_unit <> Nil{}
+      }
 
-def cached_finding.count(work: Work, observation: Nat, count: Nat, bytes: Nat, valid: Bool) -> WorkStep:
+def cached_finding.count(
+  work: Work,
+  observation: Nat,
+  count: Nat,
+  bytes: Nat,
+  valid: Bool
+) -> WorkStep:
   match valid:
     case False{}:
       Rejected{work, InvalidFinding{}}
@@ -593,7 +725,11 @@ def cached_finding(+work: Work, +observation: Nat, +count: Nat, +bytes: Nat) -> 
       cached_finding.found(work, observation, count, bytes,
         find_observation(observation, observations))
 
-def remove_unit.pick(unit: ReviewUnit, tail: List<&2, ReviewUnit>, hit: Bool) -> List<&2, ReviewUnit>:
+def remove_unit.pick(
+  unit: ReviewUnit,
+  tail: List<&2, ReviewUnit>,
+  hit: Bool
+) -> List<&2, ReviewUnit>:
   match hit:
     case True{}:
       tail
@@ -639,9 +775,24 @@ def set_source_capacity.apply(work: Work, capacity: Flow.Capacity, valid: Bool) 
     case Work{next_observation, next_unit, source_capacity, review_capacity, observations, units}:
       match valid:
         case False{}:
-          Rejected{Work{next_observation, next_unit, source_capacity, review_capacity, observations, units}, InvalidCapacity{}}
+          Rejected{
+            Work{
+              next_observation,
+              next_unit,
+              source_capacity,
+              review_capacity,
+              observations,
+              units
+            },
+            InvalidCapacity{}
+          }
         case True{}:
-          Accepted{settle(Work{next_observation, next_unit, capacity, review_capacity, observations, units}), Nil{}}
+          Accepted{
+            settle(
+              Work{next_observation, next_unit, capacity, review_capacity, observations, units}
+            ),
+            Nil{}
+          }
 
 def set_source_capacity(work: Work, +capacity: Flow.Capacity) -> WorkStep:
   set_source_capacity.apply(work, capacity, Flow.capacity_valid(capacity))
@@ -651,9 +802,24 @@ def set_review_capacity.apply(work: Work, capacity: Flow.Capacity, valid: Bool) 
     case Work{next_observation, next_unit, source_capacity, review_capacity, observations, units}:
       match valid:
         case False{}:
-          Rejected{Work{next_observation, next_unit, source_capacity, review_capacity, observations, units}, InvalidCapacity{}}
+          Rejected{
+            Work{
+              next_observation,
+              next_unit,
+              source_capacity,
+              review_capacity,
+              observations,
+              units
+            },
+            InvalidCapacity{}
+          }
         case True{}:
-          Accepted{settle(Work{next_observation, next_unit, source_capacity, capacity, observations, units}), Nil{}}
+          Accepted{
+            settle(
+              Work{next_observation, next_unit, source_capacity, capacity, observations, units}
+            ),
+            Nil{}
+          }
 
 def set_review_capacity(work: Work, +capacity: Flow.Capacity) -> WorkStep:
   set_review_capacity.apply(work, capacity, Flow.capacity_valid(capacity))
@@ -689,7 +855,11 @@ def unfinished_unit_ids(units: List<&2, ReviewUnit>) -> List<&2, Nat>:
         case _:
           unfinished_unit_ids(rest)
 
-def keep_terminal.pick(unit: ReviewUnit, tail: List<&2, ReviewUnit>, unfinished: Bool) -> List<&2, ReviewUnit>:
+def keep_terminal.pick(
+  unit: ReviewUnit,
+  tail: List<&2, ReviewUnit>,
+  unfinished: Bool
+) -> List<&2, ReviewUnit>:
   match unfinished:
     case True{}:
       tail

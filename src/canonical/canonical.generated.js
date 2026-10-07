@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:53d0c10dd0a997732839ffd0acfc23af48ad75d38773dc79cd1efb0ef63ec9ce
+// hapsland-bend-source-sha256:049aae5a6107818c2bda1b5c84f0c8f4cbe4e072676bf44f8efb7c6a83ac2932
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -5183,15 +5183,7 @@ function $Canonical$058valid_end_scopes$(_rounds_0, _lifetime_0, _scopes_0) {
 }
 
 function $CollectionState$058contains$(_id_0, _items_0) {
-  if (_items_0.$ === "Nil") {
-    return false;
-  } else {
-    const _item_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_id_0, _item_0));
-    const _x_1 = ($CollectionState$058contains$(_id_0, _rest_0));
-    return (_x_0 || _x_1);
-  }
+  return $List$contains$1260$(_items_0, _id_0);
 }
 
 function $CollectionState$058lease_exists$(_id_0, _items_0) {
@@ -5259,7 +5251,7 @@ function $CollectionState$058remove_ready$(_id_0, _items_0) {
   } else {
     const _item_0 = _items_0["head"];
     const _rest_0 = _items_0["tail"];
-    return $CollectionState$058keep_ready$(_item_0, ($CollectionState$058remove_ready$(_id_0, _rest_0)), ($Nat$is_eq$(_id_0, _item_0)));
+    return $List$filter$put$(_item_0, ($CollectionState$058remove_ready$(_id_0, _rest_0)), ($Bool$not$(($Nat$is_eq$(_id_0, _item_0)))));
   }
 }
 
@@ -6571,6 +6563,18 @@ function $Canonical$058end_scope_valid$(_found_0, _partition_0, _lifetime_0, _ro
   }
 }
 
+function $List$contains$1260$(_xs_0, _x_0) {
+  if (_xs_0.$ === "Nil") {
+    return false;
+  } else {
+    const _h_0 = _xs_0["head"];
+    const _t_0 = _xs_0["tail"];
+    const _x_1 = ($Nat$is_eq$(_h_0, _x_0));
+    const _x_2 = ($List$contains$1260$(_t_0, _x_0));
+    return (_x_1 || _x_2);
+  }
+}
+
 function $CollectionState$058keep_lease$(_item_0, _tail_0, _remove_0) {
   if (_remove_0) {
     return _tail_0;
@@ -6598,11 +6602,11 @@ function $DeliveryState$058protected_advice_items$(_advice_0, _items_0, _slots_0
   }
 }
 
-function $CollectionState$058keep_ready$(_item_0, _tail_0, _remove_0) {
-  if (_remove_0) {
-    return _tail_0;
+function $List$filter$put$(_h_0, _r_0, _keep_0) {
+  if (!_keep_0) {
+    return _r_0;
   } else {
-    return {$: "Con", "head": _item_0, "tail": _tail_0};
+    return {$: "Con", "head": _h_0, "tail": _r_0};
   }
 }
 
@@ -7012,7 +7016,7 @@ function $RevisionState$058find$(_subject_0, _entries_0) {
   } else {
     const _entry_0 = _entries_0["head"];
     const _rest_0 = _entries_0["tail"];
-    return $Bool$pick$(($RevisionState$058same_subject$(_subject_0, _entry_0)), {$: "Some", "value": _entry_0}, ($RevisionState$058find$(_subject_0, _rest_0)));
+    return $List$find$put$(_entry_0, ($RevisionState$058find$(_subject_0, _rest_0)), ($RevisionState$058same_subject$(_subject_0, _entry_0)));
   }
 }
 
@@ -7193,15 +7197,7 @@ function $NoticeState$058insert_pending$(_pending_0, _ordered_0) {
 }
 
 function $NoticeState$058contains$(_id_0, _items_0) {
-  if (_items_0.$ === "Nil") {
-    return false;
-  } else {
-    const _item_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_id_0, _item_0));
-    const _x_1 = ($NoticeState$058contains$(_id_0, _rest_0));
-    return (_x_0 || _x_1);
-  }
+  return $List$contains$1260$(_items_0, _id_0);
 }
 
 function $Canonical$058remove_round_pick$(_round_0, _tail_0, _hit_0) {
@@ -7463,7 +7459,7 @@ function $Admission$058remove_permit$(_token_0, _permits_0) {
     const __2 = _t_0["started"];
     const __3 = _t_0["deadline"];
     const _rest_0 = _permits_0["tail"];
-    return $Admission$058remove_permit$pick$({$: "Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($Admission$058remove_permit$(_token_0, _rest_0)), ($Nat$is_eq$(_current_0, _token_0)));
+    return $List$filter$put$({$: "Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($Admission$058remove_permit$(_token_0, _rest_0)), ($Bool$not$(($Nat$is_eq$(_current_0, _token_0)))));
   }
 }
 
@@ -8043,7 +8039,15 @@ function $RevisionState$058without$(_subject_0, _entries_0) {
   } else {
     const _entry_0 = _entries_0["head"];
     const _rest_0 = _entries_0["tail"];
-    return $RevisionState$058keep_entry$(_entry_0, ($RevisionState$058without$(_subject_0, _rest_0)), ($RevisionState$058same_subject$(_subject_0, _entry_0)));
+    return $List$filter$put$(_entry_0, ($RevisionState$058without$(_subject_0, _rest_0)), ($Bool$not$(($RevisionState$058same_subject$(_subject_0, _entry_0)))));
+  }
+}
+
+function $List$find$put$(_h_0, _r_0, _hit_0) {
+  if (!_hit_0) {
+    return _r_0;
+  } else {
+    return {$: "Some", "value": _h_0};
   }
 }
 
@@ -8148,7 +8152,7 @@ function $Admission$058find_permit$(_token_0, _permits_0) {
     const __2 = _t_0["started"];
     const __3 = _t_0["deadline"];
     const _rest_0 = _permits_0["tail"];
-    return $Admission$058find_permit$pick$({$: "Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($Admission$058find_permit$(_token_0, _rest_0)), ($Nat$is_eq$(_current_0, _token_0)));
+    return $List$find$put$({$: "Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($Admission$058find_permit$(_token_0, _rest_0)), ($Nat$is_eq$(_current_0, _token_0)));
   }
 }
 
@@ -8180,14 +8184,6 @@ function $Admission$058restart$fresh$(_state_0, _partition_0, _lifetime_0, _clos
     return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.LifetimeNotFresh"}};
   } else {
     return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _new_lifetime_0, "round": 0, "active": false, "closed_at": _at_0, "next_token": 1, "permits": {$: "Nil"}}, "token": {$: "None"}, "round": {$: "None"}};
-  }
-}
-
-function $Admission$058remove_permit$pick$(_permit_0, _tail_0, _hit_0) {
-  if (_hit_0) {
-    return _tail_0;
-  } else {
-    return {$: "Con", "head": _permit_0, "tail": _tail_0};
   }
 }
 
@@ -8518,14 +8514,6 @@ function $Delivery$058expired$(_phase_0, _elapsed_0, _lifetime_0) {
   }
 }
 
-function $RevisionState$058keep_entry$(_entry_0, _tail_0, _remove_0) {
-  if (_remove_0) {
-    return _tail_0;
-  } else {
-    return {$: "Con", "head": _entry_0, "tail": _tail_0};
-  }
-}
-
 function $Notice$058bounded_add$result$(_left_0, _right_0, _maximum_0, _over_0) {
   if (_over_0) {
     return _maximum_0;
@@ -8581,14 +8569,6 @@ function $Admission$058consume$check$(_state_0, _token_0, _tool_0, _now_0, _perm
   const _next_token_0 = _state_0["next_token"];
   const _permits_0 = _state_0["permits"];
   return $Admission$058consume$tool$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0}, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _token_0, _tool_0, _now_0, _permitted_round_0, _started_0, _deadline_0, ($Nat$is_eq$(_tool_0, _permitted_tool_0)));
-}
-
-function $Admission$058find_permit$pick$(_permit_0, _fallback_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Some", "value": _permit_0};
-  } else {
-    return _fallback_0;
-  }
 }
 
 function $Admission$058close_round$time$(_state_0, _partition_0, _lifetime_0, _round_0, _next_token_0, _at_0, _valid_0) {

@@ -23,18 +23,13 @@ def find(+subject: Nat, entries: List<&2, Entry>) -> Maybe<&2, Entry>:
   match entries:
     case Nil{}: None{}
     case +entry <> rest:
-      Bool.pick(Maybe<&2, Entry>, same_subject(subject, entry), Some{entry}, find(subject, rest))
-
-def keep_entry(entry: Entry, tail: List<&2, Entry>, remove: Bool) -> List<&2, Entry>:
-  match remove:
-    case True{}: tail
-    case False{}: entry <> tail
+      List.find.put(Entry, entry, find(subject, rest), same_subject(subject, entry))
 
 def without(+subject: Nat, entries: List<&2, Entry>) -> List<&2, Entry>:
   match entries:
     case Nil{}: Nil{}
     case +entry <> rest:
-      keep_entry(entry, without(subject, rest), same_subject(subject, entry))
+      List.filter.put(Entry, entry, without(subject, rest), Bool.not(same_subject(subject, entry)))
 
 def register_found(state: State, +subject: Nat, +input: Nat,
     add_member: Bool, found: Maybe<&2, Entry>) -> Registration:

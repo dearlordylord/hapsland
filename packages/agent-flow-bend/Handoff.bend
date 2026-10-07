@@ -120,19 +120,20 @@ def select.valid(state: Selection, id: Nat, prospective_bytes: Nat, solo_bytes: 
     case False{}:
       Expired{state}
 
-def select.current(+state: Selection, advice: Advice, prospective_bytes: Nat, valid: Bool) -> SelectResult:
+def select.current(
+  +state: Selection,
+  advice: Advice,
+  prospective_bytes: Nat,
+  valid: Bool
+) -> SelectResult:
   match state:
     case Selection{_, _, _, _, count, _}:
       match advice:
         case Advice{id, _, _, _, _, _, _, _, _, solo_bytes, _}:
           select.valid(state, id, prospective_bytes, solo_bytes, count, valid)
 
-def contains(+id: Nat, ids: List<&2, Nat>) -> Bool:
-  match ids:
-    case Nil{}:
-      False{}
-    case item <> rest:
-      Bool.or(Nat.is_eq(id, item), contains(id, rest))
+def contains(id: Nat, ids: List<&2, Nat>) -> Bool:
+  List.contains(~Nat, ~Nat.is_eq, ids, id)
 
 def select.duplicate(state: Selection, advice: Advice, prospective_bytes: Nat,
     current: Bool, duplicate: Bool) -> SelectResult:
@@ -170,9 +171,22 @@ def finish.choose.check(state: Finish, can_continue: Bool) -> FinishResult:
     case Finish{round, active, closed, continuations, reserved, token, collector, deadline_at}:
       match can_continue:
         case True{}:
-          Continue{Finish{round, active, closed, (continuations + 1n : Nat), True{}, token, collector, deadline_at}}
+          Continue{
+            Finish{
+              round,
+              active,
+              closed,
+              (continuations + 1n : Nat),
+              True{},
+              token,
+              collector,
+              deadline_at
+            }
+          }
         case False{}:
-          Allow{Finish{round, False{}, True{}, continuations, False{}, token, collector, deadline_at}}
+          Allow{
+            Finish{round, False{}, True{}, continuations, False{}, token, collector, deadline_at}
+          }
 
 def finish.choose(+state: Finish, actionable_findings: Nat) -> FinishResult:
   match state:
@@ -187,28 +201,51 @@ def finish.zero(state: Finish, actionable_findings: Nat, zero: Bool) -> FinishRe
     case False{}:
       Wait{state}
 
-def finish.ready(state: Finish, unfinished: Nat, deadline: Bool, actionable_findings: Nat) -> FinishResult:
+def finish.ready(
+  state: Finish,
+  unfinished: Nat,
+  deadline: Bool,
+  actionable_findings: Nat
+) -> FinishResult:
   match deadline:
     case True{}:
       finish.choose(state, actionable_findings)
     case False{}:
       finish.zero(state, actionable_findings, Nat.is_eq(unfinished, 0n))
 
-def finish.pending(state: Finish, unfinished: Nat, deadline: Bool, actionable_findings: Nat, reserved: Bool) -> FinishResult:
+def finish.pending(
+  state: Finish,
+  unfinished: Nat,
+  deadline: Bool,
+  actionable_findings: Nat,
+  reserved: Bool
+) -> FinishResult:
   match reserved:
     case True{}:
       Wait{state}
     case False{}:
       finish.ready(state, unfinished, deadline, actionable_findings)
 
-def finish.guard(state: Finish, unfinished: Nat, deadline: Bool, actionable_findings: Nat, valid: Bool, reserved: Bool) -> FinishResult:
+def finish.guard(
+  state: Finish,
+  unfinished: Nat,
+  deadline: Bool,
+  actionable_findings: Nat,
+  valid: Bool,
+  reserved: Bool
+) -> FinishResult:
   match valid:
     case True{}:
       finish.pending(state, unfinished, deadline, actionable_findings, reserved)
     case False{}:
       Allow{state}
 
-def finish.decide(+state: Finish, unfinished: Nat, deadline: Bool, actionable_findings: Nat) -> FinishResult:
+def finish.decide(
+  +state: Finish,
+  unfinished: Nat,
+  deadline: Bool,
+  actionable_findings: Nat
+) -> FinishResult:
   match state:
     case Finish{_, active, closed, _, reserved, _, _, _}:
       finish.guard(state, unfinished, deadline, actionable_findings,
@@ -219,7 +256,16 @@ def finish.start.choose(state: Finish, original_deadline: Nat, first: Bool) -> F
     case Finish{round, active, closed, continuations, reserved, token, collector, deadline_at}:
       match first:
         case True{}:
-          Finish{round, active, closed, continuations, reserved, token, collector, original_deadline}
+          Finish{
+            round,
+            active,
+            closed,
+            continuations,
+            reserved,
+            token,
+            collector,
+            original_deadline
+          }
         case False{}:
           Finish{round, active, closed, continuations, reserved, token, collector, deadline_at}
 
@@ -240,7 +286,16 @@ def finish.decide_at(state: Finish, unfinished: Nat, now: Nat, original_deadline
 def finish.bind_writer(state: Finish, writer: Nat) -> Finish:
   match state:
     case Finish{round, active, closed, continuations, reserved, token, _, deadline_at}:
-      Finish{round, active, closed, continuations, reserved, (token + 1n : Nat), writer, deadline_at}
+      Finish{
+        round,
+        active,
+        closed,
+        continuations,
+        reserved,
+        (token + 1n : Nat),
+        writer,
+        deadline_at
+      }
 
 def finish.complete.check(state: Finish, valid: Bool) -> Finish:
   match state:
@@ -328,7 +383,15 @@ def lease.authorize.phase(item: Nat, round: Nat, closed: Bool, reoffered: Bool,
     phase: LeasePhase, token: Nat) -> LeaseResult:
   match phase:
     case Reserved{+own_token, surface}:
-      lease.authorize.match(item, round, closed, reoffered, own_token, surface, Nat.is_eq(own_token, token))
+      lease.authorize.match(
+        item,
+        round,
+        closed,
+        reoffered,
+        own_token,
+        surface,
+        Nat.is_eq(own_token, token)
+      )
     case _:
       Denied{Lease{item, round, closed, reoffered, phase}}
 
@@ -359,7 +422,15 @@ def lease.release.phase(item: Nat, round: Nat, closed: Bool, reoffered: Bool,
     phase: LeasePhase, token: Nat) -> LeaseResult:
   match phase:
     case Reserved{+own_token, surface}:
-      lease.release.match(item, round, closed, reoffered, own_token, surface, Nat.is_eq(own_token, token))
+      lease.release.match(
+        item,
+        round,
+        closed,
+        reoffered,
+        own_token,
+        surface,
+        Nat.is_eq(own_token, token)
+      )
     case _:
       Denied{Lease{item, round, closed, reoffered, phase}}
 
@@ -394,7 +465,16 @@ def lease.terminal.phase(item: Nat, round: Nat, closed: Bool, reoffered: Bool,
     phase: LeasePhase, token: Nat, certain: Bool) -> LeaseResult:
   match phase:
     case Authorized{+own_token, surface}:
-      lease.terminal.match(item, round, closed, reoffered, own_token, surface, Nat.is_eq(own_token, token), certain)
+      lease.terminal.match(
+        item,
+        round,
+        closed,
+        reoffered,
+        own_token,
+        surface,
+        Nat.is_eq(own_token, token),
+        certain
+      )
     case _:
       Denied{Lease{item, round, closed, reoffered, phase}}
 
