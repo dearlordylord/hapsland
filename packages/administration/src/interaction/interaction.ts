@@ -21,9 +21,10 @@ export interface Interaction {
   hidden: (message: string) => Effect.Effect<Redacted.Redacted<string>, Terminal.QuitError>
   present: (text: string) => Effect.Effect<void>
 }
-const theme = process.env.NO_COLOR
-  ? { primaryColor: "", mutedColor: "", successColor: "", errorColor: "", submittedColor: "" }
-  : {}
+const theme =
+  process.env.NO_COLOR || process.env.TERM === "dumb"
+    ? { primaryColor: "", mutedColor: "", successColor: "", errorColor: "", submittedColor: "" }
+    : {}
 export class InputInterrupted extends Terminal.QuitError {}
 // Navigation cancels only this prompt's input scope through a public Effect race.
 export const runNavigable = <A>(
@@ -103,9 +104,9 @@ export const liveInteraction = interactionFor()
 // Acquisition is scoped outside Prompt.Hidden; no custom secret prompt is involved.
 export const acquireInteraction = (source: "stdin" | "controlling-terminal" = "stdin") =>
   Effect.gen(function* () {
-    if (!process.stderr.isTTY || process.env.TERM === "dumb") return yield* Effect.fail(new Terminal.QuitError({}))
     if (source === "stdin") {
-      if (!process.stdin.isTTY) return yield* Effect.fail(new Terminal.QuitError({}))
+      if (!process.stdin.isTTY || !process.stderr.isTTY || process.env.TERM === "dumb")
+        return yield* Effect.fail(new Terminal.QuitError({}))
       return liveInteraction
     }
     const stdin = yield* acquireControllingInput

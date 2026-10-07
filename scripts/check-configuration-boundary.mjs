@@ -208,17 +208,20 @@ if (
     maskedInput
   ) ||
   !maskedInput.includes("Effect.acquireUseRelease(") ||
-  !maskedInput.includes("Schedule.fromStep(") ||
-  !maskedInput.includes("execFileClosedStdin(")
+  !maskedInput.includes("interaction.hidden(") ||
+  !maskedInput.includes("Redacted.wipeUnsafe(") ||
+  !maskedInput.includes("withInteractionSession(")
 ) {
-  throw new Error(
-    "masked credential input must use scoped Effect ownership, scheduled polling and scoped native processes"
-  )
+  throw new Error("credential input must use the shared hidden interaction, scoped lifetime and redacted cleanup")
 }
+const interactionInput = read("packages/administration/src/interaction/interaction.ts")
+if (!interactionInput.includes("Prompt.Hidden(") || /Prompt.Custom/u.test(maskedInput))
+  throw new Error("credential input must use the built-in Prompt.Hidden")
 const clientSelection = read("packages/administration/src/onboarding/client-selection.ts")
 if (
   /new Promise|\basync\b|Effect\.run(?:Sync|Promise|Fork)\(/u.test(clientSelection) ||
-  !clientSelection.includes("Effect.acquireUseRelease(")
+  !clientSelection.includes("InteractionService") ||
+  !/interaction\s*\.chooseMany\(/u.test(clientSelection)
 ) {
   throw new Error("interactive client selection must use caller Effect runtime and scoped terminal ownership")
 }

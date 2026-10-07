@@ -58,13 +58,15 @@ export const withInteractionSession = <A, E>(
         () => Effect.sync(() => signals.forEach((signal) => process.off(signal, cancel)))
       )
       return yield* Effect.raceFirst(
-        Effect.gen(function* () {
-          const interaction = yield* scopeInteraction(
-            yield* acquireInteraction(source),
-            Deferred.succeed(stop, undefined).pipe(Effect.andThen(Effect.never))
-          )
-          return yield* use(interaction)
-        }),
+        Effect.scoped(
+          Effect.gen(function* () {
+            const interaction = yield* scopeInteraction(
+              yield* acquireInteraction(source),
+              Deferred.succeed(stop, undefined).pipe(Effect.andThen(Effect.never))
+            )
+            return yield* use(interaction)
+          })
+        ),
         Deferred.await(stop).pipe(Effect.flatMap(() => interrupted))
       )
     })
