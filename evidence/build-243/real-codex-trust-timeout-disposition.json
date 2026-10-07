@@ -1,0 +1,8 @@
+{
+  "status": "failed",
+  "exitCode": 1,
+  "stage": "native repository/hook trust",
+  "cause": "Final Enter submitted after finite interactive window expired; trust-all selection was visible but hook trust was not persisted.",
+  "productValidation": "Ordinary installed assertions passed; real host not passed.",
+  "nextExperiment": "Same reviewed archive and unchanged harness/deadline; inspect hook registry before interactive window and submit final Enter immediately after exact trust-all confirmation."
+}

@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-10-07T10:12:17.824Z",
+  "recordedAt": "2026-10-07T11:08:11.841Z",
   "package": {
     "name": "@hapsland/hapsland",
     "version": "0.1.0",
     "artifact": "reviewed-local.tgz",
     "source": "reviewed-local-archive",
-    "sha256": "a8b70b528198ff08262f8daf8315e37d1cbf775eed42311b633d603325f4b082"
+    "sha256": "2331142576cd8c6667de8a5c2432989ee7dcf913fa3bf0c41085046a4170a316"
   },
   "environment": {
     "harnessNode": "v24.20.0",
@@ -36,7 +36,7 @@
     "previousReleaseHook": true,
     "unchangedPidAndLifetime": true,
     "residentExecutableIdentity": "linux-proc-executable-path-and-sha256",
-    "residentSha256": "63cb514ac6173deee87ec5bc12247982910e9d33c3b986c02a5074270317b544"
+    "residentSha256": "b701fe468c2556f1de6a387c01195f1879e1d1824e22310cc98c3e768477e481"
   },
   "rustPreparation": {
     "status": "passed",
@@ -132,6 +132,7 @@
     },
     "activityStages": [
       "findings",
+      "incomplete",
       "pending",
       "submitted",
       "unknown"

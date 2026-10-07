@@ -34,21 +34,21 @@ installation fixes. They do not measure the final package bytes or establish
 100 ms startup, a population percentile, or installed review/advice compatibility.
 
 The #243 candidate archive packs both platform groups and five standalone
-commands per platform; its compressed size is 363,732,199 bytes. The ordinary
+commands per platform; its compressed size is 335,732,742 bytes. The ordinary
 build/validation/pack run retained archive SHA-256
-`a8b70b528198ff08262f8daf8315e37d1cbf775eed42311b633d603325f4b082`.
+`2331142576cd8c6667de8a5c2432989ee7dcf913fa3bf0c41085046a4170a316`.
 Each command includes Bun. Darwin artifact inventory is distinct from Darwin
 execution. These are measured candidate bytes, not registry release pins.
 
-The [separated-hook comparison](../evidence/build-243/startup-comparison-linux-arm64-final-02.json)
-uses the [predeclared exact installed archives](../evidence/build-243/startup-declaration-linux-arm64-final-02.json),
+The [separated-hook comparison](../evidence/build-243/startup-comparison-linux-arm64-final-03.json)
+uses the [predeclared exact installed archives](../evidence/build-243/startup-declaration-linux-arm64-final-03.json),
 Bun 1.3.14 and Linux ARM64. Fifteen interleaved ready-resident calls per variant
-observed median complete invocation times of 93.246 ms (old CLI hook) and
-74.406 ms (dedicated hook); five fresh-resident calls per variant observed
-366.085 and 342.019 ms. All 40 calls succeeded, recorded resident executable
+observed median complete invocation times of 93.501 ms (old CLI hook) and
+70.512 ms (dedicated hook); five fresh-resident calls per variant observed
+324.446 and 342.694 ms. All 40 calls succeeded, recorded resident executable
 identities/lifetimes, and completed cleanup. The initialization observation
 measures readiness to consume stdin, rather than completion of initialization.
-The [clock witness](../evidence/build-243/runtime-clock-linux-arm64-final-02.log)
+The [clock witness](../evidence/build-243/runtime-clock-linux-arm64-final-03.log)
 confirmed shared monotonic coordinates and stale-invocation rejection. No
 material regression met the predeclared criteria. Host load and OS file cache
 were uncontrolled; these samples establish no population percentile, universal

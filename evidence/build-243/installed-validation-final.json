@@ -1,19 +1,20 @@
 {
   "format": 1,
-  "at": "2026-10-07T10:17:44.223386+00:00",
-  "candidateCommit": "cf91d9e6",
+  "at": "2026-10-07T11:08:48.973304+00:00",
+  "candidateCommit": "922535fe93f2ea7523ef38ec4f63a8ba60757ffb",
   "productOwnerChangesSinceArchive": false,
   "archive": {
-    "path": "/workspace/typescript/jev/.git/hapsland-artifacts/archives/a8b70b528198ff08262f8daf8315e37d1cbf775eed42311b633d603325f4b082/hapsland-hapsland-0.1.0.tgz",
-    "sha256": "a8b70b528198ff08262f8daf8315e37d1cbf775eed42311b633d603325f4b082",
-    "bytes": 363732199
+    "path": "/tmp/hapsland-243-refactor-release/2331142576cd8c6667de8a5c2432989ee7dcf913fa3bf0c41085046a4170a316/hapsland-hapsland-0.1.0.tgz",
+    "sha256": "2331142576cd8c6667de8a5c2432989ee7dcf913fa3bf0c41085046a4170a316",
+    "bytes": 335732742,
+    "recipe": "npm run pack:release"
   },
   "cells": {
     "ordinaryPreparation": {
       "status": "passed",
-      "log": "quality-03/3717816-030-package-build.log",
-      "run": "20261007093101380-3716932-caab31",
-      "limitation": "Build/native-validation/pack passed; full suite failed one fixture, subsequently repaired and focused-validated."
+      "log": "evidence/build-243/release-build-current.log",
+      "command": "npm run pack:release",
+      "exitCode": 0
     },
     "offlineClean": {
       "status": "passed",
@@ -21,21 +22,21 @@
     },
     "offlineSetup": {
       "status": "passed",
-      "log": "setup-conformance-current-archive.log",
+      "log": "setup-conformance-current-release.log",
       "journeys": 7,
       "providerCalls": 0
     },
     "claude": {
       "status": "passed",
       "version": "2.1.218",
-      "report": "evidence/native-languages/claude-typescript-adoption-controlled-offline-1791367489277.json",
+      "report": "evidence/native-languages/claude-typescript-adoption-controlled-offline-1791370826592.json",
       "command": [
         "node",
         "scripts/run-native-crossfile-current.mjs",
         "--host=claude",
         "--language=typescript",
         "--scenario=adoption",
-        "--archive=/workspace/typescript/jev/.git/hapsland-artifacts/archives/a8b70b528198ff08262f8daf8315e37d1cbf775eed42311b633d603325f4b082/hapsland-hapsland-0.1.0.tgz"
+        "--archive=/tmp/hapsland-243-refactor-release/2331142576cd8c6667de8a5c2432989ee7dcf913fa3bf0c41085046a4170a316/hapsland-hapsland-0.1.0.tgz"
       ],
       "providerCalls": 0
     },
@@ -46,7 +47,7 @@
       "command": [
         "node",
         "scripts/run-clean-package-conformance.mjs",
-        "--archive=/workspace/typescript/jev/.git/hapsland-artifacts/archives/a8b70b528198ff08262f8daf8315e37d1cbf775eed42311b633d603325f4b082/hapsland-hapsland-0.1.0.tgz",
+        "--archive=/tmp/hapsland-243-refactor-release/2331142576cd8c6667de8a5c2432989ee7dcf913fa3bf0c41085046a4170a316/hapsland-hapsland-0.1.0.tgz",
         "--real-codex",
         "--write-evidence"
       ],
@@ -62,17 +63,22 @@
     },
     "startup": {
       "status": "passed",
-      "report": "evidence/build-243/startup-comparison-linux-arm64-final-02.json"
+      "report": "evidence/build-243/startup-comparison-linux-arm64-final-03.json"
     },
     "nativeHot": {
       "status": "passed",
-      "report": "evidence/build-243/native-hot-final-02.json"
+      "report": "evidence/build-243/native-hot-final-02.json",
+      "scope": "Retained prior focused proof of unchanged native replacement and wire boundary; not a new installed archive claim."
     }
   },
   "previousArchiveComparison": "evidence/build-243/prior-installed-runtime-comparison.json",
   "fullQuality": {
     "status": "pending",
-    "lastFailure": "evidence/build-243/quality-failure-03.json",
-    "repair": "evidence/build-243/pi-classification-readiness-repair.json"
-  }
+    "lastFailure": "evidence/build-243/quality-failure-04.json",
+    "repairs": [
+      "evidence/build-243/coverage-private-export-routing-repair.json",
+      "evidence/build-243/hook-program-refactor-focused.json"
+    ]
+  },
+  "previousArchiveComparisonScope": "Existing comparison covers previous archives; current archive has new hook runtime and was installed/revalidated independently."
 }
