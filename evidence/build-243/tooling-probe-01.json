@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-10-06T20:16:35.323Z",
+  "fixture": "/tmp/hapsland-tooling-243-JA6AV0",
+  "scope": "Pre-adoption three-package cache and boundary probe",
+  "cases": [
+    {
+      "name": "clean",
+      "status": 0,
+      "stdout": "\n   • turbo 2.11.7\n   • Packages in scope: @probe/admin, @probe/hook, @probe/inputs\n   • Running assemble in 3 packages\n   • Remote caching disabled\n\n@probe/inputs:compile: cache miss, executing a4ef4fc3c1c59b81\n@probe/admin:compile: cache miss, executing 8150e17b3cd20b74\n@probe/admin:compile: \n@probe/admin:compile: > @probe/admin@1.0.0 compile\n@probe/admin:compile: > node ../../task.mjs admin compile\n@probe/admin:compile: \n@probe/inputs:compile: \n@probe/inputs:compile: > @probe/inputs@1.0.0 compile\n@probe/inputs:compile: > node ../../task.mjs inputs compile\n@probe/inputs:compile: \n@probe/admin:assemble: cache miss, executing d9268cc690e7f645\n@probe/hook:compile: cache miss, executing 033c9ad9321b87fa\n@probe/admin:assemble: \n@probe/admin:assemble: > @probe/admin@1.0.0 assemble\n@probe/admin:assemble: > node ../../task.mjs admin assemble\n@probe/admin:assemble: \n@probe/hook:compile: \n@probe/hook:compile: > @probe/hook@1.0.0 compile\n@probe/hook:compile: > node ../../task.mjs hook compile\n@probe/hook:compile: \n@probe/admin:assemble:  [491ms]  minify\n@probe/admin:assemble:    [1ms]  bundle  1 modules\n@probe/hook:assemble: cache miss, executing b6661acdf3c66970\n@probe/hook:assemble: \n@probe/hook:assemble: > @probe/hook@1.0.0 assemble\n@probe/hook:assemble: > node ../../task.mjs hook assemble\n@probe/hook:assemble: \n@probe/admin:assemble:  [295ms] compile  artifact/admin\n@probe/hook:assemble:  [340ms]  minify\n@probe/hook:assemble:    [0ms]  bundle  2 modules\n@probe/hook:assemble:  [239ms] compile  artifact/hook\n\n Tasks:    5 successful, 5 total\nCached:    0 cached, 5 total\n  Time:    1.819s \n\n",
+      "stderr": " WARNING  No locally installed `turbo` found in your repository. Using globally installed version (2.11.7). Using a specified version in your repository will result in more predictable behavior.\n",
+      "events": [
+        "admin-assemble",
+        "admin-compile",
+        "hook-assemble",
+        "hook-compile",
+        "inputs-compile"
+      ]
+    },
+    {
+      "name": "warm",
+      "status": 0,
+      "stdout": "\n   • turbo 2.11.7\n   • Packages in scope: @probe/admin, @probe/hook, @probe/inputs\n   • Running assemble in 3 packages\n   • Remote caching disabled\n\n@probe/admin:compile: cache hit, replaying logs 8150e17b3cd20b74\n@probe/admin:compile: \n@probe/admin:compile: > @probe/admin@1.0.0 compile\n@probe/admin:compile: > node ../../task.mjs admin compile\n@probe/admin:compile: \n@probe/inputs:compile: cache hit, replaying logs a4ef4fc3c1c59b81\n@probe/inputs:compile: \n@probe/inputs:compile: > @probe/inputs@1.0.0 compile\n@probe/inputs:compile: > node ../../task.mjs inputs compile\n@probe/inputs:compile: \n@probe/admin:assemble: cache hit, replaying logs d9268cc690e7f645\n@probe/admin:assemble: \n@probe/admin:assemble: > @probe/admin@1.0.0 assemble\n@probe/admin:assemble: > node ../../task.mjs admin assemble\n@probe/admin:assemble: \n@probe/admin:assemble:  [491ms]  minify\n@probe/admin:assemble:    [1ms]  bundle  1 modules\n@probe/admin:assemble:  [295ms] compile  artifact/admin\n@probe/hook:compile: cache hit, replaying logs 033c9ad9321b87fa\n@probe/hook:compile: \n@probe/hook:compile: > @probe/hook@1.0.0 compile\n@probe/hook:compile: > node ../../task.mjs hook compile\n@probe/hook:compile: \n@probe/hook:assemble: cache hit, replaying logs b6661acdf3c66970\n@probe/hook:assemble: \n@probe/hook:assemble: > @probe/hook@1.0.0 assemble\n@probe/hook:assemble: > node ../../task.mjs hook assemble\n@probe/hook:assemble: \n@probe/hook:assemble:  [340ms]  minify\n@probe/hook:assemble:    [0ms]  bundle  2 modules\n@probe/hook:assemble:  [239ms] compile  artifact/hook\n\n Tasks:    5 successful, 5 total\nCached:    5 cached, 5 total\n  Time:    5ms >>> FULL TURBO\n\n",
+      "stderr": " WARNING  No locally installed `turbo` found in your repository. Using globally installed version (2.11.7). Using a specified version in your repository will result in more predictable behavior.\n",
+      "events": []
+    },
+    {
+      "name": "deleted-output-restoration",
+      "status": 0,
+      "stdout": "\n   • turbo 2.11.7\n   • Packages in scope: @probe/admin, @probe/hook, @probe/inputs\n   • Running assemble in 3 packages\n   • Remote caching disabled\n\n@probe/inputs:compile: cache hit, replaying logs a4ef4fc3c1c59b81\n@probe/inputs:compile: \n@probe/inputs:compile: > @probe/inputs@1.0.0 compile\n@probe/inputs:compile: > node ../../task.mjs inputs compile\n@probe/inputs:compile: \n@probe/admin:compile: cache hit, replaying logs 8150e17b3cd20b74\n@probe/admin:compile: \n@probe/admin:compile: > @probe/admin@1.0.0 compile\n@probe/admin:compile: > node ../../task.mjs admin compile\n@probe/admin:compile: \n@probe/hook:compile: cache hit, replaying logs 033c9ad9321b87fa\n@probe/hook:compile: \n@probe/hook:compile: > @probe/hook@1.0.0 compile\n@probe/hook:compile: > node ../../task.mjs hook compile\n@probe/hook:compile: \n@probe/admin:assemble: cache hit, replaying logs d9268cc690e7f645\n@probe/admin:assemble: \n@probe/admin:assemble: > @probe/admin@1.0.0 assemble\n@probe/admin:assemble: > node ../../task.mjs admin assemble\n@probe/admin:assemble: \n@probe/admin:assemble:  [491ms]  minify\n@probe/admin:assemble:    [1ms]  bundle  1 modules\n@probe/admin:assemble:  [295ms] compile  artifact/admin\n@probe/hook:assemble: cache hit, replaying logs b6661acdf3c66970\n@probe/hook:assemble: \n@probe/hook:assemble: > @probe/hook@1.0.0 assemble\n@probe/hook:assemble: > node ../../task.mjs hook assemble\n@probe/hook:assemble: \n@probe/hook:assemble:  [340ms]  minify\n@probe/hook:assemble:    [0ms]  bundle  2 modules\n@probe/hook:assemble:  [239ms] compile  artifact/hook\n\n Tasks:    5 successful, 5 total\nCached:    5 cached, 5 total\n  Time:    140ms >>> FULL TURBO\n\n",
+      "stderr": " WARNING  No locally installed `turbo` found in your repository. Using globally installed version (2.11.7). Using a specified version in your repository will result in more predictable behavior.\n",
+      "events": []
+    },
+    {
+      "name": "administration-only",
+      "status": 0,
+      "stdout": "\n   • turbo 2.11.7\n   • Packages in scope: @probe/admin, @probe/hook, @probe/inputs\n   • Running assemble in 3 packages\n   • Remote caching disabled\n\n@probe/admin:compile: cache miss, executing 71276c7823927ec6\n@probe/inputs:compile: cache hit, replaying logs a4ef4fc3c1c59b81\n@probe/inputs:compile: \n@probe/inputs:compile: > @probe/inputs@1.0.0 compile\n@probe/inputs:compile: > node ../../task.mjs inputs compile\n@probe/inputs:compile: \n@probe/hook:compile: cache hit, replaying logs 033c9ad9321b87fa\n@probe/hook:compile: \n@probe/hook:compile: > @probe/hook@1.0.0 compile\n@probe/hook:compile: > node ../../task.mjs hook compile\n@probe/hook:compile: \n@probe/hook:assemble: cache hit, replaying logs b6661acdf3c66970\n@probe/hook:assemble: \n@probe/hook:assemble: > @probe/hook@1.0.0 assemble\n@probe/hook:assemble: > node ../../task.mjs hook assemble\n@probe/hook:assemble: \n@probe/hook:assemble:  [340ms]  minify\n@probe/hook:assemble:    [0ms]  bundle  2 modules\n@probe/hook:assemble:  [239ms] compile  artifact/hook\n@probe/admin:compile: \n@probe/admin:compile: > @probe/admin@1.0.0 compile\n@probe/admin:compile: > node ../../task.mjs admin compile\n@probe/admin:compile: \n@probe/admin:assemble: cache miss, executing 9c06a77563ae4b6b\n@probe/admin:assemble: \n@probe/admin:assemble: > @probe/admin@1.0.0 assemble\n@probe/admin:assemble: > node ../../task.mjs admin assemble\n@probe/admin:assemble: \n@probe/admin:assemble:  [200ms]  minify\n@probe/admin:assemble:    [1ms]  bundle  1 modules\n@probe/admin:assemble:  [224ms] compile  artifact/admin\n\n Tasks:    5 successful, 5 total\nCached:    3 cached, 5 total\n  Time:    877ms \n\n",
+      "stderr": " WARNING  No locally installed `turbo` found in your repository. Using globally installed version (2.11.7). Using a specified version in your repository will result in more predictable behavior.\n",
+      "events": [
+        "admin-assemble",
+        "admin-compile"
+      ]
+    },
+    {
+      "name": "shared-implementation",
+      "status": 0,
+      "stdout": "\n   • turbo 2.11.7\n   • Packages in scope: @probe/admin, @probe/hook, @probe/inputs\n   • Running assemble in 3 packages\n   • Remote caching disabled\n\n@probe/inputs:compile: cache miss, executing dd503e9ec3f3a1c0\n@probe/admin:compile: cache hit, replaying logs 71276c7823927ec6\n@probe/admin:compile: \n@probe/admin:compile: > @probe/admin@1.0.0 compile\n@probe/admin:compile: > node ../../task.mjs admin compile\n@probe/admin:compile: \n@probe/admin:assemble: cache hit, replaying logs 9c06a77563ae4b6b\n@probe/admin:assemble: \n@probe/admin:assemble: > @probe/admin@1.0.0 assemble\n@probe/admin:assemble: > node ../../task.mjs admin assemble\n@probe/admin:assemble: \n@probe/admin:assemble:  [200ms]  minify\n@probe/admin:assemble:    [1ms]  bundle  1 modules\n@probe/admin:assemble:  [224ms] compile  artifact/admin\n@probe/inputs:compile: \n@probe/inputs:compile: > @probe/inputs@1.0.0 compile\n@probe/inputs:compile: > node ../../task.mjs inputs compile\n@probe/inputs:compile: \n@probe/hook:compile: cache miss, executing 6a14d27a42399af3\n@probe/hook:compile: \n@probe/hook:compile: > @probe/hook@1.0.0 compile\n@probe/hook:compile: > node ../../task.mjs hook compile\n@probe/hook:compile: \n@probe/hook:assemble: cache miss, executing 0598cd1066b22aa8\n@probe/hook:assemble: \n@probe/hook:assemble: > @probe/hook@1.0.0 assemble\n@probe/hook:assemble: > node ../../task.mjs hook assemble\n@probe/hook:assemble: \n@probe/hook:assemble:  [194ms]  minify\n@probe/hook:assemble:    [1ms]  bundle  2 modules\n@probe/hook:assemble:  [185ms] compile  artifact/hook\n\n Tasks:    5 successful, 5 total\nCached:    2 cached, 5 total\n  Time:    1.135s \n\n",
+      "stderr": " WARNING  No locally installed `turbo` found in your repository. Using globally installed version (2.11.7). Using a specified version in your repository will result in more predictable behavior.\n",
+      "events": [
+        "hook-assemble",
+        "hook-compile",
+        "inputs-compile"
+      ]
+    },
+    {
+      "name": "upstream-error",
+      "status": 1,
+      "stdout": "\n   • turbo 2.11.7\n   • Packages in scope: @probe/admin, @probe/hook, @probe/inputs\n   • Running assemble in 3 packages\n   • Remote caching disabled\n\n@probe/admin:compile: cache hit, replaying logs 71276c7823927ec6\n@probe/admin:compile: \n@probe/admin:compile: > @probe/admin@1.0.0 compile\n@probe/admin:compile: > node ../../task.mjs admin compile\n@probe/admin:compile: \n@probe/admin:assemble: cache hit, replaying logs 9c06a77563ae4b6b\n@probe/admin:assemble: \n@probe/admin:assemble: > @probe/admin@1.0.0 assemble\n@probe/admin:assemble: > node ../../task.mjs admin assemble\n@probe/admin:assemble: \n@probe/admin:assemble:  [200ms]  minify\n@probe/admin:assemble:    [1ms]  bundle  1 modules\n@probe/admin:assemble:  [224ms] compile  artifact/admin\n@probe/inputs:compile: cache miss, executing cfb749203f94ac60\n@probe/inputs:compile: \n@probe/inputs:compile: > @probe/inputs@1.0.0 compile\n@probe/inputs:compile: > node ../../task.mjs inputs compile\n@probe/inputs:compile: \n@probe/inputs:compile: src/index.ts(1,36): error TS2322: Type 'number' is not assignable to type 'string'.\n@probe/inputs:compile: npm error Lifecycle script `compile` failed with error:\n@probe/inputs:compile: npm error code 1\n@probe/inputs:compile: npm error path /tmp/hapsland-tooling-243-JA6AV0/packages/inputs\n@probe/inputs:compile: npm error workspace @probe/inputs@1.0.0\n@probe/inputs:compile: npm error location /tmp/hapsland-tooling-243-JA6AV0/packages/inputs\n@probe/inputs:compile: npm error command failed\n@probe/inputs:compile: npm error command sh -c node ../../task.mjs inputs compile\n\n Tasks:    2 successful, 3 total\nCached:    2 cached, 3 total\n  Time:    340ms \nFailed:    @probe/inputs#compile\n\n",
+      "stderr": " WARNING  No locally installed `turbo` found in your repository. Using globally installed version (2.11.7). Using a specified version in your repository will result in more predictable behavior.\n@probe/inputs#compile:  ERROR  command (/tmp/hapsland-tooling-243-JA6AV0/packages/inputs) /home/node/.local/share/mise/installs/node/24/bin/npm run compile exited (1)\n ERROR  run failed: command  exited (1)\n",
+      "events": [
+        "inputs-compile"
+      ]
+    },
+    {
+      "name": "repair-cache-restoration",
+      "status": 0,
+      "stdout": "\n   • turbo 2.11.7\n   • Packages in scope: @probe/admin, @probe/hook, @probe/inputs\n   • Running assemble in 3 packages\n   • Remote caching disabled\n\n@probe/admin:compile: cache hit, replaying logs 71276c7823927ec6\n@probe/admin:compile: \n@probe/admin:compile: > @probe/admin@1.0.0 compile\n@probe/admin:compile: > node ../../task.mjs admin compile\n@probe/admin:compile: \n@probe/admin:assemble: cache hit, replaying logs 9c06a77563ae4b6b\n@probe/admin:assemble: \n@probe/admin:assemble: > @probe/admin@1.0.0 assemble\n@probe/admin:assemble: > node ../../task.mjs admin assemble\n@probe/admin:assemble: \n@probe/admin:assemble:  [200ms]  minify\n@probe/admin:assemble:    [1ms]  bundle  1 modules\n@probe/admin:assemble:  [224ms] compile  artifact/admin\n@probe/inputs:compile: cache hit, replaying logs dd503e9ec3f3a1c0\n@probe/inputs:compile: \n@probe/inputs:compile: > @probe/inputs@1.0.0 compile\n@probe/inputs:compile: > node ../../task.mjs inputs compile\n@probe/inputs:compile: \n@probe/hook:compile: cache hit, replaying logs 6a14d27a42399af3\n@probe/hook:compile: \n@probe/hook:compile: > @probe/hook@1.0.0 compile\n@probe/hook:compile: > node ../../task.mjs hook compile\n@probe/hook:compile: \n@probe/hook:assemble: cache hit, replaying logs 0598cd1066b22aa8\n@probe/hook:assemble: \n@probe/hook:assemble: > @probe/hook@1.0.0 assemble\n@probe/hook:assemble: > node ../../task.mjs hook assemble\n@probe/hook:assemble: \n@probe/hook:assemble:  [194ms]  minify\n@probe/hook:assemble:    [1ms]  bundle  2 modules\n@probe/hook:assemble:  [185ms] compile  artifact/hook\n\n Tasks:    5 successful, 5 total\nCached:    5 cached, 5 total\n  Time:    8ms >>> FULL TURBO\n\n",
+      "stderr": " WARNING  No locally installed `turbo` found in your repository. Using globally installed version (2.11.7). Using a specified version in your repository will result in more predictable behavior.\n",
+      "events": []
+    },
+    {
+      "name": "boundary-policy-invalidation",
+      "status": 0,
+      "stdout": "\n   • turbo 2.11.7\n   • Packages in scope: @probe/admin, @probe/hook, @probe/inputs\n   • Running assemble in 3 packages\n   • Remote caching disabled\n\n@probe/admin:compile: cache miss, executing f291068b19eaae4b\n@probe/inputs:compile: cache miss, executing b621dbaed3eec5b7\n@probe/admin:compile: \n@probe/admin:compile: > @probe/admin@1.0.0 compile\n@probe/admin:compile: > node ../../task.mjs admin compile\n@probe/admin:compile: \n@probe/inputs:compile: \n@probe/inputs:compile: > @probe/inputs@1.0.0 compile\n@probe/inputs:compile: > node ../../task.mjs inputs compile\n@probe/inputs:compile: \n@probe/hook:compile: cache miss, executing 348b78a9aa65e368\n@probe/admin:assemble: cache miss, executing dd3083ab52087d09\n@probe/hook:compile: \n@probe/hook:compile: > @probe/hook@1.0.0 compile\n@probe/hook:compile: > node ../../task.mjs hook compile\n@probe/hook:compile: \n@probe/admin:assemble: \n@probe/admin:assemble: > @probe/admin@1.0.0 assemble\n@probe/admin:assemble: > node ../../task.mjs admin assemble\n@probe/admin:assemble: \n@probe/admin:assemble:  [240ms]  minify\n@probe/admin:assemble:    [0ms]  bundle  1 modules\n@probe/hook:assemble: cache miss, executing 596674db60d8b210\n@probe/admin:assemble:  [196ms] compile  artifact/admin\n@probe/hook:assemble: \n@probe/hook:assemble: > @probe/hook@1.0.0 assemble\n@probe/hook:assemble: > node ../../task.mjs hook assemble\n@probe/hook:assemble: \n@probe/hook:assemble:  [237ms]  minify\n@probe/hook:assemble:    [0ms]  bundle  2 modules\n@probe/hook:assemble:  [186ms] compile  artifact/hook\n\n Tasks:    5 successful, 5 total\nCached:    0 cached, 5 total\n  Time:    1.431s \n\n",
+      "stderr": " WARNING  No locally installed `turbo` found in your repository. Using globally installed version (2.11.7). Using a specified version in your repository will result in more predictable behavior.\n",
+      "events": [
+        "admin-assemble",
+        "admin-compile",
+        "hook-assemble",
+        "hook-compile",
+        "inputs-compile"
+      ]
+    },
+    {
+      "name": "target-invalidation",
+      "status": 0,
+      "stdout": "\n   • turbo 2.11.7\n   • Packages in scope: @probe/admin, @probe/hook, @probe/inputs\n   • Running assemble in 3 packages\n   • Remote caching disabled\n\n@probe/admin:compile: cache miss, executing 74b8882bdaf8e0cd\n@probe/inputs:compile: cache miss, executing 67b8b8d0dbf0bc99\n@probe/admin:compile: \n@probe/admin:compile: > @probe/admin@1.0.0 compile\n@probe/admin:compile: > node ../../task.mjs admin compile\n@probe/admin:compile: \n@probe/inputs:compile: \n@probe/inputs:compile: > @probe/inputs@1.0.0 compile\n@probe/inputs:compile: > node ../../task.mjs inputs compile\n@probe/inputs:compile: \n@probe/hook:compile: cache miss, executing a8cf1933f433cc5f\n@probe/admin:assemble: cache miss, executing 4326c86cfde885f0\n@probe/hook:compile: \n@probe/hook:compile: > @probe/hook@1.0.0 compile\n@probe/hook:compile: > node ../../task.mjs hook compile\n@probe/hook:compile: \n@probe/admin:assemble: \n@probe/admin:assemble: > @probe/admin@1.0.0 assemble\n@probe/admin:assemble: > node ../../task.mjs admin assemble\n@probe/admin:assemble: \n@probe/admin:assemble:  [229ms]  minify\n@probe/admin:assemble:    [1ms]  bundle  1 modules\n@probe/hook:assemble: cache miss, executing 932e3755f15fa976\n@probe/hook:assemble: \n@probe/hook:assemble: > @probe/hook@1.0.0 assemble\n@probe/hook:assemble: > node ../../task.mjs hook assemble\n@probe/hook:assemble: \n@probe/admin:assemble:  [183ms] compile  artifact/admin\n@probe/hook:assemble:  [279ms]  minify\n@probe/hook:assemble:    [1ms]  bundle  2 modules\n@probe/hook:assemble:  [206ms] compile  artifact/hook\n\n Tasks:    5 successful, 5 total\nCached:    0 cached, 5 total\n  Time:    1.537s \n\n",
+      "stderr": " WARNING  No locally installed `turbo` found in your repository. Using globally installed version (2.11.7). Using a specified version in your repository will result in more predictable behavior.\n",
+      "events": [
+        "admin-assemble",
+        "admin-compile",
+        "hook-assemble",
+        "hook-compile",
+        "inputs-compile"
+      ]
+    }
+  ],
+  "limitations": [
+    "Synthetic domain fixture, not production adoption",
+    "No watch, native assets, cross-platform, full resolver, or executable input-closure evidence"
+  ],
+  "versions": {
+    "turbo": {
+      "status": 0,
+      "stdout": "2.11.7\n",
+      "stderr": ""
+    },
+    "typescript": {
+      "status": 0,
+      "stdout": "Version 7.0.2\n",
+      "stderr": ""
+    },
+    "bun": {
+      "status": 0,
+      "stdout": "1.3.14\n",
+      "stderr": ""
+    }
+  },
+  "boundaries": {
+    "allowed": {
+      "status": 0,
+      "stdout": "Checking packages...\nChecked 9 files in 3 packages, no issues found\n",
+      "stderr": "• turbo 2.11.7\n"
+    },
+    "relativeForbidden": {
+      "status": 1,
+      "stdout": "Checking packages...\nChecked 9 files in 3 packages, 1 issue found\n",
+      "stderr": "• turbo 2.11.7\n  x import `../../admin/src/index.ts` leaves the package\n   ,-[/tmp/hapsland-tooling-243-JA6AV0/packages/hook/src/index.ts:1:8]\n 1 | import \"../../admin/src/index.ts\";\n   :        ^^^^^^^^^^^^^|^^^^^^^^^^^^\n   :                     `-- file imported here\n   `----\n  help: `../../admin/src/index.ts` resolves to path `../admin/src/index.ts`\n        which is outside of `@probe/hook`\n\n"
+    },
+    "computedLoader": {
+      "status": 0,
+      "stdout": "Checking packages...\nChecked 9 files in 3 packages, no issues found\n",
+      "stderr": "• turbo 2.11.7\n"
+    }
+  },
+  "completed": true,
+  "finishedAt": "2026-10-06T20:16:46.226Z"
+}
