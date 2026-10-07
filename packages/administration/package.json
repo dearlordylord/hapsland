@@ -255,6 +255,10 @@
     "./credentials/login-model": {
       "types": "./dist/credentials/login-model.d.ts",
       "default": "./dist/credentials/login-model.js"
+    },
+    "./onboarding/update-model": {
+      "types": "./dist/onboarding/update-model.d.ts",
+      "default": "./dist/onboarding/update-model.js"
     }
   },
   "dependencies": {

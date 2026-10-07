@@ -6,6 +6,7 @@ import { InteractionService } from "@hapsland/administration/interaction/interac
 import { runRuleConversation, type RulesTransition } from "@hapsland/administration/rules/conversation"
 import { scriptedInteraction, type ScriptStep } from "./test-support/scripted-interaction.ts"
 
+import { generateUpdateDiagram } from "./generate-update-diagram.mts"
 import { generateLoginDiagram } from "./generate-login-diagram.mts"
 
 const mode = process.argv[2]
@@ -138,6 +139,13 @@ const program = Effect.gen(function* () {
     if (mode === "--write") await writeFile(loginDestination, login)
     else assert.equal(await readFile(loginDestination, "utf8"), login, "Login diagram is stale; regenerate it")
   })
+  const update = yield* generateUpdateDiagram
+  const updateDestination = resolve(import.meta.dirname, "../docs/cli-interactions/update.md")
+  yield* Effect.promise(async () => {
+    if (mode === "--write") await writeFile(updateDestination, update)
+    else assert.equal(await readFile(updateDestination, "utf8"), update, "Update diagram is stale; regenerate it")
+  })
+  yield* Effect.sync(() => console.log("Update diagram: 9 independently asserted replays"))
   yield* Effect.sync(() => console.log("Login diagram: 5 independently asserted replays"))
   yield* Effect.sync(() =>
     console.log(

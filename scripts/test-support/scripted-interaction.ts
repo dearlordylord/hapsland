@@ -13,6 +13,10 @@ export type ScriptStep =
   | { kind: "confirm"; line: string }
   | { kind: "hidden"; value: string }
   | { kind: "back" | "exit" | "eof" }
+const validMultipleIds = (ids: readonly string[], view: MultipleChoiceView<unknown>) =>
+  ids.length > 0 &&
+  new Set(ids).size === ids.length &&
+  ids.every((id) => view.choices.some((choice) => choice.id === id))
 export function scriptedInteraction(steps: readonly ScriptStep[]) {
   let offset = 0
   const transcript: string[] = []
@@ -28,12 +32,7 @@ export function scriptedInteraction(steps: readonly ScriptStep[]) {
         if (step?.kind === "eof") return Effect.fail(new Terminal.QuitError({}))
         if (step?.kind === "exit") return Effect.succeed({ kind: "exit" as const })
         if (step?.kind === "back" && view.back) return Effect.succeed({ kind: "back" as const })
-        if (
-          step?.kind !== "chooseMany" ||
-          !step.ids.length ||
-          new Set(step.ids).size !== step.ids.length ||
-          step.ids.some((id) => !view.choices.some((choice) => choice.id === id))
-        )
+        if (step?.kind !== "chooseMany" || !validMultipleIds(step.ids, view))
           return Effect.die(new Error("Script does not match multiple choices"))
         return Effect.succeed({
           kind: "selected" as const,

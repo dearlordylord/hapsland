@@ -2,6 +2,15 @@ import type { Cause } from "effect"
 import { Effect, Option, Queue, Terminal } from "effect"
 import type { Readable } from "node:stream"
 import { createInterface, emitKeypressEvents, type Key } from "node:readline"
+const exitsInput = (key: Key) => key.name === "escape" || (key.ctrl && (key.name === "c" || key.name === "d"))
+const terminalKey = (key: Key) => ({
+  name: key.name === "escape" ? "c" : (key.name ?? ""),
+  ctrl: key.name === "escape" || !!key.ctrl,
+  meta: !!key.meta,
+  shift: !!key.shift
+})
+const navigationCallback = (key: Key, onEscape?: () => void, onInterrupt?: () => void) =>
+  key.name === "escape" ? onEscape : key.ctrl && key.name === "c" ? onInterrupt : undefined
 // Administration-owned stdin/stderr transport for Effect prompts.
 export type TerminalInput = Readable & { isRaw: boolean; setRawMode: (raw: boolean) => unknown }
 export const makeTerminal = (onEscape?: () => void, stdin: TerminalInput = process.stdin, onInterrupt?: () => void) =>
@@ -47,24 +56,13 @@ export const makeTerminal = (onEscape?: () => void, stdin: TerminalInput = proce
       const flowing = stdin.readableFlowing
       emitKeypressEvents(stdin)
       const keypress = (input: string | undefined, key: Key) => {
-        if (key.ctrl && key.name === "c" && onInterrupt) {
-          onInterrupt()
+        const navigate = navigationCallback(key, onEscape, onInterrupt)
+        if (navigate) {
+          navigate()
           return
         }
-        if (key.name === "escape" && onEscape) {
-          onEscape()
-          return
-        }
-        Queue.offerUnsafe(queue, {
-          input: Option.fromUndefinedOr(input),
-          key: {
-            name: key.name === "escape" ? "c" : (key.name ?? ""),
-            ctrl: key.name === "escape" || !!key.ctrl,
-            meta: !!key.meta,
-            shift: !!key.shift
-          }
-        })
-        if (key.name === "escape" || (key.ctrl && (key.name === "c" || key.name === "d"))) Queue.endUnsafe(queue)
+        Queue.offerUnsafe(queue, { input: Option.fromUndefinedOr(input), key: terminalKey(key) })
+        if (exitsInput(key)) Queue.endUnsafe(queue)
       }
       const end = () => Queue.endUnsafe(queue)
       yield* Effect.addFinalizer(() =>

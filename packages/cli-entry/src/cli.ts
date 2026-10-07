@@ -1202,31 +1202,32 @@ const reportUpdateFailure = (host: SetupClient, cause: unknown): void => {
   process.exitCode = 6
 }
 const updateInteractive = Effect.fn("InteractiveUpdate.run")(function* () {
-  const { registeredClients, invokeLifecycle, activatePackage } = yield* Effect.promise(
-    () => import("@hapsland/administration/onboarding/client-lifecycle")
+  const { updateClients, updateOwnerLayer } = yield* Effect.promise(
+    () => import("@hapsland/administration/onboarding/update")
   )
-  const { askConfirmation } = yield* Effect.promise(() => import("@hapsland/administration/onboarding/confirmation"))
-  const { updateClients } = yield* Effect.promise(() => import("@hapsland/administration/onboarding/update"))
-  return yield* updateClients(
-    {
-      terminal: Boolean(process.stdin.isTTY && process.stderr.isTTY),
-      host: explicitUpdateHost(),
-      flags: clientArguments?.flags ?? new Map(),
-      environment: process.env
-    },
-    {
-      fields: hostFields,
-      registered: registeredClients,
-      target: updateExecutable(),
-      invoke: (executable, host, request, environment) =>
-        invokeLifecycle(executable, [`--${request.operation}`], host, request, environment),
-      activate: activatePackage,
-      confirm: askConfirmation,
-      write: (text) => {
-        process.stderr.write(text)
-      },
-      reportFailure: reportUpdateFailure
-    }
+  const { withInteractionSession } = yield* Effect.promise(
+    () => import("@hapsland/administration/interaction/interaction-session")
+  )
+  const { InteractionService } = yield* Effect.promise(() => import("@hapsland/administration/interaction/interaction"))
+  return yield* withInteractionSession(
+    (interaction) =>
+      updateClients({
+        terminal: true,
+        host: explicitUpdateHost(),
+        reportFailure: (host, cause) => Effect.sync(() => reportUpdateFailure(host, cause))
+      }).pipe(
+        Effect.provideService(InteractionService, interaction),
+        Effect.provide(
+          updateOwnerLayer({
+            flags: clientArguments?.flags ?? new Map(),
+            environment: process.env,
+            target: updateExecutable()
+          })
+        )
+      ),
+    Effect.sync(() => {
+      process.exitCode = 130
+    })
   )
 })
 

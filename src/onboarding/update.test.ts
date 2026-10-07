@@ -1,208 +1,285 @@
-import { profileFields } from "@hapsland/administration/onboarding/client-command"
-import * as Effect from "effect/Effect"
+import { Deferred, Effect, Fiber } from "effect"
 import { expect, it, vi } from "vitest"
-import { updateClients, type UpdateOptions, type UpdatePorts } from "@hapsland/administration/onboarding/update"
-import { type invokeLifecycle } from "@hapsland/administration/onboarding/client-lifecycle"
+import {
+  updateClients,
+  UpdateOwnerService,
+  type UpdateOwner,
+  type UpdateTransition
+} from "@hapsland/administration/onboarding/update"
+import { initialUpdate, reduceUpdate } from "@hapsland/administration/onboarding/update-model"
+import { InteractionService } from "@hapsland/administration/interaction/interaction"
+import { scriptedInteraction, type ScriptStep } from "@hapsland/build-tooling/test-support/scripted-interaction"
 import type { SetupClient } from "@hapsland/administration/onboarding/client-selection"
 
-type Result = Effect.Success<ReturnType<typeof invokeLifecycle>>
+type Result = Effect.Success<ReturnType<UpdateOwner["preview"]>>
 const digest = "a".repeat(64)
+const otherDigest = "b".repeat(64)
 const preview: Result = { status: "preview", proposal: { digest, changes: ["owned hook"] } }
 const fixture = (
   settings: {
     hosts?: SetupClient[]
     discoveryFailure?: boolean
-    responses?: Partial<Record<SetupClient, Effect.Effect<Result, unknown>[]>>
-    confirmation?: Effect.Effect<boolean, unknown>
+    previews?: Partial<Record<SetupClient, Effect.Effect<Result, unknown>>>
+    applies?: Partial<Record<SetupClient, Effect.Effect<Result, unknown>>>
+    steps?: ScriptStep[]
     activation?: Effect.Effect<void, unknown>
     target?: Effect.Effect<string, unknown>
   } = {}
 ) => {
-  const output: string[] = []
-  const failures: Array<{ host: SetupClient; cause: unknown }> = []
-  const activations: string[] = []
-  const targetRuns: string[] = []
-  const responses = {
-    pi: [Effect.succeed(preview), Effect.succeed({ status: "complete" })],
-    claude: [...(settings.responses?.claude ?? [Effect.succeed(preview), Effect.succeed({ status: "updated" })])],
-    codex: [...(settings.responses?.codex ?? [Effect.succeed(preview), Effect.succeed({ status: "complete" })])]
-  }
-  const options: UpdateOptions = {
-    terminal: true,
-    host: undefined,
-    flags: new Map(),
-    environment: {
-      PATH: "/bin",
-      TYPESAFE_API_KEY: "private-test-key",
-      REVIEW_INSTALL_RUNTIME: "old-runtime",
-      REVIEW_INSTALL_ENTRYPOINT: "old-entry"
-    }
-  }
-  const ports: UpdatePorts = {
-    fields: (host) => profileFields(host, new Map([[`--${host}-home`, `/profiles/${host}`]])),
-    registered: vi.fn<UpdatePorts["registered"]>((_flags, reportFailure) => {
-      if (settings.discoveryFailure) reportFailure("claude", new Error("registration unreadable"))
-      return settings.hosts ?? ["claude", "codex"]
+  const script = scriptedInteraction(
+    settings.steps ?? [
+      { kind: "choose", index: 0 },
+      { kind: "confirm", line: "y" }
+    ]
+  )
+  const calls: string[] = []
+  const failures: { host: SetupClient; cause: unknown }[] = []
+  const transitions: UpdateTransition[] = []
+  const owner: UpdateOwner = {
+    discover: Effect.sync(() => {
+      calls.push("discover")
+      return {
+        hosts: settings.hosts ?? ["claude", "codex"],
+        failures: settings.discoveryFailure
+          ? [{ host: "claude" as const, cause: new Error("registration unreadable") }]
+          : []
+      }
     }),
     target: Effect.sync(() => {
-      targetRuns.push("target")
+      calls.push("target")
     }).pipe(Effect.andThen(settings.target ?? Effect.succeed("/verified/hapsland"))),
-    invoke: vi.fn<UpdatePorts["invoke"]>(
-      (_executable, host) => responses[host].shift() ?? Effect.fail(new Error("unexpected invocation"))
-    ),
-    activate: (executable) =>
+    preview: vi.fn((_, host: SetupClient) =>
       Effect.sync(() => {
-        activations.push(executable)
-      }).pipe(Effect.andThen(settings.activation ?? Effect.void)),
-    confirm: vi.fn(() => settings.confirmation ?? Effect.succeed(true)),
-    write: (text) => output.push(text),
-    reportFailure: (host, cause) => failures.push({ host, cause })
+        calls.push(`preview:${host}`)
+      }).pipe(
+        Effect.andThen(
+          settings.previews?.[host] ??
+            Effect.succeed(
+              host === "codex" ? { ...preview, proposal: { ...preview.proposal!, digest: otherDigest } } : preview
+            )
+        )
+      )
+    ),
+    apply: vi.fn((_, host: SetupClient, approved: string) =>
+      Effect.sync(() => {
+        calls.push(`apply:${host}:${approved}`)
+      }).pipe(Effect.andThen(settings.applies?.[host] ?? Effect.succeed({ status: "updated" })))
+    ),
+    activate: () =>
+      Effect.sync(() => {
+        calls.push("activate")
+      }).pipe(Effect.andThen(settings.activation ?? Effect.void))
   }
-  return { options, ports, output, failures, activations, targetRuns }
-}
-
-it("previews both clients before one approval and applies their respective frozen digests", async () => {
-  const f = fixture()
-  await Effect.runPromise(updateClients(f.options, f.ports))
-  expect(f.ports.invoke).toHaveBeenCalledTimes(4)
-  const calls = vi.mocked(f.ports.invoke).mock.calls
-  expect(calls.map((call) => `${call[1]}:${call[2].operation}`)).toEqual([
-    "claude:update-preview",
-    "codex:update-preview",
-    "claude:update",
-    "codex:update"
-  ])
-  expect(calls[2]?.[2]).toMatchObject({ version: 1, host: "claude", proposalDigest: digest })
-  expect(calls[3]?.[2]).toMatchObject({ version: 1, host: "codex", proposalDigest: digest })
-  expect(calls[0]?.[3]).toEqual({ PATH: "/bin", TYPESAFE_API_KEY: "private-test-key" })
-  expect(f.options.environment.REVIEW_INSTALL_RUNTIME).toBe("old-runtime")
-  expect(f.ports.confirm).toHaveBeenCalledOnce()
-  expect(f.activations).toEqual(["/verified/hapsland", "/verified/hapsland"])
-  expect(f.failures).toEqual([])
-  expect(f.output.join("")).toContain("[OK] claude update: updated.")
-  expect(f.output.join("")).not.toContain("private-test-key")
-})
-
-it("updates an explicitly selected client without registration discovery", async () => {
-  const f = fixture()
-  await Effect.runPromise(updateClients({ ...f.options, host: "codex" }, f.ports))
-  expect(f.ports.registered).not.toHaveBeenCalled()
-  expect(vi.mocked(f.ports.invoke).mock.calls.map((call) => call[1])).toEqual(["codex", "codex"])
-})
-
-it.each([false, true])(
-  "does not stage a target when registration discovery finds no clients (failure=%s)",
-  async (discoveryFailure) => {
-    const f = fixture({ hosts: [], discoveryFailure })
-    await Effect.runPromise(updateClients(f.options, f.ports))
-    expect(f.targetRuns).toEqual([])
-    expect(f.ports.invoke).not.toHaveBeenCalled()
-    expect(f.ports.confirm).not.toHaveBeenCalled()
-    expect(f.output.join("")).toContain(
-      discoveryFailure ? "Resolve the reported discovery errors" : "Run hapsland setup first"
+  const conversation = (options: { terminal?: boolean; host?: SetupClient } = {}) =>
+    updateClients({
+      terminal: options.terminal ?? true,
+      host: options.host,
+      reportFailure: (host, cause) =>
+        Effect.sync(() => {
+          failures.push({ host, cause })
+        }),
+      observe: (transition) =>
+        Effect.sync(() => {
+          transitions.push(transition)
+        })
+    }).pipe(
+      Effect.provideService(UpdateOwnerService, owner),
+      Effect.provideService(InteractionService, script.interaction)
     )
-    expect(f.failures).toHaveLength(discoveryFailure ? 1 : 0)
-  }
-)
-
-it("requires a terminal before discovering registrations", async () => {
+  const run = (options: { terminal?: boolean; host?: SetupClient } = {}) => Effect.runPromise(conversation(options))
+  return { owner, run, conversation, calls, failures, transitions, script, output: () => script.transcript.join("") }
+}
+it("previews every client before grouped approval and forwards each actual digest once", async () => {
   const f = fixture()
-  await expect(Effect.runPromise(updateClients({ ...f.options, terminal: false }, f.ports))).rejects.toThrow(
-    "needs a terminal"
-  )
-  expect(f.ports.registered).not.toHaveBeenCalled()
-  expect(f.targetRuns).toEqual([])
+  const model = await f.run()
+  expect(f.calls).toEqual([
+    "discover",
+    "target",
+    "preview:claude",
+    "preview:codex",
+    `apply:claude:${digest}`,
+    "activate",
+    `apply:codex:${otherDigest}`,
+    "activate"
+  ])
+  expect(model.agents.map((agent) => agent.outcome)).toEqual(["updated", "updated"])
+  expect(f.transitions.filter((transition) => transition.event.action.kind === "approve")).toHaveLength(1)
+  expect(f.script.remaining()).toBe(0)
+  expect(f.failures).toEqual([])
 })
-
+it("explicit update skips registration discovery", async () => {
+  const f = fixture()
+  await f.run({ host: "codex" })
+  expect(f.calls).not.toContain("discover")
+  expect(f.owner.preview).toHaveBeenCalledOnce()
+})
+it.each([false, true])("no registrations avoid acquiring a target (discovery failure=%s)", async (discoveryFailure) => {
+  const f = fixture({ hosts: [], discoveryFailure, steps: [] })
+  const model = await f.run()
+  expect(f.calls).toEqual(["discover"])
+  expect(model.discoveryFailures).toEqual(discoveryFailure ? ["claude"] : [])
+  expect(f.output()).toContain(discoveryFailure ? "Resolve the reported discovery errors" : "Run hapsland setup first")
+})
+it("nonterminal update refuses before discovery", async () => {
+  const f = fixture()
+  await expect(f.run({ terminal: false })).rejects.toThrow("needs a terminal")
+  expect(f.calls).toEqual([])
+})
 it.each([
-  { status: "preview", alreadyCurrent: true, proposal: { digest, changes: ["owned hook"] } },
+  { ...preview, alreadyCurrent: true },
   { status: "preview", proposal: { digest, changes: [] } }
-] satisfies Result[])("activates an already-current target without approval or apply (%j)", async (result) => {
-  const f = fixture({ hosts: ["claude"], responses: { claude: [Effect.succeed(result)] } })
-  await Effect.runPromise(updateClients(f.options, f.ports))
-  expect(f.ports.invoke).toHaveBeenCalledOnce()
-  expect(f.ports.confirm).not.toHaveBeenCalled()
-  expect(f.activations).toHaveLength(1)
-  expect(f.output.join("")).toContain("[OK] claude update: already current.")
+] satisfies Result[])("current preview activates without approval or mutation (%j)", async (result) => {
+  const f = fixture({ hosts: ["claude"], previews: { claude: Effect.succeed(result) }, steps: [] })
+  const model = await f.run()
+  expect(f.calls).toEqual(["discover", "target", "preview:claude", "activate"])
+  expect(model.agents[0]).toMatchObject({ outcome: "already current", activation: "complete" })
 })
-
 it.each([
   Effect.fail(new Error("preview unavailable")),
   Effect.succeed<Result>({ status: "conflict", proposal: { digest, changes: [] } }),
   Effect.succeed<Result>({ status: "preview" })
-])("reports a rejected preview and still updates the other client", async (response) => {
-  const f = fixture({ responses: { claude: [response] } })
-  await Effect.runPromise(updateClients(f.options, f.ports))
-  expect(f.failures.map((item) => item.host)).toEqual(["claude"])
-  expect(f.output.join("")).toContain("[FAIL] claude update: failed.")
-  expect(f.output.join("")).toContain("[OK] codex update: updated.")
+])("rejected preview does not prevent updating the other client", async (response) => {
+  const f = fixture({ previews: { claude: response } })
+  const model = await f.run()
+  expect(model.agents.map((agent) => agent.outcome)).toEqual(["failed", "updated"])
+  expect(f.failures.map((failure) => failure.host)).toEqual(["claude"])
 })
-
-it("cancels every proposed update after a declined approval", async () => {
-  const f = fixture({ confirmation: Effect.succeed(false) })
-  await Effect.runPromise(updateClients(f.options, f.ports))
-  expect(f.ports.invoke).toHaveBeenCalledTimes(2)
-  expect(f.activations).toEqual([])
-  expect(f.output.join("")).toContain("[INFO] claude update: skipped.")
-  expect(f.output.join("")).toContain("[INFO] codex update: skipped.")
+it("non-y approval skips every proposed mutation", async () => {
+  const f = fixture({
+    steps: [
+      { kind: "choose", index: 0 },
+      { kind: "confirm", line: "yes" }
+    ]
+  })
+  const model = await f.run()
+  expect(f.owner.apply).not.toHaveBeenCalled()
+  expect(model.agents.map((agent) => agent.outcome)).toEqual(["skipped", "skipped"])
 })
-
-it.each(["updated", "complete", "already-current", "partial", "conflict"])(
-  "handles apply status %s with the correct activation and recovery outcome",
+it.each(["updated", "complete", "already-current", "partial", "conflict", "busy", "indeterminate"])(
+  "records apply status %s before deciding activation",
   async (status) => {
-    const f = fixture({
-      hosts: ["claude"],
-      responses: { claude: [Effect.succeed(preview), Effect.succeed({ status })] }
-    })
-    await Effect.runPromise(updateClients(f.options, f.ports))
-    expect(f.activations).toHaveLength(status === "conflict" ? 0 : 1)
-    if (status === "partial") {
-      expect(String(f.failures[0]?.cause)).toContain("hapsland repair claude")
-      expect(f.output.join("")).toContain("[FAIL] claude update: failed.")
-    } else if (status === "conflict") expect(f.failures).toHaveLength(1)
-    else
-      expect(f.output.join("")).toContain(
-        status === "already-current" ? "[OK] claude update: already current." : "[OK] claude update: updated."
-      )
+    const f = fixture({ hosts: ["claude"], applies: { claude: Effect.succeed({ status }) } })
+    const model = await f.run()
+    expect(model.agents[0]?.outcome).toBe(
+      status === "complete"
+        ? "updated"
+        : status === "already-current"
+          ? "already current"
+          : status === "conflict"
+            ? "failed"
+            : status
+    )
+    expect(f.calls.filter((call) => call === "activate")).toHaveLength(
+      ["updated", "complete", "already-current", "partial"].includes(status) ? 1 : 0
+    )
+    if (status === "partial") expect(String(f.failures[0]?.cause)).toContain("hapsland repair claude")
   }
 )
-
-it("accepts a recoverable partial preview for approval", async () => {
-  const f = fixture({
-    hosts: ["claude"],
-    responses: { claude: [Effect.succeed({ ...preview, status: "partial" }), Effect.succeed({ status: "updated" })] }
-  })
-  await Effect.runPromise(updateClients(f.options, f.ports))
-  expect(f.ports.confirm).toHaveBeenCalledOnce()
-  expect(f.failures).toEqual([])
+it("recoverable partial preview can be explicitly approved", async () => {
+  const f = fixture({ hosts: ["claude"], previews: { claude: Effect.succeed({ ...preview, status: "partial" }) } })
+  const model = await f.run()
+  expect(model.agents[0]?.outcome).toBe("updated")
 })
-
-it("reports apply failure independently and continues the second approved client", async () => {
-  const f = fixture({ responses: { claude: [Effect.succeed(preview), Effect.fail(new Error("apply unavailable"))] } })
-  await Effect.runPromise(updateClients(f.options, f.ports))
-  expect(f.failures.map((item) => item.host)).toEqual(["claude"])
-  expect(f.output.join("")).toContain("[OK] codex update: updated.")
+it("apply failure is independent and does not stop the other approved client", async () => {
+  const f = fixture({ applies: { claude: Effect.fail(new Error("apply unavailable")) } })
+  const model = await f.run()
+  expect(model.agents.map((agent) => agent.outcome)).toEqual(["failed", "updated"])
 })
-
 it.each(["current", "partial", "updated"])(
-  "reports activation failure after %s without claiming success",
+  "activation failure retains the observed %s profile result",
   async (stage) => {
     const failure = new Error("activation unavailable")
-    const responses =
-      stage === "current"
-        ? [Effect.succeed<Result>({ ...preview, alreadyCurrent: true })]
-        : [Effect.succeed(preview), Effect.succeed<Result>({ status: stage })]
-    const f = fixture({ hosts: ["claude"], responses: { claude: responses }, activation: Effect.fail(failure) })
-    await Effect.runPromise(updateClients(f.options, f.ports))
-    expect(f.failures).toEqual([{ host: "claude", cause: failure }])
-    expect(f.output.join("")).toContain("[FAIL] claude update: failed.")
+    const f = fixture({
+      hosts: ["claude"],
+      previews: stage === "current" ? { claude: Effect.succeed({ ...preview, alreadyCurrent: true }) } : {},
+      applies: { claude: Effect.succeed({ status: stage }) },
+      activation: Effect.fail(failure),
+      ...(stage === "current" ? { steps: [] } : {})
+    })
+    const model = await f.run()
+    expect(model.agents[0]).toMatchObject({
+      outcome: stage === "current" ? "already current" : stage,
+      activation: "failed"
+    })
+    expect(f.failures.at(-1)).toEqual({ host: "claude", cause: failure })
+    expect(f.output()).toContain("observed profile result above is retained")
+    expect(f.output()).not.toContain("claude update: failed")
   }
 )
+it.each(["back", "eof", "exit"] as const)(
+  "approval %s never writes and retains already-current observations",
+  async (kind) => {
+    const steps: ScriptStep[] = [
+      { kind: "choose", index: 0 },
+      { kind },
+      ...(kind === "back" ? [{ kind: "exit" } as const] : [])
+    ]
+    const f = fixture({ previews: { claude: Effect.succeed({ ...preview, alreadyCurrent: true }) }, steps })
+    const model = await f.run()
+    expect(model.phase).toBe("Cancelled")
+    expect(model.agents[0]?.outcome).toBe("already current")
+    expect(f.owner.apply).not.toHaveBeenCalled()
+  }
+)
+it("target and arbitrary confirmation errors propagate without mutation", async () => {
+  const f = fixture({ target: Effect.fail(new Error("target unavailable")) })
+  await expect(f.run()).rejects.toThrow("target unavailable")
+  expect(f.owner.apply).not.toHaveBeenCalled()
+})
+it("rejects stale, foreign-host and changed-digest approval events", () => {
+  const initial = initialUpdate()
+  expect(
+    reduceUpdate(initial, {
+      revision: 1,
+      action: { kind: "discovered", commandId: 0, hosts: ["claude"], failures: [] }
+    })
+  ).toBe(initial)
+  let model = reduceUpdate(initial, {
+    revision: 0,
+    action: { kind: "discovered", commandId: 0, hosts: ["claude"], failures: [] }
+  })
+  model = reduceUpdate(model, { revision: 1, action: { kind: "targeted", commandId: 1 } })
+  expect(
+    reduceUpdate(model, {
+      revision: 2,
+      action: { kind: "previewed", commandId: 2, host: "codex", result: { kind: "proposal", digest } }
+    })
+  ).toBe(model)
+  model = reduceUpdate(model, {
+    revision: 2,
+    action: { kind: "previewed", commandId: 2, host: "claude", result: { kind: "proposal", digest } }
+  })
+  model = reduceUpdate(model, { revision: 3, action: { kind: "continue" } })
+  expect(
+    reduceUpdate(model, {
+      revision: 4,
+      action: { kind: "approve", yes: true, proposals: [{ host: "claude", digest: otherDigest }] }
+    })
+  ).toBe(model)
+  model = reduceUpdate(model, {
+    revision: 4,
+    action: { kind: "approve", yes: true, proposals: [{ host: "claude", digest }] }
+  })
+  expect(reduceUpdate(model, { revision: 5, action: { kind: "exit" } })).toBe(model)
+})
 
-it.each(["target", "confirmation"])("stops before apply when %s fails", async (stage) => {
-  const failure = new Error(`${stage} unavailable`)
-  const f = fixture(stage === "target" ? { target: Effect.fail(failure) } : { confirmation: Effect.fail(failure) })
-  await expect(Effect.runPromise(updateClients(f.options, f.ports))).rejects.toThrow(`${stage} unavailable`)
-  expect(f.ports.invoke).toHaveBeenCalledTimes(stage === "target" ? 0 : 2)
-  expect(f.activations).toEqual([])
+it("interruption while activating retains the already observed mutation and reports no rollback", async () => {
+  await Effect.runPromise(
+    Effect.scoped(
+      Effect.gen(function* () {
+        const ready = yield* Deferred.make<void>()
+        const f = fixture({
+          hosts: ["claude"],
+          activation: Deferred.succeed(ready, undefined).pipe(Effect.andThen(Effect.never))
+        })
+        const fiber = yield* Effect.forkChild(f.conversation())
+        yield* Deferred.await(ready)
+        yield* Fiber.interrupt(fiber)
+        expect(f.transitions.at(-1)?.after.phase).toBe("Activating")
+        expect(f.transitions.at(-1)?.after.agents[0]?.outcome).toBe("updated")
+        expect(f.output()).toContain("claude update: updated")
+        expect(f.output()).toContain("No rollback is implied")
+      })
+    )
+  )
 })

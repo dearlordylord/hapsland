@@ -31,6 +31,8 @@ const fixture = () => {
   execFileSync("git", ["init", "--quiet", repository])
   const environment = {
     ...process.env,
+    TERM: "xterm",
+    NO_COLOR: "1",
     REVIEW_INSTALL_ENTRYPOINT: createInstallationPackageFixture(root),
     HOME: root,
     TYPESAFE_API_KEY: "interactive-test-key",
@@ -51,21 +53,26 @@ const terminal = async (test: ReturnType<typeof fixture>, args: string[], answer
   let answered = false
   let selectionSent = false
   let confirmationsSent = 0
+  let updateReviewSent = false
+  let updateApprovalSent = false
+  const confirmationAnswers: string[] = []
   child.stdout.on("data", (chunk: Buffer) => {
     output += chunk.toString()
-    if (
-      selection !== undefined &&
-      !selectionSent &&
-      output.includes("Unchecking a client keeps its existing installation.")
-    ) {
+    if (selection !== undefined && !selectionSent && output.includes("Select agents") && output.includes("Esc: Exit")) {
       selectionSent = true
       child.stdin.write(selection)
     }
+    if (args[0] === "update" && !updateReviewSent && output.includes("Review all update previews")) {
+      updateReviewSent = true
+      child.stdin.write("\r")
+    }
     const confirmations = output.match(/\[y\/N\]/g)?.length ?? 0
-    if (confirmations > confirmationsSent) {
+    if (confirmations > confirmationsSent && !(args[0] === "update" && updateApprovalSent)) {
+      if (args[0] === "update") updateApprovalSent = true
       confirmationsSent = confirmations
       answered = true
       const question = output.slice(output.lastIndexOf("\n", output.lastIndexOf("[y/N]")))
+      confirmationAnswers.push(question)
       child.stdin.write(`${question.includes("Verify this key") ? "n" : answer}\n`)
     }
   })
@@ -87,7 +94,7 @@ const terminal = async (test: ReturnType<typeof fixture>, args: string[], answer
     })
   })
   expect(output).not.toContain("interactive-test-key")
-  return { code, output, answered }
+  return { code, output, answered, confirmationAnswers }
 }
 it.skipIf(!terminalAvailable)("declining guided setup leaves Claude settings absent", async () => {
   const test = fixture()
@@ -199,7 +206,7 @@ it.skipIf(!terminalAvailable)(
   async () => {
     const test = fixture()
     const clients = bothClients(test)
-    const result = await terminal(test, ["setup", ...clients.flags], "y", " \x1b[B \r")
+    const result = await terminal(test, ["setup", ...clients.flags], "y", "\x1b[B\x1b[B \x1b[B \r")
     expect(result.code, result.output).toBe(0)
     expect(result.output).toContain("[ ] Claude Code — not installed")
     expect(result.output).toContain("[ ] Codex CLI — not installed")
@@ -228,10 +235,11 @@ it.skipIf(!terminalAvailable)(
     expect(resumed.output.match(/Verify this key with one request/g)).toHaveLength(2)
     expect(readFileSync(join(clients.claudeHome, "settings.json"), "utf8")).toBe(claude)
     expect(readFileSync(join(clients.codexHome, "hooks.json"), "utf8")).toBe(codex)
-    const result = await terminal(test, ["setup", ...clients.flags], "y", " \x1b[B \r")
+    const result = await terminal(test, ["setup", ...clients.flags], "y", "\x1b[B\x1b[B \x1b[B \r\x1b")
     expect(result.code, result.output).toBe(0)
     expect(result.output).toContain("[x] Claude Code — installed")
     expect(result.output).toContain("[x] Codex CLI — installed")
+    expect(result.output).toContain("Select at least one option.")
     expect(result.output).toContain("No clients selected. No changes made.")
     expect(result.answered).toBe(false)
     expect(readFileSync(join(clients.claudeHome, "settings.json"), "utf8")).toBe(claude)
@@ -296,7 +304,7 @@ it.skipIf(!terminalAvailable)(
     expect(requests[3].proposalDigest).toBe("b".repeat(64))
     expect(requests[2].claudeHome).toBe(clients.claudeHome)
     expect(requests[3].codexHome).toBe(clients.codexHome)
-    expect(result.output.match(/\[y\/N\]/g)).toHaveLength(1)
+    expect(result.confirmationAnswers).toHaveLength(1)
     expect(result.output).toContain("[OK] claude update: updated.")
     expect(result.output).toContain("[OK] codex update: updated.")
   }
@@ -345,7 +353,7 @@ else if(args[0]==='install'){
   const result = await terminal(stagedTest, ["update", ...clients.flags], "y")
   expect(result.code, result.output).toBe(0)
   expect(recordedRequests(npmCalls).map((args) => args[0])).toEqual(["view", "install"])
-  expect(result.output.match(/\[y\/N\]/g)).toHaveLength(1)
+  expect(result.confirmationAnswers).toHaveLength(1)
   expect(recordedRequests(target.requests).map((r) => `${r.host}:${r.operation}`)).toEqual([
     "claude:update-preview",
     "codex:update-preview",

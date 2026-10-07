@@ -43,34 +43,50 @@ export const rulesCommand = (model: RulesModel): RulesCommand | undefined => {
     return { kind: "preview", id: model.revision, action: model.action, scope: model.scope }
   if (model.phase === "Applying" && model.plan) return { kind: "apply", id: model.revision, plan: model.plan }
 }
-export function reduceRules(model: RulesModel, event: RulesEvent): RulesModel {
-  if (event.revision !== model.revision || model.phase === "Done" || model.phase === "Cancelled") return model
-  const action = event.action
-  if (action.kind === "exit") return model.phase === "Applying" ? model : move(model, "Cancelled", { plan: undefined })
-  if (action.kind === "back") {
-    if (model.phase === "Preview" || model.phase === "Previewing")
-      return move(model, "Scope", { plan: undefined, outcome: undefined })
-    if (model.phase === "Approval") return move(model, "Preview")
+type Action = RulesEvent["action"]
+const back = (model: RulesModel): RulesModel => {
+  if (["Preview", "Previewing"].includes(model.phase))
+    return move(model, "Scope", { plan: undefined, outcome: undefined })
+  return model.phase === "Approval" ? move(model, "Preview") : model
+}
+const previewed = (model: RulesModel, action: Action): RulesModel => {
+  if (action.kind !== "previewed" || action.plan.scope !== model.scope || action.plan.action !== model.action)
     return model
-  }
-  if (model.phase === "Scope" && action.kind === "scope")
-    return move(model, "Previewing", { scope: action.scope, plan: undefined, outcome: undefined })
+  return move(model, "Preview", { plan: action.plan })
+}
+const approved = (model: RulesModel, action: Action): RulesModel => {
+  if (action.kind !== "approve" || action.digest !== model.plan?.digest) return model
+  return move(model, action.yes ? "Applying" : "Done", action.yes ? {} : { outcome: "declined" })
+}
+const observed = (model: RulesModel, action: Action): RulesModel => {
+  if (action.kind !== "observed") return model
+  return action.outcome === "stale"
+    ? move(model, "Previewing", { plan: undefined, outcome: "stale" })
+    : move(model, "Done", { outcome: action.outcome })
+}
+const terminal = (model: RulesModel) => model
+const transitions: Record<RulesModel["phase"], (model: RulesModel, action: Action) => RulesModel> = {
+  Scope: (model, action) =>
+    action.kind === "scope"
+      ? move(model, "Previewing", { scope: action.scope, plan: undefined, outcome: undefined })
+      : model,
+  Previewing: previewed,
+  Preview: (model, action) => (action.kind === "continue" ? move(model, "Approval") : model),
+  Approval: approved,
+  Applying: observed,
+  Done: terminal,
+  Cancelled: terminal
+}
+export function reduceRules(model: RulesModel, event: RulesEvent): RulesModel {
+  const action = event.action
   if (
-    model.phase === "Previewing" &&
-    action.kind === "previewed" &&
-    action.commandId === model.revision &&
-    action.plan.scope === model.scope &&
-    action.plan.action === model.action
+    event.revision !== model.revision ||
+    ["Done", "Cancelled"].includes(model.phase) ||
+    ("commandId" in action && action.commandId !== model.revision)
   )
-    return move(model, "Preview", { plan: action.plan })
-  if (model.phase === "Preview" && action.kind === "continue") return move(model, "Approval")
-  if (model.phase === "Approval" && action.kind === "approve" && action.digest === model.plan?.digest)
-    return move(model, action.yes ? "Applying" : "Done", action.yes ? {} : { outcome: "declined" })
-  if (model.phase === "Applying" && action.kind === "observed" && action.commandId === model.revision) {
-    if (action.outcome === "stale") return move(model, "Previewing", { plan: undefined, outcome: "stale" })
-    return move(model, "Done", { outcome: action.outcome })
-  }
-  return model
+    return model
+  if (action.kind === "exit") return model.phase === "Applying" ? model : move(model, "Cancelled", { plan: undefined })
+  return action.kind === "back" ? back(model) : transitions[model.phase](model, action)
 }
 export const rulesPreview = (plan: RulePlan): string =>
   `Rule change preview\nAction: ${plan.action}\nScope: ${plan.scope}\nConfiguration: ${plan.configuration}\nRule: ${plan.rule}\n${plan.action === "create" || plan.action === "connect" ? "This will connect the rule. " : ""}The rule will be ${plan.enabled ? "enabled" : "disabled"}.\nApproval digest: ${plan.digest}\nSelection and preview do not authorize writes.`

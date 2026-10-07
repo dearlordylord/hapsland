@@ -1,171 +1,258 @@
+import { Context, Effect, Exit, Layer } from "effect"
 import { formatOutcome, formatStatusOutcome } from "./human-output.ts"
-import type { profileFields } from "./client-command.ts"
-import * as Effect from "effect/Effect"
-import { formatFailure, formatProposal, type invokeLifecycle } from "./client-lifecycle.ts"
+import { profileFields } from "./client-command.ts"
+import {
+  activatePackage,
+  formatFailure,
+  formatProposal,
+  invokeLifecycle,
+  registeredClients
+} from "./client-lifecycle.ts"
 import type { SetupClient } from "./client-selection.ts"
+import { InteractionService } from "../interaction/interaction.ts"
+import {
+  initialUpdate,
+  reduceUpdate,
+  updateCommand,
+  updateProposals,
+  type UpdateCommand,
+  type UpdateEvent,
+  type UpdateModel,
+  type UpdateOutcome
+} from "./update-model.ts"
 
 type LifecycleResult = Effect.Success<ReturnType<typeof invokeLifecycle>>
-type LifecycleProposal = NonNullable<LifecycleResult["proposal"]>
-type UpdateOutcome = "updated" | "already current" | "skipped" | "failed"
-const updateRequest = (
-  fields: ReturnType<typeof profileFields>,
-  operation: "update-preview" | "update",
-  proposalDigest?: string
-) => ({ version: 1 as const, operation, ...fields, ...(proposalDigest === undefined ? {} : { proposalDigest }) })
-export interface UpdatePorts {
-  readonly fields: (host: SetupClient) => ReturnType<typeof profileFields>
-  readonly registered: (
-    flags: ReadonlyMap<string, string>,
-    onError: (host: SetupClient, cause: unknown) => void
-  ) => SetupClient[]
-  readonly target: Effect.Effect<string, unknown>
-  readonly invoke: (
-    executable: string,
-    host: SetupClient,
-    request: ReturnType<typeof updateRequest>,
-    environment: NodeJS.ProcessEnv
-  ) => Effect.Effect<LifecycleResult, unknown>
-  readonly activate: (executable: string) => Effect.Effect<void, unknown>
-  readonly confirm: (question: string) => Effect.Effect<boolean, unknown>
-  readonly write: (text: string) => void
-  readonly reportFailure: (host: SetupClient, cause: unknown) => void
+export interface UpdateOwner {
+  discover: Effect.Effect<{ hosts: SetupClient[]; failures: { host: SetupClient; cause: unknown }[] }, unknown>
+  target: Effect.Effect<string, unknown>
+  preview: (executable: string, host: SetupClient) => Effect.Effect<LifecycleResult, unknown>
+  apply: (executable: string, host: SetupClient, digest: string) => Effect.Effect<LifecycleResult, unknown>
+  activate: (executable: string) => Effect.Effect<void, unknown>
 }
-export interface UpdateOptions {
-  readonly terminal: boolean
-  readonly host: SetupClient | undefined
-  readonly flags: ReadonlyMap<string, string>
-  readonly environment: NodeJS.ProcessEnv
-}
-type UpdateState = {
-  readonly outcomes: Map<SetupClient, UpdateOutcome>
-  readonly proposals: Array<{ host: SetupClient; digest: string }>
-}
-type UpdateFrame = UpdateState & {
-  readonly ports: UpdatePorts
-  readonly executable: string
-  readonly environment: NodeJS.ProcessEnv
-}
-const failedUpdate = (state: UpdateState, ports: UpdatePorts, host: SetupClient, cause: unknown): void => {
-  ports.reportFailure(host, cause)
-  state.outcomes.set(host, "failed")
-}
-const runHostStep = Effect.fn("Update.hostStep")(function* (
-  frame: UpdateFrame,
-  host: SetupClient,
-  step: Effect.Effect<void, unknown>
-) {
-  const result = yield* step.pipe(
-    Effect.catchDefect((cause) => Effect.fail(cause)),
-    Effect.result
-  )
-  if (result._tag === "Failure") failedUpdate(frame, frame.ports, host, result.failure)
-})
-const updateEnvironment = (environment: NodeJS.ProcessEnv): NodeJS.ProcessEnv => {
-  const child = { ...environment }
-  delete child.REVIEW_INSTALL_RUNTIME
-  delete child.REVIEW_INSTALL_ENTRYPOINT
-  return child
-}
-const invokeUpdate = Effect.fn("Update.invoke")(function* (
-  frame: UpdateFrame,
-  host: SetupClient,
-  operation: "update-preview" | "update",
-  digest?: string
-) {
-  const output = yield* frame.ports.invoke(
-    frame.executable,
-    host,
-    updateRequest(frame.ports.fields(host), operation, digest),
-    frame.environment
-  )
-  for (const line of formatProposal(output.proposal)) frame.ports.write(`${line}\n`)
-  return output
-})
-const applicableUpdateProposal = (preview: LifecycleResult): LifecycleProposal => {
-  if (!["preview", "partial"].includes(preview.status) || preview.proposal === undefined)
-    throw new Error("target did not return an applicable update preview")
-  return preview.proposal
-}
-const currentUpdate = (preview: LifecycleResult, proposal: LifecycleProposal): boolean =>
-  preview.alreadyCurrent === true || proposal.changes?.length === 0
-const previewUpdateHost = Effect.fn("Update.previewHost")(function* (frame: UpdateFrame, host: SetupClient) {
-  frame.ports.write(`Preview ${host}:\n`)
-  const preview = yield* invokeUpdate(frame, host, "update-preview")
-  const proposal = applicableUpdateProposal(preview)
-  if (currentUpdate(preview, proposal)) {
-    frame.outcomes.set(host, "already current")
-    yield* frame.ports.activate(frame.executable)
-    return
-  }
-  frame.proposals.push({ host, digest: proposal.digest })
-})
-const applyUpdateHost = Effect.fn("Update.applyHost")(function* (
-  frame: UpdateFrame,
-  proposal: UpdateState["proposals"][number]
-) {
-  const result = yield* invokeUpdate(frame, proposal.host, "update", proposal.digest)
-  if (result.status === "partial") {
-    yield* frame.ports.activate(frame.executable)
-    return yield* Effect.fail(
-      new Error(
-        `${formatFailure(result, proposal.host)} Next: hapsland repair ${proposal.host}. The selected package is retained for recovery.`
-      )
+export class UpdateOwnerService extends Context.Service<UpdateOwnerService, UpdateOwner>()(
+  "@hapsland/administration/UpdateOwner"
+) {}
+// Paths, process environment, target identity and full previews stay in the owner/interpreter.
+export const updateOwnerLayer = (options: {
+  flags: ReadonlyMap<string, string>
+  environment: NodeJS.ProcessEnv
+  target: UpdateOwner["target"]
+}) => {
+  const environment = { ...options.environment }
+  delete environment.REVIEW_INSTALL_RUNTIME
+  delete environment.REVIEW_INSTALL_ENTRYPOINT
+  const invoke = (executable: string, host: SetupClient, operation: "update-preview" | "update", digest?: string) =>
+    invokeLifecycle(
+      executable,
+      [`--${operation}`],
+      host,
+      {
+        version: 1,
+        operation,
+        ...profileFields(host, options.flags),
+        ...(digest === undefined ? {} : { proposalDigest: digest })
+      },
+      environment
     )
-  }
-  if (!["updated", "complete", "already-current"].includes(result.status))
-    return yield* Effect.fail(new Error(formatFailure(result, proposal.host)))
-  frame.outcomes.set(proposal.host, result.status === "already-current" ? "already current" : "updated")
-  yield* frame.ports.activate(frame.executable)
-})
-const applyUpdateProposals = Effect.fn("Update.applyProposals")(function* (frame: UpdateFrame) {
-  if (frame.proposals.length === 0) return
-  const apply = yield* frame.ports.confirm(
-    `Apply these changes to ${frame.proposals.map((proposal) => proposal.host).join(", ")} profiles?`
-  )
-  for (const proposal of frame.proposals) {
-    if (!apply) {
-      frame.outcomes.set(proposal.host, "skipped")
-      continue
-    }
-    yield* runHostStep(frame, proposal.host, applyUpdateHost(frame, proposal))
-  }
-})
-const writeUpdateOutcomes = (frame: UpdateFrame): void => {
-  for (const [host, status] of frame.outcomes) {
-    frame.ports.write(`${formatStatusOutcome(status, `${host} update: ${status}.`)}\n`)
-    if (status === "updated")
-      frame.ports.write(
-        `${formatOutcome("info", `Next: finish current work, restart ${host}, and review native trust prompts. A real review was not verified by update.`)}\n`
-      )
-  }
-  frame.ports.write("Retain previous packages until their hooks and active sessions no longer depend on them.\n")
+  return Layer.succeed(UpdateOwnerService, {
+    discover: Effect.sync(() => {
+      const failures: { host: SetupClient; cause: unknown }[] = []
+      return { hosts: registeredClients(options.flags, (host, cause) => failures.push({ host, cause })), failures }
+    }),
+    target: options.target,
+    preview: (executable, host) => invoke(executable, host, "update-preview"),
+    apply: (executable, host, digest) => invoke(executable, host, "update", digest),
+    activate: activatePackage
+  })
 }
-const updateHosts = (options: UpdateOptions, state: UpdateState, ports: UpdatePorts): SetupClient[] =>
-  options.host === undefined
-    ? ports.registered(options.flags, (host, cause) => failedUpdate(state, ports, host, cause))
-    : [options.host]
-const writeNoUpdateHosts = (state: UpdateState, ports: UpdatePorts): void => {
-  ports.write(
-    state.outcomes.size === 0
-      ? "No Hapsland integrations found. Run hapsland setup first.\n"
-      : "No client registrations could be selected for update. Resolve the reported discovery errors.\n"
-  )
+export type UpdateTransition = { before: UpdateModel; event: UpdateEvent; after: UpdateModel }
+export interface UpdateOptions {
+  terminal: boolean
+  host: SetupClient | undefined
+  reportFailure: (host: SetupClient, cause: unknown) => Effect.Effect<void>
+  observe?: (transition: UpdateTransition) => Effect.Effect<void>
 }
-export const updateClients = Effect.fn("Update.clients")(function* (options: UpdateOptions, ports: UpdatePorts) {
+const applyOutcome = (status: string): Exclude<UpdateOutcome, "skipped"> => {
+  if (status === "complete" || status === "updated") return "updated"
+  if (status === "already-current") return "already current"
+  if (status === "partial" || status === "busy" || status === "indeterminate") return status
+  return "failed"
+}
+type PreviewObservation = Extract<UpdateEvent["action"], { kind: "previewed" }>["result"]
+const previewObservation = (preview: LifecycleResult): PreviewObservation => {
+  if (["preview", "partial"].includes(preview.status) && preview.proposal) {
+    return preview.alreadyCurrent === true || preview.proposal.changes?.length === 0
+      ? { kind: "current" }
+      : { kind: "proposal", digest: preview.proposal.digest }
+  }
+  return { kind: preview.status === "busy" || preview.status === "indeterminate" ? preview.status : "failed" }
+}
+export const updateClients = Effect.fn("Update.clients")(function* (options: UpdateOptions) {
   if (!options.terminal)
     return yield* Effect.fail(
       new Error("Interactive update needs a terminal. Use --update-preview / --update JSON operations for automation.")
     )
-  const state: UpdateState = { outcomes: new Map(), proposals: [] }
-  const hosts = updateHosts(options, state, ports)
-  if (hosts.length === 0) {
-    writeNoUpdateHosts(state, ports)
-    return
-  }
-  ports.write(`Update clients: ${hosts.join(", ")}.\n`)
-  const executable = yield* ports.target
-  const frame: UpdateFrame = { ...state, ports, executable, environment: updateEnvironment(options.environment) }
-  for (const host of hosts) yield* runHostStep(frame, host, previewUpdateHost(frame, host))
-  yield* applyUpdateProposals(frame)
-  writeUpdateOutcomes(frame)
+  const owner = yield* UpdateOwnerService
+  const interaction = yield* InteractionService
+  let model = initialUpdate()
+  let executable: string | undefined
+  const previews = new Map<SetupClient, string>()
+  const dispatch = (action: UpdateEvent["action"]) =>
+    Effect.gen(function* () {
+      const before = model
+      const event = { revision: before.revision, action }
+      model = reduceUpdate(before, event)
+      yield* options.observe?.({ before, event, after: model }) ?? Effect.void
+    })
+  const summary = Effect.suspend(() =>
+    Effect.gen(function* () {
+      for (const agent of model.agents) {
+        yield* interaction.present(
+          `${formatStatusOutcome(agent.outcome ?? "unknown", `${agent.host} update: ${agent.outcome ?? "outcome not observed"}.`)}\n`
+        )
+        if (agent.activation === "failed")
+          yield* interaction.present(
+            `${formatOutcome("error", `${agent.host}: package activation failed; the observed profile result above is retained. Keep the selected package and retry update.`)}\n`
+          )
+        if (agent.outcome === "updated")
+          yield* interaction.present(
+            `${formatOutcome("info", `Next: finish current work, restart ${agent.host}, and review native trust prompts. A real review was not verified by update.`)}\n`
+          )
+      }
+      yield* interaction.present(
+        "Retain previous packages until their hooks and active sessions no longer depend on them.\n"
+      )
+    })
+  )
+  const discover = Effect.fn("Update.discover")(function* (command: Extract<UpdateCommand, { kind: "discover" }>) {
+    const found = options.host === undefined ? yield* owner.discover : { hosts: [options.host], failures: [] }
+    for (const failure of found.failures) yield* options.reportFailure(failure.host, failure.cause)
+    yield* dispatch({
+      kind: "discovered",
+      commandId: command.id,
+      hosts: found.hosts,
+      failures: found.failures.map((failure) => failure.host)
+    })
+    if (found.hosts.length) yield* interaction.present(`Update clients: ${found.hosts.join(", ")}.\n`)
+    else
+      yield* interaction.present(
+        found.failures.length
+          ? "No client registrations could be selected for update. Resolve the reported discovery errors.\n"
+          : "No Hapsland integrations found. Run hapsland setup first.\n"
+      )
+  })
+  const preview = Effect.fn("Update.preview")(function* (
+    command: Extract<UpdateCommand, { kind: "preview" }>,
+    target: string
+  ) {
+    yield* interaction.present(`Preview ${command.host}:\n`)
+    const result = yield* owner.preview(target, command.host).pipe(Effect.result)
+    if (result._tag === "Failure") {
+      yield* dispatch({ kind: "previewed", commandId: command.id, host: command.host, result: { kind: "failed" } })
+      yield* options.reportFailure(command.host, result.failure)
+      return
+    }
+    const observation = previewObservation(result.success)
+    const text = formatProposal(result.success.proposal).join("\n")
+    previews.set(command.host, text)
+    yield* interaction.present(text + "\n")
+    yield* dispatch({ kind: "previewed", commandId: command.id, host: command.host, result: observation })
+    if (["failed", "busy", "indeterminate"].includes(observation.kind))
+      yield* options.reportFailure(command.host, new Error(formatFailure(result.success, command.host)))
+  })
+  const apply = Effect.fn("Update.apply")(function* (
+    command: Extract<UpdateCommand, { kind: "apply" }>,
+    target: string
+  ) {
+    const result = yield* owner.apply(target, command.host, command.digest).pipe(Effect.result)
+    const outcome = result._tag === "Failure" ? "failed" : applyOutcome(result.success.status)
+    // Retain observation before reporting or activation can fail/interruption arrive.
+    yield* dispatch({ kind: "observed", commandId: command.id, host: command.host, outcome })
+    if (outcome === "partial")
+      yield* options.reportFailure(
+        command.host,
+        new Error(`Next: hapsland repair ${command.host}. The selected package is retained for recovery.`)
+      )
+    else if (["failed", "busy", "indeterminate"].includes(outcome))
+      yield* options.reportFailure(
+        command.host,
+        result._tag === "Failure" ? result.failure : new Error(formatFailure(result.success, command.host))
+      )
+  })
+  const activate = Effect.fn("Update.activate")(function* (
+    command: Extract<UpdateCommand, { kind: "activate" }>,
+    target: string
+  ) {
+    const result = yield* owner.activate(target).pipe(Effect.result)
+    yield* dispatch({
+      kind: "activated",
+      commandId: command.id,
+      host: command.host,
+      result: result._tag === "Failure" ? "failed" : "complete"
+    })
+    if (result._tag === "Failure") yield* options.reportFailure(command.host, result.failure)
+  })
+  const runCommand = Effect.fn("Update.command")(function* (command: UpdateCommand) {
+    if (command.kind === "discover") return yield* discover(command)
+    if (command.kind === "target") {
+      executable = yield* owner.target
+      return yield* dispatch({ kind: "targeted", commandId: command.id })
+    }
+    if (executable === undefined) return yield* Effect.die(new Error("Update target was not acquired"))
+    if (command.kind === "preview") return yield* preview(command, executable)
+    if (command.kind === "apply") return yield* apply(command, executable)
+    return yield* activate(command, executable)
+  })
+  const input = Effect.fn("Update.input")(function* () {
+    const proposed = updateProposals(model)
+    const preview = proposed
+      .map((item) => `${item.host}:\n${previews.get(item.host) ?? ""}\nApproval digest: ${item.digest}`)
+      .join("\n\n")
+    const prompt =
+      model.phase === "Review"
+        ? interaction
+            .choose({
+              message: "Review all update previews",
+              choices: [{ title: "Continue to grouped approval", value: "continue" as const }],
+              back: false
+            })
+            .pipe(
+              Effect.map((answer): UpdateEvent["action"] =>
+                answer.kind === "selected" ? { kind: "continue" } : { kind: answer.kind }
+              )
+            )
+        : interaction
+            .confirm({
+              message: `Apply these changes to ${proposed.map((item) => item.host).join(", ")} profiles?`,
+              preview,
+              back: true
+            })
+            .pipe(
+              Effect.map((answer): UpdateEvent["action"] =>
+                answer.kind === "confirmed"
+                  ? { kind: "approve", yes: answer.yes, proposals: proposed }
+                  : { kind: answer.kind }
+              )
+            )
+    yield* dispatch(
+      yield* prompt.pipe(Effect.catchTag("QuitError", () => Effect.succeed<UpdateEvent["action"]>({ kind: "exit" })))
+    )
+  })
+  return yield* Effect.gen(function* () {
+    while (model.phase !== "Done" && model.phase !== "Cancelled") {
+      const command = updateCommand(model)
+      if (command) yield* runCommand(command)
+      else yield* input()
+    }
+    yield* summary
+    return model
+  }).pipe(
+    Effect.onExit((exit) =>
+      Exit.isFailure(exit)
+        ? summary.pipe(
+            Effect.andThen(interaction.present(`Update stopped in ${model.phase}. No rollback is implied.\n`))
+          )
+        : Effect.void
+    )
+  )
 })

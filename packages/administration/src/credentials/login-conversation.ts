@@ -45,44 +45,46 @@ export const runLoginConversation = Effect.fn("Login.run")(function* <R>(options
     })
   let value: string | undefined
   let outcome: LoginOutcome | undefined
-  return yield* Effect.gen(function* () {
-    for (let command = loginCommand(model); command; command = loginCommand(model)) {
-      if (command.kind === "probe") {
-        const status = yield* owner.probe
-        if (status !== "available") outcome = { kind: "unavailable", status }
-        yield* dispatch({ kind: "checked", commandId: command.id, status })
-      } else if (command.kind === "input") {
-        const entered = yield* options.input.pipe(
-          Effect.map((input) => {
-            value = input
-            return true
-          }),
-          Effect.catchIf(
-            (error) =>
-              error instanceof Terminal.QuitError ||
-              (error instanceof MaskedInputError && error.reason === "cancelled"),
-            () => Effect.succeed(false)
-          )
-        )
-        if (!entered) outcome = { kind: "cancelled" }
-        yield* dispatch({ kind: entered ? "entered" : "input-ended", commandId: command.id })
-      } else {
-        if (value === undefined) return yield* Effect.die(new Error("Login save requires private credential input"))
-        const result = yield* owner.save(value)
-        value = undefined
-        outcome = { kind: "observed", result }
-        yield* dispatch({
-          kind: "observed",
-          commandId: command.id,
-          storage: {
-            status: result.status,
-            generation: result.state.generation,
-            stateLock: result.stateLock,
-            savedUse: result.state.savedUseSuspended ? "suspended" : "active"
-          }
-        })
+  const probe = Effect.fn("Login.probe")(function* (id: number) {
+    const status = yield* owner.probe
+    if (status !== "available") outcome = { kind: "unavailable", status }
+    yield* dispatch({ kind: "checked", commandId: id, status })
+  })
+  const input = Effect.fn("Login.input")(function* (id: number) {
+    const entered = yield* options.input.pipe(
+      Effect.map((input) => {
+        value = input
+        return true
+      }),
+      Effect.catchIf(
+        (error) =>
+          error instanceof Terminal.QuitError || (error instanceof MaskedInputError && error.reason === "cancelled"),
+        () => Effect.succeed(false)
+      )
+    )
+    if (!entered) outcome = { kind: "cancelled" }
+    yield* dispatch({ kind: entered ? "entered" : "input-ended", commandId: id })
+  })
+  const save = Effect.fn("Login.save")(function* (id: number) {
+    if (value === undefined) return yield* Effect.die(new Error("Login save requires private credential input"))
+    const result = yield* owner.save(value)
+    value = undefined
+    outcome = { kind: "observed", result }
+    yield* dispatch({
+      kind: "observed",
+      commandId: id,
+      storage: {
+        status: result.status,
+        generation: result.state.generation,
+        stateLock: result.stateLock,
+        savedUse: result.state.savedUseSuspended ? "suspended" : "active"
       }
-    }
+    })
+  })
+  const commands = { probe, input, save }
+  return yield* Effect.gen(function* () {
+    for (let command = loginCommand(model); command; command = loginCommand(model))
+      yield* commands[command.kind](command.id)
     if (outcome === undefined) return yield* Effect.die(new Error("Login ended without an owner or input outcome"))
     return { model, outcome }
   }).pipe(

@@ -35,26 +35,36 @@ export const loginCommand = (model: LoginModel): LoginCommand | undefined => {
   if (model.phase === "SavingKey") return { kind: "save", id: model.revision }
   return undefined
 }
+const move = (model: LoginModel, phase: LoginModel["phase"], patch: Partial<LoginModel> = {}): LoginModel => ({
+  ...model,
+  ...patch,
+  phase,
+  revision: model.revision + 1
+})
+const terminal = (model: LoginModel) => model
+const transitions: Record<LoginModel["phase"], (model: LoginModel, action: LoginAction) => LoginModel> = {
+  CheckingStore: (model, action) =>
+    action.kind === "checked"
+      ? move(model, action.status === "available" ? "EnteringKey" : "Done", { availability: action.status })
+      : model,
+  EnteringKey: (model, action) =>
+    action.kind === "entered"
+      ? move(model, "SavingKey")
+      : action.kind === "input-ended"
+        ? move(model, "Cancelled")
+        : model,
+  SavingKey: (model, action) => (action.kind === "observed" ? move(model, "Done", { storage: action.storage }) : model),
+  Done: terminal,
+  Cancelled: terminal
+}
 export function reduceLogin(model: LoginModel, event: LoginEvent): LoginModel {
   const action = event.action
   if (
     event.revision !== model.revision ||
-    model.phase === "Done" ||
-    model.phase === "Cancelled" ||
+    ["Done", "Cancelled"].includes(model.phase) ||
     ("commandId" in action && action.commandId !== model.revision)
   )
     return model
-  const move = (phase: LoginModel["phase"], patch: Partial<LoginModel> = {}): LoginModel => ({
-    ...model,
-    ...patch,
-    phase,
-    revision: model.revision + 1
-  })
-  if (action.kind === "exit") return model.phase === "SavingKey" ? model : move("Cancelled")
-  if (model.phase === "CheckingStore" && action.kind === "checked")
-    return move(action.status === "available" ? "EnteringKey" : "Done", { availability: action.status })
-  if (model.phase === "EnteringKey" && action.kind === "input-ended") return move("Cancelled")
-  if (model.phase === "EnteringKey" && action.kind === "entered") return move("SavingKey")
-  if (model.phase === "SavingKey" && action.kind === "observed") return move("Done", { storage: action.storage })
-  return model
+  if (action.kind === "exit") return model.phase === "SavingKey" ? model : move(model, "Cancelled")
+  return transitions[model.phase](model, action)
 }
