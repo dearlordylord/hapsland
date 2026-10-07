@@ -414,7 +414,7 @@ export async function createRun({
       record.groupUnresolved = groupAlive()
       spawnError ??= "Child process group outlived its leader and was terminated"
     }
-    const buildOwnership = await unresolvedBuildOwnership(root)
+    const buildOwnership = await unresolvedBuildOwnership(root, { enclosingToken: env.HAPSLAND_BUILD_LOCK_LEASE })
     if (buildOwnership) {
       record.groupUnresolved = true
       spawnError ??= buildOwnership

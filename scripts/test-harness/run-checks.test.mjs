@@ -7,12 +7,25 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { createRun, stageResults, runQualityStages, focusedSelection } from "./run-checks.mjs"
+import { withBuildLock } from "../build-lock.mjs"
 
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), "hapsland-checks-"))
   t.after(() => rm(root, { recursive: true, force: true }))
   return root
 }
+test("a stage inside its authenticated checkout lease passes before the enclosing transaction releases ownership", async (t) => {
+  const root = await fixture(t)
+  const run = await createRun({ root, mode: "focused", timeoutMs: 10000, output() {} })
+  await withBuildLock(root, async (env) => {
+    const stage = await run.runStage({ ...command("owned-child", "process.exit(0)"), env })
+    assert.equal(stage.state, "passed")
+    assert.equal(stage.groupUnresolved, undefined)
+    assert.equal(JSON.parse(await readFile(join(root, ".test-runs/product-build/lease.json"))).state, "open")
+  })
+  assert.equal(await run.finish(), 0)
+  await assert.rejects(readFile(join(root, ".test-runs/product-build/lease.json")), /ENOENT/)
+})
 // Temporary fixture runs are independent of the harness running this test.
 // Tests of nesting explicitly supply their own authenticated context instead.
 const fixtureEnvironment = () => {
