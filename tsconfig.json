@@ -11,6 +11,8 @@
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
     "noEmit": true,
+    "incremental": true,
+    "tsBuildInfoFile": ".test-runs/root-typecheck.tsbuildinfo",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true
   },
