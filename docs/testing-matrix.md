@@ -691,12 +691,21 @@ When selected, the full Hapsland gate still requires strict fresh coverage.
 Full runs prepare one fresh production archive before installed tests. The
 [archive preparation](../scripts/test-harness/prepare-archive.mjs) records source
 and archive digests and rejects verification-input changes during preparation;
-the input scope is maintained in that module: source, scripts, workspace
+the input scope is maintained in [source identity](../scripts/test-harness/source-identity.mjs): source, scripts, workspace
 packages, native/build assets, schemas, vendored dependencies and test fixtures;
 root build/test manifests and configuration; and paths shipped by `package.json`
 `files`. New, dirty and deleted files inside that scope remain inputs. Unrelated
 research/specification documents (including `quint-specs/quint.lock`) do not
-invalidate a run. Update the scope when a new build/test input root is adopted. The same
+invalidate a run. Full and profile runs observe the same per-path input identities
+before each child stage, during long stages, and freshly at finish. Observations within a run do not overlap; unchanged regular-file metadata permits
+hash reuse. Each input tree uses up to eight workers. Incremental and final scans
+have a 30-second deadline capped by the run deadline; baseline uses the run deadline.
+Background polls pause at least one second and adapt toward 10% duty. Symlink
+targets and submodule contents remain inputs.
+A changed path aborts the active process group and blocks subsequent stages;
+completed results and changed-path failure evidence remain in the run record.
+The exclusive lock remains held while process groups are still present.
+Update the scope when a new build/test input root is adopted. The same
 archive supplies all installed fixtures. This is reuse within one run, not a
 cross-candidate build cache. Focused installed diagnostics may explicitly supply
 `HAPSLAND_TEST_PACKAGE_ARCHIVE`; name its provenance and do not treat an older

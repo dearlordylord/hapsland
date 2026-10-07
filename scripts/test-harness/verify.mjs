@@ -4,7 +4,6 @@ import { join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { createRun, focusedSelection, runSelectedTests, main as runChecks } from "./run-checks.mjs"
 import { resolveVerificationPlan } from "./verification-plan.mjs"
-import { sourceIdentity } from "./source-identity.mjs"
 import { requiredTestArtifacts } from "./inventory.mjs"
 import { prepareArchive } from "./prepare-archive.mjs"
 
@@ -40,7 +39,7 @@ export async function verify(argv, root = resolve(import.meta.dirname, "../.."))
   })
   let archive, piPreflight
   try {
-    const digest = await sourceIdentity(root, undefined, undefined, { deadline: run.context.deadline })
+    const digest = await run.observeInputs()
     const manifestPath = join(run.runDirectory, "manifest.json")
     await writeFile(
       manifestPath,
@@ -101,8 +100,6 @@ export async function verify(argv, root = resolve(import.meta.dirname, "../.."))
         selection,
         archive ? { HAPSLAND_TEST_PACKAGE_ARCHIVE: archive.archivePath } : {}
       )
-    if ((await sourceIdentity(root, undefined, undefined, { deadline: run.context.deadline })) !== digest)
-      throw new Error("Verification inputs changed during the run")
   } catch (error) {
     await run.recordFailedStage({ name: "verification", error })
   }

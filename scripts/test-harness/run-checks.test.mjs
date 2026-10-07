@@ -1,4 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process"
+import { writeFileSync } from "node:fs"
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import { mkdtemp, mkdir, writeFile, readFile, rm, chmod, symlink } from "node:fs/promises"
@@ -422,4 +423,231 @@ test("surviving product ownership fails the stage and retains the enclosing full
   assert.equal(await run.finish(), 1)
   assert.ok(await readFile(join(root, ".test-runs/full.lock"), "utf8"))
   assert.ok(await readFile(join(directory, "lease.json"), "utf8"))
+})
+
+const waitForFile = async (path) => {
+  const deadline = Date.now() + 5000
+  while (Date.now() < deadline) {
+    try {
+      return await readFile(path, "utf8")
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error
+    }
+    await new Promise((done) => setTimeout(done, 10))
+  }
+  throw new Error(`Fixture readiness deadline: ${path}`)
+}
+
+test("verification mutation cancels a long child, keeps completed evidence and admits no later stage", async (t) => {
+  const root = await fixture(t)
+  execFileSync("git", ["init", "-q", root])
+  await mkdir(join(root, "src"))
+  await writeFile(join(root, "src/input.ts"), "before")
+  const run = await createRun({ root, mode: "test", timeoutMs: 10000, output() {} })
+  await run.observeInputs()
+  await run.runStage(command("completed", "process.exit(0)"))
+  const ready = join(root, ".test-runs", "ready")
+  const child = run.runStage(
+    command("long", `require('node:fs').writeFileSync(${JSON.stringify(ready)}, 'ready'); setInterval(()=>{}, 1000)`)
+  )
+  await waitForFile(ready)
+  await writeFile(join(root, "src/input.ts"), "after")
+  const result = await child
+  assert.equal(result.state, "failed")
+  assert.equal(result.timedOut, false)
+  assert.equal((await run.runStage(command("later", "process.exit(0)"))).state, "not-started")
+  assert.equal(await run.finish(), 1)
+  const records = JSON.parse(await readFile(join(run.runDirectory, "results.json"), "utf8"))
+  assert.equal(records.stages.find((stage) => stage.name === "completed").state, "passed")
+  assert.match(records.reason, /src\/input.ts/)
+  assert.equal(records.stages.find((stage) => stage.name === "long").signal, "SIGTERM")
+})
+
+test("unrelated documents during a long stage do not invalidate verification", async (t) => {
+  const root = await fixture(t)
+  execFileSync("git", ["init", "-q", root])
+  await mkdir(join(root, "src"))
+  await writeFile(join(root, "src/input.ts"), "unchanged")
+  const run = await createRun({ root, mode: "test", timeoutMs: 10000, output() {} })
+  await run.observeInputs()
+  const ready = join(root, ".test-runs", "ready"),
+    release = join(root, ".test-runs", "release")
+  const child = run.runStage(
+    command(
+      "long",
+      `const fs=require('node:fs'); fs.writeFileSync(${JSON.stringify(ready)}, 'ready'); const timer=setInterval(()=>{if(fs.existsSync(${JSON.stringify(release)})){clearInterval(timer)}}, 10)`
+    )
+  )
+  await waitForFile(ready)
+  await mkdir(join(root, "quint-specs"))
+  await writeFile(join(root, "quint-specs/quint.lock"), "parallel survey")
+  await mkdir(join(root, "docs"))
+  await writeFile(join(root, "docs/research.md"), "unrelated")
+  await new Promise((done) => setTimeout(done, 1300)) // Exercise the observer while the unrelated edit and child coexist.
+  await writeFile(release, "done")
+  assert.equal((await child).state, "passed")
+  assert.equal((await run.runStage(command("later", "process.exit(0)"))).state, "passed")
+  assert.equal(await run.finish(), 0)
+})
+
+for (const mutation of ["addition", "deletion"]) {
+  test(`relevant ${mutation} between stages blocks admission`, async (t) => {
+    const root = await fixture(t)
+    execFileSync("git", ["init", "-q", root])
+    await mkdir(join(root, "src"))
+    await writeFile(join(root, "src/input.ts"), "before")
+    execFileSync("git", ["-C", root, "add", "."])
+    const run = await createRun({ root, mode: "test", timeoutMs: 10000, output() {} })
+    await run.observeInputs()
+    await run.runStage(command("completed", "process.exit(0)"))
+    if (mutation === "addition") await writeFile(join(root, "src/new.ts"), "new")
+    else await rm(join(root, "src/input.ts"))
+    assert.equal((await run.runStage(command("later", "process.exit(0)"))).state, "not-started")
+    assert.equal(await run.finish(), 1)
+    const records = await stageResults(run.runDirectory)
+    assert.deepEqual(records.find((stage) => stage.name === "source-identity").evidence.changedPaths, [
+      mutation === "addition" ? "src/new.ts" : "src/input.ts"
+    ])
+  })
+}
+
+test("invalidated run retains its exclusive lock until the child and descendant stop", async (t) => {
+  const root = await fixture(t)
+  execFileSync("git", ["init", "-q", root])
+  await mkdir(join(root, "src"))
+  await writeFile(join(root, "src/input.ts"), "before")
+  const run = await createRun({ root, mode: "test", timeoutMs: 10000, output() {} })
+  await run.observeInputs()
+  const ready = join(root, ".test-runs", "ready"),
+    stopping = join(root, ".test-runs", "stopping"),
+    release = join(root, ".test-runs", "release")
+  const descendantProgram = `const fs=require('node:fs'); fs.writeFileSync(${JSON.stringify(ready)}, String(process.pid)); process.on('SIGTERM',()=>{fs.writeFileSync(${JSON.stringify(stopping)}, 'stopping'); const poll=setInterval(()=>{if(fs.existsSync(${JSON.stringify(release)}))process.exit(0)},10)});setInterval(()=>{},1000)`
+  const program = `const child=require('node:child_process').spawn(process.execPath,['-e',${JSON.stringify(descendantProgram)}],{stdio:'ignore'}); process.on('SIGTERM',()=>{}); child.on('exit',()=>process.exit(0)); setInterval(()=>{},1000)`
+  const child = run.runStage(command("long", program))
+  const descendantPid = Number(await waitForFile(ready))
+  await writeFile(join(root, "src/input.ts"), "after")
+  await waitForFile(stopping)
+  const lock = JSON.parse(await readFile(join(root, ".test-runs/full.lock"), "utf8"))
+  assert.equal(lock.token, run.context.token)
+  process.kill(descendantPid, 0)
+  await writeFile(release, "exit")
+  assert.equal((await child).state, "failed")
+  assert.throws(() => process.kill(descendantPid, 0), { code: "ESRCH" })
+  assert.equal(await run.finish(), 1)
+  await assert.rejects(readFile(join(root, ".test-runs/full.lock")), { code: "ENOENT" })
+})
+
+test(
+  "cancellation escalates to kill for a child and descendant that ignore termination",
+  { skip: process.platform !== "linux" },
+  async (t) => {
+    const root = await fixture(t)
+    execFileSync("git", ["init", "-q", root])
+    await mkdir(join(root, "src"))
+    await writeFile(join(root, "src/input.ts"), "before")
+    const run = await createRun({ root, mode: "test", timeoutMs: 10000, output() {} })
+    await run.observeInputs()
+    const ready = join(root, ".test-runs", "ready")
+    const descendantProgram = `require('node:fs').writeFileSync(${JSON.stringify(ready)}, String(process.pid));process.on('SIGTERM',()=>{});setInterval(()=>{},1000)`
+    const program = `require('node:child_process').spawn(process.execPath,['-e',${JSON.stringify(descendantProgram)}],{stdio:'ignore'});process.on('SIGTERM',()=>{});setInterval(()=>{},1000)`
+    const child = run.runStage(command("stubborn", program))
+    const pid = Number(await waitForFile(ready))
+    await writeFile(join(root, "src/input.ts"), "after")
+    const result = await child
+    assert.equal(result.signal, "SIGKILL")
+    // An orphan zombie can await the container init's reaper; it executes no work.
+    const descendant = await readFile(`/proc/${pid}/stat`, "utf8").catch((error) => {
+      if (error.code === "ENOENT") return null
+      throw error
+    })
+    if (descendant !== null) assert.match(descendant, /\) Z /)
+    assert.equal(await run.finish(), 1)
+    if (result.groupUnresolved) {
+      const lock = JSON.parse(await readFile(join(root, ".test-runs/full.lock"), "utf8"))
+      assert.equal(lock.token, run.context.token)
+    }
+  }
+)
+
+test("final input identity catches a mutation after the last completed stage", async (t) => {
+  const root = await fixture(t)
+  execFileSync("git", ["init", "-q", root])
+  await mkdir(join(root, "src"))
+  await writeFile(join(root, "src/input.ts"), "before")
+  const run = await createRun({ root, mode: "test", timeoutMs: 10000, output() {} })
+  await run.observeInputs()
+  assert.equal((await run.runStage(command("completed", "process.exit(0)"))).state, "passed")
+  await writeFile(join(root, "src/input.ts"), "after")
+  assert.equal(await run.finish(), 1)
+  const results = JSON.parse(await readFile(join(run.runDirectory, "results.json"), "utf8"))
+  assert.match(results.reason, /src\/input.ts/)
+})
+
+for (const input of ["linked target", "submodule content"]) {
+  test(`observation preserves ${input} identity through cached scans`, async (t) => {
+    const root = await fixture(t)
+    execFileSync("git", ["init", "-q", root])
+    let target, changedPath
+    if (input === "linked target") {
+      const external = await fixture(t)
+      target = join(external, "input.ts")
+      await writeFile(target, "before")
+      await mkdir(join(root, "src"))
+      await symlink(target, join(root, "src/linked.ts"))
+      changedPath = "src/linked.ts"
+    } else {
+      const module = join(root, "vendor/module")
+      await mkdir(module, { recursive: true })
+      execFileSync("git", ["init", "-q", module])
+      target = join(module, "input.ts")
+      await writeFile(target, "before")
+      execFileSync("git", ["-C", module, "add", "."])
+      execFileSync("git", [
+        "-C",
+        module,
+        "-c",
+        "user.name=Fixture",
+        "-c",
+        "user.email=fixture@example.invalid",
+        "commit",
+        "-qm",
+        "initial"
+      ])
+      execFileSync("git", ["-C", root, "add", "vendor/module"], { stdio: "ignore" })
+      changedPath = "vendor/module"
+    }
+    const run = await createRun({ root, mode: "test", timeoutMs: 10000, output() {} })
+    await run.observeInputs()
+    await run.runStage(command("completed", "process.exit(0)"))
+    await writeFile(target, "after")
+    assert.equal((await run.runStage(command("later", "process.exit(0)"))).state, "not-started")
+    assert.equal(await run.finish(), 1)
+    const records = await stageResults(run.runDirectory)
+    assert.deepEqual(records.find((stage) => stage.name === "source-identity").evidence.changedPaths, [changedPath])
+  })
+}
+
+test("input invalidation during stage admission does not launch the child", async (t) => {
+  const root = await fixture(t)
+  execFileSync("git", ["init", "-q", root])
+  await mkdir(join(root, "src"))
+  const input = join(root, "src/input.ts"),
+    launched = join(root, ".test-runs/launched")
+  await writeFile(input, "before")
+  const run = await createRun({
+    root,
+    mode: "test",
+    timeoutMs: 10000,
+    output(message) {
+      if (message.startsWith("START admission;")) writeFileSync(input, "after")
+    }
+  })
+  await run.observeInputs()
+  const stage = await run.runStage(
+    command("admission", `require('node:fs').writeFileSync(${JSON.stringify(launched)}, 'launched')`)
+  )
+  assert.equal(stage.state, "not-started")
+  await assert.rejects(readFile(launched), { code: "ENOENT" })
+  assert.equal(await run.finish(), 1)
+  assert.match(stage.reason, /src\/input.ts/)
 })

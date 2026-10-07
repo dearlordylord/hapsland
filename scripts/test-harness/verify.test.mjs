@@ -57,8 +57,8 @@ test("source changes during checks fail the profile instead of accepting mixed i
   const root = await fixture(t, true)
   assert.equal(await verify(["--profile=fast", "--timeout-ms=10000", "scripts/selected.test.mjs"], root), 1)
   const { result } = await records(root)
-  assert.equal(result.state, "failed")
-  assert.ok(result.stages.some((stage) => stage.name === "verification" && /inputs changed/.test(stage.error)))
+  assert.equal(result.state, "aborted")
+  assert.ok(result.stages.some((stage) => stage.name === "source-identity" && /src\/main.ts/.test(stage.error)))
 })
 test("a deadline during source identification still produces a terminal run record", async (t) => {
   const root = await fixture(t)
@@ -81,9 +81,12 @@ test("source boundary checks run without invoking package preparation", async (t
 
 test("package preparation requirements follow transitive consumer imports", async (t) => {
   const root = await fixture(t)
-  await mkdir(join(root, "src/test-support"))
-  await writeFile(join(root, "src/test-support/test-package.ts"), "export const packageFixture = true")
-  await writeFile(join(root, "src/consumer.ts"), 'export { packageFixture } from "./test-support/test-package.ts"')
+  await mkdir(join(root, "scripts/test-support"))
+  await writeFile(join(root, "scripts/test-support/test-package.ts"), "export const packageFixture = true")
+  await writeFile(
+    join(root, "src/consumer.ts"),
+    'export { packageFixture } from "../scripts/test-support/test-package.ts"'
+  )
   await writeFile(join(root, "scripts/selected.test.mjs"), 'import "../src/consumer.ts"')
   const { requiredTestArtifacts } = await import("./inventory.mjs")
   assert.deepEqual(requiredTestArtifacts(root, ["scripts/selected.test.mjs"]), ["package"])
