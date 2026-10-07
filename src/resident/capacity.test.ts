@@ -6,7 +6,7 @@ import {
   MAX_COLLECTION_TOKEN_IDENTITIES,
   MAX_PARTITION_IDENTITIES,
   encodedBytesWithin
-} from "./capacity.ts"
+} from "@hapsland/resident-runtime/resident/capacity"
 
 describe("resident logical capacity ledger", () => {
   it("keeps reservation metadata private and fences a reused numeric ID", () => {
@@ -135,6 +135,112 @@ describe("resident logical capacity ledger", () => {
     Effect.runSync(ledger.pruneCollectionTokenIds(new Set()))
     expect(Effect.runSync(ledger.collectionTokenIdentityCount())).toBe(0)
     expect(MAX_COLLECTION_TOKEN_IDENTITIES).toBeGreaterThan(1000)
+  })
+
+  it.each(["released", "consumed-and-closed"])(
+    "retains permit-owned advicee identity until its lifecycle ends: %s",
+    (ending) => {
+      const ledger = Effect.runSync(makeResidentState())
+      const partition = Effect.runSync(ledger.partitionId("permit-agent"))
+      const issued = Effect.runSync(
+        ledger.transition({
+          kind: "issuePermit",
+          partition,
+          lifetime: 1,
+          tool: 7,
+          started: 100,
+          deadline: 300,
+          now: 110,
+          minimumStarted: 0,
+          facts: {
+            clockValid: true,
+            hookWindow: 2500,
+            startedUpper: 100,
+            nowLower: 101,
+            adviceePermitLimit: 32,
+            residentPermitLimit: 4096
+          }
+        })
+      ).commands[0]
+      if (issued?.kind !== "permitIssued") throw new Error("fixture permit refused")
+      const pending = Effect.runSync(ledger.canonicalProjection())
+      Effect.runSync(ledger.discardUnusedPartition("permit-agent"))
+      expect(Effect.runSync(ledger.knownPartitionId("permit-agent"))).toBe(partition)
+      expect(Effect.runSync(ledger.canonicalProjection())).toEqual(pending)
+      if (ending === "released") {
+        expect(
+          Effect.runSync(ledger.transition({ kind: "releasePermit", partition, lifetime: 1, token: issued.token }))
+            .rejection
+        ).toBeUndefined()
+      } else {
+        expect(
+          Effect.runSync(
+            ledger.transition({ kind: "consumePermit", partition, lifetime: 1, token: issued.token, tool: 7, now: 120 })
+          ).commands[0]?.kind
+        ).toBe("permitConsumed")
+        const admitted = Effect.runSync(ledger.canonicalProjection())
+        Effect.runSync(ledger.discardUnusedPartition("permit-agent"))
+        expect(Effect.runSync(ledger.knownPartitionId("permit-agent"))).toBe(partition)
+        expect(Effect.runSync(ledger.canonicalProjection())).toEqual(admitted)
+        expect(
+          Effect.runSync(
+            ledger.transition({ kind: "closePermitRound", partition, lifetime: 1, round: issued.round, at: 130 })
+          ).rejection
+        ).toBeUndefined()
+        // Closing admission does not discard the canonical round's retained resources.
+        Effect.runSync(ledger.discardUnusedPartition("permit-agent"))
+        expect(Effect.runSync(ledger.knownPartitionId("permit-agent"))).toBe(partition)
+        expect(
+          Effect.runSync(
+            ledger.transition({ kind: "retirePartition", partition, lifetime: 1, round: issued.round })
+          ).commands.at(-1)?.kind
+        ).toBe("partitionRetired")
+      }
+      Effect.runSync(ledger.discardUnusedPartition("permit-agent"))
+      expect(Effect.runSync(ledger.knownPartitionId("permit-agent"))).toBeUndefined()
+      expect(Effect.runSync(ledger.partitionIdentityBytes())).toBe(0)
+      expect(Effect.runSync(ledger.canonicalProjection()).admissions).toEqual([])
+    }
+  )
+
+  it("retains a canonical background collection owner until its claim is released", () => {
+    const ledger = Effect.runSync(makeResidentState())
+    const partition = Effect.runSync(ledger.partitionId("collector"))
+    const token = Effect.runSync(ledger.collectionTokenId("claim"))
+    expect(
+      Effect.runSync(
+        ledger.transition({ kind: "collectionClaimBackground", group: partition, token, active: true, capacity: 1 })
+      ).commands[0]?.kind
+    ).toBe("collectionBackgroundClaimed")
+    const owned = Effect.runSync(ledger.canonicalProjection())
+    Effect.runSync(ledger.discardUnusedPartition("collector"))
+    expect(Effect.runSync(ledger.knownPartitionId("collector"))).toBe(partition)
+    expect(Effect.runSync(ledger.canonicalProjection())).toEqual(owned)
+    expect(
+      Effect.runSync(ledger.transition({ kind: "collectionReleaseBackground", group: partition, token })).commands[0]
+        ?.kind
+    ).toBe("collectionBackgroundReleased")
+    Effect.runSync(ledger.discardUnusedPartition("collector"))
+    expect(Effect.runSync(ledger.knownPartitionId("collector"))).toBeUndefined()
+  })
+
+  it("retains charged native work and forgets its identity only after release", () => {
+    const ledger = Effect.runSync(makeResidentState())
+    const reservation = Effect.runSync(ledger.reserve("preparing", 20, "preparation"))
+    if (reservation === undefined) throw new Error("fixture reservation refused")
+    const partition = Effect.runSync(ledger.knownPartitionId("preparing"))
+    expect(partition).toBeDefined()
+    Effect.runSync(ledger.discardUnusedPartition("preparing"))
+    expect(Effect.runSync(ledger.knownPartitionId("preparing"))).toBe(partition)
+    expect(Effect.runSync(ledger.reservationSnapshot(reservation))?.bytes).toBe(20)
+    expect(Effect.runSync(ledger.release(reservation))).toBe(true)
+    Effect.runSync(ledger.discardUnusedPartition("preparing"))
+    expect(Effect.runSync(ledger.knownPartitionId("preparing"))).toBeUndefined()
+    expect(Effect.runSync(ledger.partitionIdentityBytes())).toBe(0)
+    const forgotten = Effect.runSync(ledger.canonicalProjection())
+    Effect.runSync(ledger.discardUnusedPartition("preparing"))
+    expect(Effect.runSync(ledger.canonicalProjection())).toEqual(forgotten)
+    expect(Effect.runSync(ledger.partitionIdentityCount())).toBe(0)
   })
 
   it("does not accumulate Bend delivery counters across completed rounds", () => {

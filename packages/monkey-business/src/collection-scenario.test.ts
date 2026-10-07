@@ -9,7 +9,7 @@ import {
   runWorkloadNative,
   WORKLOAD_CONFORMANCE_TIMEOUT_MS
 } from "../../monkey-business-bend/conformance/workload-native-runner.mjs"
-import type { CanonicalEvent } from "../../../src/canonical/adapter.ts"
+import type { CanonicalEvent } from "@hapsland/canonical-policy/canonical/adapter"
 
 it("freezes response issuance scope and refuses foreign or out-of-range facts synchronously", () => {
   const original = { partition: 1, lifetime: 2, round: 3, started: 7, deadline: 17, admittedBlock: false }

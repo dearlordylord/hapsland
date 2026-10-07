@@ -1,20 +1,25 @@
 import { symlink } from "node:fs/promises"
 import { join } from "node:path"
-import { captureStable } from "./capture.ts"
-import { resolveGraphUnit } from "./graph-resolver.ts"
-import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "./selection.ts"
-import { GRAPH_LIMIT_CEILINGS } from "../configuration/graph-limits.ts"
-import type { ReviewNode } from "./model.ts"
+import { captureStable } from "@hapsland/native-observation/direct-event/capture"
+import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
+import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "@hapsland/native-observation/direct-event/selection"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
+import type { ReviewNode } from "@hapsland/source-artifacts/direct-event/artifact-model"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
-import { compileRule } from "../rules/compiler.ts"
-import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
-import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
-import { adaptCodexAdd } from "./adapter.ts"
-import { prepareObservation, preparedProviderInput, preparedUnitStillCurrent, evaluatePrepared } from "./pipeline.ts"
-import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts"
-import { configuredRules } from "../test-support/default-rules.ts"
-import { addEvent, makeGitFixture, put, updateEvent } from "./test-fixtures.ts"
+import { compileRule } from "@hapsland/review-definition/rules/compiler"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import {
+  prepareObservation,
+  preparedProviderInput,
+  preparedUnitStillCurrent,
+  evaluatePrepared
+} from "@hapsland/review-execution/direct-event/pipeline"
+import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
+import { addEvent, makeGitFixture, put, updateEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 const rules = (closure: boolean) =>
   [
@@ -35,7 +40,7 @@ const rules = (closure: boolean) =>
   ].map((rule) => compileRule({ version: 1, ...rule }, "bend-test"))
 const prepare = (event: unknown, closure = true) =>
   Effect.gen(function* () {
-    const observation = yield* adaptCodexAdd(event)
+    const observation = yield* adaptCodexDirectEvent(event)
     if (observation === undefined) throw new Error("fixture adaptation failed")
     return yield* prepareObservation(observation, {
       controlledWriter: true,
@@ -92,7 +97,7 @@ describe("Bend direct review integration", () => {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b.bend'; interface A { b: B }"))
       yield* Effect.promise(() => put(root, "b.bend", "import Base\ntype B is Data:\n  B{value: U32}"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const reads: string[] = []
       const prepared = yield* prepareObservation(observation, {
@@ -122,7 +127,7 @@ describe("Bend direct review integration", () => {
         "type Root is Data:\n  Root{n: Nat, value: Box<n>}"
       ]) {
         yield* Effect.promise(() => put(root, "model.bend", source))
-        const observation = yield* adaptCodexAdd(addEvent(root, ["model.bend"]))
+        const observation = yield* adaptCodexDirectEvent(addEvent(root, ["model.bend"]))
         if (observation === undefined) throw new Error("fixture adaptation failed")
         const prepared = yield* prepareObservation(observation, {
           controlledWriter: true,
@@ -140,7 +145,7 @@ describe("Bend direct review integration", () => {
       yield* Effect.promise(() =>
         put(root, "model.bend", "import Base\ntype Delivery is Data:\n  Waiting{}\n  Delivered{receipt: String}")
       )
-      const observation = yield* adaptCodexAdd(addEvent(root, ["model.bend"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["model.bend"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const prepared = yield* prepareObservation(observation, {
         controlledWriter: true,
@@ -188,7 +193,7 @@ describe("Bend direct review integration", () => {
         evidence: { nodes: [{ kind: "datatype", name: "Receipt" }] },
         inputContract: { completeness: "complete" }
       })
-      const observation = yield* adaptCodexAdd(addEvent(root, ["src/model.bend"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["src/model.bend"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const context = {
         controlledWriter: true,
@@ -271,7 +276,7 @@ describe("Bend cross-file review evidence", () => {
       yield* Effect.promise(() =>
         put(root, "identifier.bend", "import Base\ntype Identifier is Data:\n  Identifier{value: String}")
       )
-      const observation = yield* adaptCodexAdd(addEvent(root, ["src/model.bend"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["src/model.bend"]))
       if (!observation) throw new Error("adaptation failed")
       const reads: string[] = []
       const prepared = yield* prepareObservation(observation, {
@@ -319,7 +324,7 @@ describe("Bend cross-file review evidence", () => {
         put(root, "model.bend", "import Base\nimport ./child.bend as Word\ntype Root is Data:\n  Root{value: Word.Nil}")
       )
       yield* Effect.promise(() => put(root, "child.bend", "type Nil is Data:\n  ChildNil{}"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["model.bend"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["model.bend"]))
       if (!observation) throw new Error("adaptation failed")
       for (const selectedRules of [rules(true), configuredRules]) {
         const reads: string[] = []
@@ -368,7 +373,7 @@ describe("Bend cross-file review evidence", () => {
       yield* Effect.promise(() =>
         put(root, "support.bend", "import ./model.bend as M\ntype Support is Data:\n  Support{value: M.Root}")
       )
-      const observation = yield* adaptCodexAdd(addEvent(root, ["model.bend"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["model.bend"]))
       if (!observation) throw new Error("adaptation failed")
       const context = {
         controlledWriter: true,
@@ -418,7 +423,7 @@ describe("Bend cross-file review evidence", () => {
             )
           )
         if (mode === "ignored") yield* Effect.promise(() => put(root, ".gitignore", "support.bend\n"))
-        const observation = yield* adaptCodexAdd(addEvent(root, ["model.bend"]))
+        const observation = yield* adaptCodexDirectEvent(addEvent(root, ["model.bend"]))
         if (!observation) throw new Error("adaptation failed")
         const reads: string[] = []
         const prepared = yield* prepareObservation(observation, {
@@ -453,7 +458,7 @@ describe("Bend cross-file review evidence", () => {
         put(root, "support.bend", "import ./tail.bend as T\ntype Support is Data:\n  Support{value: T.Tail}")
       )
       yield* Effect.promise(() => put(root, "tail.bend", "type Tail is Data:\n  Tail{}"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["model.bend"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["model.bend"]))
       if (!observation) throw new Error("adaptation failed")
       const selected = yield* eligibleNamedPath(
         root,

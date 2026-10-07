@@ -1,4 +1,4 @@
-import { bunExecutable } from "../runtime/bun-runtime.ts"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import {
   mkdtemp,
   readdir,
@@ -18,15 +18,15 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { Effect, Scope, Exit } from "effect"
 import { afterEach, describe, expect, it } from "vitest"
-import { inspectionSourceId, type InspectionRecord } from "./contract.ts"
-import { makeInspectionStorage, inspectionAllocatedBytes } from "./storage.ts"
-import { nativeDeferred } from "../test-support/native-deferred.ts"
+import { inspectionSourceId, type InspectionRecord } from "@hapsland/inspection-records/inspection/contract"
+import { makeInspectionStorage, inspectionAllocatedBytes } from "@hapsland/inspection-records/inspection/storage"
+import { nativeDeferred } from "@hapsland/build-tooling/test-support/native-deferred"
 import { spawn } from "node:child_process"
 import { once } from "node:events"
-import { makeInspectionHttpServer } from "./http.ts"
-import { lockInspectionDirectory, InspectionStorageBusy } from "./native-lock.ts"
-import { makeInspectionRecorder } from "./recorder.ts"
-import { readInspectionSettings } from "./settings.ts"
+import { makeInspectionHttpServer } from "@hapsland/administration/inspection/http"
+import { lockInspectionDirectory, InspectionStorageBusy } from "@hapsland/inspection-records/inspection/native-lock"
+import { makeInspectionRecorder } from "@hapsland/inspection-records/inspection/recorder"
+import { readInspectionSettings } from "@hapsland/inspection-records/inspection/settings"
 
 it("retains an incoming edit after another inspector releases the real journal lock", async () => {
   const directory = await fixture()
@@ -306,7 +306,7 @@ describe("private inspection journal", () => {
       await publish(store, first)
       const script = `
       import { Effect } from "effect";
-      import { makeInspectionStorage } from ${JSON.stringify(new URL("./storage.ts", import.meta.url).href)};
+      import { makeInspectionStorage } from ${JSON.stringify("@hapsland/inspection-records/inspection/storage")};
       const value = JSON.parse(process.argv[2]);
       let allowed = true;
       const store = makeInspectionStorage(process.argv[1], { retentionMs: 1000, storageBytes: 1048576, now: () => 100 }, {
@@ -576,7 +576,7 @@ describe("private inspection journal", () => {
       { retentionMs: 1000, storageBytes: cap, now: () => 150 },
       { beforePublication: observeAllocation, beforeLossPublication: observeAllocation }
     )
-    let loss: import("./contract.ts").InspectionLoss | undefined
+    let loss: import("@hapsland/inspection-records/inspection/contract").InspectionLoss | undefined
     for (let sequence = 1; sequence <= 32 && !loss; sequence++) {
       await publish(store, record(sequence, 100 + sequence))
       loss = (await Effect.runPromise(store.snapshot())).losses.find((entry) => entry.reason === "capacity-evicted")
@@ -593,7 +593,7 @@ describe("private inspection journal", () => {
           const server = yield* makeInspectionHttpServer(reader)
           yield* Effect.promise(async () => {
             const body = (await (await fetch(`${server.url}snapshot`)).json()) as {
-              losses: import("./contract.ts").InspectionLoss[]
+              losses: import("@hapsland/inspection-records/inspection/contract").InspectionLoss[]
             }
             expect(body.losses).toContainEqual(loss)
             expect(await (await fetch(`${server.url}payload/${loss.sourceId}/${loss.sequence}`)).json()).toMatchObject({
@@ -618,7 +618,7 @@ describe("private inspection journal", () => {
       const directory = await fixture()
       const script = `
       import { Effect } from "effect";
-      import { makeInspectionStorage } from ${JSON.stringify(new URL("./storage.ts", import.meta.url).href)};
+      import { makeInspectionStorage } from ${JSON.stringify("@hapsland/inspection-records/inspection/storage")};
       let now = 100;
       const store = makeInspectionStorage(process.argv[1], { retentionMs: 50, storageBytes: 1048576, now: () => now }, {
         ${boundary}: () => { process.stdout.write("pending-loss\\n"); return new Promise(() => {}); }

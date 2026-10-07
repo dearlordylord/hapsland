@@ -1,7 +1,7 @@
-import { CLIENT_NAMES } from "../src/runtime/agent-clients.ts"
+import { CLIENT_NAMES } from "@hapsland/runtime-environment/runtime/agent-clients"
 import { readFileSync, writeFileSync } from "node:fs"
 import { resolve } from "node:path"
-import { commandHooks, piHooks, piHookCommand } from "../src/runtime/hook-catalog.ts"
+import { commandHooks, piHooks, piHookCommand } from "@hapsland/runtime-environment/runtime/hook-catalog"
 const path = resolve(import.meta.dirname, "../README.md")
 const start = "<!-- hapsland-hooks:start -->"
 const end = "<!-- hapsland-hooks:end -->"
@@ -31,7 +31,7 @@ const table = [
   start,
   "## Agent hooks",
   "",
-  "Generated from [the hook catalog](./src/runtime/hook-catalog.ts). Command timeouts are upper limits, not measured latency. Pi limits each Hapsland command call; a callback may make multiple calls. Codex does not install a `UserPromptSubmit` hook. OpenCode review hooks are currently inactive.",
+  "Generated from [the hook catalog](./packages/runtime-environment/src/runtime/hook-catalog.ts). Command timeouts are upper limits, not measured latency. Pi limits each Hapsland command call; a callback may make multiple calls. Codex does not install a `UserPromptSubmit` hook. OpenCode review hooks are currently inactive.",
   "",
   "| Runtime | Event | Selection | Mode | Limit | Purpose |",
   "| --- | --- | --- | --- | --- | --- |",

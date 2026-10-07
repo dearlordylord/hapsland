@@ -1,0 +1,376 @@
+{
+  "version": 1,
+  "threshold": 8,
+  "rows": [
+    {
+      "id": "packages/hook-runtime/src/hooks/direct.ts::<anonymous>@77:15@3242-4890",
+      "path": "packages/hook-runtime/src/hooks/direct.ts",
+      "name": "<anonymous>@77:15",
+      "kind": "function_expression",
+      "range": {
+        "start": {
+          "offset": 3242,
+          "line": 77,
+          "column": 15
+        },
+        "end": {
+          "offset": 4890,
+          "line": 110,
+          "column": 5
+        }
+      },
+      "complexity": 5,
+      "coverage": {
+        "status": "measured",
+        "covered": 15,
+        "total": 15,
+        "fraction": 1.0
+      },
+      "crap": 5.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/direct.ts::isDirectEventReady@6231-6529",
+      "path": "packages/hook-runtime/src/hooks/direct.ts",
+      "name": "isDirectEventReady",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 6231,
+          "line": 140,
+          "column": 29
+        },
+        "end": {
+          "offset": 6529,
+          "line": 151,
+          "column": 20
+        }
+      },
+      "complexity": 5,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 5.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/direct.ts::<anonymous>@112:70@4963-6199",
+      "path": "packages/hook-runtime/src/hooks/direct.ts",
+      "name": "<anonymous>@112:70",
+      "kind": "function_expression",
+      "range": {
+        "start": {
+          "offset": 4963,
+          "line": 112,
+          "column": 70
+        },
+        "end": {
+          "offset": 6199,
+          "line": 138,
+          "column": 3
+        }
+      },
+      "complexity": 4,
+      "coverage": {
+        "status": "measured",
+        "covered": 9,
+        "total": 9,
+        "fraction": 1.0
+      },
+      "crap": 4.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/direct.ts::<anonymous>@52:76@2311-2922",
+      "path": "packages/hook-runtime/src/hooks/direct.ts",
+      "name": "<anonymous>@52:76",
+      "kind": "function_expression",
+      "range": {
+        "start": {
+          "offset": 2311,
+          "line": 52,
+          "column": 76
+        },
+        "end": {
+          "offset": 2922,
+          "line": 68,
+          "column": 3
+        }
+      },
+      "complexity": 3,
+      "coverage": {
+        "status": "measured",
+        "covered": 4,
+        "total": 4,
+        "fraction": 1.0
+      },
+      "crap": 3.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/direct.ts::<anonymous>@122:17@5428-5756",
+      "path": "packages/hook-runtime/src/hooks/direct.ts",
+      "name": "<anonymous>@122:17",
+      "kind": "function_expression",
+      "range": {
+        "start": {
+          "offset": 5428,
+          "line": 122,
+          "column": 17
+        },
+        "end": {
+          "offset": 5756,
+          "line": 129,
+          "column": 7
+        }
+      },
+      "complexity": 2,
+      "coverage": {
+        "status": "measured",
+        "covered": 4,
+        "total": 5,
+        "fraction": 0.8
+      },
+      "crap": 2.032
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/direct.ts::recordCodexHookActivity@1541-1851",
+      "path": "packages/hook-runtime/src/hooks/direct.ts",
+      "name": "recordCodexHookActivity",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 1541,
+          "line": 36,
+          "column": 34
+        },
+        "end": {
+          "offset": 1851,
+          "line": 44,
+          "column": 3
+        }
+      },
+      "complexity": 2,
+      "coverage": {
+        "status": "measured",
+        "covered": 3,
+        "total": 3,
+        "fraction": 1.0
+      },
+      "crap": 2.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/direct.ts::<anonymous>@45:77@1929-2233",
+      "path": "packages/hook-runtime/src/hooks/direct.ts",
+      "name": "<anonymous>@45:77",
+      "kind": "function_expression",
+      "range": {
+        "start": {
+          "offset": 1929,
+          "line": 45,
+          "column": 77
+        },
+        "end": {
+          "offset": 2233,
+          "line": 51,
+          "column": 3
+        }
+      },
+      "complexity": 2,
+      "coverage": {
+        "status": "measured",
+        "covered": 4,
+        "total": 4,
+        "fraction": 1.0
+      },
+      "crap": 2.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/direct.ts::orElse@5647-5678",
+      "path": "packages/hook-runtime/src/hooks/direct.ts",
+      "name": "orElse",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 5647,
+          "line": 126,
+          "column": 57
+        },
+        "end": {
+          "offset": 5678,
+          "line": 126,
+          "column": 88
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 0,
+        "total": 1,
+        "fraction": 0.0
+      },
+      "crap": 2.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/direct.ts::makeDirectHookDispatch@1211-6606",
+      "path": "packages/hook-runtime/src/hooks/direct.ts",
+      "name": "makeDirectHookDispatch",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 1211,
+          "line": 30,
+          "column": 38
+        },
+        "end": {
+          "offset": 6606,
+          "line": 154,
+          "column": 1
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 10,
+        "total": 10,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/direct.ts::<anonymous>@63:19@2785-2911",
+      "path": "packages/hook-runtime/src/hooks/direct.ts",
+      "name": "<anonymous>@63:19",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 2785,
+          "line": 63,
+          "column": 19
+        },
+        "end": {
+          "offset": 2911,
+          "line": 66,
+          "column": 7
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 2,
+        "total": 2,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/direct.ts::runDirectCodexHook@2953-4891",
+      "path": "packages/hook-runtime/src/hooks/direct.ts",
+      "name": "runDirectCodexHook",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 2953,
+          "line": 69,
+          "column": 29
+        },
+        "end": {
+          "offset": 4891,
+          "line": 110,
+          "column": 6
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/direct.ts::<anonymous>@97:32@4064-4095",
+      "path": "packages/hook-runtime/src/hooks/direct.ts",
+      "name": "<anonymous>@97:32",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 4064,
+          "line": 97,
+          "column": 32
+        },
+        "end": {
+          "offset": 4095,
+          "line": 97,
+          "column": 63
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/direct.ts::bounded@5328-5757",
+      "path": "packages/hook-runtime/src/hooks/direct.ts",
+      "name": "bounded",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 5328,
+          "line": 121,
+          "column": 20
+        },
+        "end": {
+          "offset": 5757,
+          "line": 129,
+          "column": 8
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/direct.ts::<anonymous>@127:23@5706-5737",
+      "path": "packages/hook-runtime/src/hooks/direct.ts",
+      "name": "<anonymous>@127:23",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 5706,
+          "line": 127,
+          "column": 23
+        },
+        "end": {
+          "offset": 5737,
+          "line": 127,
+          "column": 54
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    }
+  ],
+  "diagnostics": [
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '0' in 'packages/hook-runtime/src/hooks/direct.ts' has no compatible source function"
+    }
+  ]
+}

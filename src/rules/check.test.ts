@@ -5,12 +5,12 @@ import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import { rm } from "node:fs/promises"
 import { join } from "node:path"
-import { makeGitFixture, put, addEvent } from "../direct-event/test-fixtures.ts"
-import { discoverPhysicalWorkingTreeRoot } from "../repository/root.ts"
-import { prepareSourceLine, prepareObservation } from "../direct-event/pipeline.ts"
-import { adaptCodexAdd } from "../direct-event/adapter.ts"
-import { loadReviewSettings } from "../runtime/review-config.ts"
-import { checkRuleAtLine, formatRuleCheck } from "./check.ts"
+import { makeGitFixture, put, addEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { discoverPhysicalWorkingTreeRoot } from "@hapsland/native-observation/repository/root"
+import { prepareSourceLine, prepareObservation } from "@hapsland/review-execution/direct-event/pipeline"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import { loadReviewSettings } from "@hapsland/review-definition/runtime/review-config"
+import { checkRuleAtLine, formatRuleCheck } from "@hapsland/administration/rules/check"
 
 const roots: string[] = []
 afterEach(async () => {
@@ -102,7 +102,7 @@ describe("one-off file and line rule checks", () => {
     const manual = await Effect.runPromise(
       prepareSourceLine({ ...repository, path: "target.ts", line: 4 }, { settings })
     )
-    const observation = await Effect.runPromise(adaptCodexAdd(addEvent(root, ["target.ts"])))
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["target.ts"])))
     if (observation === undefined) throw new Error("Missing fixture observation")
     const hook = await Effect.runPromise(
       prepareObservation(observation, { settings, controlledWriter: true, advicee: observation.advicee })

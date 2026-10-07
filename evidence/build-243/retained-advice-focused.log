@@ -1,0 +1,72 @@
+
+ RUN  v5.0.1 /workspace/typescript/hapsland-243
+      Coverage enabled with v8
+
+ ✓ src/resident/server.test.ts (88 tests) 64595ms
+   ✓ canonical resident capacity (7)
+     ✓ waits for all findings from one edit when the second Jev result arrives first 383ms
+   ✓ resident delivery lease (62)
+     ✓ holds the finish decision for all admitted work, then batches the findings 360ms
+     ✓ cancels unfinished pre-decision work on block while preserving advice and fresh repair work 335ms
+     ✓ reoffers uncertain background advice once at Stop and clears every record on allow 309ms
+     ✓ keeps composed findings addressed across Codex and Claude in one working root 381ms
+     ✓ fences composed output when a credential rotates after collection or before write authorization 426ms
+     ✓ does not emit a notice-only token after final-gate finding invalidation closes Stop 492ms
+     ✓ shares Claude capacity and canonical round across edits and a common advice batch 422ms
+     ✓ refuses a prepared two-advice Stop output when one advice expires before submission 569ms
+     ✓ reoffers a lost background acknowledgement at Stop without waiting for another prompt 683ms
+     ✓ releases a known failed composed write for another collector in the same turn 607ms
+     ✓ batches distinct current units for composed collection 565ms
+     ✓ retains composed backend failure in diagnostics without agent output 315ms
+     ✓ keeps submitted advice suppressed across prompt notifications in the same round 477ms
+     ✓ shares background ownership across host adapters while isolating advicees 424ms
+     ✓ rejects legacy codex-cli continuation replay without consuming Stop budget 450ms
+     ✓ rejects legacy claude-code continuation replay without consuming Stop budget 878ms
+     ✓ reports pending work only to its advicee during composed collection 492ms
+     ✓ rejects a separate-process generation change after credential resolution at the provider boundary 413ms
+     ✓ aggregates findings from distinct production units in one event 689ms
+     ✓ reclaims disconnected collection and unfinalized acknowledgement deterministically 1026ms
+     ✓ releases promised outcome space after malformed backend output 613ms
+     ✓ bounds 16-path/64-unit preparation and accounts accepted units exactly 3008ms
+     ✓ reserves large valid outcomes before evaluation and rejects unreservable outcomes without a call 1552ms
+     ✓ removes concurrent collection results by stable advice identity 620ms
+     ✓ rejects adversarial long-ID expansion before recursive unit materialization 472ms
+     ✓ retires A when replacement B registers before A completes 1294ms
+     ✓ joins equivalent pending complete inputs before another evaluation reservation 1317ms
+     ✓ uses stable advice identity when replacement arrives during collection 677ms
+     ✓ keeps retired advice workspace charged until active revalidation finalizes 815ms
+     ✓ does not let late A cleanup delete C after cached-clear B removes current state 1320ms
+     ✓ skips stale unit advice and returns an independently current multi-file unit 969ms
+     ✓ keeps addressed advice pending when current revalidation is unavailable 871ms
+     ✓ delivers resident advice with its original rules after rule files change 1082ms
+     ✓ revalidates and finalizes at the 16-item partition saturation boundary 3461ms
+     ✓ revalidates and finalizes across four saturated partitions 10022ms
+     ✓ scans past unavailable advice to independently current advice once per collection 1804ms
+     ✓ reuses successful clear evaluations but never failures or malformed responses 902ms
+     ✓ restores cached A after A to B to A without retaining delivery history 676ms
+     ✓ bounds successful reuse by entry and byte limits and reevaluates evicted input 1942ms
+     ✓ charges a valid near-frame identity for every admitted unit 993ms
+   ✓ resident bounded advice batches (9)
+     ✓ delivers all seven default findings from one unit when they fit 397ms
+     ✓ revalidates the final selection after later candidate work completes 911ms
+     ✓ filters an earlier item that reaches expiry while a later final revalidation waits 878ms
+     ✓ filters an earlier item superseded while a later final revalidation waits 981ms
+     ✓ does not send part of a later edit after an earlier edit was delivered 3056ms
+     ✓ holds one edit together despite staggered review completion 1272ms
+     ✓ returns the ready subset and interrupts a suspended review after the checked Stop deadline 624ms
+     ✓ combines six deterministic findings when they fit within the byte bound 3467ms
+     ✓ expires pending advice just before, at, and after the relevance boundary 1119ms
+
+ Test Files  1 passed (1)
+      Tests  88 passed (88)
+   Start at  10:56:06
+   Duration  76.65s (tests 98%, transform 2%, import 1%)
+
+ % Coverage report from v8
+
+=============================== Coverage summary ===============================
+Statements   : 40.15% ( 9109/22687 )
+Branches     : 28.01% ( 3790/13527 )
+Functions    : 42.71% ( 2622/6139 )
+Lines        : 42.49% ( 8374/19704 )
+================================================================================

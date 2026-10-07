@@ -1,5 +1,5 @@
-import { terminalAvailable, terminalArguments, terminalCommand } from "../../scripts/test-harness/terminal.mjs"
-import { bunExecutable } from "../runtime/bun-runtime.ts"
+import { terminalAvailable, terminalArguments, terminalCommand } from "@hapsland/build-tooling/test-harness/terminal"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs"
 import { hostname, tmpdir } from "node:os"
@@ -13,7 +13,7 @@ describe("public credential CLI", () => {
     const root = mkdtempSync(join(tmpdir(), "credential-cli-empty-"))
     const helper = join(root, "helper.cjs")
     const invoked = join(root, "invoked")
-    const entrypoint = join(process.cwd(), "src", "cli.ts")
+    const entrypoint = join(process.cwd(), "packages", "cli-entry", "src", "cli.ts")
     writeFileSync(
       helper,
       `#!${bunExecutable()}\nrequire("node:fs").writeFileSync(${JSON.stringify(invoked)},"invoked");console.log(JSON.stringify({status:"available"}));\n`,
@@ -52,7 +52,7 @@ describe("public credential CLI", () => {
     const vault = join(root, "vault")
     const state = join(root, "state.json")
     const marker = "synthetic-cli-secret-marker"
-    const entrypoint = join(process.cwd(), "src", "cli.ts")
+    const entrypoint = join(process.cwd(), "packages", "cli-entry", "src", "cli.ts")
     spawnSync("git", ["init", "--quiet"], { cwd: root })
     writeFileSync(join(root, ".hapsland.jsonc"), '{"version":1,"credentialEnvVar":"ALT_KEY"}\n')
     writeFileSync(
@@ -131,7 +131,7 @@ else if (operation === "delete") { const found=existsSync(vault); rmSync(vault,{
     const helper = join(root, "helper.mjs")
     const state = join(root, "state.json")
     const marker = "busy-cli-secret-marker"
-    const entrypoint = join(process.cwd(), "src", "cli.ts")
+    const entrypoint = join(process.cwd(), "packages", "cli-entry", "src", "cli.ts")
     writeFileSync(
       helper,
       `#!/usr/bin/env node
@@ -174,7 +174,7 @@ if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}
     () => {
       const root = mkdtempSync(join(tmpdir(), "credential-logout-pty-"))
       const helper = join(root, "helper.mjs")
-      const entrypoint = join(process.cwd(), "src", "cli.ts")
+      const entrypoint = join(process.cwd(), "packages", "cli-entry", "src", "cli.ts")
       spawnSync("git", ["init", "--quiet"], { cwd: root })
       writeFileSync(join(root, ".hapsland.jsonc"), '{"version":1,"credentialEnvVar":"ALT_KEY"}\n')
       writeFileSync(
@@ -210,7 +210,7 @@ console.log('{"version":1,"status":"missing"}');
   it.skipIf(!terminalAvailable)("restores the exact terminal mode after SIGINT during masked input", async () => {
     const root = mkdtempSync(join(tmpdir(), "credential-pty-"))
     const helper = join(root, "helper.mjs")
-    const entrypoint = join(process.cwd(), "src", "cli.ts")
+    const entrypoint = join(process.cwd(), "packages", "cli-entry", "src", "cli.ts")
     writeFileSync(
       helper,
       `#!/usr/bin/env node
@@ -219,7 +219,7 @@ if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}
     )
     chmodSync(helper, 0o700)
     const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
-    const command = `before=$(stty -g); ${quote(bunExecutable())} ${quote(entrypoint)} --login; code=$?; after=$(stty -g); printf '\\nMODEBEFORE:%s\\nMODEAFTER:%s\\nEXIT:%s\\n' "$before" "$after" "$code"`
+    const command = `trap 'true' INT; before=$(stty -g); ${quote(bunExecutable())} ${quote(entrypoint)} --login; code=$?; after=$(stty -g); printf '\\nMODEBEFORE:%s\\nMODEAFTER:%s\\nEXIT:%s\\n' "$before" "$after" "$code"`
     const child = spawn(terminalCommand, terminalArguments(command), {
       cwd: root,
       env: { ...process.env, REVIEW_CREDENTIAL_HELPER: helper, REVIEW_CREDENTIAL_STATE_PATH: join(root, "state.json") },
@@ -259,7 +259,7 @@ if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}
     const helper = join(root, "helper.mjs")
     const stty = join(root, "stty")
     const log = join(root, "stty.log")
-    const entrypoint = join(process.cwd(), "src", "cli.ts")
+    const entrypoint = join(process.cwd(), "packages", "cli-entry", "src", "cli.ts")
     writeFileSync(
       helper,
       `#!/usr/bin/env node

@@ -1,0 +1,104 @@
+{
+  "name": "@hapsland/native-observation",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./direct-event/adapter": {
+      "types": "./dist/direct-event/adapter.d.ts",
+      "default": "./dist/direct-event/adapter.js"
+    },
+    "./direct-event/capture": {
+      "types": "./dist/direct-event/capture.d.ts",
+      "default": "./dist/direct-event/capture.js"
+    },
+    "./direct-event/codex-patch-hunks": {
+      "types": "./dist/direct-event/codex-patch-hunks.d.ts",
+      "default": "./dist/direct-event/codex-patch-hunks.js"
+    },
+    "./direct-event/edit-attribution": {
+      "types": "./dist/direct-event/edit-attribution.d.ts",
+      "default": "./dist/direct-event/edit-attribution.js"
+    },
+    "./direct-event/languages/path-language": {
+      "types": "./dist/direct-event/languages/path-language.d.ts",
+      "default": "./dist/direct-event/languages/path-language.js"
+    },
+    "./direct-event/observation": {
+      "types": "./dist/direct-event/observation.d.ts",
+      "default": "./dist/direct-event/observation.js"
+    },
+    "./direct-event/patch-hunks": {
+      "types": "./dist/direct-event/patch-hunks.d.ts",
+      "default": "./dist/direct-event/patch-hunks.js"
+    },
+    "./direct-event/pi-adapter": {
+      "types": "./dist/direct-event/pi-adapter.d.ts",
+      "default": "./dist/direct-event/pi-adapter.js"
+    },
+    "./direct-event/pi-patch-hunks": {
+      "types": "./dist/direct-event/pi-patch-hunks.d.ts",
+      "default": "./dist/direct-event/pi-patch-hunks.js"
+    },
+    "./direct-event/selection": {
+      "types": "./dist/direct-event/selection.d.ts",
+      "default": "./dist/direct-event/selection.js"
+    },
+    "./policy/file-policy": {
+      "types": "./dist/policy/file-policy.d.ts",
+      "default": "./dist/policy/file-policy.js"
+    },
+    "./policy/path-facts": {
+      "types": "./dist/policy/path-facts.d.ts",
+      "default": "./dist/policy/path-facts.js"
+    },
+    "./repository/root": {
+      "types": "./dist/repository/root.d.ts",
+      "default": "./dist/repository/root.js"
+    },
+    "./hosts/opencode/adapter": {
+      "types": "./dist/hosts/opencode/adapter.d.ts",
+      "default": "./dist/hosts/opencode/adapter.js"
+    },
+    "./direct-event/target-observation": {
+      "types": "./dist/direct-event/target-observation.d.ts",
+      "default": "./dist/direct-event/target-observation.js"
+    }
+  },
+  "dependencies": {
+    "@hapsland/runtime-environment": "workspace:*",
+    "@hapsland/runtime-inputs": "workspace:*",
+    "effect": "catalog:"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs",
+    "native:darwin-arm64": "node ../../scripts/native-task.mjs darwin-arm64",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
+  },
+  "hapsland": {
+    "domain": "native-observation",
+    "host": "bun",
+    "capabilities": [],
+    "nativeAssets": [
+      {
+        "source": "src/direct-event/capture.ts",
+        "path": "native/prebuilt/{profile}/capture-open",
+        "producer": {
+          "kind": "c",
+          "profiles": {
+            "darwin-arm64": {
+              "source": "native/src/capture-open.c",
+              "compileFlags": [
+                "-O2",
+                "-std=c11",
+                "-Wall",
+                "-Wextra"
+              ],
+              "linkFlags": []
+            }
+          }
+        }
+      }
+    ]
+  }
+}

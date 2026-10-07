@@ -1,0 +1,212 @@
+import { randomUUID } from "node:crypto"
+import { resolve } from "node:path"
+import * as Clock from "effect/Clock"
+import * as Effect from "effect/Effect"
+import { adaptPiDirectEvent, adaptPiHookIdentity } from "@hapsland/native-observation/direct-event/pi-adapter"
+import { hookProcessStartedAt } from "@hapsland/resident-transport/resident/hook-clock"
+import { resolveResidentPaths, type ResidentPaths } from "@hapsland/resident-transport/resident/paths"
+import {
+  acknowledgeAdviceEffect,
+  admitObservationEffect,
+  beginComposedSubmissionEffect,
+  collectAdviceeOutcomeEffect,
+  composedStopBoundaryEffect,
+  inspectResidentEffect,
+  makeResidentDispatchContextEffect,
+  readComposedEditPolicyEffect,
+  registerComposedEditEffect,
+  residentRequestEffect,
+  resolveComposedRootEffect,
+  type AdviceeCollectionOutcome
+} from "@hapsland/resident-transport/resident/client"
+import type { ResidentControlledOptions, ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
+import type { DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
+
+/** Pi has an awaited boundary, with a four-second Hapsland wait inside its five-second resident fence. */
+export const PI_FINISH_DEADLINE_MS = 4_000
+const now = Clock.monotonicTimeNanos.pipe(Effect.map((n) => Number(n) / 1_000_000))
+const object = (v: unknown): Record<string, unknown> | undefined =>
+  typeof v === "object" && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : undefined
+type Options = {
+  statePath: string
+  activityPath: string
+  userConfigPath?: string
+  controlled?: ResidentControlledOptions
+}
+type Context = {
+  root: string
+  advicee: DirectAdvicee
+  paths: ResidentPaths
+  event: Record<string, unknown>
+  options: Options
+}
+const empty = { status: "empty" } as const
+const incomplete = { status: "incomplete" } as const
+const before = Effect.fn("Pi.register")(function* ({ root, advicee, paths, options }: Context) {
+  const admitted = yield* registerComposedEditEffect(
+    root,
+    advicee,
+    hookProcessStartedAt,
+    paths,
+    options.activityPath,
+    options.userConfigPath
+  )
+  return { status: admitted ? "registered" : "incomplete" }
+})
+const retire = Effect.fn("Pi.retire")(function* ({ root, advicee, paths }: Context) {
+  const owner = yield* inspectResidentEffect(paths)
+  if (owner.lifetime !== undefined)
+    yield* residentRequestEffect(paths, {
+      requestRoute: "shared",
+      operation: "retire-edit",
+      lifetime: owner.lifetime,
+      root,
+      advicee,
+      startedAt: hookProcessStartedAt
+    })
+  return { status: "retired" }
+})
+const acknowledge = Effect.fn("Pi.acknowledge")(function* ({ root, advicee, paths, options, event }: Context) {
+  if (typeof event.token !== "string" || typeof event.lifetime !== "string") return incomplete
+  const acknowledged = yield* acknowledgeAdviceEffect({
+    paths,
+    token: event.token,
+    lifetime: event.lifetime,
+    root,
+    advicee,
+    activityPath: options.activityPath,
+    findingCount: 0,
+    output: { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "" } }
+  })
+  if (typeof event.stopToken === "string")
+    yield* composedStopBoundaryEffect("finish-stop", root, advicee, event.stopToken, event.continued !== true, paths)
+  return { status: acknowledged ? "acknowledged" : "uncertain" }
+})
+const close = Effect.fn("Pi.close")(function* ({ root, advicee, paths }: Context) {
+  const token = randomUUID()
+  if (yield* composedStopBoundaryEffect("begin-stop", root, advicee, token, false, paths))
+    yield* composedStopBoundaryEffect("finish-stop", root, advicee, token, true, paths, "abandoned-stop")
+  return { status: "closed" }
+})
+const admitEdit = Effect.fn("Pi.admit")(function* (
+  context: Context,
+  dispatch: ResidentDispatchContext,
+  filePolicy: import("@hapsland/native-observation/direct-event/selection").DirectFilePolicy
+) {
+  const { event, paths } = context
+  const observation = yield* adaptPiDirectEvent(event, { filePolicy })
+  if (observation === undefined) return false
+  const admitted = yield* admitObservationEffect(observation, true, dispatch, paths)
+  return admitted.status === "accepted"
+})
+type Advice = Extract<AdviceeCollectionOutcome, { status: "advice" }>["advice"]
+const offerAdvice = Effect.fn("Pi.offer")(function* (context: Context, advice: Advice, stopToken: string | undefined) {
+  const finish = stopToken !== undefined
+  const continued = finish && advice.findingCount > 0
+  if (advice.findingCount > 0 && !(yield* beginComposedSubmissionEffect(advice, finish ? "stop" : "edit")))
+    return incomplete
+  return {
+    status: "advice",
+    text: advice.output.hookSpecificOutput.additionalContext,
+    token: advice.token,
+    lifetime: advice.lifetime,
+    findingCount: advice.findingCount,
+    continued,
+
+    ...(stopToken === undefined ? {} : { stopToken })
+  }
+})
+const finishFacts = (token: string | undefined, time: number, deadline: number) =>
+  token === undefined ? undefined : { token, deadlineReached: time >= deadline - 750 }
+type Collection = { deadline: number; stopToken: string | undefined; surface: "turn-end" | "ordinary" }
+const beginCollection = Effect.fn("Pi.beginCollection")(function* ({ event, root, advicee, paths }: Context) {
+  const finish = event.operation === "finish"
+  const deadline = (yield* now) + (finish ? PI_FINISH_DEADLINE_MS : 250)
+  const stopToken = finish ? randomUUID() : undefined
+  if (
+    stopToken !== undefined &&
+    !(yield* composedStopBoundaryEffect("begin-stop", root, advicee, stopToken, false, paths))
+  )
+    return undefined
+  return { deadline, stopToken, surface: finish ? ("turn-end" as const) : ("ordinary" as const) }
+})
+const pollCollection = Effect.fn("Pi.pollCollection")(function* (
+  context: Context,
+  dispatch: ResidentDispatchContext,
+  collection: Collection
+) {
+  const { root, advicee, paths } = context
+  const { deadline, stopToken, surface } = collection
+  while ((yield* now) < deadline - 150) {
+    const outcome = yield* collectAdviceeOutcomeEffect(
+      root,
+      advicee,
+      dispatch,
+      paths,
+      surface,
+      deadline,
+      finishFacts(stopToken, yield* now, deadline)
+    )
+    if (outcome.status === "advice") return yield* offerAdvice(context, outcome.advice, stopToken)
+    if (outcome.status === "empty") break
+    yield* Effect.sleep("50 millis")
+  }
+  return undefined
+})
+const closeCollection = Effect.fn("Pi.closeCollection")(function* (
+  { root, advicee, paths }: Context,
+  { deadline, stopToken }: Collection
+) {
+  if (stopToken === undefined) return
+  const reason = (yield* now) >= deadline - 750 ? "deadline" : "no-advice"
+  yield* composedStopBoundaryEffect("finish-stop", root, advicee, stopToken, true, paths, reason)
+})
+const collect = Effect.fn("Pi.collect")(function* (context: Context, dispatch: ResidentDispatchContext) {
+  const collection = yield* beginCollection(context)
+  if (collection === undefined) return { status: "unavailable" }
+  const offer = yield* pollCollection(context, dispatch, collection)
+  if (offer !== undefined) return offer
+  yield* closeCollection(context, collection)
+  return empty
+})
+const editTargetPaths = (context: Context): ReadonlyArray<string> | undefined => {
+  const { event, root } = context
+  const target = typeof event.target_path === "string" ? event.target_path : object(event.input)?.path
+  if (typeof target !== "string") return undefined
+  const cwd = typeof event.cwd === "string" ? event.cwd : root
+  return [resolve(cwd, target)]
+}
+const reviewPolicy = Effect.fn("Pi.reviewPolicy")(function* (context: Context, root: string) {
+  if (context.event.operation !== "edit") return undefined
+  return yield* readComposedEditPolicyEffect(root, context.advicee, context.paths, editTargetPaths(context))
+})
+const review = Effect.fn("Pi.review")(function* (context: Context) {
+  const { event, options } = context
+  const root =
+    event.operation === "edit"
+      ? context.root
+      : yield* resolveComposedRootEffect(context.root, context.advicee, context.paths)
+  const editPolicy = yield* reviewPolicy(context, root)
+  if (event.operation === "edit" && editPolicy === undefined) return empty
+  const sourceDispatch = yield* makeResidentDispatchContextEffect(
+    root,
+    options.statePath,
+    options.activityPath,
+    options.userConfigPath,
+    options.controlled,
+    editPolicy
+  )
+  const dispatch = { ...sourceDispatch, deliveryCwd: typeof event.cwd === "string" ? resolve(event.cwd) : context.root }
+  if (event.operation === "edit" && !(yield* admitEdit(context, dispatch, editPolicy!.filePolicy))) return incomplete
+  return yield* collect({ ...context, root }, dispatch)
+})
+const handlers = { before, retire, ack: acknowledge, close, edit: review, finish: review }
+export const runPiHook = Effect.fn("Pi.transport")(function* (input: unknown, options: Options) {
+  const event = object(input)
+  if (event === undefined || typeof event.operation !== "string" || !Object.hasOwn(handlers, event.operation))
+    return incomplete
+  const identity = yield* adaptPiHookIdentity(event)
+  if (identity === undefined) return incomplete
+  const paths = yield* resolveResidentPaths()
+  return yield* handlers[event.operation as keyof typeof handlers]({ ...identity, paths, event, options })
+})

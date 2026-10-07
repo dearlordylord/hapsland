@@ -3,9 +3,9 @@ import * as Effect from "effect/Effect"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientRequest from "effect/http/HttpClientRequest"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
-import { reviewHttpTransport } from "./transport.ts"
-import { reviewRequestContent } from "./request-content.ts"
-import { InspectionTransportObservation } from "../inspection/transport.ts"
+import { reviewHttpTransport } from "@hapsland/review-execution/review-providers/transport"
+import { reviewRequestContent } from "@hapsland/review-execution/review-providers/request-content"
+import { InspectionTransportObservation } from "@hapsland/inspection-records/inspection/transport"
 
 const bytes = (input: unknown) => new TextEncoder().encode(JSON.stringify(input))
 

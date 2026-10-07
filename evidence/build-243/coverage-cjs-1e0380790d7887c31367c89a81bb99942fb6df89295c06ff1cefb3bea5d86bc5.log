@@ -1,0 +1,39 @@
+
+ RUN  v5.0.1 /workspace/typescript/hapsland-243
+      Coverage enabled with v8
+
+ ✓ src/resident/subprocess.test.ts (11 tests) 145617ms
+   ✓ resident separate-process lifecycle (11)
+     ✓ exits the native resident successfully after idle retirement and releases ownership 27833ms
+     ✓ releases ownership after startup failure without deleting an unsafe endpoint 7812ms
+     ✓ exits losing launch contenders while one owner remains 3761ms
+     ✓ retires an empty installed resident and starts a distinct lifetime on the next hook 27218ms
+     ✓ keeps a live connected client until it disconnects 9692ms
+     ✓ keeps accepted review work and pending advice beyond the idle grace 16168ms
+     ✓ exits after SIGTERM with gated review work and permits a new owner 8434ms
+     ✓ converges six starters across three clients and keeps timed-out/disconnected work resident-owned 14890ms
+     ✓ keeps edit file selection across admission and backend waits 5305ms
+     ✓ keeps the admission configuration through dispatch and delayed delivery 5489ms
+     ✓ kills one lifetime, rejects obsolete messages, restarts empty, and cleans up only when idle 19015ms
+ ✓ src/rules/cli.test.ts (7 tests) 65186ms
+   ✓ creates, inspects, disables and adds a project rule again through the CLI 34264ms
+   ✓ creates personal rules, adds a custom rule in defaults and rejects invalid inputs before writes 22788ms
+   ✓ runs one-off rule checks without stdin or resident state and reports unavailable credentials 7800ms
+ ✓ src/resident/security-sinks.test.ts (2 tests) 8473ms
+   ✓ security sink prototype (2)
+     ✓ observes source-bearing ingress and a provider failure across resident file/output sinks 5389ms
+     ✓ keeps a synthetic source-bearing unexpected cause out of debug stderr 3083ms
+
+ Test Files  3 passed (3)
+      Tests  20 passed (20)
+   Start at  07:42:01
+   Duration  238.09s (tests 99%)
+
+ % Coverage report from v8
+
+=============================== Coverage summary ===============================
+Statements   : 47.9% ( 12756/26626 )
+Branches     : 27.69% ( 4347/15698 )
+Functions    : 41.91% ( 2573/6138 )
+Lines        : 48.61% ( 9580/19704 )
+================================================================================

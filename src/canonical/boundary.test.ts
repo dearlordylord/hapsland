@@ -7,23 +7,28 @@ import {
   projectCanonical,
   stepCanonical,
   type CanonicalEvent
-} from "./adapter.ts"
-import { initialImportGraph, projectImportGraph, stepImportGraph, type ImportGraphEvent } from "./graph-adapter.ts"
+} from "@hapsland/canonical-policy/canonical/adapter"
+import {
+  initialImportGraph,
+  projectImportGraph,
+  stepImportGraph,
+  type ImportGraphEvent
+} from "@hapsland/canonical-policy/canonical/graph-adapter"
 
 const injected = vi.hoisted(() => ({
   canonical: undefined as undefined | ((state: unknown) => unknown),
   graph: undefined as undefined | ((state: unknown) => unknown)
 }))
-vi.mock("./canonical.generated.js", async (importOriginal) => {
-  const original = await importOriginal<typeof import("./canonical.generated.js")>()
+vi.mock("@hapsland/agent-flow-bend/canonical", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@hapsland/agent-flow-bend/canonical")>()
   return {
     ...original,
     bendCanonicalStep: (state: unknown, event: unknown) =>
       injected.canonical === undefined ? original.bendCanonicalStep(state, event) : injected.canonical(state)
   }
 })
-vi.mock("./import-graph.generated.js", async (importOriginal) => {
-  const original = await importOriginal<typeof import("./import-graph.generated.js")>()
+vi.mock("@hapsland/agent-flow-bend/import-graph", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@hapsland/agent-flow-bend/import-graph")>()
   return {
     ...original,
     bendImportGraphStep: (state: unknown, event: unknown) =>

@@ -4,8 +4,12 @@ import { existsSync } from "node:fs"
 import { mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { makeResidentRuntime, residentRuntimeLayer, ResidentRuntimeService } from "./server.ts"
-import { residentPaths, resolveResidentPaths } from "./paths.ts"
+import {
+  makeResidentRuntime,
+  residentRuntimeLayer,
+  ResidentRuntimeService
+} from "@hapsland/resident-runtime/resident/server"
+import { residentPaths, resolveResidentPaths } from "@hapsland/resident-transport/resident/paths"
 
 it.effect("separate acquisitions own separate resident lifetimes", () =>
   Effect.scoped(

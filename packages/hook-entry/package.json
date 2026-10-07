@@ -1,0 +1,37 @@
+{
+  "name": "@hapsland/hook-entry",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./hook-main": {
+      "types": "./dist/hook-main.d.ts",
+      "default": "./dist/hook-main.js"
+    }
+  },
+  "dependencies": {
+    "@hapsland/hook-runtime": "workspace:*",
+    "@hapsland/resident-transport": "workspace:*",
+    "@hapsland/runtime-environment": "workspace:*"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs",
+    "assemble:linux-arm64": "node ../../scripts/assemble-entry.mjs linux-arm64",
+    "assemble:darwin-arm64": "node ../../scripts/assemble-entry.mjs darwin-arm64",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
+  },
+  "hapsland": {
+    "domain": "hook-entry",
+    "host": "bun",
+    "capabilities": [],
+    "role": "hook",
+    "executable": "hapsland-hook",
+    "entry": "src/hook-main.ts",
+    "assembly": {
+      "profiles": [
+        "linux-arm64",
+        "darwin-arm64"
+      ]
+    }
+  }
+}

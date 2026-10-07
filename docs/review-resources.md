@@ -41,7 +41,7 @@ native Effect is still settling. Late and duplicate callbacks retain their
 original work identity and cannot authorize a new result for superseded work.
 This prevents reuse of a charged request slot before the old effect ends.
 
-The [provider layer](../src/review-providers/live.ts) selects Jev or Cloudflare
+The [provider layer](../packages/review-execution/src/review-providers/live.ts) selects Jev or Cloudflare
 through Effect's `DecisionModel` integration. Both use the shared resident
 request lifecycle; selecting Cloudflare does not create another eight-slot
 pool. Internal `jevRequest` event names refer to that shared lifecycle.
@@ -53,13 +53,13 @@ are current product policy, not user JSONC settings.
 
 ## Retained state and admission
 
-The [resident capacity ledger](../src/resident/capacity.ts) counts logical
+The [resident capacity ledger](../packages/resident-runtime/src/resident/capacity.ts) counts logical
 reservations separately from dispatch slots:
 
 | Scope | Item bound | Logical byte bound |
 | --- | --- | --- |
 | Whole resident | 512 | 256 MiB |
-| One advicee partition | 16 | 32 MiB |
+| One advicee recipient, with its active pinned source root | 16 | 32 MiB |
 
 The executor measures the charge for an observation, preparation workspace,
 review unit, result, or advice recheck. Bend owns admission, resizing,
@@ -105,7 +105,7 @@ maximum values. Project limits may lower user limits, not raise them.
 Increasing a provider's context window does not increase Hapsland's collection
 limits or allow excluded source to be read.
 
-The [provider catalog](../src/review-providers/catalog.ts) and
+The [provider catalog](../packages/review-definition/src/review-providers/catalog.ts) and
 [provider guide](review-providers.md) own model-specific declarations and local
 transport checks. The adapters enforce their catalogued question and HTTP body bounds, measuring the actual encoded request including
 questions, criteria, and escaping. There is no separate provider-independent
@@ -134,7 +134,7 @@ a clear review. Delivery ownership and permitted later collection follow the
 checked lease, expiry, and response-authority rules.
 
 Local IPC independently permits 32 connections and frames of at most 256 KiB
-in the [protocol](../src/resident/protocol.ts). These are transport limits,
+in the [protocol](../packages/resident-transport/src/resident/protocol.ts). These are transport limits,
 not classifier permits or evidence-tree sizes.
 
 Cancellation, supersession, expiry, and round closure release logical ownership

@@ -1,20 +1,20 @@
-import { defaultReviewSettings } from "../runtime/review-config.ts"
-import { settingsSource } from "../runtime/review-settings.ts"
-import { providerIdentity } from "../review-providers/catalog.ts"
+import { defaultReviewSettings } from "@hapsland/review-definition/runtime/review-config"
+import { settingsSource } from "@hapsland/review-definition/runtime/review-settings"
+import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import { it } from "@effect/vitest"
 import { expect } from "vitest"
 import { Cause, Effect } from "effect"
-import { makeResidentState } from "./capacity.ts"
+import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
 import {
   freezeInput,
   freezeRules,
   semanticIdentity,
-  type PreparedUnit,
-  type DirectObservation
-} from "../direct-event/model.ts"
-import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
-import { advicee } from "../direct-event/test-fixtures.ts"
-import type { AdviceInitial } from "./advice-records.ts"
+  type PreparedUnit
+} from "@hapsland/review-definition/direct-event/model"
+import { type DirectObservation } from "@hapsland/native-observation/direct-event/observation"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
+import type { AdviceInitial } from "@hapsland/resident-runtime/resident/advice-records"
 
 const observation: DirectObservation = {
   root: "/fixture",

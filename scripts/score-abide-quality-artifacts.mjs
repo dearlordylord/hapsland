@@ -1,10 +1,9 @@
+// Research scoring retains the classic TypeScript 5.9.3 compiler API; production uses TypeScript 7.
+import ts from "@hapsland/scorer-typescript"
 import fs from "node:fs"
 import path from "node:path"
 import crypto from "node:crypto"
-import { createRequire } from "node:module"
 import { tasks } from "./abide-quality-fixtures.mjs"
-const require = createRequire(import.meta.url)
-const ts = require(process.env.HAPSLAND_SCORER_TYPESCRIPT || "/tmp/hapsland-quality-scorer/node_modules/typescript")
 
 // Only blind artifact directories are input. This tool never opens arm ledgers.
 const argument = (name, fallback) =>

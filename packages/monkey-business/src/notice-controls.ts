@@ -1,5 +1,11 @@
 import { Schema } from "effect"
-import { boundedArray, decoder, Nat, PositiveNat, ByteCount } from "../../../src/canonical/boundary-schema.ts"
+import {
+  boundedArray,
+  decoder,
+  Nat,
+  PositiveNat,
+  ByteCount
+} from "@hapsland/canonical-policy/canonical/boundary-schema"
 
 /** Explicit diagnostic exercises, independent of Jev request outcomes. */
 export const OperationalNoticeKindSchema = Schema.Literals(["capacity", "backend", "credential", "output-limit"])

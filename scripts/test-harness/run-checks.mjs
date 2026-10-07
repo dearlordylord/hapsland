@@ -1,3 +1,4 @@
+import { unresolvedBuildOwnership } from "../build-ownership.mjs"
 import { spawn, execFile } from "node:child_process"
 import { createWriteStream } from "node:fs"
 import { mkdir, readFile, writeFile, rename, open, unlink, readdir, stat } from "node:fs/promises"
@@ -5,7 +6,7 @@ import { promisify } from "node:util"
 import { randomBytes } from "node:crypto"
 import { resolve, join, relative, sep } from "node:path"
 import { fileURLToPath } from "node:url"
-import { precheckStages } from "./check-stages.mjs"
+import { precheckStages, qualityPreflight } from "./check-stages.mjs"
 import { sourceSnapshot } from "./source-identity.mjs"
 
 const executeFile = promisify(execFile)
@@ -126,13 +127,35 @@ export async function showStatus(root, id, json = false, scope) {
 }
 
 export async function runQualityStages(run, root) {
+  const [name, ...args] = qualityPreflight
+  const preflight = await run.runStage({
+    name,
+    command: process.execPath,
+    args,
+    cwd: root,
+    env: { NODE_TEST_CONTEXT: undefined }
+  })
+  if (preflight.state !== "passed") {
+    for (const name of ["lint-code", "quality-complexity", "quality"])
+      await run.recordSkippedStage({ name, reason: "prerequisite-failed", dependsOn: [preflight.name] })
+    return
+  }
   const lint = await run.runStage({
     name: "lint-code",
     command: process.execPath,
     args: [join(root, "scripts/run-quality-lint.mjs")]
   })
-  if (lint.state === "passed")
-    await run.runStage({ name: "quality", command: join(root, "node_modules", ".bin", "crap4ts") })
+  if (lint.state !== "passed") return
+  const complexity = await run.runStage({
+    name: "quality-complexity",
+    command: process.execPath,
+    args: [join(root, "scripts/test-harness/check-complexity.mjs")]
+  })
+  if (complexity.state !== "passed") {
+    await run.recordSkippedStage({ name: "quality", reason: "prerequisite-failed", dependsOn: [complexity.name] })
+    return
+  }
+  await run.runStage({ name: "quality", command: join(root, "node_modules", ".bin", "crap4ts") })
 }
 
 export async function createRun({
@@ -193,7 +216,7 @@ export async function createRun({
       mode === "test"
         ? ["source-identity", ...precheckStages.map((stage) => stage[0]), "package-build", "package-pack", "vitest"]
         : mode === "quality"
-          ? ["source-identity", "quality"]
+          ? ["source-identity", "quality-preflight", "lint-code", "quality"]
           : [mode]
     await atomicJson(join(runDirectory, "manifest.json"), {
       ...context,
@@ -413,6 +436,11 @@ export async function createRun({
       record.groupUnresolved = groupAlive()
       spawnError ??= "Child process group outlived its leader and was terminated"
     }
+    const buildOwnership = await unresolvedBuildOwnership(root, { enclosingToken: env.HAPSLAND_BUILD_LOCK_LEASE })
+    if (buildOwnership) {
+      record.groupUnresolved = true
+      spawnError ??= buildOwnership
+    }
     activeChild = undefined
     await new Promise((done) => stream.end(done))
     Object.assign(record, outcome, {
@@ -503,6 +531,7 @@ export async function createRun({
         }
       }
     }
+    if (await unresolvedBuildOwnership(root)) unresolvedGroups = true
     if (unresolvedGroups) {
       aborted = true
       abortReason = "process group still present; lock retained"
@@ -519,13 +548,22 @@ export async function createRun({
         ...(stage.dependsOn?.length ? { dependsOn: stage.dependsOn } : {})
       }))
     const success = !aborted && evaluatedStages.length > 0 && failedStages.length === 0 && errors.length === 0
+    const thresholdFailure = failedStages.find(
+      (stage) => ["quality", "quality-complexity"].includes(stage.name) && stage.exitCode === 2
+    )
     const thresholdBreach =
       mode === "quality" &&
       !aborted &&
       errors.length === 0 &&
-      failedStages.length === 1 &&
-      failedStages[0].name === "quality" &&
-      failedStages[0].exitCode === 2
+      thresholdFailure !== undefined &&
+      failedStages.every(
+        (stage) =>
+          stage === thresholdFailure ||
+          (stage.name === "quality" &&
+            stage.state === "not-started" &&
+            stage.reason === "prerequisite-failed" &&
+            stage.dependsOn?.includes(thresholdFailure.name))
+      )
     const exitCode = success ? 0 : thresholdBreach ? 2 : 1
     if (!inherited) {
       const status = {
@@ -569,6 +607,20 @@ export async function createRun({
 }
 
 export async function runSelectedTests(run, root, selection, environment = {}) {
+  const manifest = await readFile(join(root, "package.json"), "utf8")
+    .then(JSON.parse)
+    .catch((error) => {
+      if (error.code === "ENOENT") return {}
+      throw error
+    })
+  if (manifest.workspaces) {
+    const result = await run.runStage({
+      name: "workspace-compilation",
+      command: process.execPath,
+      args: [join(root, "scripts/build-workspaces.mjs")]
+    })
+    if (result.state !== "passed") throw new Error("Workspace compilation failed before focused tests")
+  }
   if (selection.nodeFiles.length)
     await run.runStage({
       name: "node-focused",
@@ -580,7 +632,14 @@ export async function runSelectedTests(run, root, selection, environment = {}) {
     await run.runStage({
       name: "vitest-focused",
       command: join(root, "node_modules", ".bin", "vitest"),
-      args: ["run", "--maxWorkers=1", ...selection.vitestFiles, ...selection.options],
+      args: [
+        "run",
+        "--config",
+        "scripts/vitest.config.ts",
+        "--maxWorkers=1",
+        ...selection.vitestFiles,
+        ...selection.options
+      ],
       env: {
         ...environment,
         HAPSLAND_FOCUSED_TEST_SELECTION: JSON.stringify({ files: selection.vitestFiles, options: selection.options })
@@ -621,6 +680,11 @@ export async function main(argv = process.argv.slice(2), root = defaultRoot, pla
     await showStatus(root, ids[0], raw.includes("--json"), scopeArgs[0]?.slice(8))
     return 0
   }
+  const acknowledgment = raw.filter((arg) => arg === "--ack-checks-policy")
+  if (acknowledgment.length > 1 || (mode !== "quality" && acknowledgment.length))
+    throw new Error("--ack-checks-policy applies once to a quality run")
+  if (mode === "quality" && acknowledgment.length !== 1)
+    throw new Error("Full quality run blocked: read CHECKS.md, apply its policy, then pass --ack-checks-policy")
   const timeoutArg = raw.find((arg) => arg.startsWith("--timeout-ms="))
   const timeoutMs = timeoutArg ? Number(timeoutArg.split("=")[1]) : mode === "focused" ? 300_000 : 1_500_000
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > 86_400_000)
@@ -629,7 +693,9 @@ export async function main(argv = process.argv.slice(2), root = defaultRoot, pla
   if (scopeArgs.length > 1 || scopeArgs.some((arg) => !arg.slice(8).trim()))
     throw new Error("Scope must be one nonempty label")
   const scope = scopeArgs[0]?.slice(8)
-  const args = raw.filter((arg) => arg !== "--" && arg !== timeoutArg && !scopeArgs.includes(arg))
+  const args = raw.filter(
+    (arg) => arg !== "--" && arg !== "--ack-checks-policy" && arg !== timeoutArg && !scopeArgs.includes(arg)
+  )
   if (mode === "test" && args.some((arg) => arg !== "--coverage"))
     throw new Error("Full test accepts --coverage only; use focused for file selection.")
   if (mode === "quality" && args.length) throw new Error("Quality does not accept test-selection arguments")
@@ -657,7 +723,8 @@ export async function main(argv = process.argv.slice(2), root = defaultRoot, pla
     if (!process.env[contextVariable])
       await atomicJson(join(run.runDirectory, "manifest.json"), {
         ...manifest,
-        ...(sourceDigest === undefined ? {} : { sourceDigest })
+        ...(sourceDigest === undefined ? {} : { sourceDigest }),
+        ...(mode === "quality" ? { checksPolicyAcknowledged: true } : {})
       })
   } catch (error) {
     await run.recordFailedStage({ name: "source-identity", error, reason: "source-identification-failed" })
@@ -672,8 +739,14 @@ export async function main(argv = process.argv.slice(2), root = defaultRoot, pla
       await runSelectedTests(run, root, selection)
     } else {
       const precheckFailures = []
+      const parentStages = process.env[contextVariable] ? await stageResults(run.runDirectory) : []
       for (const [name, ...stageArgs] of precheckStages) {
         if (run.aborted) break
+        if (
+          name === qualityPreflight[0] &&
+          parentStages.some((stage) => stage.name === name && stage.state === "passed")
+        )
+          continue
         const result = await run.runStage({ name, command: process.execPath, args: stageArgs })
         if (result.state !== "passed") precheckFailures.push(result)
       }
@@ -699,7 +772,7 @@ export async function main(argv = process.argv.slice(2), root = defaultRoot, pla
           await run.runStage({
             name: "vitest",
             command: join(root, "node_modules", ".bin", "vitest"),
-            args: ["run", "--maxWorkers=1", ...args],
+            args: ["run", "--config", "scripts/vitest.config.ts", "--maxWorkers=1", ...args],
             env: { HAPSLAND_TEST_PACKAGE_ARCHIVE: archive.archivePath }
           })
         else if (!run.aborted)

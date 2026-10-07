@@ -1,0 +1,114 @@
+{
+  "name": "@hapsland/resident-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./resident/advice-records": {
+      "types": "./dist/resident/advice-records.d.ts",
+      "default": "./dist/resident/advice-records.js"
+    },
+    "./resident/bend-work": {
+      "types": "./dist/resident/bend-work.d.ts",
+      "default": "./dist/resident/bend-work.js"
+    },
+    "./resident/capacity": {
+      "types": "./dist/resident/capacity.d.ts",
+      "default": "./dist/resident/capacity.js"
+    },
+    "./resident/collection-decisions": {
+      "types": "./dist/resident/collection-decisions.d.ts",
+      "default": "./dist/resident/collection-decisions.js"
+    },
+    "./resident/collection": {
+      "types": "./dist/resident/collection.d.ts",
+      "default": "./dist/resident/collection.js"
+    },
+    "./resident/composed-delivery": {
+      "types": "./dist/resident/composed-delivery.d.ts",
+      "default": "./dist/resident/composed-delivery.js"
+    },
+    "./resident/dispatch-controls": {
+      "types": "./dist/resident/dispatch-controls.d.ts",
+      "default": "./dist/resident/dispatch-controls.js"
+    },
+    "./resident/dispatch": {
+      "types": "./dist/resident/dispatch.d.ts",
+      "default": "./dist/resident/dispatch.js"
+    },
+    "./resident/evaluation-reuse": {
+      "types": "./dist/resident/evaluation-reuse.d.ts",
+      "default": "./dist/resident/evaluation-reuse.js"
+    },
+    "./resident/joined-reviews": {
+      "types": "./dist/resident/joined-reviews.d.ts",
+      "default": "./dist/resident/joined-reviews.js"
+    },
+    "./resident/notice-records": {
+      "types": "./dist/resident/notice-records.d.ts",
+      "default": "./dist/resident/notice-records.js"
+    },
+    "./resident/ownership": {
+      "types": "./dist/resident/ownership.d.ts",
+      "default": "./dist/resident/ownership.js"
+    },
+    "./resident/preparation-controls": {
+      "types": "./dist/resident/preparation-controls.d.ts",
+      "default": "./dist/resident/preparation-controls.js"
+    },
+    "./resident/preparation-workspace": {
+      "types": "./dist/resident/preparation-workspace.d.ts",
+      "default": "./dist/resident/preparation-workspace.js"
+    },
+    "./resident/review-controls": {
+      "types": "./dist/resident/review-controls.d.ts",
+      "default": "./dist/resident/review-controls.js"
+    },
+    "./resident/revision": {
+      "types": "./dist/resident/revision.d.ts",
+      "default": "./dist/resident/revision.js"
+    },
+    "./resident/round-records": {
+      "types": "./dist/resident/round-records.d.ts",
+      "default": "./dist/resident/round-records.js"
+    },
+    "./resident/runtime-configuration": {
+      "types": "./dist/resident/runtime-configuration.d.ts",
+      "default": "./dist/resident/runtime-configuration.js"
+    },
+    "./resident/runtime-records": {
+      "types": "./dist/resident/runtime-records.d.ts",
+      "default": "./dist/resident/runtime-records.js"
+    },
+    "./resident/server": {
+      "types": "./dist/resident/server.d.ts",
+      "default": "./dist/resident/server.js"
+    }
+  },
+  "dependencies": {
+    "@hapsland/activity-observation": "workspace:*",
+    "@hapsland/canonical-policy": "workspace:*",
+    "@hapsland/delivery-output": "workspace:*",
+    "@hapsland/inspection-records": "workspace:*",
+    "@hapsland/native-observation": "workspace:*",
+    "@hapsland/resident-transport": "workspace:*",
+    "@hapsland/review-definition": "workspace:*",
+    "@hapsland/review-execution": "workspace:*",
+    "@hapsland/runtime-environment": "workspace:*",
+    "@hapsland/runtime-inputs": "workspace:*",
+    "@hapsland/source-analysis": "workspace:*",
+    "effect": "catalog:",
+    "@hapsland/credential-storage": "workspace:*"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
+  },
+  "hapsland": {
+    "domain": "resident-runtime",
+    "host": "bun",
+    "capabilities": [
+      "review-orchestration"
+    ]
+  }
+}

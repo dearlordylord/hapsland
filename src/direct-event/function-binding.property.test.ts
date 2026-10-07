@@ -1,7 +1,7 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
-import { analyzeFunctionFile } from "./function-analyzer.ts"
-import { resolveFunctionUnit } from "./function-resolver.ts"
+import { analyzeFunctionFile } from "@hapsland/source-analysis/direct-event/function-analyzer"
+import { resolveFunctionUnit } from "@hapsland/source-analysis/direct-event/function-resolver"
 
 const identifier = fc
   .array(fc.constantFrom(..."abcdefghijklmnopqrstuvwxyz0123456789_"), { minLength: 1, maxLength: 6 })

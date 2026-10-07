@@ -1,5 +1,5 @@
 import { expect, it } from "vitest"
-import { band } from "./questions.ts"
+import { band } from "@hapsland/review-definition/questions"
 
 it.each([
   [0, "clear"],

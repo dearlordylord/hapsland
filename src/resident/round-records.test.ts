@@ -1,10 +1,10 @@
-import type { RoundRecords, RoundWork } from "./round-records.ts"
+import type { RoundRecords, RoundWork } from "@hapsland/resident-runtime/resident/round-records"
 import { it } from "@effect/vitest"
 import { expect } from "vitest"
 import { Cause, Deferred, Effect, Exit } from "effect"
-import { makeDispatcher } from "./dispatch.ts"
-import { makeResidentState } from "./capacity.ts"
-import { advicee } from "../direct-event/test-fixtures.ts"
+import { makeDispatcher } from "@hapsland/resident-runtime/resident/dispatch"
+import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
+import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 const defectMessage = <A>(effect: Effect.Effect<A>) =>
   Effect.gen(function* () {

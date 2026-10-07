@@ -1,4 +1,4 @@
-import { bunExecutable } from "../runtime/bun-runtime.ts"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import * as Effect from "effect/Effect"
 import { Deferred, Fiber } from "effect"
 import { execFileAsync } from "../../scripts/test-harness/process.mjs"
@@ -16,9 +16,9 @@ import {
   type DemoExecution,
   type DemoExecutor,
   DemoExecutionError
-} from "./first-review-demo.ts"
-import { claimDemoBudget, readDemoBudgetUsage } from "./demo-budget.ts"
-import { readDemoTrace, recordDemoTrace } from "./demo-trace.ts"
+} from "@hapsland/administration/onboarding/first-review-demo"
+import { claimDemoBudget, readDemoBudgetUsage } from "@hapsland/activity-observation/activity/demo-budget"
+import { readDemoTrace, recordDemoTrace } from "@hapsland/activity-observation/activity/demo-trace"
 
 const roots: Array<string> = []
 

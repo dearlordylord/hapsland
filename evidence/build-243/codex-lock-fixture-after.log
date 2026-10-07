@@ -1,0 +1,21 @@
+
+ RUN  v5.0.1 /workspace/typescript/hapsland-243
+      Coverage enabled with v8
+
+ ✓ src/onboarding/codex-installation.test.ts (55 tests | 54 skipped) 23164ms
+   ✓ public Codex installation operations (44)
+     ✓ serializes multiple stale reclaimers, a replacement owner, and a third contender 23163ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 54 skipped (55)
+   Start at  12:26:09
+   Duration  27.50s (tests 98%, import 1%, transform 1%)
+
+ % Coverage report from v8
+
+=============================== Coverage summary ===============================
+Statements   : 4.21% ( 956/22687 )
+Branches     : 2.94% ( 399/13527 )
+Functions    : 3.27% ( 201/6139 )
+Lines        : 4.51% ( 889/19704 )
+================================================================================

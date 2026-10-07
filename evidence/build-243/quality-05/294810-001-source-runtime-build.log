@@ -1,0 +1,5 @@
+SyntaxError: Export named 'createInstrumenter' not found in module '/workspace/typescript/hapsland-243/node_modules/istanbul-lib-instrument/src/index.js'.
+note: missing sourcemaps for /workspace/typescript/hapsland-243/.test-runs/coverage-preload/199625/coverage-preload.mjs
+note: consider bundling with '--sourcemap' to get unminified traces
+
+Bun v1.3.14 (Linux arm64)

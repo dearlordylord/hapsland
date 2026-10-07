@@ -1,6 +1,6 @@
 import { Effect } from "effect"
 import { expect, it } from "vitest"
-import { runUnattendedSetup } from "./unattended.ts"
+import { runUnattendedSetup } from "@hapsland/administration/onboarding/unattended"
 
 it.each([
   {

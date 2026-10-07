@@ -1,0 +1,19 @@
+
+ RUN  v5.0.1 /workspace/typescript/hapsland-243
+      Coverage enabled with v8
+
+ ✓ src/resident/collection.test.ts (13 tests) 59ms
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  10:33:03
+   Duration  3.55s (transform 53%, import 36%, tests 9%, worker 2%, setup 1%)
+
+ % Coverage report from v8
+
+=============================== Coverage summary ===============================
+Statements   : 5.14% ( 1168/22685 )
+Branches     : 1.75% ( 237/13527 )
+Functions    : 2.47% ( 152/6139 )
+Lines        : 5.73% ( 1129/19703 )
+================================================================================

@@ -5,11 +5,11 @@ import { mkdtemp, mkdir, writeFile, readFile, rm, symlink, readdir } from "node:
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
-  artifactIdentities,
   artifactStoreDirectory,
-  ensurePackageArtifact,
-  ensureExecutionArtifact,
-  treeInventory
+  preparePackageArchive,
+  dependencyIdentity,
+  packageSourceIdentity,
+  ensureExecutionArtifact
 } from "./artifact-store.mjs"
 
 const git = (root, ...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8", timeout: 5000 }).trim()
@@ -21,7 +21,7 @@ async function fixture(t) {
   git(root, "init", "-q")
   git(root, "config", "user.name", "Artifact fixture")
   git(root, "config", "user.email", "fixture@example.invalid")
-  await writeFile(join(root, ".gitignore"), "dist/\nnode_modules/\n")
+  await writeFile(join(root, ".gitignore"), "dist/\nnode_modules/\n.test-runs/\n")
   await writeFile(join(root, "package.json"), JSON.stringify({ files: ["src", "README.md", "dist"] }))
   await writeFile(join(root, "README.md"), "packaged guidance")
   await mkdir(join(root, "src"))
@@ -42,7 +42,7 @@ async function fixture(t) {
     if (stage.name === "package-build") {
       await mkdir(join(stage.cwd, "dist"), { recursive: true })
       await writeFile(join(stage.cwd, "dist/main"), "compiled")
-    } else await writeFile(join(stage.args.at(-1), "fixture.tgz"), "archive")
+    } else if (stage.name === "package-pack") await writeFile(join(stage.args.at(-1), "fixture.tgz"), "archive")
     return { exitCode: 0 }
   }
   return { root, linked, dependencies, toolchain, calls, runStage }
@@ -70,8 +70,8 @@ test("immutable execution artifacts reuse across worktrees without running packa
   assert.notEqual(first.directory, second.directory)
   assert.equal(await readFile(join(second.directory, "cli.mjs"), "utf8"), "portable execution")
   assert.deepEqual(f.calls, [])
-  await ensurePackageArtifact(f)
-  await ensurePackageArtifact(f)
+  await preparePackageArchive(f)
+  await preparePackageArchive(f)
   assert.equal(await readFile(join(first.directory, "cli.mjs"), "utf8"), "portable execution")
   await writeFile(join(second.directory, "cli.mjs"), "corrupted")
   await assert.rejects(request(f.linked), /Materialized execution artifact differs/)
@@ -111,258 +111,211 @@ test("execution source changes and preparation failures never publish manifests"
   assert.equal((await readdir(join(store, "source-runtime", identity))).includes("artifact.json"), false)
 })
 
-test("identical worktrees share one checked build and package under concurrent use", async (t) => {
+test("every preparation invokes ordinary build, fresh validation and packing while identical archive bytes share retention", async (t) => {
   const f = await fixture(t)
-  assert.equal(await artifactStoreDirectory(f.root), await artifactStoreDirectory(f.linked))
-  assert.deepEqual(await artifactIdentities(f.root, f.toolchain), await artifactIdentities(f.linked, f.toolchain))
-  const [first, second] = await Promise.all([ensurePackageArtifact(f), ensurePackageArtifact({ ...f, root: f.linked })])
+  const first = await preparePackageArchive(f),
+    second = await preparePackageArchive(f)
+  assert.deepEqual(f.calls, [
+    "package-build",
+    "package-validation",
+    "package-pack",
+    "package-build",
+    "package-validation",
+    "package-pack"
+  ])
   assert.equal(first.archivePath, second.archivePath)
-  assert.deepEqual(f.calls, ["package-build", "package-pack"])
-  assert.equal(Number(first.buildReused) + Number(second.buildReused), 1)
-  assert.equal(Number(first.packageReused) + Number(second.packageReused), 1)
-  assert.equal(await readFile(join(f.linked, "dist/main"), "utf8"), "compiled")
+  assert.equal(await readFile(first.archivePath, "utf8"), "archive")
+  assert.equal("buildReused" in second, false)
+  assert.equal("buildIdentity" in second, false)
 })
-
-test("packaged documentation repacks without recompilation; source, dependencies and toolchain invalidate builds", async (t) => {
-  const f = await fixture(t)
-  const first = await ensurePackageArtifact(f)
-  await writeFile(join(f.root, "README.md"), "new packaged guidance")
-  const docs = await ensurePackageArtifact(f)
-  assert.equal(docs.buildReused, true)
-  assert.equal(docs.packageReused, false)
-  assert.equal(first.buildIdentity, docs.buildIdentity)
-  await writeFile(join(f.root, "src/main.ts"), "changed source")
-  assert.equal((await ensurePackageArtifact(f)).buildReused, false)
-  await writeFile(join(f.dependencies, "dependency.js"), "changed dependency")
-  assert.equal((await ensurePackageArtifact(f)).buildReused, false)
-  assert.equal(
-    (await ensurePackageArtifact({ ...f, toolchain: { ...f.toolchain, bun: "changed" } })).buildReused,
-    false
-  )
-  assert.equal(f.calls.filter((stage) => stage === "package-build").length, 4)
+test("all package stages inherit one active checkout build lease", async (t) => {
+  const f = await fixture(t),
+    leases = []
+  await preparePackageArchive({
+    ...f,
+    runStage: async (stage) => {
+      const token = stage.env.HAPSLAND_BUILD_LOCK_LEASE
+      assert.equal(typeof token, "string")
+      const lease = JSON.parse(await readFile(join(f.root, ".test-runs/product-build/lease.json"), "utf8"))
+      assert.equal(lease.token, token)
+      leases.push(token)
+      return f.runStage(stage)
+    }
+  })
+  assert.equal(new Set(leases).size, 1)
+  await assert.rejects(readFile(join(f.root, ".test-runs/product-build/lease.json")), /ENOENT/)
 })
-
-test("failed packing never publishes a candidate and a later attempt can recover", async (t) => {
-  const f = await fixture(t)
+for (const failed of ["package-build", "package-validation", "package-pack"])
+  test(`failed ${failed} prevents archive publication and a later attempt can recover`, async (t) => {
+    const f = await fixture(t),
+      calls = []
+    await assert.rejects(
+      preparePackageArchive({
+        ...f,
+        runStage: async (stage) => {
+          calls.push(stage.name)
+          return stage.name === failed
+            ? { exitCode: 0, state: "failed", logPath: "fixture failure" }
+            : f.runStage(stage)
+        }
+      }),
+      /failed/
+    )
+    assert.equal(calls.at(-1), failed)
+    const store = await artifactStoreDirectory(f.root)
+    await assert.rejects(readdir(join(store, "archives")), /ENOENT/)
+    assert.equal(await readFile((await preparePackageArchive(f)).archivePath, "utf8"), "archive")
+  })
+test("source changes during build prevent packing", async (t) => {
+  const f = await fixture(t),
+    calls = []
   await assert.rejects(
-    ensurePackageArtifact({
+    preparePackageArchive({
       ...f,
       runStage: async (stage) => {
+        calls.push(stage.name)
         await f.runStage(stage)
-        return { exitCode: stage.name === "package-pack" ? 1 : 0, logPath: "failed-pack.log" }
-      }
-    }),
-    /failed-pack.log/
-  )
-  const key = await artifactIdentities(f.root, f.toolchain)
-  const directory = join(await artifactStoreDirectory(f.root), "packages", key.package)
-  assert.equal((await readdir(directory)).includes("artifact.json"), false)
-  const recovered = await ensurePackageArtifact(f)
-  assert.equal(recovered.buildReused, true)
-  assert.equal(recovered.packageReused, false)
-})
-
-test("changed inputs during a build cannot publish a build or archive", async (t) => {
-  const f = await fixture(t)
-  const key = await artifactIdentities(f.root, f.toolchain)
-  await assert.rejects(
-    ensurePackageArtifact({
-      ...f,
-      runStage: async (stage) => {
-        await f.runStage(stage)
-        await writeFile(join(f.root, "src/main.ts"), "concurrent mutation")
+        await writeFile(join(f.root, "src/main.ts"), "concurrent source edit")
         return { exitCode: 0 }
       }
     }),
-    /inputs changed/
+    /inputs changed during compilation/
   )
-  assert.deepEqual(f.calls, ["package-build"])
-  const directory = join(await artifactStoreDirectory(f.root), "builds", key.build)
-  assert.equal((await readdir(directory)).includes("artifact.json"), false)
+  assert.deepEqual(calls, ["package-build"])
 })
-
-test("archive corruption is rejected instead of reused", async (t) => {
-  const f = await fixture(t)
-  const artifact = await ensurePackageArtifact(f)
-  await writeFile(artifact.archivePath, "corrupted")
-  await assert.rejects(ensurePackageArtifact(f), /archive checksum/)
-  assert.deepEqual(f.calls, ["package-build", "package-pack"])
-})
-
-test("compiled output corruption and symbolic links are rejected", async (t) => {
-  const f = await fixture(t)
-  const artifact = await ensurePackageArtifact(f)
-  const store = await artifactStoreDirectory(f.root)
-  await writeFile(join(store, "builds", artifact.buildIdentity, "outputs/dist/main"), "corrupted")
-  await assert.rejects(ensurePackageArtifact(f), /output checksum/)
-  await symlink(join(f.root, "src/main.ts"), join(f.root, "dist/link"))
-  await assert.rejects(treeInventory(join(f.root, "dist")), /not a regular file/)
-})
-
-test("linked dependency edits and cycles are observed without physical checkout paths", async (t) => {
-  const f = await fixture(t)
-  await symlink(".", join(f.dependencies, "cycle"))
-  const first = await artifactIdentities(f.root, f.toolchain)
-  assert.deepEqual(await artifactIdentities(f.linked, f.toolchain), first)
-  await writeFile(join(f.dependencies, "dependency.js"), "updated dependency")
-  assert.notEqual((await artifactIdentities(f.root, f.toolchain)).build, first.build)
-  await mkdir(join(f.dependencies, ".vite"))
-  const beforeGenerated = await artifactIdentities(f.root, f.toolchain)
-  await writeFile(join(f.dependencies, ".vite/results.json"), "transient results")
-  assert.deepEqual(await artifactIdentities(f.root, f.toolchain), beforeGenerated)
-})
-
-test("linked source contents invalidate compilation even when the symlink is unchanged", async (t) => {
-  const f = await fixture(t)
-  await symlink(join(f.dependencies, "dependency.js"), join(f.root, "src/linked.ts"))
-  const before = await artifactIdentities(f.root, f.toolchain)
-  await writeFile(join(f.dependencies, "dependency.js"), "edited linked source")
-  assert.notEqual((await artifactIdentities(f.root, f.toolchain)).build, before.build)
-})
-
-test("release and development recipes share compilation but retain separate checked archives", async (t) => {
-  const f = await fixture(t)
-  const development = await ensurePackageArtifact(f)
-  const release = await ensurePackageArtifact({ ...f, recipe: "release" })
-  assert.equal(release.buildReused, true)
-  assert.equal(release.packageReused, false)
-  assert.equal(release.buildIdentity, development.buildIdentity)
-  assert.notEqual(release.archivePath, development.archivePath)
-  assert.equal(f.calls.filter((stage) => stage === "package-build").length, 1)
-})
-
-test("restoring native outputs publishes a new inode and preserves mapped readers", async (t) => {
-  const f = await fixture(t)
-  const { open, stat } = await import("node:fs/promises")
-  const native = join(f.root, `native/prebuilt/${process.platform}-${process.arch}`, "parser.node")
-  const runStage = async (stage) => {
-    await f.runStage(stage)
-    if (stage.name === "package-build") {
-      await mkdir(join(f.root, `native/prebuilt/${process.platform}-${process.arch}`), { recursive: true })
-      await writeFile(native, "compiled native")
-    }
-    return { exitCode: 0 }
-  }
-  await ensurePackageArtifact({ ...f, runStage })
-  const reader = await open(native, "r")
-  try {
-    const previous = (await stat(native)).ino
-    await writeFile(native, "running reader")
-    const reused = await ensurePackageArtifact({ ...f, runStage })
-    assert.equal(reused.buildReused, true)
-    assert.notEqual((await stat(native)).ino, previous)
-    assert.equal(await readFile(native, "utf8"), "compiled native")
-    assert.equal(await reader.readFile("utf8"), "running reader")
-  } finally {
-    await reader.close()
-  }
-})
-
-test("package preparation records verified cache reuse as successful harness evidence", async (t) => {
-  const f = await fixture(t)
-  await ensurePackageArtifact(f)
-  const { preparePackage } = await import("./prepare-package.mjs")
-  const reused = await preparePackage({ root: f.root, toolchain: f.toolchain, inherited: null })
-  assert.equal(reused.buildReused, true)
-  assert.equal(reused.packageReused, true)
-  assert.deepEqual(f.calls, ["package-build", "package-pack"])
-})
-
-test("production test-support and npm selection controls invalidate their artifact owners", async (t) => {
-  const f = await fixture(t)
-  await mkdir(join(f.root, "src/test-support"))
-  await writeFile(join(f.root, "src/test-support/controlled-decision-model.ts"), "first")
-  let previous = await artifactIdentities(f.root, f.toolchain)
-  await writeFile(join(f.root, "src/test-support/controlled-decision-model.ts"), "second")
-  const changed = await artifactIdentities(f.root, f.toolchain)
-  assert.notEqual(previous.build, changed.build)
-  previous = changed
-  for (const filename of [".npmignore", "LICENSE"]) {
-    await writeFile(join(f.root, filename), "pack selection or license")
-    const next = await artifactIdentities(f.root, f.toolchain)
-    assert.equal(previous.build, next.build)
-    assert.notEqual(previous.package, next.package)
-    previous = next
-  }
-})
-
-test("failed harness stage with exit zero cannot publish an artifact", async (t) => {
+test("runtime output changes during packing prevent archive retention", async (t) => {
   const f = await fixture(t)
   await assert.rejects(
-    ensurePackageArtifact({
+    preparePackageArchive({
       ...f,
       runStage: async (stage) => {
         await f.runStage(stage)
-        return { exitCode: 0, state: "failed", error: "stage did not complete" }
+        if (stage.name === "package-pack") await writeFile(join(f.root, "dist/main"), "concurrent runtime change")
+        return { exitCode: 0 }
       }
     }),
-    /package-build failed/
+    /runtime outputs changed/
   )
-  const recovered = await ensurePackageArtifact(f)
-  assert.equal(recovered.buildReused, false)
+  await assert.rejects(readdir(join(await artifactStoreDirectory(f.root), "archives")), /ENOENT/)
 })
-
-test("unresolved descendants retain all owned artifact locks and publish no manifest", async (t) => {
-  const f = await fixture(t)
-  const keys = await artifactIdentities(f.root, f.toolchain)
-  const store = await artifactStoreDirectory(f.root)
-  await assert.rejects(
-    ensurePackageArtifact({ ...f, runStage: async () => ({ exitCode: 0, state: "failed", groupUnresolved: true }) }),
-    /package-build failed/
-  )
-  const build = join(store, "builds", keys.build)
-  assert.equal(JSON.parse(await readFile(join(build, "lock/owner.json"), "utf8")).pid, process.pid)
-  await assert.rejects(readFile(join(build, "artifact.json")), { code: "ENOENT" })
-  const locks = await readdir(join(store, "worktrees"))
-  assert.equal(locks.length, 1)
-  assert.equal(
-    JSON.parse(await readFile(join(store, "worktrees", locks[0], "lock/owner.json"), "utf8")).pid,
-    process.pid
-  )
+test("corrupt retained archive bytes are rejected after a fresh build, validation and pack", async (t) => {
+  const f = await fixture(t),
+    first = await preparePackageArchive(f)
+  await writeFile(first.archivePath, "corrupt")
+  await assert.rejects(preparePackageArchive(f), /archive checksum/)
+  assert.equal(f.calls.length, 6)
 })
-
-test("checksum verification observes the preparation deadline on cache hits", async (t) => {
-  const f = await fixture(t)
-  await ensurePackageArtifact(f)
-  await assert.rejects(ensurePackageArtifact({ ...f, deadline: Date.now() - 1 }), /deadline exceeded/)
-})
-
-test("source mutation while waiting for a cache lock rejects reuse", async (t) => {
-  const f = await fixture(t)
-  const cached = await ensurePackageArtifact(f)
-  const store = await artifactStoreDirectory(f.root)
-  const lock = join(store, "builds", cached.buildIdentity, "lock")
-  await mkdir(lock)
-  await writeFile(join(lock, "owner.json"), JSON.stringify({ pid: process.pid }))
-  let requestedReady
-  const observed = new Promise((resolve) => {
-    requestedReady = resolve
-  })
-  const preparation = ensurePackageArtifact({
+test("release packaging uses ordinary build and both-platform native validation before npm pack", async (t) => {
+  const f = await fixture(t),
+    stages = []
+  await preparePackageArchive({
     ...f,
-    identity: async (...args) => {
-      const inputs = await artifactIdentities(...args)
-      requestedReady()
-      return inputs
+    recipe: "release",
+    environment: { ...process.env, HAPSLAND_BUILD_PROFILE: "linux-arm64" },
+    runStage: async (stage) => {
+      stages.push(stage)
+      return f.runStage(stage)
     }
   })
-  const rejected = assert.rejects(preparation, /inputs changed during preparation/)
-  await observed
-  await writeFile(join(f.root, "src/main.ts"), "changed while lock held")
-  await rm(lock, { recursive: true })
-  await rejected
-  assert.deepEqual(f.calls, ["package-build", "package-pack"])
+  assert.equal(stages[0].env.HAPSLAND_BUILD_PROFILE, undefined)
+  assert.equal(stages[1].env.HAPSLAND_BUILD_PROFILE, undefined)
+  assert.equal(stages[0].args.at(-1), "build")
+  assert.equal(stages[1].args.at(-1), "verify:release-native")
+  assert.ok(stages[2].args.includes("--ignore-scripts=true"))
+  assert.ok(stages[2].args.includes("--pack-destination"))
+})
+test("linked dependency bytes and cycles remain observed without whole-build cache identities", async (t) => {
+  const f = await fixture(t)
+  await symlink(".", join(f.dependencies, "cycle"))
+  const before = await dependencyIdentity(f.root)
+  assert.equal(await dependencyIdentity(f.linked), before)
+  await writeFile(join(f.dependencies, "dependency.js"), "new dependency")
+  assert.notEqual(await dependencyIdentity(f.root), before)
+})
+test("archive preparation observes a finite deadline before invoking stages", async (t) => {
+  const f = await fixture(t)
+  await assert.rejects(preparePackageArchive({ ...f, deadline: Date.now() - 1 }), /deadline exceeded/)
+  assert.deepEqual(f.calls, [])
+})
+test("source changes during packing prevent immutable archive publication", async (t) => {
+  const f = await fixture(t)
+  await assert.rejects(
+    preparePackageArchive({
+      ...f,
+      runStage: async (stage) => {
+        await f.runStage(stage)
+        if (stage.name === "package-pack") await writeFile(join(f.root, "README.md"), "concurrent shipped edit")
+        return { exitCode: 0 }
+      }
+    }),
+    /inputs changed during packing/
+  )
+})
+test("external dependency changes during build reject packaging despite unchanged source and outputs", async (t) => {
+  const f = await fixture(t)
+  await assert.rejects(
+    preparePackageArchive({
+      ...f,
+      runStage: async (stage) => {
+        await f.runStage(stage)
+        if (stage.name === "package-build") await writeFile(join(f.dependencies, "dependency.js"), "changed dependency")
+        return { exitCode: 0 }
+      }
+    }),
+    /inputs changed during compilation/
+  )
+  assert.deepEqual(f.calls, ["package-build"])
+})
+test("explicitly shipped ignored files participate in fresh package-source drift checks", async (t) => {
+  const f = await fixture(t)
+  await writeFile(join(f.root, ".gitignore"), "dist/\nnode_modules/\n.test-runs/\nignored-input.txt\n")
+  const manifest = JSON.parse(await readFile(join(f.root, "package.json"), "utf8"))
+  manifest.files.push("ignored-input.txt")
+  await writeFile(join(f.root, "package.json"), JSON.stringify(manifest))
+  await writeFile(join(f.root, "ignored-input.txt"), "before")
+  const before = await packageSourceIdentity(f.root)
+  await writeFile(join(f.root, "ignored-input.txt"), "after")
+  assert.notEqual(await packageSourceIdentity(f.root), before)
+})
+test("an unresolved stage retains the owned checkout lease and cannot publish an archive", async (t) => {
+  const f = await fixture(t)
+  await assert.rejects(
+    preparePackageArchive({ ...f, runStage: async () => ({ exitCode: 0, state: "failed", groupUnresolved: true }) }),
+    (error) => error.groupUnresolved === true
+  )
+  const lease = JSON.parse(await readFile(join(f.root, ".test-runs/product-build/lease.json"), "utf8"))
+  assert.equal(lease.state, "closing")
+  assert.ok(await readdir(join(f.root, ".test-runs/product-build/lock")))
+  await assert.rejects(readdir(join(await artifactStoreDirectory(f.root), "archives")), /ENOENT/)
+})
+test("symbolic runtime outputs are rejected before packing", async (t) => {
+  const f = await fixture(t)
+  await assert.rejects(
+    preparePackageArchive({
+      ...f,
+      runStage: async (stage) => {
+        await f.runStage(stage)
+        if (stage.name === "package-build") await symlink("main", join(f.root, "dist/link"))
+        return { exitCode: 0 }
+      }
+    }),
+    /not a regular file/
+  )
+  assert.equal(f.calls.includes("package-pack"), false)
 })
 
-test("ignored files explicitly shipped by npm participate in package identity", async (t) => {
+test("linked authored source and package selection controls remain strong archive inputs", async (t) => {
   const f = await fixture(t)
-  await writeFile(join(f.root, ".gitignore"), "dist/\nnode_modules/\nshipped/\n")
-  await writeFile(join(f.root, "package.json"), JSON.stringify({ files: ["src", "dist", "shipped"] }))
-  await mkdir(join(f.root, "shipped"))
-  await writeFile(join(f.root, "shipped/data.json"), "first")
-  const first = await artifactIdentities(f.root, f.toolchain)
-  await writeFile(join(f.root, "shipped/data.json"), "changed")
-  const next = await artifactIdentities(f.root, f.toolchain)
-  assert.equal(first.build, next.build)
-  assert.notEqual(first.package, next.package)
+  await symlink(join(f.dependencies, "dependency.js"), join(f.root, "src/linked.ts"))
+  let before = await packageSourceIdentity(f.root)
+  await writeFile(join(f.dependencies, "dependency.js"), "edited linked source")
+  assert.notEqual(await packageSourceIdentity(f.root), before)
+  for (const [filename, contents] of [
+    ["src/.npmignore", "main.ts\n"],
+    ["LICENSE", "package license"]
+  ]) {
+    before = await packageSourceIdentity(f.root)
+    await writeFile(join(f.root, filename), contents)
+    assert.notEqual(await packageSourceIdentity(f.root), before)
+  }
 })

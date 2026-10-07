@@ -15,17 +15,17 @@ import {
   authoringSourceExample,
   authoringSourcePath
 } from "./rule-authoring-example.ts"
-import { parseInvocation } from "../src/cli-command.ts"
-import { makeGitFixture, put } from "../src/direct-event/test-fixtures.ts"
-import { discoverPhysicalWorkingTreeRoot } from "../src/repository/root.ts"
-import { loadReviewSettings } from "../src/runtime/review-config.ts"
-import { prepareSourceLine, preparedProviderInput } from "../src/direct-event/pipeline.ts"
+import { parseInvocation } from "@hapsland/administration/cli-command"
+import { makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { discoverPhysicalWorkingTreeRoot } from "@hapsland/native-observation/repository/root"
+import { loadReviewSettings } from "@hapsland/review-definition/runtime/review-config"
+import { prepareSourceLine, preparedProviderInput } from "@hapsland/review-execution/direct-event/pipeline"
 import { describe, expect, it } from "vitest"
-import { decodeConfigurationText } from "../src/configuration/decode.ts"
-import { decodeRuleText } from "../src/rules/schema.ts"
+import { decodeConfigurationText } from "@hapsland/runtime-inputs/configuration/decode"
+import { decodeRuleText } from "@hapsland/review-definition/rules/schema"
 import { renderConfigurationArtifacts, renderInspectionArtifacts } from "./generate-configuration.ts"
 
-import { AnalyticsRecordingEnabled, InspectionRecordingEnabled } from "../src/configuration/types.ts"
+import { AnalyticsRecordingEnabled, InspectionRecordingEnabled } from "@hapsland/runtime-inputs/configuration/types"
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const generator = join(repositoryRoot, "scripts/generate-configuration.ts")
@@ -82,7 +82,7 @@ const generatedFiles = (root: string): ReadonlyArray<string> => [
   join(root, "docs/pi-installation.md"),
   join(root, "docs/review-providers.md"),
   join(root, "docs/review-resources.md"),
-  join(root, "src/inspection/brand.ts")
+  join(root, "packages/administration/src/inspection/brand.ts")
 ]
 
 const codeBlocks = (markdown: string): ReadonlyArray<string> =>

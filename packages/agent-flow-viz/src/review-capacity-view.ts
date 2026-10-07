@@ -1,5 +1,5 @@
 import type { HtmlBuilder } from "foldkit/html"
-import type { CanonicalProjection } from "../../../src/canonical/adapter"
+import type { CanonicalProjection } from "@hapsland/canonical-policy/canonical/adapter"
 
 export const reviewCapacityView = <Message>(h: HtmlBuilder<Message>, projection: CanonicalProjection) =>
   h.div(

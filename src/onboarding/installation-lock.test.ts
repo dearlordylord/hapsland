@@ -13,7 +13,7 @@ import {
 } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
-import { InstallationLockError, withInstallationLock } from "./installation-lock.ts"
+import { InstallationLockError, withInstallationLock } from "@hapsland/administration/onboarding/installation-lock"
 
 const fixture = Effect.acquireRelease(
   Effect.sync(() => mkdtempSync(join(tmpdir(), "hapsland-installation-lock-"))),

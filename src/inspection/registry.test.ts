@@ -4,19 +4,23 @@ import { execFileSync } from "../../scripts/test-harness/process.mjs"
 import { join } from "node:path"
 import { Socket } from "node:net"
 import { once } from "node:events"
-import { residentRequestEffect } from "../resident/client.ts"
+import { residentRequestEffect } from "@hapsland/resident-transport/resident/client"
 import { Effect, Scope, Exit, ConfigProvider } from "effect"
 import { expect, it } from "vitest"
-import { inspectionSourceId, type InspectionRecord } from "./contract.ts"
-import { makeInspectionRegistry, MAX_INSPECTION_SOURCES, type InspectionSource } from "./registry.ts"
-import { MAX_INSPECTION_HTTP_BYTES, makeInspectionHttpServer } from "./http.ts"
-import { makeInspectionStorage } from "./storage.ts"
+import { inspectionSourceId, type InspectionRecord } from "@hapsland/inspection-records/inspection/contract"
+import {
+  makeInspectionRegistry,
+  MAX_INSPECTION_SOURCES,
+  type InspectionSource
+} from "@hapsland/administration/inspection/registry"
+import { MAX_INSPECTION_HTTP_BYTES, makeInspectionHttpServer } from "@hapsland/administration/inspection/http"
+import { makeInspectionStorage } from "@hapsland/inspection-records/inspection/storage"
 import { acquireResidentFixture } from "../resident/runtime-fixture.ts"
-import { residentPaths } from "../resident/paths.ts"
-import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
-import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { nativeDeferred } from "../test-support/native-deferred.ts"
-import { configuredRules, connectDefaultRuleFixture } from "../test-support/default-rules.ts"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { nativeDeferred } from "@hapsland/build-tooling/test-support/native-deferred"
+import { configuredRules, connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
 
 it("discovers opted-in additional endpoints and isolates retained lifetimes through the public feed", async () => {
   const roots = [await makeGitFixture(), await makeGitFixture()]

@@ -9,7 +9,7 @@ import { validateSharingControl, type SharingControl } from "./sharing-controls.
 import { callbackPublicBoundary } from "./callback-native-codec.ts"
 import { decodeNativePrefix } from "./callback-native-prefix.ts"
 import { decodeSharingNativeBoundary } from "./sharing-native-boundary.ts"
-import { readRecord } from "../../../src/canonical/boundary-schema.ts"
+import { readRecord } from "@hapsland/canonical-policy/canonical/boundary-schema"
 
 const programs = [
   "baseline",

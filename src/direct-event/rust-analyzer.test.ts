@@ -1,7 +1,14 @@
-import { inspectRust as inspectGraphFile, inspectRustModules } from "./languages/rust.ts"
+import {
+  inspectRust as inspectGraphFile,
+  inspectRustModules
+} from "@hapsland/source-analysis/direct-event/languages/rust"
 import { describe, expect, it } from "vitest"
 import fc from "fast-check"
-import { analyzeTypeFile, combinedAnalyzerMaterializationPreflight, MAX_TYPE_DECLARATIONS } from "./analyzer.ts"
+import {
+  analyzeTypeFile,
+  combinedAnalyzerMaterializationPreflight,
+  MAX_TYPE_DECLARATIONS
+} from "@hapsland/source-analysis/direct-event/analyzer"
 
 const units = (source: string) => {
   const result = analyzeTypeFile("src/model.rs", source)

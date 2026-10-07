@@ -1,6 +1,6 @@
 import { Effect } from "effect"
 import { expect, it } from "vitest"
-import { invokeLifecycle } from "./client-lifecycle.ts"
+import { invokeLifecycle } from "@hapsland/administration/onboarding/client-lifecycle"
 
 it("sends lifecycle request through EOF and decodes the checked response", async () => {
   const output = await Effect.runPromise(

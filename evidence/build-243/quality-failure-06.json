@@ -1,0 +1,35 @@
+{
+  "id": "20261007121041385-464571-2fbfba",
+  "state": "aborted",
+  "exitCode": 1,
+  "startedAt": "2026-10-07T12:10:41.387Z",
+  "finishedAt": "2026-10-07T12:35:41.528Z",
+  "elapsedMs": 1500141,
+  "reason": "deadline",
+  "failedStages": [
+    "quality",
+    "vitest"
+  ],
+  "failures": 1,
+  "candidateCommit": "4c06664345248e65be3d8455812fbf1e3ba690cb",
+  "sourceFrozen": true,
+  "fullCoverageComplete": false,
+  "scorerComplete": false,
+  "ownerProcessesStopped": true,
+  "lockReleased": true,
+  "independentDefects": [
+    {
+      "boundary": "resident startup recovery under coverage",
+      "failure": "releases ownership after startup failure without deleting an unsafe endpoint",
+      "actualBudgetMs": 5000,
+      "diagnosticMessageBudgetMs": 10000,
+      "nextExperiment": "Matched real ensureResident path: count launched PIDs and instrument compiler correspondence, instrumentation, import rewrite and flush costs before repair."
+    },
+    {
+      "boundary": "full runner campaign budget",
+      "failure": "25-minute finite deadline expired before Vitest completion",
+      "nextExperiment": "Measure coverage startup overhead before another full run; select any revised finite budget from observed remaining actual work."
+    }
+  ],
+  "retainedDirectory": "evidence/build-243/quality-06"
+}

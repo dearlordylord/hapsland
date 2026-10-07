@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest"
-import { addEvent, makeReviewGitFixture as makeGitFixture, advicee } from "../direct-event/test-fixtures.ts"
-import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
+import {
+  addEvent,
+  makeReviewGitFixture as makeGitFixture,
+  advicee
+} from "@hapsland/build-tooling/test-support/test-fixtures"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import * as Effect from "effect/Effect"
 import {
   CLIENT_REQUEST_DEADLINE_MS,
@@ -14,7 +18,7 @@ import {
   decodeCurrentResidentResponse,
   decodeResidentRequest,
   decodeResidentResponse
-} from "./protocol.ts"
+} from "@hapsland/resident-transport/resident/protocol"
 
 describe("resident protocol bounds", () => {
   it("validates lifetime-bound read-only inspection state without caller-selected roots", () => {

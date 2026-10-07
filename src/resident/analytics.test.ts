@@ -1,10 +1,13 @@
-import { bunExecutable } from "../runtime/bun-runtime.ts"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
-import { runClient } from "../test-support/client-runtime.ts"
-import { nativeDeferred as deferred } from "../test-support/native-deferred.ts"
-import { reviewControlsLayer } from "../test-support/review-controls.ts"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
+import { nativeDeferred as deferred } from "@hapsland/build-tooling/test-support/native-deferred"
+import { reviewControlsLayer } from "@hapsland/build-tooling/test-support/review-controls"
 import { Layer } from "effect"
-import { ResidentPreparationControls, defaultPreparationControls } from "./preparation-controls.ts"
+import {
+  ResidentPreparationControls,
+  defaultPreparationControls
+} from "@hapsland/resident-runtime/resident/preparation-controls"
 import { spawnSync } from "../../scripts/test-harness/process.mjs"
 import { afterEach, describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
@@ -12,15 +15,19 @@ import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import { readFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
-import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
-import { addEvent, makeReviewGitFixture as makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../test-support/default-rules.ts"
-import { readAnalytics } from "../activity/analytics.ts"
-import { makeResidentDispatchContextEffect as makeResidentDispatchContext } from "./client.ts"
-import { residentPaths } from "./paths.ts"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import {
+  addEvent,
+  makeReviewGitFixture as makeGitFixture,
+  put
+} from "@hapsland/build-tooling/test-support/test-fixtures"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
+import { readAnalytics } from "@hapsland/activity-observation/activity/analytics"
+import { makeResidentDispatchContextEffect as makeResidentDispatchContext } from "@hapsland/resident-transport/resident/client"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import { acquireResidentFixture } from "./runtime-fixture.ts"
-import type { ResidentDispatchContext } from "./protocol.ts"
-import { readCredentialState } from "../credentials/secret-service.ts"
+import type { ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
+import { readCredentialState } from "@hapsland/runtime-inputs/credentials/state"
 
 const directories: string[] = []
 afterEach(() => {
@@ -366,7 +373,7 @@ describe("resident session analytics", () => {
         REVIEW_CREDENTIAL_STATE_PATH: join(f.root, "credentials"),
         TYPESAFE_API_KEY: "STATUS_SYNTHETIC_KEY"
       }
-      const json = spawnSync(bunExecutable(), ["src/cli.ts", "--status"], {
+      const json = spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", "--status"], {
         env,
         input,
         encoding: "utf8",
@@ -381,7 +388,7 @@ describe("resident session analytics", () => {
           controlledTotals: { requestsStarted: 1, clearReviews: 1 }
         }
       })
-      const human = spawnSync(bunExecutable(), ["src/cli.ts", "--status", "--status-human"], {
+      const human = spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", "--status", "--status-human"], {
         env,
         input,
         encoding: "utf8",

@@ -7,12 +7,16 @@ import * as Layer from "effect/Layer"
 import * as Redacted from "effect/Redacted"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
-import { compileRule } from "../rules/compiler.ts"
-import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
-import { DEFAULT_API_BASE, DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
-import { adaptCodexAdd } from "./adapter.ts"
-import { prepareObservation, evaluatePrepared } from "./pipeline.ts"
-import { makeGitFixture, put, updateEvent } from "./test-fixtures.ts"
+import { compileRule } from "@hapsland/review-definition/rules/compiler"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import {
+  DEFAULT_API_BASE,
+  DEFAULT_BACKEND,
+  DEFAULT_DESTINATION
+} from "@hapsland/review-definition/runtime/review-config"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import { prepareObservation, evaluatePrepared } from "@hapsland/review-execution/direct-event/pipeline"
+import { makeGitFixture, put, updateEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 type Manifest = {
   readonly positive: {
@@ -93,7 +97,7 @@ const prepare = (
     yield* Effect.promise(() => put(root, path, source))
     const changedLine = source.split("\n").find((line) => line.includes("interface "))
     if (changedLine === undefined) throw new Error("fixture has no interface update line")
-    const observation = yield* adaptCodexAdd(updateEvent(root, path, [changedLine]))
+    const observation = yield* adaptCodexDirectEvent(updateEvent(root, path, [changedLine]))
     expect(observation).toBeDefined()
     if (observation === undefined) throw new Error("fixture adaptation failed")
     return yield* prepareObservation(observation, {

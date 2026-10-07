@@ -1,0 +1,1054 @@
+{
+  "version": 1,
+  "threshold": 8,
+  "rows": [
+    {
+      "id": "scripts/test-support/pi-installed.ts::waitForResidentStats@7536-8309",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "waitForResidentStats",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 7536,
+          "line": 171,
+          "column": 29
+        },
+        "end": {
+          "offset": 8309,
+          "line": 190,
+          "column": 1
+        }
+      },
+      "complexity": 5,
+      "coverage": {
+        "status": "measured",
+        "covered": 9,
+        "total": 10,
+        "fraction": 0.9
+      },
+      "crap": 5.025
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::stopFixtureProcess@5910-6379",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "stopFixtureProcess",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 5910,
+          "line": 133,
+          "column": 27
+        },
+        "end": {
+          "offset": 6379,
+          "line": 141,
+          "column": 1
+        }
+      },
+      "complexity": 4,
+      "coverage": {
+        "status": "measured",
+        "covered": 6,
+        "total": 10,
+        "fraction": 0.6
+      },
+      "crap": 5.024
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::setupInstalledPi@1828-3351",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "setupInstalledPi",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 1828,
+          "line": 32,
+          "column": 32
+        },
+        "end": {
+          "offset": 3351,
+          "line": 66,
+          "column": 1
+        }
+      },
+      "complexity": 5,
+      "coverage": {
+        "status": "measured",
+        "covered": 25,
+        "total": 27,
+        "fraction": 0.9259259259259259
+      },
+      "crap": 5.010161052685058
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::candidateRuntimePaths@1464-1795",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "candidateRuntimePaths",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 1464,
+          "line": 25,
+          "column": 30
+        },
+        "end": {
+          "offset": 1795,
+          "line": 31,
+          "column": 1
+        }
+      },
+      "complexity": 5,
+      "coverage": {
+        "status": "measured",
+        "covered": 5,
+        "total": 5,
+        "fraction": 1.0
+      },
+      "crap": 5.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::fixtureOwnerPid@3684-3933",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "fixtureOwnerPid",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 3684,
+          "line": 76,
+          "column": 24
+        },
+        "end": {
+          "offset": 3933,
+          "line": 83,
+          "column": 1
+        }
+      },
+      "complexity": 5,
+      "coverage": {
+        "status": "measured",
+        "covered": 4,
+        "total": 4,
+        "fraction": 1.0
+      },
+      "crap": 5.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::cleanupPiFixtures@6789-7505",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "cleanupPiFixtures",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 6789,
+          "line": 153,
+          "column": 33
+        },
+        "end": {
+          "offset": 7505,
+          "line": 169,
+          "column": 1
+        }
+      },
+      "complexity": 5,
+      "coverage": {
+        "status": "measured",
+        "covered": 13,
+        "total": 13,
+        "fraction": 1.0
+      },
+      "crap": 5.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::stopPreparedResident@6409-6755",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "stopPreparedResident",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 6409,
+          "line": 142,
+          "column": 29
+        },
+        "end": {
+          "offset": 6755,
+          "line": 152,
+          "column": 1
+        }
+      },
+      "complexity": 4,
+      "coverage": {
+        "status": "measured",
+        "covered": 2,
+        "total": 3,
+        "fraction": 0.6666666666666666
+      },
+      "crap": 4.592592592592593
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::signalFixtureProcess@5427-5604",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "signalFixtureProcess",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 5427,
+          "line": 120,
+          "column": 29
+        },
+        "end": {
+          "offset": 5604,
+          "line": 126,
+          "column": 1
+        }
+      },
+      "complexity": 3,
+      "coverage": {
+        "status": "measured",
+        "covered": 2,
+        "total": 4,
+        "fraction": 0.5
+      },
+      "crap": 4.125
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::<anonymous>@260:6@11113-11242",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "<anonymous>@260:6",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 11113,
+          "line": 260,
+          "column": 6
+        },
+        "end": {
+          "offset": 11242,
+          "line": 261,
+          "column": 118
+        }
+      },
+      "complexity": 4,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 4.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::fixtureProcessRunning@4785-5397",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "fixtureProcessRunning",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 4785,
+          "line": 104,
+          "column": 30
+        },
+        "end": {
+          "offset": 5397,
+          "line": 119,
+          "column": 1
+        }
+      },
+      "complexity": 3,
+      "coverage": {
+        "status": "measured",
+        "covered": 4,
+        "total": 6,
+        "fraction": 0.6666666666666666
+      },
+      "crap": 3.3333333333333335
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::fixtureCommandMatches@3971-4461",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "fixtureCommandMatches",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 3971,
+          "line": 84,
+          "column": 37
+        },
+        "end": {
+          "offset": 4461,
+          "line": 99,
+          "column": 1
+        }
+      },
+      "complexity": 3,
+      "coverage": {
+        "status": "measured",
+        "covered": 6,
+        "total": 7,
+        "fraction": 0.8571428571428571
+      },
+      "crap": 3.0262390670553936
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::waitForFixtureExit@5632-5882",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "waitForFixtureExit",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 5632,
+          "line": 127,
+          "column": 27
+        },
+        "end": {
+          "offset": 5882,
+          "line": 132,
+          "column": 1
+        }
+      },
+      "complexity": 3,
+      "coverage": {
+        "status": "measured",
+        "covered": 3,
+        "total": 3,
+        "fraction": 1.0
+      },
+      "crap": 3.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::environment@8856-9525",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "environment",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 8856,
+          "line": 204,
+          "column": 22
+        },
+        "end": {
+          "offset": 9525,
+          "line": 219,
+          "column": 4
+        }
+      },
+      "complexity": 3,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 3.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::reload@9543-9939",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "reload",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 9543,
+          "line": 220,
+          "column": 17
+        },
+        "end": {
+          "offset": 9939,
+          "line": 234,
+          "column": 3
+        }
+      },
+      "complexity": 3,
+      "coverage": {
+        "status": "measured",
+        "covered": 2,
+        "total": 2,
+        "fraction": 1.0
+      },
+      "crap": 3.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::offerOnLaterEdits@11277-12700",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "offerOnLaterEdits",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 11277,
+          "line": 263,
+          "column": 28
+        },
+        "end": {
+          "offset": 12700,
+          "line": 295,
+          "column": 3
+        }
+      },
+      "complexity": 3,
+      "coverage": {
+        "status": "measured",
+        "covered": 11,
+        "total": 11,
+        "fraction": 1.0
+      },
+      "crap": 3.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::<anonymous>@89:30@4094-4159",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "<anonymous>@89:30",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 4094,
+          "line": 89,
+          "column": 30
+        },
+        "end": {
+          "offset": 4159,
+          "line": 89,
+          "column": 95
+        }
+      },
+      "complexity": 2,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 2.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::<anonymous>@94:6@4321-4420",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "<anonymous>@94:6",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 4321,
+          "line": 94,
+          "column": 6
+        },
+        "end": {
+          "offset": 4420,
+          "line": 94,
+          "column": 105
+        }
+      },
+      "complexity": 2,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 2.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::linuxFixtureProcess@4490-4754",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "linuxFixtureProcess",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 4490,
+          "line": 100,
+          "column": 28
+        },
+        "end": {
+          "offset": 4754,
+          "line": 103,
+          "column": 1
+        }
+      },
+      "complexity": 2,
+      "coverage": {
+        "status": "measured",
+        "covered": 3,
+        "total": 3,
+        "fraction": 1.0
+      },
+      "crap": 2.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::<anonymous>@114:61@5278-5308",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "<anonymous>@114:61",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 5278,
+          "line": 114,
+          "column": 61
+        },
+        "end": {
+          "offset": 5308,
+          "line": 114,
+          "column": 91
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 0,
+        "total": 1,
+        "fraction": 0.0
+      },
+      "crap": 2.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::<anonymous>@115:11@5321-5361",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "<anonymous>@115:11",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 5321,
+          "line": 115,
+          "column": 11
+        },
+        "end": {
+          "offset": 5361,
+          "line": 115,
+          "column": 51
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 0,
+        "total": 1,
+        "fraction": 0.0
+      },
+      "crap": 2.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::<anonymous>@145:29@6606-6633",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "<anonymous>@145:29",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 6606,
+          "line": 145,
+          "column": 29
+        },
+        "end": {
+          "offset": 6633,
+          "line": 145,
+          "column": 56
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 0,
+        "total": 1,
+        "fraction": 0.0
+      },
+      "crap": 2.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::<anonymous>@144:26@6562-6752",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "<anonymous>@144:26",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 6562,
+          "line": 144,
+          "column": 26
+        },
+        "end": {
+          "offset": 6752,
+          "line": 151,
+          "column": 3
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 3,
+        "total": 4,
+        "fraction": 0.75
+      },
+      "crap": 1.015625
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::cleanupInstalledPi@3386-3456",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "cleanupInstalledPi",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 3386,
+          "line": 67,
+          "column": 34
+        },
+        "end": {
+          "offset": 3456,
+          "line": 70,
+          "column": 1
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 2,
+        "total": 2,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::<anonymous>@130:22@5839-5875",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "<anonymous>@130:22",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 5839,
+          "line": 130,
+          "column": 22
+        },
+        "end": {
+          "offset": 5875,
+          "line": 130,
+          "column": 58
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::<anonymous>@146:24@6666-6721",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "<anonymous>@146:24",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 6666,
+          "line": 146,
+          "column": 24
+        },
+        "end": {
+          "offset": 6721,
+          "line": 149,
+          "column": 5
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 2,
+        "total": 2,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::<anonymous>@187:22@8188-8224",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "<anonymous>@187:22",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 8188,
+          "line": 187,
+          "column": 22
+        },
+        "end": {
+          "offset": 8224,
+          "line": 187,
+          "column": 58
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::fixture@8334-12820",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "fixture",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 8334,
+          "line": 192,
+          "column": 23
+        },
+        "end": {
+          "offset": 12820,
+          "line": 297,
+          "column": 1
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 18,
+        "total": 18,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::<anonymous>@215:54@9411-9473",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "<anonymous>@215:54",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 9411,
+          "line": 215,
+          "column": 54
+        },
+        "end": {
+          "offset": 9473,
+          "line": 215,
+          "column": 116
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::on@9847-9928",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "on",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 9847,
+          "line": 230,
+          "column": 10
+        },
+        "end": {
+          "offset": 9928,
+          "line": 232,
+          "column": 7
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::getSessionId@10014-10041",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "getSessionId",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 10014,
+          "line": 236,
+          "column": 63
+        },
+        "end": {
+          "offset": 10041,
+          "line": 236,
+          "column": 90
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::call@10061-10244",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "call",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 10061,
+          "line": 237,
+          "column": 15
+        },
+        "end": {
+          "offset": 10244,
+          "line": 241,
+          "column": 3
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 3,
+        "total": 3,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::prepareResident@10271-10919",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "prepareResident",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 10271,
+          "line": 242,
+          "column": 26
+        },
+        "end": {
+          "offset": 10919,
+          "line": 255,
+          "column": 3
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 7,
+        "total": 7,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::<anonymous>@250:28@10768-10865",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "<anonymous>@250:28",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 10768,
+          "line": 250,
+          "column": 28
+        },
+        "end": {
+          "offset": 10865,
+          "line": 253,
+          "column": 5
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 2,
+        "total": 2,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::<anonymous>@254:37@10904-10914",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "<anonymous>@254:37",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 10904,
+          "line": 254,
+          "column": 37
+        },
+        "end": {
+          "offset": 10914,
+          "line": 254,
+          "column": 47
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::waitForWork@10942-11038",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "waitForWork",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 10942,
+          "line": 256,
+          "column": 22
+        },
+        "end": {
+          "offset": 11038,
+          "line": 256,
+          "column": 118
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::<anonymous>@256:68@10988-11037",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "<anonymous>@256:68",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 10988,
+          "line": 256,
+          "column": 68
+        },
+        "end": {
+          "offset": 11037,
+          "line": 256,
+          "column": 117
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "scripts/test-support/pi-installed.ts::waitForAdvice@11063-11248",
+      "path": "scripts/test-support/pi-installed.ts",
+      "name": "waitForAdvice",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 11063,
+          "line": 257,
+          "column": 24
+        },
+        "end": {
+          "offset": 11248,
+          "line": 262,
+          "column": 5
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    }
+  ],
+  "diagnostics": [
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '0' in 'scripts/test-support/pi-installed.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '1' in 'scripts/test-support/pi-installed.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '100' in 'scripts/test-support/pi-installed.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '114' in 'scripts/test-support/pi-installed.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '126' in 'scripts/test-support/pi-installed.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '178' in 'scripts/test-support/pi-installed.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '179' in 'scripts/test-support/pi-installed.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '180' in 'scripts/test-support/pi-installed.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '35' in 'scripts/test-support/pi-installed.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '38' in 'scripts/test-support/pi-installed.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '39' in 'scripts/test-support/pi-installed.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '40' in 'scripts/test-support/pi-installed.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '41' in 'scripts/test-support/pi-installed.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '46' in 'scripts/test-support/pi-installed.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '56' in 'scripts/test-support/pi-installed.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '60' in 'scripts/test-support/pi-installed.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '69' in 'scripts/test-support/pi-installed.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '7' in 'scripts/test-support/pi-installed.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '74' in 'scripts/test-support/pi-installed.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '79' in 'scripts/test-support/pi-installed.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '90' in 'scripts/test-support/pi-installed.ts' has no compatible source function"
+    }
+  ]
+}

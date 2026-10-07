@@ -6,7 +6,7 @@ import type { CapacityMetadata } from "../../monkey-business/src/index"
 import { Option } from "effect"
 import { preparationMini, type PreparationSnapshot } from "./preparation-mini"
 import type { HtmlBuilder } from "foldkit/html"
-import type { CanonicalCommand, CanonicalProjection } from "../../../src/canonical/adapter"
+import type { CanonicalCommand, CanonicalProjection } from "@hapsland/canonical-policy/canonical/adapter"
 import type { ReplayStep } from "./canonical-replay"
 import {
   findingLineage,

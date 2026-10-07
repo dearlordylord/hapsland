@@ -1,6 +1,6 @@
 /** Independent pre-port oracle, imported only by session-port.test.ts. Never use in production. */
 import { validateSizeFacts } from "./sizes.ts"
-import type { JevRequestOutcome } from "../../../src/canonical/adapter.ts"
+import type { JevRequestOutcome } from "@hapsland/canonical-policy/canonical/adapter"
 
 export type AdviceResponse = "ignore" | "noAction" | "promptRepair" | "delayedRepair"
 export interface SessionConfig {

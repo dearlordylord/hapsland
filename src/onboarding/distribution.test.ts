@@ -4,7 +4,7 @@ import { afterEach, expect, it } from "vitest"
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
-import { stageRelease } from "./distribution.ts"
+import { stageRelease } from "@hapsland/administration/onboarding/distribution"
 const roots: string[] = []
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })

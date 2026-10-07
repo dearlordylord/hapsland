@@ -1,17 +1,22 @@
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
-import { compileRule } from "../rules/compiler.ts"
-import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
-import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
-import { adaptCodexAdd } from "./adapter.ts"
-import { prepareObservation, preparedProviderInput, preparedUnitStillCurrent, evaluatePrepared } from "./pipeline.ts"
-import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts"
-import { configuredRules } from "../test-support/default-rules.ts"
-import { resolveRustModuleContext } from "./languages/rust-module-context.ts"
-import { captureStable } from "./capture.ts"
-import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "./selection.ts"
-import { GRAPH_LIMIT_CEILINGS } from "../configuration/graph-limits.ts"
-import { addEvent, makeGitFixture, put, updateEvent } from "./test-fixtures.ts"
+import { compileRule } from "@hapsland/review-definition/rules/compiler"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import {
+  prepareObservation,
+  preparedProviderInput,
+  preparedUnitStillCurrent,
+  evaluatePrepared
+} from "@hapsland/review-execution/direct-event/pipeline"
+import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
+import { resolveRustModuleContext } from "@hapsland/source-analysis/direct-event/languages/rust-module-context"
+import { captureStable } from "@hapsland/native-observation/direct-event/capture"
+import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
+import { addEvent, makeGitFixture, put, updateEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 const rules = (closure: boolean) =>
   [
@@ -32,7 +37,7 @@ const rules = (closure: boolean) =>
   ].map((rule) => compileRule({ version: 1, ...rule }, "rust-test"))
 const prepare = (event: unknown, closure = true) =>
   Effect.gen(function* () {
-    const observation = yield* adaptCodexAdd(event)
+    const observation = yield* adaptCodexDirectEvent(event)
     if (observation === undefined) throw new Error("fixture adaptation failed")
     return yield* prepareObservation(observation, {
       controlledWriter: true,
@@ -49,7 +54,7 @@ describe("Rust direct review integration", () => {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b.rs'; interface A { b: B }"))
       yield* Effect.promise(() => put(root, "b.rs", "struct B { value: u8 }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const reads: string[] = []
       const prepared = yield* prepareObservation(observation, {
@@ -78,7 +83,7 @@ describe("Rust direct review integration", () => {
         "type Root = [u8; { hidden() }];"
       ]) {
         yield* Effect.promise(() => put(root, "model.rs", source))
-        const observation = yield* adaptCodexAdd(addEvent(root, ["model.rs"]))
+        const observation = yield* adaptCodexDirectEvent(addEvent(root, ["model.rs"]))
         if (observation === undefined) throw new Error("fixture adaptation failed")
         const prepared = yield* prepareObservation(observation, {
           controlledWriter: true,
@@ -94,7 +99,7 @@ describe("Rust direct review integration", () => {
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "model.rs", "enum Delivery { Waiting, Delivered { receipt: String } }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["model.rs"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["model.rs"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const prepared = yield* prepareObservation(observation, {
         controlledWriter: true,
@@ -138,7 +143,7 @@ describe("Rust direct review integration", () => {
         evidence: { nodes: [{ kind: "struct", name: "Receipt" }] },
         inputContract: { completeness: "complete" }
       })
-      const observation = yield* adaptCodexAdd(addEvent(root, ["src/model.rs"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["src/model.rs"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const context = {
         controlledWriter: true,
@@ -222,7 +227,7 @@ describe("Rust direct review integration", () => {
         )
       )
       yield* Effect.promise(() => put(root, "src/receipt.rs", "pub struct Receipt { id: String }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["src/lib.rs"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["src/lib.rs"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const reads: string[] = []
       const context = {
@@ -287,7 +292,7 @@ describe("Rust direct review integration", () => {
         "src/model.rs",
         "src/receipt.rs"
       ])
-      const observation = yield* adaptCodexAdd(event)
+      const observation = yield* adaptCodexDirectEvent(event)
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const context = {
         controlledWriter: true,
@@ -439,7 +444,7 @@ describe("Rust direct review integration", () => {
       yield* Effect.promise(() => put(root, "src/lib.rs", "mod model;"))
       yield* Effect.promise(() => put(root, "src/model.rs", "mod item;"))
       yield* Effect.promise(() => put(root, "src/model/item.rs", "struct Count { value: u8 }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["src/model/item.rs"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["src/model/item.rs"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(
         root,
@@ -477,7 +482,7 @@ describe("Rust direct review integration", () => {
         put(root, "Cargo.toml", '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2021"\n')
       )
       yield* Effect.promise(() => put(root, "src/lib.rs", "mod receipt; struct Root { value: receipt::Receipt }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["src/lib.rs"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["src/lib.rs"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(
         root,
@@ -566,7 +571,7 @@ describe("Rust direct review integration", () => {
         put(root, "src/model.rs", "use crate::receipt::Receipt; struct Root { value: Receipt }")
       )
       yield* Effect.promise(() => put(root, "src/receipt.rs", "pub struct Receipt { value: u8 }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["src/model.rs"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["src/model.rs"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const context = {
         controlledWriter: true,
@@ -612,7 +617,7 @@ describe("Rust direct review integration", () => {
           put(root, "src/model.rs", "use crate::receipt::Receipt; struct Root { value: Receipt }")
         )
         yield* Effect.promise(() => put(root, "src/receipt.rs", "pub struct Receipt { value: u8 }"))
-        const observation = yield* adaptCodexAdd(addEvent(root, ["src/model.rs"]))
+        const observation = yield* adaptCodexDirectEvent(addEvent(root, ["src/model.rs"]))
         if (observation === undefined) throw new Error("fixture adaptation failed")
         const context = {
           controlledWriter: true,

@@ -75,11 +75,11 @@ exists. Missing instrumentation and silence are never reported as `clear`.
 
 Run `hapsland --feedback-preview` to display the shared feedback heading,
 response instructions, and a synthetic finding. From a source checkout, run
-`node src/cli.ts --feedback-preview`. This command does not read stdin or project
+`node packages/cli-entry/src/cli.ts --feedback-preview`. This command does not read stdin or project
 source, resolve credentials, call a review backend, or persist activity. It is a
 format preview, not a replay of your session or a positive review result.
 
-The text is owned by [one runtime-neutral formatter](../src/feedback/message.ts).
+The text is owned by [one runtime-neutral formatter](../packages/delivery-output/src/feedback/message.ts).
 It names Hapsland, lists the file, declaration, and configured message for each
 finding, and asks the agent to check the findings, fix valid issues and verify,
 or explain disagreement. Rule IDs and classification probabilities remain
@@ -90,6 +90,14 @@ authority differ. Operational notices remain distinct from rule findings.
 For actual feedback, inspect the agent runtime's session transcript. Status
 intentionally does not retain advice text. Submission records cannot prove
 that the agent read, acknowledged, or applied a finding.
+
+Virtual-round inspection associates receipts with an opaque round ID and pinned
+physical working root. The Skipped file view distinguishes `skipped-other-root`
+from preparation omissions and backend failures. Skipped target paths are metadata;
+other-root source is not captured. Recording consent and source-bearing history
+follow the pinned source root when the caller changes cwd. This is the bounded
+[#246 contract](advicing-target-contract.md#advicee-identity-and-admission);
+[complete multi-root review remains research #247](https://github.com/dearlordylord/hapsland/issues/247).
 
 ## Opt-in local inspection
 
@@ -129,7 +137,7 @@ inspection history is separate from the source-free status and analytics below.
 
 From a checkout, `npm run dev:inspection` runs the same private, read-only
 inspector directly from source and prints its URL. Edits to
-[`src/inspection/page.ts`](../src/inspection/page.ts) automatically reload the
+[`packages/administration/src/inspection/page.ts`](../packages/administration/src/inspection/page.ts) automatically reload the
 visible browser page while keeping the server and capability URL alive. A page
 syntax error returns HTTP 503 until the source is fixed; the browser then reloads
 the repaired page. Server-side changes require restarting the command. Use

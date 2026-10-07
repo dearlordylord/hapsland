@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from "node:fs"
 import { resolve } from "node:path"
 
 const root = resolve(import.meta.dirname, "..")
-const resident = resolve(root, "src/resident")
+const resident = resolve(root, "packages/resident-runtime/src/resident")
 for (const name of readdirSync(resident)) {
   if (!name.endsWith(".ts") || name.endsWith(".test.ts") || name.endsWith(".generated.d.ts")) continue
   assert.doesNotMatch(

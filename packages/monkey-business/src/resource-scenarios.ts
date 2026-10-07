@@ -1,4 +1,4 @@
-import type { CanonicalEvent } from "../../../src/canonical/adapter.ts"
+import type { CanonicalEvent } from "@hapsland/canonical-policy/canonical/adapter"
 
 /** Selectable source-free diagnostic and output-fit exercises, not native serialization. */
 export type ResourceScenarioConfig = {

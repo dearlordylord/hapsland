@@ -1,26 +1,29 @@
-import { ReviewControlError } from "./review-controls.ts"
-import { runClient } from "../test-support/client-runtime.ts"
-import { nativeDeferred as deferred } from "../test-support/native-deferred.ts"
-import { reviewControlsLayer } from "../test-support/review-controls.ts"
+import { ReviewControlError } from "@hapsland/resident-runtime/resident/review-controls"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
+import { nativeDeferred as deferred } from "@hapsland/build-tooling/test-support/native-deferred"
+import { reviewControlsLayer } from "@hapsland/build-tooling/test-support/review-controls"
 import { describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
 import { join } from "node:path"
 import { readFileSync, writeFileSync } from "node:fs"
 import { connect } from "node:net"
-import { adaptClaudeDirectEvent } from "../direct-event/adapter.ts"
-import type { DirectObservation } from "../direct-event/model.ts"
-import { makeReviewGitFixture as makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../test-support/default-rules.ts"
-import { residentPaths } from "./paths.ts"
+import { adaptClaudeDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import type { DirectObservation } from "@hapsland/native-observation/direct-event/observation"
+import { makeReviewGitFixture as makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import { acquireResidentFixture, type ResidentRuntime as ResidentServer } from "./runtime-fixture.ts"
-import { admitAndCollectEffect as admitAndCollect, residentRequestEffect as residentRequest } from "./client.ts"
-import { monotonicNow } from "./hook-clock.ts"
+import {
+  admitAndCollectEffect as admitAndCollect,
+  residentRequestEffect as residentRequest
+} from "@hapsland/resident-transport/resident/client"
+import { monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"
 import {
   encodeCurrentResidentRequest,
   type ResidentDispatchContext,
   type ResidentRequest,
   type ResidentResponse
-} from "./protocol.ts"
+} from "@hapsland/resident-transport/resident/protocol"
 
 const fixture = async () => {
   const root = await makeGitFixture()
@@ -31,9 +34,10 @@ const fixture = async () => {
   const observation = async (
     toolUseId = "first",
     sessionId = "session",
-    subagentId: string | null = null
+    subagentId: string | null = null,
+    source?: string
   ): Promise<DirectObservation> => {
-    const content = `type ${toolUseId}Count = number\n`
+    const content = source ?? `type ${toolUseId}Count = number\n`
     const path = await put(root, `${toolUseId}.ts`, content)
     const value = await Effect.runPromise(
       adaptClaudeDirectEvent({
@@ -171,11 +175,12 @@ describe("registry-free Claude edit response", () => {
 
   it.each(["clear", "no-work", "failure"])("returns quietly after %s without an aggregate outcome", async (kind) => {
     const data = await fixture()
-    const base = await data.observation()
-    const observation =
-      kind === "no-work"
-        ? { ...base, candidates: [{ operation: "delete" as const, path: "first.ts", addedLines: [] as const }] }
-        : base
+    const observation = await data.observation(
+      "first",
+      "session",
+      null,
+      kind === "no-work" ? "const firstCount = 1\n" : undefined
+    )
     const dispatch = {
       ...data.dispatch,
       controlled:
@@ -249,10 +254,10 @@ describe("registry-free Claude edit response", () => {
     }
   })
 
-  it.each(["session", "child", "root"])("never collects another %s's advice", async (scope) => {
+  it.each(["session", "child"])("never collects another %s's advice", async (scope) => {
     const data = await fixture()
     const first = await data.observation()
-    const other = scope === "root" ? await fixture() : data
+    const other = data
     const second = await other.observation(
       "second",
       scope === "session" ? "other-session" : "session",
@@ -273,6 +278,42 @@ describe("registry-free Claude edit response", () => {
       expect(text(response)).not.toContain("firstCount")
       await Effect.runPromise(server.whenIdle())
       expect((await ordinary(server, first, data.dispatch)).status).toBe("advice")
+    } finally {
+      await Effect.runPromise(server.close)
+    }
+  })
+
+  it("skips another root's edit without synchronous advice or blocking and preserves pending advice", async () => {
+    const data = await fixture()
+    const other = await fixture()
+    data.feedback("block-current-findings")
+    other.feedback("block-current-findings")
+    const first = await data.observation()
+    const second = await other.observation("second")
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")))
+    await Effect.runPromise(server.listen())
+    try {
+      await admitReady(server, first, data.dispatch)
+      expect(
+        await Effect.runPromise(
+          server.handle({
+            requestRoute: "shared",
+            operation: "register-edit",
+            lifetime: server.lifetime,
+            root: second.root,
+            advicee: second.advicee,
+            userConfigPath: join(other.root, "user.jsonc"),
+            startedAt: monotonicNow()
+          })
+        )
+      ).toEqual({ status: "skipped-other-root" })
+      expect(await send(server, second, other.dispatch)).toEqual({ requestRoute: "edit", status: "skipped-other-root" })
+      expect(Effect.runSync(server.pendingAdviceMetadata())).toMatchObject([
+        { path: "first.ts", delivery: "available" }
+      ])
+      const pending = await ordinary(server, first, data.dispatch)
+      expect(pending.status).toBe("advice")
+      expect(text(pending)).toContain("firstCount")
     } finally {
       await Effect.runPromise(server.close)
     }
@@ -704,10 +745,7 @@ describe("registry-free Claude edit response", () => {
 
   it("binds admission to the native tool permit and original resident lifetime", async () => {
     const data = await fixture()
-    const observation = {
-      ...(await data.observation()),
-      candidates: [{ operation: "delete" as const, path: "collector.ts", addedLines: [] as const }]
-    }
+    const observation = await data.observation("first", "session", null, "const firstCount = 1\n")
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")))
     await Effect.runPromise(server.listen())
     try {

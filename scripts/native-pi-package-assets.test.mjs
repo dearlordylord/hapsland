@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
-import { piRuntimeAssetsDigest } from "./native-pi-profile.mjs"
+import { nativePackageAssetsDigest } from "./native-package-assets.mjs"
 
 const fixture = () => {
   const root = mkdtempSync(join(tmpdir(), "pi-runtime-assets-"))
@@ -23,9 +23,9 @@ const fixture = () => {
 test("documentation changes do not masquerade as changed native runtime assets", () => {
   const root = fixture()
   try {
-    const before = piRuntimeAssetsDigest(root)
+    const before = nativePackageAssetsDigest(root)
     writeFileSync(join(root, "docs", "pi-installation.md"), "updated profile guidance")
-    assert.deepEqual(piRuntimeAssetsDigest(root), before)
+    assert.deepEqual(nativePackageAssetsDigest(root), before)
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
@@ -41,9 +41,9 @@ test("changed extension, native binding, schema and launcher each invalidate arc
   ]) {
     const root = fixture()
     try {
-      const before = piRuntimeAssetsDigest(root)
+      const before = nativePackageAssetsDigest(root)
       writeFileSync(join(root, path), "different runtime input")
-      assert.notEqual(piRuntimeAssetsDigest(root).sha256, before.sha256)
+      assert.notEqual(nativePackageAssetsDigest(root).sha256, before.sha256)
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

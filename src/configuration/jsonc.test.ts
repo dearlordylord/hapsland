@@ -1,6 +1,6 @@
 import fc from "fast-check"
 import { expect, it } from "vitest"
-import { JsoncParseError, parseJsonc } from "./jsonc.ts"
+import { JsoncParseError, parseJsonc } from "@hapsland/runtime-inputs/configuration/jsonc"
 
 it("agrees with JSON.parse for JSON values surrounded by JSONC comments", () => {
   fc.assert(

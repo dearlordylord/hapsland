@@ -1,12 +1,12 @@
-import { DEFAULT_RULE_MESSAGES } from "../src/rules/shipped.ts"
-import { runClient } from "../src/test-support/client-runtime.ts"
+import { DEFAULT_RULE_MESSAGES } from "@hapsland/review-definition/rules/shipped"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
 // Opt-in real Codex + real Jev demonstration. Retains only source-free evidence.
 import { spawn, execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, writeFile, readFile, copyFile, chmod, rm, readdir, stat } from "node:fs/promises"
 import { tmpdir, homedir } from "node:os"
 import { join, resolve } from "node:path"
-import { residentRequestEffect as residentRequest } from "../src/resident/client.ts"
-import { residentPaths } from "../src/resident/paths.ts"
+import { residentRequestEffect as residentRequest } from "@hapsland/resident-transport/resident/client"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 const root = resolve(new URL("../", import.meta.url).pathname)
 const declaration = {
   maximumProviderRequests: 6,
@@ -124,7 +124,7 @@ try {
   const hook = join(temp, "hook.mjs")
   await writeFile(
     hook,
-    `import {readFileSync,appendFileSync,existsSync} from 'node:fs';import {spawnSync} from 'node:child_process';import {createHash} from 'node:crypto';\nconst input=readFileSync(0,'utf8');let event;try{event=JSON.parse(input)}catch{}const at=Date.now();const p=spawnSync(process.execPath,[${JSON.stringify(join(root, "src/cli.ts"))},'--codex-hook','--controlled-writer'],{input,encoding:'utf8',env:process.env,maxBuffer:1048576});let out;try{out=JSON.parse(p.stdout)}catch{}const context=out?.hookSpecificOutput?.additionalContext??'';const file=${JSON.stringify(join(repo, "payment.ts"))};const source=existsSync(file)?readFileSync(file,'utf8'):'';appendFileSync(process.env.DEMO_EVENTS,JSON.stringify({kind:'hook',at,doneAt:Date.now(),tool:event?.tool_name??'unknown',exitCode:p.status,findings:context.split('\\n').some(line=>/^.+ :: .+: /.test(line)),notice:context.includes('Operational notice:'),ruleId:Object.entries(${JSON.stringify(DEFAULT_RULE_MESSAGES)}).find(([,text])=>context.includes(text))?.[0]??null,ruleIdSource:'configured-message-match',sourceHash:source?createHash('sha256').update(source).digest('hex'):null,sourceBytes:Buffer.byteLength(source),draft:source.includes('receipt: string | null')&&source.includes('failureReason: string | null')})+'\\n',{mode:0o600});process.stdout.write(p.stdout??'');process.stderr.write(p.stderr??'');process.exitCode=p.status??1;\n`
+    `import {readFileSync,appendFileSync,existsSync} from 'node:fs';import {spawnSync} from 'node:child_process';import {createHash} from 'node:crypto';\nconst input=readFileSync(0,'utf8');let event;try{event=JSON.parse(input)}catch{}const at=Date.now();const p=spawnSync(process.execPath,[${JSON.stringify(join(root, "packages/hook-entry/src/hook-main.ts"))},'--codex-hook','--controlled-writer'],{input,encoding:'utf8',env:process.env,maxBuffer:1048576});let out;try{out=JSON.parse(p.stdout)}catch{}const context=out?.hookSpecificOutput?.additionalContext??'';const file=${JSON.stringify(join(repo, "payment.ts"))};const source=existsSync(file)?readFileSync(file,'utf8'):'';appendFileSync(process.env.DEMO_EVENTS,JSON.stringify({kind:'hook',at,doneAt:Date.now(),tool:event?.tool_name??'unknown',exitCode:p.status,findings:context.split('\\n').some(line=>/^.+ :: .+: /.test(line)),notice:context.includes('Operational notice:'),ruleId:Object.entries(${JSON.stringify(DEFAULT_RULE_MESSAGES)}).find(([,text])=>context.includes(text))?.[0]??null,ruleIdSource:'configured-message-match',sourceHash:source?createHash('sha256').update(source).digest('hex'):null,sourceBytes:Buffer.byteLength(source),draft:source.includes('receipt: string | null')&&source.includes('failureReason: string | null')})+'\\n',{mode:0o600});process.stdout.write(p.stdout??'');process.stderr.write(p.stderr??'');process.exitCode=p.status??1;\n`
   )
   await writeFile(join(home, "config.toml"), "[features]\nhooks = true\n")
   await writeFile(

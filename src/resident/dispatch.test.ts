@@ -1,9 +1,14 @@
 import { it } from "@effect/vitest"
 import { expect } from "vitest"
 import { Deferred, Effect, Exit, Fiber, Queue } from "effect"
-import { makeDispatcher } from "./dispatch.ts"
-import { initialCanonical, projectCanonical, stepCanonical, type CanonicalEvent } from "../canonical/adapter.ts"
-import { makeResidentState } from "./capacity.ts"
+import { makeDispatcher } from "@hapsland/resident-runtime/resident/dispatch"
+import {
+  initialCanonical,
+  projectCanonical,
+  stepCanonical,
+  type CanonicalEvent
+} from "@hapsland/canonical-policy/canonical/adapter"
+import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
 
 const makeFixture = (
   run: (entry: { readonly key: string; readonly value: number; readonly sequence: number }) => Effect.Effect<void>

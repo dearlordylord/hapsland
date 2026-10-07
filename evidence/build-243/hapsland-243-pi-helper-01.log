@@ -1,0 +1,78 @@
+
+ RUN  v5.0.1 /workspace/typescript/hapsland-243
+      Coverage enabled with v8
+
+ ✓ src/pi/installed-boundary.test.ts (24 tests) 53486ms
+   ✓ Pi source extension through command and resident (22)
+     ✓ does not continue when review is clear 1255ms
+     ✓ does not continue when review is unavailable 1219ms
+     ✓ cuts off delayed work at finish and withholds its late finding from a fresh edit 6276ms
+     ✓ abandons admitted delayed work on session switch before reviewing a fresh edit 2213ms
+     ✓ closes offered advice after replaced composition and permits a fresh edit 3112ms
+     ✓ closes offered advice after final-refusal composition and permits a fresh edit 3197ms
+     ✓ closes offered advice after aborted composition and permits a fresh edit 3346ms
+     ✓ reviews a whole declaration replacement spanning omitted context between native hunks 1538ms
+     ✓ awaits a delayed review at finish with canContinue=true 1457ms
+     ✓ awaits a delayed review at finish with canContinue=false 1632ms
+     ✓ reviews the post-edit source and preserves native content, consuming a permit once 1484ms
+     ✓ refuses a successful result without a before-tool permit 1053ms
+     ✓ does not review identity mismatches 526ms
+     ✓ does not review arguments mismatches 765ms
+     ✓ does not review source mismatches 1120ms
+     ✓ does not review failed mismatches 1010ms
+     ✓ does not review unicode mismatches 1078ms
+     ✓ retires pending permits on session_before_switch 1063ms
+     ✓ retires pending permits on session_shutdown 1021ms
+     ✓ retires pending permits on agent_settled 953ms
+   ✓ Pi installed extension through command and resident (2)
+     ✓ awaits a delayed review at finish with canContinue=false 1232ms
+     ✓ reviews the post-edit source and preserves native content, consuming a permit once 1120ms
+ ✓ src/pi/inspection-native.test.ts (7 tests) 18804ms
+   ✓ Pi native extension inspection through production command and public feed (7)
+     ✓ retains the resident message for edit native delivery 1619ms
+     ✓ retains the resident message for finish native delivery 1180ms
+     ✓ retains the resident message for oversized native delivery 1214ms
+     ✓ retains the resident message for unavailable native delivery 1170ms
+     ✓ retains the resident message for lost-ack native delivery 2695ms
+     ✓ retains the resident message for session-switch native delivery 2704ms
+     ✓ retains the resident message for opt-out native delivery 1742ms
+8:07:05 AM [vite] (ssr) Failed to load source map for /workspace/typescript/hapsland-243/dist/pi/extension.js.
+Error: An error occurred while trying to read the map file at extension.js.map
+Error: ENOENT: no such file or directory, open '/workspace/typescript/hapsland-243/dist/pi/extension.js.map'
+    at Object.readFileSync (node:fs:484:20)
+    at file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:17506:13
+    at readFromFileMap (file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:17204:13)
+    at Object.exports.fromMapFileComment (file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:17299:12)
+    at Object.exports.fromMapFileSource (file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:17310:22)
+    at extractSourcemapFromFile (file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:17492:87)
+    at loadAndTransform (file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:19964:22)
+8:07:05 AM [vite] (ssr) Failed to load source map for /workspace/typescript/hapsland-243/dist/runtime/hook-catalog.js.
+Error: An error occurred while trying to read the map file at hook-catalog.js.map
+Error: ENOENT: no such file or directory, open '/workspace/typescript/hapsland-243/dist/runtime/hook-catalog.js.map'
+    at Object.readFileSync (node:fs:484:20)
+    at file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:17506:13
+    at readFromFileMap (file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:17204:13)
+    at Object.exports.fromMapFileComment (file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:17299:12)
+    at Object.exports.fromMapFileSource (file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:17310:22)
+    at extractSourcemapFromFile (file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:17492:87)
+    at loadAndTransform (file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:19964:22)
+ ✓ src/test-support/pi-installed.test.ts (16 tests) 7135ms
+   ✓ loads the emitted candidate extension and retains its exact standalone command 3101ms
+   ✓ Pi fixture process ownership (3)
+     ✓ stops its bootstrap process through direct paths before an endpoint owner exists 318ms
+(node:440381) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+ Test Files  3 passed (3)
+      Tests  47 passed (47)
+   Start at  08:05:48
+   Duration  107.92s (tests 98%, import 1%, transform 1%)
+
+ % Coverage report from v8
+
+=============================== Coverage summary ===============================
+Statements   : 46.02% ( 11304/24562 )
+Branches     : 27.54% ( 3956/14364 )
+Functions    : 42.74% ( 2624/6139 )
+Lines        : 47.2% ( 9303/19707 )
+================================================================================

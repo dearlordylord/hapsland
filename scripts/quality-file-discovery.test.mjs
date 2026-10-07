@@ -10,11 +10,11 @@ test("measured research fixtures remain lint inputs without requiring reformatti
   const root = join(import.meta.dirname, "..")
   const fixture = "scripts/abide-large-declaration-fixtures.mjs"
   assert.equal(isQualityFile(fixture), true)
-  execFileSync(join(root, "node_modules/.bin/dprint"), ["check", fixture, "src/runtime/cli-names.ts"], {
-    cwd: root,
-    stdio: "pipe",
-    timeout: 10000
-  })
+  execFileSync(
+    join(root, "node_modules/.bin/dprint"),
+    ["check", fixture, "packages/runtime-environment/src/runtime/cli-names.ts"],
+    { cwd: root, stdio: "pipe", timeout: 10000 }
+  )
 })
 
 test("quality selection includes staged, unstaged and untracked code, excludes deleted and owned artifacts", () => {
@@ -73,9 +73,9 @@ test("quality selection includes staged, unstaged and untracked code, excludes d
 })
 
 test("configuration and authored package scripts participate without generated or fixture outputs", () => {
-  assert.equal(isQualityFile("vitest.config.ts"), true)
+  assert.equal(isQualityFile("scripts/vitest.config.ts"), true)
   assert.equal(isQualityFile("packages/example/build.mjs"), true)
   assert.equal(isQualityFile("scripts/test-harness/setup.mts"), true)
   assert.equal(isQualityFile("packages/example/dist/index.js"), false)
-  assert.equal(isQualityFile("src/canonical/canonical.generated.js"), false)
+  assert.equal(isQualityFile("packages/agent-flow-bend/dist/canonical.generated.js"), false)
 })

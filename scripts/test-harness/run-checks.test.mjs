@@ -6,13 +6,36 @@ import { mkdtemp, mkdir, writeFile, readFile, rm, chmod, symlink } from "node:fs
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { createRun, stageResults, runQualityStages, focusedSelection } from "./run-checks.mjs"
+import { createRun, stageResults, runQualityStages, focusedSelection, main } from "./run-checks.mjs"
+import { withBuildLock } from "../build-lock.mjs"
 
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), "hapsland-checks-"))
   t.after(() => rm(root, { recursive: true, force: true }))
+  await mkdir(join(root, "scripts/test-harness"), { recursive: true })
+  for (const file of [
+    "run-checks.test.mjs",
+    "immediate-errors.test.mjs",
+    "verification-plan.test.mjs",
+    "verify.test.mjs",
+    "check-complexity.test.mjs"
+  ])
+    await writeFile(join(root, "scripts/test-harness", file), "// Passing prerequisite fixture\n")
+  await writeFile(join(root, "scripts/test-harness/check-complexity.mjs"), "process.exit(0)\n")
   return root
 }
+test("a stage inside its authenticated checkout lease passes before the enclosing transaction releases ownership", async (t) => {
+  const root = await fixture(t)
+  const run = await createRun({ root, mode: "focused", timeoutMs: 10000, output() {} })
+  await withBuildLock(root, async (env) => {
+    const stage = await run.runStage({ ...command("owned-child", "process.exit(0)"), env })
+    assert.equal(stage.state, "passed")
+    assert.equal(stage.groupUnresolved, undefined)
+    assert.equal(JSON.parse(await readFile(join(root, ".test-runs/product-build/lease.json"))).state, "open")
+  })
+  assert.equal(await run.finish(), 0)
+  await assert.rejects(readFile(join(root, ".test-runs/product-build/lease.json")), /ENOENT/)
+})
 // Temporary fixture runs are independent of the harness running this test.
 // Tests of nesting explicitly supply their own authenticated context instead.
 const fixtureEnvironment = () => {
@@ -184,6 +207,11 @@ test("quality preserves threshold breach exit two but test failure stays exit on
   const ordinary = await createRun({ root, mode: "test", timeoutMs: 30_000, output() {} })
   await ordinary.runStage(command("quality", "process.exit(2)"))
   assert.equal(await ordinary.finish(), 1)
+  const mixed = await createRun({ root, mode: "quality", timeoutMs: 30_000, output() {} })
+  await mixed.runStage(command("quality-complexity", "process.exit(2)"))
+  await mixed.runStage(command("independent-error", "process.exit(1)"))
+  await mixed.recordSkippedStage({ name: "quality", reason: "prerequisite-failed", dependsOn: ["quality-complexity"] })
+  assert.equal(await mixed.finish(), 1)
 })
 
 test("failure events are surfaced during the run and retained in the final result", async (t) => {
@@ -248,7 +276,7 @@ test("CLI records focused scope without forwarding it and reports different comm
   await writeFile(
     tool,
     `#!${process.execPath}
-require('node:assert/strict').deepEqual(process.argv.slice(2), ['run', '--maxWorkers=1', 'one.test.ts']);
+require('node:assert/strict').deepEqual(process.argv.slice(2), ['run', '--config', 'scripts/vitest.config.ts', '--maxWorkers=1', 'one.test.ts']);
 `
   )
   await chmod(tool, 0o755)
@@ -293,7 +321,7 @@ require('node:assert/strict').deepEqual(process.argv.slice(2), ['run', '--maxWor
   const qualityTool = join(root, "node_modules", ".bin", "crap4ts")
   await writeFile(qualityTool, `#!${process.execPath}\nprocess.exit(0);\n`)
   await chmod(qualityTool, 0o755)
-  cli(["quality", "--scope=quality-slice", "--timeout-ms=5000"])
+  cli(["quality", "--ack-checks-policy", "--scope=quality-slice", "--timeout-ms=5000"])
   const qualityId = JSON.parse(await readFile(join(root, ".test-runs", "latest.json"), "utf8")).id
   const qualityManifest = JSON.parse(await readFile(join(root, ".test-runs", qualityId, "manifest.json"), "utf8"))
   assert.match(qualityManifest.sourceDigest, /^[a-f0-9]{64}$/)
@@ -336,8 +364,9 @@ test("actual focused CLI rejects an all-skipped selector and permits selected ex
   await symlink(join(repository, "node_modules"), join(root, "node_modules"), "dir")
   await writeFile(join(root, "one.test.ts"), 'import { it } from "vitest"; it("actual selected case", () => {});')
   const reporter = fileURLToPath(new URL("./immediate-errors.mjs", import.meta.url))
+  await mkdir(join(root, "scripts"), { recursive: true })
   await writeFile(
-    join(root, "vitest.config.mjs"),
+    join(root, "scripts/vitest.config.ts"),
     `const selected = JSON.parse(process.env.HAPSLAND_FOCUSED_TEST_SELECTION); if (selected.files.length !== 1 || selected.files[0] !== "one.test.ts") throw new Error("focused selection did not reach config"); export default { test: { reporters: ["default", ${JSON.stringify(reporter)}] } };`
   )
   const cli = (pattern) =>
@@ -379,9 +408,56 @@ for (const lintExit of [0, 1]) {
     const stages = await stageResults(run.runDirectory)
     assert.deepEqual(
       stages.map((stage) => stage.name),
-      lintExit === 0 ? ["lint-code", "quality"] : ["lint-code"]
+      lintExit === 0
+        ? ["quality-preflight", "lint-code", "quality-complexity", "quality"]
+        : ["quality-preflight", "lint-code"]
     )
-    assert.match(await readFile(stages[0].logPath, "utf8"), /lint witness/u)
+    assert.match(await readFile(stages[1].logPath, "utf8"), /lint witness/u)
+  })
+}
+
+for (const branches of [0, 8]) {
+  test(`real complexity prerequisite with ${branches} branches preserves the final coverage boundary`, async (t) => {
+    const root = await fixture(t)
+    await mkdir(join(root, "src"))
+    await writeFile(
+      join(root, "src/main.ts"),
+      `export function choose(value: number) { ${Array.from({ length: branches }, (_, index) => `if (value === ${index}) return ${index};`).join(" ")} return -1; }`
+    )
+    await symlink(fileURLToPath(new URL("../../node_modules", import.meta.url)), join(root, "node_modules"), "dir")
+    await writeFile(join(root, "scripts/run-quality-lint.mjs"), "process.exit(0)\n")
+    await writeFile(
+      join(root, "scripts/test-harness/check-complexity.mjs"),
+      await readFile(new URL("./check-complexity.mjs", import.meta.url))
+    )
+    await writeFile(
+      join(root, "crap4ts.json"),
+      JSON.stringify({
+        sources: ["src"],
+        threshold: 8,
+        missing_evidence: "error",
+        coverage: {
+          path: "coverage.json",
+          command: [process.execPath, "-e", "require('node:fs').writeFileSync('coverage.json', '{}')"]
+        }
+      })
+    )
+    const run = await createRun({ root, mode: "quality", timeoutMs: 10000, output() {} })
+    await runQualityStages(run, root)
+    assert.equal(await run.finish(), branches === 8 ? 2 : 1)
+    const stages = await stageResults(run.runDirectory)
+    assert.deepEqual(
+      stages.slice(2).map(({ name, state }) => [name, state]),
+      [
+        ["quality-complexity", branches === 8 ? "failed" : "passed"],
+        ["quality", branches === 8 ? "not-started" : "failed"]
+      ]
+    )
+    if (branches === 8) await assert.rejects(readFile(join(root, "coverage.json")), /ENOENT/)
+    else {
+      assert.equal(await readFile(join(root, "coverage.json"), "utf8"), "{}")
+      assert.match(await readFile(stages.at(-1).logPath, "utf8"), /missing coverage evidence/)
+    }
   })
 }
 
@@ -400,6 +476,28 @@ test("artifact preparation shares a focused parent's records and cannot extend i
   assert.equal(await child.finish(), 0)
   assert.equal(JSON.parse(await readFile(join(parent.runDirectory, "status.json"), "utf8")).state, "running")
   assert.equal(await parent.finish(), 0)
+})
+
+test("surviving product ownership fails the stage and retains the enclosing full lock", async (t) => {
+  const root = await fixture(t)
+  const run = await createRun({ root, mode: "test", timeoutMs: 30000, inherited: undefined, output() {} })
+  const directory = join(root, ".test-runs/product-build")
+  await run.runStage(
+    command(
+      "abandoned-build",
+      `const fs=require('node:fs');
+    fs.mkdirSync(${JSON.stringify(join(directory, "lock"))},{recursive:true});
+    fs.writeFileSync(${JSON.stringify(join(directory, "lock/owner.json"))},JSON.stringify({pid:process.pid}));
+    fs.writeFileSync(${JSON.stringify(join(directory, "lease.json"))},JSON.stringify({pid:process.pid}));`
+    )
+  )
+  const stages = await stageResults(run.runDirectory)
+  assert.equal(stages[0].exitCode, 0)
+  assert.equal(stages[0].state, "failed")
+  assert.equal(stages[0].groupUnresolved, true)
+  assert.equal(await run.finish(), 1)
+  assert.ok(await readFile(join(root, ".test-runs/full.lock"), "utf8"))
+  assert.ok(await readFile(join(directory, "lease.json"), "utf8"))
 })
 
 const waitForFile = async (path) => {
@@ -627,4 +725,32 @@ test("input invalidation during stage admission does not launch the child", asyn
   await assert.rejects(readFile(launched), { code: "ENOENT" })
   assert.equal(await run.finish(), 1)
   assert.match(stage.reason, /src\/input.ts/)
+})
+
+test("quality acknowledgment fails before creating run state", async (t) => {
+  const root = await fixture(t)
+  await assert.rejects(main(["quality"], root), /read CHECKS.md.*--ack-checks-policy/)
+  await assert.rejects(readFile(join(root, ".test-runs/latest.json")), /ENOENT/)
+})
+
+test("failed quality prerequisite blocks lint and coverage with retained diagnostics", async (t) => {
+  const root = await fixture(t)
+  await writeFile(
+    join(root, "scripts/test-harness/immediate-errors.test.mjs"),
+    "throw new Error('broken harness witness')"
+  )
+  const run = await createRun({ root, mode: "quality", timeoutMs: 10000, output() {} })
+  await runQualityStages(run, root)
+  assert.equal(await run.finish(), 1)
+  const stages = await stageResults(run.runDirectory)
+  assert.deepEqual(
+    stages.map(({ name, state }) => [name, state]),
+    [
+      ["quality-preflight", "failed"],
+      ["lint-code", "not-started"],
+      ["quality-complexity", "not-started"],
+      ["quality", "not-started"]
+    ]
+  )
+  assert.match(await readFile(stages[0].logPath, "utf8"), /broken harness witness/)
 })

@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import { decoder, Nat, PositiveNat } from "../../../src/canonical/boundary-schema.ts"
+import { decoder, Nat, PositiveNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
 
 /** Source-free facts only. Actual Canonical transitions decide selection. */
 export const CollectionResponseSchema = Schema.Struct({

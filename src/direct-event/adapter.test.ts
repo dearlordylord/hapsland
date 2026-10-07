@@ -3,10 +3,34 @@ import * as Effect from "effect/Effect"
 import { mkdtemp, readFile, rm, symlink } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { adaptCodexAdd, adaptComposedHookIdentity, MAX_CODEX_CANDIDATES, MAX_CODEX_COMMAND_BYTES } from "./adapter.ts"
-import { addEvent, makeGitFixture } from "./test-fixtures.ts"
+import {
+  adaptCodexDirectEvent,
+  adaptComposedHookIdentity,
+  MAX_CODEX_CANDIDATES,
+  MAX_CODEX_COMMAND_BYTES
+} from "@hapsland/native-observation/direct-event/adapter"
+import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 describe("direct-event Codex Add adapter", () => {
+  it("uses an explicit native directory for relative targets at both edit boundaries", async () => {
+    const caller = await makeGitFixture()
+    const target = await makeGitFixture()
+    await put(target, "type.ts", "type OrderCount = number\n")
+    const ordinary = addEvent(caller)
+    const event = { ...ordinary, tool_input: { ...ordinary.tool_input, workdir: target } }
+    expect(await Effect.runPromise(adaptCodexDirectEvent(event))).toMatchObject({
+      root: target,
+      candidates: [{ operation: "add", path: "type.ts" }]
+    })
+    expect(
+      await Effect.runPromise(
+        adaptComposedHookIdentity({ ...event, hook_event_name: "PreToolUse" }, "codex-cli", "PreToolUse")
+      )
+    ).toMatchObject({ editRoots: [target] })
+    expect(
+      await Effect.runPromise(adaptCodexDirectEvent({ ...event, tool_input: { ...event.tool_input, cwd: caller } }))
+    ).toBeUndefined()
+  })
   it("maps background and Stop identities for both hosts without inferring a child", async () => {
     const root = await makeGitFixture()
     const codex = await Effect.runPromise(
@@ -90,7 +114,7 @@ describe("direct-event Codex Add adapter", () => {
         adaptComposedHookIdentity({ ...event, hook_event_name: "PreToolUse" }, "codex-cli", "PreToolUse")
       )
     ).toBeUndefined()
-    expect(await Effect.runPromise(adaptCodexAdd(event))).toBeUndefined()
+    expect(await Effect.runPromise(adaptCodexDirectEvent(event))).toBeUndefined()
     expect(await Effect.runPromise(adaptComposedHookIdentity(event, "claude-code", "PostToolUse"))).toBeUndefined()
   })
   it("requires an explicit child identity on SubagentStop for both hosts", async () => {
@@ -111,13 +135,13 @@ describe("direct-event Codex Add adapter", () => {
   })
   it.each(["0.156.0", "0.160.0", "0.161.0"])("preserves the selected %s host identity", async (version) => {
     const root = await makeGitFixture()
-    const result = await Effect.runPromise(adaptCodexAdd(addEvent(root), version))
+    const result = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root), version))
     expect(result?.advicee.hostVersion).toBe(version)
   })
   it("preserves the complete explicit advicee and canonical Git root", async () => {
     const root = await makeGitFixture()
     const event = addEvent(root, ["a.ts"], { agent_id: "child" })
-    const result = await Effect.runPromise(adaptCodexAdd(event))
+    const result = await Effect.runPromise(adaptCodexDirectEvent(event))
     expect(result).toMatchObject({
       root,
       advicee: {
@@ -130,7 +154,7 @@ describe("direct-event Codex Add adapter", () => {
       },
       candidates: [{ operation: "add", path: "a.ts" }]
     })
-    const parent = await Effect.runPromise(adaptCodexAdd(addEvent(root)))
+    const parent = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
     expect(parent?.advicee.subagentId).toBeNull()
   })
 
@@ -141,7 +165,7 @@ describe("direct-event Codex Add adapter", () => {
     await symlink(root, alias)
     try {
       const result = await Effect.runPromise(
-        adaptCodexAdd(
+        adaptCodexDirectEvent(
           addEvent(alias, ["ignored.ts"], {
             tool_input: {
               command: `*** Begin Patch\n*** Add File: ${join(alias, "installed.ts")}\n+export interface Installed { id: string }\n*** End Patch`
@@ -170,7 +194,7 @@ describe("direct-event Codex Add adapter", () => {
       tool_use_id: "pinned-tool",
       tool_input: { command: "*** Begin Patch\n*** Add File: pinned.ts\n+type Pinned = number\n*** End Patch" }
     }
-    expect(await Effect.runPromise(adaptCodexAdd(native))).toMatchObject({
+    expect(await Effect.runPromise(adaptCodexDirectEvent(native))).toMatchObject({
       root,
       advicee: { sessionId: "pinned-session", turnId: "pinned-turn", toolUseId: "pinned-tool", subagentId: null },
       candidates: [{ operation: "add", path: "pinned.ts" }]
@@ -180,13 +204,15 @@ describe("direct-event Codex Add adapter", () => {
   it("accepts one trailing newline after the native patch terminator", async () => {
     const root = await makeGitFixture()
     const command = "*** Begin Patch\n*** Add File: trailing.ts\n+type Trailing = string\n*** End Patch\n"
-    const result = await Effect.runPromise(adaptCodexAdd(addEvent(root, ["ignored.ts"], { tool_input: { command } })))
+    const result = await Effect.runPromise(
+      adaptCodexDirectEvent(addEvent(root, ["ignored.ts"], { tool_input: { command } }))
+    )
     expect(result?.candidates).toEqual([
       { operation: "add", path: "trailing.ts", addedLines: ["type Trailing = string"] }
     ])
     expect(
       await Effect.runPromise(
-        adaptCodexAdd(addEvent(root, ["ignored.ts"], { tool_input: { command: `${command}\n` } }))
+        adaptCodexDirectEvent(addEvent(root, ["ignored.ts"], { tool_input: { command: `${command}\n` } }))
       )
     ).toBeUndefined()
   })
@@ -206,7 +232,7 @@ describe("direct-event Codex Add adapter", () => {
         }
       })
     ]
-    for (const value of cases) expect(await Effect.runPromise(adaptCodexAdd(value))).toBeUndefined()
+    for (const value of cases) expect(await Effect.runPromise(adaptCodexDirectEvent(value))).toBeUndefined()
   })
 
   it.each([
@@ -220,7 +246,7 @@ describe("direct-event Codex Add adapter", () => {
   ])("rejects strict Add grammar violation: %s", async (_label, command) => {
     const root = await makeGitFixture()
     expect(
-      await Effect.runPromise(adaptCodexAdd(addEvent(root, ["a.ts"], { tool_input: { command } })))
+      await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"], { tool_input: { command } })))
     ).toBeUndefined()
   })
 
@@ -239,7 +265,9 @@ describe("direct-event Codex Add adapter", () => {
       "*** Move to: new.ts",
       "*** End Patch"
     ].join("\n")
-    const result = await Effect.runPromise(adaptCodexAdd(addEvent(root, ["ignored.ts"], { tool_input: { command } })))
+    const result = await Effect.runPromise(
+      adaptCodexDirectEvent(addEvent(root, ["ignored.ts"], { tool_input: { command } }))
+    )
     expect(result?.candidates).toEqual([
       { operation: "add", path: "add.ts", addedLines: ["type Add = number"] },
       { operation: "update", path: "update.ts", addedLines: ["type Update = number"] },
@@ -262,7 +290,9 @@ describe("direct-event Codex Add adapter", () => {
       "+type Good = number",
       "*** End Patch"
     ].join("\n")
-    const result = await Effect.runPromise(adaptCodexAdd(addEvent(root, ["ignored.ts"], { tool_input: { command } })))
+    const result = await Effect.runPromise(
+      adaptCodexDirectEvent(addEvent(root, ["ignored.ts"], { tool_input: { command } }))
+    )
     expect(result?.candidates).toEqual([
       { operation: "move", path: "old.ts", addedLines: [] },
       { operation: "add", path: "good.ts", addedLines: ["type Good = number"] }
@@ -276,16 +306,18 @@ describe("direct-event Codex Add adapter", () => {
     const atLimit = `${prefix}${"x".repeat(MAX_CODEX_COMMAND_BYTES - Buffer.byteLength(prefix + suffix))}${suffix}`
     expect(Buffer.byteLength(atLimit)).toBe(MAX_CODEX_COMMAND_BYTES)
     expect(
-      await Effect.runPromise(adaptCodexAdd(addEvent(root, ["a.ts"], { tool_input: { command: atLimit } })))
+      await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"], { tool_input: { command: atLimit } })))
     ).toBeDefined()
     expect(
-      await Effect.runPromise(adaptCodexAdd(addEvent(root, ["a.ts"], { tool_input: { command: `${atLimit}x` } })))
+      await Effect.runPromise(
+        adaptCodexDirectEvent(addEvent(root, ["a.ts"], { tool_input: { command: `${atLimit}x` } }))
+      )
     ).toBeUndefined()
   })
 
   it("accepts exactly sixteen named candidates", async () => {
     const root = await makeGitFixture()
     const paths = Array.from({ length: MAX_CODEX_CANDIDATES }, (_, index) => `${index}.ts`)
-    expect((await Effect.runPromise(adaptCodexAdd(addEvent(root, paths))))?.candidates).toHaveLength(16)
+    expect((await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, paths))))?.candidates).toHaveLength(16)
   })
 })

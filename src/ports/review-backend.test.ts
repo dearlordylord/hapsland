@@ -10,9 +10,9 @@ import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Ref from "effect/Ref"
 import * as TestClock from "effect/testing/TestClock"
-import { configuredRules } from "../test-support/default-rules.ts"
-import { BackendError } from "../domain/errors.ts"
-import { REVIEW_RETRY_BACKOFF_MS, ReviewBackend } from "./review-backend.ts"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
+import { BackendError } from "@hapsland/review-definition/domain/errors"
+import { REVIEW_RETRY_BACKOFF_MS, ReviewBackend } from "@hapsland/review-execution/ports/review-backend"
 
 const input = {
   path: "src/example.ts",

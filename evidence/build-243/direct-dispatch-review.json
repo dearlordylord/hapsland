@@ -1,0 +1,305 @@
+{
+  "schemaVersion": 1,
+  "issue": 243,
+  "scope": "Partial direct native hook behavior extraction; no executable separation milestone",
+  "owner": {
+    "module": "src/hooks/direct.ts",
+    "concept": "Native Codex admission and Claude bounded advice dispatch",
+    "consumers": [
+      "CLI composition; future dedicated hook composition"
+    ],
+    "direction": "Composition supplies deadline/writer inputs; hook behavior consumes native observations, IPC, output contracts, clock and activity",
+    "contractOwners": [
+      "docs/direct-event-v1-supported-profile.md",
+      "docs/advicing-target-contract.md"
+    ],
+    "behavioralChecks": [
+      "src/cli.test.ts",
+      "src/direct-event/claude-cli.test.ts",
+      "src/resident/client.test.ts"
+    ]
+  },
+  "architectureReview": {
+    "agent": "architecture_inventory",
+    "sourceComparison": "Extracted dispatch body byte-for-byte identical before formatting; option values captured at same initialization point",
+    "findings": [],
+    "limits": "Not dedicated executable/source/emitted isolation acceptance"
+  },
+  "validation": {
+    "fast": "npm run check:fast passed after import formatting repair",
+    "boundary": {
+      "run": "20261006204108096-1090492-66fb56",
+      "build": "passed",
+      "pack": "passed",
+      "tests": "54 passed across 5 files"
+    },
+    "scope": "Focused validation; not full quality gate"
+  },
+  "remaining": [
+    "Hook argument parsing and dedicated composition",
+    "Installed hook routing",
+    "Production workspace/cache/isolation integration",
+    "Installed interleaved measurements"
+  ],
+  "lifecycle": {
+    "trigger": "Issue243 completion",
+    "action": "consolidate",
+    "destination": "Maintained architecture/build owners and issue evidence; delete superseded checkpoints"
+  },
+  "argumentExtraction": {
+    "scope": "Hook-owned definitions and preparatory dedicated parser; no installed routing change",
+    "owners": [
+      {
+        "module": "src/hooks/arguments.ts",
+        "concept": "Hook channels, registration metadata and conflict validation",
+        "consumers": [
+          "shared CLI",
+          "hook-only parser"
+        ],
+        "direction": "Compositions import hook grammar; grammar imports no administration",
+        "contract": "docs/direct-event-v1-supported-profile.md"
+      },
+      {
+        "module": "src/runtime/argument-flags.ts",
+        "concept": "CLI boolean and nonempty value grammar",
+        "consumers": [
+          "administration command tree",
+          "hook grammar"
+        ],
+        "direction": "Both command grammars depend on bounded Effect flag constructors"
+      },
+      {
+        "module": "src/hooks/command.ts",
+        "concept": "Quiet hook-only argument parsing",
+        "consumers": [
+          "future dedicated entry; current focused tests"
+        ],
+        "direction": "Depends on hook grammar/runtime metadata/Effect services, excludes administration"
+      }
+    ],
+    "architecturalReview": {
+      "agent": "architecture_inventory",
+      "extraction": "Flag names, multiplicity, values and conflict ordering preserved",
+      "finding": "Raw transport classification accepted false-only channels or an edit modifier alone",
+      "disposition": "Require decoded true executable channels; all four reproductions tested; reviewer confirms source correction",
+      "limits": "Preparatory parser not installed/native execution acceptance"
+    },
+    "validation": {
+      "fast": "passed",
+      "focused": {
+        "run": "20261006204718885-1114418-4cd2e2",
+        "tests": "98 passed across3files"
+      },
+      "packageBoundary": {
+        "run": "20261006204423199-1100386-df52cf",
+        "build": "passed",
+        "pack": "passed",
+        "tests": "23 passed",
+        "scope": "Current CLI consuming extracted flags; new preparatory parser not yet routed"
+      }
+    },
+    "initialTestFailure": "Vitest table spread argument arrays; corrected table objects, then all cases passed"
+  },
+  "sourceComposition": {
+    "scope": "Dedicated source hook entry; not standalone or installed executable separation milestone",
+    "entry": "src/hook-main.ts",
+    "composition": "src/hooks/program.ts",
+    "newReadOwners": [
+      {
+        "module": "src/runtime/input-settings.ts",
+        "concept": "Runtime input path configuration",
+        "consumers": [
+          "CLI",
+          "hook program"
+        ],
+        "direction": "Capability compositions consume read-only configuration with unchanged precedence/defaults",
+        "contract": "docs/configuration.md"
+      },
+      {
+        "module": "src/resident/controlled-options.ts",
+        "concept": "Controlled resident wire-options decoding",
+        "consumers": [
+          "CLI evaluation/hook modes",
+          "hook program"
+        ],
+        "direction": "Consumers decode serializable options without provider implementation",
+        "contract": "docs/testing-matrix.md"
+      }
+    ],
+    "architectureReview": {
+      "agent": "architecture_inventory",
+      "findings": [],
+      "conclusion": "Inspected native behavior preserved; admin JSON routing intentionally excluded",
+      "limitations": [
+        "Canonical contract/authority modules remain permitted; do not claim all policy code absent",
+        "External resolution and emitted contributions remain unproved",
+        "No installed hook performance claim"
+      ]
+    },
+    "inventory": {
+      "file": "hook-source-composition-imports.json",
+      "hookLocalModules": 65,
+      "piLocalModules": 2,
+      "parseErrors": 0,
+      "unknownLiteralLoaders": 0,
+      "limits": "Literal local inventory only; external/resolver/aliased-loader/compiler contribution enforcement pending"
+    },
+    "validation": {
+      "fast": "passed",
+      "boundary": {
+        "run": "20261006205115147-1125746-85f83d",
+        "build": "passed",
+        "pack": "passed",
+        "tests": "135 passed across6files",
+        "sourceHookDelivery": "8 Claude cases through source hook using actual installed resident, alongside8 installed CLI cases",
+        "scope": "Existing release build plus source-entry behavior; hook is not yet a release artifact"
+      }
+    },
+    "pending": [
+      "Owner tooling/architecture decision before dependent integration",
+      "Dedicated standalone assembly and installed routing",
+      "Remove old shared CLI hook dispatch once routing migrates",
+      "Strict resolver/compiler contribution evidence",
+      "Full milestone gate and installed performance comparison"
+    ]
+  },
+  "standaloneFeasibility": {
+    "scope": "Observed Linux arm64 candidate; not installed feature or build-integration milestone",
+    "probe": "scripts/probe-hook-standalone.ts",
+    "artifacts": {
+      "identity": "standalone-candidate-03-identity.json",
+      "emission": "standalone-candidate-03-emission.json",
+      "assembly": "standalone-candidate-03-assembly.json"
+    },
+    "observations": {
+      "compilerInputs": 201,
+      "assemblyInputs": 1,
+      "assemblySource": "Current emitted bundled JavaScript",
+      "artifactInventory": 19,
+      "allInputIdentitiesRecorded": true,
+      "toolchainAndAdapterIdentitiesRecorded": true
+    },
+    "architecturalReview": {
+      "agent": "architecture_inventory",
+      "disposition": "Favorable separated standalone artifact within feasibility scope",
+      "findings": [
+        {
+          "finding": "Missing complete compiler-input and copied-asset identities",
+          "disposition": "Probe now records hashes for201inputs and19artifact files/modes, plus toolchain and adapter"
+        }
+      ],
+      "remainingLimits": [
+        "Manual metadata authorization; no enforced publication gate",
+        "Copied component freshness not enforced by probe",
+        "Native loader plugin inputs absent from hook emission; rewritten native loaders not validated",
+        "Conditional resolvers and Pi host-loaded contribution validation pending"
+      ]
+    },
+    "validation": {
+      "fast": "passed",
+      "smoke02": "Expected quiet/protocol outputs for retired channels, malformed native inputs and admin flags",
+      "candidate02": {
+        "run": "20261006205559966-1137519-579997",
+        "tests": "24 passed"
+      },
+      "candidate03": {
+        "run": "20261006205906370-1142882-aeb325",
+        "build": "passed",
+        "pack": "passed",
+        "tests": "24 passed across installed CLI, dedicated source hook and candidate binary; same physical installed resident"
+      },
+      "checksumHandling": "New binary had different checksum despite identical emitted JS; validated that exact binary rather than transferring prior artifact results",
+      "coverage": "Focused validation, not full quality gate or installed routing/platform/performance acceptance"
+    },
+    "failedProbe01": "Actual pinned Bun returned object metafile; probe initially assumed string data from local bun-types docs. Preserved failure, serialized object and reran in fresh directory.",
+    "pending": [
+      "Required owner tooling decision before dependent integration",
+      "Dependency-ordered package compilation/cache/publication enforcement",
+      "Ordinary installed hook routing/setup/update/repair/diagnostics",
+      "Superseded CLI hook path deletion",
+      "Full milestone gate",
+      "Interleaved installed performance measurement"
+    ]
+  },
+  "piAssetFeasibility": {
+    "scope": "Selected compiler and emitted-asset/command boundary; not production build or installed/native Pi acceptance",
+    "probe": "scripts/probe-pi-asset.mjs",
+    "evidence": "pi-selected-compiler-03.json",
+    "compiler": "TypeScript7.0.2 wrapper and native hashes recorded",
+    "observations": {
+      "currentBunConditionInputs": 244,
+      "prospectiveNodeConditionInputs": 215,
+      "ownedImplementationInputs": 2,
+      "emittedAssets": 2,
+      "crossConditionByteEquality": true,
+      "actualReleaseComparisons": [
+        {
+          "configuration": "current-bun-conditions",
+          "path": "dist/runtime/hook-catalog.js",
+          "sha256": "f64b7e941d884ecf7020838d76baef89609c5cf18c5f768acef597d26ed66b84"
+        },
+        {
+          "configuration": "current-bun-conditions",
+          "path": "dist/pi/extension.js",
+          "sha256": "f71ad1ee853b5b33c318e42e6f9b72b4ba58852afcdda8e61d7b13fff0779bcd"
+        },
+        {
+          "configuration": "node-host-conditions",
+          "path": "dist/runtime/hook-catalog.js",
+          "sha256": "f64b7e941d884ecf7020838d76baef89609c5cf18c5f768acef597d26ed66b84"
+        },
+        {
+          "configuration": "node-host-conditions",
+          "path": "dist/pi/extension.js",
+          "sha256": "f71ad1ee853b5b33c318e42e6f9b72b4ba58852afcdda8e61d7b13fff0779bcd"
+        }
+      ]
+    },
+    "architectureReview": {
+      "agent": "architecture_inventory",
+      "disposition": "No structural defects in selected compiler boundary or optional candidate fixture",
+      "limits": [
+        "Authorize all nonambient inputs in future enforcement; current assertion is selected src ownership",
+        "No conditional external exports imported; equality is not general resolver acceptance",
+        "Candidate child command is separately selected, not ordinary installed routing"
+      ]
+    },
+    "validation": {
+      "fast": "passed",
+      "boundary": {
+        "run": "20261006210553093-1161495-d6c58c",
+        "build": "passed",
+        "pack": "passed",
+        "tests": "26passed; source, installed and candidate variants",
+        "candidate": "Node-condition emitted asset + standalone candidate03hook/resident; delayedfinish and preservednativecontent/permit assertions"
+      },
+      "scope": "Test-host asset loading and real product command/resident; not native Pi trust, native host adoption, new platform support or full quality gate"
+    },
+    "failure01": "Temporary external configuration could not resolve bun ambient types. Retained compiler.log; explicit worktree typeRoots fixed it in fresh directories.",
+    "pending": [
+      "Production dependency-authority wiring, package-ordered compilation and caching",
+      "Strict source/resolver/contribution publication enforcement",
+      "Default installed dedicated-hook routing and native Pi validation",
+      "Owner tooling decision before dependent integration"
+    ]
+  },
+  "assemblyAmendments": [
+    {
+      "date": "2026-10-06",
+      "scope": "Existing four standalone roles assemble from tsc-emitted JavaScript",
+      "review": {
+        "agent": "architecture_inventory",
+        "conclusion": "Sound narrow assembly migration; reported input evidence does not account for computed runtime loads or physical native contributions",
+        "disposition": "Stale-output risk fixed for rejected entries, thrown build, failed build and metadata rejection; tooling adapter and retained metadata identity remain cache/publication obligations"
+      },
+      "validation": {
+        "fast": "npm run check:fast passed after failure cleanup",
+        "boundary": "20261006212608157-1259072-0717c0: Linux ARM64 build/pack and 55 tests across CLI, Claude, Pi passed before cleanup amendment",
+        "failureCleanup": "Rejected TypeScript and missing JavaScript entries both fail and remove seeded stale executable",
+        "finalBuild": "HAPSLAND_BUILD_PROFILE=linux-arm64 timeout 120s npm run build passed after cleanup amendment",
+        "workers": "All three worker --version calls exit0/version0.1.0; CLI runtime identity Bun1.3.14 linux arm64",
+        "scope": "JavaScript-only compiler-reported assembly inputs; no manifest ordering, cache publication, hook routing or additional platform claim"
+      }
+    }
+  ]
+}

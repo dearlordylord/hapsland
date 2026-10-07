@@ -1,0 +1,1705 @@
+{
+  "schemaVersion": 1,
+  "identity": {
+    "parserSha256": "a6993b23a0d162cc93e49f72ef927c947c2026cd146cfe9c02cd695a4258411d",
+    "checkerSha256": "a8ece944e7f7a4d6480633dd2a832208c336b1aa511d1719a890e27187b71972",
+    "parserOptions": {
+      "sourceType": "module",
+      "plugins": [
+        "typescript"
+      ],
+      "errorRecovery": false,
+      "createImportExpressions": true
+    }
+  },
+  "cases": [
+    {
+      "name": "static",
+      "expected": "edge",
+      "edges": [
+        {
+          "kind": "ImportDeclaration",
+          "target": "./admin.ts"
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "name": "type-only",
+      "expected": "edge",
+      "edges": [
+        {
+          "kind": "ImportDeclaration",
+          "target": "./admin.ts"
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "name": "reexport",
+      "expected": "edge",
+      "edges": [
+        {
+          "kind": "ExportNamedDeclaration",
+          "target": "./admin.ts"
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "name": "type-star-reexport",
+      "expected": "edge",
+      "edges": [
+        {
+          "kind": "ExportAllDeclaration",
+          "target": "./admin.ts"
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "name": "lazy-literal",
+      "expected": "edge",
+      "edges": [
+        {
+          "kind": "ImportExpression",
+          "target": "./admin.ts"
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "name": "commented-literal",
+      "expected": "edge",
+      "edges": [
+        {
+          "kind": "ImportExpression",
+          "target": "./admin.ts"
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "name": "import-type",
+      "expected": "edge",
+      "edges": [
+        {
+          "kind": "TSImportType",
+          "target": "./admin.ts"
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "name": "literal-require",
+      "expected": "edge",
+      "edges": [
+        {
+          "kind": "require",
+          "target": "./admin.ts"
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "name": "computed-import",
+      "expected": "reject",
+      "edges": [],
+      "unknown": [
+        "computed-import"
+      ]
+    },
+    {
+      "name": "template-import",
+      "expected": "reject",
+      "edges": [],
+      "unknown": [
+        "computed-import"
+      ]
+    },
+    {
+      "name": "typed-import",
+      "expected": "reject",
+      "edges": [],
+      "unknown": [
+        "computed-import"
+      ]
+    },
+    {
+      "name": "satisfies-import",
+      "expected": "reject",
+      "edges": [],
+      "unknown": [
+        "computed-import"
+      ]
+    },
+    {
+      "name": "computed-require",
+      "expected": "reject",
+      "edges": [],
+      "unknown": [
+        "unsupported-require"
+      ]
+    },
+    {
+      "name": "generic-require",
+      "expected": "reject",
+      "edges": [],
+      "unknown": [
+        "unsupported-require"
+      ]
+    },
+    {
+      "name": "aliased-require",
+      "expected": "reject",
+      "edges": [],
+      "unknown": [
+        "loader-reference"
+      ]
+    },
+    {
+      "name": "member-require",
+      "expected": "reject",
+      "edges": [],
+      "unknown": [
+        "module-loader-access",
+        "member-loader",
+        "loader-reference"
+      ]
+    },
+    {
+      "name": "computed-member-require",
+      "expected": "reject",
+      "edges": [],
+      "unknown": [
+        "module-loader-access",
+        "member-loader"
+      ]
+    },
+    {
+      "name": "loader-factory",
+      "expected": "reject",
+      "edges": [
+        {
+          "kind": "ImportDeclaration",
+          "target": "node:module"
+        }
+      ],
+      "unknown": [
+        "loader-module",
+        "loader-factory",
+        "loader-module-edge"
+      ]
+    },
+    {
+      "name": "import-equals",
+      "expected": "reject",
+      "edges": [],
+      "unknown": [
+        "import-equals"
+      ]
+    },
+    {
+      "name": "computed-factory",
+      "expected": "reject",
+      "edges": [
+        {
+          "kind": "ImportDeclaration",
+          "target": "node:module"
+        }
+      ],
+      "unknown": [
+        "loader-module",
+        "loader-module-edge"
+      ]
+    },
+    {
+      "name": "module-load",
+      "expected": "reject",
+      "edges": [],
+      "unknown": [
+        "module-loader-access",
+        "dynamic-code-or-loader"
+      ]
+    },
+    {
+      "name": "computed-module-loader",
+      "expected": "reject",
+      "edges": [],
+      "unknown": [
+        "module-loader-access"
+      ]
+    },
+    {
+      "name": "eval-loader",
+      "expected": "reject",
+      "edges": [],
+      "unknown": [
+        "dynamic-code-or-loader"
+      ]
+    },
+    {
+      "name": "function-loader",
+      "expected": "reject",
+      "edges": [],
+      "unknown": [
+        "dynamic-code-or-loader"
+      ]
+    },
+    {
+      "name": "computed-global-loader",
+      "expected": "reject",
+      "edges": [],
+      "unknown": [
+        "computed-runtime-access"
+      ]
+    },
+    {
+      "name": "builtin-module-loader",
+      "expected": "reject",
+      "edges": [],
+      "unknown": [
+        "member-loader",
+        "dynamic-code-or-loader",
+        "loader-factory"
+      ]
+    },
+    {
+      "name": "import-options",
+      "expected": "reject",
+      "edges": [
+        {
+          "kind": "ImportExpression",
+          "target": "./admin.ts"
+        }
+      ],
+      "unknown": [
+        "unsupported-import-options"
+      ]
+    },
+    {
+      "name": "optional-computed-loader",
+      "expected": "reject",
+      "edges": [],
+      "unknown": [
+        "module-loader-access"
+      ]
+    },
+    {
+      "name": "required-loader-module",
+      "expected": "reject",
+      "edges": [
+        {
+          "kind": "require",
+          "target": "node:module"
+        }
+      ],
+      "unknown": [
+        "loader-module-edge"
+      ]
+    },
+    {
+      "name": "aliased-runtime-global",
+      "expected": "reject",
+      "edges": [],
+      "unknown": [
+        "runtime-global-reference"
+      ]
+    },
+    {
+      "name": "function-constructor-loader",
+      "expected": "reject",
+      "edges": [],
+      "unknown": [
+        "dynamic-code-constructor"
+      ]
+    },
+    {
+      "name": "invalid-syntax",
+      "expected": "parse-reject",
+      "parseRejected": true,
+      "reason": "Unexpected token, expected \",\" (1:14)"
+    }
+  ],
+  "productionParse": [
+    {
+      "path": "activity/analytics.ts",
+      "sourceSha256": "dafb329513747629e12bca0883c5f3f2388b708183a0693ec1e48c7852ad83fc",
+      "edgeCount": 6,
+      "unknown": []
+    },
+    {
+      "path": "activity/status.ts",
+      "sourceSha256": "cf2305a9a82b5b984be3a8b3dea50c756d4867ad6f6bb889da87ce35866d0323",
+      "edgeCount": 5,
+      "unknown": []
+    },
+    {
+      "path": "activity/storage.ts",
+      "sourceSha256": "75801e8e3246f4574d8268e4b193b7a61fc6bf92749a11b8da0b3b3f81d5061f",
+      "edgeCount": 3,
+      "unknown": []
+    },
+    {
+      "path": "canonical/adapter.ts",
+      "sourceSha256": "29f4c44a242e31a86ad042af0fc7c23cb755dc9d230344c3cfcef152a60712a3",
+      "edgeCount": 3,
+      "unknown": []
+    },
+    {
+      "path": "canonical/boundary-schema.ts",
+      "sourceSha256": "c2239343dad8848d25a0f29b476724c0c2120ad6474b7f1a994f889cc0d06057",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "canonical/canonical-boundary.ts",
+      "sourceSha256": "1528747e4175a1fbf8cd6eefd22ea7a837aa11038cc511c459514fad18a1742b",
+      "edgeCount": 8,
+      "unknown": [
+        "runtime-global-reference",
+        "runtime-global-reference",
+        "runtime-global-reference",
+        "runtime-global-reference",
+        "runtime-global-reference",
+        "runtime-global-reference",
+        "runtime-global-reference",
+        "runtime-global-reference",
+        "runtime-global-reference"
+      ]
+    },
+    {
+      "path": "canonical/canonical.generated.d.ts",
+      "sourceSha256": "d940f017e27e9c695f3fd758af9a07548355a304c8ee447d84c9c12e68a57734",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "canonical/constructors.ts",
+      "sourceSha256": "32bebd35b9dc5556f266bdb745e90090edf83741a636ca3234c50a3536012f78",
+      "edgeCount": 2,
+      "unknown": [
+        "runtime-global-reference"
+      ]
+    },
+    {
+      "path": "canonical/event-reader.ts",
+      "sourceSha256": "51e6d456132b9d2cb01a2dfbb5ab082d2471e77c4fdb83cdc2d78d9e798797c3",
+      "edgeCount": 3,
+      "unknown": []
+    },
+    {
+      "path": "canonical/graph-adapter.ts",
+      "sourceSha256": "50e0fc001dd0c743d167e8864f6c4709b6cce7aa5132df1e215da3d4945529df",
+      "edgeCount": 7,
+      "unknown": []
+    },
+    {
+      "path": "canonical/graph-schema.ts",
+      "sourceSha256": "7640f6788dd4839653d305bbbef4a03d1a300be9993817b2286117aa7f05211e",
+      "edgeCount": 3,
+      "unknown": []
+    },
+    {
+      "path": "canonical/immutable.ts",
+      "sourceSha256": "f54fb9d505e76e63a7f5d6b67ec0282774d4f9950d487adcc7985a98800eebee",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "canonical/import-graph.generated.d.ts",
+      "sourceSha256": "4b80e5f29fcae68e85a48c9bc5f6b4f230a406f4c8289eb16f310aa17b75033a",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "canonical/models.ts",
+      "sourceSha256": "6f3a877415541ab42892b3018c4cb2b173bfdf18de73ebf9633b72ea86912530",
+      "edgeCount": 2,
+      "unknown": [
+        "runtime-global-reference",
+        "runtime-global-reference"
+      ]
+    },
+    {
+      "path": "canonical/simulation-adapter.ts",
+      "sourceSha256": "b9157e173fea3b5e2e0bc73efdb717db2385ebbedbd619f9319c9b4803e56072",
+      "edgeCount": 15,
+      "unknown": []
+    },
+    {
+      "path": "canonical/simulation-codec.ts",
+      "sourceSha256": "28599262eca07b2c975da0b561280d7f8e1038171a0f8523ae9d1f54da783581",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "cli-command.ts",
+      "sourceSha256": "08af186bab49f6f9ef618d5cb638bde50a46b93cc14ec1eee2c1c6d98e350a30",
+      "edgeCount": 23,
+      "unknown": []
+    },
+    {
+      "path": "cli-help.ts",
+      "sourceSha256": "0465236a3d60a93b9ef069c29aee1d5d5ecdf51b97eba067f646ebdd0d2fcbd2",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "cli.ts",
+      "sourceSha256": "2b51a6689453dcaaaaa74f06f228451b41f0d9e613cf773f878c81264c75c8e6",
+      "edgeCount": 89,
+      "unknown": []
+    },
+    {
+      "path": "configuration/decision.ts",
+      "sourceSha256": "447bb62c86cbae29762fa25329d501bf24573b5afbde44ade8dc07d7e9eec33a",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "configuration/decode.ts",
+      "sourceSha256": "c1d5fd80ad3cdc6789082892f65967db253106bb86c49f73d7cc1493c50a0aeb",
+      "edgeCount": 6,
+      "unknown": []
+    },
+    {
+      "path": "configuration/errors.ts",
+      "sourceSha256": "cec15947447983e03e9ec5b03201d260d3f5d2b134ea7eadc456a1572906f090",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "configuration/graph-limits.ts",
+      "sourceSha256": "aaaa9a6e5984e418ad5db0f46e75b3d725c69acf6f9830f814ac15a5dde061ce",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "configuration/index.ts",
+      "sourceSha256": "512744e1513257169debf99b7de169fb02bda55364d946ad4f4d5ed18d5652a9",
+      "edgeCount": 6,
+      "unknown": []
+    },
+    {
+      "path": "configuration/jsonc.ts",
+      "sourceSha256": "b70299170ea1397112125c199d3196b09a0a0822e0719052f328688d6058bfc8",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "configuration/load.ts",
+      "sourceSha256": "e59b4694c76ee0d1d585af4a80e00d897e8b1aa57b1d2283b1562c37401c72a5",
+      "edgeCount": 7,
+      "unknown": []
+    },
+    {
+      "path": "configuration/resolve.ts",
+      "sourceSha256": "8dae3828be9e2199ec1d3151b246ca04b0e282429c71c4f2e5dc46f5d290dd2a",
+      "edgeCount": 6,
+      "unknown": []
+    },
+    {
+      "path": "configuration/schema.ts",
+      "sourceSha256": "39001bd2f978e2eafe3b83c066f0c9036903a6baeb31d65fd2c7c81ade23ca31",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "configuration/types.ts",
+      "sourceSha256": "c7b6728c7a5c5c6538e247805892fb84afc2022c002559aa5112415b040d9388",
+      "edgeCount": 4,
+      "unknown": []
+    },
+    {
+      "path": "conformance/live-evidence-outcome.ts",
+      "sourceSha256": "20826c158464cbc878edb018b6fe12999bd35b3e7f956d001cd57a8dbf60db09",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "conformance/live-runner-policy.ts",
+      "sourceSha256": "66a83eca860bddfa024ddf488f543b3a8a30f41e9dff978fea5f6e6e875016f0",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "credentials/index.ts",
+      "sourceSha256": "252205b49db2141893e4b99867ecf06b0f95a8e685c94d025427da93f2605ead",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "credentials/input.ts",
+      "sourceSha256": "9b755d6b732fcfb322bb2f968888c2ce3c3f8cda4d6998b15d7a08f01cd05852",
+      "edgeCount": 9,
+      "unknown": []
+    },
+    {
+      "path": "credentials/masked-input.ts",
+      "sourceSha256": "219e640052cac0e7da6ddf7e03e1f9b4726713ab006b8b3a91a1ecd5994b53d8",
+      "edgeCount": 6,
+      "unknown": []
+    },
+    {
+      "path": "credentials/secret-service-process.ts",
+      "sourceSha256": "62656c16f177250f1d581e899c21b719c23edfd2a9f64400bc87f57d6226f52e",
+      "edgeCount": 5,
+      "unknown": [
+        "runtime-global-reference",
+        "runtime-global-reference"
+      ]
+    },
+    {
+      "path": "credentials/secret-service.ts",
+      "sourceSha256": "cdb4fca55795df04ddb27664f7653a7070b40d12b15a9145bc05455d15a81520",
+      "edgeCount": 16,
+      "unknown": []
+    },
+    {
+      "path": "credentials/terminal.ts",
+      "sourceSha256": "d7224dbb09bd81055dd5ae552d0a052ca1a71ad9be2cc2be59c7b58c21f2eb2b",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/adapter.ts",
+      "sourceSha256": "c6487295e45a0a52ddd3f6ea0b4eae7e1070c5abc8f53c7f27eb1be6092bc5ef",
+      "edgeCount": 9,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/analyzer.ts",
+      "sourceSha256": "5d5aca678e9be128a47d886ab17b158a829017596304f8e06d353b869eaa28a6",
+      "edgeCount": 5,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/capture.ts",
+      "sourceSha256": "86921ad8f6b61766f5f32b6576f1090c6d93270ea5fb9863bf84cb79594c28eb",
+      "edgeCount": 10,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/claude-output.ts",
+      "sourceSha256": "d816b355b0341f28d0503d3dc25cc724906669774851aa9ffa079fc24bc45233",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/codex-patch-hunks.ts",
+      "sourceSha256": "ec6e6322a07ddb194a5c362986312cdedb5a102291817968ee6115c5910675ae",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/edit-attribution.ts",
+      "sourceSha256": "da1f7497cf3e07ede8a79bd3edcb490fc519f58b364891e375c80f9f58034352",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/function-analyzer.ts",
+      "sourceSha256": "a261c4a1b06634cf566d3d5fdd3b9617c85b0620a8f1e003f59646dcf599425b",
+      "edgeCount": 3,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/function-resolver.ts",
+      "sourceSha256": "c136237b51632b47a62f7f5f79112b6e9835a5661c5d88cfd68e2afb42bd91a4",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/graph-resolver.ts",
+      "sourceSha256": "201d6725736937d71a9e67a05d14679438ed85b8de89b875f94f12b73e3c9d57",
+      "edgeCount": 10,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/index.ts",
+      "sourceSha256": "f6279a1cffa5bac5df4565532d9420c168cb8a70e0e332ecc6ce10d0216b1568",
+      "edgeCount": 7,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/languages/bend/adapter.ts",
+      "sourceSha256": "a37a6b6bf6d92266afc9aea6eed838b8926ca2cc02e68c392102e9a5ff8b8c62",
+      "edgeCount": 6,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/languages/bend/extractor.ts",
+      "sourceSha256": "69c262b8cf829229cb6d3ceb34625ffcc4c454a1fac704a229126754fc7f0da5",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/languages/contracts.ts",
+      "sourceSha256": "639ff9c0e16dda8f8abb12d8c11ed555e1c20ce5f788fc4f0123e1a581540388",
+      "edgeCount": 6,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/languages/function-facts.ts",
+      "sourceSha256": "ff19a4d39290bc2d6e969f14a77d69b2a45b7fcc95e2e58d8ad6ad15eab884fc",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/languages/native-parser.ts",
+      "sourceSha256": "8f67406bfbdd5d8cae01475604f86003da79073f80b9f14874028a432049e79c",
+      "edgeCount": 7,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/languages/path-language.ts",
+      "sourceSha256": "6e8218c5671add2f5a2195e6901b7a27df085f465964aa0be3e46cb97e9e3a85",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/languages/registry.ts",
+      "sourceSha256": "c6118d6022a0b939c73faface9997fee2534df6e9f6b240d80b1b90d4f4d5d88",
+      "edgeCount": 5,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/languages/rust-adapter.ts",
+      "sourceSha256": "6c3d95c492564252b7c99a46374d348b8d4dddd4a82a6c3afd0c01f27adf5cd9",
+      "edgeCount": 6,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/languages/rust-module-context.ts",
+      "sourceSha256": "6551c9c2b17380217a670ee06c5cf108380ecb8d018f5b173485afd831f2405c",
+      "edgeCount": 10,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/languages/rust.ts",
+      "sourceSha256": "628c3a9f20a113e90969b609a2beb038866536c3a329c473fcab205ecc5c3ea0",
+      "edgeCount": 5,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/languages/typescript-functions.ts",
+      "sourceSha256": "991d47aa11ed0609c053d5115cbad3015d8dbf3b1ce5be1ee363520d3ab5b2fd",
+      "edgeCount": 4,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/languages/typescript.ts",
+      "sourceSha256": "f87204a7e4e1dd4b011e8f194b3b115b609ad8baead30705439036c54c5ea26d",
+      "edgeCount": 14,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/model.ts",
+      "sourceSha256": "52e283f974c6389876bb7e27f59adb58c0411c3d929ee0f41f5c415d6e71ecf3",
+      "edgeCount": 8,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/output.ts",
+      "sourceSha256": "49d021a8806c6fad49a25d1b2bd033fa0b862ec97cf98253a4f8774a1a111653",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/patch-hunks.ts",
+      "sourceSha256": "54fe549f16dcc4284a98702a0aef86dcb0bd85dfe065e09178c9fefdcde8b22e",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/pi-adapter.ts",
+      "sourceSha256": "40130c617b28c925b3773d14f10ee4bf964faa3702b8c7dbdfbefe382c1a7f32",
+      "edgeCount": 8,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/pi-patch-hunks.ts",
+      "sourceSha256": "6e4d162a716bc29463d4b37dbb2c7b92c9c7d24c9e11a785c927685fe26f82d3",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/pipeline.ts",
+      "sourceSha256": "ae7f06c7ffbf885d7c5800e6d0a14fa7ae8e417d9b2901b2ef86321912012a5b",
+      "edgeCount": 42,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/provider-body-size.ts",
+      "sourceSha256": "175e4f59ddc8e8d64f2c0aba1a5079dc142df669d7f85fe1a84871ff4ca6d4cf",
+      "edgeCount": 3,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/review-renderer.ts",
+      "sourceSha256": "a9a1911bf97c28aa53873d9e9822d62d98daf8f6f6fc8f02599893c8484ba02c",
+      "edgeCount": 3,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/selection.ts",
+      "sourceSha256": "9ecda4d2a5fca1d60c51f41d631d27288890c6e4191a7febc53c959fcb9e45e8",
+      "edgeCount": 10,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/test-fixtures.ts",
+      "sourceSha256": "35623003540770cb59f88763cff65aef779bec848a05d5562b5e464e9e060909",
+      "edgeCount": 6,
+      "unknown": []
+    },
+    {
+      "path": "direct-event/writer.ts",
+      "sourceSha256": "3e26ed8857b365b4a579d6f282dc2d68df57ca0c76b2f19ad9f727d882412dfb",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "domain/contracts.ts",
+      "sourceSha256": "338902ddf24f38d3134bf1ceffe4447f1e7dbf9cd2961606db0adcbc62477016",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "domain/errors.ts",
+      "sourceSha256": "89a3d8aad547879ec3c49e0bd5fbcd5a939bf1969006756533076500d11437d8",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "domain/rule-identity.ts",
+      "sourceSha256": "c68c2786fcb934b58510c7f10f53b017e34ca8886b8a7083f0178d914bfd855a",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "evaluation/command.ts",
+      "sourceSha256": "abe45830d86697e94fd3df523eff85863f55d4575ca9c85d162f708cabac6a4a",
+      "edgeCount": 18,
+      "unknown": []
+    },
+    {
+      "path": "evaluation/comparison.ts",
+      "sourceSha256": "fa7707c3191b4f43773dfa0da052d3a9a04e189b9c8736a3bef76eb6ca9b0c2a",
+      "edgeCount": 3,
+      "unknown": []
+    },
+    {
+      "path": "evaluation/digest.ts",
+      "sourceSha256": "926b67e802e209bf21d122433aa471d6d0e8772d276b99197faeda52d897aa8c",
+      "edgeCount": 3,
+      "unknown": []
+    },
+    {
+      "path": "evaluation/fixtures.ts",
+      "sourceSha256": "12f3d48ca7589340a61c32e64f6659205123147dfe0d1afbd454fec30339d5c1",
+      "edgeCount": 5,
+      "unknown": []
+    },
+    {
+      "path": "evaluation/index.ts",
+      "sourceSha256": "bc45b0ac3e692905e42e8fe70d6e6692cbd210ca5b4698ba544b69609c9bfc92",
+      "edgeCount": 8,
+      "unknown": []
+    },
+    {
+      "path": "evaluation/model.ts",
+      "sourceSha256": "aaa19a8c2749ec48ee96cf0608c680394c1bf43182d0012c6322add073da0c32",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "evaluation/plan.ts",
+      "sourceSha256": "70169faf42ea4cc69350bdaf5f39ac7252ca086700d5d22f0b39db32ab80a354",
+      "edgeCount": 3,
+      "unknown": []
+    },
+    {
+      "path": "evaluation/report.ts",
+      "sourceSha256": "45e22f440014d1ed0ebadac00e13f64538165ca70a3f7cd211e1f55c72a289c5",
+      "edgeCount": 7,
+      "unknown": []
+    },
+    {
+      "path": "evaluation/runner.ts",
+      "sourceSha256": "15e80b3e31a4079486329913e8c3d28c6890064c59001ab6fab9eb6f7dfb834b",
+      "edgeCount": 13,
+      "unknown": []
+    },
+    {
+      "path": "explanation/explain.ts",
+      "sourceSha256": "1a061e805fe4238bd2110cbda0bc5dbb10f03bc408d8063a5a719c0673e01965",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "explanation/index.ts",
+      "sourceSha256": "521c600adcbdb49825c70b4d7fada2bcb73cbdbf383141c4342a17bbe11e9a5c",
+      "edgeCount": 3,
+      "unknown": []
+    },
+    {
+      "path": "feedback/message.ts",
+      "sourceSha256": "cdb80106411250684b1916f027173b0fade367b4d74084340ada75824a741784",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "hosts/opencode/adapter.ts",
+      "sourceSha256": "22c34465604fda9001d66dff2d2cb63e1df7cba85e5d3bcbe63f84733f6a19fb",
+      "edgeCount": 6,
+      "unknown": []
+    },
+    {
+      "path": "inspection/brand.ts",
+      "sourceSha256": "a21b2b9b6d242ca8953072f026da4d974b29994cd1c359066e4eddbf7c572742",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "inspection/capture.ts",
+      "sourceSha256": "7c1f980726a593b454498d03b0f29de4f4802a8ebdd209a35e773843f9e50466",
+      "edgeCount": 4,
+      "unknown": []
+    },
+    {
+      "path": "inspection/command.ts",
+      "sourceSha256": "20bc10a93906542135e6b366e567d0438065a5b4c0ddcbf5cd28b216d196de1d",
+      "edgeCount": 7,
+      "unknown": []
+    },
+    {
+      "path": "inspection/consumer.ts",
+      "sourceSha256": "8c942169e60b1a0f182f6238bbb7a6d8e53aea2b24945878abeddb858f05d41b",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "inspection/contract.ts",
+      "sourceSha256": "a553fecfd95a9571f8cadd6537645814e4983ab0bb3272f25447717476838c22",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "inspection/http.ts",
+      "sourceSha256": "125b56a92da2b197ba4f965042efe6f696deaff75d7635df225c7c750ff9e7cc",
+      "edgeCount": 16,
+      "unknown": []
+    },
+    {
+      "path": "inspection/native-lock.ts",
+      "sourceSha256": "9419081e9b35563f292c1a7d1a714e1ca3abdec04e27af9634c93b7348a693a3",
+      "edgeCount": 2,
+      "unknown": [
+        "loader-module",
+        "loader-factory",
+        "loader-factory",
+        "loader-factory",
+        "loader-module-edge"
+      ]
+    },
+    {
+      "path": "inspection/options.ts",
+      "sourceSha256": "c8309554d2f1701329433c5abf61d1f5a4f880a3ce622c8dd986eede2b26e82f",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "inspection/page.ts",
+      "sourceSha256": "366d784328f4b25aa4c5d5301726eebec0f4d91d00fbfdde99ab2ac2920b3ee0",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "inspection/recorder.ts",
+      "sourceSha256": "5380471dba2f8142f3d5a6f99d21ac64ed0880f05c367fa778a205dc91d994c5",
+      "edgeCount": 3,
+      "unknown": []
+    },
+    {
+      "path": "inspection/registry.ts",
+      "sourceSha256": "54b8b4b44ec14cbae1767da3f220cec791b283dbfcbd7a5ba9db33b28fbbc2c0",
+      "edgeCount": 8,
+      "unknown": []
+    },
+    {
+      "path": "inspection/replay.ts",
+      "sourceSha256": "9047e79d98a4a50b43ec1560575a4ab7a0afa9f9f5a19122ba7d6a1670ce33da",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "inspection/settings.ts",
+      "sourceSha256": "c88dd9635bdbeb558a2580f4e3768fae423b3a6b81104e92e3af47819324893f",
+      "edgeCount": 5,
+      "unknown": []
+    },
+    {
+      "path": "inspection/storage.ts",
+      "sourceSha256": "5f093d014fd0bdbe5151359fbf641f419f007579d648c80256917189b15bab46",
+      "edgeCount": 8,
+      "unknown": []
+    },
+    {
+      "path": "inspection/transport.ts",
+      "sourceSha256": "c92be96cc87e725a00f62a42db5942023696fd4f16364a24a2ad8ccf3031ecb6",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "jev-decision.ts",
+      "sourceSha256": "3688909cd5ab5531da474ce59a9e7dc21d901bebfd20248894b9edcecc547d8f",
+      "edgeCount": 11,
+      "unknown": []
+    },
+    {
+      "path": "matcher/glob.ts",
+      "sourceSha256": "48d8ae887efe9a66d0f8948b655b6e46c03b45f2e6a157fd9290587ef9fc44be",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "matcher/index.ts",
+      "sourceSha256": "e105b8ca7a834e2c4ca1d3ad9ef1feba8deda3824816307e27c9ef23220062bf",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/atomic-installation-file.ts",
+      "sourceSha256": "0db2a48f2a162c483955940861be4efb1db60918a819a6a1858161115e9720da",
+      "edgeCount": 3,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/claude-installation.ts",
+      "sourceSha256": "bebde5124f16cfdcf88533b236bff6dc62b1faf415a40adbbd1e54b06777b295",
+      "edgeCount": 11,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/client-command.ts",
+      "sourceSha256": "849368555dbcff6b5faf7cb1925315a3d2565f406d31babb3e4369e97bc5dec0",
+      "edgeCount": 3,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/client-lifecycle.ts",
+      "sourceSha256": "1d0dd8d0baddd4a31467085dd88f99bc1cc36327f3df483cd96c8c1d07698901",
+      "edgeCount": 16,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/client-selection.ts",
+      "sourceSha256": "6d9b130b7c859854b6b8a1df139045944cff459706c6a0cdc3e9519e1839ea73",
+      "edgeCount": 4,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/codex-installation.ts",
+      "sourceSha256": "4a200e21e98e4d4524603dfee539b500cd7aad0116fccce092adeb8d0f92f18a",
+      "edgeCount": 12,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/confirmation.ts",
+      "sourceSha256": "f5c17e51719e8bb0adeacc1b4de9f29082fc717ad45a0796be6775f28fb5fd4b",
+      "edgeCount": 3,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/credential-diagnostics.ts",
+      "sourceSha256": "56504f7a642b85a66d7703b695c722cdd5eb1f9ab9f03b3bc05fa5460bee00be",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/credential-guidance.ts",
+      "sourceSha256": "d448f48f419421813a53a94e7e345f15dea4fd179f72c82c950224f2333a4f47",
+      "edgeCount": 5,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/credential-verification.ts",
+      "sourceSha256": "b38764cf3b4b989dafd09f9091fd75bf3de71cfcfdd5970fd337849681829123",
+      "edgeCount": 16,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/default-rules.ts",
+      "sourceSha256": "a9bdc5ba9c0c57e8ae6765e07ae595c495aa07df7dd6ff4afe228358f911af2e",
+      "edgeCount": 16,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/demo-budget.ts",
+      "sourceSha256": "344a8d276f075a8aa2bbe567d157536411d84172fd23faf9cdc37ef484fc6f46",
+      "edgeCount": 4,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/demo-trace.ts",
+      "sourceSha256": "698eaec3cecfbd47e1d09282baa864d241b8f79064bf4c6695c46be55cea7753",
+      "edgeCount": 5,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/demo-validation.ts",
+      "sourceSha256": "e3ae83e55d4fae4607a049a6260ead5fd27d3fe4e7652ef0e54502ed2d746dc4",
+      "edgeCount": 2,
+      "unknown": [
+        "computed-import",
+        "module-loader-access",
+        "module-loader-access"
+      ]
+    },
+    {
+      "path": "onboarding/distribution.ts",
+      "sourceSha256": "6c4e24ae88cd06b03bcde3ea483919d66e844e059cf38dda417d1ad390a1caf2",
+      "edgeCount": 7,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/doctor.ts",
+      "sourceSha256": "751d2164e8c1faa1681ec456dda40297b70fe37a8838d487c0275b9c193672cc",
+      "edgeCount": 9,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/first-review-demo.ts",
+      "sourceSha256": "7fb6f9cbbddccf0e6be974fb940ce24abdea783f4b381b7b41a947c4fe8d1dcd",
+      "edgeCount": 15,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/hook-reconciliation.ts",
+      "sourceSha256": "3596cbc0a30950535bdd6a7269606cb26367cdf55d635723eccca173e49944c8",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/host-process.ts",
+      "sourceSha256": "c5a355dc745cf90e9155d82c5bf9a777085f79bdd4bf308b843d4ec893f40d61",
+      "edgeCount": 3,
+      "unknown": [
+        "runtime-global-reference",
+        "runtime-global-reference",
+        "runtime-global-reference",
+        "runtime-global-reference"
+      ]
+    },
+    {
+      "path": "onboarding/human-output.ts",
+      "sourceSha256": "74807bbe5b7b3f1062da293a843dd97847810716ec7619d6a83d1643c517d58a",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/installation-lock.ts",
+      "sourceSha256": "aed7f5b648c6d2b2f5871033696f7e0c9402ae07e4c95084bec88940dc032c39",
+      "edgeCount": 4,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/maintenance.ts",
+      "sourceSha256": "b4faa9ce4091eb63ca91a75c106a198cb56bf5ebe8e32ada7c4989c13905b8f7",
+      "edgeCount": 7,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/native-architecture.ts",
+      "sourceSha256": "7be83d90e65b5c8f198e09611d2e646c811ca26fab56bb2f4be211c6cf36ba88",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/opencode-installation.ts",
+      "sourceSha256": "9be9c923f93630cba25bf457515a3f39bf7a44b13a8d59e9bfd41a48dde2c2ac",
+      "edgeCount": 8,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/package-diagnostics.ts",
+      "sourceSha256": "a87a51e98ea31586f0083bf87702ffb8c13b7c6884a80745d787a48be9828d4e",
+      "edgeCount": 8,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/pi-installation.ts",
+      "sourceSha256": "3d25cb2637970483729f1c5ac02ccc0c6c4423780183657f3e319ef49af21fca",
+      "edgeCount": 10,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/pilot.ts",
+      "sourceSha256": "52c18407e7f8168f8d24a2c689a65ca56c3ada42319c139707d9c8e4db8443bb",
+      "edgeCount": 12,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/setup-request.ts",
+      "sourceSha256": "8d97d133c4fe1ab19fbe6f65938fda31cc9929ff83a1fbc6147fb743cf811199",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/setup.ts",
+      "sourceSha256": "46cdb2e325f0d78ca6f90a897e3ad5a696451b3083ff1bc52f6e5dfa130dcd10",
+      "edgeCount": 13,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/unattended.ts",
+      "sourceSha256": "62391fb9411cd7fe8cc937175d391eeea9df169f3b1174438e2f0a142dea7d11",
+      "edgeCount": 7,
+      "unknown": []
+    },
+    {
+      "path": "onboarding/update.ts",
+      "sourceSha256": "ccf4933fe9209b9aa7c2925a97bb597e488b200ba8b938a2bcf97b29428fd8df",
+      "edgeCount": 5,
+      "unknown": []
+    },
+    {
+      "path": "package-doctor.ts",
+      "sourceSha256": "f51fc8097e498adef9c2e587da5a1f21ee5142c3dfff12fcc7566ef26ece3eb0",
+      "edgeCount": 4,
+      "unknown": []
+    },
+    {
+      "path": "parser-main.ts",
+      "sourceSha256": "15795f0ee3beba8657b93190898d14e42cfba9384f66d6a5ac65cb0d0f8aea8f",
+      "edgeCount": 4,
+      "unknown": []
+    },
+    {
+      "path": "pi/extension.ts",
+      "sourceSha256": "c188d3a4a6a582d7fe4c9b6f5460292fcf84bce7bdfa1ae4aa402791f1508521",
+      "edgeCount": 4,
+      "unknown": []
+    },
+    {
+      "path": "pi/transport.ts",
+      "sourceSha256": "db2e9bb9e4ec6c42e0569a5357992d89598a94c5160f357703d6b0c1401e2b65",
+      "edgeCount": 10,
+      "unknown": []
+    },
+    {
+      "path": "policy/file-policy.ts",
+      "sourceSha256": "dfa87cdfd742b25c6a03f7a43c644b58d9db445fe9b8bc07d67598542dd8246a",
+      "edgeCount": 5,
+      "unknown": []
+    },
+    {
+      "path": "policy/index.ts",
+      "sourceSha256": "fd8f847269375493c1d037c4a4c8d3aad2fa461b0cdb752890488644c783d1fe",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "policy/path-facts.ts",
+      "sourceSha256": "766db2254497f208cba531313a5f1b75cb6cabf6f7e5264b925edbdfc0775a02",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "policy/rules.ts",
+      "sourceSha256": "f4f9d19c93aefb736f226ef22928480517e4cc38176a5f073daa6df7dac73f5a",
+      "edgeCount": 3,
+      "unknown": []
+    },
+    {
+      "path": "ports/review-backend.ts",
+      "sourceSha256": "2a14929e38371c7f2b59b2ccd8ad11e663e09d13bd33426231b6c0e8725fe491",
+      "edgeCount": 10,
+      "unknown": []
+    },
+    {
+      "path": "probability.ts",
+      "sourceSha256": "4fab94c804924c924e8d091792b1f30944bfacbe0be34dfff2899448d07480cb",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "questions.ts",
+      "sourceSha256": "764bb2c8719b29a33fd5c10c25e85712f52748bd74f4da3c4f759bb4a295bae6",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "repository/root.ts",
+      "sourceSha256": "4b1c6e7c5a0d56b86078922f08f064cef6c5d0b1a5c3865a1fe6aa96395ba805",
+      "edgeCount": 7,
+      "unknown": []
+    },
+    {
+      "path": "resident/advice-records.ts",
+      "sourceSha256": "2604c03b28ea5bbdd3100d12755d287c009ca86676faf3c7d2155a7dfba830f5",
+      "edgeCount": 7,
+      "unknown": []
+    },
+    {
+      "path": "resident/bend-work.ts",
+      "sourceSha256": "69b4737e0e0da7ae3e49a40413d9beb913c699f93046324f5d78afb9ac4dc9a6",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "resident/capacity.ts",
+      "sourceSha256": "a53f0fd0d42451e6cda7daec774415b9b879426a3ea1f16a3094366aac079b82",
+      "edgeCount": 16,
+      "unknown": [
+        "runtime-global-reference",
+        "runtime-global-reference",
+        "runtime-global-reference"
+      ]
+    },
+    {
+      "path": "resident/client.ts",
+      "sourceSha256": "1c12d66f7e455282788028f8012f1b0d5e15105e6b620d9f21dfcaaa49f7d233",
+      "edgeCount": 29,
+      "unknown": []
+    },
+    {
+      "path": "resident/collection-decisions.ts",
+      "sourceSha256": "4758446f6f3a657ffc150ccf245e7d58f71f3b0479d3c8d5efae6a76f951aef6",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "resident/collection.ts",
+      "sourceSha256": "5ac4e147c1c7be05bf05bf484c90cc8d1444b1815ba7f51550a9f0207720d3dd",
+      "edgeCount": 10,
+      "unknown": []
+    },
+    {
+      "path": "resident/composed-delivery.ts",
+      "sourceSha256": "147274ec304a7360b1b2e63737e78aaddfcfa71c11e833aa3659f5ddbea5180c",
+      "edgeCount": 8,
+      "unknown": []
+    },
+    {
+      "path": "resident/composed-hook.ts",
+      "sourceSha256": "09e9a5269d96ab701de9cb7057503057d124b1503c0055df90bc5dd62ca38acf",
+      "edgeCount": 16,
+      "unknown": []
+    },
+    {
+      "path": "resident/direct-hook-output.ts",
+      "sourceSha256": "05fefe3ef7557532fabfece362b6c92f272b5e8e9042701657cbda73db00ce06",
+      "edgeCount": 11,
+      "unknown": []
+    },
+    {
+      "path": "resident/dispatch-controls.ts",
+      "sourceSha256": "97c69c63b25714cbf2733704eb6276c0b6d169a4e50faf60ca821694a55617f1",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "resident/dispatch.ts",
+      "sourceSha256": "d5904efb4bdef8f2d1bec886305ab4e82d23319ea310e27f0d024ef404cbb25d",
+      "edgeCount": 5,
+      "unknown": []
+    },
+    {
+      "path": "resident/evaluation-reuse.ts",
+      "sourceSha256": "99c35106590a76bb646fc64d083b9bf342c5709654e2938a4c9f19e1a1ccd2a4",
+      "edgeCount": 3,
+      "unknown": []
+    },
+    {
+      "path": "resident/hook-clock.ts",
+      "sourceSha256": "69cad0d8d0d3f7152c1ebff72f800f5e7d645396ac0a5a484e82ce3498a3e399",
+      "edgeCount": 3,
+      "unknown": []
+    },
+    {
+      "path": "resident/hook-output.ts",
+      "sourceSha256": "1ee6691e865d20970f2e41a3b7c4a7874c2a699d243afa39e1e80ebdc13b4ecc",
+      "edgeCount": 5,
+      "unknown": []
+    },
+    {
+      "path": "resident/index.ts",
+      "sourceSha256": "560efd82050e5e5bc11f5b449b758e6741e1f561cc72640d602252a29d84ad29",
+      "edgeCount": 7,
+      "unknown": []
+    },
+    {
+      "path": "resident/joined-reviews.ts",
+      "sourceSha256": "e1e03c6e0f9a314fca54ee1bb6760ae2a2a461b0b9ea4960dc4a0654c8cff1ca",
+      "edgeCount": 5,
+      "unknown": []
+    },
+    {
+      "path": "resident/main.ts",
+      "sourceSha256": "12b6931a3ebd9523df17d124fc0cb021fb3efe058553d24866578c32eeea215d",
+      "edgeCount": 12,
+      "unknown": []
+    },
+    {
+      "path": "resident/notice-records.ts",
+      "sourceSha256": "1b9add8fe3d8e721dcbeb1390d5b96d874fff436e15cdda75419421a99d5ab81",
+      "edgeCount": 4,
+      "unknown": []
+    },
+    {
+      "path": "resident/ownership.ts",
+      "sourceSha256": "d74a8843d82ed4571ff5de88d1188332d1e11d8d75b16a580e1ce55566be7707",
+      "edgeCount": 7,
+      "unknown": []
+    },
+    {
+      "path": "resident/paths.ts",
+      "sourceSha256": "16d0191bf8f883f5e8736a5db092949ec51865ab0aeb3a2549e2a24b6c02c4f6",
+      "edgeCount": 9,
+      "unknown": []
+    },
+    {
+      "path": "resident/preparation-controls.ts",
+      "sourceSha256": "e58068ac382ef5a24ff0b3f37e576305e19c93ee8efb0e1bbc821b290fb353ed",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "resident/preparation-workspace.ts",
+      "sourceSha256": "2f3715fb4184aed49da280dbf1bebb49e81344f0f6da45776d32a66b21432ed4",
+      "edgeCount": 3,
+      "unknown": []
+    },
+    {
+      "path": "resident/protocol.ts",
+      "sourceSha256": "fdcc3a49a5a9e2ae4c961e42a1f9d7b915dd9ad8a604d057f7558a3e8271edda",
+      "edgeCount": 7,
+      "unknown": []
+    },
+    {
+      "path": "resident/review-controls.ts",
+      "sourceSha256": "d7b44c3f5391864eb462f13fedfa8db85635beb10e5beedb775db3fe9cf797d9",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "resident/revision.ts",
+      "sourceSha256": "ee8933fdc85f39299ee8eb1ac5657f0d15e40cc86ff440ac9494245bf32924dd",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "resident/round-records.ts",
+      "sourceSha256": "6dee2841cde53d6eb10385587c74da3587bfb4733e67ccd9b01bbc4064c8080a",
+      "edgeCount": 4,
+      "unknown": []
+    },
+    {
+      "path": "resident/runtime-configuration.ts",
+      "sourceSha256": "3635e4527874f217b7eca9c4db0b6c7a0d52314704991d82ce6fd575bf7efcc0",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "resident/runtime-fixture.ts",
+      "sourceSha256": "4e8b727fd4493f4a69dccd239a8eb2c916aa26385bee53c37e4b89435c6d1bae",
+      "edgeCount": 4,
+      "unknown": []
+    },
+    {
+      "path": "resident/runtime-records.ts",
+      "sourceSha256": "3fb0f2c14d6a9933c0bd6702e3572d742ddcb91d19667c6a4d2e3b5e84b02004",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "resident/server.ts",
+      "sourceSha256": "17f7bb3773f337824310240c69b344a62530f7e3ee8c6fd69e7d2124855689a0",
+      "edgeCount": 62,
+      "unknown": []
+    },
+    {
+      "path": "resident/socket-frame.ts",
+      "sourceSha256": "64059d1be47b69941cd7c43109aa16bb36f3348042c724c09678c919ff39ceba",
+      "edgeCount": 4,
+      "unknown": []
+    },
+    {
+      "path": "review-providers/catalog.ts",
+      "sourceSha256": "6a7f8d4c1dfc8bc87bf2c1c22752b9c375740144ccc700ba66fe750fd5c109b5",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "review-providers/cloudflare.ts",
+      "sourceSha256": "ed512e87f8972335d2ded1da1e326faa535cbbec991176d6425e910a420d80c9",
+      "edgeCount": 15,
+      "unknown": []
+    },
+    {
+      "path": "review-providers/live.ts",
+      "sourceSha256": "468bcefcd9875d2f71a33775a593e9bb68f0566280e34560e83f43f846b3633d",
+      "edgeCount": 4,
+      "unknown": []
+    },
+    {
+      "path": "review-providers/request.ts",
+      "sourceSha256": "da55ccff0dd55f8ca70a9178750b4351191e760c85420ac731a904db75a5b782",
+      "edgeCount": 3,
+      "unknown": []
+    },
+    {
+      "path": "rules/cli-definition.ts",
+      "sourceSha256": "4772875afca65881393a7fb579c64ed3299d7cfab3da24aff40d7fa82614dc8c",
+      "edgeCount": 5,
+      "unknown": []
+    },
+    {
+      "path": "rules/command.ts",
+      "sourceSha256": "81996e72c6112f2eb3697177e824427926731440f1172a51ce7594ac161963a7",
+      "edgeCount": 6,
+      "unknown": []
+    },
+    {
+      "path": "rules/compiler.ts",
+      "sourceSha256": "c075219d06030b1d21e668aa77ed063e4153063163ffdcb1b94e363238a0dc46",
+      "edgeCount": 8,
+      "unknown": []
+    },
+    {
+      "path": "rules/decision.ts",
+      "sourceSha256": "17aa5f60f917f5659332aae73ed78458e4770a342dff32f34efbe605bc7d3bfb",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "rules/index.ts",
+      "sourceSha256": "77484c4e12e982be68b1f1bf21291a2261a61ae3afc3c3cec4431ab7d3fb40ec",
+      "edgeCount": 4,
+      "unknown": []
+    },
+    {
+      "path": "rules/inventory.ts",
+      "sourceSha256": "11ba0a110df3d4ff16769857f5ecb2a5e8220d2d02351e539b4634103860e739",
+      "edgeCount": 11,
+      "unknown": []
+    },
+    {
+      "path": "rules/loader.ts",
+      "sourceSha256": "6e77955b93a0efa2da006ba9df7afbed2d1d36c90442898de87dd85dafa8ddb9",
+      "edgeCount": 7,
+      "unknown": []
+    },
+    {
+      "path": "rules/management.ts",
+      "sourceSha256": "ff13a09e195cfc8ab6bcdcd641bc3de4e819b568854eb963e457150ce6ee9134",
+      "edgeCount": 14,
+      "unknown": []
+    },
+    {
+      "path": "rules/operations.ts",
+      "sourceSha256": "0a5c4a529895e555eb2affe2eea0479bfa18a11736d2cde68fb6c6bc115df50e",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "rules/schema.ts",
+      "sourceSha256": "0c55436f1b773cf9cb9a3898f20f784586fcc24515393dd60ece99fe6797b1ba",
+      "edgeCount": 5,
+      "unknown": []
+    },
+    {
+      "path": "rules/shipped.ts",
+      "sourceSha256": "6148ed183f62b46717a47f049988bd454a911a2800a549fb50b63138dd7f31f8",
+      "edgeCount": 8,
+      "unknown": []
+    },
+    {
+      "path": "rules/targets.ts",
+      "sourceSha256": "075f3acb04cbe8d060d4fc097ea97fe01d901bab3e25bba3f5ea4c59be1e9297",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "runtime/agent-clients.ts",
+      "sourceSha256": "9c034c2c5ecc813a501d9580ccb573927dfa44f69c6092aa117b49077cf1e872",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "runtime/assessment.ts",
+      "sourceSha256": "2b502f801b8c27b4a5c37efeb4f7ab346b97091f3d05f9eb59d35200fbfa4ec0",
+      "edgeCount": 5,
+      "unknown": []
+    },
+    {
+      "path": "runtime/backend.ts",
+      "sourceSha256": "073ff119340b568654a9ca216f2240fdeec0391ca66bb519dc936bafafbeebbd",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "runtime/bun-runtime.ts",
+      "sourceSha256": "ce8ca4d4bf1a5a06aca6343b043f52471987d448ec0c26d07021c9568bf65764",
+      "edgeCount": 1,
+      "unknown": [
+        "runtime-global-reference"
+      ]
+    },
+    {
+      "path": "runtime/cli-information.ts",
+      "sourceSha256": "a95bb33ff8e34578c54bbfd22ee677d758ec6486c0afe93cfe27b10d78f09b82",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "runtime/cli-names.ts",
+      "sourceSha256": "ce8e3f7737246530e1ee6576dcc42ef3fb8fd01122a290ec327d3458966d65bd",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "runtime/hook-catalog.ts",
+      "sourceSha256": "99e422cf279511be2ecd2a7d5ddbbe20393ac5b79e7e48119ed9730cba58ffe7",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "runtime/hook-invocation.ts",
+      "sourceSha256": "4a49a8d8ba2671afe3c144bcb018a6711c042c3aa467ef9b8c829f2700a0cbe0",
+      "edgeCount": 0,
+      "unknown": []
+    },
+    {
+      "path": "runtime/machine-clock.ts",
+      "sourceSha256": "15597fca05c08fb17422eeb165eb5b1db6a4d15469c27d76b4bdf882ea1d0293",
+      "edgeCount": 5,
+      "unknown": []
+    },
+    {
+      "path": "runtime/native-bindings.ts",
+      "sourceSha256": "6f164dfea47d9473d691b975c05ae2d8f5d8b82c371ee94f1d689c5064e7bfa5",
+      "edgeCount": 3,
+      "unknown": []
+    },
+    {
+      "path": "runtime/package-runtime.ts",
+      "sourceSha256": "e8b41c956863972be526d12cfe378229180b94a5e80402d472074b72fd2bbe6f",
+      "edgeCount": 7,
+      "unknown": [
+        "runtime-global-reference"
+      ]
+    },
+    {
+      "path": "runtime/review-config.ts",
+      "sourceSha256": "4e91dce84bc66805fffc0bb98425c09027a5195d7c6c4534224b21ad79365b5f",
+      "edgeCount": 11,
+      "unknown": []
+    },
+    {
+      "path": "runtime/review-engine-boundary.ts",
+      "sourceSha256": "44d3249201606dc265b7d04d885b441c565ed5251841c6cbbbf9b640ffbbfa28",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "runtime/review-settings.ts",
+      "sourceSha256": "90000ebaa52e36f9d145bc10fd8af12b05cb1c7a69d4659c3e54356f8d4e6f99",
+      "edgeCount": 7,
+      "unknown": []
+    },
+    {
+      "path": "runtime/source-runtime-layout.ts",
+      "sourceSha256": "ab25d92accb2e684724b1eda58a0a7cf2c98b3feb471e8a4846343279941f166",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "runtime/user-paths.ts",
+      "sourceSha256": "db47c4cb71ab01daaec06fc31e269f01e2717703821050c00096cbc59cf5572c",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "test-support/client-runtime.ts",
+      "sourceSha256": "726204bd5d003eb8a4347d816e07988bba4cc394505fb24801d470ecbc1819f8",
+      "edgeCount": 4,
+      "unknown": []
+    },
+    {
+      "path": "test-support/controlled-decision-model.ts",
+      "sourceSha256": "536b608eddb10c915823aef9f5221a53c968121dda0f11eacbda3e6712595e50",
+      "edgeCount": 5,
+      "unknown": []
+    },
+    {
+      "path": "test-support/default-rules.ts",
+      "sourceSha256": "eb3d5d7f90a349a747a3edef80359b4828ee925f5f0175b91ec11324376d01b4",
+      "edgeCount": 7,
+      "unknown": []
+    },
+    {
+      "path": "test-support/dispatch-controls.ts",
+      "sourceSha256": "709074a7d7d1ca090fcaa0c717319b226b405c3ebc5b8a7418d389cabe06fc26",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "test-support/installation-package.ts",
+      "sourceSha256": "1e0ba1dddc149d1a612dd92cf508190a3e07d960359ce121797c91cab80c3a3f",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "test-support/native-deferred.ts",
+      "sourceSha256": "64ec3763ff5f7a8ef58b3c9ce2d93caf3566a1d0daf758aef2c8fae76f0211e3",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "test-support/pi-installed.ts",
+      "sourceSha256": "ce2f44ce2e92b34b1ffeefc51ba8677b2fe8456eb522d20da766cb623876a68c",
+      "edgeCount": 17,
+      "unknown": [
+        "computed-import"
+      ]
+    },
+    {
+      "path": "test-support/preparation-controls.ts",
+      "sourceSha256": "e4fbbffda4a41b4cfca463537239e076ca8fa157e323a782323fce459ac24dfc",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "test-support/resident-request-conformance.ts",
+      "sourceSha256": "5668c4d0f1ad695a614f5c05d13cbbe735f7ce79d972885efd27271ef3b611a8",
+      "edgeCount": 1,
+      "unknown": []
+    },
+    {
+      "path": "test-support/review-controls.ts",
+      "sourceSha256": "267fd399c297b5d68811cc4b2e294cfee7b32e8094fdd4627d002a1c8c179172",
+      "edgeCount": 2,
+      "unknown": []
+    },
+    {
+      "path": "test-support/source-runtime.ts",
+      "sourceSha256": "624ce41a6af624ea50b248abd8135528f8a282f26081e843e2c5a286f90a8941",
+      "edgeCount": 5,
+      "unknown": []
+    },
+    {
+      "path": "test-support/test-package.ts",
+      "sourceSha256": "ab4b3e18eae0a533276576959ced951e9f906306281328e84dd369d9eca43531",
+      "edgeCount": 6,
+      "unknown": []
+    }
+  ],
+  "limitations": [
+    "Syntax/loader comparison only; no package resolution, owner authorization, compiler-input or emitted contribution claim"
+  ],
+  "completed": true
+}

@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest"
 import fc from "fast-check"
-import { extractBendDeclarations } from "./languages/bend/extractor.ts"
-import { analyzeTypeFile, inspectGraphFile, combinedAnalyzerMaterializationPreflight } from "./analyzer.ts"
+import { extractBendDeclarations } from "@hapsland/source-analysis/direct-event/languages/bend/extractor"
+import {
+  analyzeTypeFile,
+  inspectGraphFile,
+  combinedAnalyzerMaterializationPreflight
+} from "@hapsland/source-analysis/direct-event/analyzer"
 
 const analyze = (source: string) => {
   const result = analyzeTypeFile("model.bend", source)

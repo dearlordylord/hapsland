@@ -1,0 +1,37 @@
+{
+  "authority": "Focused validation evidence; not full-project coverage",
+  "testsPassed": 6,
+  "testsSkipped": 26,
+  "commandExit": 0,
+  "runner": "20261007120800501-453055-fa3e62",
+  "log": "evidence/build-243/pi-content-focused.log",
+  "scorerExit": 2,
+  "scorerScope": "Whole extension remains partially uncovered by this narrow selection; selected nativeContentItem result below demonstrates the identified content coverage concern only.",
+  "selectedFunction": {
+    "id": "packages/pi-extension/src/pi/extension.ts::nativeContentItem@1298-1652",
+    "path": "packages/pi-extension/src/pi/extension.ts",
+    "name": "nativeContentItem",
+    "kind": "arrow",
+    "range": {
+      "start": {
+        "offset": 1298,
+        "line": 26,
+        "column": 26
+      },
+      "end": {
+        "offset": 1652,
+        "line": 37,
+        "column": 1
+      }
+    },
+    "complexity": 6,
+    "coverage": {
+      "status": "measured",
+      "covered": 6,
+      "total": 7,
+      "fraction": 0.8571428571428571
+    },
+    "crap": 6.104956268221574
+  },
+  "policySha256": "0a5a04d343a2cc0e589ea06c94a1e06d333c117b4a4250d18d5653379b3177c9"
+}

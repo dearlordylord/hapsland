@@ -1,6 +1,9 @@
+import { nativePackageAssetsDigest } from "./native-package-assets.mjs"
+import { preparePackageInstall } from "./test-harness/package-install.mjs"
+import { resolveBunRuntime } from "./pinned-bun.mjs"
 import { preflightPi, reusablePiPreflight } from "./native-pi-preflight.mjs"
 import { NATIVE_AGENT_PROFILES } from "./native-agent-profiles.mjs"
-import { connectDefaultRuleFixture } from "../src/test-support/default-rules.ts"
+import { connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
 // Installed Pi branch of the shared native cross-file harness; no CLI entry point.
 import { spawnSync } from "node:child_process"
 import { executeNative } from "./native-process.mjs"
@@ -38,27 +41,6 @@ const jsonCommand = async (cli, flag, request, options) => {
   } catch {
     throw new Error(`Installed ${flag} did not produce structured output (exit ${result.code})`)
   }
-}
-
-// Documentation/evidence updates do not change the observed production runtime inventory.
-export const piRuntimeAssetsDigest = (packageRoot) => {
-  const assets = []
-  const visit = (path, prefix, onlyJavaScript = false) => {
-    if (!existsSync(path)) return
-    for (const entry of readdirSync(path, { withFileTypes: true })) {
-      const child = join(path, entry.name),
-        name = `${prefix}/${entry.name}`
-      if (entry.isDirectory()) visit(child, name, onlyJavaScript)
-      else if (!onlyJavaScript || entry.name.endsWith(".js")) assets.push([name, hash(readFileSync(child))])
-    }
-  }
-  visit(join(packageRoot, "dist"), "dist")
-  visit(join(packageRoot, "native", "prebuilt"), "native/prebuilt")
-  visit(join(packageRoot, "schemas"), "schemas")
-  for (const name of ["bin/launch.sh", "package-runtime.json"])
-    assets.push([name, hash(readFileSync(join(packageRoot, name)))])
-  assets.sort(([a], [b]) => a.localeCompare(b))
-  return { sha256: hash(JSON.stringify(assets)), files: assets.length }
 }
 
 export async function runPiNativeProfile({
@@ -116,7 +98,7 @@ export async function runPiNativeProfile({
     runtimeVersion: version,
     executionMode: "print-json-no-session",
     trust: "isolated global agent extension; no project-local files approved",
-    packageInstallation: "production npm tarball with lifecycle scripts disabled",
+    packageInstallation: "production tarball with lifecycle scripts disabled",
     archivePreparation:
       archivePath === undefined ? "freshly-packed" : "provided; runtime assets must match current build",
     ordinaryProfileChanged: false
@@ -186,29 +168,18 @@ export async function runPiNativeProfile({
       if (prepared.code !== 0) throw new Error("Native package preparation failed")
       tarball = JSON.parse(prepared.stdout).archivePath
     } else tarball = resolve(archivePath)
-    const installed = await execute(
-      "npm",
-      [
-        "install",
-        "--global=false",
-        "--legacy-peer-deps",
-        "--ignore-scripts=true",
-        "--prefer-offline",
-        "--omit=dev",
-        "--bin-links=true",
-        "--prefix",
-        install,
-        tarball
-      ],
-      { cwd: temp, timeout: 240000 }
-    )
+    const installer = await preparePackageInstall(install, tarball, {
+      ...process.env,
+      HAPSLAND_BUILD_BUN: resolveBunRuntime().executable
+    })
+    const installed = await execute(installer.executable, installer.args, { cwd: temp, timeout: 240000 })
     if (installed.code !== 0)
       throw new Error(
         `Native production package installation failed: ${JSON.stringify({ exitCode: installed.code, signal: installed.signal })}`
       )
     const packageRoot = join(install, "node_modules/@hapsland/hapsland")
-    const runtimeAssets = piRuntimeAssetsDigest(packageRoot)
-    const currentBuildAssets = piRuntimeAssetsDigest(project)
+    const runtimeAssets = nativePackageAssetsDigest(packageRoot)
+    const currentBuildAssets = nativePackageAssetsDigest(project)
     if (runtimeAssets.sha256 !== currentBuildAssets.sha256)
       throw new Error("Installed Pi archive runtime assets differ from the current build")
     if (
@@ -429,7 +400,8 @@ syncBuiltinESMExports();
         tarballSha256: hash(readFileSync(tarball)),
         runtimeAssets,
         currentBuildAssets,
-        archivePreparation: declaration.archivePreparation
+        archivePreparation: declaration.archivePreparation,
+        packageManager: installer.manager
       },
       runnerHash,
       piProfileHash,

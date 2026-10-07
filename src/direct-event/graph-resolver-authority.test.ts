@@ -1,12 +1,12 @@
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import { vi } from "vitest"
-import { makeGitFixture, put, addEvent } from "./test-fixtures.ts"
-import { adaptCodexAdd } from "./adapter.ts"
-import { captureStable } from "./capture.ts"
-import { resolveGraphUnit } from "./graph-resolver.ts"
-import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "./selection.ts"
-import { GRAPH_LIMIT_CEILINGS } from "../configuration/graph-limits.ts"
+import { makeGitFixture, put, addEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import { captureStable } from "@hapsland/native-observation/direct-event/capture"
+import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
+import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "@hapsland/native-observation/direct-event/selection"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 
 const gate = vi.hoisted(() => ({
   denyAtLocalWork: 0,
@@ -16,8 +16,8 @@ const gate = vi.hoisted(() => ({
   measuredCaptures: [] as { sourceBytes: number; reason: string | undefined }[]
 }))
 
-vi.mock("../canonical/graph-adapter.ts", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../canonical/graph-adapter.ts")>()
+vi.mock("@hapsland/canonical-policy/canonical/graph-adapter", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@hapsland/canonical-policy/canonical/graph-adapter")>()
   return {
     ...actual,
     permitLocalGraphFacts: (...args: Parameters<typeof actual.permitLocalGraphFacts>) => {
@@ -45,7 +45,7 @@ describe("checked local graph budget authority", () => {
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "a.ts", "interface A { missing: Missing }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root was not eligible")
@@ -67,7 +67,7 @@ describe("checked local graph budget authority", () => {
       yield* Effect.promise(() =>
         put(root, "a.ts", "interface A { b: B } interface B { c: C } interface C { value: string }")
       )
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root was not eligible")
@@ -102,7 +102,7 @@ describe("checked local graph budget authority", () => {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface A { b: B }"))
       yield* Effect.promise(() => put(root, "b.ts", "export interface B { value: string }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root was not eligible")
@@ -140,7 +140,7 @@ describe("checked local graph budget authority", () => {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface A { b: B }"))
       yield* Effect.promise(() => put(root, "b.ts", "export interface B { value: string }".padEnd(127, " ")))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root was not eligible")

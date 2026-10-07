@@ -1,0 +1,2062 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "@hapsland/activity-observation#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/activity-observation#build": {
+      "dependsOn": [
+        "@hapsland/activity-observation#clean:compiler",
+        "@hapsland/native-observation#build"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/activity-observation/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/administration#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/administration#build": {
+      "dependsOn": [
+        "@hapsland/activity-observation#build",
+        "@hapsland/administration#clean:compiler",
+        "@hapsland/credential-storage#build",
+        "@hapsland/delivery-output#build",
+        "@hapsland/inspection-records#build",
+        "@hapsland/native-observation#build",
+        "@hapsland/resident-runtime#build",
+        "@hapsland/resident-transport#build",
+        "@hapsland/review-definition#build",
+        "@hapsland/review-execution#build",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/runtime-inputs#build",
+        "@hapsland/source-analysis#build",
+        "@hapsland/source-artifacts#build"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/administration/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/agent-flow-bend#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/agent-flow-bend#build": {
+      "dependsOn": [
+        "@hapsland/agent-flow-bend#clean:compiler"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!artifacts/**",
+        "package.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/agent-flow-bend/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/bend-producer.mjs",
+        "$TURBO_ROOT$/scripts/bend-toolchain.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP",
+        "HAPSLAND_BEND_PRODUCER_ENV"
+      ]
+    },
+    "@hapsland/canonical-policy#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/canonical-policy#build": {
+      "dependsOn": [
+        "@hapsland/agent-flow-bend#build",
+        "@hapsland/canonical-policy#clean:compiler"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/canonical-policy/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/cli-entry#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/cli-entry#build": {
+      "dependsOn": [
+        "@hapsland/activity-observation#build",
+        "@hapsland/administration#build",
+        "@hapsland/cli-entry#clean:compiler",
+        "@hapsland/credential-storage#build",
+        "@hapsland/delivery-output#build",
+        "@hapsland/native-observation#build",
+        "@hapsland/resident-transport#build",
+        "@hapsland/review-definition#build",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/runtime-inputs#build"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/cli-entry/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/cli-entry#assemble:darwin-arm64": {
+      "dependsOn": [
+        "@hapsland/activity-observation#build",
+        "@hapsland/administration#build",
+        "@hapsland/agent-flow-bend#build",
+        "@hapsland/canonical-policy#build",
+        "@hapsland/cli-entry#build",
+        "@hapsland/credential-storage#build",
+        "@hapsland/credential-storage#native:darwin-arm64",
+        "@hapsland/delivery-output#build",
+        "@hapsland/inspection-records#build",
+        "@hapsland/inspection-records#native:darwin-arm64",
+        "@hapsland/native-observation#build",
+        "@hapsland/native-observation#native:darwin-arm64",
+        "@hapsland/resident-runtime#build",
+        "@hapsland/resident-transport#build",
+        "@hapsland/review-definition#build",
+        "@hapsland/review-execution#build",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/runtime-inputs#build",
+        "@hapsland/source-analysis#build",
+        "@hapsland/source-analysis#native:darwin-arm64",
+        "@hapsland/source-artifacts#build"
+      ],
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/.test-runs/assembly-prerequisites/cli/darwin-arm64.json",
+        "$TURBO_ROOT$/scripts/assembly-prerequisites.mjs",
+        "$TURBO_ROOT$/scripts/assemble-entry.mjs",
+        "$TURBO_ROOT$/scripts/assembly-context.mjs",
+        "$TURBO_ROOT$/packages/source-analysis/src/direct-event/languages/native-bindings.ts",
+        {
+          "mode": "dependencyOutputs",
+          "from": [
+            "@hapsland/activity-observation#build",
+            "@hapsland/administration#build",
+            "@hapsland/agent-flow-bend#build",
+            "@hapsland/canonical-policy#build",
+            "@hapsland/cli-entry#build",
+            "@hapsland/credential-storage#build",
+            "@hapsland/credential-storage#native:darwin-arm64",
+            "@hapsland/delivery-output#build",
+            "@hapsland/inspection-records#build",
+            "@hapsland/inspection-records#native:darwin-arm64",
+            "@hapsland/native-observation#build",
+            "@hapsland/native-observation#native:darwin-arm64",
+            "@hapsland/resident-runtime#build",
+            "@hapsland/resident-transport#build",
+            "@hapsland/review-definition#build",
+            "@hapsland/review-execution#build",
+            "@hapsland/runtime-environment#build",
+            "@hapsland/runtime-inputs#build",
+            "@hapsland/source-analysis#build",
+            "@hapsland/source-analysis#native:darwin-arm64",
+            "@hapsland/source-artifacts#build"
+          ],
+          "globs": [
+            "dist/**/*.js",
+            "dist/**/*.json",
+            "artifacts/native/darwin-arm64/**"
+          ]
+        }
+      ],
+      "outputs": [
+        "artifacts/darwin-arm64/hapsland",
+        "artifacts/darwin-arm64/assembly-receipt.json"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP",
+        "HAPSLAND_BEND_PRODUCER_ENV"
+      ]
+    },
+    "@hapsland/cli-entry#assemble:linux-arm64": {
+      "dependsOn": [
+        "@hapsland/activity-observation#build",
+        "@hapsland/administration#build",
+        "@hapsland/agent-flow-bend#build",
+        "@hapsland/canonical-policy#build",
+        "@hapsland/cli-entry#build",
+        "@hapsland/credential-storage#build",
+        "@hapsland/credential-storage#native:linux-arm64",
+        "@hapsland/delivery-output#build",
+        "@hapsland/inspection-records#build",
+        "@hapsland/inspection-records#native:linux-arm64",
+        "@hapsland/native-observation#build",
+        "@hapsland/resident-runtime#build",
+        "@hapsland/resident-transport#build",
+        "@hapsland/review-definition#build",
+        "@hapsland/review-execution#build",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/runtime-inputs#build",
+        "@hapsland/source-analysis#build",
+        "@hapsland/source-analysis#native:linux-arm64",
+        "@hapsland/source-artifacts#build"
+      ],
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/.test-runs/assembly-prerequisites/cli/linux-arm64.json",
+        "$TURBO_ROOT$/scripts/assembly-prerequisites.mjs",
+        "$TURBO_ROOT$/scripts/assemble-entry.mjs",
+        "$TURBO_ROOT$/scripts/assembly-context.mjs",
+        "$TURBO_ROOT$/packages/source-analysis/src/direct-event/languages/native-bindings.ts",
+        {
+          "mode": "dependencyOutputs",
+          "from": [
+            "@hapsland/activity-observation#build",
+            "@hapsland/administration#build",
+            "@hapsland/agent-flow-bend#build",
+            "@hapsland/canonical-policy#build",
+            "@hapsland/cli-entry#build",
+            "@hapsland/credential-storage#build",
+            "@hapsland/credential-storage#native:linux-arm64",
+            "@hapsland/delivery-output#build",
+            "@hapsland/inspection-records#build",
+            "@hapsland/inspection-records#native:linux-arm64",
+            "@hapsland/native-observation#build",
+            "@hapsland/resident-runtime#build",
+            "@hapsland/resident-transport#build",
+            "@hapsland/review-definition#build",
+            "@hapsland/review-execution#build",
+            "@hapsland/runtime-environment#build",
+            "@hapsland/runtime-inputs#build",
+            "@hapsland/source-analysis#build",
+            "@hapsland/source-analysis#native:linux-arm64",
+            "@hapsland/source-artifacts#build"
+          ],
+          "globs": [
+            "dist/**/*.js",
+            "dist/**/*.json",
+            "artifacts/native/linux-arm64/**"
+          ]
+        }
+      ],
+      "outputs": [
+        "artifacts/linux-arm64/hapsland",
+        "artifacts/linux-arm64/assembly-receipt.json"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP",
+        "HAPSLAND_BEND_PRODUCER_ENV"
+      ]
+    },
+    "@hapsland/credential-storage#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/credential-storage#build": {
+      "dependsOn": [
+        "@hapsland/credential-storage#clean:compiler",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/runtime-inputs#build"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/credential-storage/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/credential-storage#native:darwin-arm64": {
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/.test-runs/native-task-inputs/credential-storage/darwin-arm64.json",
+        "$TURBO_ROOT$/scripts/native-task.mjs"
+      ],
+      "outputs": [
+        "artifacts/native/darwin-arm64/**"
+      ],
+      "cache": false,
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/credential-storage#native:linux-arm64": {
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/.test-runs/native-task-inputs/credential-storage/linux-arm64.json",
+        "$TURBO_ROOT$/scripts/native-task.mjs"
+      ],
+      "outputs": [
+        "artifacts/native/linux-arm64/**"
+      ],
+      "cache": true,
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/delivery-output#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/delivery-output#build": {
+      "dependsOn": [
+        "@hapsland/delivery-output#clean:compiler"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/delivery-output/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/doctor-entry#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/doctor-entry#build": {
+      "dependsOn": [
+        "@hapsland/administration#build",
+        "@hapsland/doctor-entry#clean:compiler",
+        "@hapsland/runtime-environment#build"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/doctor-entry/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/doctor-entry#assemble:darwin-arm64": {
+      "dependsOn": [
+        "@hapsland/activity-observation#build",
+        "@hapsland/administration#build",
+        "@hapsland/agent-flow-bend#build",
+        "@hapsland/canonical-policy#build",
+        "@hapsland/credential-storage#build",
+        "@hapsland/credential-storage#native:darwin-arm64",
+        "@hapsland/delivery-output#build",
+        "@hapsland/doctor-entry#build",
+        "@hapsland/inspection-records#build",
+        "@hapsland/inspection-records#native:darwin-arm64",
+        "@hapsland/native-observation#build",
+        "@hapsland/native-observation#native:darwin-arm64",
+        "@hapsland/resident-runtime#build",
+        "@hapsland/resident-transport#build",
+        "@hapsland/review-definition#build",
+        "@hapsland/review-execution#build",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/runtime-inputs#build",
+        "@hapsland/source-analysis#build",
+        "@hapsland/source-analysis#native:darwin-arm64",
+        "@hapsland/source-artifacts#build"
+      ],
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/.test-runs/assembly-prerequisites/doctor/darwin-arm64.json",
+        "$TURBO_ROOT$/scripts/assembly-prerequisites.mjs",
+        "$TURBO_ROOT$/scripts/assemble-entry.mjs",
+        "$TURBO_ROOT$/scripts/assembly-context.mjs",
+        "$TURBO_ROOT$/packages/source-analysis/src/direct-event/languages/native-bindings.ts",
+        {
+          "mode": "dependencyOutputs",
+          "from": [
+            "@hapsland/activity-observation#build",
+            "@hapsland/administration#build",
+            "@hapsland/agent-flow-bend#build",
+            "@hapsland/canonical-policy#build",
+            "@hapsland/credential-storage#build",
+            "@hapsland/credential-storage#native:darwin-arm64",
+            "@hapsland/delivery-output#build",
+            "@hapsland/doctor-entry#build",
+            "@hapsland/inspection-records#build",
+            "@hapsland/inspection-records#native:darwin-arm64",
+            "@hapsland/native-observation#build",
+            "@hapsland/native-observation#native:darwin-arm64",
+            "@hapsland/resident-runtime#build",
+            "@hapsland/resident-transport#build",
+            "@hapsland/review-definition#build",
+            "@hapsland/review-execution#build",
+            "@hapsland/runtime-environment#build",
+            "@hapsland/runtime-inputs#build",
+            "@hapsland/source-analysis#build",
+            "@hapsland/source-analysis#native:darwin-arm64",
+            "@hapsland/source-artifacts#build"
+          ],
+          "globs": [
+            "dist/**/*.js",
+            "dist/**/*.json",
+            "artifacts/native/darwin-arm64/**"
+          ]
+        }
+      ],
+      "outputs": [
+        "artifacts/darwin-arm64/hapsland-doctor",
+        "artifacts/darwin-arm64/assembly-receipt.json"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP",
+        "HAPSLAND_BEND_PRODUCER_ENV"
+      ]
+    },
+    "@hapsland/doctor-entry#assemble:linux-arm64": {
+      "dependsOn": [
+        "@hapsland/activity-observation#build",
+        "@hapsland/administration#build",
+        "@hapsland/agent-flow-bend#build",
+        "@hapsland/canonical-policy#build",
+        "@hapsland/credential-storage#build",
+        "@hapsland/credential-storage#native:linux-arm64",
+        "@hapsland/delivery-output#build",
+        "@hapsland/doctor-entry#build",
+        "@hapsland/inspection-records#build",
+        "@hapsland/inspection-records#native:linux-arm64",
+        "@hapsland/native-observation#build",
+        "@hapsland/resident-runtime#build",
+        "@hapsland/resident-transport#build",
+        "@hapsland/review-definition#build",
+        "@hapsland/review-execution#build",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/runtime-inputs#build",
+        "@hapsland/source-analysis#build",
+        "@hapsland/source-analysis#native:linux-arm64",
+        "@hapsland/source-artifacts#build"
+      ],
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/.test-runs/assembly-prerequisites/doctor/linux-arm64.json",
+        "$TURBO_ROOT$/scripts/assembly-prerequisites.mjs",
+        "$TURBO_ROOT$/scripts/assemble-entry.mjs",
+        "$TURBO_ROOT$/scripts/assembly-context.mjs",
+        "$TURBO_ROOT$/packages/source-analysis/src/direct-event/languages/native-bindings.ts",
+        {
+          "mode": "dependencyOutputs",
+          "from": [
+            "@hapsland/activity-observation#build",
+            "@hapsland/administration#build",
+            "@hapsland/agent-flow-bend#build",
+            "@hapsland/canonical-policy#build",
+            "@hapsland/credential-storage#build",
+            "@hapsland/credential-storage#native:linux-arm64",
+            "@hapsland/delivery-output#build",
+            "@hapsland/doctor-entry#build",
+            "@hapsland/inspection-records#build",
+            "@hapsland/inspection-records#native:linux-arm64",
+            "@hapsland/native-observation#build",
+            "@hapsland/resident-runtime#build",
+            "@hapsland/resident-transport#build",
+            "@hapsland/review-definition#build",
+            "@hapsland/review-execution#build",
+            "@hapsland/runtime-environment#build",
+            "@hapsland/runtime-inputs#build",
+            "@hapsland/source-analysis#build",
+            "@hapsland/source-analysis#native:linux-arm64",
+            "@hapsland/source-artifacts#build"
+          ],
+          "globs": [
+            "dist/**/*.js",
+            "dist/**/*.json",
+            "artifacts/native/linux-arm64/**"
+          ]
+        }
+      ],
+      "outputs": [
+        "artifacts/linux-arm64/hapsland-doctor",
+        "artifacts/linux-arm64/assembly-receipt.json"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP",
+        "HAPSLAND_BEND_PRODUCER_ENV"
+      ]
+    },
+    "@hapsland/hook-entry#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/hook-entry#build": {
+      "dependsOn": [
+        "@hapsland/hook-entry#clean:compiler",
+        "@hapsland/hook-runtime#build",
+        "@hapsland/resident-transport#build",
+        "@hapsland/runtime-environment#build"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/hook-entry/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/hook-entry#assemble:darwin-arm64": {
+      "dependsOn": [
+        "@hapsland/activity-observation#build",
+        "@hapsland/agent-flow-bend#build",
+        "@hapsland/canonical-policy#build",
+        "@hapsland/delivery-output#build",
+        "@hapsland/hook-entry#build",
+        "@hapsland/hook-runtime#build",
+        "@hapsland/inspection-records#build",
+        "@hapsland/inspection-records#native:darwin-arm64",
+        "@hapsland/native-observation#build",
+        "@hapsland/native-observation#native:darwin-arm64",
+        "@hapsland/resident-transport#build",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/runtime-inputs#build"
+      ],
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/.test-runs/assembly-prerequisites/hook/darwin-arm64.json",
+        "$TURBO_ROOT$/scripts/assembly-prerequisites.mjs",
+        "$TURBO_ROOT$/scripts/assemble-entry.mjs",
+        "$TURBO_ROOT$/scripts/assembly-context.mjs",
+        "$TURBO_ROOT$/packages/source-analysis/src/direct-event/languages/native-bindings.ts",
+        {
+          "mode": "dependencyOutputs",
+          "from": [
+            "@hapsland/activity-observation#build",
+            "@hapsland/agent-flow-bend#build",
+            "@hapsland/canonical-policy#build",
+            "@hapsland/delivery-output#build",
+            "@hapsland/hook-entry#build",
+            "@hapsland/hook-runtime#build",
+            "@hapsland/inspection-records#build",
+            "@hapsland/inspection-records#native:darwin-arm64",
+            "@hapsland/native-observation#build",
+            "@hapsland/native-observation#native:darwin-arm64",
+            "@hapsland/resident-transport#build",
+            "@hapsland/runtime-environment#build",
+            "@hapsland/runtime-inputs#build"
+          ],
+          "globs": [
+            "dist/**/*.js",
+            "dist/**/*.json",
+            "artifacts/native/darwin-arm64/**"
+          ]
+        }
+      ],
+      "outputs": [
+        "artifacts/darwin-arm64/hapsland-hook",
+        "artifacts/darwin-arm64/assembly-receipt.json"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP",
+        "HAPSLAND_BEND_PRODUCER_ENV"
+      ]
+    },
+    "@hapsland/hook-entry#assemble:linux-arm64": {
+      "dependsOn": [
+        "@hapsland/activity-observation#build",
+        "@hapsland/agent-flow-bend#build",
+        "@hapsland/canonical-policy#build",
+        "@hapsland/delivery-output#build",
+        "@hapsland/hook-entry#build",
+        "@hapsland/hook-runtime#build",
+        "@hapsland/inspection-records#build",
+        "@hapsland/inspection-records#native:linux-arm64",
+        "@hapsland/native-observation#build",
+        "@hapsland/resident-transport#build",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/runtime-inputs#build"
+      ],
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/.test-runs/assembly-prerequisites/hook/linux-arm64.json",
+        "$TURBO_ROOT$/scripts/assembly-prerequisites.mjs",
+        "$TURBO_ROOT$/scripts/assemble-entry.mjs",
+        "$TURBO_ROOT$/scripts/assembly-context.mjs",
+        "$TURBO_ROOT$/packages/source-analysis/src/direct-event/languages/native-bindings.ts",
+        {
+          "mode": "dependencyOutputs",
+          "from": [
+            "@hapsland/activity-observation#build",
+            "@hapsland/agent-flow-bend#build",
+            "@hapsland/canonical-policy#build",
+            "@hapsland/delivery-output#build",
+            "@hapsland/hook-entry#build",
+            "@hapsland/hook-runtime#build",
+            "@hapsland/inspection-records#build",
+            "@hapsland/inspection-records#native:linux-arm64",
+            "@hapsland/native-observation#build",
+            "@hapsland/resident-transport#build",
+            "@hapsland/runtime-environment#build",
+            "@hapsland/runtime-inputs#build"
+          ],
+          "globs": [
+            "dist/**/*.js",
+            "dist/**/*.json",
+            "artifacts/native/linux-arm64/**"
+          ]
+        }
+      ],
+      "outputs": [
+        "artifacts/linux-arm64/hapsland-hook",
+        "artifacts/linux-arm64/assembly-receipt.json"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP",
+        "HAPSLAND_BEND_PRODUCER_ENV"
+      ]
+    },
+    "@hapsland/hook-runtime#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/hook-runtime#build": {
+      "dependsOn": [
+        "@hapsland/activity-observation#build",
+        "@hapsland/delivery-output#build",
+        "@hapsland/hook-runtime#clean:compiler",
+        "@hapsland/native-observation#build",
+        "@hapsland/resident-transport#build",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/runtime-inputs#build"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/hook-runtime/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/inspection-records#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/inspection-records#build": {
+      "dependsOn": [
+        "@hapsland/inspection-records#clean:compiler",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/runtime-inputs#build"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/inspection-records/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/inspection-records#native:darwin-arm64": {
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/.test-runs/native-task-inputs/inspection-records/darwin-arm64.json",
+        "$TURBO_ROOT$/scripts/native-task.mjs"
+      ],
+      "outputs": [
+        "artifacts/native/darwin-arm64/**"
+      ],
+      "cache": false,
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/inspection-records#native:linux-arm64": {
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/.test-runs/native-task-inputs/inspection-records/linux-arm64.json",
+        "$TURBO_ROOT$/scripts/native-task.mjs"
+      ],
+      "outputs": [
+        "artifacts/native/linux-arm64/**"
+      ],
+      "cache": true,
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/native-observation#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/native-observation#build": {
+      "dependsOn": [
+        "@hapsland/native-observation#clean:compiler",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/runtime-inputs#build"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/native-observation/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/native-observation#native:darwin-arm64": {
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/.test-runs/native-task-inputs/native-observation/darwin-arm64.json",
+        "$TURBO_ROOT$/scripts/native-task.mjs"
+      ],
+      "outputs": [
+        "artifacts/native/darwin-arm64/**"
+      ],
+      "cache": false,
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/parser-entry#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/parser-entry#build": {
+      "dependsOn": [
+        "@hapsland/parser-entry#clean:compiler",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/source-analysis#build"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/parser-entry/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/parser-entry#assemble:darwin-arm64": {
+      "dependsOn": [
+        "@hapsland/agent-flow-bend#build",
+        "@hapsland/canonical-policy#build",
+        "@hapsland/native-observation#build",
+        "@hapsland/native-observation#native:darwin-arm64",
+        "@hapsland/parser-entry#build",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/runtime-inputs#build",
+        "@hapsland/source-analysis#build",
+        "@hapsland/source-analysis#native:darwin-arm64",
+        "@hapsland/source-artifacts#build"
+      ],
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/.test-runs/assembly-prerequisites/parser/darwin-arm64.json",
+        "$TURBO_ROOT$/scripts/assembly-prerequisites.mjs",
+        "$TURBO_ROOT$/scripts/assemble-entry.mjs",
+        "$TURBO_ROOT$/scripts/assembly-context.mjs",
+        "$TURBO_ROOT$/packages/source-analysis/src/direct-event/languages/native-bindings.ts",
+        {
+          "mode": "dependencyOutputs",
+          "from": [
+            "@hapsland/agent-flow-bend#build",
+            "@hapsland/canonical-policy#build",
+            "@hapsland/native-observation#build",
+            "@hapsland/native-observation#native:darwin-arm64",
+            "@hapsland/parser-entry#build",
+            "@hapsland/runtime-environment#build",
+            "@hapsland/runtime-inputs#build",
+            "@hapsland/source-analysis#build",
+            "@hapsland/source-analysis#native:darwin-arm64",
+            "@hapsland/source-artifacts#build"
+          ],
+          "globs": [
+            "dist/**/*.js",
+            "dist/**/*.json",
+            "artifacts/native/darwin-arm64/**"
+          ]
+        }
+      ],
+      "outputs": [
+        "artifacts/darwin-arm64/hapsland-parser",
+        "artifacts/darwin-arm64/assembly-receipt.json"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP",
+        "HAPSLAND_BEND_PRODUCER_ENV"
+      ]
+    },
+    "@hapsland/parser-entry#assemble:linux-arm64": {
+      "dependsOn": [
+        "@hapsland/agent-flow-bend#build",
+        "@hapsland/canonical-policy#build",
+        "@hapsland/native-observation#build",
+        "@hapsland/parser-entry#build",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/runtime-inputs#build",
+        "@hapsland/source-analysis#build",
+        "@hapsland/source-analysis#native:linux-arm64",
+        "@hapsland/source-artifacts#build"
+      ],
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/.test-runs/assembly-prerequisites/parser/linux-arm64.json",
+        "$TURBO_ROOT$/scripts/assembly-prerequisites.mjs",
+        "$TURBO_ROOT$/scripts/assemble-entry.mjs",
+        "$TURBO_ROOT$/scripts/assembly-context.mjs",
+        "$TURBO_ROOT$/packages/source-analysis/src/direct-event/languages/native-bindings.ts",
+        {
+          "mode": "dependencyOutputs",
+          "from": [
+            "@hapsland/agent-flow-bend#build",
+            "@hapsland/canonical-policy#build",
+            "@hapsland/native-observation#build",
+            "@hapsland/parser-entry#build",
+            "@hapsland/runtime-environment#build",
+            "@hapsland/runtime-inputs#build",
+            "@hapsland/source-analysis#build",
+            "@hapsland/source-analysis#native:linux-arm64",
+            "@hapsland/source-artifacts#build"
+          ],
+          "globs": [
+            "dist/**/*.js",
+            "dist/**/*.json",
+            "artifacts/native/linux-arm64/**"
+          ]
+        }
+      ],
+      "outputs": [
+        "artifacts/linux-arm64/hapsland-parser",
+        "artifacts/linux-arm64/assembly-receipt.json"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP",
+        "HAPSLAND_BEND_PRODUCER_ENV"
+      ]
+    },
+    "@hapsland/pi-extension#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/pi-extension#build": {
+      "dependsOn": [
+        "@hapsland/pi-extension#clean:compiler",
+        "@hapsland/runtime-environment#build"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/pi-extension/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/pi-extension#assemble:host": {
+      "dependsOn": [
+        "@hapsland/pi-extension#build",
+        "@hapsland/runtime-environment#build"
+      ],
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/.test-runs/assembly-prerequisites/pi-extension/host.json",
+        "$TURBO_ROOT$/scripts/assembly-prerequisites.mjs",
+        "$TURBO_ROOT$/scripts/assemble-host-modules.mjs",
+        "$TURBO_ROOT$/scripts/host-module-graph.mjs",
+        "$TURBO_ROOT$/scripts/host-module-imports.mjs",
+        "$TURBO_ROOT$/scripts/host-module-plan.mjs",
+        {
+          "mode": "dependencyOutputs",
+          "from": [
+            "@hapsland/pi-extension#build",
+            "@hapsland/runtime-environment#build"
+          ],
+          "globs": [
+            "dist/**/*.js",
+            "dist/**/*.json"
+          ]
+        }
+      ],
+      "outputs": [
+        "artifacts/host/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP",
+        "HAPSLAND_BEND_PRODUCER_ENV"
+      ]
+    },
+    "@hapsland/resident-entry#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/resident-entry#build": {
+      "dependsOn": [
+        "@hapsland/resident-entry#clean:compiler",
+        "@hapsland/resident-runtime#build",
+        "@hapsland/runtime-environment#build"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/resident-entry/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/resident-entry#assemble:darwin-arm64": {
+      "dependsOn": [
+        "@hapsland/activity-observation#build",
+        "@hapsland/agent-flow-bend#build",
+        "@hapsland/canonical-policy#build",
+        "@hapsland/credential-storage#build",
+        "@hapsland/credential-storage#native:darwin-arm64",
+        "@hapsland/delivery-output#build",
+        "@hapsland/inspection-records#build",
+        "@hapsland/inspection-records#native:darwin-arm64",
+        "@hapsland/native-observation#build",
+        "@hapsland/native-observation#native:darwin-arm64",
+        "@hapsland/resident-entry#build",
+        "@hapsland/resident-runtime#build",
+        "@hapsland/resident-transport#build",
+        "@hapsland/review-definition#build",
+        "@hapsland/review-execution#build",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/runtime-inputs#build",
+        "@hapsland/source-analysis#build",
+        "@hapsland/source-analysis#native:darwin-arm64",
+        "@hapsland/source-artifacts#build"
+      ],
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/.test-runs/assembly-prerequisites/resident/darwin-arm64.json",
+        "$TURBO_ROOT$/scripts/assembly-prerequisites.mjs",
+        "$TURBO_ROOT$/scripts/assemble-entry.mjs",
+        "$TURBO_ROOT$/scripts/assembly-context.mjs",
+        "$TURBO_ROOT$/packages/source-analysis/src/direct-event/languages/native-bindings.ts",
+        {
+          "mode": "dependencyOutputs",
+          "from": [
+            "@hapsland/activity-observation#build",
+            "@hapsland/agent-flow-bend#build",
+            "@hapsland/canonical-policy#build",
+            "@hapsland/credential-storage#build",
+            "@hapsland/credential-storage#native:darwin-arm64",
+            "@hapsland/delivery-output#build",
+            "@hapsland/inspection-records#build",
+            "@hapsland/inspection-records#native:darwin-arm64",
+            "@hapsland/native-observation#build",
+            "@hapsland/native-observation#native:darwin-arm64",
+            "@hapsland/resident-entry#build",
+            "@hapsland/resident-runtime#build",
+            "@hapsland/resident-transport#build",
+            "@hapsland/review-definition#build",
+            "@hapsland/review-execution#build",
+            "@hapsland/runtime-environment#build",
+            "@hapsland/runtime-inputs#build",
+            "@hapsland/source-analysis#build",
+            "@hapsland/source-analysis#native:darwin-arm64",
+            "@hapsland/source-artifacts#build"
+          ],
+          "globs": [
+            "dist/**/*.js",
+            "dist/**/*.json",
+            "artifacts/native/darwin-arm64/**"
+          ]
+        }
+      ],
+      "outputs": [
+        "artifacts/darwin-arm64/hapsland-resident",
+        "artifacts/darwin-arm64/assembly-receipt.json"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP",
+        "HAPSLAND_BEND_PRODUCER_ENV"
+      ]
+    },
+    "@hapsland/resident-entry#assemble:linux-arm64": {
+      "dependsOn": [
+        "@hapsland/activity-observation#build",
+        "@hapsland/agent-flow-bend#build",
+        "@hapsland/canonical-policy#build",
+        "@hapsland/credential-storage#build",
+        "@hapsland/credential-storage#native:linux-arm64",
+        "@hapsland/delivery-output#build",
+        "@hapsland/inspection-records#build",
+        "@hapsland/inspection-records#native:linux-arm64",
+        "@hapsland/native-observation#build",
+        "@hapsland/resident-entry#build",
+        "@hapsland/resident-runtime#build",
+        "@hapsland/resident-transport#build",
+        "@hapsland/review-definition#build",
+        "@hapsland/review-execution#build",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/runtime-inputs#build",
+        "@hapsland/source-analysis#build",
+        "@hapsland/source-analysis#native:linux-arm64",
+        "@hapsland/source-artifacts#build"
+      ],
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/.test-runs/assembly-prerequisites/resident/linux-arm64.json",
+        "$TURBO_ROOT$/scripts/assembly-prerequisites.mjs",
+        "$TURBO_ROOT$/scripts/assemble-entry.mjs",
+        "$TURBO_ROOT$/scripts/assembly-context.mjs",
+        "$TURBO_ROOT$/packages/source-analysis/src/direct-event/languages/native-bindings.ts",
+        {
+          "mode": "dependencyOutputs",
+          "from": [
+            "@hapsland/activity-observation#build",
+            "@hapsland/agent-flow-bend#build",
+            "@hapsland/canonical-policy#build",
+            "@hapsland/credential-storage#build",
+            "@hapsland/credential-storage#native:linux-arm64",
+            "@hapsland/delivery-output#build",
+            "@hapsland/inspection-records#build",
+            "@hapsland/inspection-records#native:linux-arm64",
+            "@hapsland/native-observation#build",
+            "@hapsland/resident-entry#build",
+            "@hapsland/resident-runtime#build",
+            "@hapsland/resident-transport#build",
+            "@hapsland/review-definition#build",
+            "@hapsland/review-execution#build",
+            "@hapsland/runtime-environment#build",
+            "@hapsland/runtime-inputs#build",
+            "@hapsland/source-analysis#build",
+            "@hapsland/source-analysis#native:linux-arm64",
+            "@hapsland/source-artifacts#build"
+          ],
+          "globs": [
+            "dist/**/*.js",
+            "dist/**/*.json",
+            "artifacts/native/linux-arm64/**"
+          ]
+        }
+      ],
+      "outputs": [
+        "artifacts/linux-arm64/hapsland-resident",
+        "artifacts/linux-arm64/assembly-receipt.json"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP",
+        "HAPSLAND_BEND_PRODUCER_ENV"
+      ]
+    },
+    "@hapsland/resident-runtime#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/resident-runtime#build": {
+      "dependsOn": [
+        "@hapsland/activity-observation#build",
+        "@hapsland/canonical-policy#build",
+        "@hapsland/credential-storage#build",
+        "@hapsland/delivery-output#build",
+        "@hapsland/inspection-records#build",
+        "@hapsland/native-observation#build",
+        "@hapsland/resident-runtime#clean:compiler",
+        "@hapsland/resident-transport#build",
+        "@hapsland/review-definition#build",
+        "@hapsland/review-execution#build",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/runtime-inputs#build",
+        "@hapsland/source-analysis#build"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/resident-runtime/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/resident-transport#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/resident-transport#build": {
+      "dependsOn": [
+        "@hapsland/activity-observation#build",
+        "@hapsland/delivery-output#build",
+        "@hapsland/inspection-records#build",
+        "@hapsland/native-observation#build",
+        "@hapsland/resident-transport#clean:compiler",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/runtime-inputs#build"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/resident-transport/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/review-definition#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/review-definition#build": {
+      "dependsOn": [
+        "@hapsland/canonical-policy#build",
+        "@hapsland/native-observation#build",
+        "@hapsland/review-definition#clean:compiler",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/runtime-inputs#build",
+        "@hapsland/source-artifacts#build"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/review-definition/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/review-execution#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/review-execution#build": {
+      "dependsOn": [
+        "@hapsland/agent-flow-bend#build",
+        "@hapsland/canonical-policy#build",
+        "@hapsland/delivery-output#build",
+        "@hapsland/inspection-records#build",
+        "@hapsland/native-observation#build",
+        "@hapsland/review-definition#build",
+        "@hapsland/review-execution#clean:compiler",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/runtime-inputs#build",
+        "@hapsland/source-analysis#build",
+        "@hapsland/source-artifacts#build"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/review-execution/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/runtime-environment#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/runtime-environment#build": {
+      "dependsOn": [
+        "@hapsland/runtime-environment#clean:compiler"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/runtime-environment/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/runtime-inputs#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/runtime-inputs#build": {
+      "dependsOn": [
+        "@hapsland/canonical-policy#build",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/runtime-inputs#clean:compiler"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/runtime-inputs/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/source-analysis#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/source-analysis#build": {
+      "dependsOn": [
+        "@hapsland/canonical-policy#build",
+        "@hapsland/native-observation#build",
+        "@hapsland/runtime-environment#build",
+        "@hapsland/source-analysis#clean:compiler",
+        "@hapsland/source-artifacts#build"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/source-analysis/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/source-analysis#native:darwin-arm64": {
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/.test-runs/native-task-inputs/source-analysis/darwin-arm64.json",
+        "$TURBO_ROOT$/scripts/native-task.mjs"
+      ],
+      "outputs": [
+        "artifacts/native/darwin-arm64/**"
+      ],
+      "cache": true,
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/source-analysis#native:linux-arm64": {
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/.test-runs/native-task-inputs/source-analysis/linux-arm64.json",
+        "$TURBO_ROOT$/scripts/native-task.mjs"
+      ],
+      "outputs": [
+        "artifacts/native/linux-arm64/**"
+      ],
+      "cache": true,
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/source-artifacts#clean:compiler": {
+      "cache": false,
+      "inputs": [
+        "package.json",
+        "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+      ],
+      "outputs": [],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    },
+    "@hapsland/source-artifacts#build": {
+      "dependsOn": [
+        "@hapsland/source-artifacts#clean:compiler"
+      ],
+      "inputs": [
+        "src/**",
+        "!artifacts/**",
+        "package.json",
+        "tsconfig.json",
+        "$TURBO_ROOT$/.test-runs/task-inputs/source-artifacts/build.json",
+        "$TURBO_ROOT$/scripts/authored-task-inputs.mjs",
+        "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
+        "$TURBO_ROOT$/scripts/package-graph.mjs",
+        "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
+        "$TURBO_ROOT$/scripts/build-groups.mjs",
+        "$TURBO_ROOT$/scripts/compile-package.mjs",
+        "$TURBO_ROOT$/scripts/compiler-context.mjs",
+        "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "NODE_OPTIONS",
+        "BUN_OPTIONS"
+      ],
+      "passThroughEnv": [
+        "HAPSLAND_BUILD_LOCK_LEASE",
+        "HAPSLAND_BUILD_PROCESS_GROUP"
+      ]
+    }
+  }
+}

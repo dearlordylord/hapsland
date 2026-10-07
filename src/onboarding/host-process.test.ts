@@ -6,7 +6,8 @@ import { spawnSync } from "../../scripts/test-harness/process.mjs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { execFileClosedStdin, execFileClosedStdinBuffer, spawnInherited } from "./host-process.ts"
+import { execFileClosedStdin, execFileClosedStdinBuffer } from "@hapsland/runtime-environment/process/closed-stdin"
+import { spawnInherited } from "@hapsland/administration/onboarding/host-process"
 
 describe("native host process", () => {
   it("closes stdin so a prompt argument can start without waiting for the deadline", async () => {
@@ -170,7 +171,7 @@ it("sends UTF-8 lifecycle input then EOF before completing the child", async () 
 it("inherited package processes preserve native stdin, output streams and exit code", () => {
   const childCode =
     "let input='';process.stdin.setEncoding('utf8');process.stdin.on('data',chunk=>input+=chunk);process.stdin.on('end',()=>{process.stdout.write(JSON.stringify({received:input==='synthetic input'})+'\\n');process.stderr.write('synthetic stderr');process.exitCode=7;});"
-  const parentCode = `import { Effect } from 'effect';import { spawnInherited } from './src/onboarding/host-process.ts';const result=await Effect.runPromise(spawnInherited(process.execPath,['-e',${JSON.stringify(childCode)}],process.env));process.stdout.write(JSON.stringify(result)+'\\n');`
+  const parentCode = `import { Effect } from 'effect';import { spawnInherited } from './packages/administration/src/onboarding/host-process.ts';const result=await Effect.runPromise(spawnInherited(process.execPath,['-e',${JSON.stringify(childCode)}],process.env));process.stdout.write(JSON.stringify(result)+'\\n');`
   const result = spawnSync(process.execPath, ["--experimental-strip-types", "--input-type=module", "-e", parentCode], {
     cwd: process.cwd(),
     input: "synthetic input",

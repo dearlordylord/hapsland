@@ -36,10 +36,10 @@ for (const fixture of cases) {
   assert(r?.providerInputRendered === true, `${fixture.id}: provider projection must render`)
 }
 for (const file of [
-  "src/direct-event/pipeline.ts",
-  "src/direct-event/review-renderer.ts",
-  "src/review-providers/catalog.ts",
-  "src/review-providers/request.ts"
+  "packages/review-execution/src/direct-event/pipeline.ts",
+  "packages/review-execution/src/direct-event/review-renderer.ts",
+  "packages/review-definition/src/review-providers/catalog.ts",
+  "packages/review-execution/src/review-providers/request.ts"
 ]) {
   assert.equal(
     projection.sourceHashes?.[file],

@@ -3,11 +3,11 @@ import {
   decodeCanonicalConstructor,
   decodeCanonicalProjectionConstructor,
   withCanonicalConstructorReuse
-} from "./constructors.ts"
+} from "@hapsland/canonical-policy/canonical/constructors"
 
 const interpreter = vi.hoisted(() => ({ calls: 0 }))
-vi.mock("./boundary-schema.ts", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("./boundary-schema.ts")>()
+vi.mock("@hapsland/canonical-policy/canonical/boundary-schema", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@hapsland/canonical-policy/canonical/boundary-schema")>()
   return {
     ...actual,
     decoder: (schema: Parameters<typeof actual.decoder>[0]) => {

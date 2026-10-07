@@ -1,6 +1,6 @@
 import { expect, it } from "vitest"
-import { encodeCanonicalEvent } from "./canonical-boundary.ts"
-import { readCanonicalEvent } from "./event-reader.ts"
+import { encodeCanonicalEvent } from "@hapsland/canonical-policy/canonical/canonical-boundary"
+import { readCanonicalEvent } from "@hapsland/canonical-policy/canonical/event-reader"
 
 const stopEnded = () => ({
   kind: "stopGroupEnded" as const,

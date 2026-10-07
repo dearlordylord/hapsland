@@ -3,6 +3,7 @@ set -eu
 
 case "${0##*/}" in
   hapsland|launch.sh) command=hapsland ;;
+  hapsland-hook) command=hapsland-hook ;;
   hapsland-doctor) command=hapsland-doctor ;;
   hapsland-parser) command=hapsland-parser ;;
   hapsland-resident) command=hapsland-resident ;;

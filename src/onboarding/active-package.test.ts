@@ -3,8 +3,8 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { expect, it, vi } from "vitest"
-import { currentCommand } from "../runtime/package-runtime.ts"
-import { dispatchActivePackage } from "./client-lifecycle.ts"
+import { currentCommand } from "@hapsland/runtime-environment/runtime/package-runtime"
+import { dispatchActivePackage } from "@hapsland/administration/onboarding/client-lifecycle"
 
 it("keeps the current CLI local and forwards other active packages with the recursion guard", async () => {
   const root = mkdtempSync(join(tmpdir(), "active-package-dispatch-"))

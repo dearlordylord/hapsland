@@ -1,9 +1,9 @@
 import { readFileSync } from "node:fs"
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
-import { decodeConfigurationText } from "../configuration/decode.ts"
-import { ConfigurationError } from "../configuration/errors.ts"
-import { matchesGlob, validateGlobPattern } from "./glob.ts"
+import { decodeConfigurationText } from "@hapsland/runtime-inputs/configuration/decode"
+import { ConfigurationError } from "@hapsland/runtime-inputs/configuration/errors"
+import { matchesGlob, validateGlobPattern } from "@hapsland/runtime-inputs/matcher/glob"
 
 describe("repository glob validation", () => {
   it("rejects the persisted reversed-range regression at the field boundary", () => {

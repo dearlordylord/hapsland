@@ -1,5 +1,5 @@
 import { expect, it } from "vitest"
-import { readBendList, readRecord } from "../../../src/canonical/boundary-schema.ts"
+import { readBendList, readRecord } from "@hapsland/canonical-policy/canonical/boundary-schema"
 import {
   runWorkloadNative,
   runWorkloadEmitted

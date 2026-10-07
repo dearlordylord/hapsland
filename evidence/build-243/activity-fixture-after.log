@@ -1,0 +1,23 @@
+
+ RUN  v5.0.1 /workspace/typescript/hapsland-243
+      Coverage enabled with v8
+
+ ✓ src/activity/subprocess.test.ts (2 tests) 49574ms
+   ✓ production resident activity subprocess (2)
+     ✓ reports a controlled native event as pending, then restarted/lost after resident death 7418ms
+(node:1888997) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  12:20:13
+   Duration  61.79s (tests 100%)
+
+ % Coverage report from v8
+
+=============================== Coverage summary ===============================
+Statements   : 23.49% ( 5337/22714 )
+Branches     : 11.2% ( 1516/13535 )
+Functions    : 18.14% ( 1114/6139 )
+Lines        : 25.47% ( 5021/19707 )
+================================================================================

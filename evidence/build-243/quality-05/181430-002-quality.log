@@ -1,0 +1,129 @@
+
+> @hapsland/hapsland@0.1.0 test:coverage
+> npm test -- --coverage
+
+
+> @hapsland/hapsland@0.1.0 test
+> node scripts/test-harness/run-checks.mjs test --coverage
+
+RUN 20261007110954707-181430-c973c6 test; deadline 2026-10-07T11:34:54.708Z; records /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6
+START configuration; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-001-configuration.log
+PASSED configuration 0.40s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-001-configuration.log
+START bend-generation; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-002-bend-generation.log
+PASSED bend-generation 1.46s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-002-bend-generation.log
+START bend-artifacts; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-003-bend-artifacts.log
+PASSED bend-artifacts 0.74s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-003-bend-artifacts.log
+START canonical-authority; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-004-canonical-authority.log
+PASSED canonical-authority 0.23s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-004-canonical-authority.log
+START jev-request; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-005-jev-request.log
+PASSED jev-request 0.33s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-005-jev-request.log
+START production-authority; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-006-production-authority.log
+PASSED production-authority 0.21s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-006-production-authority.log
+START capacity-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-007-capacity-boundary.log
+PASSED capacity-boundary 0.17s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-007-capacity-boundary.log
+START permit-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-008-permit-boundary.log
+PASSED permit-boundary 0.30s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-008-permit-boundary.log
+START review-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-009-review-boundary.log
+PASSED review-boundary 0.27s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-009-review-boundary.log
+START dispatch-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-010-dispatch-boundary.log
+PASSED dispatch-boundary 0.26s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-010-dispatch-boundary.log
+START stop-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-011-stop-boundary.log
+PASSED stop-boundary 0.18s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-011-stop-boundary.log
+START collection-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-012-collection-boundary.log
+PASSED collection-boundary 0.16s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-012-collection-boundary.log
+START delivery-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-013-delivery-boundary.log
+PASSED delivery-boundary 0.18s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-013-delivery-boundary.log
+START revision-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-014-revision-boundary.log
+PASSED revision-boundary 0.18s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-014-revision-boundary.log
+START response-authority-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-015-response-authority-boundary.log
+PASSED response-authority-boundary 0.18s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-015-response-authority-boundary.log
+START reuse-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-016-reuse-boundary.log
+PASSED reuse-boundary 0.18s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-016-reuse-boundary.log
+START notice-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-017-notice-boundary.log
+PASSED notice-boundary 0.15s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-017-notice-boundary.log
+START retention-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-018-retention-boundary.log
+PASSED retention-boundary 0.17s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-018-retention-boundary.log
+START configuration-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-019-configuration-boundary.log
+PASSED configuration-boundary 0.17s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-019-configuration-boundary.log
+START file-eligibility-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-020-file-eligibility-boundary.log
+PASSED file-eligibility-boundary 0.16s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-020-file-eligibility-boundary.log
+START rule-boundary; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-021-rule-boundary.log
+PASSED rule-boundary 0.18s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-021-rule-boundary.log
+START bend-progress; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-022-bend-progress.log
+PASSED bend-progress 12.45s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-022-bend-progress.log
+START content-isolation; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-023-content-isolation.log
+PASSED content-isolation 3.49s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-023-content-isolation.log
+START content-wire-mutants; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-024-content-wire-mutants.log
+PASSED content-wire-mutants 12.05s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-024-content-wire-mutants.log
+START native-pi-observation; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-025-native-pi-observation.log
+PASSED native-pi-observation 0.25s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-025-native-pi-observation.log
+START native-rule-observation; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-026-native-rule-observation.log
+PASSED native-rule-observation 0.20s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-026-native-rule-observation.log
+START verification-infrastructure; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-027-verification-infrastructure.log
+PASSED verification-infrastructure 14.43s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-027-verification-infrastructure.log
+START build-workflow; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-028-build-workflow.log
+PASSED build-workflow 42.34s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-028-build-workflow.log
+START test-harness; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-029-test-harness.log
+PASSED test-harness 8.02s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-029-test-harness.log
+START package-build; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-030-package-build.log
+PASSED package-build 83.72s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-030-package-build.log
+START package-validation; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-031-package-validation.log
+PASSED package-validation 0.27s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-031-package-validation.log
+START package-pack; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-032-package-pack.log
+PASSED package-pack 8.83s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-032-package-pack.log
+START vitest; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-033-vitest.log
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/12]⎯
+
+
+ Test Files  6 failed | 205 passed | 1 skipped (212)
+      Tests  9 failed | 2152 passed | 61 skipped (2222)
+   Start at  07:13:48
+   Duration  1099.68s (tests 95%, import 4%, transform 1%)
+
+    Isolate  212 workers spawned · ~63ms startup each (spawn + environment, per file)
+             at least ~13.24s faster with isolate: false — reuses workers across files instead of one per file
+
+ % Coverage report from v8
+
+=============================== Coverage summary ===============================
+Statements   : 92.25% ( 31125/33737 )
+Branches     : 81.23% ( 16012/19711 )
+Functions    : 91.9% ( 5641/6138 )
+Lines        : 95.4% ( 18801/19707 )
+================================================================================
+
+FAILED vitest 1115.23s; exit 1; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-033-vitest.log
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > retires an empty installed resident and starts a distinct lifetime on the next hook: resident did not become ready within 10 seconds; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps a live connected client until it disconnects: resident did not become ready within 10 seconds; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps accepted review work and pending advice beyond the idle grace: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > converges six starters across three clients and keeps timed-out/disconnected work resident-owned: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps edit file selection across admission and backend waits: expected false to be true // Object.is equality; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps the admission configuration through dispatch and delayed delivery: expected false to be true // Object.is equality; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > kills one lifetime, rejects obsolete messages, restarts empty, and cleans up only when idle: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/rules/cli.test.ts > runs one-off rule checks without stdin or resident state and reports unavailable credentials: expected { version: 1, …(11) } to match object { operation: 'rule-check', …(5) }
+(10 matching properties omitted from actual); failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/test-support/pi-installed.test.ts > collection or suite hook: Command failed: /home/node/.local/share/mise/installs/node/24.20.0/bin/node /workspace/typescript/hapsland-243/scripts/source-runtime.mjs
+RUN 20261007110954707-181430-c973c6 artifact; deadline 2026-10-07T11:34:54.708Z; records /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6
+START source-runtime-build; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/294810-001-source-runtime-build.log
+SyntaxError: Export named 'createInstrumenter' not found in module '/workspace/typescript/hapsland-243/node_modules/istanbul-lib-instrument/src/index.js'.
+note: missing sourcemaps for /workspace/typescript/hapsland-243/.test-runs/coverage-preload/199625/coverage-preload.mjs
+note: consider bundling with '--sourcemap' to get unminified traces
+
+Bun v1.3.14 (Linux arm64)
+
+FAILED source-runtime-build 0.14s; exit 1; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/294810-001-source-runtime-build.log
+FAIL source-runtime-preparation; source-runtime-build failed; see /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/294810-001-source-runtime-build.log
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > retires an empty installed resident and starts a distinct lifetime on the next hook: resident did not become ready within 10 seconds; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps a live connected client until it disconnects: resident did not become ready within 10 seconds; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps accepted review work and pending advice beyond the idle grace: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > converges six starters across three clients and keeps timed-out/disconnected work resident-owned: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps edit file selection across admission and backend waits: expected false to be true // Object.is equality; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps the admission configuration through dispatch and delayed delivery: expected false to be true // Object.is equality; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > kills one lifetime, rejects obsolete messages, restarts empty, and cleans up only when idle: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/rules/cli.test.ts > runs one-off rule checks without stdin or resident state and reports unavailable credentials: expected { version: 1, …(11) } to match object { operation: 'rule-check', …(5) }
+(10 matching properties omitted from actual); failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+Source runtime preparation failed; see recorded stages
+; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/security-sinks.test.ts > security sink prototype > observes source-bearing ingress and a provider failure across resident file/output sinks: resident did not finish the synthetic failure; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+error: coverage command failed with exit status 1
+diagnostic [coverage_command]: coverage command failed with exit status 1

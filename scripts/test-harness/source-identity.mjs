@@ -29,7 +29,9 @@ const verificationFiles = new Set([
   "crap4ts.json",
   "tsconfig.json",
   "tsconfig.build.json",
-  "vitest.config.ts",
+  "tsconfig.package.json",
+  "tsconfig.packages.json",
+  "turbo.json",
   ".gitignore",
   ".gitmodules",
   ".hapsland.jsonc"
@@ -54,8 +56,20 @@ const packagedInputs = async (root) => {
 }
 
 /** Identify verification inputs, including dirty, deleted and new files in their owners. */
-export const sourceIdentity = (root, excludedDirectory, selection, { deadline = Date.now() + 30000 } = {}) =>
-  identifyInputs(root, excludedDirectory, true, selection, deadline)
+export const sourceIdentity = (
+  root,
+  excludedDirectory,
+  selection,
+  { deadline = Date.now() + 30000, excludedFiles = [], excludedDirectories = [] } = {}
+) => {
+  for (const path of [...excludedFiles, ...excludedDirectories])
+    if (typeof path !== "string" || isAbsolute(path) || path.split("/").some((part) => ["", ".", ".."].includes(part)))
+      throw new Error("Source output exclusions require exact relative owner paths")
+  return identifyInputs(root, excludedDirectory, true, selection, deadline, false, undefined, {
+    excludedFiles,
+    excludedDirectories
+  })
+}
 
 async function linkedInputDigest(path, ancestors = new Set(), deadline) {
   if (Date.now() >= deadline) throw new Error("Source identity deadline exceeded")
@@ -92,7 +106,8 @@ async function identifyInputs(
   selection,
   deadline,
   snapshot = false,
-  cache
+  cache,
+  exclusions = {}
 ) {
   if (!Number.isFinite(deadline) || Date.now() >= deadline) throw new Error("Source identity deadline exceeded")
   const packaged = selectVerificationInputs ? await packagedInputs(root) : []
@@ -130,6 +145,10 @@ async function identifyInputs(
           verificationRoots.has(file.split("/")[0]) ||
           verificationFiles.has(file) ||
           packaged.some((path) => path === "" || file === path || file.startsWith(`${path}/`))) &&
+        !(exclusions.excludedFiles ?? []).includes(file) &&
+        !(exclusions.excludedDirectories ?? []).some(
+          (directory) => file === directory || file.startsWith(`${directory}/`)
+        ) &&
         !(
           excluded &&
           !isAbsolute(excluded) &&

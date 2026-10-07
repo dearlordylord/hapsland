@@ -1,0 +1,86 @@
+{
+  "name": "@hapsland/runtime-inputs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./configuration/decision": {
+      "types": "./dist/configuration/decision.d.ts",
+      "default": "./dist/configuration/decision.js"
+    },
+    "./configuration/decode": {
+      "types": "./dist/configuration/decode.d.ts",
+      "default": "./dist/configuration/decode.js"
+    },
+    "./configuration/errors": {
+      "types": "./dist/configuration/errors.d.ts",
+      "default": "./dist/configuration/errors.js"
+    },
+    "./configuration/jsonc": {
+      "types": "./dist/configuration/jsonc.d.ts",
+      "default": "./dist/configuration/jsonc.js"
+    },
+    "./configuration/load": {
+      "types": "./dist/configuration/load.d.ts",
+      "default": "./dist/configuration/load.js"
+    },
+    "./configuration/resolve": {
+      "types": "./dist/configuration/resolve.d.ts",
+      "default": "./dist/configuration/resolve.js"
+    },
+    "./configuration/types": {
+      "types": "./dist/configuration/types.d.ts",
+      "default": "./dist/configuration/types.js"
+    },
+    "./credentials/input": {
+      "types": "./dist/credentials/input.d.ts",
+      "default": "./dist/credentials/input.js"
+    },
+    "./credentials/state": {
+      "types": "./dist/credentials/state.d.ts",
+      "default": "./dist/credentials/state.js"
+    },
+    "./domain/rule-identity": {
+      "types": "./dist/domain/rule-identity.d.ts",
+      "default": "./dist/domain/rule-identity.js"
+    },
+    "./matcher/glob": {
+      "types": "./dist/matcher/glob.d.ts",
+      "default": "./dist/matcher/glob.js"
+    },
+    "./runtime/input-settings": {
+      "types": "./dist/runtime/input-settings.d.ts",
+      "default": "./dist/runtime/input-settings.js"
+    },
+    "./runtime/review-settings-error": {
+      "types": "./dist/runtime/review-settings-error.d.ts",
+      "default": "./dist/runtime/review-settings-error.js"
+    },
+    "./configuration/index": {
+      "types": "./dist/configuration/index.d.ts",
+      "default": "./dist/configuration/index.js"
+    },
+    "./configuration/schema": {
+      "types": "./dist/configuration/schema.d.ts",
+      "default": "./dist/configuration/schema.js"
+    },
+    "./matcher/index": {
+      "types": "./dist/matcher/index.d.ts",
+      "default": "./dist/matcher/index.js"
+    }
+  },
+  "dependencies": {
+    "@hapsland/canonical-policy": "workspace:*",
+    "@hapsland/runtime-environment": "workspace:*",
+    "effect": "catalog:"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
+  },
+  "hapsland": {
+    "domain": "runtime-inputs",
+    "host": "bun",
+    "capabilities": []
+  }
+}

@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import { decoder, PositiveNat } from "../../../src/canonical/boundary-schema.ts"
+import { decoder, PositiveNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
 
 const Source = Schema.Struct({ subject: PositiveNat, input: PositiveNat })
 const Scope = Schema.Struct({

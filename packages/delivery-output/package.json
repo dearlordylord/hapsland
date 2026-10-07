@@ -1,0 +1,34 @@
+{
+  "name": "@hapsland/delivery-output",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./direct-event/claude-output": {
+      "types": "./dist/direct-event/claude-output.d.ts",
+      "default": "./dist/direct-event/claude-output.js"
+    },
+    "./direct-event/output": {
+      "types": "./dist/direct-event/output.d.ts",
+      "default": "./dist/direct-event/output.js"
+    },
+    "./direct-event/writer": {
+      "types": "./dist/direct-event/writer.d.ts",
+      "default": "./dist/direct-event/writer.js"
+    },
+    "./feedback/message": {
+      "types": "./dist/feedback/message.d.ts",
+      "default": "./dist/feedback/message.js"
+    }
+  },
+  "dependencies": {},
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
+  },
+  "hapsland": {
+    "domain": "delivery-output",
+    "host": "bun",
+    "capabilities": []
+  }
+}

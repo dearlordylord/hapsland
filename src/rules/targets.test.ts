@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { decodeRuleDocument } from "./schema.ts"
+import { decodeRuleDocument } from "@hapsland/review-definition/rules/schema"
 const rule = {
   version: 1,
   id: "rule",

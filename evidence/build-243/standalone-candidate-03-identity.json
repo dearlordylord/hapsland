@@ -1,0 +1,1139 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Standalone candidate feasibility; not installed release or production build acceptance",
+  "bun": "1.3.14",
+  "toolchain": {
+    "executable": "/workspace/typescript/hapsland-243/node_modules/bun/bin/bun.exe",
+    "sha256": "37141662ebed915a2ab89313156e455e2a1374395f5f6760d06407f49406f086"
+  },
+  "adapter": {
+    "path": "scripts/probe-hook-standalone.ts",
+    "sha256": "ec9842fbe0f5b56bfbe282ac37e17d336d48effaf8dd809c3f9d48d2bc82bc4c"
+  },
+  "inputs": [
+    {
+      "path": "node_modules/@effect/platform-node-shared/dist/NodeChildProcessSpawner.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node-shared/dist/NodeChildProcessSpawner.js",
+      "sha256": "2dee7dd250ad1521abac619c57db1b998cfb5a66f949554df0194dcb0e0ccbf9"
+    },
+    {
+      "path": "node_modules/@effect/platform-node-shared/dist/NodeCrypto.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node-shared/dist/NodeCrypto.js",
+      "sha256": "bf9a8cb1380dcef62da26578b9c69db7ef66d381b80af39a2f886741fcb8eebb"
+    },
+    {
+      "path": "node_modules/@effect/platform-node-shared/dist/NodeFileSystem.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node-shared/dist/NodeFileSystem.js",
+      "sha256": "a23f2022f75e7089a5e5de8e24de8b663fcee22f514c9835e7ab5d25a053c7a6"
+    },
+    {
+      "path": "node_modules/@effect/platform-node-shared/dist/NodePath.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node-shared/dist/NodePath.js",
+      "sha256": "dfc4f62ac60240e7a0812dba62d1e8371596100ada765909982fb74a2e7e248d"
+    },
+    {
+      "path": "node_modules/@effect/platform-node-shared/dist/NodeSink.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node-shared/dist/NodeSink.js",
+      "sha256": "03da62f2da1b6553f4ca917e00a0da5e531065ff7e27ee55b8e33ae95808d53c"
+    },
+    {
+      "path": "node_modules/@effect/platform-node-shared/dist/NodeStdio.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node-shared/dist/NodeStdio.js",
+      "sha256": "b611b17835db7ae7ac9e65f46921221b8f8268047ca1c7d0e33c19cab68fb81d"
+    },
+    {
+      "path": "node_modules/@effect/platform-node-shared/dist/NodeStream.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node-shared/dist/NodeStream.js",
+      "sha256": "899726de34735a0376c648511ddc2a208d63259bed291e7221d5e66f35596042"
+    },
+    {
+      "path": "node_modules/@effect/platform-node-shared/dist/NodeTerminal.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node-shared/dist/NodeTerminal.js",
+      "sha256": "226a14416f329472c21abb995364d37e2106a549117ed3a5afef98df2ab6b76a"
+    },
+    {
+      "path": "node_modules/@effect/platform-node-shared/dist/internal/nodeChildProcessSpawner.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node-shared/dist/internal/nodeChildProcessSpawner.js",
+      "sha256": "7a0a041ebdea757c94da0a6212c2a2ea667c05a2032fbe2654e8459c0ccc2f1b"
+    },
+    {
+      "path": "node_modules/@effect/platform-node-shared/dist/internal/utils.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node-shared/dist/internal/utils.js",
+      "sha256": "15cf410beda101aac5c263f940fdb3bc9f27f679c927a19e5504cb03281f4b60"
+    },
+    {
+      "path": "node_modules/@effect/platform-node/dist/NodeCrypto.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node/dist/NodeCrypto.js",
+      "sha256": "128478183655276c9dfb99a8aebd1c748900c28fa42e6272a68c90e857e9013f"
+    },
+    {
+      "path": "node_modules/@effect/platform-node/dist/NodeFileSystem.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node/dist/NodeFileSystem.js",
+      "sha256": "a9e2a586e7ccb9362381b82a497fd31a48d83d93e86e73ab66982b47cfc4ae48"
+    },
+    {
+      "path": "node_modules/@effect/platform-node/dist/NodePath.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node/dist/NodePath.js",
+      "sha256": "ffc32feee2cfd57c6402a60087c347f13d5b00e11ee215bdc54c5d5f504c5677"
+    },
+    {
+      "path": "node_modules/@effect/platform-node/dist/NodeServices.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node/dist/NodeServices.js",
+      "sha256": "edea4b272831f26f6eba780504a169ef1995571e59202cfecf7b5614d5e2d713"
+    },
+    {
+      "path": "node_modules/@effect/platform-node/dist/NodeStdio.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node/dist/NodeStdio.js",
+      "sha256": "06a461bd3c5de9796e3aa6b012a8ca8cc94cac5d8ebda3001f43736937314faa"
+    },
+    {
+      "path": "node_modules/@effect/platform-node/dist/NodeTerminal.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/@effect/platform-node/dist/NodeTerminal.js",
+      "sha256": "3ca082ef57959ffd8f7367523aa0f436a3e6bffb54fb43cbc12864737088ed16"
+    },
+    {
+      "path": "node_modules/effect/dist/Array.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Array.js",
+      "sha256": "2d89670eb95194bf7e57942bbaa288c940d354248e5709a1f1d086d4682a050d"
+    },
+    {
+      "path": "node_modules/effect/dist/BigInt.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/BigInt.js",
+      "sha256": "09cd4232a4a2e789487328eff22db815b09273a72cf6cef8b1388d06004ec4e8"
+    },
+    {
+      "path": "node_modules/effect/dist/Brand.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Brand.js",
+      "sha256": "05ae12e56fa6a9e18a0b3fc91d0b19cd7efa394501215baa67b2fdfdddf201cd"
+    },
+    {
+      "path": "node_modules/effect/dist/ByteSize.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/ByteSize.js",
+      "sha256": "48a55800702d986ea134e7f7dcfea0b00d589d98c67cbf099ebfc4541cc1b8a8"
+    },
+    {
+      "path": "node_modules/effect/dist/Cause.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Cause.js",
+      "sha256": "09b2fe97cf00ce2563b16a10d2962333ffc3416c38e6ba148c6db1e5615b4b17"
+    },
+    {
+      "path": "node_modules/effect/dist/Channel.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Channel.js",
+      "sha256": "32c0e011c9020849361faab0cbd036e3a06ce6e25dd9b7209f06dcc6b5a5fb36"
+    },
+    {
+      "path": "node_modules/effect/dist/Clock.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Clock.js",
+      "sha256": "20a344db261259f73ae87ea0804fdbbab907d564e819cf864f93b0602315aa36"
+    },
+    {
+      "path": "node_modules/effect/dist/Config.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Config.js",
+      "sha256": "dc18bf017a6dfbe5a34d0087c15ab860a40212ee9f9170c5126188f9dc274774"
+    },
+    {
+      "path": "node_modules/effect/dist/ConfigProvider.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/ConfigProvider.js",
+      "sha256": "886d7f2aec5eb55ce8bc7b9975894adfe8c7cf07ce5f6b9c29312b2361262f74"
+    },
+    {
+      "path": "node_modules/effect/dist/Console.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Console.js",
+      "sha256": "f069032869f595c3f4c63efd24ed9e51aad3e156f7f52d98da289249dee632f2"
+    },
+    {
+      "path": "node_modules/effect/dist/Context.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Context.js",
+      "sha256": "f4b75294b24d558d471fc061415b7db87f6b8b8cf1075a4e449e2c547abc33b5"
+    },
+    {
+      "path": "node_modules/effect/dist/Crypto.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Crypto.js",
+      "sha256": "3a91a1f53ae48c9985f8916674b35e1634b7dbb363f806aa85fa979decfa72cc"
+    },
+    {
+      "path": "node_modules/effect/dist/Data.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Data.js",
+      "sha256": "9fd50d62d4e8d9e5873c41301acc3a79e9a83f63f4035bf13b7be03cb8f4d50e"
+    },
+    {
+      "path": "node_modules/effect/dist/Deferred.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Deferred.js",
+      "sha256": "84002bff8ce017020784d39d1b57991b3d8d80fad9461bdf53ad9c28da58254a"
+    },
+    {
+      "path": "node_modules/effect/dist/Duration.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Duration.js",
+      "sha256": "afe9fc59c5b51ec4d5b22550e0ffeb495eaa952824ffee68f5304064f9c12f89"
+    },
+    {
+      "path": "node_modules/effect/dist/Effect.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Effect.js",
+      "sha256": "b4949967071aaf548fadefda74cc513a95ff61426dba100c4c1f916d30f12996"
+    },
+    {
+      "path": "node_modules/effect/dist/Effectable.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Effectable.js",
+      "sha256": "81288fee4e2417b833e285c2844305ea4d0adf0e4d6a14dedd867ad7b1eab3d9"
+    },
+    {
+      "path": "node_modules/effect/dist/Equal.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Equal.js",
+      "sha256": "1afff1fbec7b2f98e28579d52440956db0be6e1398f69c757e32443ab671ffa3"
+    },
+    {
+      "path": "node_modules/effect/dist/Equivalence.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Equivalence.js",
+      "sha256": "fdb6c2fbedb6eea2fc23de55291741082256e77f55a3a5e57fa0101adec8860e"
+    },
+    {
+      "path": "node_modules/effect/dist/Exit.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Exit.js",
+      "sha256": "c91ca76cf7029a1423d47a8169e29c28afd18b159528c6690e3e9db3c3336bd5"
+    },
+    {
+      "path": "node_modules/effect/dist/Fiber.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Fiber.js",
+      "sha256": "8e8433ea84b971792c3903e3cd62182c6c61a567ec73fee98f3e33cb520d4aee"
+    },
+    {
+      "path": "node_modules/effect/dist/FileSystem.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/FileSystem.js",
+      "sha256": "df7da5d2342b6b64929cfcd677be156ad9c97c579e48f42b76573c62d736fc32"
+    },
+    {
+      "path": "node_modules/effect/dist/Formatter.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Formatter.js",
+      "sha256": "97bccfa38937c47642bb91078e8a734391691ca384711f400cc5d076e51cdb89"
+    },
+    {
+      "path": "node_modules/effect/dist/Function.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Function.js",
+      "sha256": "6c7814fc15cff680ea6d6fdb655a4d19f3711871ab4a418fbad62e4a9a09e902"
+    },
+    {
+      "path": "node_modules/effect/dist/Hash.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Hash.js",
+      "sha256": "dc468c48ed3a28c7020c7eb3a13657d9db4f079f7a9207672efc81480e361215"
+    },
+    {
+      "path": "node_modules/effect/dist/Inspectable.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Inspectable.js",
+      "sha256": "30b6dda25148b8f8a9317b349e6754469b3fc14c28e5ae307d34ce3bba0d1ebd"
+    },
+    {
+      "path": "node_modules/effect/dist/Iterable.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Iterable.js",
+      "sha256": "bb9ea2e6381f7520566ddf529c40c08648a90e8d2b02a53f0e93baafbded5932"
+    },
+    {
+      "path": "node_modules/effect/dist/Latch.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Latch.js",
+      "sha256": "67cb14b2e1287ea0f0e67fe1d2cf26dac8b24bab769bacdcb2c62a45c3d69919"
+    },
+    {
+      "path": "node_modules/effect/dist/Layer.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Layer.js",
+      "sha256": "674995871578d0b92a6354a172f96ebc12ce7d89f82d76f9678c6fca9a04cb14"
+    },
+    {
+      "path": "node_modules/effect/dist/MutableList.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/MutableList.js",
+      "sha256": "2213567ab71a9751cdf5e8d92844c6f7d84ec63f5c3b23f23197ed147f3990ab"
+    },
+    {
+      "path": "node_modules/effect/dist/MutableRef.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/MutableRef.js",
+      "sha256": "701afb4abcc5f1df72e4db75d762f2f19041d7d7e441df524b86211618df1659"
+    },
+    {
+      "path": "node_modules/effect/dist/Number.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Number.js",
+      "sha256": "11e05e54b3eaa6f4499454b1b5ffdb305437c31199a0c01614c81441003e84c9"
+    },
+    {
+      "path": "node_modules/effect/dist/Option.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Option.js",
+      "sha256": "2e5d708e88282d942a4bff4d3d9d5d91357bd9a09431cdcabfbaf2b89003f1bf"
+    },
+    {
+      "path": "node_modules/effect/dist/Order.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Order.js",
+      "sha256": "0e6c659a4739558b648be232b0c2287de704578cae6521c14931c6a341a7d427"
+    },
+    {
+      "path": "node_modules/effect/dist/Path.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Path.js",
+      "sha256": "4eec27b228287d26c6fcdc640bdee76f4b5090baa474db4161489176be3e9d84"
+    },
+    {
+      "path": "node_modules/effect/dist/Pipeable.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Pipeable.js",
+      "sha256": "4e391e01fd4be4e2e3c61af43be90e8c84c130fc0dce42c4350ac6069b3c6315"
+    },
+    {
+      "path": "node_modules/effect/dist/PlatformError.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/PlatformError.js",
+      "sha256": "27208e008065d9d2430056e76b9de6865f5b296d170ddee94680f6e001348e94"
+    },
+    {
+      "path": "node_modules/effect/dist/Predicate.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Predicate.js",
+      "sha256": "eab1a7c2b8413d9b9439e6c3c03ea2deedf45424b542d835f8a2134f977cc036"
+    },
+    {
+      "path": "node_modules/effect/dist/Pull.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Pull.js",
+      "sha256": "ef43adf55e0655b7b4eaa0f2fe7fa404696bbca77dd41cdc96a7d566f1598886"
+    },
+    {
+      "path": "node_modules/effect/dist/Queue.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Queue.js",
+      "sha256": "cbde7467b98c206cb5b119959b4699d19bda39387fb7ffac26f7d2df5f91524f"
+    },
+    {
+      "path": "node_modules/effect/dist/RcRef.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/RcRef.js",
+      "sha256": "c3a5275f79033a54425131e4106cb3ac91da092727da92122e88ed61d1af9bfd"
+    },
+    {
+      "path": "node_modules/effect/dist/Record.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Record.js",
+      "sha256": "85e9651e5b96848975946806166321fca851feecf91281d475ef73a95a56c77a"
+    },
+    {
+      "path": "node_modules/effect/dist/Redactable.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Redactable.js",
+      "sha256": "6b6a14ee694d16a73a531f96ec21330be346a39442f45956256dea980b48297c"
+    },
+    {
+      "path": "node_modules/effect/dist/Redacted.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Redacted.js",
+      "sha256": "3bfad5abc07a9325aae0aad05a4a124ec332dc511ee07684155b1facaae0a9cc"
+    },
+    {
+      "path": "node_modules/effect/dist/Ref.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Ref.js",
+      "sha256": "77336a92c0fa9cce18a716c7f7055b7a33d1006d7e3272ef08e0590da02a84fa"
+    },
+    {
+      "path": "node_modules/effect/dist/References.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/References.js",
+      "sha256": "658982df1dbfe22607d9d4a8323f3c62b33e87e8baab3e9dcf736ba8010abbed"
+    },
+    {
+      "path": "node_modules/effect/dist/Result.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Result.js",
+      "sha256": "94db314df4f1edc0ae66b2a2c2fe740b3fdbeb982f1b159eb8d3c492a42bd820"
+    },
+    {
+      "path": "node_modules/effect/dist/Runtime.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Runtime.js",
+      "sha256": "2a1fd796d1b3f639421ba73dea784ff684d89b7289789fc47181247b2ac55d8f"
+    },
+    {
+      "path": "node_modules/effect/dist/Schedule.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Schedule.js",
+      "sha256": "bfd3fc44c84449cb39b25f442fa93cfb0ce0d53d1f7ae921cdb95d042895fdae"
+    },
+    {
+      "path": "node_modules/effect/dist/Scheduler.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Scheduler.js",
+      "sha256": "333100ff95ecfaee48439b9e58480028a4f19cbec783f60243a34c17a10f8e06"
+    },
+    {
+      "path": "node_modules/effect/dist/Schema.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Schema.js",
+      "sha256": "502b32d5804e1aba237fa6e50026d7a5d53d4e8ee53a40ab7f8c183755dc88d7"
+    },
+    {
+      "path": "node_modules/effect/dist/SchemaAST.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/SchemaAST.js",
+      "sha256": "dee43cadf36f56cc2b819a1b0f6a35c777e7eeabfb0b268ddf3cfb465a5e920a"
+    },
+    {
+      "path": "node_modules/effect/dist/SchemaGetter.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/SchemaGetter.js",
+      "sha256": "8fd37b30192add82e91e504e918502ca6d400015a830caae83eb0e26e3cd0ecd"
+    },
+    {
+      "path": "node_modules/effect/dist/SchemaIssue.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/SchemaIssue.js",
+      "sha256": "9585aee4b56e5c03a32c4c3cca0ceedf371f2e5a0f1b3477d85c41ab37805978"
+    },
+    {
+      "path": "node_modules/effect/dist/SchemaParser.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/SchemaParser.js",
+      "sha256": "bc83d51a6183f7388a7f22519d4d6693f7a80698aa647a835a2be5e3d1724ed4"
+    },
+    {
+      "path": "node_modules/effect/dist/SchemaTransformation.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/SchemaTransformation.js",
+      "sha256": "849e8f2c6338b0e7a489f22cc82f435bd0341975e23167131ae7911f2308319a"
+    },
+    {
+      "path": "node_modules/effect/dist/Scope.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Scope.js",
+      "sha256": "aa0465a2c37d8ad2df57ff6c33f0853abf32cae922c88b56350c2380a3aaf379"
+    },
+    {
+      "path": "node_modules/effect/dist/Semaphore.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Semaphore.js",
+      "sha256": "2596c6313cb79f932ab5468df7dbfc79087f9ef3ab9753b5d09d6261fe9be861"
+    },
+    {
+      "path": "node_modules/effect/dist/Sink.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Sink.js",
+      "sha256": "0e3327ec7aeaded518e49340d06566e86671d83598fe5d74c73d34d338b70251"
+    },
+    {
+      "path": "node_modules/effect/dist/Stdio.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Stdio.js",
+      "sha256": "e9de041cff2c069efd9e65fd0c81b21d603269bffcc99f0838a8d09f2971d16f"
+    },
+    {
+      "path": "node_modules/effect/dist/Stream.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Stream.js",
+      "sha256": "a7c354ddf381bf6815813ba239fcadbfa9267da2b6c8d55db5c72849264f8af5"
+    },
+    {
+      "path": "node_modules/effect/dist/Struct.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Struct.js",
+      "sha256": "eb6cac3d61bf089966e32238edf19a68b669f6206a19856f5633a4205f5f24fe"
+    },
+    {
+      "path": "node_modules/effect/dist/Terminal.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Terminal.js",
+      "sha256": "a0cbf19d908e3951acce1d67c5f906af6ccd0c4c21cd7fe4d7b827d5bf966ac8"
+    },
+    {
+      "path": "node_modules/effect/dist/Tracer.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Tracer.js",
+      "sha256": "32046c97fab0422e8abe74185f9a83b4653b05bffd4fa8c04040c7c1d3380360"
+    },
+    {
+      "path": "node_modules/effect/dist/Utils.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/Utils.js",
+      "sha256": "2162964fea44e1dd560e0fa640132d67c7f40202aaaa805085ca1cdad91718ea"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/CliConfig.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/CliConfig.js",
+      "sha256": "0be7554c7fab4840685065d2930bf714b35a680b6d640c4a9a7eb9c05c83bd38"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/CliError.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/CliError.js",
+      "sha256": "eab9c0f93140c6708ae5d9750dd41697779f307ae5fdee0960c2dc7719a88e07"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/CliOutput.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/CliOutput.js",
+      "sha256": "280ef8fba6da6ddfc128c4b820d8524385dbc437d0a70358a364f6921c5e666c"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/Command.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/Command.js",
+      "sha256": "3be375914c090bbce959786d55aecd401a4f0dd7c6e42d3fbc6e553be8eddaa5"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/Completions.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/Completions.js",
+      "sha256": "45b3951f612e7d5de8a80d85ad24bc628ebbb6554c27b6430192c47d673dd0b1"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/Flag.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/Flag.js",
+      "sha256": "87f6540d3026995761a54b0e6354c60b742f7cd6e290314347d9c3a633c89ac5"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/GlobalFlag.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/GlobalFlag.js",
+      "sha256": "4b67acfd5b5d55e77cff4a80027bc153c828b62dddfc5d81b4c8d5beec07b82e"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/Param.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/Param.js",
+      "sha256": "c749f759810dc7f53d0893ecf1e6b4167a8168cd94764d1be7c9a0d61789da29"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/Primitive.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/Primitive.js",
+      "sha256": "559197844d5ffae06f89893ec10d6a58f21d59976b87902f923a2c9dddba0471"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/Prompt.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/Prompt.js",
+      "sha256": "f6dfe32fa9ce3226c301d79386bc533eb2f96d5a5d0a018509d08ac849519bd1"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/internal/ansi.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/ansi.js",
+      "sha256": "c041eb79530cb0c660581e8a30c07d38ddcac55d3aa4e03618431da1ed208776"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/internal/auto-suggest.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/auto-suggest.js",
+      "sha256": "0efc9ce6dea5cab586443ee9f7b99ac3afb0bc87cbe70273a0176924ea641086"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/internal/command.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/command.js",
+      "sha256": "16b2c699aaef795aa73b376357943f5ad8ac875761908a12299b3688c30fecb6"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/internal/completions/bash.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/completions/bash.js",
+      "sha256": "b4f089752b9b3656f2cc2dda3a468950d39286812406bbd7c1e6e3ce96f17641"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/internal/completions/descriptor.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/completions/descriptor.js",
+      "sha256": "b5769e36e13f63c6f035ce9dea6cbf6f9549e4439bb449cce61f32c41277a376"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/internal/completions/fish.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/completions/fish.js",
+      "sha256": "345d848db6ad2d8a9fb5f6054a0420d4524e2eaed64623f57af1b7bf7ec19ada"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/internal/completions/zsh.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/completions/zsh.js",
+      "sha256": "d8690b9568af80cadb1e2d47cbf331486421fe20402527c27a0395580838f134"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/internal/config.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/config.js",
+      "sha256": "13acb7cfdcc0aa5516c76979397f87022b8673ea315aa9c6c1a8a5d01cb3914c"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/internal/help.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/help.js",
+      "sha256": "4a37fbfb5b12fdd3510a83b551a43bba3591858807dbb03ceada55749f625f5f"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/internal/lexer.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/lexer.js",
+      "sha256": "d967355eef2a16ec4e95bdf7e38ab8f3dc0146acfe355bbf6acc261cf3716f9c"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/internal/parser.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/parser.js",
+      "sha256": "8360f3f8380e17dd315c98bcb9385952b76ae54d2ed3378dfafb7954b8163640"
+    },
+    {
+      "path": "node_modules/effect/dist/cli/internal/wizard.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/cli/internal/wizard.js",
+      "sha256": "a344e9b12d527b637e7c2901e35b62a4540a3dec83524b358eae78a56c8912b1"
+    },
+    {
+      "path": "node_modules/effect/dist/encoding/Base64.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/encoding/Base64.js",
+      "sha256": "81c4c32cecdef74f305d34a636310d9a0e8a4fe624c78ae5d348feb4efc39f29"
+    },
+    {
+      "path": "node_modules/effect/dist/encoding/EncodingError.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/encoding/EncodingError.js",
+      "sha256": "2fc4c5c700babd9702c834d30bdbf023c3122dd931782f405820d888c939457b"
+    },
+    {
+      "path": "node_modules/effect/dist/encoding/Hex.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/encoding/Hex.js",
+      "sha256": "47c1a8af69b660fd80cd7a68585c3f74a878a1916817391efde0daba3ddb3409"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/array.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/array.js",
+      "sha256": "80d18985f436d7709120dd4114bc8814a3401b807176c5f765552ec9b5076768"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/core.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/core.js",
+      "sha256": "12721b291e5e9bde033a183e84ed5a9d3ac24af31d86d681526e7de3b844b80b"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/count.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/count.js",
+      "sha256": "193a8d7aa07837b4365d9b069d3c4e49984bd2d4310ee66528ea5105a458ab23"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/effect.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js",
+      "sha256": "ccfdc5fbe93aebd043a9c40e6e055ef1c4d3de14707b7956df7d9f3b86358183"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/equal.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/equal.js",
+      "sha256": "9647a0b07469083ac41575ac7cedefe27f4b4acc74ff594b8dd0f43eb5726513"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/hash.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/hash.js",
+      "sha256": "2c5c8af0250ca6c93d5ca4c77b792d14f6be3b832674dc5de24b36574fa7917b"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/layer.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/layer.js",
+      "sha256": "c3a0c894ad7c12fb47339caefa2b765c5abc7e9d143466dbb571a1d49242c91f"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/metric.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/metric.js",
+      "sha256": "0a84c8737f3964bdb3ba638e9ccbf91eadbf37448a597de0f94a127a4cf98e14"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/option.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/option.js",
+      "sha256": "a5555cf335c57523857124d7e822bd3144783770496595252112aae8457953ce"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/random.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/random.js",
+      "sha256": "5c5586b325a93aaf29fc6a1e387d92930215e4396167a7d6b773a1cb0caed679"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/rcRef.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/rcRef.js",
+      "sha256": "49938b90c3b7842c6cf12153b773b0f1d46fd05874d8ee62c0c842900c2f50c6"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/record.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/record.js",
+      "sha256": "5f69f20dae4d32a2022c820c969702245ec760db16ec7fd1b301e5542f3e04c0"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/redacted.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/redacted.js",
+      "sha256": "487579615a31ae178f78037b4976b266087f25b400e1ac37da2e2d0e40c9a843"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/references.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/references.js",
+      "sha256": "9c521f0705ac93192702426ca78258391fb1d13b1c13e7eb2fedd680d12a0b4a"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/result.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/result.js",
+      "sha256": "5583239745f26024538ffc533c8d7427e5e4b88a67bc8ec6d7e1f8e5d2c561f8"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/schedule.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schedule.js",
+      "sha256": "dc62612d53ea7cba7e1bb7c9b603f72f9e514d75b77c32e2ea95cb9351b4711d"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/schema/annotations.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/annotations.js",
+      "sha256": "b2c173df146ea983beed9192289573ebc4a665d3327d1293b2ba733d54c62e0d"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/schema/cause.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/cause.js",
+      "sha256": "4eb2907102768c72b18acee89cbc1d680bb0ec57d22c7e3ec8982a0db5442665"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/schema/compilerRegistry.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/compilerRegistry.js",
+      "sha256": "006b4325aabb21b3ec63e0e059da3c3b9c5473cead64674336488b0357c8fc4b"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/schema/interpreter.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/interpreter.js",
+      "sha256": "5ce05e0bf13f695a9ac747179cd53e31560e2136c1b6c63065baf2c5c0f6b01a"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/schema/make.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/make.js",
+      "sha256": "f4523db1dd1df64267153bcd0eee6606d1b87d4125b525e351e7f5201897ddc6"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/schema/parser.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/parser.js",
+      "sha256": "d84be8cc11c78c4ac220c87e86b3823755ad58ac8b439bfb82855c051529ed2d"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/schema/toCodec.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schema/toCodec.js",
+      "sha256": "513df0fe96bcd5788ec35ee482b1195b4b285131687dfb440290cddac1dbe4f9"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/schemaError.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/schemaError.js",
+      "sha256": "6e5228a1919f2184de714e1b38550ba19120f62413f6b603b32baf705b1154ea"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/stackTraceLimit.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/stackTraceLimit.js",
+      "sha256": "2105dfe57b2ead8f8afbc49ab6ce621ab62c0e4ea59e3a75a10bc4f6261be487"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/stream.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/stream.js",
+      "sha256": "7cf9796b087959f8ed3d0aef015bb7f721b86bb910d2e399ebd27d32a3526394"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/tracer.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/tracer.js",
+      "sha256": "a2267aa4582da02644d648f7095009cd8ec41acba871b5f5b6cad973c94fc0c0"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/ulid.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/ulid.js",
+      "sha256": "45dd96d80293c15f2d23eb319a979c95cfeeac01788f707e02d748d1e4344ffe"
+    },
+    {
+      "path": "node_modules/effect/dist/internal/uuid.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/internal/uuid.js",
+      "sha256": "a2abf7876046a9f6fc2147fd558e9f37e4f34dd2cf93ab1115f5b363fdb84647"
+    },
+    {
+      "path": "node_modules/effect/dist/process/ChildProcess.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/process/ChildProcess.js",
+      "sha256": "af683e7d35239200918fa8133f996d8e05123a06a0e66506925743b765a2afca"
+    },
+    {
+      "path": "node_modules/effect/dist/process/ChildProcessSpawner.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/node_modules/effect/dist/process/ChildProcessSpawner.js",
+      "sha256": "56a105ff89fcd0a1686b03f175c9808ec4f3c3ab749de552bf320d39f8b66f4e"
+    },
+    {
+      "path": "package.json",
+      "physicalPath": "/workspace/typescript/hapsland-243/package.json",
+      "sha256": "59a16b3fd732bed125ed755e6193d3b9e033a55605586c37d1b3692c09f0987e"
+    },
+    {
+      "path": "src/activity/demo-trace.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/activity/demo-trace.ts",
+      "sha256": "ce47244f8380049e6a379513871d8f471bb7eef6c162dcda0c6df413a291c16a"
+    },
+    {
+      "path": "src/activity/status.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/activity/status.ts",
+      "sha256": "1d94f9d0e4c8304b0da973695d2bfbbc744a6148296f84784fda4d0dd879bd41"
+    },
+    {
+      "path": "src/activity/storage.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/activity/storage.ts",
+      "sha256": "75801e8e3246f4574d8268e4b193b7a61fc6bf92749a11b8da0b3b3f81d5061f"
+    },
+    {
+      "path": "src/canonical/adapter.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/canonical/adapter.ts",
+      "sha256": "29f4c44a242e31a86ad042af0fc7c23cb755dc9d230344c3cfcef152a60712a3"
+    },
+    {
+      "path": "src/canonical/boundary-schema.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/canonical/boundary-schema.ts",
+      "sha256": "c2239343dad8848d25a0f29b476724c0c2120ad6474b7f1a994f889cc0d06057"
+    },
+    {
+      "path": "src/canonical/canonical-boundary.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/canonical/canonical-boundary.ts",
+      "sha256": "1528747e4175a1fbf8cd6eefd22ea7a837aa11038cc511c459514fad18a1742b"
+    },
+    {
+      "path": "src/canonical/canonical.generated.js",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/canonical/canonical.generated.js",
+      "sha256": "6d539087749d74f89d3db027c3bc2dc3626ea873089c4360e66d092c5bec92d3"
+    },
+    {
+      "path": "src/canonical/constructors.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/canonical/constructors.ts",
+      "sha256": "32bebd35b9dc5556f266bdb745e90090edf83741a636ca3234c50a3536012f78"
+    },
+    {
+      "path": "src/canonical/event-reader.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/canonical/event-reader.ts",
+      "sha256": "51e6d456132b9d2cb01a2dfbb5ab082d2471e77c4fdb83cdc2d78d9e798797c3"
+    },
+    {
+      "path": "src/canonical/immutable.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/canonical/immutable.ts",
+      "sha256": "f54fb9d505e76e63a7f5d6b67ec0282774d4f9950d487adcc7985a98800eebee"
+    },
+    {
+      "path": "src/canonical/models.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/canonical/models.ts",
+      "sha256": "6f3a877415541ab42892b3018c4cb2b173bfdf18de73ebf9633b72ea86912530"
+    },
+    {
+      "path": "src/configuration/decision.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/configuration/decision.ts",
+      "sha256": "447bb62c86cbae29762fa25329d501bf24573b5afbde44ade8dc07d7e9eec33a"
+    },
+    {
+      "path": "src/configuration/decode.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/configuration/decode.ts",
+      "sha256": "c1d5fd80ad3cdc6789082892f65967db253106bb86c49f73d7cc1493c50a0aeb"
+    },
+    {
+      "path": "src/configuration/errors.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/configuration/errors.ts",
+      "sha256": "cec15947447983e03e9ec5b03201d260d3f5d2b134ea7eadc456a1572906f090"
+    },
+    {
+      "path": "src/configuration/graph-limits.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/configuration/graph-limits.ts",
+      "sha256": "aaaa9a6e5984e418ad5db0f46e75b3d725c69acf6f9830f814ac15a5dde061ce"
+    },
+    {
+      "path": "src/configuration/jsonc.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/configuration/jsonc.ts",
+      "sha256": "b70299170ea1397112125c199d3196b09a0a0822e0719052f328688d6058bfc8"
+    },
+    {
+      "path": "src/configuration/load.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/configuration/load.ts",
+      "sha256": "e59b4694c76ee0d1d585af4a80e00d897e8b1aa57b1d2283b1562c37401c72a5"
+    },
+    {
+      "path": "src/configuration/resolve.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/configuration/resolve.ts",
+      "sha256": "8dae3828be9e2199ec1d3151b246ca04b0e282429c71c4f2e5dc46f5d290dd2a"
+    },
+    {
+      "path": "src/configuration/types.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/configuration/types.ts",
+      "sha256": "c7b6728c7a5c5c6538e247805892fb84afc2022c002559aa5112415b040d9388"
+    },
+    {
+      "path": "src/credentials/input.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/credentials/input.ts",
+      "sha256": "9b755d6b732fcfb322bb2f968888c2ce3c3f8cda4d6998b15d7a08f01cd05852"
+    },
+    {
+      "path": "src/credentials/state.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/credentials/state.ts",
+      "sha256": "66412ba1c90c1bae79db463c63bdc0e6bbb2f27ef694f5bc0320a70d9da9046a"
+    },
+    {
+      "path": "src/direct-event/adapter.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/direct-event/adapter.ts",
+      "sha256": "8e8a1124848e9c3b66da129a737a52f0e684f309461683c8977fa746df486bd7"
+    },
+    {
+      "path": "src/direct-event/capture.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/direct-event/capture.ts",
+      "sha256": "10cf9a0b6094dee6078011c29e153aa8df3771894c751e1b1df5a0a199e9bda5"
+    },
+    {
+      "path": "src/direct-event/claude-output.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/direct-event/claude-output.ts",
+      "sha256": "4b1bb0640f38520d9d0ae8dad23fadd299a48a3c8cda5d71ba29c6768c3fc3b3"
+    },
+    {
+      "path": "src/direct-event/languages/path-language.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/direct-event/languages/path-language.ts",
+      "sha256": "6e8218c5671add2f5a2195e6901b7a27df085f465964aa0be3e46cb97e9e3a85"
+    },
+    {
+      "path": "src/direct-event/observation.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/direct-event/observation.ts",
+      "sha256": "9b2adc03859c900bf6814d853f5c34820f464e3d5b14c62e7873eea377332ad3"
+    },
+    {
+      "path": "src/direct-event/patch-hunks.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/direct-event/patch-hunks.ts",
+      "sha256": "54fe549f16dcc4284a98702a0aef86dcb0bd85dfe065e09178c9fefdcde8b22e"
+    },
+    {
+      "path": "src/direct-event/pi-adapter.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/direct-event/pi-adapter.ts",
+      "sha256": "316798d20e2e26eaec84790ef0d9498dd5b151e08d56938c863555a151f39e50"
+    },
+    {
+      "path": "src/direct-event/pi-patch-hunks.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/direct-event/pi-patch-hunks.ts",
+      "sha256": "6e4d162a716bc29463d4b37dbb2c7b92c9c7d24c9e11a785c927685fe26f82d3"
+    },
+    {
+      "path": "src/direct-event/selection.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/direct-event/selection.ts",
+      "sha256": "f642d9dd29fd6e52e598e7eeacd987737c6213e9b64876577f0054f1e667430e"
+    },
+    {
+      "path": "src/direct-event/writer.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/direct-event/writer.ts",
+      "sha256": "3e26ed8857b365b4a579d6f282dc2d68df57ca0c76b2f19ad9f727d882412dfb"
+    },
+    {
+      "path": "src/domain/rule-identity.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/domain/rule-identity.ts",
+      "sha256": "c68c2786fcb934b58510c7f10f53b017e34ca8886b8a7083f0178d914bfd855a"
+    },
+    {
+      "path": "src/hook-main.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/hook-main.ts",
+      "sha256": "44fb88e4e79b6c63d339a43a31a051b29daefa1cc137af0c415eb946baf4ddc9"
+    },
+    {
+      "path": "src/hooks/arguments.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/hooks/arguments.ts",
+      "sha256": "fd80bea0d20e64143e1ab0bd190d74e4e0acf627d3b52e36ae44d32872383a5d"
+    },
+    {
+      "path": "src/hooks/command.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/hooks/command.ts",
+      "sha256": "25a1f7c92f977533d613c8d74d6dfde03a897fce590a0e1e1e5fa17a28cf5eee"
+    },
+    {
+      "path": "src/hooks/direct.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/hooks/direct.ts",
+      "sha256": "278255b9098bbe3b32f9d40a29f8f5867c026adb6d5ac13b476f7d4949af65fc"
+    },
+    {
+      "path": "src/hooks/program.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/hooks/program.ts",
+      "sha256": "15c3108c77747e88979403761459f7828fbdf54a3ef9ff6fb0484a5cbc1c42d0"
+    },
+    {
+      "path": "src/inspection/contract.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/inspection/contract.ts",
+      "sha256": "a553fecfd95a9571f8cadd6537645814e4983ab0bb3272f25447717476838c22"
+    },
+    {
+      "path": "src/matcher/glob.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/matcher/glob.ts",
+      "sha256": "48d8ae887efe9a66d0f8948b655b6e46c03b45f2e6a157fd9290587ef9fc44be"
+    },
+    {
+      "path": "src/pi/transport.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/pi/transport.ts",
+      "sha256": "b816e0eaa6f7ece0e1de91b0b6f2534e5d9b47692bd69a07df4fb60f11d85fab"
+    },
+    {
+      "path": "src/policy/file-policy.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/policy/file-policy.ts",
+      "sha256": "dfa87cdfd742b25c6a03f7a43c644b58d9db445fe9b8bc07d67598542dd8246a"
+    },
+    {
+      "path": "src/policy/path-facts.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/policy/path-facts.ts",
+      "sha256": "766db2254497f208cba531313a5f1b75cb6cabf6f7e5264b925edbdfc0775a02"
+    },
+    {
+      "path": "src/process/closed-stdin.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/process/closed-stdin.ts",
+      "sha256": "56c54cafa0db0edbc61d75a0491128755537fc268c934f27d5e63a36ecf1d04c"
+    },
+    {
+      "path": "src/repository/root.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/repository/root.ts",
+      "sha256": "814c36cb0114e76098a4fc3e49f35d0255a52641efe7736ac77d2f1808038001"
+    },
+    {
+      "path": "src/resident/client.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/resident/client.ts",
+      "sha256": "778d8a563cc11e62cbc643e95f94eb241b1e17623ceb452d9e3bd428e1206adf"
+    },
+    {
+      "path": "src/resident/composed-hook.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/resident/composed-hook.ts",
+      "sha256": "becba6e35bf3ba494977fc2440cfbb257ecd493eb1b502f83457bc5171f8df25"
+    },
+    {
+      "path": "src/resident/controlled-options.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/resident/controlled-options.ts",
+      "sha256": "86525a8dc47b54d5c4b8a96c178c44a42c95592c0ab4ac419f76a8b76cd02811"
+    },
+    {
+      "path": "src/resident/direct-hook-output.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/resident/direct-hook-output.ts",
+      "sha256": "33b0fdf4b2e181c3126ae79b80303ece7224f0ca0cb14cc344b0723c501dbda9"
+    },
+    {
+      "path": "src/resident/hook-clock.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/resident/hook-clock.ts",
+      "sha256": "69cad0d8d0d3f7152c1ebff72f800f5e7d645396ac0a5a484e82ce3498a3e399"
+    },
+    {
+      "path": "src/resident/hook-output.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/resident/hook-output.ts",
+      "sha256": "1ee6691e865d20970f2e41a3b7c4a7874c2a699d243afa39e1e80ebdc13b4ecc"
+    },
+    {
+      "path": "src/resident/paths.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/resident/paths.ts",
+      "sha256": "16d0191bf8f883f5e8736a5db092949ec51865ab0aeb3a2549e2a24b6c02c4f6"
+    },
+    {
+      "path": "src/resident/protocol.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/resident/protocol.ts",
+      "sha256": "4ea9eef17a948ae58253e7c1c45a72fff3ef6d6d3d5c3c283d49185a9d93219c"
+    },
+    {
+      "path": "src/runtime/argument-flags.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/runtime/argument-flags.ts",
+      "sha256": "697e3d654b8e71cd084c230d2978be2a3e028c9d300169aabb25709258e467fc"
+    },
+    {
+      "path": "src/runtime/backend.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/runtime/backend.ts",
+      "sha256": "073ff119340b568654a9ca216f2240fdeec0391ca66bb519dc936bafafbeebbd"
+    },
+    {
+      "path": "src/runtime/bun-runtime.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/runtime/bun-runtime.ts",
+      "sha256": "ce8ca4d4bf1a5a06aca6343b043f52471987d448ec0c26d07021c9568bf65764"
+    },
+    {
+      "path": "src/runtime/cli-information.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/runtime/cli-information.ts",
+      "sha256": "a95bb33ff8e34578c54bbfd22ee677d758ec6486c0afe93cfe27b10d78f09b82"
+    },
+    {
+      "path": "src/runtime/cli-names.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/runtime/cli-names.ts",
+      "sha256": "ce8e3f7737246530e1ee6576dcc42ef3fb8fd01122a290ec327d3458966d65bd"
+    },
+    {
+      "path": "src/runtime/input-settings.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/runtime/input-settings.ts",
+      "sha256": "c801d77fa9b8d16eaf69dc1ca8d421d4559f50138d9a10cc04f22bb07c8ed8f5"
+    },
+    {
+      "path": "src/runtime/machine-clock.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/runtime/machine-clock.ts",
+      "sha256": "15597fca05c08fb17422eeb165eb5b1db6a4d15469c27d76b4bdf882ea1d0293"
+    },
+    {
+      "path": "src/runtime/package-runtime.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/runtime/package-runtime.ts",
+      "sha256": "e8b41c956863972be526d12cfe378229180b94a5e80402d472074b72fd2bbe6f"
+    },
+    {
+      "path": "src/runtime/review-settings-error.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/runtime/review-settings-error.ts",
+      "sha256": "4599fb6bd7e1f307c0f695a536ec22f069c3eabb9236027d006e6f08ce9e4e4b"
+    },
+    {
+      "path": "src/runtime/source-runtime-layout.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/runtime/source-runtime-layout.ts",
+      "sha256": "ab25d92accb2e684724b1eda58a0a7cf2c98b3feb471e8a4846343279941f166"
+    },
+    {
+      "path": "src/runtime/user-paths.ts",
+      "physicalPath": "/workspace/typescript/hapsland-243/src/runtime/user-paths.ts",
+      "sha256": "db47c4cb71ab01daaec06fc31e269f01e2717703821050c00096cbc59cf5572c"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "dist/bin/linux-arm64/hapsland",
+      "mode": 493,
+      "sha256": "4647a440fa3f5fb140049555688fe4613311f79221a205ab3613c011780b4448"
+    },
+    {
+      "path": "dist/bin/linux-arm64/hapsland-doctor",
+      "mode": 493,
+      "sha256": "2e3b0bc702567945ae2b63393daf6c0cb8c45898aba07f2372e0d78b2be68908"
+    },
+    {
+      "path": "dist/bin/linux-arm64/hapsland-hook",
+      "mode": 493,
+      "sha256": "c77de50b5d8b320713d4570192e12b0bb3c39ebfc2ccd5577f35cbed181b34cd"
+    },
+    {
+      "path": "dist/bin/linux-arm64/hapsland-parser",
+      "mode": 493,
+      "sha256": "a81a21cf23047f92ed826db14e2c6ea102d4af3889dacce4c775fdec660e34ff"
+    },
+    {
+      "path": "dist/bin/linux-arm64/hapsland-resident",
+      "mode": 493,
+      "sha256": "840f823111727043b8fdd0d118201c632cdb15274b5dfe3a8074aa841f4106ad"
+    },
+    {
+      "path": "native/prebuilt/linux-arm64/credential-secret-service",
+      "mode": 493,
+      "sha256": "a06b696908aba2f1ba0107faa89a5eb942e3b8c40f00cccc8dcf705a6ba484a8"
+    },
+    {
+      "path": "native/prebuilt/linux-arm64/inspection-lock.node",
+      "mode": 493,
+      "sha256": "dc3dd50598b465f74d90516660c73408bed01ea38d8c6df27777d5939d93d4bc"
+    },
+    {
+      "path": "native/prebuilt/linux-arm64/tree-sitter/build/Release/tree_sitter_runtime_binding.node",
+      "mode": 493,
+      "sha256": "d4dbe0dcf6fe46de813fe1b70799c11f9ff76ad61a2e7f870c131ba7ecee5765"
+    },
+    {
+      "path": "native/prebuilt/linux-arm64/tree-sitter-rust/build/Release/tree_sitter_rust_binding.node",
+      "mode": 493,
+      "sha256": "1987b9321878e7f3e525203dd130cd921933a94bc7b13dfccc90798f1f2459a8"
+    },
+    {
+      "path": "native/prebuilt/linux-arm64/tree-sitter-typescript/build/Release/tree_sitter_typescript_binding.node",
+      "mode": 493,
+      "sha256": "ffad1458302106be91ac17301f8595dbb04cf83712fd8debfa54f41ef1cbebd8"
+    },
+    {
+      "path": "package-runtime.json",
+      "mode": 420,
+      "sha256": "6f332f27d8c34590fd37b0743f521df13a1f13e3b27db74eb69e577b2d5fec3c"
+    },
+    {
+      "path": "package.json",
+      "mode": 420,
+      "sha256": "59a16b3fd732bed125ed755e6193d3b9e033a55605586c37d1b3692c09f0987e"
+    },
+    {
+      "path": "src/rules/defaults/absence_confusion.json",
+      "mode": 420,
+      "sha256": "9a402c2eaf595c4206ef3a2a7be7ce91cae9ca2396f7c7141505430227241ff1"
+    },
+    {
+      "path": "src/rules/defaults/bare_domain_value.json",
+      "mode": 420,
+      "sha256": "9838ce074062b3dcea4195f217f04701130c95fe47ed940ec38b27c59ebd86e4"
+    },
+    {
+      "path": "src/rules/defaults/body_reaches_undeclared.json",
+      "mode": 420,
+      "sha256": "a89942da4c44fe3d248d878aece773895df2eae9a984186199cb754796126151"
+    },
+    {
+      "path": "src/rules/defaults/meaningless_combinations.json",
+      "mode": 420,
+      "sha256": "a01fa3bc12ed9df2070a10bb7d01e9981e3737b48f98dfd350d88dbd2833fc58"
+    },
+    {
+      "path": "src/rules/defaults/name_claims_resource.json",
+      "mode": 420,
+      "sha256": "3ea2d1b0877948ad336c1bda9756071785725b11c80d6f1c403387025ab53099"
+    },
+    {
+      "path": "src/rules/defaults/name_wider_than_type.json",
+      "mode": 420,
+      "sha256": "42e9dc2ee79505727162fa0ab0c22d73f83a8adbde9269f7ea2575ea6415a28e"
+    },
+    {
+      "path": "src/rules/defaults/split_correlations.json",
+      "mode": 420,
+      "sha256": "a9205de68d4a27285b544c7ff7c88078bdf88196e6acc12c5aae4c483f602bd6"
+    }
+  ],
+  "platform": "linux",
+  "architecture": "arm64",
+  "source": {
+    "path": "src/hook-main.ts",
+    "sha256": "44fb88e4e79b6c63d339a43a31a051b29daefa1cc137af0c415eb946baf4ddc9"
+  },
+  "emitted": {
+    "path": "/tmp/hapsland-243-hook-candidate-03/emitted/hook.js",
+    "sha256": "90d60d50355c6cc10f048f6e70be33e74b802ff2de4644ca9bca2126ac728960"
+  },
+  "executable": {
+    "path": "/tmp/hapsland-243-hook-candidate-03/release/dist/bin/linux-arm64/hapsland-hook",
+    "sha256": "c77de50b5d8b320713d4570192e12b0bb3c39ebfc2ccd5577f35cbed181b34cd"
+  },
+  "emissionMetafile": "01da1328e761a625c30711a1243d986c1aa18ecb8b2d37426eacfaebf99ba721",
+  "assemblyMetafile": "78eae6a774fb2b35df5c68bdbd37965d6a850a211bee68f20f53f4a9e3988dbd",
+  "limitations": [
+    "Bundled JavaScript emission, not dependency-ordered package compilation",
+    "No cache/publication enforcement",
+    "No ordinary installed launcher or registration migration",
+    "No platform or startup improvement claim"
+  ]
+}

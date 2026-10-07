@@ -8,7 +8,7 @@ import {
   sourceRuntimeLayout,
   sourceRuntimeCommand,
   sourceRuntimeEntries
-} from "../src/runtime/source-runtime-layout.ts"
+} from "../packages/runtime-environment/src/runtime/source-runtime-layout.ts"
 
 const hash = (value) => createHash("sha256").update(JSON.stringify(value)).digest("hex")
 export async function ensureSourceRuntime({
@@ -28,6 +28,7 @@ export async function ensureSourceRuntime({
       undefined,
       (path) =>
         (path.startsWith("src/") ||
+          (path.startsWith("packages/") && !path.includes("/dist/") && !path.includes("/.turbo/")) ||
           path.startsWith("scripts/") ||
           path.startsWith("native/prebuilt/") ||
           ["package.json", "package-runtime.json", "bun.lock"].includes(path)) &&

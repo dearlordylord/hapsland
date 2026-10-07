@@ -1,0 +1,46 @@
+{
+  "runId": "20261007140350357-1054429-3e2ced",
+  "candidateCommit": "d7f44786",
+  "state": "failed",
+  "exitCode": 2,
+  "elapsedMs": 1480145,
+  "testsPassed": 2240,
+  "testsSkipped": 2,
+  "testFilesPassed": 212,
+  "testFilesSkipped": 1,
+  "coverageComplete": true,
+  "scorerComplete": true,
+  "breaches": [
+    {
+      "function": "selectFittingClaudeStopNotices",
+      "crap": 8.605632
+    },
+    {
+      "function": "discardUnusedPartition",
+      "crap": 8.543082
+    },
+    {
+      "function": "validateUpdateHook",
+      "crap": 8.304
+    },
+    {
+      "function": "residentRetainAdvice",
+      "crap": 8.199053
+    },
+    {
+      "function": "validRoundClosureFields",
+      "crap": 8.125
+    }
+  ],
+  "threshold": 8,
+  "coverage": {
+    "statements": 93.59,
+    "branches": 82.35,
+    "functions": 92.73,
+    "lines": 97.08
+  },
+  "ownerProcessesStopped": true,
+  "lockReleased": true,
+  "retainedDirectory": "evidence/build-243/quality-10",
+  "nextAction": "Meaningful focused behavioral evidence for each flagged owner; unchanged policy and source selection."
+}

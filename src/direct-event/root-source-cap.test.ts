@@ -1,14 +1,18 @@
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
-import { resolveConfiguration, effectiveGraphLimits } from "../configuration/resolve.ts"
-import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
-import "../policy/rules.ts"
-import { compileRule } from "../rules/compiler.ts"
-import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
-import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts"
-import { adaptCodexDirectEvent } from "./adapter.ts"
-import { measuredRootSourceDecision, prepareObservation, reviewObservation } from "./pipeline.ts"
-import { addEvent, makeGitFixture, put } from "./test-fixtures.ts"
+import { resolveConfiguration, effectiveGraphLimits } from "@hapsland/runtime-inputs/configuration/resolve"
+import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
+import "@hapsland/review-execution/policy/rules"
+import { compileRule } from "@hapsland/review-definition/rules/compiler"
+import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import {
+  measuredRootSourceDecision,
+  prepareObservation,
+  reviewObservation
+} from "@hapsland/review-execution/direct-event/pipeline"
+import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 const rules = [
   {

@@ -10,7 +10,7 @@ import { decodeNativePrefix } from "./callback-native-prefix.ts"
 import { decodeWriterNativeBoundary } from "./writer-native-boundary.ts"
 import { validateLiveControl, type LiveControl } from "./controls.ts"
 import { encodeCollectionResponse } from "./collection-scenario.ts"
-import { readBendList, readRecord } from "../../../src/canonical/boundary-schema.ts"
+import { readBendList, readRecord } from "@hapsland/canonical-policy/canonical/boundary-schema"
 
 const modes = Array.from({ length: 13 }, (_, mode) => mode)
 const seeds = [3, 17, 41, 97] as const

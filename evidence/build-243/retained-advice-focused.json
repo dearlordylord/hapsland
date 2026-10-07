@@ -1,0 +1,176 @@
+{
+  "format": 1,
+  "boundary": "retained advice publication and reuse",
+  "qualified": {
+    "runId": "20261007145605557-1337147-4e4b1a",
+    "resultsPath": "/workspace/typescript/hapsland-243/.test-runs/20261007145605557-1337147-4e4b1a/results.json",
+    "stageRecordPath": "/workspace/typescript/hapsland-243/.test-runs/20261007145605557-1337147-4e4b1a/stages/1337147-001-resident-retention-coverage.json",
+    "logPath": "evidence/build-243/retained-advice-focused.log",
+    "exitCode": 0,
+    "state": "passed",
+    "elapsedMs": 77576,
+    "testFiles": 1,
+    "testsPassed": 88,
+    "coveragePath": "/tmp/hapsland-243-server-coverage-12/coverage-final.json",
+    "coverageSha256": "5d5a01a520898daad3e290d9f21bf03acaed21a6d3bb568c639275b99df64048"
+  },
+  "scorer": {
+    "path": "evidence/build-243/retained-advice-focused-score.json",
+    "sha256": "14535b1c79579223b2d802065e143eeb641fa7ef087d381fca4e0403ff072447",
+    "exitCode": 2,
+    "targetRows": [
+      {
+        "id": "packages/resident-runtime/src/resident/server.ts::<anonymous>@4227:22@185679-188506",
+        "path": "packages/resident-runtime/src/resident/server.ts",
+        "name": "<anonymous>@4227:22",
+        "kind": "function_expression",
+        "range": {
+          "start": {
+            "offset": 185679,
+            "line": 4227,
+            "column": 22
+          },
+          "end": {
+            "offset": 188506,
+            "line": 4289,
+            "column": 5
+          }
+        },
+        "complexity": 6,
+        "coverage": {
+          "status": "measured",
+          "covered": 8,
+          "total": 12,
+          "fraction": 0.6666666666666666
+        },
+        "crap": 7.333333333333334
+      },
+      {
+        "id": "packages/resident-runtime/src/resident/server.ts::<anonymous>@4211:85@184950-185473",
+        "path": "packages/resident-runtime/src/resident/server.ts",
+        "name": "<anonymous>@4211:85",
+        "kind": "function_expression",
+        "range": {
+          "start": {
+            "offset": 184950,
+            "line": 4211,
+            "column": 85
+          },
+          "end": {
+            "offset": 185473,
+            "line": 4220,
+            "column": 3
+          }
+        },
+        "complexity": 2,
+        "coverage": {
+          "status": "measured",
+          "covered": 3,
+          "total": 7,
+          "fraction": 0.42857142857142855
+        },
+        "crap": 2.746355685131195
+      },
+      {
+        "id": "packages/resident-runtime/src/resident/server.ts::<anonymous>@4221:73@185548-188511",
+        "path": "packages/resident-runtime/src/resident/server.ts",
+        "name": "<anonymous>@4221:73",
+        "kind": "arrow",
+        "range": {
+          "start": {
+            "offset": 185548,
+            "line": 4221,
+            "column": 73
+          },
+          "end": {
+            "offset": 188511,
+            "line": 4290,
+            "column": 3
+          }
+        },
+        "complexity": 1,
+        "coverage": {
+          "status": "measured",
+          "covered": 2,
+          "total": 2,
+          "fraction": 1
+        },
+        "crap": 1
+      }
+    ],
+    "scope": "isolated server consumer; target rows pass threshold, other isolated coverage gaps remain",
+    "diagnosticCount": 28,
+    "fullProjectPass": false
+  },
+  "inputs": [
+    {
+      "path": "packages/resident-runtime/src/resident/server.ts",
+      "sha256": "aabae30f9e027e4b370b14c897d1e7757d9f5f17d72c9a20925dbc87ff820999"
+    },
+    {
+      "path": "src/resident/server.test.ts",
+      "sha256": "55e2de39a9c241de5345605e551257450c057205ceb1b9cd6e548b8280a242b9"
+    },
+    {
+      "path": "packages/resident-runtime/dist/resident/server.js",
+      "sha256": "cbea2b13d8fe77a0fc162aef246d89ff18f6b44cef6d88dd4fcbbb35cb2ff3fe"
+    },
+    {
+      "path": "packages/resident-runtime/src/resident/capacity.ts",
+      "sha256": "a8af5e8a358dd104411b8c4af2b23b06f47c633704a3891baa8086dc88ea9dc4"
+    }
+  ],
+  "policy": {
+    "path": "crap4ts.json",
+    "sha256": "0a5a04d343a2cc0e589ea06c94a1e06d333c117b4a4250d18d5653379b3177c9",
+    "headSha256": "0a5a04d343a2cc0e589ea06c94a1e06d333c117b4a4250d18d5653379b3177c9",
+    "unchangedFromHead": true,
+    "threshold": 8,
+    "missingEvidence": "error",
+    "sourceSelectionUnchanged": true
+  },
+  "canonicalSafety": {
+    "owner": "packages/resident-runtime/src/resident/capacity.ts",
+    "line": 1023,
+    "guarantee": "AdviceRecords.publish compares captured capability against current owned entry; retired or replaced capabilities return no joined outcomes. Single-snapshot join therefore cannot resurrect retired advice."
+  },
+  "behavioralEvidence": [
+    "publication failure removes retained finding and a later cached retry delivers it",
+    "inspection retained/discarded fate records preserve evaluation identity",
+    "late equivalent admission while publication is held produces one backend evaluation and one retained/delivered finding",
+    "existing retirement, replacement and expiry consumers pass",
+    "current emitted server contains the new named private helper"
+  ],
+  "nonqualifyingExperiments": [
+    {
+      "logPath": "/tmp/hapsland-243-retain-advice-race-01.log",
+      "exitCode": 124,
+      "cause": "Unsupported FIFO timing witness timed out; failed assertion could not surface because cleanup awaited undrained audit sink. No passing evidence."
+    },
+    {
+      "logPath": "/tmp/hapsland-243-retain-advice-race-02.log",
+      "exitCode": 1,
+      "cause": "Corrected bounded cleanup exposed that advice is already retained before controlled outcome append. FIFO cannot witness pre-retention duplicate race; experiment test deleted."
+    },
+    {
+      "logPath": "/tmp/hapsland-243-retain-advice-coverage-02.log",
+      "scorerPath": "/tmp/hapsland-243-server-crap-11.json",
+      "scorerExitCode": 1,
+      "cause": "Authored helper and stale emitted server produced mixed source-map geometry. Test pass does not qualify current-runtime validation; superseded by fresh compiled coverage12."
+    }
+  ],
+  "limits": [
+    "No full-project quality pass claimed from isolated scorer.",
+    "Defensive join guard retained; late admission consumer uses legitimate upstream canonical joining, not injected private jobs.",
+    "No Darwin FIFO execution claim.",
+    "Fresh release artifact and installed validation remain root-owned after production change."
+  ],
+  "effectSkill": {
+    "path": "/home/node/.codex/skills/effect/SKILL.md",
+    "referencesRead": [
+      "references/SERVICES_LAYERS.md",
+      "references/TESTING.md"
+    ],
+    "conclusion": "Named Effect.fn generator and explicit deterministic review-control synchronization follow existing owner conventions; no concrete additional change required."
+  }
+}

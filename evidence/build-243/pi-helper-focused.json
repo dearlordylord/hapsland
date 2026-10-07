@@ -1,0 +1,26 @@
+{
+  "scope": "Focused Pi test-support helper only; no product changes or full-project coverage claim",
+  "tests": {
+    "files": 3,
+    "passed": 47,
+    "exit": 0,
+    "durationSeconds": 107.92,
+    "log": "evidence/build-243/hapsland-243-pi-helper-01.log"
+  },
+  "scorer": {
+    "exit": 0,
+    "threshold": 8,
+    "maxCC": 5,
+    "maxCRAP": 5.025,
+    "report": "evidence/build-243/hapsland-243-pi-helper-score-01.json"
+  },
+  "inputs": {
+    "scripts/test-support/pi-installed.ts": "a661ccdd4985383f812f0b498ba38f3f569546597324515c5a6d81082eb3bf3f",
+    "src/test-support/pi-installed.test.ts": "ab4e502600a995234afbcefb2dddc1e7bc83dc353ec9736ae8ce0ad4dee16a2d",
+    "crap4ts.json": "0a5a04d343a2cc0e589ea06c94a1e06d333c117b4a4250d18d5653379b3177c9",
+    "/tmp/hapsland-243-pi-helper-coverage-01/coverage-final.json": "0261102254928e2340dfc998e00b9db7c33eed368ae04ec0e1876f7c910acc0c",
+    "/tmp/hapsland-243-pi-helper-score-01.json": "08d1b9564b2489bb053b282cb4bf15e3faade158dfdb5378cf951a7108c29aeb",
+    "/workspace/typescript/hapsland-243/node_modules/@crap4ts/crap4ts/bin/crap4ts.js": "fb06f032f03fd87a8f4c882f03fafd9062fdb7cd4b888f6e50c382b9d6b758ff"
+  },
+  "archive": "/workspace/typescript/jev/.git/hapsland-artifacts/archives/d312122f4060b4383f9c2c58518f1df92285a6d143705dc585b069962f80a07b/hapsland-hapsland-0.1.0.tgz"
+}

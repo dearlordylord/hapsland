@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import * as fc from "fast-check"
 import * as Schema from "effect/Schema"
-import { DEFAULT_RULE_THRESHOLD } from "../rules/schema.ts"
+import { DEFAULT_RULE_THRESHOLD } from "@hapsland/review-definition/rules/schema"
 import {
   Comparison,
   ComparisonResult,
@@ -13,7 +13,7 @@ import {
   Observation,
   TransportObservation,
   strictParseOptions
-} from "./model.ts"
+} from "@hapsland/administration/evaluation/model"
 import {
   digestValue,
   isScenarioDigestValid,
@@ -26,7 +26,7 @@ import {
   makeObservation,
   makeRuleDefinition,
   stableStringify
-} from "./digest.ts"
+} from "@hapsland/administration/evaluation/digest"
 import {
   makeBackendIdentity,
   makeEvaluationRun,
@@ -35,15 +35,19 @@ import {
   makeRendererAdapterIdentity,
   planEvaluation,
   enforceCallBudget
-} from "./plan.ts"
-import { compareObservation, compareObservationPair, compareObservations } from "./comparison.ts"
+} from "@hapsland/administration/evaluation/plan"
+import {
+  compareObservation,
+  compareObservationPair,
+  compareObservations
+} from "@hapsland/administration/evaluation/comparison"
 import {
   buildEvaluationReport,
   isReportDigestValid,
   reportHasSemanticFailures,
   reportHasTransportAvailability,
   reportIsConformant
-} from "./report.ts"
+} from "@hapsland/administration/evaluation/report"
 
 const backend = makeBackendIdentity({ id: "controlled", version: "1", mode: "controlled" })
 const inputContract = makeInputContractIdentity({

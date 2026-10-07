@@ -4,7 +4,7 @@ import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { expect, it, vi } from "vitest"
-import { saveCredential } from "./secret-service.ts"
+import { saveCredential } from "@hapsland/credential-storage/credentials/secret-service"
 
 const fixture = vi.hoisted((): { stat: string | undefined } => ({ stat: undefined }))
 vi.mock("node:fs", async (importOriginal) => {

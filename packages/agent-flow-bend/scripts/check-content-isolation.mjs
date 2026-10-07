@@ -8,7 +8,9 @@ const project = resolve(import.meta.dirname, "../request-content")
 const bend = process.env.HAPSLAND_CONTENT_BEND ?? "bend"
 const version = spawnSync(bend, ["version"], { encoding: "utf8", timeout: 5_000 })
 assert.equal(version.status, 0, version.stderr)
-assert.equal(version.stdout.trim(), "bend 2.0.35")
+const expectedVersion = JSON.parse(readFileSync(resolve(import.meta.dirname, "../package.json"), "utf8")).hapsland
+  .toolchain.bend.version
+assert.equal(version.stdout.trim(), `bend ${expectedVersion}`)
 const source = readFileSync(join(project, "LAWS.bend"), "utf8")
 const laws = new Map(
   [...source.matchAll(/^law (\w+):\n([\s\S]*?)(?=^law |$(?![\s\S]))/gm)].map(([, name, raw]) => {
@@ -160,12 +162,22 @@ try {
   const fixture = join(temporary, "artifact-fixture")
   const fixturePackage = join(fixture, "packages/agent-flow-bend")
   mkdirSync(join(fixturePackage, "scripts"), { recursive: true })
-  mkdirSync(join(fixture, "src/review-providers"), { recursive: true })
+  mkdirSync(join(fixturePackage, "abi"), { recursive: true })
+  mkdirSync(join(fixturePackage, "dist"), { recursive: true })
+  cpSync(resolve(import.meta.dirname, "../package.json"), join(fixturePackage, "package.json"))
+  cpSync(
+    resolve(import.meta.dirname, "../abi/request-content.generated.d.ts"),
+    join(fixturePackage, "abi/request-content.generated.d.ts")
+  )
   cpSync(project, join(fixturePackage, "request-content"), { recursive: true })
   const builder = join(fixturePackage, "scripts/build-request-content.mjs")
   cpSync(resolve(import.meta.dirname, "build-request-content.mjs"), builder)
-  const artifact = join(fixture, "src/review-providers/request-content.generated.js")
-  cpSync(resolve(import.meta.dirname, "../../../src/review-providers/request-content.generated.js"), artifact)
+  const artifact = join(fixturePackage, "dist/request-content.generated.js")
+  cpSync(resolve(import.meta.dirname, "../dist/request-content.generated.js"), artifact)
+  cpSync(
+    resolve(import.meta.dirname, "../dist/request-content.generated.d.ts"),
+    join(fixturePackage, "dist/request-content.generated.d.ts")
+  )
   const artifactCheck = () =>
     spawnSync(process.execPath, [builder, "--check"], {
       encoding: "utf8",

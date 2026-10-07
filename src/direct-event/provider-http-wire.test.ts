@@ -11,8 +11,8 @@ import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import * as Decision from "effect/ai/Decision"
 import * as DecisionModel from "effect/ai/DecisionModel"
-import { DEFAULT_API_BASE, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
-import { encodedProviderHttpBodyBytes } from "./provider-body-size.ts"
+import { DEFAULT_API_BASE, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
+import { encodedProviderHttpBodyBytes } from "@hapsland/review-execution/direct-event/provider-body-size"
 
 type LocalRequest = {
   readonly input: unknown
@@ -164,11 +164,14 @@ describe("offline provider HTTP framing for proposed #138 study arms", () => {
     }
   })
   it("matches pinned provider request metadata and all 35 sanitized byte observations", async () => {
-    const packageJson = await readFixture<{ readonly devDependencies: Readonly<Record<string, string>> }>(
-      "../../package.json"
-    )
-    expect(packageJson.devDependencies["@effect/ai-typesafe"]).toBe("4.0.0")
-    expect(packageJson.devDependencies.effect).toBe("4.0.0")
+    const packageJson = await readFixture<{
+      readonly devDependencies: Readonly<Record<string, string>>
+      readonly catalog: Readonly<Record<string, string>>
+    }>("../../package.json")
+    for (const name of ["@effect/ai-typesafe", "effect"]) {
+      expect(packageJson.devDependencies[name]).toBe("catalog:")
+      expect(packageJson.catalog[name]).toBe("4.0.0")
+    }
     const cases: Array<{ id: string; local: LocalRequest; localRequestBytes: number }> = []
     for (const branch of ["type", "function"] as const) {
       const candidate = await readFixture<Candidate>(`${branch}-candidate.json`)

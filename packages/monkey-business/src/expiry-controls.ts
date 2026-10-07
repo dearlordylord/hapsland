@@ -1,6 +1,6 @@
 import { Schema } from "effect"
-import { decodeSharedValue } from "../../../src/canonical/simulation-codec.ts"
-import { decoder, Nat, PositiveNat, readBendList } from "../../../src/canonical/boundary-schema.ts"
+import { decodeSharedValue } from "@hapsland/canonical-policy/canonical/simulation-codec"
+import { decoder, Nat, PositiveNat, readBendList } from "@hapsland/canonical-policy/canonical/boundary-schema"
 import { decodeDriverEvent } from "./driver-codec.ts"
 
 /** Source-free supplied clock durations; production owns the boundary rule. */

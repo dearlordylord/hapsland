@@ -1,0 +1,43 @@
+✔ actual acceptance context supplies every API used by all case modules (82.281074ms)
+✔ mutation rollback preserves original bytes (1.780972ms)
+✔ concurrent source change is preserved (1.156634ms)
+✔ removed output can be restored (0.606421ms)
+✔ paths and repeated mutation fail closed (0.13771ms)
+✔ unfinished obligations are distinct from runnable accepted cells (0.086792ms)
+✔ rename rollback restores source and removes owned destination (1.76243ms)
+✔ rename never overwrites an existing destination (0.878882ms)
+✔ incomplete-cache fixture removes only the requested emitted member (1.072466ms)
+✔ incomplete-cache fixture rejects unknown and truncated archive profiles (0.475004ms)
+✔ incomplete-cache fixture recognizes GNU metadata rather than treating it as a path prefix (0.291586ms)
+✔ mutation paths reject symlink-parent escapes (0.926591ms)
+✔ phased acceptance preserves declared case order and rejects duplicates (0.373295ms)
+✔ created authored source is owned and removed only with matching bytes (0.732923ms)
+✔ watch-upstream-implementation requires correlated watch transitions and repaired behavior (0.452295ms)
+✔ watch-used-public-interface-break-and-repair requires correlated watch transitions and repaired behavior (0.139585ms)
+✔ watch-upstream-output-deletion requires correlated watch transitions and repaired behavior (0.129876ms)
+✔ watch-manifest-drift requires correlated watch transitions and repaired behavior (0.168501ms)
+✔ watch drift updates retain original CAS ownership and refuse concurrent edits (0.944965ms)
+✔ authored inventory includes ABI and config but never follows generated/cache output (6.793717ms)
+✔ permanent receipts deduplicate content, bound unique bytes and refuse modified evidence (1.816222ms)
+✔ candidate freeze detects auxiliary verification edits and ignores produced outputs (3.275816ms)
+✔ warm proof uses actual Turbo metadata rather than replayed producer logs (0.873549ms)
+✔ owner receipt inventory follows artifact ownership and rejects symlinks (0.733963ms)
+✔ cache corruption uses retained ordinary task metadata without an identification rebuild (0.42992ms)
+✔ successful generated-only repair can be omitted only with unchanged source and publication (0.109126ms)
+✔ undeclared-edge fixture preserves valid hook shebang and targets the workspace edge (3.615694ms)
+✔ failed or authored-mutated cells require repair without inspecting revoked publication (1.009299ms)
+✔ crosscompile acceptance checks owner bytes and mapped public output with producer host identity (0.651922ms)
+✔ incomplete assembly archive fixture supports legitimate executable members above 30MB (35.602809ms)
+✔ acceptance tool probe returns actual selected version output and refuses expired campaigns (20.881156ms)
+✔ checker acceptance requires actual function invocation rather than replayed task logs (9.929949ms)
+✔ assembly recovery permits rebuilt current bytes but rejects mixed pairs and changed cache-only restores (0.614046ms)
+✔ assembly cache and receipt fixtures own coherent pairs through actual CAS mutations (3.819737ms)
+✔ missing export and source fixtures accept only target-specific compiler refusals (0.775631ms)
+ℹ tests 35
+ℹ suites 0
+ℹ pass 35
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 240.311174

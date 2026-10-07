@@ -74,7 +74,7 @@ facts and synthetic reservation sizes are distinct measurements.
 ## Current projection boundary
 
 [`canonical-replay.ts`](src/canonical-replay.ts) replays guided and manual
-source-free events through `src/canonical/adapter.ts`. Its history is a list
+source-free events through `packages/canonical-policy/src/canonical/adapter.ts`. Its history is a list
 of inputs, and each rewind or redo starts from the checked initial state.
 `capacity-inventory.generated.ts` comes from compiled Bend admission output
 at build time. The renderer uses checked projection totals and ordered Bend

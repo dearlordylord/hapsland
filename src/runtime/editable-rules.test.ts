@@ -1,16 +1,16 @@
 import { execFileSync } from "../../scripts/test-harness/process.mjs"
-import { reviewCodexDirectEvent } from "../direct-event/pipeline.ts"
-import { addEvent, advicee } from "../direct-event/test-fixtures.ts"
-import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts"
+import { reviewCodexDirectEvent } from "@hapsland/review-execution/direct-event/pipeline"
+import { addEvent, advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { Effect } from "effect"
 import { afterEach, expect, it } from "vitest"
-import { loadReviewSettings } from "./review-config.ts"
-import { deriveAdvice } from "../policy/rules.ts"
-import { SHIPPED_DEFAULT_RULES } from "../rules/shipped.ts"
-import { Probability } from "../domain/contracts.ts"
+import { loadReviewSettings } from "@hapsland/review-definition/runtime/review-config"
+import { deriveAdvice } from "@hapsland/review-execution/policy/rules"
+import { SHIPPED_DEFAULT_RULES } from "@hapsland/review-definition/rules/shipped"
+import { Probability } from "@hapsland/review-definition/domain/contracts"
 
 const roots: string[] = []
 afterEach(() => {

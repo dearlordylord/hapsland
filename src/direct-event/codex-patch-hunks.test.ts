@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { verifyCodexPostEditHunks } from "./codex-patch-hunks.ts"
+import { verifyCodexPostEditHunks } from "@hapsland/native-observation/direct-event/codex-patch-hunks"
 
 const patch = (body: string) => `*** Begin Patch\n${body}\n*** End Patch`
 const update = (body: string) => patch(`*** Update File: src/example.ts\n@@\n${body}`)

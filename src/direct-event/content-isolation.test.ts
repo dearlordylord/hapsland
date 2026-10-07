@@ -7,13 +7,18 @@ import * as Effect from "effect/Effect"
 import * as Tracer from "effect/Tracer"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
-import { InspectionTransportObservation } from "../inspection/transport.ts"
-import { liveLayer } from "../jev-decision.ts"
-import { providerIdentity } from "../review-providers/catalog.ts"
-import { compileRule } from "../rules/compiler.ts"
-import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
-import { freezeRules, type PreparedUnit, type ReviewArtifact } from "./model.ts"
-import { evaluatePrepared, preparedProviderInput, type EvaluationEvidence } from "./pipeline.ts"
+import { InspectionTransportObservation } from "@hapsland/inspection-records/inspection/transport"
+import { liveLayer } from "@hapsland/review-execution/jev-decision"
+import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
+import { compileRule } from "@hapsland/review-definition/rules/compiler"
+import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import { freezeRules, type PreparedUnit } from "@hapsland/review-definition/direct-event/model"
+import type { ReviewArtifact } from "@hapsland/source-artifacts/direct-event/artifact-model"
+import {
+  evaluatePrepared,
+  preparedProviderInput,
+  type EvaluationEvidence
+} from "@hapsland/review-execution/direct-event/pipeline"
 
 const digest = (text: string) => createHash("sha256").update(text).digest("hex")
 const fixture = (kind: "type" | "function", secret: string): PreparedUnit => {

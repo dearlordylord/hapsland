@@ -1,17 +1,17 @@
-import { providerIdentity } from "../review-providers/catalog.ts"
+import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import {
   freezeInput,
   freezeRules,
   semanticIdentity,
-  type PreparedUnit,
-  type TypeDeclaration
-} from "../direct-event/model.ts"
-import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
+  type PreparedUnit
+} from "@hapsland/review-definition/direct-event/model"
+import type { TypeDeclaration } from "@hapsland/source-artifacts/direct-event/artifact-model"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { it } from "@effect/vitest"
 import { expect } from "vitest"
 import { Cause, Effect } from "effect"
-import { makeResidentState } from "./capacity.ts"
-import { advicee } from "../direct-event/test-fixtures.ts"
+import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
+import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 const measure = (value: unknown) => Buffer.byteLength(JSON.stringify(value))
 const prepare = (source: string): PreparedUnit => {

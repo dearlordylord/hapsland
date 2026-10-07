@@ -1,0 +1,190 @@
+{
+  "declaration": {
+    "startedAt": "2026-10-07T02:40:21.688Z",
+    "stopAt": "2026-10-07T02:41:32.252Z",
+    "scope": "Isolated feasibility only, not production acceptance",
+    "root": "/tmp/hapsland-turbo-feasibility-Dh7aiL"
+  },
+  "cells": [
+    {
+      "label": "globalgate-prime",
+      "success": true,
+      "execution": [
+        {
+          "role": "linux",
+          "started": true
+        },
+        {
+          "role": "linux",
+          "finished": true
+        }
+      ],
+      "log": "\n   • turbo 2.11.7\n   • Packages in scope: admin, assembly, bend, native, shared\n   • Running linux in 5 packages\n   • Remote caching disabled\n\nshared:build: cache hit, replaying logs c3290ded5425a485\nnative:build: cache hit, replaying logs f0caf15ef3c1be48\nnative:build: $ node ../../task.mjs native\nshared:build: $ node ../../task.mjs shared\nbend:build: cache hit, replaying logs 469e317b813589f5\nbend:build: $ node ../../task.mjs bend\nadmin:build: cache miss, executing adc0c4db261d9179\nadmin:build: $ node build.cjs\nassembly:globalgate: cache bypass, force executing 8213d4f9592b3683\nassembly:globalgate: $ node -e \"process.exit(0)\"\nassembly:linux: cache miss, executing 77dab602c558017f\nassembly:linux: $ node ../../task.mjs linux\n\n Tasks:    6 successful, 6 total\nCached:    3 cached, 6 total\n  Time:    1.345s \n\n",
+      "stderr": " WARNING  No locally installed `turbo` found in your repository. Using globally installed version (2.11.7). Using a specified version in your repository will result in more predictable behavior.\n"
+    },
+    {
+      "label": "globalgate-warm-control",
+      "success": true,
+      "execution": [],
+      "log": "\n   • turbo 2.11.7\n   • Packages in scope: admin, assembly, bend, native, shared\n   • Running linux in 5 packages\n   • Remote caching disabled\n\nadmin:build: cache hit, replaying logs adc0c4db261d9179\nadmin:build: $ node build.cjs\nbend:build: cache hit, replaying logs 469e317b813589f5\nbend:build: $ node ../../task.mjs bend\nnative:build: cache hit, replaying logs f0caf15ef3c1be48\nnative:build: $ node ../../task.mjs native\nshared:build: cache hit, replaying logs c3290ded5425a485\nshared:build: $ node ../../task.mjs shared\nassembly:globalgate: cache bypass, force executing 8213d4f9592b3683\nassembly:globalgate: $ node -e \"process.exit(0)\"\nassembly:linux: cache hit, replaying logs 77dab602c558017f\nassembly:linux: $ node ../../task.mjs linux\n\n Tasks:    6 successful, 6 total\nCached:    5 cached, 6 total\n  Time:    467ms \n\n",
+      "stderr": " WARNING  No locally installed `turbo` found in your repository. Using globally installed version (2.11.7). Using a specified version in your repository will result in more predictable behavior.\n"
+    },
+    {
+      "label": "globalgate-admin-only",
+      "success": true,
+      "execution": [
+        {
+          "role": "linux",
+          "started": true
+        },
+        {
+          "role": "linux",
+          "finished": true
+        }
+      ],
+      "log": "\n   • turbo 2.11.7\n   • Packages in scope: admin, assembly, bend, native, shared\n   • Running linux in 5 packages\n   • Remote caching disabled\n\nbend:build: cache hit, replaying logs 469e317b813589f5\nbend:build: $ node ../../task.mjs bend\nnative:build: cache hit, replaying logs f0caf15ef3c1be48\nnative:build: $ node ../../task.mjs native\nadmin:build: cache miss, executing 1b45598f432900e6\nshared:build: cache hit, replaying logs c3290ded5425a485\nshared:build: $ node ../../task.mjs shared\nadmin:build: $ node build.cjs\nassembly:globalgate: cache bypass, force executing ab88dc7e838045af\nassembly:globalgate: $ node -e \"process.exit(0)\"\nassembly:linux: cache miss, executing cf0ea9b82c7fe8c4\nassembly:linux: $ node ../../task.mjs linux\n\n Tasks:    6 successful, 6 total\nCached:    3 cached, 6 total\n  Time:    1.223s \n\n",
+      "stderr": " WARNING  No locally installed `turbo` found in your repository. Using globally installed version (2.11.7). Using a specified version in your repository will result in more predictable behavior.\n"
+    },
+    {
+      "label": "independent-assembly-prime",
+      "success": true,
+      "execution": [
+        {
+          "role": "linux",
+          "started": true
+        },
+        {
+          "role": "linux",
+          "finished": true
+        }
+      ],
+      "log": "\n   • turbo 2.11.7\n   • Packages in scope: admin, assembly, bend, native, shared\n   • Running linux in 5 packages\n   • Remote caching disabled\n\nshared:build: cache hit, replaying logs c3290ded5425a485\nshared:build: $ node ../../task.mjs shared\nnative:build: cache hit, replaying logs f0caf15ef3c1be48\nnative:build: $ node ../../task.mjs native\nbend:build: cache hit, replaying logs 469e317b813589f5\nbend:build: $ node ../../task.mjs bend\nassembly:linux: cache miss, executing 2b771ff0c076740b\nassembly:linux: $ node ../../task.mjs linux\n\n Tasks:    4 successful, 4 total\nCached:    3 cached, 4 total\n  Time:    570ms \n\n",
+      "stderr": " WARNING  No locally installed `turbo` found in your repository. Using globally installed version (2.11.7). Using a specified version in your repository will result in more predictable behavior.\n"
+    },
+    {
+      "label": "independent-assembly-admin-only",
+      "success": true,
+      "execution": [],
+      "log": "\n   • turbo 2.11.7\n   • Packages in scope: admin, assembly, bend, native, shared\n   • Running linux in 5 packages\n   • Remote caching disabled\n\nnative:build: cache hit, replaying logs f0caf15ef3c1be48\nnative:build: $ node ../../task.mjs native\nshared:build: cache hit, replaying logs c3290ded5425a485\nshared:build: $ node ../../task.mjs shared\nbend:build: cache hit, replaying logs 469e317b813589f5\nbend:build: $ node ../../task.mjs bend\nassembly:linux: cache hit, replaying logs 2b771ff0c076740b\nassembly:linux: $ node ../../task.mjs linux\n\n Tasks:    4 successful, 4 total\nCached:    4 cached, 4 total\n  Time:    16ms >>> FULL TURBO\n\n",
+      "stderr": " WARNING  No locally installed `turbo` found in your repository. Using globally installed version (2.11.7). Using a specified version in your repository will result in more predictable behavior.\n"
+    }
+  ],
+  "predecessor": "/tmp/hapsland-243-turbo-feasibility-04.json",
+  "commands": [
+    {
+      "id": 1,
+      "command": [
+        "/workspace/typescript/hapsland-243/node_modules/@turbo/linux-arm64/bin/turbo",
+        "run",
+        "linux",
+        "--cache=local:rw",
+        "--cache-dir=.turbo-cache",
+        "--concurrency=2"
+      ],
+      "cwd": "/tmp/hapsland-turbo-feasibility-Dh7aiL",
+      "stdoutPath": "/tmp/hapsland-243-turbo-feasibility-08-command-1.stdout",
+      "stderrPath": "/tmp/hapsland-243-turbo-feasibility-08-command-1.stderr",
+      "timeoutMs": 15000,
+      "startedAt": "2026-10-07T02:40:21.692Z",
+      "handle": {
+        "pid": 1839855,
+        "group": 1839855
+      },
+      "finishedAt": "2026-10-07T02:40:23.426Z"
+    },
+    {
+      "id": 2,
+      "command": [
+        "/workspace/typescript/hapsland-243/node_modules/@turbo/linux-arm64/bin/turbo",
+        "run",
+        "linux",
+        "--cache=local:rw",
+        "--cache-dir=.turbo-cache",
+        "--concurrency=2"
+      ],
+      "cwd": "/tmp/hapsland-turbo-feasibility-Dh7aiL",
+      "stdoutPath": "/tmp/hapsland-243-turbo-feasibility-08-command-2.stdout",
+      "stderrPath": "/tmp/hapsland-243-turbo-feasibility-08-command-2.stderr",
+      "timeoutMs": 15000,
+      "startedAt": "2026-10-07T02:40:23.427Z",
+      "handle": {
+        "pid": 1839976,
+        "group": 1839976
+      },
+      "finishedAt": "2026-10-07T02:40:23.902Z"
+    },
+    {
+      "id": 3,
+      "command": [
+        "/workspace/typescript/hapsland-243/node_modules/@turbo/linux-arm64/bin/turbo",
+        "run",
+        "linux",
+        "--cache=local:rw",
+        "--cache-dir=.turbo-cache",
+        "--concurrency=2"
+      ],
+      "cwd": "/tmp/hapsland-turbo-feasibility-Dh7aiL",
+      "stdoutPath": "/tmp/hapsland-243-turbo-feasibility-08-command-3.stdout",
+      "stderrPath": "/tmp/hapsland-243-turbo-feasibility-08-command-3.stderr",
+      "timeoutMs": 15000,
+      "startedAt": "2026-10-07T02:40:23.903Z",
+      "handle": {
+        "pid": 1840026,
+        "group": 1840026
+      },
+      "finishedAt": "2026-10-07T02:40:25.496Z"
+    },
+    {
+      "id": 4,
+      "command": [
+        "/workspace/typescript/hapsland-243/node_modules/@turbo/linux-arm64/bin/turbo",
+        "run",
+        "linux",
+        "--cache=local:rw",
+        "--cache-dir=.turbo-cache",
+        "--concurrency=2"
+      ],
+      "cwd": "/tmp/hapsland-turbo-feasibility-Dh7aiL",
+      "stdoutPath": "/tmp/hapsland-243-turbo-feasibility-08-command-4.stdout",
+      "stderrPath": "/tmp/hapsland-243-turbo-feasibility-08-command-4.stderr",
+      "timeoutMs": 15000,
+      "startedAt": "2026-10-07T02:40:25.498Z",
+      "handle": {
+        "pid": 1840177,
+        "group": 1840177
+      },
+      "finishedAt": "2026-10-07T02:40:26.435Z"
+    },
+    {
+      "id": 5,
+      "command": [
+        "/workspace/typescript/hapsland-243/node_modules/@turbo/linux-arm64/bin/turbo",
+        "run",
+        "linux",
+        "--cache=local:rw",
+        "--cache-dir=.turbo-cache",
+        "--concurrency=2"
+      ],
+      "cwd": "/tmp/hapsland-turbo-feasibility-Dh7aiL",
+      "stdoutPath": "/tmp/hapsland-243-turbo-feasibility-08-command-5.stdout",
+      "stderrPath": "/tmp/hapsland-243-turbo-feasibility-08-command-5.stderr",
+      "timeoutMs": 15000,
+      "startedAt": "2026-10-07T02:40:26.437Z",
+      "handle": {
+        "pid": 1840254,
+        "group": 1840254
+      },
+      "finishedAt": "2026-10-07T02:40:26.459Z"
+    }
+  ],
+  "globalGateFanout": {
+    "observed": true,
+    "proof": "Actual linux assembly executes for admin-only source change while globalgate depends on all builds despite cache:false"
+  },
+  "withoutGlobalGateFanout": {
+    "observed": true,
+    "proof": "Actual linux assembly cache hits for admin-only source change without globalgate edge"
+  },
+  "completed": true,
+  "finishedAt": "2026-10-07T02:40:26.460Z"
+}

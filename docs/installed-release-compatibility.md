@@ -1,6 +1,6 @@
 # Installed release compatibility
 
-The current distribution contains Bun 1.3.14 standalone commands for CLI, parser,
+The current distribution contains Bun 1.3.14 standalone commands for CLI, hook, parser,
 resident, and package doctor. The declared Linux/macOS arm64 build artifacts are
 separate from actual installed execution evidence. The historical Node records below
 do not validate the Bun distribution. Current validation runs and the installed
@@ -33,9 +33,31 @@ show an improvement for the measured Bun candidate, before subsequent IPC and
 installation fixes. They do not measure the final package bytes or establish
 100 ms startup, a population percentile, or installed review/advice compatibility.
 
-The standalone candidate currently packs both platform groups and four commands
-per platform: approximately 268 MB compressed and 737 MB unpacked. Each command
-includes Bun. These are candidate archive sizes, not reviewed release pins.
+The #243 candidate archive packs both platform groups and five standalone
+commands per platform. The [current archive record](../evidence/build-243/release-archive-current.json)
+identifies the final ordinary build/validation/pack output. Its
+[installed validation ledger](../evidence/build-243/installed-validation-final.json)
+records two passing installed hook/resident smoke cases on those exact bytes.
+Earlier native-agent execution and startup measurements remain scoped to their
+recorded archives; they were not rerun on the final archive. The owner selected
+[bounded final validation](../evidence/build-243/final-check-selection.json);
+no subsequent full quality-gate pass is claimed.
+Each command includes Bun. Darwin artifact inventory is distinct from Darwin
+execution. These are measured candidate bytes, not registry release pins.
+
+The [separated-hook comparison](../evidence/build-243/startup-comparison-linux-arm64-final-03.json)
+uses the [predeclared exact installed archives](../evidence/build-243/startup-declaration-linux-arm64-final-03.json),
+Bun 1.3.14 and Linux ARM64. Fifteen interleaved ready-resident calls per variant
+observed median complete invocation times of 93.501 ms (old CLI hook) and
+70.512 ms (dedicated hook); five fresh-resident calls per variant observed
+324.446 and 342.694 ms. All 40 calls succeeded, recorded resident executable
+identities/lifetimes, and completed cleanup. The initialization observation
+measures readiness to consume stdin, rather than completion of initialization.
+The [clock witness](../evidence/build-243/runtime-clock-linux-arm64-final-03.log)
+confirmed shared monotonic coordinates and stale-invocation rejection. No
+material regression met the predeclared criteria. Host load and OS file cache
+were uncontrolled; these samples establish no population percentile, universal
+latency guarantee or macOS execution claim.
 
 
 Codex background and finish delivery with a deadline, and Claude synchronous edit delivery
@@ -97,6 +119,11 @@ For authenticated macOS package validation, run `node scripts/run-clean-package-
 The runner accepts 0.155.1 and 0.156.0, checks versions before packing or creating its isolated
 Keychain fixture, and writes a separate evidence file for each real-host version. The retained
 release manifest verifies the macOS arm64 real-host cell specifically for Codex CLI 0.156.0.
+
+The [target-root recipient contract](advicing-target-contract.md#advicee-identity-and-admission)
+separates recipient identity from physical source identity. Local deterministic
+fixtures do not extend native host/platform cells or retroactively change their
+measured release evidence.
 
 The observation profile still cannot attribute overlapping invisible writes in a shared
 root when the host supplies no direct writer evidence. Such observations are

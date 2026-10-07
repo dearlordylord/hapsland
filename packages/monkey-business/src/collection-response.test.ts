@@ -2,8 +2,8 @@ import { expect, it, vi } from "vitest"
 import SharedEngine from "../../monkey-business-bend/engine.mjs"
 import * as boundary from "../../../src/canonical/simulation-adapter.ts"
 import { encodeCollectionResponse } from "./collection-scenario.ts"
-import { encodeSharedValue } from "../../../src/canonical/simulation-codec.ts"
-import { readRecord } from "../../../src/canonical/boundary-schema.ts"
+import { encodeSharedValue } from "@hapsland/canonical-policy/canonical/simulation-codec"
+import { readRecord } from "@hapsland/canonical-policy/canonical/boundary-schema"
 
 import { agent, target, control, opened, attempt, terminal, replayExact } from "./collection-response.fixture.ts"
 

@@ -1,4 +1,8 @@
-import { type JevRequestOutcome, type CanonicalEvent, type initialCanonical } from "../../../src/canonical/adapter.ts"
+import {
+  type JevRequestOutcome,
+  type CanonicalEvent,
+  type initialCanonical
+} from "@hapsland/canonical-policy/canonical/adapter"
 import { encodeDriverOutcome } from "./driver-codec.ts"
 import {
   prepareSharedCommandContext,
@@ -97,7 +101,7 @@ import {
   consumedSharedPermit
 } from "../../../src/canonical/simulation-adapter.ts"
 import { type WriterCapture, type WriterTarget } from "./writer-controls.ts"
-import { freezeCanonicalData } from "../../../src/canonical/immutable.ts"
+import { freezeCanonicalData } from "@hapsland/canonical-policy/canonical/immutable"
 import { type StopProgress, type StopInputSchema } from "./stop-codec.ts"
 import { type encodeCollectorProfile } from "./collector-codec.ts"
 import { type CollectionResponseControl, type CollectionResponseIdentity } from "./collection-scenario.ts"
@@ -113,12 +117,12 @@ import {
   decodeImportGraphStep,
   encodeImportGraphEvent,
   projectImportGraph
-} from "../../../src/canonical/graph-adapter.ts"
+} from "@hapsland/canonical-policy/canonical/graph-adapter"
 import { type EngineState } from "../../monkey-business-bend/engine.mjs"
 import { sessionProfile, type SessionConfig, type SessionControl, type SessionInput } from "./session.ts"
 import { doubleWords } from "./numeric-codec.ts"
 import { JEV_OUTCOME_ORDER, validateOutcomeWeights, type OutcomeWeights } from "./outcomes.ts"
-import { readRecord } from "../../../src/canonical/boundary-schema.ts"
+import { readRecord } from "@hapsland/canonical-policy/canonical/boundary-schema"
 import { type PreparationEvent, type PreparationFrame } from "./preparation.ts"
 import { decodeAdviceeLifecycles, encodeAdviceeLifecycle, type AdviceeLifecycleAction } from "./advicee-lifecycle.ts"
 

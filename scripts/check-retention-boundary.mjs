@@ -2,12 +2,12 @@ import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
 const root = resolve(import.meta.dirname, "..")
-const server = readFileSync(resolve(root, "src/resident/server.ts"), "utf8")
-const advice = readFileSync(resolve(root, "src/resident/advice-records.ts"), "utf8")
-const notices = readFileSync(resolve(root, "src/resident/notice-records.ts"), "utf8")
-const reuse = readFileSync(resolve(root, "src/resident/evaluation-reuse.ts"), "utf8")
-const collection = readFileSync(resolve(root, "src/resident/composed-delivery.ts"), "utf8")
-const capacity = readFileSync(resolve(root, "src/resident/capacity.ts"), "utf8")
+const server = readFileSync(resolve(root, "packages/resident-runtime/src/resident/server.ts"), "utf8")
+const advice = readFileSync(resolve(root, "packages/resident-runtime/src/resident/advice-records.ts"), "utf8")
+const notices = readFileSync(resolve(root, "packages/resident-runtime/src/resident/notice-records.ts"), "utf8")
+const reuse = readFileSync(resolve(root, "packages/resident-runtime/src/resident/evaluation-reuse.ts"), "utf8")
+const collection = readFileSync(resolve(root, "packages/resident-runtime/src/resident/composed-delivery.ts"), "utf8")
+const capacity = readFileSync(resolve(root, "packages/resident-runtime/src/resident/capacity.ts"), "utf8")
 for (const name of [
   "bendCleanupGate",
   "bendCleanupCommit",

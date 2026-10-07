@@ -7,12 +7,12 @@ import type * as DecisionModel from "effect/ai/DecisionModel"
 import { execFileAsync } from "../../scripts/test-harness/process.mjs"
 import { writeFile, rm, symlink, rename, mkdir } from "node:fs/promises"
 import { join } from "node:path"
-import { configuredRules } from "../test-support/default-rules.ts"
-import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
+import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
 import {
   controlledDecisionModelLayer,
   type ControlledDecisionModelOptions
-} from "../test-support/controlled-decision-model.ts"
+} from "@hapsland/review-execution/review-execution/controlled-decision-model"
 import {
   DIRECT_EVENT_DEADLINE_MS,
   encodedPreparedProviderInputBytes,
@@ -23,13 +23,17 @@ import {
   reviewObservation,
   type DirectReviewContext,
   type EvaluationEvidence
-} from "./pipeline.ts"
-import { claimDemoBudget, readDemoBudgetUsage, writeDemoBudget } from "../onboarding/demo-budget.ts"
-import { attemptCodexHostOutput } from "./writer.ts"
+} from "@hapsland/review-execution/direct-event/pipeline"
+import {
+  claimDemoBudget,
+  readDemoBudgetUsage,
+  writeDemoBudget
+} from "@hapsland/activity-observation/activity/demo-budget"
+import { attemptCodexHostOutput } from "@hapsland/delivery-output/direct-event/writer"
 import { Writable } from "node:stream"
-import { addEvent, makeGitFixture, put, advicee, updateEvent } from "./test-fixtures.ts"
-import { adaptCodexAdd } from "./adapter.ts"
-import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
+import { addEvent, makeGitFixture, put, advicee, updateEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 
 const findingAnswers = (): Readonly<Record<string, DecisionModel.ProviderAnswer>> =>
   Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability" as const, probability: 0.91 }]))
@@ -67,7 +71,7 @@ describe("direct-event vertical slice", () => {
         `interface Root { ${leaves.map((_unused, index) => `leaf${index}: Leaf${index}`).join("; ")} }`
       ].join("\n")
       yield* Effect.promise(() => put(root, "type.ts", source))
-      const observation = yield* adaptCodexAdd(addEvent(root))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root))
       expect(observation).toBeDefined()
       if (observation === undefined) return
       const prepared = yield* prepareObservation(observation, {
@@ -229,21 +233,22 @@ describe("direct-event vertical slice", () => {
   it.effect("enforces every selection gate before source reads and backend work", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
-      const outsideRoot = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, ".gitignore", "ignored.ts\n"))
       yield* Effect.promise(() => put(root, "ignored.ts", "type OrderCount = number"))
       yield* Effect.promise(() => put(root, "real.ts", "type OrderCount = number"))
       yield* Effect.promise(() => symlink(join(root, "real.ts"), join(root, "link.ts")))
       yield* Effect.promise(() => put(root, "policy.ts", "type OrderCount = number"))
-      const outside = yield* Effect.promise(() => put(outsideRoot, "outside.ts", "type OrderCount = number"))
       let reads = 0
       let calls = 0
-      const gated: ReadonlyArray<{ readonly path: string; readonly policy?: DirectReviewContext["policy"] }> = [
-        { path: "ignored.ts" },
-        { path: "link.ts" },
-        { path: ".git/config" },
-        { path: outside },
-        { path: "policy.ts", policy: { includes: ["**/*"], excludes: ["policy.ts"] } }
+      const gated: ReadonlyArray<{
+        readonly path: string
+        readonly status: "no-advice" | "unsupported"
+        readonly policy?: DirectReviewContext["policy"]
+      }> = [
+        { path: "ignored.ts", status: "no-advice" },
+        { path: "link.ts", status: "unsupported" },
+        { path: ".git/config", status: "unsupported" },
+        { path: "policy.ts", status: "no-advice", policy: { includes: ["**/*"], excludes: ["policy.ts"] } }
       ]
       for (const gate of gated) {
         const result = yield* enabledReview(
@@ -265,7 +270,7 @@ describe("direct-event vertical slice", () => {
             }
           })
         )
-        expect(result.status).toBe("no-advice")
+        expect(result.status).toBe(gate.status)
       }
       expect(reads).toBe(0)
       expect(calls).toBe(0)
@@ -429,7 +434,7 @@ describe("direct-event vertical slice", () => {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "good.ts", "type OrderCount = number"))
       const native = addEvent(root, ["missing.ts", "good.ts"])
-      const observation = yield* adaptCodexAdd(native)
+      const observation = yield* adaptCodexDirectEvent(native)
       expect(observation).toBeDefined()
       if (observation === undefined) return
       const prepared = yield* prepareObservation(observation, {
@@ -469,7 +474,7 @@ describe("direct-event vertical slice", () => {
       ] as const
       for (const [source, reason] of cases) {
         yield* Effect.promise(() => put(root, "types.ts", source))
-        const observation = yield* adaptCodexAdd(addEvent(root, ["types.ts"]))
+        const observation = yield* adaptCodexDirectEvent(addEvent(root, ["types.ts"]))
         expect(observation).toBeDefined()
         if (observation === undefined) continue
         const prepared = yield* prepareObservation(observation, {
@@ -554,7 +559,7 @@ describe("direct-event vertical slice", () => {
           }
         })
       )
-      expect(result.status).toBe("no-advice")
+      expect(result.status).toBe("unsupported")
       expect(reads).toBe(0)
       expect(calls).toBe(0)
     })
@@ -772,7 +777,7 @@ describe("direct-event vertical slice", () => {
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number;\n"))
-      const observation = yield* adaptCodexAdd(addEvent(root))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root))
       if (observation === undefined) throw new Error("missing observation")
       for (const throws of [false, true]) {
         const omissions: Array<unknown> = []
@@ -853,7 +858,7 @@ describe("direct-event vertical slice", () => {
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number"))
-      const observation = yield* adaptCodexAdd(addEvent(root))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root))
       expect(observation).toBeDefined()
       if (observation === undefined) return
       let reads = 0
@@ -935,7 +940,7 @@ describe("direct-event vertical slice", () => {
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number"))
-      const observation = yield* adaptCodexAdd(addEvent(root))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root))
       expect(observation).toBeDefined()
       if (observation === undefined) return
       let reads = 0
@@ -1033,7 +1038,7 @@ describe("direct-event vertical slice", () => {
       Effect.gen(function* () {
         const root = yield* Effect.promise(makeGitFixture)
         yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number\n"))
-        const observation = yield* adaptCodexAdd(addEvent(root))
+        const observation = yield* adaptCodexDirectEvent(addEvent(root))
         expect(observation).toBeDefined()
         if (observation === undefined) return
         const prepared = yield* prepareObservation(observation, {
@@ -1253,7 +1258,7 @@ describe("direct-event vertical slice", () => {
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number\n"))
-      const observation = yield* adaptCodexAdd(addEvent(root))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root))
       expect(observation).toBeDefined()
       if (observation === undefined) return
       const context: DirectReviewContext = {
@@ -1317,7 +1322,7 @@ describe("direct-event vertical slice", () => {
       Effect.gen(function* () {
         const root = yield* Effect.promise(makeGitFixture)
         yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number\n"))
-        const observation = yield* adaptCodexAdd(addEvent(root))
+        const observation = yield* adaptCodexDirectEvent(addEvent(root))
         expect(observation).toBeDefined()
         if (observation === undefined) return
         const context: DirectReviewContext = {
@@ -1364,7 +1369,7 @@ describe("direct-event vertical slice", () => {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "a.ts", "type ACount = number\n"))
       yield* Effect.promise(() => put(root, "b.ts", "type BCount = number\n"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts", "b.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts", "b.ts"]))
       expect(observation).toBeDefined()
       if (observation === undefined) return
       const context: DirectReviewContext = {

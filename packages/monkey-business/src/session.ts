@@ -1,7 +1,7 @@
 import Shared from "../../monkey-business-bend/session.mjs"
 import type { Settings, Stream, Emission, Changed, BendList } from "../../monkey-business-bend/session.mjs"
 import { validateSizeFacts } from "./sizes.ts"
-import type { JevRequestOutcome } from "../../../src/canonical/adapter.ts"
+import type { JevRequestOutcome } from "@hapsland/canonical-policy/canonical/adapter"
 
 export type AdviceResponse = "ignore" | "noAction" | "promptRepair" | "delayedRepair"
 export interface SessionConfig {

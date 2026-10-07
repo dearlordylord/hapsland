@@ -1,7 +1,7 @@
 import { Effect } from "effect"
 import { describe, expect, it } from "vitest"
-import { workView } from "./bend-work.ts"
-import { makeResidentState } from "./capacity.ts"
+import { workView } from "@hapsland/resident-runtime/resident/bend-work"
+import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
 
 const limits = { globalItems: 8, globalBytes: 1000, partitionItems: 8, partitionBytes: 1000 }
 

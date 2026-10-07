@@ -29,12 +29,12 @@ flowchart LR
   G --> H[Revalidate and deliver advice]
 ```
 
-The [catalog](../src/review-providers/catalog.ts) records model-specific declared
+The [catalog](../packages/review-definition/src/review-providers/catalog.ts) records model-specific declared
 limits with their source and check date. An absent limit means **unknown**;
 it must never be interpreted as unlimited or copied from another provider.
-The [request serializer](../src/review-providers/request.ts) measures actual
+The [request serializer](../packages/review-execution/src/review-providers/request.ts) measures actual
 UTF-8 JSON body bytes, including questions, criteria, escaping and metadata.
-[Pipeline evaluation](../src/direct-event/pipeline.ts) checks these native
+[Pipeline evaluation](../packages/review-execution/src/direct-event/pipeline.ts) checks these native
 constraints before calling the model. The Cloudflare adapter repeats validation
 at its transport boundary for callers outside that pipeline.
 
@@ -119,7 +119,7 @@ and criteria, decodes the Workers AI success envelope, and requires exactly the
 requested answers and model selector. Invalid output or HTTP errors produce
 sanitized failures without raw credentials or source-bearing responses.
 
-Both providers use the shared [review transport](../src/review-providers/transport.ts).
+Both providers use the shared [review transport](../packages/review-execution/src/review-providers/transport.ts).
 It passes every top-level JSON field through the compiled Bend projector, which
 selects `model`, `state`, and `questions` and constructs the final body. It disables ambient trace-header propagation, and local inspection receives a copy
 of encoded bytes so its callback cannot modify the outgoing request. The

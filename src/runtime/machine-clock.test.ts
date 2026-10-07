@@ -7,8 +7,8 @@ import {
   makeLinuxMachineClock,
   machineClockLayer,
   machineMonotonicNanos
-} from "./machine-clock.ts"
-import { hookMonotonicMillis } from "../resident/hook-clock.ts"
+} from "@hapsland/runtime-environment/runtime/machine-clock"
+import { hookMonotonicMillis } from "@hapsland/resident-transport/resident/hook-clock"
 it("keeps Linux nanoseconds exact across second rollover and rejects native failure or invalid timespecs", () => {
   let seconds = 1n
   let nanos = 999_999_999n

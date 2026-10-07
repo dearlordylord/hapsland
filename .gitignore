@@ -1,4 +1,5 @@
 node_modules
+packages/*/artifacts/
 .env
 .env.local
 coverage
@@ -17,3 +18,5 @@ dist
 .husky/_/
 
 prototypes/canonical-defense/game-recording.bin
+
+.turbo/

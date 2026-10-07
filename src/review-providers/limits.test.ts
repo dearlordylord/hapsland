@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { Decision } from "effect/ai"
-import { PROVIDER_LIMITS } from "./catalog.ts"
-import { probabilityRequest, requestLimitViolation } from "./request.ts"
+import { PROVIDER_LIMITS } from "@hapsland/review-definition/review-providers/catalog"
+import { probabilityRequest, requestLimitViolation } from "@hapsland/review-execution/review-providers/request"
 
 const decision = Decision.probability({ instructions: "check" })
 describe("provider request limits", () => {

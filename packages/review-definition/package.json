@@ -1,0 +1,96 @@
+{
+  "name": "@hapsland/review-definition",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./direct-event/model": {
+      "types": "./dist/direct-event/model.d.ts",
+      "default": "./dist/direct-event/model.js"
+    },
+    "./domain/contracts": {
+      "types": "./dist/domain/contracts.d.ts",
+      "default": "./dist/domain/contracts.js"
+    },
+    "./domain/errors": {
+      "types": "./dist/domain/errors.d.ts",
+      "default": "./dist/domain/errors.js"
+    },
+    "./review-providers/catalog": {
+      "types": "./dist/review-providers/catalog.d.ts",
+      "default": "./dist/review-providers/catalog.js"
+    },
+    "./rules/compiler": {
+      "types": "./dist/rules/compiler.d.ts",
+      "default": "./dist/rules/compiler.js"
+    },
+    "./rules/decision": {
+      "types": "./dist/rules/decision.d.ts",
+      "default": "./dist/rules/decision.js"
+    },
+    "./rules/loader": {
+      "types": "./dist/rules/loader.d.ts",
+      "default": "./dist/rules/loader.js"
+    },
+    "./rules/operations": {
+      "types": "./dist/rules/operations.d.ts",
+      "default": "./dist/rules/operations.js"
+    },
+    "./rules/schema": {
+      "types": "./dist/rules/schema.d.ts",
+      "default": "./dist/rules/schema.js"
+    },
+    "./rules/shipped": {
+      "types": "./dist/rules/shipped.d.ts",
+      "default": "./dist/rules/shipped.js"
+    },
+    "./rules/targets": {
+      "types": "./dist/rules/targets.d.ts",
+      "default": "./dist/rules/targets.js"
+    },
+    "./runtime/review-config": {
+      "types": "./dist/runtime/review-config.d.ts",
+      "default": "./dist/runtime/review-config.js"
+    },
+    "./runtime/review-settings": {
+      "types": "./dist/runtime/review-settings.d.ts",
+      "default": "./dist/runtime/review-settings.js"
+    },
+    "./probability": {
+      "types": "./dist/probability.d.ts",
+      "default": "./dist/probability.js"
+    },
+    "./questions": {
+      "types": "./dist/questions.d.ts",
+      "default": "./dist/questions.js"
+    },
+    "./rules/index": {
+      "types": "./dist/rules/index.d.ts",
+      "default": "./dist/rules/index.js"
+    }
+  },
+  "dependencies": {
+    "@hapsland/canonical-policy": "workspace:*",
+    "@hapsland/native-observation": "workspace:*",
+    "@hapsland/runtime-environment": "workspace:*",
+    "@hapsland/runtime-inputs": "workspace:*",
+    "@hapsland/source-artifacts": "workspace:*",
+    "effect": "catalog:"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
+  },
+  "hapsland": {
+    "domain": "review-definition",
+    "host": "bun",
+    "capabilities": [],
+    "releaseAssets": [
+      {
+        "source": "dist/rules/defaults",
+        "destination": "rules/defaults",
+        "extension": ".json"
+      }
+    ]
+  }
+}

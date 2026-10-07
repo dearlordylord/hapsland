@@ -1,0 +1,1036 @@
+
+ RUN  v5.0.1 /workspace/typescript/hapsland-243
+      Coverage enabled with v8
+
+ ✓ src/direct-event/content-isolation.test.ts (5 tests) 160ms
+
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > retires an empty installed resident and starts a distinct lifetime on the next hook
+ResidentIpcError: resident did not become ready within 10 seconds
+    at /workspace/typescript/hapsland-243/packages/resident-transport/src/resident/client.ts:333:5
+    at Generator.next (<anonymous>)
+    at IteratorImpl.~effect/Effect/successCont (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:987:28)
+    at ExitPrimitive.~effect/Effect/evaluate (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/core.js:297:30)
+    at FiberImpl.runLoop (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:463:95)
+    at FiberImpl.evaluate (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:414:23)
+    at file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:816:17
+    at Timeout._onTimeout (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:2893:39)
+    at listOnTimeout (node:internal/timers:685:17)
+    at processTimers (node:internal/timers:618:7)
+
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps a live connected client until it disconnects
+ResidentIpcError: resident did not become ready within 10 seconds
+    at /workspace/typescript/hapsland-243/packages/resident-transport/src/resident/client.ts:333:5
+    at Generator.next (<anonymous>)
+    at IteratorImpl.~effect/Effect/successCont (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:987:28)
+    at ExitPrimitive.~effect/Effect/evaluate (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/core.js:297:30)
+    at FiberImpl.runLoop (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:463:95)
+    at FiberImpl.evaluate (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:414:23)
+    at file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:816:17
+    at Array.<anonymous> (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:1139:9)
+    at FiberImpl.evaluate (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:434:21)
+    at file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:816:17
+
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps accepted review work and pending advice beyond the idle grace
+Error: condition did not become ready
+    at waitFor (/workspace/typescript/hapsland-243/src/resident/subprocess.test.ts:78:9)
+    at /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts:292:5
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2783:20
+
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > converges six starters across three clients and keeps timed-out/disconnected work resident-owned
+Error: condition did not become ready
+    at waitFor (/workspace/typescript/hapsland-243/src/resident/subprocess.test.ts:78:9)
+    at /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts:569:5
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2783:20
+
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps edit file selection across admission and backend waits
+AssertionError: expected false to be true // Object.is equality
+    at /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts:689:37
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2783:20
+Actual: 'false'
+Expected: 'true'
+
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps the admission configuration through dispatch and delayed delivery
+AssertionError: expected false to be true // Object.is equality
+    at /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts:745:37
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2783:20
+Actual: 'false'
+Expected: 'true'
+
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > kills one lifetime, rejects obsolete messages, restarts empty, and cleans up only when idle
+Error: condition did not become ready
+    at waitFor (/workspace/typescript/hapsland-243/src/resident/subprocess.test.ts:78:9)
+    at /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts:823:5
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2783:20
+ ❯ src/resident/subprocess.test.ts (11 tests | 7 failed) 136120ms
+   ❯ resident separate-process lifecycle (11)
+     ✓ exits the native resident successfully after idle retirement and releases ownership 26556ms
+     ✓ releases ownership after startup failure without deleting an unsafe endpoint 8310ms
+     ✓ exits losing launch contenders while one owner remains 4820ms
+     × retires an empty installed resident and starts a distinct lifetime on the next hook 29551ms
+     × keeps a live connected client until it disconnects 5003ms
+     × keeps accepted review work and pending advice beyond the idle grace 17443ms
+     ✓ exits after SIGTERM with gated review work and permits a new owner 10183ms
+     × converges six starters across three clients and keeps timed-out/disconnected work resident-owned 15304ms
+     × keeps edit file selection across admission and backend waits 4613ms
+     × keeps the admission configuration through dispatch and delayed delivery 4834ms
+     × kills one lifetime, rejects obsolete messages, restarts empty, and cleans up only when idle 9504ms
+ ❯ src/pi/installed-faults.test.ts (32 tests | 28 skipped) 24036ms
+   ❯ source Pi lifecycle and concurrent fault isolation (28)
+     ↓ registration command crash cannot invent admission
+     ↓ registration command timeout cannot invent admission
+     ↓ an admitted hook worker crash closes incomplete work without advice replay
+     ↓ late admitted advice stays isolated after the current session changes
+     ↓ late admitted advice stays isolated after the current root changes
+     ↓ resident loss during admitted review withholds its finding and allows fresh resident startup
+     ↓ excluded current source never reaches review egress
+     ↓ symlink current source never reaches review egress
+     ↓ resident loss retires the old admission without replay and permits fresh work
+     ↓ an expired native permit cannot review its late result
+     ↓ native abort settlement closes admitted work without a pre-settle callback
+     ↓ reload preserves the closed old partition without replay
+     ↓ mutated undefined before input stays quiet without registering a permit
+     ↓ mutated cyclic before input stays quiet without registering a permit
+     ↓ mutated bigint before input stays quiet without registering a permit
+     ↓ mutated result input/undefined retires admission without review or invented output
+     ↓ mutated result input/cyclic retires admission without review or invented output
+     ↓ mutated result input/bigint retires admission without review or invented output
+     ↓ mutated result details/cyclic retires admission without review or invented output
+     ↓ mutated result details/bigint retires admission without review or invented output
+     ↓ mutated result content/undefined retires admission without review or invented output
+     ↓ mutated result content/object retires admission without review or invented output
+     ↓ mutated result content/null-item retires admission without review or invented output
+     ↓ mutated result content/missing-text retires admission without review or invented output
+     ↓ mutated result content/bad-image retires admission without review or invented output
+     ↓ valid competing image content preserves native output while admitting review
+     ↓ later arguments mutation cannot redirect an admitted edit
+     ↓ later patch mutation cannot redirect an admitted edit
+   ✓ installed Pi lifecycle and concurrent fault isolation (4)
+     ✓ an admitted hook worker crash closes incomplete work without advice replay 1286ms
+     ✓ an admitted hook worker timeout closes incomplete work without advice replay 7991ms
+     ✓ late admitted advice stays isolated after the current root changes 2004ms
+     ✓ resident loss during admitted review withholds its finding and allows fresh resident startup 4196ms
+ ✓ src/onboarding/setup.test.ts (22 tests) 156935ms
+   ✓ public resumable setup operation (14)
+     ✓ installs with exact approval and effective file settings without a repository grant 10231ms
+     ✓ resumes an interrupted owned installation with the same approval 11053ms
+     ✓ asks for user exclude-all when review disabled is requested 2472ms
+     ✓ completes with review disabled and no credential 5580ms
+     ✓ bounds noninteractive missing-secret handoff 2431ms
+     ✓ setup and standalone credential inspection read the project file without inherited keys 4208ms
+     ✓ reports a rejected project key file without asking to repair native storage 2443ms
+     ✓ distinguishes inaccessible storage from an absent key 2434ms
+     ✓ does not inspect an existing key during forced-entry preview 2685ms
+     ✓ uses masked terminal entry with forced replacement=false and file override=false 8244ms
+     ✓ uses masked terminal entry with forced replacement=true and file override=false 8643ms
+     ✓ uses masked terminal entry with forced replacement=true and file override=true 7560ms
+     ✓ reports cancelled masked input without falling back to stale missing state 7982ms
+     ✓ reports invalid, unavailable, and indeterminate interactive storage outcomes 24569ms
+   ✓ setup repository failures (2)
+     ✓ reports an undiscoverable scope without claiming credential readiness 2483ms
+     ✓ reports invalid review configuration as a conflict without requesting a credential 2317ms
+   ✓ Claude setup shares the resumable credential and repository workflow (2)
+     ✓ requires digest approval, preserves independent hooks, and supports repeated setup 12418ms
+     ✓ rejects an unsupported Claude profile before writing hooks 2292ms
+   ✓ binds editable defaults and configuration to setup authorization and preserves authored content 10262ms
+   ✓ rejects changed default rules before installing an approved setup 4390ms
+   ✓ rejects malformed default rules before installing an approved setup 4461ms
+   ✓ unattended setup previews without writes, applies a saved plan and rejects stale authored bytes 17777ms
+ ✓ src/onboarding/codex-installation.test.ts (52 tests) 48044ms
+   ✓ public Codex installation operations (41)
+     ✓ rejects Linux x64 against the production arm64 declaration before mutation 1791ms
+     ✓ accepts pinned Bun against matching package profiles 1774ms
+     ✓ inspects the pinned hook runtime when the caller uses another Node path 323ms
+     ✓ rejects a locally modified owned Stop hook 332ms
+     ✓ rejects a locally modified owned SubagentStop hook 315ms
+     ✓ retires the old owned prompt hook safely when present 481ms
+     ✓ retires the old owned prompt hook safely when missing 476ms
+     ✓ retires the old owned prompt hook safely when modified 325ms
+     ✓ updates an older owned installation to add SubagentStop 483ms
+     ✓ previews exact changes, quotes paths, installs idempotently, and preserves unrelated configuration 480ms
+     ✓ edits quoted feature tables without matching table text inside multiline strings 1261ms
+     ✓ rejects unsupported hosts and malformed, duplicate, or modified owned configuration 810ms
+     ✓ exposes partial completion and resumes the journal without stale overwrite 1181ms
+     ✓ uninstalls only owned state and preserves hooks, rules, grants, and preexisting feature settings 542ms
+     ✓ conflicts and preserves a locally modified owned feature value 506ms
+     ✓ rechecks a preexisting hooks feature before journal recovery 404ms
+     ✓ previews and applies an explicit local-package update while preserving reusable state 1803ms
+     ✓ retains the previous working hook on partial update and resumes with an exact recovery request 727ms
+     ✓ preserves a concurrent independent-hook edit during update recovery 623ms
+     ✓ rejects missing-runtime target package metadata before update mutation 402ms
+     ✓ rejects malformed-runtime target package metadata before update mutation 400ms
+     ✓ rejects missing-protocol target package metadata before update mutation 398ms
+     ✓ rejects missing-version target package metadata before update mutation 395ms
+     ✓ rejects a self-consistent altered journal that would drop an unrelated hook 631ms
+     ✓ binds recovery to the exact target package version 639ms
+     ✓ serializes multiple stale reclaimers, a replacement owner, and a third contender 17905ms
+     ✓ bounds lock acquisition and reports no mutation 1678ms
+   ✓ Codex update and explicit reinstall journeys (4)
+     ✓ repairs missing Codex groups without losing settings 2937ms
+     ✓ repairs missing Codex foreground without losing settings 3938ms
+     ✓ reinstall replaces a damaged journal only after approval, backs it up, and preserves current user edits 480ms
+     ✓ resumes reinstall after restoring a deleted preexisting hooks feature and removes only the restored feature 783ms
+   ✓ resumes an interrupted uninstall using only its original approved digest 637ms
+ ✓ src/resident/server.test.ts (86 tests) 23414ms
+   ✓ resident delivery lease (60)
+     ✓ does not emit a notice-only token after final-gate finding invalidation closes Stop 320ms
+     ✓ bounds 16-path/64-unit preparation and accounts accepted units exactly 1183ms
+     ✓ reserves large valid outcomes before evaluation and rejects unreservable outcomes without a call 822ms
+     ✓ does not let late A cleanup delete C after cached-clear B removes current state 338ms
+     ✓ revalidates and finalizes at the 16-item partition saturation boundary 1193ms
+     ✓ revalidates and finalizes across four saturated partitions 3351ms
+     ✓ reuses successful clear evaluations but never failures or malformed responses 319ms
+     ✓ bounds successful reuse by entry and byte limits and reevaluates evicted input 903ms
+     ✓ charges a valid near-frame identity for every admitted unit 461ms
+   ✓ resident bounded advice batches (9)
+     ✓ filters an earlier item that reaches expiry while a later final revalidation waits 309ms
+     ✓ filters an earlier item superseded while a later final revalidation waits 383ms
+     ✓ does not send part of a later edit after an earlier edit was delivered 379ms
+     ✓ holds one edit together despite staggered review completion 398ms
+     ✓ combines six deterministic findings when they fit within the byte bound 1136ms
+     ✓ expires pending advice just before, at, and after the relevance boundary 384ms
+ ✓ src/onboarding/interactive.test.ts (11 tests) 59946ms
+   ✓ declining guided setup leaves Claude settings absent 3068ms
+   ✓ interactive update carries the exact preview digest and selected home to the target 2398ms
+   ✓ declining update performs only a read-only preview 4432ms
+   ✓ guided Codex setup installs through the named client command 7844ms
+   ✓ bare setup selects and installs both clients with independent confirmation 11687ms
+   ✓ existing clients are checked and deselecting them preserves their registrations 14467ms
+   ✓ cancelling client selection writes no registrations 4699ms
+   ✓ bare update previews both installed clients, then applies both exact digests after one confirmation 2961ms
+   ✓ a failed client update reports failure and still updates the other installed client 3262ms
+   ✓ bare update acquires one target for both installed clients 2798ms
+   ✓ public setup uses the active package and cannot silently revert to the command in PATH 2329ms
+ ✓ src/credentials/secret-service.test.ts (25 tests) 18166ms
+   ✓ native credential lifecycle (25)
+     ✓ does not steal a live lock and reclaims it after its owner is killed 1881ms
+     ✓ reports commit-then-timeout replacement as indeterminate and suspends use 15042ms
+ ✓ src/direct-event/claude-cli.test.ts (16 tests) 56647ms
+   ✓ installed hook Claude synchronous delivery (8)
+     ✓ retains the edit's blocking snapshot after settings change at final IPC handoff 1005ms
+     ✓ submits one ready finding through the installed Stop command 4604ms
+     ✓ does not turn a lost resident's pending Claude work into clear or submitted advice 4993ms
+     ✓ returns quietly at the edit budget without a Claude background delivery 760ms
+     ✓ does not acknowledge a Claude lease when stdout reports a write error 762ms
+   ✓ dedicated source hook Claude synchronous delivery (8)
+     ✓ exits quietly when unsupported hook input meets closed stdout 1466ms
+     ✓ retains the edit's blocking snapshot after settings change at final IPC handoff 3539ms
+     ✓ submits one ready finding through the installed Stop command 8823ms
+     ✓ does not turn a lost resident's pending Claude work into clear or submitted advice 10998ms
+     ✓ treats a unversioned advice from the resident socket as unavailable in the installed hook 1541ms
+     ✓ treats a malformed response from the resident socket as unavailable in the installed hook 1710ms
+     ✓ returns quietly at the edit budget without a Claude background delivery 5282ms
+     ✓ does not acknowledge a Claude lease when stdout reports a write error 3972ms
+ ✓ src/pi/inspection-native.test.ts (7 tests) 18634ms
+   ✓ Pi native extension inspection through production command and public feed (7)
+     ✓ retains the resident message for edit native delivery 1454ms
+     ✓ retains the resident message for finish native delivery 1837ms
+     ✓ retains the resident message for oversized native delivery 1191ms
+     ✓ retains the resident message for unavailable native delivery 1102ms
+     ✓ retains the resident message for lost-ack native delivery 2622ms
+     ✓ retains the resident message for session-switch native delivery 2652ms
+     ✓ retains the resident message for opt-out native delivery 1139ms
+
+FAIL /workspace/typescript/hapsland-243/src/rules/cli.test.ts > runs one-off rule checks without stdin or resident state and reports unavailable credentials
+AssertionError: expected { version: 1, …(11) } to match object { operation: 'rule-check', …(5) }
+(10 matching properties omitted from actual)
+    at Proxy.<anonymous> (file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/index.m3L2HgmY.js:2040:10)
+    at Proxy.<anonymous> (file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/index.m3L2HgmY.js:1934:14)
+    at Proxy.methodWrapper (file:///workspace/typescript/hapsland-243/node_modules/chai/index.js:1700:25)
+    at /workspace/typescript/hapsland-243/src/rules/cli.test.ts:328:35
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:1628:35
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2783:26
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3319:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3314:10)
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3299:20
+Actual: '{\n' +
+  '  "classifierCalls": 0,\n' +
+  '  "operation": "rule-check",\n' +
+  '  "reason": "parse",\n' +
+  '  "results": [],\n' +
+  '  "status": "skipped",\n' +
+  '}'
+Expected: '{\n' +
+  '  "classifierCalls": 0,\n' +
+  '  "declaration": {\n' +
+  '    "name": "Selected",\n' +
+  '  },\n' +
+  '  "operation": "rule-check",\n' +
+  '  "reason": "credential-missing",\n' +
+  '  "results": [],\n' +
+  '  "status": "unavailable",\n' +
+  '}'
+ ❯ src/rules/cli.test.ts (7 tests | 1 failed) 51585ms
+   ✓ creates, inspects, disables and adds a project rule again through the CLI 28252ms
+   ✓ creates personal rules, adds a custom rule in defaults and rejects invalid inputs before writes 20286ms
+   ✓ binds all authored sources to previews and rejects unsupported active schema rules before writes 99ms
+   ✓ provisions seven separate defaults, preserves edits and binds every authored file 148ms
+   ✓ preserves an existing authored selection with a retired numbered identity 12ms
+   ✓ preserves explicit empty, reduced and project selections during repeated default setup 37ms
+   × runs one-off rule checks without stdin or resident state and reports unavailable credentials 2751ms
+ ✓ src/inspection/consumer.test.ts (1 test) 12319ms
+   ✓ disconnects a stalled public feed while real resident reviews and persistence continue 12318ms
+ ✓ src/inspection/command.test.ts (4 tests) 14187ms
+   ✓ source foreground inspection command (2)
+     ✓ prints its URL and exits on SIGINT without opting in or starting a resident 1825ms
+     ✓ reads pre-launch history and leaves resident recording alive across interrupt and restart 4744ms
+   ✓ package foreground inspection command (2)
+     ✓ reads pre-launch history and leaves resident recording alive across interrupt and restart 1044ms
+ ✓ src/runtime/review-engine-boundary.test.ts (50 tests) 30144ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/direct-event/pipeline.ts under --codex-hook even when the caller catches 1927ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/jev-decision.ts under --codex-hook even when the caller catches 339ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/review-providers/cloudflare.ts under --codex-hook even when the caller catches 374ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/direct-event/pipeline.ts under --claude-hook even when the caller catches 1602ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/jev-decision.ts under --claude-hook even when the caller catches 336ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/review-providers/cloudflare.ts under --claude-hook even when the caller catches 349ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/direct-event/pipeline.ts under --pi-hook even when the caller catches 1676ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/jev-decision.ts under --pi-hook even when the caller catches 367ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/review-providers/cloudflare.ts under --pi-hook even when the caller catches 364ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/direct-event/pipeline.ts under --opencode-hook even when the caller catches 1676ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/jev-decision.ts under --opencode-hook even when the caller catches 338ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/review-providers/cloudflare.ts under --opencode-hook even when the caller catches 830ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/direct-event/pipeline.ts under --composed-edit-hook even when the caller catches 1731ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/jev-decision.ts under --composed-edit-hook even when the caller catches 326ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/review-providers/cloudflare.ts under --composed-edit-hook even when the caller catches 342ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/direct-event/pipeline.ts under --composed-before-edit-hook even when the caller catches 1631ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/jev-decision.ts under --composed-before-edit-hook even when the caller catches 474ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/review-providers/cloudflare.ts under --composed-before-edit-hook even when the caller catches 338ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/direct-event/pipeline.ts under --composed-background-hook even when the caller catches 1674ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/jev-decision.ts under --composed-background-hook even when the caller catches 356ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/review-providers/cloudflare.ts under --composed-background-hook even when the caller catches 372ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/direct-event/pipeline.ts under --composed-stop-hook even when the caller catches 1611ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/jev-decision.ts under --composed-stop-hook even when the caller catches 342ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/review-providers/cloudflare.ts under --composed-stop-hook even when the caller catches 346ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/direct-event/pipeline.ts under --composed-prompt-hook even when the caller catches 1590ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/jev-decision.ts under --composed-prompt-hook even when the caller catches 1354ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/review-providers/cloudflare.ts under --composed-prompt-hook even when the caller catches 513ms
+   ✓ allows manual/resident/parser import packages/review-execution/src/direct-event/pipeline.ts despite an inherited marker 2054ms
+   ✓ allows manual/resident/parser import packages/review-execution/src/jev-decision.ts despite an inherited marker 353ms
+   ✓ allows manual/resident/parser import packages/review-execution/src/review-providers/cloudflare.ts despite an inherited marker 377ms
+ ❯ src/pi/installed-boundary.test.ts (24 tests | 22 skipped) 14457ms
+   ❯ Pi source extension through command and resident (22)
+     ↓ does not continue when review is clear
+     ↓ does not continue when review is unavailable
+     ↓ cuts off delayed work at finish and withholds its late finding from a fresh edit
+     ↓ abandons admitted delayed work on session switch before reviewing a fresh edit
+     ↓ closes offered advice after replaced composition and permits a fresh edit
+     ↓ closes offered advice after final-refusal composition and permits a fresh edit
+     ↓ closes offered advice after aborted composition and permits a fresh edit
+     ↓ reviews a whole declaration replacement spanning omitted context between native hunks
+     ↓ awaits a delayed review at finish with canContinue=true
+     ↓ awaits a delayed review at finish with canContinue=false
+     ↓ reviews the post-edit source and preserves native content, consuming a permit once
+     ↓ does not infer edit evidence for unsupported write
+     ↓ does not infer edit evidence for unsupported bash
+     ↓ refuses a successful result without a before-tool permit
+     ↓ does not review identity mismatches
+     ↓ does not review arguments mismatches
+     ↓ does not review source mismatches
+     ↓ does not review failed mismatches
+     ↓ does not review unicode mismatches
+     ↓ retires pending permits on session_before_switch
+     ↓ retires pending permits on session_shutdown
+     ↓ retires pending permits on agent_settled
+   ✓ Pi installed extension through command and resident (2)
+     ✓ awaits a delayed review at finish with canContinue=false 1422ms
+     ✓ reviews the post-edit source and preserves native content, consuming a permit once 1432ms
+ ✓ src/cli.test.ts (15 tests) 49794ms
+   ✓ JSON subprocess contract (15)
+     ✓ explains a repository path through the deferred command without reviewing source 1710ms
+     ✓ keeps Claude input quiet without valid dispatch metadata, composed=false 1705ms
+     ✓ keeps Claude input quiet without valid dispatch metadata, composed=true 2398ms
+     ✓ rejects empty REVIEW_STATE_PATH instead of falling back to another path 2210ms
+     ✓ rejects empty REVIEW_CONSENT_FILE instead of falling back to another path 1884ms
+     ✓ rejects empty REVIEW_ACTIVITY_PATH instead of falling back to another path 1807ms
+     ✓ rejects empty REVIEW_USER_CONFIG_PATH instead of falling back to another path 1837ms
+     ✓ rejects mixed installation host fields and accepts the host-omitted Codex v1 form 7527ms
+     ✓ rejects the retired whole-file review request without invoking Jev 1642ms
+     ✓ keeps the retired Codex 0.155.1 entry point quiet 1787ms
+     ✓ keeps the retired Codex 0.156.0 entry point quiet 1608ms
+     ✓ quiets retired native hooks before decoding input or reviewer settings 5084ms
+     ✓ keeps unsupported native apply_patch events quiet 15383ms
+     ✓ returns a bounded protocol error for malformed input 1570ms
+     ✓ inspects credential presence without exposing the value 1640ms
+ ✓ src/onboarding/claude-installation.test.ts (19 tests) 8120ms
+   ✓ Claude installation lifecycle (11)
+     ✓ previews a pinned host, preserves unrelated settings, and removes only its owned hook 508ms
+     ✓ updates an older owned installation to add SubagentStop 460ms
+     ✓ updates an owned asynchronous PostToolUse group to synchronous delivery while preserving Stop 406ms
+     ✓ requires the exact tested host profile and an approval digest 337ms
+     ✓ detects concurrent settings edits and locally modified owned entries 515ms
+     ✓ rejects a locally modified owned Stop hook 333ms
+     ✓ rejects a locally modified owned SubagentStop hook 322ms
+     ✓ updates only the owned hook and keeps host trust separate from source egress 539ms
+   ✓ repairs deleted Claude PostToolUse without losing user settings 630ms
+   ✓ repairs deleted Claude PreToolUse without losing user settings 681ms
+   ✓ repairs deleted Claude Stop without losing user settings 633ms
+   ✓ repairs deleted Claude SubagentStop without losing user settings 622ms
+   ✓ repairs deleted Claude UserPromptSubmit without losing user settings 640ms
+   ✓ repairs deleted Claude foreground without losing user settings 672ms
+   ✓ explicit Claude reinstall replaces changed and duplicate marked handlers while preserving independent handlers 549ms
+ ✓ src/credentials/cli.test.ts (6 tests) 22837ms
+   ✓ public credential CLI (6)
+     ✓ rejects explicitly empty credential paths without invoking the helper or writing default state 4451ms
+     ✓ logs in from explicit stdin without exposing the value and reports the surviving environment override on logout 9407ms
+     ✓ returns a versioned busy result while a live process owns the credential lock 2935ms
+     ✓ warns in a terminal that logout leaves the configured environment credential active 1940ms
+     ✓ restores the exact terminal mode after SIGINT during masked input 2009ms
+     ✓ does not disable echo when the original terminal mode cannot be captured 2094ms
+ ✓ src/cli-command.test.ts (80 tests) 44020ms
+   ✓ declarative CLI subprocess contracts (71)
+     ✓ reports the invoked package version before reading invalid stdin or creating state 1582ms
+     ✓ discovers live rule checks and rejects invalid coordinates before dispatch 1642ms
+     ✓ provides focused rule help and rejects missing or irrelevant flags before dispatch 1596ms
+     ✓ previews agent feedback without stdin, credentials, or persisted activity 3033ms
+     ✓ rejects invalid arguments before stdin or filesystem effects 1582ms
+     ✓ bounds long invalid command or option errors 1681ms
+     ✓ bounds long invalid command or option errors 1645ms
+     ✓ rejects native routing through the administration CLI: --claude-hook 1585ms
+     ✓ rejects native routing through the administration CLI: --codex-hook 1669ms
+     ✓ rejects native routing through the administration CLI: --pi-hook 1598ms
+     ✓ rejects native routing through the administration CLI: --composed-stop-hook 1721ms
+     ✓ keeps the native hook subprocess quiet: "--claude-hook" 1620ms
+     ✓ keeps the native hook subprocess quiet: "--claude-hook" 1596ms
+     ✓ preserves positional client selection for the guided --pilot entry point 2201ms
+     ✓ accepts an installed composed hook ownership marker before quieting unsupported input 1770ms
+     ✓ allows JSON automation to select evaluation operation independently of the live opt-in 2273ms
+     ✓ keeps machine-readable package identity stdout stable 1647ms
+     ✓ reports the selected runtime without reading stdin or creating state 1692ms
+   ✓ rejects interactive repair without a terminal 2079ms
+   ✓ rejects interactive reinstall without a terminal 2288ms
+   ✓ rejects interactive uninstall without a terminal 3182ms
+   ✓ routes the version-one claude installation preview to the selected profile 2075ms
+   ✓ routes the version-one opencode installation preview to the selected profile 2005ms
+ ✓ src/resident/claude-delivery.test.ts (26 tests) 7104ms
+   ✓ registry-free Claude edit response (26)
+     ✓ returns current advisory feedback through one RPC 335ms
+     ✓ never collects another session's advice 454ms
+     ✓ never collects another child's advice 513ms
+     ✓ never collects another root's advice 441ms
+     ✓ concurrent response attempts freeze opt-in independently and compete for a common lease 481ms
+     ✓ keeps edit settings while rechecking round-closed at final handoff 377ms
+     ✓ disconnect during revalidation releases the provisional lease without cancelling review 357ms
+ ✓ src/direct-event/pipeline.test.ts (43 tests) 5583ms
+   ✓ direct-event vertical slice (40)
+     ✓ suppresses handoff on deletion, analyzer loss, or rule identity change 1134ms
+     ✓ revalidates delayed Add, Update, and multi-file work through deterministic backend gates 644ms
+ ✓ src/resident/security-wire.test.ts (7 tests) 5585ms
+   ✓ launched resident wire witness (6)
+     ✓ allowed (same-process) 789ms
+     ✓ allowed (distinct-process) 1123ms
+     ✓ exclude-at-dispatch (same-process) 635ms
+     ✓ exclude-at-dispatch (distinct-process) 1163ms
+     ✓ exclude-at-admission (same-process) 567ms
+     ✓ exclude-at-admission (distinct-process) 1294ms
+ ✓ src/inspection/storage.test.ts (29 tests) 6614ms
+   ✓ private inspection journal (24)
+     ✓ reads committed history after a writer dies at beforePublication (withdraw=false) 946ms
+     ✓ reads committed history after a writer dies at afterPublication (withdraw=true) 601ms
+     ✓ reads committed history after a writer dies at beforeCommit (withdraw=true) 611ms
+     ✓ shares the default 128 MiB allocated cap across contending project writers and maintenance 2791ms
+     ✓ recovers beforeLossPublication marker publication after producer death without inventing loss knowledge 538ms
+     ✓ recovers afterLossPublication marker publication after producer death without inventing loss knowledge 556ms
+ ❯ src/test-support/pi-installed.test.ts (9 tests | 9 skipped) 2540ms
+   ↓ Pi fixture process ownership (3)
+     ↓ stops its bootstrap process through direct paths before an endpoint owner exists
+     ↓ stops its bootstrap process through symlink paths before an endpoint owner exists
+     ↓ does not signal a foreign process named by fixture metadata
+   ↓ limits resident cleanup to the exact standalone binary and runtime directory
+   ↓ installed fixture PATH retains Git while exposing neither Node nor Bun
+   ↓ shared cleanup stops its proven owner.json process before deleting state
+   ↓ shared cleanup stops its proven owner.lock/owner.json process before deleting state
+   ↓ shared cleanup preserves uncertain metadata and never signals a foreign process
+   ↓ a Darwin ps exit alone does not prove death: ESRCH confirms absence while EPERM retains uncertainty
+
+FAIL /workspace/typescript/hapsland-243/src/test-support/pi-installed.test.ts (collection or suite hook)
+Error: Command failed: /home/node/.local/share/mise/installs/node/24.20.0/bin/node /workspace/typescript/hapsland-243/scripts/source-runtime.mjs
+RUN 20261007110954707-181430-c973c6 artifact; deadline 2026-10-07T11:34:54.708Z; records /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6
+START source-runtime-build; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/294810-001-source-runtime-build.log
+SyntaxError: Export named 'createInstrumenter' not found in module '/workspace/typescript/hapsland-243/node_modules/istanbul-lib-instrument/src/index.js'.
+note: missing sourcemaps for /workspace/typescript/hapsland-243/.test-runs/coverage-preload/199625/coverage-preload.mjs
+note: consider bundling with '--sourcemap' to get unminified traces
+
+Bun v1.3.14 (Linux arm64)
+
+FAILED source-runtime-build 0.14s; exit 1; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/294810-001-source-runtime-build.log
+FAIL source-runtime-preparation; source-runtime-build failed; see /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/294810-001-source-runtime-build.log
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > retires an empty installed resident and starts a distinct lifetime on the next hook: resident did not become ready within 10 seconds; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps a live connected client until it disconnects: resident did not become ready within 10 seconds; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps accepted review work and pending advice beyond the idle grace: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > converges six starters across three clients and keeps timed-out/disconnected work resident-owned: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps edit file selection across admission and backend waits: expected false to be true // Object.is equality; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps the admission configuration through dispatch and delayed delivery: expected false to be true // Object.is equality; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > kills one lifetime, rejects obsolete messages, restarts empty, and cleans up only when idle: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/rules/cli.test.ts > runs one-off rule checks without stdin or resident state and reports unavailable credentials: expected { version: 1, …(11) } to match object { operation: 'rule-check', …(5) }
+(10 matching properties omitted from actual); failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+Source runtime preparation failed; see recorded stages
+
+    at genericNodeError (node:internal/errors:986:15)
+    at wrappedFn (node:internal/errors:540:14)
+    at checkExecSyncError (node:child_process:942:11)
+    at execFileSync (node:child_process:978:15)
+    at syncProcess (/workspace/typescript/hapsland-243/scripts/test-harness/process.mjs:49:14)
+    at Object.apply (/workspace/typescript/hapsland-243/scripts/test-harness/process.mjs:62:39)
+    at prepareTestSourceRuntime (/workspace/typescript/hapsland-243/scripts/test-support/source-runtime.ts:19:5)
+    at setupInstalledPi (/workspace/typescript/hapsland-243/scripts/test-support/pi-installed.ts:40:21)
+    at /workspace/typescript/hapsland-243/src/test-support/pi-installed.test.ts:22:17
+    at wrapper (file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2141:28)
+ ✓ src/resident/jev-request.test.ts (10 tests) 3712ms
+   ✓ canonical Jev request boundary (10)
+     ✓ sends complete selected cross-file evidence and excludes denied supporting source 509ms
+     ✓ authorizes eight effects, prepares a ninth during saturation, and reuses a settled permit 722ms
+     ✓ holds started Jev permits through round interruption until settlement, then reuses one 965ms
+     ✓ holds eight started permits until one Jev timeout settles, then reuses exactly one 845ms
+ ✓ src/runtime/cli-information.test.ts (3 tests) 8223ms
+   ✓ ../../packages/doctor-entry/src/package-doctor.ts information exits with stdin open and without creating state 1786ms
+   ✓ ../../packages/parser-entry/src/parser-main.ts information exits with stdin open and without creating state 4953ms
+   ✓ ../../packages/resident-entry/src/resident/main.ts information exits with stdin open and without creating state 1482ms
+ ✓ scripts/native-preflight.test.mts (17 tests) 2953ms
+   ✓ creates distinct fresh sessions and validates their exact selected fixture 379ms
+ ✓ scripts/test-harness/process.test.mts (4 tests) 3150ms
+   ✓ kills a deliberately hung synchronous child even when it ignores SIGTERM 1007ms
+   ✓ kills a deliberately hung asynchronous child and waits for its closed pipes before rejecting 1024ms
+   ✓ bounds execFileSync fixtures and reaps their hung child 1006ms
+ ✓ src/inspection/http.test.ts (6 tests) 2990ms
+   ✓ exposes exact retained bytes from a real resident's production provider transport 333ms
+   ✓ retains the resident message through the public feed independently of acknowledgement: true 500ms
+   ✓ retains the resident message through the public feed independently of acknowledgement: false 1873ms
+ ✓ src/resident/capacity.test.ts (36 tests) 2526ms
+   ✓ resident logical capacity ledger (23)
+     ✓ forgets idle advicee identities at the metadata limit and fences older starts 2266ms
+ ✓ scripts/generate-configuration.test.mts (7 tests) 2123ms
+   ✓ configuration documentation generator (7)
+     ✓ updates all artifacts deterministically and preserves authored guide text 999ms
+     ✓ reports all stale or missing artifacts in read-only check mode 677ms
+     ✓ refuses malformed documentation boundaries without partially updating files 324ms
+ ✓ src/direct-event/adoption-corpus.test.ts (50 tests) 2604ms
+ ✓ src/onboarding/doctor.test.ts (2 tests) 7089ms
+   ✓ offline installed integration doctor (2)
+     ✓ diagnoses exact ownership and drift without mutations, provider calls, or secret disclosure 6880ms
+ ✓ src/direct-event/rust-pipeline.test.ts (23 tests) 2087ms
+ ✓ src/resident/terminal-collection.test.ts (10 tests) 2207ms
+   ✓ common collection and reuse invariants (10)
+     ✓ joins a claimed evaluation before its owner attaches the request 500ms
+ ✓ src/resident/inspection.test.ts (10 tests) 2354ms
+   ✓ resident inspection capture (10)
+     ✓ reuses the production journal writer across edits instead of rereading every payload 420ms
+     ✓ captures the surviving resident message before any hook runs 397ms
+     ✓ records actual admitted edit metadata without patch source or credentials and refreshes opt-out 339ms
+ ✓ src/resident/analytics.test.ts (10 tests) 6195ms
+   ✓ resident session analytics (10)
+     ✓ counts clear reviews and keeps cached rules for newly admitted edits 394ms
+     ✓ exposes opted-in history through JSON and human status without making requests 4689ms
+ ✓ src/rules/check.test.ts (20 tests) 1809ms
+ ✓ src/credentials/secret-service-process.test.ts (9 tests) 1644ms
+   ✓ timeout returns only after the native helper has physically closed 1510ms
+ ✓ src/resident/operational-notices.test.ts (8 tests) 2302ms
+   ✓ resident operational notices (8)
+     ✓ uses an exact failure-triggered cooldown and resets state on restart 374ms
+     ✓ keeps capacity/backend records separate while emitting only fresh findings 542ms
+     ✓ reclaims a full cooldown table at equality before the next admission 351ms
+     ✓ does not address unknown advicees or quiet applicability outcomes 325ms
+ ✓ src/hook-main.test.ts (6 tests) 13673ms
+   ✓ refuses administration flags without reading or dispatching input 2456ms
+   ✓ quiets retired channels before input or controlled-option decoding 3366ms
+   ✓ cannot select administrative dispatch through native JSON 1847ms
+   ✓ keeps malformed Claude input bounded and protocol-shaped 2558ms
+   ✓ preserves malformed Pi input response 1671ms
+   ✓ refuses unsupported Codex versions before reading input 1773ms
+ ✓ src/activity/subprocess.test.ts (2 tests) 10839ms
+   ✓ production resident activity subprocess (2)
+     ✓ reports a controlled native event as pending, then restarted/lost after resident death 10830ms
+
+FAIL /workspace/typescript/hapsland-243/src/resident/security-sinks.test.ts > security sink prototype > observes source-bearing ingress and a provider failure across resident file/output sinks
+Error: resident did not finish the synthetic failure
+    at waitFor (/workspace/typescript/hapsland-243/src/resident/security-sinks.test.ts:44:9)
+    at /workspace/typescript/hapsland-243/src/resident/security-sinks.test.ts:145:5
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2783:20
+ ❯ src/resident/security-sinks.test.ts (2 tests | 1 failed) 14467ms
+   ❯ security sink prototype (2)
+     × observes source-bearing ingress and a provider failure across resident file/output sinks 10566ms
+     ✓ keeps a synthetic source-bearing unexpected cause out of debug stderr 3899ms
+ ✓ src/evaluation/runner.test.ts (8 tests) 8034ms
+   ✓ evaluation execution and commands (5)
+     ✓ accepts plan/run/report through the real JSON process boundary 7815ms
+ ✓ src/resident/edit-settings.test.ts (5 tests) 1331ms
+   ✓ edit-owned settings (5)
+     ✓ retains registration rules and feedback through review, socket handoff and later collection 372ms
+     ✓ downgrades mixed delivery when the last blocking finding becomes stale at handoff 364ms
+ ✓ src/direct-event/graph-resolver.test.ts (23 tests) 1309ms
+ ✓ src/package-doctor.test.ts (4 tests) 5548ms
+   ✓ reports package readiness from individual checks and returns the matching exit status 1560ms
+   ✓ defaults to readable output even when stdout is piped, with the same exit status as JSON 3158ms
+   ✓ handles --help without running package diagnostics 423ms
+   ✓ handles --unknown without running package diagnostics 404ms
+ ✓ src/cli-status.test.ts (3 tests) 5527ms
+   ✓ reads the session receipt when repository configuration is malformed 1831ms
+   ✓ reports empty file selection independently of credential presence 1836ms
+   ✓ renders readiness and the session receipt in human format without exposing the credential 1859ms
+ ✓ src/direct-event/bend-pipeline.test.ts (12 tests) 1139ms
+ ✓ src/onboarding/first-review-demo.test.ts (14 tests) 4587ms
+   ✓ installed-product first-review demo (14)
+     ✓ runs the default executor against a synthetic host and reports UTF-8 bytes before cleanup 2074ms
+     ✓ atomically consumes one confirmation across processes and admits at most two calls 2029ms
+ ✓ src/inspection/registry.test.ts (4 tests) 1147ms
+   ✓ discovers opted-in additional endpoints and isolates retained lifetimes through the public feed 731ms
+   ✓ closes incomplete inspection frames despite continuous input 325ms
+ ✓ src/resident/review-controls.test.ts (6 tests) 1089ms
+ ✓ src/inspection/native-lock.test.ts (3 tests) 1350ms
+   ✓ loads the physical binding from a compiled Bun package and releases descriptor ownership 1342ms
+ ✓ src/canonical/simulation-consumer.test.ts (7 tests) 989ms
+ ✓ src/direct-event/unicode-attribution.test.ts (24 tests) 1169ms
+ ✓ src/resident/composed-delivery.test.ts (53 tests) 808ms
+ ✓ src/onboarding/host-process.test.ts (9 tests) 696ms
+   ✓ timeout kills a host that ignores SIGTERM and waits for physical closure 307ms
+ ✓ src/inspection/replay.test.ts (1 test) 792ms
+   ✓ replays real per-source increments after a snapshot and resets honestly when its retained anchors expire 791ms
+ ✓ scripts/monkey-business-build-reuse.test.mts (5 tests) 757ms
+ ✓ src/resident/security-queued.test.ts (5 tests) 588ms
+ ✓ src/direct-event/rust-analyzer.test.ts (46 tests) 730ms
+   ✓ bounded Rust type extraction (46)
+     ✓ keeps renamed module aliases bound to their target rather than a same-spelled unrelated declaration 617ms
+ ✓ src/direct-event/pi-adapter.test.ts (17 tests) 822ms
+ ✓ src/configuration/configuration.test.ts (47 tests) 600ms
+ ✓ src/onboarding/opencode-installation.test.ts (5 tests) 701ms
+   ✓ OpenCode unsupported installation and owned cleanup (5)
+     ✓ reports not-ready for an existing owned installation and permits its removal 330ms
+ ✓ scripts/coverage-provider.test.mts (7 tests) 635ms
+   ✓ attributes a real emitted private-package function hit to its original TypeScript body 622ms
+ ✓ src/direct-event/candidate-egress-accounting.test.ts (1 test) 606ms
+   ✓ T-case candidate HTTP body and source scope (1)
+     ✓ matches all 12 source-backed candidate rows through the pinned injected client 604ms
+ ✓ src/review-providers/resident.test.ts (3 tests) 567ms
+ ✓ src/direct-event/claude-adapter.test.ts (9 tests) 559ms
+ ✓ src/inspection/recording-current.test.ts (1 test) 373ms
+   ✓ shows live recording state separately when its last disabled observation was not retained 372ms
+ ✓ src/onboarding/credential-verification-storage.test.ts (3 tests) 498ms
+ ✓ src/direct-event/content-provenance.test.ts (3 tests) 713ms
+   ✓ codex: selected cross-file review comes from captured source, independently of conversation metadata 324ms
+ ✓ src/direct-event/function-resource-review.test.ts (3 tests) 322ms
+ ✓ src/direct-event/selection-capture.test.ts (13 tests) 470ms
+ ✓ src/direct-event/adapter.test.ts (22 tests) 486ms
+ ✓ src/credentials/input.test.ts (7 tests) 326ms
+   ✓ a fresh process independently reads the file without inherited key or environment mutation 309ms
+ ✓ src/activity/status.test.ts (9 tests) 283ms
+ ✓ src/hosts/opencode/adapter.test.ts (8 tests) 352ms
+ ✓ src/direct-event/attribution-integration.test.ts (5 tests) 284ms
+(node:322804) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///tmp/hapsland-pi-install-Jwtbvd/custom-home/extensions/hapsland.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /tmp/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ src/onboarding/pi-installation.test.ts (5 tests) 226ms
+ ✓ src/review-providers/pipeline.test.ts (2 tests) 273ms
+ ✓ src/resident/request-socket.test.ts (1 test) 189ms
+ ✓ src/credentials/linux-lock-identity.test.ts (6 tests) 172ms
+ ✓ src/runtime/editable-rules.test.ts (1 test) 224ms
+ ✓ src/resident/dispatch.test.ts (12 tests) 176ms
+ ✓ src/resident/advice-records.test.ts (16 tests) 202ms
+ ✓ src/canonical/boundary.test.ts (18 tests) 183ms
+ ✓ src/direct-event/graph-resolver-authority.test.ts (4 tests) 175ms
+ ✓ src/direct-event/function-graph.test.ts (3 tests) 114ms
+ ✓ src/resident/client.test.ts (20 tests) 159ms
+ ✓ src/resident/ownership.test.ts (14 tests) 238ms
+ ✓ src/direct-event/security-wire-prototype.test.ts (3 tests) 188ms
+ ✓ src/review-providers/limits.test.ts (3 tests) 105ms
+ ✓ src/direct-event/root-source-cap.test.ts (2 tests) 98ms
+ ✓ src/onboarding/package-diagnostics.test.ts (4 tests) 107ms
+ ✓ src/direct-event/analyzer.test.ts (34 tests) 91ms
+ ✓ src/runtime/review-settings.test.ts (4 tests) 88ms
+ ✓ src/onboarding/lifecycle-invocation.test.ts (3 tests) 79ms
+ ✓ src/resident/request-schema.test.ts (29 tests) 67ms
+ ✓ src/canonical/boundary-schema.test.ts (10 tests) 53ms
+ ✓ src/resident/evaluation-reuse.test.ts (8 tests) 83ms
+ ✓ src/configuration/jsonc.test.ts (16 tests) 74ms
+ ✓ src/resident/notice-records.test.ts (8 tests) 76ms
+ ✓ src/resident/round-records.test.ts (8 tests) 64ms
+ ✓ src/resident/joined-reviews.test.ts (8 tests) 61ms
+ ✓ src/resident/revision.test.ts (9 tests) 71ms
+ ✓ src/resident/runtime.test.ts (3 tests) 52ms
+ ✓ src/resident/runtime-records.test.ts (8 tests) 84ms
+ ✓ src/policy/file-policy.test.ts (8 tests) 74ms
+ ✓ src/direct-event/function-binding.property.test.ts (2 tests) 48ms
+ ✓ src/canonical/shared-writer.test.ts (6 tests) 38ms
+ ✓ src/resident/preparation-workspace.test.ts (3 tests) 70ms
+ ✓ src/canonical/immutable.test.ts (2 tests) 72ms
+ ✓ src/resident/collection.test.ts (12 tests) 46ms
+ ✓ src/direct-event/provider-http-wire.test.ts (2 tests) 69ms
+ ✓ src/onboarding/client-lifecycle.test.ts (11 tests) 41ms
+ ✓ src/canonical/simulation-codec.test.ts (25 tests) 44ms
+ ✓ src/onboarding/installation-lock.test.ts (8 tests) 61ms
+ ✓ src/resident/ipc-context.test.ts (1 test) 48ms
+ ✓ src/canonical/simulation-adapter.test.ts (13 tests) 30ms
+ ✓ src/resident/protocol.test.ts (9 tests) 42ms
+ ✓ src/hooks/command.test.ts (22 tests) 38ms
+ ✓ src/hooks/program.test.ts (19 tests) 38ms
+ ✓ src/canonical/cancel-review.test.ts (3 tests) 40ms
+ ✓ src/evaluation/evaluation.test.ts (18 tests) 29ms
+ ✓ src/repository/root.test.ts (4 tests) 24ms
+ ✓ src/resident/socket-frame.test.ts (6 tests) 35ms
+ ✓ src/resident/bend-work.test.ts (3 tests) 29ms
+ ✓ src/resident/composed-hook.test.ts (10 tests) 34ms
+ ✓ src/activity/analytics.test.ts (5 tests) 43ms
+ ✓ src/review-providers/cloudflare.test.ts (11 tests) 35ms
+ ✓ src/onboarding/active-package.test.ts (1 test) 29ms
+ ✓ src/onboarding/credential-verification.test.ts (19 tests) 32ms
+ ✓ src/resident/advice-capture.test.ts (4 tests) 39ms
+ ✓ src/resident/preparation-controls.test.ts (6 tests) 26ms
+ ✓ src/onboarding/pilot.test.ts (26 tests) 16ms
+ ✓ src/configuration/load.test.ts (6 tests) 27ms
+ ✓ src/direct-event/function-analyzer.test.ts (20 tests) 21ms
+ ✓ src/inspection/recorder.test.ts (8 tests) 24ms
+ ✓ src/direct-event/bend-analyzer.test.ts (54 tests) 24ms
+ ✓ src/onboarding/maintenance.test.ts (34 tests) 21ms
+ ✓ src/rules/rules.test.ts (6 tests) 43ms
+ ✓ src/resident/paths.test.ts (10 tests) 20ms
+ ✓ scripts/test-harness/inventory.test.mts (4 tests) 19ms
+ ✓ src/ports/review-backend.test.ts (6 tests) 19ms
+ ✓ src/matcher/glob.test.ts (30 tests) 17ms
+ ✓ src/resident/hook-output.test.ts (8 tests) 14ms
+ ✓ src/runtime/review-config.test.ts (5 tests) 18ms
+ ✓ src/review-execution/controlled-decision-model.test.ts (5 tests) 18ms
+ ✓ src/onboarding/distribution.test.ts (7 tests) 17ms
+ ✓ src/activity/demo-budget.test.ts (4 tests) 17ms
+ ✓ src/onboarding/update.test.ts (23 tests) 17ms
+ ✓ src/rules/decision.test.ts (3 tests) 17ms
+ ✓ src/review-providers/configuration.test.ts (4 tests) 29ms
+ ✓ src/inspection/settings.test.ts (1 test) 25ms
+ ✓ src/jev-decision.test.ts (2 tests) 24ms
+ ✓ src/resident/launcher.test.ts (2 tests) 24ms
+ ✓ src/onboarding/native-architecture.test.ts (4 tests) 41ms
+ ✓ src/policy/rules.test.ts (4 tests) 26ms
+ ✓ src/direct-event/demo-validation.test.ts (2 tests) 22ms
+ ✓ src/direct-event/review-renderer.test.ts (6 tests) 14ms
+ ✓ src/direct-event/full-request.test.ts (2 tests) 12ms
+ ✓ src/resident/client-startup.test.ts (5 tests) 12ms
+ ✓ src/runtime/machine-clock.test.ts (4 tests) 12ms
+ ✓ src/conformance/first-review-resident-cleanup.test.ts (3 tests) 10ms
+ ✓ src/canonical/adapter.test.ts (3 tests) 13ms
+ ✓ src/onboarding/client-selection.test.ts (6 tests) 10ms
+ ✓ scripts/installed-release-policy.test.mts (12 tests) 9ms
+ ✓ src/onboarding/confirmation.test.ts (2 tests) 10ms
+ ✓ src/inspection/contract.test.ts (2 tests) 10ms
+ ✓ src/resident/direct-hook-output.test.ts (6 tests) 10ms
+ ✓ src/rules/targets.test.ts (2 tests) 9ms
+ ✓ src/rules/compiler-targets.test.ts (1 test) 8ms
+ ✓ src/resident/hook-clock.test.ts (2 tests) 9ms
+ ✓ src/activity/demo-trace.test.ts (3 tests) 11ms
+ ✓ src/resident/runtime-configuration.test.ts (2 tests) 8ms
+ ✓ src/canonical/event-reader.test.ts (3 tests) 8ms
+ ✓ src/direct-event/review-wire-contract.test.ts (3 tests) 8ms
+ ✓ src/resident/dispatch-controls.test.ts (3 tests) 7ms
+ ✓ src/activity/storage.test.ts (3 tests) 8ms
+ ✓ src/direct-event/language-boundary.test.ts (4 tests) 6ms
+ ✓ src/direct-event/native-bindings.test.ts (8 tests) 7ms
+ ✓ scripts/native-artifact.test.mts (5 tests) 8ms
+ ✓ src/canonical/constructors-reuse.test.ts (11 tests) 7ms
+ ✓ src/evaluation/digest.test.ts (2 tests) 6ms
+ ✓ src/onboarding/unattended.test.ts (2 tests) 4ms
+ ✓ src/direct-event/languages/bend/adapter.test.ts (3 tests) 5ms
+ ✓ src/runtime/assessment.test.ts (1 test) 6ms
+ ✓ src/runtime/package-runtime.test.ts (3 tests) 5ms
+ ✓ src/conformance/live-evidence-outcome.test.ts (13 tests) 4ms
+ ✓ src/direct-event/frozen-rule-input.test.ts (1 test) 4ms
+ ✓ src/inspection/page.test.ts (4 tests) 5ms
+ ✓ src/resident/collection-decisions.test.ts (15 tests) 4ms
+ ✓ src/direct-event/edit-attribution.test.ts (5 tests) 4ms
+ ✓ src/onboarding/credential-diagnostics.test.ts (13 tests) 4ms
+ ✓ src/direct-event/codex-patch-hunks.test.ts (7 tests) 4ms
+ ✓ src/conformance/first-review-live-runner-policy.test.ts (4 tests) 5ms
+ ✓ src/onboarding/credential-guidance.test.ts (3 tests) 5ms
+ ✓ src/onboarding/human-output.test.ts (17 tests) 3ms
+ ✓ src/runtime/hook-catalog.test.ts (2 tests) 3ms
+ ✓ src/credentials/state.test.ts (1 test) 3ms
+ ✓ scripts/package-finding-output.test.mts (3 tests) 2ms
+ ✓ src/runtime/hook-invocation.test.ts (7 tests) 4ms
+ ✓ src/feedback/message.test.ts (2 tests) 3ms
+ ✓ src/runtime/user-paths.test.ts (1 test) 2ms
+ ✓ src/credentials/terminal.test.ts (2 tests) 2ms
+ ✓ src/questions.test.ts (7 tests) 2ms
+ ✓ src/conformance/live-runner-policy.test.ts (2 tests) 2ms
+ ✓ scripts/release-coordinates.test.mts (2 tests) 2ms
+ ✓ src/rules/inventory-format.test.ts (1 test) 3ms
+ ✓ src/direct-event/claude-output.test.ts (2 tests) 3ms
+ ↓ src/jev-live.test.ts (2 tests | 2 skipped)
+ ✓ src/review-providers/request-content.test.ts (4 tests) 72ms
+(node:199625) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/pi/installed-boundary.test.ts > Pi source extension through command and resident
+Error: Command failed: /home/node/.local/share/mise/installs/node/24.20.0/bin/node /workspace/typescript/hapsland-243/scripts/source-runtime.mjs
+RUN 20261007110954707-181430-c973c6 artifact; deadline 2026-10-07T11:34:54.708Z; records /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6
+START source-runtime-build; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/276448-001-source-runtime-build.log
+SyntaxError: Export named 'createInstrumenter' not found in module '/workspace/typescript/hapsland-243/node_modules/istanbul-lib-instrument/src/index.js'.
+note: missing sourcemaps for /workspace/typescript/hapsland-243/.test-runs/coverage-preload/199625/coverage-preload.mjs
+note: consider bundling with '--sourcemap' to get unminified traces
+
+Bun v1.3.14 (Linux arm64)
+
+FAILED source-runtime-build 0.19s; exit 1; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/276448-001-source-runtime-build.log
+FAIL source-runtime-preparation; source-runtime-build failed; see /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/276448-001-source-runtime-build.log
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > retires an empty installed resident and starts a distinct lifetime on the next hook: resident did not become ready within 10 seconds; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps a live connected client until it disconnects: resident did not become ready within 10 seconds; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps accepted review work and pending advice beyond the idle grace: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > converges six starters across three clients and keeps timed-out/disconnected work resident-owned: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps edit file selection across admission and backend waits: expected false to be true // Object.is equality; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps the admission configuration through dispatch and delayed delivery: expected false to be true // Object.is equality; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > kills one lifetime, rejects obsolete messages, restarts empty, and cleans up only when idle: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/rules/cli.test.ts > runs one-off rule checks without stdin or resident state and reports unavailable credentials: expected { version: 1, …(11) } to match object { operation: 'rule-check', …(5) }
+(10 matching properties omitted from actual); failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+Source runtime preparation failed; see recorded stages
+
+ ❯ syncProcess scripts/test-harness/process.mjs:49:14
+     47|   let result
+     48|   try {
+     49|     result = native(command, args, options)
+       |              ^
+     50|   } catch (error) {
+     51|     if (error.code === "ETIMEDOUT") throw new TestProcessTimeoutError(…
+ ❯ Object.apply scripts/test-harness/process.mjs:62:39
+ ❯ prepareTestSourceRuntime scripts/test-support/source-runtime.ts:19:5
+ ❯ setupInstalledPi scripts/test-support/pi-installed.ts:40:21
+ ❯ src/pi/installed-boundary.test.ts:21:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/12]⎯
+
+ FAIL  src/pi/installed-faults.test.ts > source Pi lifecycle and concurrent fault isolation
+Error: Command failed: /home/node/.local/share/mise/installs/node/24.20.0/bin/node /workspace/typescript/hapsland-243/scripts/source-runtime.mjs
+RUN 20261007110954707-181430-c973c6 artifact; deadline 2026-10-07T11:34:54.708Z; records /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6
+START source-runtime-build; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/214007-001-source-runtime-build.log
+SyntaxError: Export named 'createInstrumenter' not found in module '/workspace/typescript/hapsland-243/node_modules/istanbul-lib-instrument/src/index.js'.
+note: missing sourcemaps for /workspace/typescript/hapsland-243/.test-runs/coverage-preload/199625/coverage-preload.mjs
+note: consider bundling with '--sourcemap' to get unminified traces
+
+Bun v1.3.14 (Linux arm64)
+
+FAILED source-runtime-build 0.14s; exit 1; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/214007-001-source-runtime-build.log
+FAIL source-runtime-preparation; source-runtime-build failed; see /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/214007-001-source-runtime-build.log
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > retires an empty installed resident and starts a distinct lifetime on the next hook: resident did not become ready within 10 seconds; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps a live connected client until it disconnects: resident did not become ready within 10 seconds; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps accepted review work and pending advice beyond the idle grace: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > converges six starters across three clients and keeps timed-out/disconnected work resident-owned: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps edit file selection across admission and backend waits: expected false to be true // Object.is equality; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps the admission configuration through dispatch and delayed delivery: expected false to be true // Object.is equality; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > kills one lifetime, rejects obsolete messages, restarts empty, and cleans up only when idle: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+Source runtime preparation failed; see recorded stages
+
+ ❯ syncProcess scripts/test-harness/process.mjs:49:14
+     47|   let result
+     48|   try {
+     49|     result = native(command, args, options)
+       |              ^
+     50|   } catch (error) {
+     51|     if (error.code === "ETIMEDOUT") throw new TestProcessTimeoutError(…
+ ❯ Object.apply scripts/test-harness/process.mjs:62:39
+ ❯ prepareTestSourceRuntime scripts/test-support/source-runtime.ts:19:5
+ ❯ setupInstalledPi scripts/test-support/pi-installed.ts:40:21
+ ❯ src/pi/installed-faults.test.ts:89:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/12]⎯
+
+ FAIL  src/test-support/pi-installed.test.ts [ src/test-support/pi-installed.test.ts ]
+Error: Command failed: /home/node/.local/share/mise/installs/node/24.20.0/bin/node /workspace/typescript/hapsland-243/scripts/source-runtime.mjs
+RUN 20261007110954707-181430-c973c6 artifact; deadline 2026-10-07T11:34:54.708Z; records /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6
+START source-runtime-build; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/294810-001-source-runtime-build.log
+SyntaxError: Export named 'createInstrumenter' not found in module '/workspace/typescript/hapsland-243/node_modules/istanbul-lib-instrument/src/index.js'.
+note: missing sourcemaps for /workspace/typescript/hapsland-243/.test-runs/coverage-preload/199625/coverage-preload.mjs
+note: consider bundling with '--sourcemap' to get unminified traces
+
+Bun v1.3.14 (Linux arm64)
+
+FAILED source-runtime-build 0.14s; exit 1; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/294810-001-source-runtime-build.log
+FAIL source-runtime-preparation; source-runtime-build failed; see /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/294810-001-source-runtime-build.log
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > retires an empty installed resident and starts a distinct lifetime on the next hook: resident did not become ready within 10 seconds; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps a live connected client until it disconnects: resident did not become ready within 10 seconds; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps accepted review work and pending advice beyond the idle grace: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > converges six starters across three clients and keeps timed-out/disconnected work resident-owned: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps edit file selection across admission and backend waits: expected false to be true // Object.is equality; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps the admission configuration through dispatch and delayed delivery: expected false to be true // Object.is equality; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > kills one lifetime, rejects obsolete messages, restarts empty, and cleans up only when idle: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+FAIL /workspace/typescript/hapsland-243/src/rules/cli.test.ts > runs one-off rule checks without stdin or resident state and reports unavailable credentials: expected { version: 1, …(11) } to match object { operation: 'rule-check', …(5) }
+(10 matching properties omitted from actual); failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl
+Source runtime preparation failed; see recorded stages
+
+ ❯ syncProcess scripts/test-harness/process.mjs:49:14
+     47|   let result
+     48|   try {
+     49|     result = native(command, args, options)
+       |              ^
+     50|   } catch (error) {
+     51|     if (error.code === "ETIMEDOUT") throw new TestProcessTimeoutError(…
+ ❯ Object.apply scripts/test-harness/process.mjs:62:39
+ ❯ prepareTestSourceRuntime scripts/test-support/source-runtime.ts:19:5
+ ❯ setupInstalledPi scripts/test-support/pi-installed.ts:40:21
+ ❯ src/test-support/pi-installed.test.ts:22:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/12]⎯
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/rules/cli.test.ts > runs one-off rule checks without stdin or resident state and reports unavailable credentials
+AssertionError: expected { version: 1, …(11) } to match object { operation: 'rule-check', …(5) }
+(10 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "classifierCalls": 0,
+-   "declaration": {
+-     "name": "Selected",
+-   },
+    "operation": "rule-check",
+-   "reason": "credential-missing",
++   "reason": "parse",
+    "results": [],
+-   "status": "unavailable",
++   "status": "skipped",
+  }
+
+ ❯ src/rules/cli.test.ts:328:35
+    326|   expect(json.status).toBe(6)
+    327|   expect(json.stderr).toBe("")
+    328|   expect(JSON.parse(json.stdout)).toMatchObject({
+       |                                   ^
+    329|     operation: "rule-check",
+    330|     status: "unavailable",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/12]⎯
+
+ FAIL  src/resident/security-sinks.test.ts > security sink prototype > observes source-bearing ingress and a provider failure across resident file/output sinks
+Error: resident did not finish the synthetic failure
+ ❯ waitFor src/resident/security-sinks.test.ts:44:9
+     42|     await new Promise((resolve) => setTimeout(resolve, 10))
+     43|   }
+     44|   throw new Error("resident did not finish the synthetic failure")
+       |         ^
+     45| }
+     46|
+ ❯ src/resident/security-sinks.test.ts:145:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/12]⎯
+
+ FAIL  src/resident/subprocess.test.ts > resident separate-process lifecycle > retires an empty installed resident and starts a distinct lifetime on the next hook
+ResidentIpcError: resident did not become ready within 10 seconds
+ ❯ packages/resident-transport/src/resident/client.ts:333:5
+ ❯ IteratorImpl.~effect/Effect/successCont node_modules/effect/src/internal/effect.ts:1435:28
+ ❯ ExitPrimitive.~effect/Effect/evaluate node_modules/effect/src/internal/core.ts:523:30
+ ❯ FiberImpl.runLoop node_modules/effect/src/internal/effect.ts:670:39
+ ❯ FiberImpl.evaluate node_modules/effect/src/internal/effect.ts:613:23
+ ❯ node_modules/effect/src/internal/effect.ts:1172:17
+ ❯ Timeout._onTimeout node_modules/effect/src/internal/effect.ts:6323:39
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/12]⎯
+
+ FAIL  src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps a live connected client until it disconnects
+ResidentIpcError: resident did not become ready within 10 seconds
+ ❯ packages/resident-transport/src/resident/client.ts:333:5
+ ❯ IteratorImpl.~effect/Effect/successCont node_modules/effect/src/internal/effect.ts:1435:28
+ ❯ ExitPrimitive.~effect/Effect/evaluate node_modules/effect/src/internal/core.ts:523:30
+ ❯ FiberImpl.runLoop node_modules/effect/src/internal/effect.ts:670:39
+ ❯ FiberImpl.evaluate node_modules/effect/src/internal/effect.ts:613:23
+ ❯ node_modules/effect/src/internal/effect.ts:1172:17
+ ❯ Array.<anonymous> node_modules/effect/src/internal/effect.ts:1704:11
+ ❯ FiberImpl.evaluate node_modules/effect/src/internal/effect.ts:635:21
+ ❯ node_modules/effect/src/internal/effect.ts:1172:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/12]⎯
+
+ FAIL  src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps accepted review work and pending advice beyond the idle grace
+Error: condition did not become ready
+ ❯ waitFor src/resident/subprocess.test.ts:78:9
+     76|     await new Promise<void>((resolve) => setTimeout(resolve, 10))
+     77|   }
+     78|   throw new Error("condition did not become ready")
+       |         ^
+     79| }
+     80|
+ ❯ src/resident/subprocess.test.ts:292:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/12]⎯
+
+ FAIL  src/resident/subprocess.test.ts > resident separate-process lifecycle > converges six starters across three clients and keeps timed-out/disconnected work resident-owned
+Error: condition did not become ready
+ ❯ waitFor src/resident/subprocess.test.ts:78:9
+     76|     await new Promise<void>((resolve) => setTimeout(resolve, 10))
+     77|   }
+     78|   throw new Error("condition did not become ready")
+       |         ^
+     79| }
+     80|
+ ❯ src/resident/subprocess.test.ts:569:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/12]⎯
+
+ FAIL  src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps edit file selection across admission and backend waits
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/resident/subprocess.test.ts:689:37
+    687|       return stats.status === "stats" && stats.running === 0 ? stats :…
+    688|     })
+    689|     expect(existsSync(capturePath)).toBe(true)
+       |                                     ^
+    690|     expect(await runClient(collectReady(root, advicee(), dispatch, pat…
+    691|     expect(JSON.parse(await readFile(paths.owner, "utf8"))).toMatchObj…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/12]⎯
+
+ FAIL  src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps the admission configuration through dispatch and delayed delivery
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/resident/subprocess.test.ts:745:37
+    743|       return stats.status === "stats" && stats.running === 0 ? stats :…
+    744|     })
+    745|     expect(existsSync(capturePath)).toBe(true)
+       |                                     ^
+    746|     expect(await runClient(collectReady(root, advicee(), dispatch, pat…
+    747|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/12]⎯
+
+ FAIL  src/resident/subprocess.test.ts > resident separate-process lifecycle > kills one lifetime, rejects obsolete messages, restarts empty, and cleans up only when idle
+Error: condition did not become ready
+ ❯ waitFor src/resident/subprocess.test.ts:78:9
+     76|     await new Promise<void>((resolve) => setTimeout(resolve, 10))
+     77|   }
+     78|   throw new Error("condition did not become ready")
+       |         ^
+     79| }
+     80|
+ ❯ src/resident/subprocess.test.ts:823:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/12]⎯
+
+
+ Test Files  6 failed | 205 passed | 1 skipped (212)
+      Tests  9 failed | 2152 passed | 61 skipped (2222)
+   Start at  07:13:48
+   Duration  1099.68s (tests 95%, import 4%, transform 1%)
+
+    Isolate  212 workers spawned · ~63ms startup each (spawn + environment, per file)
+             at least ~13.24s faster with isolate: false — reuses workers across files instead of one per file
+
+ % Coverage report from v8
+
+=============================== Coverage summary ===============================
+Statements   : 92.25% ( 31125/33737 )
+Branches     : 81.23% ( 16012/19711 )
+Functions    : 91.9% ( 5641/6138 )
+Lines        : 95.4% ( 18801/19707 )
+================================================================================

@@ -1,0 +1,32 @@
+
+   • turbo 2.11.7
+   • Packages in scope: a, b
+   • Running build in 2 packages
+   • Remote caching disabled
+
+a:clean: cache bypass, force executing a9c5531784cd167b
+a:clean: 
+a:clean: > a@0.0.0 clean
+a:clean: > node -e "require('fs').rmSync('dist',{recursive:true,force:true})"
+a:clean: 
+b:clean: cache bypass, force executing 32024ebc90128ecb
+b:clean: 
+b:clean: > b@0.0.0 clean
+b:clean: > node -e "require('fs').rmSync('dist',{recursive:true,force:true})"
+b:clean: 
+b:build: cache hit, replaying logs 68e5da637656c722
+b:build: 
+b:build: > b@0.0.0 build
+b:build: > node -e "const fs=require('fs');fs.mkdirSync('dist',{recursive:true});for(const f of fs.readdirSync('src'))fs.copyFileSync('src/'+f,'dist/'+f)"
+b:build: 
+a:build: cache hit, replaying logs f1166abc8b61eb88
+a:build: 
+a:build: > a@0.0.0 build
+a:build: > node -e "const fs=require('fs');fs.mkdirSync('dist',{recursive:true});for(const f of fs.readdirSync('src'))fs.copyFileSync('src/'+f,'dist/'+f)"
+a:build: 
+
+ Tasks:    4 successful, 4 total
+Cached:    2 cached, 4 total
+  Time:    189ms 
+
+ WARNING  No locally installed `turbo` found in your repository. Using globally installed version (2.11.7). Using a specified version in your repository will result in more predictable behavior.

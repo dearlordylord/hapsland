@@ -3,7 +3,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, expect, it } from "vitest"
 import { Effect } from "effect"
-import { loadConfiguration } from "./load.ts"
+import { loadConfiguration } from "@hapsland/runtime-inputs/configuration/load"
 
 const roots: string[] = []
 const fixture = () => {

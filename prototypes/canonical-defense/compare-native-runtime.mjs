@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { readBendList, readRecord, readNat } from "../../src/canonical/boundary-schema.ts";
+import { readBendList, readRecord, readNat } from "@hapsland/canonical-policy/canonical/boundary-schema";
 import { decodeDriver, decodePreparedDriverContext, encodeDriverOutcome } from "../../packages/monkey-business/src/driver-codec.ts";
 import { decodePrefixGraphEvent } from "../../packages/monkey-business/src/callback-native-codec.ts";
-import { encodeCanonicalEvent } from "../../src/canonical/canonical-boundary.ts";
-import { encodeImportGraphEvent } from "../../src/canonical/graph-adapter.ts";
+import { encodeCanonicalEvent } from "@hapsland/canonical-policy/canonical/canonical-boundary";
+import { encodeImportGraphEvent } from "@hapsland/canonical-policy/canonical/graph-adapter";
 import { encodePreparationGraphLimits } from "../../packages/monkey-business/src/file-trees.ts";
 import { doubleWords } from "../../packages/monkey-business/src/numeric-codec.ts";
 import { decodeCallbackTarget } from "../../packages/monkey-business/src/callback-controls.ts";

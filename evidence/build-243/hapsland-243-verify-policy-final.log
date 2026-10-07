@@ -1,0 +1,65 @@
+✔ quality profile rejects missing acknowledgment before creating run state (17.07452ms)
+RUN 20261007131023160-829064-1cbb9a quality; deadline 2026-10-07T13:10:33.160Z; records /tmp/hapsland-verify-9Py7cj/.test-runs/20261007131023160-829064-1cbb9a
+START quality-preflight; log /tmp/hapsland-verify-9Py7cj/.test-runs/20261007131023160-829064-1cbb9a/829064-001-quality-preflight.log
+
+Node.js v24.20.0
+✖ scripts/test-harness/immediate-errors.test.mjs (25.545259ms)
+✔ scripts/test-harness/run-checks.test.mjs (21.912877ms)
+✔ scripts/test-harness/verification-plan.test.mjs (20.47165ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 2
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 36.787494
+
+✖ failing tests:
+
+test at scripts/test-harness/immediate-errors.test.mjs:1:1
+✖ scripts/test-harness/immediate-errors.test.mjs (25.545259ms)
+  'test failed'
+
+FAILED quality-preflight 0.06s; exit 1; log /tmp/hapsland-verify-9Py7cj/.test-runs/20261007131023160-829064-1cbb9a/829064-001-quality-preflight.log
+SKIP lint-code; prerequisite-failed
+SKIP quality; prerequisite-failed
+END failed; 0.103s; 3 failed stages, 0 test failures; results /tmp/hapsland-verify-9Py7cj/.test-runs/20261007131023160-829064-1cbb9a/results.json
+✔ acknowledged quality profile retains failed prerequisites without starting coverage (121.01454ms)
+RUN 20261007131023275-829064-10a99f focused; deadline 2026-10-07T13:10:33.275Z; records /tmp/hapsland-verify-3A5fy3/.test-runs/20261007131023275-829064-10a99f
+START check-fast; log /tmp/hapsland-verify-3A5fy3/.test-runs/20261007131023275-829064-10a99f/829064-001-check-fast.log
+PASSED check-fast 0.08s; exit 0; log /tmp/hapsland-verify-3A5fy3/.test-runs/20261007131023275-829064-10a99f/829064-001-check-fast.log
+START node-focused; log /tmp/hapsland-verify-3A5fy3/.test-runs/20261007131023275-829064-10a99f/829064-002-node-focused.log
+PASSED node-focused 0.03s; exit 0; log /tmp/hapsland-verify-3A5fy3/.test-runs/20261007131023275-829064-10a99f/829064-002-node-focused.log
+END passed; 0.131s; 0 failed stages, 0 test failures; results /tmp/hapsland-verify-3A5fy3/.test-runs/20261007131023275-829064-10a99f/results.json
+✔ fast CLI executes one deduplicated selection and persists the resolved plan (142.044904ms)
+RUN 20261007131023417-829064-edd017 focused; deadline 2026-10-07T13:10:33.417Z; records /tmp/hapsland-verify-mVkMZ2/.test-runs/20261007131023417-829064-edd017
+START check-fast; log /tmp/hapsland-verify-mVkMZ2/.test-runs/20261007131023417-829064-edd017/829064-001-check-fast.log
+PASSED check-fast 0.09s; exit 0; log /tmp/hapsland-verify-mVkMZ2/.test-runs/20261007131023417-829064-edd017/829064-001-check-fast.log
+FAIL source-identity; Verification inputs changed: src/main.ts
+END aborted; 0.113s; 1 failed stages, 0 test failures; results /tmp/hapsland-verify-mVkMZ2/.test-runs/20261007131023417-829064-edd017/results.json
+✔ source changes during checks fail the profile instead of accepting mixed inputs (123.149027ms)
+RUN 20261007131023541-829064-0fb7aa focused; deadline 2026-10-07T13:10:23.542Z; records /tmp/hapsland-verify-wfBBw5/.test-runs/20261007131023541-829064-0fb7aa
+FAIL verification; Source identity deadline exceeded
+END failed; 0.003s; 1 failed stages, 0 test failures; results /tmp/hapsland-verify-wfBBw5/.test-runs/20261007131023541-829064-0fb7aa/results.json
+✔ a deadline during source identification still produces a terminal run record (13.084217ms)
+RUN 20261007131023557-829064-0b25cc focused; deadline 2026-10-07T13:10:33.557Z; records /tmp/hapsland-verify-WalyJm/.test-runs/20261007131023557-829064-0b25cc
+START node-focused; log /tmp/hapsland-verify-WalyJm/.test-runs/20261007131023557-829064-0b25cc/829064-001-node-focused.log
+PASSED node-focused 0.03s; exit 0; log /tmp/hapsland-verify-WalyJm/.test-runs/20261007131023557-829064-0b25cc/829064-001-node-focused.log
+END passed; 0.049s; 0 failed stages, 0 test failures; results /tmp/hapsland-verify-WalyJm/.test-runs/20261007131023557-829064-0b25cc/results.json
+✔ source boundary checks run without invoking package preparation (61.025235ms)
+✔ package preparation requirements follow transitive consumer imports (8.488198ms)
+RUN 20261007131023623-829064-fe9481 focused; deadline 2026-10-07T13:10:33.623Z; records /tmp/hapsland-verify-x7hcl3/.test-runs/20261007131023623-829064-fe9481
+START native-auth-model; log /tmp/hapsland-verify-x7hcl3/.test-runs/20261007131023623-829064-fe9481/829064-001-native-auth-model.log
+FAILED native-auth-model 0.03s; exit 7; log /tmp/hapsland-verify-x7hcl3/.test-runs/20261007131023623-829064-fe9481/829064-001-native-auth-model.log
+FAIL verification; native-auth-model failed
+END failed; 0.046s; 2 failed stages, 0 test failures; results /tmp/hapsland-verify-x7hcl3/.test-runs/20261007131023623-829064-fe9481/results.json
+✔ failed Pi auth preflight stops before package preparation (55.598662ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 599.311786

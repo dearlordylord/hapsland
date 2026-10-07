@@ -27,8 +27,8 @@ try {
   assert.match(alternate, /def max_requests\(\) -> Nat:\n  5n/)
   writeFileSync(dispatchFile, alternate)
   execFileSync("node", [join(alternateBend, "scripts/build-canonical.mjs")], { cwd: temporary, stdio: "pipe" })
-  const alternateGenerated = join(temporary, "src/canonical/canonical.generated.js")
-  const stockGenerated = join(root, "src/canonical/canonical.generated.js")
+  const alternateGenerated = join(temporary, "packages/agent-flow-bend/dist/canonical.generated.js")
+  const stockGenerated = join(root, "packages/agent-flow-bend/dist/canonical.generated.js")
   const stock = await import(pathToFileURL(stockGenerated))
   const compiled = await import(pathToFileURL(alternateGenerated))
   assert.equal(stock.bendPreparationLimit(), 8)
@@ -38,7 +38,7 @@ try {
 
   server = await createServer({
     root: resolve(root, "packages/agent-flow-viz"),
-    resolve: { alias: [{ find: "./canonical.generated.js", replacement: alternateGenerated }] },
+    resolve: { alias: [{ find: "@hapsland/agent-flow-bend/canonical", replacement: alternateGenerated }] },
     server: { host: "127.0.0.1", port: 0, fs: { allow: [root, temporary] } }
   })
   const canonical = await server.ssrLoadModule("/src/canonical-replay.ts")

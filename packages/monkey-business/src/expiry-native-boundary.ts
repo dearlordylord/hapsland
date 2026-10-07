@@ -1,12 +1,18 @@
-import { decoder, readBendList, readBool, readNat, readRecord } from "../../../src/canonical/boundary-schema.ts"
-import { freezeCanonicalData } from "../../../src/canonical/immutable.ts"
+import {
+  decoder,
+  readBendList,
+  readBool,
+  readNat,
+  readRecord
+} from "@hapsland/canonical-policy/canonical/boundary-schema"
+import { freezeCanonicalData } from "@hapsland/canonical-policy/canonical/immutable"
 import { decodeNativePrefix } from "./callback-native-prefix.ts"
 import { callbackPublicBoundary, decodePrefixCanonicalEvent } from "./callback-native-codec.ts"
 import {
   decodeTrustedCanonicalStep,
   projectTrustedCanonical,
   encodeCanonicalEvent
-} from "../../../src/canonical/canonical-boundary.ts"
+} from "@hapsland/canonical-policy/canonical/canonical-boundary"
 import { decodeAdviceeLifecycles } from "./advicee-lifecycle.ts"
 import { OperationalNoticeKindSchema } from "./notice-controls.ts"
 import { type CallbackTarget } from "./callback-controls.ts"

@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { decodeConfigurationDocument } from "../configuration/decode.ts"
-import { effectiveReviewBackend, resolveConfiguration, validateCapturedPolicy } from "../configuration/resolve.ts"
-import { providerIdentity } from "./catalog.ts"
+import { decodeConfigurationDocument } from "@hapsland/runtime-inputs/configuration/decode"
+import {
+  effectiveReviewBackend,
+  resolveConfiguration,
+  validateCapturedPolicy
+} from "@hapsland/runtime-inputs/configuration/resolve"
+import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
 
 const cloudflare = { provider: "cloudflare", model: "clef", accountId: "a".repeat(32) } as const
 describe("review provider configuration authority", () => {

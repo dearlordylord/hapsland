@@ -1,12 +1,12 @@
 import { expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import { rm } from "node:fs/promises"
-import { configuredRules } from "../test-support/default-rules.ts"
-import { FUNCTION_INPUT_CONTRACT, FUNCTION_CAPABILITIES } from "../rules/targets.ts"
-import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
-import { adaptCodexAdd } from "./adapter.ts"
-import { prepareObservation, preparedProviderInput } from "./pipeline.ts"
-import { addEvent, makeGitFixture, put } from "./test-fixtures.ts"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
+import { FUNCTION_INPUT_CONTRACT, FUNCTION_CAPABILITIES } from "@hapsland/review-definition/rules/targets"
+import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import { prepareObservation, preparedProviderInput } from "@hapsland/review-execution/direct-event/pipeline"
+import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 for (const example of [
   {
@@ -49,7 +49,7 @@ export function check(input: ModerationInput): ModerationDecision {
       try {
         yield* Effect.promise(() => put(root, "support.ts", example.helper))
         yield* Effect.promise(() => put(root, "type.ts", example.root))
-        const observation = yield* adaptCodexAdd(addEvent(root))
+        const observation = yield* adaptCodexDirectEvent(addEvent(root))
         expect(observation).toBeDefined()
         if (observation === undefined) return
         const rule = configuredRules.find((rule) => rule.id === "body_reaches_undeclared")

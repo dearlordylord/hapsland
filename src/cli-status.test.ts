@@ -1,17 +1,17 @@
-import { bunExecutable } from "./runtime/bun-runtime.ts"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../scripts/test-harness/policy.mjs"
 import { spawnSync } from "../scripts/test-harness/process.mjs"
 import { rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, expect, it } from "vitest"
-import { makeGitFixture } from "./direct-event/test-fixtures.ts"
+import { makeGitFixture } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 const roots: string[] = []
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 const status = (root: string, format?: "human") =>
-  spawnSync(bunExecutable(), ["src/cli.ts", "--status"], {
+  spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", "--status"], {
     cwd: process.cwd(),
     encoding: "utf8",
     timeout: DEFAULT_CHILD_TIMEOUT_MS,

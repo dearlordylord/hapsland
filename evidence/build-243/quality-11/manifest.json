@@ -1,0 +1,19 @@
+{
+  "id": "20261007154130033-1589640-50e8e1",
+  "root": "/workspace/typescript/hapsland-243",
+  "pid": 1589640,
+  "token": "deb2da0d900611ca9816f908f3dc61bbe30ffd5d196ef98b",
+  "deadline": 1791389790034,
+  "mode": "quality",
+  "startedAt": "2026-10-07T15:41:30.036Z",
+  "plannedStages": [
+    "source-identity",
+    "quality-preflight",
+    "lint-code",
+    "quality"
+  ],
+  "skippedStages": [],
+  "sourcePin": "9b4eb6ffec35775b3132727461dda1f34449becf",
+  "sourceDigest": "0ceac2688aa393980a27a5a191dad39727f49b6962e99096a6f1979883632c0d",
+  "checksPolicyAcknowledged": true
+}

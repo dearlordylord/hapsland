@@ -1,5 +1,5 @@
 import { expect, it } from "vitest"
-import { credentialDiagnostic } from "./credential-diagnostics.ts"
+import { credentialDiagnostic } from "@hapsland/administration/onboarding/credential-diagnostics"
 
 it.each([
   {

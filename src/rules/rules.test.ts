@@ -3,12 +3,12 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { decodeConfigurationDocument } from "../configuration/decode.ts"
-import { compileRule, compileRules, selectApplicableRules } from "./compiler.ts"
-import { loadRules } from "./loader.ts"
-import { decodeRuleDocument, digestRuleDefinition } from "./schema.ts"
-import { SHIPPED_DEFAULT_RULES } from "./shipped.ts"
-import { TYPE_INPUT_CONTRACT, TYPE_CAPABILITIES } from "./targets.ts"
+import { decodeConfigurationDocument } from "@hapsland/runtime-inputs/configuration/decode"
+import { compileRule, compileRules, selectApplicableRules } from "@hapsland/review-definition/rules/compiler"
+import { loadRules } from "@hapsland/review-definition/rules/loader"
+import { decodeRuleDocument, digestRuleDefinition } from "@hapsland/review-definition/rules/schema"
+import { SHIPPED_DEFAULT_RULES } from "@hapsland/review-definition/rules/shipped"
+import { TYPE_INPUT_CONTRACT, TYPE_CAPABILITIES } from "@hapsland/review-definition/rules/targets"
 const rule = {
   version: 1,
   id: "namespace/state",

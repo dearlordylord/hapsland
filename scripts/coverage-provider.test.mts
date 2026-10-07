@@ -1,8 +1,84 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync, readFileSync, symlinkSync } from "node:fs"
+import { execFileSync } from "node:child_process"
+import { pathToFileURL } from "node:url"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { expect, it } from "vitest"
-import provider, { mergeCoverageScripts, mergeSourceFunctions } from "./coverage-provider.mjs"
+import provider, { compiledCoverageSource, mergeCoverageScripts, mergeSourceFunctions } from "./coverage-provider.mjs"
+import { resolvePinnedTypeScript } from "./pinned-typescript.mjs"
+
+it("attributes a real emitted private-package function hit to its original TypeScript body", async () => {
+  const root = mkdtempSync(join(tmpdir(), "hapsland-compiled-coverage-context-"))
+  try {
+    const directory = join(root, "packages/subject")
+    mkdirSync(join(directory, "src"), { recursive: true })
+    writeFileSync(join(root, "package.json"), JSON.stringify({ workspaces: ["packages/subject"] }))
+    writeFileSync(
+      join(directory, "package.json"),
+      JSON.stringify({
+        name: "@hapsland/subject",
+        private: true,
+        type: "module",
+        exports: { ".": { types: "./dist/main.d.ts", default: "./dist/main.js" } }
+      })
+    )
+    const source = join(directory, "src/main.ts")
+    writeFileSync(
+      source,
+      'export function choose(flag: boolean) { return flag ? "yes" : "no" }\nexport function untouched() { return "never" }\n'
+    )
+    const compiler = await resolvePinnedTypeScript(join(import.meta.dirname))
+    execFileSync(
+      compiler.executable,
+      [
+        source,
+        "--ignoreConfig",
+        "--target",
+        "es2022",
+        "--module",
+        "esnext",
+        "--declaration",
+        "--sourceMap",
+        "--outDir",
+        join(directory, "dist")
+      ],
+      { timeout: 10000 }
+    )
+    const emitted = join(directory, "dist/main.js")
+    const code = `import {Session} from 'node:inspector';const s=new Session();s.connect();const post=(m,p={})=>new Promise((resolve,reject)=>s.post(m,p,(e,r)=>e?reject(e):resolve(r)));await post('Profiler.enable');await post('Profiler.startPreciseCoverage',{callCount:true,detailed:true});const mod=await import(${JSON.stringify(pathToFileURL(emitted).href)});if(mod.choose(true)!=='yes')throw new Error('behavior');const c=await post('Profiler.takePreciseCoverage');console.log(JSON.stringify(c.result.find(x=>x.url===${JSON.stringify(pathToFileURL(emitted).href)})));s.disconnect();`
+    const script = JSON.parse(
+      execFileSync(process.execPath, ["--input-type=module", "-e", code], { encoding: "utf8", timeout: 10000 })
+    )
+    const instance = provider.getProvider()
+    instance.ctx = { config: { root }, logger: console }
+    instance.options = {}
+    const sources = await instance.getSources(script.url, async () => null, script.functions)
+    const coverage = instance.createCoverageMap()
+    coverage.merge(await instance.remapCoverage(script.url, 0, sources, script.functions))
+    await mergeSourceFunctions(coverage)
+    const data = coverage.fileCoverageFor(source).data
+    expect(Object.values(data.f).sort()).toEqual([0, 1])
+    expect(coverage.files()).toEqual([source])
+    const map = JSON.parse(readFileSync(`${emitted}.map`, "utf8"))
+    writeFileSync(`${emitted}.map`, JSON.stringify({ ...map, sources: ["../../../foreign.ts"] }))
+    expect(() => compiledCoverageSource(root, emitted)).toThrow(/escapes its authored owner/)
+    writeFileSync(`${emitted}.map`, JSON.stringify({ ...map, sources: [...map.sources, ...map.sources] }))
+    expect(() => compiledCoverageSource(root, emitted)).toThrow(/ambiguous ownership/)
+    writeFileSync(`${emitted}.map`, JSON.stringify({ ...map, sourcesContent: ["// stale original"] }))
+    expect(() => compiledCoverageSource(root, emitted)).toThrow(/stale source bytes/)
+    writeFileSync(`${emitted}.map`, JSON.stringify({ ...map, version: 2 }))
+    expect(() => compiledCoverageSource(root, emitted)).toThrow(/ambiguous ownership/)
+    const copiedMap = join(directory, "retained-map.json")
+    writeFileSync(copiedMap, JSON.stringify(map))
+    rmSync(`${emitted}.map`)
+    symlinkSync(copiedMap, `${emitted}.map`)
+    expect(() => compiledCoverageSource(root, emitted)).toThrow(/source map is a symlink/)
+    rmSync(`${emitted}.map`)
+    expect(() => compiledCoverageSource(root, emitted)).toThrow(/no compiler source map/)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
 
 it("adds V8 counters only within compatible execution contexts", () => {
   const scripts = new Map()
@@ -191,3 +267,100 @@ it("normalizes declaration ownership for a multiline factory returning an arrow"
     rmSync(root, { recursive: true, force: true })
   }
 })
+
+it.each([null, Infinity])(
+  "attributes incomplete statement ends %s without hiding uncovered or ambiguous evidence",
+  async (missingEnd) => {
+    const root = mkdtempSync(join(tmpdir(), "hapsland-coverage-statements-"))
+    try {
+      const filename = join(root, "subject.ts")
+      writeFileSync(filename, "const choose = (flag: boolean) =>\n  flag &&\n  true;\nconst untouched = () => false;\n")
+      const range = (line: number, column: number, endLine: number, endColumn: number | null) => ({
+        start: { line, column },
+        end: { line: endLine, column: endColumn }
+      })
+      const makeCoverage = (count: number) => {
+        const map = provider.getProvider().createCoverageMap()
+        map.addFileCoverage({
+          path: filename,
+          statementMap: {
+            "0": range(2, 2, 3, 6),
+            "1": range(2, 2, 3, missingEnd),
+            "2": range(4, 24, 4, 29),
+            "3": range(4, 24, 4, missingEnd),
+            "4": range(4, 18, 4, missingEnd),
+            "5": range(9, 0, 9, missingEnd)
+          },
+          s: { "0": count, "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 },
+          fnMap: {},
+          f: {},
+          branchMap: {},
+          b: {}
+        })
+        return map
+      }
+      const worker = makeCoverage(2)
+      const native = makeCoverage(3)
+      await mergeSourceFunctions(worker)
+      await mergeSourceFunctions(native)
+      const data = worker.fileCoverageFor(filename).data
+      expect(Object.values(data.statementMap)).toContainEqual(range(2, 2, 3, 6))
+      expect(Object.values(data.s)).toEqual([2, 0, 0, 0])
+      // The arrow and its parameter both start at column 18 on this line;
+      // there is no unique authored end for this partial range.
+      expect(Object.values(data.statementMap)).toContainEqual(range(4, 18, 4, null))
+      expect(Object.values(data.statementMap)).toContainEqual(range(9, 0, 9, null))
+      worker.merge(native)
+      expect(Object.values(worker.fileCoverageFor(filename).data.s)).toEqual([5, 0, 0, 0])
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  }
+)
+
+it.each([null, Infinity])(
+  "preserves precise uncovered statements against positive partial ends %s",
+  async (missingEnd) => {
+    const root = mkdtempSync(join(tmpdir(), "hapsland-coverage-execution-extent-"))
+    try {
+      const filename = join(root, "subject.ts")
+      writeFileSync(filename, "const choose = (flag: boolean) =>\n  flag &&\n  true;\n")
+      const exact = { start: { line: 2, column: 2 }, end: { line: 3, column: 6 } }
+      const partial = { ...exact, end: { line: 3, column: missingEnd } }
+      const unresolved = { ...exact, end: { line: 3, column: null } }
+      const coverage = (statements: Record<string, typeof exact | typeof partial>, counts: Record<string, number>) => {
+        const map = provider.getProvider().createCoverageMap()
+        map.addFileCoverage({
+          path: filename,
+          statementMap: statements,
+          s: counts,
+          fnMap: {},
+          f: {},
+          branchMap: {},
+          b: {}
+        })
+        return map
+      }
+      const sameContext = coverage({ "0": exact, "1": partial }, { "0": 0, "1": 25 })
+      await mergeSourceFunctions(sameContext)
+      expect(Object.values(sameContext.fileCoverageFor(filename).data.s)).toEqual([0, 25])
+      expect(Object.values(sameContext.fileCoverageFor(filename).data.statementMap)).toEqual([exact, unresolved])
+
+      const impreciseContext = coverage({ "0": partial }, { "0": 25 })
+      const preciseContext = coverage({ "0": exact }, { "0": 0 })
+      await mergeSourceFunctions(impreciseContext)
+      await mergeSourceFunctions(preciseContext)
+      impreciseContext.merge(preciseContext)
+      const merged = impreciseContext.fileCoverageFor(filename).data
+      expect(Object.values(merged.s)).toEqual([25, 0])
+      expect(Object.values(merged.statementMap)).toEqual([unresolved, exact])
+
+      const corroborated = coverage({ "0": exact, "1": partial }, { "0": 2, "1": 25 })
+      await mergeSourceFunctions(corroborated)
+      expect(Object.values(corroborated.fileCoverageFor(filename).data.s)).toEqual([25])
+      expect(Object.values(corroborated.fileCoverageFor(filename).data.statementMap)).toEqual([exact])
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  }
+)

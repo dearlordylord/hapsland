@@ -3,7 +3,7 @@ import {
   GRAPH_LIMIT_CEILINGS,
   type GraphLimits,
   type ImportGraphEvent
-} from "../../agent-flow-bend/import-graph-adapter"
+} from "@hapsland/canonical-policy/canonical/graph-adapter"
 import { replayImportScenario, type ImportScenario, type ImportScenarioStep } from "./import-graph-replay"
 
 export type SiteScenarioMode = "normal" | "exclusion" | "tree-budget"

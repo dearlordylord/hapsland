@@ -1,5 +1,5 @@
 import { expect, it } from "vitest"
-import { initialCanonical, projectCanonical, stepCanonical } from "./adapter.ts"
+import { initialCanonical, projectCanonical, stepCanonical } from "@hapsland/canonical-policy/canonical/adapter"
 
 const limits = { globalItems: 2, globalBytes: 100, partitionItems: 2, partitionBytes: 100 }
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { Deferred, Effect } from "effect"
-import { makeInspectionRecorder } from "./recorder.ts"
-import { MAX_INSPECTION_RECORDING_BYTES, type InspectionRecord } from "./contract.ts"
+import { makeInspectionRecorder } from "@hapsland/inspection-records/inspection/recorder"
+import { MAX_INSPECTION_RECORDING_BYTES, type InspectionRecord } from "@hapsland/inspection-records/inspection/contract"
 
 const scope = {
   root: "/project",

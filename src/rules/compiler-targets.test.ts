@@ -1,6 +1,6 @@
 import { expect, it } from "vitest"
-import { compileRule, selectApplicableRules } from "./compiler.ts"
-import { FUNCTION_INPUT_CONTRACT } from "./targets.ts"
+import { compileRule, selectApplicableRules } from "@hapsland/review-definition/rules/compiler"
+import { FUNCTION_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 it("requires declared capabilities and complete evidence for functions", () => {
   const rule = compileRule(
     {

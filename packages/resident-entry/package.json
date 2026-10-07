@@ -1,0 +1,37 @@
+{
+  "name": "@hapsland/resident-entry",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./resident/main": {
+      "types": "./dist/resident/main.d.ts",
+      "default": "./dist/resident/main.js"
+    }
+  },
+  "dependencies": {
+    "@hapsland/resident-runtime": "workspace:*",
+    "@hapsland/runtime-environment": "workspace:*",
+    "effect": "catalog:"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs",
+    "assemble:linux-arm64": "node ../../scripts/assemble-entry.mjs linux-arm64",
+    "assemble:darwin-arm64": "node ../../scripts/assemble-entry.mjs darwin-arm64",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
+  },
+  "hapsland": {
+    "domain": "resident-entry",
+    "host": "bun",
+    "capabilities": [],
+    "role": "resident",
+    "executable": "hapsland-resident",
+    "entry": "src/resident/main.ts",
+    "assembly": {
+      "profiles": [
+        "linux-arm64",
+        "darwin-arm64"
+      ]
+    }
+  }
+}

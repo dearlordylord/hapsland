@@ -1,20 +1,29 @@
-import { resolveConfiguration } from "../configuration/resolve.ts"
-import { resolvedDirectFilePolicy, DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "./selection.ts"
+import { resolveConfiguration } from "@hapsland/runtime-inputs/configuration/resolve"
+import {
+  resolvedDirectFilePolicy,
+  DEFAULT_DIRECT_FILE_POLICY,
+  eligibleNamedPath
+} from "@hapsland/native-observation/direct-event/selection"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
-import { put, makeGitFixture, addEvent } from "./test-fixtures.ts"
-import { adaptCodexAdd } from "./adapter.ts"
-import { evaluatePrepared, prepareObservation, preparedProviderInput, preparedUnitStillCurrent } from "./pipeline.ts"
-import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
-import { configuredRules } from "../test-support/default-rules.ts"
-import { inspectGraphFile } from "./analyzer.ts"
-import { captureStable } from "./capture.ts"
-import { resolveGraphUnit } from "./graph-resolver.ts"
-import { GRAPH_LIMIT_CEILINGS } from "../configuration/graph-limits.ts"
-import { compileRule } from "../rules/compiler.ts"
-import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
-import type { ReviewNode } from "./model.ts"
-import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts"
+import { put, makeGitFixture, addEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import {
+  evaluatePrepared,
+  prepareObservation,
+  preparedProviderInput,
+  preparedUnitStillCurrent
+} from "@hapsland/review-execution/direct-event/pipeline"
+import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
+import { inspectGraphFile } from "@hapsland/source-analysis/direct-event/analyzer"
+import { captureStable } from "@hapsland/native-observation/direct-event/capture"
+import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
+import { compileRule } from "@hapsland/review-definition/rules/compiler"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import type { ReviewNode } from "@hapsland/source-artifacts/direct-event/artifact-model"
+import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
 
 const hasOmitted = (node: ReviewNode): boolean =>
   node.references.some(
@@ -70,7 +79,7 @@ describe("cross-file graph preparation", () => {
         yield* Effect.promise(() =>
           put(root, "shared/customer.ts", "export interface Customer { customerName: string }")
         )
-        const observation = yield* adaptCodexAdd(addEvent(root, ["src/order.ts", "shared/customer.ts"]))
+        const observation = yield* adaptCodexDirectEvent(addEvent(root, ["src/order.ts", "shared/customer.ts"]))
         if (observation === undefined) throw new Error("fixture adaptation failed")
         const policy = resolvedDirectFilePolicy(
           resolveConfiguration([
@@ -144,7 +153,7 @@ describe("cross-file graph preparation", () => {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface A { b: B }"))
       yield* Effect.promise(() => put(root, "b.ts", `// ${"x".repeat(100)}\nexport interface B { value: string }`))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root path was not eligible")
@@ -175,7 +184,7 @@ describe("cross-file graph preparation", () => {
       yield* Effect.promise(() => put(root, "a.ts", a))
       yield* Effect.promise(() => put(root, "b.ts", b))
       yield* Effect.promise(() => put(root, "c.ts", "export interface C { value: string }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root path was not eligible")
@@ -211,7 +220,7 @@ describe("cross-file graph preparation", () => {
       )
       yield* Effect.promise(() => put(root, "d.ts", "import type { E } from './e'; export interface D { e: E }"))
       yield* Effect.promise(() => put(root, "e.ts", "export interface E { value: string }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root path was not eligible")
@@ -251,7 +260,7 @@ describe("cross-file graph preparation", () => {
         put(root, "a.ts", "import type { B } from './b'; interface C { value: string } interface A { c: C; b: B }")
       )
       yield* Effect.promise(() => put(root, "b.ts", "export interface B { value: string }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root path was not eligible")
@@ -287,7 +296,7 @@ describe("cross-file graph preparation", () => {
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "a.ts", "interface C { value: string } interface A { c: C }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root path was not eligible")
@@ -312,7 +321,7 @@ describe("cross-file graph preparation", () => {
       yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface A { b: B }"))
       yield* Effect.promise(() => put(root, "b.ts", "import type { C } from './c'; export interface B { c: C }"))
       yield* Effect.promise(() => put(root, "c.ts", "export interface C { value: string }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root path was not eligible")
@@ -356,7 +365,7 @@ describe("cross-file graph preparation", () => {
       )
       yield* Effect.promise(() => put(root, "c.ts", "export interface C { value: string }"))
       yield* Effect.promise(() => put(root, "d.ts", "export interface D { value: string }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root path was not eligible")
@@ -383,7 +392,7 @@ describe("cross-file graph preparation", () => {
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "a.ts", "namespace N { export interface A { x: string } }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const prepared = yield* prepareObservation(observation, {
         controlledWriter: true,
@@ -407,7 +416,7 @@ describe("cross-file graph preparation", () => {
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "a.ts", `type A = "${"x".repeat(24_000)}";\n`))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const prepared = yield* prepareObservation(observation, {
         controlledWriter: true,
@@ -428,7 +437,7 @@ describe("cross-file graph preparation", () => {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface A { b: B }"))
       yield* Effect.promise(() => put(root, "b.ts", "export interface B { value: string }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       expect(observation).toBeDefined()
       if (observation === undefined) return
       const base = {
@@ -466,7 +475,7 @@ describe("cross-file graph preparation", () => {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface A { b: B }"))
       yield* Effect.promise(() => put(root, "b.ts", "export interface B { secret: string }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const reads: string[] = []
       const prepared = yield* prepareObservation(observation, {
@@ -525,7 +534,7 @@ describe("cross-file graph preparation", () => {
         )
       )
       yield* Effect.promise(() => put(root, "c.ts", "export interface C { value: string }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const prepared = yield* prepareObservation(observation, {
         controlledWriter: true,
@@ -551,7 +560,7 @@ describe("cross-file graph preparation", () => {
       yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface A { b: B }"))
       yield* Effect.promise(() => put(root, "b.ts", "import type { C } from './c'; export interface B { c: C }"))
       yield* Effect.promise(() => put(root, "c.ts", "export interface C { value: string }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       expect(observation).toBeDefined()
       if (observation === undefined) return
       const reads: string[] = []
@@ -577,7 +586,7 @@ describe("cross-file graph preparation", () => {
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "a.ts", `${"/".repeat(40_000)}\ninterface A { value: string }`))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       expect(observation).toBeDefined()
       if (observation === undefined) return
       const prepared = yield* prepareObservation(observation, {
@@ -597,7 +606,7 @@ describe("cross-file graph preparation", () => {
         put(root, "a.ts", "import { type B as Renamed } from './b.js'; interface A { b: Renamed }")
       )
       yield* Effect.promise(() => put(root, "b.ts", "export interface B { value: string }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const prepared = yield* prepareObservation(observation, {
         controlledWriter: true,
@@ -614,7 +623,7 @@ describe("cross-file graph preparation", () => {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; export interface A { b: B }"))
       yield* Effect.promise(() => put(root, "b.ts", "import type { A } from './a'; export interface B { a: A }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const prepared = yield* prepareObservation(observation, {
         controlledWriter: true,
@@ -637,7 +646,7 @@ describe("cross-file graph preparation", () => {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface A { b: B }"))
       yield* Effect.promise(() => put(root, "b.ts", "interface B { value: string }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const prepared = yield* prepareObservation(observation, {
         controlledWriter: true,
@@ -656,7 +665,7 @@ describe("cross-file graph preparation", () => {
         "import type { External } from './unused';\n" +
         Array.from({ length: 6 }, (_, i) => `interface T${i} { next: ${i === 5 ? "string" : `T${i + 1}`} }`).join("\n")
       yield* Effect.promise(() => put(root, "a.ts", source))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const prepared = yield* prepareObservation(observation, {
         controlledWriter: true,
@@ -682,7 +691,7 @@ describe("cross-file graph preparation", () => {
       const root = yield* Effect.promise(makeGitFixture)
       yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface A { b: B }"))
       yield* Effect.promise(() => put(root, "b.ts", "export interface B { value: string }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const reads: string[] = []
       let clock = 0
@@ -714,7 +723,7 @@ describe("cross-file graph preparation", () => {
         put(root, "a.ts", "import type { B } from './b'; interface A { b: B }\ninterface D { b: B }")
       )
       yield* Effect.promise(() => put(root, "b.ts", "export interface B { value: string }"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const reads: string[] = []
       const prepared = yield* prepareObservation(observation, {
@@ -740,7 +749,7 @@ describe("cross-file graph preparation", () => {
         put(root, "a.ts", Array.from({ length: 64 }, (_, i) => `type T${i} = number`).join("\n"))
       )
       yield* Effect.promise(() => put(root, "b.ts", "type Extra = number"))
-      const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts", "b.ts"]))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts", "b.ts"]))
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const prepared = yield* prepareObservation(observation, {
         controlledWriter: true,

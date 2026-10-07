@@ -1,0 +1,628 @@
+{
+  "version": 1,
+  "threshold": 8,
+  "rows": [
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::<anonymous>@85:46@3739-4895",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "<anonymous>@85:46",
+      "kind": "function_expression",
+      "range": {
+        "start": {
+          "offset": 3739,
+          "line": 85,
+          "column": 46
+        },
+        "end": {
+          "offset": 4895,
+          "line": 119,
+          "column": 1
+        }
+      },
+      "complexity": 7,
+      "coverage": {
+        "status": "measured",
+        "covered": 12,
+        "total": 14,
+        "fraction": 0.8571428571428571
+      },
+      "crap": 7.142857142857143
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::<anonymous>@132:54@5422-6019",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "<anonymous>@132:54",
+      "kind": "function_expression",
+      "range": {
+        "start": {
+          "offset": 5422,
+          "line": 132,
+          "column": 54
+        },
+        "end": {
+          "offset": 6019,
+          "line": 151,
+          "column": 1
+        }
+      },
+      "complexity": 6,
+      "coverage": {
+        "status": "measured",
+        "covered": 7,
+        "total": 7,
+        "fraction": 1.0
+      },
+      "crap": 6.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::composedKind@1344-1658",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "composedKind",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 1344,
+          "line": 24,
+          "column": 21
+        },
+        "end": {
+          "offset": 1658,
+          "line": 30,
+          "column": 1
+        }
+      },
+      "complexity": 5,
+      "coverage": {
+        "status": "measured",
+        "covered": 9,
+        "total": 9,
+        "fraction": 1.0
+      },
+      "crap": 5.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::unsupportedCodexVersion@1692-1990",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "unsupportedCodexVersion",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 1692,
+          "line": 32,
+          "column": 32
+        },
+        "end": {
+          "offset": 1990,
+          "line": 37,
+          "column": 1
+        }
+      },
+      "complexity": 5,
+      "coverage": {
+        "status": "measured",
+        "covered": 6,
+        "total": 6,
+        "fraction": 1.0
+      },
+      "crap": 5.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::invalidInputOutput@4925-5366",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "invalidInputOutput",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 4925,
+          "line": 121,
+          "column": 27
+        },
+        "end": {
+          "offset": 5366,
+          "line": 130,
+          "column": 1
+        }
+      },
+      "complexity": 5,
+      "coverage": {
+        "status": "measured",
+        "covered": 7,
+        "total": 7,
+        "fraction": 1.0
+      },
+      "crap": 5.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::runHookProgram@6791-8553",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "runHookProgram",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 6791,
+          "line": 172,
+          "column": 30
+        },
+        "end": {
+          "offset": 8553,
+          "line": 206,
+          "column": 1
+        }
+      },
+      "complexity": 5,
+      "coverage": {
+        "status": "measured",
+        "covered": 9,
+        "total": 9,
+        "fraction": 1.0
+      },
+      "crap": 5.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::retiredChannel@2015-2197",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "retiredChannel",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 2015,
+          "line": 39,
+          "column": 23
+        },
+        "end": {
+          "offset": 2197,
+          "line": 40,
+          "column": 109
+        }
+      },
+      "complexity": 4,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 4.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::writePiResult@6044-6308",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "writePiResult",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 6044,
+          "line": 153,
+          "column": 22
+        },
+        "end": {
+          "offset": 6308,
+          "line": 161,
+          "column": 1
+        }
+      },
+      "complexity": 4,
+      "coverage": {
+        "status": "measured",
+        "covered": 2,
+        "total": 2,
+        "fraction": 1.0
+      },
+      "crap": 4.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::hookRuntimeOptions@2990-3215",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "hookRuntimeOptions",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 2990,
+          "line": 57,
+          "column": 27
+        },
+        "end": {
+          "offset": 3215,
+          "line": 62,
+          "column": 2
+        }
+      },
+      "complexity": 3,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 3.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::<anonymous>@64:50@3267-3690",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "<anonymous>@64:50",
+      "kind": "function_expression",
+      "range": {
+        "start": {
+          "offset": 3267,
+          "line": 64,
+          "column": 50
+        },
+        "end": {
+          "offset": 3690,
+          "line": 83,
+          "column": 1
+        }
+      },
+      "complexity": 3,
+      "coverage": {
+        "status": "measured",
+        "covered": 4,
+        "total": 4,
+        "fraction": 1.0
+      },
+      "crap": 3.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::<anonymous>@163:54@6364-6678",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "<anonymous>@163:54",
+      "kind": "function_expression",
+      "range": {
+        "start": {
+          "offset": 6364,
+          "line": 163,
+          "column": 54
+        },
+        "end": {
+          "offset": 6678,
+          "line": 169,
+          "column": 1
+        }
+      },
+      "complexity": 3,
+      "coverage": {
+        "status": "measured",
+        "covered": 3,
+        "total": 3,
+        "fraction": 1.0
+      },
+      "crap": 3.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::<anonymous>@182:29@7354-7713",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "<anonymous>@182:29",
+      "kind": "function_expression",
+      "range": {
+        "start": {
+          "offset": 7354,
+          "line": 182,
+          "column": 29
+        },
+        "end": {
+          "offset": 7713,
+          "line": 188,
+          "column": 3
+        }
+      },
+      "complexity": 3,
+      "coverage": {
+        "status": "measured",
+        "covered": 6,
+        "total": 6,
+        "fraction": 1.0
+      },
+      "crap": 3.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::<anonymous>@189:25@7821-8159",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "<anonymous>@189:25",
+      "kind": "function_expression",
+      "range": {
+        "start": {
+          "offset": 7821,
+          "line": 189,
+          "column": 25
+        },
+        "end": {
+          "offset": 8159,
+          "line": 195,
+          "column": 3
+        }
+      },
+      "complexity": 3,
+      "coverage": {
+        "status": "measured",
+        "covered": 6,
+        "total": 6,
+        "fraction": 1.0
+      },
+      "crap": 3.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::<anonymous>@42:54@2253-2754",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "<anonymous>@42:54",
+      "kind": "function_expression",
+      "range": {
+        "start": {
+          "offset": 2253,
+          "line": 42,
+          "column": 54
+        },
+        "end": {
+          "offset": 2754,
+          "line": 52,
+          "column": 1
+        }
+      },
+      "complexity": 2,
+      "coverage": {
+        "status": "measured",
+        "covered": 7,
+        "total": 7,
+        "fraction": 1.0
+      },
+      "crap": 2.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::catch@2377-2416",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "catch",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 2377,
+          "line": 45,
+          "column": 11
+        },
+        "end": {
+          "offset": 2416,
+          "line": 45,
+          "column": 50
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 0,
+        "total": 1,
+        "fraction": 0.0
+      },
+      "crap": 2.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::<anonymous>@105:25@4599-4623",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "<anonymous>@105:25",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 4599,
+          "line": 105,
+          "column": 25
+        },
+        "end": {
+          "offset": 4623,
+          "line": 105,
+          "column": 49
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 0,
+        "total": 1,
+        "fraction": 0.0
+      },
+      "crap": 2.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::try@2335-2364",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "try",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 2335,
+          "line": 44,
+          "column": 9
+        },
+        "end": {
+          "offset": 2364,
+          "line": 44,
+          "column": 38
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::try@3907-3949",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "try",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 3907,
+          "line": 92,
+          "column": 9
+        },
+        "end": {
+          "offset": 3949,
+          "line": 92,
+          "column": 51
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::catch@3962-4004",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "catch",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 3962,
+          "line": 93,
+          "column": 11
+        },
+        "end": {
+          "offset": 4004,
+          "line": 93,
+          "column": 53
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::<anonymous>@98:19@4199-4246",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "<anonymous>@98:19",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 4199,
+          "line": 98,
+          "column": 19
+        },
+        "end": {
+          "offset": 4246,
+          "line": 98,
+          "column": 66
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::<anonymous>@166:31@6626-6647",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "<anonymous>@166:31",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 6626,
+          "line": 166,
+          "column": 31
+        },
+        "end": {
+          "offset": 6647,
+          "line": 166,
+          "column": 52
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    },
+    {
+      "id": "packages/hook-runtime/src/hooks/program.ts::<anonymous>@188:28@7738-7793",
+      "path": "packages/hook-runtime/src/hooks/program.ts",
+      "name": "<anonymous>@188:28",
+      "kind": "arrow",
+      "range": {
+        "start": {
+          "offset": 7738,
+          "line": 188,
+          "column": 28
+        },
+        "end": {
+          "offset": 7793,
+          "line": 188,
+          "column": 83
+        }
+      },
+      "complexity": 1,
+      "coverage": {
+        "status": "measured",
+        "covered": 1,
+        "total": 1,
+        "fraction": 1.0
+      },
+      "crap": 1.0
+    }
+  ],
+  "diagnostics": [
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '0' in 'packages/hook-runtime/src/hooks/program.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '10' in 'packages/hook-runtime/src/hooks/program.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '17' in 'packages/hook-runtime/src/hooks/program.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '19' in 'packages/hook-runtime/src/hooks/program.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '28' in 'packages/hook-runtime/src/hooks/program.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '30' in 'packages/hook-runtime/src/hooks/program.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '35' in 'packages/hook-runtime/src/hooks/program.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '53' in 'packages/hook-runtime/src/hooks/program.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '61' in 'packages/hook-runtime/src/hooks/program.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '69' in 'packages/hook-runtime/src/hooks/program.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '72' in 'packages/hook-runtime/src/hooks/program.ts' has no compatible source function"
+    },
+    {
+      "category": "coverage_attribution",
+      "message": "unmatched Istanbul statement '77' in 'packages/hook-runtime/src/hooks/program.ts' has no compatible source function"
+    }
+  ]
+}

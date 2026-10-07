@@ -1,6 +1,6 @@
 import { expect, it } from "@effect/vitest"
 import { ConfigProvider, Effect } from "effect"
-import { makeResidentRuntimeConfiguration } from "./runtime-configuration.ts"
+import { makeResidentRuntimeConfiguration } from "@hapsland/resident-runtime/resident/runtime-configuration"
 
 it.effect("reads resident diagnostics through the supplied configuration provider", () =>
   Effect.gen(function* () {

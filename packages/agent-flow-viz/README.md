@@ -14,6 +14,12 @@ page source with automatic browser reload. Its bundled production command is
 `hapsland dashboard`. See [the inspection guide](../../docs/status.md#opt-in-local-inspection).
 The Vite commands below serve the public site and decision visualization.
 
+Install development dependencies from the repository root with the pinned Bun
+runtime and `bun install --frozen-lockfile` before running this workspace's
+commands. The root `bun.lock` and catalog own dependency versions; this private
+workspace uses shared workspace packages and has no independent npm lockfile.
+`npm run` remains a script launcher after that root installation.
+
 Run `npm run dev` in this package and open `/site.html` for the FoldKit public
 site, or `/index.html` for the full dashboard. `npm run build` emits both entries
 with relative asset paths. Building is separate from deploying either page.
@@ -90,7 +96,7 @@ are implementation observations and Astra design review inputs, not owner
 acceptance, native capture evidence, or release claims.
 
 This page replays source-free example events through the same checked
-`src/canonical/adapter.ts` and compiled `Canonical.step` used by the resident.
+`packages/canonical-policy/src/canonical/adapter.ts` and compiled `Canonical.step` used by the resident.
 The main flow has 14 distinct places from agent-runtime observation through
 preparation, Jev authorization/attempt/response, advice, delivery, and round
 closure. A connected SVG draws numbered paths between those places, following

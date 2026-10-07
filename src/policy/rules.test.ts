@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
-import { Probability, RuleId } from "../domain/contracts.ts"
-import { deriveAdvice } from "./rules.ts"
-import { configuredRules } from "../test-support/default-rules.ts"
+import { Probability, RuleId } from "@hapsland/review-definition/domain/contracts"
+import { deriveAdvice } from "@hapsland/review-execution/policy/rules"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 
 const snapshot = { path: "src/example.ts", contentHash: "abc123" }
 

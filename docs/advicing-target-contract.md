@@ -85,21 +85,44 @@ failed delivery.
 
 ## Advicee identity and admission
 
-Review and advice belong to an exact advicee partition: canonical physical
-working root, agent runtime and version accepted by the adapter, session ID, and supplied
-subagent ID or null. Native `agent_id` maps to Hapsland's `subagentId` at the
-adapter boundary. Today an omitted ID maps to null, the main-agent scope. That
-mapping does not prove an event came from the main agent. If a runtime can omit
-the ID for a child event, Hapsland needs another reliable attribution fact or
-must withhold child-specific advice. Main and identified child agents use the
-same review and delivery rules; the resident does not need a parent-child tree.
-Separate sessions and isolated
-working roots remain separate. A shared-root change of unknown origin has no
-advicee and cannot produce addressed advice. Native turn IDs are event metadata,
-not advicee or virtual-round identity.
+Advice belongs to an exact recipient: agent runtime and accepted version, session
+ID, and reliably supplied subagent ID or null, independently of working root.
+Native `agent_id` maps to `subagentId`. An omitted ID does not prove main-agent
+origin; unreliable child attribution cannot authorize child-specific advice.
+Native turn IDs are metadata, not recipient or virtual-round identity. Source
+partitions retain the physical working root together with that recipient for
+settings, revisions, evaluation reuse and freshness; equal relative paths in
+different roots never identify the same source.
+
+The first successfully admitted eligible attributed edit pins its virtual round
+to the target's physical Git working copy. Linked worktrees and independent
+repositories are distinct roots. Discovery uses the tool's actual path base,
+including supported explicit directory arguments, and existing safe ancestors
+for new files. Symlink resolution cannot bypass access restrictions. Failed,
+rejected, out-of-policy edits and pre-edit permits cannot select a root. An
+admitted eligible file edit selects the root even if it contains no applicable
+declaration or rule. Mixed-root candidates retain native order: the first
+admissible candidate selects the root; other roots are explicitly skipped.
+
+Later other-root edits retire their permits and produce metadata-only
+`skipped-other-root` outcomes. They do not capture source, cancel pinned work,
+discard pending advice, reset continuation/request allowance, prolong quietness,
+or acquire synchronous response authority. Returning to the pinned root resumes
+the same round. After normal closure, a provably fresh eligible edit can select
+another root; the recipient-wide closure fence still rejects delayed old edits.
+The pinned root's pre-edit settings remain immutable through preparation and
+delivery. Invalid target configuration cannot fall back to cwd settings.
+
+Collection addresses the recipient from any cwd, including outside Git. Advice
+keeps freshness and inspection consent bound to its original physical source;
+file references identify that source when the caller is elsewhere. Root headings
+are unnecessary. Inspection records round membership and skipped target paths
+without capturing other-root source. Complete simultaneous multi-root review is
+deferred to [research #247](https://github.com/dearlordylord/hapsland/issues/247).
+These accepted amendments come from [#246](https://github.com/dearlordylord/hapsland/issues/246).
 
 The first accepted attributed edit opens a virtual round and receives an opaque
-round ID within that advicee partition. At most one virtual round is open for
+round ID within that recipient. At most one virtual round is open for
 an advicee at a time, and at most 64 virtual rounds are open in one resident
 at once. Closing a round frees its slot. Repeated notification of the same edit
 does not open another round. Every admitted observation, preparation job, review
@@ -263,7 +286,7 @@ guarantee a later model-visible opportunity.
 
 ## Handoff, reoffer, and continuation count
 
-Before Hapsland gives advice, it checks the working root and advicee, the
+Before Hapsland gives advice, it checks the original physical source root and recipient, the
 current Jev credential generation, the edit snapshot file settings, each file needed by the review unit,
 whether the work is still current, and the advice age. A temporary failure
 of this check leaves current advice

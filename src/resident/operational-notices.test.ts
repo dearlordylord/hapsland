@@ -3,16 +3,21 @@ import { describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
 import { existsSync } from "node:fs"
 import { symlink, writeFile } from "node:fs/promises"
-import { join } from "node:path"
-import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
-import type { DirectObservation, DirectAdvicee } from "../direct-event/model.ts"
-import { addEvent, makeReviewGitFixture as makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../test-support/default-rules.ts"
-import type { ResidentDispatchContext } from "./protocol.ts"
-import { MAX_OPERATIONAL_NOTICE_KEYS, OPERATIONAL_NOTICE_COOLDOWN_MS } from "./server.ts"
-import { residentPaths } from "./paths.ts"
-import { PENDING_ADVICE_EXPIRY_MS } from "./collection.ts"
-import { initialCanonical, projectCanonical, stepCanonical } from "../canonical/adapter.ts"
+import { dirname, join } from "node:path"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import type { DirectObservation, DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
+import {
+  addEvent,
+  makeReviewGitFixture as makeGitFixture,
+  put,
+  advicee
+} from "@hapsland/build-tooling/test-support/test-fixtures"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
+import type { ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
+import { MAX_OPERATIONAL_NOTICE_KEYS, OPERATIONAL_NOTICE_COOLDOWN_MS } from "@hapsland/resident-runtime/resident/server"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
+import { PENDING_ADVICE_EXPIRY_MS } from "@hapsland/resident-runtime/resident/collection"
+import { initialCanonical, projectCanonical, stepCanonical } from "@hapsland/canonical-policy/canonical/adapter"
 
 const answers = Object.fromEntries(
   configuredRules.map((rule) => [
@@ -24,7 +29,12 @@ const answers = Object.fromEntries(
 const dispatch = (
   statePath: string,
   controlled: NonNullable<ResidentDispatchContext["controlled"]>
-): ResidentDispatchContext => ({ statePath, userConfigPath: null, credential: null, controlled })
+): ResidentDispatchContext => ({
+  statePath,
+  userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
+  credential: null,
+  controlled
+})
 
 const fixture = async () => {
   const root = await makeGitFixture()
@@ -128,7 +138,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     process.env.REVIEW_CREDENTIAL_HELPER = helper
     const context: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
       credential: {
         name: "TYPESAFE_API_KEY",
         environmentValue: null,

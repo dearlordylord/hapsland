@@ -1,12 +1,19 @@
 import { plugin } from "bun"
-import { readFileSync, realpathSync, mkdirSync, writeFileSync, renameSync } from "node:fs"
+import { readFileSync, realpathSync, mkdirSync, writeFileSync, renameSync, existsSync } from "node:fs"
 import { resolve, relative, join, dirname } from "node:path"
 import { randomBytes } from "node:crypto"
+import { readPackageGraph } from "../package-graph.mjs"
+import { compiledCoverageSource, compilerCoverageImports } from "./coverage-source.mjs"
 
 const directory = process.env.HAPSLAND_BUN_COVERAGE_DIRECTORY
 const root = process.env.HAPSLAND_BUN_COVERAGE_ROOT
 if (!directory || !root) throw new Error("Bun coverage requires an owned directory and source root")
 const sourceRoot = realpathSync(resolve(root, "src"))
+const packageManifest = existsSync(join(root, "package.json"))
+  ? JSON.parse(readFileSync(join(root, "package.json"), "utf8"))
+  : {}
+const graph = packageManifest.workspaces ? readPackageGraph(root) : undefined
+const sourceRoots = [sourceRoot, ...[...(graph?.packages.values() ?? [])].map((node) => resolve(node.path, "src"))]
 const manifestPath = process.env.HAPSLAND_BUN_COVERAGE_MANIFEST
 if (!manifestPath) {
   const { createInstrumenter } = await import("istanbul-lib-instrument")
@@ -14,15 +21,32 @@ if (!manifestPath) {
   plugin({
     name: "hapsland-source-coverage",
     setup(build) {
-      build.onLoad({ filter: /\.ts$/ }, ({ path }) => {
-        const local = relative(sourceRoot, realpathSync(path))
-        if (local.startsWith("..") || local.endsWith(".test.ts") || local.endsWith(".d.ts"))
+      const instrumentSource = ({ path }) => {
+        const emitted = graph && compiledCoverageSource(root, path, graph)
+        if (emitted)
+          return {
+            contents: compilerCoverageImports(
+              instrumenter.instrumentSync(readFileSync(emitted.source, "utf8"), emitted.source),
+              readFileSync(emitted.source, "utf8"),
+              emitted.code
+            ),
+            loader: "ts"
+          }
+        const canonical = realpathSync(path)
+        const owned = sourceRoots.some((directory) => {
+          const local = relative(directory, canonical)
+          return local !== ".." && !local.startsWith("../")
+        })
+        if (!owned || path.endsWith(".test.ts") || path.endsWith(".d.ts"))
           return { contents: readFileSync(path, "utf8"), loader: "ts" }
-        return {
-          contents: instrumenter.instrumentSync(readFileSync(path, "utf8"), resolve(root, "src", local)),
-          loader: "ts"
-        }
-      })
+        return { contents: instrumenter.instrumentSync(readFileSync(path, "utf8"), canonical), loader: "ts" }
+      }
+      build.onLoad({ filter: /\.ts$/ }, instrumentSource)
+      const emittedRoots = [...(graph?.packages.values() ?? [])]
+        .filter((node) => node.compiler === "typescript")
+        .map((node) => `${resolve(node.path, "dist")}/`.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      if (emittedRoots.length)
+        build.onLoad({ filter: new RegExp(`^(?:${emittedRoots.join("|")}).*\\.js$`) }, instrumentSource)
     }
   })
 }

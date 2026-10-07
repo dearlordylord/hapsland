@@ -3,12 +3,16 @@ import * as Effect from "effect/Effect"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import { join } from "node:path"
-import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
-import { addEvent, makeReviewGitFixture as makeGitFixture, put } from "../direct-event/test-fixtures.ts"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import {
+  addEvent,
+  makeReviewGitFixture as makeGitFixture,
+  put
+} from "@hapsland/build-tooling/test-support/test-fixtures"
 import { acquireResidentFixture } from "../resident/runtime-fixture.ts"
-import { residentPaths } from "../resident/paths.ts"
-import type { ResidentDispatchContext } from "../resident/protocol.ts"
-import { makeDispatchControls } from "../test-support/dispatch-controls.ts"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
+import type { ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
+import { makeDispatchControls } from "@hapsland/build-tooling/test-support/dispatch-controls"
 
 const config = (model = "clef") =>
   JSON.stringify({ version: 1, reviewBackend: { provider: "cloudflare", model, accountId: "a".repeat(32) } })

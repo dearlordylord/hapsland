@@ -1,11 +1,11 @@
-import { bunExecutable } from "./runtime/bun-runtime.ts"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../scripts/test-harness/policy.mjs"
 import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { execFileSync, spawnSync } from "../scripts/test-harness/process.mjs"
 import { afterEach, describe, expect, it } from "vitest"
-import { configuredRules, connectDefaultRuleFixture } from "./test-support/default-rules.ts"
+import { configuredRules, connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
 
 const roots: Array<string> = []
 const makeTemporaryDirectory = (prefix: string): string => realpathSync(mkdtempSync(join(tmpdir(), prefix)))
@@ -33,7 +33,7 @@ describe("JSON subprocess contract", () => {
     roots.push(root)
     const statePath = initializeRepository(root)
     const capturePath = join(root, "backend-calls")
-    const child = spawnSync(bunExecutable(), ["src/cli.ts", "--explain"], {
+    const child = spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", "--explain"], {
       cwd: process.cwd(),
       encoding: "utf8",
       timeout: DEFAULT_CHILD_TIMEOUT_MS,
@@ -67,7 +67,12 @@ describe("JSON subprocess contract", () => {
     const capturePath = join(root, "backend-calls")
     const child = spawnSync(
       bunExecutable(),
-      ["src/cli.ts", "--claude-hook", "--controlled-reviewer", ...(composed ? ["--composed-edit-hook"] : [])],
+      [
+        "packages/hook-entry/src/hook-main.ts",
+        "--claude-hook",
+        "--controlled-reviewer",
+        ...(composed ? ["--composed-edit-hook"] : [])
+      ],
       {
         cwd: process.cwd(),
         encoding: "utf8",
@@ -112,13 +117,17 @@ describe("JSON subprocess contract", () => {
       }
       delete env.REVIEW_STATE_PATH
       env[key] = ""
-      const result = spawnSync(bunExecutable(), [join(process.cwd(), "src/cli.ts"), "--install-preview"], {
-        cwd: root,
-        env,
-        encoding: "utf8",
-        timeout: DEFAULT_CHILD_TIMEOUT_MS,
-        input: JSON.stringify({ version: 1, operation: "install-preview", codexHome: join(root, "codex") })
-      })
+      const result = spawnSync(
+        bunExecutable(),
+        [join(process.cwd(), "packages/cli-entry/src/cli.ts"), "--install-preview"],
+        {
+          cwd: root,
+          env,
+          encoding: "utf8",
+          timeout: DEFAULT_CHILD_TIMEOUT_MS,
+          input: JSON.stringify({ version: 1, operation: "install-preview", codexHome: join(root, "codex") })
+        }
+      )
       expect(result.status).toBe(2)
       expect(JSON.parse(result.stdout)).toMatchObject({ error: { code: "invalid_request" } })
       expect(existsSync(join(root, "codex"))).toBe(false)
@@ -130,7 +139,7 @@ describe("JSON subprocess contract", () => {
     const root = makeTemporaryDirectory("review-install-schema-")
     roots.push(root)
     const invoke = (request: unknown) =>
-      spawnSync(bunExecutable(), ["src/cli.ts", "--install-preview"], {
+      spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", "--install-preview"], {
         cwd: process.cwd(),
         input: JSON.stringify(request),
         encoding: "utf8",
@@ -159,7 +168,7 @@ describe("JSON subprocess contract", () => {
       version: 1,
       event: { id: "old", kind: "successful-edit", host: "test", cwd: root, paths: ["example.ts"] }
     }
-    const child = spawnSync(bunExecutable(), ["src/cli.ts", "--controlled-reviewer"], {
+    const child = spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", "--controlled-reviewer"], {
       cwd: process.cwd(),
       input: JSON.stringify(input),
       encoding: "utf8",
@@ -201,7 +210,13 @@ describe("JSON subprocess contract", () => {
     }
     const child = spawnSync(
       bunExecutable(),
-      ["src/cli.ts", "--codex-hook", "--controlled-writer", "--controlled-reviewer", `--codex-version=${hostVersion}`],
+      [
+        "packages/hook-entry/src/hook-main.ts",
+        "--codex-hook",
+        "--controlled-writer",
+        "--controlled-reviewer",
+        `--codex-version=${hostVersion}`
+      ],
       { cwd: process.cwd(), input: JSON.stringify(input), encoding: "utf8", env: residentEnv }
     )
 
@@ -225,12 +240,16 @@ describe("JSON subprocess contract", () => {
     const root = makeTemporaryDirectory("review-retired-hook-")
     roots.push(root)
     for (const flags of [["--codex-hook"], ["--opencode-hook"], ["--opencode-hook", "--composed-edit-hook"]]) {
-      const child = spawnSync(bunExecutable(), ["src/cli.ts", ...flags, "--controlled-reviewer"], {
-        cwd: process.cwd(),
-        input: "malformed JSON",
-        encoding: "utf8",
-        env: { ...process.env, REVIEW_CONTROL_JSON: "malformed", REVIEW_RESIDENT_DIR: join(root, "runtime") }
-      })
+      const child = spawnSync(
+        bunExecutable(),
+        ["packages/hook-entry/src/hook-main.ts", ...flags, "--controlled-reviewer"],
+        {
+          cwd: process.cwd(),
+          input: "malformed JSON",
+          encoding: "utf8",
+          env: { ...process.env, REVIEW_CONTROL_JSON: "malformed", REVIEW_RESIDENT_DIR: join(root, "runtime") }
+        }
+      )
       expect(child.status).toBe(0)
       expect(child.stderr).toBe("")
       expect(child.stdout.trim()).toBe(flags.includes("--codex-hook") ? "{}" : "")
@@ -284,7 +303,7 @@ describe("JSON subprocess contract", () => {
     for (const event of events) {
       const child = spawnSync(
         bunExecutable(),
-        ["src/cli.ts", "--codex-hook", "--controlled-writer", "--controlled-reviewer"],
+        ["packages/hook-entry/src/hook-main.ts", "--codex-hook", "--controlled-writer", "--controlled-reviewer"],
         {
           cwd: process.cwd(),
           input: JSON.stringify(event),
@@ -306,7 +325,7 @@ describe("JSON subprocess contract", () => {
   })
 
   it("returns a bounded protocol error for malformed input", () => {
-    const child = spawnSync(bunExecutable(), ["src/cli.ts", "--controlled-reviewer"], {
+    const child = spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", "--controlled-reviewer"], {
       cwd: process.cwd(),
       input: '{"version":null,"unexpected":true}',
       encoding: "utf8"
@@ -321,11 +340,16 @@ describe("JSON subprocess contract", () => {
     roots.push(root)
     const statePath = initializeRepository(root)
     const secret = "CREDENTIAL-SENTINEL"
-    const child = spawnSync(bunExecutable(), ["src/cli.ts", "--inspect-credentials"], {
+    const child = spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", "--inspect-credentials"], {
       cwd: process.cwd(),
       input: JSON.stringify({ version: 1, operation: "credentials", cwd: root }),
       encoding: "utf8",
-      env: { ...process.env, REVIEW_STATE_PATH: statePath, TYPESAFE_API_KEY: secret }
+      env: {
+        ...process.env,
+        REVIEW_STATE_PATH: statePath,
+        REVIEW_USER_CONFIG_PATH: join(root, "user.jsonc"),
+        TYPESAFE_API_KEY: secret
+      }
     })
     expect(JSON.parse(child.stdout)).toEqual({
       version: 1,

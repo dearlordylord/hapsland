@@ -1,4 +1,5 @@
-import { BUN_VERSION } from "../runtime/bun-runtime.ts"
+import { emittedReleaseEntrypoints } from "@hapsland/runtime-environment/runtime/package-runtime"
+import { BUN_VERSION } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { execFileSync } from "node:child_process"
 import { pathToFileURL } from "node:url"
 import { ConfigProvider, Effect } from "effect"
@@ -15,7 +16,7 @@ import {
   inspectPiInstallation,
   diagnosePiIntegration,
   hasPiRegistration
-} from "./pi-installation.ts"
+} from "@hapsland/administration/onboarding/pi-installation"
 const hostPlatform = process.platform
 const hostArchitecture = process.arch
 const directories: string[] = []
@@ -28,9 +29,10 @@ const fixture = () => {
   const home = join(root, "custom-home")
   const host = join(root, "pi")
   const runtime = join(root, "bun")
-  const entrypoint = join(root, "release", "cli.js")
-  mkdirSync(join(root, "release", "pi"), { recursive: true })
-  writeFileSync(join(root, "release", "pi", "extension.js"), "export default function(){}\n")
+  const entrypoint = join(root, "release", emittedReleaseEntrypoints.cli)
+  mkdirSync(join(root, "release", "dist", "pi"), { recursive: true })
+  writeFileSync(join(root, "release", "dist", "pi", "extension.js"), "export default function(){}\n")
+  mkdirSync(join(entrypoint, ".."), { recursive: true })
   writeFileSync(entrypoint, "")
   writeFileSync(host, "#!/bin/sh\necho 1.0.0\n", { mode: 0o700 })
   writeFileSync(runtime, `#!/bin/sh\necho ${BUN_VERSION}\n`, { mode: 0o700 })
@@ -71,7 +73,7 @@ it("manages a custom profile with exact proposals, retained package updates, rep
   const approved = { ...t.request, proposalDigest: digest(preview) }
   expect((await t.run(installPiIntegration(approved))).status).toBe("complete")
   expect(hasPiRegistration(t.request)).toBe(true)
-  expect(readFileSync(t.extension, "utf8")).toContain("release/pi/extension.js")
+  expect(readFileSync(t.extension, "utf8")).toContain("release/dist/pi/extension.js")
   expect(
     (
       await t.run(
@@ -92,9 +94,9 @@ it("manages a custom profile with exact proposals, retained package updates, rep
       )
     ).status
   ).toBe("complete")
-  const newer = join(t.root, "new-release", "cli.js")
-  mkdirSync(join(t.root, "new-release", "pi"), { recursive: true })
-  writeFileSync(join(t.root, "new-release", "pi", "extension.js"), "")
+  const newer = join(t.root, "new-release", emittedReleaseEntrypoints.cli)
+  mkdirSync(join(t.root, "new-release", "dist", "pi"), { recursive: true })
+  writeFileSync(join(t.root, "new-release", "dist", "pi", "extension.js"), "")
   const targetConfig = ConfigProvider.layer(
     ConfigProvider.fromUnknown({ REVIEW_INSTALL_RUNTIME: t.runtime, REVIEW_INSTALL_ENTRYPOINT: newer })
   )
@@ -106,7 +108,7 @@ it("manages a custom profile with exact proposals, retained package updates, rep
       )
     ).status
   ).toBe("complete")
-  expect(readFileSync(t.extension, "utf8")).toContain("new-release/pi/extension.js")
+  expect(readFileSync(t.extension, "utf8")).toContain("new-release/dist/pi/extension.js")
   expect(
     (
       await t.run(
@@ -176,7 +178,10 @@ it("resumes an interrupted owned write and preserves unexpected files during rec
 
 it("loads the owned wrapper with the verified retained runtime and entrypoint", async () => {
   const t = fixture()
-  writeFileSync(join(t.root, "release", "pi", "extension.js"), "export const createPiExtension = options => options;\n")
+  writeFileSync(
+    join(t.root, "release", "dist", "pi", "extension.js"),
+    "export const createPiExtension = options => options;\n"
+  )
   const preview = await t.run(previewPiInstallation(t.request))
   expect((await t.run(installPiIntegration({ ...t.request, proposalDigest: digest(preview) }))).status).toBe("complete")
   const loaded = JSON.parse(

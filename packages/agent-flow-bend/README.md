@@ -101,9 +101,32 @@ Run `npm test` in this directory. It rebuilds the import-graph and canonical
 artifacts from Bend, checks the laws in
 `PROOF.bend` and the import graph kernel proofs, and replays their independent
 source-free contract traces.
-The existing policy and lifecycle artifacts are
-still checked against their source hashes by the root build. The canonical
-ledger owns reservation limits.
+The canonical ledger owns reservation limits. The separate lifecycle model and
+its checks retain their own model scope; they are not the production canonical
+or import-graph artifact receipt.
+
+This private production workspace is the single generated-output owner. Its
+manifest declares the Bend compiler, authored `abi/*.generated.d.ts` inputs and
+exact `@hapsland/agent-flow-bend/canonical` and `/import-graph` exports. Ordinary
+builds invoke the [producer runner](../../scripts/bend-producer.mjs) through
+Turbo, generate both bindings into an owned staging directory, copy the ABI
+declarations, validate the compiler/source/loader evidence and publish its own
+`dist`. Canonical TypeScript adapters consume those exports; other packages do
+not retain generated copies or forwarding adapters. Individual generator scripts
+accept an explicit output directory, defaulting to this owner's `dist`.
+
+A cold root build prepares the actual producer/toolchain identities, then Turbo
+schedules the manifest-derived production graph, including Bend before its
+TypeScript consumers. Fresh source and adapter checks follow compilation before
+assembly. Shared TypeScript/Effect/tooling pins belong to the root Bun catalog;
+this producer retains its separate exact Bend compiler and ABI identity. The
+manifest-derived [root task configuration](../../turbo.json) binds its
+compiler/support stamp and build adapters; consumer task dependencies carry
+changes downstream.
+Generating current bindings and validating receipts does not establish that the
+independent proof suite passed, nor that a native runtime or installed release
+passed its behavioral gates. Issue #243's final build/cache/publication and
+quality acceptance remain separate from this ownership description.
 
 Artifact generation requires exact **Bend 2.0.35**. The pinned Linux release
 archives and SHA-256 digests live in `../../scripts/install-bend-toolchain.mjs`;
@@ -120,7 +143,7 @@ Jev Effect calls, IPC, and output formatting in TypeScript. The accepted
 contract in `../../docs/advicing-target-contract.md` remains the target for
 the aggregate lifecycle and installed runtime behavior.
 
-`Canonical.bend` and [`src/canonical/adapter.ts`](../../src/canonical/adapter.ts)
+`Canonical.bend` and [`packages/canonical-policy/src/canonical/adapter.ts`](../../packages/canonical-policy/src/canonical/adapter.ts)
 define the resident's checked state/event/command interface. It composes a
 global ledger across advicee partitions with round and operation identities,
 Stop waiting and cutoff, and uncertain background output. The resident uses
@@ -138,8 +161,8 @@ implicit host clock.
 
 The production HTTP boundary for both Jev and Cloudflare calls
 [`request-content/core.bend`](request-content/core.bend), compiled into
-[`request-content.generated.js`](../../src/review-providers/request-content.generated.js).
-The [host bridge](../../src/review-providers/request-content.ts) parses the provider's
+`dist/request-content.generated.js` by the [producer](scripts/build-request-content.mjs).
+The [host bridge](../review-execution/src/review-providers/request-content.ts) parses the provider's
 JSON object and encodes **every** top-level field into the Bend ABI. Bend selects
 only `model`, `state`, and `questions` and constructs the outgoing body. Inspection
 observes this final body through a defensive copy; ambient trace propagation is disabled.
@@ -232,7 +255,7 @@ or running dispatch operation. Issued physical requests remain unchanged until
 their original callback settles them. The commands are `ReservationReleased`,
 `CancelWork`, and applicable `DispatchDiscarded`; cancellation does not record a
 review outcome. Missing/wrong tuples and other work kinds refuse atomically.
-This represents the existing scoped release behavior in `src/resident/capacity.ts`
+This represents the existing scoped release behavior in `packages/resident-runtime/src/resident/capacity.ts`
 without using a fabricated backend completion; accepted release/retention
 behavior remains owned by `docs/advicing-target-contract.md`.
 

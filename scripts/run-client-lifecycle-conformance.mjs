@@ -1,10 +1,13 @@
+import { createHash } from "node:crypto"
+import { commandHooks } from "@hapsland/runtime-environment/runtime/hook-catalog"
+import { resolveBunRuntime } from "./pinned-bun.mjs"
 import { standaloneEnvironment } from "./test-harness/standalone-environment.mjs"
 import { offlineSetupAnswers } from "./test-harness/offline-setup-answers.mjs"
 // Offline regression for the public multi-client lifecycle. Uses isolated homes and a local registry fixture.
 import assert from "node:assert/strict"
 import { spawn, execFileSync } from "node:child_process"
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs"
-import { join, resolve } from "node:path"
+import { dirname, join, resolve } from "node:path"
 import { tmpdir } from "node:os"
 const checkout = process.cwd()
 const archiveArgumentIndex = process.argv.indexOf("--archive")
@@ -25,6 +28,7 @@ const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`
 const env = {
   ...process.env,
   HOME: root,
+  HAPSLAND_BUILD_BUN: resolveBunRuntime().executable,
   TYPESAFE_API_KEY: "offline-fixture-key",
   REVIEW_USER_CONFIG_PATH: join(root, "review.jsonc"),
   REVIEW_STATE_PATH: join(root, "state"),
@@ -56,11 +60,46 @@ fs.mkdirSync(pkg,{recursive:true}); fs.cpSync(${JSON.stringify(join(registrySour
 for(const name of ['package.json','package-runtime.json'])fs.copyFileSync(path.join(${JSON.stringify(registrySource)},name),path.join(pkg,name));
 for(const name of ['bin','native','schemas'])fs.cpSync(path.join(${JSON.stringify(registrySource)},name),path.join(pkg,name),{recursive:true});
 fs.mkdirSync(path.join(prefix,'bin'));
-for(const name of ['hapsland','hapsland-doctor','hapsland-parser','hapsland-resident'])fs.symlinkSync(path.join(pkg,'bin','launch.sh'),path.join(prefix,'bin',name));
+for(const name of ['hapsland','hapsland-hook','hapsland-doctor','hapsland-parser','hapsland-resident'])fs.symlinkSync(path.join(pkg,'bin','launch.sh'),path.join(prefix,'bin',name));
 `,
   { mode: 0o700 }
 )
-const terminal = async (args, entrypoint = join(checkout, "src/cli.ts")) => {
+const assertDedicatedRegistrations = (home, file, retained) => {
+  const settings = JSON.parse(readFileSync(join(home, file), "utf8"))
+  const definitions = Object.values(commandHooks[file === "settings.json" ? "claude" : "codex"])
+  for (const event of new Set(definitions.map((definition) => definition.event))) {
+    const handlers = settings.hooks?.[event]?.flatMap((group) => group.hooks ?? []) ?? []
+    const expected = definitions.filter((definition) => definition.event === event)
+    assert.equal(handlers.length, expected.length, `${event} registration is incomplete or duplicated`)
+    for (const definition of expected) {
+      const matches = handlers.filter((handler) =>
+        definition.flags.every((flag) => handler.command?.split(" ").includes(flag))
+      )
+      assert.equal(
+        matches.length,
+        1,
+        `${event} catalog variant is missing or duplicated: ${definition.flags.join(" ")}`
+      )
+      assert.equal(matches[0].timeout, definition.timeout)
+      assert.equal(matches[0].async === true, definition.async === true)
+    }
+    for (const handler of handlers) {
+      assert.equal(handler.type, "command")
+      assert.equal(typeof handler.command, "string")
+      assert(!handler.command.includes("/hapsland'"), `${event} targets the administrative CLI`)
+      if (retained) {
+        assert(handler.command.includes("/candidates/snapshot-"), `${event} escaped the retained release`)
+        assert(handler.command.includes("/hapsland-hook'"), `${event} lacks the dedicated executable`)
+      } else {
+        assert(
+          handler.command.includes("packages/hook-entry/dist/hook-main.js"),
+          `${event} lacks the source hook entry`
+        )
+      }
+    }
+  }
+}
+const terminal = async (args, entrypoint = join(checkout, "packages/cli-entry/src/cli.ts")) => {
   const command = [...(entrypoint.endsWith(".ts") ? [process.execPath, entrypoint] : [entrypoint]), ...args]
     .map(quote)
     .join(" ")
@@ -108,7 +147,9 @@ try {
     assert.equal(initial.declinedVerifications, 1, initial.output)
   }
   const originalClaude = readFileSync(join(claudeHome, "settings.json"), "utf8")
-  assert(originalClaude.includes(join(checkout, "src/cli.ts")))
+  assert(originalClaude.includes(join(checkout, "packages/hook-entry/dist/hook-main.js")))
+  assertDedicatedRegistrations(claudeHome, "settings.json", false)
+  assertDedicatedRegistrations(codexHome, "hooks.json", false)
   env.REVIEW_INSTALL_FAIL_AFTER_WRITES = "1"
   const interrupted = await terminal(["update", "codex"])
   assert.notEqual(interrupted.code, 0, interrupted.output)
@@ -121,9 +162,33 @@ try {
   assert.equal(update.confirmations, 1)
   const updatedClaude = readFileSync(join(claudeHome, "settings.json"), "utf8")
   assert.notEqual(updatedClaude, originalClaude)
+  assertDedicatedRegistrations(claudeHome, "settings.json", true)
+  assertDedicatedRegistrations(codexHome, "hooks.json", true)
   const active = JSON.parse(readFileSync(join(root, ".local/share/hapsland/active.json"), "utf8"))
   assert(active.executable.includes("/candidates/snapshot-"))
   assert.deepEqual(active.args, [])
+  const retainedHook = join(dirname(active.executable), "hapsland-hook")
+  const hookBackup = join(root, "retained-hook-backup")
+  cpSync(retainedHook, hookBackup)
+  rmSync(retainedHook)
+  try {
+    const damagedDoctor = await terminal(["doctor", "codex"])
+    assert(damagedDoctor.output.includes("not-ready"), damagedDoctor.output)
+    assert(
+      damagedDoctor.output.includes("missing") || damagedDoctor.output.includes("unavailable"),
+      damagedDoctor.output
+    )
+    assert(damagedDoctor.output.includes("hapsland-hook"), damagedDoctor.output)
+    const registrationsBefore = readFileSync(join(codexHome, "hooks.json"), "utf8")
+    const damagedRepair = await terminal(["repair", "codex"])
+    assert.notEqual(damagedRepair.code, 0, damagedRepair.output)
+    assert.equal(readFileSync(join(codexHome, "hooks.json"), "utf8"), registrationsBefore)
+  } finally {
+    cpSync(hookBackup, retainedHook)
+  }
+  const restoredDoctor = await terminal(["doctor", "codex"])
+  assert(restoredDoctor.output.includes("configuration-ownership: ready"), restoredDoctor.output)
+  assert(!restoredDoctor.output.includes("not-ready"), restoredDoctor.output)
   const repeated = await terminal(["update"])
   assert.equal(repeated.code, 0, repeated.output)
   assert.equal(repeated.confirmations, 0)
@@ -160,13 +225,14 @@ try {
     const value = JSON.parse(readFileSync(join(home, file), "utf8"))
     assert.equal(value.userSetting, "preserved")
     assert.equal(value.hooks.Stop.length, 1)
+    assertDedicatedRegistrations(home, file, true)
   }
   rmSync(active.executable)
   const fallback = await terminal(["reinstall"])
   assert.equal(fallback.code, 0, fallback.output)
   assert(fallback.output.includes("reinstalling from the package in PATH"), fallback.output)
   const fallbackActive = JSON.parse(readFileSync(join(root, ".local/share/hapsland/active.json"), "utf8"))
-  assert.deepEqual(fallbackActive.args, [join(checkout, "src/cli.ts")])
+  assert.deepEqual(fallbackActive.args, [join(checkout, "packages/cli-entry/dist/cli.js")])
   assert.equal(fallbackActive.executable, process.execPath)
   for (const [home, file] of [
     [claudeHome, "settings.json"],
@@ -230,6 +296,28 @@ try {
   assert.equal(piRemovalAgain.confirmations, 0)
   assert.equal(readFileSync(join(piHome, "settings.json"), "utf8"), piSettings)
   assert.equal(readFileSync(join(piHome, "extensions/other.ts"), "utf8"), "preserved unrelated extension")
+  console.log(
+    JSON.stringify({
+      version: 1,
+      operation: "client-lifecycle-conformance",
+      status: "passed",
+      archiveSha256:
+        suppliedArchive === undefined
+          ? null
+          : createHash("sha256")
+              .update(readFileSync(resolve(suppliedArchive)))
+              .digest("hex"),
+      operatingSystem: process.platform,
+      architecture: process.arch,
+      cliSha256: createHash("sha256").update(readFileSync(standaloneCli)).digest("hex"),
+      hookSha256: createHash("sha256")
+        .update(readFileSync(join(dirname(standaloneCli), "hapsland-hook")))
+        .digest("hex"),
+      catalogRegistrations: "claude-codex-all-maintained-events-and-variants",
+      missingHookDiagnostics: "actionable-refusal-without-registration-mutation",
+      nativeAgentExecution: "not-exercised-offline-fixtures"
+    })
+  )
   console.log(
     "PASS: ordinary registry update twice, one snapshot, no repeated approval, active CLI dispatch, no setup rollback, partial update resumed through public repair, both-client doctor/repair/reinstall/uninstall, missing active-package recovery; Pi custom-profile standalone/retained package setup/update/doctor/repair/reinstall/uninstall, repeat idempotency, modified-owned conflict and unrelated settings/extensions preserved; offline fixtures only."
   )

@@ -9,7 +9,7 @@ import {
   runWorkloadNative,
   runWorkloadEmitted
 } from "../../monkey-business-bend/conformance/workload-native-runner.mjs"
-import { readBendList, readRecord } from "../../../src/canonical/boundary-schema.ts"
+import { readBendList, readRecord } from "@hapsland/canonical-policy/canonical/boundary-schema"
 
 const fixture = new URL(
   "../../monkey-business-bend/conformance/collection-response-original-scenarios.bend",

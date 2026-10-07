@@ -4,7 +4,7 @@ import { expect, it } from "vitest"
 import { createRun, restoreReplay } from "./index.ts"
 import { SharedCore } from "./shared-core.ts"
 import { decodeDriver } from "./driver-codec.ts"
-import { readBool, readRecord } from "../../../src/canonical/boundary-schema.ts"
+import { readBool, readRecord } from "@hapsland/canonical-policy/canonical/boundary-schema"
 
 const limits = { globalItems: 128, globalBytes: 100000, partitionItems: 16, partitionBytes: 50000 }
 const plan = (core: SharedCore, partition: number, lifetime = 1) => {

@@ -10,67 +10,113 @@ const evidence = join(root, ".test-runs", `content-wire-mutants-${Date.now()}`)
 const fixture = join(evidence, "fixture")
 mkdirSync(fixture, { recursive: true })
 cpSync(join(root, "src"), join(fixture, "src"), { recursive: true })
+for (const path of ["packages", "scripts"]) {
+  cpSync(join(root, path), join(fixture, path), {
+    recursive: true,
+    filter: (source) => !/(?:^|\/)(?:node_modules|artifacts|\.turbo)(?:\/|$)/.test(source)
+  })
+}
+writeFileSync(
+  join(fixture, "vitest.mutants.config.mts"),
+  `
+import { defineConfig } from 'vitest/config';
+import { readPackageGraph, resolveDevelopmentWorkspaceSource } from './scripts/package-graph.mjs';
+import { inventoryTestHarness } from './scripts/test-harness/inventory.mjs';
+import { UNIT_TEST_TIMEOUT_MS } from './scripts/test-harness/policy.mjs';
+import { resolveBunRuntime } from './scripts/pinned-bun.mjs';
+import { join } from 'node:path';
+const root = import.meta.dirname;
+const files = ['src/direct-event/content-isolation.test.ts', 'src/review-providers/request-content.test.ts'];
+const graph = readPackageGraph(root);
+process.env.HAPSLAND_BUILD_BUN = resolveBunRuntime().executable;
+export default defineConfig({
+  root,
+  test: {
+    include: files,
+    testTimeout: UNIT_TEST_TIMEOUT_MS,
+    setupFiles: [join(root, 'scripts/test-harness/setup.mts')],
+    provide: { harnessInventory: inventoryTestHarness(root, files) }
+  },
+  plugins: [{
+    name: 'isolated-owner-source-exports',
+    enforce: 'pre',
+    resolveId(specifier) {
+      return resolveDevelopmentWorkspaceSource(graph, specifier);
+    }
+  }]
+})
+`
+)
+
 for (const path of [
   "node_modules",
-  "packages",
-  "scripts",
+  "prototypes",
   "evidence",
   "native",
   "package.json",
   "tsconfig.json",
-  "vitest.config.ts"
+  "tsconfig.package.json",
+  "tsconfig.packages.json"
 ]) {
   symlinkSync(join(root, path), join(fixture, path))
 }
 const mutants = [
   {
     name: "bypass-production-bend",
-    file: "src/review-providers/transport.ts",
+    file: "packages/review-execution/src/review-providers/transport.ts",
     before: "reviewRequestContent(request.body.body)",
     after: "new TextDecoder().decode(request.body.body)",
     test: "drops extra top-level fields at the actual shared transport"
   },
   {
     name: "compiled-bend-drops-questions",
-    file: "src/review-providers/request-content.generated.js",
+    file: "packages/agent-flow-bend/dist/request-content.generated.js",
     before: '_questions_0 + "}"',
     after: '"null" + "}"',
     test: "changing private envelopes preserves exact nonempty wire contents"
   },
   {
     name: "schema-valid-prompt-in-source",
-    file: "src/direct-event/pipeline.ts",
+    file: "packages/review-execution/src/direct-event/pipeline.ts",
     before: "source: root.artifact.source",
     after: "source: root.artifact.source + input.rules[0]?.message",
     test: "changing private envelopes preserves exact nonempty wire contents"
   },
   {
     name: "inspection-live-buffer",
-    file: "src/inspection/transport.ts",
+    file: "packages/inspection-records/src/inspection/transport.ts",
     before: "Uint8Array.from(request.body.body)",
     after: "request.body.body",
     test: "inspection cannot replace source bytes with local conversation text"
   },
   {
     name: "ambient-trace-propagation",
-    file: "src/review-providers/transport.ts",
+    file: "packages/review-execution/src/review-providers/transport.ts",
     before: "HttpClient.TracerPropagationEnabled, false",
     after: "HttpClient.TracerPropagationEnabled, true",
     test: "changing private envelopes preserves exact nonempty wire contents"
   }
 ]
+const selectedFiles = ["src/direct-event/content-isolation.test.ts", "src/review-providers/request-content.test.ts"]
 const run = (name, testName) => {
   const args = [
     join(root, "node_modules/vitest/vitest.mjs"),
     "run",
     "--root",
     fixture,
+    "--config",
+    join(fixture, "vitest.mutants.config.mts"),
     "--maxWorkers=1",
-    "src/direct-event/content-isolation.test.ts",
-    "src/review-providers/request-content.test.ts"
+    ...selectedFiles
   ]
   if (testName) args.push("-t", testName)
-  const result = spawnSync(process.execPath, args, { cwd: fixture, encoding: "utf8", timeout: 20_000 })
+  const result = spawnSync(process.execPath, args, {
+    cwd: fixture,
+    encoding: "utf8",
+    timeout: 20_000,
+    // CLI selection and harness inventory must describe the same isolated boundary.
+    env: { ...process.env, HAPSLAND_FOCUSED_TEST_SELECTION: JSON.stringify({ files: selectedFiles, options: [] }) }
+  })
   const output = result.stdout + result.stderr
   writeFileSync(join(evidence, `${name}.log`), output)
   assert.ifError(result.error)

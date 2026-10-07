@@ -1,6 +1,6 @@
 import { expect, it } from "vitest"
-import { commandHooks, commandHookGroup, piHooks } from "./hook-catalog.ts"
-import { createPiExtension } from "../pi/extension.ts"
+import { commandHooks, commandHookGroup, piHooks } from "@hapsland/runtime-environment/runtime/hook-catalog"
+import { createPiExtension } from "@hapsland/pi-extension/pi/extension"
 
 it("generates installed command groups with ownership, bounded async delivery and no Codex prompt", () => {
   const options = {

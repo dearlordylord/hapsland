@@ -1,14 +1,20 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs"
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, mkdirSync, copyFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
-const root = resolve(import.meta.dirname, "../../..")
-const sourceRoot = join(root, "packages/agent-flow-bend/request-content")
+const root = resolve(import.meta.dirname, "..")
+const sourceRoot = join(root, "request-content")
+const outputDirectory = resolve(process.argv.slice(2).find((arg) => arg !== "--check") ?? join(root, "dist"))
+const expectedVersion = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).hapsland.toolchain.bend.version
 const bend = process.env.HAPSLAND_CONTENT_BEND ?? "bend"
 const version = execFileSync(bend, ["version"], { encoding: "utf8", timeout: 5000 }).trim()
-assert.equal(version, "bend 2.0.35", `Bend artifact generation requires exact Bend 2.0.35; observed ${version}`)
+assert.equal(
+  version,
+  `bend ${expectedVersion}`,
+  `Bend artifact generation requires exact Bend ${expectedVersion}; observed ${version}`
+)
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-request-content-"))
 try {
   const output = join(temporary, "runtime.js")
@@ -21,14 +27,24 @@ try {
     footer,
     "\nexport const projectRequestContent = (fields) => run_loop($core$058project$(fields));\n"
   )
-  const target = join(root, "src/review-providers/request-content.generated.js")
+  const target = join(outputDirectory, "request-content.generated.js")
+  const declaration = join(outputDirectory, "request-content.generated.d.ts")
+  const abi = join(root, "abi/request-content.generated.d.ts")
   if (process.argv.includes("--check")) {
     assert.equal(
       readFileSync(target, "utf8"),
       generated,
       "request-content artifact differs from freshly compiled production Bend"
     )
-  } else writeFileSync(target, generated)
+    assert.ok(
+      readFileSync(declaration).equals(readFileSync(abi)),
+      "request-content declaration differs from authored ABI"
+    )
+  } else {
+    mkdirSync(outputDirectory, { recursive: true })
+    writeFileSync(target, generated)
+    copyFileSync(abi, declaration)
+  }
 } finally {
   rmSync(temporary, { recursive: true, force: true })
 }

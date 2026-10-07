@@ -4,8 +4,8 @@ import { fileURLToPath } from "node:url"
 import { join, resolve } from "node:path"
 import { expect, it } from "vitest"
 import { spawnSync } from "node:child_process"
-import { lockInspectionDirectory } from "./native-lock.ts"
-import { packageAssetPath } from "../runtime/package-runtime.ts"
+import { lockInspectionDirectory } from "@hapsland/inspection-records/inspection/native-lock"
+import { packageAssetPath } from "@hapsland/runtime-environment/runtime/package-runtime"
 
 it("allows simultaneous read-only owners and excludes a writer until both release", async () => {
   const directory = await realpath(await mkdtemp(join(tmpdir(), "hapsland-shared-lock-")))
@@ -69,7 +69,7 @@ it("loads the physical binding from a compiled Bun package and releases descript
       entry,
       `
       import { open, mkdir } from "node:fs/promises";
-      import { lockInspectionDirectory } from ${JSON.stringify(fileURLToPath(new URL("./native-lock.ts", import.meta.url)))};
+      import { lockInspectionDirectory } from ${JSON.stringify(fileURLToPath(new URL("../../packages/inspection-records/src/inspection/native-lock.ts", import.meta.url)))};
       await mkdir(process.argv[2], { mode: 0o700 });
       const first = await open(process.argv[2], "r"), second = await open(process.argv[2], "r");
       if (!lockInspectionDirectory(first.fd) || lockInspectionDirectory(second.fd)) throw new Error("ownership mismatch");

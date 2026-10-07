@@ -16,7 +16,7 @@ import {
   ConsSchema,
   NilSchema,
   decoder
-} from "./boundary-schema.ts"
+} from "@hapsland/canonical-policy/canonical/boundary-schema"
 
 const recordReference = Schema.Record(Schema.String, Schema.Unknown)
 const tagReference = Schema.decodeUnknownSync(Schema.Struct({ $: Schema.String }))

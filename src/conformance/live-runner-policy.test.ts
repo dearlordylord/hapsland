@@ -3,7 +3,7 @@ import {
   PaidExecutionNotAuthorized,
   assertPaidExecutionAuthorized,
   providerCallCountForEvidence
-} from "./live-runner-policy.ts"
+} from "@hapsland/build-tooling/test-support/live-runner-policy"
 
 describe("paid live runner policy", () => {
   it("refuses missing execute-paid before credential lookup or provider-capable commands", () => {

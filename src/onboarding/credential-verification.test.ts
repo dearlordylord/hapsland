@@ -5,7 +5,11 @@ import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import * as TestClock from "effect/testing/TestClock"
 import * as Fiber from "effect/Fiber"
-import { offerJevKeyVerification, verifyJevKey, MAX_KEY_CHECKS } from "./credential-verification.ts"
+import {
+  offerJevKeyVerification,
+  verifyJevKey,
+  MAX_KEY_CHECKS
+} from "@hapsland/administration/onboarding/credential-verification"
 
 it.effect.each([
   [200, "accepted"],

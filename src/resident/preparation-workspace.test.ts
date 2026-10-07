@@ -1,9 +1,15 @@
 import { expect, it } from "vitest"
 import fc from "fast-check"
-import { captureWorkspaceBytes, analysisWorkspaceBytes } from "./preparation-workspace.ts"
-import { MAX_SOURCE_BYTES } from "../direct-event/capture.ts"
-import { MAX_TYPE_DECLARATIONS, type AnalyzerMaterializationPreflight } from "../direct-event/languages/contracts.ts"
-import { canonicalValue } from "../direct-event/model.ts"
+import {
+  captureWorkspaceBytes,
+  analysisWorkspaceBytes
+} from "@hapsland/resident-runtime/resident/preparation-workspace"
+import { MAX_SOURCE_BYTES } from "@hapsland/native-observation/direct-event/capture"
+import {
+  MAX_TYPE_DECLARATIONS,
+  type AnalyzerMaterializationPreflight
+} from "@hapsland/source-analysis/direct-event/languages/contracts"
+import { canonicalValue } from "@hapsland/review-definition/direct-event/model"
 
 const bytes = (value: unknown): number => Buffer.byteLength(canonicalValue(value), "utf8")
 const path = fc

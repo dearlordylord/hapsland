@@ -1,10 +1,13 @@
 import { writeFileSync, rmSync } from "node:fs"
-import { runClient } from "../test-support/client-runtime.ts"
-import { makeReviewGitFixture as makeGitFixture, advicee as fixtureAdvicee } from "../direct-event/test-fixtures.ts"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
+import {
+  makeReviewGitFixture as makeGitFixture,
+  advicee as fixtureAdvicee
+} from "@hapsland/build-tooling/test-support/test-fixtures"
 import { it as effectIt } from "@effect/vitest"
 import { ConfigProvider, Deferred, Effect, Fiber, Layer } from "effect"
 import * as Scheduler from "effect/Scheduler"
-import { afterEach, describe, expect, it } from "vitest"
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest"
 import { chmod, mkdtemp, rm, symlink } from "node:fs/promises"
 import { createServer, type Server, type Socket } from "node:net"
 import { tmpdir } from "node:os"
@@ -20,9 +23,13 @@ import {
   ResidentStartup,
   ensureResidentEffect,
   type ResidentStartupOperations
-} from "./client.ts"
-import { prepareResidentDirectory, residentPaths, validateEndpointMetadata } from "./paths.ts"
-import type { DirectObservation } from "../direct-event/model.ts"
+} from "@hapsland/resident-transport/resident/client"
+import {
+  prepareResidentDirectory,
+  residentPaths,
+  validateEndpointMetadata
+} from "@hapsland/resident-transport/resident/paths"
+import type { DirectObservation } from "@hapsland/native-observation/direct-event/observation"
 
 const directories: Array<string> = []
 const servers: Array<Server> = []
@@ -536,21 +543,22 @@ effectIt.effect("serializes only portable controlled dispatch options and keeps 
     const provider = ConfigProvider.layer(
       ConfigProvider.fromUnknown({ REVIEW_CREDENTIAL_STATE_PATH: join(root, "credential-state.json") })
     )
-    const options: import("../test-support/controlled-decision-model.ts").ControlledDecisionModelOptions = {
-      answers: { fixture: { _tag: "Probability", probability: 0.5 } },
-      delayMs: 0,
-      failure: "fixture-failure",
-      failureOnSourceIncludes: "fail-marker",
-      findingOnSourceIncludes: "finding-marker",
-      syntheticR6BrandedRepair: "control",
-      capturePath: "capture",
-      requestSummaryPath: "summary",
-      outcomePath: "outcome",
-      requireCredential: false,
-      onRequest: Effect.void,
-      inspectRequest: () => Effect.void,
-      extraDecisionKey: "not-portable"
-    }
+    const options: import("@hapsland/review-execution/review-execution/controlled-decision-model").ControlledDecisionModelOptions =
+      {
+        answers: { fixture: { _tag: "Probability", probability: 0.5 } },
+        delayMs: 0,
+        failure: "fixture-failure",
+        failureOnSourceIncludes: "fail-marker",
+        findingOnSourceIncludes: "finding-marker",
+        syntheticR6BrandedRepair: "control",
+        capturePath: "capture",
+        requestSummaryPath: "summary",
+        outcomePath: "outcome",
+        requireCredential: false,
+        onRequest: Effect.void,
+        inspectRequest: () => Effect.void,
+        extraDecisionKey: "not-portable"
+      }
     const context = yield* makeResidentDispatchContextEffect(root, "consent", "activity", undefined, options).pipe(
       Effect.provide(provider)
     )
@@ -611,7 +619,7 @@ it("preserves edit polling and rejection outcomes through bounded IPC", async ()
     },
     candidates: []
   }
-  const dispatch: import("./protocol.ts").ResidentDispatchContext = {
+  const dispatch: import("@hapsland/resident-transport/resident/protocol").ResidentDispatchContext = {
     statePath: "/fixture/consent",
     activityPath: "/fixture/activity",
     sessionAnalytics: false,
@@ -643,4 +651,20 @@ it("preserves edit polling and rejection outcomes through bounded IPC", async ()
           : { status: "unavailable", reason: "lost" }
     )
   }
+})
+
+// User credential files belong to this fixture, independently of the developer's configuration.
+const privateConfiguration = await vi.hoisted(async () => {
+  const fs = await import("node:fs")
+  const os = await import("node:os")
+  const path = await import("node:path")
+  const previous = process.env.XDG_CONFIG_HOME
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "hapsland-private-config-"))
+  process.env.XDG_CONFIG_HOME = directory
+  return { directory, previous }
+})
+afterAll(() => {
+  if (privateConfiguration.previous === undefined) delete process.env.XDG_CONFIG_HOME
+  else process.env.XDG_CONFIG_HOME = privateConfiguration.previous
+  rmSync(privateConfiguration.directory, { recursive: true, force: true })
 })

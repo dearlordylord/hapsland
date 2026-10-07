@@ -1,54 +1,59 @@
-import { REVIEW_FEEDBACK_HEADING, REVIEW_FEEDBACK_INSTRUCTIONS } from "../feedback/message.ts"
-import { runClient } from "../test-support/client-runtime.ts"
-import { reviewControlsLayer } from "../test-support/review-controls.ts"
-import { ReviewControlError } from "./review-controls.ts"
-import { nativeDeferred as deferred } from "../test-support/native-deferred.ts"
-import { ResidentDispatchControls, DispatchControlError } from "./dispatch-controls.ts"
-import { makeDispatchControls } from "../test-support/dispatch-controls.ts"
+import { REVIEW_FEEDBACK_HEADING, REVIEW_FEEDBACK_INSTRUCTIONS } from "@hapsland/delivery-output/feedback/message"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
+import { reviewControlsLayer } from "@hapsland/build-tooling/test-support/review-controls"
+import { ReviewControlError } from "@hapsland/resident-runtime/resident/review-controls"
+import { nativeDeferred as deferred } from "@hapsland/build-tooling/test-support/native-deferred"
+import { ResidentDispatchControls, DispatchControlError } from "@hapsland/resident-runtime/resident/dispatch-controls"
+import { makeDispatchControls } from "@hapsland/build-tooling/test-support/dispatch-controls"
 import { Layer } from "effect"
 import {
   ResidentPreparationControls,
   PreparationControlError,
   defaultPreparationControls
-} from "./preparation-controls.ts"
-import { makePreparationControls } from "../test-support/preparation-controls.ts"
+} from "@hapsland/resident-runtime/resident/preparation-controls"
+import { makePreparationControls } from "@hapsland/build-tooling/test-support/preparation-controls"
 import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts"
-import { monotonicNow } from "./hook-clock.ts"
+import { monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"
 import { describe, expect, it, vi } from "vitest"
 import * as Effect from "effect/Effect"
+import { makeReviewSettings, settingsSource } from "@hapsland/review-definition/runtime/review-settings"
 import * as Deferred from "effect/Deferred"
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { spawn } from "node:child_process"
 import { createHash } from "node:crypto"
 import { join } from "node:path"
-import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import {
   addEvent,
   makeReviewGitFixture as makeGitFixture,
   put,
   stageFiles,
   advicee
-} from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../test-support/default-rules.ts"
-import { analyzerMaterializationPreflight } from "../direct-event/analyzer.ts"
-import { readActivity } from "../activity/status.ts"
-import { claudeHostOutputText } from "../direct-event/claude-output.ts"
-import { residentPaths } from "./paths.ts"
-import { residentRequestEffect as residentRequest } from "./client.ts"
+} from "@hapsland/build-tooling/test-support/test-fixtures"
+import { configuredRules, connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
+import { analyzerMaterializationPreflight } from "@hapsland/source-analysis/direct-event/analyzer"
+import { readActivity } from "@hapsland/activity-observation/activity/status"
+import { claudeHostOutputText } from "@hapsland/delivery-output/direct-event/claude-output"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
+import { residentRequestEffect as residentRequest } from "@hapsland/resident-transport/resident/client"
 import {
   DELIVERY_LEASE_MS,
   decodeResidentRequest,
   type ResidentDispatchContext,
   type ResidentRequest
-} from "./protocol.ts"
+} from "@hapsland/resident-transport/resident/protocol"
 
-import { PARTITION_BYTE_LIMIT } from "./capacity.ts"
-import { VIRTUAL_ROUND_QUIET_MS } from "./composed-delivery.ts"
-import { MAX_COMBINED_RESPONSE_BYTES, PENDING_ADVICE_EXPIRY_MS, encodedHostOutputBytes } from "./collection.ts"
+import { PARTITION_BYTE_LIMIT } from "@hapsland/resident-runtime/resident/capacity"
+import { VIRTUAL_ROUND_QUIET_MS } from "@hapsland/resident-runtime/resident/composed-delivery"
+import {
+  MAX_COMBINED_RESPONSE_BYTES,
+  PENDING_ADVICE_EXPIRY_MS,
+  encodedHostOutputBytes
+} from "@hapsland/resident-runtime/resident/collection"
 
 const findingDispatch = (statePath: string): ResidentDispatchContext => ({
   statePath,
-  userConfigPath: null,
+  userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
   credential: null,
   controlled: {
     answers: Object.fromEntries(
@@ -62,7 +67,7 @@ const findingDispatch = (statePath: string): ResidentDispatchContext => ({
 
 const allFindingsDispatch = (statePath: string): ResidentDispatchContext => ({
   statePath,
-  userConfigPath: null,
+  userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
   credential: null,
   controlled: {
     answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0.9 }]))
@@ -72,6 +77,24 @@ const allFindingsDispatch = (statePath: string): ResidentDispatchContext => ({
 const singleFindingDispatch = findingDispatch
 
 describe("virtual round quiescence", () => {
+  it("isolates resident dispatch fixtures from conflicting user default rules", async () => {
+    const root = await makeGitFixture()
+    const userRoot = join(root, "user-layer")
+    mkdirSync(userRoot)
+    const conflictingUserConfiguration = join(userRoot, "config.jsonc")
+    connectDefaultRuleFixture(userRoot, conflictingUserConfiguration)
+    const settings = await Effect.runPromise(makeReviewSettings())
+    const conflicting = await Effect.runPromiseExit(
+      settings.capture(settingsSource(root, conflictingUserConfiguration))
+    )
+    expect(conflicting._tag).toBe("Failure")
+    for (const dispatch of [findingDispatch(join(root, "consent")), allFindingsDispatch(join(root, "consent"))]) {
+      expect(dispatch.userConfigPath).not.toBeNull()
+      const captured = await Effect.runPromise(settings.capture(settingsSource(root, dispatch.userConfigPath!)))
+      expect(captured.rules).toHaveLength(configuredRules.length)
+    }
+  })
+
   it("retires a settled advice-free round without Stop", async () => {
     const root = await makeGitFixture()
     await put(root, "quiet.ts", "type QuietCount = number\n")
@@ -393,6 +416,124 @@ describe("canonical resident capacity", () => {
 })
 
 describe("resident delivery lease", () => {
+  it("joins a late equivalent admission while its retained finding awaits publication", async () => {
+    const root = await makeGitFixture()
+    await put(root, "held.ts", "type HeldCount = number\n")
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["held.ts"])))
+    if (observation === undefined) throw new Error("missing fixture observation")
+    const pending = deferred()
+    const release = deferred()
+    const capturePath = join(root, "backend-calls")
+    const base = findingDispatch(join(root, "consent"))
+    const dispatch = { ...base, controlled: { ...base.controlled!, capturePath } }
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+      reviewControls: reviewControlsLayer({
+        afterAdvicePending: () => pending.complete().pipe(Effect.andThen(release.wait))
+      })
+    })
+    try {
+      expect((await Effect.runPromise(server.admit(observation, dispatch))).status).toBe("accepted")
+      await pending.promise
+      const retained = await Effect.runPromise(server.pendingAdviceMetadata())
+      expect(retained).toHaveLength(1)
+      expect(
+        (
+          await Effect.runPromise(
+            server.admit(
+              {
+                ...observation,
+                advicee: { ...observation.advicee, toolUseId: "late-equivalent", turnId: "late-equivalent" }
+              },
+              dispatch
+            )
+          )
+        ).status
+      ).toBe("accepted")
+      release.resolve()
+      await Effect.runPromise(server.whenIdle())
+      expect(await Effect.runPromise(server.pendingAdviceMetadata())).toEqual(retained)
+      expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(1)
+      expect(await Effect.runPromise(server.accountingMetrics())).toMatchObject({ pendingEvaluations: 0 })
+      expect(Effect.runSync(server.stats())).toMatchObject({ running: 0, pendingAdvice: 1 })
+      const delivery = await Effect.runPromise(server.collect(root, advicee({ toolUseId: "late-collect" }), dispatch))
+      expect(delivery.status).toBe("advice")
+      if (delivery.status !== "advice") throw new Error("missing joined finding")
+      expect(delivery.output.hookSpecificOutput.additionalContext.match(/held.ts :: HeldCount/g)).toHaveLength(1)
+      expect((await Effect.runPromise(server.acknowledge(delivery.token))).status).toBe("acknowledged")
+      expect((await Effect.runPromise(server.finalize(delivery.token))).status).toBe("finalized")
+      expect(await Effect.runPromise(server.pendingAdviceMetadata())).toEqual([])
+    } finally {
+      release.resolve()
+      await Effect.runPromise(server.close)
+    }
+    expect(Effect.runSync(server.stats()).retainedBytes).toBe(0)
+  })
+
+  it("discards a retained finding when publication fails and permits a later cached retry", async () => {
+    const root = await makeGitFixture()
+    await put(root, "held.ts", "type HeldCount = number\n")
+    writeFileSync(
+      join(root, ".hapsland.jsonc"),
+      JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+    )
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["held.ts"])))
+    if (observation === undefined) throw new Error("missing fixture observation")
+    const records: Array<import("@hapsland/inspection-records/inspection/contract").InspectionRecord> = []
+    let failPublication = true
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+      inspectionPersistence: {
+        write: (record) =>
+          Effect.sync(() => {
+            records.push(record)
+          })
+      },
+      reviewControls: reviewControlsLayer({
+        afterAdvicePending: () =>
+          failPublication ? Effect.fail(new ReviewControlError({ phase: "advicePending" })) : Effect.void
+      })
+    })
+    const dispatch = findingDispatch(join(root, "consent"))
+    try {
+      expect((await Effect.runPromise(server.admit(observation, dispatch))).status).toBe("accepted")
+      await Effect.runPromise(server.whenIdle())
+      expect(await Effect.runPromise(server.pendingAdviceMetadata())).toEqual([])
+      expect((await Effect.runPromise(server.collect(root, advicee(), dispatch))).status).toBe("empty")
+      expect(Effect.runSync(server.stats())).toMatchObject({ running: 0, pendingAdvice: 0 })
+      failPublication = false
+      expect(
+        (
+          await Effect.runPromise(
+            server.admit(
+              {
+                ...observation,
+                advicee: { ...observation.advicee, toolUseId: "retry-publication", turnId: "retry-publication" }
+              },
+              dispatch
+            )
+          )
+        ).status
+      ).toBe("accepted")
+      await Effect.runPromise(server.whenIdle())
+      expect(await Effect.runPromise(server.pendingAdviceMetadata())).toHaveLength(1)
+      expect(
+        (await Effect.runPromise(server.collect(root, advicee({ toolUseId: "retry-collect" }), dispatch))).status
+      ).toBe("advice")
+    } finally {
+      await Effect.runPromise(server.close)
+    }
+    const retained = records.filter((record) => record.fact.kind === "finding-fate" && record.fact.fate === "retained")
+    expect(retained).not.toEqual([])
+    expect(retained.every((record) => typeof record.correlation.evaluationId === "string")).toBe(true)
+    expect(
+      records.some(
+        (record) =>
+          record.fact.kind === "finding-fate" &&
+          record.fact.fate === "discarded" &&
+          record.fact.reason === "retention-failed"
+      )
+    ).toBe(true)
+  })
+
   it("does not cancel a completed finding held in a running dispatch callback at Stop", async () => {
     const root = await makeGitFixture()
     await put(root, "held.ts", "type HeldCount = number\n")
@@ -946,6 +1087,7 @@ describe("resident delivery lease", () => {
             residentRequest(paths, {
               requestRoute: "shared",
               operation: "register-edit",
+              userConfigPath: join(root, "consent", "absent-fixture-user.jsonc"),
               lifetime: server.lifetime,
               root,
               advicee: observation.advicee,
@@ -987,6 +1129,7 @@ describe("resident delivery lease", () => {
             residentRequest(paths, {
               requestRoute: "shared",
               operation: "register-edit",
+              userConfigPath: join(root, "consent", "absent-fixture-user.jsonc"),
               lifetime: server.lifetime,
               root,
               advicee: observation.advicee,
@@ -1134,6 +1277,7 @@ describe("resident delivery lease", () => {
         {
           requestRoute: "shared",
           operation: "register-edit",
+          userConfigPath: join(root, "consent", "absent-fixture-user.jsonc"),
           lifetime: server.lifetime,
           root,
           advicee: observation.advicee,
@@ -1204,6 +1348,7 @@ describe("resident delivery lease", () => {
           server.handle({
             requestRoute: "shared",
             operation: "register-edit",
+            userConfigPath: join(root, "consent", "absent-fixture-user.jsonc"),
             lifetime: server.lifetime,
             root,
             advicee: observation.advicee,
@@ -1219,6 +1364,7 @@ describe("resident delivery lease", () => {
           server.handle({
             requestRoute: "shared",
             operation: "register-edit",
+            userConfigPath: join(root, "consent", "absent-fixture-user.jsonc"),
             lifetime: server.lifetime,
             root,
             advicee: observation.advicee,
@@ -1426,6 +1572,7 @@ describe("resident delivery lease", () => {
           server.handle({
             requestRoute: "shared",
             operation: "register-edit",
+            userConfigPath: join(root, "consent", "absent-fixture-user.jsonc"),
             lifetime: server.lifetime,
             root,
             advicee: successor.advicee,
@@ -2719,6 +2866,7 @@ describe("resident delivery lease", () => {
           server.handle({
             requestRoute: "shared",
             operation: "register-edit",
+            userConfigPath: join(root, "consent", "absent-fixture-user.jsonc"),
             lifetime: server.lifetime,
             root,
             advicee: selected,
@@ -2824,6 +2972,7 @@ describe("resident delivery lease", () => {
               residentRequest(paths, {
                 requestRoute: "shared",
                 operation: "register-edit",
+                userConfigPath: join(root, "consent", "absent-fixture-user.jsonc"),
                 lifetime: server.lifetime,
                 root,
                 advicee: selected,
@@ -2984,7 +3133,7 @@ describe("resident delivery lease", () => {
     })
     const dispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: {
         name: "TYPESAFE_API_KEY",
         environmentValue: "synthetic-race-marker",
@@ -3128,7 +3277,7 @@ describe("resident delivery lease", () => {
     if (observation === undefined) return
     const dispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: {
         capturePath,
@@ -3182,7 +3331,7 @@ describe("resident delivery lease", () => {
     if (observation === undefined) return
     const dispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: {
         answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 9 }]))
@@ -3242,7 +3391,7 @@ describe("resident delivery lease", () => {
     if (observation === undefined) return
     const dispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: {
         capturePath,
@@ -3312,7 +3461,7 @@ describe("resident delivery lease", () => {
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const dispatch: ResidentDispatchContext = {
         statePath,
-        userConfigPath: null,
+        userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
         credential: null,
         controlled: {
           capturePath,
@@ -3366,7 +3515,7 @@ describe("resident delivery lease", () => {
     if (observation === undefined) return
     const dispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: {
         answers: Object.fromEntries(
@@ -3433,7 +3582,7 @@ describe("resident delivery lease", () => {
     if (observation === undefined) return
     const dispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: { capturePath }
     }
@@ -3510,7 +3659,7 @@ describe("resident delivery lease", () => {
     const capturePath = join(root, "backend-calls")
     const dispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: {
         capturePath,
@@ -3668,7 +3817,7 @@ describe("resident delivery lease", () => {
     const capturePath = join(root, "backend-calls")
     const clearDispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: { capturePath }
     }
@@ -3970,7 +4119,7 @@ describe("resident delivery lease", () => {
     const clearCalls = join(root, "clear-calls")
     const clearDispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: { capturePath: clearCalls }
     }
@@ -4018,7 +4167,7 @@ describe("resident delivery lease", () => {
     const capturePath = join(root, "backend-calls")
     const dispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: {
         capturePath,
@@ -4063,7 +4212,7 @@ describe("resident delivery lease", () => {
     const capturePath = join(root, "backend-calls")
     const dispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: { capturePath }
     }
@@ -4109,7 +4258,7 @@ describe("resident delivery lease", () => {
     }
     const dispatch: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: {
         capturePath,
@@ -4157,11 +4306,14 @@ describe("resident delivery lease", () => {
     ).toEqual(metadata.map(({ id }) => ({ id, delivery: "available" })))
     const otherRoot = await makeGitFixture()
     expect(await Effect.runPromise(server.collect(otherRoot, observation.advicee, dispatch))).toMatchObject({
-      status: "empty"
+      status: "advice"
     })
+    const afterCrossRootCollection = await Effect.runPromise(server.pendingAdviceMetadata())
+    expect(afterCrossRootCollection.map(({ id }) => id)).toEqual(metadata.map(({ id }) => id))
+    expect(afterCrossRootCollection.some(({ delivery }) => delivery === "leased-unacknowledged")).toBe(true)
     expect(
-      (await Effect.runPromise(server.pendingAdviceMetadata())).map(({ id, delivery }) => ({ id, delivery }))
-    ).toEqual(metadata.map(({ id }) => ({ id, delivery: "available" })))
+      afterCrossRootCollection.every(({ delivery }) => delivery === "leased-unacknowledged" || delivery === "available")
+    ).toBe(true)
   })
 })
 

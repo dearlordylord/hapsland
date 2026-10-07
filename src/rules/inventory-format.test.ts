@@ -1,5 +1,5 @@
 import { expect, it } from "vitest"
-import { formatRule, type RuleInventoryEntry } from "./inventory.ts"
+import { formatRule, type RuleInventoryEntry } from "@hapsland/administration/rules/inventory"
 
 const authored: RuleInventoryEntry = {
   id: "namespace/example",

@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "authority": "Implementation audit; not a new product contract",
+  "status": "reviewed",
+  "executable": {
+    "harnessContractDrift": [
+      "scripts/run-build-workflow-acceptance.mjs",
+      "scripts/build-workflow-acceptance.test.mjs"
+    ],
+    "positivePiClassificationReadiness": [
+      "src/pi/installed-faults.test.ts",
+      "src/pi/installed-boundary.test.ts",
+      "scripts/test-support/pi-installed.ts"
+    ],
+    "fullGateLockDeadlineFreezeAndCleanup": [
+      "scripts/test-harness/run-checks.test.mjs"
+    ],
+    "environmentIdentity": [
+      "scripts/native-task.test.mjs",
+      "scripts/assembly-context.test.mjs"
+    ],
+    "coverageNativeLoaderInterop": [
+      "scripts/test-harness/bun-coverage.test.mjs",
+      "scripts/coverage-provider.test.mts"
+    ],
+    "fullQualityAcknowledgmentAndCheapHarnessPrerequisites": [
+      "scripts/test-harness/run-checks.mjs",
+      "scripts/test-harness/run-checks.test.mjs",
+      "scripts/test-harness/verify.mjs",
+      "scripts/test-harness/verify.test.mjs"
+    ],
+    "piFreshCompositionAfterClosure": [
+      "src/pi/installed-boundary.test.ts"
+    ],
+    "coverageStatementSourceAttribution": [
+      "scripts/coverage-provider.mjs",
+      "scripts/coverage-provider.test.mts"
+    ],
+    "complexityLowerBoundBeforeCoverage": [
+      "scripts/test-harness/check-complexity.mjs",
+      "scripts/test-harness/check-complexity.test.mjs",
+      "scripts/test-harness/run-checks.test.mjs"
+    ],
+    "compiledFixturePreloadOwnership": [
+      "scripts/coverage-provider.mjs",
+      "scripts/test-harness/standalone-environment.mjs",
+      "scripts/test-harness/standalone-environment.test.mjs",
+      "scripts/test-harness/check-stages.mjs"
+    ],
+    "installedResidentRoutingAndProbeTiming": [
+      "src/resident/subprocess.test.ts",
+      "scripts/test-support/client-runtime.ts"
+    ],
+    "sourceHookPreparationOutsideInvocationDeadline": [
+      "src/hook-main.test.ts"
+    ]
+  },
+  "guidanceOnly": [
+    "New fixtures must explicitly isolate personal configuration where outside their scenario; repaired fixtures enforce their own selectors, not a repository-wide prohibition.",
+    "Diagnose every independent gate failure and observe focused repair passing before another full run.",
+    "Change experiment after two attempts without a discriminating result; separate 30-minute fixture repair budget.",
+    "Declare expected duration and wall-clock stop time for ad-hoc commands.",
+    "Accepted-goal relevance and sufficiency of selected checks require judgment; CHECKS.md owns the decision process, not an automatic semantic proof."
+  ],
+  "limitations": [
+    "Receipt API fixtures catch known contract drift; they do not automatically migrate arbitrary future fields.",
+    "Harness tests validate known shebang, repair ordering, receipt mutation and unpack-limit failures; future changes still require focused acceptance preflight.",
+    "Coverage fixtures enforce compiled private exports, unowned CommonJS native interop and nested cold source-runtime construction; process readiness under instrumentation still needs affected consumer checks.",
+    "Fresh-edit composition fixtures enforce matching physical mutation, patch and new finding; a changed tool-call ID alone is not freshness evidence.",
+    "Incomplete statement ends require unique authored range; positive aliases also require same-context precise hits. Unresolved geometry and counters remain strict.",
+    "Compiled-preload regression proves exact owned token removal while unrelated preload/options and raw source preload remain active. It does not qualify process readiness under arbitrary host contention.",
+    "Installed resident canaries execute packaged bytes through the existing launcher test port; source clients retain instrumentation. Exact archive identity and focused/full scope remain separate. Host scheduling cannot be guaranteed by these tests."
+  ],
+  "candidateBaseCommit": "d7f44786"
+}

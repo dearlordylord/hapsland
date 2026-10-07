@@ -1,0 +1,25 @@
+
+ RUN  v5.0.1 /workspace/typescript/hapsland-243
+      Coverage enabled with v8
+
+ ✓ src/direct-event/claude-cli.test.ts (8 tests) 19980ms
+   ✓ installed hook Claude synchronous delivery (8)
+     ✓ retains the edit's blocking snapshot after settings change at final IPC handoff 1008ms
+     ✓ submits one ready finding through the installed Stop command 4638ms
+     ✓ does not turn a lost resident's pending Claude work into clear or submitted advice 5176ms
+     ✓ returns quietly at the edit budget without a Claude background delivery 1098ms
+     ✓ does not acknowledge a Claude lease when stdout reports a write error 833ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  09:05:49
+   Duration  23.18s (tests 97%, transform 2%, import 1%)
+
+ % Coverage report from v8
+
+=============================== Coverage summary ===============================
+Statements   : 6.49% ( 1473/22685 )
+Branches     : 2.69% ( 364/13527 )
+Functions    : 3.02% ( 186/6139 )
+Lines        : 7.22% ( 1423/19703 )
+================================================================================

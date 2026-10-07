@@ -1,0 +1,119 @@
+
+ RUN  v5.0.1 /workspace/typescript/hapsland-243
+
+ ✓ src/direct-event/language-boundary.test.ts (4 tests) 4ms
+
+FAIL /workspace/typescript/hapsland-243/scripts/monkey-business-build-reuse.test.mts > reuses verified compiled policy for host-only changes through the same wrapper producer without Bend
+AssertionError: expected 1 to be +0 // Object.is equality
+    at /workspace/typescript/hapsland-243/scripts/monkey-business-build-reuse.test.mts:46:24
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:1628:35
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2783:26
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3319:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3314:10)
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3299:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3257:10)
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3876:64
+Actual: '1'
+Expected: '0'
+
+FAIL /workspace/typescript/hapsland-243/scripts/monkey-business-build-reuse.test.mts > refuses a changed export wrapper rather than relabelling its old compiled output
+AssertionError: expected 'file:///tmp/hapsland-engine-reuse-62p…' to contain 'Cannot reuse changed shared Engine wr…'
+    at /workspace/typescript/hapsland-243/scripts/monkey-business-build-reuse.test.mts:96:25
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:1628:35
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2783:26
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3319:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3314:10)
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3299:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3257:10)
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3876:64
+Actual: 'file:///tmp/hapsland-engine-reuse-62pXpM/packages/monkey-business-bend/build.mjs:431\n' +
+  '    throw new Error("Cannot reuse changed Engine source, declaration, or preparation ABI")\n' +
+  '          ^\n' +
+  '\n' +
+  'Error: Cannot reuse changed Engine source, declaration, or preparation ABI\n' +
+  '    at reusedModule (file:///tmp/hapsland-engine-reuse-62pXpM/packages/monkey-business-bend/build.mjs:431:11)\n' +
+  '    at file:///tmp/hapsland-engine-reuse-62pXpM/packages/monkey-business-bend/build.mjs:492:18\n' +
+  '    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)\n' +
+  '    at async node:internal/modules/esm/loader:647:26\n' +
+  '    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\n' +
+  '\n' +
+  'Node.js v24.20.0\n'
+Expected: 'Cannot reuse changed shared Engine wrapper or embedded identity'
+ ❯ scripts/monkey-business-build-reuse.test.mts (5 tests | 2 failed) 898ms
+   × reuses verified compiled policy for host-only changes through the same wrapper producer without Bend 218ms
+   ✓ refuses changed source while preserving the original artifact 185ms
+   ✓ refuses changed declaration while preserving the original artifact 226ms
+   ✓ refuses corrupt module bytes before refreshing any metadata 184ms
+   × refuses a changed export wrapper rather than relabelling its old compiled output 84ms
+ ✓ src/package-doctor.test.ts (4 tests) 913ms
+   ✓ defaults to readable output even when stdout is piped, with the same exit status as JSON 493ms
+ ✓ src/inspection/native-lock.test.ts (3 tests) 1123ms
+   ✓ loads the physical binding from a compiled Bun package and releases descriptor ownership 923ms
+ ✓ src/runtime/cli-information.test.ts (3 tests) 2802ms
+   ✓ ../../packages/doctor-entry/src/package-doctor.ts information exits with stdin open and without creating state 1212ms
+   ✓ ../../packages/parser-entry/src/parser-main.ts information exits with stdin open and without creating state 795ms
+   ✓ ../../packages/resident-entry/src/resident/main.ts information exits with stdin open and without creating state 793ms
+ ✓ src/runtime/review-engine-boundary.test.ts (50 tests) 5467ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  scripts/monkey-business-build-reuse.test.mts > reuses verified compiled policy for host-only changes through the same wrapper producer without Bend
+AssertionError: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ scripts/monkey-business-build-reuse.test.mts:46:24
+     44|     (source) => source + "\n// isolated host identity change\n"
+     45|   )
+     46|   expect(run().status).toBe(0)
+       |                        ^
+     47|   const after = readFileSync(file("engine.mjs"), "utf8"),
+     48|     current = JSON.parse(readFileSync(file("generated.json"), "utf8"))
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  scripts/monkey-business-build-reuse.test.mts > refuses a changed export wrapper rather than relabelling its old compiled output
+AssertionError: expected 'file:///tmp/hapsland-engine-reuse-62p…' to contain 'Cannot reuse changed shared Engine wr…'
+
+- Expected
++ Received
+
+- Cannot reuse changed shared Engine wrapper or embedded identity
++ file:///tmp/hapsland-engine-reuse-62pXpM/packages/monkey-business-bend/build.mjs:431
++     throw new Error("Cannot reuse changed Engine source, declaration, or preparation ABI")
++           ^
++
++ Error: Cannot reuse changed Engine source, declaration, or preparation ABI
++     at reusedModule (file:///tmp/hapsland-engine-reuse-62pXpM/packages/monkey-business-bend/build.mjs:431:11)
++     at file:///tmp/hapsland-engine-reuse-62pXpM/packages/monkey-business-bend/build.mjs:492:18
++     at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
++     at async node:internal/modules/esm/loader:647:26
++     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
++
++ Node.js v24.20.0
++
+
+ ❯ scripts/monkey-business-build-reuse.test.mts:96:25
+     94|   const result = run()
+     95|   expect(result.status).not.toBe(0)
+     96|   expect(result.stderr).toContain("Cannot reuse changed shared Engine …
+       |                         ^
+     97|   expect(readFileSync(file("engine.mjs"), "utf8")).toBe(original)
+     98| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 5 passed (6)
+      Tests  2 failed | 67 passed (69)
+   Start at  05:20:40
+   Duration  5.65s (tests 96%, transform 3%, setup 1%)
+

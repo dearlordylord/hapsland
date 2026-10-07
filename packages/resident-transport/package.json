@@ -1,0 +1,50 @@
+{
+  "name": "@hapsland/resident-transport",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./resident/client": {
+      "types": "./dist/resident/client.d.ts",
+      "default": "./dist/resident/client.js"
+    },
+    "./resident/controlled-options": {
+      "types": "./dist/resident/controlled-options.d.ts",
+      "default": "./dist/resident/controlled-options.js"
+    },
+    "./resident/hook-clock": {
+      "types": "./dist/resident/hook-clock.d.ts",
+      "default": "./dist/resident/hook-clock.js"
+    },
+    "./resident/paths": {
+      "types": "./dist/resident/paths.d.ts",
+      "default": "./dist/resident/paths.js"
+    },
+    "./resident/protocol": {
+      "types": "./dist/resident/protocol.d.ts",
+      "default": "./dist/resident/protocol.js"
+    },
+    "./resident/socket-frame": {
+      "types": "./dist/resident/socket-frame.d.ts",
+      "default": "./dist/resident/socket-frame.js"
+    }
+  },
+  "dependencies": {
+    "@hapsland/activity-observation": "workspace:*",
+    "@hapsland/delivery-output": "workspace:*",
+    "@hapsland/inspection-records": "workspace:*",
+    "@hapsland/native-observation": "workspace:*",
+    "@hapsland/runtime-environment": "workspace:*",
+    "@hapsland/runtime-inputs": "workspace:*",
+    "effect": "catalog:"
+  },
+  "scripts": {
+    "build": "node ../../scripts/compile-package.mjs",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
+  },
+  "hapsland": {
+    "domain": "resident-transport",
+    "host": "bun",
+    "capabilities": []
+  }
+}

@@ -7,9 +7,9 @@ import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { chromium } from "playwright"
 import { Effect, Scope, Exit } from "effect"
-import { connectDefaultRuleFixture } from "../../../src/test-support/default-rules.ts"
-import { makeInspectionStorage } from "../../../src/inspection/storage.ts"
-import { makeInspectionHttpServer } from "../../../src/inspection/http.ts"
+import { connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
+import { makeInspectionStorage } from "@hapsland/inspection-records/inspection/storage"
+import { makeInspectionHttpServer } from "@hapsland/administration/inspection/http"
 import {
   setupInstalledPi,
   cleanupInstalledPi,
@@ -17,7 +17,7 @@ import {
   fixture,
   before,
   result
-} from "../../../src/test-support/pi-installed.ts"
+} from "@hapsland/build-tooling/test-support/pi-installed"
 
 process.chdir(fileURLToPath(new URL("../../../", import.meta.url)))
 const stateHome = realpathSync(mkdtempSync(join(tmpdir(), "hapsland-pi-browser-")))

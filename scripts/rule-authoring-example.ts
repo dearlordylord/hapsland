@@ -1,12 +1,16 @@
-import { CLI_NAME } from "../src/runtime/cli-names.ts"
+import { CLI_NAME } from "@hapsland/runtime-environment/runtime/cli-names"
 import {
   CUSTOM_RULE_EXAMPLE_ID,
   CUSTOM_RULE_EXAMPLE_PATH,
   ruleCommandReference,
   type RuleAction
-} from "../src/rules/cli-definition.ts"
-import { RULE_SCHEMA_VERSION, DEFAULT_RULE_THRESHOLD, decodeRuleDocument } from "../src/rules/schema.ts"
-import { TYPE_CAPABILITIES } from "../src/rules/targets.ts"
+} from "@hapsland/administration/rules/cli-definition"
+import {
+  RULE_SCHEMA_VERSION,
+  DEFAULT_RULE_THRESHOLD,
+  decodeRuleDocument
+} from "@hapsland/review-definition/rules/schema"
+import { TYPE_CAPABILITIES } from "@hapsland/review-definition/rules/targets"
 
 /** One executable authoring example; generated Markdown is its presentation. */
 export const authoringRuleExample = {

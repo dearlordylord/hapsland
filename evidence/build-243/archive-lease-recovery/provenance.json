@@ -1,0 +1,40 @@
+{
+  "format": 1,
+  "issue": 243,
+  "failedCandidate": "c74eb388",
+  "fixedCandidate": "36feade3",
+  "failure": "Valid enclosing archive lease misclassified as surviving child ownership; build exited0, preparation rejected before pack",
+  "failedRun": "20261007080253942-3088527-92f219",
+  "files": [
+    {
+      "path": "evidence/build-243/archive-lease-recovery/cleanup.json",
+      "sha256": "8878c15b73359c0099938ba8094b8f8da47b690d3b87a6e64beabfac7df1a124",
+      "bytes": 429
+    },
+    {
+      "path": "evidence/build-243/archive-lease-recovery/failed-preparation.log",
+      "sha256": "d5e59681b3c3454946481600ae2e729ad592107a6b8f172df8a1742a7c21cb72",
+      "bytes": 2165
+    },
+    {
+      "path": "evidence/build-243/archive-lease-recovery/failed-results.json",
+      "sha256": "ede599d4e928f809c443e3b17c882713203a936d56bdb5d552eb2c0801cd30e1",
+      "bytes": 1606
+    },
+    {
+      "path": "evidence/build-243/archive-lease-recovery/product-build.log",
+      "sha256": "2280aaa43a185413a42d29b3dea0b4eb1ae8fb2e98d91fb7f523de313ef61e1c",
+      "bytes": 26077
+    },
+    {
+      "path": "evidence/build-243/archive-lease-recovery/regression-green.log",
+      "sha256": "15beb6017567b9cadb1d855a07c167948f085ec1c24326750df7b6683c52d181",
+      "bytes": 8418
+    },
+    {
+      "path": "evidence/build-243/archive-lease-recovery/regression-red.log",
+      "sha256": "0be7480f2abe3e587365401adf99c32354b8e30fb6bf7737f0bddba6a016d672",
+      "bytes": 1287
+    }
+  ]
+}

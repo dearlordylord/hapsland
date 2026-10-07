@@ -1,0 +1,10 @@
+
+> @hapsland/hapsland@0.1.0 test:focused
+> node scripts/test-harness/run-checks.mjs focused src/pi/installed-faults.test.ts --coverage --coverage.reportsDirectory=/tmp/hapsland-243-pi-content-coverage-01 --testNamePattern=valid competing image content|mutated result content --timeout-ms=180000
+
+RUN 20261007120800501-453055-fa3e62 focused; deadline 2026-10-07T12:11:00.501Z; records /workspace/typescript/hapsland-243/.test-runs/20261007120800501-453055-fa3e62
+START workspace-compilation; log /workspace/typescript/hapsland-243/.test-runs/20261007120800501-453055-fa3e62/453055-001-workspace-compilation.log
+PASSED workspace-compilation 7.34s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007120800501-453055-fa3e62/453055-001-workspace-compilation.log
+START vitest-focused; log /workspace/typescript/hapsland-243/.test-runs/20261007120800501-453055-fa3e62/453055-002-vitest-focused.log
+PASSED vitest-focused 6.97s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007120800501-453055-fa3e62/453055-002-vitest-focused.log
+END passed; 14.333s; 0 failed stages, 0 test failures; results /workspace/typescript/hapsland-243/.test-runs/20261007120800501-453055-fa3e62/results.json

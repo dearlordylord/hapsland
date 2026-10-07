@@ -4,12 +4,16 @@ import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promi
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import * as Effect from "effect/Effect"
-import { decide, Live } from "../src/jev-decision.ts"
-import { configuredRules } from "../src/test-support/default-rules.ts"
-import { TYPE_INPUT_CONTRACT } from "../src/rules/targets.ts"
-import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../src/runtime/review-config.ts"
-import { adaptCodexAdd } from "../src/direct-event/adapter.ts"
-import { prepareObservation, preparedProviderInput, preparedUnitStillCurrent } from "../src/direct-event/pipeline.ts"
+import { decide, Live } from "@hapsland/review-execution/jev-decision"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
+import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
+import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import {
+  prepareObservation,
+  preparedProviderInput,
+  preparedUnitStillCurrent
+} from "@hapsland/review-execution/direct-event/pipeline"
 const root = resolve(new URL("../", import.meta.url).pathname)
 const execute = process.argv.includes("--execute-paid")
 const prepareOnly = process.argv.includes("--prepare-only")
@@ -161,7 +165,7 @@ try {
         },
         tool_response: { success: true }
       }
-      const observation = await Effect.runPromise(adaptCodexAdd(event))
+      const observation = await Effect.runPromise(adaptCodexDirectEvent(event))
       if (!observation) throw new Error("Fixture adaptation failed")
       const selectedRules = configuredRules.filter((rule) => rule.id === declaration.targetRule)
       if (selectedRules.length !== 1) throw new Error("Target rule unavailable")

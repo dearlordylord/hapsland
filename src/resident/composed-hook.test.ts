@@ -1,12 +1,12 @@
 import { it } from "@effect/vitest"
 import { expect } from "vitest"
 import { Deferred, Effect, Fiber } from "effect"
-import { ComposedHookRuntime, runComposedHookEffect } from "./composed-hook.ts"
-import { HookOutput } from "./hook-output.ts"
-import type { DirectAdvicee } from "../direct-event/model.ts"
-import { ResidentIpcError, type AdviceeCollectionOutcome } from "./client.ts"
-import { residentPaths } from "./paths.ts"
-import { hookMonotonicMillis } from "./hook-clock.ts"
+import { ComposedHookRuntime, runComposedHookEffect } from "@hapsland/hook-runtime/resident/composed-hook"
+import { HookOutput } from "@hapsland/hook-runtime/resident/hook-output"
+import type { DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
+import { ResidentIpcError, type AdviceeCollectionOutcome } from "@hapsland/resident-transport/resident/client"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
+import { hookMonotonicMillis } from "@hapsland/resident-transport/resident/hook-clock"
 import * as TestClock from "effect/testing/TestClock"
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -37,6 +37,7 @@ const runtime = (
     startedAt: 0,
     identity: () => Effect.succeed({ root: "/fixture", advicee }),
     client: {
+      resolveComposedRootEffect: (root) => Effect.succeed(root),
       acknowledgeAdviceEffect: unused,
       registerComposedEditEffect: unused,
       composedStopBoundaryEffect: unused,

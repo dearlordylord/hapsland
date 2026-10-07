@@ -1,4 +1,4 @@
-import { bunExecutable } from "../runtime/bun-runtime.ts"
+import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { spawn } from "node:child_process"
 import { once } from "node:events"
 import { mkdtemp, readdir, rm, realpath, writeFile } from "node:fs/promises"
@@ -6,17 +6,17 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { beforeAll, afterAll, describe, expect, it } from "vitest"
 import { Effect } from "effect"
-import { nativeDeferred } from "../test-support/native-deferred.ts"
-import { prepareTestPackage, type TestPackage } from "../test-support/test-package.ts"
-import { makeInspectionStorage } from "./storage.ts"
-import { decodeInspectionRecord } from "./contract.ts"
+import { nativeDeferred } from "@hapsland/build-tooling/test-support/native-deferred"
+import { prepareTestPackage, type TestPackage } from "@hapsland/build-tooling/test-support/test-package"
+import { makeInspectionStorage } from "@hapsland/inspection-records/inspection/storage"
+import { decodeInspectionRecord } from "@hapsland/inspection-records/inspection/contract"
 import { acquireResidentFixture } from "../resident/runtime-fixture.ts"
-import { residentPaths } from "../resident/paths.ts"
-import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
-import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { configuredRules, connectDefaultRuleFixture } from "../test-support/default-rules.ts"
-import { residentRequestEffect } from "../resident/client.ts"
-import { runClient } from "../test-support/client-runtime.ts"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
+import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { configuredRules, connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
+import { residentRequestEffect } from "@hapsland/resident-transport/resident/client"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
 
 const launch = async (command: readonly string[], environment: NodeJS.ProcessEnv, directory: string) => {
   const child = spawn(command[0]!, [...command.slice(1), "dashboard", "--host", "127.0.0.1", "--port", "0"], {
@@ -81,7 +81,8 @@ describe.each(["source", "package"] as const)("%s foreground inspection command"
     if (role === "package") packed = prepareTestPackage()
   }, 240000)
   afterAll(() => packed?.cleanup())
-  const command = () => (packed ? [packed.cli.executable, ...packed.cli.args] : [bunExecutable(), "src/cli.ts"])
+  const command = () =>
+    packed ? [packed.cli.executable, ...packed.cli.args] : [bunExecutable(), "packages/cli-entry/src/cli.ts"]
   const environment = () => packed?.environment ?? process.env
 
   it("prints its URL and exits on SIGINT without opting in or starting a resident", async () => {

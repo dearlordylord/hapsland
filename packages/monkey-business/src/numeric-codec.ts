@@ -1,6 +1,6 @@
 import { Schema } from "effect"
 import Shared from "../../monkey-business-bend/engine.mjs"
-import { decoder, Word } from "../../../src/canonical/boundary-schema.ts"
+import { decoder, Word } from "@hapsland/canonical-policy/canonical/boundary-schema"
 
 const Words = Schema.Struct({ $: Schema.Literal("Numeric.Words"), high: Word, low: Word })
 const readWords = decoder(Words)

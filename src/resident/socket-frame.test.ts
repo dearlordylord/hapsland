@@ -1,8 +1,8 @@
 import { expect, it } from "@effect/vitest"
 import { Effect, Fiber } from "effect"
 import { createConnection, createServer, type Server, type Socket } from "node:net"
-import { makeSocketFramePort } from "./socket-frame.ts"
-import { EDIT_REQUEST_DEADLINE_MS, MAX_IPC_FRAME_BYTES } from "./protocol.ts"
+import { makeSocketFramePort } from "@hapsland/resident-transport/resident/socket-frame"
+import { EDIT_REQUEST_DEADLINE_MS, MAX_IPC_FRAME_BYTES } from "@hapsland/resident-transport/resident/protocol"
 
 type Pair = { readonly listener: Server; readonly client: Socket; readonly accepted: Socket }
 const pair = Effect.acquireRelease(
