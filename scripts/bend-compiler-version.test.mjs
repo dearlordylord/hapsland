@@ -7,6 +7,7 @@ import { test } from "node:test"
 
 const root = resolve(import.meta.dirname, "..")
 for (const [name, artifact] of [
+  ["request-content", "src/review-providers/request-content.generated.js"],
   ["canonical", "src/canonical/canonical.generated.js"],
   ["import-graph", "packages/agent-flow-bend/import-graph.generated.js"],
   ["lifecycle", "packages/agent-flow-bend/lifecycle.generated.js"]
@@ -22,7 +23,11 @@ for (const [name, artifact] of [
       )
       const result = spawnSync(process.execPath, [join(root, `packages/agent-flow-bend/scripts/build-${name}.mjs`)], {
         cwd: root,
-        env: { ...process.env, PATH: `${directory}:${process.env.PATH}` },
+        env: {
+          ...process.env,
+          HAPSLAND_CONTENT_BEND: join(directory, "bend"),
+          PATH: `${directory}:${process.env.PATH}`
+        },
         encoding: "utf8",
         timeout: 10_000
       })

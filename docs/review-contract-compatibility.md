@@ -112,9 +112,10 @@ input. This contract does not require semantic redaction of code or rules.
 
 The content guarantee does not claim independence of request timing, count,
 admission, cancellation, or reviewed edits from the conversation. The agent's work
-and prompt lifecycle can affect those. The [formal content model and host
+and prompt lifecycle can affect those. The [production Bend content laws and host
 obligations](../packages/agent-flow-bend/README.md#content-isolation-proofs) distinguish
-the proved conditional theorem from implementation evidence and remaining gaps.
+the proved top-level selection/framing properties from implementation evidence
+and remaining gaps. These laws do not prove the full content-isolation contract.
 
 ### Freshness and result reuse
 

@@ -24,6 +24,20 @@ for (const path of [
 }
 const mutants = [
   {
+    name: "bypass-production-bend",
+    file: "src/review-providers/transport.ts",
+    before: "reviewRequestContent(request.body.body)",
+    after: "new TextDecoder().decode(request.body.body)",
+    test: "drops extra top-level fields at the actual shared transport"
+  },
+  {
+    name: "compiled-bend-drops-questions",
+    file: "src/review-providers/request-content.generated.js",
+    before: '_questions_0 + "}"',
+    after: '"null" + "}"',
+    test: "changing private envelopes preserves exact nonempty wire contents"
+  },
+  {
     name: "schema-valid-prompt-in-source",
     file: "src/direct-event/pipeline.ts",
     before: "source: root.artifact.source",
@@ -52,7 +66,8 @@ const run = (name, testName) => {
     "--root",
     fixture,
     "--maxWorkers=1",
-    "src/direct-event/content-isolation.test.ts"
+    "src/direct-event/content-isolation.test.ts",
+    "src/review-providers/request-content.test.ts"
   ]
   if (testName) args.push("-t", testName)
   const result = spawnSync(process.execPath, args, { cwd: fixture, encoding: "utf8", timeout: 20_000 })

@@ -209,13 +209,15 @@ The shared [review transport](../src/review-providers/transport.ts) disables amb
 trace propagation; [inspection](../src/inspection/transport.ts) receives copied bytes.
 These native Effect/HTTP operations enforce the content boundary without changing
 Bend dispatch authority. The [content laws and proof limits](../packages/agent-flow-bend/README.md#content-isolation-proofs)
-remain a conditional model theorem, with production correspondence checked by
-capture, wire and mutation tests. They do not establish native refinement.
+now constrain the production Bend projector used immediately before HTTP dispatch.
+The bridge passes every top-level JSON field; Bend selects and frames the three
+permitted fields. Fresh compilation must match the imported artifact. Capture,
+wire and mutation tests cover native boundaries; input provenance remains unproved.
 
 
 | Field | Boundary |
 | --- | --- |
-| Decision | TypeScript resolves the user-selected review provider, model, and fixed-origin destination; serializes the exact request; and rejects invalid native protocol sizes/counts before any HTTP effect. Unknown limits remain unknown. Declared token budgets are recorded without a claim of exact token enforcement. |
+| Decision | TypeScript resolves the user-selected review provider, model, and fixed-origin destination; encodes native JSON fragments for the Bend body projector; and rejects invalid native protocol sizes/counts before any HTTP effect. Unknown limits remain unknown. Declared token budgets are recorded without a claim of exact token enforcement. |
 | TypeScript owner | The [provider catalog and serializer](review-providers.md#boundary), configuration resolver, and Effect DecisionModel adapters own provider facts and protocol validation. Provider/model/destination participate in prepared semantic identity and currentness checks. |
 | Bend boundary | Existing file/rule admission, source exploration, capacity, request permits, settlement, and advice authority retain their current reducer routes. Passing provider validation cannot authorize a request or synthesize a clear result. Existing internal `jevRequest` event names continue to describe the shared physical review-request lifecycle; they do not select a transport. |
 | Why outside Bend | Provider formats, HTTP destinations, encoded UTF-8 sizes, response schemas, and credentials belong to the external adapter. This is protocol validation, separate from product scheduling and capacity policy. |

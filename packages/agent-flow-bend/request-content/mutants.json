@@ -1,0 +1,32 @@
+[
+  {
+    "law": "lookup_empty",
+    "before": "case Nil{}: fallback",
+    "after": "case Nil{}: \"\"",
+    "location": "Laws.lookup_empty"
+  },
+  {
+    "law": "lookup_match",
+    "before": "Bool.pick(String, String.eq(key, name), value, fallback)",
+    "after": "Bool.pick(String, String.eq(key, name), fallback, value)",
+    "location": "Laws.lookup_match"
+  },
+  {
+    "law": "lookup_skip",
+    "before": "Bool.pick(String, String.eq(key, name), value, fallback)",
+    "after": "Bool.pick(String, String.eq(key, name), fallback, value)",
+    "location": "Laws.lookup_skip"
+  },
+  {
+    "law": "encode_exact",
+    "before": "questions ++ \"}\"",
+    "after": "\"null\" ++ \"}\"",
+    "location": "Laws.encode_exact"
+  },
+  {
+    "law": "project_exact",
+    "before": "lookup(fields, \"state\", \"null\")",
+    "after": "lookup(fields, \"prompt\", \"null\")",
+    "location": "Laws.project_exact"
+  }
+]

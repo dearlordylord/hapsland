@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
@@ -47,3 +48,8 @@ const canonicalFirstLine = readFileSync(resolve(root, "src/canonical/canonical.g
 if (canonicalFirstLine !== `// hapsland-bend-source-sha256:${canonicalDigest.digest("hex")}`) {
   throw new Error("canonical.generated.js is stale; run node packages/agent-flow-bend/scripts/build-canonical.mjs")
 }
+
+execFileSync(process.execPath, [resolve(packageRoot, "scripts/build-request-content.mjs"), "--check"], {
+  stdio: "inherit",
+  timeout: 10000
+})

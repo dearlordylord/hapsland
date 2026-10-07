@@ -73,14 +73,14 @@ General kernel-checked proofs cover import-graph budget properties and finite-ev
 
 The core has a formally checked exclusion case with no source-read command: [`import_graph_exclusion_has_no_read_command`](../packages/agent-flow-bend/LAWS.bend) and its [proof](../packages/agent-flow-bend/PROOF.bend). It proves the specified transition, not a universal confidentiality theorem. Separately, the [general tree-size laws](../packages/agent-flow-bend/import-graph-proof/LAWS.bend) prove that accepted size contributions stay within their cap under the stated premises. These are the precise meanings behind the README's qualified core-verification claim.
 
-The [content-isolation laws](../packages/agent-flow-bend/README.md#content-isolation-proofs)
-prove, by induction, that private values cannot affect request contents in the
-content-boundary model, including across arbitrary finite histories and inserted
-private-only notifications. Exactness laws preserve permitted review content.
-Production correspondence has adversarial pipeline, HTTP and mutation tests,
-including isolation of inspection buffers and suppression of ambient tracing.
-Source/rule provenance and a formal refinement of the TypeScript host remain open;
-this is a conditional model theorem, not an end-to-end confidentiality proof.
+The [content laws](../packages/agent-flow-bend/README.md#content-isolation-proofs)
+constrain the production Bend request-body projector used by both HTTP providers.
+It selects only `model`, `state`, and `questions` from all supplied top-level fields
+and constructs the outgoing body. Fresh compilation is compared with the imported
+JavaScript artifact. These are selection/framing laws, not a history model or an
+end-to-end confidentiality theorem. Source/rule provenance, the native JSON/ABI
+bridge, compiler and transport remain outside the proof; wire and mutation tests
+exercise these boundaries, inspection isolation and trace suppression.
 
 See the [Bend package and proof scope](../packages/agent-flow-bend/README.md), the [reviewed TypeScript decision boundary](typescript-decision-boundary-ledger.md), and [installed compatibility evidence](installed-release-compatibility.md).
 

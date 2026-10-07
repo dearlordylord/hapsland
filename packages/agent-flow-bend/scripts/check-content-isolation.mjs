@@ -1,10 +1,10 @@
 import assert from "node:assert/strict"
-import { spawnSync } from "node:child_process"
-import { readFileSync, writeFileSync, mkdtempSync, cpSync, rmSync } from "node:fs"
+import { spawnSync, execFileSync } from "node:child_process"
+import { readFileSync, writeFileSync, mkdtempSync, mkdirSync, cpSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
-const project = resolve(import.meta.dirname, "../content-proof")
+const project = resolve(import.meta.dirname, "../request-content")
 const bend = process.env.HAPSLAND_CONTENT_BEND ?? "bend"
 const version = spawnSync(bend, ["version"], { encoding: "utf8", timeout: 5_000 })
 assert.equal(version.status, 0, version.stderr)
@@ -15,83 +15,49 @@ const laws = new Map(
     const body = raw.replace(/^#.*\n/gm, "").trimEnd()
     const binders = [...body.matchAll(/^  for \+?(\w+):/gm)].map((match) => match[1])
     const claim = body.slice(body.lastIndexOf("\n  {") + 1).trim()
-    const premises = [...body.matchAll(/^  for (events_equal|states_equal): (\{[^\n]+\})/gm)].map((match) => match[2])
+    const premises = [...body.matchAll(/^  for (equal|different): (\{[^\n]+\})/gm)].map((match) => match[2])
     return [name, { body, binders, claim, premises }]
   })
 )
-assert.equal(laws.size, 10)
+assert.equal(laws.size, 5)
 const imports = "import Base\nimport ./core.bend as Core\n"
 const instances = []
 const add = (name, at) => {
   const law = laws.get(name)
   assert.ok(law, name)
   assert.deepEqual(Object.keys(at).sort(), [...law.binders].sort(), `${name}: exact binders`)
-  const pattern = new RegExp(`\\b(${law.binders.join("|")})\\b`, "g")
-  const instantiate = (text) => text.replace(pattern, (name) => at[name])
+  const pattern = new RegExp(`"(?:\\\\.|[^"\\\\])*"|\\b(${law.binders.join("|")})\\b`, "g")
+  const instantiate = (text) => text.replace(pattern, (token) => at[token] ?? token)
   instances.push({ name, claim: instantiate(law.claim), premises: law.premises.map(instantiate) })
 }
 const quote = (value) => JSON.stringify(value)
-const priv = (n) =>
-  `Core.Private{${["prompt", "conversation", "derived", "inspection", "attribution"].map((field) => quote(`${field}${n}`)).join(", ")}}`
-const review = (n) => `Core.Review{"jev-latest", "source${n}", "questions${n}"}`
-const envelope = (n, p) => `Core.Envelope{${review(n)}, ${priv(p)}}`
-const list = (items) => (items.length ? `${items.join(" <> ")} <> Nil{}` : "Nil{}")
-const state = (n, p) =>
-  `Core.State{Some{${envelope(n, p)}}, ${priv(p)}, Core.Request{"old", "old-state", "old-rules"} <> Nil{}}`
-const trace = (n, p) =>
-  list([
-    `Core.PrivateChanged{${priv(p)}}`,
-    "Core.Send{}",
-    "Core.Retry{}",
-    "Core.Cancel{}",
-    "Core.Send{}",
-    `Core.Stage{${envelope(n + 1, p)}}`,
-    "Core.Send{}",
-    `Core.Recover{${envelope(n + 2, p)}}`,
-    "Core.Retry{}"
-  ])
-for (const n of [0, 1, 9])
-  for (const p of [0, 2, 7]) {
-    add("projection_exact", {
-      model: '"jev-latest"',
-      state: quote(`source${n}`),
-      questions: quote(`questions${n}`),
-      private: priv(p)
+const values = ["", "null", "false", "0", '"quoted"', "{}", "[]", '"日本語"']
+for (const value of values) {
+  for (const fallback of values) {
+    const rest = "Nil{}"
+    add("lookup_empty", { key: '"state"', fallback: quote(fallback) })
+    add("lookup_match", {
+      rest,
+      key: '"model"',
+      name: '"model"',
+      value: quote(value),
+      fallback: quote(fallback),
+      equal: "{==}"
     })
-    add("projection_noninterference", { review: review(n), left: priv(p), right: priv(p + 1) })
-    add("projection_erasure", { envelope: envelope(n, p) })
-    add("transmission_exact", {
-      envelope: envelope(n, p),
-      private: priv(p + 1),
-      sent: 'Core.Request{"previous", "state", "rules"} <> Nil{}'
+    add("lookup_skip", {
+      rest,
+      key: '"model"',
+      name: '"prompt"',
+      value: quote(value),
+      fallback: quote(fallback),
+      different: "{==}"
     })
-    for (const pending of [state(n, p), `Core.State{None{}, ${priv(p)}, Nil{}}`]) {
-      add("cancellation_has_no_fallback", { state: pending })
-      for (const event of [
-        `Core.Stage{${envelope(n + 1, p)}}`,
-        `Core.Recover{${envelope(n + 2, p)}}`,
-        `Core.PrivateChanged{${priv(p + 1)}}`,
-        "Core.Send{}",
-        "Core.Retry{}",
-        "Core.Cancel{}"
-      ]) {
-        add("step_erasure", { event, state: pending })
-      }
-      add("private_event_stutters", { state: pending, private: priv(p + 1) })
-      for (const events of ["Nil{}", trace(n, p)]) {
-        add("trace_erasure", { events, state: pending })
-        add("trace_private_stuttering", { events, state: pending })
-      }
-    }
-    add("trace_noninterference", {
-      left: trace(n, p),
-      right: `Core.PrivateChanged{${priv(p + 2)}} <> ${trace(n, p + 1)}`,
-      ls: state(n, p),
-      rs: state(n, p + 1),
-      events_equal: "{==}",
-      states_equal: "{==}"
+    add("encode_exact", { model: quote(value), state: quote(fallback), questions: '"{}"' })
+    add("project_exact", {
+      fields: `Core.Field{"prompt", ${quote(value)}} <> Core.Field{"state", ${quote(fallback)}} <> Nil{}`
     })
   }
+}
 const probes = (rows) =>
   imports +
   rows
@@ -188,8 +154,38 @@ try {
     assert.ifError(kernelControl.error)
     assert.equal(kernelControl.status, 1, "disabling the proof kernel must fail the gate")
     assert.match(kernelControl.stdout + kernelControl.stderr, /SOME PROOFS FAIL/)
-    console.log("Content isolation: ALL PROOFS CHECK (BendTT kernel)")
+    console.log("Production request content: ALL PROOFS CHECK (BendTT kernel)")
   }
+  // Exercise the artifact gate against an isolated package tree, never edit the candidate.
+  const fixture = join(temporary, "artifact-fixture")
+  const fixturePackage = join(fixture, "packages/agent-flow-bend")
+  mkdirSync(join(fixturePackage, "scripts"), { recursive: true })
+  mkdirSync(join(fixture, "src/review-providers"), { recursive: true })
+  cpSync(project, join(fixturePackage, "request-content"), { recursive: true })
+  const builder = join(fixturePackage, "scripts/build-request-content.mjs")
+  cpSync(resolve(import.meta.dirname, "build-request-content.mjs"), builder)
+  const artifact = join(fixture, "src/review-providers/request-content.generated.js")
+  cpSync(resolve(import.meta.dirname, "../../../src/review-providers/request-content.generated.js"), artifact)
+  const artifactCheck = () =>
+    spawnSync(process.execPath, [builder, "--check"], {
+      encoding: "utf8",
+      timeout: 10000,
+      env: { ...process.env, HAPSLAND_CONTENT_BEND: bend }
+    })
+  const clean = artifactCheck()
+  assert.ifError(clean.error)
+  assert.equal(clean.status, 0, clean.stdout + clean.stderr)
+  writeFileSync(artifact, readFileSync(artifact, "utf8") + "\n// stale artifact\n")
+  const stale = artifactCheck()
+  assert.ifError(stale.error)
+  assert.equal(stale.status, 1)
+  assert.match(stale.stderr, /request-content artifact differs/)
+  console.log("Fresh production artifact accepted; modified artifact rejected")
 } finally {
   rmSync(temporary, { recursive: true, force: true })
 }
+
+execFileSync(process.execPath, [resolve(import.meta.dirname, "build-request-content.mjs"), "--check"], {
+  stdio: "inherit",
+  timeout: 10000
+})

@@ -12,3 +12,9 @@ copyFileSync(
   resolve(root, "src/canonical/import-graph.generated.js"),
   resolve(root, "dist/canonical/import-graph.generated.js")
 )
+
+mkdirSync(resolve(root, "dist/review-providers"), { recursive: true })
+copyFileSync(
+  resolve(root, "src/review-providers/request-content.generated.js"),
+  resolve(root, "dist/review-providers/request-content.generated.js")
+)

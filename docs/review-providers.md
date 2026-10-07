@@ -120,7 +120,8 @@ requested answers and model selector. Invalid output or HTTP errors produce
 sanitized failures without raw credentials or source-bearing responses.
 
 Both providers use the shared [review transport](../src/review-providers/transport.ts).
-It disables ambient trace-header propagation, and local inspection receives a copy
+It passes every top-level JSON field through the compiled Bend projector, which
+selects `model`, `state`, and `questions` and constructs the final body. It disables ambient trace-header propagation, and local inspection receives a copy
 of encoded bytes so its callback cannot modify the outgoing request. The
 [content-isolation contract](review-contract-compatibility.md#review-content-isolation)
 states permitted inputs and the limits of the formal evidence.
