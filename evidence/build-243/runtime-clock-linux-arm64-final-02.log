@@ -1,0 +1,2 @@
+{"mode":"installed-client-diagnostics","clients":[{"variant":"baseline","exitCode":0,"elapsedMs":93.28851500000019,"responseStatus":"registered","engineImportLabels":[],"stderrBytes":0,"directStatus":"advanced"},{"variant":"candidate","exitCode":0,"elapsedMs":63.36179699999957,"responseStatus":"registered","engineImportLabels":[],"stderrBytes":0,"directStatus":"advanced"}]}
+{"separateProcessCoordinates":2,"preImportDelayedProcesses":2,"installedRegistrations":["baseline","candidate"],"lateInvocationReasons":["StaleInvocation","StaleInvocation"]}
