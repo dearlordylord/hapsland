@@ -1007,29 +1007,34 @@ const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClien
       },
       activate: activateCurrentPackage(currentCommand()),
       verifyCredential: Effect.gen(function* () {
-        const { runGuidedCredentialCheck } = yield* Effect.promise(
-          () => import("@hapsland/administration/onboarding/credential-verification")
+        const { runVerificationConversation, nativeVerificationLayer } = yield* Effect.promise(
+          () => import("@hapsland/administration/onboarding/verification-conversation")
         )
-        yield* runGuidedCredentialCheck({
-          cwd,
-          host,
-          platform: process.platform,
-          ...(configuration?.userConfigPath === undefined ? {} : { userConfigPath: configuration.userConfigPath }),
-          confirm: askConfirmation,
-          readCredential: readMaskedCredential,
-          write: (text) => {
-            process.stderr.write(text)
-          }
-        })
-      }).pipe(
-        Effect.catch(() =>
-          Effect.sync(() => {
-            process.stderr.write(
-              "[WARN] Key validity: not checked because verification preparation failed. The selected key was not removed.\n"
-            )
-          })
+        const { withInteractionSession } = yield* Effect.promise(
+          () => import("@hapsland/administration/interaction/interaction-session")
         )
-      ),
+        const { InteractionService } = yield* Effect.promise(
+          () => import("@hapsland/administration/interaction/interaction")
+        )
+        yield* withInteractionSession(
+          (interaction) =>
+            runVerificationConversation().pipe(
+              Effect.provideService(InteractionService, interaction),
+              Effect.provide(
+                nativeVerificationLayer({
+                  cwd,
+                  host,
+                  platform: process.platform,
+                  ...(configuration?.userConfigPath === undefined
+                    ? {}
+                    : { userConfigPath: configuration.userConfigPath })
+                })
+              ),
+              Effect.asVoid
+            ),
+          Effect.interrupt
+        )
+      }),
       doctor: execFileClosedStdin(command.executable, [...command.args, "--doctor"], {
         cwd,
         env: process.env,

@@ -6,6 +6,7 @@ import { InteractionService } from "@hapsland/administration/interaction/interac
 import { runRuleConversation, type RulesTransition } from "@hapsland/administration/rules/conversation"
 import { scriptedInteraction, type ScriptStep } from "./test-support/scripted-interaction.ts"
 
+import { generateVerificationDiagram } from "./generate-verification-diagram.mts"
 import { generateMaintenanceDiagram } from "./generate-maintenance-diagram.mts"
 import { generateUpdateDiagram } from "./generate-update-diagram.mts"
 import { generateLoginDiagram } from "./generate-login-diagram.mts"
@@ -157,6 +158,18 @@ const program = Effect.gen(function* () {
         "Maintenance diagram is stale; regenerate it"
       )
   })
+  const verification = yield* generateVerificationDiagram
+  const verificationDestination = resolve(import.meta.dirname, "../docs/cli-interactions/verification.md")
+  yield* Effect.promise(async () => {
+    if (mode === "--write") await writeFile(verificationDestination, verification)
+    else
+      assert.equal(
+        await readFile(verificationDestination, "utf8"),
+        verification,
+        "Verification diagram is stale; regenerate it"
+      )
+  })
+  yield* Effect.sync(() => console.log("Verification diagram: 15 independently asserted replays"))
   yield* Effect.sync(() => console.log("Maintenance diagram: 13 independently asserted replays"))
   yield* Effect.sync(() => console.log("Update diagram: 9 independently asserted replays"))
   yield* Effect.sync(() => console.log("Login diagram: 5 independently asserted replays"))

@@ -263,6 +263,14 @@
     "./onboarding/maintenance-model": {
       "types": "./dist/onboarding/maintenance-model.d.ts",
       "default": "./dist/onboarding/maintenance-model.js"
+    },
+    "./onboarding/verification-model": {
+      "types": "./dist/onboarding/verification-model.d.ts",
+      "default": "./dist/onboarding/verification-model.js"
+    },
+    "./onboarding/verification-conversation": {
+      "types": "./dist/onboarding/verification-conversation.d.ts",
+      "default": "./dist/onboarding/verification-conversation.js"
     }
   },
   "dependencies": {
