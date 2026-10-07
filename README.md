@@ -2,23 +2,34 @@
 
 <p align="center"><img src="./assets/brand/readme-splash.svg" alt="Hapsland: a human hand correcting a skeletal robot hand" width="900"></p>
 
-Review changed types and functions with their related code.
+Catch design mistakes before your agent builds on them. Immediately slap its hand.
 
-Hapsland gives your coding agent early feedback on changed types and functions,
-using their related code. Start with built-in checks or add rules for your team's
-code-design concerns.
+Hapsland lets you apply auto-review your coding agent changes and give it immediate feedback.
 
-## Review the decisions behind an edit
+It does so in a smart way, collecting semantic context from the agent's diff.
 
-A type can allow a state that makes no sense. A function can make an assumption
-its inputs do not support. Those choices can spread as the agent writes more code.
-Hapsland reviews supported edits while the agent is working, giving it a chance
-to revisit the decision early.
+It does it keeping your privacy in mind: no prompts or unrelated changes are sent to the classifier, 
+and the review requests are built with respect to your access settings.
 
-Hapsland starts from the edited lines, finds the changed type or function, then
-follows its references to build a tree of related definitions. Checks use that declaration and the related code they
-need. This lets review consider relationships beyond the changed lines. A check
-that lacks necessary code is skipped.
+It sends findings back to the agent in realtime,
+so it can address a mistake before building more code around it.
+
+It cares about your agents' context and attention, batching reviews together and discarding any stale reviews.
+
+It is fully observable: you can see what goes to the classifier (e.g. Jev) and what comes to the agent.
+
+No more AGENTS.md begging "please use domain types". Elevate your AGENTS.md instructions to realtime, and **slap that robot hand** immediately when your code style rule is violated.
+
+## Review the decisions behind code edits
+
+A type can allow combinations of values that make no sense. A function can assume
+its inputs satisfy a constraint that their types do not enforce. Spotting these
+problems can require reading definitions beyond the edited lines.
+
+Hapsland finds the changed type or function and follows its references to gather
+related definitions, including those in other files. Each rule reviews the
+changed declaration with the related code it needs. If the necessary code is
+unavailable, Hapsland skips that rule.
 
 <p align="center"><img src="./assets/review-flow.gif" alt="Illustrative review loop: an agent edit gains related code context, receives feedback, and is repaired and reviewed again" width="800"></p>
 
@@ -31,13 +42,14 @@ shared agent instructions with a synthetic finding; no review request is made.
 
 ## Choose what leaves your repository
 
-Sending source to a review service is a data-sharing decision. Your task prompt
-and conversation with the agent are not sent to the review backend.
+Sending source to a review service is a data-sharing decision.
+
+Some classifiers like Jev store your data and can do with it whatever they want.
+
+Your task prompt and conversation with the agent are not sent to the review backend.
 
 You choose which changed files can be reviewed and which files can supply related
-code. Related code follows the review file scope unless you explicitly configure a
-context scope. Privacy exclusions protect both kinds of reads and cannot be undone
-by project includes. Limits bound exploration and the code included in the review tree.
+code.
 
 Selected source code and rule questions are sent to the selected external
 classifier: [Jev](https://typesafe.ai) by default, or Cloudflare Clef/Clef-flash. It sees that code and those questions, not the agent’s
