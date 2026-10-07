@@ -10,7 +10,7 @@ function fixture(script, check) {
   const root = mkdtempSync(join(tmpdir(), "hapsland-boundary-"))
   try {
     const source = readFileSync(join(repository, "scripts", script), "utf8")
-    const paths = new Set([...source.matchAll(/["`]((?:src\/)[^"`]+\.ts)["`]/gu)].map((match) => match[1]))
+    const paths = new Set([...source.matchAll(/["`]((?:src\/|packages\/)[^"`]+\.ts)["`]/gu)].map((match) => match[1]))
     for (const path of paths) {
       const expanded = path.includes("${runtime}")
         ? ["claude", "codex", "opencode"].map((runtime) => path.replace("${runtime}", runtime))
@@ -23,7 +23,8 @@ function fixture(script, check) {
     mkdirSync(join(root, "scripts"))
     copyFileSync(join(repository, "scripts", script), join(root, "scripts", script))
     const run = () => spawnSync(process.execPath, [join(root, "scripts", script)], { encoding: "utf8", timeout: 5000 })
-    assert.equal(run().status, 0)
+    const baseline = run()
+    assert.equal(baseline.status, 0, baseline.stderr)
     check(root, run)
   } finally {
     rmSync(root, { recursive: true, force: true })
@@ -64,5 +65,25 @@ test("retention boundary accepts formatting but rejects a changed peak operand",
     const result = run()
     assert.notEqual(result.status, 0)
     assert.match(result.stderr, /peak retention/)
+  })
+})
+
+test("credential capture guard rejects removal of redacted cleanup", () => {
+  fixture("check-configuration-boundary.mjs", (root, run) => {
+    const file = join(root, "packages/administration/src/credentials/masked-input.ts")
+    writeFileSync(file, readFileSync(file, "utf8").replace("Redacted.wipeUnsafe(", "Redacted.value("))
+    const result = run()
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr, /scoped lifetime and redacted cleanup/)
+  })
+})
+
+test("credential capture guard rejects replacing the built-in hidden prompt", () => {
+  fixture("check-configuration-boundary.mjs", (root, run) => {
+    const file = join(root, "packages/administration/src/interaction/interaction.ts")
+    writeFileSync(file, readFileSync(file, "utf8").replace("Prompt.Hidden(", "Prompt.Custom("))
+    const result = run()
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr, /built-in Prompt.Hidden/)
   })
 })
