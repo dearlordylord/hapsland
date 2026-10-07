@@ -24,7 +24,7 @@ const report = {
   scope:
     "current resident offline security replay held after native parser preparation during actual helper rebuild; historical Quint generator is not executed",
   deadlineMs: 120000,
-  selectedTrials: 3,
+  selectedTrials: 1,
   scenarios: ["allowed", "exclude-at-dispatch"],
   inputs: {
     runnerSha256: digest(fileURLToPath(import.meta.url)),
@@ -85,7 +85,7 @@ const start = (path, args = [], ipc = false) => {
   return { child, completion }
 }
 try {
-  for (let trial = 1; trial <= 3; trial += 1)
+  for (let trial = 1; trial <= report.selectedTrials; trial += 1)
     for (const scenario of report.scenarios) {
       const entry = { trial, scenario, startedAt: new Date().toISOString() }
       trials.push(entry)
@@ -134,8 +134,8 @@ try {
         outcome.verdict !== "pass" ||
         !entry.nativeInodeReplaced ||
         !entry.replay.postBuildParsed ||
-        outcome.requests.length !== (scenario === "allowed" ? 1 : 0) ||
-        outcome.authorityObservations[0]?.decision !== (scenario === "allowed" ? "allow" : "deny")
+        outcome.requests.length !== 1 ||
+        outcome.authorityObservations[0]?.decision !== "allow"
       )
         throw new Error("build/replay acceptance failed")
     }

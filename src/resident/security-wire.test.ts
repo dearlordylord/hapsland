@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { execFileSync } from "../../scripts/test-harness/process.mjs"
 import { fileURLToPath } from "node:url"
 import * as Effect from "effect/Effect"
+import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientRequest from "effect/http/HttpClientRequest"
 import {
   makeOfflineSecurityHttpClient,
@@ -58,16 +59,31 @@ it("compares encoded body bytes before UTF-8 decoding can hide a BOM", async () 
       HttpClientRequest.setHeaders(HttpClientRequest.post("https://api.typesafe.ai/v1/systemone"), {
         accept: "application/json",
         authorization: "Bearer WIRE_KEY_SENTINEL",
-        b3: "abc",
-        traceparent: `00-${"a".repeat(32)}-${"b".repeat(16)}-01`,
         "content-length": String(bytes.length)
       }),
       bytes,
       "application/json"
     )
-  await Effect.runPromise(client.execute(request(expected)))
-  await Effect.runPromise(client.execute(request(withBom)))
-  expect(records.map((record) => record.classification)).toEqual(["allowed", "forbidden"])
-  expect(records.map((record) => record.bodyBytes)).toEqual([expected.length, withBom.length])
+  await Effect.runPromise(
+    client.execute(request(expected)).pipe(Effect.provideService(HttpClient.TracerPropagationEnabled, false))
+  )
+  await Effect.runPromise(
+    client.execute(request(withBom)).pipe(Effect.provideService(HttpClient.TracerPropagationEnabled, false))
+  )
+  await Effect.runPromise(
+    client.execute(
+      HttpClientRequest.setHeaders(request(expected), {
+        b3: "abc",
+        traceparent: `00-${"a".repeat(32)}-${"b".repeat(16)}-01`
+      })
+    )
+  )
+  await Effect.runPromise(
+    client.execute(
+      request(Buffer.from(JSON.stringify({ ...securityWireExpectedBody, unrelated: "WIRE_KEY_SENTINEL" })))
+    )
+  )
+  expect(records.map((record) => record.classification)).toEqual(["allowed", "forbidden", "forbidden", "forbidden"])
+  expect(records.slice(0, 2).map((record) => record.bodyBytes)).toEqual([expected.length, withBom.length])
   expect(records[0]?.bodySha256).not.toBe(records[1]?.bodySha256)
 })

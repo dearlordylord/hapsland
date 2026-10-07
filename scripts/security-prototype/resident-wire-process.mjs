@@ -81,7 +81,7 @@ try {
   ]
   const dispatch = {
     statePath,
-    userConfigPath: null,
+    userConfigPath: join(root, "absent-fixture-user.jsonc"),
     credential: {
       name: "TYPESAFE_API_KEY",
       environmentValue: "WIRE_KEY_SENTINEL",
@@ -107,6 +107,7 @@ try {
     residentRequest(paths, {
       requestRoute: "shared",
       operation: "register-edit",
+      userConfigPath: join(root, "absent-fixture-user.jsonc"),
       lifetime,
       root: observation.root,
       advicee: observation.advicee,

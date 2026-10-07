@@ -143,7 +143,7 @@ evidence before regenerating the scenario pages.
 | Installed hook startup comparison | `node scripts/measure-hook-startup.mjs DECLARATION.json` | One to three installed variants, 15–100 interleaved registrations per variant with its own verified ready resident, and 3–30 separate fresh-resident calls per variant; declare artifact hashes, sample counts and comparison criteria before execution | Parent monotonic elapsed times, registration outcomes and resident executable/lifetime identities without coverage; uncontrolled OS file cache, fresh resident does not imply cold file cache, no handler-readiness or population latency guarantee |
 | Review content isolation | `npm run test:content-isolation`; focused `src/review-providers/request-content.test.ts`, `src/direct-event/content-isolation.test.ts`, `src/direct-event/content-provenance.test.ts`, `src/jev-decision.test.ts`, `src/review-providers/cloudflare.test.ts` | Five kernel-checked laws over production Bend, 320 literal instances, five Bend mutants, five production mutants, fresh compiled-artifact equality, exact HTTP bodies/headers and a Jev loopback transport | Top-level field selection and framing only; source provenance, native JSON/ABI/compiler/transport correctness and traffic side channels remain outside the proof. Every Bend call is limited to 5 seconds; every wire-mutant test run to 20 seconds. |
 | Review provider adapters | `npx vitest run --maxWorkers=1 src/review-providers` | Jev/Cloudflare selection, Clef/Clef-flash HTTP fixtures, native input limits, model identity and revalidation | Offline controlled transport behavior; no live provider quality or token-limit enforcement |
-| Concurrent native helper build/security replay | `node scripts/security-prototype/concurrent-build-replay.mjs EVIDENCE.json` | Three selected pairs each for authorized send and dispatch denial, with an already-mapped native parser, actual helper publication and post-build parsing | Linux arm64 / current Node; 120-second bound, sanitized process exits and wire outcomes; current resident witness, not historical Quint generation or a full distribution build |
+| Concurrent native helper build/security replay | `node scripts/security-prototype/concurrent-build-replay.mjs EVIDENCE.json` | One pair per scenario: authorized send and edit-snapshot preservation after a saved exclusion, with an already-mapped native parser, actual helper publication and post-build parsing | Linux arm64 / current Node; 120-second bound, sanitized process exits and wire outcomes; current resident witness, not historical Quint generation or a full distribution build |
 | Direct-event conformance | `npm run conformance:direct-event` | Manifest, selected direct-event tests, retained evidence validation | Version-one event contract and sanitization; no new agent session |
 | Installed host | `npm run conformance:host -- --write-evidence` | Clean package with real Codex CLI and controlled reviewer | Pinned installed Codex profile, distinct from the source-checkout runner |
 | Package setup | `npm run conformance:package`; `npm run conformance:setup-package` | Clean install and first-review setup | Packaging and installation paths; run only when those paths change |
@@ -692,9 +692,11 @@ Full runs prepare one fresh production archive before installed tests. The
 [archive preparation](../scripts/test-harness/prepare-archive.mjs) records source
 and archive digests and rejects verification-input changes during preparation;
 the input scope is maintained in [source identity](../scripts/test-harness/source-identity.mjs): source, scripts, workspace
-packages, native/build assets, schemas, vendored dependencies and test fixtures;
+packages, native/build assets, schemas, vendored dependencies, evidence and test fixtures;
 root build/test manifests and configuration; and paths shipped by `package.json`
-`files`. New, dirty and deleted files inside that scope remain inputs. Unrelated
+`files`. New, dirty and deleted files inside that scope remain inputs. Freeze
+these inputs during preparation and full runs; write new diagnostic evidence
+outside the checkout until the run is terminal. Unrelated
 research/specification documents (including `quint-specs/quint.lock`) do not
 invalidate a run. Full and profile runs observe the same per-path input identities
 before each child stage, during long stages, and freshly at finish. Observations within a run do not overlap; unchanged regular-file metadata permits
