@@ -50,12 +50,8 @@ import {
   type ReviewSettings
 } from "@hapsland/review-definition/runtime/review-config"
 import { inspectResidentEffect } from "@hapsland/resident-transport/resident/client"
-import {
-  logoutCredential,
-  resolveCredential,
-  runSecretService,
-  saveCredential
-} from "@hapsland/credential-storage/credentials/secret-service"
+import type { saveCredential } from "@hapsland/credential-storage/credentials/secret-service"
+import { logoutCredential, resolveCredential } from "@hapsland/credential-storage/credentials/secret-service"
 import { readActivity } from "@hapsland/activity-observation/activity/status"
 
 const localFailureMessage = (cause: unknown): string => {
@@ -851,15 +847,18 @@ const loginCredential = Effect.fn("Cli.loginCredential")(function* () {
   const { readMaskedCredential } = yield* Effect.promise(
     () => import("@hapsland/administration/credentials/masked-input")
   )
-  const probe = yield* runSecretService("probe", { deadlineMs: 2_000, allowInteraction: true })
-  if (probe.status !== "available") {
-    return { version: 1, operation: "login", status: probe.status, action: loginProbeAction(probe.status) }
+  const { runLoginConversation, nativeLoginLayer } = yield* Effect.promise(
+    () => import("@hapsland/administration/credentials/login-conversation")
+  )
+  const stdin = cliSwitch("credential-stdin")
+  const { outcome } = yield* runLoginConversation({
+    input: stdin ? Effect.try(() => readFileSync(0, "utf8").replace(/\r?\n$/, "")) : readMaskedCredential(),
+    inputKind: stdin ? "stdin" : "terminal"
+  }).pipe(Effect.provide(nativeLoginLayer))
+  if (outcome.kind === "unavailable") {
+    return { version: 1, operation: "login", status: outcome.status, action: loginProbeAction(outcome.status) }
   }
-  const inputTask: Effect.Effect<string, unknown> = cliSwitch("credential-stdin")
-    ? Effect.try(() => readFileSync(0, "utf8").replace(/\r?\n$/, ""))
-    : readMaskedCredential()
-  const input = yield* inputTask.pipe(Effect.result)
-  if (input._tag === "Failure") {
+  if (outcome.kind === "cancelled") {
     return {
       version: 1,
       operation: "login",
@@ -868,10 +867,7 @@ const loginCredential = Effect.fn("Cli.loginCredential")(function* () {
       action: "retry in a terminal or explicitly use --credential-stdin"
     }
   }
-  let value = input.success
-  const result = yield* saveCredential(value)
-  value = ""
-  return savedCredentialOutput(result)
+  return savedCredentialOutput(outcome.result)
 })
 const credentialEnvironmentName = Effect.fn("Cli.credentialEnvironmentName")(function* () {
   let environmentName: string = DEFAULT_CREDENTIAL_ENV_VAR

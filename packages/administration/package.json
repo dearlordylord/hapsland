@@ -247,6 +247,14 @@
     "./interaction/selection": {
       "types": "./dist/interaction/selection.d.ts",
       "default": "./dist/interaction/selection.js"
+    },
+    "./credentials/login-conversation": {
+      "types": "./dist/credentials/login-conversation.d.ts",
+      "default": "./dist/credentials/login-conversation.js"
+    },
+    "./credentials/login-model": {
+      "types": "./dist/credentials/login-model.d.ts",
+      "default": "./dist/credentials/login-model.js"
     }
   },
   "dependencies": {
