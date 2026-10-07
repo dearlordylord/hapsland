@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
 import { existsSync } from "node:fs"
 import { symlink, writeFile } from "node:fs/promises"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import type { DirectObservation, DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
 import {
@@ -29,7 +29,12 @@ const answers = Object.fromEntries(
 const dispatch = (
   statePath: string,
   controlled: NonNullable<ResidentDispatchContext["controlled"]>
-): ResidentDispatchContext => ({ statePath, userConfigPath: null, credential: null, controlled })
+): ResidentDispatchContext => ({
+  statePath,
+  userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
+  credential: null,
+  controlled
+})
 
 const fixture = async () => {
   const root = await makeGitFixture()
@@ -133,7 +138,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     process.env.REVIEW_CREDENTIAL_HELPER = helper
     const context: ResidentDispatchContext = {
       statePath,
-      userConfigPath: null,
+      userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
       credential: {
         name: "TYPESAFE_API_KEY",
         environmentValue: null,

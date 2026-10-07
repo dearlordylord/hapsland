@@ -8,7 +8,7 @@ import { existsSync } from "node:fs"
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises"
 import { connect } from "node:net"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import {
   makeReviewGitFixture as makeGitFixture,
@@ -98,7 +98,7 @@ describe("security sink prototype", () => {
     const dispatch: ResidentDispatchContext = {
       statePath,
       activityPath,
-      userConfigPath: null,
+      userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
       credential: null,
       controlled: { failure: `synthetic backend error contains ${marker}`, capturePath: join(temporary, "called") }
     }
@@ -120,6 +120,7 @@ describe("security sink prototype", () => {
           residentRequest(paths, {
             requestRoute: "shared",
             operation: "register-edit",
+            ...(dispatch.userConfigPath === null ? {} : { userConfigPath: dispatch.userConfigPath }),
             lifetime: owner.lifetime,
             root,
             advicee: observation.advicee,
@@ -187,7 +188,7 @@ describe("security sink prototype", () => {
       "await Effect.runPromise(Effect.scoped(Effect.gen(function*(){",
       "const preparationControls=Layer.succeed(ResidentPreparationControls,{...defaultPreparationControls,afterPrepare:Effect.fail(new PreparationControlError({phase:'prepared',cause:new Error(marker)}))});",
       "const server=yield* makeResidentRuntime(residentPaths(runtime),undefined,{preparationControls});",
-      "yield* server.admit(observation,{statePath,userConfigPath:null,credential:null,controlled:{}});",
+      `yield* server.admit(observation,{statePath,userConfigPath:${JSON.stringify(join(dirname(statePath), "absent-fixture-user.jsonc"))},credential:null,controlled:{}});`,
       "for(let i=0;i<200;i++){const s=Effect.runSync(server.stats());if(s.running===0&&s.queued===0)break;yield* Effect.promise(()=>new Promise(r=>setTimeout(r,10)))}",
       "console.log('done');",
       "})));"

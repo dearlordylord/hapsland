@@ -69,7 +69,7 @@ it("loads the physical binding from a compiled Bun package and releases descript
       entry,
       `
       import { open, mkdir } from "node:fs/promises";
-      import { lockInspectionDirectory } from ${JSON.stringify(fileURLToPath(new URL("./native-lock.ts", import.meta.url)))};
+      import { lockInspectionDirectory } from ${JSON.stringify(fileURLToPath(new URL("../../packages/inspection-records/src/inspection/native-lock.ts", import.meta.url)))};
       await mkdir(process.argv[2], { mode: 0o700 });
       const first = await open(process.argv[2], "r"), second = await open(process.argv[2], "r");
       if (!lockInspectionDirectory(first.fd) || lockInspectionDirectory(second.fd)) throw new Error("ownership mismatch");

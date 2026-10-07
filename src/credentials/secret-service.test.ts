@@ -95,9 +95,9 @@ afterEach(() => {
 
 describe("native credential lifecycle", () => {
   it("uses a non-optimizable wipe on every native set input release", () => {
-    const header = readFileSync(join(process.cwd(), "native", "credential-input.h"), "utf8")
-    const linux = readFileSync(join(process.cwd(), "native", "credential-secret-service.c"), "utf8")
-    const mac = readFileSync(join(process.cwd(), "native", "credential-keychain.c"), "utf8")
+    const header = readFileSync(join(process.cwd(), "native", "src", "credential-input.h"), "utf8")
+    const linux = readFileSync(join(process.cwd(), "native", "src", "credential-secret-service.c"), "utf8")
+    const mac = readFileSync(join(process.cwd(), "native", "src", "credential-keychain.c"), "utf8")
     expect(header).toContain("volatile unsigned char *cursor")
     expect(linux).not.toContain("free(input)")
     expect(mac).not.toContain("free(input)")
@@ -128,7 +128,7 @@ int main(void) {
       "-Wall",
       "-Wextra",
       "-I",
-      join(process.cwd(), "native"),
+      join(process.cwd(), "native", "src"),
       harnessSource,
       "-o",
       harness
@@ -164,7 +164,7 @@ int main(void) {
   })
 
   it("keeps the macOS helper lookup noninteractive and scoped by service and account", () => {
-    const source = readFileSync(join(process.cwd(), "native", "credential-keychain.c"), "utf8")
+    const source = readFileSync(join(process.cwd(), "native", "src", "credential-keychain.c"), "utf8")
     expect(source).toContain('CFSTR("dev.typesafe.realtime-review-tool")')
     expect(source).toContain('CFSTR("default")')
     expect(source).toContain("SecKeychainCopyDefault")
@@ -278,7 +278,7 @@ int main(void) {
     "does not steal a live lock and reclaims it after its owner is killed",
     async () => {
       const ready = join(root, "held-set-ready")
-      const moduleUrl = new URL("./secret-service.ts", import.meta.url).href
+      const moduleUrl = import.meta.resolve("@hapsland/credential-storage/credentials/secret-service")
       const child = spawn(
         process.execPath,
         [

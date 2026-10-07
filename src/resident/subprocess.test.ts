@@ -1,3 +1,5 @@
+import { prepareTestPackage } from "@hapsland/build-tooling/test-support/test-package"
+import { cleanupOwnedResident } from "../../scripts/test-harness/cleanup-owned-resident.mjs"
 import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
 import { afterEach, describe, expect, it } from "vitest"
@@ -7,7 +9,7 @@ import { execFileAsync } from "../../scripts/test-harness/process.mjs"
 import { existsSync } from "node:fs"
 import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import type { DirectObservation } from "@hapsland/native-observation/direct-event/observation"
 import {
@@ -80,7 +82,7 @@ const answers = Object.fromEntries(configuredRules.map((rule) => [rule.id, { _ta
 
 const dispatchFor = (statePath: string, options: { readonly capturePath?: string } = {}): ResidentDispatchContext => ({
   statePath,
-  userConfigPath: null,
+  userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
   credential: null,
   controlled: { answers, ...(options.capturePath === undefined ? {} : { capturePath: options.capturePath }) }
 })
@@ -88,12 +90,14 @@ const dispatchFor = (statePath: string, options: { readonly capturePath?: string
 const registerEdit = async (
   paths: ReturnType<typeof residentPaths>,
   lifetime: string,
-  observation: DirectObservation
+  observation: DirectObservation,
+  userConfigPath: string | null
 ) => {
   const registered = await runClient(
     residentRequest(paths, {
       requestRoute: "shared",
       operation: "register-edit",
+      ...(userConfigPath === null ? {} : { userConfigPath }),
       lifetime,
       root: observation.root,
       advicee: observation.advicee,
@@ -108,7 +112,7 @@ const admitComposed = async (
   request: Omit<Extract<ResidentRequest, { readonly operation: "admit"; readonly requestRoute: "shared" }>, "composed">,
   timeoutMs?: number
 ) => {
-  await registerEdit(paths, request.lifetime, request.observation)
+  await registerEdit(paths, request.lifetime, request.observation, request.dispatch.userConfigPath)
   return runClient(residentRequest(paths, { ...request, composed: true }, timeoutMs))
 }
 
@@ -117,16 +121,27 @@ describe("resident separate-process lifecycle", () => {
     const temporary = await mkdtemp(join(tmpdir(), "product-resident-native-idle-"))
     directories.push(temporary)
     const paths = residentPaths(join(temporary, "runtime"))
-    const executable = join(process.cwd(), "dist", "bin", `${process.platform}-${process.arch}`, "hapsland-resident")
-    const child = spawn(executable, [paths.directory], { stdio: "pipe" })
+    const installed = prepareTestPackage()
+    const child = spawn(installed.resident.executable, [...installed.resident.args, paths.directory], {
+      env: installed.environment,
+      stdio: "pipe"
+    })
     if (child.pid !== undefined) processes.push(child.pid)
     const result = childResult(child)
-    await waitFor(async () => (existsSync(paths.socket) ? true : undefined), 8_000)
-    await result
-    expect(child.exitCode).toBe(0)
-    expect(existsSync(paths.socket)).toBe(false)
-    expect(existsSync(paths.owner)).toBe(false)
-    expect(existsSync(paths.lock)).toBe(false)
+    void result.catch(() => {})
+    try {
+      await waitFor(async () => (existsSync(paths.socket) ? true : undefined), 8_000)
+      await result
+      expect(child.exitCode).toBe(0)
+      expect(existsSync(paths.socket)).toBe(false)
+      expect(existsSync(paths.owner)).toBe(false)
+      expect(existsSync(paths.lock)).toBe(false)
+    } finally {
+      await cleanupOwnedResident(paths.directory, [installed.resident])
+      if (child.exitCode === null && child.signalCode === null) child.kill("SIGTERM")
+      await childClosed(child)
+      installed.cleanup()
+    }
   })
 
   it("releases ownership after startup failure without deleting an unsafe endpoint", async () => {
@@ -487,7 +502,7 @@ describe("resident separate-process lifecycle", () => {
       `const paths=${JSON.stringify(residentPaths(runtime))};`,
       `const lifetime=${JSON.stringify(identities[0]!.lifetime)};`,
       "const observation=await Effect.runPromise(adaptCodexDirectEvent(event));",
-      "const registered=await runClient(residentRequest(paths,{requestRoute:'shared',operation:'register-edit',lifetime,root:observation.root,advicee:observation.advicee,startedAt:monotonicNow()}));",
+      "const registered=await runClient(residentRequest(paths,{requestRoute:'shared',operation:'register-edit',userConfigPath:dispatch.userConfigPath,lifetime,root:observation.root,advicee:observation.advicee,startedAt:monotonicNow()}));",
       "if(registered.status!=='advanced')throw new Error('edit permit was not registered');",
       "const socket=connect(socketPath);",
       "socket.once('connect',()=>socket.write(JSON.stringify({version:1,operation:'admit',lifetime,observation,controlledWriter:true,dispatch,composed:true})+'\\n'));"

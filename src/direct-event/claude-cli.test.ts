@@ -296,6 +296,7 @@ describe.each([
     const env = {
       ...installed.environment,
       REVIEW_STATE_PATH: statePath,
+      REVIEW_USER_CONFIG_PATH: join(root, "absent-fixture-user.jsonc"),
       REVIEW_RESIDENT_DIR: join(root, "runtime"),
       REVIEW_RESIDENT_BACKEND_GATE_PATH: backendGate,
       REVIEW_CONTROL_JSON: JSON.stringify({
@@ -383,6 +384,7 @@ describe.each([
     const baseEnv = {
       ...installed.environment,
       REVIEW_STATE_PATH: statePath,
+      REVIEW_USER_CONFIG_PATH: join(root, "absent-fixture-user.jsonc"),
       REVIEW_RESIDENT_DIR: join(root, "runtime"),
       REVIEW_CONTROL_JSON: JSON.stringify({
         answers: Object.fromEntries(

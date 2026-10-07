@@ -7,7 +7,7 @@ import {
 import { it as effectIt } from "@effect/vitest"
 import { ConfigProvider, Deferred, Effect, Fiber, Layer } from "effect"
 import * as Scheduler from "effect/Scheduler"
-import { afterEach, describe, expect, it } from "vitest"
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest"
 import { chmod, mkdtemp, rm, symlink } from "node:fs/promises"
 import { createServer, type Server, type Socket } from "node:net"
 import { tmpdir } from "node:os"
@@ -651,4 +651,20 @@ it("preserves edit polling and rejection outcomes through bounded IPC", async ()
           : { status: "unavailable", reason: "lost" }
     )
   }
+})
+
+// User credential files belong to this fixture, independently of the developer's configuration.
+const privateConfiguration = await vi.hoisted(async () => {
+  const fs = await import("node:fs")
+  const os = await import("node:os")
+  const path = await import("node:path")
+  const previous = process.env.XDG_CONFIG_HOME
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "hapsland-private-config-"))
+  process.env.XDG_CONFIG_HOME = directory
+  return { directory, previous }
+})
+afterAll(() => {
+  if (privateConfiguration.previous === undefined) delete process.env.XDG_CONFIG_HOME
+  else process.env.XDG_CONFIG_HOME = privateConfiguration.previous
+  rmSync(privateConfiguration.directory, { recursive: true, force: true })
 })

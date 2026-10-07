@@ -344,7 +344,12 @@ describe("JSON subprocess contract", () => {
       cwd: process.cwd(),
       input: JSON.stringify({ version: 1, operation: "credentials", cwd: root }),
       encoding: "utf8",
-      env: { ...process.env, REVIEW_STATE_PATH: statePath, TYPESAFE_API_KEY: secret }
+      env: {
+        ...process.env,
+        REVIEW_STATE_PATH: statePath,
+        REVIEW_USER_CONFIG_PATH: join(root, "user.jsonc"),
+        TYPESAFE_API_KEY: secret
+      }
     })
     expect(JSON.parse(child.stdout)).toEqual({
       version: 1,

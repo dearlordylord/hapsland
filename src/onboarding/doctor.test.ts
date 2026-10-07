@@ -140,6 +140,8 @@ else console.log('{"version":1,"status":"available"}');
       env: {
         ...process.env,
         TYPESAFE_API_KEY: undefined,
+        XDG_CONFIG_HOME: join(root, "config"),
+        REVIEW_USER_CONFIG_PATH: join(root, "user.jsonc"),
         REVIEW_CREDENTIAL_HELPER: credentialHelper,
         REVIEW_CREDENTIAL_STATE_PATH: join(root, "credential-state.json")
       }

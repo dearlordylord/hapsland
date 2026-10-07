@@ -18,6 +18,7 @@ function fixture() {
     "packages/monkey-business-bend",
     "packages/agent-flow-bend",
     "packages/monkey-business/src",
+    "packages/canonical-policy/src",
     "src/canonical"
   ]) {
     mkdirSync(join(directory, path, ".."), { recursive: true })

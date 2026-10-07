@@ -1,0 +1,32 @@
+{
+  "purpose": "Real Engine regeneration following physical owner integration and changed preparation ABI",
+  "oldPreparationHash": "f5e81d20545bb1bc4473d6968b291182381435937778168a2e29c59967587891",
+  "currentPreparationHash": "95cd2d6fd2a624fff623f4c7af049fbfc8022a71bb5faa98523283b7cef34a58",
+  "sourceHashUnchanged": false,
+  "generator": "node packages/monkey-business-bend/build.mjs",
+  "generatorExitCode": 0,
+  "artifactCheck": "node packages/monkey-business-bend/build.mjs --check passed",
+  "focusedReuseTests": {
+    "passed": 5,
+    "log": "/tmp/hapsland-243-monkey-engine-reuse-focused-02.log"
+  },
+  "otherFocusedBoundaries": {
+    "passed": 64,
+    "log": "/tmp/hapsland-243-owned-boundary-fixtures-focused-01.log",
+    "note": "First run additionally had3passing reuse refusals and2remaining stale baseline failures; later5reuse run resolved both"
+  },
+  "logs": {
+    "/tmp/hapsland-243-monkey-engine-real-regeneration.log": {
+      "path": "evidence/build-243/objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "/tmp/hapsland-243-monkey-engine-reuse-focused-02.log": {
+      "path": "evidence/build-243/objects/de0cd28208101de1d620ff9e9d751ea5c95e4e4c743a27a2164a1d9f41f3724f.log",
+      "sha256": "de0cd28208101de1d620ff9e9d751ea5c95e4e4c743a27a2164a1d9f41f3724f"
+    },
+    "/tmp/hapsland-243-owned-boundary-fixtures-focused-01.log": {
+      "path": "evidence/build-243/objects/bced212a59789b4323093aff5d229ea4f86d31cc210b21e1e2d2c6e34fd096ec.log",
+      "sha256": "bced212a59789b4323093aff5d229ea4f86d31cc210b21e1e2d2c6e34fd096ec"
+    }
+  }
+}

@@ -28,7 +28,7 @@ const fixture = Effect.fn("ReviewControlsFixture.acquire")(function* (controls: 
   if (observation === undefined) return yield* Effect.die(new Error("missing fixture observation"))
   const dispatch: ResidentDispatchContext = {
     statePath: join(root, "consent"),
-    userConfigPath: null,
+    userConfigPath: join(root, "absent-fixture-user.jsonc"),
     credential: null,
     controlled: {
       answers: Object.fromEntries(

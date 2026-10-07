@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
 import { existsSync, readFileSync } from "node:fs"
 import { rm } from "node:fs/promises"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import {
   addEvent,
@@ -36,7 +36,7 @@ const setup = async (initiallyExcluded: boolean) => {
   if (observation === undefined) throw new Error("synthetic event adaptation failed")
   const dispatch: ResidentDispatchContext = {
     statePath,
-    userConfigPath: null,
+    userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
     credential: null,
     controlled: { capturePath }
   }

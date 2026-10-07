@@ -7,7 +7,7 @@ import { expect, it } from "vitest"
 it("reports package readiness from individual checks and returns the matching exit status", () => {
   const result = spawnSync(
     bunExecutable(),
-    [fileURLToPath(new URL("./package-doctor.ts", import.meta.url)), "--json"],
+    [fileURLToPath(new URL("../packages/doctor-entry/src/package-doctor.ts", import.meta.url)), "--json"],
     { encoding: "utf8", env: process.env }
   )
   expect(result.error).toBeUndefined()
@@ -55,7 +55,7 @@ it("reports package readiness from individual checks and returns the matching ex
 })
 
 it("defaults to readable output even when stdout is piped, with the same exit status as JSON", () => {
-  const entrypoint = fileURLToPath(new URL("./package-doctor.ts", import.meta.url))
+  const entrypoint = fileURLToPath(new URL("../packages/doctor-entry/src/package-doctor.ts", import.meta.url))
   const human = spawnSync(bunExecutable(), [entrypoint], { encoding: "utf8", env: process.env })
   const machine = spawnSync(bunExecutable(), [entrypoint, "--json"], { encoding: "utf8", env: process.env })
   expect(human.error).toBeUndefined()
@@ -73,10 +73,11 @@ it("defaults to readable output even when stdout is piped, with the same exit st
 })
 
 it.each(["--help", "--unknown"])("handles %s without running package diagnostics", (arg) => {
-  const result = spawnSync(bunExecutable(), [fileURLToPath(new URL("./package-doctor.ts", import.meta.url)), arg], {
-    encoding: "utf8",
-    env: process.env
-  })
+  const result = spawnSync(
+    bunExecutable(),
+    [fileURLToPath(new URL("../packages/doctor-entry/src/package-doctor.ts", import.meta.url)), arg],
+    { encoding: "utf8", env: process.env }
+  )
   expect(result.status).toBe(arg === "--help" ? 0 : 2)
   expect(result.stdout + result.stderr).toContain("Usage: hapsland-doctor [--json]")
   expect(result.stdout + result.stderr).not.toContain("package checks")

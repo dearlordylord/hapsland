@@ -1,4 +1,4 @@
-import { expect, it } from "vitest"
+import { afterAll, expect, it, vi } from "vitest"
 import { ConfigProvider, Effect, Redacted } from "effect"
 import { mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -80,3 +80,19 @@ if (process.argv[2] === "set") {
     }
   }
 )
+
+// User credential files belong to this fixture, independently of the developer's configuration.
+const privateConfiguration = await vi.hoisted(async () => {
+  const fs = await import("node:fs")
+  const os = await import("node:os")
+  const path = await import("node:path")
+  const previous = process.env.XDG_CONFIG_HOME
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "hapsland-private-config-"))
+  process.env.XDG_CONFIG_HOME = directory
+  return { directory, previous }
+})
+afterAll(() => {
+  if (privateConfiguration.previous === undefined) delete process.env.XDG_CONFIG_HOME
+  else process.env.XDG_CONFIG_HOME = privateConfiguration.previous
+  rmSync(privateConfiguration.directory, { recursive: true, force: true })
+})

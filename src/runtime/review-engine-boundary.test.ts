@@ -26,7 +26,7 @@ const modules = [
 const runImport = (module: string, flag?: string) => {
   const preload =
     module === "packages/review-execution/src/direct-event/pipeline.ts"
-      ? `await import(${JSON.stringify(pathToFileURL(resolve("packages/source-analysis/src/direct-event/languages/native-parser.ts")).href)}); await import(${JSON.stringify(pathToFileURL(resolve("packages/source-analysis/src/direct-event/languages/bend/extractor.ts")).href)});`
+      ? `await import("@hapsland/source-analysis/direct-event/languages/native-parser"); await import("@hapsland/source-analysis/direct-event/languages/bend/extractor");`
       : ""
   const code = `${preload} process.argv=${JSON.stringify([bunExecutable(), "boundary-probe", ...(flag ? [flag] : [])])};try { await import(${JSON.stringify(pathToFileURL(resolve(module)).href)}); process.stdout.write("allowed\\n"); } catch { process.stdout.write("caught\\n"); }`
   return spawnSync(bunExecutable(), ["--input-type=module", "-e", code], {

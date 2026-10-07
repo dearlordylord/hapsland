@@ -1218,14 +1218,6 @@ function $$$$047agent$045flow$045bend$047Admission$058has_tool$(_tool_0, _permit
   }
 }
 
-function $$$$047agent$045flow$045bend$047Admission$058find_permit$pick$(_permit_0, _fallback_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Some", "value": _permit_0};
-  } else {
-    return _fallback_0;
-  }
-}
-
 function $$$$047agent$045flow$045bend$047Admission$058find_permit$(_token_0, _permits_0) {
   if (_permits_0.$ === "Nil") {
     return {$: "None"};
@@ -1237,15 +1229,7 @@ function $$$$047agent$045flow$045bend$047Admission$058find_permit$(_token_0, _pe
     const __2 = _t_0["started"];
     const __3 = _t_0["deadline"];
     const _rest_0 = _permits_0["tail"];
-    return $$$$047agent$045flow$045bend$047Admission$058find_permit$pick$({$: "Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($$$$047agent$045flow$045bend$047Admission$058find_permit$(_token_0, _rest_0)), ($Nat$is_eq$(_current_0, _token_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$058remove_permit$pick$(_permit_0, _tail_0, _hit_0) {
-  if (_hit_0) {
-    return _tail_0;
-  } else {
-    return {$: "Con", "head": _permit_0, "tail": _tail_0};
+    return $List$find$put$({$: "Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($$$$047agent$045flow$045bend$047Admission$058find_permit$(_token_0, _rest_0)), ($Nat$is_eq$(_current_0, _token_0)));
   }
 }
 
@@ -1260,7 +1244,7 @@ function $$$$047agent$045flow$045bend$047Admission$058remove_permit$(_token_0, _
     const __2 = _t_0["started"];
     const __3 = _t_0["deadline"];
     const _rest_0 = _permits_0["tail"];
-    return $$$$047agent$045flow$045bend$047Admission$058remove_permit$pick$({$: "Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($$$$047agent$045flow$045bend$047Admission$058remove_permit$(_token_0, _rest_0)), ($Nat$is_eq$(_current_0, _token_0)));
+    return $List$filter$put$({$: "Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($$$$047agent$045flow$045bend$047Admission$058remove_permit$(_token_0, _rest_0)), ($Bool$not$(($Nat$is_eq$(_current_0, _token_0)))));
   }
 }
 
@@ -3126,14 +3110,6 @@ function $$$$047agent$045flow$045bend$047Work$058admit$(_work_0) {
   return {$: "Work.Accepted", "state": ($$$$047agent$045flow$045bend$047Work$058settle$({$: "Work.Work", "next_observation": nat_chk(_next_observation_0 + 1), "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": ($List$append$(_observations_0, {$: "Con", "head": {$: "Work.Observation", "id": _next_observation_0, "stage": {$: "Work.SourceQueued"}}, "tail": {$: "Nil"}})), "units": _units_0})), "admitted": {$: "Con", "head": _next_observation_0, "tail": {$: "Nil"}}};
 }
 
-function $$$$047agent$045flow$045bend$047Work$058find_observation$pick$(_observation_0, _fallback_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Some", "value": _observation_0};
-  } else {
-    return _fallback_0;
-  }
-}
-
 function $$$$047agent$045flow$045bend$047Work$058find_observation$(_id_0, _observations_0) {
   if (_observations_0.$ === "Nil") {
     return {$: "None"};
@@ -3142,7 +3118,7 @@ function $$$$047agent$045flow$045bend$047Work$058find_observation$(_id_0, _obser
     const _current_0 = _t_0["id"];
     const __0 = _t_0["stage"];
     const _rest_0 = _observations_0["tail"];
-    return $$$$047agent$045flow$045bend$047Work$058find_observation$pick$({$: "Work.Observation", "id": _current_0, "stage": __0}, ($$$$047agent$045flow$045bend$047Work$058find_observation$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+    return $List$find$put$({$: "Work.Observation", "id": _current_0, "stage": __0}, ($$$$047agent$045flow$045bend$047Work$058find_observation$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
   }
 }
 
@@ -3329,14 +3305,6 @@ function $$$$047agent$045flow$045bend$047Work$058spawn$(_work_0, _observation_0,
   return $$$$047agent$045flow$045bend$047Work$058spawn$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": _observations_0, "units": __4}, _observation_0, _count_0, ($$$$047agent$045flow$045bend$047Work$058find_observation$(_observation_0, _observations_0)));
 }
 
-function $$$$047agent$045flow$045bend$047Work$058find_unit$pick$(_unit_0, _fallback_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Some", "value": _unit_0};
-  } else {
-    return _fallback_0;
-  }
-}
-
 function $$$$047agent$045flow$045bend$047Work$058find_unit$(_id_0, _units_0) {
   if (_units_0.$ === "Nil") {
     return {$: "None"};
@@ -3348,7 +3316,7 @@ function $$$$047agent$045flow$045bend$047Work$058find_unit$(_id_0, _units_0) {
     const __2 = _t_0["findings"];
     const __3 = _t_0["bytes"];
     const _rest_0 = _units_0["tail"];
-    return $$$$047agent$045flow$045bend$047Work$058find_unit$pick$({$: "Work.ReviewUnit", "id": _current_0, "observation": __0, "stage": __1, "findings": __2, "bytes": __3}, ($$$$047agent$045flow$045bend$047Work$058find_unit$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+    return $List$find$put$({$: "Work.ReviewUnit", "id": _current_0, "observation": __0, "stage": __1, "findings": __2, "bytes": __3}, ($$$$047agent$045flow$045bend$047Work$058find_unit$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
   }
 }
 
@@ -4052,15 +4020,7 @@ function $$$$047agent$045flow$045bend$047Handoff$058select$current$(_state_0, _a
 }
 
 function $$$$047agent$045flow$045bend$047Handoff$058contains$(_id_0, _ids_0) {
-  if (_ids_0.$ === "Nil") {
-    return false;
-  } else {
-    const _item_0 = _ids_0["head"];
-    const _rest_0 = _ids_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_id_0, _item_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Handoff$058contains$(_id_0, _rest_0));
-    return (_x_0 || _x_1);
-  }
+  return $List$contains$1260$(_ids_0, _id_0);
 }
 
 function $$$$047agent$045flow$045bend$047Handoff$058select$duplicate$(_state_0, _advice_0, _prospective_bytes_0, _current_0, _duplicate_0) {
@@ -6163,15 +6123,7 @@ function $$$$047agent$045flow$045bend$047RevisionState$058find$(_subject_0, _ent
   } else {
     const _entry_0 = _entries_0["head"];
     const _rest_0 = _entries_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047RevisionState$058same_subject$(_subject_0, _entry_0)), {$: "Some", "value": _entry_0}, ($$$$047agent$045flow$045bend$047RevisionState$058find$(_subject_0, _rest_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047RevisionState$058keep_entry$(_entry_0, _tail_0, _remove_0) {
-  if (_remove_0) {
-    return _tail_0;
-  } else {
-    return {$: "Con", "head": _entry_0, "tail": _tail_0};
+    return $List$find$put$(_entry_0, ($$$$047agent$045flow$045bend$047RevisionState$058find$(_subject_0, _rest_0)), ($$$$047agent$045flow$045bend$047RevisionState$058same_subject$(_subject_0, _entry_0)));
   }
 }
 
@@ -6181,7 +6133,7 @@ function $$$$047agent$045flow$045bend$047RevisionState$058without$(_subject_0, _
   } else {
     const _entry_0 = _entries_0["head"];
     const _rest_0 = _entries_0["tail"];
-    return $$$$047agent$045flow$045bend$047RevisionState$058keep_entry$(_entry_0, ($$$$047agent$045flow$045bend$047RevisionState$058without$(_subject_0, _rest_0)), ($$$$047agent$045flow$045bend$047RevisionState$058same_subject$(_subject_0, _entry_0)));
+    return $List$filter$put$(_entry_0, ($$$$047agent$045flow$045bend$047RevisionState$058without$(_subject_0, _rest_0)), ($Bool$not$(($$$$047agent$045flow$045bend$047RevisionState$058same_subject$(_subject_0, _entry_0)))));
   }
 }
 
@@ -6920,15 +6872,7 @@ function $$$$047agent$045flow$045bend$047NoticeState$058clear_pending$(_state_0,
 }
 
 function $$$$047agent$045flow$045bend$047NoticeState$058contains$(_id_0, _items_0) {
-  if (_items_0.$ === "Nil") {
-    return false;
-  } else {
-    const _item_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_id_0, _item_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047NoticeState$058contains$(_id_0, _rest_0));
-    return (_x_0 || _x_1);
-  }
+  return $List$contains$1260$(_items_0, _id_0);
 }
 
 function $$$$047agent$045flow$045bend$047NoticeState$058candidate$(_record_0, _partition_0, _group_0, _composed_0, _authority_bound_0, _allowed_0) {
@@ -6994,15 +6938,7 @@ function $$$$047agent$045flow$045bend$047CollectionState$058initial$() {
 }
 
 function $$$$047agent$045flow$045bend$047CollectionState$058contains$(_id_0, _items_0) {
-  if (_items_0.$ === "Nil") {
-    return false;
-  } else {
-    const _item_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_id_0, _item_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047CollectionState$058contains$(_id_0, _rest_0));
-    return (_x_0 || _x_1);
-  }
+  return $List$contains$1260$(_items_0, _id_0);
 }
 
 function $$$$047agent$045flow$045bend$047CollectionState$058lease_exists$(_id_0, _items_0) {
@@ -7031,21 +6967,13 @@ function $$$$047agent$045flow$045bend$047CollectionState$058claim_exists$(_group
   }
 }
 
-function $$$$047agent$045flow$045bend$047CollectionState$058keep_ready$(_item_0, _tail_0, _remove_0) {
-  if (_remove_0) {
-    return _tail_0;
-  } else {
-    return {$: "Con", "head": _item_0, "tail": _tail_0};
-  }
-}
-
 function $$$$047agent$045flow$045bend$047CollectionState$058remove_ready$(_id_0, _items_0) {
   if (_items_0.$ === "Nil") {
     return {$: "Nil"};
   } else {
     const _item_0 = _items_0["head"];
     const _rest_0 = _items_0["tail"];
-    return $$$$047agent$045flow$045bend$047CollectionState$058keep_ready$(_item_0, ($$$$047agent$045flow$045bend$047CollectionState$058remove_ready$(_id_0, _rest_0)), ($Nat$is_eq$(_id_0, _item_0)));
+    return $List$filter$put$(_item_0, ($$$$047agent$045flow$045bend$047CollectionState$058remove_ready$(_id_0, _rest_0)), ($Bool$not$(($Nat$is_eq$(_id_0, _item_0)))));
   }
 }
 
@@ -25602,26 +25530,8 @@ function $$$$047agent$045flow$045bend$047ImportGraph$058initial$(_limits_0) {
   return {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Idle"}, "pending": {$: "Nil"}, "visited": {$: "Nil"}, "files": 0, "read_bytes": 0, "tree_bytes": 0, "work": 0, "skipped_tree": false, "skipped_excluded": false, "skipped_other": false, "limits": _limits_0};
 }
 
-function $$$$047agent$045flow$045bend$047ImportGraph$058edge_count$(_edges_0) {
-  if (_edges_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _rest_0 = _edges_0["tail"];
-    const _x_0 = ($$$$047agent$045flow$045bend$047ImportGraph$058edge_count$(_rest_0));
-    return nat_chk(1 + _x_0);
-  }
-}
-
 function $$$$047agent$045flow$045bend$047ImportGraph$058contains$(_target_0, _visited_0) {
-  if (_visited_0.$ === "Nil") {
-    return false;
-  } else {
-    const _head_0 = _visited_0["head"];
-    const _rest_0 = _visited_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_target_0, _head_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047ImportGraph$058contains$(_target_0, _rest_0));
-    return (_x_0 || _x_1);
-  }
+  return $List$contains$1260$(_visited_0, _target_0);
 }
 
 function $$$$047agent$045flow$045bend$047ImportGraph$058with_depth$(_edges_0, _depth_0) {
@@ -25645,7 +25555,7 @@ function $$$$047agent$045flow$045bend$047ImportGraph$058fail$(_limits_0, _pendin
 function $$$$047agent$045flow$045bend$047ImportGraph$058root$(_limits_0, _target_0, _source_bytes_0, _tree_bytes_0, _local_work_0, _edges_0) {
   const _x_0 = ($Nat$is_gt$(_source_bytes_0, ($$$$047agent$045flow$045bend$047ImportGraph$058source_cap$(_limits_0))));
   const _x_1 = ($Nat$is_gt$(_source_bytes_0, ($$$$047agent$045flow$045bend$047ImportGraph$058read_cap$(_limits_0))));
-  const _x_2 = ($Nat$is_gt$(($$$$047agent$045flow$045bend$047ImportGraph$058edge_count$(_edges_0)), ($$$$047agent$045flow$045bend$047ImportGraph$058edge_cap$(_limits_0))));
+  const _x_2 = ($Nat$is_gt$(($List$length$(_edges_0)), ($$$$047agent$045flow$045bend$047ImportGraph$058edge_cap$(_limits_0))));
   const _x_3 = ($Nat$is_gt$(_local_work_0, ($$$$047agent$045flow$045bend$047ImportGraph$058work_cap$(_limits_0))));
   return $Bool$pick$((_x_0 || _x_1), ($$$$047agent$045flow$045bend$047ImportGraph$058fail$(_limits_0, {$: "Nil"}, {$: "Nil"}, 0, 0, 0, 0, false, false, false, {$: "ImportGraph.ReadLimit"})), ($Bool$pick$(($Nat$is_gt$(_tree_bytes_0, ($$$$047agent$045flow$045bend$047ImportGraph$058tree_cap$(_limits_0)))), ($$$$047agent$045flow$045bend$047ImportGraph$058fail$(_limits_0, {$: "Nil"}, {$: "Nil"}, 0, 0, 0, 0, false, false, false, {$: "ImportGraph.TreeLimit"})), ($Bool$pick$((_x_2 || _x_3), ($$$$047agent$045flow$045bend$047ImportGraph$058fail$(_limits_0, {$: "Nil"}, {$: "Nil"}, 0, 0, 0, 0, false, false, false, {$: "ImportGraph.WorkLimit"})), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": ($$$$047agent$045flow$045bend$047ImportGraph$058with_depth$(_edges_0, 1)), "visited": {$: "Con", "head": _target_0, "tail": {$: "Nil"}}, "files": 1, "read_bytes": _source_bytes_0, "tree_bytes": _tree_bytes_0, "work": _local_work_0, "skipped_tree": false, "skipped_excluded": false, "skipped_other": false, "limits": _limits_0}, "command": {$: "ImportGraph.NoCommand"}})))));
 }
@@ -25687,7 +25597,7 @@ function $$$$047agent$045flow$045bend$047ImportGraph$058captured$(_limits_0, _ed
   const _depth_0 = _edge_0["depth"];
   const _x_0 = ($Nat$is_gt$(_source_bytes_0, ($$$$047agent$045flow$045bend$047ImportGraph$058source_cap$(_limits_0))));
   const _x_1 = ($Nat$is_gt$(nat_chk(_read_bytes_0 + _source_bytes_0), ($$$$047agent$045flow$045bend$047ImportGraph$058read_cap$(_limits_0))));
-  const _x_2 = ($Nat$is_gt$(($$$$047agent$045flow$045bend$047ImportGraph$058edge_count$(_edges_0)), ($$$$047agent$045flow$045bend$047ImportGraph$058edge_cap$(_limits_0))));
+  const _x_2 = ($Nat$is_gt$(($List$length$(_edges_0)), ($$$$047agent$045flow$045bend$047ImportGraph$058edge_cap$(_limits_0))));
   const _x_3 = ($Nat$is_gt$(nat_chk(_work_0 + _local_work_0), ($$$$047agent$045flow$045bend$047ImportGraph$058work_cap$(_limits_0))));
   return $Bool$pick$((_x_0 || _x_1), ($$$$047agent$045flow$045bend$047ImportGraph$058fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.ReadLimit"})), ($Bool$pick$((_x_2 || _x_3), ($$$$047agent$045flow$045bend$047ImportGraph$058fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.WorkLimit"})), ($Bool$pick$(($Nat$is_gt$(nat_chk(_tree_bytes_0 + _node_bytes_0), ($$$$047agent$045flow$045bend$047ImportGraph$058tree_cap$(_limits_0)))), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": ($$$$047agent$045flow$045bend$047ImportGraph$058pending_after$(_pending_0, _edges_0, _depth_0, true)), "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": nat_chk(_files_0 + 1), "read_bytes": ($$$$047agent$045flow$045bend$047ImportGraph$058read_after$(_read_bytes_0, _source_bytes_0)), "tree_bytes": _tree_bytes_0, "work": nat_chk(_work_0 + _local_work_0), "skipped_tree": true, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.TreeLimit"}}}, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": ($$$$047agent$045flow$045bend$047ImportGraph$058pending_after$(_pending_0, _edges_0, _depth_0, false)), "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": nat_chk(_files_0 + 1), "read_bytes": ($$$$047agent$045flow$045bend$047ImportGraph$058read_after$(_read_bytes_0, _source_bytes_0)), "tree_bytes": ($$$$047agent$045flow$045bend$047ImportGraph$058tree_after$(_tree_bytes_0, _node_bytes_0, ($$$$047agent$045flow$045bend$047ImportGraph$058tree_cap$(_limits_0)))), "work": nat_chk(_work_0 + _local_work_0), "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.NoCommand"}})))));
 }
@@ -29213,11 +29123,39 @@ function $Nat$is_le$(_a_0, _b_0) {
   return $Cmp$is_le$(cmp_new(_a_0, _b_0));
 }
 
+function $List$find$put$(_h_0, _r_0, _hit_0) {
+  if (!_hit_0) {
+    return _r_0;
+  } else {
+    return {$: "Some", "value": _h_0};
+  }
+}
+
+function $List$filter$put$(_h_0, _r_0, _keep_0) {
+  if (!_keep_0) {
+    return _r_0;
+  } else {
+    return {$: "Con", "head": _h_0, "tail": _r_0};
+  }
+}
+
 function $List$is_empty$(_xs_0) {
   if (_xs_0.$ === "Nil") {
     return true;
   } else {
     return false;
+  }
+}
+
+function $List$contains$1260$(_xs_0, _x_0) {
+  if (_xs_0.$ === "Nil") {
+    return false;
+  } else {
+    const _h_0 = _xs_0["head"];
+    const _t_0 = _xs_0["tail"];
+    const _x_1 = ($Nat$is_eq$(_h_0, _x_0));
+    const _x_2 = ($List$contains$1260$(_t_0, _x_0));
+    return (_x_1 || _x_2);
   }
 }
 
@@ -29348,8 +29286,8 @@ function $0m3(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:456446d0f5d1f379ffa05f7ee924009c385291cfa1772519969284b7998434f9";
-export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:f5e81d20545bb1bc4473d6968b291182381435937778168a2e29c59967587891";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:8022fbe93b376ee49953e059d5c6663d3b2ec8fa4b3dcaf0e9ff645c075c654b";
+export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:95cd2d6fd2a624fff623f4c7af049fbfc8022a71bb5faa98523283b7cef34a58";
 
 const facts = value => {
   if (typeof value === "bigint") {

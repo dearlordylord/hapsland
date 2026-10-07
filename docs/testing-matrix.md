@@ -713,6 +713,14 @@ cross-candidate build cache. Focused installed diagnostics may explicitly supply
 `HAPSLAND_TEST_PACKAGE_ARCHIVE`; name its provenance and do not treat an older
 archive as evidence for changed production code.
 
+After moving implementation owners or changing fixture contracts, first run the
+affected boundary fixtures against their current package exports and physical
+source paths. Process fixtures supply their own user configuration and credential
+home where personal state is outside the scenario; registration and dispatch use
+the same configuration selector. Keep tests of intentional precedence explicit.
+Installed focused checks supply the reviewed archive above rather than rebuilding
+inside an instrumented child. A passing build does not establish these assertions.
+
 Keep essential behavioral coverage; delete repeated installed scenarios when
 source owners cover the semantics. A process test should establish one named
 physical boundary; ordinary value-policy matrices belong in component/source

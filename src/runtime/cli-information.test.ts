@@ -7,7 +7,11 @@ import { expect, it } from "vitest"
 import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { PACKAGE_VERSION } from "@hapsland/runtime-environment/runtime/cli-information"
 
-const workers = ["../package-doctor.ts", "../parser-main.ts", "../resident/main.ts"] as const
+const workers = [
+  "../../packages/doctor-entry/src/package-doctor.ts",
+  "../../packages/parser-entry/src/parser-main.ts",
+  "../../packages/resident-entry/src/resident/main.ts"
+] as const
 
 it.each(workers)(
   "%s information exits with stdin open and without creating state",

@@ -11,7 +11,7 @@ import { makePreparationControls } from "@hapsland/build-tooling/test-support/pr
 import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts"
 import { describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import "node:fs"
 import { readActivity } from "@hapsland/activity-observation/activity/status"
 import { adaptClaudeDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
@@ -41,7 +41,7 @@ const fixture = async () => {
   if (observation === undefined) throw new Error("fixture not adapted")
   const dispatch = (probability: number, failure?: string): ResidentDispatchContext => ({
     statePath,
-    userConfigPath: null,
+    userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
     credential: null,
     controlled: {
       answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability }])),
