@@ -126,6 +126,10 @@
       "types": "./test-support/test-package.ts",
       "default": "./test-support/test-package.ts"
     },
-    "./test-harness/terminal": "./test-harness/terminal.mjs"
+    "./test-harness/terminal": "./test-harness/terminal.mjs",
+    "./test-support/scripted-interaction": {
+      "types": "./test-support/scripted-interaction.ts",
+      "default": "./test-support/scripted-interaction.ts"
+    }
   }
 }

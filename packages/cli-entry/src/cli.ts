@@ -1138,7 +1138,17 @@ const chooseSetupClients = Effect.fn("InteractiveSetup.chooseClients")(function*
   if (!process.stdin.isTTY || !process.stderr.isTTY)
     throw new Error("Guided setup needs a terminal. Use --setup JSON for automation.")
   const choices: ClientChoice[] = yield* Effect.forEach(SUPPORTED_CLIENTS, setupClientChoice)
-  const hosts = yield* selectSetupClients(choices)
+  const { InteractionService } = yield* Effect.promise(() => import("@hapsland/administration/interaction/interaction"))
+  const { withInteractionSession } = yield* Effect.promise(
+    () => import("@hapsland/administration/interaction/interaction-session")
+  )
+  const hosts = yield* withInteractionSession(
+    (input) => selectSetupClients(choices).pipe(Effect.provideService(InteractionService, input)),
+    Effect.sync(() => {
+      process.exitCode = 130
+      return []
+    })
+  )
   if (hosts.length === 0) {
     process.stderr.write("No clients selected. No changes made.\n")
     return

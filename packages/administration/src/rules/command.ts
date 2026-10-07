@@ -2,7 +2,10 @@ import { Config, Effect, Option } from "effect"
 import type { RulesOptions } from "./cli-definition.ts"
 import { discoverWorkingTreeRoot } from "@hapsland/native-observation/repository/root"
 import { RULE_CHECK_EXIT_CODES } from "./cli-definition.ts"
-import { askConfirmation } from "../onboarding/confirmation.ts"
+import { InteractionService } from "../interaction/interaction.ts"
+import { withInteractionSession } from "../interaction/interaction-session.ts"
+import { runRuleConversation } from "./conversation.ts"
+import type { RulePlan } from "./interaction-model.ts"
 import { loadRuleInventory, formatRuleInventory, formatRule, explainRule } from "./inventory.ts"
 import { applyRuleChange, previewRuleChange, type RuleChange } from "./management.ts"
 
@@ -41,16 +44,6 @@ const inspectRules = Effect.fn("Rules.inspectCommand")(function* (
     process.stdout.write(inspectionOutput(action, options, rule, explanation))
   }
 })
-const changeScope = Effect.fn("Rules.changeScope")(function* (scope: RulesOptions["scope"], terminal: boolean) {
-  if (scope === undefined && !terminal)
-    return yield* Effect.fail(new Error("Unattended rule changes require --scope project or --scope personal."))
-  return (
-    scope ??
-    ((yield* askConfirmation("Use personal scope instead of the default project scope?"))
-      ? ("personal" as const)
-      : ("project" as const))
-  )
-})
 const requestedRuleChange = Effect.fn("Rules.requestedChange")(function* (
   action: RuleChange["action"],
   scope: RuleChange["scope"],
@@ -64,14 +57,6 @@ const requestedRuleChange = Effect.fn("Rules.requestedChange")(function* (
   if (options.id === undefined)
     return yield* Effect.fail(new Error(`rules ${action} requires --id with a rule identity.`))
   return { action, scope, id: options.id }
-})
-const confirmRuleChange = Effect.fn("Rules.confirmChange")(function* (
-  plan: Effect.Success<ReturnType<typeof previewRuleChange>>,
-  terminal: boolean
-) {
-  if (!terminal) return true
-  process.stderr.write(formatRuleChangePreview(plan))
-  return yield* askConfirmation("Apply these rule changes?")
 })
 const ruleChangeOutput = (
   result: Effect.Success<ReturnType<typeof applyRuleChange>>,
@@ -103,10 +88,57 @@ export const runRulesCommand = Effect.fn("Rules.command")(function* (options: Ru
   const action = options.action
   const terminal = Boolean(process.stdin.isTTY && process.stderr.isTTY)
   if (inspectionAction(action)) return yield* inspectRules(action, options, root, configuration)
-  const scope = yield* changeScope(options.scope, terminal)
-  const change = yield* requestedRuleChange(action, scope, options)
+  if (terminal) {
+    const owner = {
+      preview: (scope: RuleChange["scope"]) =>
+        Effect.gen(function* () {
+          const change = yield* requestedRuleChange(action, scope, options)
+          const plan = yield* previewRuleChange(root, change, configuration)
+          const safe: RulePlan = {
+            action,
+            scope,
+            digest: plan.digest,
+            configuration: plan.configurationPath,
+            rule: plan.path ?? options.id ?? "authored rule",
+            enabled: plan.enabled === true
+          }
+          return safe
+        }),
+      apply: (approved: RulePlan) =>
+        Effect.gen(function* () {
+          const change = yield* requestedRuleChange(action, approved.scope, options)
+          return yield* applyRuleChange(root, change, approved.digest, configuration).pipe(
+            Effect.map((result) => ({ kind: "applied" as const, result })),
+            Effect.catchTag("ConfigurationError", (error) =>
+              error.field === "digest" ? Effect.succeed({ kind: "stale" as const }) : Effect.fail(error)
+            )
+          )
+        })
+    }
+    yield* withInteractionSession(
+      (input) =>
+        Effect.gen(function* () {
+          const conversation = yield* runRuleConversation(
+            action,
+            owner,
+            options.scope === undefined ? {} : { scope: options.scope }
+          ).pipe(Effect.provideService(InteractionService, input))
+          const result = conversation.result
+          if (result !== undefined && conversation.model.scope !== undefined) {
+            const change = yield* requestedRuleChange(action, conversation.model.scope, options)
+            yield* Effect.sync(() => process.stdout.write(ruleChangeOutput(result, change, options.json)))
+          }
+        }),
+      Effect.sync(() => {
+        process.exitCode = 130
+      })
+    )
+    return
+  }
+  if (options.scope === undefined)
+    return yield* Effect.fail(new Error("Unattended rule changes require --scope project or --scope personal."))
+  const change = yield* requestedRuleChange(action, options.scope, options)
   const plan = yield* previewRuleChange(root, change, configuration)
-  if (!(yield* confirmRuleChange(plan, terminal))) return
   const result = yield* applyRuleChange(root, change, plan.digest, configuration)
-  process.stdout.write(ruleChangeOutput(result, change, options.json))
+  yield* Effect.sync(() => process.stdout.write(ruleChangeOutput(result, change, options.json)))
 })
