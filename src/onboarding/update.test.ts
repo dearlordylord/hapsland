@@ -221,7 +221,7 @@ it.each(["back", "eof", "exit"] as const)(
     expect(f.owner.apply).not.toHaveBeenCalled()
   }
 )
-it("target and arbitrary confirmation errors propagate without mutation", async () => {
+it("target failure propagates without mutation", async () => {
   const f = fixture({ target: Effect.fail(new Error("target unavailable")) })
   await expect(f.run()).rejects.toThrow("target unavailable")
   expect(f.owner.apply).not.toHaveBeenCalled()

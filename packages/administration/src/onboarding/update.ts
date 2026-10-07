@@ -21,6 +21,9 @@ import {
   type UpdateOutcome
 } from "./update-model.ts"
 
+export const UPDATE_TERMINAL_REQUIRED =
+  "Interactive update needs a terminal. Use --update-preview / --update JSON operations for automation."
+
 type LifecycleResult = Effect.Success<ReturnType<typeof invokeLifecycle>>
 export interface UpdateOwner {
   discover: Effect.Effect<{ hosts: SetupClient[]; failures: { host: SetupClient; cause: unknown }[] }, unknown>
@@ -88,10 +91,7 @@ const previewObservation = (preview: LifecycleResult): PreviewObservation => {
   return { kind: preview.status === "busy" || preview.status === "indeterminate" ? preview.status : "failed" }
 }
 export const updateClients = Effect.fn("Update.clients")(function* (options: UpdateOptions) {
-  if (!options.terminal)
-    return yield* Effect.fail(
-      new Error("Interactive update needs a terminal. Use --update-preview / --update JSON operations for automation.")
-    )
+  if (!options.terminal) return yield* Effect.fail(new Error(UPDATE_TERMINAL_REQUIRED))
   const owner = yield* UpdateOwnerService
   const interaction = yield* InteractionService
   let model = initialUpdate()

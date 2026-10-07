@@ -1202,13 +1202,15 @@ const reportUpdateFailure = (host: SetupClient, cause: unknown): void => {
   process.exitCode = 6
 }
 const updateInteractive = Effect.fn("InteractiveUpdate.run")(function* () {
-  const { updateClients, updateOwnerLayer } = yield* Effect.promise(
+  const { updateClients, updateOwnerLayer, UPDATE_TERMINAL_REQUIRED } = yield* Effect.promise(
     () => import("@hapsland/administration/onboarding/update")
   )
   const { withInteractionSession } = yield* Effect.promise(
     () => import("@hapsland/administration/interaction/interaction-session")
   )
   const { InteractionService } = yield* Effect.promise(() => import("@hapsland/administration/interaction/interaction"))
+  if (!process.stdin.isTTY || !process.stderr.isTTY || process.env.TERM === "dumb")
+    return yield* Effect.fail(new Error(UPDATE_TERMINAL_REQUIRED))
   return yield* withInteractionSession(
     (interaction) =>
       updateClients({

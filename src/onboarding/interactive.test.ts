@@ -13,7 +13,7 @@ import {
 } from "@hapsland/administration/onboarding/codex-installation"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
 import { createInstallationPackageFixture } from "@hapsland/build-tooling/test-support/installation-package"
-import { spawn } from "node:child_process"
+import { spawn, spawnSync } from "node:child_process"
 import { execFileSync } from "../../scripts/test-harness/process.mjs"
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
@@ -386,3 +386,28 @@ it.skipIf(!terminalAvailable)(
     expect(existsSync(join(clients.claudeHome, "settings.json"))).toBe(false)
   }
 )
+
+it("nonterminal update explains automation before acquiring a target or initializing input", () => {
+  const test = fixture()
+  const target = updaterFixture(test)
+  const child = spawnSync(
+    bunExecutable(),
+    [join(process.cwd(), "packages/cli-entry/src/cli.ts"), "update", "claude", `--target=${target.target}`],
+    { cwd: test.repository, env: test.environment, encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS }
+  )
+  expect(child.status).toBe(6)
+  expect(child.stderr).toContain("Interactive update needs a terminal")
+  expect(child.stderr).toContain("--update-preview / --update JSON")
+  expect(child.stdout).toBe("")
+  expect(existsSync(target.requests)).toBe(false)
+})
+it.skipIf(!terminalAvailable)("TERM=dumb update explains automation without acquiring a target", async () => {
+  const test = fixture()
+  test.environment.TERM = "dumb"
+  const target = updaterFixture(test)
+  const result = await terminal(test, ["update", "claude", `--target=${target.target}`], "y")
+  expect(result.code).toBe(6)
+  expect(result.output).toContain("Interactive update needs a terminal")
+  expect(result.answered).toBe(false)
+  expect(existsSync(target.requests)).toBe(false)
+})
