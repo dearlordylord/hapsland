@@ -99,7 +99,7 @@ if (
   throw new Error("installation lock must share caller Config/Clock, Schedule polling and scoped ownership")
 }
 for (const runtime of ["codex", "claude", "opencode"]) {
-  const source = read(`src/onboarding/${runtime}-installation.ts`)
+  const source = read(`packages/administration/src/onboarding/${runtime}-installation.ts`)
   if (
     /export const (?:install|update|uninstall)\w+Integration\s*=\s*async\b|Effect\.run(?:Sync|Promise|Fork)\(/u.test(
       source
@@ -231,7 +231,9 @@ const packageDoctor = read("packages/doctor-entry/src/package-doctor.ts")
 const packageDiagnostics = read("packages/administration/src/onboarding/package-diagnostics.ts")
 if (
   /execFileSync\(|spawnSync\(/u.test(packageDoctor + packageDiagnostics) ||
-  !packageDoctor.includes('import { diagnosePackage } from "./onboarding/package-diagnostics.ts"') ||
+  !packageDoctor.includes(
+    'import { diagnosePackage } from "@hapsland/administration/onboarding/package-diagnostics"'
+  ) ||
   !packageDoctor.includes("Effect.runPromise(diagnosePackage())") ||
   !packageDiagnostics.includes('Effect.fn("PackageDoctor.inspect")') ||
   !packageDiagnostics.includes("Effect.scoped") ||

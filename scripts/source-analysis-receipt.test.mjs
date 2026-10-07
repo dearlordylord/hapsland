@@ -119,11 +119,19 @@ test("binds Bend generated runtime, authored ABI and producer identities without
       dependencies: {},
       exports: {
         "./canonical": { types: "./dist/canonical.generated.d.ts", default: "./dist/canonical.generated.js" },
-        "./import-graph": { types: "./dist/import-graph.generated.d.ts", default: "./dist/import-graph.generated.js" }
+        "./import-graph": { types: "./dist/import-graph.generated.d.ts", default: "./dist/import-graph.generated.js" },
+        "./request-content": {
+          types: "./dist/request-content.generated.d.ts",
+          default: "./dist/request-content.generated.js"
+        }
       },
       hapsland: {
         compiler: "bend",
-        abi: { "./canonical": "./abi/canonical.generated.d.ts", "./import-graph": "./abi/import-graph.generated.d.ts" }
+        abi: {
+          "./canonical": "./abi/canonical.generated.d.ts",
+          "./import-graph": "./abi/import-graph.generated.d.ts",
+          "./request-content": "./abi/request-content.generated.d.ts"
+        }
       }
     })
   )
@@ -134,6 +142,8 @@ test("binds Bend generated runtime, authored ABI and producer identities without
   assert.equal(context.producers[0].owner, "@hapsland/agent-flow-bend")
   assert.ok(context.sources.some((file) => file.path === "packages/agent-flow-bend/abi/canonical.generated.d.ts"))
   assert.ok(context.sources.some((file) => file.path === "packages/agent-flow-bend/dist/canonical.generated.js"))
+  assert.ok(context.sources.some((file) => file.path === "packages/agent-flow-bend/abi/request-content.generated.d.ts"))
+  assert.ok(context.sources.some((file) => file.path === "packages/agent-flow-bend/dist/request-content.generated.js"))
   const analysis = {
     files: context.sources.length,
     edges: 0,

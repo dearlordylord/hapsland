@@ -5,6 +5,7 @@ import { readPackageGraph } from "./package-graph.mjs"
 import { bendProducerToolchain, checkBendProducerReceipt } from "./bend-producer.mjs"
 import { runBuildProcess } from "./build-process.mjs"
 import { withBuildLock } from "./build-lock.mjs"
+import { prepareAuthoredTaskInputs } from "./authored-task-inputs.mjs"
 
 export const prepareBendProducerToolchain = async (root, graph = readPackageGraph(root)) => {
   const producers = [...graph.packages.values()].filter((node) => node.compiler === "bend")
@@ -19,6 +20,11 @@ export const buildBendProducers = async (root, environment, graph = readPackageG
   const producers = [...graph.packages.values()].filter((node) => node.compiler === "bend")
   const toolchain = await prepareBendProducerToolchain(root, graph)
   if (!toolchain) return
+  prepareAuthoredTaskInputs(
+    root,
+    { ...graph, packages: new Map(producers.map((node) => [node.manifest.name, node])) },
+    { bendToolchain: toolchain }
+  )
   await runBuildProcess(
     resolve(root, "node_modules/.bin/turbo"),
     [

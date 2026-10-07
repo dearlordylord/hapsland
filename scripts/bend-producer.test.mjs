@@ -1,4 +1,5 @@
-import { prepareAuthoredTaskInputs } from "./authored-task-inputs.mjs"
+import { authoredTaskInputPath, prepareAuthoredTaskInputs } from "./authored-task-inputs.mjs"
+import { buildBendProducers } from "./build-bend-producers.mjs"
 import test from "node:test"
 import assert from "node:assert/strict"
 import {
@@ -148,6 +149,32 @@ test("valid receipt binds actual compiler/support/input bytes and exact six outp
   assert.ok(f.context.toolchain.support.inventory.length)
   assert.ok(f.context.toolchain.toolLibraries.length)
   assert.equal(f.receipt.outputs.length, 6)
+})
+test("Bend-only scheduling replaces a stale PATH task stamp before the scheduler reads it", async (t) => {
+  const f = await fixture(t)
+  writeFileSync(resolve(f.root, "package.json"), JSON.stringify({ private: true }))
+  const node = {
+    ...f.node,
+    directory: "packages/agent-flow-bend",
+    compiler: "bend",
+    manifest: JSON.parse(readFileSync(resolve(f.directory, "package.json")))
+  }
+  const graph = { packages: new Map([[node.manifest.name, node]]) }
+  const stale = structuredClone(f.context.toolchain)
+  stale.environment.PATH = `/old-scheduler-prefix:${stale.environment.PATH}`
+  prepareAuthoredTaskInputs(f.root, graph, { bendToolchain: stale })
+  const stampPath = authoredTaskInputPath(f.root, node)
+  assert.equal(JSON.parse(readFileSync(stampPath)).toolchain.environment.PATH, stale.environment.PATH)
+  mkdirSync(resolve(f.root, "node_modules/.bin"), { recursive: true })
+  const scheduler = resolve(f.root, "node_modules/.bin/turbo")
+  writeFileSync(
+    scheduler,
+    `#!${process.execPath}\nconst fs=require('node:fs');const assert=require('node:assert/strict');const stamp=JSON.parse(fs.readFileSync(${JSON.stringify(stampPath)}));const current=JSON.parse(fs.readFileSync('.test-runs/bend-toolchain.json'));assert.deepEqual(stamp.toolchain,current);assert.equal(stamp.toolchain.environment.PATH,JSON.parse(process.env.HAPSLAND_BEND_PRODUCER_ENV).PATH);fs.writeFileSync('scheduler-observed.json',JSON.stringify(stamp.toolchain));\n`,
+    { mode: 0o755 }
+  )
+  await buildBendProducers(f.root, { ...process.env }, graph)
+  assert.deepEqual(JSON.parse(readFileSync(resolve(f.root, "scheduler-observed.json"))), f.context.toolchain)
+  assert.equal(f.verify().format, 1)
 })
 test("source repair and ABI edits cannot reuse a retained receipt", async (t) => {
   const f = await fixture(t)

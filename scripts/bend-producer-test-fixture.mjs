@@ -6,7 +6,8 @@ export async function createBendReceiptFixture(root, repositoryRoot) {
   const producer = await import(pathToFileURL(resolve(repositoryRoot, "scripts/bend-producer.mjs")))
   const { fileInventory } = await import(pathToFileURL(resolve(repositoryRoot, "scripts/compiler-evidence.mjs")))
   const directory = resolve(root, "packages/agent-flow-bend")
-  for (const child of ["scripts", "abi", "dist"]) mkdirSync(resolve(directory, child), { recursive: true })
+  for (const child of ["scripts", "abi", "dist", "request-content"])
+    mkdirSync(resolve(directory, child), { recursive: true })
   mkdirSync(resolve(root, "scripts"), { recursive: true })
   for (const name of [
     "bend-producer.mjs",
@@ -27,15 +28,15 @@ export async function createBendReceiptFixture(root, repositoryRoot) {
   const authority = JSON.parse(readFileSync(resolve(repositoryRoot, "packages/agent-flow-bend/package.json"), "utf8"))
   manifest.hapsland = { ...manifest.hapsland, toolchain: authority.hapsland.toolchain }
   writeFileSync(manifestPath, JSON.stringify(manifest))
-  for (const name of ["CanonicalRuntime.bend", "ImportGraphRuntime.bend"])
+  for (const name of ["CanonicalRuntime.bend", "ImportGraphRuntime.bend", "request-content/Runtime.bend"])
     writeFileSync(resolve(directory, name), "import Base\n")
-  for (const name of ["build-canonical.mjs", "build-import-graph.mjs"])
+  for (const name of ["build-canonical.mjs", "build-import-graph.mjs", "build-request-content.mjs"])
     writeFileSync(resolve(directory, "scripts", name), "// Fixture generator identity\n")
-  for (const name of ["canonical.generated.d.ts", "import-graph.generated.d.ts"]) {
+  for (const name of producer.bendProducerOutputs.filter((name) => name.endsWith(".d.ts"))) {
     writeFileSync(resolve(directory, "abi", name), "export declare const fixture: number;\n")
     writeFileSync(resolve(directory, "dist", name), "export declare const fixture: number;\n")
   }
-  for (const name of ["canonical.generated.js", "import-graph.generated.js"])
+  for (const name of producer.bendProducerOutputs.filter((name) => name.endsWith(".js")))
     writeFileSync(resolve(directory, "dist", name), "export const fixture = 1;\n")
   const context = await producer.bendProducerContext(root, { path: directory })
   const outputs = fileInventory(root, resolve(directory, "dist"))

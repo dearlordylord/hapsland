@@ -202,12 +202,20 @@ test("accounts for receipt-validated Bend runtime and ABI contributions and reje
       dependencies: {},
       exports: {
         "./canonical": { types: "./dist/canonical.generated.d.ts", default: "./dist/canonical.generated.js" },
-        "./import-graph": { types: "./dist/import-graph.generated.d.ts", default: "./dist/import-graph.generated.js" }
+        "./import-graph": { types: "./dist/import-graph.generated.d.ts", default: "./dist/import-graph.generated.js" },
+        "./request-content": {
+          types: "./dist/request-content.generated.d.ts",
+          default: "./dist/request-content.generated.js"
+        }
       },
       hapsland: {
         compiler: "bend",
         capabilities: [],
-        abi: { "./canonical": "./abi/canonical.generated.d.ts", "./import-graph": "./abi/import-graph.generated.d.ts" }
+        abi: {
+          "./canonical": "./abi/canonical.generated.d.ts",
+          "./import-graph": "./abi/import-graph.generated.d.ts",
+          "./request-content": "./abi/request-content.generated.d.ts"
+        }
       }
     })
   )
@@ -220,6 +228,14 @@ test("accounts for receipt-validated Bend runtime and ABI contributions and reje
   const abi = { owner: "@hapsland/agent-flow-bend", source: "packages/agent-flow-bend/abi/canonical.generated.d.ts" }
   assert.deepEqual(contributionOwner(f.root, graph, "packages/agent-flow-bend/dist/canonical.generated.d.ts"), abi)
   assert.deepEqual(contributionOwner(f.root, graph, abi.source), abi)
+  assert.deepEqual(contributionOwner(f.root, graph, "packages/agent-flow-bend/dist/request-content.generated.js"), {
+    owner: "@hapsland/agent-flow-bend",
+    source: "packages/agent-flow-bend/dist/request-content.generated.js"
+  })
+  assert.deepEqual(contributionOwner(f.root, graph, "packages/agent-flow-bend/dist/request-content.generated.d.ts"), {
+    owner: "@hapsland/agent-flow-bend",
+    source: "packages/agent-flow-bend/abi/request-content.generated.d.ts"
+  })
   const canonical = "packages/agent-flow-bend/dist/canonical.generated.js"
   const imported = "packages/agent-flow-bend/dist/import-graph.generated.js"
   const receiptPath = resolve(directory, "dist/.bend-receipt.json")

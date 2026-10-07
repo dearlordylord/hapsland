@@ -3,7 +3,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs"
 import { resolve } from "node:path"
 
 const root = resolve(import.meta.dirname, "..")
-const resident = resolve(root, "src/resident")
+const resident = resolve(root, "packages/resident-runtime/src/resident")
 assert.equal(
   existsSync(resolve(resident, "bend-ledger.generated.js")),
   false,
@@ -21,7 +21,7 @@ for (const name of readdirSync(resident)) {
 const adapter = readFileSync(resolve(resident, "capacity.ts"), "utf8")
 assert.match(
   adapter,
-  /from "\.\.\/canonical\/adapter\.ts"/,
+  /from "@hapsland\/canonical-policy\/canonical\/adapter"/,
   "resident capacity must use the shared checked canonical adapter"
 )
 assert.doesNotMatch(
