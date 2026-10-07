@@ -1,8 +1,9 @@
+import { compiledCoverageSource } from "./test-harness/coverage-source.mjs"
 import { readPackageGraph } from "./package-graph.mjs"
 import { existsSync } from "node:fs"
 import { createHash } from "node:crypto"
 import { readFile, readdir } from "node:fs/promises"
-import { pathToFileURL } from "node:url"
+import { pathToFileURL, fileURLToPath } from "node:url"
 import { join, resolve, relative } from "node:path"
 import { mergeScriptCovs } from "@bcoe/v8-coverage"
 import v8 from "@vitest/coverage-v8"
@@ -10,6 +11,8 @@ import { V8CoverageProvider } from "@vitest/coverage-v8/dist/provider.js"
 import { configureNativeBindings } from "../packages/source-analysis/src/direct-event/languages/native-bindings.ts"
 import { packageAssetPath } from "@hapsland/runtime-environment/runtime/package-runtime"
 import { prepareBunCoveragePreload } from "./test-harness/bun-coverage-preload-build.mjs"
+
+export { compiledCoverageSource } from "./test-harness/coverage-source.mjs"
 
 configureNativeBindings(packageAssetPath("native", "prebuilt", `${process.platform}-${process.arch}`))
 const { default: Parser } = await import("tree-sitter")
@@ -193,6 +196,23 @@ export async function mergeBunCoverage(coverageMap, directory, root) {
   }
 }
 class ContextAwareV8CoverageProvider extends V8CoverageProvider {
+  isIncluded(filename) {
+    if (super.isIncluded(filename)) return true
+    const emitted = compiledCoverageSource(this.ctx.config.root, filename)
+    return emitted ? super.isIncluded(emitted.source) : false
+  }
+  async getSources(url, onTransform, functions = [], isExtendedContext = false) {
+    const emitted = url.startsWith("file:")
+      ? compiledCoverageSource(this.ctx.config.root, fileURLToPath(url))
+      : undefined
+    if (!emitted) return super.getSources(url, onTransform, functions, isExtendedContext)
+    return super.getSources(
+      url,
+      async (...args) => (await onTransform(...args)) ?? { code: emitted.code, map: emitted.map },
+      functions,
+      isExtendedContext
+    )
+  }
   initialize(ctx) {
     super.initialize(ctx)
     this.bunCoverageDirectory = join(this.coverageFilesDirectory, "bun")
@@ -230,9 +250,9 @@ class ContextAwareV8CoverageProvider extends V8CoverageProvider {
       await mergeSourceFunctions(uncoveredMap)
       coverageMap.merge(uncoveredMap)
     }
-    coverageMap.filter(
-      (filename) => existsSync(filename) && (!this.options.excludeAfterRemap || this.isIncluded(filename))
-    )
+    // Emitted files are admitted only for conversion; the report retains the
+    // configured authored-source selection, never the broadened capture input.
+    coverageMap.filter((filename) => existsSync(filename) && super.isIncluded(filename))
     return coverageMap
   }
 }

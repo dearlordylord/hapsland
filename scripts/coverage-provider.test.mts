@@ -1,8 +1,84 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync, readFileSync, symlinkSync } from "node:fs"
+import { execFileSync } from "node:child_process"
+import { pathToFileURL } from "node:url"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { expect, it } from "vitest"
-import provider, { mergeCoverageScripts, mergeSourceFunctions } from "./coverage-provider.mjs"
+import provider, { compiledCoverageSource, mergeCoverageScripts, mergeSourceFunctions } from "./coverage-provider.mjs"
+import { resolvePinnedTypeScript } from "./pinned-typescript.mjs"
+
+it("attributes a real emitted private-package function hit to its original TypeScript body", async () => {
+  const root = mkdtempSync(join(tmpdir(), "hapsland-compiled-coverage-context-"))
+  try {
+    const directory = join(root, "packages/subject")
+    mkdirSync(join(directory, "src"), { recursive: true })
+    writeFileSync(join(root, "package.json"), JSON.stringify({ workspaces: ["packages/subject"] }))
+    writeFileSync(
+      join(directory, "package.json"),
+      JSON.stringify({
+        name: "@hapsland/subject",
+        private: true,
+        type: "module",
+        exports: { ".": { types: "./dist/main.d.ts", default: "./dist/main.js" } }
+      })
+    )
+    const source = join(directory, "src/main.ts")
+    writeFileSync(
+      source,
+      'export function choose(flag: boolean) { return flag ? "yes" : "no" }\nexport function untouched() { return "never" }\n'
+    )
+    const compiler = await resolvePinnedTypeScript(join(import.meta.dirname))
+    execFileSync(
+      compiler.executable,
+      [
+        source,
+        "--ignoreConfig",
+        "--target",
+        "es2022",
+        "--module",
+        "esnext",
+        "--declaration",
+        "--sourceMap",
+        "--outDir",
+        join(directory, "dist")
+      ],
+      { timeout: 10000 }
+    )
+    const emitted = join(directory, "dist/main.js")
+    const code = `import {Session} from 'node:inspector';const s=new Session();s.connect();const post=(m,p={})=>new Promise((resolve,reject)=>s.post(m,p,(e,r)=>e?reject(e):resolve(r)));await post('Profiler.enable');await post('Profiler.startPreciseCoverage',{callCount:true,detailed:true});const mod=await import(${JSON.stringify(pathToFileURL(emitted).href)});if(mod.choose(true)!=='yes')throw new Error('behavior');const c=await post('Profiler.takePreciseCoverage');console.log(JSON.stringify(c.result.find(x=>x.url===${JSON.stringify(pathToFileURL(emitted).href)})));s.disconnect();`
+    const script = JSON.parse(
+      execFileSync(process.execPath, ["--input-type=module", "-e", code], { encoding: "utf8", timeout: 10000 })
+    )
+    const instance = provider.getProvider()
+    instance.ctx = { config: { root }, logger: console }
+    instance.options = {}
+    const sources = await instance.getSources(script.url, async () => null, script.functions)
+    const coverage = instance.createCoverageMap()
+    coverage.merge(await instance.remapCoverage(script.url, 0, sources, script.functions))
+    await mergeSourceFunctions(coverage)
+    const data = coverage.fileCoverageFor(source).data
+    expect(Object.values(data.f).sort()).toEqual([0, 1])
+    expect(coverage.files()).toEqual([source])
+    const map = JSON.parse(readFileSync(`${emitted}.map`, "utf8"))
+    writeFileSync(`${emitted}.map`, JSON.stringify({ ...map, sources: ["../../../foreign.ts"] }))
+    expect(() => compiledCoverageSource(root, emitted)).toThrow(/escapes its authored owner/)
+    writeFileSync(`${emitted}.map`, JSON.stringify({ ...map, sources: [...map.sources, ...map.sources] }))
+    expect(() => compiledCoverageSource(root, emitted)).toThrow(/ambiguous ownership/)
+    writeFileSync(`${emitted}.map`, JSON.stringify({ ...map, sourcesContent: ["// stale original"] }))
+    expect(() => compiledCoverageSource(root, emitted)).toThrow(/stale source bytes/)
+    writeFileSync(`${emitted}.map`, JSON.stringify({ ...map, version: 2 }))
+    expect(() => compiledCoverageSource(root, emitted)).toThrow(/ambiguous ownership/)
+    const copiedMap = join(directory, "retained-map.json")
+    writeFileSync(copiedMap, JSON.stringify(map))
+    rmSync(`${emitted}.map`)
+    symlinkSync(copiedMap, `${emitted}.map`)
+    expect(() => compiledCoverageSource(root, emitted)).toThrow(/source map is a symlink/)
+    rmSync(`${emitted}.map`)
+    expect(() => compiledCoverageSource(root, emitted)).toThrow(/no compiler source map/)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
 
 it("adds V8 counters only within compatible execution contexts", () => {
   const scripts = new Map()

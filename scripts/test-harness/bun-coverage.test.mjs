@@ -1,6 +1,6 @@
 import test from "node:test"
 import assert from "node:assert/strict"
-import { mkdtemp, mkdir, writeFile, readdir, readFile, rm, cp } from "node:fs/promises"
+import { mkdtemp, mkdir, writeFile, readdir, readFile, rm, cp, symlink } from "node:fs/promises"
 import { execFileSync } from "node:child_process"
 import { join, resolve } from "node:path"
 import { pathToFileURL } from "node:url"
@@ -8,6 +8,31 @@ import { tmpdir } from "node:os"
 import { resolveBunRuntime } from "../pinned-bun.mjs"
 import provider, { mergeBunCoverage } from "../coverage-provider.mjs"
 import { prepareBunCoveragePreload } from "./bun-coverage-preload-build.mjs"
+import { resolvePinnedTypeScript } from "../pinned-typescript.mjs"
+import { compilerCoverageImports } from "./coverage-source.mjs"
+
+test("coverage import correspondence preserves only exact compiler edges", () => {
+  const original =
+    'import type {Shape} from "./types.ts";import {value} from "./nested/index.ts";export {value} from "./nested/index.ts";const lazy=()=>import("./lazy.mts");'
+  const emitted =
+    'import {value} from "./nested/index.js";export {value} from "./nested/index.js";const lazy=()=>import("./lazy.mjs");'
+  const result = compilerCoverageImports(original, original, emitted)
+  assert.ok(result.includes('from "./types.ts"'))
+  assert.ok(result.includes('from "./nested/index.js"'))
+  assert.ok(result.includes('import("./lazy.mjs")'))
+  assert.throws(
+    () => compilerCoverageImports(original, original, emitted.replace("./lazy.mjs", "./other.mjs")),
+    /ambiguous or missing/
+  )
+  assert.throws(
+    () => compilerCoverageImports(original, original, emitted + 'import "./lazy.mts";'),
+    /ambiguous or missing/
+  )
+  assert.throws(
+    () => compilerCoverageImports(original + 'import "./injected.ts";', original, emitted),
+    /introduced a module edge/
+  )
+})
 
 test("compiled executables load the owned coverage preload without embedded development dependencies", async (t) => {
   const root = await mkdtemp(join(tmpdir(), "hapsland-compiled-coverage-"))
@@ -65,6 +90,70 @@ test("Bun source subprocess coverage preserves original branches and merges fres
   assert.equal(Object.values(data.f)[0], 2)
   assert.equal(data.fnMap[0].loc.start.line, 1)
   await assert.rejects(mergeBunCoverage(coverage, directory, join(root, "foreign")), /provenance is invalid/)
+})
+
+test("Bun private workspace exports record original source hits and uncalled functions", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "hapsland-bun-private-coverage-"))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  await mkdir(join(root, "src"))
+  await mkdir(join(root, "packages/subject/src"), { recursive: true })
+  await mkdir(join(root, "packages/subject/dist"))
+  await mkdir(join(root, "node_modules/@hapsland"), { recursive: true })
+  await symlink(join(root, "packages/subject"), join(root, "node_modules/@hapsland/subject"), "dir")
+  await writeFile(join(root, "package.json"), JSON.stringify({ workspaces: ["packages/subject"] }))
+  await writeFile(
+    join(root, "packages/subject/package.json"),
+    JSON.stringify({
+      name: "@hapsland/subject",
+      private: true,
+      type: "module",
+      exports: { ".": { types: "./dist/main.d.ts", default: "./dist/main.js" } }
+    })
+  )
+  const source = join(root, "packages/subject/src/main.ts")
+  await writeFile(join(root, "packages/subject/src/label.ts"), 'export const positive = "yes";\n')
+  await writeFile(
+    source,
+    'import {positive} from "./label.ts";\nexport function choose(flag: boolean) {return flag ? positive : "no"}\nexport function untouched() {return "never"}\n'
+  )
+  const compiler = await resolvePinnedTypeScript(resolve("scripts"))
+  execFileSync(
+    compiler.executable,
+    [
+      source,
+      "--ignoreConfig",
+      "--target",
+      "es2022",
+      "--module",
+      "esnext",
+      "--declaration",
+      "--sourceMap",
+      "--rewriteRelativeImportExtensions",
+      "--outDir",
+      join(root, "packages/subject/dist")
+    ],
+    { timeout: 10000 }
+  )
+  const entry = join(root, "src/main.ts")
+  await writeFile(entry, 'import {choose} from "@hapsland/subject";console.log(choose(process.argv[2]==="yes"));\n')
+  const directory = join(root, "coverage")
+  const env = {
+    ...process.env,
+    HAPSLAND_BUN_COVERAGE_ROOT: root,
+    HAPSLAND_BUN_COVERAGE_DIRECTORY: directory,
+    BUN_OPTIONS: `--preload=${pathToFileURL(prepareBunCoveragePreload(join(root, "tooling"))).href}`
+  }
+  for (const flag of ["yes", "no"])
+    assert.equal(
+      execFileSync(resolveBunRuntime().executable, [entry, flag], { env, encoding: "utf8", timeout: 10000 }),
+      `${flag}\n`
+    )
+  const coverage = provider.getProvider().createCoverageMap()
+  await mergeBunCoverage(coverage, directory, root)
+  const data = coverage.fileCoverageFor(source).data
+  assert.deepEqual(Object.values(data.f).sort(), [0, 2])
+  assert.deepEqual(Object.values(data.b)[0], [1, 1])
+  assert.ok(coverage.files().every((file) => !file.includes("/dist/")))
 })
 
 test("portable instrumented bundles retain nested, untouched and fresh counters in another checkout", async (t) => {

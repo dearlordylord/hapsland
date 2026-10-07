@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "authority": "Implementation audit; not a new product contract",
+  "status": "reviewed",
+  "candidateCommit": "31f06668481bd4d302ed32aaee9687e0a6ae0123",
+  "executable": {
+    "harnessContractDrift": [
+      "scripts/run-build-workflow-acceptance.mjs",
+      "scripts/build-workflow-acceptance.test.mjs"
+    ],
+    "positivePiClassificationReadiness": [
+      "src/pi/installed-faults.test.ts",
+      "src/pi/installed-boundaries.test.ts",
+      "scripts/test-support/pi-installed.ts"
+    ],
+    "fullGateLockDeadlineFreezeAndCleanup": [
+      "scripts/test-harness/run-checks.test.mjs"
+    ],
+    "environmentIdentity": [
+      "scripts/native-task.test.mjs",
+      "scripts/assembly-context.test.mjs"
+    ]
+  },
+  "guidanceOnly": [
+    "New fixtures must explicitly isolate personal configuration where outside their scenario; repaired fixtures enforce their own selectors, not a repository-wide prohibition.",
+    "Diagnose every independent gate failure and observe focused repair passing before another full run.",
+    "Change experiment after two attempts without a discriminating result; separate 30-minute fixture repair budget.",
+    "Declare expected duration and wall-clock stop time for ad-hoc commands."
+  ],
+  "limitations": [
+    "Receipt API fixtures catch known contract drift; they do not automatically migrate arbitrary future fields.",
+    "Harness tests validate known shebang, repair ordering, receipt mutation and unpack-limit failures; future changes still require focused acceptance preflight."
+  ]
+}

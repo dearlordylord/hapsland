@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "status": "failed",
+  "run": "20261007102130228-4018211-cb459b",
+  "candidateCommit": "31f06668481bd4d302ed32aaee9687e0a6ae0123",
+  "elapsedMs": 891842,
+  "exitCode": 2,
+  "testFiles": {
+    "passed": 210,
+    "skipped": 1
+  },
+  "tests": {
+    "passed": 2200,
+    "skipped": 2
+  },
+  "passedBoundaries": "All deterministic tests, prechecks, ordinary build, native profile validation and pack.",
+  "coverageGate": "Failed: complexity thresholds and authored coverage routing require focused repair; selection and thresholds remain intact.",
+  "disposition": "Validate private compiled-export coverage mapping and bounded hook routing decomposition before another full gate.",
+  "cleanup": "Terminal exit2; owner processes gone; full lock absent."
+}

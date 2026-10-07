@@ -1,0 +1,532 @@
+
+ RUN  v5.0.1 /workspace/typescript/hapsland-243
+      Coverage enabled with v8
+
+ ✓ src/direct-event/content-isolation.test.ts (5 tests) 129ms
+ ✓ src/resident/subprocess.test.ts (11 tests) 76261ms
+   ✓ resident separate-process lifecycle (11)
+     ✓ exits the native resident successfully after idle retirement and releases ownership 26702ms
+     ✓ releases ownership after startup failure without deleting an unsafe endpoint 714ms
+     ✓ exits losing launch contenders while one owner remains 350ms
+     ✓ retires an empty installed resident and starts a distinct lifetime on the next hook 20823ms
+     ✓ keeps a live connected client until it disconnects 5888ms
+     ✓ keeps accepted review work and pending advice beyond the idle grace 11962ms
+     ✓ exits after SIGTERM with gated review work and permits a new owner 1088ms
+     ✓ converges six starters across three clients and keeps timed-out/disconnected work resident-owned 3842ms
+     ✓ keeps edit file selection across admission and backend waits 885ms
+     ✓ keeps the admission configuration through dispatch and delayed delivery 869ms
+     ✓ kills one lifetime, rejects obsolete messages, restarts empty, and cleans up only when idle 3137ms
+ ✓ src/onboarding/setup.test.ts (22 tests) 51924ms
+   ✓ public resumable setup operation (14)
+     ✓ installs with exact approval and effective file settings without a repository grant 3448ms
+     ✓ resumes an interrupted owned installation with the same approval 3828ms
+     ✓ asks for user exclude-all when review disabled is requested 721ms
+     ✓ completes with review disabled and no credential 2091ms
+     ✓ bounds noninteractive missing-secret handoff 722ms
+     ✓ setup and standalone credential inspection read the project file without inherited keys 1120ms
+     ✓ reports a rejected project key file without asking to repair native storage 697ms
+     ✓ distinguishes inaccessible storage from an absent key 711ms
+     ✓ does not inspect an existing key during forced-entry preview 671ms
+     ✓ uses masked terminal entry with forced replacement=false and file override=false 2825ms
+     ✓ uses masked terminal entry with forced replacement=true and file override=false 2811ms
+     ✓ uses masked terminal entry with forced replacement=true and file override=true 2752ms
+     ✓ reports cancelled masked input without falling back to stale missing state 2575ms
+     ✓ reports invalid, unavailable, and indeterminate interactive storage outcomes 8624ms
+   ✓ setup repository failures (2)
+     ✓ reports an undiscoverable scope without claiming credential readiness 697ms
+     ✓ reports invalid review configuration as a conflict without requesting a credential 703ms
+   ✓ Claude setup shares the resumable credential and repository workflow (2)
+     ✓ requires digest approval, preserves independent hooks, and supports repeated setup 4156ms
+     ✓ rejects an unsupported Claude profile before writing hooks 738ms
+   ✓ binds editable defaults and configuration to setup authorization and preserves authored content 3659ms
+   ✓ rejects changed default rules before installing an approved setup 1231ms
+   ✓ rejects malformed default rules before installing an approved setup 1224ms
+   ✓ unattended setup previews without writes, applies a saved plan and rejects stale authored bytes 5917ms
+ ✓ src/onboarding/codex-installation.test.ts (52 tests) 35947ms
+   ✓ public Codex installation operations (41)
+     ✓ inspects the pinned hook runtime when the caller uses another Node path 314ms
+     ✓ rejects a locally modified owned Stop hook 324ms
+     ✓ rejects a locally modified owned SubagentStop hook 305ms
+     ✓ retires the old owned prompt hook safely when present 455ms
+     ✓ retires the old owned prompt hook safely when missing 457ms
+     ✓ updates an older owned installation to add SubagentStop 577ms
+     ✓ previews exact changes, quotes paths, installs idempotently, and preserves unrelated configuration 460ms
+     ✓ edits quoted feature tables without matching table text inside multiline strings 653ms
+     ✓ rejects unsupported hosts and malformed, duplicate, or modified owned configuration 773ms
+     ✓ exposes partial completion and resumes the journal without stale overwrite 1143ms
+     ✓ uninstalls only owned state and preserves hooks, rules, grants, and preexisting feature settings 511ms
+     ✓ conflicts and preserves a locally modified owned feature value 383ms
+     ✓ rechecks a preexisting hooks feature before journal recovery 363ms
+     ✓ previews and applies an explicit local-package update while preserving reusable state 1731ms
+     ✓ retains the previous working hook on partial update and resumes with an exact recovery request 726ms
+     ✓ preserves a concurrent independent-hook edit during update recovery 613ms
+     ✓ rejects missing-runtime target package metadata before update mutation 377ms
+     ✓ rejects malformed-runtime target package metadata before update mutation 379ms
+     ✓ rejects missing-protocol target package metadata before update mutation 399ms
+     ✓ rejects missing-version target package metadata before update mutation 378ms
+     ✓ rejects a self-consistent altered journal that would drop an unrelated hook 611ms
+     ✓ binds recovery to the exact target package version 610ms
+     ✓ serializes multiple stale reclaimers, a replacement owner, and a third contender 14717ms
+     ✓ bounds lock acquisition and reports no mutation 1673ms
+   ✓ Codex update and explicit reinstall journeys (4)
+     ✓ repairs missing Codex groups without losing settings 999ms
+     ✓ repairs missing Codex foreground without losing settings 1017ms
+     ✓ reinstall replaces a damaged journal only after approval, backs it up, and preserves current user edits 480ms
+     ✓ resumes reinstall after restoring a deleted preexisting hooks feature and removes only the restored feature 771ms
+   ✓ resumes an interrupted uninstall using only its original approved digest 625ms
+ ✓ src/pi/installed-faults.test.ts (32 tests) 65220ms
+   ✓ source Pi lifecycle and concurrent fault isolation (28)
+     ✓ registration command timeout cannot invent admission 7016ms
+     ✓ an admitted hook worker crash closes incomplete work without advice replay 1555ms
+     ✓ late admitted advice stays isolated after the current session changes 2983ms
+     ✓ late admitted advice stays isolated after the current root changes 2784ms
+     ✓ resident loss during admitted review withholds its finding and allows fresh resident startup 7655ms
+     ✓ excluded current source never reaches review egress 1100ms
+     ✓ symlink current source never reaches review egress 1097ms
+     ✓ resident loss retires the old admission without replay and permits fresh work 10579ms
+     ✓ an expired native permit cannot review its late result 595ms
+     ✓ native abort settlement closes admitted work without a pre-settle callback 1256ms
+     ✓ reload preserves the closed old partition without replay 892ms
+     ✓ later arguments mutation cannot redirect an admitted edit 714ms
+     ✓ later patch mutation cannot redirect an admitted edit 889ms
+   ✓ installed Pi lifecycle and concurrent fault isolation (4)
+     ✓ an admitted hook worker crash closes incomplete work without advice replay 1280ms
+     ✓ an admitted hook worker timeout closes incomplete work without advice replay 7945ms
+     ✓ late admitted advice stays isolated after the current root changes 1798ms
+     ✓ resident loss during admitted review withholds its finding and allows fresh resident startup 4534ms
+ ✓ src/direct-event/claude-cli.test.ts (16 tests) 33672ms
+   ✓ installed hook Claude synchronous delivery (8)
+     ✓ retains the edit's blocking snapshot after settings change at final IPC handoff 857ms
+     ✓ submits one ready finding through the installed Stop command 4510ms
+     ✓ does not turn a lost resident's pending Claude work into clear or submitted advice 5300ms
+     ✓ returns quietly at the edit budget without a Claude background delivery 920ms
+     ✓ does not acknowledge a Claude lease when stdout reports a write error 798ms
+   ✓ dedicated source hook Claude synchronous delivery (8)
+     ✓ retains the edit's blocking snapshot after settings change at final IPC handoff 1139ms
+     ✓ submits one ready finding through the installed Stop command 4934ms
+     ✓ does not turn a lost resident's pending Claude work into clear or submitted advice 5527ms
+     ✓ returns quietly at the edit budget without a Claude background delivery 1129ms
+     ✓ does not acknowledge a Claude lease when stdout reports a write error 1040ms
+ ✓ src/resident/server.test.ts (86 tests) 25476ms
+   ✓ resident delivery lease (60)
+     ✓ holds the finish decision for all admitted work, then batches the findings 303ms
+     ✓ cancels unfinished pre-decision work on block while preserving advice and fresh repair work 303ms
+     ✓ keeps composed findings addressed across Codex and Claude in one working root 307ms
+     ✓ fences composed output when a credential rotates after collection or before write authorization 336ms
+     ✓ does not emit a notice-only token after final-gate finding invalidation closes Stop 385ms
+     ✓ shares Claude capacity and canonical round across edits and a common advice batch 357ms
+     ✓ refuses a prepared two-advice Stop output when one advice expires before submission 343ms
+     ✓ reclaims disconnected collection and unfinalized acknowledgement deterministically 300ms
+     ✓ bounds 16-path/64-unit preparation and accounts accepted units exactly 1557ms
+     ✓ reserves large valid outcomes before evaluation and rejects unreservable outcomes without a call 737ms
+     ✓ joins equivalent pending complete inputs before another evaluation reservation 319ms
+     ✓ does not let late A cleanup delete C after cached-clear B removes current state 347ms
+     ✓ revalidates and finalizes at the 16-item partition saturation boundary 989ms
+     ✓ revalidates and finalizes across four saturated partitions 3486ms
+     ✓ reuses successful clear evaluations but never failures or malformed responses 323ms
+     ✓ restores cached A after A to B to A without retaining delivery history 344ms
+     ✓ bounds successful reuse by entry and byte limits and reevaluates evicted input 1048ms
+     ✓ charges a valid near-frame identity for every admitted unit 481ms
+   ✓ resident bounded advice batches (9)
+     ✓ filters an earlier item that reaches expiry while a later final revalidation waits 340ms
+     ✓ filters an earlier item superseded while a later final revalidation waits 365ms
+     ✓ does not send part of a later edit after an earlier edit was delivered 396ms
+     ✓ holds one edit together despite staggered review completion 413ms
+     ✓ combines six deterministic findings when they fit within the byte bound 1241ms
+     ✓ expires pending advice just before, at, and after the relevance boundary 389ms
+ ✓ src/onboarding/interactive.test.ts (11 tests) 24315ms
+   ✓ declining guided setup leaves Claude settings absent 862ms
+   ✓ interactive update carries the exact preview digest and selected home to the target 625ms
+   ✓ declining update performs only a read-only preview 581ms
+   ✓ guided Codex setup installs through the named client command 2823ms
+   ✓ bare setup selects and installs both clients with independent confirmation 5707ms
+   ✓ existing clients are checked and deselecting them preserves their registrations 7220ms
+   ✓ cancelling client selection writes no registrations 2556ms
+   ✓ bare update previews both installed clients, then applies both exact digests after one confirmation 1112ms
+   ✓ a failed client update reports failure and still updates the other installed client 1069ms
+   ✓ bare update acquires one target for both installed clients 1171ms
+   ✓ public setup uses the active package and cannot silently revert to the command in PATH 587ms
+ ✓ src/credentials/secret-service.test.ts (25 tests) 18118ms
+   ✓ native credential lifecycle (25)
+     ✓ does not steal a live lock and reclaims it after its owner is killed 1889ms
+     ✓ reports commit-then-timeout replacement as indeterminate and suspends use 15042ms
+ ✓ src/pi/inspection-native.test.ts (7 tests) 17076ms
+   ✓ Pi native extension inspection through production command and public feed (7)
+     ✓ retains the resident message for edit native delivery 1302ms
+     ✓ retains the resident message for finish native delivery 1029ms
+     ✓ retains the resident message for oversized native delivery 1058ms
+     ✓ retains the resident message for unavailable native delivery 1045ms
+     ✓ retains the resident message for lost-ack native delivery 2554ms
+     ✓ retains the resident message for session-switch native delivery 2631ms
+     ✓ retains the resident message for opt-out native delivery 1016ms
+ ✓ src/rules/cli.test.ts (7 tests) 12539ms
+   ✓ creates, inspects, disables and adds a project rule again through the CLI 6702ms
+   ✓ creates personal rules, adds a custom rule in defaults and rejects invalid inputs before writes 4543ms
+   ✓ runs one-off rule checks without stdin or resident state and reports unavailable credentials 1099ms
+ ✓ src/inspection/consumer.test.ts (1 test) 12306ms
+   ✓ disconnects a stalled public feed while real resident reviews and persistence continue 12305ms
+ ✓ src/pi/installed-boundary.test.ts (24 tests) 44225ms
+   ✓ Pi source extension through command and resident (22)
+     ✓ does not continue when review is clear 1105ms
+     ✓ does not continue when review is unavailable 1087ms
+     ✓ cuts off delayed work at finish and withholds its late finding from a fresh edit 5980ms
+     ✓ abandons admitted delayed work on session switch before reviewing a fresh edit 1986ms
+     ✓ closes offered advice after replaced composition and permits a fresh edit 2767ms
+     ✓ closes offered advice after final-refusal composition and permits a fresh edit 2958ms
+     ✓ closes offered advice after aborted composition and permits a fresh edit 3091ms
+     ✓ reviews a whole declaration replacement spanning omitted context between native hunks 1429ms
+     ✓ awaits a delayed review at finish with canContinue=true 1607ms
+     ✓ awaits a delayed review at finish with canContinue=false 1404ms
+     ✓ reviews the post-edit source and preserves native content, consuming a permit once 1427ms
+     ✓ refuses a successful result without a before-tool permit 934ms
+     ✓ does not review identity mismatches 542ms
+     ✓ does not review arguments mismatches 715ms
+     ✓ does not review source mismatches 998ms
+     ✓ does not review failed mismatches 804ms
+     ✓ does not review unicode mismatches 869ms
+     ✓ retires pending permits on session_before_switch 891ms
+     ✓ retires pending permits on session_shutdown 910ms
+     ✓ retires pending permits on agent_settled 873ms
+   ✓ Pi installed extension through command and resident (2)
+     ✓ awaits a delayed review at finish with canContinue=false 1103ms
+     ✓ reviews the post-edit source and preserves native content, consuming a permit once 1027ms
+ ✓ src/runtime/review-engine-boundary.test.ts (50 tests) 8809ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/direct-event/pipeline.ts under --codex-hook even when the caller catches 348ms
+ ✓ src/inspection/command.test.ts (4 tests) 8882ms
+   ✓ source foreground inspection command (2)
+     ✓ prints its URL and exits on SIGINT without opting in or starting a resident 351ms
+     ✓ reads pre-launch history and leaves resident recording alive across interrupt and restart 963ms
+   ✓ package foreground inspection command (2)
+     ✓ reads pre-launch history and leaves resident recording alive across interrupt and restart 846ms
+ ✓ src/cli.test.ts (15 tests) 7230ms
+   ✓ JSON subprocess contract (15)
+     ✓ rejects empty REVIEW_STATE_PATH instead of falling back to another path 392ms
+     ✓ rejects empty REVIEW_CONSENT_FILE instead of falling back to another path 394ms
+     ✓ rejects empty REVIEW_ACTIVITY_PATH instead of falling back to another path 411ms
+     ✓ rejects empty REVIEW_USER_CONFIG_PATH instead of falling back to another path 394ms
+     ✓ rejects mixed installation host fields and accepts the host-omitted Codex v1 form 1143ms
+     ✓ quiets retired native hooks before decoding input or reviewer settings 658ms
+     ✓ keeps unsupported native apply_patch events quiet 1920ms
+ ✓ src/onboarding/claude-installation.test.ts (19 tests) 6984ms
+   ✓ Claude installation lifecycle (11)
+     ✓ previews a pinned host, preserves unrelated settings, and removes only its owned hook 471ms
+     ✓ updates an older owned installation to add SubagentStop 313ms
+     ✓ updates an owned asynchronous PostToolUse group to synchronous delivery while preserving Stop 523ms
+     ✓ detects concurrent settings edits and locally modified owned entries 443ms
+     ✓ rejects a locally modified owned Stop hook 309ms
+     ✓ updates only the owned hook and keeps host trust separate from source egress 451ms
+   ✓ repairs deleted Claude PostToolUse without losing user settings 507ms
+   ✓ repairs deleted Claude PreToolUse without losing user settings 534ms
+   ✓ repairs deleted Claude Stop without losing user settings 525ms
+   ✓ repairs deleted Claude SubagentStop without losing user settings 542ms
+   ✓ repairs deleted Claude UserPromptSubmit without losing user settings 545ms
+   ✓ repairs deleted Claude foreground without losing user settings 542ms
+   ✓ explicit Claude reinstall replaces changed and duplicate marked handlers while preserving independent handlers 456ms
+ ✓ src/cli-command.test.ts (80 tests) 5920ms
+   ✓ declarative CLI subprocess contracts (71)
+     ✓ allows JSON automation to select evaluation operation independently of the live opt-in 368ms
+   ✓ routes the version-one claude installation preview to the selected profile 341ms
+ ✓ src/credentials/cli.test.ts (6 tests) 6378ms
+   ✓ public credential CLI (6)
+     ✓ rejects explicitly empty credential paths without invoking the helper or writing default state 829ms
+     ✓ logs in from explicit stdin without exposing the value and reports the surviving environment override on logout 1952ms
+     ✓ returns a versioned busy result while a live process owns the credential lock 1730ms
+     ✓ warns in a terminal that logout leaves the configured environment credential active 653ms
+     ✓ restores the exact terminal mode after SIGINT during masked input 622ms
+     ✓ does not disable echo when the original terminal mode cannot be captured 589ms
+ ✓ src/resident/claude-delivery.test.ts (26 tests) 5911ms
+   ✓ registry-free Claude edit response (26)
+     ✓ never collects another session's advice 311ms
+     ✓ never collects another child's advice 337ms
+     ✓ never collects another root's advice 398ms
+     ✓ concurrent response attempts freeze opt-in independently and compete for a common lease 384ms
+     ✓ disconnect during revalidation releases the provisional lease without cancelling review 362ms
+ ✓ src/resident/security-wire.test.ts (7 tests) 4196ms
+   ✓ launched resident wire witness (6)
+     ✓ allowed (same-process) 606ms
+     ✓ allowed (distinct-process) 878ms
+     ✓ exclude-at-dispatch (same-process) 595ms
+     ✓ exclude-at-dispatch (distinct-process) 887ms
+     ✓ exclude-at-admission (same-process) 490ms
+     ✓ exclude-at-admission (distinct-process) 731ms
+ ✓ src/direct-event/pipeline.test.ts (43 tests) 4949ms
+   ✓ direct-event vertical slice (40)
+     ✓ keeps analyzer failures incomplete with their reasons and no ChangeSet 622ms
+     ✓ suppresses handoff on deletion, analyzer loss, or rule identity change 610ms
+     ✓ revalidates delayed Add, Update, and multi-file work through deterministic backend gates 375ms
+ ✓ src/test-support/pi-installed.test.ts (9 tests) 3864ms
+   ✓ Pi fixture process ownership (3)
+     ✓ stops its bootstrap process through direct paths before an endpoint owner exists 301ms
+ ✓ src/resident/jev-request.test.ts (10 tests) 3666ms
+   ✓ canonical Jev request boundary (10)
+     ✓ sends complete selected cross-file evidence and excludes denied supporting source 358ms
+     ✓ authorizes eight effects, prepares a ninth during saturation, and reuses a settled permit 717ms
+     ✓ holds started Jev permits through round interruption until settlement, then reuses one 928ms
+     ✓ holds eight started permits until one Jev timeout settles, then reuses exactly one 967ms
+ ✓ src/inspection/storage.test.ts (29 tests) 4180ms
+   ✓ private inspection journal (24)
+     ✓ shares the default 128 MiB allocated cap across contending project writers and maintenance 2743ms
+ ✓ src/runtime/cli-information.test.ts (3 tests) 3213ms
+   ✓ ../../packages/doctor-entry/src/package-doctor.ts information exits with stdin open and without creating state 1120ms
+   ✓ ../../packages/parser-entry/src/parser-main.ts information exits with stdin open and without creating state 1087ms
+   ✓ ../../packages/resident-entry/src/resident/main.ts information exits with stdin open and without creating state 1005ms
+ ✓ scripts/test-harness/process.test.mts (4 tests) 3152ms
+   ✓ kills a deliberately hung synchronous child even when it ignores SIGTERM 1008ms
+   ✓ kills a deliberately hung asynchronous child and waits for its closed pipes before rejecting 1009ms
+   ✓ bounds execFileSync fixtures and reaps their hung child 1007ms
+ ✓ src/resident/security-queued.test.ts (5 tests) 593ms
+ ✓ scripts/native-preflight.test.mts (17 tests) 3213ms
+   ✓ creates distinct fresh sessions and validates their exact selected fixture 400ms
+ ✓ src/inspection/http.test.ts (6 tests) 2907ms
+   ✓ exposes exact retained bytes from a real resident's production provider transport 345ms
+   ✓ retains the resident message through the public feed independently of acknowledgement: true 442ms
+   ✓ retains the resident message through the public feed independently of acknowledgement: false 1829ms
+ ✓ scripts/generate-configuration.test.mts (7 tests) 2353ms
+   ✓ configuration documentation generator (7)
+     ✓ updates all artifacts deterministically and preserves authored guide text 1159ms
+     ✓ reports all stale or missing artifacts in read-only check mode 625ms
+     ✓ refuses malformed documentation boundaries without partially updating files 333ms
+ ✓ src/resident/capacity.test.ts (36 tests) 2455ms
+   ✓ resident logical capacity ledger (23)
+     ✓ forgets idle advicee identities at the metadata limit and fences older starts 2206ms
+ ✓ src/onboarding/doctor.test.ts (2 tests) 2300ms
+   ✓ offline installed integration doctor (2)
+     ✓ diagnoses exact ownership and drift without mutations, provider calls, or secret disclosure 2105ms
+ ✓ src/direct-event/adoption-corpus.test.ts (50 tests) 2321ms
+ ✓ src/resident/terminal-collection.test.ts (10 tests) 1854ms
+   ✓ common collection and reuse invariants (10)
+     ✓ joins a claimed evaluation before its owner attaches the request 429ms
+ ✓ src/resident/inspection.test.ts (10 tests) 1832ms
+   ✓ resident inspection capture (10)
+     ✓ reuses the production journal writer across edits instead of rereading every payload 300ms
+     ✓ captures the surviving resident message before any hook runs 314ms
+ ✓ src/direct-event/rust-pipeline.test.ts (23 tests) 2172ms
+   ✓ Rust direct review integration (23)
+     ✓ rejects unsupported Cargo authority rather than infer a crate role 384ms
+ ✓ src/resident/operational-notices.test.ts (8 tests) 1597ms
+   ✓ resident operational notices (8)
+     ✓ keeps capacity/backend records separate while emitting only fresh findings 388ms
+ ✓ src/activity/subprocess.test.ts (2 tests) 1471ms
+   ✓ production resident activity subprocess (2)
+     ✓ reports a controlled native event as pending, then restarted/lost after resident death 1463ms
+ ✓ src/resident/analytics.test.ts (10 tests) 1743ms
+   ✓ resident session analytics (10)
+     ✓ exposes opted-in history through JSON and human status without making requests 602ms
+ ✓ src/credentials/secret-service-process.test.ts (9 tests) 1639ms
+   ✓ timeout returns only after the native helper has physically closed 1511ms
+ ✓ src/hook-main.test.ts (6 tests) 1549ms
+   ✓ quiets retired channels before input or controlled-option decoding 450ms
+ ✓ src/resident/security-sinks.test.ts (2 tests) 1383ms
+   ✓ security sink prototype (2)
+     ✓ observes source-bearing ingress and a provider failure across resident file/output sinks 825ms
+     ✓ keeps a synthetic source-bearing unexpected cause out of debug stderr 557ms
+ ✓ src/direct-event/claude-adapter.test.ts (9 tests) 352ms
+ ✓ src/direct-event/bend-pipeline.test.ts (12 tests) 990ms
+ ✓ src/rules/check.test.ts (20 tests) 1661ms
+ ✓ src/evaluation/runner.test.ts (8 tests) 1256ms
+   ✓ evaluation execution and commands (5)
+     ✓ accepts plan/run/report through the real JSON process boundary 1068ms
+ ✓ src/resident/edit-settings.test.ts (5 tests) 1219ms
+   ✓ edit-owned settings (5)
+     ✓ retains registration rules and feedback through review, socket handoff and later collection 372ms
+     ✓ downgrades mixed delivery when the last blocking finding becomes stale at handoff 320ms
+ ✓ src/inspection/native-lock.test.ts (3 tests) 796ms
+   ✓ loads the physical binding from a compiled Bun package and releases descriptor ownership 788ms
+ ✓ src/package-doctor.test.ts (4 tests) 1141ms
+   ✓ defaults to readable output even when stdout is piped, with the same exit status as JSON 486ms
+ ✓ src/direct-event/graph-resolver.test.ts (23 tests) 1154ms
+ ✓ src/onboarding/first-review-demo.test.ts (14 tests) 937ms
+   ✓ installed-product first-review demo (14)
+     ✓ runs the default executor against a synthetic host and reports UTF-8 bytes before cleanup 418ms
+ ✓ src/resident/review-controls.test.ts (6 tests) 801ms
+ ✓ src/direct-event/unicode-attribution.test.ts (24 tests) 777ms
+ ✓ src/inspection/registry.test.ts (4 tests) 886ms
+   ✓ discovers opted-in additional endpoints and isolates retained lifetimes through the public feed 496ms
+   ✓ closes incomplete inspection frames despite continuous input 322ms
+ ✓ src/canonical/simulation-consumer.test.ts (7 tests) 778ms
+ ✓ src/cli-status.test.ts (3 tests) 1004ms
+   ✓ reads the session receipt when repository configuration is malformed 466ms
+ ✓ src/resident/composed-delivery.test.ts (53 tests) 689ms
+ ✓ src/configuration/configuration.test.ts (47 tests) 555ms
+ ✓ src/onboarding/host-process.test.ts (9 tests) 656ms
+   ✓ timeout kills a host that ignores SIGTERM and waits for physical closure 307ms
+ ✓ src/inspection/replay.test.ts (1 test) 635ms
+   ✓ replays real per-source increments after a snapshot and resets honestly when its retained anchors expire 634ms
+ ✓ src/direct-event/rust-analyzer.test.ts (46 tests) 580ms
+   ✓ bounded Rust type extraction (46)
+     ✓ keeps renamed module aliases bound to their target rather than a same-spelled unrelated declaration 548ms
+ ✓ scripts/monkey-business-build-reuse.test.mts (5 tests) 602ms
+ ✓ src/direct-event/pi-adapter.test.ts (17 tests) 570ms
+ ✓ src/onboarding/opencode-installation.test.ts (5 tests) 541ms
+ ✓ src/direct-event/candidate-egress-accounting.test.ts (1 test) 367ms
+   ✓ T-case candidate HTTP body and source scope (1)
+     ✓ matches all 12 source-backed candidate rows through the pinned injected client 366ms
+ ✓ src/direct-event/selection-capture.test.ts (13 tests) 295ms
+ ✓ src/review-providers/resident.test.ts (3 tests) 363ms
+ ✓ src/inspection/recording-current.test.ts (1 test) 347ms
+   ✓ shows live recording state separately when its last disabled observation was not retained 346ms
+ ✓ src/onboarding/credential-verification-storage.test.ts (3 tests) 337ms
+ ✓ src/direct-event/function-resource-review.test.ts (3 tests) 320ms
+ ✓ src/direct-event/content-provenance.test.ts (3 tests) 336ms
+ ✓ src/direct-event/adapter.test.ts (22 tests) 292ms
+ ✓ src/direct-event/attribution-integration.test.ts (5 tests) 208ms
+ ✓ src/hosts/opencode/adapter.test.ts (8 tests) 216ms
+ ✓ src/activity/status.test.ts (9 tests) 233ms
+(node:4163338) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///tmp/hapsland-pi-install-7IQYnj/custom-home/extensions/hapsland.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /tmp/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ src/onboarding/pi-installation.test.ts (5 tests) 191ms
+ ✓ src/credentials/input.test.ts (7 tests) 247ms
+ ✓ src/resident/request-socket.test.ts (1 test) 173ms
+ ✓ src/review-providers/pipeline.test.ts (2 tests) 176ms
+ ✓ src/resident/advice-records.test.ts (16 tests) 143ms
+ ✓ src/canonical/boundary.test.ts (18 tests) 138ms
+ ✓ src/runtime/editable-rules.test.ts (1 test) 163ms
+ ✓ src/credentials/linux-lock-identity.test.ts (6 tests) 168ms
+ ✓ src/resident/dispatch.test.ts (12 tests) 154ms
+ ✓ src/direct-event/graph-resolver-authority.test.ts (4 tests) 129ms
+ ✓ src/resident/client.test.ts (20 tests) 126ms
+ ✓ src/direct-event/security-wire-prototype.test.ts (3 tests) 116ms
+ ✓ src/resident/ownership.test.ts (14 tests) 124ms
+ ✓ src/direct-event/function-graph.test.ts (3 tests) 129ms
+ ✓ src/review-providers/limits.test.ts (3 tests) 102ms
+ ✓ src/direct-event/root-source-cap.test.ts (2 tests) 100ms
+ ✓ src/onboarding/package-diagnostics.test.ts (4 tests) 96ms
+ ✓ src/direct-event/analyzer.test.ts (34 tests) 80ms
+ ✓ src/onboarding/lifecycle-invocation.test.ts (3 tests) 70ms
+ ✓ src/resident/request-schema.test.ts (29 tests) 66ms
+ ✓ src/runtime/review-settings.test.ts (4 tests) 72ms
+ ✓ src/resident/round-records.test.ts (8 tests) 56ms
+ ✓ src/resident/evaluation-reuse.test.ts (8 tests) 58ms
+ ✓ src/resident/notice-records.test.ts (8 tests) 58ms
+ ✓ src/resident/preparation-workspace.test.ts (3 tests) 41ms
+ ✓ src/resident/runtime-records.test.ts (8 tests) 44ms
+ ✓ src/canonical/boundary-schema.test.ts (10 tests) 59ms
+ ✓ src/resident/joined-reviews.test.ts (8 tests) 52ms
+ ✓ src/resident/revision.test.ts (9 tests) 50ms
+ ✓ src/resident/socket-frame.test.ts (6 tests) 30ms
+ ✓ src/configuration/jsonc.test.ts (16 tests) 58ms
+ ✓ src/direct-event/function-binding.property.test.ts (2 tests) 42ms
+ ✓ src/onboarding/active-package.test.ts (1 test) 25ms
+ ✓ src/review-providers/cloudflare.test.ts (11 tests) 26ms
+ ✓ src/resident/runtime.test.ts (3 tests) 45ms
+ ✓ src/resident/composed-hook.test.ts (10 tests) 29ms
+ ✓ src/canonical/immutable.test.ts (2 tests) 40ms
+ ✓ src/onboarding/installation-lock.test.ts (8 tests) 33ms
+ ✓ src/policy/file-policy.test.ts (8 tests) 43ms
+ ✓ src/resident/collection.test.ts (12 tests) 38ms
+ ✓ src/activity/analytics.test.ts (5 tests) 24ms
+ ✓ src/resident/ipc-context.test.ts (1 test) 33ms
+ ✓ src/canonical/cancel-review.test.ts (3 tests) 31ms
+ ✓ src/canonical/simulation-adapter.test.ts (13 tests) 33ms
+ ✓ src/resident/protocol.test.ts (9 tests) 32ms
+ ✓ src/onboarding/client-lifecycle.test.ts (11 tests) 36ms
+ ✓ src/direct-event/provider-http-wire.test.ts (2 tests) 37ms
+ ✓ src/resident/bend-work.test.ts (3 tests) 29ms
+ ✓ src/canonical/simulation-codec.test.ts (25 tests) 36ms
+ ✓ src/canonical/shared-writer.test.ts (6 tests) 41ms
+ ✓ src/hooks/command.test.ts (22 tests) 26ms
+ ✓ src/onboarding/credential-verification.test.ts (19 tests) 25ms
+ ✓ src/configuration/load.test.ts (6 tests) 24ms
+ ✓ src/evaluation/evaluation.test.ts (18 tests) 30ms
+ ✓ src/resident/preparation-controls.test.ts (6 tests) 24ms
+ ✓ src/inspection/recorder.test.ts (8 tests) 21ms
+ ✓ src/direct-event/bend-analyzer.test.ts (54 tests) 21ms
+ ✓ src/resident/advice-capture.test.ts (4 tests) 24ms
+ ✓ src/resident/paths.test.ts (10 tests) 19ms
+ ✓ src/repository/root.test.ts (4 tests) 30ms
+ ✓ src/runtime/review-config.test.ts (5 tests) 16ms
+ ✓ scripts/test-harness/inventory.test.mts (4 tests) 19ms
+ ✓ src/ports/review-backend.test.ts (6 tests) 18ms
+ ✓ src/rules/rules.test.ts (6 tests) 20ms
+ ✓ src/direct-event/function-analyzer.test.ts (20 tests) 22ms
+ ✓ src/onboarding/maintenance.test.ts (34 tests) 21ms
+ ✓ src/onboarding/distribution.test.ts (7 tests) 16ms
+ ✓ src/onboarding/update.test.ts (23 tests) 15ms
+ ✓ src/onboarding/native-architecture.test.ts (4 tests) 12ms
+ ✓ src/jev-decision.test.ts (2 tests) 13ms
+ ✓ scripts/coverage-provider.test.mts (6 tests) 16ms
+ ✓ src/resident/hook-clock.test.ts (2 tests) 8ms
+ ✓ src/review-execution/controlled-decision-model.test.ts (5 tests) 16ms
+ ✓ src/inspection/settings.test.ts (1 test) 14ms
+ ✓ src/onboarding/pilot.test.ts (26 tests) 24ms
+ ✓ src/resident/launcher.test.ts (2 tests) 13ms
+ ✓ src/matcher/glob.test.ts (30 tests) 18ms
+ ✓ src/rules/decision.test.ts (3 tests) 14ms
+ ✓ src/direct-event/demo-validation.test.ts (2 tests) 12ms
+ ✓ src/policy/rules.test.ts (4 tests) 12ms
+ ✓ src/activity/demo-budget.test.ts (4 tests) 15ms
+ ✓ src/review-providers/configuration.test.ts (4 tests) 14ms
+ ✓ src/resident/hook-output.test.ts (8 tests) 16ms
+ ✓ src/direct-event/review-renderer.test.ts (6 tests) 12ms
+ ✓ src/activity/demo-trace.test.ts (3 tests) 8ms
+ ✓ src/direct-event/full-request.test.ts (2 tests) 12ms
+ ✓ src/direct-event/native-bindings.test.ts (8 tests) 7ms
+ ✓ src/canonical/adapter.test.ts (3 tests) 11ms
+ ✓ src/resident/direct-hook-output.test.ts (6 tests) 8ms
+ ✓ src/resident/client-startup.test.ts (5 tests) 12ms
+ ✓ src/direct-event/review-wire-contract.test.ts (3 tests) 7ms
+ ✓ src/runtime/machine-clock.test.ts (4 tests) 11ms
+ ✓ scripts/native-artifact.test.mts (5 tests) 7ms
+ ✓ src/onboarding/confirmation.test.ts (2 tests) 9ms
+ ✓ src/conformance/first-review-resident-cleanup.test.ts (3 tests) 11ms
+ ✓ src/onboarding/client-selection.test.ts (6 tests) 11ms
+ ✓ src/activity/storage.test.ts (3 tests) 7ms
+ ✓ src/resident/runtime-configuration.test.ts (2 tests) 8ms
+ ✓ src/canonical/constructors-reuse.test.ts (11 tests) 7ms
+ ✓ scripts/installed-release-policy.test.mts (12 tests) 10ms
+ ✓ src/rules/targets.test.ts (2 tests) 8ms
+ ✓ src/rules/compiler-targets.test.ts (1 test) 8ms
+ ✓ src/resident/dispatch-controls.test.ts (3 tests) 7ms
+ ✓ src/canonical/event-reader.test.ts (3 tests) 7ms
+ ✓ src/inspection/contract.test.ts (2 tests) 9ms
+ ✓ src/direct-event/language-boundary.test.ts (4 tests) 7ms
+ ✓ src/evaluation/digest.test.ts (2 tests) 6ms
+ ✓ src/runtime/assessment.test.ts (1 test) 5ms
+ ✓ src/direct-event/languages/bend/adapter.test.ts (3 tests) 6ms
+ ✓ src/onboarding/credential-diagnostics.test.ts (13 tests) 4ms
+ ✓ src/inspection/page.test.ts (4 tests) 4ms
+ ✓ src/onboarding/unattended.test.ts (2 tests) 6ms
+ ✓ src/runtime/package-runtime.test.ts (3 tests) 5ms
+ ✓ src/direct-event/frozen-rule-input.test.ts (1 test) 4ms
+ ✓ src/conformance/first-review-live-runner-policy.test.ts (4 tests) 4ms
+ ✓ src/direct-event/edit-attribution.test.ts (5 tests) 4ms
+ ✓ src/credentials/state.test.ts (1 test) 3ms
+ ✓ src/conformance/live-evidence-outcome.test.ts (13 tests) 5ms
+ ✓ src/onboarding/credential-guidance.test.ts (3 tests) 4ms
+ ✓ src/resident/collection-decisions.test.ts (15 tests) 4ms
+ ✓ src/direct-event/codex-patch-hunks.test.ts (7 tests) 4ms
+ ✓ src/feedback/message.test.ts (2 tests) 3ms
+ ✓ src/onboarding/human-output.test.ts (17 tests) 3ms
+ ✓ src/runtime/hook-catalog.test.ts (2 tests) 3ms
+ ✓ src/questions.test.ts (7 tests) 2ms
+ ✓ src/runtime/hook-invocation.test.ts (7 tests) 3ms
+ ✓ src/direct-event/claude-output.test.ts (2 tests) 2ms
+ ✓ scripts/package-finding-output.test.mts (3 tests) 3ms
+ ✓ src/credentials/terminal.test.ts (2 tests) 3ms
+ ✓ scripts/release-coordinates.test.mts (2 tests) 2ms
+ ✓ src/conformance/live-runner-policy.test.ts (2 tests) 2ms
+ ✓ src/rules/inventory-format.test.ts (1 test) 2ms
+ ✓ src/runtime/user-paths.test.ts (1 test) 3ms
+ ↓ src/jev-live.test.ts (2 tests | 2 skipped)
+ ✓ src/review-providers/request-content.test.ts (4 tests) 67ms
+(node:4052012) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+ Test Files  210 passed | 1 skipped (211)
+      Tests  2200 passed | 2 skipped (2202)
+   Start at  06:25:24
+   Duration  649.60s (tests 93%, import 6%, transform 1%)
+
+    Isolate  211 workers spawned · ~54ms startup each (spawn + environment, per file)
+             at least ~11.40s faster with isolate: false — reuses workers across files instead of one per file
+
+ % Coverage report from v8
+
+=============================== Coverage summary ===============================
+Statements   : 45.04% ( 10348/22974 )
+Branches     : 28.98% ( 3948/13622 )
+Functions    : 44.75% ( 2742/6127 )
+Lines        : 47.6% ( 9365/19671 )
+================================================================================
