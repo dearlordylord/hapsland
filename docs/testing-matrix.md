@@ -16,6 +16,11 @@ preload and merge original-source Istanbul counters with Vitest/V8 counters.
 The selected source files and CRAP thresholds remain unchanged. Killed fixtures
 retain conservative periodic snapshots; focused coverage is not a full gate.
 
+Pi composition fixtures keep replay separate from freshness: after closing a
+round, perform a physical edit with matching native patch and assert the new
+finding. A new tool-call ID alone is not a fresh edit under the
+[advice contract](advicing-target-contract.md#advicee-identity-and-admission).
+
 | Profile | Purpose | Selection |
 | --- | --- | --- |
 | `fast` | Typecheck, generated configuration, changed-file lint and selected component tests | Optional explicit files |

@@ -29,6 +29,9 @@
       "scripts/test-harness/run-checks.test.mjs",
       "scripts/test-harness/verify.mjs",
       "scripts/test-harness/verify.test.mjs"
+    ],
+    "piFreshCompositionAfterClosure": [
+      "src/pi/installed-boundary.test.ts"
     ]
   },
   "guidanceOnly": [
@@ -41,6 +44,7 @@
   "limitations": [
     "Receipt API fixtures catch known contract drift; they do not automatically migrate arbitrary future fields.",
     "Harness tests validate known shebang, repair ordering, receipt mutation and unpack-limit failures; future changes still require focused acceptance preflight.",
-    "Coverage fixtures enforce compiled private exports, unowned CommonJS native interop and nested cold source-runtime construction; process readiness under instrumentation still needs affected consumer checks."
+    "Coverage fixtures enforce compiled private exports, unowned CommonJS native interop and nested cold source-runtime construction; process readiness under instrumentation still needs affected consumer checks.",
+    "Fresh-edit composition fixtures enforce matching physical mutation, patch and new finding; a changed tool-call ID alone is not freshness evidence."
   ]
 }

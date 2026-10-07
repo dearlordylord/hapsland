@@ -1,0 +1,45 @@
+
+ RUN  v5.0.1 /workspace/typescript/hapsland-243
+      Coverage enabled with v8
+
+ ✓ src/pi/installed-boundary.test.ts (24 tests) 45430ms
+   ✓ Pi source extension through command and resident (22)
+     ✓ does not continue when review is clear 1253ms
+     ✓ does not continue when review is unavailable 1162ms
+     ✓ cuts off delayed work at finish and withholds its late finding from a fresh edit 6224ms
+     ✓ abandons admitted delayed work on session switch before reviewing a fresh edit 2196ms
+     ✓ closes offered advice after replaced composition and permits a fresh edit 3444ms
+     ✓ closes offered advice after final-refusal composition and permits a fresh edit 2880ms
+     ✓ closes offered advice after aborted composition and permits a fresh edit 3078ms
+     ✓ reviews a whole declaration replacement spanning omitted context between native hunks 1426ms
+     ✓ awaits a delayed review at finish with canContinue=true 1356ms
+     ✓ awaits a delayed review at finish with canContinue=false 1331ms
+     ✓ reviews the post-edit source and preserves native content, consuming a permit once 1478ms
+     ✓ refuses a successful result without a before-tool permit 1265ms
+     ✓ does not review identity mismatches 783ms
+     ✓ does not review arguments mismatches 801ms
+     ✓ does not review source mismatches 1002ms
+     ✓ does not review failed mismatches 786ms
+     ✓ does not review unicode mismatches 909ms
+     ✓ retires pending permits on session_before_switch 912ms
+     ✓ retires pending permits on session_shutdown 911ms
+     ✓ retires pending permits on agent_settled 910ms
+   ✓ Pi installed extension through command and resident (2)
+     ✓ awaits a delayed review at finish with canContinue=false 1034ms
+     ✓ reviews the post-edit source and preserves native content, consuming a permit once 1004ms
+(node:1036355) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+ Test Files  1 passed (1)
+      Tests  24 passed (24)
+   Start at  10:00:29
+   Duration  74.20s (tests 99%, transform 1%)
+
+ % Coverage report from v8
+
+=============================== Coverage summary ===============================
+Statements   : 44.47% ( 10824/24336 )
+Branches     : 26.33% ( 3749/14238 )
+Functions    : 41.71% ( 2561/6139 )
+Lines        : 45.48% ( 8963/19706 )
+================================================================================
