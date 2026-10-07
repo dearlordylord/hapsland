@@ -1,0 +1,23 @@
+
+ RUN  v5.0.1 /workspace/typescript/hapsland-243
+      Coverage enabled with v8
+
+ ✓ src/onboarding/codex-installation.test.ts (55 tests | 52 skipped) 1815ms
+   ✓ public Codex installation operations (44)
+     ✓ preserves the installed files when update encounters a duplicate PostToolUse 583ms
+     ✓ preserves the installed files when update encounters a duplicate marker 539ms
+     ✓ preserves the installed files when update encounters a modified command 690ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed | 52 skipped (55)
+   Start at  10:31:29
+   Duration  5.00s (tests 64%, import 21%, transform 11%, setup 2%, worker 1%)
+
+ % Coverage report from v8
+
+=============================== Coverage summary ===============================
+Statements   : 3.58% ( 813/22685 )
+Branches     : 2.12% ( 287/13527 )
+Functions    : 2.6% ( 160/6139 )
+Lines        : 3.85% ( 759/19703 )
+================================================================================

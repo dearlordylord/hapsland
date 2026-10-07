@@ -2,7 +2,6 @@
   "schemaVersion": 1,
   "authority": "Implementation audit; not a new product contract",
   "status": "reviewed",
-  "candidateCommit": "31f06668481bd4d302ed32aaee9687e0a6ae0123",
   "executable": {
     "harnessContractDrift": [
       "scripts/run-build-workflow-acceptance.mjs",
@@ -32,6 +31,15 @@
     ],
     "piFreshCompositionAfterClosure": [
       "src/pi/installed-boundary.test.ts"
+    ],
+    "coverageStatementSourceAttribution": [
+      "scripts/coverage-provider.mjs",
+      "scripts/coverage-provider.test.mts"
+    ],
+    "complexityLowerBoundBeforeCoverage": [
+      "scripts/test-harness/check-complexity.mjs",
+      "scripts/test-harness/check-complexity.test.mjs",
+      "scripts/test-harness/run-checks.test.mjs"
     ]
   },
   "guidanceOnly": [
@@ -45,6 +53,8 @@
     "Receipt API fixtures catch known contract drift; they do not automatically migrate arbitrary future fields.",
     "Harness tests validate known shebang, repair ordering, receipt mutation and unpack-limit failures; future changes still require focused acceptance preflight.",
     "Coverage fixtures enforce compiled private exports, unowned CommonJS native interop and nested cold source-runtime construction; process readiness under instrumentation still needs affected consumer checks.",
-    "Fresh-edit composition fixtures enforce matching physical mutation, patch and new finding; a changed tool-call ID alone is not freshness evidence."
-  ]
+    "Fresh-edit composition fixtures enforce matching physical mutation, patch and new finding; a changed tool-call ID alone is not freshness evidence.",
+    "Incomplete statement ends require unique authored range; positive aliases also require same-context precise hits. Unresolved geometry and counters remain strict."
+  ],
+  "candidateBaseCommit": "d7f44786"
 }

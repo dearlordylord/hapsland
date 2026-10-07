@@ -81,6 +81,53 @@ export async function mergeSourceFunctions(coverageMap) {
       } while (start)
     }
     const data = coverageMap.fileCoverageFor(filename).data
+    // A remapped V8 range can retain its end line but lose its end column.
+    // Resolve that omission only when the authored AST identifies one exact
+    // range. A positive partial range can describe an enclosing execution
+    // extent, so it also needs an independent precise hit in this context.
+    // Keep unsupported, ambiguous and unmatched ranges as separate evidence.
+    const statementRanges = new Map()
+    const pendingNodes = [tree.rootNode]
+    while (pendingNodes.length > 0) {
+      const node = pendingNodes.pop()
+      const key = `${node.startPosition.row + 1}:${node.startPosition.column}:${node.endPosition.row + 1}`
+      const ends = statementRanges.get(key) ?? new Set()
+      ends.add(node.endPosition.column)
+      statementRanges.set(key, ends)
+      pendingNodes.push(...node.namedChildren)
+    }
+    const preciseStatementHits = new Set(
+      Object.entries(data.statementMap)
+        .filter(([id, entry]) => Number.isInteger(entry.end.column) && data.s[id] > 0)
+        .map(([, entry]) => JSON.stringify(entry))
+    )
+    const statementMap = {}
+    const statementCounts = {}
+    const statementIdentities = new Map()
+    for (const [id, entry] of Object.entries(data.statementMap)) {
+      const ends = statementRanges.get(`${entry.start.line}:${entry.start.column}:${entry.end.line}`)
+      const candidate =
+        (entry.end.column === null || entry.end.column === Infinity) && ends?.size === 1
+          ? { ...entry, end: { ...entry.end, column: [...ends][0] } }
+          : undefined
+      // Istanbul treats Infinity as a containing source extent and can add
+      // its hits to an unrelated precise zero counter during context merge.
+      // An unresolved source-map end is unknown, never container evidence.
+      const unresolved = entry.end.column === Infinity ? { ...entry, end: { ...entry.end, column: null } } : entry
+      const normalized =
+        candidate && (data.s[id] === 0 || preciseStatementHits.has(JSON.stringify(candidate))) ? candidate : unresolved
+      const identity = JSON.stringify(normalized)
+      const prior = statementIdentities.get(identity)
+      if (prior !== undefined) {
+        statementCounts[prior] = Math.max(statementCounts[prior], data.s[id])
+      } else {
+        statementIdentities.set(identity, id)
+        statementMap[id] = normalized
+        statementCounts[id] = data.s[id]
+      }
+    }
+    data.statementMap = statementMap
+    data.s = statementCounts
     const fnMap = {}
     const counts = {}
     const identities = new Map()

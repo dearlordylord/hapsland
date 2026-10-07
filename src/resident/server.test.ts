@@ -416,6 +416,124 @@ describe("canonical resident capacity", () => {
 })
 
 describe("resident delivery lease", () => {
+  it("joins a late equivalent admission while its retained finding awaits publication", async () => {
+    const root = await makeGitFixture()
+    await put(root, "held.ts", "type HeldCount = number\n")
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["held.ts"])))
+    if (observation === undefined) throw new Error("missing fixture observation")
+    const pending = deferred()
+    const release = deferred()
+    const capturePath = join(root, "backend-calls")
+    const base = findingDispatch(join(root, "consent"))
+    const dispatch = { ...base, controlled: { ...base.controlled!, capturePath } }
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+      reviewControls: reviewControlsLayer({
+        afterAdvicePending: () => pending.complete().pipe(Effect.andThen(release.wait))
+      })
+    })
+    try {
+      expect((await Effect.runPromise(server.admit(observation, dispatch))).status).toBe("accepted")
+      await pending.promise
+      const retained = await Effect.runPromise(server.pendingAdviceMetadata())
+      expect(retained).toHaveLength(1)
+      expect(
+        (
+          await Effect.runPromise(
+            server.admit(
+              {
+                ...observation,
+                advicee: { ...observation.advicee, toolUseId: "late-equivalent", turnId: "late-equivalent" }
+              },
+              dispatch
+            )
+          )
+        ).status
+      ).toBe("accepted")
+      release.resolve()
+      await Effect.runPromise(server.whenIdle())
+      expect(await Effect.runPromise(server.pendingAdviceMetadata())).toEqual(retained)
+      expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(1)
+      expect(await Effect.runPromise(server.accountingMetrics())).toMatchObject({ pendingEvaluations: 0 })
+      expect(Effect.runSync(server.stats())).toMatchObject({ running: 0, pendingAdvice: 1 })
+      const delivery = await Effect.runPromise(server.collect(root, advicee({ toolUseId: "late-collect" }), dispatch))
+      expect(delivery.status).toBe("advice")
+      if (delivery.status !== "advice") throw new Error("missing joined finding")
+      expect(delivery.output.hookSpecificOutput.additionalContext.match(/held.ts :: HeldCount/g)).toHaveLength(1)
+      expect((await Effect.runPromise(server.acknowledge(delivery.token))).status).toBe("acknowledged")
+      expect((await Effect.runPromise(server.finalize(delivery.token))).status).toBe("finalized")
+      expect(await Effect.runPromise(server.pendingAdviceMetadata())).toEqual([])
+    } finally {
+      release.resolve()
+      await Effect.runPromise(server.close)
+    }
+    expect(Effect.runSync(server.stats()).retainedBytes).toBe(0)
+  })
+
+  it("discards a retained finding when publication fails and permits a later cached retry", async () => {
+    const root = await makeGitFixture()
+    await put(root, "held.ts", "type HeldCount = number\n")
+    writeFileSync(
+      join(root, ".hapsland.jsonc"),
+      JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+    )
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["held.ts"])))
+    if (observation === undefined) throw new Error("missing fixture observation")
+    const records: Array<import("@hapsland/inspection-records/inspection/contract").InspectionRecord> = []
+    let failPublication = true
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+      inspectionPersistence: {
+        write: (record) =>
+          Effect.sync(() => {
+            records.push(record)
+          })
+      },
+      reviewControls: reviewControlsLayer({
+        afterAdvicePending: () =>
+          failPublication ? Effect.fail(new ReviewControlError({ phase: "advicePending" })) : Effect.void
+      })
+    })
+    const dispatch = findingDispatch(join(root, "consent"))
+    try {
+      expect((await Effect.runPromise(server.admit(observation, dispatch))).status).toBe("accepted")
+      await Effect.runPromise(server.whenIdle())
+      expect(await Effect.runPromise(server.pendingAdviceMetadata())).toEqual([])
+      expect((await Effect.runPromise(server.collect(root, advicee(), dispatch))).status).toBe("empty")
+      expect(Effect.runSync(server.stats())).toMatchObject({ running: 0, pendingAdvice: 0 })
+      failPublication = false
+      expect(
+        (
+          await Effect.runPromise(
+            server.admit(
+              {
+                ...observation,
+                advicee: { ...observation.advicee, toolUseId: "retry-publication", turnId: "retry-publication" }
+              },
+              dispatch
+            )
+          )
+        ).status
+      ).toBe("accepted")
+      await Effect.runPromise(server.whenIdle())
+      expect(await Effect.runPromise(server.pendingAdviceMetadata())).toHaveLength(1)
+      expect(
+        (await Effect.runPromise(server.collect(root, advicee({ toolUseId: "retry-collect" }), dispatch))).status
+      ).toBe("advice")
+    } finally {
+      await Effect.runPromise(server.close)
+    }
+    const retained = records.filter((record) => record.fact.kind === "finding-fate" && record.fact.fate === "retained")
+    expect(retained).not.toEqual([])
+    expect(retained.every((record) => typeof record.correlation.evaluationId === "string")).toBe(true)
+    expect(
+      records.some(
+        (record) =>
+          record.fact.kind === "finding-fate" &&
+          record.fact.fate === "discarded" &&
+          record.fact.reason === "retention-failed"
+      )
+    ).toBe(true)
+  })
+
   it("does not cancel a completed finding held in a running dispatch callback at Stop", async () => {
     const root = await makeGitFixture()
     await put(root, "held.ts", "type HeldCount = number\n")

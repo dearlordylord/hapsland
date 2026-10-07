@@ -136,7 +136,7 @@ export async function runQualityStages(run, root) {
     env: { NODE_TEST_CONTEXT: undefined }
   })
   if (preflight.state !== "passed") {
-    for (const name of ["lint-code", "quality"])
+    for (const name of ["lint-code", "quality-complexity", "quality"])
       await run.recordSkippedStage({ name, reason: "prerequisite-failed", dependsOn: [preflight.name] })
     return
   }
@@ -145,8 +145,17 @@ export async function runQualityStages(run, root) {
     command: process.execPath,
     args: [join(root, "scripts/run-quality-lint.mjs")]
   })
-  if (lint.state === "passed")
-    await run.runStage({ name: "quality", command: join(root, "node_modules", ".bin", "crap4ts") })
+  if (lint.state !== "passed") return
+  const complexity = await run.runStage({
+    name: "quality-complexity",
+    command: process.execPath,
+    args: [join(root, "scripts/test-harness/check-complexity.mjs")]
+  })
+  if (complexity.state !== "passed") {
+    await run.recordSkippedStage({ name: "quality", reason: "prerequisite-failed", dependsOn: [complexity.name] })
+    return
+  }
+  await run.runStage({ name: "quality", command: join(root, "node_modules", ".bin", "crap4ts") })
 }
 
 export async function createRun({
@@ -539,13 +548,22 @@ export async function createRun({
         ...(stage.dependsOn?.length ? { dependsOn: stage.dependsOn } : {})
       }))
     const success = !aborted && evaluatedStages.length > 0 && failedStages.length === 0 && errors.length === 0
+    const thresholdFailure = failedStages.find(
+      (stage) => ["quality", "quality-complexity"].includes(stage.name) && stage.exitCode === 2
+    )
     const thresholdBreach =
       mode === "quality" &&
       !aborted &&
       errors.length === 0 &&
-      failedStages.length === 1 &&
-      failedStages[0].name === "quality" &&
-      failedStages[0].exitCode === 2
+      thresholdFailure !== undefined &&
+      failedStages.every(
+        (stage) =>
+          stage === thresholdFailure ||
+          (stage.name === "quality" &&
+            stage.state === "not-started" &&
+            stage.reason === "prerequisite-failed" &&
+            stage.dependsOn?.includes(thresholdFailure.name))
+      )
     const exitCode = success ? 0 : thresholdBreach ? 2 : 1
     if (!inherited) {
       const status = {

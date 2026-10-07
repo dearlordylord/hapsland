@@ -1,0 +1,20 @@
+{
+  "id": "20261007140350357-1054429-3e2ced",
+  "root": "/workspace/typescript/hapsland-243",
+  "pid": 1054429,
+  "token": "1b72ac2809a97986ad82cd78f5fc60deece7a6ecbf1d698b",
+  "deadline": 1791383630358,
+  "mode": "quality",
+  "startedAt": "2026-10-07T14:03:50.359Z",
+  "plannedStages": [
+    "source-identity",
+    "quality-preflight",
+    "lint-code",
+    "quality"
+  ],
+  "skippedStages": [],
+  "sourcePin": "d7f44786c8f0fbe90e12229a51e243c7a666af6e",
+  "scope": "issue-243",
+  "sourceDigest": "945e6c447f34883d2e14e1ec501752eec36f3972483545f9915d68f02c20bcfd",
+  "checksPolicyAcknowledged": true
+}

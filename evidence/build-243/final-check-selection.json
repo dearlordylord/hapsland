@@ -1,0 +1,34 @@
+{
+  "authority": "Task validation decision; user instruction overrides another full-run obligation for this completion",
+  "status": "bounded-validation",
+  "userInstruction": "2026-10-07: Stop full checks; finish with minimal checks and continue.",
+  "fullQualityClaim": false,
+  "lastFullRun": "20261007140350357-1054429-3e2ced",
+  "lastFullExit": 2,
+  "fullTestsPassed": 2240,
+  "knownBreachesAddressedByFocusedEvidence": [
+    "stop-notice-focused.json",
+    "capacity-partition-focused.json",
+    "codex-update-hook-refusal-coverage.json",
+    "coverage-statement-attribution-repair.json",
+    "retained-advice-focused.json"
+  ],
+  "currentFocused": {
+    "authenticatedPreflightTests": 54,
+    "preflightElapsedMs": 8954,
+    "complexityFunctions": 6139,
+    "guaranteedComplexityBreaches": 0,
+    "fastCheckExit": 0,
+    "docsCheckExit": 0,
+    "astraGuidanceReview": "No actionable findings"
+  },
+  "remaining": [
+    "Ordinary release packaging",
+    "Minimal current-artifact smoke",
+    "Integration and publication of source changes"
+  ],
+  "limits": [
+    "No new full-project coverage/CRAP pass claimed.",
+    "Earlier real Claude/Codex/Pi and startup results remain scoped to their recorded archives."
+  ]
+}

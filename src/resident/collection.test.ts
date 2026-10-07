@@ -179,6 +179,20 @@ describe("resident advice collection policy", () => {
     expect(Buffer.byteLength(`${JSON.stringify(output)}\n`, "utf8")).toBe(MAX_COMBINED_RESPONSE_BYTES)
   })
 
+  it("preserves a fitting Stop notice after skipping a larger one without displacing findings", () => {
+    const short = { kind: "backend" as const, suppressedCount: 0 }
+    const long = { kind: "credential" as const, suppressedCount: 0 }
+    const baseline = encodedClaudeStopOutputBytes([finding(0, "")], [short])
+    const retained = finding(0, "x".repeat(MAX_COMBINED_RESPONSE_BYTES - baseline))
+    expect(encodedClaudeStopOutputBytes([retained], [short])).toBe(MAX_COMBINED_RESPONSE_BYTES)
+    expect(encodedClaudeStopOutputBytes([retained], [long])).toBeGreaterThan(MAX_COMBINED_RESPONSE_BYTES)
+    const selected = selectFittingClaudeStopNotices([retained], [long, short])
+    expect(selected).toEqual([short])
+    const output = claudeStopHostOutput(combinedReviewOutput([retained], selected), 1)
+    expect(Buffer.byteLength(`${JSON.stringify(output)}\n`, "utf8")).toBe(MAX_COMBINED_RESPONSE_BYTES)
+    expect(JSON.stringify(output)).toContain(retained.declaration)
+  })
+
   it("keeps notices informational and uses advisory output when no finding fits", () => {
     const notice = { kind: "backend" as const, suppressedCount: 0 }
     const findingOutput = combinedClaudeOutput([finding(0)], [notice], "block-current-findings")

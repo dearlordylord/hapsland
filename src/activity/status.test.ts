@@ -293,14 +293,46 @@ it("reports malformed round closure accounting and preserves its valid bounded s
   for (const patch of [
     { roundKey: "bad" },
     { reason: "unknown" },
+    { reservedContinuations: undefined },
+    { reservedContinuations: "4" },
+    { reservedContinuations: -1 },
+    { reservedContinuations: 0.5 },
     { reservedContinuations: 5 },
     { discarded: null },
     { discarded: { ...discarded, queued: -1 } },
     { discarded: { ...discarded, editPermits: undefined } }
   ]) {
     writeFileSync(file, JSON.stringify({ ...marker, ...patch }))
-    expect(readActivity(options)).toMatchObject({ observed: false, limitation: "activity-state-unreadable" })
+    const status = readActivity(options)
+    expect(status).toMatchObject({ observed: false, limitation: "activity-state-unreadable" })
+    expect(status.roundClosures).toBeUndefined()
   }
+  writeFileSync(file, JSON.stringify(marker))
+  expect(readActivity(options).roundClosures).toEqual([
+    { roundKey: marker.roundKey, reason: "deadline", reservedContinuations: 4, discarded }
+  ])
+})
+
+it("retains quiescent round cleanup with no continuation reservations or discarded work", () => {
+  const statePath = makeRoot()
+  const root = "/synthetic/repository"
+  const discarded = { queued: 0, running: 0, pendingAdvice: 0, submitted: 0, uncertain: 0, editPermits: 0 }
+  recordRoundClosure({
+    statePath,
+    root,
+    advicee: advicee("quiescent", "event"),
+    lifetime: "retired-resident",
+    roundIdentity: "quiet-round",
+    reason: "quiescent",
+    reservedContinuations: 0,
+    discarded
+  })
+  const status = readActivity({ statePath, root, sessionId: "quiescent", resident: { available: false } })
+  expect(status.roundClosures).toEqual([
+    { roundKey: expect.stringMatching(/^[a-f0-9]{64}$/), reason: "quiescent", reservedContinuations: 0, discarded }
+  ])
+  expect(status.limitation).toBeUndefined()
+  expect(status.submission).toEqual({ status: "none", findings: 0 })
 })
 
 it("distinguishes an absent session, a missing session ID and an unreadable session directory", () => {

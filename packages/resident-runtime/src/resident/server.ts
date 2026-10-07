@@ -4208,6 +4208,16 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       credentialEnvironmentOnly: residentSettingsEnvironmentOnly(job.settings)
     }
   }
+  const residentJoinRetainedAdvice = Effect.fn("ResidentRuntime.joinRetainedAdvice")(function* (job: UnitJob) {
+    const existing = (yield* residentAdvice()).find((item) => item.evaluationKey === job.evaluationKey)
+    if (existing === undefined) return false
+    // Publication checks the captured capability is still owned; retirement
+    // between this snapshot and publication cannot resurrect its finding.
+    yield* residentRecordJoinedOutcomes(yield* residentLedger.advice.publish(existing), existing.id)
+    yield* residentRetireUnitWork(job)
+    yield* residentReleaseUnit(job)
+    return true
+  })
   const residentRetainAdvice = Effect.fn("ResidentRuntime.retainAdvice")((
     job: UnitJob,
     evaluation: EvaluatedUnit,
@@ -4220,14 +4230,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         yield* residentReleaseUnit(job)
         return
       }
-      if ((yield* residentAdvice()).some((item) => item.evaluationKey === job.evaluationKey)) {
-        const existing = (yield* residentAdvice()).find((item) => item.evaluationKey === job.evaluationKey)
-        if (existing !== undefined)
-          yield* residentRecordJoinedOutcomes(yield* residentLedger.advice.publish(existing), existing.id)
-        yield* residentRetireUnitWork(job)
-        yield* residentReleaseUnit(job)
-        return
-      }
+      if (yield* residentJoinRetainedAdvice(job)) return
       const insertRetainedAdvice = Effect.fn("ResidentRuntime.insertRetainedAdvice")(function* () {
         return yield* residentLedger.advice.insert({
           analyticsPath: job.dispatch.activityPath,

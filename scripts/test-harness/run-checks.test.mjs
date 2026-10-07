@@ -17,9 +17,11 @@ async function fixture(t) {
     "run-checks.test.mjs",
     "immediate-errors.test.mjs",
     "verification-plan.test.mjs",
-    "verify.test.mjs"
+    "verify.test.mjs",
+    "check-complexity.test.mjs"
   ])
     await writeFile(join(root, "scripts/test-harness", file), "// Passing prerequisite fixture\n")
+  await writeFile(join(root, "scripts/test-harness/check-complexity.mjs"), "process.exit(0)\n")
   return root
 }
 test("a stage inside its authenticated checkout lease passes before the enclosing transaction releases ownership", async (t) => {
@@ -205,6 +207,11 @@ test("quality preserves threshold breach exit two but test failure stays exit on
   const ordinary = await createRun({ root, mode: "test", timeoutMs: 30_000, output() {} })
   await ordinary.runStage(command("quality", "process.exit(2)"))
   assert.equal(await ordinary.finish(), 1)
+  const mixed = await createRun({ root, mode: "quality", timeoutMs: 30_000, output() {} })
+  await mixed.runStage(command("quality-complexity", "process.exit(2)"))
+  await mixed.runStage(command("independent-error", "process.exit(1)"))
+  await mixed.recordSkippedStage({ name: "quality", reason: "prerequisite-failed", dependsOn: ["quality-complexity"] })
+  assert.equal(await mixed.finish(), 1)
 })
 
 test("failure events are surfaced during the run and retained in the final result", async (t) => {
@@ -401,9 +408,56 @@ for (const lintExit of [0, 1]) {
     const stages = await stageResults(run.runDirectory)
     assert.deepEqual(
       stages.map((stage) => stage.name),
-      lintExit === 0 ? ["quality-preflight", "lint-code", "quality"] : ["quality-preflight", "lint-code"]
+      lintExit === 0
+        ? ["quality-preflight", "lint-code", "quality-complexity", "quality"]
+        : ["quality-preflight", "lint-code"]
     )
     assert.match(await readFile(stages[1].logPath, "utf8"), /lint witness/u)
+  })
+}
+
+for (const branches of [0, 8]) {
+  test(`real complexity prerequisite with ${branches} branches preserves the final coverage boundary`, async (t) => {
+    const root = await fixture(t)
+    await mkdir(join(root, "src"))
+    await writeFile(
+      join(root, "src/main.ts"),
+      `export function choose(value: number) { ${Array.from({ length: branches }, (_, index) => `if (value === ${index}) return ${index};`).join(" ")} return -1; }`
+    )
+    await symlink(fileURLToPath(new URL("../../node_modules", import.meta.url)), join(root, "node_modules"), "dir")
+    await writeFile(join(root, "scripts/run-quality-lint.mjs"), "process.exit(0)\n")
+    await writeFile(
+      join(root, "scripts/test-harness/check-complexity.mjs"),
+      await readFile(new URL("./check-complexity.mjs", import.meta.url))
+    )
+    await writeFile(
+      join(root, "crap4ts.json"),
+      JSON.stringify({
+        sources: ["src"],
+        threshold: 8,
+        missing_evidence: "error",
+        coverage: {
+          path: "coverage.json",
+          command: [process.execPath, "-e", "require('node:fs').writeFileSync('coverage.json', '{}')"]
+        }
+      })
+    )
+    const run = await createRun({ root, mode: "quality", timeoutMs: 10000, output() {} })
+    await runQualityStages(run, root)
+    assert.equal(await run.finish(), branches === 8 ? 2 : 1)
+    const stages = await stageResults(run.runDirectory)
+    assert.deepEqual(
+      stages.slice(2).map(({ name, state }) => [name, state]),
+      [
+        ["quality-complexity", branches === 8 ? "failed" : "passed"],
+        ["quality", branches === 8 ? "not-started" : "failed"]
+      ]
+    )
+    if (branches === 8) await assert.rejects(readFile(join(root, "coverage.json")), /ENOENT/)
+    else {
+      assert.equal(await readFile(join(root, "coverage.json"), "utf8"), "{}")
+      assert.match(await readFile(stages.at(-1).logPath, "utf8"), /missing coverage evidence/)
+    }
   })
 }
 
@@ -694,6 +748,7 @@ test("failed quality prerequisite blocks lint and coverage with retained diagnos
     [
       ["quality-preflight", "failed"],
       ["lint-code", "not-started"],
+      ["quality-complexity", "not-started"],
       ["quality", "not-started"]
     ]
   )

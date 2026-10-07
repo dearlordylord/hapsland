@@ -985,6 +985,31 @@ responses_websockets_v2 = true`)
     expect(existsSync(join(home, ".hapsland", "journal-v1.json"))).toBe(true)
   })
 
+  it.each(["duplicate PostToolUse", "duplicate marker", "modified command"] as const)(
+    "preserves the installed files when update encounters a %s",
+    async (mutation) => {
+      const { home, bin } = fixture()
+      await previewAndInstall(home, bin)
+      const hooksPath = join(home, "hooks.json")
+      const hooks = JSON.parse(readFileSync(hooksPath, "utf8"))
+      const group = hooks.hooks.PostToolUse[0]
+      if (mutation === "duplicate PostToolUse") hooks.hooks.PostToolUse.push(structuredClone(group))
+      else if (mutation === "duplicate marker")
+        hooks.hooks.Unrelated = [{ hooks: [{ command: "user-command --review-tool-owned=codex-v1" }] }]
+      else group.hooks[0].command += " --unexpected-local-option"
+      writeFileSync(hooksPath, JSON.stringify(hooks))
+      const protectedPaths = [hooksPath, join(home, "config.toml"), join(home, ".hapsland", "installation-v1.json")]
+      const before = protectedPaths.map((path) => readFileSync(path, "utf8"))
+      for (const operation of ["update-preview", "update"] as const) {
+        expect(await invoke({ operation, codexHome: home, codexExecutable: bin })).toMatchObject({
+          status: "conflict",
+          error: { message: expect.stringContaining("owned Codex hook was locally modified") }
+        })
+        expect(protectedPaths.map((path) => readFileSync(path, "utf8"))).toEqual(before)
+      }
+    }
+  )
+
   it("previews and applies an explicit local-package update while preserving reusable state", async () => {
     const { root, home, bin } = fixture()
     const firstEntrypoint = localPackage(root, "1.0.0")

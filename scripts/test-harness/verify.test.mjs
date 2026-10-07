@@ -43,7 +43,12 @@ test("quality profile rejects missing acknowledgment before creating run state",
 test("acknowledged quality profile retains failed prerequisites without starting coverage", async (t) => {
   const root = await fixture(t)
   await mkdir(join(root, "scripts/test-harness"))
-  for (const name of ["run-checks.test.mjs", "verification-plan.test.mjs", "verify.test.mjs"])
+  for (const name of [
+    "run-checks.test.mjs",
+    "verification-plan.test.mjs",
+    "verify.test.mjs",
+    "check-complexity.test.mjs"
+  ])
     await writeFile(join(root, "scripts/test-harness", name), "// Passing prerequisite fixture\n")
   await writeFile(join(root, "scripts/test-harness/immediate-errors.test.mjs"), "throw new Error('profile witness')")
   // This fixture owns a separate checkout, rather than joining the enclosing gate.
@@ -62,6 +67,7 @@ test("acknowledged quality profile retains failed prerequisites without starting
     [
       ["quality-preflight", "failed"],
       ["lint-code", "not-started"],
+      ["quality-complexity", "not-started"],
       ["quality", "not-started"]
     ]
   )

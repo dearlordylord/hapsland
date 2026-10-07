@@ -13,6 +13,9 @@ its resolved plan and finite deadline under `.test-runs`; build and archive reus
 never reuses test outcomes or coverage. Source application commands and resident fixtures select pinned Bun;
 Node runs the test harness and synthetic process fixtures. Coverage runs attach a Bun
 preload and merge original-source Istanbul counters with Vitest/V8 counters.
+Incomplete statement ends need unique authored AST ranges; positive aliases also
+need precise same-context hits. Unknown ends cannot inflate exact-zero counters.
+Coverage-provider regressions preserve ambiguous and uncovered evidence across contexts.
 The selected source files and CRAP thresholds remain unchanged. Killed fixtures
 retain conservative periodic snapshots; focused coverage is not a full gate.
 
@@ -28,6 +31,13 @@ finding. A new tool-call ID alone is not a fresh edit under the
 | `native` | Compiler checks or a real agent scenario | `--native-target=typescript\|rust\|bend` and compiler test files; or explicit `--host`, `--provider`, `--model`, `--scenario` |
 | `stress` | Saturation tests with a deadline, seeded simulation or contention checks | Required explicit files; assertions and seeds stay unchanged |
 | `quality` | Existing full deterministic gate and fresh coverage/CRAP analysis | Complete inventory; filters are refused |
+
+Quality runs harness preflight, lint, then the pinned crap4ts complexity lower
+bound before coverage generation. Complexity above the configured threshold
+ceiling guarantees a CRAP breach and stops expensive checks with exit 2. Path
+overrides use a conservative maximum; smaller path-specific breaches remain
+owned by the final gate. An early pass establishes no coverage result. The final
+CRAP gate still generates fresh coverage and enforces strict missing evidence.
 
 `--timeout-ms=N` sets the finite run deadline. Compiler version preflight alone
 is not compiler validation; select the compiler tests for the changed owner.
