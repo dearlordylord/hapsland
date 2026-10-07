@@ -6,6 +6,7 @@ import { randomBytes } from "node:crypto"
 import { resolve, join, relative, sep } from "node:path"
 import { fileURLToPath } from "node:url"
 import { precheckStages } from "./check-stages.mjs"
+import { sourceSnapshot } from "./source-identity.mjs"
 
 const executeFile = promisify(execFile)
 async function gitHead(root) {
@@ -215,10 +216,63 @@ export async function createRun({
       pid: process.pid
     })
   }
+  let inputBaseline, inputTimer, inputCheck
+  const inputCache = new Map()
+  let observationStopped = false
+  async function checkInputs() {
+    if (!inputBaseline || aborted) return
+    if (inputCheck) return inputCheck
+    inputCheck = (async () => {
+      try {
+        const current = await sourceSnapshot(root, runDirectory, {
+          deadline: Math.min(context.deadline, Date.now() + 30000),
+          cache: inputCache
+        })
+        const changedPaths = [...new Set([...Object.keys(inputBaseline.paths), ...Object.keys(current.paths)])]
+          .filter((path) => inputBaseline.paths[path] !== current.paths[path])
+          .sort()
+        if (changedPaths.length) {
+          const message = `Verification inputs changed: ${changedPaths.join(", ")}`
+          terminate(message)
+          await recordSyntheticStage({
+            name: "source-identity",
+            state: "failed",
+            error: message,
+            evidence: { changedPaths }
+          })
+        }
+      } catch (error) {
+        terminate(`Verification input observation failed: ${error.message}`)
+        await recordFailedStage({ name: "source-identity", error })
+      }
+    })().finally(() => {
+      inputCheck = undefined
+    })
+    return inputCheck
+  }
+  async function observeInputs() {
+    inputBaseline = await sourceSnapshot(root, runDirectory, { deadline: context.deadline, cache: inputCache })
+    // Non-overlapping scans: eight concurrent reads, a thirty-second deadline,
+    // and at least one second idle; adaptive pauses cap observation duty at 10%.
+    // Metadata caches unchanged regular-file hashes; Symlink targets and submodules retain
+    // the identity owner's complete scope, independent of filesystem watch support.
+    const poll = async () => {
+      const started = Date.now()
+      await checkInputs()
+      if (!aborted && !observationStopped) {
+        inputTimer = setTimeout(poll, Math.max(1000, (Date.now() - started) * 9))
+        inputTimer.unref()
+      }
+    }
+    inputTimer = setTimeout(poll, 1000)
+    inputTimer.unref()
+    return inputBaseline.digest
+  }
   let activeChild
   let aborted = false
   let abortReason
   function terminate(reason) {
+    if (aborted) return
     aborted = true
     abortReason = reason
     if (!activeChild) return
@@ -269,6 +323,7 @@ export async function createRun({
   const failureTimer = inherited ? undefined : setInterval(reportFailures, 100)
   failureTimer?.unref()
   async function runStage({ name, command, args = [], cwd = root, env = {} }) {
+    await checkInputs()
     if (aborted || Date.now() >= context.deadline) {
       aborted = true
       abortReason ??= "deadline"
@@ -408,6 +463,12 @@ export async function createRun({
     return recordSyntheticStage({ name, state: "failed", error: message, reason, dependsOn })
   }
   async function finish() {
+    observationStopped = true
+    clearTimeout(inputTimer)
+    await inputCheck
+    inputCache.clear() // Final identity is fresh, independent of observation metadata reuse.
+    await checkInputs()
+    clearTimeout(inputTimer)
     clearInterval(failureTimer)
     await reportFailures()
     process.off("SIGINT", onInt)
@@ -488,6 +549,7 @@ export async function createRun({
     runDirectory,
     context,
     runStage,
+    observeInputs,
     recordSkippedStage,
     recordPassedStage: ({ name, evidence }) => recordSyntheticStage({ name, state: "passed", evidence }),
     recordFailedStage,
@@ -577,7 +639,7 @@ export async function main(argv = process.argv.slice(2), root = defaultRoot, pla
   })
   let sourceDigest
   try {
-    sourceDigest = mode === "focused" ? undefined : await sourceIdentity(root)
+    sourceDigest = mode === "focused" ? undefined : await run.observeInputs()
     const manifest = await readJson(join(run.runDirectory, "manifest.json"))
     await atomicJson(join(run.runDirectory, `inputs-${process.pid}.json`), {
       sourceDigest,

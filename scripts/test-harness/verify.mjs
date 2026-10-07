@@ -39,7 +39,7 @@ export async function verify(argv, root = resolve(import.meta.dirname, "../.."))
   })
   let archive, piPreflight
   try {
-    const digest = await sourceIdentity(root, undefined, undefined, { deadline: run.context.deadline })
+    const digest = await run.observeInputs()
     const manifestPath = join(run.runDirectory, "manifest.json")
     await writeFile(
       manifestPath,
