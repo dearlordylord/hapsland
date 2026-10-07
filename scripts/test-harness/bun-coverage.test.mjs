@@ -3,13 +3,35 @@ import assert from "node:assert/strict"
 import { mkdtemp, mkdir, writeFile, readdir, readFile, rm, cp, symlink } from "node:fs/promises"
 import { execFileSync } from "node:child_process"
 import { join, resolve } from "node:path"
-import { pathToFileURL } from "node:url"
+import { pathToFileURL, fileURLToPath } from "node:url"
 import { tmpdir } from "node:os"
 import { resolveBunRuntime } from "../pinned-bun.mjs"
 import provider, { mergeBunCoverage } from "../coverage-provider.mjs"
 import { prepareBunCoveragePreload } from "./bun-coverage-preload-build.mjs"
 import { resolvePinnedTypeScript } from "../pinned-typescript.mjs"
 import { compilerCoverageImports } from "./coverage-source.mjs"
+
+test("coverage preload preserves a real unowned CommonJS dependency's named exports", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "hapsland-bun-cjs-coverage-"))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  await mkdir(join(root, "src"))
+  const env = {
+    ...process.env,
+    HAPSLAND_BUN_COVERAGE_ROOT: root,
+    HAPSLAND_BUN_COVERAGE_DIRECTORY: join(root, "coverage"),
+    BUN_OPTIONS: `--preload=${pathToFileURL(prepareBunCoveragePreload(join(root, "tooling"))).href}`
+  }
+  const module = fileURLToPath(import.meta.resolve("istanbul-lib-instrument"))
+  const code = `import {createInstrumenter} from ${JSON.stringify(module)};if(typeof createInstrumenter!=="function")throw new Error("CJS export lost");console.log(typeof createInstrumenter({esModules:true}).instrumentSync);`
+  assert.equal(
+    execFileSync(resolveBunRuntime().executable, ["--input-type=module", "-e", code], {
+      env,
+      encoding: "utf8",
+      timeout: 10000
+    }),
+    "function\n"
+  )
+})
 
 test("coverage import correspondence preserves only exact compiler edges", () => {
   const original =
@@ -190,6 +212,12 @@ test("portable instrumented bundles retain nested, untouched and fresh counters 
   const firstBundle = join(first, ".test-runs/source-runtime", "e".repeat(64))
   execFileSync(bun, [resolve("scripts/build-source-runtime.ts"), firstBundle, "istanbul"], {
     cwd: first,
+    env: {
+      ...process.env,
+      HAPSLAND_BUN_COVERAGE_ROOT: first,
+      HAPSLAND_BUN_COVERAGE_DIRECTORY: join(first, "build-coverage"),
+      BUN_OPTIONS: `--preload=${pathToFileURL(prepareBunCoveragePreload(join(first, "tooling"))).href}`
+    },
     encoding: "utf8",
     timeout: 10000
   })

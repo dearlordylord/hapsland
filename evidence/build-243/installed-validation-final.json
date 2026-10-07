@@ -55,11 +55,15 @@
       "bypass": false
     },
     "pi": {
-      "status": "untested",
-      "reason": "Expired OAuth; refresh rejected with invalid_grant before product execution",
+      "status": "passed",
       "version": "1.0.0",
       "provider": "openai",
-      "model": "gpt-6-luna"
+      "model": "gpt-6-luna",
+      "report": "evidence/native-languages/pi-typescript-adoption-controlled-offline-1791373449290.json",
+      "archiveSha256": "d312122f4060b4383f9c2c58518f1df92285a6d143705dc585b069962f80a07b",
+      "assertionsPassed": 17,
+      "providerCalls": 0,
+      "scope": "Installed execution on the quality-05 archive; current runtime asset guard passed. Claude/Codex cells use the separately identified release archive."
     },
     "startup": {
       "status": "passed",
@@ -74,10 +78,12 @@
   "previousArchiveComparison": "evidence/build-243/prior-installed-runtime-comparison.json",
   "fullQuality": {
     "status": "pending",
-    "lastFailure": "evidence/build-243/quality-failure-04.json",
+    "lastFailure": "evidence/build-243/quality-failure-05.json",
     "repairs": [
       "evidence/build-243/coverage-private-export-routing-repair.json",
-      "evidence/build-243/hook-program-refactor-focused.json"
+      "evidence/build-243/hook-program-refactor-focused.json",
+      "evidence/build-243/coverage-native-cjs-repair.json",
+      "evidence/build-243/pi-helper-focused.json"
     ]
   },
   "previousArchiveComparisonScope": "Existing comparison covers previous archives; current archive has new hook runtime and was installed/revalidated independently."

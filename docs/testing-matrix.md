@@ -131,7 +131,7 @@ evidence before regenerating the scenario pages.
 | Optional game balance laboratory | `node scripts/build-game-lab.mjs --check`; `npm run test:focused -- scripts/game-balance-lab.test.mts`; `node_modules/.bin/tsc -p prototypes/canonical-defense/lab/tsconfig.json --noEmit` | Shared game translation, actual-game placement/upgrades/health, strength/radius limits, fixed investments, refusal, ordinary business replay, paired/interaction comparisons and held-out separation | Declared offline fixtures and finite search; see [current limits](../prototypes/canonical-defense/lab/README.md#actual-game-ability-boundary); Host changes also require the game-consumer runner |
 | Actual-Lab native behavioral predicates | `node scripts/verify-game-lab-native-tests.mjs`; `node --test scripts/verify-game-lab-native-tests.test.mjs scripts/game-consumer-deadline.test.mjs` | 20 independently expected construction, budget, captured timing/lease and access-restoration predicates in native/emitted JavaScript; verifier rejection and deadline/identity sensitivity | Source5/C30/clang30/JS30/exec5 per root, finite30-minute runner; exact existing foreign numeric-IO declarations excluded from source checks, no universal proof or platform claim |
 | Laboratory native/emitted full traces | `python3 packages/monkey-business-bend/conformance/generate-callback-native-prefix.py --optional-profile prototypes/canonical-defense/lab-native-prefix-profile.json --check`; `node scripts/run-game-consumer.mjs --lab` | Seven declared scenarios × 40 ticks; complete before/intervention/after Worlds, frames and physical deliveries; exact scenario/tick and hard event-budget accounting | Source/tool-pinned native/emitted agreement; C emission within the authenticated 380s supervisor deadline (direct fixture command: 30s), clang preparation 120s as in the full game consumer, JS emission 30s, each scenario execution 5s; public replay and window behavior require their separate checks |
-| Focused implementation checks | `npm run test:focused -- <test files>`; `npm run check:fast` | Explicit test files and typing/configuration checks; no full suite or proof chain | Changed owners only; does not qualify full source coverage |
+| Focused implementation checks | `npm run test:focused -- <test files>`; `npm run check:fast` | Explicit test files and typing/configuration checks; no full suite or proof chain | Changed owners and affected consumers; does not qualify full source coverage |
 | Development archive preparation and packing | `node --test scripts/artifact-store.test.mjs scripts/dev-pack.test.mjs scripts/test-harness/prepare-archive.test.mjs` | Every ordinary build/validation/pack invocation, inherited build leases, input and output drift, archive integrity, npm file selection and executable bins | Local dev archives use gzip level 1; npm release packing is unchanged. Turbo owns build reuse. Identical completed archive bytes share immutable retention; fresh preparation stages still execute. Corruption and in-flight input or output changes are rejected. |
 | Routine deterministic gate | `npm test` | Bend artifact and authority checks, boundary scripts, Vitest tests for the reducer, adapters, resident, and CLI | Logic and controlled fixtures; no native agent or Jev call |
 | Process harness contention | `npm run test:contention`; `npm run test:harness:inventory` | Full deterministic gate under the declared Linux CPU-pressure profile; transitive process/scenario inventory; hung-child cleanup probes | Declared scheduling profile and finite harness failure; no product deadline, latency, or arbitrary-starvation claim |
@@ -158,24 +158,27 @@ evidence before regenerating the scenario pages.
 
 Build-workflow acceptance runs focused harness tests before baseline under its lock and deadline. Tests derive the context API from the runner and scenarios; missing providers fail before mutation. Require terminal `completed: true` and completed repair or recorded verified `repairSkipped`; report interruption separately. Measure an unchanged warm build in the same environment before choosing a campaign deadline.
 
-Local completion uses the smallest checks that establish the changed behavior:
+The [mandatory verification order](../AGENTS.md#typescript-quality-gate) owns
+gate selection, prerequisite checks and retry decisions. This matrix supplies
+commands and evidence boundaries. Select consumers by dependencies and behavior;
+renames can affect discovery and dispatch. Socket, process, TTY, packaging,
+crash and ownership changes need their corresponding physical checks.
 
-- TypeScript changes: `npm run check:fast`, focused tests for the changed owners,
-  and tests of affected consumers. Select by behavior and dependencies, rather
-  than only the edited filename; renames can affect discovery and dispatch.
-- Logic and configuration matrices: use direct component/unit tests. Run a
-  representative integration case when discovery, wiring or an installed
-  consumer changes. Unit tests cannot replace socket, process, TTY, packaging,
-  crash or ownership evidence when that physical boundary changes.
-- Documentation and tooling changes: affected tool tests and documentation or
-  consumer checks. Build/package checks apply when their inputs or output layout
-  change.
-- Full fresh-coverage CRAP gate: releases, declared milestones, large cross-cutting
-  features whose impact cannot be assessed with focused checks, and explicit
-  requests. State the additional evidence before running it. A filename or
-  literal replacement, or a small configuration fix, does not automatically
-  require a full gate. CI continues to run the full gate; local focused checks
-  do not claim full-project coverage.
+Coverage/preload changes use existing provider tests plus a real source consumer,
+such as `src/resident/subprocess.test.ts`, with coverage enabled. Match the failing
+mode's environment and instrumentation; preserve product deadlines. Supply a
+reviewed current archive via `HAPSLAND_TEST_PACKAGE_ARCHIVE` for installed fixtures.
+The focused runner prepares current workspace outputs. One invocation is:
+
+```sh
+HAPSLAND_TEST_PACKAGE_ARCHIVE=/absolute/reviewed.tgz npm run test:focused -- src/resident/subprocess.test.ts --coverage
+```
+
+Startup/readiness and pending-work behavior must remain observable under the
+instrumentation. Successful toy counters do not establish lifecycle behavior.
+On timeout, compare matching instrumented/uninstrumented runs and measure startup
+and checkpoint costs before choosing a repair. This focused run does not qualify
+full source coverage.
 
 `HOST` is `codex`, `claude`, or `pi`; Pi currently accepts the controlled TypeScript profile above. Other source-checkout host/language combinations use the existing fixture table. `LANGUAGE` is `typescript`, `rust`, or `bend`. The native runner checks exact host versions, creates a disposable Git repository, records a declaration before execution, and retains source-free JSON under `evidence/native-languages/`. A failed run remains `incomplete`; it is never converted to a passing result by a later run. The [language evidence index](../evidence/native-languages/index.json) identifies the selected adoption runs and earlier incomplete attempts.
 
@@ -528,15 +531,10 @@ checks separation of execution contexts and combination of source-map aliases
 without a nested test runner. The full quality gate validates the emitted
 Istanbul counters through strict crap4ts analysis.
 Review this adapter against upstream behavior whenever Vitest is updated.
-During implementation, run `npm run test:focused -- <test files>` for the
-changed owners and `npm run check:fast`. Explicit files are required: an omitted
-selection cannot silently start the full suite. Select the full quality gate using the behavior and milestone criteria above;
-when selected, run it on a coherent review-ready candidate.
-After a failed full run, inspect `npm run test:status`, diagnose every independent
-reported defect with its owner check, and observe those checks passing before
-another full run. After two attempts without new discriminating evidence, name
-competing causes and change the experiment. Additional broad runs or reviewers
-alone do not advance diagnosis.
+`npm run test:focused -- <test files>` requires explicit files; omitted selection
+cannot silently start the full suite. Follow the
+[mandatory verification order](../AGENTS.md#typescript-quality-gate) for escalation
+to the full gate and diagnosis after failure.
 
 For a batch of issues, assess each slice against its own accepted criteria and
 the applicable owner checks. Record implementation, independent review and
@@ -678,13 +676,12 @@ prechecks still report their failures, but a failed prerequisite must prevent
 dependent package preparation and the full test suite from starting. Skipped
 dependent stages are recorded with their reason and do not count as passing.
 
-Before a command expected to exceed one minute, declare its expected duration and
-wall-clock stop time. The runner supplies a finite deadline: five minutes for focused checks and
+The runner supplies a finite deadline: five minutes for focused checks and
 25 minutes for full checks, including nested coverage commands. Override it
 explicitly with `--timeout-ms=<milliseconds>` when the declared check needs a
-different budget; nested commands cannot extend the parent deadline. Use its retained stage evidence to distinguish preparation,
-build, proof, test and analysis failures instead of blindly rerunning tests.
-These rules borrow the finite-work and retained-evidence approach from
+different budget; nested commands cannot extend the parent deadline. Stage logs
+retain preparation, build, proof, test and analysis outcomes separately.
+This runner borrows the finite-work and retained-evidence approach from
 [Dalph development guidance](https://github.com/dearlordylord/dalph/blob/master/docs/development/workflow.md#keeping-implementation-work-finite).
 When selected, the full Hapsland gate still requires strict fresh coverage.
 

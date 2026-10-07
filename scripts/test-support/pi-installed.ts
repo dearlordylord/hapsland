@@ -22,13 +22,17 @@ let installedPackage: TestPackage | undefined
 export let installedResidentCommand: RuntimeCommand
 let sourceEnvironment: Readonly<Record<string, string>> = {}
 let installedEnvironment: NodeJS.ProcessEnv
+const candidateRuntimePaths = () => {
+  const executable = process.env.HAPSLAND_TEST_HOOK_EXECUTABLE
+  const asset = process.env.HAPSLAND_TEST_PI_ASSET
+  if (!executable || !asset || !isAbsolute(executable) || !isAbsolute(asset))
+    throw new Error("Candidate Pi mode requires absolute hook executable and emitted asset paths")
+  return { executable, asset }
+}
 export const setupInstalledPi = async (mode: "source" | "installed" | "candidate" = "installed") => {
   fixtureMode = mode === "candidate" ? "source" : mode
   if (mode === "candidate") {
-    const executable = process.env.HAPSLAND_TEST_HOOK_EXECUTABLE
-    const asset = process.env.HAPSLAND_TEST_PI_ASSET
-    if (!executable || !asset || !isAbsolute(executable) || !isAbsolute(asset))
-      throw new Error("Candidate Pi mode requires absolute hook executable and emitted asset paths")
+    const { executable, asset } = candidateRuntimePaths()
     installedCli = executable
     installedCommand = [executable]
     installedResidentCommand = { executable: join(dirname(executable), "hapsland-resident"), args: [] }

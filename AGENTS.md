@@ -23,43 +23,42 @@ Choose local checks by changed behavior and physical boundaries using the
 run `npm run check:fast` and focused tests for the changed owners and affected
 consumers. Run affected integration checks when transport, process lifetime,
 installation, packaging, or cross-component wiring changes.
-Run the full `npm run quality:check` for a release or declared milestone, a large
-cross-cutting feature whose impact cannot be bounded by focused checks, or an
-explicit request. A filename, literal, documentation, or bounded configuration
-change does not by itself require full coverage. Before selecting a full gate,
-state the additional evidence it will establish; report focused validation as
-focused validation, without claiming full-project coverage. CI retains the full
-gate.
-The pinned crap4ts tool regenerates Istanbul coverage by running the full
-deterministic test and boundary suite, then enforces `crap4ts.json`.
-Inspect flagged functions and improve behavioral tests or simplify branching
-while preserving behavior. Exit 2 means a threshold breach; exit 1 means a
-test, configuration, analysis, or coverage failure. Resolve either before
-claiming the gate passes. Keep source selection, strict missing-evidence
-handling, and thresholds intact; do not relax policy to make a change pass.
-Report failures outside the task scope explicitly. CI runs the same gate.
 
-After a failed full gate, inspect `npm run test:status` and the retained stage
-logs. Diagnose every reported independent defect, run focused checks for the
-failed boundaries, and observe those checks passing before another full run.
-Preparation, build, proof, and analysis failures need their own checks; a test
-rerun is appropriate only for a test failure. After two attempts without a new
-discriminating result, name competing causes and change the experiment; another
-full run or another reviewer alone is not progress. Time-box fixture repair
-separately: after 30 minutes of active repair without a new discriminating result,
-record the changed experiment and the test's unique acceptance value before
-continuing. Subtasks and renamed checkpoints do not reset that budget.
+Mandatory verification order:
 
-Before a command expected to exceed one minute, record its expected duration and
-wall-clock stop time. Use the runner's finite deadline; at expiry preserve the
-evidence and identify the next discriminating action. Freeze the candidate while
-its full gate runs. A missing exit, interruption, timeout, or changed source does
-not qualify it. Full runs acquire an exclusive worktree lock; do not delete a
-lock until its owning process and descendants have stopped.
+- Before checks over one minute: record risk, cheapest adequate existing check,
+  additional evidence, expected duration and absolute stop. Relevant cheap
+  prerequisites MUST pass first. Reuse runners; tooling changes need measured
+  bottleneck or missing task diagnostic.
+- Build/test/coverage changes MUST pass a real affected consumer with matching
+  environment, instrumentation and product deadlines. Helper tests insufficient.
+  Owner/fixture moves MUST pass affected fixtures against current exports/paths.
+- Full `npm run quality:check`: release, declared milestone, explicit request,
+  changed end-to-end evidence boundary, or cross-cutting impact unbounded by
+  focused checks. Known failed prerequisite blocks full run.
+  Documentation, filenames, literals and
+  bounded configuration alone do not require it. CI retains the full gate.
+- Failed gate: read `npm run test:status` and logs; classify every independent
+  failure (preparation/build/proof/test/analysis). Relevant focused checks MUST
+  pass on current inputs before another full run. Failures missed by preflight
+  MUST get a focused reproduction; use checks matching the failed stage.
+- Two attempts without evidence distinguishing causes or verifying a fix:
+  name competing causes; change experiment. Edits/reviewers/broad runs alone
+  insufficient. After 30 minutes active fixture repair without such evidence,
+  record changed experiment and unique acceptance value before continuing.
+  Renaming/delegating work does not reset budget.
+- Finite deadlines; at expiry retain evidence and name next diagnostic. Freeze
+  verification inputs during full runs. Missing exit/interruption/timeout/changed
+  inputs never qualify. Release locks after owner processes and descendants stop.
+  Claim executed evidence only; focused passes are not full-project coverage.
 
-Tooling-only and documentation-only changes use affected tool tests, consumer
-checks, typechecking, and documentation checks; they do not require a full gate
-unless its end-to-end evidence boundary changed. Use the same behavior-based selection for changes under `src`.
+The pinned crap4ts gate regenerates coverage, then enforces `crap4ts.json`.
+Exit 2: threshold breach. Exit 1: test/configuration/analysis/coverage failure.
+Resolve failures before claiming a pass; report out-of-scope failures explicitly.
+Improve behavioral tests or simplify branching. Preserve source selection,
+strict missing-evidence handling, thresholds and product guarantees.
+Documentation/tooling changes use affected tool/consumer, type and documentation
+checks; full gate only when the criteria above apply. Same selection under `src`.
 
 ## Review requests and acceptance decisions
 

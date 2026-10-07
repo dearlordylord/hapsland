@@ -10,7 +10,7 @@
     ],
     "positivePiClassificationReadiness": [
       "src/pi/installed-faults.test.ts",
-      "src/pi/installed-boundaries.test.ts",
+      "src/pi/installed-boundary.test.ts",
       "scripts/test-support/pi-installed.ts"
     ],
     "fullGateLockDeadlineFreezeAndCleanup": [
@@ -19,6 +19,10 @@
     "environmentIdentity": [
       "scripts/native-task.test.mjs",
       "scripts/assembly-context.test.mjs"
+    ],
+    "coverageNativeLoaderInterop": [
+      "scripts/test-harness/bun-coverage.test.mjs",
+      "scripts/coverage-provider.test.mts"
     ]
   },
   "guidanceOnly": [
@@ -29,6 +33,7 @@
   ],
   "limitations": [
     "Receipt API fixtures catch known contract drift; they do not automatically migrate arbitrary future fields.",
-    "Harness tests validate known shebang, repair ordering, receipt mutation and unpack-limit failures; future changes still require focused acceptance preflight."
+    "Harness tests validate known shebang, repair ordering, receipt mutation and unpack-limit failures; future changes still require focused acceptance preflight.",
+    "Coverage fixtures enforce compiled private exports, unowned CommonJS native interop and nested cold source-runtime construction; process readiness under instrumentation still needs affected consumer checks."
   ]
 }

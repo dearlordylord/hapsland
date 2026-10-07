@@ -21,7 +21,7 @@ if (!manifestPath) {
   plugin({
     name: "hapsland-source-coverage",
     setup(build) {
-      build.onLoad({ filter: /\.(ts|js)$/ }, ({ path }) => {
+      const instrumentSource = ({ path }) => {
         const emitted = graph && compiledCoverageSource(root, path, graph)
         if (emitted)
           return {
@@ -40,7 +40,13 @@ if (!manifestPath) {
         if (!owned || path.endsWith(".test.ts") || path.endsWith(".d.ts"))
           return { contents: readFileSync(path, "utf8"), loader: "ts" }
         return { contents: instrumenter.instrumentSync(readFileSync(path, "utf8"), canonical), loader: "ts" }
-      })
+      }
+      build.onLoad({ filter: /\.ts$/ }, instrumentSource)
+      const emittedRoots = [...(graph?.packages.values() ?? [])]
+        .filter((node) => node.compiler === "typescript")
+        .map((node) => `${resolve(node.path, "dist")}/`.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      if (emittedRoots.length)
+        build.onLoad({ filter: new RegExp(`^(?:${emittedRoots.join("|")}).*\\.js$`) }, instrumentSource)
     }
   })
 }

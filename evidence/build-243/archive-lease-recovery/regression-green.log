@@ -1,0 +1,121 @@
+Preparing worktree (detached HEAD c199327)
+✔ immutable execution artifacts reuse across worktrees without running package stages (560.369052ms)
+Preparing worktree (detached HEAD a748ee6)
+✔ execution source changes and preparation failures never publish manifests (48.128432ms)
+Preparing worktree (detached HEAD a748ee6)
+✔ every preparation invokes ordinary build, fresh validation and packing while identical archive bytes share retention (395.471735ms)
+Preparing worktree (detached HEAD a748ee6)
+✔ all package stages inherit one active checkout build lease (154.700702ms)
+Preparing worktree (detached HEAD a748ee6)
+✔ failed package-build prevents archive publication and a later attempt can recover (211.33457ms)
+Preparing worktree (detached HEAD 7badac2)
+✔ failed package-validation prevents archive publication and a later attempt can recover (272.027384ms)
+Preparing worktree (detached HEAD 7badac2)
+✔ failed package-pack prevents archive publication and a later attempt can recover (218.392788ms)
+Preparing worktree (detached HEAD 7badac2)
+✔ source changes during build prevent packing (73.12807ms)
+Preparing worktree (detached HEAD 7badac2)
+✔ runtime output changes during packing prevent archive retention (129.189934ms)
+Preparing worktree (detached HEAD 7badac2)
+✔ corrupt retained archive bytes are rejected after a fresh build, validation and pack (305.045081ms)
+Preparing worktree (detached HEAD d530d80)
+✔ release packaging uses ordinary build and both-platform native validation before npm pack (141.17248ms)
+Preparing worktree (detached HEAD d530d80)
+✔ linked dependency bytes and cycles remain observed without whole-build cache identities (33.808662ms)
+Preparing worktree (detached HEAD d530d80)
+✔ archive preparation observes a finite deadline before invoking stages (21.646323ms)
+Preparing worktree (detached HEAD d530d80)
+✔ source changes during packing prevent immutable archive publication (84.264235ms)
+Preparing worktree (detached HEAD d530d80)
+✔ external dependency changes during build reject packaging despite unchanged source and outputs (57.462957ms)
+Preparing worktree (detached HEAD d530d80)
+✔ explicitly shipped ignored files participate in fresh package-source drift checks (40.63271ms)
+Preparing worktree (detached HEAD d530d80)
+✔ an unresolved stage retains the owned checkout lease and cannot publish an archive (43.57719ms)
+Preparing worktree (detached HEAD d530d80)
+✔ symbolic runtime outputs are rejected before packing (84.210276ms)
+Preparing worktree (detached HEAD d530d80)
+✔ linked authored source and package selection controls remain strong archive inputs (108.260074ms)
+✔ completed build has no unresolved checkout ownership (12.280839ms)
+✔ surviving checkout lease remains unresolved even after owner exits (11.120455ms)
+✔ missing lease is unresolved and preserves owner evidence (2.013098ms)
+✔ only the exact open enclosing lease for this process and group is admitted (17.845379ms)
+✔ source identity observes dirty, new and deleted verification inputs but excludes generated outputs (65.521557ms)
+✔ builds and packs once, records fresh archive evidence, refuses an occupied run directory (357.208333ms)
+✔ source mutation during build rejects the archive before packing (89.816691ms)
+✔ failed build stops packaging and points to its log (83.710855ms)
+✔ submodule identity includes checkout revision and dirty or untracked bytes (164.144062ms)
+✔ unrelated tracked and new documents do not invalidate verification, but published docs do (82.503804ms)
+✔ changes to manifests, test fixtures and newly added tooling remain verification inputs (107.847529ms)
+✔ exact generated-output exclusions preserve foreign supplier and authored-input evidence (44.176861ms)
+✔ output exclusions do not widen the default verification input scope (17.953672ms)
+✔ a stage inside its authenticated checkout lease passes before the enclosing transaction releases ownership (52.766923ms)
+✔ ordinary failure preserves its log and does not suppress independent checks (54.320768ms)
+✔ source identity failures retain a terminal run record (57.375789ms)
+✔ prerequisite failures retain independent checks and record skipped dependents (50.766909ms)
+✔ deadline terminates a child, persists failure, and admits no later work (116.056672ms)
+✔ exclusive full gate fails immediately; valid nested test shares records (61.199235ms)
+✔ focused mode refuses empty and broad selections (8.232976ms)
+✔ persistent reporter failures prevent a nominal zero exit from passing (43.407439ms)
+✔ nested test cannot extend its parent's absolute deadline (15.623613ms)
+✔ quality preserves threshold breach exit two but test failure stays exit one (89.875233ms)
+✔ failure events are surfaced during the run and retained in the final result (285.60044ms)
+✔ real quality parent remains running while nested test can finish successfully (62.682161ms)
+file:///workspace/typescript/hapsland-243/scripts/test-harness/run-checks.mjs:81
+    if (!scopedId) throw new Error(`No recorded run for scope: ${scope}`)
+                         ^
+
+Error: No recorded run for scope: missing-slice
+    at showStatus (file:///workspace/typescript/hapsland-243/scripts/test-harness/run-checks.mjs:81:26)
+    at async main (file:///workspace/typescript/hapsland-243/scripts/test-harness/run-checks.mjs:649:5)
+    at async file:///workspace/typescript/hapsland-243/[eval1]:1:122
+
+Node.js v24.20.0
+file:///workspace/typescript/hapsland-243/scripts/test-harness/run-checks.mjs:68
+    if (id !== undefined) throw new Error("status accepts a run id or --scope, not both")
+                                ^
+
+Error: status accepts a run id or --scope, not both
+    at showStatus (file:///workspace/typescript/hapsland-243/scripts/test-harness/run-checks.mjs:68:33)
+    at main (file:///workspace/typescript/hapsland-243/scripts/test-harness/run-checks.mjs:649:11)
+    at file:///workspace/typescript/hapsland-243/[eval1]:1:128
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:223:26
+    at async ModuleLoader.executeModuleJob (node:internal/modules/esm/loader:220:20)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0
+file:///workspace/typescript/hapsland-243/scripts/test-harness/run-checks.mjs:81
+    if (!scopedId) throw new Error(`No recorded run for scope: ${scope}`)
+                         ^
+
+Error: No recorded run for scope: original-output
+    at showStatus (file:///workspace/typescript/hapsland-243/scripts/test-harness/run-checks.mjs:81:26)
+    at async main (file:///workspace/typescript/hapsland-243/scripts/test-harness/run-checks.mjs:649:5)
+    at async file:///workspace/typescript/hapsland-243/[eval1]:1:122
+
+Node.js v24.20.0
+✔ CLI records focused scope without forwarding it and reports different commits informationally (518.212206ms)
+✔ actual focused CLI rejects an all-skipped selector and permits selected execution (796.75972ms)
+✔ quality records lint exit 0 and starts coverage only after lint passes (47.170924ms)
+✔ quality records lint exit 1 and starts coverage only after lint passes (22.097494ms)
+✔ artifact preparation shares a focused parent's records and cannot extend its deadline (23.413669ms)
+✔ surviving product ownership fails the stage and retains the enclosing full lock (25.950729ms)
+✔ verification mutation cancels a long child, keeps completed evidence and admits no later stage (1023.509902ms)
+✔ unrelated documents during a long stage do not invalidate verification (1379.874353ms)
+✔ relevant addition between stages blocks admission (39.494119ms)
+✔ relevant deletion between stages blocks admission (52.732256ms)
+✔ invalidated run retains its exclusive lock until the child and descendant stop (1037.035124ms)
+✔ cancellation escalates to kill for a child and descendant that ignore termination (2126.914672ms)
+✔ final input identity catches a mutation after the last completed stage (36.994434ms)
+✔ observation preserves linked target identity through cached scans (52.614922ms)
+✔ observation preserves submodule content identity through cached scans (75.872632ms)
+✔ input invalidation during stage admission does not launch the child (26.260273ms)
+ℹ tests 60
+ℹ suites 0
+ℹ pass 60
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8234.814547

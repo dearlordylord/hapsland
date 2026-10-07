@@ -1,0 +1,836 @@
+{
+  "id": "20261007110954707-181430-c973c6",
+  "mode": "quality",
+  "state": "failed",
+  "exitCode": 1,
+  "startedAt": "2026-10-07T11:09:54.709Z",
+  "finishedAt": "2026-10-07T11:32:10.105Z",
+  "elapsedMs": 1335396,
+  "failedStages": [
+    "quality",
+    "vitest",
+    "source-runtime-build",
+    "source-runtime-preparation",
+    "source-runtime-build",
+    "source-runtime-preparation",
+    "source-runtime-build",
+    "source-runtime-preparation"
+  ],
+  "skippedStages": [],
+  "failures": 10,
+  "stages": [
+    {
+      "name": "lint-code",
+      "ownerPid": 181430,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "/workspace/typescript/hapsland-243/scripts/run-quality-lint.mjs"
+      ],
+      "startedAt": "2026-10-07T11:09:55.727Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 1183,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181430-001-lint-code.log",
+      "pid": 181472
+    },
+    {
+      "name": "quality",
+      "ownerPid": 181430,
+      "command": "/workspace/typescript/hapsland-243/node_modules/.bin/crap4ts",
+      "args": [],
+      "startedAt": "2026-10-07T11:09:57.070Z",
+      "state": "failed",
+      "exitCode": 1,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 1332208,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181430-002-quality.log",
+      "pid": 181595
+    },
+    {
+      "name": "configuration",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "--experimental-strip-types",
+        "scripts/generate-configuration.ts",
+        "--check"
+      ],
+      "startedAt": "2026-10-07T11:09:58.387Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 403,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-001-configuration.log",
+      "pid": 181678
+    },
+    {
+      "name": "bend-generation",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "scripts/build-bend-producers.mjs"
+      ],
+      "startedAt": "2026-10-07T11:09:58.962Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 1462,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-002-bend-generation.log",
+      "pid": 181708
+    },
+    {
+      "name": "bend-artifacts",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "scripts/verify-bend-artifacts.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:00.576Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 742,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-003-bend-artifacts.log",
+      "pid": 181950
+    },
+    {
+      "name": "canonical-authority",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "scripts/check-canonical-authority.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:01.468Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 227,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-004-canonical-authority.log",
+      "pid": 182023
+    },
+    {
+      "name": "jev-request",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "--experimental-strip-types",
+        "packages/agent-flow-bend/scripts/check-jev-request.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:01.857Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 332,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-005-jev-request.log",
+      "pid": 182048
+    },
+    {
+      "name": "production-authority",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "scripts/check-production-authority.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:02.359Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 215,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-006-production-authority.log",
+      "pid": 182075
+    },
+    {
+      "name": "capacity-boundary",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "scripts/check-capacity-boundary.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:02.664Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 169,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-007-capacity-boundary.log",
+      "pid": 182104
+    },
+    {
+      "name": "permit-boundary",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "scripts/check-permit-boundary.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:02.997Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 301,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-008-permit-boundary.log",
+      "pid": 182134
+    },
+    {
+      "name": "review-boundary",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "scripts/check-review-boundary.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:03.548Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 270,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-009-review-boundary.log",
+      "pid": 182160
+    },
+    {
+      "name": "dispatch-boundary",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "scripts/check-dispatch-boundary.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:04.030Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 258,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-010-dispatch-boundary.log",
+      "pid": 182200
+    },
+    {
+      "name": "stop-boundary",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "scripts/check-stop-boundary.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:04.488Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 185,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-011-stop-boundary.log",
+      "pid": 182264
+    },
+    {
+      "name": "collection-boundary",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "scripts/check-collection-boundary.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:04.826Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 164,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-012-collection-boundary.log",
+      "pid": 182289
+    },
+    {
+      "name": "delivery-boundary",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "scripts/check-delivery-boundary.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:05.146Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 179,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-013-delivery-boundary.log",
+      "pid": 182314
+    },
+    {
+      "name": "revision-boundary",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "scripts/check-revision-boundary.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:05.478Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 179,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-014-revision-boundary.log",
+      "pid": 182340
+    },
+    {
+      "name": "response-authority-boundary",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "scripts/check-response-authority-boundary.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:05.809Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 182,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-015-response-authority-boundary.log",
+      "pid": 182365
+    },
+    {
+      "name": "reuse-boundary",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "scripts/check-reuse-boundary.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:06.151Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 178,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-016-reuse-boundary.log",
+      "pid": 182390
+    },
+    {
+      "name": "notice-boundary",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "scripts/check-notice-boundary.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:06.489Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 150,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-017-notice-boundary.log",
+      "pid": 182425
+    },
+    {
+      "name": "retention-boundary",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "scripts/check-retention-boundary.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:06.790Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 171,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-018-retention-boundary.log",
+      "pid": 182468
+    },
+    {
+      "name": "configuration-boundary",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "scripts/check-configuration-boundary.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:07.106Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 170,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-019-configuration-boundary.log",
+      "pid": 182493
+    },
+    {
+      "name": "file-eligibility-boundary",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "scripts/check-file-eligibility-boundary.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:07.416Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 163,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-020-file-eligibility-boundary.log",
+      "pid": 182519
+    },
+    {
+      "name": "rule-boundary",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "scripts/check-rule-boundary.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:07.728Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 184,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-021-rule-boundary.log",
+      "pid": 182575
+    },
+    {
+      "name": "bend-progress",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "packages/agent-flow-bend/scripts/check-progress.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:08.070Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 12454,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-022-bend-progress.log",
+      "pid": 182635
+    },
+    {
+      "name": "content-isolation",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "packages/agent-flow-bend/scripts/check-content-isolation.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:20.681Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 3490,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-023-content-isolation.log",
+      "pid": 183768
+    },
+    {
+      "name": "content-wire-mutants",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "scripts/check-content-wire-mutants.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:24.328Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 12053,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-024-content-wire-mutants.log",
+      "pid": 184241
+    },
+    {
+      "name": "native-pi-observation",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "--test",
+        "scripts/native-pi-observation.test.mjs",
+        "scripts/native-pi-package-assets.test.mjs",
+        "scripts/native-claude-package.test.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:36.413Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 251,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-025-native-pi-observation.log",
+      "pid": 184949
+    },
+    {
+      "name": "native-rule-observation",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "--test",
+        "scripts/native-rule-observation.test.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:36.818Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 197,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-026-native-rule-observation.log",
+      "pid": 184995
+    },
+    {
+      "name": "verification-infrastructure",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "--test",
+        "--test-concurrency=1",
+        "scripts/artifact-store.test.mjs",
+        "scripts/dependency-digests.test.mjs",
+        "scripts/dev-pack.test.mjs",
+        "scripts/archive-inventory.test.mjs",
+        "scripts/install-git-hooks.test.mjs",
+        "scripts/pinned-bun.test.mjs",
+        "scripts/pinned-typescript.test.mjs",
+        "scripts/compiler-selection.test.mjs",
+        "scripts/generate-release-identity.test.mjs",
+        "scripts/bend-toolchain.test.mjs",
+        "scripts/native-bindings.test.mjs",
+        "scripts/native-pi-preflight.test.mjs",
+        "scripts/native-process.test.mjs",
+        "scripts/test-harness/bun-coverage.test.mjs",
+        "scripts/test-harness/verification-plan.test.mjs",
+        "scripts/test-harness/verify.test.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:37.176Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 14431,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-027-verification-infrastructure.log",
+      "pid": 185031
+    },
+    {
+      "name": "build-workflow",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "--test",
+        "--test-concurrency=1",
+        "scripts/package-graph.test.mjs",
+        "scripts/check-development-imports.test.mjs",
+        "scripts/check-compiler-receipts.test.mjs",
+        "scripts/clean-compiler-output.test.mjs",
+        "scripts/check-workspace-imports.test.mjs",
+        "scripts/source-type-evidence.test.mjs",
+        "scripts/assembly-context.test.mjs",
+        "scripts/bend-producer.test.mjs",
+        "scripts/hook-import-boundary.test.mjs",
+        "scripts/source-loader-policy.test.mjs",
+        "scripts/source-analysis-receipt.test.mjs",
+        "scripts/build-contributions.test.mjs",
+        "scripts/check-assembly-receipt.test.mjs",
+        "scripts/assembly-prerequisites.test.mjs",
+        "scripts/assemble-entry.test.mjs",
+        "scripts/assemble-host-modules.test.mjs",
+        "scripts/check-build-boundaries.test.mjs",
+        "scripts/authored-task-inputs.test.mjs",
+        "scripts/generate-turbo-config.test.mjs",
+        "scripts/release-assets.test.mjs",
+        "scripts/audit-release-tarball.test.mjs",
+        "scripts/native-artifact.test.mjs",
+        "scripts/host-module-imports.test.mjs",
+        "scripts/external-loader-profile.test.mjs",
+        "scripts/external-runtime-evidence.test.mjs",
+        "scripts/host-module-graph.test.mjs",
+        "scripts/host-module-plan.test.mjs",
+        "scripts/publish-product.test.mjs",
+        "scripts/owned-lock.test.mjs",
+        "scripts/build-lock.test.mjs",
+        "scripts/build-process.test.mjs",
+        "scripts/build-ownership.test.mjs",
+        "scripts/native-compiler-inputs.test.mjs",
+        "scripts/native-linker-inputs.test.mjs",
+        "scripts/native-toolchain-inputs.test.mjs",
+        "scripts/native-task-receipt.test.mjs",
+        "scripts/native-task.test.mjs",
+        "scripts/native-task-inputs.test.mjs",
+        "scripts/native-header-search.test.mjs",
+        "scripts/build-watch-coordinator.test.mjs",
+        "scripts/build-watch-observation.test.mjs",
+        "scripts/build-workflow-acceptance.test.mjs",
+        "scripts/build-resolution-acceptance-cases.test.mjs",
+        "scripts/measure-hook-startup-commands.test.mjs",
+        "scripts/check-runtime-clock.test.mjs",
+        "scripts/measure-hook-startup-summary.test.mjs"
+      ],
+      "startedAt": "2026-10-07T11:10:51.772Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 42343,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-028-build-workflow.log",
+      "pid": 187194
+    },
+    {
+      "name": "test-harness",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "--test",
+        "scripts/test-harness/run-checks.test.mjs",
+        "scripts/test-harness/prepare-archive.test.mjs",
+        "scripts/test-harness/immediate-errors.test.mjs"
+      ],
+      "startedAt": "2026-10-07T11:11:34.273Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 8024,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-029-test-harness.log",
+      "pid": 190095
+    },
+    {
+      "name": "package-build",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "/home/node/.local/share/mise/installs/node/24.20.0/lib/node_modules/npm/bin/npm-cli.js",
+        "run",
+        "build"
+      ],
+      "startedAt": "2026-10-07T11:11:46.119Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 83725,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-030-package-build.log",
+      "pid": 191975
+    },
+    {
+      "name": "package-validation",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "/home/node/.local/share/mise/installs/node/24.20.0/lib/node_modules/npm/bin/npm-cli.js",
+        "run",
+        "verify:release-native"
+      ],
+      "startedAt": "2026-10-07T11:13:11.784Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 271,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-031-package-validation.log",
+      "pid": 198562
+    },
+    {
+      "name": "package-pack",
+      "ownerPid": 181637,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "/workspace/typescript/hapsland-243/scripts/dev-pack.mjs",
+        "/workspace/typescript/hapsland-243",
+        "/workspace/typescript/hapsland-243/.test-runs/package-preparation/archive-LN94VR"
+      ],
+      "startedAt": "2026-10-07T11:13:15.179Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 8831,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-032-package-pack.log",
+      "pid": 198810
+    },
+    {
+      "name": "vitest",
+      "ownerPid": 181637,
+      "command": "/workspace/typescript/hapsland-243/node_modules/.bin/vitest",
+      "args": [
+        "run",
+        "--config",
+        "scripts/vitest.config.ts",
+        "--maxWorkers=1",
+        "--coverage"
+      ],
+      "startedAt": "2026-10-07T11:13:33.003Z",
+      "state": "failed",
+      "exitCode": 1,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 1115232,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/181637-033-vitest.log",
+      "pid": 199625
+    },
+    {
+      "name": "source-runtime-build",
+      "ownerPid": 214007,
+      "command": "/workspace/typescript/hapsland-243/node_modules/bun/bin/bun.exe",
+      "args": [
+        "/workspace/typescript/hapsland-243/scripts/build-source-runtime.ts",
+        "/workspace/typescript/jev/.git/hapsland-artifacts/source-runtime/0fdefad07478a3ad7b6a63dcb889bedec7f4b36d7bc411ddb35f35cbb8abeff0/staging-214007",
+        "istanbul"
+      ],
+      "startedAt": "2026-10-07T11:16:08.219Z",
+      "state": "failed",
+      "exitCode": 1,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 140,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/214007-001-source-runtime-build.log",
+      "pid": 214210
+    },
+    {
+      "name": "source-runtime-preparation",
+      "ownerPid": 214007,
+      "command": null,
+      "args": [],
+      "startedAt": "2026-10-07T11:16:08.361Z",
+      "state": "failed",
+      "exitCode": null,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 0,
+      "error": "source-runtime-build failed; see /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/214007-001-source-runtime-build.log"
+    },
+    {
+      "name": "source-runtime-build",
+      "ownerPid": 276448,
+      "command": "/workspace/typescript/hapsland-243/node_modules/bun/bin/bun.exe",
+      "args": [
+        "/workspace/typescript/hapsland-243/scripts/build-source-runtime.ts",
+        "/workspace/typescript/jev/.git/hapsland-artifacts/source-runtime/0fdefad07478a3ad7b6a63dcb889bedec7f4b36d7bc411ddb35f35cbb8abeff0/staging-276448",
+        "istanbul"
+      ],
+      "startedAt": "2026-10-07T11:24:49.347Z",
+      "state": "failed",
+      "exitCode": 1,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 189,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/276448-001-source-runtime-build.log",
+      "pid": 276847
+    },
+    {
+      "name": "source-runtime-preparation",
+      "ownerPid": 276448,
+      "command": null,
+      "args": [],
+      "startedAt": "2026-10-07T11:24:49.539Z",
+      "state": "failed",
+      "exitCode": null,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 0,
+      "error": "source-runtime-build failed; see /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/276448-001-source-runtime-build.log"
+    },
+    {
+      "name": "source-runtime-build",
+      "ownerPid": 294810,
+      "command": "/workspace/typescript/hapsland-243/node_modules/bun/bin/bun.exe",
+      "args": [
+        "/workspace/typescript/hapsland-243/scripts/build-source-runtime.ts",
+        "/workspace/typescript/jev/.git/hapsland-artifacts/source-runtime/0fdefad07478a3ad7b6a63dcb889bedec7f4b36d7bc411ddb35f35cbb8abeff0/staging-294810",
+        "istanbul"
+      ],
+      "startedAt": "2026-10-07T11:27:36.206Z",
+      "state": "failed",
+      "exitCode": 1,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 142,
+      "logPath": "/workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/294810-001-source-runtime-build.log",
+      "pid": 295104
+    },
+    {
+      "name": "source-runtime-preparation",
+      "ownerPid": 294810,
+      "command": null,
+      "args": [],
+      "startedAt": "2026-10-07T11:27:36.351Z",
+      "state": "failed",
+      "exitCode": null,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 0,
+      "error": "source-runtime-build failed; see /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/294810-001-source-runtime-build.log"
+    }
+  ],
+  "testFailures": [
+    {
+      "timestamp": "2026-10-07T11:14:59.259Z",
+      "file": "/workspace/typescript/hapsland-243/src/resident/subprocess.test.ts",
+      "test": "resident separate-process lifecycle > retires an empty installed resident and starts a distinct lifetime on the next hook",
+      "message": "resident did not become ready within 10 seconds",
+      "stack": "ResidentIpcError: resident did not become ready within 10 seconds\n    at /workspace/typescript/hapsland-243/packages/resident-transport/src/resident/client.ts:333:5\n    at Generator.next (<anonymous>)\n    at IteratorImpl.~effect/Effect/successCont (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:987:28)\n    at ExitPrimitive.~effect/Effect/evaluate (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/core.js:297:30)\n    at FiberImpl.runLoop (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:463:95)\n    at FiberImpl.evaluate (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:414:23)\n    at file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:816:17\n    at Timeout._onTimeout (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:2893:39)\n    at listOnTimeout (node:internal/timers:685:17)\n    at processTimers (node:internal/timers:618:7)"
+    },
+    {
+      "timestamp": "2026-10-07T11:15:04.237Z",
+      "file": "/workspace/typescript/hapsland-243/src/resident/subprocess.test.ts",
+      "test": "resident separate-process lifecycle > keeps a live connected client until it disconnects",
+      "message": "resident did not become ready within 10 seconds",
+      "stack": "ResidentIpcError: resident did not become ready within 10 seconds\n    at /workspace/typescript/hapsland-243/packages/resident-transport/src/resident/client.ts:333:5\n    at Generator.next (<anonymous>)\n    at IteratorImpl.~effect/Effect/successCont (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:987:28)\n    at ExitPrimitive.~effect/Effect/evaluate (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/core.js:297:30)\n    at FiberImpl.runLoop (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:463:95)\n    at FiberImpl.evaluate (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:414:23)\n    at file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:816:17\n    at Array.<anonymous> (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:1139:9)\n    at FiberImpl.evaluate (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:434:21)\n    at file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:816:17"
+    },
+    {
+      "timestamp": "2026-10-07T11:15:21.666Z",
+      "file": "/workspace/typescript/hapsland-243/src/resident/subprocess.test.ts",
+      "test": "resident separate-process lifecycle > keeps accepted review work and pending advice beyond the idle grace",
+      "message": "condition did not become ready",
+      "stack": "Error: condition did not become ready\n    at waitFor (/workspace/typescript/hapsland-243/src/resident/subprocess.test.ts:78:9)\n    at /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts:292:5\n    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2783:20"
+    },
+    {
+      "timestamp": "2026-10-07T11:15:47.149Z",
+      "file": "/workspace/typescript/hapsland-243/src/resident/subprocess.test.ts",
+      "test": "resident separate-process lifecycle > converges six starters across three clients and keeps timed-out/disconnected work resident-owned",
+      "message": "condition did not become ready",
+      "stack": "Error: condition did not become ready\n    at waitFor (/workspace/typescript/hapsland-243/src/resident/subprocess.test.ts:78:9)\n    at /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts:569:5\n    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2783:20"
+    },
+    {
+      "timestamp": "2026-10-07T11:15:51.762Z",
+      "file": "/workspace/typescript/hapsland-243/src/resident/subprocess.test.ts",
+      "test": "resident separate-process lifecycle > keeps edit file selection across admission and backend waits",
+      "message": "expected false to be true // Object.is equality",
+      "stack": "AssertionError: expected false to be true // Object.is equality\n    at /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts:689:37\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2783:20",
+      "actual": "'false'",
+      "expected": "'true'"
+    },
+    {
+      "timestamp": "2026-10-07T11:15:56.596Z",
+      "file": "/workspace/typescript/hapsland-243/src/resident/subprocess.test.ts",
+      "test": "resident separate-process lifecycle > keeps the admission configuration through dispatch and delayed delivery",
+      "message": "expected false to be true // Object.is equality",
+      "stack": "AssertionError: expected false to be true // Object.is equality\n    at /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts:745:37\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2783:20",
+      "actual": "'false'",
+      "expected": "'true'"
+    },
+    {
+      "timestamp": "2026-10-07T11:16:06.045Z",
+      "file": "/workspace/typescript/hapsland-243/src/resident/subprocess.test.ts",
+      "test": "resident separate-process lifecycle > kills one lifetime, rejects obsolete messages, restarts empty, and cleans up only when idle",
+      "message": "condition did not become ready",
+      "stack": "Error: condition did not become ready\n    at waitFor (/workspace/typescript/hapsland-243/src/resident/subprocess.test.ts:78:9)\n    at /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts:823:5\n    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2783:20"
+    },
+    {
+      "timestamp": "2026-10-07T11:23:47.380Z",
+      "file": "/workspace/typescript/hapsland-243/src/rules/cli.test.ts",
+      "test": "runs one-off rule checks without stdin or resident state and reports unavailable credentials",
+      "message": "expected { version: 1, …(11) } to match object { operation: 'rule-check', …(5) }\n(10 matching properties omitted from actual)",
+      "stack": "AssertionError: expected { version: 1, …(11) } to match object { operation: 'rule-check', …(5) }\n(10 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/index.m3L2HgmY.js:2040:10)\n    at Proxy.<anonymous> (file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/index.m3L2HgmY.js:1934:14)\n    at Proxy.methodWrapper (file:///workspace/typescript/hapsland-243/node_modules/chai/index.js:1700:25)\n    at /workspace/typescript/hapsland-243/src/rules/cli.test.ts:328:35\n    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:1628:35\n    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2783:26\n    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3319:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3314:10)\n    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3299:20",
+      "actual": "'{\\n' +\n  '  \"classifierCalls\": 0,\\n' +\n  '  \"operation\": \"rule-check\",\\n' +\n  '  \"reason\": \"parse\",\\n' +\n  '  \"results\": [],\\n' +\n  '  \"status\": \"skipped\",\\n' +\n  '}'",
+      "expected": "'{\\n' +\n  '  \"classifierCalls\": 0,\\n' +\n  '  \"declaration\": {\\n' +\n  '    \"name\": \"Selected\",\\n' +\n  '  },\\n' +\n  '  \"operation\": \"rule-check\",\\n' +\n  '  \"reason\": \"credential-missing\",\\n' +\n  '  \"results\": [],\\n' +\n  '  \"status\": \"unavailable\",\\n' +\n  '}'"
+    },
+    {
+      "timestamp": "2026-10-07T11:27:36.434Z",
+      "file": "/workspace/typescript/hapsland-243/src/test-support/pi-installed.test.ts",
+      "test": "collection or suite hook",
+      "message": "Command failed: /home/node/.local/share/mise/installs/node/24.20.0/bin/node /workspace/typescript/hapsland-243/scripts/source-runtime.mjs\nRUN 20261007110954707-181430-c973c6 artifact; deadline 2026-10-07T11:34:54.708Z; records /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6\nSTART source-runtime-build; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/294810-001-source-runtime-build.log\nSyntaxError: Export named 'createInstrumenter' not found in module '/workspace/typescript/hapsland-243/node_modules/istanbul-lib-instrument/src/index.js'.\nnote: missing sourcemaps for /workspace/typescript/hapsland-243/.test-runs/coverage-preload/199625/coverage-preload.mjs\nnote: consider bundling with '--sourcemap' to get unminified traces\n\nBun v1.3.14 (Linux arm64)\n\nFAILED source-runtime-build 0.14s; exit 1; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/294810-001-source-runtime-build.log\nFAIL source-runtime-preparation; source-runtime-build failed; see /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/294810-001-source-runtime-build.log\nFAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > retires an empty installed resident and starts a distinct lifetime on the next hook: resident did not become ready within 10 seconds; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl\nFAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps a live connected client until it disconnects: resident did not become ready within 10 seconds; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl\nFAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps accepted review work and pending advice beyond the idle grace: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl\nFAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > converges six starters across three clients and keeps timed-out/disconnected work resident-owned: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl\nFAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps edit file selection across admission and backend waits: expected false to be true // Object.is equality; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl\nFAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps the admission configuration through dispatch and delayed delivery: expected false to be true // Object.is equality; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl\nFAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > kills one lifetime, rejects obsolete messages, restarts empty, and cleans up only when idle: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl\nFAIL /workspace/typescript/hapsland-243/src/rules/cli.test.ts > runs one-off rule checks without stdin or resident state and reports unavailable credentials: expected { version: 1, …(11) } to match object { operation: 'rule-check', …(5) }\n(10 matching properties omitted from actual); failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl\nSource runtime preparation failed; see recorded stages\n",
+      "stack": "Error: Command failed: /home/node/.local/share/mise/installs/node/24.20.0/bin/node /workspace/typescript/hapsland-243/scripts/source-runtime.mjs\nRUN 20261007110954707-181430-c973c6 artifact; deadline 2026-10-07T11:34:54.708Z; records /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6\nSTART source-runtime-build; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/294810-001-source-runtime-build.log\nSyntaxError: Export named 'createInstrumenter' not found in module '/workspace/typescript/hapsland-243/node_modules/istanbul-lib-instrument/src/index.js'.\nnote: missing sourcemaps for /workspace/typescript/hapsland-243/.test-runs/coverage-preload/199625/coverage-preload.mjs\nnote: consider bundling with '--sourcemap' to get unminified traces\n\nBun v1.3.14 (Linux arm64)\n\nFAILED source-runtime-build 0.14s; exit 1; log /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/294810-001-source-runtime-build.log\nFAIL source-runtime-preparation; source-runtime-build failed; see /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/294810-001-source-runtime-build.log\nFAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > retires an empty installed resident and starts a distinct lifetime on the next hook: resident did not become ready within 10 seconds; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl\nFAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps a live connected client until it disconnects: resident did not become ready within 10 seconds; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl\nFAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps accepted review work and pending advice beyond the idle grace: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl\nFAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > converges six starters across three clients and keeps timed-out/disconnected work resident-owned: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl\nFAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps edit file selection across admission and backend waits: expected false to be true // Object.is equality; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl\nFAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > keeps the admission configuration through dispatch and delayed delivery: expected false to be true // Object.is equality; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl\nFAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > kills one lifetime, rejects obsolete messages, restarts empty, and cleans up only when idle: condition did not become ready; failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl\nFAIL /workspace/typescript/hapsland-243/src/rules/cli.test.ts > runs one-off rule checks without stdin or resident state and reports unavailable credentials: expected { version: 1, …(11) } to match object { operation: 'rule-check', …(5) }\n(10 matching properties omitted from actual); failures /workspace/typescript/hapsland-243/.test-runs/20261007110954707-181430-c973c6/failures.jsonl\nSource runtime preparation failed; see recorded stages\n\n    at genericNodeError (node:internal/errors:986:15)\n    at wrappedFn (node:internal/errors:540:14)\n    at checkExecSyncError (node:child_process:942:11)\n    at execFileSync (node:child_process:978:15)\n    at syncProcess (/workspace/typescript/hapsland-243/scripts/test-harness/process.mjs:49:14)\n    at Object.apply (/workspace/typescript/hapsland-243/scripts/test-harness/process.mjs:62:39)\n    at prepareTestSourceRuntime (/workspace/typescript/hapsland-243/scripts/test-support/source-runtime.ts:19:5)\n    at setupInstalledPi (/workspace/typescript/hapsland-243/scripts/test-support/pi-installed.ts:40:21)\n    at /workspace/typescript/hapsland-243/src/test-support/pi-installed.test.ts:22:17\n    at wrapper (file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2141:28)"
+    },
+    {
+      "timestamp": "2026-10-07T11:29:13.057Z",
+      "file": "/workspace/typescript/hapsland-243/src/resident/security-sinks.test.ts",
+      "test": "security sink prototype > observes source-bearing ingress and a provider failure across resident file/output sinks",
+      "message": "resident did not finish the synthetic failure",
+      "stack": "Error: resident did not finish the synthetic failure\n    at waitFor (/workspace/typescript/hapsland-243/src/resident/security-sinks.test.ts:44:9)\n    at /workspace/typescript/hapsland-243/src/resident/security-sinks.test.ts:145:5\n    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2783:20"
+    }
+  ]
+}

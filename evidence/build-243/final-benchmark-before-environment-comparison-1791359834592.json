@@ -1,0 +1,130 @@
+{
+  "before": "evidence/build-243/turbo-architecture-benchmark-before-1791341454160.json",
+  "final": "evidence/build-243/turbo-architecture-benchmark-final-1791359834592.json",
+  "stamps": [
+    {
+      "source": ".test-runs/bend-toolchain.json",
+      "environmentDigests": [
+        "a520b557d2e847f1af69373a4a8247b1ec370ac3a595ca3e5d463b591a60a3ed",
+        "a520b557d2e847f1af69373a4a8247b1ec370ac3a595ca3e5d463b591a60a3ed"
+      ],
+      "environmentEqual": true,
+      "differentEnvironmentKeys": [],
+      "tools": [
+        {
+          "name": "bend",
+          "identities": [
+            {
+              "path": "../../../home/node/.bend/bin/bend",
+              "mode": 493,
+              "sha256": "f77417474ded314ad5d1a68fa3ebbe214c2124bf04d56a59b05bc17be6b0327a",
+              "digest": "fd3bbd9776578626fb23d5cad1dbbba740b73b47d2d51043d3b011577b45413c"
+            },
+            {
+              "path": "../../../home/node/.bend/bin/bend",
+              "mode": 493,
+              "sha256": "f77417474ded314ad5d1a68fa3ebbe214c2124bf04d56a59b05bc17be6b0327a",
+              "digest": "fd3bbd9776578626fb23d5cad1dbbba740b73b47d2d51043d3b011577b45413c"
+            }
+          ],
+          "equal": true
+        },
+        {
+          "name": "node",
+          "identities": [
+            {
+              "path": "../../../home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+              "mode": 493,
+              "sha256": "23a5637c2470fde09fcc1acc77c1b92e04e3d7e3e6e80ff7df6f5831958d1477",
+              "digest": "78b3feb2fb171d00c0b990a950eac7a45f9d434eba981427c4fbefabec9f1d43"
+            },
+            {
+              "path": "../../../home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+              "mode": 493,
+              "sha256": "23a5637c2470fde09fcc1acc77c1b92e04e3d7e3e6e80ff7df6f5831958d1477",
+              "digest": "78b3feb2fb171d00c0b990a950eac7a45f9d434eba981427c4fbefabec9f1d43"
+            }
+          ],
+          "equal": true
+        },
+        {
+          "name": "ldd",
+          "identities": [
+            {
+              "path": "../../../usr/bin/ldd",
+              "mode": 493,
+              "sha256": "78470111ee47ef9204a0e40983016816003e21d9a8a82fd75ab91980be3dcbd2",
+              "digest": "9588d8e266a80d09669cf23f5ce3606d656b61c5cc6506fca58f29ae1c877a87"
+            },
+            {
+              "path": "../../../usr/bin/ldd",
+              "mode": 493,
+              "sha256": "78470111ee47ef9204a0e40983016816003e21d9a8a82fd75ab91980be3dcbd2",
+              "digest": "9588d8e266a80d09669cf23f5ce3606d656b61c5cc6506fca58f29ae1c877a87"
+            }
+          ],
+          "equal": true
+        }
+      ]
+    },
+    {
+      "source": ".test-runs/build-toolchain.json",
+      "environmentDigests": [
+        "2541ab4c4aa2f36ebdfd9a2f48cf521083f49429f70d2ce089efd7f75bcee91c",
+        "2541ab4c4aa2f36ebdfd9a2f48cf521083f49429f70d2ce089efd7f75bcee91c"
+      ],
+      "environmentEqual": true,
+      "differentEnvironmentKeys": [],
+      "tools": [
+        {
+          "name": "node",
+          "identities": [
+            {
+              "path": "../../../home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+              "mode": 493,
+              "sha256": "23a5637c2470fde09fcc1acc77c1b92e04e3d7e3e6e80ff7df6f5831958d1477",
+              "digest": "535bada9ae8c533f588638b91f77bc66a32a8165547b5d85a3632693b142b109"
+            },
+            {
+              "path": "../../../home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+              "mode": 493,
+              "sha256": "23a5637c2470fde09fcc1acc77c1b92e04e3d7e3e6e80ff7df6f5831958d1477",
+              "digest": "535bada9ae8c533f588638b91f77bc66a32a8165547b5d85a3632693b142b109"
+            }
+          ],
+          "equal": true
+        },
+        {
+          "name": "bun",
+          "identities": [
+            {
+              "path": "node_modules/bun/bin/bun.exe",
+              "mode": 511,
+              "sha256": "37141662ebed915a2ab89313156e455e2a1374395f5f6760d06407f49406f086",
+              "digest": "67fdf7f84c46f474d3ab277f33e43e5c719d1c0bca51db1a93adfbf45ef70658"
+            },
+            {
+              "path": "node_modules/bun/bin/bun.exe",
+              "mode": 511,
+              "sha256": "37141662ebed915a2ab89313156e455e2a1374395f5f6760d06407f49406f086",
+              "digest": "67fdf7f84c46f474d3ab277f33e43e5c719d1c0bca51db1a93adfbf45ef70658"
+            }
+          ],
+          "equal": true
+        },
+        {
+          "name": "typescript",
+          "identities": [
+            {
+              "digest": "4c2fe0f287c0099dde6d63a095b0e88bc978cddb5a5e4f8a73834507047cafa0"
+            },
+            {
+              "digest": "4c2fe0f287c0099dde6d63a095b0e88bc978cddb5a5e4f8a73834507047cafa0"
+            }
+          ],
+          "equal": true
+        }
+      ]
+    }
+  ]
+}
