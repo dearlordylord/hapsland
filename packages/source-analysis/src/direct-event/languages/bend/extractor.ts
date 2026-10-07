@@ -1,3 +1,5 @@
+import { maskBendSource } from "./lexical.ts"
+import baseCatalog from "./base-declarations.generated.json" with { type: "json" }
 import { assertReviewEngineBoundary } from "@hapsland/runtime-environment/runtime/review-engine-boundary"
 
 assertReviewEngineBoundary("bend-extractor")
@@ -8,7 +10,11 @@ export type BendDeclaration = {
   readonly source: string
   readonly startPosition: { readonly row: number; readonly column: number }
   readonly endPosition: { readonly row: number; readonly column: number }
-  readonly references: ReadonlyArray<{ readonly kind: "named" | "unsupported"; readonly name: string }>
+  readonly references: ReadonlyArray<{
+    readonly kind: "named" | "unsupported"
+    readonly name: string
+    readonly library?: "bend/Base"
+  }>
 }
 export type BendExtraction =
   | {
@@ -19,120 +25,57 @@ export type BendExtraction =
 
 const namePattern = "[A-Za-z_][A-Za-z0-9_]*"
 // These are leaf assumptions, not a vendored Base library or compiler check.
-// Composite Base types remain named evidence and therefore unresolved.
+// Supported composites are separate bundled evidence, not additional leaf assumptions.
 const baseLeaves = new Set(["Empty", "Unit", "Bool", "Cmp", "Nat", "U32", "F32", "Char", "String"])
-// Namespace-prefix refusal assumptions from bend2/base.bend at compiler source
-// 1adb0a61916b95de79d3541537462d0bf625f9d3. Names only: no library code is
-// vendored. Review this bounded set when the declared Base profile changes.
-const basePrefixes = new Set([
-  "ALeaf",
-  "ANode",
-  "App",
-  "Array",
-  "Audio",
-  "Bool",
-  "Chan",
-  "Char",
-  "Chr",
-  "Close",
-  "Cmp",
-  "Con",
-  "Done",
-  "EQ",
-  "Either",
-  "Emit",
-  "Empty",
-  "Equal",
-  "Event",
-  "Exists",
-  "F32",
-  "Fail",
-  "False",
-  "File",
-  "GT",
-  "Halt",
-  "IO",
-  "Image",
-  "Inl",
-  "Inr",
-  "Key",
-  "LT",
-  "List",
-  "Listener",
-  "Look",
-  "MLeaf",
-  "MNode",
-  "MTip",
-  "Map",
-  "Maybe",
-  "Mouse",
-  "Move",
-  "Nat",
-  "Nil",
-  "None",
-  "Or",
-  "Pair",
-  "Pix",
-  "Process",
-  "Qua",
-  "Result",
-  "SCon",
-  "SNil",
-  "Scroll",
-  "Set",
-  "Sigma",
-  "Socket",
-  "Some",
-  "String",
-  "Succ",
-  "TCP",
-  "True",
-  "Tuple",
-  "U32",
-  "UDP",
-  "Unit",
-  "WCon",
-  "WNil",
-  "Window",
-  "Word",
-  "Zero"
-])
+// Refusal bindings derive from the same pinned Base source as bundled evidence.
+const basePrefixes = new Set(baseCatalog.namespacePrefixes)
 const kinds = new Set(["Data", "Type", "Quant"])
-
-// Lexical isolation only: source syntax is assumed valid. Literal contents
-// cannot introduce bindings; literal syntax within a datatype remains unsupported.
-const lexicalTokens = /"(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|#[^\r\n]*/g
-const maskBendSource = (source: string, boundaries: boolean): string =>
-  source.replace(lexicalTokens, (token) => {
-    const masked = token.replace(/[^\r\n]/g, " ")
-    return boundaries || token.startsWith("#") ? masked : `?${masked.slice(1, -1)}?`
-  })
 
 type ExtractionReason = Extract<BendExtraction, { reason: unknown }>["reason"]
 type Reference = BendDeclaration["references"][number]
-type TypeTokens = { readonly tokens: ReadonlyArray<string>; readonly names: string[]; index: number }
+type TypeTokens = {
+  readonly tokens: ReadonlyArray<string>
+  readonly names: string[]
+  readonly quantities: ReadonlySet<string>
+  readonly fields: ReadonlySet<string>
+  index: number
+}
 const qualifiedName = /^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*$/
+const typeArgument = (state: TypeTokens, depth: number): boolean => {
+  const token = state.tokens[state.index]
+  if (token !== undefined && (/^&[012]$/.test(token) || state.quantities.has(token))) {
+    state.index++
+    return !state.fields.has(token)
+  }
+  return typeTerm(state, depth)
+}
 const typeArguments = (state: TypeTokens, depth: number): boolean => {
   state.index++
-  if (!typeTerm(state, depth + 1)) return false
+  if (!typeArgument(state, depth + 1)) return false
   while (state.tokens[state.index] === ",") {
     state.index++
-    if (!typeTerm(state, depth + 1)) return false
+    if (!typeArgument(state, depth + 1)) return false
   }
   return state.tokens[state.index++] === ">"
 }
 const typeTerm = (state: TypeTokens, depth: number): boolean => {
   if (depth > 32) return false
   const name = state.tokens[state.index++]
-  if (name === undefined || !qualifiedName.test(name)) return false
+  if (name === undefined || !qualifiedName.test(name) || state.quantities.has(name)) return false
   state.names.push(name)
   return state.tokens[state.index] === "<" ? typeArguments(state, depth) : true
 }
-/** Only names and nested datatype applications; no dependent terms or binders. */
-const typeNames = (text: string): string[] | undefined => {
+/** Named datatype applications and literal/bound quantities; no computed terms. */
+const typeNames = (
+  text: string,
+  quantities: ReadonlySet<string>,
+  fields: ReadonlySet<string>
+): string[] | undefined => {
   const state: TypeTokens = {
-    tokens: text.match(/[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*|[<>(),]|\S/g) ?? [],
+    tokens: text.match(/&[012]|[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*|[<>(),]|\S/g) ?? [],
     names: [],
+    quantities,
+    fields,
     index: 0
   }
   return typeTerm(state, 0) && state.index === state.tokens.length ? state.names : undefined
@@ -183,7 +126,7 @@ const bindingPattern = new RegExp(
 )
 const headerPattern = new RegExp(`^type\\s+(${namePattern})(?:<([^\\n]*)>)?\\s+is\\s+([^:]+):\\s*$`)
 const constructorPattern = new RegExp(`^  (${namePattern})\\{([^{}]*)\\}\\s*$`)
-const parameterPattern = new RegExp(`^\\s*-(${namePattern})\\s*:\\s*(Data|Type)\\s*$`)
+const parameterPattern = new RegExp(`^\\s*-?(${namePattern})\\s*:\\s*(Data|Type|Quant)\\s*$`)
 const fieldPattern = new RegExp(`^\\s*(${namePattern})\\s*:\\s*(.+?)\\s*$`)
 const collectImport = (scope: BendScope, line: string): ExtractionReason | undefined => {
   if (scope.seenItem) return "parse"
@@ -235,19 +178,32 @@ type BendType = {
   readonly scope: BendScope
   readonly name: string
   readonly parameters: Set<string>
+  readonly quantities: Set<string>
   readonly references: Reference[]
   readonly localConstructors: Set<string>
 }
 const omitTypeReference = (type: BendType): void => {
   type.references.push({ kind: "unsupported", name: type.name })
 }
+const boundKind = (type: BendType, text: string): boolean => {
+  const match = /^Kind\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)$/.exec(text.trim())
+  return match !== null && type.quantities.has(match[1]!)
+}
 const collectParameter = (type: BendType, field: string): void => {
-  const parameter = parameterPattern.exec(field)
-  if (parameter === null || type.parameters.has(parameter[1]!)) {
+  const bare = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*$/.exec(field)
+  const dependent = /^\s*-?([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(Kind\([^()]*\))\s*$/.exec(field)
+  const parameter = parameterPattern.exec(field) ?? (bare === null ? dependent : [bare[0], bare[1], "Quant"])
+
+  if (
+    parameter === null ||
+    type.parameters.has(parameter[1]!) ||
+    type.quantities.has(parameter[1]!) ||
+    (parameter[2] !== "Data" && parameter[2] !== "Type" && parameter[2] !== "Quant" && !boundKind(type, parameter[2]!))
+  ) {
     omitTypeReference(type)
     return
   }
-  type.parameters.add(parameter[1]!)
+  ;(parameter[2] === "Quant" ? type.quantities : type.parameters).add(parameter[1]!)
 }
 const collectParameters = (type: BendType, text: string | undefined): void => {
   if (text === undefined) return
@@ -275,7 +231,17 @@ const collectTypeName = (type: BendType, target: string): void => {
   if (type.parameters.has(target) || kinds.has(target)) return
   collectImportedReference(type, target, prefix)
   if (assumedBaseLeaf(type.scope, target)) return
-  type.references.push({ kind: "named", name: target })
+  type.references.push({
+    kind: "named",
+    name: target,
+    ...(target === "List" &&
+    type.scope.base &&
+    !type.scope.uncertainScope &&
+    !type.scope.bindings.has(target) &&
+    !type.scope.aliases.has(target)
+      ? { library: "bend/Base" as const }
+      : {})
+  })
 }
 const collectTypeNames = (type: BendType, names: ReadonlyArray<string> | undefined): void => {
   if (names === undefined) {
@@ -292,7 +258,7 @@ const collectConstructorField = (type: BendType, field: string, fieldNames: Set<
   }
   fieldNames.add(match[1]!)
   // A field binder may occur in later field types; it is not a datatype.
-  const names = typeNames(match[2]!)
+  const names = typeNames(match[2]!, type.quantities, fieldNames)
   if (names?.some((target) => fieldNames.has(target.split(".")[0]!))) omitTypeReference(type)
   collectTypeNames(type, names)
 }
@@ -343,12 +309,13 @@ const collectTypeDeclaration = (
     scope,
     name: header[1]!,
     parameters: new Set(),
+    quantities: new Set(),
     references: [],
     localConstructors: new Set()
   }
   if (scope.uncertainScope) omitTypeReference(type)
-  if (!/^(Data|Type)$/.test(header[3]!.trim())) omitTypeReference(type)
   collectParameters(type, header[2])
+  if (!/^(Data|Type)$/.test(header[3]!.trim()) && !boundKind(type, header[3]!)) omitTypeReference(type)
   const reason = collectConstructors(type, row, end)
   if (reason !== undefined) return { reason }
   return {

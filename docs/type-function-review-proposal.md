@@ -181,12 +181,19 @@ are binding evidence retained locally.
 Bend uses type-shape v1 with concrete artifact kind `datatype`. This is a
 Bend 2 surface extractor, not a compiler dependency or proof checker.
 The header must be a single line `type Name is Data:` or `is Type:`, optionally
-with erased type parameters `type Box<-A: Data> is Data:` (also `Type`).
+with ordinary or erased `Data`/`Type` parameters, such as
+`type Box<A: Data> is Data:` or `type Box<-A: Data> is Data:`.
+Explicit `Quant` parameters and bare quantity binders bind quantity arguments
+separately from datatype names. `Kind(q)` parameters and result kinds are admitted
+only when `q` is a bound quantity; computed kinds remain unsupported.
 Constructors use two spaces and one line `Name{field: Type, ...}`; empty
 datatypes and recursive references are permitted. Field types are simple names
 or nested named datatype applications with `<...>`, including alias-qualified
-references such as `R.Receipt`; generic parameters are
-local binders. Names in this profile use ASCII letters, digits and underscores.
+references such as `R.Receipt`. Application arguments may also be the quantity
+literals `&0`, `&1`, `&2`, or an explicitly bound quantity parameter. These
+arguments are not datatype dependencies; nested datatype arguments still require
+their own evidence. Generic parameters are local binders. Names in this profile
+use ASCII letters, digits and underscores.
 The exact root source and line/column ranges are retained, including comments
 inside the declaration. Leading/trailing standalone comments are not part of
 the declaration's attribution range.
@@ -196,8 +203,15 @@ Only the literal leading `import Base` admits the leaf assumptions `Empty`,
 are treated as known Base leaves, not expanded library declarations; this
 assumption is part of the profile, not evidence of a compiler-verified import.
 A same-file type, def, or law binding takes precedence over leaf assumptions.
-Composite Base types such as `List`, `Maybe`, `Result`, and `Array` require
-supporting evidence and remain unresolved unless explicitly declared locally.
+With leading `import Base` and no shadowing, `List` resolves to its exact
+declaration from the pinned compiler’s Base library,
+recorded in the [generated catalog](../packages/source-analysis/src/direct-event/languages/bend/base-declarations.generated.json).
+Its origin carries the compiler version and source revision plus hashes of the
+Base module and declaration. It has no project path and cannot become an edited
+root. Its own parameters and recursive references resolve in library scope,
+without borrowing project bindings. Other composite Base types, including
+`Maybe`, `Result`, and `Array`, remain unresolved unless declared locally.
+Local bindings take precedence over bundled evidence.
 Leading imports of the form `import ./receipt.bend as R` or
 `import ../shared/receipt.bend as R` bind the first dotted segment of a type
 reference to that file; `R.Receipt` resolves `Receipt` there. Paths use plain
@@ -208,23 +222,25 @@ Aliases must be unique and cannot conflict with local binding prefixes or
 constructors. With `import Base`, alias prefixes matching the inspected Base
 type/def/law/constructor namespaces make every root incomplete, and their
 qualified references cannot resolve as imported evidence. This conservative
-name-only refusal set is tied to `bend2/base.bend` at Bend source commit
-`1adb0a61916b95de79d3541537462d0bf625f9d3`, as recorded beside the
-extractor assumptions. Review the leaf and namespace sets when that profile
-changes; this source identity does not establish arbitrary installed compiler
-versions. Generic-parameter or earlier-field shadowing makes the affected
+name-only refusal set is generated from the pinned `bend2/base.bend` into
+the same catalog. Review the curated leaf assumptions when the profile changes;
+the catalog identity does not establish arbitrary installed compiler versions. Generic-parameter or earlier-field shadowing makes the affected
 reference unsupported. Unsupported hub, bare, absolute, malformed, or late
 imports cannot establish a binding; unsupported leading imports mark every
 root incomplete, while late imports reject the file. Unknown qualified names
 remain unresolved. No cross-language imports provide evidence, and extraction
-never executes source or fetches packages. Before any supporting capture, the
+never executes source or fetches packages. Before any supporting project-file
+capture, the
 shared resolver applies containment, selection, exclusions, Git-ignore, symlink,
 and graph-budget checks. Captures are shared across roots for an observation;
-freshness includes contributing source and import bindings. Static reference
+freshness includes contributing source and import bindings. Bundled declarations
+consume the same source-byte, declaration, traversal, and tree budgets as other
+supporting evidence. Their bytes and origin participate in semantic identity;
+project captures retain their ordinary freshness checks. Static reference
 cycles terminate in the evidence graph; this does not establish that the compiler
 can load an import cycle.
 
-Quantity-polymorphic kinds, term applications,
+Computed kinds and quantity arguments, other term applications,
 dependent fields, proof/equality terms, function/product/sum types, reusable
 `+` types, and unsupported parameter forms remain explicit omissions.
 Multiline constructors and other indentation styles remain incomplete evidence;

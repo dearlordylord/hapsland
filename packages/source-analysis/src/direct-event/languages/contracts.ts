@@ -24,6 +24,8 @@ export type GraphReference = {
   readonly kind: "named" | "unsupported"
   readonly name: string
   readonly expectedKind?: "type" | "function"
+  /** Explicit identity for language-owned supporting evidence, never a project lookup. */
+  readonly targetId?: string
 }
 export type GraphDeclaration = {
   readonly artifact: TypeDeclaration
@@ -35,10 +37,12 @@ export type GraphDeclaration = {
   }
 }
 export type GraphFile = {
+  readonly supportingDeclarations?: ReadonlyMap<string, GraphDeclaration>
   readonly declarations: ReadonlyMap<string, GraphDeclaration>
   readonly imports: ReadonlyMap<string, { readonly path: string; readonly name: string }>
 }
 export type GraphFacts = {
+  readonly supportingDeclarations?: GraphFile["supportingDeclarations"]
   readonly declarations: ReadonlyMap<
     string,
     { readonly artifact: ReviewArtifact; readonly references: readonly GraphReference[]; readonly exported: boolean }
@@ -74,6 +78,7 @@ export type LanguageAdapter = {
   analyzeFunctions?(path: string, source: string): import("./function-facts.ts").FunctionFileAnalysis | undefined
   parseTypes(path: string, source: string, allowImports?: boolean): TypeExtractionFailure | readonly GraphDeclaration[]
   inspect(path: string, source: string): GraphFile | undefined
+  supportingTypes?(path: string, source: string): ReadonlyMap<string, GraphDeclaration>
   hasImports(source: string): boolean
   combinedPreflight(
     path: string,

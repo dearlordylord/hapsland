@@ -105,7 +105,9 @@
     "format:check": "python3 scripts/bend-format.py check",
     "interaction:diagrams:write": "npm run docs:generate",
     "interaction:diagrams:check": "npm run docs:generated:check",
-    "typecheck:source": "node scripts/pinned-typescript.mjs -p tsconfig.json --noEmit && node scripts/package-graph.mjs --check && node scripts/generate-release-identity.mjs --check && node scripts/check-development-imports.mjs"
+    "typecheck:source": "node scripts/pinned-typescript.mjs -p tsconfig.json --noEmit && node scripts/package-graph.mjs --check && node scripts/generate-release-identity.mjs --check && node scripts/check-development-imports.mjs",
+    "bend:base:generate": "node scripts/generate-bend-base-evidence.mjs --update",
+    "bend:base:check": "node scripts/generate-bend-base-evidence.mjs --check"
   },
   "devDependencies": {
     "@babel/parser": "catalog:",
