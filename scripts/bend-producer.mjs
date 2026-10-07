@@ -1,6 +1,7 @@
 import { verifyAuthoredInputStamp } from "./authored-task-inputs.mjs"
 import { readPackageGraph } from "./package-graph.mjs"
 import { readBendToolchain } from "./bend-toolchain.mjs"
+import { spawnSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import {
   existsSync,
@@ -50,6 +51,12 @@ export const bendProducerEnvironmentKeys = Object.freeze([
   "LD_LIBRARY_PATH",
   "LD_PRELOAD",
   "LD_AUDIT",
+  "DYLD_LIBRARY_PATH",
+  "DYLD_FRAMEWORK_PATH",
+  "DYLD_FALLBACK_LIBRARY_PATH",
+  "DYLD_FALLBACK_FRAMEWORK_PATH",
+  "DYLD_INSERT_LIBRARIES",
+  "DYLD_ROOT_PATH",
   "LANG",
   "LC_ALL",
   "LC_CTYPE",
@@ -311,16 +318,41 @@ function toolchainCore(root, env) {
     ].map((path) => evidence(root, resolve(root, path)))
   }
 }
-export function bendDarwinLibraries(text) {
-  const lines = text.trim().split(/\r?\n/)
-  if (!lines.shift()?.endsWith(":")) throw new Error("Missing Darwin compiler library header")
-  const paths = lines.map((line) => {
-    const match = line.trim().match(/^(\/[^\n]+) \(compatibility version [^,]+, current version [^)]+\)$/)
-    if (!match) throw new Error("Unsupported Darwin compiler library resolution")
-    return match[1]
-  })
-  if (!paths.length) throw new Error("Missing Darwin compiler shared-library evidence")
-  return [...new Set(paths)].sort()
+// The loader supplies resolved paths, including transitive dependencies. Unlike
+// install names from otool, this accounts for actual @rpath/relative selection.
+export function bendDarwinLoadedLibraries(text, executable) {
+  const paths = text
+    .trim()
+    .split(/\r?\n/)
+    .filter((line) => line && !/^dyld\[\d+\]: move loaded to delayed: [^\n]+$/.test(line))
+    .map((line) => {
+      const match = line.match(/^dyld\[\d+\]: <[A-Fa-f0-9-]{36}> (\/[^\n]+)$/)
+      if (!match) throw new Error("Unsupported Darwin loaded-library evidence")
+      return match[1]
+    })
+  if (!paths.length) throw new Error("Missing Darwin loaded-library evidence")
+  if (!paths.includes(executable)) throw new Error("Missing Darwin executable loader evidence")
+  const libraries = [...new Set(paths.filter((path) => path !== executable))].sort()
+  if (!libraries.length) throw new Error("Missing Darwin loaded-library evidence")
+  return libraries
+}
+const observeDarwinLibraries = (root, tools, env) => {
+  const paths = new Set()
+  for (const [tool, args] of tools) {
+    const executable = realpathSync(tool)
+    // These existing toolchain probes are bounded and do not evaluate user code.
+    const result = spawnSync(executable, args, {
+      cwd: root,
+      env: { ...env, DYLD_PRINT_LIBRARIES: "1" },
+      timeout: 5000,
+      encoding: "utf8",
+      stdio: ["ignore", "ignore", "pipe"]
+    })
+    if (result.error || result.status !== 0)
+      throw new Error("Darwin toolchain loader observation failed", { cause: result.error })
+    for (const path of bendDarwinLoadedLibraries(result.stderr, executable)) paths.add(path)
+  }
+  return [...paths].sort()
 }
 export async function bendProducerToolchain(root) {
   const env = bendProducerEnvironment(root)
@@ -329,18 +361,28 @@ export async function bendProducerToolchain(root) {
   const version = await runBuildProcess(executable, ["version"], { cwd: root, env, timeout: 5000, stdio: "pipe" })
   if (version.stdout.trim() !== core.version)
     throw new Error(`Bend producer requires exact ${core.version}; observed ${version.stdout.trim()}`)
-  const ldd = nativeToolSelection(root, process.platform === "linux" ? "ldd" : "otool", env)
+  const libraryObserver = nativeToolSelection(root, process.platform === "linux" ? "ldd" : "/usr/lib/dyld", env)
   const libraryPaths = new Set()
-  for (const tool of [executable, resolve(root, core.node.path)]) {
-    const libraries = await runBuildProcess(
-      resolve(root, ldd.path),
-      process.platform === "linux" ? [tool] : ["-L", tool],
-      { cwd: root, env, timeout: 5000, stdio: "pipe" }
-    )
-    for (const path of process.platform === "linux"
-      ? nativeToolLibraries(libraries.stdout)
-      : bendDarwinLibraries(libraries.stdout))
+  if (process.platform === "darwin") {
+    for (const path of observeDarwinLibraries(
+      root,
+      [
+        [executable, ["version"]],
+        [resolve(root, core.node.path), ["--version"]]
+      ],
+      env
+    ))
       libraryPaths.add(path)
+  } else {
+    for (const tool of [executable, resolve(root, core.node.path)]) {
+      const libraries = await runBuildProcess(resolve(root, libraryObserver.path), [tool], {
+        cwd: root,
+        env,
+        timeout: 5000,
+        stdio: "pipe"
+      })
+      for (const path of nativeToolLibraries(libraries.stdout)) libraryPaths.add(path)
+    }
   }
   const sharedCachePaths = ["/System/Library/dyld", "/System/Volumes/Preboot/Cryptexes/OS/System/Library/dyld"]
   const sharedCaches =
@@ -352,7 +394,7 @@ export async function bendProducerToolchain(root) {
     if (
       process.platform !== "darwin" ||
       !sharedCaches.length ||
-      (!path.startsWith("/usr/lib/") && !path.startsWith("/System/Library/Frameworks/"))
+      (!path.startsWith("/usr/lib/") && !path.startsWith("/System/Library/"))
     )
       throw new Error(`Unaccounted Bend compiler shared library: ${path}`)
     return { requested: path, sharedCache: true }
@@ -360,25 +402,38 @@ export async function bendProducerToolchain(root) {
   const after = toolchainCore(root, env)
   if (JSON.stringify(core) !== JSON.stringify(after))
     throw new Error("Bend compiler inputs changed during toolchain observation")
-  return { ...core, ldd, toolLibraries, sharedCaches }
+  return { ...core, libraryObserver, toolLibraries, sharedCaches }
 }
 export async function bendProducerContext(root, node) {
   return contextInputs(root, node, await bendProducerToolchain(root))
 }
 const currentToolchain = (root, recorded) => {
   const core = toolchainCore(root, bendProducerEnvironment(root))
-  const { ldd, toolLibraries, sharedCaches, ...before } = recorded
+  const { libraryObserver, toolLibraries, sharedCaches, ...before } = recorded
   if (JSON.stringify(core) !== JSON.stringify(before)) throw new Error("Changed Bend producer toolchain context")
-  const actualLdd = nativeToolSelection(
+  const actualObserver = nativeToolSelection(
     root,
-    process.platform === "linux" ? "ldd" : "otool",
+    process.platform === "linux" ? "ldd" : "/usr/lib/dyld",
     bendProducerEnvironment(root)
   )
-  if (JSON.stringify(actualLdd) !== JSON.stringify(ldd)) throw new Error("Changed Bend producer library observer")
+  if (JSON.stringify(actualObserver) !== JSON.stringify(libraryObserver))
+    throw new Error("Changed Bend producer library observer")
   if (!Array.isArray(toolLibraries) || !toolLibraries.length) throw new Error("Missing Bend compiler library evidence")
   for (const cache of sharedCaches ?? [])
     if (JSON.stringify(nativeDirectoryInventory(cache.path, true)) !== JSON.stringify(cache.inventory))
       throw new Error("Changed Bend compiler system shared cache")
+  if (process.platform === "darwin") {
+    const actual = observeDarwinLibraries(
+      root,
+      [
+        [resolve(root, core.bend.path), ["version"]],
+        [resolve(root, core.node.path), ["--version"]]
+      ],
+      bendProducerEnvironment(root)
+    )
+    if (JSON.stringify(actual) !== JSON.stringify(toolLibraries.map((input) => input.requested).sort()))
+      throw new Error("Changed Bend compiler loaded-library selection")
+  }
   for (const input of toolLibraries)
     if (
       input.sharedCache
