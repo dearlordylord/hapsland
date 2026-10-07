@@ -4,7 +4,8 @@ export const qualityPreflight = [
   "--test",
   "scripts/test-harness/run-checks.test.mjs",
   "scripts/test-harness/immediate-errors.test.mjs",
-  "scripts/test-harness/verification-plan.test.mjs"
+  "scripts/test-harness/verification-plan.test.mjs",
+  "scripts/test-harness/verify.test.mjs"
 ]
 export const precheckStages = [
   qualityPreflight,
@@ -59,8 +60,7 @@ export const precheckStages = [
     "scripts/native-bindings.test.mjs",
     "scripts/native-pi-preflight.test.mjs",
     "scripts/native-process.test.mjs",
-    "scripts/test-harness/bun-coverage.test.mjs",
-    "scripts/test-harness/verify.test.mjs"
+    "scripts/test-harness/bun-coverage.test.mjs"
   ],
   [
     "build-workflow",

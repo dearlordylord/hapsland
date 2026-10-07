@@ -13,7 +13,12 @@ async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), "hapsland-checks-"))
   t.after(() => rm(root, { recursive: true, force: true }))
   await mkdir(join(root, "scripts/test-harness"), { recursive: true })
-  for (const file of ["run-checks.test.mjs", "immediate-errors.test.mjs", "verification-plan.test.mjs"])
+  for (const file of [
+    "run-checks.test.mjs",
+    "immediate-errors.test.mjs",
+    "verification-plan.test.mjs",
+    "verify.test.mjs"
+  ])
     await writeFile(join(root, "scripts/test-harness", file), "// Passing prerequisite fixture\n")
   return root
 }

@@ -43,10 +43,17 @@ test("quality profile rejects missing acknowledgment before creating run state",
 test("acknowledged quality profile retains failed prerequisites without starting coverage", async (t) => {
   const root = await fixture(t)
   await mkdir(join(root, "scripts/test-harness"))
-  for (const name of ["run-checks.test.mjs", "verification-plan.test.mjs"])
+  for (const name of ["run-checks.test.mjs", "verification-plan.test.mjs", "verify.test.mjs"])
     await writeFile(join(root, "scripts/test-harness", name), "// Passing prerequisite fixture\n")
   await writeFile(join(root, "scripts/test-harness/immediate-errors.test.mjs"), "throw new Error('profile witness')")
-  assert.equal(await verify(["--profile=quality", "--ack-checks-policy", "--timeout-ms=10000"], root), 1)
+  // This fixture owns a separate checkout, rather than joining the enclosing gate.
+  const inheritedContext = process.env.HAPSLAND_CHECK_CONTEXT
+  delete process.env.HAPSLAND_CHECK_CONTEXT
+  try {
+    assert.equal(await verify(["--profile=quality", "--ack-checks-policy", "--timeout-ms=10000"], root), 1)
+  } finally {
+    if (inheritedContext !== undefined) process.env.HAPSLAND_CHECK_CONTEXT = inheritedContext
+  }
   const { manifest, result } = await records(root)
   assert.equal(manifest.checksPolicyAcknowledged, true)
   assert.equal(manifest.verificationPlan.profile, "quality")

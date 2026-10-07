@@ -1,0 +1,20 @@
+{
+  "runId": "20261007132743897-905705-551235",
+  "candidateCommit": "7d90689c7f9794b56c2ed0d592bcd4c53561ce0a",
+  "state": "failed",
+  "exitCode": 1,
+  "elapsedMs": 137575,
+  "independentFailure": "Public verify fixture inherited an authenticated context belonging to a different checkout; production context guard correctly rejected it.",
+  "classification": "test fixture",
+  "buildStarted": false,
+  "coverageComplete": false,
+  "scorerComplete": false,
+  "repair": "Isolate separate-checkout fixture context; move public verify tests into initial quality preflight.",
+  "focusedReproduction": {
+    "runId": "20261007133831818-955191-3f0fcc",
+    "state": "passed",
+    "elapsedMs": 8462,
+    "authenticatedParentContext": true
+  },
+  "retainedDirectory": "evidence/build-243/quality-08"
+}
