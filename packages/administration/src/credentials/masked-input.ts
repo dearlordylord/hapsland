@@ -5,7 +5,8 @@ import { JEV_KEY_ENTRY_GUIDANCE } from "../onboarding/credential-guidance.ts"
 import { JEV_PROVIDER } from "@hapsland/runtime-environment/runtime/backend"
 
 export class MaskedInputError extends Schema.TaggedError<MaskedInputError>()("MaskedInputError", {
-  message: Schema.String
+  message: Schema.String,
+  reason: Schema.Literals(["cancelled", "invalid"])
 }) {}
 
 // The secret lives only at the credential-owner boundary, never in a workflow model.
@@ -21,7 +22,9 @@ export const captureCredential = Effect.gen(function* () {
       Effect.gen(function* () {
         const value = Redacted.value(key)
         if (Buffer.byteLength(value, "utf8") > 32_768)
-          return yield* Effect.fail(new MaskedInputError({ message: "credential input is too long" }))
+          return yield* Effect.fail(
+            new MaskedInputError({ message: "credential input is too long", reason: "invalid" })
+          )
         return value
       }),
     (key) =>
@@ -40,7 +43,7 @@ export const readMaskedCredential = Effect.fn("CredentialTerminal.readMasked")(f
         opened = true
         return yield* captureCredential.pipe(Effect.provideService(InteractionService, interaction))
       }),
-    Effect.fail(new MaskedInputError({ message: "credential input cancelled" })),
+    Effect.fail(new MaskedInputError({ message: "credential input cancelled", reason: "cancelled" })),
     "controlling-terminal"
   ).pipe(
     // Prompt cleanup restores the cursor without a line break. Keep the next
@@ -55,7 +58,8 @@ export const readMaskedCredential = Effect.fn("CredentialTerminal.readMasked")(f
     Effect.catchTag("QuitError", () =>
       Effect.fail(
         new MaskedInputError({
-          message: "credential input cancelled or terminal unavailable; retry with --credential-stdin"
+          message: "credential input cancelled or terminal unavailable; retry with --credential-stdin",
+          reason: "cancelled"
         })
       )
     )

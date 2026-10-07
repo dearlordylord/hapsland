@@ -5,6 +5,7 @@ import {
   runLoginConversation,
   type LoginTransition
 } from "@hapsland/administration/credentials/login-conversation"
+import { MaskedInputError } from "@hapsland/administration/credentials/masked-input"
 import { initialLogin, reduceLogin } from "@hapsland/administration/credentials/login-model"
 import { makeInitialCredentialState } from "@hapsland/runtime-inputs/credentials/state"
 import type { CredentialLifecycleResult } from "@hapsland/credential-storage/credentials/secret-service"
@@ -163,3 +164,35 @@ it("login rejects stale and foreign completions and does not abandon an in-fligh
   expect(reduceLogin(saving, { revision: 2, action: { kind: "entered", commandId: 2 } })).toBe(saving)
   expect(reduceLogin(saving, { revision: 1, action: { kind: "input-ended", commandId: 1 } })).toBe(saving)
 })
+
+it.effect.each([
+  new MaskedInputError({ message: "credential input is too long", reason: "invalid" }),
+  new Error("controlled stdin read failure")
+])("input errors propagate instead of being described as cancellation", (failure) =>
+  Effect.gen(function* () {
+    let saves = 0
+    const transitions: LoginTransition[] = []
+    const result = yield* runLoginConversation({
+      input: Effect.fail(failure),
+      inputKind: "stdin",
+      observe: (transition) =>
+        Effect.sync(() => {
+          transitions.push(transition)
+        })
+    }).pipe(
+      Effect.provideService(LoginOwnerService, {
+        probe: Effect.succeed("available" as const),
+        save: () =>
+          Effect.sync(() => {
+            saves++
+            return stored
+          })
+      }),
+      Effect.result
+    )
+    expect(result._tag).toBe("Failure")
+    expect(saves).toBe(0)
+    expect(transitions.at(-1)?.after.phase).toBe("EnteringKey")
+    expect(transitions.some((transition) => transition.after.phase === "Cancelled")).toBe(false)
+  })
+)
