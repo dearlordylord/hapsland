@@ -7,6 +7,11 @@ import { fileURLToPath } from "node:url"
 import { sourceTypeEvidence } from "./source-type-evidence.mjs"
 import { loaderPolicy } from "./source-loader-policy.mjs"
 import { readPackageGraph, resolveWorkspaceSource } from "./package-graph.mjs"
+import { bendProducerOutputs } from "./bend-producer.mjs"
+
+const bendGeneratedJavaScript = new Set(
+  bendProducerOutputs.filter((output) => output.endsWith(".js")).map((output) => `dist/${output}`)
+)
 
 export const checkWorkspaceImports = (root) => {
   const graph = readPackageGraph(root)
@@ -44,7 +49,7 @@ export const checkWorkspaceImports = (root) => {
       (declaredPolicy === "bend-system-ffi" &&
         (node.compiler !== "bend" ||
           node.manifest.name !== "@hapsland/agent-flow-bend" ||
-          !["dist/canonical.generated.js", "dist/import-graph.generated.js"].includes(relative(node.path, path)))) ||
+          !bendGeneratedJavaScript.has(relative(node.path, path).replaceAll("\\", "/")))) ||
       (declaredPolicy === "machine-clock-ffi" &&
         (node.manifest.hapsland.domain !== "runtime-environment" ||
           relative(node.path, path) !== "src/runtime/machine-clock.ts"))

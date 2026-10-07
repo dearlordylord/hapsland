@@ -1,9 +1,10 @@
 import test from "node:test"
 import assert from "node:assert/strict"
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs"
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs"
 import { resolve } from "node:path"
 import { tmpdir } from "node:os"
 import { checkWorkspaceImports } from "./check-workspace-imports.mjs"
+import { bendProducerOutputs } from "./bend-producer.mjs"
 const fixture = (t) => {
   const root = mkdtempSync(resolve(tmpdir(), "hapsland-source-isolation-"))
   t.after(() => rmSync(root, { recursive: true, force: true }))
@@ -180,4 +181,28 @@ test("rejects a generated Bend relative import escaping its producer", (t) => {
   const f = bendFixture(t)
   writeFileSync(f.generated, 'export * from "../../input/src/main.ts"')
   assert.throws(() => checkWorkspaceImports(f.root), /escapes source owner/)
+})
+
+for (const output of bendProducerOutputs.filter((name) => name.endsWith(".js")))
+  test(`accepts produced Bend JavaScript ${output} under its exact compiler owner`, (t) => {
+    const f = bendFixture(t)
+    const path = `dist/${output}`
+    f.manifest.hapsland.loaderPolicies[path] = "bend-system-ffi"
+    writeFileSync(resolve(f.directory, "package.json"), JSON.stringify(f.manifest))
+    writeFileSync(
+      resolve(f.directory, path),
+      'import { dlopen } from "bun:ffi"; export const library = dlopen("libc.so.6", {})'
+    )
+    const result = checkWorkspaceImports(f.root)
+    assert.deepEqual(result.records.find((record) => record.file.endsWith(path)).nativeLibraries, ["libc.so.6"])
+  })
+
+test("rejects produced Bend filename under a TypeScript compiler owner", (t) => {
+  const f = fixture(t)
+  const manifestPath = resolve(f.root, "packages/hook/package.json")
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"))
+  manifest.hapsland = { loaderPolicies: { "src/request-content.generated.js": "bend-system-ffi" } }
+  writeFileSync(manifestPath, JSON.stringify(manifest))
+  writeFileSync(resolve(f.root, "packages/hook/src/request-content.generated.js"), "export const value = 1")
+  assert.throws(() => checkWorkspaceImports(f.root), /different source owner/)
 })
