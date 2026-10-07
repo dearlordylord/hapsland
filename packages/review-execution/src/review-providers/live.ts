@@ -1,6 +1,7 @@
 import type * as HttpClient from "effect/http/HttpClient"
 import { liveLayer as jevLiveLayer } from "../jev-decision.ts"
 import type { ReviewSettings } from "@hapsland/review-definition/runtime/review-config"
+import { liveLayer as openaiLiveLayer } from "./openai.ts"
 import { liveLayer as cloudflareLiveLayer } from "./cloudflare.ts"
 
 export const reviewDecisionModelLayer = (settings: ReviewSettings, httpClient?: HttpClient.HttpClient) =>
@@ -10,7 +11,7 @@ export const reviewDecisionModelLayer = (settings: ReviewSettings, httpClient?: 
         credentialEnvVar: settings.credentialEnvVar,
         ...(httpClient === undefined ? {} : { httpClient })
       })
-    : cloudflareLiveLayer({
+    : (settings.backend === "openai" ? openaiLiveLayer : cloudflareLiveLayer)({
         identity: settings.providerIdentity,
         credentialEnvVar: settings.credentialEnvVar,
         ...(httpClient === undefined ? {} : { httpClient })

@@ -58,3 +58,27 @@ law project_exact:
     )
     : String
   }
+
+# OpenAI framing preserves every JSON fragment without extra fields.
+law encode_openai_exact:
+  for +model: String
+  for +input: String
+  for +questions: String
+  {
+    Core.encode_openai(model, input, questions)
+    == "{\"model\":" ++ model ++ ",\"input\":" ++ input ++ ",\"questions\":" ++ questions ++ "}"
+    : String
+  }
+
+# Explicit OpenAI projection selects input, never state or private fields.
+law project_openai_exact:
+  for +fields: List<&2, Core.Field>
+  {
+    Core.project_openai(fields)
+    == Core.encode_openai(
+      Core.lookup(fields, "model", "null"),
+      Core.lookup(fields, "input", "null"),
+      Core.lookup(fields, "questions", "null")
+    )
+    : String
+  }

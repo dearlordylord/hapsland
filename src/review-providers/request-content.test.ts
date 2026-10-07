@@ -90,4 +90,40 @@ describe("production Bend request-content boundary", () => {
       expect(calls).toBe(0)
     })
   )
+  it.effect("OpenAI profile selects only model/input/questions at the real transport", () =>
+    Effect.gen(function* () {
+      const sent: string[] = []
+      const transport = reviewHttpTransport(
+        HttpClient.make((request) => {
+          if (request.body._tag === "Uint8Array") sent.push(new TextDecoder().decode(request.body.body))
+          return Effect.succeed(HttpClientResponse.fromWeb(request, new Response("{}")))
+        }),
+        "openai"
+      )
+      const allowed = {
+        model: "gpt-6-luna",
+        input: JSON.stringify({ source: "日本語🦊" }),
+        questions: [{ type: "predicate", name: "q0", instructions: "Check" }]
+      }
+      yield* transport.execute(
+        HttpClientRequest.post("https://offline.invalid").pipe(
+          HttpClientRequest.bodyText(
+            JSON.stringify({ ...allowed, state: "PRIVATE", prompt: "PRIVATE", transcript: "PRIVATE" }),
+            "application/json"
+          )
+        )
+      )
+      expect(sent).toEqual([JSON.stringify(allowed)])
+      expect(reviewRequestContent(bytes({ state: "PRIVATE", model: "gpt-6-luna" }), "openai")).toBe(
+        '{"model":"gpt-6-luna","input":null,"questions":null}'
+      )
+      for (const value of [null, false, 0, "", 'quote"\\\n🦊', [], {}]) {
+        const fields = { model: value, input: value, questions: value }
+        expect(reviewRequestContent(bytes({ ...fields, state: "PRIVATE" }), "openai")).toBe(JSON.stringify(fields))
+      }
+      expect(reviewRequestContent(bytes({ ...allowed, state: "approved state" }))).toBe(
+        JSON.stringify({ model: allowed.model, state: "approved state", questions: allowed.questions })
+      )
+    })
+  )
 })

@@ -80,37 +80,39 @@ it.effect("does not treat a malformed success response as a verified key", () =>
   })
 )
 
-it.effect.each(["decline", "cloudflare", "missing", "accept"] as const)("offers verification safely: %s", (scenario) =>
-  Effect.gen(function* () {
-    const output: string[] = []
-    let prompts = 0
-    let calls = 0
-    yield* offerJevKeyVerification({
-      provider: scenario === "cloudflare" ? "cloudflare" : "jev",
-      credential:
-        scenario === "missing"
-          ? { status: "missing", source: "saved", generation: 0 }
-          : { status: "present", source: "saved", generation: 0, value: "private-key" },
-      confirm: (question) =>
-        Effect.sync(() => {
-          prompts++
-          expect(question).toContain("paid credits")
-          expect(question).toContain("no project code")
-          return scenario === "accept"
-        }),
-      verify: (key) =>
-        Effect.sync(() => {
-          calls++
-          expect(Redacted.value(key)).toBe("private-key")
-          return "accepted" as const
-        }),
-      write: (text) => output.push(text)
+it.effect.each(["decline", "cloudflare", "openai", "missing", "accept"] as const)(
+  "offers verification safely: %s",
+  (scenario) =>
+    Effect.gen(function* () {
+      const output: string[] = []
+      let prompts = 0
+      let calls = 0
+      yield* offerJevKeyVerification({
+        provider: scenario === "cloudflare" || scenario === "openai" ? scenario : "jev",
+        credential:
+          scenario === "missing"
+            ? { status: "missing", source: "saved", generation: 0 }
+            : { status: "present", source: "saved", generation: 0, value: "private-key" },
+        confirm: (question) =>
+          Effect.sync(() => {
+            prompts++
+            expect(question).toContain("paid credits")
+            expect(question).toContain("no project code")
+            return scenario === "accept"
+          }),
+        verify: (key) =>
+          Effect.sync(() => {
+            calls++
+            expect(Redacted.value(key)).toBe("private-key")
+            return "accepted" as const
+          }),
+        write: (text) => output.push(text)
+      })
+      expect(calls).toBe(scenario === "accept" ? 1 : 0)
+      expect(prompts).toBe(scenario === "accept" || scenario === "decline" ? 1 : 0)
+      expect(output.join("")).not.toContain("private-key")
+      expect(output.join("")).toContain(scenario === "accept" ? "Key verified" : "not checked")
     })
-    expect(calls).toBe(scenario === "accept" ? 1 : 0)
-    expect(prompts).toBe(scenario === "accept" || scenario === "decline" ? 1 : 0)
-    expect(output.join("")).not.toContain("private-key")
-    expect(output.join("")).toContain(scenario === "accept" ? "Key verified" : "not checked")
-  })
 )
 
 it.effect.each(["rate-limited", "unconfirmed"] as const)("keeps the selected key and only warns on %s", (result) =>

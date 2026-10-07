@@ -1,9 +1,8 @@
 import { createHash } from "node:crypto"
-import { CLOUDFLARE_PROVIDER } from "@hapsland/runtime-environment/runtime/backend"
+import { REVIEW_PROVIDERS } from "@hapsland/runtime-environment/runtime/backend"
 import {
   BUILT_IN_INCLUDES,
   BUILT_IN_PROTECTED_EXCLUDES,
-  DEFAULT_CREDENTIAL_ENV_VAR,
   DEFAULT_EDIT_PERMIT_LIMITS,
   DEFAULT_INSPECTION_RETENTION_DAYS,
   DEFAULT_INSPECTION_STORAGE_BYTES,
@@ -295,10 +294,14 @@ const resolvePatterns = (layers: ReadonlyArray<ConfigurationLayer>) => {
 
 const resolveCredentialReference = (layers: ReadonlyArray<ConfigurationLayer>) => {
   const backendOwner = layers.find(
-    (layer) => layer.name === "user" && layer.document.reviewBackend?.provider === "cloudflare"
+    (layer) =>
+      layer.name === "user" &&
+      layer.document.reviewBackend !== undefined &&
+      layer.document.reviewBackend.provider !== "jev"
   )
+  const selectedProvider = backendOwner?.document.reviewBackend?.provider ?? "jev"
   let credentialEnvVar: Originated<string> = originated(
-    backendOwner === undefined ? DEFAULT_CREDENTIAL_ENV_VAR : CLOUDFLARE_PROVIDER.credentialEnvVar,
+    REVIEW_PROVIDERS[selectedProvider].credentialEnvVar,
     backendOwner === undefined
       ? { layer: "built-in", source: "built-in", field: "credentialEnvVar" }
       : origin(backendOwner, "reviewBackend")

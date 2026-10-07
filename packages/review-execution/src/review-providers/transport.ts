@@ -5,11 +5,14 @@ import { reviewRequestContent } from "./request-content.ts"
 import { inspectHttpTransport } from "@hapsland/inspection-records/inspection/transport"
 
 /** Review requests carry provider framing, not ambient agent trace context. */
-export const reviewHttpTransport = (client: HttpClient.HttpClient): HttpClient.HttpClient =>
+export const reviewHttpTransport = (
+  client: HttpClient.HttpClient,
+  profile: "state" | "openai" = "state"
+): HttpClient.HttpClient =>
   HttpClient.transformResponse(
     HttpClient.mapRequest(inspectHttpTransport(client), (request) => {
       if (request.body._tag !== "Uint8Array") throw new TypeError("review request must have a concrete JSON body")
-      return HttpClientRequest.bodyText(request, reviewRequestContent(request.body.body), "application/json")
+      return HttpClientRequest.bodyText(request, reviewRequestContent(request.body.body, profile), "application/json")
     }),
     Effect.provideService(HttpClient.TracerPropagationEnabled, false)
   )

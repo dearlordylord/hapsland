@@ -62,17 +62,31 @@ for (const path of [
 }
 const mutants = [
   {
+    name: "openai-profile-selects-state",
+    file: "packages/review-execution/src/review-providers/transport.ts",
+    before: "reviewRequestContent(request.body.body, profile)",
+    after: 'reviewRequestContent(request.body.body, "state")',
+    test: "OpenAI profile selects only model/input/questions at the real transport"
+  },
+  {
+    name: "compiled-openai-reads-state",
+    file: "packages/agent-flow-bend/dist/request-content.generated.js",
+    before: '$core$058lookup$(_fields_0, "input", "null")',
+    after: '$core$058lookup$(_fields_0, "state", "null")',
+    test: "OpenAI profile selects only model/input/questions at the real transport"
+  },
+  {
     name: "bypass-production-bend",
     file: "packages/review-execution/src/review-providers/transport.ts",
-    before: "reviewRequestContent(request.body.body)",
+    before: "reviewRequestContent(request.body.body, profile)",
     after: "new TextDecoder().decode(request.body.body)",
     test: "drops extra top-level fields at the actual shared transport"
   },
   {
     name: "compiled-bend-drops-questions",
     file: "packages/agent-flow-bend/dist/request-content.generated.js",
-    before: '_questions_0 + "}"',
-    after: '"null" + "}"',
+    before: 'function $core$058encode$(_model_0, _state_0, _questions_0) {\n  const _x_0 = (_questions_0 + "}");',
+    after: 'function $core$058encode$(_model_0, _state_0, _questions_0) {\n  const _x_0 = ("null" + "}");',
     test: "changing private envelopes preserves exact nonempty wire contents"
   },
   {

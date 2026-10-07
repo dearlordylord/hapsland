@@ -63,6 +63,10 @@
     "./review-providers/transport": {
       "types": "./dist/review-providers/transport.d.ts",
       "default": "./dist/review-providers/transport.js"
+    },
+    "./review-providers/openai": {
+      "types": "./dist/review-providers/openai.d.ts",
+      "default": "./dist/review-providers/openai.js"
     }
   },
   "dependencies": {

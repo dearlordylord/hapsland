@@ -26,3 +26,9 @@ def Laws.encode_exact(model, state, questions):
 
 def Laws.project_exact(fields):
   {==}
+
+def Laws.encode_openai_exact(model, input, questions):
+  {==}
+
+def Laws.project_openai_exact(fields):
+  {==}

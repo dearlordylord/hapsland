@@ -41,8 +41,8 @@ native Effect is still settling. Late and duplicate callbacks retain their
 original work identity and cannot authorize a new result for superseded work.
 This prevents reuse of a charged request slot before the old effect ends.
 
-The [provider layer](../packages/review-execution/src/review-providers/live.ts) selects Jev or Cloudflare
-through Effect's `DecisionModel` integration. Both use the shared resident
+The [provider layer](../packages/review-execution/src/review-providers/live.ts) selects Jev, Cloudflare or OpenAI
+through Effect's `DecisionModel` integration. All three use the shared resident
 request lifecycle; selecting Cloudflare does not create another eight-slot
 pool. Internal `jevRequest` event names refer to that shared lifecycle.
 

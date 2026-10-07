@@ -14,6 +14,13 @@ export const CLOUDFLARE_PROVIDER = {
   name: "Cloudflare",
   credentialEnvVar: "CLOUDFLARE_API_TOKEN"
 } as const
-export const REVIEW_PROVIDERS = { [JEV_PROVIDER.id]: JEV_PROVIDER, [CLOUDFLARE_PROVIDER.id]: CLOUDFLARE_PROVIDER }
-export type BackendId = "jev" | "cloudflare"
+export const OPENAI_API_BASE = "https://api.openai.com/v1" as const
+export const OPENAI_DESTINATION = "https://api.openai.com/v1/decisions" as const
+export const OPENAI_PROVIDER = { id: "openai", name: "OpenAI", credentialEnvVar: "OPENAI_API_KEY" } as const
+export const REVIEW_PROVIDERS = {
+  [JEV_PROVIDER.id]: JEV_PROVIDER,
+  [CLOUDFLARE_PROVIDER.id]: CLOUDFLARE_PROVIDER,
+  [OPENAI_PROVIDER.id]: OPENAI_PROVIDER
+}
+export type BackendId = keyof typeof REVIEW_PROVIDERS
 export type Destination = string

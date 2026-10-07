@@ -118,6 +118,10 @@ export interface GraphLimitsSettings extends Schema.Schema.Type<typeof GraphLimi
  * empty selection.
  */
 export const ReviewBackendSettings = Schema.Union([
+  Schema.Struct({
+    provider: Schema.Literal("openai").annotate({ description: "Review backend provider." }),
+    model: Schema.Literal("gpt-6-luna").annotate({ description: "OpenAI Decisions model selector." })
+  }),
   Schema.Struct({ provider: Schema.Literal("jev").annotate({ description: "Review backend provider." }) }),
   Schema.Struct({
     provider: Schema.Literal("cloudflare").annotate({ description: "Review backend provider." }),
@@ -129,7 +133,7 @@ export const ReviewBackendSettings = Schema.Union([
 ]).annotate({
   identifier: "ReviewBackendSettings",
   description:
-    "User-owned review destination. Jev is the default; Cloudflare requires a model and account ID. Projects cannot set this field."
+    "User-owned review destination. Jev is the default; Cloudflare requires a model and account ID; OpenAI requires a Decisions model. Projects cannot set this field."
 })
 export type ReviewBackendSettings = typeof ReviewBackendSettings.Type
 

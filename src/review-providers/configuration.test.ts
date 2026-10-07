@@ -54,4 +54,38 @@ describe("review provider configuration authority", () => {
     expect(policy({ ...cloudflare, accountId: "b".repeat(32) }).digest).not.toBe(first.digest)
     expect(providerIdentity(effectiveReviewBackend(first)).destination).toContain(`/accounts/${cloudflare.accountId}/`)
   })
+  it("binds OpenAI selection and its user-owned credential reference", () => {
+    const openai = { provider: "openai", model: "gpt-6-luna" } as const
+    const policy = resolveConfiguration([
+      { name: "user", source: "user", document: { version: 1, reviewBackend: openai } },
+      { name: "project", source: "project", document: { version: 1, credentialEnvVar: "PROJECT_KEY" } }
+    ])
+    expect(effectiveReviewBackend(policy)).toEqual(openai)
+    expect(policy.credentialEnvVar.value).toBe("OPENAI_API_KEY")
+    expect(policy.credentialEnvVar.origin.layer).toBe("user")
+    expect(() => validateCapturedPolicy(policy)).not.toThrow()
+    expect(providerIdentity(openai)).toEqual({
+      provider: "openai",
+      model: "gpt-6-luna",
+      destination: "https://api.openai.com/v1/decisions"
+    })
+    expect(policy.digest).not.toBe(resolveConfiguration([]).digest)
+    const explicit = resolveConfiguration([
+      {
+        name: "user",
+        source: "user",
+        document: { version: 1, reviewBackend: openai, credentialEnvVar: "MY_OPENAI_KEY" }
+      }
+    ])
+    expect(explicit.credentialEnvVar.value).toBe("MY_OPENAI_KEY")
+    expect(() =>
+      resolveConfiguration([{ name: "project", source: "project", document: { version: 1, reviewBackend: openai } }])
+    ).toThrowError(expect.objectContaining({ field: "reviewBackend" }))
+    for (const reviewBackend of [
+      { provider: "openai" },
+      { ...openai, model: "gpt-other" },
+      { ...openai, endpoint: "https://other.invalid" }
+    ])
+      expect(() => decodeConfigurationDocument({ version: 1, reviewBackend }, "user")).toThrow()
+  })
 })

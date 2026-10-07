@@ -11,45 +11,38 @@ import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientRequest from "effect/http/HttpClientRequest"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import type { ProviderIdentity } from "@hapsland/review-definition/review-providers/catalog"
+import { OPENAI_DESTINATION } from "@hapsland/runtime-environment/runtime/backend"
 import { probabilityRequest, requestLimitViolation, type ProbabilityRule } from "./request.ts"
 
-assertReviewEngineBoundary("cloudflare")
+assertReviewEngineBoundary("openai")
 
+const TokenCount = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))
 const ResponseBody = Schema.Struct({
-  success: Schema.Literal(true),
-  errors: Schema.Array(Schema.Unknown).check(Schema.isMaxLength(0)),
-  result: Schema.Struct({
-    model: Schema.String,
-    answers: Schema.Record(
-      Schema.String,
-      Schema.Struct({
-        type: Schema.Literal("noul"),
-        noul: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 }))
-      })
-    ),
-    usage: Schema.optionalKey(
-      Schema.Struct({
-        input_tokens: Schema.optionalKey(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))),
-        output_tokens: Schema.optionalKey(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))
-      })
-    )
-  })
+  model: Schema.String,
+  answers: Schema.Array(
+    Schema.Struct({
+      type: Schema.Literal("predicate"),
+      name: Schema.String,
+      probability: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 }))
+    })
+  ),
+  usage: Schema.Struct({ input_tokens: TokenCount, output_tokens: TokenCount })
 })
 
 const inputError = (description: string) =>
   AiError.make({
-    module: "CloudflareDecisionModel",
+    module: "OpenAIDecisionModel",
     method: "decide",
     reason: new AiError.InvalidUserInputError({ description })
   })
 const outputError = () =>
   AiError.make({
-    module: "CloudflareDecisionModel",
+    module: "OpenAIDecisionModel",
     method: "decide",
-    reason: new AiError.InvalidOutputError({ description: "Cloudflare returned an invalid decision response" })
+    reason: new AiError.InvalidOutputError({ description: "OpenAI returned an invalid decision response" })
   })
 
-const probabilityRules = Effect.fn("CloudflareDecisionModel.probabilityRules")(function* (
+const probabilityRules = Effect.fn("OpenAIDecisionModel.probabilityRules")(function* (
   decisions: Readonly<Record<string, import("effect/ai").Decision.Any>>
 ) {
   const rules: ProbabilityRule[] = []
@@ -61,28 +54,26 @@ const probabilityRules = Effect.fn("CloudflareDecisionModel.probabilityRules")(f
   return rules
 })
 
-const decodeAnswers = Effect.fn("CloudflareDecisionModel.decodeAnswers")(function* (
+const decodeAnswers = Effect.fn("OpenAIDecisionModel.decodeAnswers")(function* (
   response: typeof ResponseBody.Type,
   ids: Readonly<Record<string, string>>,
   model: string
 ) {
-  const wireAnswers = response.result.answers
-  if (
-    response.result.model !== model ||
-    Object.keys(wireAnswers).length !== Object.keys(ids).length ||
-    Object.keys(wireAnswers).some((id) => !Object.hasOwn(ids, id))
-  )
+  if (response.model !== model || response.answers.length !== Object.keys(ids).length)
     return yield* Effect.fail(outputError())
+  const seen = new Set<string>()
   const answers: Record<string, DecisionModel.ProviderAnswer> = Object.create(null)
-  for (const [wireId, id] of Object.entries(ids)) {
-    const answer = wireAnswers[wireId]
-    if (answer === undefined) return yield* Effect.fail(outputError())
-    answers[id] = { _tag: "Probability", probability: answer.noul }
+  for (const answer of response.answers) {
+    if (!Object.hasOwn(ids, answer.name) || seen.has(answer.name)) return yield* Effect.fail(outputError())
+    seen.add(answer.name)
+    const id = ids[answer.name]
+    if (id === undefined) return yield* Effect.fail(outputError())
+    answers[id] = { _tag: "Probability", probability: answer.probability }
   }
   return answers
 })
 
-/** One Workers AI REST request, without retries or alternate destinations. */
+/** One OpenAI Decisions request. Refusal of any question fails the complete review unit. */
 export const liveLayer = (options: {
   readonly identity: ProviderIdentity
   readonly credentialEnvVar: string
@@ -95,12 +86,13 @@ export const liveLayer = (options: {
       const transport = yield* HttpClient.HttpClient
       const client = HttpClient.filterStatusOk(transport)
       return yield* DecisionModel.make({
-        decide: Effect.fn("CloudflareDecisionModel.decide")(function* ({ state, decisions }) {
+        decide: Effect.fn("OpenAIDecisionModel.decide")(function* ({ state, decisions }) {
           if (
-            options.identity.provider !== "cloudflare" ||
-            (options.identity.model !== "clef" && options.identity.model !== "clef-flash")
+            options.identity.provider !== "openai" ||
+            options.identity.model !== "gpt-6-luna" ||
+            options.identity.destination !== OPENAI_DESTINATION
           ) {
-            return yield* Effect.fail(inputError("invalid Cloudflare model selection"))
+            return yield* Effect.fail(inputError("invalid OpenAI model selection"))
           }
           const rules = yield* probabilityRules(decisions)
           const request = probabilityRequest(options.identity.model, state, rules)
@@ -124,10 +116,7 @@ export const liveLayer = (options: {
           const answers = yield* decodeAnswers(response, request.ids, options.identity.model)
           return {
             answers,
-            usage: {
-              inputTokens: response.result.usage?.input_tokens,
-              outputTokens: response.result.usage?.output_tokens
-            }
+            usage: { inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens }
           }
         })
       })
@@ -135,9 +124,10 @@ export const liveLayer = (options: {
   ).pipe(
     Layer.provide(
       options.httpClient === undefined
-        ? Layer.effect(HttpClient.HttpClient, Effect.map(HttpClient.HttpClient, reviewHttpTransport)).pipe(
-            Layer.provide(FetchHttpClient.layer)
-          )
-        : Layer.succeed(HttpClient.HttpClient, reviewHttpTransport(options.httpClient))
+        ? Layer.effect(
+            HttpClient.HttpClient,
+            Effect.map(HttpClient.HttpClient, (client) => reviewHttpTransport(client, "openai"))
+          ).pipe(Layer.provide(FetchHttpClient.layer))
+        : Layer.succeed(HttpClient.HttpClient, reviewHttpTransport(options.httpClient, "openai"))
     )
   )

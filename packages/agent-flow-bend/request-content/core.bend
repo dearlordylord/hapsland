@@ -20,3 +20,14 @@ def project(+fields: List<&2, Field>) -> String:
     lookup(fields, "state", "null"),
     lookup(fields, "questions", "null")
   )
+
+# OpenAI has the same isolation boundary with its dedicated input field name.
+def encode_openai(model: String, input: String, questions: String) -> String:
+  "{\"model\":" ++ model ++ ",\"input\":" ++ input ++ ",\"questions\":" ++ questions ++ "}"
+
+def project_openai(+fields: List<&2, Field>) -> String:
+  encode_openai(
+    lookup(fields, "model", "null"),
+    lookup(fields, "input", "null"),
+    lookup(fields, "questions", "null")
+  )

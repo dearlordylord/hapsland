@@ -7,3 +7,4 @@ export type RequestFields =
       readonly tail: RequestFields
     }
 export declare const projectRequestContent: (fields: RequestFields) => string
+export declare const projectOpenAIRequestContent: (fields: RequestFields) => string

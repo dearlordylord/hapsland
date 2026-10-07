@@ -11,7 +11,8 @@ import {
   JEV_API_BASE,
   JEV_DESTINATION,
   JEV_PROVIDER,
-  CLOUDFLARE_PROVIDER
+  REVIEW_PROVIDERS,
+  type BackendId
 } from "@hapsland/runtime-environment/runtime/backend"
 import {
   resolveCredential,
@@ -70,7 +71,7 @@ const messages: Readonly<Record<KeyVerification, string>> = {
 }
 
 type KeyVerificationOptions = {
-  readonly provider: "jev" | "cloudflare"
+  readonly provider: BackendId
   readonly credential: CredentialResolution
   readonly confirm: (question: string) => Effect.Effect<boolean, unknown>
   readonly write: (text: string) => void
@@ -85,7 +86,7 @@ const selectedKeyForVerification = Effect.fn("Onboarding.selectedKeyForVerificat
 ) {
   if (options.provider !== "jev") {
     options.write(
-      `${formatOutcome("info", `${CLOUDFLARE_PROVIDER.name} key validity was not checked; the ${JEV_PROVIDER.name} check does not apply to this backend.`)}\n`
+      `${formatOutcome("info", `${REVIEW_PROVIDERS[options.provider].name} key validity was not checked; the ${JEV_PROVIDER.name} check does not apply to this backend.`)}\n`
     )
     return undefined
   }

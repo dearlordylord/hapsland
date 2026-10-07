@@ -4512,7 +4512,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (job.round !== undefined) yield* residentRetireRoundUnit(job.round, job.workUnitId)
   })
   const residentSettingsEnvironmentOnly = (settings: ReviewSettingsSnapshot): boolean =>
-    settings.backend === "cloudflare" || settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in"
+    settings.backend !== "jev" || settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in"
   const residentRetainedCredentialRequired = (dispatch: ResidentDispatchContext): boolean =>
     dispatch.controlled === null || dispatch.controlled.requireCredential === true
   const residentRetainedCredentialFields = (job: UnitJob) => {

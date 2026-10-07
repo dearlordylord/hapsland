@@ -21,7 +21,7 @@ const laws = new Map(
     return [name, { body, binders, claim, premises }]
   })
 )
-assert.equal(laws.size, 5)
+assert.equal(laws.size, 7)
 const imports = "import Base\nimport ./core.bend as Core\n"
 const instances = []
 const add = (name, at) => {
@@ -57,6 +57,10 @@ for (const value of values) {
     add("encode_exact", { model: quote(value), state: quote(fallback), questions: '"{}"' })
     add("project_exact", {
       fields: `Core.Field{"prompt", ${quote(value)}} <> Core.Field{"state", ${quote(fallback)}} <> Nil{}`
+    })
+    add("encode_openai_exact", { model: quote(value), input: quote(fallback), questions: '"[]"' })
+    add("project_openai_exact", {
+      fields: `Core.Field{"prompt", ${quote(value)}} <> Core.Field{"state", ${quote(value)}} <> Core.Field{"input", ${quote(fallback)}} <> Nil{}`
     })
   }
 }

@@ -159,15 +159,16 @@ implicit host clock.
 
 ## Content isolation proofs
 
-The production HTTP boundary for both Jev and Cloudflare calls
+The production HTTP boundary for Jev, Cloudflare and OpenAI calls
 [`request-content/core.bend`](request-content/core.bend), compiled into
 `dist/request-content.generated.js` by the [producer](scripts/build-request-content.mjs).
 The [host bridge](../review-execution/src/review-providers/request-content.ts) parses the provider's
 JSON object and encodes **every** top-level field into the Bend ABI. Bend selects
-only `model`, `state`, and `questions` and constructs the outgoing body. Inspection
+only `model`, `state`, and `questions` for Jev/Cloudflare, or `model`, `input`, and
+`questions` for the explicit OpenAI profile, and constructs the outgoing body. Inspection
 observes this final body through a defensive copy; ambient trace propagation is disabled.
 
-The five [laws](request-content/LAWS.bend) and [proofs](request-content/PROOF.bend)
+The seven [laws](request-content/LAWS.bend) and [proofs](request-content/PROOF.bend)
 cover the actual functions used by production:
 
 - Empty lookup preserves its fallback.
@@ -175,6 +176,9 @@ cover the actual functions used by production:
 - A nonmatching field leaves lookup unchanged, whatever its value.
 - Encoding preserves the three supplied JSON fragments with exact fixed framing.
 - Projection constructs the body exclusively from the three named lookups.
+- OpenAI encoding preserves its three JSON fragments with exact fixed framing.
+- OpenAI projection selects only `model`, `input`, and `questions`, including when
+  both `input` and `state` are supplied.
 
 Missing fields become JSON `null`; normal provider validation supplies all three.
 JSON parsing resolves duplicate keys before the bridge, following native JSON semantics.
@@ -182,8 +186,8 @@ There is no private-envelope, request-history, retry, recovery or scheduler mode
 this proof. The earlier disconnected content model has been deleted.
 
 Run `npm run test:content-isolation`. Use Bend 2.0.35 on PATH or set
-`HAPSLAND_CONTENT_BEND` to its executable. The gate checks 320 literal instances and
-all equality premises, rejects five compiling mutants at their own law proofs,
+`HAPSLAND_CONTENT_BEND` to its executable. The gate checks 448 literal instances and
+all equality premises, rejects seven compiling mutants at their own law proofs,
 requires the BendTT kernel verdict, and verifies that disabling the kernel fails.
 It freshly compiles the production source and compares the complete JavaScript
 artifact byte for byte. Build validation repeats that comparison; packaging copies
@@ -191,11 +195,12 @@ the artifact into the runtime. Every compiler call has a five-second deadline.
 To regenerate after an intentional source change, run
 `node packages/agent-flow-bend/scripts/build-request-content.mjs` from the repository root.
 
-The root gate also runs five [production mutants](../../scripts/check-content-wire-mutants.mjs):
-bypassing Bend, corrupting its compiled question encoder, injecting private text
+The root gate also runs seven [production mutants](../../scripts/check-content-wire-mutants.mjs):
+selecting the state profile for OpenAI, reading state instead of input in the
+compiled OpenAI projector, bypassing Bend, corrupting its compiled question encoder, injecting private text
 into source upstream, sharing the inspection buffer, and propagating ambient traces.
 Each must fail a named assertion; compilation errors and timeouts do not count.
-Tests check the shared transport, both providers, a Jev loopback socket, Unicode and
+Tests check the shared transport, all three providers, a Jev loopback socket, Unicode and
 JSON values, a three-megabyte source, and 20,000 extra fields. The generated lookup
 uses a loop rather than recursion on the JavaScript stack.
 

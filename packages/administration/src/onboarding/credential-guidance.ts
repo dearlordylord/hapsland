@@ -11,7 +11,7 @@ const Source = Schema.Struct({
   file: Schema.optionalKey(Schema.String),
   envVar: Schema.String,
   environmentOnly: Schema.Boolean,
-  provider: Schema.Literals(["jev", "cloudflare"])
+  provider: Schema.Literals(["jev", "cloudflare", "openai"])
 })
 
 export const credentialSourceGuidance = (observed: unknown, host: SetupClient, platform: NodeJS.Platform): string[] => {

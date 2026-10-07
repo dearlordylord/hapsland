@@ -43,6 +43,7 @@ at its transport boundary for callers outside that pipeline.
 | Model | Declared question limit | Declared HTTP body limit | Declared token limit | Checked on | Source |
 | --- | --- | --- | --- | --- | --- |
 | `jev-latest` | Unknown | Unknown | 64,000 per request; 32,000 for state plus longest question | 2026-10-02 | [Provider declaration](https://docs.typesafe.ai/models) |
+| `gpt-6-luna` | Unknown | Unknown | Unknown | 2026-10-07 | [Provider declaration](https://developers.openai.com/api/reference/resources/decisions/methods/create) |
 | `clef` | 64 | 13 MiB | 65,536 context window | 2026-10-02 | [Provider declaration](https://developers.cloudflare.com/workers-ai/models/clef/) |
 | `clef-flash` | 64 | 13 MiB | 65,536 context window | 2026-10-02 | [Provider declaration](https://developers.cloudflare.com/workers-ai/models/clef-flash/) |
 
@@ -119,12 +120,49 @@ and criteria, decodes the Workers AI success envelope, and requires exactly the
 requested answers and model selector. Invalid output or HTTP errors produce
 sanitized failures without raw credentials or source-bearing responses.
 
-Both providers use the shared [review transport](../packages/review-execution/src/review-providers/transport.ts).
+All three providers use the shared [review transport](../packages/review-execution/src/review-providers/transport.ts).
 It passes every top-level JSON field through the compiled Bend projector, which
-selects `model`, `state`, and `questions` and constructs the final body. It disables ambient trace-header propagation, and local inspection receives a copy
+selects `model`, `state`, and `questions` for Jev/Cloudflare, or `model`, `input`, and `questions` for the explicit OpenAI profile, and constructs the final body. It disables ambient trace-header propagation, and local inspection receives a copy
 of encoded bytes so its callback cannot modify the outgoing request. The
 [content-isolation contract](review-contract-compatibility.md#review-content-isolation)
 states permitted inputs and the limits of the formal evidence.
+
+### OpenAI Decisions
+
+Set the user configuration to:
+
+```jsonc
+{
+  "version": 1,
+  "reviewBackend": { "provider": "openai", "model": "gpt-6-luna" }
+}
+```
+
+Make `OPENAI_API_KEY` available to the agent runtime, or set a user-owned
+`credentialEnvVar` reference. Project configuration cannot redirect this source;
+missing OpenAI credentials do not fall back to the saved Jev key. Login still
+manages only Jev keys, and setup's optional Jev key check does not verify OpenAI.
+The fixed destination is `https://api.openai.com/v1/decisions`.
+
+The local Effect `DecisionModel` adapter sends selected JSON evidence as the
+`input` string and maps each probability rule to a named `predicate` question.
+Qualified rule IDs use request-local `q0`, `q1`, etc. Criteria are appended to
+instructions as `Outcome criteria (JSON):` followed by the complete JSON criteria;
+the original question is preserved. Answers may arrive in any order, but must
+match the requested model and exactly the requested unique question names, with
+finite probabilities between 0 and 1. A refusal, missing/extra/duplicate answer,
+invalid usage, or HTTP failure makes the complete review unit unavailable.
+There are no retries, partial results, or fallback destinations.
+
+The [official OpenAI guide](https://developers.openai.com/api/docs/guides/decisions)
+and [API reference](https://developers.openai.com/api/reference/resources/decisions/methods/create)
+were checked on 2026-10-07. The API is documented as public beta. This initial
+adapter supports probability rules only; choice, score and image input are outside
+its scope. The API reference declares a 1,048,576-character limit per question instruction,
+enforced in Unicode code points after criteria are appended. OpenAI request-count/body/token budgets remain unknown in the catalog;
+no exact token enforcement or live availability/quality claim is made.
+Offline checks cover the adapter, content projector, pipeline and resident dispatch.
+No live OpenAI request or native agent/platform validation is claimed.
 
 ## Evidence and checks
 

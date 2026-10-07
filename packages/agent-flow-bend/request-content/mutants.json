@@ -19,8 +19,8 @@
   },
   {
     "law": "encode_exact",
-    "before": "questions ++ \"}\"",
-    "after": "\"null\" ++ \"}\"",
+    "before": "def encode(model: String, state: String, questions: String) -> String:\n  \"{\\\"model\\\":\" ++ model ++ \",\\\"state\\\":\" ++ state ++ \",\\\"questions\\\":\" ++ questions ++ \"}\"",
+    "after": "def encode(model: String, state: String, questions: String) -> String:\n  \"{\\\"model\\\":\" ++ model ++ \",\\\"state\\\":\" ++ state ++ \",\\\"questions\\\":\" ++ \"null\" ++ \"}\"",
     "location": "Laws.encode_exact"
   },
   {
@@ -28,5 +28,17 @@
     "before": "lookup(fields, \"state\", \"null\")",
     "after": "lookup(fields, \"prompt\", \"null\")",
     "location": "Laws.project_exact"
+  },
+  {
+    "law": "encode_openai_exact",
+    "before": "def encode_openai(model: String, input: String, questions: String) -> String:\n  \"{\\\"model\\\":\" ++ model ++ \",\\\"input\\\":\" ++ input ++ \",\\\"questions\\\":\" ++ questions ++ \"}\"",
+    "after": "def encode_openai(model: String, input: String, questions: String) -> String:\n  \"{\\\"model\\\":\" ++ model ++ \",\\\"input\\\":\" ++ \"null\" ++ \",\\\"questions\\\":\" ++ questions ++ \"}\"",
+    "location": "Laws.encode_openai_exact"
+  },
+  {
+    "law": "project_openai_exact",
+    "before": "lookup(fields, \"input\", \"null\")",
+    "after": "lookup(fields, \"state\", \"null\")",
+    "location": "Laws.project_openai_exact"
   }
 ]

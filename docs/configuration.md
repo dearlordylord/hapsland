@@ -198,9 +198,9 @@ resolved selection before expecting a review result.
 | `contextExcludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
 | `privacyExcludes` | array of non-empty string (may be empty) | Optional | — | Additional protected-path exclusions. These accumulate and cannot be overridden by lower-privacy layers. |
 | `privacyExcludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
-| `reviewBackend` | object with `provider` or object with `provider` and `model` and `accountId` | Optional | — | User-owned review destination. Jev is the default; Cloudflare requires a model and account ID. Projects cannot set this field. |
-| `reviewBackend.provider` | fixed value "jev" or fixed value "cloudflare" | Required (provider = "jev" or provider = "cloudflare") | — | Review backend provider. |
-| `reviewBackend.model` | "clef" or "clef-flash" | Required (provider = "cloudflare") | — | Cloudflare model selector. |
+| `reviewBackend` | object with `provider` and `model` or object with `provider` or object with `provider` and `model` and `accountId` | Optional | — | User-owned review destination. Jev is the default; Cloudflare requires a model and account ID; OpenAI requires a Decisions model. Projects cannot set this field. |
+| `reviewBackend.provider` | fixed value "openai" or fixed value "jev" or fixed value "cloudflare" | Required (provider = "openai" or provider = "jev" or provider = "cloudflare") | — | Review backend provider. |
+| `reviewBackend.model` | fixed value "gpt-6-luna" or "clef" or "clef-flash" | Required (provider = "openai" or provider = "cloudflare") | — | OpenAI Decisions model selector. |
 | `reviewBackend.accountId` | string matching a pattern | Required (provider = "cloudflare") | — | Cloudflare account ID, 32 hexadecimal characters. |
 | `credentialEnvVar` | string matching a pattern | Optional | "TYPESAFE_API_KEY" | Name of the environment variable that supplies the review credential. Store the secret value outside configuration. |
 | `sessionAnalytics` | boolean | Optional | false | Opt-in source-free session analytics. Project configuration overrides the user default; disabled by default; subject to the shared activity storage limits. |
@@ -725,7 +725,7 @@ selected key, the built-in reference can use native saved login; explicit
 `credentialEnvVar` settings select environment/file authentication only. File
 credentials are not copied or persisted by Hapsland, and values are never printed
 or included in diagnostics. See [credential lookup](installation-workflows.md#personal-development-on-your-own-clients) for file requirements.
-User-only `reviewBackend` settings select Jev or Cloudflare Clef/Clef-flash.
+User-only `reviewBackend` settings select Jev, Cloudflare Clef/Clef-flash, or OpenAI Decisions (`gpt-6-luna`).
 Each selection determines a fixed provider origin and model route; arbitrary
 endpoint routing cannot be configured. See [provider selection](review-providers.md#selection-and-credentials).
 

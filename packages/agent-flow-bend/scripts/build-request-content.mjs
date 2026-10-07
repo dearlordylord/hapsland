@@ -23,9 +23,10 @@ try {
   const footer = /\ncli\(process\.argv\.slice\(\d+\)\);\nio_exit\(\$main\$, [\s\S]*\);\s*$/
   assert.match(raw, footer)
   assert.ok(raw.includes("function $core$058project$("), "compiler export ABI changed")
+  assert.ok(raw.includes("function $core$058project_openai$("), "OpenAI compiler export ABI changed")
   const generated = raw.replace(
     footer,
-    "\nexport const projectRequestContent = (fields) => run_loop($core$058project$(fields));\n"
+    "\nexport const projectRequestContent = (fields) => run_loop($core$058project$(fields));\nexport const projectOpenAIRequestContent = (fields) => run_loop($core$058project_openai$(fields));\n"
   )
   const target = join(outputDirectory, "request-content.generated.js")
   const declaration = join(outputDirectory, "request-content.generated.d.ts")
