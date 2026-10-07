@@ -135,7 +135,7 @@ evidence before regenerating the scenario pages.
 | Development archive preparation and packing | `node --test scripts/artifact-store.test.mjs scripts/dev-pack.test.mjs scripts/test-harness/prepare-archive.test.mjs` | Every ordinary build/validation/pack invocation, inherited build leases, input and output drift, archive integrity, npm file selection and executable bins | Local dev archives use gzip level 1; npm release packing is unchanged. Turbo owns build reuse. Identical completed archive bytes share immutable retention; fresh preparation stages still execute. Corruption and in-flight input or output changes are rejected. |
 | Routine deterministic gate | `npm test` | Bend artifact and authority checks, boundary scripts, Vitest tests for the reducer, adapters, resident, and CLI | Logic and controlled fixtures; no native agent or Jev call |
 | Process harness contention | `npm run test:contention`; `npm run test:harness:inventory` | Full deterministic gate under the declared Linux CPU-pressure profile; transitive process/scenario inventory; hung-child cleanup probes | Declared scheduling profile and finite harness failure; no product deadline, latency, or arbitrary-starvation claim |
-| TypeScript quality gate | `npm run quality:check` | Full deterministic gate with fresh Istanbul coverage, then pinned crap4ts analysis of `src`, extracted production TypeScript owners, and `scripts/test-support`, as selected by `crap4ts.json` | Per-function complexity and coverage policy; strict missing evidence; no correctness or assertion-quality guarantee |
+| TypeScript quality gate | `npm run quality:check -- --ack-checks-policy` | Full deterministic gate with fresh Istanbul coverage, then pinned crap4ts analysis of `src`, extracted production TypeScript owners, and `scripts/test-support`, as selected by `crap4ts.json` | Per-function complexity and coverage policy; strict missing evidence; no correctness or assertion-quality guarantee |
 | Compile/package source | `npm run typecheck`; `npm run build` | TypeScript typing, Bend artifacts, native helpers, standalone Bun commands and agent extension assets | Buildability of this checkout; unsupported hosts retain format-verified declared native artifacts without target-host validation |
 | Build workflow adapters | `node --input-type=module -e 'import {precheckStages} from "./scripts/test-harness/check-stages.mjs"; import {spawnSync} from "node:child_process"; const stage=precheckStages.find(([name])=>name==="build-workflow"); const result=spawnSync(process.execPath,stage.slice(1),{stdio:"inherit",timeout:150000}); if(result.error) throw result.error; process.exit(result.status??1)'` | Manifest graph, compiler and assembly receipts, native cache inputs and restoration, process ownership, source loader policy, and watch coordination | Adapter tests; actual production builds, installed behavior and platform qualification require their own checks. |
 | Hook source and runtime import boundaries | `node --test scripts/check-workspace-imports.test.mjs scripts/source-loader-policy.test.mjs scripts/hook-import-boundary.test.mjs`; `npx vitest run --maxWorkers=1 src/runtime/review-engine-boundary.test.ts` | Declared hook/Pi entries, transitive local and workspace edges including type-only edges, forbidden owners, supported loader shapes and lexical bindings; runtime engine/parser/provider assertions | Source checks reject unsupported loaders. External dependency contributions and emitted/compiler closure require their separate build evidence; this gate alone does not establish emitted isolation. |
@@ -158,7 +158,7 @@ evidence before regenerating the scenario pages.
 
 Build-workflow acceptance runs focused harness tests before baseline under its lock and deadline. Tests derive the context API from the runner and scenarios; missing providers fail before mutation. Require terminal `completed: true` and completed repair or recorded verified `repairSkipped`; report interruption separately. Measure an unchanged warm build in the same environment before choosing a campaign deadline.
 
-The [mandatory verification order](../AGENTS.md#typescript-quality-gate) owns
+The [checks policy](../CHECKS.md) owns
 gate selection, prerequisite checks and retry decisions. This matrix supplies
 commands and evidence boundaries. Select consumers by dependencies and behavior;
 renames can affect discovery and dispatch. Socket, process, TTY, packaging,
@@ -361,7 +361,7 @@ must land before its declared final full gate.
 
 ## Native compilation phase
 
-Ordinary `npm test` and `npm run quality:check` invoke Vitest directly after the
+Ordinary `npm test` and `npm run quality:check -- --ack-checks-policy` invoke Vitest directly after the
 maintained configuration, artifact, authority, boundary and progress checks,
 including the shared Engine `build.mjs --check`. They do not compile the entire
 native fixture registry before an unrelated test can start. Native tests still
@@ -434,7 +434,7 @@ the selected identity through [the compiler context](../scripts/compiler-context
 `master`. It installs the frozen Bun lockfile and the checksum-pinned Bend 2.0.35
 and Lean 4.34.0 proof toolchain through its existing `npm run docs:install`
 tooling step, then runs documentation links,
-typecheck, `npm run quality:check`, and build. It does not invoke live Jev or native agent
+typecheck, `npm run quality:check -- --ack-checks-policy`, and build. It does not invoke live Jev or native agent
 milestones; those remain separate declared checks above.
 
 The [proof toolchain installer](../scripts/install-bend-toolchain.mjs) downloads
@@ -533,7 +533,7 @@ Istanbul counters through strict crap4ts analysis.
 Review this adapter against upstream behavior whenever Vitest is updated.
 `npm run test:focused -- <test files>` requires explicit files; omitted selection
 cannot silently start the full suite. Follow the
-[mandatory verification order](../AGENTS.md#typescript-quality-gate) for escalation
+[checks policy](../CHECKS.md) for escalation
 to the full gate and diagnosis after failure.
 
 For a batch of issues, assess each slice against its own accepted criteria and
@@ -750,8 +750,13 @@ installed hook owners retain end-to-end admission checks. Intentional in-flight
 timeout and disconnect checks retain their gates.
 The installed Claude Stop smoke uses one ready finding; collection size boundaries
 and concurrent delivery ownership remain in their focused owner suites.
+Claude CLI delivery runs against the installed hook and an explicitly selected
+standalone candidate. It does not duplicate these timed subprocess cases through
+a coverage-instrumented source entry: #243 requires the installed Bun boundary;
+authored routing and source/emitted isolation remain covered by hook program
+fixtures, source policy checks and ordinary build acceptance.
 
-`npm run quality:check` regenerates coverage through
+`npm run quality:check -- --ack-checks-policy` regenerates coverage through
 `npm run test:coverage`, which includes the existing boundary checks and tests.
 The tool removes the previous JSON artifact before running that command and
 stops if tests fail, so stale coverage cannot produce a passing CI result.

@@ -6,12 +6,15 @@ import { mkdtemp, mkdir, writeFile, readFile, rm, chmod, symlink } from "node:fs
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { createRun, stageResults, runQualityStages, focusedSelection } from "./run-checks.mjs"
+import { createRun, stageResults, runQualityStages, focusedSelection, main } from "./run-checks.mjs"
 import { withBuildLock } from "../build-lock.mjs"
 
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), "hapsland-checks-"))
   t.after(() => rm(root, { recursive: true, force: true }))
+  await mkdir(join(root, "scripts/test-harness"), { recursive: true })
+  for (const file of ["run-checks.test.mjs", "immediate-errors.test.mjs", "verification-plan.test.mjs"])
+    await writeFile(join(root, "scripts/test-harness", file), "// Passing prerequisite fixture\n")
   return root
 }
 test("a stage inside its authenticated checkout lease passes before the enclosing transaction releases ownership", async (t) => {
@@ -306,7 +309,7 @@ require('node:assert/strict').deepEqual(process.argv.slice(2), ['run', '--config
   const qualityTool = join(root, "node_modules", ".bin", "crap4ts")
   await writeFile(qualityTool, `#!${process.execPath}\nprocess.exit(0);\n`)
   await chmod(qualityTool, 0o755)
-  cli(["quality", "--scope=quality-slice", "--timeout-ms=5000"])
+  cli(["quality", "--ack-checks-policy", "--scope=quality-slice", "--timeout-ms=5000"])
   const qualityId = JSON.parse(await readFile(join(root, ".test-runs", "latest.json"), "utf8")).id
   const qualityManifest = JSON.parse(await readFile(join(root, ".test-runs", qualityId, "manifest.json"), "utf8"))
   assert.match(qualityManifest.sourceDigest, /^[a-f0-9]{64}$/)
@@ -393,9 +396,9 @@ for (const lintExit of [0, 1]) {
     const stages = await stageResults(run.runDirectory)
     assert.deepEqual(
       stages.map((stage) => stage.name),
-      lintExit === 0 ? ["lint-code", "quality"] : ["lint-code"]
+      lintExit === 0 ? ["quality-preflight", "lint-code", "quality"] : ["quality-preflight", "lint-code"]
     )
-    assert.match(await readFile(stages[0].logPath, "utf8"), /lint witness/u)
+    assert.match(await readFile(stages[1].logPath, "utf8"), /lint witness/u)
   })
 }
 
@@ -663,4 +666,31 @@ test("input invalidation during stage admission does not launch the child", asyn
   await assert.rejects(readFile(launched), { code: "ENOENT" })
   assert.equal(await run.finish(), 1)
   assert.match(stage.reason, /src\/input.ts/)
+})
+
+test("quality acknowledgment fails before creating run state", async (t) => {
+  const root = await fixture(t)
+  await assert.rejects(main(["quality"], root), /read CHECKS.md.*--ack-checks-policy/)
+  await assert.rejects(readFile(join(root, ".test-runs/latest.json")), /ENOENT/)
+})
+
+test("failed quality prerequisite blocks lint and coverage with retained diagnostics", async (t) => {
+  const root = await fixture(t)
+  await writeFile(
+    join(root, "scripts/test-harness/immediate-errors.test.mjs"),
+    "throw new Error('broken harness witness')"
+  )
+  const run = await createRun({ root, mode: "quality", timeoutMs: 10000, output() {} })
+  await runQualityStages(run, root)
+  assert.equal(await run.finish(), 1)
+  const stages = await stageResults(run.runDirectory)
+  assert.deepEqual(
+    stages.map(({ name, state }) => [name, state]),
+    [
+      ["quality-preflight", "failed"],
+      ["lint-code", "not-started"],
+      ["quality", "not-started"]
+    ]
+  )
+  assert.match(await readFile(stages[0].logPath, "utf8"), /broken harness witness/)
 })

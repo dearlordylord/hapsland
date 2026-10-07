@@ -35,6 +35,30 @@ async function records(root) {
     result: JSON.parse(await readFile(join(directory, "results.json"), "utf8"))
   }
 }
+test("quality profile rejects missing acknowledgment before creating run state", async (t) => {
+  const root = await fixture(t)
+  await assert.rejects(verify(["--profile=quality"], root), /read CHECKS.md.*--ack-checks-policy/)
+  await assert.rejects(readFile(join(root, ".test-runs/latest.json")), /ENOENT/)
+})
+test("acknowledged quality profile retains failed prerequisites without starting coverage", async (t) => {
+  const root = await fixture(t)
+  await mkdir(join(root, "scripts/test-harness"))
+  for (const name of ["run-checks.test.mjs", "verification-plan.test.mjs"])
+    await writeFile(join(root, "scripts/test-harness", name), "// Passing prerequisite fixture\n")
+  await writeFile(join(root, "scripts/test-harness/immediate-errors.test.mjs"), "throw new Error('profile witness')")
+  assert.equal(await verify(["--profile=quality", "--ack-checks-policy", "--timeout-ms=10000"], root), 1)
+  const { manifest, result } = await records(root)
+  assert.equal(manifest.checksPolicyAcknowledged, true)
+  assert.equal(manifest.verificationPlan.profile, "quality")
+  assert.deepEqual(
+    result.stages.map(({ name, state }) => [name, state]),
+    [
+      ["quality-preflight", "failed"],
+      ["lint-code", "not-started"],
+      ["quality", "not-started"]
+    ]
+  )
+})
 test("fast CLI executes one deduplicated selection and persists the resolved plan", async (t) => {
   const root = await fixture(t)
   assert.equal(

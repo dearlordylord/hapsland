@@ -23,13 +23,20 @@
     "coverageNativeLoaderInterop": [
       "scripts/test-harness/bun-coverage.test.mjs",
       "scripts/coverage-provider.test.mts"
+    ],
+    "fullQualityAcknowledgmentAndCheapHarnessPrerequisites": [
+      "scripts/test-harness/run-checks.mjs",
+      "scripts/test-harness/run-checks.test.mjs",
+      "scripts/test-harness/verify.mjs",
+      "scripts/test-harness/verify.test.mjs"
     ]
   },
   "guidanceOnly": [
     "New fixtures must explicitly isolate personal configuration where outside their scenario; repaired fixtures enforce their own selectors, not a repository-wide prohibition.",
     "Diagnose every independent gate failure and observe focused repair passing before another full run.",
     "Change experiment after two attempts without a discriminating result; separate 30-minute fixture repair budget.",
-    "Declare expected duration and wall-clock stop time for ad-hoc commands."
+    "Declare expected duration and wall-clock stop time for ad-hoc commands.",
+    "Accepted-goal relevance and sufficiency of selected checks require judgment; CHECKS.md owns the decision process, not an automatic semantic proof."
   ],
   "limitations": [
     "Receipt API fixtures catch known contract drift; they do not automatically migrate arbitrary future fields.",

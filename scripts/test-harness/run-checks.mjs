@@ -6,7 +6,7 @@ import { promisify } from "node:util"
 import { randomBytes } from "node:crypto"
 import { resolve, join, relative, sep } from "node:path"
 import { fileURLToPath } from "node:url"
-import { precheckStages } from "./check-stages.mjs"
+import { precheckStages, qualityPreflight } from "./check-stages.mjs"
 import { sourceSnapshot } from "./source-identity.mjs"
 
 const executeFile = promisify(execFile)
@@ -127,6 +127,19 @@ export async function showStatus(root, id, json = false, scope) {
 }
 
 export async function runQualityStages(run, root) {
+  const [name, ...args] = qualityPreflight
+  const preflight = await run.runStage({
+    name,
+    command: process.execPath,
+    args,
+    cwd: root,
+    env: { NODE_TEST_CONTEXT: undefined }
+  })
+  if (preflight.state !== "passed") {
+    for (const name of ["lint-code", "quality"])
+      await run.recordSkippedStage({ name, reason: "prerequisite-failed", dependsOn: [preflight.name] })
+    return
+  }
   const lint = await run.runStage({
     name: "lint-code",
     command: process.execPath,
@@ -194,7 +207,7 @@ export async function createRun({
       mode === "test"
         ? ["source-identity", ...precheckStages.map((stage) => stage[0]), "package-build", "package-pack", "vitest"]
         : mode === "quality"
-          ? ["source-identity", "quality"]
+          ? ["source-identity", "quality-preflight", "lint-code", "quality"]
           : [mode]
     await atomicJson(join(runDirectory, "manifest.json"), {
       ...context,
@@ -649,6 +662,11 @@ export async function main(argv = process.argv.slice(2), root = defaultRoot, pla
     await showStatus(root, ids[0], raw.includes("--json"), scopeArgs[0]?.slice(8))
     return 0
   }
+  const acknowledgment = raw.filter((arg) => arg === "--ack-checks-policy")
+  if (acknowledgment.length > 1 || (mode !== "quality" && acknowledgment.length))
+    throw new Error("--ack-checks-policy applies once to a quality run")
+  if (mode === "quality" && acknowledgment.length !== 1)
+    throw new Error("Full quality run blocked: read CHECKS.md, apply its policy, then pass --ack-checks-policy")
   const timeoutArg = raw.find((arg) => arg.startsWith("--timeout-ms="))
   const timeoutMs = timeoutArg ? Number(timeoutArg.split("=")[1]) : mode === "focused" ? 300_000 : 1_500_000
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > 86_400_000)
@@ -657,7 +675,9 @@ export async function main(argv = process.argv.slice(2), root = defaultRoot, pla
   if (scopeArgs.length > 1 || scopeArgs.some((arg) => !arg.slice(8).trim()))
     throw new Error("Scope must be one nonempty label")
   const scope = scopeArgs[0]?.slice(8)
-  const args = raw.filter((arg) => arg !== "--" && arg !== timeoutArg && !scopeArgs.includes(arg))
+  const args = raw.filter(
+    (arg) => arg !== "--" && arg !== "--ack-checks-policy" && arg !== timeoutArg && !scopeArgs.includes(arg)
+  )
   if (mode === "test" && args.some((arg) => arg !== "--coverage"))
     throw new Error("Full test accepts --coverage only; use focused for file selection.")
   if (mode === "quality" && args.length) throw new Error("Quality does not accept test-selection arguments")
@@ -685,7 +705,8 @@ export async function main(argv = process.argv.slice(2), root = defaultRoot, pla
     if (!process.env[contextVariable])
       await atomicJson(join(run.runDirectory, "manifest.json"), {
         ...manifest,
-        ...(sourceDigest === undefined ? {} : { sourceDigest })
+        ...(sourceDigest === undefined ? {} : { sourceDigest }),
+        ...(mode === "quality" ? { checksPolicyAcknowledged: true } : {})
       })
   } catch (error) {
     await run.recordFailedStage({ name: "source-identity", error, reason: "source-identification-failed" })
@@ -700,8 +721,14 @@ export async function main(argv = process.argv.slice(2), root = defaultRoot, pla
       await runSelectedTests(run, root, selection)
     } else {
       const precheckFailures = []
+      const parentStages = process.env[contextVariable] ? await stageResults(run.runDirectory) : []
       for (const [name, ...stageArgs] of precheckStages) {
         if (run.aborted) break
+        if (
+          name === qualityPreflight[0] &&
+          parentStages.some((stage) => stage.name === name && stage.state === "passed")
+        )
+          continue
         const result = await run.runStage({ name, command: process.execPath, args: stageArgs })
         if (result.state !== "passed") precheckFailures.push(result)
       }

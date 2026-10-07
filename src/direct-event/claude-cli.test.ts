@@ -1,6 +1,4 @@
-import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import type { RuntimeCommand } from "@hapsland/runtime-environment/runtime/package-runtime"
-import { fileURLToPath } from "node:url"
 import { prepareTestPackage, type TestPackage } from "@hapsland/build-tooling/test-support/test-package"
 import { cleanupOwnedResident } from "../../scripts/test-harness/cleanup-owned-resident.mjs"
 import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
@@ -145,19 +143,14 @@ const cliExitEvidence = (result: {
 
 describe.each([
   "installed hook",
-  "dedicated source hook",
+  // Installed artifacts own timed delivery; authored routing has focused domain tests.
   ...(process.env.HAPSLAND_TEST_HOOK_EXECUTABLE ? ["standalone candidate hook"] : [])
 ])("%s Claude synchronous delivery", (surface) => {
   beforeEach(() => {
     hookCommand =
       surface === "installed hook"
         ? installed.hook
-        : surface === "standalone candidate hook"
-          ? { executable: process.env.HAPSLAND_TEST_HOOK_EXECUTABLE!, args: [] }
-          : {
-              executable: bunExecutable(),
-              args: [fileURLToPath(new URL("../../packages/hook-entry/src/hook-main.ts", import.meta.url))]
-            }
+        : { executable: process.env.HAPSLAND_TEST_HOOK_EXECUTABLE!, args: [] }
   })
   it("exits quietly when unsupported hook input meets closed stdout", async () => {
     const child = spawn(hookCommand.executable, cliArgs(CLAUDE_EDIT_FLAGS), {

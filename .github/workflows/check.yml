@@ -37,7 +37,7 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
       - name: Run deterministic tests, boundary checks, and CRAP quality gate
-        run: npm run quality:check
+        run: npm run quality:check -- --ack-checks-policy
       - name: Retain stage timings and complete failure logs
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

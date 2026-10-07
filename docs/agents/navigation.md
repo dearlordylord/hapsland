@@ -6,6 +6,15 @@
 **Expected use:** Choose the task below before searching or reading historical material.
 **Lifecycle:** Update with file moves, owner changes, and runner or asset changes. Review when a contract is amended or an implementation owner is replaced; remove obsolete entries rather than building a historical index.
 
+## Requirement authority
+
+Use the task table to find owners, then check their stated authority. Accepted
+contracts and accepted issue/owner decisions define required behavior; current
+user instructions define task scope. Guidance defines workflow. Research,
+proposals, tests and validation reports supply advice or evidence, not additional
+product requirements. Cite the specific accepted requirement when justifying a
+check; unresolved authority is an assumption to resolve, not a new guarantee.
+
 ## Find the task owner
 
 Paths in the implementation column are entry points, not a complete module inventory.

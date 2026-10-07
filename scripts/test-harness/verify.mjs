@@ -8,10 +8,11 @@ import { requiredTestArtifacts } from "./inventory.mjs"
 import { prepareArchive } from "./prepare-archive.mjs"
 
 export async function verify(argv, root = resolve(import.meta.dirname, "../..")) {
+  const acknowledged = argv.includes("--ack-checks-policy")
   const inputs = {},
     tests = [],
     options = []
-  for (const argument of argv.filter((value) => value !== "--")) {
+  for (const argument of argv.filter((value) => value !== "--" && value !== "--ack-checks-policy")) {
     const match = /^--(profile|native-target|host|provider|model|scenario|timeout-ms)=(.+)$/.exec(argument)
     if (match) {
       const key = { "native-target": "nativeTarget", "timeout-ms": "timeoutMs" }[match[1]] ?? match[1]
@@ -20,6 +21,7 @@ export async function verify(argv, root = resolve(import.meta.dirname, "../.."))
     } else if (argument.startsWith("-")) options.push(argument)
     else tests.push(argument)
   }
+  if (acknowledged && inputs.profile !== "quality") throw new Error("Acknowledgment requires quality profile")
   const selection = tests.length ? await focusedSelection(root, [...tests, ...options]) : undefined
   if (!selection && options.length) throw new Error("Test options require explicit test files")
   const plan = resolveVerificationPlan({
@@ -28,7 +30,12 @@ export async function verify(argv, root = resolve(import.meta.dirname, "../.."))
     testOptions: options,
     consumerArtifacts: inputs.profile === "boundary" ? requiredTestArtifacts(root, tests) : []
   })
-  if (plan.profile === "quality") return runChecks(["quality", `--timeout-ms=${plan.timeoutMs}`], root, plan)
+  if (plan.profile === "quality")
+    return runChecks(
+      ["quality", `--timeout-ms=${plan.timeoutMs}`, ...(acknowledged ? ["--ack-checks-policy"] : [])],
+      root,
+      plan
+    )
   const run = await createRun({
     root,
     mode: "focused",

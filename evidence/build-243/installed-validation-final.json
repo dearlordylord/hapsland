@@ -78,13 +78,16 @@
   "previousArchiveComparison": "evidence/build-243/prior-installed-runtime-comparison.json",
   "fullQuality": {
     "status": "pending",
-    "lastFailure": "evidence/build-243/quality-failure-06.json",
+    "lastFailure": "evidence/build-243/quality-failure-07.json",
     "repairs": [
       "evidence/build-243/coverage-private-export-routing-repair.json",
       "evidence/build-243/hook-program-refactor-focused.json",
       "evidence/build-243/coverage-native-cjs-repair.json",
       "evidence/build-243/pi-helper-focused.json",
-      "evidence/build-243/resident-coverage-readiness-fixture-repair.json"
+      "evidence/build-243/resident-coverage-readiness-fixture-repair.json",
+      "evidence/build-243/claude-installed-boundary-check-selection.json",
+      "evidence/build-243/checks-policy-focused.json",
+      "evidence/build-243/direct-hook-service-focused.json"
     ]
   },
   "previousArchiveComparisonScope": "Existing comparison covers previous archives; current archive has new hook runtime and was installed/revalidated independently."

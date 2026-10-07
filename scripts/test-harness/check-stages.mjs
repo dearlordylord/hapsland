@@ -1,5 +1,13 @@
 // Preserve the deterministic boundary/proof inventory independently of CLI routing.
+export const qualityPreflight = [
+  "quality-preflight",
+  "--test",
+  "scripts/test-harness/run-checks.test.mjs",
+  "scripts/test-harness/immediate-errors.test.mjs",
+  "scripts/test-harness/verification-plan.test.mjs"
+]
 export const precheckStages = [
+  qualityPreflight,
   ["configuration", "--experimental-strip-types", "scripts/generate-configuration.ts", "--check"],
   ["bend-generation", "scripts/build-bend-producers.mjs"],
   ["bend-artifacts", "scripts/verify-bend-artifacts.mjs"],
@@ -52,7 +60,6 @@ export const precheckStages = [
     "scripts/native-pi-preflight.test.mjs",
     "scripts/native-process.test.mjs",
     "scripts/test-harness/bun-coverage.test.mjs",
-    "scripts/test-harness/verification-plan.test.mjs",
     "scripts/test-harness/verify.test.mjs"
   ],
   [
@@ -106,11 +113,5 @@ export const precheckStages = [
     "scripts/check-runtime-clock.test.mjs",
     "scripts/measure-hook-startup-summary.test.mjs"
   ],
-  [
-    "test-harness",
-    "--test",
-    "scripts/test-harness/run-checks.test.mjs",
-    "scripts/test-harness/prepare-archive.test.mjs",
-    "scripts/test-harness/immediate-errors.test.mjs"
-  ]
+  ["test-harness", "--test", "scripts/test-harness/prepare-archive.test.mjs"]
 ]

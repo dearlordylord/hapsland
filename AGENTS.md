@@ -18,47 +18,10 @@ claims only for checks actually run.
 
 ## TypeScript quality gate
 
-Choose local checks by changed behavior and physical boundaries using the
-[testing matrix](docs/testing-matrix.md#which-gate-to-run). For TypeScript changes,
-run `npm run check:fast` and focused tests for the changed owners and affected
-consumers. Run affected integration checks when transport, process lifetime,
-installation, packaging, or cross-component wiring changes.
-
-Mandatory verification order:
-
-- Before checks over one minute: record risk, cheapest adequate existing check,
-  additional evidence, expected duration and absolute stop. Relevant cheap
-  prerequisites MUST pass first. Reuse runners; tooling changes need measured
-  bottleneck or missing task diagnostic.
-- Build/test/coverage changes MUST pass a real affected consumer with matching
-  environment, instrumentation and product deadlines. Helper tests insufficient.
-  Owner/fixture moves MUST pass affected fixtures against current exports/paths.
-- Full `npm run quality:check`: release, declared milestone, explicit request,
-  changed end-to-end evidence boundary, or cross-cutting impact unbounded by
-  focused checks. Known failed prerequisite blocks full run.
-  Documentation, filenames, literals and
-  bounded configuration alone do not require it. CI retains the full gate.
-- Failed gate: read `npm run test:status` and logs; classify every independent
-  failure (preparation/build/proof/test/analysis). Relevant focused checks MUST
-  pass on current inputs before another full run. Failures missed by preflight
-  MUST get a focused reproduction; use checks matching the failed stage.
-- Two attempts without evidence distinguishing causes or verifying a fix:
-  name competing causes; change experiment. Edits/reviewers/broad runs alone
-  insufficient. After 30 minutes active fixture repair without such evidence,
-  record changed experiment and unique acceptance value before continuing.
-  Renaming/delegating work does not reset budget.
-- Finite deadlines; at expiry retain evidence and name next diagnostic. Freeze
-  verification inputs during full runs. Missing exit/interruption/timeout/changed
-  inputs never qualify. Release locks after owner processes and descendants stop.
-  Claim executed evidence only; focused passes are not full-project coverage.
-
-The pinned crap4ts gate regenerates coverage, then enforces `crap4ts.json`.
-Exit 2: threshold breach. Exit 1: test/configuration/analysis/coverage failure.
-Resolve failures before claiming a pass; report out-of-scope failures explicitly.
-Improve behavioral tests or simplify branching. Preserve source selection,
-strict missing-evidence handling, thresholds and product guarantees.
-Documentation/tooling changes use affected tool/consumer, type and documentation
-checks; full gate only when the criteria above apply. Same selection under `src`.
+Before selecting or changing checks, or running a full gate, MUST read and
+follow [CHECKS.md](CHECKS.md). It owns selection, prerequisites, retries,
+deadlines and full-run acknowledgment. The [testing matrix](docs/testing-matrix.md)
+owns commands and evidence boundaries.
 
 ## Review requests and acceptance decisions
 
