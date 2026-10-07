@@ -563,13 +563,32 @@ cannot silently start the full suite. Follow the
 [checks policy](../CHECKS.md) for escalation
 to the full gate and diagnosis after failure.
 
-For a batch of issues, assess each slice against its own accepted criteria and
-the applicable owner checks. Record implementation, independent review and
-executed validation separately, with the tested source and remaining gap. A
-shared failure blocks the slices that depend on the failed behavior; name those
-dependencies rather than treating every issue as incomplete. The optional game
-has its own native consumer gate; it does not add a prerequisite to unrelated
-business slices. Final integration still requires its applicable common gates.
+### Task and batch acceptance
+
+For delegated work on one task or a jointly accepted batch, the existing parent
+or integrator owns final qualification: select and assign the required common
+checks, then assess their results against the combined acceptance criteria.
+Workers assess their slices against their accepted criteria and run applicable
+focused owner and affected-consumer checks. The parent or integrator may assign
+a worker to execute the final gate on the integrated candidate; ownership of
+final acceptance remains with the parent or integrator.
+
+Apply the full-gate criteria to the combined accepted scope. When selected,
+plan one full-suite acceptance at the end of that work on a stable, review-ready
+candidate containing all required slices. A worker handoff or commit does not by
+itself require another full run. An independently deliverable task may qualify
+in its own worktree before merge. Keep the candidate frozen during qualification
+and follow the failure-diagnosis rules in [CHECKS.md](../CHECKS.md) for any
+necessary repeat. Explicit requests and existing CI and hook requirements still apply. Keep all required
+proof, model/property, lifecycle and affected-boundary checks.
+
+Record implementation, independent review and executed validation separately,
+with the tested source/worktree, exact checks and results, and remaining gap.
+A shared failure blocks the slices that depend on the failed behavior; name
+those dependencies rather than treating every issue as incomplete. The optional
+game has its own native consumer gate; it does not add a prerequisite to
+unrelated business slices. Final integration still requires its applicable
+common gates.
 
 Attach a task scope to harness runs, for example
 `npm run test:focused -- --scope=issue-195 <test files>`. Scope records attribute

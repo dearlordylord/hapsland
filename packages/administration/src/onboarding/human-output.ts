@@ -14,6 +14,10 @@ export const formatOutcome = (level: OutcomeLevel, message: string): string => `
 
 const statusLevels: Readonly<Record<string, OutcomeLevel>> = {
   ready: "success",
+  restored: "success",
+  removed: "success",
+  intact: "success",
+  "already removed": "success",
   complete: "success",
   completed: "success",
   updated: "success",

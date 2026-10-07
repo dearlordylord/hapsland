@@ -1243,34 +1243,36 @@ const reportClientFailure = (host: SetupClient, cause: unknown) => {
 const maintenanceInteractive = Effect.fn("InteractiveMaintenance.run")(function* (
   command: "repair" | "reinstall" | "uninstall"
 ) {
-  const { maintainClients } = yield* Effect.promise(() => import("@hapsland/administration/onboarding/maintenance"))
-  const { registeredClients, invokeLifecycle, activateCurrentPackage } = yield* Effect.promise(
-    () => import("@hapsland/administration/onboarding/client-lifecycle")
+  const { maintainClients, maintenanceOwnerLayer, maintenanceTerminalRequired } = yield* Effect.promise(
+    () => import("@hapsland/administration/onboarding/maintenance")
   )
-  const { askConfirmation } = yield* Effect.promise(() => import("@hapsland/administration/onboarding/confirmation"))
+  if (!process.stdin.isTTY || !process.stderr.isTTY || process.env.TERM === "dumb")
+    return yield* Effect.fail(new Error(maintenanceTerminalRequired(command)))
+  const { withInteractionSession } = yield* Effect.promise(
+    () => import("@hapsland/administration/interaction/interaction-session")
+  )
+  const { InteractionService } = yield* Effect.promise(() => import("@hapsland/administration/interaction/interaction"))
   const { installed, inspect } = yield* clientInstallationPorts()
-  const ownCommand = currentCommand()
-  return yield* maintainClients(
-    command,
-    {
-      terminal: Boolean(process.stdin.isTTY && process.stderr.isTTY),
-      host: clientArguments?.host,
-      flags: clientArguments?.flags ?? new Map(),
-      registered: registeredClients
-    },
-    {
-      fields: hostFields,
-      installed,
-      inspect,
-      invoke: (host, request) =>
-        invokeLifecycle(ownCommand.executable, [...ownCommand.args, `--${request.operation}`], host, request),
-      activate: activateCurrentPackage(currentCommand()),
-      confirm: askConfirmation,
-      write: (text) => {
-        process.stderr.write(text)
-      },
-      reportFailure: reportClientFailure
-    }
+  return yield* withInteractionSession(
+    (interaction) =>
+      maintainClients(command, {
+        terminal: true,
+        host: clientArguments?.host,
+        reportFailure: (host, cause) => Effect.sync(() => reportClientFailure(host, cause))
+      }).pipe(
+        Effect.provideService(InteractionService, interaction),
+        Effect.provide(
+          maintenanceOwnerLayer({
+            flags: clientArguments?.flags ?? new Map(),
+            command: currentCommand(),
+            installed,
+            inspect
+          })
+        )
+      ),
+    Effect.sync(() => {
+      process.exitCode = 130
+    })
   )
 })
 

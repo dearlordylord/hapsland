@@ -259,6 +259,10 @@
     "./onboarding/update-model": {
       "types": "./dist/onboarding/update-model.d.ts",
       "default": "./dist/onboarding/update-model.js"
+    },
+    "./onboarding/maintenance-model": {
+      "types": "./dist/onboarding/maintenance-model.d.ts",
+      "default": "./dist/onboarding/maintenance-model.js"
     }
   },
   "dependencies": {

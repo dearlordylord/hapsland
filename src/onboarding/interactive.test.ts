@@ -54,6 +54,7 @@ const terminal = async (test: ReturnType<typeof fixture>, args: string[], answer
   let selectionSent = false
   let confirmationsSent = 0
   let updateReviewSent = false
+  const modeledLifecycle = ["update", "repair", "reinstall", "uninstall"].includes(args[0] ?? "")
   let updateApprovalSent = false
   const confirmationAnswers: string[] = []
   child.stdout.on("data", (chunk: Buffer) => {
@@ -62,13 +63,17 @@ const terminal = async (test: ReturnType<typeof fixture>, args: string[], answer
       selectionSent = true
       child.stdin.write(selection)
     }
-    if (args[0] === "update" && !updateReviewSent && output.includes("Review all update previews")) {
+    if (
+      modeledLifecycle &&
+      !updateReviewSent &&
+      (output.includes("Review all update previews") || output.includes("Continue to approval"))
+    ) {
       updateReviewSent = true
       child.stdin.write("\r")
     }
     const confirmations = output.match(/\[y\/N\]/g)?.length ?? 0
-    if (confirmations > confirmationsSent && !(args[0] === "update" && updateApprovalSent)) {
-      if (args[0] === "update") updateApprovalSent = true
+    if (confirmations > confirmationsSent && !(modeledLifecycle && updateApprovalSent)) {
+      if (modeledLifecycle) updateApprovalSent = true
       confirmationsSent = confirmations
       answered = true
       const question = output.slice(output.lastIndexOf("\n", output.lastIndexOf("[y/N]")))
@@ -410,4 +415,35 @@ it.skipIf(!terminalAvailable)("TERM=dumb update explains automation without acqu
   expect(result.output).toContain("Interactive update needs a terminal")
   expect(result.answered).toBe(false)
   expect(existsSync(target.requests)).toBe(false)
+})
+
+it.skipIf(!terminalAvailable).each(["y", "n"] as const)(
+  "maintenance uninstall honors full-line %s through the native owner",
+  async (answer) => {
+    const test = fixture()
+    const clients = bothClients(test)
+    await installBothClients(test, clients)
+    const before = readFileSync(join(clients.claudeHome, "settings.json"), "utf8")
+    const codexBefore = readFileSync(join(clients.codexHome, "hooks.json"), "utf8")
+    const result = await terminal(test, ["uninstall", "claude", ...clients.flags], answer)
+    expect(result.code, result.output).toBe(0)
+    expect(result.confirmationAnswers).toHaveLength(1)
+    const after = readFileSync(join(clients.claudeHome, "settings.json"), "utf8")
+    if (answer === "n") expect(after).toBe(before)
+    else expect(after).not.toContain("--composed-host=claude-code")
+    expect(readFileSync(join(clients.codexHome, "hooks.json"), "utf8")).toBe(codexBefore)
+  }
+)
+it.each(["repair", "reinstall", "uninstall"])("nonterminal %s explains its automation interface", (command) => {
+  const test = fixture()
+  const child = spawnSync(bunExecutable(), [join(process.cwd(), "packages/cli-entry/src/cli.ts"), command, "claude"], {
+    cwd: test.repository,
+    env: test.environment,
+    encoding: "utf8",
+    timeout: DEFAULT_CHILD_TIMEOUT_MS
+  })
+  expect(child.status).toBe(6)
+  expect(child.stderr).toContain(`${command} needs a terminal`)
+  expect(child.stderr).toContain("version-one installation JSON")
+  expect(child.stdout).toBe("")
 })
