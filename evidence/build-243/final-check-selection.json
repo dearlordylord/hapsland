@@ -23,12 +23,16 @@
     "astraGuidanceReview": "No actionable findings"
   },
   "remaining": [
-    "Ordinary release packaging",
-    "Minimal current-artifact smoke",
     "Integration and publication of source changes"
   ],
   "limits": [
     "No new full-project coverage/CRAP pass claimed.",
     "Earlier real Claude/Codex/Pi and startup results remain scoped to their recorded archives."
-  ]
+  ],
+  "currentArtifact": {
+    "sha256": "1954c7526a4c010f30cd11ee838feb8d8f488852da8609f2cd5fe2900e11b770",
+    "packExit": 0,
+    "smokeExit": 0,
+    "smokeTestsPassed": 2
+  }
 }

@@ -34,9 +34,14 @@ installation fixes. They do not measure the final package bytes or establish
 100 ms startup, a population percentile, or installed review/advice compatibility.
 
 The #243 candidate archive packs both platform groups and five standalone
-commands per platform; its compressed size is 335,732,742 bytes. The ordinary
-build/validation/pack run retained archive SHA-256
-`2331142576cd8c6667de8a5c2432989ee7dcf913fa3bf0c41085046a4170a316`.
+commands per platform. The [current archive record](../evidence/build-243/release-archive-current.json)
+identifies the final ordinary build/validation/pack output. Its
+[installed validation ledger](../evidence/build-243/installed-validation-final.json)
+records two passing installed hook/resident smoke cases on those exact bytes.
+Earlier native-agent execution and startup measurements remain scoped to their
+recorded archives; they were not rerun on the final archive. The owner selected
+[bounded final validation](../evidence/build-243/final-check-selection.json);
+no subsequent full quality-gate pass is claimed.
 Each command includes Bun. Darwin artifact inventory is distinct from Darwin
 execution. These are measured candidate bytes, not registry release pins.
 
