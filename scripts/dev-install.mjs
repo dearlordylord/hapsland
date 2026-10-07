@@ -2,7 +2,7 @@ import * as Effect from "effect/Effect"
 import { spawnSync } from "node:child_process"
 import { readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
-import { buildToolchain, ensurePackageArtifact } from "./artifact-store.mjs"
+import { preparePackageArchive } from "./artifact-store.mjs"
 import { stageRelease } from "@hapsland/administration/onboarding/distribution"
 import { NEW_KEY_FLAG, SETUP_COMMAND } from "@hapsland/runtime-environment/runtime/cli-names"
 
@@ -27,8 +27,8 @@ const environment = {
 }
 delete environment.REVIEW_INSTALL_RUNTIME
 delete environment.REVIEW_INSTALL_ENTRYPOINT
-const run = (command, commandArgs, stdio = "inherit") => {
-  const result = spawnSync(command, commandArgs, { stdio, encoding: "utf8", timeout: 300_000, env: environment })
+const run = (command, commandArgs, stdio = "inherit", env = environment) => {
+  const result = spawnSync(command, commandArgs, { stdio, encoding: "utf8", timeout: 300_000, env })
   if (result.error) throw new Error(`${command} ${commandArgs[0]} failed: ${result.error.message}`)
   if (result.status !== 0)
     throw Object.assign(new Error(`${command} ${commandArgs[0]} failed`), { exitCode: result.status ?? 1 })
@@ -51,21 +51,17 @@ const stage = async (label, work) => {
 const root = process.cwd()
 let candidate
 try {
-  const toolchain = await buildToolchain(environment)
   const artifact = await stage("Preparing checked local development archive", () =>
-    ensurePackageArtifact({
+    preparePackageArchive({
       root,
-      toolchain,
-      runStage: async ({ command, args }) => {
-        run(command, args)
+      environment,
+      runStage: async ({ command, args, env }) => {
+        run(command, args, "inherit", env)
         return { exitCode: 0 }
       }
     })
   )
-  process.stdout.write(
-    artifact.buildReused ? "Reusing checked development build.\n" : "Built current development inputs.\n"
-  )
-  run("npm", ["run", "verify:release-native"])
+  process.stdout.write("Built and validated current development inputs through the ordinary build.\n")
   candidate = await stage("Checking installed snapshot / installing local archive", () =>
     Effect.runPromise(stageRelease({ kind: "archive", path: artifact.archivePath }))
   )

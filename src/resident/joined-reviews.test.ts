@@ -11,7 +11,7 @@ import { it } from "@effect/vitest"
 import { expect } from "vitest"
 import { Cause, Effect } from "effect"
 import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
-import { advicee } from "../direct-event/test-fixtures.ts"
+import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 const measure = (value: unknown) => Buffer.byteLength(JSON.stringify(value))
 const prepare = (source: string): PreparedUnit => {

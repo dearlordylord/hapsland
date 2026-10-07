@@ -10,7 +10,7 @@ import {
   writeFileSync
 } from "node:fs"
 import { join, relative, resolve } from "node:path"
-import { physicalNativeBindings } from "@hapsland/runtime-environment/runtime/native-bindings"
+import { physicalNativeBindings } from "../packages/source-analysis/src/direct-event/languages/native-bindings.ts"
 import { BUN_VERSION } from "@hapsland/runtime-environment/runtime/bun-runtime"
 
 // Candidate evidence only. This does not wire a production build or publish a release.

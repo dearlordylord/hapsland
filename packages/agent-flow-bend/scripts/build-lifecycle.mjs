@@ -4,9 +4,12 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
 // Generated bindings depend on this compiler's JavaScript ABI.
+const bendVersion = JSON.parse(readFileSync(resolve(import.meta.dirname, "../package.json"), "utf8")).hapsland.toolchain
+  .bend.version
+const bendCompilerVersion = `bend ${bendVersion}`
 const compilerVersion = execFileSync("bend", ["version"], { encoding: "utf8", timeout: 5_000 }).trim()
-if (compilerVersion !== "bend 2.0.35") {
-  throw new Error(`Bend artifact generation requires exact Bend 2.0.35; observed ${compilerVersion}`)
+if (compilerVersion !== bendCompilerVersion) {
+  throw new Error(`Bend artifact generation requires exact Bend ${bendVersion}; observed ${compilerVersion}`)
 }
 
 const root = resolve(import.meta.dirname, "..")

@@ -8,12 +8,12 @@ import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import { makeResidentRuntime } from "@hapsland/resident-runtime/resident/server"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
-import { addEvent, makeGitFixture, put } from "../../../src/direct-event/test-fixtures.ts"
+import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { makeInspectionStorage } from "@hapsland/inspection-records/inspection/storage"
 import { makeInspectionHttpServer } from "@hapsland/administration/inspection/http"
-import { configuredRules, connectDefaultRuleFixture } from "../../../src/test-support/default-rules.ts"
+import { configuredRules, connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
 import { readCredentialState } from "@hapsland/credential-storage/credentials/secret-service"
-import { nativeDeferred } from "../../../src/test-support/native-deferred.ts"
+import { nativeDeferred } from "@hapsland/build-tooling/test-support/native-deferred"
 
 const root = await makeGitFixture()
 const scope = await Effect.runPromise(Scope.make())

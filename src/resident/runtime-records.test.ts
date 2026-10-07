@@ -7,7 +7,7 @@ import {
   semanticIdentity,
   type PreparedUnit
 } from "@hapsland/review-definition/direct-event/model"
-import { advicee } from "../direct-event/test-fixtures.ts"
+import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
 

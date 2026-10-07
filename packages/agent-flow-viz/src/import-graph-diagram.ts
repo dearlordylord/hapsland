@@ -3,7 +3,7 @@ import type {
   ImportGraphCommand,
   ImportGraphEvent,
   ImportGraphProjection
-} from "../../agent-flow-bend/import-graph-adapter"
+} from "@hapsland/canonical-policy/canonical/graph-adapter"
 
 export type ImportGraphStage = "resolve" | "gate" | "capture" | "expand" | "complete" | "incomplete"
 export type HistoryStep = {

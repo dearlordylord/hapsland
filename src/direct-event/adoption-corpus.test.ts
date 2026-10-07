@@ -7,7 +7,7 @@ import {
   preparedUnitStillCurrent,
   reviewObservation
 } from "@hapsland/review-execution/direct-event/pipeline"
-import { addEvent, makeGitFixture, put } from "./test-fixtures.ts"
+import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
 import { compileRule } from "@hapsland/review-definition/rules/compiler"
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"

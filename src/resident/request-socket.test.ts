@@ -4,11 +4,11 @@ import { createConnection } from "node:net"
 import { mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { reviewControlsLayer } from "../test-support/review-controls.ts"
+import { reviewControlsLayer } from "@hapsland/build-tooling/test-support/review-controls"
 import { acquireResidentFixture } from "./runtime-fixture.ts"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import { encodeCurrentResidentRequest, MAX_IPC_FRAME_BYTES } from "@hapsland/resident-transport/resident/protocol"
-import { requestConformanceCases } from "../test-support/resident-request-conformance.ts"
+import { requestConformanceCases } from "@hapsland/build-tooling/test-support/resident-request-conformance"
 
 const exchange = (path: string, frame: string) =>
   new Promise<unknown>((resolve, reject) => {

@@ -7,7 +7,7 @@ import {
   type ImportGraphEvent,
   type ImportGraphCommand,
   type ImportGraphProjection
-} from "../../agent-flow-bend/import-graph-adapter.ts"
+} from "@hapsland/canonical-policy/canonical/graph-adapter"
 
 /** Separate checked graph frames; never canonical lifecycle or native capture observations. */
 export type SizeGraphFrame = Readonly<{

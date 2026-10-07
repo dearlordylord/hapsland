@@ -1,4 +1,5 @@
 // Generated from the release and role package manifests; do not edit.
+export const BUN_VERSION = "1.3.14" as const
 export const RELEASE_VERSION = "0.1.0" as const
 export const RELEASE_NAME = "@hapsland/hapsland" as const
 export const SOURCE_ENTRIES = {

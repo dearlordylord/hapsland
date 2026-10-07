@@ -1,11 +1,11 @@
-import { runClient } from "../../src/test-support/client-runtime.ts"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
 /** Distinct-process resident witness: parent drives Unix IPC, child owns TypeSafe encoding. */
 import { spawn } from "node:child_process"
 import { readFile, rm, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import * as Effect from "effect/Effect"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
-import { makeGitFixture, put, updateEvent } from "../../src/direct-event/test-fixtures.ts"
+import { makeGitFixture, put, updateEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
 import { residentRequestEffect as residentRequest } from "@hapsland/resident-transport/resident/client"
 import { monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"

@@ -75,14 +75,22 @@
     "@hapsland/runtime-environment": "workspace:*",
     "@hapsland/runtime-inputs": "workspace:*",
     "@hapsland/source-artifacts": "workspace:*",
-    "effect": "4.0.0"
+    "effect": "catalog:"
   },
   "scripts": {
-    "build": "node ../../scripts/compile-package.mjs"
+    "build": "node ../../scripts/compile-package.mjs",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
   },
   "hapsland": {
     "domain": "review-definition",
     "host": "bun",
-    "capabilities": []
+    "capabilities": [],
+    "releaseAssets": [
+      {
+        "source": "dist/rules/defaults",
+        "destination": "rules/defaults",
+        "extension": ".json"
+      }
+    ]
   }
 }

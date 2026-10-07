@@ -4,8 +4,8 @@ import {
   initialImportGraph,
   projectImportGraph,
   stepImportGraph
-} from "../../agent-flow-bend/import-graph-adapter"
-import type { GraphLimits } from "../../agent-flow-bend/import-graph-adapter"
+} from "@hapsland/canonical-policy/canonical/graph-adapter"
+import type { GraphLimits } from "@hapsland/canonical-policy/canonical/graph-adapter"
 
 type Input = Parameters<typeof stepImportGraph>[1]
 type ExampleStep = { readonly unit: number; readonly label: string; readonly event: Input }

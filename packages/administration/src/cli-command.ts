@@ -1,5 +1,4 @@
 import { switchFlag, valueFlag } from "@hapsland/runtime-environment/runtime/argument-flags"
-import { hookArgumentFlags, validateHookArguments } from "@hapsland/hook-runtime/hooks/arguments"
 import { SUPPORTED_CLIENTS, supportedClientNames } from "@hapsland/runtime-environment/runtime/agent-clients"
 import {
   validInspectionAddress,
@@ -8,7 +7,6 @@ import {
   DEFAULT_INSPECTION_PORT
 } from "./inspection/options.ts"
 import { SETUP_REVIEW_CHOICES, SETUP_CREDENTIAL_CHOICES } from "./onboarding/setup-request.ts"
-import { isHookInvocation } from "@hapsland/runtime-environment/runtime/hook-invocation"
 import * as Argument from "effect/cli/Argument"
 import * as Command from "effect/cli/Command"
 import * as Flag from "effect/cli/Flag"
@@ -93,7 +91,7 @@ const automationFlags = {
   ),
   "credential-stdin": switchFlag("credential-stdin"),
   "evaluation-live": switchFlag("evaluation-live"),
-  ...hookArgumentFlags
+  "controlled-reviewer": switchFlag("controlled-reviewer")
 }
 export const unattendedSetupOptions = {
   "no-input": switchFlag("no-input", [], false).pipe(
@@ -206,7 +204,6 @@ const validateClientProfile = (values: ParentOptions): void => {
 }
 const validateAutomation = (values: ParentOptions): void => {
   const operations = (Object.keys(operationFlags) as Array<keyof typeof operationFlags>).filter((key) => values[key])
-  validateHookArguments(values, operations)
   validateAutomationMode(values, operations)
   validateClientProfile(values)
 }
@@ -395,7 +392,6 @@ export const parseInvocation = async (args: ReadonlyArray<string>): Promise<Invo
           : String(failure)
     )
   }
-  if (invocation === undefined && output.length > 0 && !isHookInvocation(args))
-    process.stdout.write(output.join("\n") + "\n")
+  if (invocation === undefined && output.length > 0) process.stdout.write(output.join("\n") + "\n")
   return invocation
 }

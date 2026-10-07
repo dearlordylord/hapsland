@@ -42,7 +42,7 @@ import {
   bendCanonicalTotal,
   bendPreparationLimit,
   bendJevRequestLimit
-} from "./canonical.generated.js"
+} from "@hapsland/agent-flow-bend/canonical"
 import * as Schema from "effect/Schema"
 export type {
   JevRequestOutcome,

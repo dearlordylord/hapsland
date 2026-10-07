@@ -13,7 +13,7 @@ import {
 } from "@hapsland/review-definition/direct-event/model"
 import { type DirectObservation } from "@hapsland/native-observation/direct-event/observation"
 import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
-import { advicee } from "../direct-event/test-fixtures.ts"
+import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 import type { AdviceInitial } from "@hapsland/resident-runtime/resident/advice-records"
 
 const observation: DirectObservation = {

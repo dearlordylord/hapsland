@@ -67,11 +67,12 @@
     "@hapsland/runtime-inputs": "workspace:*",
     "@hapsland/source-analysis": "workspace:*",
     "@hapsland/source-artifacts": "workspace:*",
-    "@effect/ai-typesafe": "4.0.0",
-    "effect": "4.0.0"
+    "@effect/ai-typesafe": "catalog:",
+    "effect": "catalog:"
   },
   "scripts": {
-    "build": "node ../../scripts/compile-package.mjs"
+    "build": "node ../../scripts/compile-package.mjs",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
   },
   "hapsland": {
     "domain": "review-execution",

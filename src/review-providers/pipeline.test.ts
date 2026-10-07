@@ -5,7 +5,11 @@ import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import { join } from "node:path"
 import { adaptCodexAdd } from "@hapsland/native-observation/direct-event/adapter"
-import { addEvent, makeReviewGitFixture as makeGitFixture, put } from "../direct-event/test-fixtures.ts"
+import {
+  addEvent,
+  makeReviewGitFixture as makeGitFixture,
+  put
+} from "@hapsland/build-tooling/test-support/test-fixtures"
 import {
   evaluatePrepared,
   prepareObservation,

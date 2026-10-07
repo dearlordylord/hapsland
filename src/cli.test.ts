@@ -5,7 +5,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { execFileSync, spawnSync } from "../scripts/test-harness/process.mjs"
 import { afterEach, describe, expect, it } from "vitest"
-import { configuredRules, connectDefaultRuleFixture } from "./test-support/default-rules.ts"
+import { configuredRules, connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
 
 const roots: Array<string> = []
 const makeTemporaryDirectory = (prefix: string): string => realpathSync(mkdtempSync(join(tmpdir(), prefix)))
@@ -68,7 +68,7 @@ describe("JSON subprocess contract", () => {
     const child = spawnSync(
       bunExecutable(),
       [
-        "packages/cli-entry/src/cli.ts",
+        "packages/hook-entry/src/hook-main.ts",
         "--claude-hook",
         "--controlled-reviewer",
         ...(composed ? ["--composed-edit-hook"] : [])
@@ -211,7 +211,7 @@ describe("JSON subprocess contract", () => {
     const child = spawnSync(
       bunExecutable(),
       [
-        "packages/cli-entry/src/cli.ts",
+        "packages/hook-entry/src/hook-main.ts",
         "--codex-hook",
         "--controlled-writer",
         "--controlled-reviewer",
@@ -240,12 +240,16 @@ describe("JSON subprocess contract", () => {
     const root = makeTemporaryDirectory("review-retired-hook-")
     roots.push(root)
     for (const flags of [["--codex-hook"], ["--opencode-hook"], ["--opencode-hook", "--composed-edit-hook"]]) {
-      const child = spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", ...flags, "--controlled-reviewer"], {
-        cwd: process.cwd(),
-        input: "malformed JSON",
-        encoding: "utf8",
-        env: { ...process.env, REVIEW_CONTROL_JSON: "malformed", REVIEW_RESIDENT_DIR: join(root, "runtime") }
-      })
+      const child = spawnSync(
+        bunExecutable(),
+        ["packages/hook-entry/src/hook-main.ts", ...flags, "--controlled-reviewer"],
+        {
+          cwd: process.cwd(),
+          input: "malformed JSON",
+          encoding: "utf8",
+          env: { ...process.env, REVIEW_CONTROL_JSON: "malformed", REVIEW_RESIDENT_DIR: join(root, "runtime") }
+        }
+      )
       expect(child.status).toBe(0)
       expect(child.stderr).toBe("")
       expect(child.stdout.trim()).toBe(flags.includes("--codex-hook") ? "{}" : "")
@@ -299,7 +303,7 @@ describe("JSON subprocess contract", () => {
     for (const event of events) {
       const child = spawnSync(
         bunExecutable(),
-        ["packages/cli-entry/src/cli.ts", "--codex-hook", "--controlled-writer", "--controlled-reviewer"],
+        ["packages/hook-entry/src/hook-main.ts", "--codex-hook", "--controlled-writer", "--controlled-reviewer"],
         {
           cwd: process.cwd(),
           input: JSON.stringify(event),

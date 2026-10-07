@@ -3,9 +3,13 @@ import { Deferred, Effect, Exit, Layer, Ref } from "effect"
 import { rm } from "node:fs/promises"
 import { join } from "node:path"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
-import { addEvent, makeReviewGitFixture as makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../test-support/default-rules.ts"
-import { reviewControlsLayer } from "../test-support/review-controls.ts"
+import {
+  addEvent,
+  makeReviewGitFixture as makeGitFixture,
+  put
+} from "@hapsland/build-tooling/test-support/test-fixtures"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
+import { reviewControlsLayer } from "@hapsland/build-tooling/test-support/review-controls"
 import {
   ResidentReviewControls,
   ReviewControlError,

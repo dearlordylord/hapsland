@@ -5,6 +5,8 @@ import { dirname, extname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { sourceRuntimeFromEntrypoint, sourceRuntimeCommand } from "./source-runtime-layout.ts"
 import { PACKAGE_COMMAND_NAMES } from "./cli-information.ts"
+export const emittedReleaseEntrypoints = EMITTED_ENTRIES
+export const sourceReleaseEntrypoints = SOURCE_ENTRIES
 export { BUN_VERSION } from "./bun-runtime.ts"
 
 export interface RuntimeCommand {

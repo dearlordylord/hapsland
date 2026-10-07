@@ -19,16 +19,16 @@ const injected = vi.hoisted(() => ({
   canonical: undefined as undefined | ((state: unknown) => unknown),
   graph: undefined as undefined | ((state: unknown) => unknown)
 }))
-vi.mock("@hapsland/canonical-policy/canonical/canonical.generated", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@hapsland/canonical-policy/canonical/canonical.generated")>()
+vi.mock("@hapsland/agent-flow-bend/canonical", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@hapsland/agent-flow-bend/canonical")>()
   return {
     ...original,
     bendCanonicalStep: (state: unknown, event: unknown) =>
       injected.canonical === undefined ? original.bendCanonicalStep(state, event) : injected.canonical(state)
   }
 })
-vi.mock("@hapsland/canonical-policy/canonical/import-graph.generated", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@hapsland/canonical-policy/canonical/import-graph.generated")>()
+vi.mock("@hapsland/agent-flow-bend/import-graph", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@hapsland/agent-flow-bend/import-graph")>()
   return {
     ...original,
     bendImportGraphStep: (state: unknown, event: unknown) =>

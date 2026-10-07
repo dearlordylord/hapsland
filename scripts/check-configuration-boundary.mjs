@@ -80,7 +80,7 @@ for (const path of [
   }
 }
 for (const path of [
-  "packages/cli-entry/src/cli.ts",
+  "packages/hook-runtime/src/hooks/program.ts",
   "packages/resident-transport/src/resident/client.ts",
   "packages/hook-runtime/src/resident/composed-hook.ts",
   "packages/hook-runtime/src/resident/hook-output.ts"

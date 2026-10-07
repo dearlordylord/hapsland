@@ -1,0 +1,130 @@
+{
+  "name": "@hapsland/build-tooling",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@babel/parser": "catalog:",
+    "@babel/traverse": "catalog:",
+    "@bcoe/v8-coverage": "catalog:",
+    "@hapsland/activity-observation": "workspace:*",
+    "@hapsland/administration": "workspace:*",
+    "@hapsland/canonical-defense": "workspace:*",
+    "@hapsland/canonical-policy": "workspace:*",
+    "@hapsland/delivery-output": "workspace:*",
+    "@hapsland/inspection-records": "workspace:*",
+    "@hapsland/monkey-business-bend": "workspace:*",
+    "@hapsland/native-observation": "workspace:*",
+    "@hapsland/pi-extension": "workspace:*",
+    "@hapsland/resident-runtime": "workspace:*",
+    "@hapsland/resident-transport": "workspace:*",
+    "@hapsland/review-definition": "workspace:*",
+    "@hapsland/review-execution": "workspace:*",
+    "@hapsland/runtime-environment": "workspace:*",
+    "@hapsland/runtime-inputs": "workspace:*",
+    "@hapsland/scorer-typescript": "npm:typescript@5.9.3",
+    "@hapsland/source-analysis": "workspace:*",
+    "@vitest/coverage-v8": "catalog:",
+    "bun": "catalog:",
+    "effect": "catalog:",
+    "istanbul-lib-instrument": "catalog:",
+    "tree-sitter": "catalog:",
+    "tree-sitter-typescript": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "zod": "catalog:"
+  },
+  "hapsland": {
+    "workspaceRole": "tooling"
+  },
+  "exports": {
+    "./dev-inspection": {
+      "types": "./dev-inspection.mjs",
+      "default": "./dev-inspection.mjs"
+    },
+    "./first-review-live-runner-policy": {
+      "types": "./first-review-live-runner-policy.mjs",
+      "default": "./first-review-live-runner-policy.mjs"
+    },
+    "./first-review-resident-cleanup": {
+      "types": "./first-review-resident-cleanup.mjs",
+      "default": "./first-review-resident-cleanup.mjs"
+    },
+    "./security-prototype/security-wire-observer": {
+      "types": "./security-prototype/security-wire-observer.ts",
+      "default": "./security-prototype/security-wire-observer.ts"
+    },
+    "./test-harness/cleanup-owned-resident": {
+      "types": "./test-harness/cleanup-owned-resident.mjs",
+      "default": "./test-harness/cleanup-owned-resident.mjs"
+    },
+    "./test-harness/policy": {
+      "types": "./test-harness/policy.mjs",
+      "default": "./test-harness/policy.mjs"
+    },
+    "./test-harness/process": {
+      "types": "./test-harness/process.mjs",
+      "default": "./test-harness/process.mjs"
+    },
+    "./test-harness/standalone-environment": {
+      "types": "./test-harness/standalone-environment.mjs",
+      "default": "./test-harness/standalone-environment.mjs"
+    },
+    "./test-support/client-runtime": {
+      "types": "./test-support/client-runtime.ts",
+      "default": "./test-support/client-runtime.ts"
+    },
+    "./test-support/default-rules": {
+      "types": "./test-support/default-rules.ts",
+      "default": "./test-support/default-rules.ts"
+    },
+    "./test-support/dispatch-controls": {
+      "types": "./test-support/dispatch-controls.ts",
+      "default": "./test-support/dispatch-controls.ts"
+    },
+    "./test-support/installation-package": {
+      "types": "./test-support/installation-package.ts",
+      "default": "./test-support/installation-package.ts"
+    },
+    "./test-support/live-evidence-outcome": {
+      "types": "./test-support/live-evidence-outcome.ts",
+      "default": "./test-support/live-evidence-outcome.ts"
+    },
+    "./test-support/live-runner-policy": {
+      "types": "./test-support/live-runner-policy.ts",
+      "default": "./test-support/live-runner-policy.ts"
+    },
+    "./test-support/native-deferred": {
+      "types": "./test-support/native-deferred.ts",
+      "default": "./test-support/native-deferred.ts"
+    },
+    "./test-support/pi-installed": {
+      "types": "./test-support/pi-installed.ts",
+      "default": "./test-support/pi-installed.ts"
+    },
+    "./test-support/preparation-controls": {
+      "types": "./test-support/preparation-controls.ts",
+      "default": "./test-support/preparation-controls.ts"
+    },
+    "./test-support/resident-request-conformance": {
+      "types": "./test-support/resident-request-conformance.ts",
+      "default": "./test-support/resident-request-conformance.ts"
+    },
+    "./test-support/review-controls": {
+      "types": "./test-support/review-controls.ts",
+      "default": "./test-support/review-controls.ts"
+    },
+    "./test-support/source-runtime": {
+      "types": "./test-support/source-runtime.ts",
+      "default": "./test-support/source-runtime.ts"
+    },
+    "./test-support/test-fixtures": {
+      "types": "./test-support/test-fixtures.ts",
+      "default": "./test-support/test-fixtures.ts"
+    },
+    "./test-support/test-package": {
+      "types": "./test-support/test-package.ts",
+      "default": "./test-support/test-package.ts"
+    }
+  }
+}

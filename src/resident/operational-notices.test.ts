@@ -6,8 +6,13 @@ import { symlink, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import type { DirectObservation, DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
-import { addEvent, makeReviewGitFixture as makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../test-support/default-rules.ts"
+import {
+  addEvent,
+  makeReviewGitFixture as makeGitFixture,
+  put,
+  advicee
+} from "@hapsland/build-tooling/test-support/test-fixtures"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import type { ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
 import { MAX_OPERATIONAL_NOTICE_KEYS, OPERATIONAL_NOTICE_COOLDOWN_MS } from "@hapsland/resident-runtime/resident/server"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"

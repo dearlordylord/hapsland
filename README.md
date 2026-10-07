@@ -389,7 +389,7 @@ TypeScript because Oxlint's import namespace check reports false positives for E
 <!-- hapsland-hooks:start -->
 ## Agent hooks
 
-Generated from [the hook catalog](./src/runtime/hook-catalog.ts). Command timeouts are upper limits, not measured latency. Pi limits each Hapsland command call; a callback may make multiple calls. Codex does not install a `UserPromptSubmit` hook. OpenCode review hooks are currently inactive.
+Generated from [the hook catalog](./packages/runtime-environment/src/runtime/hook-catalog.ts). Command timeouts are upper limits, not measured latency. Pi limits each Hapsland command call; a callback may make multiple calls. Codex does not install a `UserPromptSubmit` hook. OpenCode review hooks are currently inactive.
 
 | Runtime | Event | Selection | Mode | Limit | Purpose |
 | --- | --- | --- | --- | --- | --- |

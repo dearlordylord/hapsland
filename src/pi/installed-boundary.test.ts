@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process"
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
-import { configuredRules } from "../test-support/default-rules.ts"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import {
   setupInstalledPi,
   cleanupInstalledPi,
@@ -12,7 +12,7 @@ import {
   input,
   before,
   result
-} from "../test-support/pi-installed.ts"
+} from "@hapsland/build-tooling/test-support/pi-installed"
 
 describe.each(["source", "installed", ...(process.env.HAPSLAND_TEST_PI_ASSET ? ["candidate" as const] : [])] as const)(
   "Pi %s extension through command and resident",

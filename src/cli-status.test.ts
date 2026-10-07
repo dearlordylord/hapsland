@@ -4,7 +4,7 @@ import { spawnSync } from "../scripts/test-harness/process.mjs"
 import { rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, expect, it } from "vitest"
-import { makeGitFixture } from "./direct-event/test-fixtures.ts"
+import { makeGitFixture } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 const roots: string[] = []
 afterEach(() => {

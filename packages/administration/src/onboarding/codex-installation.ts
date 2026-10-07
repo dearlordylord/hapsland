@@ -1,9 +1,12 @@
+import { sourceRuntimeFromEntrypoint } from "@hapsland/runtime-environment/runtime/source-runtime-layout"
 import { commandHookGroup, commandHooks } from "@hapsland/runtime-environment/runtime/hook-catalog"
 import {
   packageCommand,
   commandEntrypoint,
   commandTokens,
   packageRootFromEntrypoint,
+  emittedReleaseEntrypoints,
+  sourceReleaseEntrypoints,
   expectedRuntimeVersion,
   commandFromEntrypoint,
   runtimeProbeArguments
@@ -622,12 +625,21 @@ const pathReadiness = (path: string, executable: boolean) => {
 }
 
 const packagedRuntimeEntrypoints = (entrypoint: string) => {
-  const extension = extname(entrypoint)
-  if (extension === ".js" || extension === ".ts") {
+  const materialized = sourceRuntimeFromEntrypoint(entrypoint)
+  if (materialized)
     return {
-      parser: join(dirname(entrypoint), `parser-main${extension}`),
-      resident: join(dirname(entrypoint), "resident", `main${extension}`)
+      parser: join(materialized.directory, "parser.mjs"),
+      resident: join(materialized.directory, "resident.mjs")
     }
+  const extension = extname(entrypoint)
+  if ([".js", ".ts", ".mjs"].includes(extension)) {
+    const entries = extension === ".ts" ? sourceReleaseEntrypoints : emittedReleaseEntrypoints
+    const root = packageRootFromEntrypoint(entrypoint)
+    if (!Object.values(entries).some((entry) => resolve(entrypoint) === join(root, entry)))
+      throw new Error(
+        "Unsupported source runtime entrypoint; use a manifest-owned entry or materialized source runtime"
+      )
+    return { parser: join(root, entries.parser), resident: join(root, entries.resident) }
   }
   return {
     parser: join(dirname(entrypoint), "hapsland-parser"),

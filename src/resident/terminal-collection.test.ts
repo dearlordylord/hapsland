@@ -1,13 +1,13 @@
-import { reviewControlsLayer } from "../test-support/review-controls.ts"
+import { reviewControlsLayer } from "@hapsland/build-tooling/test-support/review-controls"
 import { ReviewControlError } from "@hapsland/resident-runtime/resident/review-controls"
-import { nativeDeferred as deferred } from "../test-support/native-deferred.ts"
+import { nativeDeferred as deferred } from "@hapsland/build-tooling/test-support/native-deferred"
 import { Layer, Ref } from "effect"
 import {
   ResidentPreparationControls,
   PreparationControlError,
   defaultPreparationControls
 } from "@hapsland/resident-runtime/resident/preparation-controls"
-import { makePreparationControls } from "../test-support/preparation-controls.ts"
+import { makePreparationControls } from "@hapsland/build-tooling/test-support/preparation-controls"
 import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts"
 import { describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
@@ -15,8 +15,8 @@ import { join } from "node:path"
 import "node:fs"
 import { readActivity } from "@hapsland/activity-observation/activity/status"
 import { adaptClaudeDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
-import { makeReviewGitFixture as makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../test-support/default-rules.ts"
+import { makeReviewGitFixture as makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 
 import "@hapsland/resident-transport/resident/hook-clock"

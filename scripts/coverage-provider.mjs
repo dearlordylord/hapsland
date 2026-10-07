@@ -7,7 +7,7 @@ import { join, resolve, relative } from "node:path"
 import { mergeScriptCovs } from "@bcoe/v8-coverage"
 import v8 from "@vitest/coverage-v8"
 import { V8CoverageProvider } from "@vitest/coverage-v8/dist/provider.js"
-import { configureNativeBindings } from "@hapsland/runtime-environment/runtime/native-bindings"
+import { configureNativeBindings } from "../packages/source-analysis/src/direct-event/languages/native-bindings.ts"
 import { packageAssetPath } from "@hapsland/runtime-environment/runtime/package-runtime"
 
 configureNativeBindings(packageAssetPath("native", "prebuilt", `${process.platform}-${process.arch}`))

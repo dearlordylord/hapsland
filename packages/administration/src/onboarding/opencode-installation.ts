@@ -1,5 +1,5 @@
 import {
-  currentCommand,
+  packageCommand,
   commandEntrypoint,
   expectedRuntimeVersion,
   observedRuntimeVersion,
@@ -84,10 +84,10 @@ const configuration = Effect.fn("OpenCodeInstallation.configuration")(
         "opencode"
       )
     const runtime = yield* Config.NonEmptyString("REVIEW_INSTALL_RUNTIME").pipe(
-      Config.withDefault(currentCommand().executable)
+      Config.withDefault(packageCommand("hook").executable)
     )
     const entrypoint = yield* Config.NonEmptyString("REVIEW_INSTALL_ENTRYPOINT").pipe(
-      Config.withDefault(commandEntrypoint(currentCommand()))
+      Config.withDefault(commandEntrypoint(packageCommand("hook")))
     )
     return { home: resolve(home), runtime: resolve(runtime), entrypoint: resolve(entrypoint) }
   },

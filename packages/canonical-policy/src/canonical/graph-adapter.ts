@@ -1,4 +1,8 @@
-import { bendImportGraphInitial, bendImportGraphStep, bendImportGraphLocalBudget } from "./import-graph.generated.js"
+import {
+  bendImportGraphInitial,
+  bendImportGraphStep,
+  bendImportGraphLocalBudget
+} from "@hapsland/agent-flow-bend/import-graph"
 import { GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimits } from "./graph-limits.ts"
 import {
   decodeGraphEvent,

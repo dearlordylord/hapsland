@@ -5,7 +5,6 @@ import {
   activityPathConfig,
   userConfigPathConfig
 } from "@hapsland/runtime-inputs/runtime/input-settings"
-import { makeDirectHookDispatch } from "@hapsland/hook-runtime/hooks/direct"
 import { SUPPORTED_CLIENTS, CLIENT_NAMES } from "@hapsland/runtime-environment/runtime/agent-clients"
 import { formatOutcome, formatStatusOutcome } from "@hapsland/administration/onboarding/human-output"
 import {
@@ -26,18 +25,14 @@ import type { formatActivityHuman } from "@hapsland/activity-observation/activit
 import type { inspectPiInstallation } from "@hapsland/administration/onboarding/pi-installation"
 import type { inspectClaudeInstallation } from "@hapsland/administration/onboarding/claude-installation"
 import type { inspectCodexInstallation } from "@hapsland/administration/onboarding/codex-installation"
-import { runPiHook } from "@hapsland/hook-runtime/pi/transport"
 import { formatReviewFeedback } from "@hapsland/delivery-output/feedback/message"
 import { SetupOperation } from "@hapsland/administration/onboarding/setup-request"
 import { parseInvocation, type ClientArguments } from "@hapsland/administration/cli-command"
-import { isHookInvocation } from "@hapsland/runtime-environment/runtime/hook-invocation"
-import { hookMonotonicMillis, monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"
 import "effect/Schedule"
 import { effectiveSessionAnalytics } from "@hapsland/runtime-inputs/configuration/resolve"
 import * as Config from "effect/Config"
 import * as ConfigProvider from "effect/ConfigProvider"
 import * as Effect from "effect/Effect"
-import * as Fiber from "effect/Fiber"
 import * as Option from "effect/Option"
 import * as Redacted from "effect/Redacted"
 import * as Schema from "effect/Schema"
@@ -54,18 +49,7 @@ import {
   loadReviewSettings,
   type ReviewSettings
 } from "@hapsland/review-definition/runtime/review-config"
-import type { ResidentControlledOptions } from "@hapsland/resident-transport/resident/protocol"
-import { adaptClaudeDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
-import { isCodexHostVersion, type CodexHostVersion } from "@hapsland/native-observation/direct-event/observation"
-import { directHookSubmissionLayer, submitDirectHookOutput } from "@hapsland/hook-runtime/resident/direct-hook-output"
-import { residentStartupLayer, inspectResidentEffect } from "@hapsland/resident-transport/resident/client"
-import { HookOutput, hookOutputLayer } from "@hapsland/hook-runtime/resident/hook-output"
-import {
-  composedHookRuntimeLayer,
-  runComposedHookEffect,
-  type ComposedHookKind,
-  type ComposedHookHost
-} from "@hapsland/hook-runtime/resident/composed-hook"
+import { inspectResidentEffect } from "@hapsland/resident-transport/resident/client"
 import {
   logoutCredential,
   resolveCredential,
@@ -110,26 +94,15 @@ const exitCodeForResult = (record: object): number => {
 }
 
 const assignResultExitCode = (output: unknown): void => {
-  if (
-    composedKind === undefined &&
-    !isCodexHook &&
-    !isClaudeHook &&
-    !isPiHook &&
-    !isOpenCodeHook &&
-    typeof output === "object" &&
-    output !== null
-  ) {
+  if (typeof output === "object" && output !== null) {
     process.exitCode = exitCodeForResult(output)
   }
 }
 
-const directHookStartedAt = monotonicNow()
 let invocation: Awaited<ReturnType<typeof parseInvocation>>
 try {
   invocation = await parseInvocation(process.argv.slice(2))
 } catch (cause) {
-  // Invalid native hook invocations must never emit generic CLI output.
-  if (isHookInvocation(process.argv.slice(2))) process.exit(0)
   process.stderr.write(`${(cause instanceof Error ? cause.message : "Invalid CLI arguments").slice(0, 1400)}\n`)
   process.exit(6)
 }
@@ -312,43 +285,10 @@ const fileSelectionReadiness = (settings: ReviewSettings) => {
   }
 }
 
-const isCodexHook = cliSwitch("codex-hook")
-const isClaudeHook = cliSwitch("claude-hook")
-const isPiHook = cliSwitch("pi-hook")
-const isOpenCodeHook = cliSwitch("opencode-hook")
-const isComposedEditHook = cliSwitch("composed-edit-hook")
-const composedKind: ComposedHookKind | undefined = cliSwitch("composed-before-edit-hook")
-  ? "before-edit"
-  : cliSwitch("composed-background-hook")
-    ? "background"
-    : cliSwitch("composed-stop-hook")
-      ? "stop"
-      : cliSwitch("composed-prompt-hook")
-        ? "prompt"
-        : undefined
-const composedHost: ComposedHookHost = cliOptions?.["composed-host"] === "claude-code" ? "claude-code" : "codex-cli"
-const directHookDeadline = directHookStartedAt + (isCodexHook && isComposedEditHook ? 9_000 : 3_900)
-const requestedHookVersion = cliOptions?.["codex-version"]
-if (
-  isCodexHook &&
-  (isComposedEditHook || composedKind !== undefined) &&
-  requestedHookVersion !== undefined &&
-  !isCodexHostVersion(requestedHookVersion)
-) {
-  process.exit(0)
-}
-const codexHookVersion: CodexHostVersion = isCodexHostVersion(requestedHookVersion) ? requestedHookVersion : "0.155.1"
 const isControlledReviewer = cliSwitch("controlled-reviewer")
-const isControlledWriter = cliSwitch("controlled-writer")
 const requestedOperation = forcedOperation()
 const requestedInstallationOperation = forcedInstallationOperation()
 const requestedEvaluationOperation = forcedEvaluationOperation()
-
-const { runDirectCodexHook, runDirectBoundedHook, isDirectEventReady } = makeDirectHookDispatch({
-  deadline: directHookDeadline,
-  controlledWriter: isControlledWriter,
-  composedEdit: isComposedEditHook
-})
 
 type StatusOperation = Extract<ReviewOperation, { readonly operation: "status" }>
 type StatusCredential = Effect.Success<ReturnType<typeof resolveCredential>>
@@ -757,33 +697,6 @@ const evaluationFlagMatches = (value: unknown): boolean => {
   return requestedEvaluationOperation === undefined || value.operation === requestedEvaluationOperation
 }
 
-const runComposedInput = Effect.fn("Cli.runComposedInput")(function* (
-  kind: ComposedHookKind,
-  input: string,
-  statePath: string,
-  activityPath: string,
-  userConfigPath: string | undefined
-) {
-  let event: unknown
-  try {
-    event = JSON.parse(input)
-  } catch {
-    event = undefined
-  }
-  const controlled = isControlledReviewer ? yield* controlledOptions : undefined
-  yield* runComposedHookEffect({
-    kind,
-    host: composedHost,
-    event,
-    codexVersion: codexHookVersion,
-    statePath,
-    activityPath,
-    ...(userConfigPath === undefined ? {} : { userConfigPath }),
-    ...(controlled === undefined ? {} : { controlled })
-  })
-  return undefined
-})
-
 const runJsonEvaluation = Effect.fn("Cli.runJsonEvaluation")(function* (input: string) {
   const { runEvaluationCommand } = yield* Effect.promise(() => import("@hapsland/administration/evaluation/command"))
   const evaluationInput = yield* decodeJson(input)
@@ -847,67 +760,6 @@ const runAdministrativeOperation = Effect.fn("Cli.runAdministrativeOperation")(f
   return yield* runOperation(operation, statePath, activityPath, userConfigPath)
 })
 
-const runPiNativeInput = Effect.fn("Cli.runPiNativeInput")(function* (
-  input: string,
-  statePath: string,
-  activityPath: string,
-  userConfigPath: string | undefined,
-  controlled: ResidentControlledOptions | undefined
-) {
-  return yield* runPiHook(yield* decodeJson(input), {
-    statePath,
-    activityPath,
-    ...(userConfigPath === undefined ? {} : { userConfigPath }),
-    ...(controlled === undefined ? {} : { controlled })
-  }).pipe(Effect.catch(() => Effect.succeed({ status: "unavailable" })))
-})
-const runClaudeNativeInput = Effect.fn("Cli.runClaudeNativeInput")(function* (
-  input: string,
-  statePath: string,
-  activityPath: string,
-  userConfigPath: string | undefined,
-  controlled: ResidentControlledOptions | undefined
-) {
-  if (!isComposedEditHook) return {}
-  const observation = yield* adaptClaudeDirectEvent(
-    yield* decodeJson(input),
-    userConfigPath === undefined ? {} : { userConfigPath }
-  )
-  return yield* runDirectBoundedHook(observation, controlled, statePath, activityPath, userConfigPath).pipe(
-    Effect.catch(() => Effect.succeed({}))
-  )
-})
-const runCodexNativeInput = Effect.fn("Cli.runCodexNativeInput")(function* (
-  input: string,
-  statePath: string,
-  activityPath: string,
-  userConfigPath: string | undefined,
-  controlled: ResidentControlledOptions | undefined
-) {
-  const direct = yield* runDirectCodexHook(
-    yield* decodeJson(input),
-    codexHookVersion,
-    controlled,
-    statePath,
-    activityPath,
-    userConfigPath
-  )
-  return direct.handled ? direct.output : {}
-})
-const runNativeInput = Effect.fn("Cli.runNativeInput")(function* (
-  input: string,
-  statePath: string,
-  activityPath: string,
-  userConfigPath: string | undefined
-) {
-  const controlled = isControlledReviewer ? yield* controlledOptions : undefined
-  if (isPiHook) return yield* runPiNativeInput(input, statePath, activityPath, userConfigPath, controlled)
-  if (isClaudeHook) return yield* runClaudeNativeInput(input, statePath, activityPath, userConfigPath, controlled)
-  if (isCodexHook) return yield* runCodexNativeInput(input, statePath, activityPath, userConfigPath, controlled)
-  return { version: 1, error: { code: "invalid_request", message: "unsupported command" } }
-})
-
-const retiredHook = (): boolean => isOpenCodeHook || (isCodexHook && !isComposedEditHook && composedKind === undefined)
 const readProgramInput = Effect.fn("Cli.readProgramInput")(function* () {
   const input = yield* readStdin
   const statePath = yield* statePathConfig
@@ -936,7 +788,7 @@ const jsonRoute = (input: string) => {
       requested: requestedOperation !== undefined || /"operation"\s*:\s*"(?:credentials|status|explain)"/.test(input)
     }
   ] as const
-  return routes.find((route) => route.requested)?.kind ?? "native"
+  return routes.find((route) => route.requested)?.kind ?? "unsupported"
 }
 const runJsonInstallation = Effect.fn("Cli.runJsonInstallation")(function* (context: ProgramInput) {
   const operation = yield* decodeInstallationOperation(context.input, requestedInstallationOperation)
@@ -949,37 +801,20 @@ const jsonHandlers = {
   installation: runJsonInstallation,
   administrative: (context: ProgramInput) =>
     runAdministrativeOperation(context.input, context.statePath, context.activityPath, context.userConfigPath),
-  native: (context: ProgramInput) =>
-    runNativeInput(context.input, context.statePath, context.activityPath, context.userConfigPath)
+  unsupported: () => Effect.succeed({ version: 1, error: { code: "invalid_request", message: "unsupported command" } })
 }
 const dispatchJsonInput = Effect.fn("Cli.dispatchJsonInput")(function* (context: ProgramInput) {
   return yield* jsonHandlers[jsonRoute(context.input)](context)
 })
 
 const program = Effect.gen(function* () {
-  // Retired entry points cannot decode events, start a resident, or dispatch work.
-  if (retiredHook()) return {}
-  const context = yield* readProgramInput()
-  const { input, statePath, activityPath, userConfigPath } = context
-
-  if (composedKind !== undefined)
-    return yield* runComposedInput(composedKind, input, statePath, activityPath, userConfigPath)
-
-  return yield* dispatchJsonInput(context)
+  return yield* dispatchJsonInput(yield* readProgramInput())
 }).pipe(
   Effect.catchCause(() =>
-    Effect.succeed(
-      composedKind !== undefined
-        ? undefined
-        : isClaudeHook || isOpenCodeHook
-          ? {}
-          : isCodexHook
-            ? { systemMessage: "Review unavailable: invalid or unsupported Codex PostToolUse input." }
-            : {
-                version: 1,
-                error: { code: "invalid_request", message: "input does not satisfy a supported command contract" }
-              }
-    )
+    Effect.succeed({
+      version: 1,
+      error: { code: "invalid_request", message: "input does not satisfy a supported command contract" }
+    })
   )
 )
 
@@ -1575,38 +1410,6 @@ if (invocation.kind === "dashboard") {
     process.exitCode = 6
   }
 } else {
-  const writeReviewOutput = Effect.fn("ReviewCli.writeOutput")(function* (output: unknown) {
-    return isDirectEventReady(output)
-      ? yield* submitDirectHookOutput(output, {
-          composed: isComposedEditHook,
-          claude: isClaudeHook,
-          deadlineAt: directHookDeadline
-        })
-      : composedKind === undefined && (isClaudeHook || isCodexHook)
-        ? yield* (yield* HookOutput).writeEncoded(
-            typeof output === "string" ? output : `${JSON.stringify(output)}\n`,
-            directHookDeadline
-          )
-        : undefined
-  })
-  const runReviewProgram = Effect.fn("ReviewCli.run")(function* () {
-    const watchdog =
-      isClaudeHook || isOpenCodeHook
-        ? yield* Effect.sleep(Math.max(0, directHookStartedAt + 4_500 - (yield* hookMonotonicMillis))).pipe(
-            Effect.andThen(
-              Effect.sync(() => {
-                process.exit(0)
-              })
-            ),
-            Effect.forkScoped
-          )
-        : undefined
-    const output = yield* program
-    const writeResult = yield* writeReviewOutput(output)
-    const timedOut = writeResult === "timed-out"
-    if (timedOut && watchdog !== undefined) yield* Fiber.join(watchdog)
-    return output
-  }, Effect.scoped)
   const credentialNextAction = (result: Readonly<Record<string, unknown>>) => {
     return (
       result.action ??
@@ -1643,11 +1446,9 @@ if (invocation.kind === "dashboard") {
       writeLogoutEnvironmentWarning(result)
     }
   }
-  const quietHookOutput = (): boolean => isOpenCodeHook || isClaudeHook || isCodexHook || composedKind !== undefined
   const interactiveCredentialOutput = (): boolean =>
     isCredentialCommand && !cliSwitch("json") && !cliSwitch("credential-stdin") && process.stdin.isTTY
   const writeResultOutput = (output: unknown): void => {
-    if (isDirectEventReady(output) || quietHookOutput()) return
     if (interactiveCredentialOutput()) {
       writeCredentialSummary(output as Readonly<Record<string, unknown>>)
       return
@@ -1659,14 +1460,7 @@ if (invocation.kind === "dashboard") {
         runCredentialCommand().pipe(Effect.provide(processConfigurationLayer), Effect.provide(machineClockLayer))
       )
     : await Effect.runPromise(
-        runReviewProgram().pipe(
-          Effect.provide(processConfigurationLayer),
-          Effect.provide(directHookSubmissionLayer),
-          Effect.provide(composedHookRuntimeLayer),
-          Effect.provide(hookOutputLayer),
-          Effect.provide(residentStartupLayer),
-          Effect.provide(machineClockLayer)
-        )
+        program.pipe(Effect.provide(processConfigurationLayer), Effect.provide(machineClockLayer))
       )
   assignResultExitCode(output)
   writeResultOutput(output)

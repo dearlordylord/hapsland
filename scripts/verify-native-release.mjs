@@ -1,39 +1,31 @@
-import { readFileSync, statSync } from "node:fs"
+import { statSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
+import { readPackageGraph } from "./package-graph.mjs"
+import { nativeTaskPlans } from "./native-task-inputs.mjs"
+import { validateNativeBinary } from "./native-task-receipt.mjs"
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), "..")
-const targets = [
-  ["linux-arm64", "inspection-lock.node"],
-  ["darwin-arm64", "inspection-lock.node"],
-  ["linux-arm64", "credential-secret-service"],
-  ["linux-arm64", "tree-sitter/build/Release/tree_sitter_runtime_binding.node"],
-  ["linux-arm64", "tree-sitter-typescript/build/Release/tree_sitter_typescript_binding.node"],
-  ["linux-arm64", "tree-sitter-rust/build/Release/tree_sitter_rust_binding.node"],
-  ["darwin-arm64", "credential-secret-service"],
-  ["darwin-arm64", "capture-open"],
-  ["darwin-arm64", "tree-sitter/build/Release/tree_sitter_runtime_binding.node"],
-  ["darwin-arm64", "tree-sitter-typescript/build/Release/tree_sitter_typescript_binding.node"],
-  ["darwin-arm64", "tree-sitter-rust/build/Release/tree_sitter_rust_binding.node"]
-]
-
-for (const [profile, relativePath] of targets) {
-  const path = resolve(root, "native/prebuilt", profile, relativePath)
-  let bytes
-  try {
-    if (!statSync(path).isFile()) throw new Error("not a regular file")
-    bytes = readFileSync(path)
-  } catch {
-    throw new Error(`release native artifact is missing: ${profile}/${relativePath}`)
-  }
-  const elfArm64 =
-    bytes.length >= 20 && bytes.subarray(0, 4).toString("hex") === "7f454c46" && bytes.readUInt16LE(18) === 183
-  const machArm64 =
-    bytes.length >= 8 &&
-    ["cffaedfe", "feedfacf"].includes(bytes.subarray(0, 4).toString("hex")) &&
-    (bytes.subarray(0, 4).toString("hex") === "cffaedfe" ? bytes.readUInt32LE(4) : bytes.readUInt32BE(4)) === 0x0100000c
-  if (!(profile === "linux-arm64" ? elfArm64 : machArm64)) {
-    throw new Error(`release native artifact has the wrong format or architecture: ${profile}/${relativePath}`)
-  }
+export function verifyNativeRelease(root, graph, profiles = ["linux-arm64", "darwin-arm64"]) {
+  if (!Array.isArray(profiles) || !profiles.length || new Set(profiles).size !== profiles.length)
+    throw new Error("Invalid native release profiles")
+  const verified = []
+  for (const profile of profiles)
+    for (const plan of nativeTaskPlans(root, graph, profile))
+      for (const asset of plan.assets) {
+        const path = resolve(root, asset.installedPath)
+        const stat = statSync(path)
+        if (!stat.isFile() || (stat.mode & 0o777) !== 0o755)
+          throw new Error(`Invalid release native artifact: ${asset.installedPath}`)
+        validateNativeBinary(path, profile)
+        verified.push(asset.installedPath)
+      }
+  return verified
 }
-process.stdout.write("native release artifacts verified for Linux arm64 and macOS arm64\n")
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), "..")
+  const profiles = process.env.HAPSLAND_BUILD_PROFILE
+    ? [process.env.HAPSLAND_BUILD_PROFILE]
+    : ["linux-arm64", "darwin-arm64"]
+  const verified = verifyNativeRelease(root, readPackageGraph(root), profiles)
+  process.stdout.write(`native release artifacts verified: ${profiles.join(", ")} (${verified.length} files)\n`)
+}

@@ -23,7 +23,8 @@
   },
   "dependencies": {},
   "scripts": {
-    "build": "node ../../scripts/compile-package.mjs"
+    "build": "node ../../scripts/compile-package.mjs",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
   },
   "hapsland": {
     "domain": "delivery-output",

@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process"
 import { resolve } from "node:path"
 import { BUN_VERSION } from "../packages/runtime-environment/src/runtime/bun-runtime.ts"
+export { BUN_VERSION }
 
 export function resolveBunRuntime(env = process.env) {
   const candidates = env.HAPSLAND_BUILD_BUN === undefined ? ["bun"] : [env.HAPSLAND_BUILD_BUN]

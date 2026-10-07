@@ -2,7 +2,7 @@ import { providerIdentity } from "@hapsland/review-definition/review-providers/c
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import { Decision } from "effect/ai"
-import { configuredRules } from "../test-support/default-rules.ts"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
 import {
   encodedPreparedProviderInputBytes,

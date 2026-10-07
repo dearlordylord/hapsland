@@ -16,7 +16,7 @@ import {
 } from "@hapsland/review-definition/runtime/review-config"
 import { adaptCodexAdd } from "@hapsland/native-observation/direct-event/adapter"
 import { prepareObservation, evaluatePrepared } from "@hapsland/review-execution/direct-event/pipeline"
-import { makeGitFixture, put, updateEvent } from "./test-fixtures.ts"
+import { makeGitFixture, put, updateEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 type Manifest = {
   readonly positive: {

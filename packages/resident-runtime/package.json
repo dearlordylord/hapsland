@@ -97,11 +97,12 @@
     "@hapsland/runtime-environment": "workspace:*",
     "@hapsland/runtime-inputs": "workspace:*",
     "@hapsland/source-analysis": "workspace:*",
-    "effect": "4.0.0",
+    "effect": "catalog:",
     "@hapsland/credential-storage": "workspace:*"
   },
   "scripts": {
-    "build": "node ../../scripts/compile-package.mjs"
+    "build": "node ../../scripts/compile-package.mjs",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
   },
   "hapsland": {
     "domain": "resident-runtime",

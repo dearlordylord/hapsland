@@ -1,4 +1,4 @@
-import { runClient } from "../src/test-support/client-runtime.ts"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
 import { spawn } from "node:child_process"
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
@@ -8,12 +8,12 @@ import {
   residentRequestEffect as residentRequest
 } from "@hapsland/resident-transport/resident/client"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
-import { classifyHookOutput, classifyLiveOutcome } from "../src/conformance/live-evidence-outcome.ts"
+import { classifyHookOutput, classifyLiveOutcome } from "@hapsland/build-tooling/test-support/live-evidence-outcome"
 import {
   PaidExecutionNotAuthorized,
   assertPaidExecutionAuthorized,
   providerCallCountForEvidence
-} from "../src/conformance/live-runner-policy.ts"
+} from "@hapsland/build-tooling/test-support/live-runner-policy"
 
 const root = resolve(new URL("../", import.meta.url).pathname)
 const primaryEnv = "/workspace/typescript/jev/.env"
@@ -145,7 +145,7 @@ try {
     const started = performance.now()
     const admitted = await run(
       process.execPath,
-      [join(root, "packages/cli-entry/src/cli.ts"), "--codex-hook", "--controlled-writer"],
+      [join(root, "packages/hook-entry/src/hook-main.ts"), "--codex-hook", "--controlled-writer"],
       { cwd: root, env, input: JSON.stringify(add), timeoutMs: 20_000 }
     )
     contractOutcome = admitted.code === 0 ? "admitted-completion-pending" : "admission-failed"
@@ -153,7 +153,7 @@ try {
       await new Promise((resolveWait) => setTimeout(resolveWait, 100))
       const reply = await run(
         process.execPath,
-        [join(root, "packages/cli-entry/src/cli.ts"), "--codex-hook", "--controlled-writer"],
+        [join(root, "packages/hook-entry/src/hook-main.ts"), "--codex-hook", "--controlled-writer"],
         {
           cwd: root,
           env,
@@ -196,7 +196,7 @@ try {
     if (hostOutputKind === "none" && terminalStats?.status === "stats") {
       const reply = await run(
         process.execPath,
-        [join(root, "packages/cli-entry/src/cli.ts"), "--codex-hook", "--controlled-writer"],
+        [join(root, "packages/hook-entry/src/hook-main.ts"), "--codex-hook", "--controlled-writer"],
         {
           cwd: root,
           env,

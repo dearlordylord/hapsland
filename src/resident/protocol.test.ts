@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { addEvent, makeReviewGitFixture as makeGitFixture, advicee } from "../direct-event/test-fixtures.ts"
+import {
+  addEvent,
+  makeReviewGitFixture as makeGitFixture,
+  advicee
+} from "@hapsland/build-tooling/test-support/test-fixtures"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import * as Effect from "effect/Effect"
 import {

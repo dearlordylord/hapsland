@@ -14,7 +14,10 @@
     "@hapsland/source-analysis": "workspace:*"
   },
   "scripts": {
-    "build": "node ../../scripts/compile-package.mjs"
+    "build": "node ../../scripts/compile-package.mjs",
+    "assemble:linux-arm64": "node ../../scripts/assemble-entry.mjs linux-arm64",
+    "assemble:darwin-arm64": "node ../../scripts/assemble-entry.mjs darwin-arm64",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
   },
   "hapsland": {
     "domain": "parser-entry",
@@ -22,6 +25,12 @@
     "capabilities": [],
     "role": "parser",
     "executable": "hapsland-parser",
-    "entry": "src/parser-main.ts"
+    "entry": "src/parser-main.ts",
+    "assembly": {
+      "profiles": [
+        "linux-arm64",
+        "darwin-arm64"
+      ]
+    }
   }
 }

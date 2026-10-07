@@ -12,7 +12,7 @@ import {
   prepareObservation,
   reviewObservation
 } from "@hapsland/review-execution/direct-event/pipeline"
-import { addEvent, makeGitFixture, put } from "./test-fixtures.ts"
+import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 const rules = [
   {

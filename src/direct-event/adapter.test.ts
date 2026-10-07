@@ -9,7 +9,7 @@ import {
   MAX_CODEX_CANDIDATES,
   MAX_CODEX_COMMAND_BYTES
 } from "@hapsland/native-observation/direct-event/adapter"
-import { addEvent, makeGitFixture } from "./test-fixtures.ts"
+import { addEvent, makeGitFixture } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 describe("direct-event Codex Add adapter", () => {
   it("maps background and Stop identities for both hosts without inferring a child", async () => {

@@ -1,0 +1,43 @@
+{
+  "name": "@hapsland/verification",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@effect/ai-typesafe": "catalog:",
+    "@effect/vitest": "catalog:",
+    "@hapsland/activity-observation": "workspace:*",
+    "@hapsland/administration": "workspace:*",
+    "@hapsland/agent-flow-bend": "workspace:*",
+    "@hapsland/build-tooling": "workspace:*",
+    "@hapsland/canonical-policy": "workspace:*",
+    "@hapsland/credential-storage": "workspace:*",
+    "@hapsland/delivery-output": "workspace:*",
+    "@hapsland/hook-runtime": "workspace:*",
+    "@hapsland/inspection-records": "workspace:*",
+    "@hapsland/monkey-business": "workspace:*",
+    "@hapsland/monkey-business-bend": "workspace:*",
+    "@hapsland/native-observation": "workspace:*",
+    "@hapsland/pi-extension": "workspace:*",
+    "@hapsland/resident-runtime": "workspace:*",
+    "@hapsland/resident-transport": "workspace:*",
+    "@hapsland/review-definition": "workspace:*",
+    "@hapsland/review-execution": "workspace:*",
+    "@hapsland/runtime-environment": "workspace:*",
+    "@hapsland/runtime-inputs": "workspace:*",
+    "@hapsland/source-analysis": "workspace:*",
+    "@hapsland/source-artifacts": "workspace:*",
+    "effect": "catalog:",
+    "fast-check": "catalog:",
+    "vitest": "catalog:"
+  },
+  "hapsland": {
+    "workspaceRole": "verification"
+  },
+  "exports": {
+    "./canonical/simulation-adapter": {
+      "types": "./canonical/simulation-adapter.ts",
+      "default": "./canonical/simulation-adapter.ts"
+    }
+  }
+}

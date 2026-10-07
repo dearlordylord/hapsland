@@ -1,5 +1,5 @@
 import type { HtmlBuilder } from "foldkit/html"
-import type { CanonicalProjection } from "../../../src/canonical/adapter"
+import type { CanonicalProjection } from "@hapsland/canonical-policy/canonical/adapter"
 
 export const AGENT_COLORS = ["#427bc4", "#a16acc", "#169e8c", "#d48534", "#cc6184", "#638e3e"]
 export interface AgentScope {

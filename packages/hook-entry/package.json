@@ -15,7 +15,10 @@
     "@hapsland/runtime-environment": "workspace:*"
   },
   "scripts": {
-    "build": "node ../../scripts/compile-package.mjs"
+    "build": "node ../../scripts/compile-package.mjs",
+    "assemble:linux-arm64": "node ../../scripts/assemble-entry.mjs linux-arm64",
+    "assemble:darwin-arm64": "node ../../scripts/assemble-entry.mjs darwin-arm64",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
   },
   "hapsland": {
     "domain": "hook-entry",
@@ -23,6 +26,12 @@
     "capabilities": [],
     "role": "hook",
     "executable": "hapsland-hook",
-    "entry": "src/hook-main.ts"
+    "entry": "src/hook-main.ts",
+    "assembly": {
+      "profiles": [
+        "linux-arm64",
+        "darwin-arm64"
+      ]
+    }
   }
 }

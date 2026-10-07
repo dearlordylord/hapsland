@@ -7,7 +7,7 @@ import type * as DecisionModel from "effect/ai/DecisionModel"
 import { execFileAsync } from "../../scripts/test-harness/process.mjs"
 import { writeFile, rm, symlink, rename, mkdir } from "node:fs/promises"
 import { join } from "node:path"
-import { configuredRules } from "../test-support/default-rules.ts"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
 import {
   controlledDecisionModelLayer,
@@ -31,7 +31,7 @@ import {
 } from "@hapsland/activity-observation/activity/demo-budget"
 import { attemptCodexHostOutput } from "@hapsland/delivery-output/direct-event/writer"
 import { Writable } from "node:stream"
-import { addEvent, makeGitFixture, put, advicee, updateEvent } from "./test-fixtures.ts"
+import { addEvent, makeGitFixture, put, advicee, updateEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { adaptCodexAdd } from "@hapsland/native-observation/direct-event/adapter"
 import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 

@@ -1,4 +1,4 @@
-import type { CanonicalProjection } from "../../../src/canonical/adapter"
+import type { CanonicalProjection } from "@hapsland/canonical-policy/canonical/adapter"
 import {
   FLOW_STAGES,
   findingLineage,

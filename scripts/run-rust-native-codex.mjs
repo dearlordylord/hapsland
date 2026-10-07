@@ -1,5 +1,5 @@
 import { DEFAULT_RULE_MESSAGES } from "@hapsland/review-definition/rules/shipped"
-import { runClient } from "../src/test-support/client-runtime.ts"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
 // Opt-in real Codex + real Jev demonstration. Retains only source-free evidence.
 import { spawn, execFileSync } from "node:child_process"
 import { mkdtemp, mkdir, writeFile, readFile, copyFile, chmod, rm, readdir } from "node:fs/promises"
@@ -157,7 +157,7 @@ const p=spawnSync('rustc',['--edition=2024','--crate-type=lib','payment.rs','-o'
   }
   delete env.REVIEW_CONTROL_JSON
   delete env.OPENAI_API_KEY
-  const cli = join(root, "packages/cli-entry/src/cli.ts")
+  const cli = join(root, "packages/hook-entry/src/hook-main.ts")
   const preview = await run(process.execPath, [cli, "--install-preview"], {
     cwd: repo,
     env,

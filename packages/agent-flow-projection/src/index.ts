@@ -1,4 +1,8 @@
-import type { CanonicalCommand, CanonicalEvent, CanonicalProjection } from "../../../src/canonical/adapter"
+import type {
+  CanonicalCommand,
+  CanonicalEvent,
+  CanonicalProjection
+} from "@hapsland/canonical-policy/canonical/adapter"
 
 /** Stable conceptual stages of the observed review process, independent of a drawing. */
 export const FLOW_STAGES = [

@@ -36,14 +36,62 @@
   "dependencies": {
     "@hapsland/runtime-environment": "workspace:*",
     "@hapsland/runtime-inputs": "workspace:*",
-    "effect": "4.0.0"
+    "effect": "catalog:"
   },
   "scripts": {
-    "build": "node ../../scripts/compile-package.mjs"
+    "build": "node ../../scripts/compile-package.mjs",
+    "native:linux-arm64": "node ../../scripts/native-task.mjs linux-arm64",
+    "native:darwin-arm64": "node ../../scripts/native-task.mjs darwin-arm64",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
   },
   "hapsland": {
     "domain": "inspection-records",
     "host": "bun",
-    "capabilities": []
+    "capabilities": [],
+    "loaderPolicies": {
+      "src/inspection/native-lock.ts": "inspection-native-lock"
+    },
+    "nativeAssets": [
+      {
+        "source": "src/inspection/native-lock.ts",
+        "path": "native/prebuilt/{profile}/inspection-lock.node",
+        "producer": {
+          "kind": "c",
+          "profiles": {
+            "linux-arm64": {
+              "source": "native/src/inspection-lock.c",
+              "compileFlags": [
+                "-O2",
+                "-std=c11",
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-fPIC"
+              ],
+              "linkFlags": [
+                "-shared"
+              ],
+              "nodeApiHeaders": true
+            },
+            "darwin-arm64": {
+              "source": "native/src/inspection-lock.c",
+              "compileFlags": [
+                "-O2",
+                "-std=c11",
+                "-Wall",
+                "-Wextra",
+                "-Werror"
+              ],
+              "linkFlags": [
+                "-bundle",
+                "-undefined",
+                "dynamic_lookup"
+              ],
+              "nodeApiHeaders": true
+            }
+          }
+        }
+      }
+    ]
   }
 }

@@ -16,16 +16,56 @@
   "dependencies": {
     "@hapsland/runtime-environment": "workspace:*",
     "@hapsland/runtime-inputs": "workspace:*",
-    "effect": "4.0.0"
+    "effect": "catalog:"
   },
   "scripts": {
-    "build": "node ../../scripts/compile-package.mjs"
+    "build": "node ../../scripts/compile-package.mjs",
+    "native:linux-arm64": "node ../../scripts/native-task.mjs linux-arm64",
+    "native:darwin-arm64": "node ../../scripts/native-task.mjs darwin-arm64",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
   },
   "hapsland": {
     "domain": "credential-storage",
     "host": "bun",
     "capabilities": [
       "credential-mutation"
+    ],
+    "nativeAssets": [
+      {
+        "source": "src/credentials/secret-service.ts",
+        "path": "native/prebuilt/{profile}/credential-secret-service",
+        "producer": {
+          "kind": "c",
+          "profiles": {
+            "linux-arm64": {
+              "source": "native/src/credential-secret-service.c",
+              "compileFlags": [
+                "-O2",
+                "-std=c11",
+                "-Wall",
+                "-Wextra"
+              ],
+              "linkFlags": [],
+              "pkgConfig": "libsecret-1"
+            },
+            "darwin-arm64": {
+              "source": "native/src/credential-keychain.c",
+              "compileFlags": [
+                "-O2",
+                "-std=c11",
+                "-Wall",
+                "-Wextra"
+              ],
+              "linkFlags": [
+                "-framework",
+                "Security",
+                "-framework",
+                "CoreFoundation"
+              ]
+            }
+          }
+        }
+      }
     ]
   }
 }

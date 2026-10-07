@@ -1,7 +1,7 @@
 import { expect, it } from "@effect/vitest"
 import { Context, Effect, Exit, Fiber, Layer, Ref, Scope } from "effect"
 import { ResidentPreparationControls } from "@hapsland/resident-runtime/resident/preparation-controls"
-import { makePreparationControls } from "../test-support/preparation-controls.ts"
+import { makePreparationControls } from "@hapsland/build-tooling/test-support/preparation-controls"
 import { makeResidentRuntime } from "@hapsland/resident-runtime/resident/server"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 

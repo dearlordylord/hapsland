@@ -1,8 +1,11 @@
-import getExePath from "../node_modules/typescript/lib/getExePath.js"
+import { resolvePinnedTypeScript } from "./pinned-typescript.mjs"
 import { createHash } from "node:crypto"
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { resolve, join, relative } from "node:path"
 import { spawnSync } from "node:child_process"
+
+const selection = await resolvePinnedTypeScript()
+const nativeExecutable = selection.executable
 
 // Candidate compiler evidence only; production configuration and routing are unchanged.
 const destination = process.argv[2]
@@ -10,7 +13,7 @@ if (!destination) throw new Error("A fresh evidence directory is required")
 const root = resolve(destination)
 mkdirSync(root)
 const repository = process.cwd()
-const compiler = resolve("node_modules/.bin/tsc")
+const compiler = nativeExecutable
 const digest = (path) => createHash("sha256").update(readFileSync(path)).digest("hex")
 const records = []
 for (const [name, overrides] of [
@@ -95,8 +98,9 @@ writeFileSync(
       compiler: {
         path: compiler,
         sha256: digest(compiler),
-        nativeExecutable: getExePath(),
-        nativeSha256: digest(getExePath())
+        identity: selection.identity,
+        nativeExecutable,
+        nativeSha256: digest(nativeExecutable)
       },
       records,
       byteIdenticalOutputsAcrossConditions: JSON.stringify(hashes[0]) === JSON.stringify(hashes[1]),

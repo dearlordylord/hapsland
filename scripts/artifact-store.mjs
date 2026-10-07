@@ -1,9 +1,10 @@
+import { withBuildLock } from "./build-lock.mjs"
+import { withOwnedLock } from "./owned-lock.mjs"
 import { createHash } from "node:crypto"
 import { createReadStream } from "node:fs"
 import {
   cp,
   copyFile,
-  chmod,
   mkdtemp,
   mkdir,
   readFile,
@@ -16,12 +17,12 @@ import {
 } from "node:fs/promises"
 import { execFile } from "node:child_process"
 import { promisify } from "node:util"
-import { basename, dirname, join, resolve } from "node:path"
+import { dirname, join, relative, resolve } from "node:path"
 import { sourceIdentity } from "./test-harness/source-identity.mjs"
-import { BUN_VERSION } from "../packages/runtime-environment/src/runtime/bun-runtime.ts"
-import { resolveBunRuntime } from "./pinned-bun.mjs"
 import { npmToolingRequire, npmPackageFiles } from "./npm-tooling.mjs"
 import { dependencyDigestMemo } from "./dependency-digests.mjs"
+import { readPackageGraph } from "./package-graph.mjs"
+import { generatedNativePaths } from "./native-task-inputs.mjs"
 
 const execute = promisify(execFile)
 const requireTime = (deadline) => {
@@ -67,27 +68,6 @@ export async function artifactStoreDirectory(root) {
   const result = await execute("git", ["-C", root, "rev-parse", "--git-common-dir"], { timeout: 5000 })
   return join(resolve(root, result.stdout.trim()), "hapsland-artifacts")
 }
-export async function buildToolchain(environment = process.env) {
-  const version = async (command, args) => {
-    const result = await execute(command, args, { timeout: 5000 })
-    return (result.stdout || result.stderr).trim().split("\n")[0]
-  }
-  return {
-    node: process.version,
-    bun: await version(resolveBunRuntime(environment).executable, ["--version"]),
-    requiredBun: BUN_VERSION,
-    bend: await version("bend", ["version"]),
-    cc: await version("cc", ["--version"]),
-    libsecret: process.platform === "linux" ? await version("pkg-config", ["--modversion", "libsecret-1"]) : null,
-    npm: npmToolingRequire(environment.npm_execpath)("../package.json").version,
-    targets: environment.HAPSLAND_BUILD_PROFILE
-      ? [environment.HAPSLAND_BUILD_PROFILE]
-      : ["linux-arm64", "darwin-arm64"],
-    platform: process.platform,
-    architecture: process.arch,
-    modules: process.versions.modules
-  }
-}
 // Hash dependency contents under logical names, following workspace links without
 // putting a checkout's physical path or timestamps into the artifact identity.
 let dependencyReaders = 0
@@ -115,14 +95,9 @@ export async function dependencyIdentity(root, { deadline = Date.now() + 30000, 
     throw error
   })
   const workspaceRoots = new Map()
-  for (const directory of manifest.workspaces ?? []) {
-    if (typeof directory !== "string" || !/^packages\/[a-z0-9-]+$/.test(directory))
-      throw new Error("Unsupported workspace dependency declaration")
-    const path = await realpath(join(root, directory))
-    const workspace = await json(join(path, "package.json"))
-    if (!workspace.private || typeof workspace.name !== "string") throw new Error("Invalid workspace dependency owner")
-    workspaceRoots.set(path, workspace.name)
-  }
+  if (manifest.workspaces !== undefined)
+    for (const workspace of readPackageGraph(root).workspaces.values())
+      workspaceRoots.set(await realpath(workspace.path), workspace.manifest.name)
   const directories = new Map()
   const visit = async (path, ancestors) => {
     if (Date.now() >= deadline) throw new Error("Dependency identity deadline exceeded")
@@ -161,109 +136,6 @@ export async function dependencyIdentity(root, { deadline = Date.now() + 30000, 
   await memo.publish()
   return identity
 }
-export async function artifactIdentities(
-  root,
-  toolchain,
-  recipe = "development",
-  { deadline = Date.now() + 30000 } = {}
-) {
-  if (!["development", "release"].includes(recipe)) throw new Error("Unknown packaging recipe")
-  const nativeOutput = `native/prebuilt/${toolchain.platform}-${toolchain.architecture}`
-  const buildInput = (path) =>
-    !path.endsWith(".md") &&
-    !/\.(?:test|spec)\.[cm]?[jt]sx?$/.test(path) &&
-    !/\/(?:conformance|fixtures|validation-evidence)\//.test(path) &&
-    path !== nativeOutput &&
-    !path.startsWith(`${nativeOutput}/`) &&
-    (["src", "scripts", "native", "vendor", "bin", "packages"].includes(path.split("/")[0]) ||
-      [
-        "package.json",
-        "package-runtime.json",
-        "bun.lock",
-        "tsconfig.json",
-        "tsconfig.build.json",
-        "tsconfig.package.json",
-        "tsconfig.packages.json",
-        "turbo.json"
-      ].includes(path))
-  const manifest = await json(join(root, "package.json"))
-  const selections = (manifest.files ?? []).map((path) => path.replace(/\/$/, "").split(/[?*[]/, 1)[0])
-  const packageInput = (path) =>
-    path !== nativeOutput &&
-    !path.startsWith(`${nativeOutput}/`) &&
-    (["package.json", "README.md", ".npmignore", ".gitignore"].includes(path) ||
-      /(?:^|\/)(?:licen[cs]e|copying)(?:\.|$)/i.test(path) ||
-      selections.some((prefix) => path === prefix || path.startsWith(prefix.endsWith("/") ? prefix : `${prefix}/`)))
-  const build = {
-    source: await sourceIdentity(root, undefined, buildInput, { deadline }),
-    dependencies: await dependencyIdentity(root, { deadline }),
-    toolchain
-  }
-  const shipped = []
-  for (const path of (await npmPackageFiles(root)).sort()) {
-    requireTime(deadline)
-    if (path === "dist" || path.startsWith("dist/") || path === nativeOutput || path.startsWith(`${nativeOutput}/`))
-      continue
-    const metadata = await lstat(join(root, path))
-    if (!metadata.isFile()) throw new Error(`Packaged input is not a regular file: ${path}`)
-    shipped.push({ path, mode: metadata.mode & 0o777, sha256: await fileDigest(join(root, path), { deadline }) })
-  }
-  return {
-    build: hash(JSON.stringify(build)),
-    package: hash(
-      JSON.stringify({
-        recipe: recipe === "development" ? "npm-packlist/tar-gzip-1" : "npm-pack",
-        build,
-        source: await sourceIdentity(root, undefined, packageInput, { deadline }),
-        shipped
-      })
-    ),
-    inputs: build
-  }
-}
-const ownerAlive = (pid) => {
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch (error) {
-    if (error.code === "ESRCH") return false
-    throw error
-  }
-}
-export async function withArtifactLock(directory, work, timeoutMs = 300000) {
-  await mkdir(directory, { recursive: true })
-  const lock = join(directory, "lock"),
-    deadline = Date.now() + timeoutMs
-  while (true) {
-    try {
-      await mkdir(lock)
-      break
-    } catch (error) {
-      if (error.code !== "EEXIST") throw error
-      const owner = await json(join(lock, "owner.json")).catch((error) => {
-        if (error.code === "ENOENT") return undefined
-        throw error
-      })
-      if (owner && (!Number.isInteger(owner.pid) || owner.pid <= 1))
-        throw new Error(`Invalid artifact lock owner: ${lock}`)
-      if (owner && !ownerAlive(owner.pid)) throw new Error(`Abandoned artifact lock needs owned-process audit: ${lock}`)
-      if (Date.now() >= deadline) throw new Error(`Artifact lock deadline exceeded: ${lock}`)
-      await new Promise((done) => setTimeout(done, 25))
-    }
-  }
-  let preserveLock = false
-  try {
-    await writeFile(join(lock, "owner.tmp"), JSON.stringify({ pid: process.pid }))
-    await rename(join(lock, "owner.tmp"), join(lock, "owner.json"))
-    requireTime(deadline)
-    return await work()
-  } catch (error) {
-    preserveLock = error.groupUnresolved === true
-    throw error
-  } finally {
-    if (!preserveLock) await rm(lock, { recursive: true, force: true })
-  }
-}
 export async function verifyArtifact(directory, expectedIdentity, { deadline = Date.now() + 30000 } = {}) {
   requireTime(deadline)
   let record
@@ -278,33 +150,7 @@ export async function verifyArtifact(directory, expectedIdentity, { deadline = D
     throw new Error("Artifact output manifest is incomplete")
   if (JSON.stringify(await treeInventory(join(directory, "outputs"), { deadline })) !== JSON.stringify(record.outputs))
     throw new Error("Artifact output checksum or inventory differs from its manifest")
-  if (record.archive) {
-    if (
-      typeof record.archive.file !== "string" ||
-      basename(record.archive.file) !== record.archive.file ||
-      !/^[a-f0-9]{64}$/.test(record.archive.sha256)
-    )
-      throw new Error("Artifact archive manifest is invalid")
-    if ((await fileDigest(join(directory, record.archive.file), { deadline })) !== record.archive.sha256)
-      throw new Error("Artifact archive checksum differs from its manifest")
-  }
   return record
-}
-async function restoreNativeOutputs(directory, root, nativePath, outputs) {
-  for (const file of outputs.filter((file) => file.path.startsWith(`${nativePath}/`))) {
-    const target = join(root, file.path)
-    await mkdir(dirname(target), { recursive: true })
-    const staging = await mkdtemp(join(dirname(target), ".hapsland-native-restore-"))
-    try {
-      const temporary = join(staging, "artifact")
-      await copyFile(join(directory, "outputs", file.path), temporary)
-      await chmod(temporary, file.mode)
-      // Never truncate a binding or executable that a live process has mapped.
-      await rename(temporary, target)
-    } finally {
-      await rm(staging, { recursive: true, force: true })
-    }
-  }
 }
 async function publishManifest(directory, record) {
   const temporary = join(directory, `artifact-${process.pid}.tmp`)
@@ -331,8 +177,8 @@ async function checkedStage(runStage, stage) {
       groupUnresolved: Boolean(result.groupUnresolved)
     })
 }
-// Immutable execution artifacts use the same locks, manifests and checksum
-// verification as package artifacts, without requiring package compilation.
+// Immutable execution fixtures retain their own source identity and checksum
+// verification independently of ordinary package builds.
 export async function ensureExecutionArtifact({
   root,
   kind,
@@ -348,7 +194,7 @@ export async function ensureExecutionArtifact({
   const requested = await identify({ deadline })
   if (!/^[a-f0-9]{64}$/.test(requested.identity)) throw new Error("Invalid execution artifact identity")
   const directory = join(store, kind, requested.identity)
-  return withArtifactLock(
+  return withOwnedLock(
     directory,
     async () => {
       if ((await identify({ deadline })).identity !== requested.identity)
@@ -392,124 +238,144 @@ export async function ensureExecutionArtifact({
     requireTime(deadline)
   )
 }
-export async function ensurePackageArtifact({
+// Retained archives are immutable evidence, never authority to skip a build,
+// validation or pack. Scheduling and output restoration belong to ordinary build.
+export async function preparePackageArchive({
   root,
   runStage,
   store,
-  toolchain,
-  identity = artifactIdentities,
   recipe = "development",
+  environment = process.env,
   deadline = Date.now() + 300000
 }) {
   root = resolve(root)
+  if (!["development", "release"].includes(recipe)) throw new Error("Unknown packaging recipe")
+  requireTime(deadline)
   store ??= await artifactStoreDirectory(root)
-  toolchain ??= await buildToolchain()
-  const requested = await identity(root, toolchain, recipe, { deadline })
-  const buildDirectory = join(store, "builds", requested.build),
-    packageDirectory = join(store, "packages", requested.package)
-  const nativePath = `native/prebuilt/${toolchain.platform}-${toolchain.architecture}`
-  const remaining = () => {
-    if (Date.now() >= deadline) throw new Error("Artifact preparation deadline exceeded")
-    return deadline - Date.now()
-  }
-  // A content lock coordinates worktrees; the checkout lock protects mutable dist.
-  return withArtifactLock(
-    join(store, "worktrees", hash(await realpath(root))),
-    () =>
-      withArtifactLock(
-        buildDirectory,
-        async () => {
-          let build = await verifyArtifact(buildDirectory, requested.build, { deadline })
-          const buildReused = build !== undefined
-          if (!build) {
-            await discardUnpublished(buildDirectory)
-            await checkedStage(runStage, {
-              name: "package-build",
-              command: process.execPath,
-              args: [npmToolingRequire().resolve("./npm-cli.js"), "run", "build"],
-              cwd: root,
-              env: {}
-            })
-            if ((await identity(root, toolchain, recipe, { deadline })).build !== requested.build)
-              throw new Error("Build inputs changed during compilation")
-            const staging = join(buildDirectory, `staging-${process.pid}`)
-            await mkdir(staging, { recursive: true })
-            await cp(join(root, "dist"), join(staging, "dist"), { recursive: true })
-            if (await exists(join(root, nativePath)))
-              await cp(join(root, nativePath), join(staging, nativePath), { recursive: true })
-            const outputs = await treeInventory(staging, { deadline })
-            if (!outputs.length) throw new Error("Build produced no runtime outputs")
-            await rename(staging, join(buildDirectory, "outputs"))
-            build = { identity: requested.build, inputs: requested.inputs, outputs }
-            remaining()
-            await publishManifest(buildDirectory, build)
-          } else {
-            await rm(join(root, "dist"), { recursive: true, force: true })
-            await cp(join(buildDirectory, "outputs/dist"), join(root, "dist"), { recursive: true })
-            await restoreNativeOutputs(buildDirectory, root, nativePath, build.outputs)
-          }
-          return withArtifactLock(
-            packageDirectory,
-            async () => {
-              let packaged = await verifyArtifact(packageDirectory, requested.package, { deadline })
-              const packageReused = packaged !== undefined
-              if (!packaged) {
-                await discardUnpublished(packageDirectory)
-                const staging = join(packageDirectory, `staging-${process.pid}`)
-                await mkdir(staging, { recursive: true })
-                await checkedStage(runStage, {
-                  name: "package-pack",
-                  command: process.execPath,
-                  args:
-                    recipe === "release"
-                      ? [
-                          npmToolingRequire().resolve("./npm-cli.js"),
-                          "pack",
-                          "--ignore-scripts=true",
-                          "--json",
-                          "--pack-destination",
-                          staging
-                        ]
-                      : [join(root, "scripts/dev-pack.mjs"), root, staging],
-                  cwd: root,
-                  env: {}
-                })
-                const current = await identity(root, toolchain, recipe, { deadline })
-                if (current.package !== requested.package) throw new Error("Package inputs changed during packing")
-                const archives = (await readdir(staging)).filter((file) => file.endsWith(".tgz"))
-                if (archives.length !== 1) throw new Error("Package stage must produce exactly one archive")
-                const file = archives[0],
-                  sha256 = await fileDigest(join(staging, file), { deadline })
-                await rename(join(staging, file), join(packageDirectory, file))
-                await rm(staging, { recursive: true, force: true })
-                await mkdir(join(packageDirectory, "outputs"))
-                packaged = {
-                  identity: requested.package,
-                  buildIdentity: requested.build,
-                  outputs: [],
-                  archive: { file, sha256 }
-                }
-                remaining()
-                await publishManifest(packageDirectory, packaged)
-              }
-              const verifiedInputs = await identity(root, toolchain, recipe, { deadline })
-              if (verifiedInputs.build !== requested.build || verifiedInputs.package !== requested.package)
-                throw new Error("Artifact inputs changed during preparation")
-              remaining()
-              return {
-                archivePath: join(packageDirectory, packaged.archive.file),
-                archiveDigest: packaged.archive.sha256,
-                buildIdentity: requested.build,
-                packageIdentity: requested.package,
-                buildReused,
-                packageReused
-              }
-            },
-            remaining()
-          )
-        },
-        remaining()
-      ),
-    remaining()
+  return withBuildLock(
+    root,
+    async (leaseEnvironment) => {
+      const env = { ...environment, HAPSLAND_BUILD_LOCK_LEASE: leaseEnvironment.HAPSLAND_BUILD_LOCK_LEASE }
+      if (recipe === "release") env.HAPSLAND_BUILD_PROFILE = undefined
+      const before = await packageSourceIdentity(root, { deadline })
+      await checkedStage(runStage, {
+        name: "package-build",
+        command: process.execPath,
+        args: [npmToolingRequire().resolve("./npm-cli.js"), "run", "build"],
+        cwd: root,
+        env
+      })
+      if ((await packageSourceIdentity(root, { deadline })) !== before)
+        throw new Error("Package source inputs changed during compilation")
+      await checkedStage(runStage, {
+        name: "package-validation",
+        command: process.execPath,
+        args: [npmToolingRequire().resolve("./npm-cli.js"), "run", "verify:release-native"],
+        cwd: root,
+        env
+      })
+      if ((await packageSourceIdentity(root, { deadline })) !== before)
+        throw new Error("Package source inputs changed during validation")
+      const outputs = await packageRuntimeInventory(root, { deadline })
+      const stagingRoot = join(root, ".test-runs/package-preparation")
+      await mkdir(stagingRoot, { recursive: true })
+      const staging = await mkdtemp(join(stagingRoot, "archive-"))
+      let preserveStaging = false
+      try {
+        await checkedStage(runStage, {
+          name: "package-pack",
+          command: process.execPath,
+          args:
+            recipe === "release"
+              ? [
+                  npmToolingRequire().resolve("./npm-cli.js"),
+                  "pack",
+                  "--ignore-scripts=true",
+                  "--json",
+                  "--pack-destination",
+                  staging
+                ]
+              : [join(root, "scripts/dev-pack.mjs"), root, staging],
+          cwd: root,
+          env
+        })
+        if ((await packageSourceIdentity(root, { deadline })) !== before)
+          throw new Error("Package source inputs changed during packing")
+        if (JSON.stringify(await packageRuntimeInventory(root, { deadline })) !== JSON.stringify(outputs))
+          throw new Error("Package runtime outputs changed during packing")
+        const archives = (await readdir(staging)).filter((file) => file.endsWith(".tgz"))
+        if (archives.length !== 1) throw new Error("Package stage must produce exactly one archive")
+        const file = archives[0],
+          archiveDigest = await fileDigest(join(staging, file), { deadline })
+        const directory = join(store, "archives", archiveDigest),
+          archivePath = join(directory, file)
+        await withOwnedLock(
+          directory,
+          async () => {
+            if ((await packageSourceIdentity(root, { deadline })) !== before)
+              throw new Error("Package source inputs changed before archive retention")
+            if (JSON.stringify(await packageRuntimeInventory(root, { deadline })) !== JSON.stringify(outputs))
+              throw new Error("Package runtime outputs changed before archive retention")
+            if (await exists(archivePath)) {
+              if ((await fileDigest(archivePath, { deadline })) !== archiveDigest)
+                throw new Error("Retained archive checksum differs from its identity")
+            } else {
+              const temporary = join(directory, `archive-${process.pid}.tmp`)
+              await copyFile(join(staging, file), temporary)
+              if ((await fileDigest(temporary, { deadline })) !== archiveDigest)
+                throw new Error("Archive bytes changed during retention")
+              requireTime(deadline)
+              await rename(temporary, archivePath)
+            }
+          },
+          requireTime(deadline)
+        )
+        return { archivePath, archiveDigest }
+      } catch (error) {
+        preserveStaging = error.groupUnresolved === true
+        throw error
+      } finally {
+        if (!preserveStaging) await rm(staging, { recursive: true, force: true })
+      }
+    },
+    requireTime(deadline)
   )
+}
+
+export async function packageSourceIdentity(root, { deadline = Date.now() + 30000 } = {}) {
+  const manifest = await json(join(root, "package.json"))
+  const graph = manifest.workspaces ? readPackageGraph(root) : undefined
+  const excludedDirectories = graph
+    ? [...graph.workspaces.values()].flatMap((owner) => [
+        `${owner.directory}/dist`,
+        ...(owner.manifest.hapsland?.nativeAssets?.length ? [`${owner.directory}/artifacts/native`] : [])
+      ])
+    : []
+  const excludedFiles = graph
+    ? generatedNativePaths(root, graph).map((path) => relative(root, path).replaceAll("\\", "/"))
+    : []
+  const source = await sourceIdentity(root, undefined, undefined, { deadline, excludedDirectories, excludedFiles })
+  const shipped = []
+  for (const path of (await npmPackageFiles(root)).sort()) {
+    if (
+      path.startsWith("dist/") ||
+      excludedFiles.includes(path) ||
+      excludedDirectories.some((directory) => path === directory || path.startsWith(`${directory}/`))
+    )
+      continue
+    const metadata = await lstat(join(root, path))
+    if (!metadata.isFile()) throw new Error(`Packaged input is not a regular file: ${path}`)
+    shipped.push({ path, mode: metadata.mode & 0o777, sha256: await fileDigest(join(root, path), { deadline }) })
+  }
+  return hash(JSON.stringify({ source, shipped, dependencies: await dependencyIdentity(root, { deadline }) }))
+}
+async function packageRuntimeInventory(root, { deadline }) {
+  const result = []
+  for (const directory of ["dist", "native/prebuilt"]) {
+    const path = join(root, directory)
+    if (await exists(path)) result.push({ directory, files: await treeInventory(path, { deadline }) })
+  }
+  if (!result.some((owner) => owner.directory === "dist" && owner.files.length))
+    throw new Error("Build produced no runtime outputs")
+  return result
 }

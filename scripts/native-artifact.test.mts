@@ -12,7 +12,7 @@ import {
 } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { buildNativeArtifact, copyNativeArtifact } from "./native-artifact.mjs"
+import { buildNativeArtifact, buildNativeArtifactAsync, copyNativeArtifact } from "./native-artifact.mjs"
 
 const directories = new Set<string>()
 afterEach(() => {
@@ -62,5 +62,34 @@ it("does not publish when the builder produces no executable", () => {
   writeFileSync(output, "working artifact")
   expect(() => buildNativeArtifact(output, () => undefined)).toThrow()
   expect(readFileSync(output, "utf8")).toBe("working artifact")
+  expect(readdirSync(directory)).toEqual(["executable"])
+})
+
+it("awaits compiler completion before publishing the replacement", async () => {
+  const { output } = fixture()
+  writeFileSync(output, "old")
+  let finish: (() => void) | undefined
+  const pending = buildNativeArtifactAsync(output, async (stagedOutput: string) => {
+    writeFileSync(stagedOutput, "complete")
+    await new Promise<void>((resolve) => {
+      finish = resolve
+    })
+  })
+  expect(readFileSync(output, "utf8")).toBe("old")
+  finish!()
+  await pending
+  expect(readFileSync(output, "utf8")).toBe("complete")
+})
+
+it("does not publish a rejected asynchronous compiler result", async () => {
+  const { directory, output } = fixture()
+  writeFileSync(output, "old")
+  await expect(
+    buildNativeArtifactAsync(output, async (stagedOutput: string) => {
+      writeFileSync(stagedOutput, "incomplete")
+      throw new Error("compiler deadline")
+    })
+  ).rejects.toThrow("compiler deadline")
+  expect(readFileSync(output, "utf8")).toBe("old")
   expect(readdirSync(directory)).toEqual(["executable"])
 })

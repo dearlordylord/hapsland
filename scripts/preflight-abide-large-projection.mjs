@@ -19,7 +19,7 @@ const {
   encodedPreparedProviderInputBytes,
   encodedPreparedProviderHttpBodyBytes
 } = await load("packages/review-execution/src/direct-event/pipeline.ts")
-const { configuredRules } = await load("src/test-support/default-rules.ts")
+const { configuredRules } = await load("scripts/test-support/default-rules.ts")
 const { DEFAULT_BACKEND, DEFAULT_DESTINATION } = await load("packages/review-definition/src/runtime/review-config.ts")
 const { probabilityRequest, requestLimitViolation } = await load(
   "packages/review-execution/src/review-providers/request.ts"

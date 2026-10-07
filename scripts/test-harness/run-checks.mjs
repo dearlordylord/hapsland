@@ -1,3 +1,4 @@
+import { unresolvedBuildOwnership } from "../build-ownership.mjs"
 import { spawn, execFile } from "node:child_process"
 import { createWriteStream } from "node:fs"
 import { mkdir, readFile, writeFile, rename, open, unlink, readdir, stat } from "node:fs/promises"
@@ -350,6 +351,11 @@ export async function createRun({
       record.groupUnresolved = groupAlive()
       spawnError ??= "Child process group outlived its leader and was terminated"
     }
+    const buildOwnership = await unresolvedBuildOwnership(root)
+    if (buildOwnership) {
+      record.groupUnresolved = true
+      spawnError ??= buildOwnership
+    }
     activeChild = undefined
     await new Promise((done) => stream.end(done))
     Object.assign(record, outcome, {
@@ -434,6 +440,7 @@ export async function createRun({
         }
       }
     }
+    if (await unresolvedBuildOwnership(root)) unresolvedGroups = true
     if (unresolvedGroups) {
       aborted = true
       abortReason = "process group still present; lock retained"
@@ -524,7 +531,14 @@ export async function runSelectedTests(run, root, selection, environment = {}) {
     await run.runStage({
       name: "vitest-focused",
       command: join(root, "node_modules", ".bin", "vitest"),
-      args: ["run", "--maxWorkers=1", ...selection.vitestFiles, ...selection.options],
+      args: [
+        "run",
+        "--config",
+        "scripts/vitest.config.ts",
+        "--maxWorkers=1",
+        ...selection.vitestFiles,
+        ...selection.options
+      ],
       env: {
         ...environment,
         HAPSLAND_FOCUSED_TEST_SELECTION: JSON.stringify({ files: selection.vitestFiles, options: selection.options })
@@ -644,7 +658,7 @@ export async function main(argv = process.argv.slice(2), root = defaultRoot, pla
           await run.runStage({
             name: "vitest",
             command: join(root, "node_modules", ".bin", "vitest"),
-            args: ["run", "--maxWorkers=1", ...args],
+            args: ["run", "--config", "scripts/vitest.config.ts", "--maxWorkers=1", ...args],
             env: { HAPSLAND_TEST_PACKAGE_ARCHIVE: archive.archivePath }
           })
         else if (!run.aborted)

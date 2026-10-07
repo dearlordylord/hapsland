@@ -1,5 +1,5 @@
 import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
-import { createInstallationPackageFixture } from "../test-support/installation-package.ts"
+import { createInstallationPackageFixture } from "@hapsland/build-tooling/test-support/installation-package"
 import { ConfigProvider, Effect } from "effect"
 import { it as effectIt } from "@effect/vitest"
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
@@ -192,6 +192,37 @@ else console.log('{"version":1,"status":"available"}');
     expect(JSON.stringify(result)).not.toContain(secret)
     expect(readFileSync(join(codexHome, "config.toml"), "utf8")).toBe(configBefore)
     expect(readFileSync(join(codexHome, "hooks.json"), "utf8")).toBe(hooksBefore)
+
+    const hookPath = process.env.REVIEW_INSTALL_ENTRYPOINT!
+    const hookBytes = readFileSync(hookPath)
+    rmSync(hookPath)
+    try {
+      const missingHook = await runDoctor(
+        diagnoseInstalledIntegration({
+          installation: request,
+          repository: readyCheck("file-selection"),
+          credential: readyCheck("credential-accessibility")
+        })
+      )
+      expect(missingHook.status).toBe("not-ready")
+      expect(missingHook.checks).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            stage: "runtime",
+            status: "unsupported",
+            action: expect.stringContaining(hookPath)
+          })
+        ])
+      )
+      expect(missingHook.nextSteps).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ stage: "runtime", action: expect.stringContaining("reinstall") })
+        ])
+      )
+      expect(readFileSync(join(codexHome, "hooks.json"), "utf8")).toBe(hooksBefore)
+    } finally {
+      writeFileSync(hookPath, hookBytes)
+    }
 
     const hooks = JSON.parse(hooksBefore) as { hooks: { PostToolUse: Array<unknown> } }
     hooks.hooks.PostToolUse.push(hooks.hooks.PostToolUse[0])

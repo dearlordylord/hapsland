@@ -27,7 +27,7 @@ it("finds actual imports through cyclic fixtures without treating strings or typ
   put("src/cycle.ts", 'import "./fixture.ts"; import {spawn} from "node:child_process";')
   put("src/dynamic.test.ts", 'const fixture = import("./fixture.ts");')
   put("src/mixed.test.ts", 'import defaultRuntime, {type ChildProcess} from "node:child_process";')
-  put("scripts/cli-import-boundary.test.mts", "const finiteImportClosure = true;")
+  put("scripts/hook-import-boundary.test.mjs", "const finiteImportClosure = true;")
   put("src/resident/capacity.test.ts", "const boundedMetadata = true;")
   put("packages/monkey-business/src/outcomes.test.ts", "const seededReplay = true;")
   put("packages/monkey-business/src/cache-scenarios.test.ts", "const seededCacheReplay = true;")
@@ -38,6 +38,7 @@ it("finds actual imports through cyclic fixtures without treating strings or typ
     [
       ...defaultEntries,
       ...inventoryTestHarness(root, [
+        "scripts/hook-import-boundary.test.mjs",
         "packages/monkey-business/src/outcomes.test.ts",
         "packages/monkey-business/src/cache-scenarios.test.ts"
       ])
@@ -55,7 +56,7 @@ it("finds actual imports through cyclic fixtures without treating strings or typ
   expect(entries["src/mixed.test.ts"].kind).toBe("process")
   expect(entries["src/resident/server.test.ts"].kind).toBe("bounded-scenario")
   for (const path of [
-    "scripts/cli-import-boundary.test.mts",
+    "scripts/hook-import-boundary.test.mjs",
     "src/resident/capacity.test.ts",
     "packages/monkey-business/src/outcomes.test.ts",
     "packages/monkey-business/src/cache-scenarios.test.ts"
@@ -96,4 +97,43 @@ it("keeps unavailable optional game and generator modules out of production inve
   ])
   expect(() => inventoryTestHarness(root, ["scripts/game-future.test.mts"])).toThrow()
   expect(() => inventoryTestHarness(root, ["packages/monkey-business/src/generator.test.ts"])).toThrow()
+})
+
+it("follows declared tooling source exports when classifying verification process imports", () => {
+  const root = mkdtempSync(join(tmpdir(), "haps-harness-workspace-inventory-"))
+  roots.push(root)
+  for (const folder of ["src", "scripts/test-support"]) mkdirSync(join(root, folder), { recursive: true })
+  writeFileSync(join(root, "package.json"), JSON.stringify({ workspaces: ["scripts", "src"] }))
+  writeFileSync(
+    join(root, "scripts/package.json"),
+    JSON.stringify({
+      name: "@hapsland/build-tooling",
+      private: true,
+      type: "module",
+      hapsland: { workspaceRole: "tooling" },
+      exports: { "./test-support/helper": { types: "./test-support/helper.ts", default: "./test-support/helper.ts" } }
+    })
+  )
+  writeFileSync(
+    join(root, "src/package.json"),
+    JSON.stringify({
+      name: "@hapsland/verification",
+      private: true,
+      type: "module",
+      hapsland: { workspaceRole: "verification" },
+      dependencies: { "@hapsland/build-tooling": "workspace:*" }
+    })
+  )
+  writeFileSync(join(root, "scripts/test-support/helper.ts"), 'import { spawn } from "node:child_process";')
+  writeFileSync(join(root, "src/selected.test.ts"), 'import "@hapsland/build-tooling/test-support/helper";')
+  expect(inventoryTestHarness(root, ["src/selected.test.ts"])).toEqual([
+    {
+      path: "src/selected.test.ts",
+      kind: "process",
+      processImportIn: "scripts/test-support/helper.ts",
+      timeoutMs: 60_000
+    }
+  ])
+  writeFileSync(join(root, "src/selected.test.ts"), 'import "@hapsland/build-tooling/test-support/undeclared";')
+  expect(() => inventoryTestHarness(root, ["src/selected.test.ts"])).toThrow(/undeclared workspace export/)
 })

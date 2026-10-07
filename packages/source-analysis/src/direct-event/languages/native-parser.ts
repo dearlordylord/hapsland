@@ -1,4 +1,4 @@
-import { physicalNativeBindings, configureNativeBindings } from "@hapsland/runtime-environment/runtime/native-bindings"
+import { physicalNativeBindings, configureNativeBindings } from "./native-bindings.ts"
 import { assertReviewEngineBoundary } from "@hapsland/runtime-environment/runtime/review-engine-boundary"
 import { packageAssetPath, standalone } from "@hapsland/runtime-environment/runtime/package-runtime"
 import { extname } from "node:path"

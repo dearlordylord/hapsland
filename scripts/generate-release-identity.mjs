@@ -1,10 +1,16 @@
 import { readFileSync, writeFileSync } from "node:fs"
 import { relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import { readPackageGraph } from "./package-graph.mjs"
+import { readPackageGraph, resolveDeclaredDependencyVersion } from "./package-graph.mjs"
 
 export const generateReleaseIdentity = (root, check = false) => {
   const graph = readPackageGraph(root)
+  const bunVersion = resolveDeclaredDependencyVersion(graph.release, "bun", "catalog:")
+  const bunTypesVersion = resolveDeclaredDependencyVersion(graph.release, "@types/bun", "catalog:")
+  if (graph.release.packageManager !== `bun@${bunVersion}`)
+    throw new Error("Package manager must match the authoritative Bun catalog version")
+  if (bunTypesVersion !== bunVersion)
+    throw new Error("Bun type companion must match the authoritative Bun catalog version")
   const sources = {},
     emitted = {},
     commands = {}
@@ -24,6 +30,7 @@ export const generateReleaseIdentity = (root, check = false) => {
   const sorted = (value) => Object.fromEntries(roles.map((role) => [role, value[role]]))
   const source = [
     "// Generated from the release and role package manifests; do not edit.",
+    `export const BUN_VERSION = ${JSON.stringify(bunVersion)} as const`,
     `export const RELEASE_VERSION = ${JSON.stringify(graph.release.version)} as const`,
     `export const RELEASE_NAME = ${JSON.stringify(graph.release.name)} as const`,
     `export const SOURCE_ENTRIES = ${JSON.stringify(sorted(sources), null, 2)} as const`,

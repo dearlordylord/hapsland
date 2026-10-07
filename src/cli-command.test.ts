@@ -1,3 +1,4 @@
+import { parseHookArguments } from "@hapsland/hook-runtime/hooks/command"
 import { BUN_VERSION, bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { SUPPORTED_CLIENTS, CLIENT_NAMES } from "@hapsland/runtime-environment/runtime/agent-clients"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../scripts/test-harness/policy.mjs"
@@ -10,24 +11,28 @@ import { mkdtempSync, readdirSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
-const cli = (args: ReadonlyArray<string>, input = "") => {
+const cli = (args: ReadonlyArray<string>, input = "", hook = false) => {
   const home = mkdtempSync(join(tmpdir(), "hapsland-cli-arguments-"))
   try {
-    const result = spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", ...args], {
-      input,
-      encoding: "utf8",
-      timeout: DEFAULT_CHILD_TIMEOUT_MS,
-      env: {
-        ...process.env,
-        HOME: home,
-        HAPSLAND_ACTIVE_DISPATCH: "1",
-        REVIEW_USER_CONFIG_PATH: join(home, "user.json"),
-        REVIEW_STATE_PATH: join(home, "state"),
-        REVIEW_ACTIVITY_PATH: join(home, "activity"),
-        TYPESAFE_API_KEY: "",
-        REVIEW_CONTROL_JSON: "not JSON"
+    const result = spawnSync(
+      bunExecutable(),
+      [hook ? "packages/hook-entry/src/hook-main.ts" : "packages/cli-entry/src/cli.ts", ...args],
+      {
+        input,
+        encoding: "utf8",
+        timeout: DEFAULT_CHILD_TIMEOUT_MS,
+        env: {
+          ...process.env,
+          HOME: home,
+          HAPSLAND_ACTIVE_DISPATCH: "1",
+          REVIEW_USER_CONFIG_PATH: join(home, "user.json"),
+          REVIEW_STATE_PATH: join(home, "state"),
+          REVIEW_ACTIVITY_PATH: join(home, "activity"),
+          TYPESAFE_API_KEY: "",
+          REVIEW_CONTROL_JSON: "not JSON"
+        }
       }
-    })
+    )
     return { ...result, files: readdirSync(home) }
   } finally {
     rmSync(home, { recursive: true, force: true })
@@ -212,6 +217,16 @@ describe("declarative CLI subprocess contracts", () => {
       expect(result.output).toContain("--host")
     }
   )
+  it.each(["--claude-hook", "--codex-hook", "--pi-hook", "--composed-stop-hook"])(
+    "rejects native routing through the administration CLI: %s",
+    (flag) => {
+      const result = cli([flag], "not JSON")
+      expect(result.status).toBe(6)
+      expect(result.stdout).toBe("")
+      expect(result.stderr).toContain(flag)
+      expect(result.files).toEqual([])
+    }
+  )
   it.each([
     ["--claude-hook", "--help"],
     ["--claude-hook=true", "--help"],
@@ -230,7 +245,7 @@ describe("declarative CLI subprocess contracts", () => {
       return true
     })
     try {
-      await parseInvocation(args).catch(() => undefined)
+      await parseHookArguments(args).catch(() => undefined)
     } finally {
       write.mockRestore()
     }
@@ -240,7 +255,7 @@ describe("declarative CLI subprocess contracts", () => {
     ["--claude-hook", "--help"],
     ["--claude-hook", "--unknown"]
   ])("keeps the native hook subprocess quiet: %j", (...args) => {
-    const result = cli(args, "not JSON")
+    const result = cli(args, "not JSON", true)
     expect(result.status).toBe(0)
     expect(result.stdout).toBe("")
     expect(result.stderr).toBe("")
@@ -250,17 +265,13 @@ describe("declarative CLI subprocess contracts", () => {
     ["--composed-host=codex-cli", "--codex-version=0.156.0", "--review-tool-owned=codex-v1"],
     ["--composed-host", "codex-cli", "--codex-version", "0.156.0", "--review-tool-owned", "codex-v1"]
   ])("accepts both hook flag-value spellings: %j", async (...args) => {
-    const result = await parse(["--codex-hook", ...args])
-    expect(result.invocation).toMatchObject({
-      kind: "automation",
-      options: {
-        "codex-hook": true,
-        "composed-host": "codex-cli",
-        "codex-version": "0.156.0",
-        "review-tool-owned": "codex-v1"
-      }
+    const result = await parseHookArguments(["--codex-hook", ...args])
+    expect(result).toMatchObject({
+      "codex-hook": true,
+      "composed-host": "codex-cli",
+      "codex-version": "0.156.0",
+      "review-tool-owned": "codex-v1"
     })
-    expect(result.output).toBe("")
   })
   it.each([
     ["--host=codex", "--codex-home=/tmp/hapsland-missing-profile"],
@@ -306,7 +317,8 @@ describe("declarative CLI subprocess contracts", () => {
   it("accepts an installed composed hook ownership marker before quieting unsupported input", () => {
     const result = cli(
       ["--composed-stop-hook", "--composed-host=claude-code", "--review-tool-composed-owned=claude-v1"],
-      "not JSON"
+      "not JSON",
+      true
     )
     expect(result.status).toBe(0)
     expect(result.stdout.trim()).toBe("{}")
@@ -324,7 +336,7 @@ describe("declarative CLI subprocess contracts", () => {
     expect(JSON.parse(result.stdout)).toEqual({
       name: "@hapsland/hapsland",
       executable: bunExecutable(),
-      args: [join(process.cwd(), "packages/cli-entry/src/cli.ts")]
+      args: [join(process.cwd(), "packages/cli-entry/dist/cli.js")]
     })
     expect(result.stderr).toBe("")
     expect(result.files).toEqual([])

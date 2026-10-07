@@ -11,12 +11,12 @@ import {
   evaluatePrepared
 } from "@hapsland/review-execution/direct-event/pipeline"
 import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
-import { configuredRules } from "../test-support/default-rules.ts"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import { resolveRustModuleContext } from "@hapsland/source-analysis/direct-event/languages/rust-module-context"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
-import { addEvent, makeGitFixture, put, updateEvent } from "./test-fixtures.ts"
+import { addEvent, makeGitFixture, put, updateEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 const rules = (closure: boolean) =>
   [

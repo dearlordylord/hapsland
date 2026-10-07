@@ -14,16 +14,18 @@
     "@hapsland/administration": "workspace:*",
     "@hapsland/credential-storage": "workspace:*",
     "@hapsland/delivery-output": "workspace:*",
-    "@hapsland/hook-runtime": "workspace:*",
     "@hapsland/native-observation": "workspace:*",
     "@hapsland/resident-transport": "workspace:*",
     "@hapsland/review-definition": "workspace:*",
     "@hapsland/runtime-environment": "workspace:*",
     "@hapsland/runtime-inputs": "workspace:*",
-    "effect": "4.0.0"
+    "effect": "catalog:"
   },
   "scripts": {
-    "build": "node ../../scripts/compile-package.mjs"
+    "build": "node ../../scripts/compile-package.mjs",
+    "assemble:linux-arm64": "node ../../scripts/assemble-entry.mjs linux-arm64",
+    "assemble:darwin-arm64": "node ../../scripts/assemble-entry.mjs darwin-arm64",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
   },
   "hapsland": {
     "domain": "cli-entry",
@@ -31,6 +33,12 @@
     "capabilities": [],
     "role": "cli",
     "executable": "hapsland",
-    "entry": "src/cli.ts"
+    "entry": "src/cli.ts",
+    "assembly": {
+      "profiles": [
+        "linux-arm64",
+        "darwin-arm64"
+      ]
+    }
   }
 }

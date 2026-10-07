@@ -9,9 +9,9 @@ import { makeInspectionStorage } from "@hapsland/inspection-records/inspection/s
 import { acquireResidentFixture } from "../resident/runtime-fixture.ts"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
-import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { configuredRules, connectDefaultRuleFixture } from "../test-support/default-rules.ts"
-import { nativeDeferred } from "../test-support/native-deferred.ts"
+import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { configuredRules, connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
+import { nativeDeferred } from "@hapsland/build-tooling/test-support/native-deferred"
 
 it("disconnects a stalled public feed while real resident reviews and persistence continue", async () => {
   const root = await makeGitFixture()

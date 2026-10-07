@@ -1,17 +1,17 @@
 import { REVIEW_FEEDBACK_HEADING, REVIEW_FEEDBACK_INSTRUCTIONS } from "@hapsland/delivery-output/feedback/message"
-import { runClient } from "../test-support/client-runtime.ts"
-import { reviewControlsLayer } from "../test-support/review-controls.ts"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
+import { reviewControlsLayer } from "@hapsland/build-tooling/test-support/review-controls"
 import { ReviewControlError } from "@hapsland/resident-runtime/resident/review-controls"
-import { nativeDeferred as deferred } from "../test-support/native-deferred.ts"
+import { nativeDeferred as deferred } from "@hapsland/build-tooling/test-support/native-deferred"
 import { ResidentDispatchControls, DispatchControlError } from "@hapsland/resident-runtime/resident/dispatch-controls"
-import { makeDispatchControls } from "../test-support/dispatch-controls.ts"
+import { makeDispatchControls } from "@hapsland/build-tooling/test-support/dispatch-controls"
 import { Layer } from "effect"
 import {
   ResidentPreparationControls,
   PreparationControlError,
   defaultPreparationControls
 } from "@hapsland/resident-runtime/resident/preparation-controls"
-import { makePreparationControls } from "../test-support/preparation-controls.ts"
+import { makePreparationControls } from "@hapsland/build-tooling/test-support/preparation-controls"
 import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts"
 import { monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"
 import { describe, expect, it, vi } from "vitest"
@@ -28,8 +28,8 @@ import {
   put,
   stageFiles,
   advicee
-} from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../test-support/default-rules.ts"
+} from "@hapsland/build-tooling/test-support/test-fixtures"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import { analyzerMaterializationPreflight } from "@hapsland/source-analysis/direct-event/analyzer"
 import { readActivity } from "@hapsland/activity-observation/activity/status"
 import { claudeHostOutputText } from "@hapsland/delivery-output/direct-event/claude-output"

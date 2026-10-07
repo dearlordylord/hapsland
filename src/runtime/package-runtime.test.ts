@@ -15,6 +15,7 @@ import {
   observedRuntimeVersion,
   packageAssetPath,
   packageCommand,
+  emittedReleaseEntrypoints,
   packageRoot,
   packageRootFromEntrypoint,
   runtimeProbeArguments,
@@ -33,7 +34,7 @@ it("keeps executable argv distinct for development sources and standalone retain
   expect(packageRootFromEntrypoint(source)).toBe(packageRoot)
   expect(packageRootFromEntrypoint(binary)).toBe(packageRoot)
   expect(currentCommand()).toEqual(packageCommand("cli"))
-  expect(packageCommand("resident").args).toEqual([join(packageRoot, "packages/resident-entry/src/resident/main.ts")])
+  expect(packageCommand("resident").args).toEqual([join(packageRoot, emittedReleaseEntrypoints.resident)])
   expect(standaloneCommand(packageRoot, "doctor")).toEqual({
     executable: join(packageRoot, "dist/bin", `${process.platform}-${process.arch}`, "hapsland-doctor"),
     args: []

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { readFileSync, readdirSync } from "node:fs"
 import { resolve } from "node:path"
+import { readPackageGraph } from "./package-graph.mjs"
 
 // #137 gate: keep this standalone while direct policy imports are forbidden.
 const root = resolve(import.meta.dirname, "..")
@@ -63,13 +64,19 @@ const scan = (directory) => {
       obsoleteImports.push(path)
     if (
       path !== "packages/canonical-policy/src/canonical/canonical-boundary.ts" &&
-      /from ["'][^"']*canonical\.generated(?:\.js)?["']/.test(source)
+      /from ["'](?:[^"']*canonical\.generated(?:\.js)?|@hapsland\/agent-flow-bend\/canonical)["']/.test(source)
+    )
+      obsoleteImports.push(path)
+    if (
+      path !== "packages/canonical-policy/src/canonical/graph-adapter.ts" &&
+      /from ["']@hapsland\/agent-flow-bend\/import-graph["']/.test(source)
     )
       obsoleteImports.push(path)
   }
 }
 scan("src")
-for (const workspace of JSON.parse(read("package.json")).workspaces ?? []) scan(`${workspace}/src`)
+for (const owner of readPackageGraph(root).packages.values())
+  if (owner.compiler === "typescript") scan(`${owner.directory}/src`)
 scan("packages/agent-flow-viz/src")
 assert.deepEqual(obsoleteImports, [], "production or visualization still consumes an obsolete direct policy path")
 console.log(`checked ${required.length} shared-adapter imports and zero direct policy consumers`)

@@ -1,6 +1,8 @@
 import { realpathSync } from "node:fs"
 
-export const BUN_VERSION = "1.3.14"
+import { BUN_VERSION } from "./release-identity.generated.ts"
+
+export { BUN_VERSION } from "./release-identity.generated.ts"
 /** Tooling resolves and verifies this path before application subprocesses run. */
 export const bunExecutable = (): string => {
   const active = (globalThis as { readonly Bun?: { readonly version?: string } }).Bun

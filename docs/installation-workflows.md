@@ -188,7 +188,7 @@ To return to stable from `next`, run `hapsland update --channel=latest` (all ins
 
 Run `npm run dev:inspection` from the repository root for the inspection dashboard
 served from the current checkout. Browser pages reload when
-`src/inspection/page.ts` changes; this workflow reads the existing local journal
+`packages/administration/src/inspection/page.ts` changes; this workflow reads the existing local journal
 and requires no package rebuild or hook update. See the
 [inspection guide](status.md#opt-in-local-inspection) for port selection and limits.
 
@@ -206,7 +206,7 @@ that bundled page or test changed runtime and hook behavior.
 
 The current `dev-install` command installs a **fixed packaged snapshot**. It is
 useful for testing an installation candidate; it does not run hooks from the
-changing checkout. Code changes require a new build, archive and activation; unchanged inputs reuse the previous development archive and verified installed snapshot.
+changing checkout. Code changes require an ordinary build, freshly packed archive and activation. Every preparation invokes the ordinary build and fresh validation; Turbo may reuse individual build tasks. Identical archive bytes may reuse a verified installed snapshot.
 Do not present this command as a workflow that immediately picks up source edits.
 
 Builds require exact Bun 1.3.14. With mise installed, select it explicitly:
@@ -223,7 +223,7 @@ when it is absent from PATH. `HAPSLAND_BUILD_BUN=/absolute/path/to/bun` selects
 an executable explicitly; its version must still be exactly 1.3.14. Installed
 standalone packages embed Bun and do not require users to install it separately.
 
-`dev-install` caches the development archive under `$XDG_CACHE_HOME/hapsland/dev-install` (default `~/.cache/hapsland/dev-install`), separately for each checkout. It compares build owners, shipped files, dependency lockfiles, installed dependency metadata (including linked packages), and the selected toolchain/profile. On a miss it builds the current platform, verifies native assets, packs a local archive and stages a verified candidate. On a hit it skips build and pack and reuses the verified installed candidate; a missing candidate is reinstalled from the cached archive. Missing or corrupt archives rebuild. Cache reuse does not depend on `dist` remaining in the checkout. Setup still runs every time, including `--new-key`. Unshipped documentation, tests, project configuration and Quint files do not invalidate it. Simultaneous dev-installs in one checkout are serialized by an exclusive build lock; changed inputs during assembly abort instead of caching mixed sources. Development archives contain standalone commands for the current platform; ordinary `npm run build` still builds Linux and macOS. The script records Git commit/dirty-tree/checksum identity and launches the package's guided setup. It does not publish. Use the same command for first installation and subsequent source updates: guided setup previews and replaces healthy owned hooks with the newly built target, preserving unrelated hooks. `--update` is optional: it selects the dedicated update flow instead of guided setup, rather than making repeated installation possible. To choose that flow explicitly:
+`dev-install` invokes the ordinary build, validates the selected native profile, and packs an archive on every run. Turbo owns build-task reuse and output restoration. Completed archives are retained by SHA-256 under the shared Git artifact store; retained bytes never skip build, validation or packing. Preparation holds the checkout build lease through packing and rejects changed source, dependency or runtime-output evidence. Native outputs generated on this host belong to their declared producers; retained foreign binaries and parser bindings remain inputs. Development builds select the current platform; release preparation explicitly builds and validates both supported profiles. Setup still runs every time, including `--new-key`. The script stages a verified installed candidate, records Git commit/dirty-tree/checksum identity, and launches the package's guided setup. It does not publish. Use the same command for first installation and subsequent source updates: guided setup previews and replaces healthy owned hooks with the newly built target, preserving unrelated hooks. `--update` selects the dedicated update flow instead of guided setup. To choose that flow explicitly:
 
 ```sh
 mise exec bun@1.3.14 -- npm run dev-install -- --host=claude --update
@@ -454,6 +454,12 @@ hapsland --version
 ```
 
 ### Package and worker entry points
+
+#### hapsland-hook
+
+Native hook RPC client. Uses read-only runtime inputs and the resident transport; unrelated arguments return quietly.
+
+Usage: `hapsland-hook [native hook flags]`. Use `--help`/`-h` or `--version` alone for information before any stdin or state handling.
 
 #### hapsland-doctor
 

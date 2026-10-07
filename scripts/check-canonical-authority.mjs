@@ -10,8 +10,8 @@ const eventReader = read("packages/canonical-policy/src/canonical/event-reader.t
 const schemas = read("packages/canonical-policy/src/canonical/constructors.ts")
 const scalarSchemas = read("packages/canonical-policy/src/canonical/boundary-schema.ts")
 const bend = read("packages/agent-flow-bend/Canonical.bend")
-const generated = read("packages/canonical-policy/src/canonical/canonical.generated.js")
-const declaration = read("packages/canonical-policy/src/canonical/canonical.generated.d.ts")
+const generated = read("packages/agent-flow-bend/dist/canonical.generated.js")
+const declaration = read("packages/agent-flow-bend/abi/canonical.generated.d.ts")
 const between = (source, start, end) => {
   const first = source.indexOf(start)
   const last = source.indexOf(end, first + start.length)

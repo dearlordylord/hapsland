@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest"
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { advicee } from "../direct-event/test-fixtures.ts"
+import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 import {
   recordAnalytics,
   readAnalytics,

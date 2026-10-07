@@ -14,7 +14,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { activitySessionKey, pruneActivityStore } from "@hapsland/activity-observation/activity/storage"
 import { recordActivity } from "@hapsland/activity-observation/activity/status"
-import { advicee } from "../direct-event/test-fixtures.ts"
+import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 const directories: string[] = []
 const fixture = () => {

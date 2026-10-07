@@ -8,7 +8,7 @@ import {
   releaseComposedSubmissionEffect,
   acknowledgeAdviceEffect
 } from "@hapsland/resident-transport/resident/client"
-import { runClient } from "../test-support/client-runtime.ts"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
 import { request } from "node:http"
 import { Effect, Scope, Exit, ConfigProvider } from "effect"
 import { expect, it } from "vitest"
@@ -19,11 +19,11 @@ import { makeInspectionStorage } from "@hapsland/inspection-records/inspection/s
 import { acquireResidentFixture } from "../resident/runtime-fixture.ts"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
-import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { nativeDeferred } from "../test-support/native-deferred.ts"
+import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
+import { nativeDeferred } from "@hapsland/build-tooling/test-support/native-deferred"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
-import { configuredRules, connectDefaultRuleFixture } from "../test-support/default-rules.ts"
+import { configuredRules, connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
 import { readCredentialState } from "@hapsland/runtime-inputs/credentials/state"
 import { decodeInspectionRecord } from "@hapsland/inspection-records/inspection/contract"
 

@@ -2,7 +2,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs"
 import { dirname, extname, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { parse } from "@babel/parser"
-import { readPackageGraph, resolveWorkspaceSource } from "../package-graph.mjs"
+import { readPackageGraph, resolveDevelopmentWorkspaceSource } from "../package-graph.mjs"
 import { isOptionalDevelopmentTest } from "./test-scope.mjs"
 import { boundedScenarioFiles, timeoutForKind } from "./policy.mjs"
 
@@ -48,7 +48,7 @@ const localModule = (root, file, specifier) => {
   if (!specifier.startsWith(".")) {
     const manifestPath = resolve(root, "package.json")
     if (!existsSync(manifestPath) || !JSON.parse(readFileSync(manifestPath, "utf8")).workspaces) return undefined
-    return resolveWorkspaceSource(readPackageGraph(root), specifier)
+    return resolveDevelopmentWorkspaceSource(readPackageGraph(root), specifier)
   }
   const target = resolve(dirname(file), specifier)
   const candidates = [
@@ -84,7 +84,7 @@ export const requiredTestArtifacts = (root, selectedFiles) => {
     const file = pending.pop()
     if (seen.has(file)) continue
     seen.add(file)
-    if (relative(root, file).replaceAll("\\", "/") === "src/test-support/test-package.ts") return ["package"]
+    if (relative(root, file).replaceAll("\\", "/") === "scripts/test-support/test-package.ts") return ["package"]
     for (const specifier of importsOf(file)) {
       const dependency = localModule(root, file, specifier)
       if (dependency) pending.push(dependency)

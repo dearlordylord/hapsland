@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { runSizeGraph, sizePreparationInput, validateSizeFacts, createRun, replayRun } from "./index.ts"
-import { GRAPH_LIMIT_CEILINGS } from "../../agent-flow-bend/import-graph-adapter.ts"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-adapter"
 
 describe("source-free checked size graph runs", () => {
   it("distinguishes tree bytes and never reads an excluded path", () => {

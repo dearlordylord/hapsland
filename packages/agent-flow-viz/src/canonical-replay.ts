@@ -13,8 +13,8 @@ import {
   type CanonicalCommand,
   type CanonicalEvent,
   type CanonicalProjection
-} from "../../../src/canonical/adapter"
-export { initialCanonical, projectCanonical, stepCanonical } from "../../../src/canonical/adapter"
+} from "@hapsland/canonical-policy/canonical/adapter"
+export { initialCanonical, projectCanonical, stepCanonical } from "@hapsland/canonical-policy/canonical/adapter"
 
 export type ReplayEvent = Readonly<{ event: CanonicalEvent | PreparationEvent; origin: "guided" | "manual" }>
 export type ReplayStep = Readonly<{

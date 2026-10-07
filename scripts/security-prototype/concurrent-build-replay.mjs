@@ -8,7 +8,7 @@ const root = fileURLToPath(new URL("../../", import.meta.url))
 const evidencePath = process.argv[2]
 if (!evidencePath) throw new Error("provide an evidence JSON path")
 if (process.platform !== "linux" || process.arch !== "arm64") throw new Error("declared profile is Linux arm64")
-const helper = resolve(root, "scripts/build-capture-helper.mjs")
+const helper = resolve(root, "scripts/build-native-tasks.mjs")
 const replay = resolve(root, "scripts/security-prototype/resident-wire.mjs")
 const binding = resolve(root, "native/prebuilt/linux-arm64/tree-sitter/build/Release/tree_sitter_runtime_binding.node")
 const digest = (path) => createHash("sha256").update(readFileSync(path)).digest("hex")

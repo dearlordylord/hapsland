@@ -13,13 +13,21 @@
     "@hapsland/runtime-environment": "workspace:*"
   },
   "scripts": {
-    "build": "node ../../scripts/compile-package.mjs"
+    "build": "node ../../scripts/compile-package.mjs",
+    "assemble:host": "node ../../scripts/assemble-host-modules.mjs",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
   },
   "hapsland": {
     "domain": "pi-extension",
     "host": "node",
+    "hostOutputDirectory": "dist",
     "capabilities": [],
-    "surface": "host-loaded-hook",
-    "entry": "src/pi/extension.ts"
+    "surface": "pi-extension",
+    "entry": "src/pi/extension.ts",
+    "assembly": {
+      "profiles": [
+        "host"
+      ]
+    }
   }
 }

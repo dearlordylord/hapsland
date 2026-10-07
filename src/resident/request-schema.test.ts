@@ -4,7 +4,7 @@ import {
   decodeResidentRequest,
   encodeCurrentResidentRequest
 } from "@hapsland/resident-transport/resident/protocol"
-import { requestConformanceCases } from "../test-support/resident-request-conformance.ts"
+import { requestConformanceCases } from "@hapsland/build-tooling/test-support/resident-request-conformance"
 
 const decode = (value: unknown) => decodeResidentRequest(JSON.stringify(value))
 const admission = requestConformanceCases.find((request) => request.operation === "admit")

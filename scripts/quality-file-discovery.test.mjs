@@ -73,9 +73,9 @@ test("quality selection includes staged, unstaged and untracked code, excludes d
 })
 
 test("configuration and authored package scripts participate without generated or fixture outputs", () => {
-  assert.equal(isQualityFile("vitest.config.ts"), true)
+  assert.equal(isQualityFile("scripts/vitest.config.ts"), true)
   assert.equal(isQualityFile("packages/example/build.mjs"), true)
   assert.equal(isQualityFile("scripts/test-harness/setup.mts"), true)
   assert.equal(isQualityFile("packages/example/dist/index.js"), false)
-  assert.equal(isQualityFile("packages/canonical-policy/src/canonical/canonical.generated.js"), false)
+  assert.equal(isQualityFile("packages/agent-flow-bend/dist/canonical.generated.js"), false)
 })

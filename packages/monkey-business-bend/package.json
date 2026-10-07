@@ -1,0 +1,46 @@
+{
+  "name": "@hapsland/monkey-business-bend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./conformance/freshness-runner": {
+      "types": "./conformance/freshness-runner.mjs",
+      "default": "./conformance/freshness-runner.mjs"
+    },
+    "./conformance/native-preflight": {
+      "types": "./conformance/native-preflight.mjs",
+      "default": "./conformance/native-preflight.mjs"
+    },
+    "./conformance/native-preflight-fixtures": {
+      "types": "./conformance/native-preflight-fixtures.mjs",
+      "default": "./conformance/native-preflight-fixtures.mjs"
+    },
+    "./conformance/native-run-public": {
+      "types": "./conformance/native-run-public.mjs",
+      "default": "./conformance/native-run-public.mjs"
+    },
+    "./conformance/native-run-runner": {
+      "types": "./conformance/native-run-runner.mjs",
+      "default": "./conformance/native-run-runner.mjs"
+    },
+    "./conformance/workload-native-runner": {
+      "types": "./conformance/workload-native-runner.mjs",
+      "default": "./conformance/workload-native-runner.mjs"
+    },
+    "./engine": {
+      "types": "./engine.mjs",
+      "default": "./engine.mjs"
+    },
+    "./session": {
+      "types": "./session.mjs",
+      "default": "./session.mjs"
+    }
+  },
+  "dependencies": {
+    "@hapsland/monkey-business": "workspace:*"
+  },
+  "hapsland": {
+    "workspaceRole": "verification"
+  }
+}

@@ -1,12 +1,11 @@
 import { resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { createRun } from "./test-harness/run-checks.mjs"
-import { ensurePackageArtifact } from "./artifact-store.mjs"
+import { preparePackageArchive } from "./artifact-store.mjs"
 
 export async function preparePackage({
   root = process.cwd(),
   timeoutMs = 120000,
-  toolchain,
   inherited = process.env.HAPSLAND_CHECK_CONTEXT
 } = {}) {
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0)
@@ -21,12 +20,7 @@ export async function preparePackage({
   })
   let artifact
   try {
-    artifact = await ensurePackageArtifact({
-      root: run.root,
-      runStage: run.runStage,
-      toolchain,
-      deadline: run.context.deadline
-    })
+    artifact = await preparePackageArchive({ root: run.root, runStage: run.runStage, deadline: run.context.deadline })
     await run.recordPassedStage({ name: "artifact-verification", evidence: artifact })
   } catch (error) {
     await run.recordFailedStage({ name: "package-preparation", error })

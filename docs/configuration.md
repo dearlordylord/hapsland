@@ -466,7 +466,7 @@ endpoint routing cannot be configured. See [provider selection](review-providers
 The old version-1 whole-file JSON request/response process contract is retired.
 Configuration capture and explanation use the same policy digest. Shared
 fixture, configuration-case, scenario, observation, and comparison identities
-are defined in [`src/evaluation/model.ts`](../src/evaluation/model.ts).
+are defined in [`packages/administration/src/evaluation/model.ts`](../packages/administration/src/evaluation/model.ts).
 
 The semantic milestone command is documented separately in
 [`evaluation.md`](./evaluation.md). It is an explicit maintainer operation and does not provide a production review route.

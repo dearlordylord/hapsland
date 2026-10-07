@@ -92,15 +92,24 @@ const parserCheck = (): DoctorCheck => {
 }
 const runtimeCheck = (value: unknown): DoctorCheck => {
   const runtime = recordValue(value)
-  return runtime.supported === true
-    ? { stage: "runtime", status: "ready", observed: runtime.checks ?? "supported" }
-    : {
-        stage: "runtime",
-        status: "unsupported",
-        observed: runtime.checks ?? "unavailable",
-        action: "reinstall the package containing the declared runtime and resident executable"
-      }
+  if (runtime.supported === true) return { stage: "runtime", status: "ready", observed: runtime.checks ?? "supported" }
+  const unavailable = Object.entries(recordValue(runtime.checks)).flatMap(([name, value]) => {
+    const check = recordValue(value)
+    return check.ready === false && typeof check.path === "string"
+      ? [`${name}: ${String(check.observed ?? "unavailable")} at ${check.path}`]
+      : []
+  })
+  return {
+    stage: "runtime",
+    status: "unsupported",
+    observed: runtime.checks ?? "unavailable",
+    action:
+      unavailable.length > 0
+        ? `reinstall the package to restore its required components (${unavailable.join("; ")})`
+        : "reinstall the package containing the declared runtime, hook, parser and resident executables"
+  }
 }
+
 const hostCheck = (value: unknown, host: Readonly<Record<string, unknown>>): DoctorCheck => {
   const codex = recordValue(value)
   return codex.supported === true

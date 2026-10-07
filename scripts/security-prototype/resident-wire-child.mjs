@@ -1,5 +1,5 @@
 import { Effect, Exit, Schedule, Scope } from "effect"
-import { reviewControlsLayer } from "../../src/test-support/review-controls.ts"
+import { reviewControlsLayer } from "@hapsland/build-tooling/test-support/review-controls"
 import { ReviewControlError } from "@hapsland/resident-runtime/resident/review-controls"
 /** Dedicated offline resident process for the security wire witness. */
 import { appendFileSync } from "node:fs"

@@ -1,13 +1,17 @@
-import { reviewControlsLayer } from "../test-support/review-controls.ts"
-import { makePreparationControls } from "../test-support/preparation-controls.ts"
+import { reviewControlsLayer } from "@hapsland/build-tooling/test-support/review-controls"
+import { makePreparationControls } from "@hapsland/build-tooling/test-support/preparation-controls"
 import { acquireResidentFixture } from "./runtime-fixture.ts"
 import { describe, expect, it, vi } from "vitest"
 import * as Effect from "effect/Effect"
 import { join } from "node:path"
 import { existsSync } from "node:fs"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
-import { addEvent, makeReviewGitFixture as makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../test-support/default-rules.ts"
+import {
+  addEvent,
+  makeReviewGitFixture as makeGitFixture,
+  put
+} from "@hapsland/build-tooling/test-support/test-fixtures"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import { type JevRequestObservation } from "@hapsland/resident-runtime/resident/server"
 import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"

@@ -1,17 +1,20 @@
 import { execFileSync } from "node:child_process"
-import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs"
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, mkdirSync, copyFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { createHash } from "node:crypto"
 
+const bendVersion = JSON.parse(readFileSync(resolve(import.meta.dirname, "../package.json"), "utf8")).hapsland.toolchain
+  .bend.version
+const bendCompilerVersion = `bend ${bendVersion}`
 // Generated bindings depend on this compiler's JavaScript ABI.
 const compilerVersion = execFileSync("bend", ["version"], { encoding: "utf8", timeout: 5_000 }).trim()
-if (compilerVersion !== "bend 2.0.35") {
-  throw new Error(`Bend artifact generation requires exact Bend 2.0.35; observed ${compilerVersion}`)
+if (compilerVersion !== bendCompilerVersion) {
+  throw new Error(`Bend artifact generation requires exact Bend ${bendVersion}; observed ${compilerVersion}`)
 }
 
 const root = resolve(import.meta.dirname, "..")
-const productRoot = resolve(root, "../..")
+const output = resolve(process.argv[2] ?? join(root, "dist"))
 const digest = createHash("sha256")
 for (const path of [
   "Ledger.bend",
@@ -49,7 +52,7 @@ const sourceHash = digest.digest("hex")
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-canonical-bend-"))
 try {
   const compiled = join(temporary, "canonical.js")
-  execFileSync("bend", [join(root, "CanonicalRuntime.bend"), "-o", compiled], { stdio: "pipe" })
+  execFileSync("bend", [join(root, "CanonicalRuntime.bend"), "-o", compiled], { stdio: "pipe", timeout: 120_000 })
   let source = readFileSync(compiled, "utf8")
   const footer = /\ncli\(process\.argv\.slice\(\d+\)\);\nio_exit\(\$main\$, [\s\S]*\);\s*$/
   if (
@@ -96,10 +99,9 @@ export const bendJevRequestLimit = () =>
   run_loop($Dispatch$058max_requests$());
 `
   )
-  writeFileSync(
-    join(productRoot, "packages/canonical-policy/src/canonical/canonical.generated.js"),
-    `// hapsland-bend-source-sha256:${sourceHash}\n${source}`
-  )
+  mkdirSync(output, { recursive: true })
+  writeFileSync(join(output, "canonical.generated.js"), `// hapsland-bend-source-sha256:${sourceHash}\n${source}`)
+  copyFileSync(join(root, "abi/canonical.generated.d.ts"), join(output, "canonical.generated.d.ts"))
 } finally {
   rmSync(temporary, { recursive: true, force: true })
 }

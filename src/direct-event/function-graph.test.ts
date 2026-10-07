@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
-import { addEvent, makeGitFixture, put } from "./test-fixtures.ts"
+import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"

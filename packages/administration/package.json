@@ -212,14 +212,6 @@
       "types": "./dist/rules/management.d.ts",
       "default": "./dist/rules/management.js"
     },
-    "./credentials/index": {
-      "types": "./dist/credentials/index.d.ts",
-      "default": "./dist/credentials/index.js"
-    },
-    "./direct-event/index": {
-      "types": "./dist/direct-event/index.d.ts",
-      "default": "./dist/direct-event/index.js"
-    },
     "./evaluation/index": {
       "types": "./dist/evaluation/index.d.ts",
       "default": "./dist/evaluation/index.js"
@@ -227,16 +219,11 @@
     "./explanation/explain": {
       "types": "./dist/explanation/explain.d.ts",
       "default": "./dist/explanation/explain.js"
-    },
-    "./resident/index": {
-      "types": "./dist/resident/index.d.ts",
-      "default": "./dist/resident/index.js"
     }
   },
   "dependencies": {
     "@hapsland/activity-observation": "workspace:*",
     "@hapsland/delivery-output": "workspace:*",
-    "@hapsland/hook-runtime": "workspace:*",
     "@hapsland/inspection-records": "workspace:*",
     "@hapsland/native-observation": "workspace:*",
     "@hapsland/resident-runtime": "workspace:*",
@@ -247,14 +234,15 @@
     "@hapsland/runtime-inputs": "workspace:*",
     "@hapsland/source-analysis": "workspace:*",
     "@hapsland/source-artifacts": "workspace:*",
-    "@effect/ai-typesafe": "4.0.0",
-    "@effect/platform-node": "4.0.0",
-    "effect": "4.0.0",
-    "smol-toml": "1.8.0",
+    "@effect/ai-typesafe": "catalog:",
+    "@effect/platform-node": "catalog:",
+    "effect": "catalog:",
+    "smol-toml": "catalog:",
     "@hapsland/credential-storage": "workspace:*"
   },
   "scripts": {
-    "build": "node ../../scripts/compile-package.mjs"
+    "build": "node ../../scripts/compile-package.mjs",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
   },
   "hapsland": {
     "domain": "administration",

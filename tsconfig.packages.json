@@ -29,9 +29,6 @@
       "path": "packages/resident-transport/tsconfig.json"
     },
     {
-      "path": "packages/hook-runtime/tsconfig.json"
-    },
-    {
       "path": "packages/source-artifacts/tsconfig.json"
     },
     {
@@ -54,6 +51,9 @@
     },
     {
       "path": "packages/doctor-entry/tsconfig.json"
+    },
+    {
+      "path": "packages/hook-runtime/tsconfig.json"
     },
     {
       "path": "packages/hook-entry/tsconfig.json"

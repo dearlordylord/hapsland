@@ -4,7 +4,7 @@ import { expect } from "vitest"
 import { Cause, Deferred, Effect, Exit } from "effect"
 import { makeDispatcher } from "@hapsland/resident-runtime/resident/dispatch"
 import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
-import { advicee } from "../direct-event/test-fixtures.ts"
+import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 const defectMessage = <A>(effect: Effect.Effect<A>) =>
   Effect.gen(function* () {

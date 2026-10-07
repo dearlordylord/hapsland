@@ -1,5 +1,5 @@
 import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
-import { runClient } from "../test-support/client-runtime.ts"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
 import { afterEach, describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process"
@@ -10,8 +10,13 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import type { DirectObservation } from "@hapsland/native-observation/direct-event/observation"
-import { addEvent, makeReviewGitFixture as makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../test-support/default-rules.ts"
+import {
+  addEvent,
+  makeReviewGitFixture as makeGitFixture,
+  put,
+  advicee
+} from "@hapsland/build-tooling/test-support/test-fixtures"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import {
   acknowledgeAdviceEffect as acknowledgeAdvice,
   beginComposedSubmissionEffect as beginComposedSubmission,
@@ -233,7 +238,7 @@ describe("resident separate-process lifecycle", () => {
       [
         "--input-type=module",
         "-e",
-        "import {ensureResidentEffect as ensureResident} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));"
+        "import {ensureResidentEffect as ensureResident} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime'; console.log(JSON.stringify(await runClient(ensureResident())));"
       ],
       {
         cwd: process.cwd(),
@@ -292,7 +297,7 @@ describe("resident separate-process lifecycle", () => {
       [
         "--input-type=module",
         "-e",
-        "import {ensureResidentEffect as ensureResident} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));"
+        "import {ensureResidentEffect as ensureResident} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime'; console.log(JSON.stringify(await runClient(ensureResident())));"
       ],
       {
         cwd: process.cwd(),
@@ -379,7 +384,7 @@ describe("resident separate-process lifecycle", () => {
       REVIEW_CONTROL_JSON: JSON.stringify({ answers })
     }
     const ensureScript = [
-      "import { ensureResidentEffect as ensureResident } from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts';",
+      "import { ensureResidentEffect as ensureResident } from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime';",
       "import {writeFileSync} from 'node:fs';",
       "const count=Number(process.argv[1]);",
       "await new Promise(resolve=>{process.stdin.once('data',resolve);writeFileSync(process.argv[2],'ready\\n')});",
@@ -451,7 +456,7 @@ describe("resident separate-process lifecycle", () => {
     stale.kill("SIGKILL")
     await staleClosed
     const boundedScript = [
-      "import {ensureResidentEffect as ensureResident} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts';",
+      "import {ensureResidentEffect as ensureResident} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime';",
       `const paths=${JSON.stringify(residentPaths(runtime))};`,
       "await runClient(ensureResident(paths,250));"
     ].join("")
@@ -474,7 +479,7 @@ describe("resident separate-process lifecycle", () => {
       "import * as Effect from 'effect/Effect';",
       "import {connect} from 'node:net';",
       "import { adaptCodexDirectEvent } from './packages/native-observation/src/direct-event/adapter.ts';",
-      "import {residentRequestEffect as residentRequest} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts';",
+      "import {residentRequestEffect as residentRequest} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime';",
       "import {monotonicNow} from './packages/resident-transport/src/resident/hook-clock.ts';",
       `const event=${JSON.stringify(addEvent(root))};`,
       `const dispatch=${JSON.stringify(dispatchFor(statePath))};`,
@@ -559,7 +564,7 @@ describe("resident separate-process lifecycle", () => {
     expect(await runClient(collectReady(otherRoot, advicee(), dispatch, paths))).toBeUndefined()
     await writeFile(`${collectGate}.enabled`, "enabled\n")
     const disconnectScript = [
-      "import {collectReadyEffect as collectReady} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts';",
+      "import {collectReadyEffect as collectReady} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime';",
       `const root=${JSON.stringify(root)};`,
       `const advicee=${JSON.stringify(advicee({ turnId: "later", toolUseId: "disconnect" }))};`,
       `const dispatch=${JSON.stringify(dispatch)};`,
@@ -587,7 +592,7 @@ describe("resident separate-process lifecycle", () => {
     await writeFile(`${ackGate}.enabled`, "enabled\n")
     expect(await runClient(beginComposedSubmission(advice, "edit"))).toBe(true)
     const ackScript = [
-      "import {acknowledgeAdviceEffect as acknowledgeAdvice} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts';",
+      "import {acknowledgeAdviceEffect as acknowledgeAdvice} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime';",
       `const advice=${JSON.stringify(advice)};`,
       "await runClient(acknowledgeAdvice(advice));"
     ].join("")
@@ -633,7 +638,7 @@ describe("resident separate-process lifecycle", () => {
       REVIEW_CONTROL_JSON: JSON.stringify({ answers, capturePath })
     }
     const script =
-      "import {ensureResidentEffect as ensureResident} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));"
+      "import {ensureResidentEffect as ensureResident} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime'; console.log(JSON.stringify(await runClient(ensureResident())));"
     const child = spawn(bunExecutable(), ["--input-type=module", "-e", script], {
       cwd: process.cwd(),
       env,
@@ -689,7 +694,7 @@ describe("resident separate-process lifecycle", () => {
       REVIEW_CONTROL_JSON: JSON.stringify({ answers, capturePath })
     }
     const script =
-      "import {ensureResidentEffect as ensureResident} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));"
+      "import {ensureResidentEffect as ensureResident} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime'; console.log(JSON.stringify(await runClient(ensureResident())));"
     const child = spawn(bunExecutable(), ["--input-type=module", "-e", script], {
       cwd: process.cwd(),
       env,
@@ -749,7 +754,7 @@ describe("resident separate-process lifecycle", () => {
       REVIEW_RESIDENT_CLEANUP_RESPONSE_GATE_PATH: cleanupGate
     }
     const ensureScript =
-      "import {ensureResidentEffect as ensureResident} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));"
+      "import {ensureResidentEffect as ensureResident} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime'; console.log(JSON.stringify(await runClient(ensureResident())));"
     const start = async () => {
       const child = spawn(bunExecutable(), ["--input-type=module", "-e", ensureScript], {
         cwd: process.cwd(),
@@ -1012,7 +1017,7 @@ describe("resident separate-process lifecycle", () => {
     if (beforeCleanup.status === "stats") expect(beforeCleanup.successfulCacheEntries).toBe(0)
     await writeFile(`${cleanupGate}.enabled`, "enabled\n")
     const cleanupScript = [
-      "import {residentRequestEffect as residentRequest} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts';",
+      "import {residentRequestEffect as residentRequest} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime';",
       `const paths=${JSON.stringify(paths)};`,
       `const lifetime=${JSON.stringify(second.lifetime)};`,
       "console.log(JSON.stringify(await runClient(residentRequest(paths,{requestRoute:'shared',operation:'cleanup',lifetime}))));"

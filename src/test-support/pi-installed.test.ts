@@ -17,7 +17,7 @@ import {
   fixtureCommandMatches,
   setupInstalledPi,
   installedResidentCommand
-} from "./pi-installed.ts"
+} from "@hapsland/build-tooling/test-support/pi-installed"
 
 beforeAll(() => setupInstalledPi("source"), 120000)
 afterEach(cleanupPiFixtures)

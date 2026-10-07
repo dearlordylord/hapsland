@@ -26,9 +26,6 @@
       "path": "../delivery-output/tsconfig.json"
     },
     {
-      "path": "../hook-runtime/tsconfig.json"
-    },
-    {
       "path": "../native-observation/tsconfig.json"
     },
     {

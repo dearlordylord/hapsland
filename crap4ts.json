@@ -22,7 +22,8 @@
     "packages/runtime-environment/src",
     "packages/runtime-inputs/src",
     "packages/source-analysis/src",
-    "packages/source-artifacts/src"
+    "packages/source-artifacts/src",
+    "scripts/test-support"
   ],
   "coverage": {
     "path": "coverage/coverage-final.json",

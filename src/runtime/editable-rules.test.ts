@@ -1,6 +1,6 @@
 import { execFileSync } from "../../scripts/test-harness/process.mjs"
 import { reviewCodexDirectEvent } from "@hapsland/review-execution/direct-event/pipeline"
-import { addEvent, advicee } from "../direct-event/test-fixtures.ts"
+import { addEvent, advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"

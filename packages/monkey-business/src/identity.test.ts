@@ -13,7 +13,7 @@ it("replay names the exact shared engine and its consumed implementation", () =>
 it("replay names the exact import reducer and preparation composition", () => {
   const digest = createHash("sha256")
   for (const path of [
-    "../../../packages/canonical-policy/src/canonical/import-graph.generated.js",
+    "../../../packages/agent-flow-bend/dist/import-graph.generated.js",
     "./preparation.ts",
     "./file-trees.ts"
   ])

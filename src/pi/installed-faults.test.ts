@@ -10,7 +10,7 @@ import {
   before,
   result,
   installedCommand
-} from "../test-support/pi-installed.ts"
+} from "@hapsland/build-tooling/test-support/pi-installed"
 
 afterEach(async () => {
   vi.restoreAllMocks()

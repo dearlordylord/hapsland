@@ -68,7 +68,7 @@ const hostHash = hash(hostPaths.map((path) => `${path}\0${readFileSync(join(root
 const identityHash = hash(`${sourceHash}\0${hostHash}\0${buildHash}\0${declarationHash}`)
 const preparationHash = hash(
   [
-    "../../packages/canonical-policy/src/canonical/import-graph.generated.js",
+    "../../packages/agent-flow-bend/dist/import-graph.generated.js",
     "../monkey-business/src/preparation.ts",
     "../monkey-business/src/file-trees.ts"
   ]

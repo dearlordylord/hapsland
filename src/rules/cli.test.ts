@@ -2,7 +2,7 @@ import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime
 import { Effect } from "effect"
 import { loadReviewSettings } from "@hapsland/review-definition/runtime/review-config"
 import { reviewCodexDirectEvent } from "@hapsland/review-execution/direct-event/pipeline"
-import { addEvent, advicee } from "../direct-event/test-fixtures.ts"
+import { addEvent, advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
 import {
   mkdirSync,

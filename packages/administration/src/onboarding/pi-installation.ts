@@ -1,3 +1,4 @@
+import { BUN_VERSION } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import {
   packageCommand,
   commandEntrypoint,
@@ -198,7 +199,7 @@ const preview = (input: Input, operation: "install" | "update" | "uninstall") =>
       operation,
       status: "unsupported" as const,
       host: { adapter: "pi", home: input.home, compatibility: input.compatibility },
-      error: { message: "Select Pi 1.0.0 and the packaged Bun 1.3.14 executable with its Pi extension." }
+      error: { message: `Select Pi 1.0.0 and the packaged Bun ${BUN_VERSION} executable with its Pi extension.` }
     }
   const next = plan(input, operation)
   return {

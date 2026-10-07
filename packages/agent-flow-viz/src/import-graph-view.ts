@@ -1,7 +1,7 @@
 import { IMPORT_GRAPH_SCENARIOS, projectImportExample } from "./import-graph-replay"
 import type { HtmlBuilder } from "foldkit/html"
-import { GRAPH_LIMIT_CEILINGS } from "../../agent-flow-bend/import-graph-adapter"
-import type { GraphLimits } from "../../agent-flow-bend/import-graph-adapter"
+import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-adapter"
+import type { GraphLimits } from "@hapsland/canonical-policy/canonical/graph-adapter"
 import { importGraphDiagram, importTreeBudgetView, type ImportGraphStage } from "./import-graph-diagram"
 
 export { IMPORT_GRAPH_SCENARIOS, projectImportExample } from "./import-graph-replay"

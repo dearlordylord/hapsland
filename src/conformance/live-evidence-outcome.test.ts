@@ -1,6 +1,6 @@
 import { REVIEW_FEEDBACK_HEADING, REVIEW_FEEDBACK_INSTRUCTIONS } from "@hapsland/delivery-output/feedback/message"
 import { describe, expect, it } from "vitest"
-import { classifyHookOutput, classifyLiveOutcome } from "./live-evidence-outcome.ts"
+import { classifyHookOutput, classifyLiveOutcome } from "@hapsland/build-tooling/test-support/live-evidence-outcome"
 const stats = (overrides = {}) => ({
   status: "stats" as const,
   queued: 0,

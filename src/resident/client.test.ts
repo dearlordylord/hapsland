@@ -1,6 +1,9 @@
 import { writeFileSync, rmSync } from "node:fs"
-import { runClient } from "../test-support/client-runtime.ts"
-import { makeReviewGitFixture as makeGitFixture, advicee as fixtureAdvicee } from "../direct-event/test-fixtures.ts"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
+import {
+  makeReviewGitFixture as makeGitFixture,
+  advicee as fixtureAdvicee
+} from "@hapsland/build-tooling/test-support/test-fixtures"
 import { it as effectIt } from "@effect/vitest"
 import { ConfigProvider, Deferred, Effect, Fiber, Layer } from "effect"
 import * as Scheduler from "effect/Scheduler"

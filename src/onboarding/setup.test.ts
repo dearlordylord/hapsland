@@ -1,7 +1,8 @@
+import { sourceReleaseEntrypoints } from "@hapsland/runtime-environment/runtime/package-runtime"
 import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { SHIPPED_DEFAULT_RULES } from "@hapsland/review-definition/rules/shipped"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
-import { createInstallationPackageFixture } from "../test-support/installation-package.ts"
+import { createInstallationPackageFixture } from "@hapsland/build-tooling/test-support/installation-package"
 import {
   chmodSync,
   existsSync,
@@ -19,7 +20,7 @@ import { execFileSync, spawnSync } from "../../scripts/test-harness/process.mjs"
 import { afterEach, describe, expect, it } from "vitest"
 
 const roots: Array<string> = []
-const setupEntrypoint = () => process.env.REVIEW_SETUP_ENTRYPOINT ?? join(process.cwd(), "src", "cli.ts")
+const setupEntrypoint = () => process.env.REVIEW_SETUP_ENTRYPOINT ?? join(process.cwd(), sourceReleaseEntrypoints.cli)
 
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
@@ -774,7 +775,7 @@ it.each(["changed", "malformed"])("rejects %s default rules before installing an
   const path = join(test.root, "rules", "defaults", `${SHIPPED_DEFAULT_RULES[0]?.id}.json`)
   mkdirSync(join(test.root, "rules", "defaults"), { recursive: true })
   const original = readFileSync(
-    join(process.cwd(), "src", "rules", "defaults", "meaningless_combinations.json"),
+    join(process.cwd(), "packages/review-definition/src/rules/defaults/meaningless_combinations.json"),
     "utf8"
   )
   writeFileSync(

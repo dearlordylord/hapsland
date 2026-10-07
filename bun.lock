@@ -5,53 +5,32 @@
     "": {
       "name": "@hapsland/hapsland",
       "devDependencies": {
-        "@babel/parser": "7.29.9",
-        "@bcoe/v8-coverage": "1.0.2",
+        "@babel/parser": "catalog:",
+        "@babel/traverse": "catalog:",
+        "@bcoe/v8-coverage": "catalog:",
         "@crap4ts/crap4ts": "1.0.5",
-        "@effect/ai-typesafe": "4.0.0",
-        "@effect/platform-node": "4.0.0",
-        "@effect/platform-node-shared": "4.0.0",
-        "@effect/vitest": "4.0.0",
-        "@hapsland/activity-observation": "workspace:*",
-        "@hapsland/administration": "workspace:*",
-        "@hapsland/canonical-policy": "workspace:*",
-        "@hapsland/cli-entry": "workspace:*",
-        "@hapsland/credential-storage": "workspace:*",
-        "@hapsland/delivery-output": "workspace:*",
-        "@hapsland/doctor-entry": "workspace:*",
-        "@hapsland/hook-entry": "workspace:*",
-        "@hapsland/hook-runtime": "workspace:*",
-        "@hapsland/inspection-records": "workspace:*",
-        "@hapsland/native-observation": "workspace:*",
-        "@hapsland/parser-entry": "workspace:*",
-        "@hapsland/pi-extension": "workspace:*",
-        "@hapsland/resident-entry": "workspace:*",
-        "@hapsland/resident-runtime": "workspace:*",
-        "@hapsland/resident-transport": "workspace:*",
-        "@hapsland/review-definition": "workspace:*",
-        "@hapsland/review-execution": "workspace:*",
-        "@hapsland/runtime-environment": "workspace:*",
-        "@hapsland/runtime-inputs": "workspace:*",
-        "@hapsland/source-analysis": "workspace:*",
-        "@hapsland/source-artifacts": "workspace:*",
-        "@types/bun": "1.3.14",
-        "@vitest/coverage-v8": "5.0.1",
-        "bun": "1.3.14",
+        "@effect/ai-typesafe": "catalog:",
+        "@effect/platform-node": "catalog:",
+        "@effect/platform-node-shared": "catalog:",
+        "@effect/vitest": "catalog:",
+        "@types/bun": "catalog:",
+        "@vitest/coverage-v8": "catalog:",
+        "bun": "catalog:",
         "dprint": "0.55.2",
-        "effect": "4.0.0",
-        "fast-check": "4.2.0",
-        "istanbul-lib-instrument": "6.0.3",
+        "effect": "catalog:",
+        "fast-check": "catalog:",
+        "istanbul-lib-instrument": "catalog:",
         "lint-staged": "17.3.0",
         "oxlint": "1.76.0",
         "oxlint-tsgolint": "7.0.2001",
-        "smol-toml": "1.8.0",
-        "tree-sitter": "0.25.1",
-        "tree-sitter-rust": "0.24.0",
-        "tree-sitter-typescript": "0.23.2",
+        "smol-toml": "catalog:",
+        "tree-sitter": "catalog:",
+        "tree-sitter-rust": "catalog:",
+        "tree-sitter-typescript": "catalog:",
         "turbo": "2.11.7",
-        "typescript": "7.0.2",
-        "vitest": "5.0.1",
-        "zod": "4.6.5",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+        "zod": "catalog:",
       },
     },
     "packages/activity-observation": {
@@ -59,19 +38,18 @@
       "version": "0.1.0",
       "dependencies": {
         "@hapsland/native-observation": "workspace:*",
-        "effect": "4.0.0",
+        "effect": "catalog:",
       },
     },
     "packages/administration": {
       "name": "@hapsland/administration",
       "version": "0.1.0",
       "dependencies": {
-        "@effect/ai-typesafe": "4.0.0",
-        "@effect/platform-node": "4.0.0",
+        "@effect/ai-typesafe": "catalog:",
+        "@effect/platform-node": "catalog:",
         "@hapsland/activity-observation": "workspace:*",
         "@hapsland/credential-storage": "workspace:*",
         "@hapsland/delivery-output": "workspace:*",
-        "@hapsland/hook-runtime": "workspace:*",
         "@hapsland/inspection-records": "workspace:*",
         "@hapsland/native-observation": "workspace:*",
         "@hapsland/resident-runtime": "workspace:*",
@@ -82,15 +60,56 @@
         "@hapsland/runtime-inputs": "workspace:*",
         "@hapsland/source-analysis": "workspace:*",
         "@hapsland/source-artifacts": "workspace:*",
-        "effect": "4.0.0",
-        "smol-toml": "1.8.0",
+        "effect": "catalog:",
+        "smol-toml": "catalog:",
+      },
+    },
+    "packages/agent-flow-bend": {
+      "name": "@hapsland/agent-flow-bend",
+      "version": "0.0.0",
+    },
+    "packages/agent-flow-projection": {
+      "name": "@hapsland/agent-flow-projection",
+      "version": "0.0.0",
+      "dependencies": {
+        "@hapsland/canonical-policy": "workspace:*",
+      },
+      "devDependencies": {
+        "typescript": "catalog:",
+      },
+    },
+    "packages/agent-flow-viz": {
+      "name": "@hapsland/agent-flow-viz",
+      "version": "0.0.0",
+      "dependencies": {
+        "@effect/platform-browser": "catalog:",
+        "@hapsland/administration": "workspace:*",
+        "@hapsland/agent-flow-bend": "workspace:*",
+        "@hapsland/agent-flow-projection": "workspace:*",
+        "@hapsland/canonical-policy": "workspace:*",
+        "@hapsland/credential-storage": "workspace:*",
+        "@hapsland/inspection-records": "workspace:*",
+        "@hapsland/monkey-business": "workspace:*",
+        "@hapsland/native-observation": "workspace:*",
+        "@hapsland/resident-runtime": "workspace:*",
+        "@hapsland/resident-transport": "workspace:*",
+        "effect": "catalog:",
+        "foldkit": "0.165.0",
+        "vitest": "catalog:",
+      },
+      "devDependencies": {
+        "@hapsland/build-tooling": "workspace:*",
+        "playwright": "1.63.0",
+        "typescript": "catalog:",
+        "vite": "8.3.1",
       },
     },
     "packages/canonical-policy": {
       "name": "@hapsland/canonical-policy",
       "version": "0.1.0",
       "dependencies": {
-        "effect": "4.0.0",
+        "@hapsland/agent-flow-bend": "workspace:*",
+        "effect": "catalog:",
       },
     },
     "packages/cli-entry": {
@@ -99,14 +118,14 @@
       "dependencies": {
         "@hapsland/activity-observation": "workspace:*",
         "@hapsland/administration": "workspace:*",
+        "@hapsland/credential-storage": "workspace:*",
         "@hapsland/delivery-output": "workspace:*",
-        "@hapsland/hook-runtime": "workspace:*",
         "@hapsland/native-observation": "workspace:*",
         "@hapsland/resident-transport": "workspace:*",
         "@hapsland/review-definition": "workspace:*",
         "@hapsland/runtime-environment": "workspace:*",
         "@hapsland/runtime-inputs": "workspace:*",
-        "effect": "4.0.0",
+        "effect": "catalog:",
       },
     },
     "packages/credential-storage": {
@@ -115,7 +134,7 @@
       "dependencies": {
         "@hapsland/runtime-environment": "workspace:*",
         "@hapsland/runtime-inputs": "workspace:*",
-        "effect": "4.0.0",
+        "effect": "catalog:",
       },
     },
     "packages/delivery-output": {
@@ -128,7 +147,7 @@
       "dependencies": {
         "@hapsland/administration": "workspace:*",
         "@hapsland/runtime-environment": "workspace:*",
-        "effect": "4.0.0",
+        "effect": "catalog:",
       },
     },
     "packages/hook-entry": {
@@ -137,20 +156,21 @@
       "dependencies": {
         "@hapsland/hook-runtime": "workspace:*",
         "@hapsland/resident-transport": "workspace:*",
+        "@hapsland/runtime-environment": "workspace:*",
       },
     },
     "packages/hook-runtime": {
       "name": "@hapsland/hook-runtime",
       "version": "0.1.0",
       "dependencies": {
-        "@effect/platform-node": "4.0.0",
+        "@effect/platform-node": "catalog:",
         "@hapsland/activity-observation": "workspace:*",
         "@hapsland/delivery-output": "workspace:*",
         "@hapsland/native-observation": "workspace:*",
         "@hapsland/resident-transport": "workspace:*",
         "@hapsland/runtime-environment": "workspace:*",
         "@hapsland/runtime-inputs": "workspace:*",
-        "effect": "4.0.0",
+        "effect": "catalog:",
       },
     },
     "packages/inspection-records": {
@@ -159,7 +179,34 @@
       "dependencies": {
         "@hapsland/runtime-environment": "workspace:*",
         "@hapsland/runtime-inputs": "workspace:*",
-        "effect": "4.0.0",
+        "effect": "catalog:",
+      },
+    },
+    "packages/monkey-business": {
+      "name": "@hapsland/monkey-business",
+      "version": "0.1.0",
+      "dependencies": {
+        "@hapsland/agent-flow-bend": "workspace:*",
+        "@hapsland/agent-flow-viz": "workspace:*",
+        "@hapsland/build-tooling": "workspace:*",
+        "@hapsland/canonical-policy": "workspace:*",
+        "@hapsland/monkey-business-bend": "workspace:*",
+        "@hapsland/review-definition": "workspace:*",
+        "@hapsland/runtime-inputs": "workspace:*",
+        "@hapsland/verification": "workspace:*",
+        "effect": "catalog:",
+        "fast-check": "catalog:",
+        "vitest": "catalog:",
+      },
+      "devDependencies": {
+        "typescript": "catalog:",
+      },
+    },
+    "packages/monkey-business-bend": {
+      "name": "@hapsland/monkey-business-bend",
+      "version": "0.0.0",
+      "dependencies": {
+        "@hapsland/monkey-business": "workspace:*",
       },
     },
     "packages/native-observation": {
@@ -168,7 +215,7 @@
       "dependencies": {
         "@hapsland/runtime-environment": "workspace:*",
         "@hapsland/runtime-inputs": "workspace:*",
-        "effect": "4.0.0",
+        "effect": "catalog:",
       },
     },
     "packages/parser-entry": {
@@ -192,7 +239,7 @@
       "dependencies": {
         "@hapsland/resident-runtime": "workspace:*",
         "@hapsland/runtime-environment": "workspace:*",
-        "effect": "4.0.0",
+        "effect": "catalog:",
       },
     },
     "packages/resident-runtime": {
@@ -211,7 +258,7 @@
         "@hapsland/runtime-environment": "workspace:*",
         "@hapsland/runtime-inputs": "workspace:*",
         "@hapsland/source-analysis": "workspace:*",
-        "effect": "4.0.0",
+        "effect": "catalog:",
       },
     },
     "packages/resident-transport": {
@@ -224,7 +271,7 @@
         "@hapsland/native-observation": "workspace:*",
         "@hapsland/runtime-environment": "workspace:*",
         "@hapsland/runtime-inputs": "workspace:*",
-        "effect": "4.0.0",
+        "effect": "catalog:",
       },
     },
     "packages/review-definition": {
@@ -236,14 +283,14 @@
         "@hapsland/runtime-environment": "workspace:*",
         "@hapsland/runtime-inputs": "workspace:*",
         "@hapsland/source-artifacts": "workspace:*",
-        "effect": "4.0.0",
+        "effect": "catalog:",
       },
     },
     "packages/review-execution": {
       "name": "@hapsland/review-execution",
       "version": "0.1.0",
       "dependencies": {
-        "@effect/ai-typesafe": "4.0.0",
+        "@effect/ai-typesafe": "catalog:",
         "@hapsland/canonical-policy": "workspace:*",
         "@hapsland/delivery-output": "workspace:*",
         "@hapsland/inspection-records": "workspace:*",
@@ -253,15 +300,14 @@
         "@hapsland/runtime-inputs": "workspace:*",
         "@hapsland/source-analysis": "workspace:*",
         "@hapsland/source-artifacts": "workspace:*",
-        "effect": "4.0.0",
+        "effect": "catalog:",
       },
     },
     "packages/runtime-environment": {
       "name": "@hapsland/runtime-environment",
       "version": "0.1.0",
       "dependencies": {
-        "bun": "1.3.14",
-        "effect": "4.0.0",
+        "effect": "catalog:",
       },
     },
     "packages/runtime-inputs": {
@@ -270,7 +316,7 @@
       "dependencies": {
         "@hapsland/canonical-policy": "workspace:*",
         "@hapsland/runtime-environment": "workspace:*",
-        "effect": "4.0.0",
+        "effect": "catalog:",
       },
     },
     "packages/source-analysis": {
@@ -281,17 +327,117 @@
         "@hapsland/native-observation": "workspace:*",
         "@hapsland/runtime-environment": "workspace:*",
         "@hapsland/source-artifacts": "workspace:*",
-        "effect": "4.0.0",
-        "smol-toml": "1.8.0",
-        "tree-sitter": "0.25.1",
-        "tree-sitter-rust": "0.24.0",
-        "tree-sitter-typescript": "0.23.2",
+        "bun": "catalog:",
+        "effect": "catalog:",
+        "smol-toml": "catalog:",
+        "tree-sitter": "catalog:",
+        "tree-sitter-rust": "catalog:",
+        "tree-sitter-typescript": "catalog:",
       },
     },
     "packages/source-artifacts": {
       "name": "@hapsland/source-artifacts",
       "version": "0.1.0",
     },
+    "prototypes/canonical-defense": {
+      "name": "@hapsland/canonical-defense",
+      "version": "0.0.0",
+      "dependencies": {
+        "@hapsland/canonical-policy": "workspace:*",
+        "@hapsland/monkey-business": "workspace:*",
+        "@hapsland/monkey-business-bend": "workspace:*",
+      },
+    },
+    "scripts": {
+      "name": "@hapsland/build-tooling",
+      "version": "0.0.0",
+      "dependencies": {
+        "@babel/parser": "catalog:",
+        "@babel/traverse": "catalog:",
+        "@bcoe/v8-coverage": "catalog:",
+        "@hapsland/activity-observation": "workspace:*",
+        "@hapsland/administration": "workspace:*",
+        "@hapsland/canonical-defense": "workspace:*",
+        "@hapsland/canonical-policy": "workspace:*",
+        "@hapsland/delivery-output": "workspace:*",
+        "@hapsland/inspection-records": "workspace:*",
+        "@hapsland/monkey-business-bend": "workspace:*",
+        "@hapsland/native-observation": "workspace:*",
+        "@hapsland/pi-extension": "workspace:*",
+        "@hapsland/resident-runtime": "workspace:*",
+        "@hapsland/resident-transport": "workspace:*",
+        "@hapsland/review-definition": "workspace:*",
+        "@hapsland/review-execution": "workspace:*",
+        "@hapsland/runtime-environment": "workspace:*",
+        "@hapsland/runtime-inputs": "workspace:*",
+        "@hapsland/scorer-typescript": "npm:typescript@5.9.3",
+        "@hapsland/source-analysis": "workspace:*",
+        "@vitest/coverage-v8": "catalog:",
+        "bun": "catalog:",
+        "effect": "catalog:",
+        "istanbul-lib-instrument": "catalog:",
+        "tree-sitter": "catalog:",
+        "tree-sitter-typescript": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+        "zod": "catalog:",
+      },
+    },
+    "src": {
+      "name": "@hapsland/verification",
+      "version": "0.0.0",
+      "dependencies": {
+        "@effect/ai-typesafe": "catalog:",
+        "@effect/vitest": "catalog:",
+        "@hapsland/activity-observation": "workspace:*",
+        "@hapsland/administration": "workspace:*",
+        "@hapsland/agent-flow-bend": "workspace:*",
+        "@hapsland/build-tooling": "workspace:*",
+        "@hapsland/canonical-policy": "workspace:*",
+        "@hapsland/credential-storage": "workspace:*",
+        "@hapsland/delivery-output": "workspace:*",
+        "@hapsland/hook-runtime": "workspace:*",
+        "@hapsland/inspection-records": "workspace:*",
+        "@hapsland/monkey-business": "workspace:*",
+        "@hapsland/monkey-business-bend": "workspace:*",
+        "@hapsland/native-observation": "workspace:*",
+        "@hapsland/pi-extension": "workspace:*",
+        "@hapsland/resident-runtime": "workspace:*",
+        "@hapsland/resident-transport": "workspace:*",
+        "@hapsland/review-definition": "workspace:*",
+        "@hapsland/review-execution": "workspace:*",
+        "@hapsland/runtime-environment": "workspace:*",
+        "@hapsland/runtime-inputs": "workspace:*",
+        "@hapsland/source-analysis": "workspace:*",
+        "@hapsland/source-artifacts": "workspace:*",
+        "effect": "catalog:",
+        "fast-check": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
+  },
+  "catalog": {
+    "@babel/parser": "7.29.9",
+    "@babel/traverse": "7.29.8",
+    "@bcoe/v8-coverage": "1.0.2",
+    "@effect/ai-typesafe": "4.0.0",
+    "@effect/platform-browser": "4.0.0",
+    "@effect/platform-node": "4.0.0",
+    "@effect/platform-node-shared": "4.0.0",
+    "@effect/vitest": "4.0.0",
+    "@types/bun": "1.3.14",
+    "@vitest/coverage-v8": "5.0.1",
+    "bun": "1.3.14",
+    "effect": "4.0.0",
+    "fast-check": "4.2.0",
+    "istanbul-lib-instrument": "6.0.3",
+    "smol-toml": "1.8.0",
+    "tree-sitter": "0.25.1",
+    "tree-sitter-rust": "0.24.0",
+    "tree-sitter-typescript": "0.23.2",
+    "typescript": "7.0.2",
+    "vitest": "5.0.1",
+    "zod": "4.6.5",
   },
   "packages": {
     "@babel/code-frame": ["@babel/code-frame@7.29.7", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.29.7", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw=="],
@@ -362,6 +508,8 @@
 
     "@effect/ai-typesafe": ["@effect/ai-typesafe@4.0.0", "", { "peerDependencies": { "effect": "^4.0.0" } }, "sha512-TbInR017yf4KFAYD1jTSr9pkQrob1+9UNyW6KKRHHGfmD8j121f41fOf+60RJ7IIBl/XOUAURC8/Mj7aWkGZtg=="],
 
+    "@effect/platform-browser": ["@effect/platform-browser@4.0.0", "", { "peerDependencies": { "effect": "^4.0.0" } }, "sha512-OHo7EPpF3RVPiI+mjoU9yd05LdCdKPjzDXqs5wRgF9CsdVvwN76B0zgt54DxPUcvMYri1tVJOtLCVnK0tRkNQQ=="],
+
     "@effect/platform-node": ["@effect/platform-node@4.0.0", "", { "dependencies": { "@effect/platform-node-shared": "^4.0.0", "undici": "^8.11.2" }, "peerDependencies": { "effect": "^4.0.0", "redis": ">=5.0.0 <7.0.0" } }, "sha512-/L+4MUbl8FejPKLHLROYSOebvHnfixkP8KiblSD/DE5uH5xENZBHaux4nH6XMnRP+lr8ajpEJFS8sUrmmxFJeQ=="],
 
     "@effect/platform-node-shared": ["@effect/platform-node-shared@4.0.0", "", { "dependencies": { "@types/ws": "^8.18.1", "ws": "^8.22.0" }, "peerDependencies": { "effect": "^4.0.0" } }, "sha512-VBXHJU9UXVZPdQGGDRjGXpo+TpOzRwZuMrdKAtIxi1qwcRftmacZ1zTgIrzBa0Z2RA2KVkoOecQUsTlt/nJZhw=="],
@@ -371,6 +519,16 @@
     "@hapsland/activity-observation": ["@hapsland/activity-observation@workspace:packages/activity-observation"],
 
     "@hapsland/administration": ["@hapsland/administration@workspace:packages/administration"],
+
+    "@hapsland/agent-flow-bend": ["@hapsland/agent-flow-bend@workspace:packages/agent-flow-bend"],
+
+    "@hapsland/agent-flow-projection": ["@hapsland/agent-flow-projection@workspace:packages/agent-flow-projection"],
+
+    "@hapsland/agent-flow-viz": ["@hapsland/agent-flow-viz@workspace:packages/agent-flow-viz"],
+
+    "@hapsland/build-tooling": ["@hapsland/build-tooling@workspace:scripts"],
+
+    "@hapsland/canonical-defense": ["@hapsland/canonical-defense@workspace:prototypes/canonical-defense"],
 
     "@hapsland/canonical-policy": ["@hapsland/canonical-policy@workspace:packages/canonical-policy"],
 
@@ -387,6 +545,10 @@
     "@hapsland/hook-runtime": ["@hapsland/hook-runtime@workspace:packages/hook-runtime"],
 
     "@hapsland/inspection-records": ["@hapsland/inspection-records@workspace:packages/inspection-records"],
+
+    "@hapsland/monkey-business": ["@hapsland/monkey-business@workspace:packages/monkey-business"],
+
+    "@hapsland/monkey-business-bend": ["@hapsland/monkey-business-bend@workspace:packages/monkey-business-bend"],
 
     "@hapsland/native-observation": ["@hapsland/native-observation@workspace:packages/native-observation"],
 
@@ -408,9 +570,13 @@
 
     "@hapsland/runtime-inputs": ["@hapsland/runtime-inputs@workspace:packages/runtime-inputs"],
 
+    "@hapsland/scorer-typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
     "@hapsland/source-analysis": ["@hapsland/source-analysis@workspace:packages/source-analysis"],
 
     "@hapsland/source-artifacts": ["@hapsland/source-artifacts@workspace:packages/source-artifacts"],
+
+    "@hapsland/verification": ["@hapsland/verification@workspace:src"],
 
     "@istanbuljs/schema": ["@istanbuljs/schema@0.1.6", "", {}, "sha512-+Sg6GCR/wy1oSmQDFq4LQDAhm3ETKnorxN+y5nbLULOR3P0c14f2Wurzj3/xqPXtasLFfHd5iRFQ7AJt4KH2cw=="],
 
@@ -652,6 +818,8 @@
 
     "electron-to-chromium": ["electron-to-chromium@1.5.444", "", {}, "sha512-5ss/uJfoDYDHT0lfJzT6FbcskIzROIOPf0BbbFkGcvDzoJU7i//9GDrwwIHQVmIsrAGiF3ihpADBRIsrEFt1rQ=="],
 
+    "entities": ["entities@8.1.0", "", {}, "sha512-kxL7msIffSuh9aaFAMD7rxAIuTRMAHMeBtgHW2yUdWw732ZNh4MehkF2gdjvtdmikkaIP9bFDDJOPlsvm7avrA=="],
+
     "es-module-lexer": ["es-module-lexer@2.3.2", "", {}, "sha512-poHGpORABojJJucnV9KbOavETW8lBVnphkW77ER5/BQ5Fz7oXSoCNek7IH3vR5nRjdsEz926ibFYX8KtLQmdyw=="],
 
     "escalade": ["escalade@3.2.0", "", {}, "sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA=="],
@@ -664,6 +832,8 @@
 
     "fdir": ["fdir@6.5.0", "", { "peerDependencies": { "picomatch": "^3 || ^4" }, "optionalPeers": ["picomatch"] }, "sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg=="],
 
+    "foldkit": ["foldkit@0.165.0", "", { "dependencies": { "parse5": "^8.0.1" }, "peerDependencies": { "@effect/platform-browser": "4.0.0", "effect": "4.0.0" } }, "sha512-ue0DVJvRtb6PnF4SbW/qWJIEuseXxaPHEiQX1iiG1Nk2n5BUMD0KYjsm741HsboAJlJPojzSvyG9HXwzpVUQmw=="],
+
     "fsevents": ["fsevents@2.3.3", "", { "os": "darwin" }, "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw=="],
 
     "gensync": ["gensync@1.0.0-beta.2", "", {}, "sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg=="],
@@ -672,7 +842,7 @@
 
     "istanbul-lib-instrument": ["istanbul-lib-instrument@6.0.3", "", { "dependencies": { "@babel/core": "^7.23.9", "@babel/parser": "^7.23.9", "@istanbuljs/schema": "^0.1.3", "istanbul-lib-coverage": "^3.2.0", "semver": "^7.5.4" } }, "sha512-Vtgk7L/R2JHyyGW07spoFlB8/lpjiOLTjMdms6AFMraYt3BaJauod/NGrfnVG/y4Ix1JEuMRPDPEj2ua+zz1/Q=="],
 
-    "js-tokens": ["js-tokens@10.0.0", "", {}, "sha512-lM/UBzQmfJRo9ABXbPWemivdCW8V2G8FHaHdypQaIy523snUjog0W71ayWXTjiR+ixeMyVHN2XcpnTd/liPg/Q=="],
+    "js-tokens": ["js-tokens@4.0.0", "", {}, "sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ=="],
 
     "jsesc": ["jsesc@3.1.0", "", { "bin": { "jsesc": "bin/jsesc" } }, "sha512-/sM3dO2FOzXjKQhJuo0Q173wf2KOo8t4I8vHy6lF9poUp7bKT0/NHE8fPX23PwfhnykfqnC2xRxOnVw5XuGIaA=="],
 
@@ -726,9 +896,15 @@
 
     "oxlint-tsgolint": ["oxlint-tsgolint@7.0.2001", "", { "optionalDependencies": { "@oxlint-tsgolint/darwin-arm64": "7.0.2001", "@oxlint-tsgolint/darwin-x64": "7.0.2001", "@oxlint-tsgolint/linux-arm64": "7.0.2001", "@oxlint-tsgolint/linux-x64": "7.0.2001", "@oxlint-tsgolint/win32-arm64": "7.0.2001", "@oxlint-tsgolint/win32-x64": "7.0.2001" }, "bin": { "tsgolint": "./bin/tsgolint.js" } }, "sha512-KjK/XLcXr1DSyonKhsuFqJRiuKqcyG9j3LJ8nkOsrLzGvodBPqzHOKauy10asLMDI0sUpvb+1sxlzff3udZvfg=="],
 
+    "parse5": ["parse5@8.0.1", "", { "dependencies": { "entities": "^8.0.0" } }, "sha512-z1e/HMG90obSGeidlli3hj7cbocou0/wa5HacvI3ASx34PecNjNQeaHNo5WIZpWofN9kgkqV1q5YvXe3F0FoPw=="],
+
     "picocolors": ["picocolors@1.1.1", "", {}, "sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA=="],
 
     "picomatch": ["picomatch@4.0.7", "", {}, "sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA=="],
+
+    "playwright": ["playwright@1.63.0", "", { "dependencies": { "playwright-core": "1.63.0" }, "bin": { "playwright": "cli.js" } }, "sha512-+7ziBLidS4NaNCdt57SUDT+wYmmd5fmiQejUic/kb+YsYSCPyOOE9sebzMjNmQrsnNpDJqd4WHvV/8lfKfUDUg=="],
+
+    "playwright-core": ["playwright-core@1.63.0", "", { "bin": { "playwright-core": "cli.js" } }, "sha512-rYCsBF/M5HjUch52bbtVONEFjv6Xu8sm8h72dNlR5bzIE1fvC/bxgspzkjSfU+MweEMmPM8KJebG6nnyxo5mCg=="],
 
     "postcss": ["postcss@8.5.28", "", { "dependencies": { "nanoid": "^3.3.18", "picocolors": "^1.1.1", "source-map-js": "^1.2.1" } }, "sha512-RRuzqDtt5Y9h3quz5hWhK+TPnsmVs6WwSU6LkJMeY4HstUEDuYTG8UJSdawMRzmzAtV+KEoG8N3Qg2qLy5vM/A=="],
 
@@ -778,7 +954,7 @@
 
     "update-browserslist-db": ["update-browserslist-db@1.3.3", "", { "dependencies": { "escalade": "^3.2.0", "picocolors": "^1.1.1" }, "peerDependencies": { "browserslist": ">= 4.21.0" }, "bin": { "update-browserslist-db": "cli.js" } }, "sha512-pJ2sYawQS0R/WI928Gj5GlPhTGzbMelq0+4INtSYNDV9ErKJcX6xjGWkoG/VnB3dpUm00zALaqkrUD77pO5TDQ=="],
 
-    "vite": ["vite@8.3.0", "", { "dependencies": { "lightningcss": "^1.33.0", "picomatch": "^4.0.7", "postcss": "^8.5.28", "rolldown": "~1.2.6", "tinyglobby": "^0.2.17" }, "optionalDependencies": { "fsevents": "~2.3.3" }, "peerDependencies": { "@types/node": "^20.19.0 || >=22.12.0", "@vitejs/devtools": "^0.7.1", "esbuild": "^0.27.0 || ^0.28.0", "jiti": ">=1.21.0", "less": "^4.0.0", "sass": "^1.70.0", "sass-embedded": "^1.70.0", "stylus": ">=0.54.8", "sugarss": "^5.0.0", "terser": "^5.16.0", "tsx": "^4.8.1", "yaml": "^2.4.2" }, "optionalPeers": ["@types/node", "@vitejs/devtools", "esbuild", "jiti", "less", "sass", "sass-embedded", "stylus", "sugarss", "terser", "tsx", "yaml"], "bin": { "vite": "bin/vite.js" } }, "sha512-lhZBVvEHefgE+HQZC9O7EBJgCU/nVzFNl7vkS4RE0APtWLP02/8QVIkQtzBxPquh7lq5/78NHipTj7ODQ6XuyQ=="],
+    "vite": ["vite@8.3.1", "", { "dependencies": { "lightningcss": "^1.33.0", "picomatch": "^4.0.7", "postcss": "^8.5.28", "rolldown": "~1.2.9", "tinyglobby": "^0.2.17" }, "optionalDependencies": { "fsevents": "~2.3.3" }, "peerDependencies": { "@types/node": "^20.19.0 || >=22.12.0", "@vitejs/devtools": "^0.7.1", "esbuild": "^0.27.0 || ^0.28.0", "jiti": ">=1.21.0", "less": "^4.0.0", "sass": "^1.70.0", "sass-embedded": "^1.70.0", "stylus": ">=0.54.8", "sugarss": "^5.0.0", "terser": "^5.16.0", "tsx": "^4.8.1", "yaml": "^2.4.2" }, "optionalPeers": ["@types/node", "@vitejs/devtools", "esbuild", "jiti", "less", "sass", "sass-embedded", "stylus", "sugarss", "terser", "tsx", "yaml"], "bin": { "vite": "bin/vite.js" } }, "sha512-/bvH9E9tmCXRGp2uXY3WbOldqpTwFkbha/8ANaEQ6VkxhH60KyqLwgZq6lG2y+4uT55x9+9eUHMpQ7uGnOCKjA=="],
 
     "vitest": ["vitest@5.0.1", "", { "dependencies": { "@types/chai": "^5.2.2", "@vitest/mocker": "5.0.1", "chai": "^6.2.2", "es-module-lexer": "^2.3.2", "expect-type": "^1.4.0", "magic-string": "^1.2.3", "obug": "^2.1.4", "picomatch": "^4.0.7", "std-env": "^4.2.0", "tinybench": "6.1.4", "tinyexec": "1.3.0", "tinyglobby": "^0.2.17", "why-is-node-running": "^2.3.0" }, "peerDependencies": { "@edge-runtime/vm": "*", "@opentelemetry/api": "^1.9.0", "@types/node": "^22.0.0 || >=24.0.0", "@vitest/browser-playwright": "5.0.1", "@vitest/browser-preview": "5.0.1", "@vitest/browser-webdriverio": "^5.0.0-beta.5 || >=5.0.0", "@vitest/coverage-istanbul": "5.0.1", "@vitest/coverage-v8": "5.0.1", "@vitest/ui": "5.0.1", "happy-dom": "*", "jsdom": "*", "vite": "^6.4.0 || ^7.0.0 || ^8.0.0" }, "optionalPeers": ["@edge-runtime/vm", "@opentelemetry/api", "@types/node", "@vitest/browser-playwright", "@vitest/browser-preview", "@vitest/browser-webdriverio", "@vitest/coverage-istanbul", "@vitest/coverage-v8", "@vitest/ui", "happy-dom", "jsdom"], "bin": { "vitest": "./vitest.mjs" } }, "sha512-iA95lQbKEkvrtTkdAgnWbXfbipWiiWe/hDl2P5tMi6WFwD76G0NxXAGp/M9EOcYupeGJRr6wppMc7CoA41TQjg=="],
 
@@ -792,10 +968,10 @@
 
     "zod": ["zod@4.6.5", "", {}, "sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q=="],
 
-    "@babel/code-frame/js-tokens": ["js-tokens@4.0.0", "", {}, "sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ=="],
-
     "@babel/core/semver": ["semver@6.3.1", "", { "bin": { "semver": "bin/semver.js" } }, "sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA=="],
 
     "@babel/helper-compilation-targets/semver": ["semver@6.3.1", "", { "bin": { "semver": "bin/semver.js" } }, "sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA=="],
+
+    "ast-v8-to-istanbul/js-tokens": ["js-tokens@10.0.0", "", {}, "sha512-lM/UBzQmfJRo9ABXbPWemivdCW8V2G8FHaHdypQaIy523snUjog0W71ayWXTjiR+ixeMyVHN2XcpnTd/liPg/Q=="],
   }
 }

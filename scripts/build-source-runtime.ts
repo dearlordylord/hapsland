@@ -4,7 +4,7 @@ import { createHash } from "node:crypto"
 import { createInstrumenter } from "istanbul-lib-instrument"
 import { readPackageGraph, resolveWorkspaceSource } from "./package-graph.mjs"
 import type { BunPlugin } from "bun"
-import { physicalNativeBindings } from "@hapsland/runtime-environment/runtime/native-bindings"
+import { physicalNativeBindings } from "../packages/source-analysis/src/direct-event/languages/native-bindings.ts"
 
 const directory = process.argv[2]
 if (!directory) throw new Error("Source runtime build requires an output directory")

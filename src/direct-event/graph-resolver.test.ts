@@ -6,7 +6,7 @@ import {
 } from "@hapsland/native-observation/direct-event/selection"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
-import { put, makeGitFixture, addEvent } from "./test-fixtures.ts"
+import { put, makeGitFixture, addEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { adaptCodexAdd } from "@hapsland/native-observation/direct-event/adapter"
 import {
   evaluatePrepared,
@@ -15,7 +15,7 @@ import {
   preparedUnitStillCurrent
 } from "@hapsland/review-execution/direct-event/pipeline"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
-import { configuredRules } from "../test-support/default-rules.ts"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import { inspectGraphFile } from "@hapsland/source-analysis/direct-event/analyzer"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"

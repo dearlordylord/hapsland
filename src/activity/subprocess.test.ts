@@ -147,7 +147,7 @@ describe("production resident activity subprocess", () => {
     const before = spawnSync(
       bunExecutable(),
       [
-        "packages/cli-entry/src/cli.ts",
+        "packages/hook-entry/src/hook-main.ts",
         "--composed-before-edit-hook",
         "--composed-host=codex-cli",
         "--controlled-reviewer"
@@ -165,7 +165,7 @@ describe("production resident activity subprocess", () => {
     const hook = spawnSync(
       bunExecutable(),
       [
-        "packages/cli-entry/src/cli.ts",
+        "packages/hook-entry/src/hook-main.ts",
         "--codex-hook",
         "--controlled-reviewer",
         "--controlled-writer",

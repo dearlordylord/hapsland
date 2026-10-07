@@ -67,6 +67,10 @@
     "./direct-event/function-resolver": {
       "types": "./dist/direct-event/function-resolver.d.ts",
       "default": "./dist/direct-event/function-resolver.js"
+    },
+    "./direct-event/languages/native-bindings": {
+      "types": "./dist/direct-event/languages/native-bindings.d.ts",
+      "default": "./dist/direct-event/languages/native-bindings.js"
     }
   },
   "dependencies": {
@@ -74,18 +78,71 @@
     "@hapsland/native-observation": "workspace:*",
     "@hapsland/runtime-environment": "workspace:*",
     "@hapsland/source-artifacts": "workspace:*",
-    "effect": "4.0.0",
-    "smol-toml": "1.8.0",
-    "tree-sitter": "0.25.1",
-    "tree-sitter-rust": "0.24.0",
-    "tree-sitter-typescript": "0.23.2"
+    "effect": "catalog:",
+    "smol-toml": "catalog:",
+    "tree-sitter": "catalog:",
+    "tree-sitter-rust": "catalog:",
+    "tree-sitter-typescript": "catalog:",
+    "bun": "catalog:"
   },
   "scripts": {
-    "build": "node ../../scripts/compile-package.mjs"
+    "build": "node ../../scripts/compile-package.mjs",
+    "native:linux-arm64": "node ../../scripts/native-task.mjs linux-arm64",
+    "native:darwin-arm64": "node ../../scripts/native-task.mjs darwin-arm64",
+    "clean:compiler": "node ../../scripts/clean-compiler-output.mjs"
   },
   "hapsland": {
     "domain": "source-analysis",
     "host": "bun",
-    "capabilities": []
+    "capabilities": [
+      "source-analysis"
+    ],
+    "loaderPolicies": {
+      "src/direct-event/demo-validation.ts": "demo-session"
+    },
+    "nativeAssets": [
+      {
+        "source": "src/direct-event/languages/native-bindings.ts",
+        "path": "native/prebuilt/{profile}/tree-sitter/build/Release/tree_sitter_runtime_binding.node",
+        "producer": {
+          "kind": "package-binding",
+          "package": "tree-sitter",
+          "localBuild": "build/Release/tree_sitter_runtime_binding.node",
+          "publishedPrebuild": "prebuilds/{profile}/tree-sitter.node",
+          "profiles": {
+            "linux-arm64": {},
+            "darwin-arm64": {}
+          }
+        }
+      },
+      {
+        "source": "src/direct-event/languages/native-bindings.ts",
+        "path": "native/prebuilt/{profile}/tree-sitter-typescript/build/Release/tree_sitter_typescript_binding.node",
+        "producer": {
+          "kind": "package-binding",
+          "package": "tree-sitter-typescript",
+          "localBuild": "build/Release/tree_sitter_typescript_binding.node",
+          "publishedPrebuild": "prebuilds/{profile}/tree-sitter-typescript.node",
+          "profiles": {
+            "linux-arm64": {},
+            "darwin-arm64": {}
+          }
+        }
+      },
+      {
+        "source": "src/direct-event/languages/native-bindings.ts",
+        "path": "native/prebuilt/{profile}/tree-sitter-rust/build/Release/tree_sitter_rust_binding.node",
+        "producer": {
+          "kind": "package-binding",
+          "package": "tree-sitter-rust",
+          "localBuild": "build/Release/tree_sitter_rust_binding.node",
+          "publishedPrebuild": "prebuilds/{profile}/tree-sitter-rust.node",
+          "profiles": {
+            "linux-arm64": {},
+            "darwin-arm64": {}
+          }
+        }
+      }
+    ]
   }
 }

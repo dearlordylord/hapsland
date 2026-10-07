@@ -1,3 +1,4 @@
+import { resolvePinnedTypeScript } from "../pinned-typescript.mjs"
 import { readFile, writeFile } from "node:fs/promises"
 import { join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -62,7 +63,7 @@ export async function verify(argv, root = resolve(import.meta.dirname, "../.."))
               ? {
                   executable:
                     stage.target === "typescript"
-                      ? join(root, "node_modules/.bin/tsc")
+                      ? (await resolvePinnedTypeScript()).executable
                       : stage.target === "rust"
                         ? "rustc"
                         : "bend",

@@ -23,7 +23,7 @@ import {
   prepareObservation,
   preparedProviderInput
 } from "@hapsland/review-execution/direct-event/pipeline"
-import { addEvent, makeGitFixture, put } from "./test-fixtures.ts"
+import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 type Source = { readonly path: string; readonly sha256: string; readonly bytes: number }
 type Fixture = {

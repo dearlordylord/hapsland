@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { bendCanonicalStep } from "@hapsland/canonical-policy/canonical/canonical.generated"
+import { bendCanonicalStep } from "@hapsland/agent-flow-bend/canonical"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import {

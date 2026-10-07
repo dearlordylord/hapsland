@@ -1,5 +1,6 @@
+import { SHIPPED_DEFAULT_RULES } from "@hapsland/review-definition/rules/shipped"
 import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
-import { connectDefaultRuleFixture } from "../test-support/default-rules.ts"
+import { connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
 import { ConfigProvider, Effect } from "effect"
 import {
   previewClaudeInstallation,
@@ -10,7 +11,7 @@ import {
   installCodexIntegration
 } from "@hapsland/administration/onboarding/codex-installation"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
-import { createInstallationPackageFixture } from "../test-support/installation-package.ts"
+import { createInstallationPackageFixture } from "@hapsland/build-tooling/test-support/installation-package"
 import { spawn } from "node:child_process"
 import { execFileSync } from "../../scripts/test-harness/process.mjs"
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
@@ -203,7 +204,7 @@ it.skipIf(process.platform !== "linux")(
     expect(result.output).toContain("[ ] Codex CLI — not installed")
     expect(result.output.match(/Apply these setup changes/g)).toHaveLength(2)
     expect(result.output.match(/Rules for /g)).toHaveLength(1)
-    expect(result.output).toContain("9 enabled of 9")
+    expect(result.output).toContain(`${SHIPPED_DEFAULT_RULES.length} enabled of ${SHIPPED_DEFAULT_RULES.length}`)
     expect(readFileSync(join(clients.claudeHome, "settings.json"), "utf8")).toContain("--composed-host=claude-code")
     expect(readFileSync(join(clients.codexHome, "hooks.json"), "utf8")).toContain("--composed-host=codex-cli")
   }

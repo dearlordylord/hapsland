@@ -1,8 +1,8 @@
 import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
-import { runClient } from "../test-support/client-runtime.ts"
-import { nativeDeferred as deferred } from "../test-support/native-deferred.ts"
-import { reviewControlsLayer } from "../test-support/review-controls.ts"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
+import { nativeDeferred as deferred } from "@hapsland/build-tooling/test-support/native-deferred"
+import { reviewControlsLayer } from "@hapsland/build-tooling/test-support/review-controls"
 import { Layer } from "effect"
 import {
   ResidentPreparationControls,
@@ -16,8 +16,12 @@ import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import { readFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
-import { addEvent, makeReviewGitFixture as makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../test-support/default-rules.ts"
+import {
+  addEvent,
+  makeReviewGitFixture as makeGitFixture,
+  put
+} from "@hapsland/build-tooling/test-support/test-fixtures"
+import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import { readAnalytics } from "@hapsland/activity-observation/activity/analytics"
 import { makeResidentDispatchContextEffect as makeResidentDispatchContext } from "@hapsland/resident-transport/resident/client"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
