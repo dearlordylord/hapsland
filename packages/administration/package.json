@@ -223,6 +223,54 @@
     "./rules/check": {
       "types": "./dist/rules/check.d.ts",
       "default": "./dist/rules/check.js"
+    },
+    "./interaction/interaction": {
+      "types": "./dist/interaction/interaction.d.ts",
+      "default": "./dist/interaction/interaction.js"
+    },
+    "./interaction/interaction-session": {
+      "types": "./dist/interaction/interaction-session.d.ts",
+      "default": "./dist/interaction/interaction-session.js"
+    },
+    "./rules/conversation": {
+      "types": "./dist/rules/conversation.d.ts",
+      "default": "./dist/rules/conversation.js"
+    },
+    "./rules/interaction-model": {
+      "types": "./dist/rules/interaction-model.d.ts",
+      "default": "./dist/rules/interaction-model.js"
+    },
+    "./interaction/terminal": {
+      "types": "./dist/interaction/terminal.d.ts",
+      "default": "./dist/interaction/terminal.js"
+    },
+    "./interaction/selection": {
+      "types": "./dist/interaction/selection.d.ts",
+      "default": "./dist/interaction/selection.js"
+    },
+    "./credentials/login-conversation": {
+      "types": "./dist/credentials/login-conversation.d.ts",
+      "default": "./dist/credentials/login-conversation.js"
+    },
+    "./credentials/login-model": {
+      "types": "./dist/credentials/login-model.d.ts",
+      "default": "./dist/credentials/login-model.js"
+    },
+    "./onboarding/update-model": {
+      "types": "./dist/onboarding/update-model.d.ts",
+      "default": "./dist/onboarding/update-model.js"
+    },
+    "./onboarding/maintenance-model": {
+      "types": "./dist/onboarding/maintenance-model.d.ts",
+      "default": "./dist/onboarding/maintenance-model.js"
+    },
+    "./onboarding/verification-model": {
+      "types": "./dist/onboarding/verification-model.d.ts",
+      "default": "./dist/onboarding/verification-model.js"
+    },
+    "./onboarding/verification-conversation": {
+      "types": "./dist/onboarding/verification-conversation.d.ts",
+      "default": "./dist/onboarding/verification-conversation.js"
     }
   },
   "dependencies": {

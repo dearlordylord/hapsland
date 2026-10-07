@@ -4,12 +4,19 @@ import * as Redacted from "effect/Redacted"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import * as TestClock from "effect/testing/TestClock"
-import * as Fiber from "effect/Fiber"
+import { makeInitialCredentialState } from "@hapsland/runtime-inputs/credentials/state"
+import type { CredentialLifecycleResult } from "@hapsland/credential-storage/credentials/secret-service"
+import { InteractionService } from "@hapsland/administration/interaction/interaction"
 import {
-  offerJevKeyVerification,
-  verifyJevKey,
-  MAX_KEY_CHECKS
-} from "@hapsland/administration/onboarding/credential-verification"
+  runVerificationConversation,
+  VerificationOwnerService,
+  type VerificationOwner,
+  type VerificationTransition
+} from "@hapsland/administration/onboarding/verification-conversation"
+import { reduceVerification, type KeyVerification } from "@hapsland/administration/onboarding/verification-model"
+import { scriptedInteraction, type ScriptStep } from "../../scripts/test-support/scripted-interaction.ts"
+import * as Fiber from "effect/Fiber"
+import { verifyJevKey, MAX_KEY_CHECKS } from "@hapsland/administration/onboarding/credential-verification"
 
 it.effect.each([
   [200, "accepted"],
@@ -80,117 +87,246 @@ it.effect("does not treat a malformed success response as a verified key", () =>
   })
 )
 
+// Workflow decisions use the same input seam as the terminal, with isolated owners.
+const fixture = (options: {
+  steps: ScriptStep[]
+  source?: "saved" | "file" | "environment"
+  results?: KeyVerification[]
+  provider?: "jev" | "cloudflare" | "openai"
+  missing?: boolean
+  storage?: CredentialLifecycleResult["status"]
+}) => {
+  const script = scriptedInteraction(options.steps)
+  const calls: string[] = []
+  const transitions: VerificationTransition[] = []
+  const wrappers: Redacted.Redacted<string>[] = []
+  const results = [...(options.results ?? ["accepted"])]
+  let value = "private-original-key"
+  const owner: VerificationOwner = {
+    read: Effect.sync(() => {
+      calls.push("read")
+      return {
+        provider: options.provider ?? "jev",
+        guidance: [],
+        credential: options.missing
+          ? { status: "missing" as const, source: "saved" as const, generation: 0 }
+          : {
+              status: "present" as const,
+              source:
+                options.source === "saved" || options.source === undefined
+                  ? ("saved" as const)
+                  : ("environment" as const),
+              value,
+              generation: 1,
+              ...(options.source === "file" ? { file: "/controlled/.env" } : {})
+            }
+      }
+    }),
+    save: (key) =>
+      Effect.sync(() => {
+        calls.push("save")
+        value = key
+        return {
+          status: options.storage ?? "stored",
+          state: { ...makeInitialCredentialState(), generation: 2 },
+          stateLock: "acquired" as const
+        }
+      }),
+    verify: (key) =>
+      Effect.sync(() => {
+        calls.push("verify")
+        expect(Redacted.value(key)).toBe(value)
+        wrappers.push(key)
+        return results.shift() ?? "rejected"
+      })
+  }
+  const run = runVerificationConversation({
+    observe: (transition) =>
+      Effect.sync(() => {
+        transitions.push(transition)
+      })
+  }).pipe(
+    Effect.provideService(InteractionService, script.interaction),
+    Effect.provideService(VerificationOwnerService, owner),
+    Effect.map((outcome) => outcome.model)
+  )
+  return { script, calls, transitions, wrappers, owner, run }
+}
 it.effect.each(["decline", "cloudflare", "openai", "missing", "accept"] as const)(
   "offers verification safely: %s",
   (scenario) =>
     Effect.gen(function* () {
-      const output: string[] = []
-      let prompts = 0
-      let calls = 0
-      yield* offerJevKeyVerification({
+      const f = fixture({
+        steps:
+          scenario === "missing" || scenario === "cloudflare" || scenario === "openai"
+            ? []
+            : [{ kind: "confirm", line: scenario === "accept" ? " Y " : "yes" }],
         provider: scenario === "cloudflare" || scenario === "openai" ? scenario : "jev",
-        credential:
-          scenario === "missing"
-            ? { status: "missing", source: "saved", generation: 0 }
-            : { status: "present", source: "saved", generation: 0, value: "private-key" },
-        confirm: (question) =>
-          Effect.sync(() => {
-            prompts++
-            expect(question).toContain("paid credits")
-            expect(question).toContain("no project code")
-            return scenario === "accept"
-          }),
-        verify: (key) =>
-          Effect.sync(() => {
-            calls++
-            expect(Redacted.value(key)).toBe("private-key")
-            return "accepted" as const
-          }),
-        write: (text) => output.push(text)
+        missing: scenario === "missing"
       })
-      expect(calls).toBe(scenario === "accept" ? 1 : 0)
-      expect(prompts).toBe(scenario === "accept" || scenario === "decline" ? 1 : 0)
-      expect(output.join("")).not.toContain("private-key")
-      expect(output.join("")).toContain(scenario === "accept" ? "Key verified" : "not checked")
+      const model = yield* f.run
+      expect(f.calls.filter((call) => call === "verify")).toHaveLength(scenario === "accept" ? 1 : 0)
+      expect(f.script.remaining()).toBe(0)
+      expect(JSON.stringify({ model, transitions: f.transitions, output: f.script.transcript })).not.toContain(
+        "private-original-key"
+      )
+      expect(f.script.transcript.join("")).toContain(scenario === "accept" ? "Key verified" : "not checked")
+      for (const key of f.wrappers) expect(() => Redacted.value(key)).toThrow()
     })
 )
-
-it.effect.each(["rate-limited", "unconfirmed"] as const)("keeps the selected key and only warns on %s", (result) =>
+it.effect.each(["rate-limited", "unconfirmed"] as const)("keeps the key and only warns on %s", (result) =>
   Effect.gen(function* () {
-    const output: string[] = []
-    let replacements = 0
-    let confirmations = 0
-    const credential = { status: "present" as const, source: "saved" as const, generation: 1, value: "private-key" }
-    yield* offerJevKeyVerification({
-      provider: "jev",
-      credential,
-      confirm: () =>
-        Effect.sync(() => {
-          confirmations++
-          return true
-        }),
-      write: (text) => output.push(text),
-      verify: () => Effect.succeed(result),
-      replaceCredential: () =>
-        Effect.sync(() => {
-          replacements++
-          return undefined
-        })
+    const f = fixture({ steps: [{ kind: "confirm", line: "y" }], results: [result] })
+    yield* f.run
+    expect(f.calls).toEqual(["read", "verify"])
+    expect(f.script.transcript.join("")).toContain("kept for review")
+    expect(f.script.transcript.join("")).not.toMatch(/rerun|retry|restart/i)
+  })
+)
+const replace: ScriptStep[] = [
+  { kind: "choose", index: 0 },
+  { kind: "confirm", line: "y" },
+  { kind: "hidden", value: "private-replacement-key" }
+]
+it.effect("replacement and a new paid request each require their own consent", () =>
+  Effect.gen(function* () {
+    const f = fixture({
+      steps: [{ kind: "confirm", line: "y" }, ...replace, { kind: "confirm", line: "y" }],
+      results: ["rejected", "accepted"]
     })
-    expect(credential.value).toBe("private-key")
-    expect(replacements).toBe(0)
-    expect(confirmations).toBe(1)
-    expect(output.join("")).toContain("kept for review")
-    expect(output.join("")).not.toMatch(/rerun|retry|restart/i)
+    const model = yield* f.run
+    expect(f.calls).toEqual(["read", "verify", "save", "read", "verify"])
+    expect(model.observations.map((item) => item.result)).toEqual(["rejected", "accepted"])
+    expect(model.storage).toEqual({ status: "stored", generation: 2 })
+    expect(f.transitions.filter((t) => t.event.action.kind === "approve")).toHaveLength(2)
+    expect(JSON.stringify({ model, transitions: f.transitions, output: f.script.transcript })).not.toMatch(
+      /private-original-key|private-replacement-key/
+    )
+    expect(f.script.remaining()).toBe(0)
+  })
+)
+it.effect("saving a replacement never implicitly authorizes its verification", () =>
+  Effect.gen(function* () {
+    const f = fixture({
+      steps: [{ kind: "confirm", line: "y" }, ...replace, { kind: "confirm", line: "n" }],
+      results: ["rejected"]
+    })
+    const model = yield* f.run
+    expect(f.calls).toEqual(["read", "verify", "save", "read"])
+    expect(model.attempts).toBe(1)
+    expect(model.storage?.status).toBe("stored")
+  })
+)
+it.effect.each(["saved", "file"] as const)("bounds %s rechecks to three fresh approvals", (source) =>
+  Effect.gen(function* () {
+    const f = fixture({
+      source,
+      steps: [
+        { kind: "confirm", line: "y" },
+        ...[0, 1].flatMap((): ScriptStep[] => [
+          { kind: "choose", index: source === "saved" ? 1 : 0 },
+          { kind: "confirm", line: "y" }
+        ])
+      ],
+      results: ["rejected", "forbidden", "rejected"]
+    })
+    const model = yield* f.run
+    expect(model.attempts).toBe(MAX_KEY_CHECKS)
+    expect(f.calls.filter((call) => call === "verify")).toHaveLength(MAX_KEY_CHECKS)
+    expect(f.calls).not.toContain("save")
+    expect(f.transitions.filter((t) => t.event.action.kind === "approve")).toHaveLength(3)
+    expect(f.script.remaining()).toBe(0)
+  })
+)
+it.effect("environment rejection gives guidance without replacement or retries", () =>
+  Effect.gen(function* () {
+    const f = fixture({ source: "environment", steps: [{ kind: "confirm", line: "y" }], results: ["rejected"] })
+    yield* f.run
+    expect(f.calls).toEqual(["read", "verify"])
+    expect(f.script.transcript.join("")).toContain("Saved login does not override")
+  })
+)
+it.effect.each(["busy", "indeterminate"] as const)("preserves %s replacement without another request", (storage) =>
+  Effect.gen(function* () {
+    const f = fixture({ storage, steps: [{ kind: "confirm", line: "y" }, ...replace], results: ["rejected"] })
+    const model = yield* f.run
+    expect(model.storage?.status).toBe(storage)
+    expect(model.observations[0]?.result).toBe("rejected")
+    expect(f.calls).toEqual(["read", "verify", "save"])
+  })
+)
+it.effect.each(["exit", "eof"] as const)(
+  "hidden %s ends replacement without saving or losing earlier results",
+  (kind) =>
+    Effect.gen(function* () {
+      const f = fixture({
+        steps: [{ kind: "confirm", line: "y" }, { kind: "choose", index: 0 }, { kind: "confirm", line: "y" }, { kind }],
+        results: ["rejected"]
+      })
+      const model = yield* f.run
+      expect(model.phase).toBe("Cancelled")
+      expect(model.observations[0]?.result).toBe("rejected")
+      expect(f.calls).toEqual(["read", "verify"])
+    })
+)
+it.effect("Back and Exit retain a saved replacement and the previous verification", () =>
+  Effect.gen(function* () {
+    const f = fixture({
+      steps: [{ kind: "confirm", line: "y" }, ...replace, { kind: "back" }, { kind: "exit" }],
+      results: ["rejected"]
+    })
+    const model = yield* f.run
+    expect(model.phase).toBe("Cancelled")
+    expect(model.storage?.status).toBe("stored")
+    expect(model.observations[0]?.result).toBe("rejected")
+    expect(f.calls.filter((call) => call === "verify")).toHaveLength(1)
+  })
+)
+it.effect("rejects stale consent, changed credential revisions and repeated completion", () =>
+  Effect.gen(function* () {
+    const f = fixture({ steps: [{ kind: "confirm", line: "y" }] })
+    yield* f.run
+    const approval = f.transitions.find((t) => t.event.action.kind === "approve")!
+    expect(reduceVerification(approval.before, { ...approval.event, revision: approval.event.revision - 1 })).toBe(
+      approval.before
+    )
+    expect(
+      reduceVerification(approval.before, {
+        revision: approval.before.revision,
+        action: { kind: "approve", yes: true, keyRevision: approval.before.keyRevision + 1 }
+      })
+    ).toBe(approval.before)
+    const observed = f.transitions.find((t) => t.event.action.kind === "observed")!
+    expect(reduceVerification(observed.after, observed.event)).toBe(observed.after)
   })
 )
 
-it.effect.each(["saved", "file", "environment", "decline", "limit"] as const)(
-  "corrects authorization rejection safely: %s",
-  (scenario) =>
-    Effect.gen(function* () {
-      const output: string[] = []
-      let calls = 0
-      let replacements = 0
-      let prompts = 0
-      yield* offerJevKeyVerification({
-        provider: "jev",
-        credential: {
-          status: "present",
-          source: scenario === "environment" || scenario === "file" ? "environment" : "saved",
-          generation: 1,
-          value: "bad-key",
-          ...(scenario === "file" ? { file: "/repo/.env" } : {})
-        },
-        confirm: () =>
-          Effect.sync(() => {
-            prompts++
-            return prompts === 1 || scenario !== "decline"
-          }),
-        write: (text) => output.push(text),
-        verify: (key) =>
-          Effect.sync(() => {
-            calls++
-            return Redacted.value(key) === "good-key" ? ("accepted" as const) : ("rejected" as const)
-          }),
-        replaceCredential: () =>
-          Effect.sync(() => {
-            replacements++
-            return {
-              status: "present" as const,
-              source: "saved" as const,
-              generation: 2,
-              value: scenario === "limit" ? "bad-key" : "good-key"
-            }
-          })
-      })
-      expect(calls).toBe(
-        scenario === "limit" ? MAX_KEY_CHECKS : scenario === "environment" || scenario === "decline" ? 1 : 2
-      )
-      expect(replacements).toBe(
-        scenario === "limit" ? MAX_KEY_CHECKS - 1 : scenario === "environment" || scenario === "decline" ? 0 : 1
-      )
-      expect(output.join("")).not.toContain("good-key")
-      expect(output.join("")).not.toContain("bad-key")
+it.effect("invalid hidden input fails without being reported as cancellation", () =>
+  Effect.gen(function* () {
+    const f = fixture({
+      steps: [
+        { kind: "confirm", line: "y" },
+        { kind: "choose", index: 0 },
+        { kind: "confirm", line: "y" },
+        { kind: "hidden", value: "x".repeat(32769) }
+      ],
+      results: ["rejected"]
     })
+    expect(yield* f.run.pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { reason: "invalid" } })
+    expect(f.calls).toEqual(["read", "verify"])
+    expect(f.script.transcript.join("")).not.toContain("Key entry cancelled")
+  })
+)
+it.effect("Back from replacement consent requests no key and preserves the rejected observation", () =>
+  Effect.gen(function* () {
+    const f = fixture({
+      steps: [{ kind: "confirm", line: "y" }, { kind: "choose", index: 0 }, { kind: "back" }, { kind: "exit" }],
+      results: ["rejected"]
+    })
+    const model = yield* f.run
+    expect(model.phase).toBe("Cancelled")
+    expect(model.observations[0]?.result).toBe("rejected")
+    expect(f.calls).toEqual(["read", "verify"])
+    expect(f.script.remaining()).toBe(0)
+  })
 )

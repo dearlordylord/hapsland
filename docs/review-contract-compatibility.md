@@ -13,15 +13,27 @@ and input requirements.
 ## Configuration and individual rules
 
 Individual rule documents separate intrinsic input requirements from configured
-application policy. This contract and the [Phase F contract](../PRODUCT-PHASE-F-SPEC.md)
-own that behavior. Formats are version 1.
+application policy. This contract owns configuration composition, rule identity
+and input compatibility. The [configuration guide](configuration.md#configuration-composition)
+describes authoring and commands. Formats are version 1.
 
-Built-in, user, and project settings retain their order. Includes and language
-lists use the highest supplied list; exclusions accumulate. Omission inherits,
-and an empty include/language list selects nothing. Rule settings resolve by stable
-rule identity and intersect global root selection and intrinsic input support.
+Ordinary settings resolve from built-in defaults through user settings to project
+settings. Omission inherits. Includes and languages use the highest supplied list;
+an empty list selects nothing. Exclusions accumulate and win over includes.
+Per-rule fields resolve independently by stable rule identity. User-owned privacy,
+review destination, shared resource and stronger-feedback restrictions cannot be
+overridden by ordinary project precedence.
+
+Configuration explanation uses the same resolved policy as review. It reports
+the supplying layer, configuration source and field, distinguishing overridden
+include lists from effective selection. A path-only explanation leaves artifact
+kind and evidence explicitly unexamined. Explanation makes no classifier request.
+
+Rule settings resolve by stable rule identity under configuration composition and
+intersect global root selection and intrinsic input support.
 There is no separate repository grant. Invalid selected configuration fails before
-source capture, without falling back to other rules.
+source capture, even when other selected rules are valid; it cannot fall back to
+that valid subset.
 
 Global `includes`/`excludes` select edited roots. `contextIncludes`/`contextExcludes`
 select supporting source; omitted context selection follows the effective root
@@ -53,7 +65,7 @@ A duplicate identity or rebinding to a different file is an error. Rule content 
 effective settings have content digests; there are no pack identities or content
 version labels. Shipped default IDs use descriptive names without numeric prefixes (for example,
 `meaningless_combinations`). Existing authored files and explicit selections remain
-authoritative; setup preserves them. Initial setup provisions seven editable defaults only when no configuration layer
+authoritative; setup preserves them. Initial setup provisions the shipped editable defaults only when no configuration layer
 declares `rules`. Any explicit selection, including `rules: []`, is authoritative:
 repeat setup preserves it and authored files, without enabling unselected defaults.
 Missing rule files fail validation instead of being recreated.
@@ -63,6 +75,10 @@ call/type closure. Missing references are explicit omissions and are not finding
 Other inputs retain their declared evidence requirements. Every shipped and custom
 rule uses the same validation, compilation, and evidence-admission boundary.
 Choice and Score result forms remain separate decisions.
+
+A finding requires a validated probability strictly greater than the effective
+rule threshold; equality produces no finding. Probabilities and thresholds are
+finite values between zero and one, inclusive.
 
 ## Smoke test the rule
 
@@ -111,25 +127,41 @@ obligations](../packages/agent-flow-bend/README.md#content-isolation-proofs) dis
 the proved top-level selection/framing properties from implementation evidence
 and remaining gaps. These laws do not prove the full content-isolation contract.
 
+### Edit-owned settings
+
+Configuration and compiled rules belong to the originating edit's captured
+settings snapshot. Pre-edit registration captures that snapshot; observation
+admission captures it when no registration exists. Duplicate pending registration
+preserves the original snapshot. It remains unchanged through preparation,
+dispatch, advice and delivery, including provider selection, file policy and
+feedback mode. Later collect or Stop requests do not reload it, and cache expiry
+does not replace it.
+
+Saved configuration and rule changes apply only to subsequently captured edit
+snapshots, with the cache behavior described in
+[configuration](configuration.md#runtime-behavior). In particular, changing
+exclusions does not cancel dispatch for an edit whose settings were already
+captured, and cannot recall a request already sent. Source freshness and current
+credential authority remain separate checks; frozen settings do not waive them.
+
 ### Freshness and result reuse
 
 Hapsland selects each rule only when its declared evidence needs are met. A
 rule may run with a marked omission that is irrelevant to it. If no rule applies,
 Hapsland sends no request. A review input's identity includes the exact input contract,
-renderer, root, evidence tree, selected rule definitions, and effective
-policy. Source-file fingerprints support freshness checks but do not by
-themselves change semantic identity when an unrelated comment moves. Before
-dispatch, Hapsland requires the captured files to match exactly. Before
-advice, it rereads contributing files and rebuilds the unit using the edit-owned
-configuration and compiled rules snapshot; changed source input, attribution, or
-physical source identity retires the result. A caller cwd change alone does not.
-Recipient identity is root-independent; source revisions and evaluation identities
-remain qualified by the original physical working root. A round pins that root on
-its first admitted eligible edit and explicitly skips other-root edits until
-closure, as specified in the [advice contract](advicing-target-contract.md#advicee-identity-and-admission). Saved configuration and rule changes apply only
-to subsequently captured edit snapshots, with the five-second cache behavior in
-[configuration](configuration.md#runtime-behavior). The snapshot stays with the
-edit through advice and delivery, including later collect or Stop requests.
+renderer, root, evidence tree and its omissions and completeness, selected rule
+definitions, and effective policy. Retain each contributing file's fingerprint
+for freshness checks; a changed fingerprint does not by itself change semantic
+identity when an unrelated comment moves. Before dispatch, captured files must
+still satisfy their source-role policy under the [edit-owned settings](#edit-owned-settings)
+and match the captured source exactly. Before advice, Hapsland rereads contributing
+files and rebuilds the unit under those settings; changed source input,
+attribution, or physical source identity retires the result.
+
+Recipient and physical-root identity follow the
+[advice contract](advicing-target-contract.md#advicee-identity-and-admission).
+Credential and final handoff checks follow its
+[handoff contract](advicing-target-contract.md#handoff-reoffer-and-continuation-count).
 Only a still-current matching unit may reuse a successful review-backend result.
 The prepared identity includes the selected provider, model selector, and full
 destination; a change to any of these invalidates reuse. See the

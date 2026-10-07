@@ -127,8 +127,10 @@ retry. Hook response windows and Stop cutoffs belong to the
 request completes or that an agent sees or follows its advice.
 
 Pending advice has a ten-minute relevance lifetime, with expiry at equality.
-Collection rechecks current source, rules, recipient authority, and credentials
-before handoff. The final encoded Claude response has a 10 KiB bound and no
+Collection follows the [source freshness](review-contract-compatibility.md#freshness-and-result-reuse),
+[edit-owned settings](review-contract-compatibility.md#edit-owned-settings), and
+[handoff authority](advicing-target-contract.md#handoff-reoffer-and-continuation-count)
+contracts. The final encoded Claude response has a 10 KiB bound and no
 separate finding-count cap. Output-fit refusal does not convert a finding into
 a clear review. Delivery ownership and permitted later collection follow the
 checked lease, expiry, and response-authority rules.

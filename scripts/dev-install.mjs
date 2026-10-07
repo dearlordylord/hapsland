@@ -3,8 +3,7 @@ import { spawnSync } from "node:child_process"
 import { readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { preparePackageArchive } from "./artifact-store.mjs"
-import { stageRelease } from "@hapsland/administration/onboarding/distribution"
-import { NEW_KEY_FLAG, SETUP_COMMAND } from "@hapsland/runtime-environment/runtime/cli-names"
+import { NEW_KEY_FLAG, SETUP_COMMAND } from "../packages/runtime-environment/src/runtime/cli-names.ts"
 
 const args = process.argv.slice(2)
 const host = args.find((arg) => arg.startsWith("--host="))?.slice("--host=".length)
@@ -62,6 +61,7 @@ try {
     })
   )
   process.stdout.write("Built and validated current development inputs through the ordinary build.\n")
+  const { stageRelease } = await import("@hapsland/administration/onboarding/distribution")
   candidate = await stage("Checking installed snapshot / installing local archive", () =>
     Effect.runPromise(stageRelease({ kind: "archive", path: artifact.archivePath }))
   )

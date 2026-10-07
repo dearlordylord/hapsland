@@ -53,7 +53,7 @@
     "docs:install": "node scripts/install-doc-link-checker.mjs && node scripts/install-bend-toolchain.mjs --github-actions",
     "docs:generate": "node scripts/generate-documentation.mjs --update",
     "docs:generated:check": "node scripts/generate-documentation.mjs --check",
-    "docs:check": "node --test scripts/check-doc-links.test.mjs scripts/generate-architecture-diagram.test.mjs scripts/generate-documentation.test.mjs scripts/generate-module-architecture.test.mjs && npm run docs:generated:check && node scripts/check-doc-links.mjs",
+    "docs:check": "node --experimental-strip-types --test scripts/check-doc-links.test.mjs scripts/generate-architecture-diagram.test.mjs scripts/generate-documentation.test.mjs scripts/generate-module-architecture.test.mjs && npm run docs:generated:check && node --experimental-strip-types --test scripts/generate-decision-boundary-ledger.test.mts && node scripts/check-doc-links.mjs",
     "architecture:generate": "node scripts/generate-architecture-diagram.mjs",
     "build": "node scripts/build-product.mjs",
     "prepack": "npm run build",
@@ -67,7 +67,7 @@
     "test:native:preflight": "node scripts/run-native-preflight-tests.mjs",
     "test:live": "RUN_LIVE_JEV=1 vitest run --config scripts/vitest.config.ts src/jev-live.test.ts",
     "test:watch": "vitest --config scripts/vitest.config.ts",
-    "typecheck": "node scripts/build-workspaces.mjs && node scripts/pinned-typescript.mjs -p tsconfig.json --noEmit && node scripts/package-graph.mjs --check && node scripts/generate-release-identity.mjs --check && node scripts/check-development-imports.mjs",
+    "typecheck": "node scripts/build-workspaces.mjs && npm run typecheck:source",
     "config:generate": "node --experimental-strip-types scripts/generate-configuration.ts --update",
     "config:check": "node --experimental-strip-types scripts/generate-configuration.ts --check",
     "conformance:direct-event": "vitest run --config scripts/vitest.config.ts --maxWorkers=1 src/conformance/live-evidence-outcome.test.ts src/conformance/live-runner-policy.test.ts src/direct-event/adapter.test.ts src/direct-event/selection-capture.test.ts src/direct-event/analyzer.test.ts src/direct-event/pipeline.test.ts src/direct-event/security-wire-prototype.test.ts src/resident/capacity.test.ts src/resident/collection.test.ts src/resident/dispatch.test.ts src/resident/evaluation-reuse.test.ts src/resident/operational-notices.test.ts src/resident/client.test.ts src/resident/protocol.test.ts src/resident/server.test.ts src/resident/subprocess.test.ts src/resident/security-queued.test.ts src/resident/security-sinks.test.ts src/cli.test.ts && node scripts/validate-direct-event-conformance.mjs",
@@ -85,7 +85,7 @@
     "test:focused": "node scripts/test-harness/run-checks.mjs focused",
     "test:status": "node scripts/test-harness/run-checks.mjs status",
     "verify": "node scripts/test-harness/verify.mjs",
-    "check:fast": "npm run typecheck && npm run docs:generated:check && npm run lint:changed",
+    "check:fast": "npm run docs:generated:check && npm run typecheck:source && npm run lint:changed",
     "test:harness": "node --test --test-concurrency=1 scripts/test-harness/*.test.mjs",
     "hooks:generate": "node scripts/generate-hook-index.mjs",
     "prepare": "node scripts/install-git-hooks.mjs",
@@ -102,7 +102,10 @@
     "build:watch": "node scripts/build-watch.mjs",
     "test:content-isolation": "node packages/agent-flow-bend/scripts/check-content-isolation.mjs && node scripts/check-content-wire-mutants.mjs",
     "format:fix": "python3 scripts/bend-format.py fix",
-    "format:check": "python3 scripts/bend-format.py check"
+    "format:check": "python3 scripts/bend-format.py check",
+    "interaction:diagrams:write": "npm run docs:generate",
+    "interaction:diagrams:check": "npm run docs:generated:check",
+    "typecheck:source": "node scripts/pinned-typescript.mjs -p tsconfig.json --noEmit && node scripts/package-graph.mjs --check && node scripts/generate-release-identity.mjs --check && node scripts/check-development-imports.mjs"
   },
   "devDependencies": {
     "@babel/parser": "catalog:",

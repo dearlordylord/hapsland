@@ -52,6 +52,7 @@ export const precheckStages = [
     "scripts/artifact-store.test.mjs",
     "scripts/dependency-digests.test.mjs",
     "scripts/dev-pack.test.mjs",
+    "scripts/dev-install.test.mjs",
     "scripts/archive-inventory.test.mjs",
     "scripts/install-git-hooks.test.mjs",
     "scripts/pinned-bun.test.mjs",

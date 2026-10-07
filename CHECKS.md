@@ -30,6 +30,9 @@ Choose local checks by changed behavior and physical boundaries using the
 run `npm run check:fast` and focused tests for the changed owners and affected
 consumers. Run affected integration checks when transport, process lifetime,
 installation, packaging, or cross-component wiring changes.
+For delegated tasks and jointly accepted batches, follow
+[task and batch acceptance](docs/testing-matrix.md#task-and-batch-acceptance)
+for final qualification ownership and timing.
 
 - Before checks over one minute: record risk, cheapest adequate existing check,
   additional evidence, expected duration and absolute stop. Relevant cheap

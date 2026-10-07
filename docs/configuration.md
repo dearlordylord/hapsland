@@ -2,7 +2,7 @@
 
 **Purpose:** Explain rule authoring, explicit activation, and source-selection settings.
 **Status:** Active maintained guidance for the 2026-10-05 owner-approved rule design.
-**Authority:** The accepted rule and configuration contracts in [Phase F](../PRODUCT-PHASE-F-SPEC.md), [direct review](type-function-review-proposal.md), and [compatibility](review-contract-compatibility.md) own behavior; generated field tables describe the current schema.
+**Authority:** Maintained guidance for the accepted [rule and configuration contract](review-contract-compatibility.md) and [direct-review contract](type-function-review-proposal.md); generated field tables describe the current schema.
 **Expected use:** Author a rule, choose where it applies, and explain effective review settings.
 **Lifecycle:** Update with rule/configuration schema, CLI, or source-selection changes; review whenever rule inputs or source-reading boundaries change.
 
@@ -10,6 +10,11 @@ Each rule lives in its own version-one JSONC document. It states a binary questi
 criteria, feedback, and the languages, input forms, and evidence it understands.
 Configuration decides whether the rule is active and where it applies. The review
 backend returns a probability; Choice and Score are separate unsupported result forms.
+
+## Configuration composition
+
+The [accepted compatibility contract](review-contract-compatibility.md#configuration-and-individual-rules)
+owns layering, rule identity and configuration explanation guarantees.
 
 ## Configuration locations and precedence
 
@@ -34,20 +39,10 @@ the distinction between current recording and retained history.
 An absent, empty, or relative XDG base uses `~/.config`. An explicitly empty
 `REVIEW_USER_CONFIG_PATH` is an error; only an absent override selects the default.
 Invocation from a subdirectory does not change the configuration root or pattern base.
-For native edits, the configuration root is the target's physical Git working copy,
-independently of agent cwd. Pre-edit hooks capture root-specific settings even
-before new files exist. The first admitted eligible edit pins one root for the
-virtual round; later other-root edits are skipped and do not change that policy.
-A saved configuration change applies to later edit captures; it cannot replace an
-outstanding edit's snapshot. Invalid target configuration cannot use cwd settings
-as a fallback. Collection and inspection retain the pinned source's settings and
-consent when cwd changes. See [recipient admission](advicing-target-contract.md#advicee-identity-and-admission).
-
-Omitted fields inherit. Include lists and language selections use the highest
-explicitly supplied list; an empty list selects nothing. Exclusions accumulate
-across layers and win over includes. Each rule's configured fields resolve
-independently by its stable identity. Individual path and language settings further
-narrow global root selection and the rule's declared input support.
+For native edits, [recipient admission](advicing-target-contract.md#advicee-identity-and-admission)
+owns physical-root selection independently of caller cwd, and the
+[edit-owned settings contract](review-contract-compatibility.md#edit-owned-settings)
+owns when settings are captured and when saved changes take effect.
 
 User privacy exclusions cannot be removed by project settings. Review destination,
 shared review limits, and stronger Claude blocking have user-owned restrictions;
@@ -400,7 +395,7 @@ hapsland rules show --id meaningless_combinations
 
 <!-- authoring-default:start -->
 
-See the [default rules](../TYPE-DESIGN-RULES.md). The default `bare_domain_value` already addresses primitive domain values; inspect it before adding a custom variant. `no-primitive-obsession` below teaches custom authoring.
+Inspect [the enabled rules](#declarative-rules). The default `bare_domain_value` already addresses primitive domain values; inspect it before adding a custom variant. `no-primitive-obsession` below teaches custom authoring.
 
 <!-- authoring-default:end -->
 
@@ -701,20 +696,13 @@ The resident loads configuration and rule documents together, validates them and
 
 <!-- settings-cache:end -->
 
-An edit captures its snapshot at pre-edit registration, or at observation admission
-when no registration exists. Duplicate pending registration preserves the original
-snapshot. Preparation, review, advice and delivery retain that same snapshot,
-including provider selection, file policy and Claude feedback mode. Later collect
-and Stop requests do not reload settings for existing advice. Saved changes apply
-to new edits when the cache next reloads; expiry does not change an active edit.
-Source freshness, credentials, round authority and expiry checks still run. The
-resident derives environment-only authentication from the snapshot; the hook
+The [edit-owned settings contract](review-contract-compatibility.md#edit-owned-settings)
+defines snapshot lifetime across cache reloads and later collection. The resident
+derives environment-only authentication from the snapshot; the hook
 passes the selected credential reference/value and generation, without a separate
 configuration-derived authentication flag.
 
-The resident dispatches eligible semantic units after final source currentness
-checks under the edit settings snapshot. Review request capacity and deadlines
-are resident policy, not JSONC controls.
+Review request capacity and deadlines are resident policy, not JSONC controls.
 `editPermitLimits` controls only simultaneously pending pre-edit permits and belongs in
 the user configuration because the resident is shared across projects.
 

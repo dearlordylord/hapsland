@@ -1,55 +1,65 @@
-import { formatOutcome } from "./human-output.ts"
-import type { profileFields } from "./client-command.ts"
-import * as Effect from "effect/Effect"
-import * as Option from "effect/Option"
-import * as Schema from "effect/Schema"
-import { formatFailure, formatProposal, type invokeLifecycle } from "./client-lifecycle.ts"
+import { Context, Effect, Exit, Layer, Schema } from "effect"
+import { formatOutcome, formatStatusOutcome } from "./human-output.ts"
+import { profileFields } from "./client-command.ts"
+import {
+  activateCurrentPackage,
+  formatFailure,
+  formatProposal,
+  invokeLifecycle,
+  registeredClients
+} from "./client-lifecycle.ts"
 import type { SetupClient } from "./client-selection.ts"
+import { InteractionService } from "../interaction/interaction.ts"
+import {
+  initialMaintenance,
+  maintenanceEffectCommand,
+  reduceMaintenance,
+  type MaintenanceAgent,
+  type MaintenanceCommand,
+  type MaintenanceEffectCommand,
+  type MaintenanceEvent,
+  type MaintenanceModel,
+  type MaintenanceOperation,
+  type MaintenanceOutcome
+} from "./maintenance-model.ts"
+export type { MaintenanceCommand } from "./maintenance-model.ts"
 
-export type MaintenanceCommand = "repair" | "reinstall" | "uninstall"
-type MaintenanceOperation = "install" | "update" | "uninstall"
 type LifecycleResult = Effect.Success<ReturnType<typeof invokeLifecycle>>
-type LifecycleProposal = NonNullable<LifecycleResult["proposal"]>
 type Fields = ReturnType<typeof profileFields>
-export interface MaintenancePorts {
-  readonly fields: (host: SetupClient) => Fields
-  readonly installed: (fields: Fields) => boolean
-  readonly inspect: (fields: Fields) => Effect.Effect<unknown, unknown>
-  readonly invoke: (
-    host: SetupClient,
-    request: ReturnType<typeof maintenanceRequest>
-  ) => Effect.Effect<LifecycleResult, unknown>
-  readonly activate: Effect.Effect<void, unknown>
-  readonly confirm: (question: string) => Effect.Effect<boolean, unknown>
-  readonly write: (text: string) => void
-  readonly reportFailure: (host: SetupClient, cause: unknown) => void
+export const maintenanceTerminalRequired = (command: MaintenanceCommand) =>
+  `${command} needs a terminal. Use the version-one installation JSON interface for automation.`
+export interface MaintenanceOwner {
+  discover: Effect.Effect<{ hosts: SetupClient[]; failures: { host: SetupClient; cause: unknown }[] }, unknown>
+  fields: (host: SetupClient) => Fields
+  inspect: (fields: Fields) => Effect.Effect<{ installed: boolean; inspection: unknown }, unknown>
+  invoke: (host: SetupClient, request: ReturnType<typeof maintenanceRequest>) => Effect.Effect<LifecycleResult, unknown>
+  activate: Effect.Effect<void, unknown>
 }
-
-const attempt = Effect.fn("Maintenance.attempt")(function* <A>(
-  host: SetupClient,
-  operation: Effect.Effect<A, unknown>,
-  ports: MaintenancePorts
-) {
-  const result = yield* operation.pipe(Effect.result)
-  if (result._tag === "Failure") {
-    ports.reportFailure(host, result.failure)
-    return Option.none<A>()
-  }
-  return Option.some(result.success)
-})
-
-const isRecoveryOperation = (value: string | undefined): value is MaintenanceOperation =>
-  value === "install" || value === "update" || value === "uninstall"
-const maintenanceOperation = (
-  command: MaintenanceCommand,
-  recovered: string | undefined,
-  fields: Fields,
-  installed: boolean
-): MaintenanceOperation => {
-  if (command === "repair" && isRecoveryOperation(recovered)) return recovered
-  if (command === "uninstall") return "uninstall"
-  return fields.host === "claude" && installed && command !== "reinstall" ? "update" : "install"
-}
+export class MaintenanceOwnerService extends Context.Service<MaintenanceOwnerService, MaintenanceOwner>()(
+  "@hapsland/administration/MaintenanceOwner"
+) {}
+export const maintenanceOwnerLayer = (options: {
+  flags: ReadonlyMap<string, string>
+  command: Parameters<typeof activateCurrentPackage>[0]
+  installed: (fields: Fields) => boolean
+  inspect: (fields: Fields) => Effect.Effect<unknown, unknown>
+}) =>
+  Layer.succeed(MaintenanceOwnerService, {
+    discover: Effect.sync(() => {
+      const failures: { host: SetupClient; cause: unknown }[] = []
+      return { hosts: registeredClients(options.flags, (host, cause) => failures.push({ host, cause })), failures }
+    }),
+    fields: (host) => profileFields(host, options.flags),
+    inspect: (fields) =>
+      Effect.gen(function* () {
+        const installed = yield* Effect.try(() => options.installed(fields))
+        const inspection = yield* options.inspect(fields)
+        return { installed, inspection }
+      }),
+    invoke: (host, request) =>
+      invokeLifecycle(options.command.executable, [...options.command.args, `--${request.operation}`], host, request),
+    activate: activateCurrentPackage(options.command)
+  })
 const maintenanceRequest = (
   command: MaintenanceCommand,
   operation: MaintenanceOperation,
@@ -62,56 +72,19 @@ const maintenanceRequest = (
   ...(command === "reinstall" && operation === "install" ? { reinstall: true } : {}),
   ...(digest === undefined ? {} : { proposalDigest: digest })
 })
-
-const readyProposal = (
+const isRecoveryOperation = (operation: string | undefined): operation is MaintenanceOperation =>
+  operation === "install" || operation === "update" || operation === "uninstall"
+const operationFor = (
   command: MaintenanceCommand,
-  host: SetupClient,
-  preview: LifecycleResult,
-  ports: MaintenancePorts
-): LifecycleProposal | undefined => {
-  if (preview.status === "already-uninstalled") {
-    ports.write(`${formatOutcome("success", `${host} uninstall: already removed.`)}\n`)
-    return undefined
-  }
-  if (!["preview", "partial"].includes(preview.status) || preview.proposal === undefined)
-    throw new Error(formatFailure(preview, host))
-  if (preview.proposal.changes?.length === 0) {
-    ports.write(
-      `${formatOutcome("success", `${host} ${command}: ${command === "uninstall" ? "already removed" : "integration intact"}.`)}\n`
-    )
-    return undefined
-  }
-  return preview.proposal
-}
-const printPreview = (
-  command: MaintenanceCommand,
-  host: SetupClient,
-  operation: MaintenanceOperation,
   recovered: string | undefined,
-  proposal: LifecycleProposal,
-  ports: MaintenancePorts
-) => {
-  if (recovered !== undefined && command === "repair")
-    ports.write(`Resume interrupted ${operation}; after completion rerun hapsland repair ${host} if needed.\n`)
-  ports.write(`${host} ${command} preview:\n${formatProposal(proposal).join("\n")}\n`)
-  if (command === "reinstall")
-    ports.write(
-      "Replace marked Hapsland handlers; preserve independent hooks, review settings and saved credentials.\n"
-    )
-}
-const confirmMaintenance = Effect.fn("Maintenance.confirm")(function* (
-  command: MaintenanceCommand,
   host: SetupClient,
-  ports: MaintenancePorts
-) {
-  const result = yield* attempt(host, ports.confirm(`Apply ${command} to ${host}?`), ports)
-  if (Option.isNone(result)) return false
-  if (!result.value) ports.write(`${formatOutcome("info", `${host}: skipped.`)}\n`)
-  return result.value
-})
-const activateMaintenance = Effect.fn("Maintenance.activate")(function* (host: SetupClient, ports: MaintenancePorts) {
-  return Option.isSome(yield* attempt(host, ports.activate, ports))
-})
+  installed: boolean
+): MaintenanceOperation => {
+  if (command === "repair" && isRecoveryOperation(recovered)) return recovered
+  if (command === "uninstall") return "uninstall"
+  return host === "claude" && installed && command !== "reinstall" ? "update" : "install"
+}
+const Recovery = Schema.Struct({ recovery: Schema.optionalKey(Schema.Struct({ operation: Schema.String })) })
 const completeStatuses = new Set([
   "complete",
   "installed",
@@ -123,88 +96,239 @@ const completeStatuses = new Set([
   "removed",
   "already-removed"
 ])
-const finishMaintenance = Effect.fn("Maintenance.finish")(function* (
-  host: SetupClient,
-  operation: MaintenanceOperation,
-  result: LifecycleResult,
-  ports: MaintenancePorts
-) {
-  if (result.status === "partial" && operation !== "uninstall") {
-    if (!(yield* activateMaintenance(host, ports))) return false
-  }
-  if (!completeStatuses.has(result.status)) return yield* Effect.fail(new Error(formatFailure(result, host)))
-  return operation === "uninstall" ? true : yield* activateMaintenance(host, ports)
-})
-const applyMaintenance = Effect.fn("Maintenance.apply")(function* (
-  command: MaintenanceCommand,
-  host: SetupClient,
-  operation: MaintenanceOperation,
-  fields: Fields,
-  digest: string,
-  ports: MaintenancePorts
-) {
-  const result = yield* attempt(host, ports.invoke(host, maintenanceRequest(command, operation, fields, digest)), ports)
-  if (Option.isNone(result)) return false
-  const finished = yield* attempt(host, finishMaintenance(host, operation, result.value, ports), ports)
-  return Option.isSome(finished) && finished.value
-})
-const printCompletion = (host: SetupClient, operation: MaintenanceOperation, ports: MaintenancePorts) => {
-  ports.write(
-    `${formatOutcome("success", `${host} ${operation === "uninstall" ? "uninstall: removed" : "integration: restored"}. User settings and credentials preserved.`)}\n`
-  )
-  ports.write(
-    `Finish current work and restart ${host}${operation === "uninstall" ? "." : "; review native trust prompts."}\n`
-  )
+const outcomeFor = (result: LifecycleResult, operation: MaintenanceOperation): MaintenanceOutcome => {
+  if (completeStatuses.has(result.status)) return operation === "uninstall" ? "removed" : "restored"
+  if (result.status === "partial" || result.status === "busy" || result.status === "indeterminate") return result.status
+  return "failed"
 }
-const Recovery = Schema.Struct({ recovery: Schema.optionalKey(Schema.Struct({ operation: Schema.String })) })
-
-export const maintainHost = Effect.fn("Maintenance.host")(function* (
-  command: MaintenanceCommand,
-  host: SetupClient,
-  ports: MaintenancePorts
-) {
-  try {
-    const fields = ports.fields(host)
-    const installed = ports.installed(fields)
-    const inspection = yield* attempt(host, ports.inspect(fields), ports)
-    if (Option.isNone(inspection)) return
-    const recovered = Schema.decodeUnknownSync(Recovery)(inspection.value).recovery?.operation
-    const operation = maintenanceOperation(command, recovered, fields, installed)
-    const preview = yield* attempt(host, ports.invoke(host, maintenanceRequest(command, operation, fields)), ports)
-    if (Option.isNone(preview)) return
-    const proposal = readyProposal(command, host, preview.value, ports)
-    if (proposal === undefined) return
-    printPreview(command, host, operation, recovered, proposal, ports)
-    if (!(yield* confirmMaintenance(command, host, ports))) return
-    if (!(yield* applyMaintenance(command, host, operation, fields, proposal.digest, ports))) return
-    printCompletion(host, operation, ports)
-  } catch (cause) {
-    ports.reportFailure(host, cause)
-  }
-})
-
-export interface MaintenanceClientOptions {
-  readonly terminal: boolean
-  readonly host: SetupClient | undefined
-  readonly flags: ReadonlyMap<string, string>
-  readonly registered: (
-    flags: ReadonlyMap<string, string>,
-    onError: MaintenancePorts["reportFailure"]
-  ) => ReadonlyArray<SetupClient>
+const uncertainOutcome = (status: string): "partial" | "busy" | "indeterminate" | "failed" =>
+  status === "partial" || status === "busy" || status === "indeterminate" ? status : "failed"
+type PreviewObservation = Extract<MaintenanceEvent["action"], { kind: "previewed" }>["result"]
+const previewObservation = (result: LifecycleResult, operation: MaintenanceOperation): PreviewObservation => {
+  if (result.status === "already-uninstalled") return { kind: "already removed" }
+  if (["preview", "partial"].includes(result.status) && result.proposal)
+    return result.proposal.changes?.length === 0
+      ? { kind: operation === "uninstall" ? "already removed" : "intact" }
+      : { kind: "proposal", digest: result.proposal.digest }
+  return { kind: uncertainOutcome(result.status) }
 }
-
+const completionLines = (agent: MaintenanceAgent): string[] => {
+  if (!["restored", "removed"].includes(agent.outcome ?? "") || agent.activation === "failed") return []
+  return [
+    `${formatOutcome("success", `${agent.host} ${agent.operation === "uninstall" ? "uninstall: removed" : "integration: restored"}. User settings and credentials preserved.`)}\n`,
+    `Finish current work and restart ${agent.host}${agent.operation === "uninstall" ? "." : "; review native trust prompts. A real review was not verified."}\n`
+  ]
+}
+const summaryLines = (agent: MaintenanceAgent, command: MaintenanceCommand): string[] => {
+  const label = agent.outcome === "intact" ? "integration intact" : (agent.outcome ?? "outcome not observed")
+  return [
+    `${formatStatusOutcome(agent.outcome ?? "unknown", `${agent.host} ${command}: ${label}.`)}\n`,
+    ...(agent.activation === "failed"
+      ? [
+          `${formatOutcome("error", `${agent.host}: package activation failed; the observed profile result is retained. Retry ${command} using the retained package.`)}\n`
+        ]
+      : []),
+    ...completionLines(agent)
+  ]
+}
+export type MaintenanceTransition = { before: MaintenanceModel; event: MaintenanceEvent; after: MaintenanceModel }
+export interface MaintenanceOptions {
+  terminal: boolean
+  host: SetupClient | undefined
+  reportFailure: (host: SetupClient, cause: unknown) => Effect.Effect<void>
+  observe?: (transition: MaintenanceTransition) => Effect.Effect<void>
+}
 export const maintainClients = Effect.fn("Maintenance.clients")(function* (
-  command: MaintenanceCommand,
-  options: MaintenanceClientOptions,
-  ports: MaintenancePorts
+  commandName: MaintenanceCommand,
+  options: MaintenanceOptions
 ) {
-  if (!options.terminal)
-    throw new Error(`${command} needs a terminal. Use the version-one installation JSON interface for automation.`)
-  const hosts = options.host === undefined ? options.registered(options.flags, ports.reportFailure) : [options.host]
-  if (hosts.length === 0) {
-    if (command === "reinstall") yield* ports.activate
-    ports.write("No Hapsland integrations found. Run hapsland setup first.\n")
-    return
+  if (!options.terminal) return yield* Effect.fail(new Error(maintenanceTerminalRequired(commandName)))
+  const owner = yield* MaintenanceOwnerService
+  const interaction = yield* InteractionService
+  let model = initialMaintenance(commandName)
+  const previews = new Map<SetupClient, string>()
+  const dispatch = (action: MaintenanceEvent["action"]) =>
+    Effect.gen(function* () {
+      const before = model
+      const event = { revision: before.revision, action }
+      model = reduceMaintenance(before, event)
+      yield* options.observe?.({ before, event, after: model }) ?? Effect.void
+    })
+  const summary = Effect.suspend(() =>
+    Effect.gen(function* () {
+      for (const agent of model.agents)
+        for (const line of summaryLines(agent, commandName)) yield* interaction.present(line)
+    })
+  )
+  const discover = Effect.fn("Maintenance.discover")(function* (
+    command: Extract<MaintenanceEffectCommand, { kind: "discover" }>
+  ) {
+    const found = options.host === undefined ? yield* owner.discover : { hosts: [options.host], failures: [] }
+    for (const failure of found.failures) yield* options.reportFailure(failure.host, failure.cause)
+    yield* dispatch({
+      kind: "discovered",
+      commandId: command.id,
+      hosts: found.hosts,
+      failures: found.failures.map((failure) => failure.host)
+    })
+    if (found.hosts.length === 0)
+      yield* interaction.present(
+        found.failures.length
+          ? "No client registrations could be selected. Resolve the reported discovery errors.\n"
+          : "No Hapsland integrations found. Run hapsland setup first.\n"
+      )
+  })
+  const inspect = Effect.fn("Maintenance.inspect")(function* (
+    command: Extract<MaintenanceEffectCommand, { kind: "inspect" }>
+  ) {
+    const result = yield* Effect.gen(function* () {
+      const fields = yield* Effect.try(() => owner.fields(command.host))
+      const observed = yield* owner.inspect(fields)
+      const decoded = yield* Schema.decodeUnknownEffect(Recovery)(observed.inspection)
+      const recovered = decoded.recovery?.operation
+      return {
+        operation: operationFor(commandName, recovered, command.host, observed.installed),
+        recovering: commandName === "repair" && isRecoveryOperation(recovered)
+      }
+    }).pipe(Effect.result)
+    if (result._tag === "Failure") {
+      yield* dispatch({ kind: "failed", commandId: command.id, host: command.host })
+      return yield* options.reportFailure(command.host, result.failure)
+    }
+    yield* dispatch({ kind: "inspected", commandId: command.id, host: command.host, ...result.success })
+  })
+  const invoke = (command: Extract<MaintenanceEffectCommand, { kind: "preview" | "apply" }>) =>
+    Effect.gen(function* () {
+      const fields = yield* Effect.try(() => owner.fields(command.host))
+      return yield* owner.invoke(
+        command.host,
+        maintenanceRequest(
+          commandName,
+          command.operation,
+          fields,
+          command.kind === "apply" ? command.digest : undefined
+        )
+      )
+    })
+  const preview = Effect.fn("Maintenance.preview")(function* (
+    command: Extract<MaintenanceEffectCommand, { kind: "preview" }>
+  ) {
+    const result = yield* invoke(command).pipe(Effect.result)
+    if (result._tag === "Failure") {
+      yield* dispatch({ kind: "failed", commandId: command.id, host: command.host })
+      return yield* options.reportFailure(command.host, result.failure)
+    }
+    const observation = previewObservation(result.success, command.operation)
+    const text = `${command.host} ${commandName} preview:\n${formatProposal(result.success.proposal).join("\n")}\n`
+    previews.set(command.host, text)
+    if (model.agents[model.cursor]?.recovering)
+      yield* interaction.present(
+        `Resume interrupted ${command.operation}; after completion rerun hapsland repair ${command.host} if needed.\n`
+      )
+    if (observation.kind === "proposal") {
+      yield* interaction.present(text)
+      if (commandName === "reinstall")
+        yield* interaction.present(
+          "Replace marked Hapsland handlers; preserve independent hooks, review settings and saved credentials.\n"
+        )
+    }
+    yield* dispatch({ kind: "previewed", commandId: command.id, host: command.host, result: observation })
+    if (["partial", "busy", "indeterminate", "failed"].includes(observation.kind))
+      yield* options.reportFailure(command.host, new Error(formatFailure(result.success, command.host)))
+  })
+  const apply = Effect.fn("Maintenance.apply")(function* (
+    command: Extract<MaintenanceEffectCommand, { kind: "apply" }>
+  ) {
+    const result = yield* invoke(command).pipe(Effect.result)
+    const outcome = result._tag === "Failure" ? "failed" : outcomeFor(result.success, command.operation)
+    yield* dispatch({ kind: "observed", commandId: command.id, host: command.host, outcome })
+    if (["partial", "busy", "indeterminate", "failed"].includes(outcome))
+      yield* options.reportFailure(
+        command.host,
+        result._tag === "Failure"
+          ? result.failure
+          : new Error(
+              `${formatFailure(result.success, command.host)} Next: hapsland repair ${command.host}; retain the selected package for recovery.`
+            )
+      )
+  })
+  const activate = Effect.fn("Maintenance.activate")(function* (
+    command: Extract<MaintenanceEffectCommand, { kind: "activate" | "activateEmpty" }>
+  ) {
+    const result = yield* owner.activate.pipe(Effect.result)
+    const status = result._tag === "Failure" ? ("failed" as const) : ("complete" as const)
+    if (command.kind === "activateEmpty") {
+      yield* dispatch({ kind: "activatedEmpty", commandId: command.id, result: status })
+      if (result._tag === "Failure") return yield* Effect.fail(result.failure)
+    } else {
+      yield* dispatch({ kind: "activated", commandId: command.id, host: command.host, result: status })
+      if (result._tag === "Failure") yield* options.reportFailure(command.host, result.failure)
+    }
+  })
+  const runCommand = (command: MaintenanceEffectCommand) => {
+    switch (command.kind) {
+      case "discover":
+        return discover(command)
+      case "inspect":
+        return inspect(command)
+      case "preview":
+        return preview(command)
+      case "apply":
+        return apply(command)
+      default:
+        return activate(command)
+    }
   }
-  for (const host of hosts) yield* maintainHost(command, host, ports)
+  const input = Effect.fn("Maintenance.input")(function* () {
+    const agent = model.agents[model.cursor]
+    if (!agent?.digest) return yield* Effect.die(new Error("Maintenance approval has no proposal"))
+    const prompt =
+      model.phase === "Review"
+        ? interaction
+            .choose({
+              message: `Review ${agent.host} ${commandName} preview`,
+              choices: [{ title: "Continue to approval", value: "continue" as const }],
+              back: false
+            })
+            .pipe(
+              Effect.map((answer): MaintenanceEvent["action"] =>
+                answer.kind === "selected" ? { kind: "continue" } : { kind: answer.kind }
+              )
+            )
+        : interaction
+            .confirm({
+              message: `Apply ${commandName} to ${agent.host}?`,
+              preview: `${previews.get(agent.host) ?? ""}Approval digest: ${agent.digest}`,
+              back: true
+            })
+            .pipe(
+              Effect.map((answer): MaintenanceEvent["action"] =>
+                answer.kind === "confirmed"
+                  ? { kind: "approve", host: agent.host, digest: agent.digest!, yes: answer.yes }
+                  : { kind: answer.kind }
+              )
+            )
+    yield* dispatch(
+      yield* prompt.pipe(
+        Effect.catchTag("QuitError", () => Effect.succeed<MaintenanceEvent["action"]>({ kind: "exit" }))
+      )
+    )
+  })
+  return yield* Effect.gen(function* () {
+    while (model.phase !== "Done" && model.phase !== "Cancelled") {
+      const command = maintenanceEffectCommand(model)
+      if (command) yield* runCommand(command)
+      else yield* input()
+    }
+    yield* summary
+    return model
+  }).pipe(
+    Effect.onExit((exit) =>
+      Exit.isFailure(exit)
+        ? summary.pipe(
+            Effect.andThen(interaction.present(`Maintenance stopped in ${model.phase}. No rollback is implied.\n`))
+          )
+        : Effect.void
+    )
+  )
 })

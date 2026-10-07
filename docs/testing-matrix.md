@@ -81,13 +81,19 @@ Run `npm run hooks:install` once per repository. The shared Git dispatcher invok
 the current worktree's maintained `.husky/pre-commit`, including lint-staged,
 typechecking, and `docs:generated:check`, for existing and newly created worktrees.
 Run `npm run docs:generate` after changing schemas, documented runtime constants,
-hook definitions, or the dashboard flow model. One generator inventory updates
-configuration schemas/references, the hook table, the architecture Mermaid, and
-comparison pages from frozen evidence. It makes no provider requests or new measurements.
+workspace manifests, boundary schemas, hook definitions, interaction models or
+the dashboard flow model. One generator inventory prepares private packages
+through the existing Turbo build, then updates configuration schemas/references,
+the hook table, architecture views, decision-boundary inventories, interaction
+diagrams and comparison pages from frozen evidence. It makes no provider requests
+or new measurements.
 `docs:generated:check` verifies those artifacts without rewriting them; fast checks,
 pre-commit and the deterministic runner precheck invoke it. A stale artifact blocks
-the workflow with its generator's diagnostic. The focused `config:generate`,
-`hooks:generate` and `architecture:generate` commands remain available.
+the workflow with its generator's diagnostic. The focused owner commands assume their compiled prerequisites already exist.
+Use the common commands on a fresh checkout. `check:fast` and pre-commit run
+package preparation once through the common drift check, then `typecheck:source`
+runs the remaining compiler/import checks; ordinary `typecheck` still prepares
+packages itself.
 [Fact renderers](../scripts/documentation-facts.ts)
 import limits and names from their implementation owners. Edit those owners and
 renderers, rather than generated sections.
@@ -569,13 +575,32 @@ cannot silently start the full suite. Follow the
 [checks policy](../CHECKS.md) for escalation
 to the full gate and diagnosis after failure.
 
-For a batch of issues, assess each slice against its own accepted criteria and
-the applicable owner checks. Record implementation, independent review and
-executed validation separately, with the tested source and remaining gap. A
-shared failure blocks the slices that depend on the failed behavior; name those
-dependencies rather than treating every issue as incomplete. The optional game
-has its own native consumer gate; it does not add a prerequisite to unrelated
-business slices. Final integration still requires its applicable common gates.
+### Task and batch acceptance
+
+For delegated work on one task or a jointly accepted batch, the existing parent
+or integrator owns final qualification: select and assign the required common
+checks, then assess their results against the combined acceptance criteria.
+Workers assess their slices against their accepted criteria and run applicable
+focused owner and affected-consumer checks. The parent or integrator may assign
+a worker to execute the final gate on the integrated candidate; ownership of
+final acceptance remains with the parent or integrator.
+
+Apply the full-gate criteria to the combined accepted scope. When selected,
+plan one full-suite acceptance at the end of that work on a stable, review-ready
+candidate containing all required slices. A worker handoff or commit does not by
+itself require another full run. An independently deliverable task may qualify
+in its own worktree before merge. Keep the candidate frozen during qualification
+and follow the failure-diagnosis rules in [CHECKS.md](../CHECKS.md) for any
+necessary repeat. Explicit requests and existing CI and hook requirements still apply. Keep all required
+proof, model/property, lifecycle and affected-boundary checks.
+
+Record implementation, independent review and executed validation separately,
+with the tested source/worktree, exact checks and results, and remaining gap.
+A shared failure blocks the slices that depend on the failed behavior; name
+those dependencies rather than treating every issue as incomplete. The optional
+game has its own native consumer gate; it does not add a prerequisite to
+unrelated business slices. Final integration still requires its applicable
+common gates.
 
 Attach a task scope to harness runs, for example
 `npm run test:focused -- --scope=issue-195 <test files>`. Scope records attribute

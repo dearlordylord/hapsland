@@ -110,8 +110,8 @@ discard pending advice, reset continuation/request allowance, prolong quietness,
 or acquire synchronous response authority. Returning to the pinned root resumes
 the same round. After normal closure, a provably fresh eligible edit can select
 another root; the recipient-wide closure fence still rejects delayed old edits.
-The pinned root's pre-edit settings remain immutable through preparation and
-delivery. Invalid target configuration cannot fall back to cwd settings.
+Settings follow the [edit-owned snapshot contract](review-contract-compatibility.md#edit-owned-settings).
+Invalid target configuration cannot fall back to cwd settings.
 
 Collection addresses the recipient from any cwd, including outside Git. Advice
 keeps freshness and inspection consent bound to its original physical source;
@@ -258,8 +258,8 @@ finding was not ready during edit A's hook.
 The installed edit hook uses one admission-and-collection RPC with a deadline. Its active
 response context freezes the originating tool, root, advicee, resident lifetime,
 round, credential generation, edit settings snapshot, expiry, and the snapshot
-user opt-in. Final handoff rechecks credentials, source freshness and round
-authority; configuration and compiled rules remain the originating edit snapshot.
+user opt-in. Final handoff follows the [checks below](#handoff-reoffer-and-continuation-count)
+and the [edit-owned settings contract](review-contract-compatibility.md#edit-owned-settings).
 Later opt-in cannot elevate an advisory edit or response. A blocking response also
 requires a retained finding whose originating edit snapshot permits blocking;
 advisory findings alone cannot create a blocking response. Closing or timing out
@@ -287,7 +287,7 @@ guarantee a later model-visible opportunity.
 ## Handoff, reoffer, and continuation count
 
 Before Hapsland gives advice, it checks the original physical source root and recipient, the
-current Jev credential generation, the edit snapshot file settings, each file needed by the review unit,
+current Jev credential generation, [edit-owned file settings](review-contract-compatibility.md#edit-owned-settings), each file needed by the review unit,
 whether the work is still current, and the advice age. A temporary failure
 of this check leaves current advice
 eligible until a later valid attempt or expiry; stale or unattributed advice is

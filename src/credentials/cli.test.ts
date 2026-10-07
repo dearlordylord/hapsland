@@ -1,5 +1,6 @@
 import { terminalAvailable, terminalArguments, terminalCommand } from "@hapsland/build-tooling/test-harness/terminal"
 import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
+import { terminalModesEquivalent } from "@hapsland/administration/credentials/terminal"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs"
 import { hostname, tmpdir } from "node:os"
@@ -207,13 +208,20 @@ console.log('{"version":1,"status":"missing"}');
     }
   )
 
-  it.skipIf(!terminalAvailable)("restores the exact terminal mode after SIGINT during masked input", async () => {
+  it.skipIf(!terminalAvailable).each([
+    { label: "Ctrl+C", key: "\x03" },
+    { label: "Escape", key: "\x1b" },
+    { label: "Ctrl+D", key: "\x04" }
+  ])("restores terminal settings after $label during hidden input without a storage mutation", async ({ key }) => {
     const root = mkdtempSync(join(tmpdir(), "credential-pty-"))
     const helper = join(root, "helper.mjs")
+    const operations = join(root, "operations")
     const entrypoint = join(process.cwd(), "packages", "cli-entry", "src", "cli.ts")
     writeFileSync(
       helper,
       `#!/usr/bin/env node
+import { appendFileSync } from "node:fs";
+appendFileSync(${JSON.stringify(operations)}, process.argv[2] + "\\n");
 if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}');
 `
     )
@@ -231,7 +239,7 @@ if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}
       output += chunk.toString("utf8")
       if (!interrupted && output.includes("Jev API key:")) {
         interrupted = true
-        child.stdin.write("\x03")
+        child.stdin.write(key)
       }
     })
     child.stderr.on("data", (chunk: Buffer) => {
@@ -250,7 +258,9 @@ if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}
     })
     const modes = /MODEBEFORE:([^\r\n]+)\r?\nMODEAFTER:([^\r\n]+)\r?\nEXIT:(\d+)/.exec(output)
     expect(modes, output).not.toBeNull()
-    expect(modes?.[2]).toBe(modes?.[1])
+    expect(interrupted, output).toBe(true)
+    expect(terminalModesEquivalent(process.platform, modes?.[1] ?? "", modes?.[2] ?? ""), output).toBe(true)
+    expect(readFileSync(operations, "utf8").trim().split("\n")).toEqual(["probe"])
     expect(Number(modes?.[3])).not.toBe(0)
   })
 

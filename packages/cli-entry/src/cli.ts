@@ -50,12 +50,8 @@ import {
   type ReviewSettings
 } from "@hapsland/review-definition/runtime/review-config"
 import { inspectResidentEffect } from "@hapsland/resident-transport/resident/client"
-import {
-  logoutCredential,
-  resolveCredential,
-  runSecretService,
-  saveCredential
-} from "@hapsland/credential-storage/credentials/secret-service"
+import type { saveCredential } from "@hapsland/credential-storage/credentials/secret-service"
+import { logoutCredential, resolveCredential } from "@hapsland/credential-storage/credentials/secret-service"
 import { readActivity } from "@hapsland/activity-observation/activity/status"
 
 const localFailureMessage = (cause: unknown): string => {
@@ -851,15 +847,18 @@ const loginCredential = Effect.fn("Cli.loginCredential")(function* () {
   const { readMaskedCredential } = yield* Effect.promise(
     () => import("@hapsland/administration/credentials/masked-input")
   )
-  const probe = yield* runSecretService("probe", { deadlineMs: 2_000, allowInteraction: true })
-  if (probe.status !== "available") {
-    return { version: 1, operation: "login", status: probe.status, action: loginProbeAction(probe.status) }
+  const { runLoginConversation, nativeLoginLayer } = yield* Effect.promise(
+    () => import("@hapsland/administration/credentials/login-conversation")
+  )
+  const stdin = cliSwitch("credential-stdin")
+  const { outcome } = yield* runLoginConversation({
+    input: stdin ? Effect.try(() => readFileSync(0, "utf8").replace(/\r?\n$/, "")) : readMaskedCredential(),
+    inputKind: stdin ? "stdin" : "terminal"
+  }).pipe(Effect.provide(nativeLoginLayer))
+  if (outcome.kind === "unavailable") {
+    return { version: 1, operation: "login", status: outcome.status, action: loginProbeAction(outcome.status) }
   }
-  const inputTask: Effect.Effect<string, unknown> = cliSwitch("credential-stdin")
-    ? Effect.try(() => readFileSync(0, "utf8").replace(/\r?\n$/, ""))
-    : readMaskedCredential()
-  const input = yield* inputTask.pipe(Effect.result)
-  if (input._tag === "Failure") {
+  if (outcome.kind === "cancelled") {
     return {
       version: 1,
       operation: "login",
@@ -868,10 +867,7 @@ const loginCredential = Effect.fn("Cli.loginCredential")(function* () {
       action: "retry in a terminal or explicitly use --credential-stdin"
     }
   }
-  let value = input.success
-  const result = yield* saveCredential(value)
-  value = ""
-  return savedCredentialOutput(result)
+  return savedCredentialOutput(outcome.result)
 })
 const credentialEnvironmentName = Effect.fn("Cli.credentialEnvironmentName")(function* () {
   let environmentName: string = DEFAULT_CREDENTIAL_ENV_VAR
@@ -1011,29 +1007,34 @@ const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClien
       },
       activate: activateCurrentPackage(currentCommand()),
       verifyCredential: Effect.gen(function* () {
-        const { runGuidedCredentialCheck } = yield* Effect.promise(
-          () => import("@hapsland/administration/onboarding/credential-verification")
+        const { runVerificationConversation, nativeVerificationLayer } = yield* Effect.promise(
+          () => import("@hapsland/administration/onboarding/verification-conversation")
         )
-        yield* runGuidedCredentialCheck({
-          cwd,
-          host,
-          platform: process.platform,
-          ...(configuration?.userConfigPath === undefined ? {} : { userConfigPath: configuration.userConfigPath }),
-          confirm: askConfirmation,
-          readCredential: readMaskedCredential,
-          write: (text) => {
-            process.stderr.write(text)
-          }
-        })
-      }).pipe(
-        Effect.catch(() =>
-          Effect.sync(() => {
-            process.stderr.write(
-              "[WARN] Key validity: not checked because verification preparation failed. The selected key was not removed.\n"
-            )
-          })
+        const { withInteractionSession } = yield* Effect.promise(
+          () => import("@hapsland/administration/interaction/interaction-session")
         )
-      ),
+        const { InteractionService } = yield* Effect.promise(
+          () => import("@hapsland/administration/interaction/interaction")
+        )
+        yield* withInteractionSession(
+          (interaction) =>
+            runVerificationConversation().pipe(
+              Effect.provideService(InteractionService, interaction),
+              Effect.provide(
+                nativeVerificationLayer({
+                  cwd,
+                  host,
+                  platform: process.platform,
+                  ...(configuration?.userConfigPath === undefined
+                    ? {}
+                    : { userConfigPath: configuration.userConfigPath })
+                })
+              ),
+              Effect.asVoid
+            ),
+          Effect.interrupt
+        )
+      }),
       doctor: execFileClosedStdin(command.executable, [...command.args, "--doctor"], {
         cwd,
         env: process.env,
@@ -1138,7 +1139,17 @@ const chooseSetupClients = Effect.fn("InteractiveSetup.chooseClients")(function*
   if (!process.stdin.isTTY || !process.stderr.isTTY)
     throw new Error("Guided setup needs a terminal. Use --setup JSON for automation.")
   const choices: ClientChoice[] = yield* Effect.forEach(SUPPORTED_CLIENTS, setupClientChoice)
-  const hosts = yield* selectSetupClients(choices)
+  const { InteractionService } = yield* Effect.promise(() => import("@hapsland/administration/interaction/interaction"))
+  const { withInteractionSession } = yield* Effect.promise(
+    () => import("@hapsland/administration/interaction/interaction-session")
+  )
+  const hosts = yield* withInteractionSession(
+    (input) => selectSetupClients(choices).pipe(Effect.provideService(InteractionService, input)),
+    Effect.sync(() => {
+      process.exitCode = 130
+      return []
+    })
+  )
   if (hosts.length === 0) {
     process.stderr.write("No clients selected. No changes made.\n")
     return
@@ -1196,31 +1207,34 @@ const reportUpdateFailure = (host: SetupClient, cause: unknown): void => {
   process.exitCode = 6
 }
 const updateInteractive = Effect.fn("InteractiveUpdate.run")(function* () {
-  const { registeredClients, invokeLifecycle, activatePackage } = yield* Effect.promise(
-    () => import("@hapsland/administration/onboarding/client-lifecycle")
+  const { updateClients, updateOwnerLayer, UPDATE_TERMINAL_REQUIRED } = yield* Effect.promise(
+    () => import("@hapsland/administration/onboarding/update")
   )
-  const { askConfirmation } = yield* Effect.promise(() => import("@hapsland/administration/onboarding/confirmation"))
-  const { updateClients } = yield* Effect.promise(() => import("@hapsland/administration/onboarding/update"))
-  return yield* updateClients(
-    {
-      terminal: Boolean(process.stdin.isTTY && process.stderr.isTTY),
-      host: explicitUpdateHost(),
-      flags: clientArguments?.flags ?? new Map(),
-      environment: process.env
-    },
-    {
-      fields: hostFields,
-      registered: registeredClients,
-      target: updateExecutable(),
-      invoke: (executable, host, request, environment) =>
-        invokeLifecycle(executable, [`--${request.operation}`], host, request, environment),
-      activate: activatePackage,
-      confirm: askConfirmation,
-      write: (text) => {
-        process.stderr.write(text)
-      },
-      reportFailure: reportUpdateFailure
-    }
+  const { withInteractionSession } = yield* Effect.promise(
+    () => import("@hapsland/administration/interaction/interaction-session")
+  )
+  const { InteractionService } = yield* Effect.promise(() => import("@hapsland/administration/interaction/interaction"))
+  if (!process.stdin.isTTY || !process.stderr.isTTY || process.env.TERM === "dumb")
+    return yield* Effect.fail(new Error(UPDATE_TERMINAL_REQUIRED))
+  return yield* withInteractionSession(
+    (interaction) =>
+      updateClients({
+        terminal: true,
+        host: explicitUpdateHost(),
+        reportFailure: (host, cause) => Effect.sync(() => reportUpdateFailure(host, cause))
+      }).pipe(
+        Effect.provideService(InteractionService, interaction),
+        Effect.provide(
+          updateOwnerLayer({
+            flags: clientArguments?.flags ?? new Map(),
+            environment: process.env,
+            target: updateExecutable()
+          })
+        )
+      ),
+    Effect.sync(() => {
+      process.exitCode = 130
+    })
   )
 })
 
@@ -1234,34 +1248,36 @@ const reportClientFailure = (host: SetupClient, cause: unknown) => {
 const maintenanceInteractive = Effect.fn("InteractiveMaintenance.run")(function* (
   command: "repair" | "reinstall" | "uninstall"
 ) {
-  const { maintainClients } = yield* Effect.promise(() => import("@hapsland/administration/onboarding/maintenance"))
-  const { registeredClients, invokeLifecycle, activateCurrentPackage } = yield* Effect.promise(
-    () => import("@hapsland/administration/onboarding/client-lifecycle")
+  const { maintainClients, maintenanceOwnerLayer, maintenanceTerminalRequired } = yield* Effect.promise(
+    () => import("@hapsland/administration/onboarding/maintenance")
   )
-  const { askConfirmation } = yield* Effect.promise(() => import("@hapsland/administration/onboarding/confirmation"))
+  if (!process.stdin.isTTY || !process.stderr.isTTY || process.env.TERM === "dumb")
+    return yield* Effect.fail(new Error(maintenanceTerminalRequired(command)))
+  const { withInteractionSession } = yield* Effect.promise(
+    () => import("@hapsland/administration/interaction/interaction-session")
+  )
+  const { InteractionService } = yield* Effect.promise(() => import("@hapsland/administration/interaction/interaction"))
   const { installed, inspect } = yield* clientInstallationPorts()
-  const ownCommand = currentCommand()
-  return yield* maintainClients(
-    command,
-    {
-      terminal: Boolean(process.stdin.isTTY && process.stderr.isTTY),
-      host: clientArguments?.host,
-      flags: clientArguments?.flags ?? new Map(),
-      registered: registeredClients
-    },
-    {
-      fields: hostFields,
-      installed,
-      inspect,
-      invoke: (host, request) =>
-        invokeLifecycle(ownCommand.executable, [...ownCommand.args, `--${request.operation}`], host, request),
-      activate: activateCurrentPackage(currentCommand()),
-      confirm: askConfirmation,
-      write: (text) => {
-        process.stderr.write(text)
-      },
-      reportFailure: reportClientFailure
-    }
+  return yield* withInteractionSession(
+    (interaction) =>
+      maintainClients(command, {
+        terminal: true,
+        host: clientArguments?.host,
+        reportFailure: (host, cause) => Effect.sync(() => reportClientFailure(host, cause))
+      }).pipe(
+        Effect.provideService(InteractionService, interaction),
+        Effect.provide(
+          maintenanceOwnerLayer({
+            flags: clientArguments?.flags ?? new Map(),
+            command: currentCommand(),
+            installed,
+            inspect
+          })
+        )
+      ),
+    Effect.sync(() => {
+      process.exitCode = 130
+    })
   )
 })
 
