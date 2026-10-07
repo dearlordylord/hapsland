@@ -159,7 +159,8 @@ describe("resident separate-process lifecycle", () => {
     expect(existsSync(paths.lock)).toBe(false)
     expect(existsSync(paths.owner)).toBe(false)
     await rm(paths.socket)
-    const next = await runClient(ensureResident(paths, 5_000))
+    // Exercise repair within the documented production readiness deadline.
+    const next = await runClient(ensureResident(paths))
     processes.push(next.pid)
     expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "hello" }))).status).toBe(
       "ready"

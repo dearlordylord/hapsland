@@ -1,0 +1,11 @@
+
+ RUN  v5.0.1 /workspace/typescript/hapsland-243
+
+ ✓ scripts/monkey-business-build-reuse.test.mts (5 tests) 811ms
+   ✓ reuses verified compiled policy for host-only changes through the same wrapper producer without Bend 413ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  05:24:07
+   Duration  913ms (tests 96%, transform 2%, setup 1%, import 1%)
+

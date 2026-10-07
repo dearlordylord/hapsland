@@ -1,0 +1,21 @@
+
+ RUN  v5.0.1 /workspace/typescript/hapsland-243
+      Coverage enabled with v8
+
+ ✓ src/resident/subprocess.test.ts (11 tests | 10 skipped) 8146ms
+   ✓ resident separate-process lifecycle (11)
+     ✓ releases ownership after startup failure without deleting an unsafe endpoint 8145ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 10 skipped (11)
+   Start at  08:40:35
+   Duration  11.04s (tests 92%, transform 5%, import 3%)
+
+ % Coverage report from v8
+
+=============================== Coverage summary ===============================
+Statements   : 18.85% ( 4630/24556 )
+Branches     : 3.91% ( 564/14409 )
+Functions    : 7.02% ( 431/6139 )
+Lines        : 20.28% ( 3998/19706 )
+================================================================================

@@ -1,0 +1,544 @@
+
+ RUN  v5.0.1 /workspace/typescript/hapsland-243
+      Coverage enabled with v8
+
+ ✓ src/direct-event/content-isolation.test.ts (5 tests) 147ms
+ ✓ src/onboarding/setup.test.ts (22 tests) 220030ms
+   ✓ public resumable setup operation (14)
+     ✓ installs with exact approval and effective file settings without a repository grant 12110ms
+     ✓ resumes an interrupted owned installation with the same approval 13360ms
+     ✓ asks for user exclude-all when review disabled is requested 2777ms
+     ✓ completes with review disabled and no credential 6460ms
+     ✓ bounds noninteractive missing-secret handoff 3229ms
+     ✓ setup and standalone credential inspection read the project file without inherited keys 7001ms
+     ✓ reports a rejected project key file without asking to repair native storage 2994ms
+     ✓ distinguishes inaccessible storage from an absent key 3099ms
+     ✓ does not inspect an existing key during forced-entry preview 2846ms
+     ✓ uses masked terminal entry with forced replacement=false and file override=false 10677ms
+     ✓ uses masked terminal entry with forced replacement=true and file override=false 13235ms
+     ✓ uses masked terminal entry with forced replacement=true and file override=true 9626ms
+     ✓ reports cancelled masked input without falling back to stale missing state 8951ms
+     ✓ reports invalid, unavailable, and indeterminate interactive storage outcomes 36197ms
+   ✓ setup repository failures (2)
+     ✓ reports an undiscoverable scope without claiming credential readiness 3186ms
+     ✓ reports invalid review configuration as a conflict without requesting a credential 3148ms
+   ✓ Claude setup shares the resumable credential and repository workflow (2)
+     ✓ requires digest approval, preserves independent hooks, and supports repeated setup 18643ms
+     ✓ rejects an unsupported Claude profile before writing hooks 3946ms
+   ✓ binds editable defaults and configuration to setup authorization and preserves authored content 14819ms
+   ✓ rejects changed default rules before installing an approved setup 5990ms
+   ✓ rejects malformed default rules before installing an approved setup 12705ms
+   ✓ unattended setup previews without writes, applies a saved plan and rejects stale authored bytes 25028ms
+
+FAIL /workspace/typescript/hapsland-243/src/resident/subprocess.test.ts > resident separate-process lifecycle > releases ownership after startup failure without deleting an unsafe endpoint
+ResidentIpcError: resident did not become ready within 10 seconds
+    at /workspace/typescript/hapsland-243/packages/resident-transport/src/resident/client.ts:333:5
+    at Generator.next (<anonymous>)
+    at IteratorImpl.~effect/Effect/successCont (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:987:28)
+    at ExitPrimitive.~effect/Effect/evaluate (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/core.js:297:30)
+    at FiberImpl.runLoop (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:463:95)
+    at FiberImpl.evaluate (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:414:23)
+    at file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:816:17
+    at Timeout._onTimeout (file:///workspace/typescript/hapsland-243/node_modules/effect/dist/internal/effect.js:2893:39)
+    at listOnTimeout (node:internal/timers:685:17)
+    at processTimers (node:internal/timers:618:7)
+ ❯ src/resident/subprocess.test.ts (11 tests | 1 failed) 152111ms
+   ❯ resident separate-process lifecycle (11)
+     ✓ exits the native resident successfully after idle retirement and releases ownership 30474ms
+     × releases ownership after startup failure without deleting an unsafe endpoint 9379ms
+     ✓ exits losing launch contenders while one owner remains 4012ms
+     ✓ retires an empty installed resident and starts a distinct lifetime on the next hook 28101ms
+     ✓ keeps a live connected client until it disconnects 9231ms
+     ✓ keeps accepted review work and pending advice beyond the idle grace 16479ms
+     ✓ exits after SIGTERM with gated review work and permits a new owner 9126ms
+     ✓ converges six starters across three clients and keeps timed-out/disconnected work resident-owned 14752ms
+     ✓ keeps edit file selection across admission and backend waits 5473ms
+     ✓ keeps the admission configuration through dispatch and delayed delivery 5642ms
+     ✓ kills one lifetime, rejects obsolete messages, restarts empty, and cleans up only when idle 19441ms
+ ✓ src/rules/cli.test.ts (7 tests) 63531ms
+   ✓ creates, inspects, disables and adds a project rule again through the CLI 32841ms
+   ✓ creates personal rules, adds a custom rule in defaults and rejects invalid inputs before writes 23811ms
+   ✓ runs one-off rule checks without stdin or resident state and reports unavailable credentials 6618ms
+ ✓ src/onboarding/interactive.test.ts (11 tests) 70387ms
+   ✓ declining guided setup leaves Claude settings absent 3325ms
+   ✓ interactive update carries the exact preview digest and selected home to the target 2879ms
+   ✓ declining update performs only a read-only preview 2636ms
+   ✓ guided Codex setup installs through the named client command 8255ms
+   ✓ bare setup selects and installs both clients with independent confirmation 15645ms
+   ✓ existing clients are checked and deselecting them preserves their registrations 18217ms
+   ✓ cancelling client selection writes no registrations 6897ms
+   ✓ bare update previews both installed clients, then applies both exact digests after one confirmation 3330ms
+   ✓ a failed client update reports failure and still updates the other installed client 3166ms
+   ✓ bare update acquires one target for both installed clients 3308ms
+   ✓ public setup uses the active package and cannot silently revert to the command in PATH 2726ms
+ ✓ src/direct-event/claude-cli.test.ts (16 tests) 63211ms
+   ✓ installed hook Claude synchronous delivery (8)
+     ✓ retains the edit's blocking snapshot after settings change at final IPC handoff 1158ms
+     ✓ submits one ready finding through the installed Stop command 4792ms
+     ✓ does not turn a lost resident's pending Claude work into clear or submitted advice 5641ms
+     ✓ returns quietly at the edit budget without a Claude background delivery 1922ms
+     ✓ does not acknowledge a Claude lease when stdout reports a write error 944ms
+   ✓ dedicated source hook Claude synchronous delivery (8)
+     ✓ exits quietly when unsupported hook input meets closed stdout 1886ms
+     ✓ retains the edit's blocking snapshot after settings change at final IPC handoff 4097ms
+     ✓ submits one ready finding through the installed Stop command 10317ms
+     ✓ does not turn a lost resident's pending Claude work into clear or submitted advice 11493ms
+     ✓ treats a unversioned advice from the resident socket as unavailable in the installed hook 1618ms
+     ✓ treats a malformed response from the resident socket as unavailable in the installed hook 1779ms
+     ✓ returns quietly at the edit budget without a Claude background delivery 5761ms
+     ✓ does not acknowledge a Claude lease when stdout reports a write error 4146ms
+ ✓ src/pi/installed-boundary.test.ts (24 tests) 49746ms
+   ✓ Pi source extension through command and resident (22)
+     ✓ does not continue when review is clear 1397ms
+     ✓ does not continue when review is unavailable 1162ms
+     ✓ cuts off delayed work at finish and withholds its late finding from a fresh edit 6371ms
+     ✓ abandons admitted delayed work on session switch before reviewing a fresh edit 2352ms
+     ✓ closes offered advice after replaced composition and permits a fresh edit 3009ms
+     ✓ closes offered advice after final-refusal composition and permits a fresh edit 3101ms
+     ✓ closes offered advice after aborted composition and permits a fresh edit 3431ms
+     ✓ reviews a whole declaration replacement spanning omitted context between native hunks 1470ms
+     ✓ awaits a delayed review at finish with canContinue=true 1456ms
+     ✓ awaits a delayed review at finish with canContinue=false 1631ms
+     ✓ reviews the post-edit source and preserves native content, consuming a permit once 1503ms
+     ✓ refuses a successful result without a before-tool permit 1235ms
+     ✓ does not review identity mismatches 611ms
+     ✓ does not review arguments mismatches 743ms
+     ✓ does not review source mismatches 1049ms
+     ✓ does not review failed mismatches 728ms
+     ✓ does not review unicode mismatches 1035ms
+     ✓ retires pending permits on session_before_switch 953ms
+     ✓ retires pending permits on session_shutdown 1053ms
+     ✓ retires pending permits on agent_settled 1295ms
+   ✓ Pi installed extension through command and resident (2)
+     ✓ awaits a delayed review at finish with canContinue=false 1530ms
+     ✓ reviews the post-edit source and preserves native content, consuming a permit once 1242ms
+ ✓ src/cli.test.ts (15 tests) 47149ms
+   ✓ JSON subprocess contract (15)
+     ✓ explains a repository path through the deferred command without reviewing source 2323ms
+     ✓ keeps Claude input quiet without valid dispatch metadata, composed=false 1717ms
+     ✓ keeps Claude input quiet without valid dispatch metadata, composed=true 1791ms
+     ✓ rejects empty REVIEW_STATE_PATH instead of falling back to another path 1736ms
+     ✓ rejects empty REVIEW_CONSENT_FILE instead of falling back to another path 2034ms
+     ✓ rejects empty REVIEW_ACTIVITY_PATH instead of falling back to another path 1842ms
+     ✓ rejects empty REVIEW_USER_CONFIG_PATH instead of falling back to another path 1817ms
+     ✓ rejects mixed installation host fields and accepts the host-omitted Codex v1 form 7291ms
+     ✓ rejects the retired whole-file review request without invoking Jev 1638ms
+     ✓ keeps the retired Codex 0.155.1 entry point quiet 1621ms
+     ✓ keeps the retired Codex 0.156.0 entry point quiet 1529ms
+     ✓ quiets retired native hooks before decoding input or reviewer settings 4604ms
+     ✓ keeps unsupported native apply_patch events quiet 14178ms
+     ✓ returns a bounded protocol error for malformed input 1479ms
+     ✓ inspects credential presence without exposing the value 1547ms
+ ✓ src/onboarding/codex-installation.test.ts (52 tests) 48112ms
+   ✓ public Codex installation operations (41)
+     ✓ rejects Linux x64 against the production arm64 declaration before mutation 2030ms
+     ✓ accepts pinned Bun against matching package profiles 1892ms
+     ✓ inspects the pinned hook runtime when the caller uses another Node path 360ms
+     ✓ rejects a locally modified owned Stop hook 336ms
+     ✓ rejects a locally modified owned SubagentStop hook 367ms
+     ✓ retires the old owned prompt hook safely when present 579ms
+     ✓ retires the old owned prompt hook safely when missing 476ms
+     ✓ retires the old owned prompt hook safely when modified 328ms
+     ✓ updates an older owned installation to add SubagentStop 496ms
+     ✓ previews exact changes, quotes paths, installs idempotently, and preserves unrelated configuration 493ms
+     ✓ edits quoted feature tables without matching table text inside multiline strings 571ms
+     ✓ rejects unsupported hosts and malformed, duplicate, or modified owned configuration 813ms
+     ✓ exposes partial completion and resumes the journal without stale overwrite 1806ms
+     ✓ uninstalls only owned state and preserves hooks, rules, grants, and preexisting feature settings 561ms
+     ✓ conflicts and preserves a locally modified owned feature value 392ms
+     ✓ rechecks a preexisting hooks feature before journal recovery 386ms
+     ✓ previews and applies an explicit local-package update while preserving reusable state 1797ms
+     ✓ retains the previous working hook on partial update and resumes with an exact recovery request 739ms
+     ✓ preserves a concurrent independent-hook edit during update recovery 681ms
+     ✓ rejects missing-runtime target package metadata before update mutation 414ms
+     ✓ rejects malformed-runtime target package metadata before update mutation 414ms
+     ✓ rejects missing-protocol target package metadata before update mutation 404ms
+     ✓ rejects missing-version target package metadata before update mutation 408ms
+     ✓ rejects a self-consistent altered journal that would drop an unrelated hook 647ms
+     ✓ binds recovery to the exact target package version 652ms
+     ✓ serializes multiple stale reclaimers, a replacement owner, and a third contender 18138ms
+     ✓ bounds lock acquisition and reports no mutation 1671ms
+   ✓ Codex update and explicit reinstall journeys (4)
+     ✓ repairs missing Codex groups without losing settings 3006ms
+     ✓ repairs missing Codex foreground without losing settings 2997ms
+     ✓ reinstall replaces a damaged journal only after approval, backs it up, and preserves current user edits 490ms
+     ✓ resumes reinstall after restoring a deleted preexisting hooks feature and removes only the restored feature 828ms
+   ✓ resumes an interrupted uninstall using only its original approved digest 663ms
+ ✓ src/cli-command.test.ts (80 tests) 41096ms
+   ✓ declarative CLI subprocess contracts (71)
+     ✓ reports the invoked package version before reading invalid stdin or creating state 1545ms
+     ✓ discovers live rule checks and rejects invalid coordinates before dispatch 1522ms
+     ✓ provides focused rule help and rejects missing or irrelevant flags before dispatch 1612ms
+     ✓ previews agent feedback without stdin, credentials, or persisted activity 1563ms
+     ✓ rejects invalid arguments before stdin or filesystem effects 1483ms
+     ✓ bounds long invalid command or option errors 1492ms
+     ✓ bounds long invalid command or option errors 1622ms
+     ✓ rejects native routing through the administration CLI: --claude-hook 1468ms
+     ✓ rejects native routing through the administration CLI: --codex-hook 1548ms
+     ✓ rejects native routing through the administration CLI: --pi-hook 1565ms
+     ✓ rejects native routing through the administration CLI: --composed-stop-hook 1564ms
+     ✓ keeps the native hook subprocess quiet: "--claude-hook" 1507ms
+     ✓ keeps the native hook subprocess quiet: "--claude-hook" 1579ms
+     ✓ preserves positional client selection for the guided --pilot entry point 2358ms
+     ✓ accepts an installed composed hook ownership marker before quieting unsupported input 2207ms
+     ✓ allows JSON automation to select evaluation operation independently of the live opt-in 3066ms
+     ✓ keeps machine-readable package identity stdout stable 1689ms
+     ✓ reports the selected runtime without reading stdin or creating state 1708ms
+   ✓ rejects interactive repair without a terminal 2073ms
+   ✓ rejects interactive reinstall without a terminal 2290ms
+   ✓ rejects interactive uninstall without a terminal 2077ms
+   ✓ routes the version-one claude installation preview to the selected profile 1768ms
+   ✓ routes the version-one opencode installation preview to the selected profile 1599ms
+ ✓ src/runtime/review-engine-boundary.test.ts (50 tests) 34769ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/direct-event/pipeline.ts under --codex-hook even when the caller catches 1799ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/jev-decision.ts under --codex-hook even when the caller catches 354ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/review-providers/cloudflare.ts under --codex-hook even when the caller catches 372ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/direct-event/pipeline.ts under --claude-hook even when the caller catches 1891ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/jev-decision.ts under --claude-hook even when the caller catches 356ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/review-providers/cloudflare.ts under --claude-hook even when the caller catches 422ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/direct-event/pipeline.ts under --pi-hook even when the caller catches 2014ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/jev-decision.ts under --pi-hook even when the caller catches 423ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/review-providers/cloudflare.ts under --pi-hook even when the caller catches 407ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/direct-event/pipeline.ts under --opencode-hook even when the caller catches 2307ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/jev-decision.ts under --opencode-hook even when the caller catches 494ms
+   ✓ emits a source-free diagnostic for packages/source-analysis/src/direct-event/languages/bend/extractor.ts under --opencode-hook even when the caller catches 334ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/review-providers/cloudflare.ts under --opencode-hook even when the caller catches 417ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/direct-event/pipeline.ts under --composed-edit-hook even when the caller catches 2015ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/jev-decision.ts under --composed-edit-hook even when the caller catches 447ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/review-providers/cloudflare.ts under --composed-edit-hook even when the caller catches 466ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/direct-event/pipeline.ts under --composed-before-edit-hook even when the caller catches 1935ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/jev-decision.ts under --composed-before-edit-hook even when the caller catches 385ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/review-providers/cloudflare.ts under --composed-before-edit-hook even when the caller catches 436ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/direct-event/pipeline.ts under --composed-background-hook even when the caller catches 1938ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/jev-decision.ts under --composed-background-hook even when the caller catches 392ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/review-providers/cloudflare.ts under --composed-background-hook even when the caller catches 452ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/direct-event/pipeline.ts under --composed-stop-hook even when the caller catches 2170ms
+   ✓ emits a source-free diagnostic for packages/source-analysis/src/direct-event/languages/native-parser.ts under --composed-stop-hook even when the caller catches 302ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/jev-decision.ts under --composed-stop-hook even when the caller catches 369ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/review-providers/cloudflare.ts under --composed-stop-hook even when the caller catches 418ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/direct-event/pipeline.ts under --composed-prompt-hook even when the caller catches 3349ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/jev-decision.ts under --composed-prompt-hook even when the caller catches 353ms
+   ✓ emits a source-free diagnostic for packages/review-execution/src/review-providers/cloudflare.ts under --composed-prompt-hook even when the caller catches 412ms
+   ✓ allows manual/resident/parser import packages/review-execution/src/direct-event/pipeline.ts despite an inherited marker 2067ms
+   ✓ allows manual/resident/parser import packages/review-execution/src/jev-decision.ts despite an inherited marker 356ms
+   ✓ allows manual/resident/parser import packages/review-execution/src/review-providers/cloudflare.ts despite an inherited marker 410ms
+ ✓ src/resident/server.test.ts (86 tests) 33451ms
+   ✓ virtual round quiescence (2)
+     ✓ retires a settled advice-free round without Stop 321ms
+   ✓ canonical resident capacity (7)
+     ✓ waits for all findings from one edit when the second Jev result arrives first 503ms
+   ✓ resident delivery lease (60)
+     ✓ holds the finish decision for all admitted work, then batches the findings 361ms
+     ✓ cancels unfinished pre-decision work on block while preserving advice and fresh repair work 325ms
+     ✓ rejects unsupported collection shapes and unreserved acknowledgements while preserving authorized Stop output 327ms
+     ✓ fences a delayed preparation callback after a successor round opens 324ms
+     ✓ keeps composed findings addressed across Codex and Claude in one working root 352ms
+     ✓ fences composed output when a credential rotates after collection or before write authorization 359ms
+     ✓ does not emit a notice-only token after final-gate finding invalidation closes Stop 368ms
+     ✓ shares Claude capacity and canonical round across edits and a common advice batch 354ms
+     ✓ refuses a prepared two-advice Stop output when one advice expires before submission 381ms
+     ✓ reoffers a lost background acknowledgement at Stop without waiting for another prompt 364ms
+     ✓ batches distinct current units for composed collection 372ms
+     ✓ rejects legacy claude-code continuation replay without consuming Stop budget 1513ms
+     ✓ reclaims disconnected collection and unfinalized acknowledgement deterministically 316ms
+     ✓ bounds 16-path/64-unit preparation and accounts accepted units exactly 1460ms
+     ✓ reserves large valid outcomes before evaluation and rejects unreservable outcomes without a call 714ms
+     ✓ removes concurrent collection results by stable advice identity 312ms
+     ✓ joins equivalent pending complete inputs before another evaluation reservation 326ms
+     ✓ keeps retired advice workspace charged until active revalidation finalizes 324ms
+     ✓ does not let late A cleanup delete C after cached-clear B removes current state 400ms
+     ✓ revalidates and finalizes at the 16-item partition saturation boundary 1114ms
+     ✓ revalidates and finalizes across four saturated partitions 4550ms
+     ✓ scans past unavailable advice to independently current advice once per collection 361ms
+     ✓ reuses successful clear evaluations but never failures or malformed responses 389ms
+     ✓ restores cached A after A to B to A without retaining delivery history 324ms
+     ✓ bounds successful reuse by entry and byte limits and reevaluates evicted input 1198ms
+     ✓ charges a valid near-frame identity for every admitted unit 679ms
+   ✓ resident bounded advice batches (9)
+     ✓ delivers all seven default findings from one unit when they fit 506ms
+     ✓ revalidates the final selection after later candidate work completes 667ms
+     ✓ filters an earlier item that reaches expiry while a later final revalidation waits 558ms
+     ✓ filters an earlier item superseded while a later final revalidation waits 661ms
+     ✓ does not send part of a later edit after an earlier edit was delivered 820ms
+     ✓ holds one edit together despite staggered review completion 887ms
+     ✓ returns the ready subset and interrupts a suspended review after the checked Stop deadline 321ms
+     ✓ combines six deterministic findings when they fit within the byte bound 1646ms
+     ✓ expires pending advice just before, at, and after the relevance boundary 801ms
+ ✓ src/credentials/cli.test.ts (6 tests) 26904ms
+   ✓ public credential CLI (6)
+     ✓ rejects explicitly empty credential paths without invoking the helper or writing default state 4691ms
+     ✓ logs in from explicit stdin without exposing the value and reports the surviving environment override on logout 11681ms
+     ✓ returns a versioned busy result while a live process owns the credential lock 3409ms
+     ✓ warns in a terminal that logout leaves the configured environment credential active 2247ms
+     ✓ restores the exact terminal mode after SIGINT during masked input 2086ms
+     ✓ does not disable echo when the original terminal mode cannot be captured 2786ms
+ ✓ src/pi/inspection-native.test.ts (7 tests) 22872ms
+   ✓ Pi native extension inspection through production command and public feed (7)
+     ✓ retains the resident message for edit native delivery 2147ms
+     ✓ retains the resident message for finish native delivery 1481ms
+     ✓ retains the resident message for oversized native delivery 1492ms
+     ✓ retains the resident message for unavailable native delivery 3159ms
+     ✓ retains the resident message for lost-ack native delivery 2806ms
+     ✓ retains the resident message for session-switch native delivery 2785ms
+     ✓ retains the resident message for opt-out native delivery 1355ms
+ ✓ src/credentials/secret-service.test.ts (25 tests) 18702ms
+   ✓ native credential lifecycle (25)
+     ✓ does not steal a live lock and reclaims it after its owner is killed 2071ms
+     ✓ reports commit-then-timeout replacement as indeterminate and suspends use 15055ms
+ ✓ src/inspection/command.test.ts (4 tests) 15179ms
+   ✓ source foreground inspection command (2)
+     ✓ prints its URL and exits on SIGINT without opting in or starting a resident 2418ms
+     ✓ reads pre-launch history and leaves resident recording alive across interrupt and restart 4260ms
+   ✓ package foreground inspection command (2)
+     ✓ prints its URL and exits on SIGINT without opting in or starting a resident 305ms
+     ✓ reads pre-launch history and leaves resident recording alive across interrupt and restart 1309ms
+ ✓ src/hook-main.test.ts (6 tests) 15293ms
+   ✓ refuses administration flags without reading or dispatching input 2025ms
+   ✓ quiets retired channels before input or controlled-option decoding 3562ms
+   ✓ cannot select administrative dispatch through native JSON 4232ms
+   ✓ keeps malformed Claude input bounded and protocol-shaped 1928ms
+   ✓ preserves malformed Pi input response 1694ms
+   ✓ refuses unsupported Codex versions before reading input 1851ms
+ ✓ src/inspection/consumer.test.ts (1 test) 12354ms
+   ✓ disconnects a stalled public feed while real resident reviews and persistence continue 12353ms
+ ✓ src/activity/subprocess.test.ts (2 tests) 11557ms
+   ✓ production resident activity subprocess (2)
+     ✓ reports a controlled native event as pending, then restarted/lost after resident death 11546ms
+ ✓ src/resident/security-sinks.test.ts (2 tests) 9202ms
+   ✓ security sink prototype (2)
+     ✓ observes source-bearing ingress and a provider failure across resident file/output sinks 5406ms
+     ✓ keeps a synthetic source-bearing unexpected cause out of debug stderr 3795ms
+ ✓ src/runtime/cli-information.test.ts (3 tests) 12038ms
+   ✓ ../../packages/doctor-entry/src/package-doctor.ts information exits with stdin open and without creating state 2064ms
+   ✓ ../../packages/parser-entry/src/parser-main.ts information exits with stdin open and without creating state 8038ms
+   ✓ ../../packages/resident-entry/src/resident/main.ts information exits with stdin open and without creating state 1934ms
+ ✓ src/onboarding/claude-installation.test.ts (19 tests) 8621ms
+   ✓ Claude installation lifecycle (11)
+     ✓ previews a pinned host, preserves unrelated settings, and removes only its owned hook 612ms
+     ✓ updates an older owned installation to add SubagentStop 371ms
+     ✓ updates an owned asynchronous PostToolUse group to synchronous delivery while preserving Stop 452ms
+     ✓ requires the exact tested host profile and an approval digest 329ms
+     ✓ detects concurrent settings edits and locally modified owned entries 510ms
+     ✓ rejects a locally modified owned Stop hook 350ms
+     ✓ rejects a locally modified owned SubagentStop hook 385ms
+     ✓ updates only the owned hook and keeps host trust separate from source egress 554ms
+   ✓ repairs deleted Claude PostToolUse without losing user settings 695ms
+   ✓ repairs deleted Claude PreToolUse without losing user settings 820ms
+   ✓ repairs deleted Claude Stop without losing user settings 668ms
+   ✓ repairs deleted Claude SubagentStop without losing user settings 613ms
+   ✓ repairs deleted Claude UserPromptSubmit without losing user settings 747ms
+   ✓ repairs deleted Claude foreground without losing user settings 643ms
+   ✓ explicit Claude reinstall replaces changed and duplicate marked handlers while preserving independent handlers 576ms
+ ✓ src/evaluation/runner.test.ts (8 tests) 6761ms
+   ✓ evaluation execution and commands (5)
+     ✓ accepts plan/run/report through the real JSON process boundary 6545ms
+8:31:58 AM [vite] (ssr) Failed to load source map for /workspace/typescript/hapsland-243/dist/pi/extension.js.
+Error: An error occurred while trying to read the map file at extension.js.map
+Error: ENOENT: no such file or directory, open '/workspace/typescript/hapsland-243/dist/pi/extension.js.map'
+    at Object.readFileSync (node:fs:484:20)
+    at file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:17506:13
+    at readFromFileMap (file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:17204:13)
+    at Object.exports.fromMapFileComment (file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:17299:12)
+    at Object.exports.fromMapFileSource (file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:17310:22)
+    at extractSourcemapFromFile (file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:17492:87)
+    at loadAndTransform (file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:19964:22)
+8:31:58 AM [vite] (ssr) Failed to load source map for /workspace/typescript/hapsland-243/dist/runtime/hook-catalog.js.
+Error: An error occurred while trying to read the map file at hook-catalog.js.map
+Error: ENOENT: no such file or directory, open '/workspace/typescript/hapsland-243/dist/runtime/hook-catalog.js.map'
+    at Object.readFileSync (node:fs:484:20)
+    at file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:17506:13
+    at readFromFileMap (file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:17204:13)
+    at Object.exports.fromMapFileComment (file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:17299:12)
+    at Object.exports.fromMapFileSource (file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:17310:22)
+    at extractSourcemapFromFile (file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:17492:87)
+    at loadAndTransform (file:///workspace/typescript/hapsland-243/node_modules/vite/dist/node/chunks/node.js:19964:22)
+ ✓ src/test-support/pi-installed.test.ts (16 tests) 8398ms
+   ✓ loads the emitted candidate extension and retains its exact standalone command 3554ms
+   ✓ Pi fixture process ownership (3)
+     ✓ stops its bootstrap process through direct paths before an endpoint owner exists 452ms
+     ✓ stops its bootstrap process through symlink paths before an endpoint owner exists 363ms
+ ✓ src/resident/claude-delivery.test.ts (26 tests) 7673ms
+   ✓ registry-free Claude edit response (26)
+     ✓ returns current advisory feedback through one RPC 350ms
+     ✓ never collects another session's advice 509ms
+     ✓ never collects another child's advice 434ms
+     ✓ never collects another root's advice 485ms
+     ✓ concurrent response attempts freeze opt-in independently and compete for a common lease 462ms
+     ✓ keeps edit settings while rechecking opt-in at final handoff 323ms
+     ✓ checks B's collector credentials even when selected advice belongs to still-authorized A 460ms
+     ✓ disconnect during revalidation releases the provisional lease without cancelling review 393ms
+     ✓ disconnect at final handoff releases a selected lease for another collector 335ms
+ ✓ src/onboarding/doctor.test.ts (2 tests) 7446ms
+   ✓ offline installed integration doctor (2)
+     ✓ diagnoses exact ownership and drift without mutations, provider calls, or secret disclosure 7194ms
+ ✓ src/inspection/storage.test.ts (29 tests) 5839ms
+   ✓ private inspection journal (24)
+     ✓ reads committed history after a writer dies at beforePublication (withdraw=false) 528ms
+     ✓ reads committed history after a writer dies at afterPublication (withdraw=true) 548ms
+     ✓ reads committed history after a writer dies at beforeCommit (withdraw=true) 530ms
+     ✓ shares the default 128 MiB allocated cap across contending project writers and maintenance 2369ms
+     ✓ recovers beforeLossPublication marker publication after producer death without inventing loss knowledge 607ms
+     ✓ recovers afterLossPublication marker publication after producer death without inventing loss knowledge 768ms
+ ✓ src/resident/analytics.test.ts (10 tests) 5708ms
+   ✓ resident session analytics (10)
+     ✓ counts clear reviews and keeps cached rules for newly admitted edits 438ms
+     ✓ records detected rule IDs and acknowledged submission once 361ms
+     ✓ exposes opted-in history through JSON and human status without making requests 3769ms
+ ✓ src/resident/security-wire.test.ts (7 tests) 5177ms
+   ✓ launched resident wire witness (6)
+     ✓ allowed (same-process) 768ms
+     ✓ allowed (distinct-process) 1092ms
+     ✓ exclude-at-dispatch (same-process) 845ms
+     ✓ exclude-at-dispatch (distinct-process) 1119ms
+     ✓ exclude-at-admission (same-process) 540ms
+     ✓ exclude-at-admission (distinct-process) 802ms
+ ✓ src/direct-event/pipeline.test.ts (43 tests) 5091ms
+   ✓ direct-event vertical slice (40)
+     ✓ suppresses handoff on deletion, analyzer loss, or rule identity change 771ms
+     ✓ revalidates delayed Add, Update, and multi-file work through deterministic backend gates 397ms
+ ✓ src/package-doctor.test.ts (4 tests) 5053ms
+   ✓ reports package readiness from individual checks and returns the matching exit status 1532ms
+   ✓ defaults to readable output even when stdout is piped, with the same exit status as JSON 2644ms
+   ✓ handles --help without running package diagnostics 451ms
+   ✓ handles --unknown without running package diagnostics 425ms
+ ✓ src/cli-status.test.ts (3 tests) 6111ms
+   ✓ reads the session receipt when repository configuration is malformed 1963ms
+   ✓ reports empty file selection independently of credential presence 2291ms
+   ✓ renders readiness and the session receipt in human format without exposing the credential 1856ms
+ ✓ src/onboarding/first-review-demo.test.ts (14 tests) 4458ms
+   ✓ installed-product first-review demo (14)
+     ✓ runs the default executor against a synthetic host and reports UTF-8 bytes before cleanup 1674ms
+     ✓ atomically consumes one confirmation across processes and admits at most two calls 2484ms
+ ✓ src/resident/jev-request.test.ts (10 tests) 4052ms
+   ✓ canonical Jev request boundary (10)
+     ✓ sends complete selected cross-file evidence and excludes denied supporting source 358ms
+     ✓ authorizes eight effects, prepares a ninth during saturation, and reuses a settled permit 934ms
+     ✓ holds started Jev permits through round interruption until settlement, then reuses one 1088ms
+     ✓ holds eight started permits until one Jev timeout settles, then reuses exactly one 967ms
+ ✓ src/pi/installed-faults.test.ts (32 tests) 77754ms
+   ✓ source Pi lifecycle and concurrent fault isolation (28)
+     ✓ registration command timeout cannot invent admission 7085ms
+     ✓ an admitted hook worker crash closes incomplete work without advice replay 2268ms
+     ✓ late admitted advice stays isolated after the current session changes 3116ms
+     ✓ late admitted advice stays isolated after the current root changes 3103ms
+     ✓ resident loss during admitted review withholds its finding and allows fresh resident startup 8571ms
+     ✓ excluded current source never reaches review egress 1348ms
+     ✓ symlink current source never reaches review egress 1334ms
+     ✓ resident loss retires the old admission without replay and permits fresh work 12638ms
+     ✓ an expired native permit cannot review its late result 1006ms
+     ✓ native abort settlement closes admitted work without a pre-settle callback 2657ms
+     ✓ reload preserves the closed old partition without replay 1943ms
+     ✓ later arguments mutation cannot redirect an admitted edit 1211ms
+     ✓ later patch mutation cannot redirect an admitted edit 2085ms
+   ✓ installed Pi lifecycle and concurrent fault isolation (4)
+     ✓ an admitted hook worker crash closes incomplete work without advice replay 1480ms
+     ✓ an admitted hook worker timeout closes incomplete work without advice replay 8112ms
+     ✓ late admitted advice stays isolated after the current root changes 2349ms
+     ✓ resident loss during admitted review withholds its finding and allows fresh resident startup 4178ms
+ ✓ scripts/test-harness/process.test.mts (4 tests) 3149ms
+   ✓ kills a deliberately hung synchronous child even when it ignores SIGTERM 1007ms
+   ✓ kills a deliberately hung asynchronous child and waits for its closed pipes before rejecting 1008ms
+   ✓ bounds execFileSync fixtures and reaps their hung child 1004ms
+ ✓ src/inspection/http.test.ts (6 tests) 3039ms
+   ✓ exposes exact retained bytes from a real resident's production provider transport 333ms
+   ✓ retains the resident message through the public feed independently of acknowledgement: true 467ms
+   ✓ retains the resident message through the public feed independently of acknowledgement: false 1937ms
+ ✓ scripts/native-preflight.test.mts (17 tests) 4172ms
+   ✓ creates distinct fresh sessions and validates their exact selected fixture 399ms
+   ✓ rejects changed transitive base source 572ms
+   ✓ rejects changed transitive effect source 649ms
+   ✓ refuses a previous session after its creating process has exited 305ms
+ ✓ src/direct-event/adoption-corpus.test.ts (50 tests) 2860ms
+ ✓ src/resident/capacity.test.ts (36 tests) 2945ms
+   ✓ resident logical capacity ledger (23)
+     ✓ forgets idle advicee identities at the metadata limit and fences older starts 2663ms
+ ✓ src/resident/inspection.test.ts (10 tests) 2536ms
+   ✓ resident inspection capture (10)
+     ✓ reuses the production journal writer across edits instead of rereading every payload 379ms
+     ✓ captures the surviving resident message before any hook runs 386ms
+     ✓ distinguishes current findings from finalized retirement or suppression (composed: true) 354ms
+     ✓ records actual admitted edit metadata without patch source or credentials and refreshes opt-out 303ms
+ ✓ src/resident/operational-notices.test.ts (8 tests) 2014ms
+   ✓ resident operational notices (8)
+     ✓ uses an exact failure-triggered cooldown and resets state on restart 400ms
+     ✓ keeps capacity/backend records separate while emitting only fresh findings 483ms
+     ✓ reclaims a full cooldown table at equality before the next admission 308ms
+ ✓ src/resident/terminal-collection.test.ts (10 tests) 2876ms
+   ✓ common collection and reuse invariants (10)
+     ✓ joins a claimed evaluation before its owner attaches the request 634ms
+     ✓ delivers findings without returning a aggregate terminal result 314ms
+     ✓ keeps advice pending for simultaneous collectors and failed acknowledgement 349ms
+     ✓ shares one identical finding with two admissions and does not return a terminal result 320ms
+ ✓ scripts/generate-configuration.test.mts (7 tests) 2433ms
+   ✓ configuration documentation generator (7)
+     ✓ updates all artifacts deterministically and preserves authored guide text 1114ms
+     ✓ reports all stale or missing artifacts in read-only check mode 796ms
+     ✓ refuses malformed documentation boundaries without partially updating files 373ms
+ ✓ src/direct-event/rust-pipeline.test.ts (23 tests) 4261ms
+   ✓ Rust direct review integration (23)
+     ✓ rejects unsupported Cargo authority rather than infer a crate role 355ms
+     ✓ refuses unsupported target directories even when listed as custom library paths 402ms
+     ✓ invalidates a child review when its captured parent module link changes 903ms
+     ✓ does not choose between multiple crate roots reaching one edited module 612ms
+     ✓ revalidates module-candidate uniqueness and nearest Cargo authority 602ms
+ ✓ src/rules/check.test.ts (20 tests) 1517ms
+ ✓ src/credentials/secret-service-process.test.ts (9 tests) 1634ms
+   ✓ timeout returns only after the native helper has physically closed 1510ms
+ ✓ src/inspection/native-lock.test.ts (3 tests) 1035ms
+   ✓ loads the physical binding from a compiled Bun package and releases descriptor ownership 1027ms
+ ✓ src/resident/edit-settings.test.ts (5 tests) 1525ms
+   ✓ edit-owned settings (5)
+     ✓ retains registration rules and feedback through review, socket handoff and later collection 394ms
+     ✓ downgrades mixed delivery when the last blocking finding becomes stale at handoff 535ms
+ ✓ src/direct-event/graph-resolver.test.ts (23 tests) 1456ms
+ ✓ src/direct-event/unicode-attribution.test.ts (24 tests) 961ms
+ ✓ src/inspection/registry.test.ts (4 tests) 1053ms
+   ✓ discovers opted-in additional endpoints and isolates retained lifetimes through the public feed 637ms
+   ✓ closes incomplete inspection frames despite continuous input 333ms
+ ✓ src/direct-event/bend-pipeline.test.ts (12 tests) 1070ms
+ ✓ src/resident/review-controls.test.ts (6 tests) 940ms
+ ✓ src/canonical/simulation-consumer.test.ts (7 tests) 868ms
+ ✓ src/direct-event/pi-adapter.test.ts (17 tests) 675ms
+ ✓ src/resident/composed-delivery.test.ts (53 tests) 756ms
+ ✓ src/inspection/replay.test.ts (1 test) 768ms
+   ✓ replays real per-source increments after a snapshot and resets honestly when its retained anchors expire 767ms
+ ✓ scripts/monkey-business-build-reuse.test.mts (5 tests) 664ms
+ ✓ src/direct-event/rust-analyzer.test.ts (46 tests) 704ms
+   ✓ bounded Rust type extraction (46)
+     ✓ keeps renamed module aliases bound to their target rather than a same-spelled unrelated declaration 591ms
+ ✓ src/direct-event/content-provenance.test.ts (3 tests) 322ms
+ ✓ src/onboarding/opencode-installation.test.ts (5 tests) 631ms
+ ✓ src/onboarding/host-process.test.ts (9 tests) 823ms
+   ✓ timeout kills a host that ignores SIGTERM and waits for physical closure 310ms
+ ✓ scripts/coverage-provider.test.mts (7 tests) 503ms
+   ✓ attributes a real emitted private-package function hit to its original TypeScript body 494ms
+ ✓ src/direct-event/candidate-egress-accounting.test.ts (1 test) 484ms
+   ✓ T-case candidate HTTP body and source scope (1)
+     ✓ matches all 12 source-backed candidate rows through the pinned injected client 483ms
+ ✓ src/configuration/configuration.test.ts (47 tests) 656ms
+ ✓ src/resident/security-queued.test.ts (5 tests) 651ms
+ ✓ src/review-providers/resident.test.ts (3 tests) 486ms
+ ✓ src/direct-event/claude-adapter.test.ts (9 tests) 473ms
+ ✓ src/onboarding/credential-verification-storage.test.ts (3 tests) 402ms
+ ✓ src/direct-event/adapter.test.ts (22 tests) 292ms
+ ✓ src/direct-event/selection-capture.test.ts (13 tests) 357ms
+ ✓ src/inspection/recording-current.test.ts (1 test) 529ms
+   ✓ shows live recording state separately when its last disabled observation was not retained 528ms
+ ✓ src/hosts/opencode/adapter.test.ts (8 tests) 389ms
+ ✓ src/credentials/input.test.ts (7 tests) 361ms
+   ✓ a fresh process independently reads the file without inherited key or environment mutation 346ms
+ ✓ src/direct-event/function-resource-review.test.ts (3 tests) 320ms
+ ✓ src/direct-event/attribution-integration.test.ts (5 tests) 251ms
+ ✓ src/activity/status.test.ts (9 tests) 257ms
+ ✓ src/review-providers/pipeline.test.ts (2 tests) 205ms
+ ✓ src/resident/ownership.test.ts (14 tests) 139ms
+(node:628741) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///tmp/hapsland-pi-install-2Lx55H/custom-home/extensions/hapsland.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /tmp/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ src/onboarding/pi-installation.test.ts (5 tests) 447ms
+ ✓ src/runtime/editable-rules.test.ts (1 test) 1006ms
+   ✓ loads only explicitly connected JSON and follows authored edits and removal 997ms
+ ✓ src/resident/advice-records.test.ts (16 tests) 171ms
+ ✓ src/resident/request-socket.test.ts (1 test) 182ms
+ ✓ src/direct-event/security-wire-prototype.test.ts (3 tests) 136ms
