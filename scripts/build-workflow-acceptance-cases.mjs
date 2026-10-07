@@ -277,6 +277,16 @@ export const buildAcceptanceCases = [
   { id: "corrupt-task-cache", run: (context) => taskCacheCase(context, false) },
   { id: "incomplete-task-cache", run: (context) => taskCacheCase(context, true) },
   {
+    id: "incomplete-interaction-task-cache",
+    run: (context) =>
+      taskCacheCase(
+        context,
+        true,
+        "@hapsland/administration:build",
+        "packages/administration/dist/interaction/selection.js"
+      )
+  },
+  {
     id: "corrupt-assembly-task-cache",
     run: (context) =>
       taskCacheCase(
@@ -530,6 +540,57 @@ export const buildAcceptanceCases = [
         before.executables.doctor.sha256,
         "Doctor failed to embed administration change"
       )
+    }
+  },
+  {
+    id: "administration-interaction-only",
+    async run(context) {
+      const before = context.outputs()
+      const pi = context.inventory("packages/pi-extension/artifacts/host")
+      const source = "packages/administration/src/interaction/selection.ts"
+      await context.mutate(source, (text) => {
+        assert.equal(text.split('"Space: select"').length, 2)
+        return text.replace('"Space: select"', '"Space: acceptance selection"')
+      })
+      const result = await context.build("administration-interaction-only")
+      const after = context.outputs()
+      for (const task of [
+        "@hapsland/administration:build",
+        "@hapsland/cli-entry:build",
+        `@hapsland/cli-entry:assemble:${context.profile}`
+      ]) {
+        assert(
+          context.taskCacheEvents(result.log).some((event) => event.task === task && event.state === "miss"),
+          `Interaction edit failed to rebuild ${task}`
+        )
+      }
+      assert.notEqual(
+        after.executables.cli.sha256,
+        before.executables.cli.sha256,
+        "Administration executable omitted the changed interaction implementation"
+      )
+      const emitted = source.replace("/src/", "/dist/").replace(/\.ts$/, ".js")
+      assert.match(context.read(emitted), /Space: acceptance selection/)
+      assert(
+        context
+          .assemblyReceipt("cli")
+          .inputs.some((input) => input.path === emitted && input.sha256 === context.file(emitted).sha256),
+        "Administration assembly lacks the current interaction input"
+      )
+      for (const role of ["hook", "resident", "parser"]) {
+        assert.deepEqual(after.executables[role], before.executables[role], `${role} changed for interaction edit`)
+        context.requireTaskHits(result, [
+          `@hapsland/${role}-entry:build`,
+          `@hapsland/${role}-entry:assemble:${context.profile}`
+        ])
+      }
+      context.requireTaskHits(result, ["@hapsland/pi-extension:build", "@hapsland/pi-extension:assemble:host"])
+      assert.deepEqual(
+        context.inventory("packages/pi-extension/artifacts/host"),
+        pi,
+        "Interaction edit changed host-loaded Pi artifacts"
+      )
+      await context.probeHook()
     }
   },
   {

@@ -15,7 +15,7 @@ import {
   authoringSourceExample,
   authoringSourcePath
 } from "./rule-authoring-example.ts"
-import { parseInvocation } from "@hapsland/administration/cli-command"
+import { parseInvocation as parseInvocationEffect } from "@hapsland/administration/cli-command"
 import { makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { discoverPhysicalWorkingTreeRoot } from "@hapsland/native-observation/repository/root"
 import { loadReviewSettings } from "@hapsland/review-definition/runtime/review-config"
@@ -296,3 +296,5 @@ describe("configuration documentation generator", () => {
     })
   })
 })
+
+const parseInvocation = (args: ReadonlyArray<string>) => Effect.runPromise(parseInvocationEffect(args))

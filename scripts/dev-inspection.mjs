@@ -1,3 +1,4 @@
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime"
 import { createHash } from "node:crypto"
 import { readFile } from "node:fs/promises"
 import { resolve } from "node:path"
@@ -52,16 +53,18 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     throw new Error("usage: npm run dev:inspection -- [--port=0..65535]")
   const port = args.length ? Number(args[0].slice("--port=".length)) : 0
   const loadPage = makeDevelopmentInspectionPage()
-  runInspectionDashboard({
-    host: "127.0.0.1",
-    port,
-    page: Effect.tryPromise({
-      try: () =>
-        loadPage().catch((error) => {
-          console.error("Inspection page compilation failed:", error.message)
-          throw error
-        }),
-      catch: (error) => error
+  NodeRuntime.runMain(
+    runInspectionDashboard({
+      host: "127.0.0.1",
+      port,
+      page: Effect.tryPromise({
+        try: () =>
+          loadPage().catch((error) => {
+            console.error("Inspection page compilation failed:", error.message)
+            throw error
+          }),
+        catch: (error) => error
+      })
     })
-  })
+  )
 }

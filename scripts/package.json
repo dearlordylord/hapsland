@@ -7,6 +7,7 @@
     "@babel/parser": "catalog:",
     "@babel/traverse": "catalog:",
     "@bcoe/v8-coverage": "catalog:",
+    "@effect/platform-node": "catalog:",
     "@hapsland/activity-observation": "workspace:*",
     "@hapsland/administration": "workspace:*",
     "@hapsland/agent-flow-viz": "workspace:*",
@@ -58,6 +59,10 @@
     "./test-harness/cleanup-owned-resident": {
       "types": "./test-harness/cleanup-owned-resident.mjs",
       "default": "./test-harness/cleanup-owned-resident.mjs"
+    },
+    "./test-harness/offline-setup-answers": {
+      "types": "./test-harness/offline-setup-answers.mjs",
+      "default": "./test-harness/offline-setup-answers.mjs"
     },
     "./test-harness/policy": {
       "types": "./test-harness/policy.mjs",

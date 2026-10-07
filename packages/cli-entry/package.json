@@ -10,6 +10,7 @@
     }
   },
   "dependencies": {
+    "@effect/platform-node": "catalog:",
     "@hapsland/activity-observation": "workspace:*",
     "@hapsland/administration": "workspace:*",
     "@hapsland/credential-storage": "workspace:*",

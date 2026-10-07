@@ -153,7 +153,7 @@ export const deriveTurboTaskConfiguration = (graph, root = resolve(import.meta.d
                 `artifacts/${profile}/assembly-receipt.json`
               ],
         env: ["NODE_OPTIONS", "BUN_OPTIONS"],
-        passThroughEnv: [...leases, "HAPSLAND_BEND_PRODUCER_ENV"]
+        passThroughEnv: [...leases, "HAPSLAND_BEND_PRODUCER_ENV", "HAPSLAND_BUILD_BUN"]
       }
     }
   }

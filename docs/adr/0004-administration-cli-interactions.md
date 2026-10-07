@@ -1,0 +1,23 @@
+# Administration CLI interaction boundaries
+
+**Purpose:** Record the accepted ownership and execution model for human CLI interactions.
+**Status:** Accepted design; production qualification is tracked separately.
+**Authority:** Accepted product and architecture decisions in [#244](https://github.com/dearlordylord/hapsland/issues/244), constrained by [#243](https://github.com/dearlordylord/hapsland/issues/243).
+**Expected use:** Design or change an administration conversation without moving authorization into presentation code.
+**Lifecycle:** Maintain with the interaction architecture. Review when adding an input surface, changing execution boundaries, or changing an owner's consent contract.
+
+Each modeled workflow owns a pure reducer, typed events and commands, and an Effect interpreter. Setup, rules mutation, update, maintenance, login and credential verification have different consent and recovery policies; they do not share a universal wizard or command union. Shared interaction services own rendering, input and resource lifetime. Domain owners retain mutation, proposal validation, credential precedence, locking and recovery.
+
+The invoked administration process has one top-level Effect runtime. Argument parsing, discovery, workflow dispatch, output and exit handling execute within it. Concrete shared dependencies use Effect services and Layers. Separately invoked hooks, the resident and development processes retain their own composition roots. Workflows do not start nested runtimes or independently reopen an input session during navigation.
+
+Interaction modules, models and interpreters belong to administration. Standalone hooks and host-loaded entries, including Pi, cannot import them directly, transitively, lazily or through type-only dependencies. This is an ownership boundary, not a blanket prohibition on Effect's CLI library: existing hook argument parsing uses its Command and Flag APIs. The manifest-owned #243 build graph and enforcement remain authoritative.
+
+Write approval retains production full-line confirmation, a nonaffirmative default and the actual owner proposal digest. Setup and maintenance use per-agent consent; update uses grouped consent after all previews. Default rules have separate authorization. Changing a preview invalidates consent. Paid verification requires fresh consent for every bounded request; installation or credential-save consent cannot authorize it.
+
+Back preserves selections and observed completed or partial operations. Escape means Back where available and Exit at initial selection. Exit, EOF, process interruption and hidden-input cancellation terminate navigation. They do not imply rollback. Intermediate owner observations preserve known writes even when later input or activation is interrupted; observations cannot grant consent or complete an outstanding command.
+
+Keys remain inside credential capture and owner operations. Models, events, replay traces and diagrams contain only safe source, status, generation and correlation information. Built-in Prompt.Hidden remains the hidden-input implementation. Explicit interactive JSON setup retains controlling-terminal capture; explicit credential-stdin remains a separate automation contract. Current native saving and environment/file precedence remain unchanged; additional destinations belong to [#248](https://github.com/dearlordylord/hapsland/issues/248).
+
+Workflow-specific Mermaid Markdown is generated from named replays of the actual interpreters and reducers. Independent assertions establish each scenario's expected behavior. Graph freshness is not exhaustive correctness, terminal readability or platform support evidence. Direct inspection and structured/headless exceptions remain documented without manufactured dialog states.
+
+The [surface and acceptance inventory](../cli-interactions/README.md) tracks implementation and verification separately. Platform, installed-package and quality evidence is recorded there together with the owner’s #244 acceptance decision and its explicit coverage limits. Prototype decisions are consolidated here and in the maintained behavior guides; the superseded prototype is removed.

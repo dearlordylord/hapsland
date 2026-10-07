@@ -1,9 +1,10 @@
+import { Effect } from "effect"
 import { parseHookArguments } from "@hapsland/hook-runtime/hooks/command"
 import { BUN_VERSION, bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { SUPPORTED_CLIENTS, CLIENT_NAMES } from "@hapsland/runtime-environment/runtime/agent-clients"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../scripts/test-harness/policy.mjs"
 import { describe, expect, it, vi } from "vitest"
-import { cliCommandReference, parseInvocation } from "@hapsland/administration/cli-command"
+import { cliCommandReference, parseInvocation as parseInvocationEffect } from "@hapsland/administration/cli-command"
 import { PACKAGE_VERSION } from "@hapsland/runtime-environment/runtime/cli-information"
 import { ruleCommandReference } from "@hapsland/administration/rules/cli-definition"
 import { spawnSync } from "../scripts/test-harness/process.mjs"
@@ -444,4 +445,38 @@ it("parses the foreground loopback dashboard without client or review options", 
   })
   await expect(parseInvocation(["dashboard", "--host", "0.0.0.0"])).rejects.toThrow("loopback")
   await expect(parseInvocation(["dashboard", "--daemon"])).rejects.toThrow()
+})
+
+const parseInvocation = (args: ReadonlyArray<string>) => Effect.runPromise(parseInvocationEffect(args))
+
+it.each([
+  { flag: "--status", request: { version: 1, operation: "credentials", cwd: process.cwd() } },
+  { flag: "--install-preview", request: { version: 1, operation: "uninstall" } },
+  { flag: "--evaluation-plan", request: { version: 1, operation: "run" } }
+])("rejects JSON operation mismatches after Effect parsing: $flag", ({ flag, request }) => {
+  const result = cli([flag], JSON.stringify(request))
+  expect(result.status).toBe(2)
+  expect(JSON.parse(result.stdout)).toMatchObject({
+    error: {
+      code: "invalid_request",
+      message:
+        flag === "--evaluation-plan"
+          ? expect.stringContaining("flag does not match")
+          : "input does not satisfy a supported command contract"
+    }
+  })
+  expect(result.stderr).toBe("")
+  expect(result.files).toEqual([])
+})
+
+it("honors controlled-reviewer configuration after Effect argument parsing", () => {
+  // cli() supplies deliberately invalid REVIEW_CONTROL_JSON. Selecting the
+  // controlled reviewer must reject it before running an evaluation owner.
+  const result = cli(["--evaluation-run", "--controlled-reviewer"], JSON.stringify({ version: 1, operation: "run" }))
+  expect(result.status).toBe(2)
+  expect(JSON.parse(result.stdout)).toMatchObject({
+    error: { code: "invalid_request", message: "input does not satisfy a supported command contract" }
+  })
+  expect(result.stderr).toBe("")
+  expect(result.files).toEqual([])
 })

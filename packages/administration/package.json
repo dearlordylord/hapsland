@@ -180,6 +180,10 @@
       "types": "./dist/onboarding/pilot.d.ts",
       "default": "./dist/onboarding/pilot.js"
     },
+    "./onboarding/setup-model": {
+      "types": "./dist/onboarding/setup-model.d.ts",
+      "default": "./dist/onboarding/setup-model.js"
+    },
     "./onboarding/setup-request": {
       "types": "./dist/onboarding/setup-request.d.ts",
       "default": "./dist/onboarding/setup-request.js"

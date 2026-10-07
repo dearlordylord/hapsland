@@ -64,6 +64,16 @@ export const probabilityRequest = (model: ReviewModel, state: unknown, rules: Re
   return { payload, body, bytes: Buffer.byteLength(body, "utf8"), ids }
 }
 
+const exceedsInstructionLimit = (
+  questions: NonNullable<ReturnType<typeof probabilityRequest>>["payload"]["questions"],
+  maximum: number | undefined
+): boolean => {
+  if (maximum === undefined || !Array.isArray(questions)) return false
+  return questions.some(
+    ({ instructions }) => instructions.length > maximum && Array.from(instructions).length > maximum
+  )
+}
+
 /** Protocol validation only; scheduling and source admission stay with their existing owners. */
 export const requestLimitViolation = (
   model: ReviewModel,
@@ -73,12 +83,7 @@ export const requestLimitViolation = (
   const limits = reviewModelDefinition(model).limits
   if (limits.questions !== undefined && Object.keys(request.ids).length > limits.questions) return "questions"
   if (limits.httpBodyBytes !== undefined && request.bytes > limits.httpBodyBytes) return "http-body-bytes"
-  if (limits.questionInstructionsCharacters !== undefined && Array.isArray(request.payload.questions)) {
-    const maximum = limits.questionInstructionsCharacters
-    for (const question of request.payload.questions) {
-      if (question.instructions.length > maximum && Array.from(question.instructions).length > maximum)
-        return "question-instructions"
-    }
-  }
+  if (exceedsInstructionLimit(request.payload.questions, limits.questionInstructionsCharacters))
+    return "question-instructions"
   return undefined
 }

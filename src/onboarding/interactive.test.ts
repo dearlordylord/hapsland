@@ -1,3 +1,4 @@
+import { offlineSetupAnswers } from "@hapsland/build-tooling/test-harness/offline-setup-answers"
 import { terminalAvailable, terminalArguments, terminalCommand } from "@hapsland/build-tooling/test-harness/terminal"
 import { SHIPPED_DEFAULT_RULES } from "@hapsland/review-definition/rules/shipped"
 import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
@@ -53,9 +54,6 @@ const terminal = async (test: ReturnType<typeof fixture>, args: string[], answer
   let answered = false
   let selectionSent = false
   let confirmationsSent = 0
-  let updateReviewSent = false
-  const modeledLifecycle = ["update", "repair", "reinstall", "uninstall"].includes(args[0] ?? "")
-  let updateApprovalSent = false
   const confirmationAnswers: string[] = []
   child.stdout.on("data", (chunk: Buffer) => {
     output += chunk.toString()
@@ -63,22 +61,14 @@ const terminal = async (test: ReturnType<typeof fixture>, args: string[], answer
       selectionSent = true
       child.stdin.write(selection)
     }
-    if (
-      modeledLifecycle &&
-      !updateReviewSent &&
-      (output.includes("Review all update previews") || output.includes("Continue to approval"))
-    ) {
-      updateReviewSent = true
-      child.stdin.write("\r")
-    }
-    const confirmations = output.match(/\[y\/N\]/g)?.length ?? 0
-    if (confirmations > confirmationsSent && !(modeledLifecycle && updateApprovalSent)) {
-      if (modeledLifecycle) updateApprovalSent = true
-      confirmationsSent = confirmations
-      answered = true
-      const question = output.slice(output.lastIndexOf("\n", output.lastIndexOf("[y/N]")))
-      confirmationAnswers.push(question)
-      child.stdin.write(`${question.includes("Verify this key") ? "n" : answer}\n`)
+    const responses = offlineSetupAnswers(output)
+    while (confirmationsSent < responses.length) {
+      const response = responses[confirmationsSent++]!
+      if (!response.navigation) {
+        answered = true
+        confirmationAnswers.push(response.verification ? "verification" : "approval")
+      }
+      child.stdin.write(response.navigation ? "\r" : `${response.verification ? "n" : answer}\n`)
     }
   })
   child.stderr.on("data", (chunk: Buffer) => {
@@ -215,7 +205,7 @@ it.skipIf(!terminalAvailable)(
     expect(result.code, result.output).toBe(0)
     expect(result.output).toContain("[ ] Claude Code — not installed")
     expect(result.output).toContain("[ ] Codex CLI — not installed")
-    expect(result.output.match(/Apply these setup changes/g)).toHaveLength(2)
+    expect(new Set(result.output.match(/Apply these setup changes for [^?]+\?/g)).size).toBe(2)
     expect(result.output.match(/Rules for /g)).toHaveLength(1)
     expect(result.output).toContain(`${SHIPPED_DEFAULT_RULES.length} enabled of ${SHIPPED_DEFAULT_RULES.length}`)
     expect(readFileSync(join(clients.claudeHome, "settings.json"), "utf8")).toContain("--composed-host=claude-code")
@@ -237,7 +227,7 @@ it.skipIf(!terminalAvailable)(
     expect(resumed.output).toContain("Verify this key with one request")
     expect(resumed.output).toContain("Key validity: not checked")
     expect(resumed.answered).toBe(true)
-    expect(resumed.output.match(/Verify this key with one request/g)).toHaveLength(2)
+    expect(resumed.confirmationAnswers.filter((answer) => answer === "verification")).toHaveLength(2)
     expect(readFileSync(join(clients.claudeHome, "settings.json"), "utf8")).toBe(claude)
     expect(readFileSync(join(clients.codexHome, "hooks.json"), "utf8")).toBe(codex)
     const result = await terminal(test, ["setup", ...clients.flags], "y", "\x1b[B\x1b[B \x1b[B \r\x1b")
@@ -446,4 +436,14 @@ it.each(["repair", "reinstall", "uninstall"])("nonterminal %s explains its autom
   expect(child.stderr).toContain(`${command} needs a terminal`)
   expect(child.stderr).toContain("version-one installation JSON")
   expect(child.stdout).toBe("")
+})
+
+it.skipIf(!terminalAvailable)("keeps an earlier agent failure when a later selected agent succeeds", async () => {
+  const test = fixture()
+  const clients = bothClients(test)
+  writeFileSync(clients.claudeExecutable, "#!/bin/sh\nexit 1\n", { mode: 0o700 })
+  const result = await terminal(test, ["setup", ...clients.flags], "y", "\x1b[B\x1b[B \x1b[B \r")
+  expect(result.code, result.output).toBe(3)
+  expect(existsSync(join(clients.claudeHome, "settings.json"))).toBe(false)
+  expect(readFileSync(join(clients.codexHome, "hooks.json"), "utf8")).toContain("--composed-host=codex-cli")
 })

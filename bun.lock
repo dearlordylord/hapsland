@@ -116,6 +116,7 @@
       "name": "@hapsland/cli-entry",
       "version": "0.1.0",
       "dependencies": {
+        "@effect/platform-node": "catalog:",
         "@hapsland/activity-observation": "workspace:*",
         "@hapsland/administration": "workspace:*",
         "@hapsland/credential-storage": "workspace:*",
@@ -356,6 +357,7 @@
         "@babel/parser": "catalog:",
         "@babel/traverse": "catalog:",
         "@bcoe/v8-coverage": "catalog:",
+        "@effect/platform-node": "catalog:",
         "@hapsland/activity-observation": "workspace:*",
         "@hapsland/administration": "workspace:*",
         "@hapsland/agent-flow-viz": "workspace:*",

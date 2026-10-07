@@ -368,7 +368,7 @@ const cliFailureMessage = (failure: CliError.CliError): string => {
 }
 
 /** Parse before any workflow, stdin read, package dispatch or installation mutation. */
-export const parseInvocation = async (args: ReadonlyArray<string>): Promise<Invocation | undefined> => {
+export const parseInvocation = Effect.fn("Cli.parseInvocation")(function* (args: ReadonlyArray<string>) {
   if (args.length === 1 && args[0] === VERSION_FLAG) {
     process.stdout.write(PACKAGE_VERSION + "\n")
     return undefined
@@ -381,16 +381,14 @@ export const parseInvocation = async (args: ReadonlyArray<string>): Promise<Invo
   const capturedConsole = Object.assign(Object.create(console), {
     log: (...values: unknown[]) => output.push(values.map(String).join(" "))
   })
-  const result = await Effect.runPromise(
-    Command.runWith(root, { version: PACKAGE_VERSION, renderErrors: false })(args).pipe(
-      Effect.provide(NodeServices.layer),
-      Effect.provideService(CliConfig.CliConfig, { builtIns: [GlobalFlag.Help] }),
-      Effect.provideService(Console.Console, capturedConsole),
-      Effect.result
-    )
+  const result = yield* Command.runWith(root, { version: PACKAGE_VERSION, renderErrors: false })(args).pipe(
+    Effect.provide(NodeServices.layer),
+    Effect.provideService(CliConfig.CliConfig, { builtIns: [GlobalFlag.Help] }),
+    Effect.provideService(Console.Console, capturedConsole),
+    Effect.result
   )
-  if (result._tag === "Failure") throw new Error(cliFailureMessage(result.failure))
+  if (result._tag === "Failure") return yield* Effect.fail(new Error(cliFailureMessage(result.failure).slice(0, 1400)))
   if (invocation === undefined && output.length > 0 && !isHookInvocation(args))
     process.stdout.write(output.join("\n") + "\n")
   return invocation
-}
+})

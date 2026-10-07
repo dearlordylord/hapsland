@@ -6,6 +6,7 @@ import { InteractionService } from "@hapsland/administration/interaction/interac
 import { runRuleConversation, type RulesTransition } from "@hapsland/administration/rules/conversation"
 import { scriptedInteraction, type ScriptStep } from "./test-support/scripted-interaction.ts"
 
+import { generateSetupDiagram } from "./generate-setup-diagram.mts"
 import { generateVerificationDiagram } from "./generate-verification-diagram.mts"
 import { generateMaintenanceDiagram } from "./generate-maintenance-diagram.mts"
 import { generateUpdateDiagram } from "./generate-update-diagram.mts"
@@ -157,6 +158,12 @@ const program = Effect.gen(function* () {
         maintenance,
         "Maintenance diagram is stale; regenerate it"
       )
+  })
+  const setup = yield* generateSetupDiagram
+  const setupDestination = resolve(import.meta.dirname, "../docs/cli-interactions/setup.md")
+  yield* Effect.promise(async () => {
+    if (mode === "--write") await writeFile(setupDestination, setup)
+    else assert.equal(await readFile(setupDestination, "utf8"), setup, "Setup diagram is stale; regenerate it")
   })
   const verification = yield* generateVerificationDiagram
   const verificationDestination = resolve(import.meta.dirname, "../docs/cli-interactions/verification.md")

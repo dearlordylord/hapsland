@@ -11,6 +11,8 @@ import {
 } from "@hapsland/runtime-environment/runtime/cli-names"
 import { previewPiInstallation, installPiIntegration } from "./pi-installation.ts"
 import * as Effect from "effect/Effect"
+import { Terminal } from "effect"
+import { MaskedInputError } from "../credentials/masked-input.ts"
 import { discoverWorkingTreeRoot } from "@hapsland/native-observation/repository/root"
 import { loadReviewSettings, type ReviewSettings } from "@hapsland/review-definition/runtime/review-config"
 import {
@@ -45,8 +47,17 @@ export type SetupRequest = SetupFields &
     | { readonly host: "claude"; readonly claudeHome?: string; readonly claudeExecutable?: string }
   )
 
-type StageStatus = "complete" | "pending" | "skipped" | "unknown" | "unsupported" | "conflict" | "partial"
-type SetupStage = {
+type StageStatus =
+  | "complete"
+  | "pending"
+  | "skipped"
+  | "unknown"
+  | "unsupported"
+  | "conflict"
+  | "partial"
+  | "busy"
+  | "indeterminate"
+export type SetupStage = {
   readonly stage:
     | "compatibility"
     | "installation"
@@ -77,10 +88,13 @@ const installationRequest = (request: Extract<SetupRequest, { host: "codex" }>):
   ...(request.codexExecutable === undefined ? {} : { codexExecutable: request.codexExecutable })
 })
 
+export type SetupProgressObservation = { readonly stages: ReadonlyArray<SetupStage> }
+
 export type SetupOptions = {
   readonly statePath: string
   readonly userConfigPath?: string
   /** Supplied only by the installed CLI's masked /dev/tty handoff. */
+  readonly onProgress?: (progress: SetupProgressObservation) => Effect.Effect<void>
   readonly readCredential?: () => Effect.Effect<string, unknown>
 }
 
@@ -189,7 +203,7 @@ const reportRepositoryFailure = (discoveryFailed: boolean, progress: SetupProgre
 }
 
 type InteractiveCredentialOutcome =
-  | { readonly status: "cancelled" }
+  | { readonly status: "cancelled" | "failed" }
   | { readonly status: string; readonly generation: number; readonly savedCredentialUse: "active" | "suspended" }
 
 const reportSkippedCredential = (request: SetupRequest, progress: SetupProgress) => {
@@ -212,31 +226,34 @@ const reportSkippedCredential = (request: SetupRequest, progress: SetupProgress)
 
 const reportInteractiveCredentialAction = (outcome: InteractiveCredentialOutcome, progress: SetupProgress) => {
   const { actions } = progress
-  const indeterminate = outcome.status === "indeterminate"
-  const cancelled = outcome.status === "cancelled"
+  const recovery: Readonly<Record<string, string>> = {
+    failed: `retry masked credential entry in a working user terminal with ${CLI_NAME} ${LOGIN_FLAG}; the saved credential was not changed`,
+    cancelled: `rerun setup interactively or run ${CLI_NAME} ${LOGIN_FLAG} in a user terminal`,
+    indeterminate: `run ${CLI_NAME} ${LOGOUT_FLAG} to resolve the uncertain replacement, then run ${CLI_NAME} ${LOGIN_FLAG}`,
+    busy: `wait for the active credential operation to finish, then retry ${CLI_NAME} ${LOGIN_FLAG}`,
+    locked: `unlock the login keyring, then run ${CLI_NAME} ${LOGIN_FLAG}`,
+    "interaction-required": `approve access in the native credential store, then retry ${CLI_NAME} ${LOGIN_FLAG}`,
+    invalid: `run ${CLI_NAME} ${LOGIN_FLAG} again and enter a nonempty credential`
+  }
   actions.push({
     stage: "credential",
     code: interactiveCredentialActionCode(outcome.status),
-    action: cancelled
-      ? `rerun setup interactively or run ${CLI_NAME} ${LOGIN_FLAG} in a user terminal`
-      : indeterminate
-        ? `run ${CLI_NAME} ${LOGOUT_FLAG} to resolve the uncertain replacement, then run ${CLI_NAME} ${LOGIN_FLAG}`
-        : outcome.status === "locked"
-          ? `unlock the login keyring, then run ${CLI_NAME} ${LOGIN_FLAG}`
-          : outcome.status === "invalid"
-            ? `run ${CLI_NAME} ${LOGIN_FLAG} again and enter a nonempty credential`
-            : `reinstall an archive containing the native helper for this platform if it is missing, or repair native credential storage; then run ${CLI_NAME} ${LOGIN_FLAG}. Alternatively set ${JEV_PROVIDER.credentialEnvVar} before setup and launching the agent`
+    action:
+      recovery[outcome.status] ??
+      `reinstall an archive containing the native helper for this platform if it is missing, or repair native credential storage; then run ${CLI_NAME} ${LOGIN_FLAG}. Alternatively set ${JEV_PROVIDER.credentialEnvVar} before setup and launching the agent`
   })
 }
 
 const interactiveCredentialActionCode = (status: string) =>
-  status === "cancelled"
-    ? "credential-entry-cancelled"
-    : status === "indeterminate"
-      ? "reconcile-credential-lifecycle"
-      : status === "invalid"
-        ? "replace-invalid-credential"
-        : "recover-credential-storage"
+  status === "failed"
+    ? "credential-entry-failed"
+    : status === "cancelled"
+      ? "credential-entry-cancelled"
+      : status === "indeterminate"
+        ? "reconcile-credential-lifecycle"
+        : status === "invalid"
+          ? "replace-invalid-credential"
+          : "recover-credential-storage"
 
 const reportInteractiveCredential = (outcome: InteractiveCredentialOutcome, progress: SetupProgress) => {
   const { stages, pending } = progress
@@ -245,11 +262,14 @@ const reportInteractiveCredential = (outcome: InteractiveCredentialOutcome, prog
   stages.push({
     stage: "credential",
     status: "pending",
-    summary: cancelled
-      ? "masked credential entry was cancelled"
-      : indeterminate
-        ? "credential replacement is indeterminate and saved use is suspended"
-        : `credential storage returned ${outcome.status}`,
+    summary:
+      outcome.status === "failed"
+        ? "masked credential entry failed; the saved credential was not changed"
+        : cancelled
+          ? "masked credential entry was cancelled"
+          : indeterminate
+            ? "credential replacement is indeterminate and saved use is suspended"
+            : `credential storage returned ${outcome.status}`,
     observed: {
       source: "saved",
       status: outcome.status,
@@ -352,8 +372,13 @@ const readInteractiveCredential = Effect.fn("Setup.readCredential")(function* (
   const valueResult = yield* readCredential().pipe(Effect.result)
   if (valueResult._tag === "Success") {
     let value = valueResult.success
-    const saved = yield* saveCredential(value)
-    value = ""
+    const saved = yield* saveCredential(value).pipe(
+      Effect.ensuring(
+        Effect.sync(() => {
+          value = ""
+        })
+      )
+    )
     if (saved.status === "stored") {
       resolution = yield* resolveCredential({
         envVar: settings.credentialEnvVar,
@@ -367,7 +392,15 @@ const readInteractiveCredential = Effect.fn("Setup.readCredential")(function* (
         savedCredentialUse: saved.state.savedUseSuspended ? "suspended" : "active"
       }
     }
-  } else interactiveOutcome = { status: "cancelled" }
+  } else {
+    const error = valueResult.failure
+    interactiveOutcome = {
+      status:
+        error instanceof Terminal.QuitError || (error instanceof MaskedInputError && error.reason === "cancelled")
+          ? "cancelled"
+          : "failed"
+    }
+  }
   return { resolution, interactiveOutcome }
 })
 
@@ -573,21 +606,42 @@ const reportInstallationApproval = (
 const reportInstallationConflict = (state: InstallationState, progress: SetupProgress) => {
   const { stages, actions, pending } = progress
   const { currentInstallationStatus, hostName, installationRecord } = state
-  const status: StageStatus = currentInstallationStatus === "unsupported" ? "unsupported" : "conflict"
+  const status =
+    currentInstallationStatus === "unsupported" ||
+    currentInstallationStatus === "busy" ||
+    currentInstallationStatus === "indeterminate"
+      ? currentInstallationStatus
+      : "conflict"
   stages.push({
     stage: "installation",
     status,
-    summary: `the owned ${hostName} integration could not be installed`,
+    summary:
+      status === "indeterminate"
+        ? `the installation outcome for the owned ${hostName} integration is unknown`
+        : `the owned ${hostName} integration could not be installed`,
     observed: installationRecord.error
   })
-  actions.push({
-    stage: "installation",
-    code: status === "unsupported" ? "select-supported-host" : "resolve-installation-conflict",
-    action:
-      status === "unsupported"
-        ? `select a supported ${hostName} executable and host configuration home, then rerun setup`
-        : "preserve the selected host files, resolve the reported ownership or configuration conflict, then rerun setup"
-  })
+  const recovery = {
+    unsupported: {
+      code: "select-supported-host",
+      action: `select a supported ${hostName} executable and host configuration home, then rerun setup`
+    },
+    busy: {
+      code: "retry-installation",
+      action: "wait for the active installation operation to finish, then rerun setup"
+    },
+    indeterminate: {
+      code: "inspect-installation",
+      action:
+        "preserve the selected host files and inspect installation state before retrying; installation completion is unknown"
+    },
+    conflict: {
+      code: "resolve-installation-conflict",
+      action:
+        "preserve the selected host files, resolve the reported ownership or configuration conflict, then rerun setup"
+    }
+  }
+  actions.push({ stage: "installation", ...recovery[status] })
   pending.push("resolve the reported installation problem")
 }
 
@@ -705,23 +759,13 @@ const setupInstallation = Effect.fn("Setup.installation")(function* (request: Se
 
 const setupStatus = (request: SetupRequest, installed: boolean, progress: SetupProgress) => {
   const { stages, actions, completed: _completed } = progress
-  const blockingStage = stages.find(
-    (stage) => stage.status === "unsupported" || stage.status === "conflict" || stage.status === "partial"
+  const blockingStage = stages.find((stage) =>
+    ["unsupported", "conflict", "partial", "busy", "indeterminate"].includes(stage.status)
   )
+  if (blockingStage !== undefined) return blockingStage.status
   const repositoryStage = stages.find((stage) => stage.stage === "repository")
-  const status =
-    blockingStage?.status === "unsupported"
-      ? "unsupported"
-      : blockingStage?.status === "conflict"
-        ? "conflict"
-        : blockingStage?.status === "partial"
-          ? "partial"
-          : request.scope.review === "disabled" && installed && repositoryStage?.status === "complete"
-            ? "completed"
-            : actions.length > 0
-              ? "needs-user-action"
-              : "completed"
-  return status
+  if (request.scope.review === "disabled" && installed && repositoryStage?.status === "complete") return "completed"
+  return actions.length > 0 ? "needs-user-action" : "completed"
 }
 
 const previewSetupRules = Effect.fn("Setup.previewRules")(function* (request: SetupRequest, options: SetupOptions) {
@@ -851,8 +895,11 @@ export const runSetup = Effect.fn("Setup.run")(function* (request: SetupRequest,
   const rulesPreview = yield* previewSetupRules(request, options)
   yield* validateRulesAuthorization(request, rulesPreview)
   const { installed, hostHome, hostName } = yield* setupInstallation(request, progress)
+  yield* options.onProgress?.({ stages: [...stages] }) ?? Effect.void
   yield* setupRules(request, options, rulesPreview, installed, progress)
+  yield* options.onProgress?.({ stages: [...stages] }) ?? Effect.void
   const rootResult = yield* setupRepository(request, options, installed, progress)
+  yield* options.onProgress?.({ stages: [...stages] }) ?? Effect.void
 
   reportExecutionContext(installed, hostName, progress)
 

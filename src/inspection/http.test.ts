@@ -593,3 +593,27 @@ it.each([true, false])(
     }
   }
 )
+
+it("reads fresh history after each completed dashboard request", async () => {
+  let reads = 0
+  const scope = await Effect.runPromise(Scope.make())
+  try {
+    const server = await Effect.runPromise(
+      makeInspectionHttpServer({
+        snapshot: () =>
+          Effect.sync(() => {
+            reads++
+            return { records: [], losses: [] }
+          })
+      }).pipe(Effect.provideService(Scope.Scope, scope))
+    )
+    for (let expected = 1; expected <= 2; expected++) {
+      const response = await fetch(`${server.url}snapshot`)
+      expect(response.status).toBe(200)
+      await response.json()
+      expect(reads).toBe(expected)
+    }
+  } finally {
+    await Effect.runPromise(Scope.close(scope, Exit.void))
+  }
+})

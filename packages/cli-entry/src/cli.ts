@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { InteractionService } from "@hapsland/administration/interaction/interaction"
 import { controlledOptions } from "@hapsland/resident-transport/resident/controlled-options"
 import {
   statePathConfig,
@@ -16,7 +17,7 @@ import {
 } from "@hapsland/runtime-environment/runtime/cli-names"
 import { JEV_PROVIDER } from "@hapsland/runtime-environment/runtime/backend"
 import { HAPSLAND_CONFIG_DIRECTORY, HAPSLAND_STATE_DIRECTORY } from "@hapsland/runtime-environment/runtime/user-paths"
-import { profileFields } from "@hapsland/administration/onboarding/client-command"
+import { profileFields, type ClientCommand } from "@hapsland/administration/onboarding/client-command"
 import type { DoctorCheck } from "@hapsland/administration/onboarding/doctor"
 import type { ClientChoice, SetupClient } from "@hapsland/administration/onboarding/client-selection"
 import type { ReleaseSelection } from "@hapsland/administration/onboarding/distribution"
@@ -27,12 +28,18 @@ import type { inspectClaudeInstallation } from "@hapsland/administration/onboard
 import type { inspectCodexInstallation } from "@hapsland/administration/onboarding/codex-installation"
 import { formatReviewFeedback } from "@hapsland/delivery-output/feedback/message"
 import { SetupOperation } from "@hapsland/administration/onboarding/setup-request"
-import { parseInvocation, type ClientArguments } from "@hapsland/administration/cli-command"
+import {
+  parseInvocation,
+  type ClientArguments,
+  type Invocation,
+  type AutomationOptions
+} from "@hapsland/administration/cli-command"
 import "effect/Schedule"
 import { effectiveSessionAnalytics } from "@hapsland/runtime-inputs/configuration/resolve"
 import * as Config from "effect/Config"
 import * as ConfigProvider from "effect/ConfigProvider"
 import * as Effect from "effect/Effect"
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime"
 import * as Option from "effect/Option"
 import * as Redacted from "effect/Redacted"
 import * as Schema from "effect/Schema"
@@ -95,15 +102,7 @@ const assignResultExitCode = (output: unknown): void => {
   }
 }
 
-let invocation: Awaited<ReturnType<typeof parseInvocation>>
-try {
-  invocation = await parseInvocation(process.argv.slice(2))
-} catch (cause) {
-  process.stderr.write(`${(cause instanceof Error ? cause.message : "Invalid CLI arguments").slice(0, 1400)}\n`)
-  process.exit(6)
-}
-if (invocation === undefined) process.exit(0)
-const cliOptions = invocation.kind === "automation" ? invocation.options : undefined
+let cliOptions: AutomationOptions | undefined
 const cliSwitch = (name: string): boolean =>
   cliOptions !== undefined && name in cliOptions && cliOptions[name as keyof typeof cliOptions] === true
 
@@ -280,11 +279,6 @@ const fileSelectionReadiness = (settings: ReviewSettings) => {
           : "effective file settings loaded"
   }
 }
-
-const isControlledReviewer = cliSwitch("controlled-reviewer")
-const requestedOperation = forcedOperation()
-const requestedInstallationOperation = forcedInstallationOperation()
-const requestedEvaluationOperation = forcedEvaluationOperation()
 
 type StatusOperation = Extract<ReviewOperation, { readonly operation: "status" }>
 type StatusCredential = Effect.Success<ReturnType<typeof resolveCredential>>
@@ -690,7 +684,7 @@ const dispatchInstallation = Effect.fn("Cli.dispatchInstallation")(function* (
 
 const evaluationFlagMatches = (value: unknown): boolean => {
   if (typeof value !== "object" || value === null || !("operation" in value)) return false
-  return requestedEvaluationOperation === undefined || value.operation === requestedEvaluationOperation
+  return forcedEvaluationOperation() === undefined || value.operation === forcedEvaluationOperation()
 }
 
 const runJsonEvaluation = Effect.fn("Cli.runJsonEvaluation")(function* (input: string) {
@@ -710,7 +704,7 @@ const runJsonEvaluation = Effect.fn("Cli.runJsonEvaluation")(function* (input: s
     credentialEnvVar: yield* Config.NonEmptyString("EVALUATION_CREDENTIAL_ENV").pipe(
       Config.withDefault(DEFAULT_CREDENTIAL_ENV_VAR)
     ),
-    ...(isControlledReviewer ? { controlled: yield* controlledOptions } : {})
+    ...(cliSwitch("controlled-reviewer") ? { controlled: yield* controlledOptions } : {})
   })
 })
 
@@ -748,7 +742,7 @@ const runAdministrativeOperation = Effect.fn("Cli.runAdministrativeOperation")(f
   activityPath: string,
   userConfigPath: string | undefined
 ) {
-  const decodedOperation = yield* decodeOperation(input, requestedOperation)
+  const decodedOperation = yield* decodeOperation(input, forcedOperation())
   const operation =
     forcedStatusFormat() !== undefined && decodedOperation.operation === "status"
       ? { ...decodedOperation, format: "human" as const }
@@ -769,25 +763,25 @@ const jsonRoute = (input: string) => {
   const routes = [
     {
       kind: "evaluation",
-      requested: requestedEvaluationOperation !== undefined || /"operation"\s*:\s*"(?:plan|run|report)"/.test(input)
+      requested: forcedEvaluationOperation() !== undefined || /"operation"\s*:\s*"(?:plan|run|report)"/.test(input)
     },
     { kind: "setup", requested: cliSwitch("setup") || /"operation"\s*:\s*"setup"/.test(input) },
     { kind: "demo", requested: cliSwitch("demo") || /"operation"\s*:\s*"demo"/.test(input) },
     {
       kind: "installation",
       requested:
-        requestedInstallationOperation !== undefined ||
+        forcedInstallationOperation() !== undefined ||
         /"operation"\s*:\s*"(?:doctor|install-preview|install|update-preview|update|uninstall)"/.test(input)
     },
     {
       kind: "administrative",
-      requested: requestedOperation !== undefined || /"operation"\s*:\s*"(?:credentials|status|explain)"/.test(input)
+      requested: forcedOperation() !== undefined || /"operation"\s*:\s*"(?:credentials|status|explain)"/.test(input)
     }
   ] as const
   return routes.find((route) => route.requested)?.kind ?? "unsupported"
 }
 const runJsonInstallation = Effect.fn("Cli.runJsonInstallation")(function* (context: ProgramInput) {
-  const operation = yield* decodeInstallationOperation(context.input, requestedInstallationOperation)
+  const operation = yield* decodeInstallationOperation(context.input, forcedInstallationOperation())
   return yield* dispatchInstallation(operation, context.userConfigPath)
 })
 const jsonHandlers = {
@@ -934,7 +928,7 @@ const runCredentialCommand = Effect.fn("Cli.credentialCommand")(function* () {
   return cliSwitch("login") ? yield* loginCredential() : yield* logoutSavedCredential()
 })
 
-const isCredentialCommand = cliSwitch("login") || cliSwitch("logout")
+const isCredentialCommand = () => cliSwitch("login") || cliSwitch("logout")
 const processConfigurationLayer = ConfigProvider.layer(ConfigProvider.fromEnv({ preserveEmptyStrings: true }))
 
 let clientArguments: ClientArguments | undefined
@@ -974,85 +968,81 @@ const writeSetupRuleInventory = Effect.fn("InteractiveSetup.ruleInventory")(func
   }
 })
 const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClient) {
+  const interaction = yield* InteractionService
   const { runSetup } = yield* Effect.promise(() => import("@hapsland/administration/onboarding/setup"))
-  const { readMaskedCredential } = yield* Effect.promise(
-    () => import("@hapsland/administration/credentials/masked-input")
-  )
+  const { captureCredential } = yield* Effect.promise(() => import("@hapsland/administration/credentials/masked-input"))
   const { activateCurrentPackage } = yield* Effect.promise(
     () => import("@hapsland/administration/onboarding/client-lifecycle")
   )
-  const { askConfirmation } = yield* Effect.promise(() => import("@hapsland/administration/onboarding/confirmation"))
-  const { runPilotSetup } = yield* Effect.promise(() => import("@hapsland/administration/onboarding/pilot"))
+  const { runPilotSetup, SetupOwnerService } = yield* Effect.promise(
+    () => import("@hapsland/administration/onboarding/pilot")
+  )
+  const { runGuidedCredentialCheck } = yield* Effect.promise(
+    () => import("@hapsland/administration/onboarding/verification-conversation")
+  )
   const terminal = Boolean(process.stdin.isTTY && process.stderr.isTTY)
-  // Configuration is read only for an actual terminal setup, as in the direct CLI path.
   const configuration = terminal ? yield* pilotConfiguration() : undefined
   const cwd = process.cwd()
   const command = currentCommand()
-  const result = yield* runPilotSetup(
-    {
-      terminal,
-      host,
-      fields: hostFields(host),
-      cwd,
-      platform: process.platform,
-      newKey: clientArguments?.flags.has(NEW_KEY_FLAG) ?? false
-    },
-    {
-      run: (request, entered) => {
-        if (configuration === undefined) return Effect.fail(new Error("setup configuration unavailable"))
-        return runSetup(request, {
-          ...configuration,
-          readCredential: () => readMaskedCredential().pipe(Effect.tap(() => Effect.sync(entered)))
-        })
-      },
-      activate: activateCurrentPackage(currentCommand()),
-      verifyCredential: Effect.gen(function* () {
-        const { runVerificationConversation, nativeVerificationLayer } = yield* Effect.promise(
-          () => import("@hapsland/administration/onboarding/verification-conversation")
-        )
-        const { withInteractionSession } = yield* Effect.promise(
-          () => import("@hapsland/administration/interaction/interaction-session")
-        )
-        const { InteractionService } = yield* Effect.promise(
-          () => import("@hapsland/administration/interaction/interaction")
-        )
-        yield* withInteractionSession(
-          (interaction) =>
-            runVerificationConversation().pipe(
-              Effect.provideService(InteractionService, interaction),
-              Effect.provide(
-                nativeVerificationLayer({
-                  cwd,
-                  host,
-                  platform: process.platform,
-                  ...(configuration?.userConfigPath === undefined
-                    ? {}
-                    : { userConfigPath: configuration.userConfigPath })
-                })
-              ),
-              Effect.asVoid
-            ),
-          Effect.interrupt
-        )
-      }),
+  const result = yield* runPilotSetup({
+    terminal,
+    host,
+    fields: hostFields(host),
+    cwd,
+    platform: process.platform,
+    newKey: clientArguments?.flags.has(NEW_KEY_FLAG) ?? false
+  }).pipe(
+    Effect.provideService(SetupOwnerService, {
+      run: (request, entered, onProgress) =>
+        configuration === undefined
+          ? Effect.fail(new Error("setup configuration unavailable"))
+          : runSetup(request, {
+              ...configuration,
+              onProgress,
+              readCredential: () =>
+                captureCredential.pipe(
+                  Effect.provideService(InteractionService, interaction),
+                  Effect.tap(() => Effect.sync(entered))
+                )
+            }),
+      activate: activateCurrentPackage(command),
+      verifyCredential: runGuidedCredentialCheck({
+        cwd,
+        host,
+        platform: process.platform,
+        ...(configuration?.userConfigPath === undefined ? {} : { userConfigPath: configuration.userConfigPath })
+      }).pipe(Effect.provideService(InteractionService, interaction)),
       doctor: execFileClosedStdin(command.executable, [...command.args, "--doctor"], {
         cwd,
         env: process.env,
         maxBuffer: 1024 * 1024,
         input: JSON.stringify({ version: 1, operation: "doctor", cwd, ...hostFields(host) }),
         timeout: 10_000
-      }),
-      confirm: askConfirmation,
-      write: (text) => {
-        process.stderr.write(text)
-      },
-      exitCode: (code) => {
-        process.exitCode = code
-      }
-    }
+      })
+    })
   )
-  yield* writeSetupRuleInventory(terminal, cwd, configuration)
+  if (result.exitCode !== 0) process.exitCode = result.exitCode
+  if (result.kind === "completed") yield* writeSetupRuleInventory(terminal, cwd, configuration)
   return result
+})
+
+const pilotSetupSession = Effect.fn("InteractiveSetup.session")(function* (host: SetupClient) {
+  if (!process.stdin.isTTY || !process.stderr.isTTY) {
+    process.stderr.write(
+      "Guided setup needs a terminal. Run hapsland --pilot there, or use hapsland --setup with a versioned JSON request.\n"
+    )
+    process.exitCode = 6
+    return
+  }
+  const { withInteractionSession } = yield* Effect.promise(
+    () => import("@hapsland/administration/interaction/interaction-session")
+  )
+  yield* withInteractionSession(
+    (interaction) => pilotSetup(host).pipe(Effect.provideService(InteractionService, interaction), Effect.asVoid),
+    Effect.sync(() => {
+      process.exitCode = 130
+    })
+  )
 })
 
 const initialClientStatus = (inspection: {
@@ -1132,6 +1122,23 @@ const setupClientChoice = Effect.fn("InteractiveSetup.clientChoice")(function* (
   const status = yield* currentClientStatus(fields, initialClientStatus(decoded))
   return { host, name: CLIENT_NAMES[host], status }
 })
+const setupSelectedClients = Effect.fn("InteractiveSetup.selectedClients")(function* (
+  hosts: ReadonlyArray<SetupClient>
+) {
+  for (const host of hosts) {
+    const result = yield* pilotSetup(host).pipe(
+      Effect.catchDefect((cause) => Effect.fail(cause)),
+      Effect.result
+    )
+    if (result._tag === "Failure") {
+      process.stderr.write(`${host}: ${localFailureMessage(result.failure)}\n`)
+      process.exitCode = 6
+      return "cancelled" as const
+    }
+    if (result.success.kind !== "completed") return result.success.kind
+  }
+  return "completed" as const
+})
 const chooseSetupClients = Effect.fn("InteractiveSetup.chooseClients")(function* () {
   const { selectSetupClients } = yield* Effect.promise(
     () => import("@hapsland/administration/onboarding/client-selection")
@@ -1143,27 +1150,28 @@ const chooseSetupClients = Effect.fn("InteractiveSetup.chooseClients")(function*
   const { withInteractionSession } = yield* Effect.promise(
     () => import("@hapsland/administration/interaction/interaction-session")
   )
-  const hosts = yield* withInteractionSession(
-    (input) => selectSetupClients(choices).pipe(Effect.provideService(InteractionService, input)),
+  yield* withInteractionSession(
+    (input) =>
+      Effect.gen(function* () {
+        let selected: SetupClient[] | undefined
+        while (true) {
+          const hosts = yield* selectSetupClients(choices, selected)
+          if (hosts.length === 0) {
+            process.stderr.write(
+              selected === undefined
+                ? "No clients selected. No changes made.\n"
+                : "No agents selected. Previously reported results remain.\n"
+            )
+            return
+          }
+          selected = hosts
+          if ((yield* setupSelectedClients(hosts)) !== "back") return
+        }
+      }).pipe(Effect.provideService(InteractionService, input)),
     Effect.sync(() => {
       process.exitCode = 130
-      return []
     })
   )
-  if (hosts.length === 0) {
-    process.stderr.write("No clients selected. No changes made.\n")
-    return
-  }
-  for (const host of hosts) {
-    const result = yield* pilotSetup(host).pipe(
-      Effect.catchDefect((cause) => Effect.fail(cause)),
-      Effect.result
-    )
-    if (result._tag === "Failure") {
-      process.stderr.write(`${host}: ${result.failure instanceof Error ? result.failure.message : "Setup failed"}\n`)
-      process.exitCode = 6
-    }
-  }
 })
 
 const validateArchiveSelection = (archive: string | undefined, version: string | undefined): void => {
@@ -1295,189 +1303,187 @@ const diagnoseClientProcess = Effect.fn("HumanDoctor.diagnoseClient")(function* 
   return { diagnosis, status: checked.status, exitCode: result.exitCode }
 })
 
-if (invocation.kind === "dashboard") {
-  const { runInspectionDashboard } = await import("@hapsland/administration/inspection/command")
-  runInspectionDashboard(invocation)
-} else if (cliSwitch("feedback-preview")) {
-  process.stdout.write(
-    "Synthetic example; no review was run.\n\n" +
-      formatReviewFeedback([
-        {
-          path: "example.ts",
-          declaration: "ExampleState",
-          message: "This is a sample finding. Actual messages come from the configured rule."
-        }
-      ]) +
-      "\n"
+const credentialNextAction = (result: Readonly<Record<string, unknown>>) => {
+  return (
+    result.action ??
+    (result.operation === "logout"
+      ? "Use user file exclusions to stop future review dispatches if needed."
+      : result.status === "invalid"
+        ? `Enter a nonempty ${JEV_PROVIDER.name} key and retry ${CLI_NAME} ${LOGIN_FLAG}. The previous saved key was preserved.`
+        : result.status === "cancelled"
+          ? "No key was changed. Run hapsland --login again when ready."
+          : result.status === "locked" || result.status === "interaction-required"
+            ? "Unlock or approve the native credential store in this session, then retry hapsland --login."
+            : "Check native credential storage in this user session, then retry hapsland --login.")
   )
-} else if (cliSwitch("runtime-identity")) {
-  process.stdout.write(
-    JSON.stringify({ version: runtimeVersion(), platform: process.platform, architecture: process.arch }) + "\n"
-  )
-} else if (cliSwitch("package-identity")) {
-  process.stdout.write(JSON.stringify({ name: "@hapsland/hapsland", ...currentCommand() }) + "\n")
-} else if (invocation.kind === "rules") {
-  const { runRulesCommand } = await import("@hapsland/administration/rules/command")
-  try {
-    await Effect.runPromise(runRulesCommand(invocation.options).pipe(Effect.provide(processConfigurationLayer)))
-  } catch (cause) {
-    const error = localFailureMessage(cause)
-    process.stderr.write(`${error}\n`)
-    process.exitCode = 6
-  }
-} else if (cliSwitch("pilot") || invocation.kind === "lifecycle") {
-  try {
-    const command = invocation.kind === "lifecycle" ? invocation.command : "setup"
-    const { dispatchSelectedPackage, dispatchActivePackage, registeredClients, formatDoctor } =
-      await import("@hapsland/administration/onboarding/client-lifecycle")
-    clientArguments = invocation.client
-    const selectedPackage = clientArguments.flags.get("--target")
-    const dispatched =
-      selectedPackage !== undefined && command !== "update"
-        ? await Effect.runPromise(
-            dispatchSelectedPackage(selectedPackage, command, clientArguments.host, clientArguments.flags).pipe(
-              Effect.provide(processConfigurationLayer),
-              Effect.provide(machineClockLayer)
-            )
-          )
-        : await Effect.runPromise(
-            dispatchActivePackage([
-              command,
-              ...(clientArguments.host === undefined ? [] : [clientArguments.host]),
-              ...[...clientArguments.flags]
-                .filter(([name]) => name !== "--host")
-                .map(([name, value]) => `${name}=${value}`)
-            ]).pipe(Effect.provide(processConfigurationLayer), Effect.provide(machineClockLayer))
-          )
-    if (dispatched !== undefined) process.exitCode = dispatched
-    else if (command === "doctor") {
-      const hosts =
-        clientArguments.host === undefined
-          ? registeredClients(clientArguments.flags, reportClientFailure)
-          : [selectedHost()]
-      if (hosts.length === 0)
-        process.stderr.write(
-          `${formatOutcome("warning", "No Hapsland integrations found. Run hapsland setup first.")}\n`
-        )
-      for (const host of hosts) {
-        try {
-          const result = await Effect.runPromise(
-            diagnoseClientProcess(host).pipe(
-              Effect.provide(processConfigurationLayer),
-              Effect.provide(machineClockLayer)
-            )
-          )
-          process.stdout.write(formatDoctor(result.diagnosis, host).join("\n") + "\n")
-          if (result.exitCode !== 0 || result.status === "not-ready") process.exitCode = result.exitCode || 6
-        } catch (cause) {
-          reportClientFailure(host, cause)
-        }
-      }
-    } else if (command === "update")
-      await Effect.runPromise(
-        updateInteractive().pipe(Effect.provide(processConfigurationLayer), Effect.provide(machineClockLayer))
-      )
-    else if (command === "repair" || command === "reinstall" || command === "uninstall")
-      await Effect.runPromise(
-        maintenanceInteractive(command).pipe(
-          Effect.provide(processConfigurationLayer),
-          Effect.provide(machineClockLayer)
-        )
-      )
-    else if (
-      !cliSwitch("pilot") &&
-      (clientArguments.flags.has("--no-input") ||
-        clientArguments.flags.has("--apply") ||
-        clientArguments.flags.has("--save-plan") ||
-        clientArguments.flags.has("--apply-plan") ||
-        !process.stdin.isTTY ||
-        !process.stderr.isTTY)
-    ) {
-      const { runUnattendedSetup } = await import("@hapsland/administration/onboarding/unattended")
-      const result = await Effect.runPromise(
-        runUnattendedSetup(clientArguments).pipe(
-          Effect.provide(processConfigurationLayer),
-          Effect.catch((cause) =>
-            Effect.succeed({
-              version: 1,
-              operation: "setup",
-              status: "needs-user-action",
-              providerCalls: 0,
-              paidVerificationPerformed: false,
-              message: localFailureMessage(cause)
-            })
-          )
-        )
-      )
-      assignResultExitCode(result)
-      process.stdout.write(JSON.stringify(result) + "\n")
-    } else if (clientArguments.host === undefined)
-      await Effect.runPromise(
-        chooseSetupClients().pipe(Effect.provide(processConfigurationLayer), Effect.provide(machineClockLayer))
-      )
-    else
-      await Effect.runPromise(
-        pilotSetup(selectedHost()).pipe(Effect.provide(processConfigurationLayer), Effect.provide(machineClockLayer))
-      )
-  } catch (cause) {
-    process.stderr.write(
-      `${formatOutcome("error", cause instanceof Error ? cause.message : "Interactive operation failed")}\n`
-    )
-    process.exitCode = 6
-  }
-} else {
-  const credentialNextAction = (result: Readonly<Record<string, unknown>>) => {
-    return (
-      result.action ??
-      (result.operation === "logout"
-        ? "Use user file exclusions to stop future review dispatches if needed."
-        : result.status === "invalid"
-          ? `Enter a nonempty ${JEV_PROVIDER.name} key and retry ${CLI_NAME} ${LOGIN_FLAG}. The previous saved key was preserved.`
-          : result.status === "cancelled"
-            ? "No key was changed. Run hapsland --login again when ready."
-            : result.status === "locked" || result.status === "interaction-required"
-              ? "Unlock or approve the native credential store in this session, then retry hapsland --login."
-              : "Check native credential storage in this user session, then retry hapsland --login.")
-    )
-  }
-  const writeLogoutEnvironmentWarning = (result: Readonly<Record<string, unknown>>): void => {
-    if (result.operation === "logout") {
-      const environment = result.environmentOverride as { envVar?: string; active?: boolean } | undefined
-      if (environment?.active === true)
-        process.stdout.write(
-          `${environment.envVar ?? "The selected environment credential"} remains active; set user excludes to ["**/*"] to stop dispatch.\n`
-        )
-    }
-  }
-  const writeCredentialSummary = (result: Readonly<Record<string, unknown>>): void => {
-    if (result.operation === "login" && result.status === "stored") {
+}
+const writeLogoutEnvironmentWarning = (result: Readonly<Record<string, unknown>>): void => {
+  if (result.operation === "logout") {
+    const environment = result.environmentOverride as { envVar?: string; active?: boolean } | undefined
+    if (environment?.active === true)
       process.stdout.write(
-        `${JEV_PROVIDER.name} key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}. No ${JEV_PROVIDER.name} request or review was sent.\nNext: run ${setupCommand("claude")} or ${setupCommand("codex")}, then complete client sign-in and native trust.\n`
+        `${environment.envVar ?? "The selected environment credential"} remains active; set user excludes to ["**/*"] to stop dispatch.\n`
       )
-    } else {
-      const next = credentialNextAction(result)
-      process.stdout.write(
-        `${result.operation === "logout" ? "Logout" : "Login"}: ${String(result.status)}. ${String(next)}\n`
-      )
-      writeLogoutEnvironmentWarning(result)
-    }
   }
-  const interactiveCredentialOutput = (): boolean =>
-    isCredentialCommand && !cliSwitch("json") && !cliSwitch("credential-stdin") && process.stdin.isTTY
-  const writeResultOutput = (output: unknown): void => {
-    if (interactiveCredentialOutput()) {
-      writeCredentialSummary(output as Readonly<Record<string, unknown>>)
-      return
-    }
-    process.stdout.write(typeof output === "string" ? output : `${JSON.stringify(output)}\n`)
+}
+const writeCredentialSummary = (result: Readonly<Record<string, unknown>>): void => {
+  if (result.operation === "login" && result.status === "stored") {
+    process.stdout.write(
+      `${JEV_PROVIDER.name} key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}. No ${JEV_PROVIDER.name} request or review was sent.\nNext: run ${setupCommand("claude")} or ${setupCommand("codex")}, then complete client sign-in and native trust.\n`
+    )
+  } else {
+    const next = credentialNextAction(result)
+    process.stdout.write(
+      `${result.operation === "logout" ? "Logout" : "Login"}: ${String(result.status)}. ${String(next)}\n`
+    )
+    writeLogoutEnvironmentWarning(result)
   }
-  const output = isCredentialCommand
-    ? await Effect.runPromise(
-        runCredentialCommand().pipe(Effect.provide(processConfigurationLayer), Effect.provide(machineClockLayer))
-      )
-    : await Effect.runPromise(
-        program.pipe(Effect.provide(processConfigurationLayer), Effect.provide(machineClockLayer))
-      )
+}
+const interactiveCredentialOutput = (): boolean =>
+  isCredentialCommand() && !cliSwitch("json") && !cliSwitch("credential-stdin") && process.stdin.isTTY
+const writeResultOutput = (output: unknown): void => {
+  if (interactiveCredentialOutput()) {
+    writeCredentialSummary(output as Readonly<Record<string, unknown>>)
+    return
+  }
+  process.stdout.write(typeof output === "string" ? output : `${JSON.stringify(output)}\n`)
+}
+
+const runAutomation = Effect.fn("Cli.automation")(function* () {
+  const output = yield* isCredentialCommand() ? runCredentialCommand() : program
   assignResultExitCode(output)
   writeResultOutput(output)
+})
+
+const runHumanDoctor = Effect.fn("Cli.humanDoctor")(function* (args: ClientArguments) {
+  const { registeredClients, formatDoctor } = yield* Effect.promise(
+    () => import("@hapsland/administration/onboarding/client-lifecycle")
+  )
+  const hosts = args.host === undefined ? registeredClients(args.flags, reportClientFailure) : [args.host]
+  if (hosts.length === 0)
+    process.stderr.write(`${formatOutcome("warning", "No Hapsland integrations found. Run hapsland setup first.")}\n`)
+  for (const host of hosts) {
+    const result = yield* diagnoseClientProcess(host).pipe(Effect.result)
+    if (result._tag === "Failure") {
+      reportClientFailure(host, result.failure)
+      continue
+    }
+    process.stdout.write(formatDoctor(result.success.diagnosis, host).join("\n") + "\n")
+    if (result.success.exitCode !== 0 || result.success.status === "not-ready")
+      process.exitCode = result.success.exitCode || 6
+  }
+})
+
+const runUnattended = Effect.fn("Cli.unattended")(function* (args: ClientArguments) {
+  const { runUnattendedSetup } = yield* Effect.promise(() => import("@hapsland/administration/onboarding/unattended"))
+  const result = yield* runUnattendedSetup(args).pipe(
+    Effect.catch((cause) =>
+      Effect.succeed({
+        version: 1,
+        operation: "setup",
+        status: "needs-user-action",
+        providerCalls: 0,
+        paidVerificationPerformed: false,
+        message: localFailureMessage(cause)
+      })
+    )
+  )
+  assignResultExitCode(result)
+  process.stdout.write(JSON.stringify(result) + "\n")
+})
+const unattendedRequested = (args: ClientArguments) =>
+  !cliSwitch("pilot") &&
+  (["--no-input", "--apply", "--save-plan", "--apply-plan"].some((flag) => args.flags.has(flag)) ||
+    !process.stdin.isTTY ||
+    !process.stderr.isTTY)
+
+const runLocalLifecycle = Effect.fn("Cli.localLifecycle")(function* (command: ClientCommand, args: ClientArguments) {
+  if (command === "doctor") return yield* runHumanDoctor(args)
+  if (command === "update") return yield* updateInteractive()
+  if (command === "repair" || command === "reinstall" || command === "uninstall")
+    return yield* maintenanceInteractive(command)
+  if (unattendedRequested(args)) return yield* runUnattended(args)
+  if (args.host === undefined) return yield* chooseSetupClients()
+  return yield* pilotSetupSession(args.host)
+})
+
+const runLifecycle = Effect.fn("Cli.lifecycle")(function* (
+  invocation: Extract<Invocation, { kind: "lifecycle" | "automation" }>
+) {
+  const command = invocation.kind === "lifecycle" ? invocation.command : "setup"
+  const args = invocation.client
+  clientArguments = args
+  const { dispatchSelectedPackage, dispatchActivePackage } = yield* Effect.promise(
+    () => import("@hapsland/administration/onboarding/client-lifecycle")
+  )
+  const selectedPackage = args.flags.get("--target")
+  const dispatched = yield* selectedPackage !== undefined && command !== "update"
+    ? dispatchSelectedPackage(selectedPackage, command, args.host, args.flags)
+    : dispatchActivePackage([
+        command,
+        ...(args.host === undefined ? [] : [args.host]),
+        ...[...args.flags].filter(([name]) => name !== "--host").map(([name, value]) => `${name}=${value}`)
+      ])
+  if (dispatched !== undefined) {
+    process.exitCode = dispatched
+    return
+  }
+  yield* runLocalLifecycle(command, args)
+})
+
+const writeIdentityOutput = (): boolean => {
+  if (cliSwitch("feedback-preview")) {
+    process.stdout.write(
+      "Synthetic example; no review was run.\n\n" +
+        formatReviewFeedback([
+          {
+            path: "example.ts",
+            declaration: "ExampleState",
+            message: "This is a sample finding. Actual messages come from the configured rule."
+          }
+        ]) +
+        "\n"
+    )
+  } else if (cliSwitch("runtime-identity")) {
+    process.stdout.write(
+      JSON.stringify({ version: runtimeVersion(), platform: process.platform, architecture: process.arch }) + "\n"
+    )
+  } else if (cliSwitch("package-identity")) {
+    process.stdout.write(JSON.stringify({ name: "@hapsland/hapsland", ...currentCommand() }) + "\n")
+  } else return false
+  return true
 }
+
+const dispatchInvocation = Effect.fn("Cli.dispatch")(function* (invocation: Invocation) {
+  if (invocation.kind === "dashboard") {
+    const { runInspectionDashboard } = yield* Effect.promise(
+      () => import("@hapsland/administration/inspection/command")
+    )
+    return yield* runInspectionDashboard(invocation)
+  }
+  if (writeIdentityOutput()) return
+  if (invocation.kind === "rules") {
+    const { runRulesCommand } = yield* Effect.promise(() => import("@hapsland/administration/rules/command"))
+    return yield* runRulesCommand(invocation.options)
+  }
+  if (invocation.kind === "lifecycle" || cliSwitch("pilot")) return yield* runLifecycle(invocation)
+  return yield* runAutomation()
+})
+
+const main = Effect.gen(function* () {
+  const invocation = yield* parseInvocation(process.argv.slice(2))
+  if (invocation === undefined) return
+  cliOptions = invocation.kind === "automation" ? invocation.options : undefined
+  yield* dispatchInvocation(invocation)
+}).pipe(
+  Effect.provide(processConfigurationLayer),
+  Effect.provide(machineClockLayer),
+  Effect.catchDefect((cause) => Effect.fail(cause)),
+  Effect.catch((cause) =>
+    Effect.sync(() => {
+      process.stderr.write(`${localFailureMessage(cause)}\n`)
+      process.exitCode = 6
+    })
+  )
+)
+NodeRuntime.runMain(main, { disableErrorReporting: true })

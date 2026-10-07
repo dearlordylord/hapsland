@@ -1,6 +1,6 @@
 import test from "node:test"
 import assert from "node:assert/strict"
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs"
+import { realpathSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs"
 import { resolve } from "node:path"
 import { tmpdir } from "node:os"
 import { checkBuildBoundaries } from "./check-build-boundaries.mjs"
@@ -12,7 +12,7 @@ const forbiddenCapabilities = [
   "source-analysis"
 ]
 const fixture = (t) => {
-  const root = mkdtempSync(resolve(tmpdir(), "hapsland-boundary-closure-"))
+  const root = realpathSync(mkdtempSync(resolve(tmpdir(), "hapsland-boundary-closure-")))
   t.after(() => rmSync(root, { recursive: true, force: true }))
   const boundaries = Object.fromEntries(
     [
@@ -46,9 +46,14 @@ const fixture = (t) => {
         name: `@hapsland/${name}`,
         private: true,
         type: "module",
-        exports: { "./main": { types: "./dist/main.d.ts", default: "./dist/main.js" } },
+        exports: {
+          "./main": { types: "./dist/main.d.ts", default: "./dist/main.js" },
+          ...(name === "admin"
+            ? { "./interaction": { types: "./dist/interaction.d.ts", default: "./dist/interaction.js" } }
+            : {})
+        },
         dependencies:
-          name === "hook"
+          name === "hook" || name === "pi"
             ? { "@hapsland/shared": "workspace:*", "@hapsland/admin": "workspace:*" }
             : name === "shared"
               ? { "@hapsland/admin": "workspace:*" }
@@ -61,6 +66,8 @@ const fixture = (t) => {
       })
     )
     writeFileSync(resolve(root, `packages/${name}/src/main.ts`), "export const value = 1")
+    if (name === "admin")
+      writeFileSync(resolve(root, "packages/admin/src/interaction.ts"), 'export const value = "interaction"')
   }
   return { root, manifest, source: resolve(root, "packages/hook/src/main.ts") }
 }
@@ -112,3 +119,23 @@ test("refuses removed policy protection and entries that differ from the actual 
   writeFileSync(resolve(f.root, "package.json"), JSON.stringify(f.manifest))
   assert.throws(() => checkBuildBoundaries(f.root), /actual entry/)
 })
+
+for (const surface of ["hook", "pi"])
+  for (const route of ["direct", "transitive"])
+    for (const target of ["@hapsland/admin/interaction"])
+      for (const syntax of [
+        (specifier) => `import "${specifier}"`,
+        (specifier) => `import type { value } from "${specifier}"`,
+        (specifier) => `type X = import("${specifier}").value`,
+        (specifier) => `await import("${specifier}")`
+      ])
+        test(`${surface} rejects ${route} interaction dependency: ${syntax(target)}`, (t) => {
+          const f = fixture(t)
+          const entry = resolve(f.root, `packages/${surface}/src/main.ts`)
+          if (route === "direct") writeFileSync(entry, syntax(target))
+          else {
+            writeFileSync(entry, 'import "@hapsland/shared/main"')
+            writeFileSync(resolve(f.root, "packages/shared/src/main.ts"), syntax(target))
+          }
+          assert.throws(() => checkBuildBoundaries(f.root), /Forbidden build boundary (owner|dependency)/)
+        })

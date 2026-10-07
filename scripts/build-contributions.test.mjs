@@ -4,13 +4,13 @@ import { createBendReceiptFixture } from "./bend-producer-test-fixture.mjs"
 import { readPackageGraph } from "./package-graph.mjs"
 import test from "node:test"
 import assert from "node:assert/strict"
-import fs, { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs"
+import fs, { realpathSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { resolve } from "node:path"
 import { checkAssemblyContributions, checkCompilerContributions, contributionOwner } from "./build-contributions.mjs"
 import { fileEvidence, fileInventory } from "./compiler-evidence.mjs"
 const fixture = (t) => {
-  const root = mkdtempSync(resolve(tmpdir(), "hapsland-contributions-"))
+  const root = realpathSync(mkdtempSync(resolve(tmpdir(), "hapsland-contributions-")))
   t.after(() => rmSync(root, { recursive: true, force: true }))
   const boundaries = Object.fromEntries(
     [

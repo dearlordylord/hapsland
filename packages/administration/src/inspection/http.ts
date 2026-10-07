@@ -68,28 +68,21 @@ export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(f
   const registry = makeInspectionRegistry()
   const standard = yield* resolveResidentPaths().pipe(Effect.catch(() => Effect.succeed(undefined)))
   const replay = makeInspectionReplay()
-  let pendingHistory: Promise<InspectionJournalSnapshot> | undefined
-  const readHistory = () =>
-    Effect.tryPromise({
-      try: () => {
-        pendingHistory ??= Effect.runPromise(
-          Effect.suspend(() => history.snapshot()).pipe(
-            Effect.retry({
-              times: 10,
-              while: (error) => error instanceof InspectionStorageBusy,
-              schedule: Schedule.spaced("100 millis")
-            })
-          )
-        ).finally(() => {
-          pendingHistory = undefined
-        })
-        return pendingHistory
-      },
-      catch: (error) => error
-    })
+  // Share only an in-flight read; the next completed request reads fresh history.
+  // The read remains in the server's Effect lifetime rather than a detached runtime.
+  const readHistory = yield* Effect.cachedWithTTL(
+    Effect.suspend(() => history.snapshot()).pipe(
+      Effect.retry({
+        times: 10,
+        while: (error) => error instanceof InspectionStorageBusy,
+        schedule: Schedule.spaced("100 millis")
+      })
+    ),
+    0
+  )
   const snapshot = (cursor?: string) =>
     Effect.gen(function* () {
-      const journal = yield* readHistory()
+      const journal = yield* readHistory
       const raw = journal.records
       const unique = new Map(raw.map((record) => [`${record.source.id}:${record.sequence}`, record]))
       const records = [...unique.values()]
@@ -130,7 +123,7 @@ export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(f
       const sourceId = match[1]!
       const sequence = Number(match[2])
       const identity = { version: 1 as const, sourceId, sequence }
-      const value = yield* readHistory().pipe(
+      const value = yield* readHistory.pipe(
         Effect.map((journal) => {
           const record = journal.records.find((item) => item.source.id === sourceId && item.sequence === sequence)
           if (record === undefined)

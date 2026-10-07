@@ -10,7 +10,7 @@
 
 **Date and question.** 2026-10-06. Which console layer best renders Hapsland's explicit setup interaction model, and can Foldkit supply it? Compare the current small renderer, Effect's own prompt API, console prompt packages, and richer terminal UI systems.
 
-**Scope and target.** Human-guided setup on macOS/Linux arm64, TypeScript, Bun 1.3.14 standalone builds, and the repository's exact Effect 4.0.0 cohort. This is a renderer and terminal-boundary pass, not a decision about credential destinations, setup state-machine architecture, consent policy, or review eligibility. [The setup-interaction proposal](../setup-interaction-proposal.md) and [interaction-model advisory](PRODUCT-RESEARCH-ADVISORY-2026-10-06-INTERACTION-MODEL.md) own that context.
+**Scope and target.** Human-guided setup on macOS/Linux arm64, TypeScript, Bun 1.3.14 standalone builds, and the repository's exact Effect 4.0.0 cohort. This is a renderer and terminal-boundary pass, not a decision about credential destinations, setup state-machine architecture, consent policy, or review eligibility. [The adopted interaction architecture](../adr/0004-administration-cli-interactions.md) and [interaction-model advisory](PRODUCT-RESEARCH-ADVISORY-2026-10-06-INTERACTION-MODEL.md) own that context.
 
 **Representative workflows.** Select installed clients; show a write preview and collect its approval; enter or replace a credential without echo; go back or cancel; report partial setup and next steps; run the version-one unattended JSON path with no menus or implied approval. A renderer may display choices and return input events. It must not become the setup engine, write owner, credential store, or approval authority.
 

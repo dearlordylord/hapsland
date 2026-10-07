@@ -630,55 +630,62 @@ else if (operation === "probe") console.log('{"status":"available"}');
     )
   })
 
-  it.skipIf(!terminalAvailable)(
-    "reports invalid, unavailable, and indeterminate interactive storage outcomes",
-    async () => {
-      const cases = [
-        { helperStatus: "unavailable", input: "", expectedStatus: "invalid", code: "replace-invalid-credential" },
-        {
-          helperStatus: "unavailable",
-          input: "unavailable-secret",
-          expectedStatus: "unavailable",
-          code: "recover-credential-storage"
-        },
-        {
-          helperStatus: "indeterminate",
-          input: "indeterminate-secret",
-          expectedStatus: "indeterminate",
-          code: "reconcile-credential-lifecycle"
-        }
-      ] as const
-      for (const fixtureCase of cases) {
-        const test = fixture()
-        installDisabled(test)
-        const environment: NodeJS.ProcessEnv = {
-          ...test.environment,
-          REVIEW_CREDENTIAL_HELPER: credentialHelper(test, fixtureCase.helperStatus)
-        }
-        delete environment.TYPESAFE_API_KEY
-        const result = await invokeMaskedSetup(test, environment, fixtureCase.input)
-        expect(result.stages).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({
-              stage: "credential",
-              status: "pending",
-              observed: expect.objectContaining({
-                status: fixtureCase.expectedStatus,
-                ...(fixtureCase.expectedStatus === "indeterminate"
-                  ? { savedCredentialUse: "suspended" }
-                  : { previousCredentialPreserved: true })
-              })
+  it.skipIf(!terminalAvailable)("reports interactive storage outcomes with specific recovery guidance", async () => {
+    const cases = [
+      { helperStatus: "unavailable", input: "", expectedStatus: "invalid", code: "replace-invalid-credential" },
+      {
+        helperStatus: "unavailable",
+        input: "unavailable-secret",
+        expectedStatus: "unavailable",
+        code: "recover-credential-storage"
+      },
+      { helperStatus: "locked", input: "locked-secret", expectedStatus: "locked", code: "recover-credential-storage" },
+      {
+        helperStatus: "interaction-required",
+        input: "approval-secret",
+        expectedStatus: "interaction-required",
+        code: "recover-credential-storage"
+      },
+      {
+        helperStatus: "indeterminate",
+        input: "indeterminate-secret",
+        expectedStatus: "indeterminate",
+        code: "reconcile-credential-lifecycle"
+      }
+    ] as const
+    for (const fixtureCase of cases) {
+      const test = fixture()
+      installDisabled(test)
+      const environment: NodeJS.ProcessEnv = {
+        ...test.environment,
+        REVIEW_CREDENTIAL_HELPER: credentialHelper(test, fixtureCase.helperStatus)
+      }
+      delete environment.TYPESAFE_API_KEY
+      const result = await invokeMaskedSetup(test, environment, fixtureCase.input)
+      expect(result.stages).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            stage: "credential",
+            status: "pending",
+            observed: expect.objectContaining({
+              status: fixtureCase.expectedStatus,
+              ...(fixtureCase.expectedStatus === "indeterminate"
+                ? { savedCredentialUse: "suspended" }
+                : { previousCredentialPreserved: true })
             })
-          ])
-        )
-        const recovery = result.actions.find((action) => action.code === fixtureCase.code)
-        expect(recovery?.action).toContain("hapsland --login")
-        if (fixtureCase.expectedStatus === "indeterminate") {
-          expect(recovery?.action).toContain("hapsland --logout")
-        }
+          })
+        ])
+      )
+      const recovery = result.actions.find((action) => action.code === fixtureCase.code)
+      expect(recovery?.action).toContain("hapsland --login")
+      if (fixtureCase.expectedStatus === "locked") expect(recovery?.action).toContain("unlock the login keyring")
+      if (fixtureCase.expectedStatus === "interaction-required")
+        expect(recovery?.action).toContain("approve access in the native credential store")
+      if (fixtureCase.expectedStatus === "indeterminate") {
+        expect(recovery?.action).toContain("hapsland --logout")
       }
     }
-  )
+  })
 })
 
 describe("setup repository failures", () => {

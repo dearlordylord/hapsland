@@ -6,7 +6,17 @@ import { offlineSetupAnswers } from "./test-harness/offline-setup-answers.mjs"
 // Offline regression for the public multi-client lifecycle. Uses isolated homes and a local registry fixture.
 import assert from "node:assert/strict"
 import { spawn, execFileSync } from "node:child_process"
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs"
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  rmSync,
+  writeFileSync
+} from "node:fs"
 import { dirname, join, resolve } from "node:path"
 import { tmpdir } from "node:os"
 const checkout = process.cwd()
@@ -118,7 +128,7 @@ const terminal = async (args, entrypoint = join(checkout, "packages/cli-entry/sr
     for (const prompt of prompts.slice(answered)) {
       answered++
       if (prompt.verification) declinedVerifications++
-      else sent++
+      else if (!prompt.navigation) sent++
       child.stdin.write(`${prompt.answer}\n`)
     }
   })
@@ -137,7 +147,7 @@ const terminal = async (args, entrypoint = join(checkout, "packages/cli-entry/sr
     })
   })
   assert(!output.includes("offline-fixture-key"))
-  if (declinedVerifications > 0) assert(output.includes("Key validity: not checked."))
+  if (declinedVerifications > 0) assert(output.includes("Key validity: not checked for this request."))
   return { code, output, confirmations: sent, declinedVerifications }
 }
 try {
@@ -233,7 +243,7 @@ try {
   assert(fallback.output.includes("reinstalling from the package in PATH"), fallback.output)
   const fallbackActive = JSON.parse(readFileSync(join(root, ".local/share/hapsland/active.json"), "utf8"))
   assert.deepEqual(fallbackActive.args, [join(checkout, "packages/cli-entry/dist/cli.js")])
-  assert.equal(fallbackActive.executable, process.execPath)
+  assert.equal(fallbackActive.executable, realpathSync(env.HAPSLAND_BUILD_BUN))
   for (const [home, file] of [
     [claudeHome, "settings.json"],
     [codexHome, "hooks.json"]

@@ -61,6 +61,12 @@ test("task projection scopes assembly inputs to the actual declared build and na
     )
   )
   assert.equal(result.tasks["@probe/input#native:darwin-arm64"].cache, false)
+  for (const task of [
+    "@probe/hook#assemble:linux-arm64",
+    "@probe/hook#assemble:darwin-arm64",
+    "@probe/pi#assemble:host"
+  ])
+    assert.ok(result.tasks[task].passThroughEnv.includes("HAPSLAND_BUILD_BUN"))
   assert.ok(!JSON.stringify(result).includes("dist/bin"))
 })
 test("unsupported profiles and missing producer scripts fail before config publication", () => {

@@ -345,7 +345,7 @@ same definitions as terminal help, rather than a separate maintained command lis
 **and enables it**. Its preview states the activation, scope, and concrete files
 before interactive writes. Edit the created JSON to define the actual concern.
 Creation preserves an existing authored file. Interactive create/connect offers
-personal scope with project selected by default; unattended changes specify scope.
+named Project and Personal choices, with Project selected by default; unattended changes specify scope. Scope selection alone authorizes no write. Interactive mutation previews the owner plan and requires full-line approval bound to that plan; a changed plan requires a new preview and approval.
 Neither operation opens an editor or calls the review backend.
 
 A `rules` entry contains either `path` to declare a rule or `id` to configure a rule

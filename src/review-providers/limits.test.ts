@@ -37,4 +37,13 @@ describe("provider request limits", () => {
       ])
     ).toBeUndefined()
   })
+  it("counts instruction limits in Unicode code points rather than UTF-16 units", () => {
+    const limit = reviewModelDefinition("gpt-6-luna").limits.questionInstructionsCharacters
+    if (limit === undefined) throw new Error("missing instruction limit")
+    const instructions = "🧪".repeat(limit)
+    const request = (text: string) =>
+      probabilityRequest("gpt-6-luna", {}, [{ id: "rule", decision: Decision.probability({ instructions: text }) }])
+    expect(requestLimitViolation("gpt-6-luna", request(instructions))).toBeUndefined()
+    expect(requestLimitViolation("gpt-6-luna", request(instructions + "x"))).toBe("question-instructions")
+  })
 })

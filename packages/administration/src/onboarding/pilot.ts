@@ -1,15 +1,27 @@
+import { Context, Effect, Exit, Schema, Terminal } from "effect"
 import { CLIENT_NAMES } from "@hapsland/runtime-environment/runtime/agent-clients"
+import { ConfigurationError } from "@hapsland/runtime-inputs/configuration/errors"
+import { JEV_PROVIDER } from "@hapsland/runtime-environment/runtime/backend"
+import { setupCommand as setupInvocation } from "@hapsland/runtime-environment/runtime/cli-names"
+import type { HostProcessResult } from "@hapsland/runtime-environment/process/closed-stdin"
+import { InteractionService } from "../interaction/interaction.ts"
 import { formatOutcome, formatStatusOutcome } from "./human-output.ts"
 import type { profileFields } from "./client-command.ts"
-import * as Effect from "effect/Effect"
-import * as Schema from "effect/Schema"
 import { formatInstallationRequirements, formatProposal } from "./client-lifecycle.ts"
 import type { SetupClient } from "./client-selection.ts"
-import type { SetupRequest, runSetup } from "./setup.ts"
-import type { execFileClosedStdin } from "@hapsland/runtime-environment/process/closed-stdin"
+import type { SetupRequest, SetupProgressObservation, runSetup } from "./setup.ts"
 import { credentialSourceGuidance } from "./credential-guidance.ts"
-import { JEV_PROVIDER } from "@hapsland/runtime-environment/runtime/backend"
-import { setupCommand } from "@hapsland/runtime-environment/runtime/cli-names"
+import type { VerificationOutcome } from "./verification-conversation.ts"
+import {
+  initialSetup,
+  reduceSetup,
+  setupCommand,
+  setupObservationReady,
+  type SetupModel,
+  type SetupEvent,
+  type SetupObservation,
+  type SetupCommand
+} from "./setup-model.ts"
 
 type SetupResult = Effect.Success<ReturnType<typeof runSetup>>
 type SetupStage = SetupResult["stages"][number]
@@ -20,190 +32,95 @@ export interface PilotOptions {
   readonly fields: ReturnType<typeof profileFields>
   readonly cwd: string
   readonly platform: NodeJS.Platform
+  readonly request?: SetupRequest
 }
-export interface PilotPorts {
-  readonly run: (request: SetupRequest, credentialEntered: () => void) => Effect.Effect<SetupResult, unknown>
+export interface SetupOwner {
+  readonly run: (
+    request: SetupRequest,
+    credentialEntered: () => void,
+    observeProgress: (progress: SetupProgressObservation) => Effect.Effect<void>
+  ) => Effect.Effect<SetupResult, unknown>
   readonly activate: Effect.Effect<void, unknown>
-  readonly doctor: Effect.Effect<Effect.Success<ReturnType<typeof execFileClosedStdin>>, unknown>
-  readonly verifyCredential: Effect.Effect<void, unknown>
-  readonly confirm: (question: string) => Effect.Effect<boolean, unknown>
-  readonly write: (text: string) => void
-  readonly exitCode: (code: number) => void
+  readonly doctor: Effect.Effect<HostProcessResult, unknown>
+  readonly verifyCredential: Effect.Effect<VerificationOutcome, unknown>
 }
-type PilotFrame = { readonly options: PilotOptions; readonly ports: PilotPorts; readonly hostName: string }
-const setupStage = (result: SetupResult, name: SetupStage["stage"]): SetupStage | undefined =>
-  result.stages.find((item) => item.stage === name)
-const stageSummary = (result: SetupResult, name: SetupStage["stage"]): string =>
-  setupStage(result, name)?.summary ?? "unavailable"
-const stageStatus = (result: SetupResult, name: SetupStage["stage"]): string => setupStage(result, name)?.status ?? ""
-const setupAction = (result: SetupResult, code: string) => result.actions.find((item) => item.code === code)
-const writeSetupActions = (result: SetupResult, ports: PilotPorts): void => {
-  for (const action of result.actions) ports.write(`${formatOutcome("info", `Next: ${action.action}.`)}\n`)
-}
-const compatibilitySetupReady = (frame: PilotFrame, result: SetupResult): boolean => {
-  if (stageStatus(result, "compatibility") === "complete") return true
-  frame.ports.write(
-    `${formatOutcome("error", `Cannot install Hapsland for the selected ${frame.hostName} executable.`)}\n`
-  )
-  for (const line of formatInstallationRequirements(setupStage(result, "compatibility")?.observed))
-    frame.ports.write(`${line}\n`)
-  frame.ports.write(`${result.actions[0]?.action ?? `Use a declared ${frame.hostName} profile.`}\n`)
-  frame.ports.exitCode(3)
-  return false
-}
-const installationSetupReady = (frame: PilotFrame, result: SetupResult): boolean => {
-  if (["complete", "pending", "partial"].includes(stageStatus(result, "installation"))) return true
-  frame.ports.write(
-    `${formatStatusOutcome(stageStatus(result, "installation"), `Installation: ${stageSummary(result, "installation")}.`)}\n`
-  )
-  writeSetupActions(result, frame.ports)
-  frame.ports.exitCode(result.status === "partial" ? 5 : 4)
-  return false
-}
-const installationStageProposal = (result: SetupResult): unknown => {
-  const observed = setupStage(result, "installation")?.observed
-  return typeof observed === "object" && observed !== null && "proposal" in observed ? observed.proposal : undefined
-}
-const setupAuthorization = Effect.fn("Pilot.setupAuthorization")(function* (
-  action: SetupResult["actions"][number] | undefined,
-  rulesAction: SetupResult["actions"][number] | undefined
-) {
-  const digest = action?.authorization?.installProposalDigest
-  if (action !== undefined && digest === undefined)
-    return yield* Effect.fail(new Error("installation preview omitted its approval digest"))
-  const rulesDigest = rulesAction?.authorization?.rulesProposalDigest
+export class SetupOwnerService extends Context.Service<SetupOwnerService, SetupOwner>()(
+  "@hapsland/administration/SetupOwner"
+) {}
+export type SetupTransition = { before: SetupModel; event: SetupEvent; after: SetupModel }
+export type SetupOutcome = { kind: "completed" | "cancelled" | "back"; model: SetupModel; exitCode: number }
+const stage = (result: SetupResult, name: SetupStage["stage"]) => result.stages.find((item) => item.stage === name)
+const stageLine = (result: SetupResult, name: SetupStage["stage"], label: string, suffix = "") =>
+  `${formatStatusOutcome(stage(result, name)?.status ?? "", `${label}: ${stage(result, name)?.summary ?? "unavailable"}.${suffix}`)}\n`
+const action = (result: SetupResult, code: string) => result.actions.find((item) => item.code === code)
+const record = (value: unknown): Record<string, unknown> | undefined =>
+  typeof value === "object" && value !== null ? (value as Record<string, unknown>) : undefined
+const safeCredential = (stages: SetupProgressObservation["stages"]): SetupObservation["credential"] => {
+  const credential = record(stages.find((item) => item.stage === "credential")?.observed)
+  if (typeof credential?.status !== "string") return undefined
   return {
-    ...(digest === undefined ? {} : { installProposalDigest: digest }),
-    ...(rulesDigest === undefined ? {} : { rulesProposalDigest: rulesDigest })
+    status: credential.status,
+    ...(typeof credential.generation !== "number" ? {} : { generation: credential.generation })
   }
-})
-const approveSetupInstallation = Effect.fn("Pilot.approveInstallation")(function* (
-  frame: PilotFrame,
-  result: SetupResult,
-  request: SetupRequest
-) {
-  const action = setupAction(result, "approve-installation") ?? setupAction(result, "resume-installation")
-  const rulesAction = setupAction(result, "approve-default-rules")
-  if (action === undefined && rulesAction === undefined) return request
-  frame.ports.write(`Installation preview:\n${formatProposal(installationStageProposal(result)).join("\n")}\n`)
-  if (rulesAction !== undefined) frame.ports.write(`Rules preview: ${rulesAction.action}.\n`)
-  if (!(yield* frame.ports.confirm(`Apply these setup changes for ${frame.hostName}?`))) {
-    frame.ports.write(
-      `${formatOutcome("info", `Installation was not changed. Run ${setupCommand(frame.options.host)} to resume.`)}\n`
-    )
-    return undefined
+}
+const progressObservation = (progress: SetupProgressObservation): SetupObservation => {
+  const credential = safeCredential(progress.stages)
+  return {
+    status: "in-progress",
+    stages: progress.stages.map((item) => ({ stage: item.stage, status: item.status })),
+    ...(credential === undefined ? {} : { credential })
   }
-  return { ...request, ...(yield* setupAuthorization(action, rulesAction)) }
+}
+const approvalDigest = (approval: SetupResult["actions"][number] | undefined, field: string): string | undefined => {
+  if (approval === undefined) return undefined
+  const digest = approval.authorization?.[field]
+  if (!digest) throw new Error("setup preview omitted its approval digest")
+  return digest
+}
+const observation = (result: SetupResult): SetupObservation => {
+  const installDigest = approvalDigest(
+    action(result, "approve-installation") ?? action(result, "resume-installation"),
+    "installProposalDigest"
+  )
+  const rulesDigest = approvalDigest(action(result, "approve-default-rules"), "rulesProposalDigest")
+  return {
+    ...progressObservation(result),
+    status: result.status,
+    ...(installDigest === undefined ? {} : { installDigest }),
+    ...(rulesDigest === undefined ? {} : { rulesDigest })
+  }
+}
+const approvedRequest = (request: SetupRequest, model: SetupModel): SetupRequest => ({
+  ...request,
+  interactive: true,
+  ...(model.installApproved === undefined ? {} : { installProposalDigest: model.installApproved }),
+  ...(model.rulesApproved === undefined ? {} : { rulesProposalDigest: model.rulesApproved })
 })
-const setupCredentialComplete = (result: SetupResult): boolean =>
-  stageStatus(result, "installation") === "complete" && stageStatus(result, "credential") === "complete"
-const reportSavedCredential = (frame: PilotFrame, result: SetupResult, entered: boolean): void => {
-  if (entered && stageStatus(result, "credential") === "complete")
-    frame.ports.write(
-      `${JEV_PROVIDER.name} key saved in ${frame.options.platform === "darwin" ? "Keychain" : "Secret Service"}.\n`
-    )
-}
-const reportInactiveSavedKey = (frame: PilotFrame, observed: unknown): void => {
-  if (typeof observed === "object" && observed !== null && "source" in observed && observed.source !== "saved")
-    frame.ports.write(
-      `${formatOutcome("warning", "The newly saved key is not active: an environment or file key takes priority.")}\n`
-    )
-}
-const reportSetupCredential = (frame: PilotFrame, result: SetupResult, entered: boolean): boolean => {
-  reportSavedCredential(frame, result, entered)
-  frame.ports.write(
-    `${formatStatusOutcome(stageStatus(result, "credential"), `Credential: ${stageSummary(result, "credential")}. No real verification or review was sent.`)}\n`
-  )
-  const complete = setupCredentialComplete(result)
-  if (!complete)
-    for (const line of credentialSourceGuidance(
-      setupStage(result, "credential")?.observed,
-      frame.options.host,
-      frame.options.platform
-    ))
-      frame.ports.write(`${formatOutcome("info", line)}\n`)
-  if (entered) reportInactiveSavedKey(frame, setupStage(result, "credential")?.observed)
-  if (complete) return true
-  frame.ports.write(`${formatOutcome("warning", "Setup incomplete: installation or credentials need attention.")}\n`)
-  writeSetupActions(result, frame.ports)
-  frame.ports.exitCode(result.status === "partial" ? 5 : 6)
-  return false
-}
-const reportSetupRepository = (frame: PilotFrame, result: SetupResult): boolean => {
-  frame.ports.write(
-    `${formatStatusOutcome(stageStatus(result, "repository"), `Repository: ${stageSummary(result, "repository")}.`)}\n`
-  )
-  if (stageStatus(result, "repository") === "complete") return true
-  frame.ports.write(`${formatOutcome("warning", "Setup incomplete: repository settings need attention.")}\n`)
-  writeSetupActions(result, frame.ports)
-  frame.ports.exitCode(6)
-  return false
+const staleRules = (error: unknown): boolean =>
+  error instanceof ConfigurationError && error.field === "rulesProposalDigest" && error.reason.includes("stale")
+const approvalView = (result: SetupResult, model: SetupModel, hostName: string) => {
+  const rules = model.phase === "RulesApproval"
+  const digest = rules ? model.proposal?.rulesDigest : model.proposal?.installDigest
+  if (!digest) throw new Error("Setup approval requires its current digest")
+  return {
+    kind: rules ? ("approveRules" as const) : ("approveHooks" as const),
+    digest,
+    message: rules ? "Apply these default rule changes?" : `Apply these setup changes for ${hostName}?`,
+    preview: rules
+      ? `Rules preview: ${action(result, "approve-default-rules")?.action ?? ""}.`
+      : `Installation preview:\n${formatProposal(record(stage(result, "installation")?.observed)?.proposal).join("\n")}`,
+    back: true
+  }
 }
 const SetupDiagnosis = Schema.Struct({
   status: Schema.String,
   nextSteps: Schema.optionalKey(Schema.Array(Schema.Struct({ action: Schema.String }))),
   checks: Schema.optionalKey(Schema.Array(Schema.Struct({ stage: Schema.String, status: Schema.String })))
 })
-const decodeSetupDiagnosis = Effect.fn("Pilot.decodeDiagnosis")(function* (stdout: string) {
-  const parsed = yield* Effect.try(() => JSON.parse(stdout))
-  return yield* Schema.decodeUnknownEffect(SetupDiagnosis)(parsed)
-})
-const writeSetupDiagnosis = (frame: PilotFrame, diagnosis: typeof SetupDiagnosis.Type): void => {
-  frame.ports.write(`${formatStatusOutcome(diagnosis.status, `Setup: offline readiness: ${diagnosis.status}.`)}\n`)
-  for (const next of diagnosis.nextSteps ?? []) frame.ports.write(`${formatOutcome("info", `Next: ${next.action}.`)}\n`)
-  for (const check of diagnosis.checks ?? []) {
-    if (check.status !== "ready")
-      frame.ports.write(`${formatStatusOutcome(check.status, `${check.stage}: ${check.status}.`)}\n`)
-  }
-  frame.ports.write(
-    `${formatOutcome("info", `Next: restart ${frame.hostName}, complete native repository and hook trust, then make an ordinary supported edit and inspect review activity. A real review was not verified by setup.`)}\n`
-  )
-}
-const diagnoseSetup = Effect.fn("Pilot.diagnose")(function* (frame: PilotFrame) {
-  const doctor = yield* frame.ports.doctor
-  if (!doctor.succeeded) {
-    frame.ports.write(
-      `${formatOutcome("error", `Readiness check could not complete. Run hapsland setup ${frame.options.host} again or hapsland doctor ${frame.options.host}.`)}\n`
-    )
-    frame.ports.exitCode(6)
-    return
-  }
-  const result = yield* decodeSetupDiagnosis(doctor.stdout).pipe(Effect.result)
-  if (result._tag === "Failure") {
-    frame.ports.write(
-      `${formatOutcome("error", `Readiness result was unreadable. Rerun hapsland setup ${frame.options.host} or hapsland doctor ${frame.options.host}.`)}\n`
-    )
-    frame.ports.exitCode(6)
-    return
-  }
-  writeSetupDiagnosis(frame, result.success)
-})
-const runApprovedSetup = Effect.fn("Pilot.runApproved")(function* (
-  frame: PilotFrame,
-  request: SetupRequest,
-  entered: () => void,
-  credentialWasEntered: () => boolean
-) {
-  const result = yield* frame.ports.run({ ...request, interactive: true }, entered)
-  frame.ports.write(
-    `${formatStatusOutcome(stageStatus(result, "installation"), `Installation: ${stageSummary(result, "installation")}.`)}\n`
-  )
-  if (["complete", "partial"].includes(stageStatus(result, "installation"))) yield* frame.ports.activate
-  if (!reportSetupCredential(frame, result, credentialWasEntered())) return
-  if (!reportSetupRepository(frame, result)) return
-  yield* frame.ports.verifyCredential
-  yield* diagnoseSetup(frame)
-})
-export const runPilotSetup = Effect.fn("Pilot.run")(function* (options: PilotOptions, ports: PilotPorts) {
-  if (!options.terminal) {
-    ports.write(
-      "Guided setup needs a terminal. Run hapsland --pilot there, or use hapsland --setup with a versioned JSON request.\n"
-    )
-    ports.exitCode(6)
-    return
-  }
-  const frame: PilotFrame = { options, ports, hostName: CLIENT_NAMES[options.host] }
-  const request: SetupRequest = {
+const decodeDiagnosis = (stdout: string) =>
+  Effect.try(() => JSON.parse(stdout)).pipe(Effect.flatMap(Schema.decodeUnknownEffect(SetupDiagnosis)))
+const previewRequest = (options: PilotOptions): SetupRequest => {
+  const request: SetupRequest = options.request ?? {
     version: 1,
     operation: "setup",
     ...options.fields,
@@ -211,17 +128,244 @@ export const runPilotSetup = Effect.fn("Pilot.run")(function* (options: PilotOpt
     credential: "saved",
     ...(options.newKey ? { newKey: true } : {})
   }
+  const {
+    interactive: _interactive,
+    installProposalDigest: _install,
+    rulesProposalDigest: _rules,
+    ...preview
+  } = request
+  return preview
+}
+export const runPilotSetup = Effect.fn("SetupConversation.run")(function* (
+  options: PilotOptions,
+  hooks: { observe?: (transition: SetupTransition) => Effect.Effect<void> } = {}
+) {
+  const owner = yield* SetupOwnerService
+  const interaction = yield* InteractionService
+  let model = initialSetup()
+  let current: SetupResult | undefined
   let credentialEntered = false
-  const entered = () => {
-    credentialEntered = true
+  const hostName = CLIENT_NAMES[options.host]
+  const readinessName = options.host === "codex" ? "Codex" : hostName
+  const request = previewRequest(options)
+  const dispatch = (action: SetupEvent["action"]) =>
+    Effect.gen(function* () {
+      const before = model
+      const event = { revision: before.revision, action }
+      model = reduceSetup(before, event)
+      yield* hooks.observe?.({ before, event, after: model }) ?? Effect.void
+    })
+  const writeActions = (result: SetupResult) =>
+    Effect.forEach(
+      result.actions,
+      (item) => interaction.present(`${formatOutcome("info", `Next: ${item.action}.`)}\n`),
+      { discard: true }
+    )
+  const reportPreview = (result: SetupResult) =>
+    Effect.gen(function* () {
+      if (stage(result, "compatibility")?.status !== "complete") {
+        yield* interaction.present(
+          `${formatOutcome("error", `Cannot install Hapsland for the selected ${hostName} executable.`)}\n`
+        )
+        for (const line of formatInstallationRequirements(stage(result, "compatibility")?.observed))
+          yield* interaction.present(`${line}\n`)
+        yield* interaction.present(`${result.actions[0]?.action ?? `Use a declared ${hostName} profile.`}\n`)
+      } else if (model.phase === "Done") {
+        yield* interaction.present(stageLine(result, "installation", "Installation"))
+        yield* writeActions(result)
+      }
+    })
+  const reportSavedCredential = (result: SetupResult) =>
+    Effect.gen(function* () {
+      if (credentialEntered && stage(result, "credential")?.status === "complete") {
+        yield* interaction.present(
+          `${JEV_PROVIDER.name} key saved in ${options.platform === "darwin" ? "Keychain" : "Secret Service"}.\n`
+        )
+        const observed = record(stage(result, "credential")?.observed)
+        if (observed?.source !== undefined && observed.source !== "saved")
+          yield* interaction.present(
+            `${formatOutcome("warning", "The newly saved key is not active: an environment or file key takes priority.")}\n`
+          )
+      }
+    })
+  const reportApplication = (result: SetupResult) =>
+    Effect.gen(function* () {
+      yield* interaction.present(stageLine(result, "installation", "Installation"))
+      yield* reportSavedCredential(result)
+      yield* interaction.present(
+        stageLine(result, "credential", "Credential", " No real verification or review was sent.")
+      )
+      yield* interaction.present(stageLine(result, "repository", "Repository"))
+      if (stage(result, "rules") !== undefined) yield* interaction.present(stageLine(result, "rules", "Rules"))
+      if (!setupObservationReady(progressObservation(result))) {
+        for (const line of credentialSourceGuidance(
+          stage(result, "credential")?.observed,
+          options.host,
+          options.platform
+        ))
+          yield* interaction.present(`${formatOutcome("info", line)}\n`)
+        yield* interaction.present(
+          `${formatOutcome("warning", "Setup incomplete: installation, credentials, rules or repository settings need attention.")}\n`
+        )
+        yield* writeActions(result)
+      }
+    })
+  const run = (id: number, applying: boolean) =>
+    Effect.gen(function* () {
+      const input = applying ? approvedRequest(request, model) : request
+      let sequence = 0
+      const result = yield* owner
+        .run(
+          input,
+          () => {
+            credentialEntered = true
+          },
+          (progress) =>
+            applying
+              ? dispatch({
+                  kind: "progressed",
+                  commandId: id,
+                  sequence: ++sequence,
+                  observation: progressObservation(progress)
+                })
+              : Effect.void
+        )
+        .pipe(Effect.result)
+      if (result._tag === "Failure") {
+        if (applying && staleRules(result.failure)) {
+          yield* dispatch({ kind: "stale", commandId: id })
+          yield* interaction.present(
+            "The default rules proposal changed. Preview the current changes and approve again.\n"
+          )
+          return
+        }
+        yield* dispatch({ kind: "failed", commandId: id })
+        return yield* Effect.fail(result.failure)
+      }
+      current = result.success
+      const safe = yield* Effect.try({
+        try: () => observation(result.success),
+        catch: () => new Error("setup preview omitted its approval digest")
+      })
+      yield* dispatch({ kind: applying ? "applied" : "previewed", commandId: id, observation: safe })
+      yield* applying ? reportApplication(result.success) : reportPreview(result.success)
+    })
+  const approve = () =>
+    Effect.gen(function* () {
+      if (!current) return yield* Effect.die(new Error("Setup approval requires an observed proposal"))
+      const view = yield* Effect.try({
+        try: () => approvalView(current!, model, hostName),
+        catch: () => new Error("Setup approval requires its current digest")
+      })
+      const answer = yield* interaction.confirm(view)
+      yield* dispatch(
+        answer.kind === "confirmed" ? { kind: view.kind, digest: view.digest, yes: answer.yes } : { kind: answer.kind }
+      )
+      if (answer.kind === "confirmed" && !answer.yes)
+        yield* interaction.present(
+          `${formatOutcome("info", `No new setup changes were applied. Previously observed changes are retained. Run ${setupInvocation(options.host)} to resume.`)}\n`
+        )
+    }).pipe(
+      Effect.catchIf(
+        (error) => error instanceof Terminal.QuitError,
+        () => dispatch({ kind: "exit" })
+      )
+    )
+  const activate = (id: number) =>
+    Effect.gen(function* () {
+      const result = yield* owner.activate.pipe(Effect.result)
+      if (result._tag === "Failure") {
+        yield* dispatch({ kind: "failed", commandId: id })
+        yield* interaction.present(
+          "Public command activation failed. Observed installation and credential changes remain; keep this package and retry setup.\n"
+        )
+        return yield* Effect.fail(result.failure)
+      }
+      yield* dispatch({ kind: "activated", commandId: id })
+    })
+  const reportDiagnosis = (diagnosis: typeof SetupDiagnosis.Type) =>
+    Effect.gen(function* () {
+      yield* interaction.present(
+        `${formatStatusOutcome(diagnosis.status, `Setup: offline readiness: ${diagnosis.status}.`)}\n`
+      )
+      for (const next of diagnosis.nextSteps ?? [])
+        yield* interaction.present(`${formatOutcome("info", `Next: ${next.action}.`)}\n`)
+      for (const check of diagnosis.checks ?? [])
+        if (check.status !== "ready")
+          yield* interaction.present(`${formatStatusOutcome(check.status, `${check.stage}: ${check.status}.`)}\n`)
+      yield* interaction.present(
+        `${formatOutcome("info", `Next: restart ${readinessName}, complete native repository and hook trust, then make an ordinary supported edit and inspect review activity. A real review was not verified by setup.`)}\n`
+      )
+    })
+  const diagnose = (id: number) =>
+    Effect.gen(function* () {
+      const result = yield* owner.doctor
+      const diagnosis = result.succeeded ? yield* decodeDiagnosis(result.stdout).pipe(Effect.result) : undefined
+      if (!diagnosis || diagnosis._tag === "Failure") {
+        yield* interaction.present(
+          `${formatOutcome("error", `${result.succeeded ? "Readiness result was unreadable" : "Readiness check could not complete"}. Run hapsland setup ${options.host} again or hapsland doctor ${options.host}.`)}\n`
+        )
+        yield* dispatch({ kind: "diagnosed", commandId: id, status: "unavailable", succeeded: false })
+        return
+      }
+      yield* dispatch({ kind: "diagnosed", commandId: id, status: diagnosis.success.status, succeeded: true })
+      yield* reportDiagnosis(diagnosis.success)
+    })
+  const runCommand = (command: SetupCommand) =>
+    Effect.gen(function* () {
+      switch (command.kind) {
+        case "preview":
+          yield* run(command.id, false)
+          break
+        case "apply":
+          yield* run(command.id, true)
+          break
+        case "activate":
+          yield* activate(command.id)
+          break
+        case "verify":
+          yield* dispatch({ kind: "verified", commandId: command.id, outcome: yield* owner.verifyCredential })
+          break
+        case "diagnose":
+          yield* diagnose(command.id)
+          break
+      }
+    })
+  if (!options.terminal) {
+    yield* interaction.present(
+      "Guided setup needs a terminal. Run hapsland --pilot there, or use hapsland --setup with a versioned JSON request.\n"
+    )
+    return { kind: "completed", model: { ...model, phase: "Done", exitCode: 6 }, exitCode: 6 } satisfies SetupOutcome
   }
-  ports.write(
-    `${frame.hostName} review integration setup. Selected profile hooks apply across repositories according to file settings. Installation and local checks make no ${JEV_PROVIDER.name} calls; an optional key verification is offered separately.\n`
+  yield* interaction.present(
+    `${hostName} review integration setup. Selected profile hooks apply across repositories according to file settings. Installation and local checks make no ${JEV_PROVIDER.name} calls; an optional key verification is offered separately.\n`
   )
-  const result = yield* ports.run(request, entered)
-  if (!compatibilitySetupReady(frame, result)) return
-  if (!installationSetupReady(frame, result)) return
-  const approved = yield* approveSetupInstallation(frame, result, request)
-  if (approved === undefined) return
-  yield* runApprovedSetup(frame, approved, entered, () => credentialEntered)
+  return yield* Effect.gen(function* () {
+    while (!["Done", "Cancelled", "Back", "Failed"].includes(model.phase)) {
+      const command = setupCommand(model)
+      if (!command) {
+        yield* approve()
+        continue
+      }
+      yield* runCommand(command)
+    }
+    return {
+      kind: model.phase === "Cancelled" ? "cancelled" : model.phase === "Back" ? "back" : "completed",
+      model,
+      exitCode: model.exitCode
+    } satisfies SetupOutcome
+  }).pipe(
+    Effect.onExit((exit) =>
+      Exit.isFailure(exit)
+        ? interaction.present(
+            `Setup stopped. Observed stages: ${
+              model.observations
+                .at(-1)
+                ?.stages.map((item) => `${item.stage}=${item.status}`)
+                .join(", ") ?? "none"
+            }. Activation: ${model.activation}. Previously observed changes remain; no rollback is implied.\n`
+          )
+        : Effect.void
+    )
+  )
 })

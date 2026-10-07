@@ -10,7 +10,10 @@ export type ClientChoice = {
 }
 
 /** Selection controls setup targets; unchecking never removes registrations. */
-export const selectSetupClients = Effect.fn("ClientSelection.select")(function* (choices: ReadonlyArray<ClientChoice>) {
+export const selectSetupClients = Effect.fn("ClientSelection.select")(function* (
+  choices: ReadonlyArray<ClientChoice>,
+  selected?: ReadonlyArray<SetupClient>
+) {
   const interaction = yield* InteractionService
   yield* interaction.present("Unchecking an agent keeps its existing installation.\n")
   const answer = yield* interaction
@@ -20,7 +23,7 @@ export const selectSetupClients = Effect.fn("ClientSelection.select")(function* 
         id: choice.host,
         title: `${choice.name} — ${choice.status}`,
         value: choice.host,
-        selected: choice.status === "installed"
+        selected: selected === undefined ? choice.status === "installed" : selected.includes(choice.host)
       })),
       back: false
     })

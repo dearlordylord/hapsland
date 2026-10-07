@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto"
+import { terminalModesEquivalent } from "@hapsland/administration/credentials/terminal"
 import { commandHooks } from "@hapsland/runtime-environment/runtime/hook-catalog"
 import { isDeepStrictEqual } from "node:util"
 import { standaloneEnvironment } from "./test-harness/standalone-environment.mjs"
@@ -82,9 +83,23 @@ const invokeDemo = async (cli, cwd, env, request, expectedExit, label) => {
   return output
 }
 
+// Observe the installed command's cleanup before the enclosing PTY exits.
+// Preserve its exit status so the existing journey assertions remain independent.
+const observeTerminalModes = (command) =>
+  `trap 'true' INT; before=$(stty -g < /dev/tty) || exit 98; ${command}; code=$?; after=$(stty -g < /dev/tty) || exit 99; printf '\\nMODEBEFORE:%s\\nMODEAFTER:%s\\nEXIT:%s\\n' "$before" "$after" "$code"; exit "$code"`
+const expectRestoredTerminal = (output, expectedExit) => {
+  const modes = /MODEBEFORE:([^\r\n]+)\r?\nMODEAFTER:([^\r\n]+)\r?\nEXIT:(\d+)/.exec(output)
+  expect(modes !== null, "installed terminal command omitted its before/after mode observation")
+  expect(
+    terminalModesEquivalent(process.platform, modes[1], modes[2]),
+    "installed terminal command changed terminal settings"
+  )
+  expect(Number(modes[3]) === expectedExit, "terminal observation disagreed with the installed command exit")
+}
+
 const runMaskedSetup = (cli, cwd, env, requestPath, marker) =>
   new Promise((resolveRun, rejectRun) => {
-    const command = `${quote(cli)} --setup < ${quote(requestPath)}`
+    const command = observeTerminalModes(`${quote(cli)} --setup < ${quote(requestPath)}`)
     const terminal =
       process.platform === "darwin"
         ? ["python3", [join(projectRoot, "scripts/pty-bridge.py"), "/bin/sh", "-c", command]]
@@ -116,6 +131,7 @@ const runMaskedSetup = (cli, cwd, env, requestPath, marker) =>
       try {
         const expectedExit = 6
         expect(code === expectedExit, `masked packaged setup exited ${code}: ${output}`)
+        expectRestoredTerminal(output, expectedExit)
         expect(supplied, "masked packaged setup never requested terminal input")
         expect(!output.includes(marker), "masked packaged setup echoed the credential")
         const encoded = output.split(/\r?\n/).find((line) => line.startsWith('{"version":1,"operation":"setup"'))
@@ -129,9 +145,10 @@ const runMaskedSetup = (cli, cwd, env, requestPath, marker) =>
 
 const runGuidedPilot = (cli, cwd, env, codexHome, codexExecutable, answers, commandOverride, expectedExit = 0) =>
   new Promise((resolveRun, rejectRun) => {
-    const command =
+    const command = observeTerminalModes(
       commandOverride ??
-      `${quote(cli)} setup codex --codex-home=${quote(codexHome)} --codex-executable=${quote(codexExecutable)}`
+        `${quote(cli)} setup codex --codex-home=${quote(codexHome)} --codex-executable=${quote(codexExecutable)}`
+    )
     const terminal =
       process.platform === "darwin"
         ? ["python3", [join(projectRoot, "scripts/pty-bridge.py"), "/bin/sh", "-c", command]]
@@ -146,7 +163,7 @@ const runGuidedPilot = (cli, cwd, env, codexHome, codexExecutable, answers, comm
     const observe = (chunk) => {
       output += chunk
       while (answered < answers.length && output.includes(answers[answered].prompt)) {
-        child.stdin.write(`${answers[answered].value}\n`)
+        child.stdin.write(answers[answered].raw ?? `${answers[answered].value}\n`)
         answered += 1
       }
     }
@@ -162,6 +179,7 @@ const runGuidedPilot = (cli, cwd, env, codexHome, codexExecutable, answers, comm
       clearTimeout(timer)
       try {
         expect(code === expectedExit, `terminal command exited ${code} instead of ${expectedExit}`)
+        expectRestoredTerminal(output, expectedExit)
         expect(answered === answers.length, `guided pilot answered ${answered} of ${answers.length} prompts`)
         resolveRun(output)
       } catch (cause) {
@@ -603,7 +621,8 @@ else if (operation === "probe") console.log('{"status":"available"}');
   const pilotMarker = "package-guided-pilot-secret"
   const pilotCodexExecutable = process.env.REVIEW_PILOT_CODEX_EXECUTABLE ?? codexExecutable
   const declinedPilot = await runGuidedPilot(cli, pilotRepository, pilotEnvironment, pilotHome, pilotCodexExecutable, [
-    { prompt: "Apply these setup changes", value: "y" },
+    { prompt: "Apply these setup changes for Codex CLI? [y/N]", value: "y" },
+    { prompt: "Apply these default rule changes? [y/N]", value: "y" },
     { prompt: "Jev API key:", value: pilotMarker },
     { prompt: "Verify this key with one request", value: "n" }
   ])
@@ -612,7 +631,10 @@ else if (operation === "probe") console.log('{"status":"available"}');
     "guided login did not confirm credential storage"
   )
   expect(declinedPilot.includes("No real verification or review was sent"), "guided login overstated verification")
-  expect(declinedPilot.includes("Key validity: not checked."), "guided setup did not decline key verification")
+  expect(
+    declinedPilot.includes("Key validity: not checked for this request."),
+    "guided setup did not decline key verification"
+  )
   expect(!declinedPilot.includes(pilotMarker), "guided credential appeared in terminal output")
   expect((await readFile(pilotVault, "utf8")) === pilotMarker, "guided credential was not saved")
   const approvedPilot = await runGuidedPilot(cli, pilotRepository, pilotEnvironment, pilotHome, pilotCodexExecutable, [
@@ -637,6 +659,20 @@ else if (operation === "probe") console.log('{"status":"available"}');
     invalidLogin.includes("Enter a nonempty Jev key"),
     "interactive invalid login omitted a concrete recovery step"
   )
+
+  const cancelledLogin = await runGuidedPilot(
+    cli,
+    pilotRepository,
+    pilotEnvironment,
+    pilotHome,
+    pilotCodexExecutable,
+    [{ prompt: "Jev API key:", raw: "\x1b" }],
+    `${quote(cli)} --login`,
+    6
+  )
+  expect(cancelledLogin.includes("Login: cancelled."), "hidden-input Escape did not cancel installed login")
+  expect(!cancelledLogin.includes(pilotMarker), "cancelled login disclosed the previous credential")
+  expect((await readFile(pilotVault, "utf8")) === pilotMarker, "cancelled login changed the previous credential")
 
   await assertNoProviderCall(capturePath)
   const fixtureActive = JSON.parse(
@@ -674,7 +710,9 @@ else if (operation === "probe") console.log('{"status":"available"}');
         "offline-first-review-demo",
         "disabled-completion",
         "interactive-masked-terminal",
-        "guided-pilot"
+        "guided-pilot",
+        "installed-hidden-input-terminal-restoration",
+        "installed-hidden-input-cancellation-preserves-credential"
       ]
     })}\n`
   )

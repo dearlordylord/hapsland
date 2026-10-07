@@ -348,7 +348,8 @@
       "passThroughEnv": [
         "HAPSLAND_BUILD_LOCK_LEASE",
         "HAPSLAND_BUILD_PROCESS_GROUP",
-        "HAPSLAND_BEND_PRODUCER_ENV"
+        "HAPSLAND_BEND_PRODUCER_ENV",
+        "HAPSLAND_BUILD_BUN"
       ]
     },
     "@hapsland/cli-entry#assemble:linux-arm64": {
@@ -423,7 +424,8 @@
       "passThroughEnv": [
         "HAPSLAND_BUILD_LOCK_LEASE",
         "HAPSLAND_BUILD_PROCESS_GROUP",
-        "HAPSLAND_BEND_PRODUCER_ENV"
+        "HAPSLAND_BEND_PRODUCER_ENV",
+        "HAPSLAND_BUILD_BUN"
       ]
     },
     "@hapsland/credential-storage#clean:compiler": {
@@ -684,7 +686,8 @@
       "passThroughEnv": [
         "HAPSLAND_BUILD_LOCK_LEASE",
         "HAPSLAND_BUILD_PROCESS_GROUP",
-        "HAPSLAND_BEND_PRODUCER_ENV"
+        "HAPSLAND_BEND_PRODUCER_ENV",
+        "HAPSLAND_BUILD_BUN"
       ]
     },
     "@hapsland/doctor-entry#assemble:linux-arm64": {
@@ -759,7 +762,8 @@
       "passThroughEnv": [
         "HAPSLAND_BUILD_LOCK_LEASE",
         "HAPSLAND_BUILD_PROCESS_GROUP",
-        "HAPSLAND_BEND_PRODUCER_ENV"
+        "HAPSLAND_BEND_PRODUCER_ENV",
+        "HAPSLAND_BUILD_BUN"
       ]
     },
     "@hapsland/hook-entry#clean:compiler": {
@@ -873,7 +877,8 @@
       "passThroughEnv": [
         "HAPSLAND_BUILD_LOCK_LEASE",
         "HAPSLAND_BUILD_PROCESS_GROUP",
-        "HAPSLAND_BEND_PRODUCER_ENV"
+        "HAPSLAND_BEND_PRODUCER_ENV",
+        "HAPSLAND_BUILD_BUN"
       ]
     },
     "@hapsland/hook-entry#assemble:linux-arm64": {
@@ -932,7 +937,8 @@
       "passThroughEnv": [
         "HAPSLAND_BUILD_LOCK_LEASE",
         "HAPSLAND_BUILD_PROCESS_GROUP",
-        "HAPSLAND_BEND_PRODUCER_ENV"
+        "HAPSLAND_BEND_PRODUCER_ENV",
+        "HAPSLAND_BUILD_BUN"
       ]
     },
     "@hapsland/hook-runtime#clean:compiler": {
@@ -1244,7 +1250,8 @@
       "passThroughEnv": [
         "HAPSLAND_BUILD_LOCK_LEASE",
         "HAPSLAND_BUILD_PROCESS_GROUP",
-        "HAPSLAND_BEND_PRODUCER_ENV"
+        "HAPSLAND_BEND_PRODUCER_ENV",
+        "HAPSLAND_BUILD_BUN"
       ]
     },
     "@hapsland/parser-entry#assemble:linux-arm64": {
@@ -1297,7 +1304,8 @@
       "passThroughEnv": [
         "HAPSLAND_BUILD_LOCK_LEASE",
         "HAPSLAND_BUILD_PROCESS_GROUP",
-        "HAPSLAND_BEND_PRODUCER_ENV"
+        "HAPSLAND_BEND_PRODUCER_ENV",
+        "HAPSLAND_BUILD_BUN"
       ]
     },
     "@hapsland/pi-extension#clean:compiler": {
@@ -1386,7 +1394,8 @@
       "passThroughEnv": [
         "HAPSLAND_BUILD_LOCK_LEASE",
         "HAPSLAND_BUILD_PROCESS_GROUP",
-        "HAPSLAND_BEND_PRODUCER_ENV"
+        "HAPSLAND_BEND_PRODUCER_ENV",
+        "HAPSLAND_BUILD_BUN"
       ]
     },
     "@hapsland/resident-entry#clean:compiler": {
@@ -1513,7 +1522,8 @@
       "passThroughEnv": [
         "HAPSLAND_BUILD_LOCK_LEASE",
         "HAPSLAND_BUILD_PROCESS_GROUP",
-        "HAPSLAND_BEND_PRODUCER_ENV"
+        "HAPSLAND_BEND_PRODUCER_ENV",
+        "HAPSLAND_BUILD_BUN"
       ]
     },
     "@hapsland/resident-entry#assemble:linux-arm64": {
@@ -1586,7 +1596,8 @@
       "passThroughEnv": [
         "HAPSLAND_BUILD_LOCK_LEASE",
         "HAPSLAND_BUILD_PROCESS_GROUP",
-        "HAPSLAND_BEND_PRODUCER_ENV"
+        "HAPSLAND_BEND_PRODUCER_ENV",
+        "HAPSLAND_BUILD_BUN"
       ]
     },
     "@hapsland/resident-runtime#clean:compiler": {

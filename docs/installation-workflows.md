@@ -119,7 +119,9 @@ directory is on PATH. npm selects the stable `latest` tag. Hapsland includes
 Bun 1.3.14 in its standalone executables. `--ignore-scripts` skips dependency installation scripts;
 the package carries the required prebuilt assets.
 
-Run setup from the Git repository you want reviewed. Select Claude Code, Codex CLI, and/or Pi with arrows and Space, then press Enter. Existing valid registrations are labeled `installed` and checked by default; unchecking a client leaves its hooks intact. Each selected client has its own change preview and confirmation. Escape cancels without writing registrations.
+Run setup from the Git repository you want reviewed. The first dialog focuses Continue. Use arrows to move and Space to toggle Claude Code, Codex CLI, Pi or Select All; Enter submits the focused action. Continue with an empty selection shows a warning and stays in the dialog. Existing valid registrations are labeled `installed` and checked by default; unchecking a client leaves its hooks intact. Each selected client has its own change preview and confirmation, and default-rule changes require separate approval.
+
+Escape exits the initial selection dialog and means Back on menus offering Back. Returning to selection preserves the selected agents. Back and Exit do not undo completed or partial changes; durable results explain what happened. Hidden-input cancellation exits the conversation rather than navigating Back. Write confirmation requires a complete affirmative line and defaults to declining; changing a preview requires fresh approval. See the [interaction inventory and replay diagrams](cli-interactions/README.md) for each workflow.
 
 For a specific client, bypass the selector with:
 

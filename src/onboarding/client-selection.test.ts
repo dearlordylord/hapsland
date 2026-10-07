@@ -52,3 +52,25 @@ it.effect.each(["exit", "eof"] as const)("%s exits without setup targets or cons
     expect(script.remaining()).toBe(1)
   })
 )
+
+it.effect.each([{ selected: [] }, { selected: ["codex"] }] as const)(
+  "Back preserves explicit selection %j instead of restoring installed defaults",
+  ({ selected }) =>
+    Effect.gen(function* () {
+      const script = scriptedInteraction([{ kind: "exit" }])
+      let seen: MultipleChoiceView<unknown> | undefined
+      yield* selectSetupClients(choices, selected).pipe(
+        Effect.provideService(InteractionService, {
+          ...script.interaction,
+          chooseMany: <A>(view: MultipleChoiceView<A>) => {
+            seen = view
+            return script.interaction.chooseMany(view)
+          }
+        })
+      )
+      expect(seen?.choices.map((choice) => [choice.id, choice.selected])).toEqual([
+        ["claude", false],
+        ["codex", selected.some((host) => host === "codex")]
+      ])
+    })
+)
