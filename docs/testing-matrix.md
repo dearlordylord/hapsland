@@ -720,6 +720,11 @@ home where personal state is outside the scenario; registration and dispatch use
 the same configuration selector. Keep tests of intentional precedence explicit.
 Installed focused checks supply the reviewed archive above rather than rebuilding
 inside an instrumented child. A passing build does not establish these assertions.
+Positive Pi finding assertions observe the actual classified batch through the
+configured resident before collection. A source recovery regression delays the
+reviewer beyond the finish window, then requires fresh advice after readiness;
+product callback deadlines stay unchanged. Queue idleness alone does not prove
+classification or delivery readiness.
 
 Keep essential behavioral coverage; delete repeated installed scenarios when
 source owners cover the semantics. A process test should establish one named

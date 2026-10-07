@@ -18,12 +18,21 @@ afterEach(async () => {
 })
 const settle = { entries: [], continue: false, context: { canContinue: true }, outcome: "completed" }
 const source = "type OrderCount = number\n"
-const recoveryEdit = async (f: ReturnType<typeof fixture>, id: string, oldText: string, newText: string) => {
+const recoveryEdit = async (
+  f: ReturnType<typeof fixture>,
+  id: string,
+  oldText: string,
+  newText: string,
+  readyAdvice = false
+) => {
   const edit = { ...before, toolCallId: id, input: { path: "type.ts", edits: [{ oldText, newText }] } }
   await f.call("tool_call", edit)
   writeFileSync(join(f.root, "type.ts"), `${newText}\n`)
   const patch = `--- type.ts\n+++ type.ts\n@@ -1 +1 @@\n-${oldText}\n+${newText}\n`
   const native = await f.call("tool_result", { ...result, ...edit, details: { patch } })
+  // Recovery readiness and classifier completion are separate from a bounded
+  // native callback. Observe the actual fresh batch before asking it to offer.
+  if (readyAdvice && native === undefined) await f.waitForAdvice()
   const finish = await f.call("agent_before_settle", settle)
   return native ?? finish
 }
@@ -39,7 +48,8 @@ const recoverAfterLoss = async (f: ReturnType<typeof fixture>, requireAdvice = t
     f,
     "recovery-after-ready",
     "type RecoveryCount = number",
-    "type RecoveryFinalCount = number"
+    "type RecoveryFinalCount = number",
+    true
   )
   expect(second).toBeDefined()
   expect(JSON.stringify(second)).toContain("type.ts :: RecoveryFinalCount")
@@ -136,6 +146,8 @@ describe.each(["source", "installed"] as const)(
         await f.call("tool_call", fresh, current)
         writeFileSync(join(current.cwd, "type.ts"), source)
         const native = await f.call("tool_result", { ...result, ...fresh }, current)
+        // The extension keeps its originating resident directory across roots.
+        if (native === undefined) await f.waitForAdvice()
         const finish = await f.call("agent_before_settle", settle, current)
         expect(JSON.stringify(native ?? finish)).toContain("type.ts :: OrderCount")
         await f.call("agent_settled", {}, current)
@@ -179,7 +191,9 @@ describe.each(["source", "installed"] as const)(
     // Installed resident loss during admitted review covers the stronger lifecycle boundary.
     if (mode === "source") {
       it("resident loss retires the old admission without replay and permits fresh work", async () => {
-        const f = fixture()
+        // Exceed the ordinary finish collection window without changing it:
+        // fresh classification must be observed independently after recovery.
+        const f = fixture(false, { delayMs: 4_250 })
         await f.prepareResident()
         await f.call("tool_call", before)
         const owner = JSON.parse(readFileSync(join(f.root, "runtime/owner.json"), "utf8"))
