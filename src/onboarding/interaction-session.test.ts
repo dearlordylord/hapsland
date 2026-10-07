@@ -59,3 +59,27 @@ it.effect("only one prompt owns input and interruption releases that ownership",
     expect(active).toBe(0)
   })
 )
+
+it.effect("a prompt interrupt reaches the session boundary before a workflow can mistake it for Exit", () =>
+  Effect.gen(function* () {
+    const { InputInterrupted } = yield* Effect.promise(() => import("@hapsland/administration/interaction/interaction"))
+    const interrupted = yield* Deferred.make<void>()
+    const script = scriptedInteraction([])
+    const input = yield* scopeInteraction(
+      { ...script.interaction, hidden: () => Effect.fail(new InputInterrupted({})) },
+      Deferred.succeed(interrupted, undefined).pipe(Effect.andThen(Effect.never))
+    )
+    let ordinaryExit = false
+    const prompt = yield* input.hidden("Key").pipe(
+      Effect.catchTag("QuitError", () =>
+        Effect.sync(() => {
+          ordinaryExit = true
+        })
+      ),
+      Effect.forkScoped
+    )
+    yield* Deferred.await(interrupted)
+    expect(ordinaryExit).toBe(false)
+    yield* Fiber.interrupt(prompt)
+  })
+)

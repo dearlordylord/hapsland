@@ -51,7 +51,7 @@
   },
   "scripts": {
     "docs:install": "node scripts/install-doc-link-checker.mjs && node scripts/install-bend-toolchain.mjs --github-actions",
-    "docs:check": "node --test scripts/check-doc-links.test.mjs && node scripts/check-doc-links.mjs && node scripts/generate-hook-index.mjs --check && npm run interaction:diagrams:check",
+    "docs:check": "node scripts/build-workspaces.mjs && node --test scripts/check-doc-links.test.mjs && node scripts/check-doc-links.mjs && node scripts/generate-hook-index.mjs --check && node --experimental-strip-types scripts/generate-interaction-diagrams.mts --check",
     "build": "node scripts/build-product.mjs",
     "prepack": "npm run build",
     "verify:release-native": "node scripts/verify-native-release.mjs",
@@ -100,8 +100,8 @@
     "test:content-isolation": "node packages/agent-flow-bend/scripts/check-content-isolation.mjs && node scripts/check-content-wire-mutants.mjs",
     "format:fix": "python3 scripts/bend-format.py fix",
     "format:check": "python3 scripts/bend-format.py check",
-    "interaction:diagrams:write": "node --experimental-strip-types scripts/generate-interaction-diagrams.mts --write",
-    "interaction:diagrams:check": "node --experimental-strip-types scripts/generate-interaction-diagrams.mts --check"
+    "interaction:diagrams:write": "node scripts/build-workspaces.mjs && node --experimental-strip-types scripts/generate-interaction-diagrams.mts --write",
+    "interaction:diagrams:check": "node scripts/build-workspaces.mjs && node --experimental-strip-types scripts/generate-interaction-diagrams.mts --check"
   },
   "devDependencies": {
     "@babel/parser": "catalog:",

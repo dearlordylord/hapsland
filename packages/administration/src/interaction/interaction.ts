@@ -3,7 +3,7 @@ import * as NodeServices from "@effect/platform-node/NodeServices"
 import { Context, Deferred, Effect, Layer, Terminal, type Redacted } from "effect"
 import * as Prompt from "effect/cli/Prompt"
 import { acquireControllingInput } from "./controlling-input.ts"
-import { makeTerminal, terminal, type TerminalInput } from "./terminal.ts"
+import { makeTerminal, type TerminalInput } from "./terminal.ts"
 import { selectionPrompt } from "./selection.ts"
 export type Navigation<A> = { kind: "selected"; value: A } | { kind: "back" } | { kind: "exit" }
 export type Confirmation = { kind: "confirmed"; yes: boolean } | { kind: "back" } | { kind: "exit" }
@@ -24,22 +24,29 @@ export interface Interaction {
 const theme = process.env.NO_COLOR
   ? { primaryColor: "", mutedColor: "", successColor: "", errorColor: "", submittedColor: "" }
   : {}
-export const runPrompt = <A>(prompt: Prompt.Prompt<A>, input = terminal) =>
-  Effect.scoped(
-    Prompt.run(prompt).pipe(Effect.provideService(Terminal.Terminal, input), Effect.provide(NodeServices.layer))
-  )
+export class InputInterrupted extends Terminal.QuitError {}
 // Navigation cancels only this prompt's input scope through a public Effect race.
-export const runNavigable = <A>(prompt: Prompt.Prompt<A>, escape: A, stdin: TerminalInput = process.stdin) =>
+export const runNavigable = <A>(
+  prompt: Prompt.Prompt<A>,
+  escape: A | undefined,
+  stdin: TerminalInput = process.stdin
+) =>
   Effect.scoped(
     Effect.gen(function* () {
-      const navigation = yield* Deferred.make<A>()
-      const input = makeTerminal(() => Deferred.doneUnsafe(navigation, Effect.succeed(escape)), stdin)
+      const navigation = yield* Deferred.make<A, InputInterrupted>()
+      const input = makeTerminal(
+        escape === undefined ? undefined : () => Deferred.doneUnsafe(navigation, Effect.succeed(escape)),
+        stdin,
+        () => Deferred.doneUnsafe(navigation, Effect.fail(new InputInterrupted({})))
+      )
       return yield* Effect.raceFirst(
         Prompt.run(prompt).pipe(Effect.provideService(Terminal.Terminal, input), Effect.provide(NodeServices.layer)),
         Deferred.await(navigation)
       )
     })
   )
+export const runPrompt = <A>(prompt: Prompt.Prompt<A>, stdin: TerminalInput = process.stdin) =>
+  runNavigable(prompt, undefined, stdin)
 const present = (text: string) =>
   Effect.sync(() => {
     process.stderr.write(text)
@@ -88,7 +95,7 @@ const interactionFor = (stdin: TerminalInput = process.stdin): Interaction => ({
       )
       return yield* runNavigable<Confirmation>(prompt, view.back ? { kind: "back" } : { kind: "exit" }, stdin)
     }),
-  hidden: (message) => runPrompt(Prompt.Hidden({ message, theme }), makeTerminal(undefined, stdin))
+  hidden: (message) => runPrompt(Prompt.Hidden({ message, theme }), stdin)
 })
 export const liveInteraction = interactionFor()
 

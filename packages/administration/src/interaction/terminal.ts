@@ -4,7 +4,7 @@ import type { Readable } from "node:stream"
 import { createInterface, emitKeypressEvents, type Key } from "node:readline"
 // Administration-owned stdin/stderr transport for Effect prompts.
 export type TerminalInput = Readable & { isRaw: boolean; setRawMode: (raw: boolean) => unknown }
-export const makeTerminal = (onEscape?: () => void, stdin: TerminalInput = process.stdin) =>
+export const makeTerminal = (onEscape?: () => void, stdin: TerminalInput = process.stdin, onInterrupt?: () => void) =>
   Terminal.make({
     columns: Effect.sync(() => process.stderr.columns || 80),
     rows: Effect.sync(() => process.stderr.rows || 24),
@@ -26,11 +26,12 @@ export const makeTerminal = (onEscape?: () => void, stdin: TerminalInput = proce
           const answer = (value: string) => complete(Effect.succeed(value))
           line.once("line", answer)
           line.once("close", quit)
-          line.once("SIGINT", quit)
+          const interrupt = () => (onInterrupt ? onInterrupt() : quit())
+          line.once("SIGINT", interrupt)
           return Effect.sync(() => {
             line.off("line", answer)
             line.off("close", quit)
-            line.off("SIGINT", quit)
+            line.off("SIGINT", interrupt)
           })
         }),
       ({ line, raw, flowing }) =>
@@ -46,6 +47,10 @@ export const makeTerminal = (onEscape?: () => void, stdin: TerminalInput = proce
       const flowing = stdin.readableFlowing
       emitKeypressEvents(stdin)
       const keypress = (input: string | undefined, key: Key) => {
+        if (key.ctrl && key.name === "c" && onInterrupt) {
+          onInterrupt()
+          return
+        }
         if (key.name === "escape" && onEscape) {
           onEscape()
           return
@@ -78,5 +83,3 @@ export const makeTerminal = (onEscape?: () => void, stdin: TerminalInput = proce
       return queue
     })
   })
-
-export const terminal = makeTerminal()

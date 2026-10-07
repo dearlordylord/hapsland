@@ -1,8 +1,8 @@
 // Administration: process/session lifetime; no workflow transitions or owner policy.
 import { Deferred, Effect, Semaphore, Terminal } from "effect"
-import { acquireInteraction, type Interaction } from "./interaction.ts"
+import { acquireInteraction, InputInterrupted, type Interaction } from "./interaction.ts"
 // A session owns a single input at a time and revokes its handle on scope exit.
-export const scopeInteraction = (adapter: Interaction) =>
+export const scopeInteraction = (adapter: Interaction, interrupted?: Effect.Effect<never>) =>
   Effect.gen(function* () {
     const gate = yield* Semaphore.make(1)
     const inputEnded = yield* Deferred.make<void>()
@@ -28,6 +28,7 @@ export const scopeInteraction = (adapter: Interaction) =>
             Effect.gen(function* () {
               terminated = true
               yield* Deferred.succeed(inputEnded, undefined)
+              if (error instanceof InputInterrupted && interrupted) return yield* interrupted
               return yield* Effect.fail(error)
             })
           )
@@ -58,7 +59,10 @@ export const withInteractionSession = <A, E>(
       )
       return yield* Effect.raceFirst(
         Effect.gen(function* () {
-          const interaction = yield* scopeInteraction(yield* acquireInteraction(source))
+          const interaction = yield* scopeInteraction(
+            yield* acquireInteraction(source),
+            Deferred.succeed(stop, undefined).pipe(Effect.andThen(Effect.never))
+          )
           return yield* use(interaction)
         }),
         Deferred.await(stop).pipe(Effect.flatMap(() => interrupted))

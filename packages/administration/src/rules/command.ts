@@ -9,9 +9,6 @@ import type { RulePlan } from "./interaction-model.ts"
 import { loadRuleInventory, formatRuleInventory, formatRule, explainRule } from "./inventory.ts"
 import { applyRuleChange, previewRuleChange, type RuleChange } from "./management.ts"
 
-export const formatRuleChangePreview = (plan: Effect.Success<ReturnType<typeof previewRuleChange>>): string =>
-  `Scope: ${plan.change.scope}\nConfiguration: ${plan.configurationPath}\n${plan.path === undefined ? "" : `Rule file: ${plan.path}\n`}${plan.change.action === "create" || plan.change.action === "connect" ? `This will update the rule settings in ${plan.configurationPath}. The rule will be ${plan.enabled ? "enabled" : "disabled"}.\n` : `The rule will be ${plan.enabled ? "enabled" : "disabled"}.\n`}`
-
 type RuleInspectionAction = "list" | "show" | "explain"
 const inspectionAction = (action: RulesOptions["action"]): action is RuleInspectionAction =>
   action === "list" || action === "show" || action === "explain"

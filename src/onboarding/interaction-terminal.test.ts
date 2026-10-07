@@ -52,3 +52,33 @@ it("Enter on the initial Continue row stays when empty; Space on Select All enab
   })
   expect(selectionUpdate(initial, "escape", options)).toEqual({ _tag: "Submit", value: { kind: "cancel" } })
 })
+
+it.effect("raw Ctrl+C preserves interrupt identity instead of becoming ordinary Exit", () =>
+  Effect.gen(function* () {
+    const { InputInterrupted, runNavigable } = yield* Effect.promise(
+      () => import("@hapsland/administration/interaction/interaction")
+    )
+    const Prompt = yield* Effect.promise(() => import("effect/cli/Prompt"))
+    const input = new Input()
+    const ready = yield* Deferred.make<void>()
+    const setRawMode = input.setRawMode.bind(input)
+    input.setRawMode = (raw) => {
+      const result = setRawMode(raw)
+      if (raw) Deferred.doneUnsafe(ready, Effect.void)
+      return result
+    }
+    const prompt = yield* runNavigable(
+      Prompt.Select({ message: "Choose", choices: [{ title: "Continue", value: "continue" }] }),
+      "exit",
+      input
+    ).pipe(Effect.forkScoped)
+    yield* Deferred.await(ready)
+    input.emit("keypress", String.fromCharCode(3), { name: "c", ctrl: true })
+    const result = yield* Fiber.join(prompt).pipe(Effect.result)
+    expect(result._tag).toBe("Failure")
+    if (result._tag === "Failure") expect(result.failure).toBeInstanceOf(InputInterrupted)
+    expect(input.isRaw).toBe(false)
+    expect(input.listenerCount("keypress")).toBe(0)
+    input.destroy()
+  })
+)
