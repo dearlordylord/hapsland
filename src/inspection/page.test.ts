@@ -106,3 +106,39 @@ describe("inspection filter defaults", () => {
     expect(script).toContain("resetFilters();\nconnect();")
   })
 })
+
+describe("inspection activity timestamps", () => {
+  it("updates at a constant retained count and includes edits without classifier calls", () => {
+    const elements = new Map(
+      ["#last-event", "#last-edit"].map((id) => [
+        id,
+        {
+          textContent: "",
+          datetime: "",
+          setAttribute(_name: string, value: string) {
+            this.datetime = value
+          },
+          removeAttribute() {
+            this.datetime = ""
+          }
+        }
+      ])
+    )
+    const renderActivity = new Script(
+      script.slice(script.indexOf("function renderActivity("), script.indexOf("function render(snapshot)")) +
+        "\nrenderActivity"
+    ).runInNewContext({ document: { querySelector: (id: string) => elements.get(id) } })
+    const edit = { capturedAt: 1000, fact: { kind: "edit-received" } }
+    const event = { capturedAt: 2000, fact: { kind: "evaluation-outcome" } }
+    renderActivity([event, edit])
+    expect(elements.get("#last-edit")!.datetime).toBe(new Date(1000).toISOString())
+    expect(elements.get("#last-event")!.datetime).toBe(new Date(2000).toISOString())
+    renderActivity([event, { ...edit, capturedAt: 3000 }])
+    expect(elements.get("#last-edit")!.datetime).toBe(new Date(3000).toISOString())
+    expect(elements.get("#last-event")!.datetime).toBe(new Date(3000).toISOString())
+    renderActivity([])
+    expect(elements.get("#last-edit")!.datetime).toBe("")
+    expect(elements.get("#last-event")!.textContent).toBe("No retained events")
+    expect(script).toContain("renderActivity(snapshot.records)")
+  })
+})

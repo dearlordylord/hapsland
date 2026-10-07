@@ -387,9 +387,23 @@ function renderFindings(records) {
     }
   }
 }
+function renderActivity(records) {
+  let latestEvent = null, latestEdit = null;
+  for (const record of records) {
+    if (latestEvent === null || record.capturedAt > latestEvent) latestEvent = record.capturedAt;
+    if (record.fact.kind === 'edit-received' && (latestEdit === null || record.capturedAt > latestEdit)) latestEdit = record.capturedAt;
+  }
+  for (const [id, timestamp] of [['last-event', latestEvent], ['last-edit', latestEdit]]) {
+    const element = document.querySelector('#' + id);
+    element.textContent = timestamp === null ? 'No retained events' : new Date(timestamp).toLocaleString();
+    if (timestamp === null) element.removeAttribute('datetime');
+    else element.setAttribute('datetime', new Date(timestamp).toISOString());
+  }
+}
 function render(snapshot) {
   if (snapshot.status === 'unavailable') { status.textContent = 'History temporarily unavailable'; renderRecording({}); return; }
   current = snapshot;
+  renderActivity(snapshot.records);
   updateFilters(snapshot);
   renderRecording(snapshot);
   status.textContent = snapshot.discovery ? snapshot.discovery.connected + ' sources connected' + (snapshot.discovery.omitted ? ' · ' + snapshot.discovery.omitted + ' omitted' : '') : 'Source discovery unavailable';
@@ -607,7 +621,7 @@ export const inspectionPagePolicy = `default-src 'none'; script-src ${hash(scrip
 export const inspectionPage = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hapsland inspection</title><link rel="icon" type="image/svg+xml" href="${inspectionFavicon}"><style>${style}</style><body>
 <header><h1><img class="brand-icon" src="${inspectionProductIcon}" alt="" width="32" height="32">Hapsland inspection</h1><div class="header-actions"><p id="status" role="status">Connecting…</p><span id="recording-summary">Recording: Unknown</span></div></header>
 <div class="toolbar"><label class="search">Search edits<input id="filter" type="search" placeholder="Path, project or runtime"></label><div id="filter-panel"><div class="identity-filters"><label>Project<span id="root-filter-count" class="muted"> · 0</span><select id="root-filter"><option value="">All</option></select></label><label>Runtime<span id="runtime-filter-count" class="muted"> · 0</span><select id="runtime-filter"><option value="">All</option></select></label><label>Session<span id="session-filter-count" class="muted"> · 0</span><select id="session-filter"><option value="">All</option></select></label><label>Child<span id="child-filter-count" class="muted"> · 0</span><select id="child-filter"><option value="">All</option></select></label><label>Resident<span id="resident-filter-count" class="muted"> · 0</span><select id="resident-filter"><option value="">All</option></select></label><label class="checkbox-filter"><input id="hide-unreviewed" type="checkbox"${defaultInspectionFilters.hideUnreviewed ? " checked" : ""}>Hide edits without classifier calls</label><button id="clear-filters" type="button">Clear filters</button></div></div></div>
-<main><section class="edit-list" aria-label="Captured edits"><p id="visible-count" class="muted" role="status"></p><p id="call-summary" class="muted"></p><ul id="edits"></ul></section><section id="selected-evidence" aria-label="Selected evidence"><p id="selection-status" role="status"></p><p id="edit-empty" class="empty">Select an edit</p><div id="edit-content" hidden><h2 id="edit-title"></h2><p id="edit-context" class="muted"></p><section id="review"><h3>Review</h3><div id="routes"></div><div id="finding-summary"></div></section>
+<main><section class="edit-list" aria-label="Captured edits"><p id="visible-count" class="muted" role="status"></p><p id="call-summary" class="muted"></p><p class="muted">Last captured event: <time id="last-event">No retained events</time><br>Last received edit: <time id="last-edit">No retained events</time><small>Across all retained activity, including hidden edits.</small></p><ul id="edits"></ul></section><section id="selected-evidence" aria-label="Selected evidence"><p id="selection-status" role="status"></p><p id="edit-empty" class="empty">Select an edit</p><div id="edit-content" hidden><h2 id="edit-title"></h2><p id="edit-context" class="muted"></p><section id="review"><h3>Review</h3><div id="routes"></div><div id="finding-summary"></div></section>
 <details id="panel-request"><summary id="request-panel-summary">Request</summary><p class="muted">Captured HTTP attempts do not confirm remote receipt.</p><ul id="requests"></ul><div id="request-view"></div><details id="request-raw"><summary>JSON</summary><pre id="exact"></pre></details><details><summary>Request metadata</summary><pre id="request-metadata"></pre></details><details><summary>Model input</summary><pre id="input"></pre></details></details>
 <details id="panel-files"><summary>Files</summary><div id="files"></div><details><summary>Included source</summary><pre id="source"></pre></details></details>
 <details id="panel-handoffs" open><summary id="handoff-panel-summary">To agent</summary><p id="handoff-note" class="muted" hidden>The resident message before runtime formatting. Preparation does not confirm agent receipt.</p><ul id="handoffs"></ul><p id="handoff-recipient" class="muted" hidden></p><div id="handoff-edits"></div><p id="handoff-output-status"></p><pre id="handoff-message" hidden></pre><details id="handoff-metadata" hidden><summary>Message metadata</summary><pre id="handoff-summary"></pre></details></details>
