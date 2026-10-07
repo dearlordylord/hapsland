@@ -149,13 +149,9 @@ ${selected
   )
   .join("\n")}`
 const check = (file, verdict = false) => {
-  // Kernel checking can approach five seconds on a busy shared runner. This is
-  // a runaway-process guard, independent of product deadlines and proof validity.
-  const result = spawnSync("bend", [file, verdict ? "--verdict" : "--check-only"], {
-    encoding: "utf8",
-    timeout: 15_000
-  })
-  assert.notEqual(result.error?.code, "ETIMEDOUT", `Bend checker exceeded 15 seconds: ${file}`)
+  // Keep every checker invocation within the law-driven development deadline.
+  const result = spawnSync("bend", [file, verdict ? "--verdict" : "--check-only"], { encoding: "utf8", timeout: 5_000 })
+  assert.notEqual(result.error?.code, "ETIMEDOUT", `Bend checker exceeded 5 seconds: ${file}`)
   return {
     ok: result.status === 0 && result.stdout.includes("ALL PROOFS CHECK"),
     output: result.stdout + result.stderr
@@ -272,3 +268,11 @@ try {
 } finally {
   rmSync(temporary, { recursive: true, force: true })
 }
+
+const journey = spawnSync(
+  process.execPath,
+  [join(root, "scripts/check-journey.mjs"), ...(process.argv.includes("--falsify-only") ? ["--falsify-only"] : [])],
+  { stdio: "inherit", timeout: 120_000 }
+)
+assert.ifError(journey.error)
+assert.equal(journey.status, 0, "Journey law gate failed")
