@@ -710,8 +710,7 @@ Credentials are references only. The selected key is read at dispatch from the n
 repository `.env.local`, repository `.env`, then the user Hapsland `.env` file.
 An explicit environment value, including empty, masks file values. Without a
 selected key, the built-in reference can use native saved login; explicit
-`credentialEnvVar` settings select environment/file authentication only. File
-credentials are not copied or persisted by Hapsland, and values are never printed
+`credentialEnvVar` settings select environment/file authentication only. Credential files are never copied into snapshots, caches, archives or worktrees, and values are never printed
 or included in diagnostics. See [credential lookup](installation-workflows.md#personal-development-on-your-own-clients) for file requirements.
 User-only `reviewBackend` settings select Jev, Cloudflare Clef/Clef-flash, or OpenAI Decisions (`gpt-6-luna`).
 Each selection determines a fixed provider origin and model route; arbitrary

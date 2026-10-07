@@ -2,7 +2,7 @@ import * as Schema from "effect/Schema"
 import * as Option from "effect/Option"
 import type { SetupClient } from "./client-selection.ts"
 import { JEV_PROVIDER, REVIEW_PROVIDERS, ReviewProviderId } from "@hapsland/runtime-environment/runtime/backend"
-import { NEW_KEY_FLAG, setupCommand } from "@hapsland/runtime-environment/runtime/cli-names"
+import { setupCommand } from "@hapsland/runtime-environment/runtime/cli-names"
 
 export const JEV_KEY_ENTRY_GUIDANCE = `Get a ${JEV_PROVIDER.name} API key from ${JEV_PROVIDER.credentialIssuer}: ${JEV_PROVIDER.keysUrl}\nUse the ${JEV_PROVIDER.credentialIssuer} key, not your coding agent or model-provider key. Paste it below and press Enter; input is hidden. Ctrl+C cancels.\n`
 
@@ -21,7 +21,7 @@ export const credentialSourceGuidance = (observed: unknown, host: SetupClient, p
   if (source.file !== undefined)
     return [
       `Selected key source: ${source.envVar} in ${source.file}.`,
-      `To replace it, edit ${source.envVar} in that file. ${NEW_KEY_FLAG} changes saved login only; it does not overwrite this file.`
+      `To replace it, run ${setupCommand(host, true)} and review the selected destination. Saving does not change lookup precedence.`
     ]
   if (source.source === "environment")
     return [

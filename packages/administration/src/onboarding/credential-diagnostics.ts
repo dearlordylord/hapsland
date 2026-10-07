@@ -1,4 +1,4 @@
-import type { CredentialResolution } from "@hapsland/credential-storage/credentials/secret-service"
+import type { CredentialResolution } from "@hapsland/credential-storage/credentials/owner"
 import type { DoctorCheck } from "./doctor.ts"
 
 type CredentialReadiness = Pick<CredentialResolution, "status" | "source" | "file">

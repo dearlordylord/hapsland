@@ -89,3 +89,21 @@ it("a fresh process independently reads the file without inherited key or enviro
   expect(JSON.parse(result.stdout)).toEqual({ present: true, file: true, unchanged: true })
   expect(result.stdout).not.toContain("synthetic-fresh-process")
 })
+
+it("an empty explicit environment selection cannot fall back to native storage", async () => {
+  const { resolveCredential } = await import("@hapsland/credential-storage/credentials/owner")
+  const result = await Effect.runPromise(
+    resolveCredential({
+      envVar: "TYPESAFE_API_KEY",
+      root,
+      userDirectory,
+      environmentOnly: false,
+      statePath: join(root, "state.json")
+    }).pipe(
+      Effect.provide(
+        ConfigProvider.layer(ConfigProvider.fromUnknown({ TYPESAFE_API_KEY: "" }, { preserveEmptyStrings: true }))
+      )
+    )
+  )
+  expect(result).toEqual({ status: "missing", source: "environment", generation: 0 })
+})

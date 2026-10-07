@@ -12,14 +12,10 @@ import {
 import { previewPiInstallation, installPiIntegration } from "./pi-installation.ts"
 import * as Effect from "effect/Effect"
 import { Terminal } from "effect"
-import { MaskedInputError } from "../credentials/masked-input.ts"
+import type { LoginModel } from "../credentials/login-model.ts"
 import { discoverWorkingTreeRoot } from "@hapsland/native-observation/repository/root"
 import { loadReviewSettings, type ReviewSettings } from "@hapsland/review-definition/runtime/review-config"
-import {
-  resolveCredential,
-  saveCredential,
-  type CredentialResolution
-} from "@hapsland/credential-storage/credentials/secret-service"
+import { resolveCredential, type CredentialResolution } from "@hapsland/credential-storage/credentials/owner"
 import { installCodexIntegration, previewCodexInstallation, type InstallationRequest } from "./codex-installation.ts"
 import {
   installClaudeIntegration,
@@ -95,7 +91,7 @@ export type SetupOptions = {
   readonly userConfigPath?: string
   /** Supplied only by the installed CLI's masked /dev/tty handoff. */
   readonly onProgress?: (progress: SetupProgressObservation) => Effect.Effect<void>
-  readonly readCredential?: () => Effect.Effect<string, unknown>
+  readonly credentialConversation?: (settings: ReviewSettings) => Effect.Effect<LoginModel, unknown>
 }
 
 type SetupProgress = {
@@ -363,45 +359,49 @@ const reportCredentialResolution = (
   }
 }
 
+const reportStoredCredential = (model: LoginModel, progress: SetupProgress) => {
+  progress.stages.push({
+    stage: "credential",
+    status: "complete",
+    summary: `credential saved in ${model.proposal?.plan.target ?? "the approved destination"}; effective source is observed separately`,
+    observed: {
+      storageStatus: "stored",
+      destination: model.proposal?.plan,
+      generation: model.storage?.state.generation,
+      valueDisclosed: false
+    }
+  })
+  progress.completed.push("credential stored in approved destination")
+}
+
 const readInteractiveCredential = Effect.fn("Setup.readCredential")(function* (
-  readCredential: () => Effect.Effect<string, unknown>,
+  conversation: (settings: ReviewSettings) => Effect.Effect<LoginModel, unknown>,
   settings: ReviewSettings
 ) {
   let resolution: CredentialResolution | undefined
   let interactiveOutcome: InteractiveCredentialOutcome | undefined
-  const valueResult = yield* readCredential().pipe(Effect.result)
-  if (valueResult._tag === "Success") {
-    let value = valueResult.success
-    const saved = yield* saveCredential(value).pipe(
-      Effect.ensuring(
-        Effect.sync(() => {
-          value = ""
-        })
-      )
-    )
-    if (saved.status === "stored") {
+  let saved: LoginModel | undefined
+  const modelResult = yield* conversation(settings).pipe(Effect.result)
+  if (modelResult._tag === "Success") {
+    const model = modelResult.success
+    if (model.storage?.status === "stored") {
+      saved = model
       resolution = yield* resolveCredential({
         envVar: settings.credentialEnvVar,
-        environmentOnly: false,
+        environmentOnly: settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in",
         root: settings.configuration.policy.root
       })
-    } else {
-      interactiveOutcome = {
-        status: saved.status,
-        generation: saved.state.generation,
-        savedCredentialUse: saved.state.savedUseSuspended ? "suspended" : "active"
-      }
-    }
-  } else {
-    const error = valueResult.failure
-    interactiveOutcome = {
-      status:
-        error instanceof Terminal.QuitError || (error instanceof MaskedInputError && error.reason === "cancelled")
-          ? "cancelled"
-          : "failed"
-    }
-  }
-  return { resolution, interactiveOutcome }
+    } else
+      interactiveOutcome =
+        model.storage === undefined
+          ? { status: "cancelled" }
+          : {
+              status: model.storage.status === "stale" ? "failed" : model.storage.status,
+              generation: model.storage.state.generation,
+              savedCredentialUse: model.storage.state.savedUseSuspended ? "suspended" : "active"
+            }
+  } else interactiveOutcome = { status: modelResult.failure instanceof Terminal.QuitError ? "cancelled" : "failed" }
+  return { resolution, interactiveOutcome, saved }
 })
 
 const maskedCredentialReader = (
@@ -410,14 +410,8 @@ const maskedCredentialReader = (
   resolution: CredentialResolution,
   installed: boolean
 ) => {
-  if (
-    request.credential === "saved" &&
-    request.interactive === true &&
-    resolution.source === "saved" &&
-    resolution.status === "missing" &&
-    installed
-  ) {
-    return options.readCredential
+  if (request.credential === "saved" && request.interactive === true && resolution.status === "missing" && installed) {
+    return options.credentialConversation
   }
   return undefined
 }
@@ -428,8 +422,8 @@ const newCredentialReader = (
   environmentOnly: boolean,
   installed: boolean
 ) => {
-  if (request.credential !== "saved" || environmentOnly || !installed || request.interactive !== true) return undefined
-  return options.readCredential
+  if (request.credential !== "saved" || !installed || request.interactive !== true) return undefined
+  return options.credentialConversation
 }
 
 const reportNewCredentialPending = (settings: ReviewSettings, environmentOnly: boolean, progress: SetupProgress) => {
@@ -464,6 +458,7 @@ const setupNewCredential = Effect.fn("Setup.newCredential")(function* (
     return
   }
   const result = yield* readInteractiveCredential(reader, settings)
+  if (result.saved !== undefined) reportStoredCredential(result.saved, progress)
   if (result.interactiveOutcome !== undefined) reportInteractiveCredential(result.interactiveOutcome, progress)
   else if (result.resolution !== undefined)
     reportCredentialResolution(request, settings, false, result.resolution, progress)
@@ -494,6 +489,7 @@ const setupCredential = Effect.fn("Setup.credential")(function* (
     const readCredential = maskedCredentialReader(request, options, resolution, installed)
     if (readCredential !== undefined) {
       const result = yield* readInteractiveCredential(readCredential, settings)
+      if (result.saved !== undefined) reportStoredCredential(result.saved, progress)
       interactiveOutcome = result.interactiveOutcome
       if (result.resolution !== undefined) resolution = result.resolution
     }

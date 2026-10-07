@@ -103,11 +103,12 @@ an invalid request, 3 is an unsupported host, 4 is a configuration/digest confli
 journaled partial completion that requires recovery. Code 6 means setup needs user action;
 standalone credential-store failures also use code 6.
 
-On Linux, login stores one product-owned default Jev credential in the session's persistent
-Secret Service collection. On macOS, it stores the owned generic password in the selected default
-Keychain and does not search, replace, or delete a matching item from another Keychain. Interactive
-login on both platforms reads from `/dev/tty` with terminal echo disabled using the platform's
-`stty` device flag.
+Guided login defaults to the user plaintext credential file and offers project-local or
+native saving as explicit alternatives; see the generated [credential policy](installation-workflows.md#personal-development-on-your-own-clients).
+When native storage is selected, Linux uses the session's persistent Secret Service
+collection and macOS uses the owned generic password in the selected default Keychain.
+It does not search, replace, or delete a matching item from another Keychain.
+Interactive login reads from one scoped controlling-terminal session with hidden input.
 Automation must opt into stdin explicitly; credential values are never accepted as arguments.
 
 ```sh

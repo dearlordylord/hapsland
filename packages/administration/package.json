@@ -275,6 +275,14 @@
     "./onboarding/verification-conversation": {
       "types": "./dist/onboarding/verification-conversation.d.ts",
       "default": "./dist/onboarding/verification-conversation.js"
+    },
+    "./credentials/direct-input": {
+      "types": "./dist/credentials/direct-input.d.ts",
+      "default": "./dist/credentials/direct-input.js"
+    },
+    "./credentials/direct-login-model": {
+      "types": "./dist/credentials/direct-login-model.d.ts",
+      "default": "./dist/credentials/direct-login-model.js"
     }
   },
   "dependencies": {

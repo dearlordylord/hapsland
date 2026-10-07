@@ -1,3 +1,4 @@
+import { credentialPolicy, deriveLookupPlan, deriveSavePlan } from "@hapsland/runtime-inputs/credentials/policy"
 import { JEV_PROVIDER, CLOUDFLARE_PROVIDER, REVIEW_PROVIDERS } from "@hapsland/runtime-environment/runtime/backend"
 import { PROJECT_CONFIGURATION_FILE } from "@hapsland/runtime-inputs/configuration/load"
 import * as Schema from "effect/Schema"
@@ -48,7 +49,31 @@ export const documentationFacts = (schema: Schema.Constraint = ConfigurationDocu
   const primitiveDomainDefinition = SHIPPED_DEFAULT_RULES.find((rule) => rule.id === "bare_domain_value")
   if (primitiveDomainDefinition === undefined)
     throw new Error("primitive domain rule is no longer shipped; update the first-rule walkthrough")
+  const credentialContext = {
+    envVar: JEV_PROVIDER.credentialEnvVar,
+    referenceExplicit: false,
+    captured: false,
+    root: "repository root",
+    userFile: "$XDG_CONFIG_HOME/hapsland/.env (normally ~/.config/hapsland/.env)",
+    projectLocalFile: "repository-root .env.local",
+    projectFile: "repository-root .env",
+    nativeTarget: "macOS Keychain or Linux Secret Service"
+  }
+  const destinations = credentialPolicy.destinations
+    .map((descriptor) => {
+      const plan = deriveSavePlan(credentialContext, descriptor.kind)!
+      return `- **${descriptor.title}${descriptor.kind === credentialPolicy.defaultDestination ? " — default" : ""}:** ${plan.target}. ${plan.storage}; ${plan.scope} scope.`
+    })
+    .join("\n")
+  const lookup = deriveLookupPlan(credentialContext)
+    .map((step) =>
+      step.kind === "environment" ? `environment variable \`${step.envVar}\`` : "file" in step ? step.file : step.target
+    )
+    .join(" → ")
+  const credentialText = `Guided login, setup and \`--new-key\` use these reviewed save destinations:\n\n${destinations}\n\nThe exact validated target and current selected source are shown before hidden key entry. Saving requires a separate full-line \`y\` confirmation with a declining default. Back discards entered key material; cancellation preserves the previous credential before saving. A changed proposal requires fresh entry and approval. Project saving requires an untracked, Git-ignored \`.env.local\`; Hapsland does not change ignore rules. Files are written with owner-only permissions using atomic replacement, preserving unrelated dotenv entries. Stored and effective credential sources are reported separately.\n\nLookup order: ${lookup}. An explicitly present environment value, including an empty one, stops lookup. Missing/empty file fields continue; unreadable, symlinked, nonregular or oversized files stop with a safe diagnostic. Explicit configured references allow environment/files and prohibit native fallback, including when they name the built-in variable. Callers without repository scope retain environment/native-only lookup. Captured hook inputs remain authoritative. Saving never changes lookup precedence and grants no paid-verification consent.\n\n\`hapsland --login --credential-stdin\` retains its explicit direct native-save automation contract without dialogs. \`hapsland --logout\` removes only the native saved item; it does not delete file credentials. Keys never enter models, traces, diagnostics or review configuration. Development setup uses the same flow against the reviewed repository and configured user directory; rebuild/update/activation preserves credentials and never copies them into snapshots, caches, archives or worktrees.`
   return [
+    { path: "README.md", name: "credential-policy", text: credentialText },
+    { path: "docs/installation-workflows.md", name: "credential-policy", text: credentialText },
     ...authoringExampleFacts(),
     {
       path: "docs/configuration.md",

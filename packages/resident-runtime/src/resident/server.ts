@@ -139,7 +139,7 @@ import {
   type OperationalNoticeKind
 } from "./collection.ts"
 import { residentEvaluationIdentity } from "./evaluation-reuse.ts"
-import { resolveCredential, type CredentialResolution } from "@hapsland/credential-storage/credentials/secret-service"
+import { resolveCredential, type CredentialResolution } from "@hapsland/credential-storage/credentials/owner"
 import { readCredentialState } from "@hapsland/runtime-inputs/credentials/state"
 import { claimDemoBudget } from "@hapsland/activity-observation/activity/demo-budget"
 import { findingFromProbability } from "@hapsland/review-definition/rules/decision"

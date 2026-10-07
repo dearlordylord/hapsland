@@ -4,7 +4,7 @@ import {
   saveCredential,
   type CredentialResolution,
   type CredentialLifecycleResult
-} from "@hapsland/credential-storage/credentials/secret-service"
+} from "@hapsland/credential-storage/credentials/owner"
 import { discoverWorkingTreeRoot } from "@hapsland/native-observation/repository/root"
 import { loadReviewSettings } from "@hapsland/review-definition/runtime/review-config"
 import {

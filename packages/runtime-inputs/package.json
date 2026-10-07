@@ -67,6 +67,10 @@
     "./matcher/index": {
       "types": "./dist/matcher/index.d.ts",
       "default": "./dist/matcher/index.js"
+    },
+    "./credentials/policy": {
+      "types": "./dist/credentials/policy.d.ts",
+      "default": "./dist/credentials/policy.js"
     }
   },
   "dependencies": {

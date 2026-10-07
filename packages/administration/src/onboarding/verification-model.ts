@@ -1,4 +1,4 @@
-import type { CredentialLifecycleResult } from "@hapsland/credential-storage/credentials/secret-service"
+import type { CredentialLifecycleResult } from "@hapsland/credential-storage/credentials/owner"
 
 export const MAX_KEY_CHECKS = 3
 export type KeyVerification = "accepted" | "rejected" | "forbidden" | "rate-limited" | "unconfirmed"

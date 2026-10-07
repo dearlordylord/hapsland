@@ -107,12 +107,22 @@ const runMaskedSetup = (cli, cwd, env, requestPath, marker) =>
     const child = spawn(terminal[0], terminal[1], { cwd, env, stdio: ["pipe", "pipe", "pipe"] })
     let output = ""
     let supplied = false
+    let selected = false
+    let approved = false
     const timer = setTimeout(() => {
       child.kill("SIGKILL")
       rejectRun(new Error(`masked packaged setup timed out: ${output}`))
     }, 10_000)
     const observe = (chunk) => {
       output += chunk
+      if (!selected && output.includes("Where should Hapsland save your Jev key?")) {
+        selected = true
+        child.stdin.write("\n")
+      }
+      if (!approved && output.includes("Save this key? [y/N]")) {
+        approved = true
+        child.stdin.write("y\n")
+      }
       if (!supplied && output.includes("Jev API key:")) {
         supplied = true
         child.stdin.write(`${marker}\n`)
@@ -277,6 +287,8 @@ try {
   const baseEnvironment = {
     ...standaloneEnvironment(join(temporary, "standalone-path")),
     HOME: publicHome,
+    XDG_CONFIG_HOME: join(publicHome, ".config"),
+    XDG_STATE_HOME: join(publicHome, ".local", "state"),
     REVIEW_STATE_PATH: join(stateRoot, "consent"),
     REVIEW_USER_CONFIG_PATH: join(stateRoot, "user.jsonc"),
     REVIEW_CREDENTIAL_STATE_PATH: join(stateRoot, "credential-state.json"),
@@ -601,7 +613,10 @@ else if (operation === "probe") console.log('{"status":"available"}');
     interactive.stages.some((stage) => stage.stage === "host-trust" && stage.status === "unknown"),
     "interactive setup overstated native trust"
   )
-  expect((await readFile(vault, "utf8")) === marker, "masked credential was not passed to owned storage")
+  expect(
+    (await readFile(join(publicHome, ".config", "hapsland", ".env"), "utf8")).includes(marker),
+    "masked credential was not passed to owned file storage"
+  )
 
   const pilotRepository = join(temporary, "pilot-repository")
   const pilotHome = join(temporary, "pilot-codex-home")
@@ -614,6 +629,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
   const pilotEnvironment = {
     ...interactiveEnvironment,
     TEST_SECRET_VAULT: pilotVault,
+    XDG_CONFIG_HOME: join(stateRoot, "pilot-config"),
     REVIEW_STATE_PATH: pilotState,
     REVIEW_USER_CONFIG_PATH: join(stateRoot, "pilot-user.jsonc"),
     REVIEW_CREDENTIAL_STATE_PATH: join(stateRoot, "pilot-credential-state.json")
@@ -623,20 +639,22 @@ else if (operation === "probe") console.log('{"status":"available"}');
   const declinedPilot = await runGuidedPilot(cli, pilotRepository, pilotEnvironment, pilotHome, pilotCodexExecutable, [
     { prompt: "Apply these setup changes for Codex CLI? [y/N]", value: "y" },
     { prompt: "Apply these default rule changes? [y/N]", value: "y" },
+    { prompt: "Where should Hapsland save your Jev key?", value: "" },
     { prompt: "Jev API key:", value: pilotMarker },
+    { prompt: "Save this key? [y/N]", value: "y" },
     { prompt: "Verify this key with one request", value: "n" }
   ])
-  expect(
-    declinedPilot.includes(`Jev key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}`),
-    "guided login did not confirm credential storage"
-  )
+  expect(declinedPilot.includes("credential is available from"), "guided login did not confirm credential storage")
   expect(declinedPilot.includes("No real verification or review was sent"), "guided login overstated verification")
   expect(
     declinedPilot.includes("Key validity: not checked for this request."),
     "guided setup did not decline key verification"
   )
   expect(!declinedPilot.includes(pilotMarker), "guided credential appeared in terminal output")
-  expect((await readFile(pilotVault, "utf8")) === pilotMarker, "guided credential was not saved")
+  expect(
+    (await readFile(join(stateRoot, "pilot-config", "hapsland", ".env"), "utf8")).includes(pilotMarker),
+    "guided credential was not saved"
+  )
   const approvedPilot = await runGuidedPilot(cli, pilotRepository, pilotEnvironment, pilotHome, pilotCodexExecutable, [
     { prompt: "Verify this key with one request", value: "n" }
   ])
@@ -651,7 +669,11 @@ else if (operation === "probe") console.log('{"status":"available"}');
     pilotEnvironment,
     pilotHome,
     pilotCodexExecutable,
-    [{ prompt: "Jev API key:", value: "" }],
+    [
+      { prompt: "Where should Hapsland save your Jev key?", value: "" },
+      { prompt: "Jev API key:", value: "" },
+      { prompt: "Save this key? [y/N]", value: "y" }
+    ],
     `${quote(cli)} --login`,
     6
   )
@@ -666,13 +688,95 @@ else if (operation === "probe") console.log('{"status":"available"}');
     pilotEnvironment,
     pilotHome,
     pilotCodexExecutable,
-    [{ prompt: "Jev API key:", raw: "\x1b" }],
+    [
+      { prompt: "Where should Hapsland save your Jev key?", value: "" },
+      { prompt: "Jev API key:", raw: "\x1b" }
+    ],
     `${quote(cli)} --login`,
     6
   )
   expect(cancelledLogin.includes("Login: cancelled."), "hidden-input Escape did not cancel installed login")
   expect(!cancelledLogin.includes(pilotMarker), "cancelled login disclosed the previous credential")
-  expect((await readFile(pilotVault, "utf8")) === pilotMarker, "cancelled login changed the previous credential")
+  expect(
+    (await readFile(join(stateRoot, "pilot-config", "hapsland", ".env"), "utf8")).includes(pilotMarker),
+    "cancelled login changed the previous credential"
+  )
+
+  // Exercise explicit replacement through the same packaged setup consumer used
+  // by dev-install. A saved user file remains selected across package activation.
+  const replacedMarker = "package-replacement-fixture"
+  const replacement = await runGuidedPilot(
+    cli,
+    pilotRepository,
+    pilotEnvironment,
+    pilotHome,
+    pilotCodexExecutable,
+    [
+      { prompt: "Where should Hapsland save your Jev key?", value: "" },
+      { prompt: "Jev API key:", value: replacedMarker },
+      { prompt: "Save this key? [y/N]", value: "y" },
+      { prompt: "Verify this key with one request", value: "n" }
+    ],
+    `${quote(cli)} setup codex --new-key --codex-home=${quote(pilotHome)} --codex-executable=${quote(pilotCodexExecutable)}`
+  )
+  const userFile = join(stateRoot, "pilot-config", "hapsland", ".env")
+  expect(
+    (await readFile(userFile, "utf8")).includes(replacedMarker),
+    "explicit new-key did not replace the approved user file"
+  )
+  expect(!replacement.includes(replacedMarker), "replacement disclosed the entered key")
+  const preserved = await readFile(userFile, "utf8")
+  await runGuidedPilot(cli, pilotRepository, pilotEnvironment, pilotHome, pilotCodexExecutable, [
+    { prompt: "Verify this key with one request", value: "n" }
+  ])
+  expect((await readFile(userFile, "utf8")) === preserved, "setup activation replaced a saved credential")
+
+  await writeFile(join(pilotRepository, ".gitignore"), ".env.local\n")
+  const projectMarker = "package-project-fixture"
+  const projectLogin = await runGuidedPilot(
+    cli,
+    pilotRepository,
+    pilotEnvironment,
+    pilotHome,
+    pilotCodexExecutable,
+    [
+      { prompt: "Where should Hapsland save your Jev key?", raw: "\x1b[B\r" },
+      { prompt: "Jev API key:", value: projectMarker },
+      { prompt: "Save this key? [y/N]", value: "y" }
+    ],
+    `${quote(cli)} --login`
+  )
+  expect(
+    (await readFile(join(pilotRepository, ".env.local"), "utf8")).includes(projectMarker),
+    "project login wrote outside the reviewed repository"
+  )
+  expect(
+    projectLogin.includes("Effective credential: project-local"),
+    "project login did not report the effective project source"
+  )
+  expect((await readFile(userFile, "utf8")) === preserved, "project saving changed the user file")
+  expect(!projectLogin.includes(projectMarker), "project login disclosed the key")
+
+  const nativeMarker = "package-native-fixture"
+  const nativeLogin = await runGuidedPilot(
+    cli,
+    pilotRepository,
+    pilotEnvironment,
+    pilotHome,
+    pilotCodexExecutable,
+    [
+      { prompt: "Where should Hapsland save your Jev key?", raw: "\x1b[B\x1b[B\r" },
+      { prompt: "Jev API key:", value: nativeMarker },
+      { prompt: "Save this key? [y/N]", value: "y" }
+    ],
+    `${quote(cli)} --login`
+  )
+  expect(
+    (await readFile(pilotVault, "utf8")) === nativeMarker,
+    "explicit native selection did not reach the native adapter"
+  )
+  expect(nativeLogin.includes("Effective credential: project-local"), "native saving changed file lookup precedence")
+  expect(!nativeLogin.includes(nativeMarker), "native login disclosed the key")
 
   await assertNoProviderCall(capturePath)
   const fixtureActive = JSON.parse(

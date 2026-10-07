@@ -20,7 +20,7 @@ import {
   resolveCredential,
   runSecretService,
   saveCredential
-} from "@hapsland/credential-storage/credentials/secret-service"
+} from "@hapsland/credential-storage/credentials/owner"
 
 const run = <A, E>(effect: Effect.Effect<A, E>) =>
   Effect.runPromise(
@@ -278,7 +278,7 @@ int main(void) {
     "does not steal a live lock and reclaims it after its owner is killed",
     async () => {
       const ready = join(root, "held-set-ready")
-      const moduleUrl = import.meta.resolve("@hapsland/credential-storage/credentials/secret-service")
+      const moduleUrl = import.meta.resolve("@hapsland/credential-storage/credentials/owner")
       const child = spawn(
         process.execPath,
         [

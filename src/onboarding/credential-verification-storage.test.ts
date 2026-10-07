@@ -4,7 +4,7 @@ import { mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { execFileSync } from "../../scripts/test-harness/process.mjs"
-import { saveCredential, resolveCredential } from "@hapsland/credential-storage/credentials/secret-service"
+import { saveCredential, resolveCredential } from "@hapsland/credential-storage/credentials/owner"
 import { type KeyVerification } from "@hapsland/administration/onboarding/credential-verification"
 import {
   nativeVerificationLayer,

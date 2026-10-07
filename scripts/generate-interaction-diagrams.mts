@@ -179,7 +179,7 @@ const program = Effect.gen(function* () {
   yield* Effect.sync(() => console.log("Verification diagram: 15 independently asserted replays"))
   yield* Effect.sync(() => console.log("Maintenance diagram: 13 independently asserted replays"))
   yield* Effect.sync(() => console.log("Update diagram: 9 independently asserted replays"))
-  yield* Effect.sync(() => console.log("Login diagram: 5 independently asserted replays"))
+  yield* Effect.sync(() => console.log("Login diagram: 8 independently asserted replays"))
   yield* Effect.sync(() =>
     console.log(
       `Rules diagram ${mode === "--write" ? "written" : "current"}; ${scenarios.length} independently asserted replays`

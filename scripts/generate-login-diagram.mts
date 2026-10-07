@@ -1,7 +1,6 @@
 import assert from "node:assert/strict"
 import { Effect } from "effect"
 import { InteractionService } from "@hapsland/administration/interaction/interaction"
-import { captureCredential } from "@hapsland/administration/credentials/masked-input"
 import {
   LoginOwnerService,
   runLoginConversation,
@@ -14,17 +13,30 @@ export const generateLoginDiagram = Effect.gen(function* () {
   const key = "controlled-private-replay-key"
   const edges = new Set<string>()
   const rows: string[] = []
-  const scenarios = ["stored", "cancelled", "locked", "busy", "indeterminate"] as const
+  const scenarios = ["stored", "declined", "back", "cancelled", "blocked", "stale", "busy", "indeterminate"] as const
   for (const name of scenarios) {
     const steps: ScriptStep[] =
-      name === "locked" ? [] : name === "cancelled" ? [{ kind: "eof" }] : [{ kind: "hidden", value: key }]
+      name === "blocked"
+        ? [{ kind: "choose", index: 1 }, { kind: "exit" }]
+        : [
+            { kind: "choose", index: 0 },
+            ...(name === "cancelled"
+              ? [{ kind: "eof" } as const]
+              : [
+                  { kind: "hidden", value: key } as const,
+                  ...(name === "back"
+                    ? [{ kind: "back" } as const, { kind: "exit" } as const]
+                    : [{ kind: "confirm", line: name === "declined" ? "" : "y" } as const]),
+                  ...(name === "stale"
+                    ? [{ kind: "hidden", value: key } as const, { kind: "confirm", line: "y" } as const]
+                    : [])
+                ])
+          ]
     const script = scriptedInteraction(steps)
     const transitions: LoginTransition[] = []
-    let probes = 0
+    let prepares = 0
     let saves = 0
     const result = yield* runLoginConversation({
-      input: captureCredential,
-      inputKind: "terminal",
       observe: (transition) =>
         Effect.sync(() => {
           transitions.push(transition)
@@ -32,70 +44,74 @@ export const generateLoginDiagram = Effect.gen(function* () {
     }).pipe(
       Effect.provideService(InteractionService, script.interaction),
       Effect.provideService(LoginOwnerService, {
-        probe: Effect.sync(() => {
-          probes++
-          return name === "locked" ? ("locked" as const) : ("available" as const)
-        }),
-        save: (value) =>
+        prepare: (destination) =>
+          Effect.sync(() => ({
+            id: `proposal-${++prepares}`,
+            plan: {
+              destination,
+              target: destination === "user" ? "/fixture/user/.env" : "/fixture/repo/.env.local",
+              scope: "fixture",
+              storage: "Local plaintext file"
+            },
+            availability: name === "blocked" ? ("blocked" as const) : ("available" as const),
+            reason: name === "blocked" ? "Project target is not Git-ignored" : undefined,
+            activeSource: "environment" as const,
+            activeFile: undefined
+          })),
+        save: (id, value) =>
           Effect.sync(() => {
+            assert.equal(id, `proposal-${prepares}`)
             assert.equal(value, key)
             saves++
-            assert(name === "stored" || name === "busy" || name === "indeterminate")
             return {
-              status: name,
-              state: { ...makeInitialCredentialState(), generation: 7, savedUseSuspended: name !== "stored" },
-              stateLock: name === "busy" ? ("busy" as const) : ("acquired" as const)
+              status:
+                name === "stale" && saves === 1
+                  ? ("stale" as const)
+                  : name === "busy"
+                    ? ("busy" as const)
+                    : name === "indeterminate"
+                      ? ("indeterminate" as const)
+                      : ("stored" as const),
+              state: { ...makeInitialCredentialState(), generation: 7, savedUseSuspended: name === "indeterminate" },
+              stateLock: "acquired" as const
             }
-          })
+          }),
+        active: () => Effect.succeed({ status: "present", source: "environment", generation: 7 }),
+        discard: () => Effect.void
       })
     )
-    assert.equal(probes, 1)
-    assert.equal(saves, name === "locked" || name === "cancelled" ? 0 : 1)
-    assert.equal(script.remaining(), 0)
-    assert.equal(result.model.phase, name === "cancelled" ? "Cancelled" : "Done")
-    if (name === "locked") assert.deepEqual(result.outcome, { kind: "unavailable", status: "locked" })
-    else if (name === "cancelled") assert.deepEqual(result.outcome, { kind: "cancelled" })
-    else {
-      assert.equal(result.model.storage?.status, name)
-      assert.equal(result.model.storage?.generation, 7)
-      assert.equal(result.model.storage?.savedUse, name === "stored" ? "active" : "suspended")
+    const cancelled = ["declined", "back", "cancelled", "blocked"].includes(name)
+    assert.equal(saves, cancelled ? 0 : name === "stale" ? 2 : 1)
+    assert.equal(result.phase, cancelled ? "Cancelled" : "Done")
+    if (!cancelled) {
+      assert.equal(result.storage?.status, name === "busy" || name === "indeterminate" ? name : "stored")
+      assert.equal(result.active?.source, "environment")
     }
-    assert(!JSON.stringify({ transitions, model: result.model, transcript: script.transcript }).includes(key))
+    assert.equal(script.remaining(), 0)
+    assert(!JSON.stringify({ transitions, result, transcript: script.transcript }).includes(key))
     for (const { before, event, after } of transitions) {
-      const action = event.action
-      const label =
-        action.kind === "observed"
-          ? `observed ${action.storage.status}`
-          : action.kind === "checked"
-            ? `checked ${action.status}`
-            : action.kind
+      const label = event.action.kind === "observed" ? `observed ${event.action.storage.status}` : event.action.kind
       edges.add(`  ${before.phase} -->|"${label}"| ${after.phase}`)
-      rows.push(
-        `| ${name} | ${before.revision} | ${label} | ${"commandId" in action ? action.commandId : "—"} | ${after.revision} |`
-      )
+      rows.push(`| ${name} | ${before.revision} | ${label} | ${after.revision} |`)
     }
   }
   return `# Login interaction
 
-**Purpose:** Show the production login conversation and correlation witnessed by its replays.
+**Purpose:** Show production credential destination selection and approved saving.
 **Status:** Maintained generated diagram.
-**Authority:** Implementation and controlled validation evidence for #244; accepted credential contracts and native owners retain product authority.
-**Expected use:** Inspect availability, hidden cancellation and storage outcomes; run \`npm run interaction:diagrams:check\` to check freshness without writing.
-**Lifecycle:** Regenerate with \`npm run interaction:diagrams:write\` whenever the production reducer, interpreter or replay cases change. Review when the accepted login interaction changes.
+**Authority:** Implementation and controlled validation evidence for #248; the issue and accepted credential contracts own requirements.
+**Expected use:** Inspect the named scenarios and run \`npm run interaction:diagrams:check\` for freshness.
+**Lifecycle:** Regenerate with production reducer, interpreter or replay changes; review when credential consent changes.
 
-These replays run the production interpreter and secret-capture adapter with scripted input and controlled owners. They perform no native credential writes or provider requests and do not validate a physical terminal. Availability is checked before input. Hidden cancellation exits without saving. Busy and indeterminate remain observed owner outcomes; they are not represented as successful saves. The explicit \`--credential-stdin\` route supplies input directly to the same conversation without a terminal dialog.
+These production interpreter/reducer replays use controlled owners and scripted interaction. They establish destination selection, separate decline-default confirmation, Back discarding input, blocked saving, stale reapproval, cancellation and observed storage outcomes. Storage and effective source remain separate: saving the user file here leaves the environment selected. Keys stay outside every trace. No native writes or provider requests occur; this does not establish physical terminal or platform support. The explicit \`--credential-stdin\` automation contract retains its direct native-save path without dialogs.
 
 \`\`\`mermaid
 flowchart TD
 ${[...edges].join("\n")}
 \`\`\`
 
-## Replay correlation
-
-The table records actual production transitions and command identities. Keys never enter models, events or this projection. Each replay independently asserts probe/save counts, consumed input and its expected outcome.
-
-| Replay | Input revision | Event | Command identity | Output revision |
-| --- | --- | --- | --- | --- |
+| Case | Before revision | Action | After revision |
+| --- | --- | --- | --- |
 ${rows.join("\n")}
 `
 })

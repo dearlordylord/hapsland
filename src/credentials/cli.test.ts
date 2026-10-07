@@ -230,13 +230,25 @@ if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}
     const command = `trap 'true' INT; before=$(stty -g); ${quote(bunExecutable())} ${quote(entrypoint)} --login; code=$?; after=$(stty -g); printf '\\nMODEBEFORE:%s\\nMODEAFTER:%s\\nEXIT:%s\\n' "$before" "$after" "$code"`
     const child = spawn(terminalCommand, terminalArguments(command), {
       cwd: root,
-      env: { ...process.env, REVIEW_CREDENTIAL_HELPER: helper, REVIEW_CREDENTIAL_STATE_PATH: join(root, "state.json") },
+      env: {
+        ...process.env,
+        HOME: root,
+        XDG_CONFIG_HOME: join(root, "config"),
+        TYPESAFE_API_KEY: undefined,
+        REVIEW_CREDENTIAL_HELPER: helper,
+        REVIEW_CREDENTIAL_STATE_PATH: join(root, "state.json")
+      },
       stdio: ["pipe", "pipe", "pipe"]
     })
     let output = ""
     let interrupted = false
+    let selected = false
     child.stdout.on("data", (chunk: Buffer) => {
       output += chunk.toString("utf8")
+      if (!selected && output.includes("Where should Hapsland save your Jev key?")) {
+        selected = true
+        child.stdin.write("\n")
+      }
       if (!interrupted && output.includes("Jev API key:")) {
         interrupted = true
         child.stdin.write(key)
@@ -260,7 +272,7 @@ if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}
     expect(modes, output).not.toBeNull()
     expect(interrupted, output).toBe(true)
     expect(terminalModesEquivalent(process.platform, modes?.[1] ?? "", modes?.[2] ?? ""), output).toBe(true)
-    expect(readFileSync(operations, "utf8").trim().split("\n")).toEqual(["probe"])
+    expect(existsSync(operations)).toBe(false)
     expect(Number(modes?.[3])).not.toBe(0)
   })
 

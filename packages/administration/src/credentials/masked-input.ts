@@ -13,9 +13,7 @@ export class MaskedInputError extends Schema.TaggedError<MaskedInputError>()("Ma
 // Prompt.Hidden owns editing and masking; this adapter owns the returned wrapper.
 export const captureCredential = Effect.gen(function* () {
   const interaction = yield* InteractionService
-  yield* interaction.present(
-    `${JEV_KEY_ENTRY_GUIDANCE}The key will be saved in ${process.platform === "darwin" ? "login Keychain" : "Secret Service (login keyring)"}.\n`
-  )
+  yield* interaction.present(JEV_KEY_ENTRY_GUIDANCE)
   return yield* Effect.acquireUseRelease(
     interaction.hidden(`${JEV_PROVIDER.name} API key:`).pipe(Effect.interruptible),
     (key) =>

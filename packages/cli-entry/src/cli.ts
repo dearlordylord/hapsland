@@ -57,8 +57,8 @@ import {
   type ReviewSettings
 } from "@hapsland/review-definition/runtime/review-config"
 import { inspectResidentEffect } from "@hapsland/resident-transport/resident/client"
-import type { saveCredential } from "@hapsland/credential-storage/credentials/secret-service"
-import { logoutCredential, resolveCredential } from "@hapsland/credential-storage/credentials/secret-service"
+import type { saveCredential } from "@hapsland/credential-storage/credentials/owner"
+import { logoutCredential, resolveCredential } from "@hapsland/credential-storage/credentials/owner"
 import { readActivity } from "@hapsland/activity-observation/activity/status"
 
 const localFailureMessage = (cause: unknown): string => {
@@ -715,13 +715,22 @@ const runJsonSetup = Effect.fn("Cli.runJsonSetup")(function* (
 ) {
   const operation: SetupOperation = yield* decodeSetupOperation(input)
   const { runSetup } = yield* Effect.promise(() => import("@hapsland/administration/onboarding/setup"))
-  const { readMaskedCredential } = yield* Effect.promise(
-    () => import("@hapsland/administration/credentials/masked-input")
+  const { runCredentialSession } = yield* Effect.promise(
+    () => import("@hapsland/administration/credentials/login-conversation")
   )
   return yield* runSetup(operation, {
     statePath,
     ...(userConfigPath === undefined ? {} : { userConfigPath }),
-    ...(operation.interactive === true ? { readCredential: readMaskedCredential } : {})
+    ...(operation.interactive === true
+      ? {
+          credentialConversation: (settings) =>
+            runCredentialSession({
+              root: settings.configuration.policy.root,
+              envVar: settings.credentialEnvVar,
+              referenceExplicit: settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in"
+            })
+        }
+      : {})
   })
 })
 
@@ -838,17 +847,42 @@ const loginProbeAction = (status: string): string => {
       : "reinstall an archive containing the native helper for this platform if it is missing, or make the native credential store available; then retry"
 }
 const loginCredential = Effect.fn("Cli.loginCredential")(function* () {
-  const { readMaskedCredential } = yield* Effect.promise(
-    () => import("@hapsland/administration/credentials/masked-input")
+  if (!cliSwitch("credential-stdin")) {
+    const { runCredentialSession } = yield* Effect.promise(
+      () => import("@hapsland/administration/credentials/login-conversation")
+    )
+    const repository = yield* execFileClosedStdin("git", ["rev-parse", "--show-toplevel"], {
+      cwd: process.cwd(),
+      env: process.env,
+      timeout: 1_000,
+      maxBuffer: 1024 * 1024
+    })
+    const root = repository.succeeded ? repository.stdout.trim() : undefined
+    const settings = root === undefined ? undefined : yield* loadReviewSettings(root)
+    const model = yield* runCredentialSession({
+      ...(root === undefined ? {} : { root }),
+      envVar: settings?.credentialEnvVar ?? DEFAULT_CREDENTIAL_ENV_VAR,
+      referenceExplicit:
+        settings !== undefined && settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in"
+    })
+    return {
+      version: 1,
+      operation: "login",
+      status: model.storage?.status ?? "cancelled",
+      ...(model.storage === undefined
+        ? { preservedPreviousCredential: true }
+        : { generation: model.storage.state.generation }),
+      ...(model.proposal === undefined ? {} : { destination: model.proposal.plan }),
+      ...(model.active === undefined ? {} : { activeCredential: model.active })
+    }
+  }
+  const { runDirectCredentialInput, nativeDirectLoginLayer } = yield* Effect.promise(
+    () => import("@hapsland/administration/credentials/direct-input")
   )
-  const { runLoginConversation, nativeLoginLayer } = yield* Effect.promise(
-    () => import("@hapsland/administration/credentials/login-conversation")
-  )
-  const stdin = cliSwitch("credential-stdin")
-  const { outcome } = yield* runLoginConversation({
-    input: stdin ? Effect.try(() => readFileSync(0, "utf8").replace(/\r?\n$/, "")) : readMaskedCredential(),
-    inputKind: stdin ? "stdin" : "terminal"
-  }).pipe(Effect.provide(nativeLoginLayer))
+  const { outcome } = yield* runDirectCredentialInput({
+    input: Effect.try(() => readFileSync(0, "utf8").replace(/\r?\n$/, "")),
+    inputKind: "stdin"
+  }).pipe(Effect.provide(nativeDirectLoginLayer))
   if (outcome.kind === "unavailable") {
     return { version: 1, operation: "login", status: outcome.status, action: loginProbeAction(outcome.status) }
   }
@@ -970,7 +1004,9 @@ const writeSetupRuleInventory = Effect.fn("InteractiveSetup.ruleInventory")(func
 const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClient) {
   const interaction = yield* InteractionService
   const { runSetup } = yield* Effect.promise(() => import("@hapsland/administration/onboarding/setup"))
-  const { captureCredential } = yield* Effect.promise(() => import("@hapsland/administration/credentials/masked-input"))
+  const { runLoginConversation, credentialLoginLayer } = yield* Effect.promise(
+    () => import("@hapsland/administration/credentials/login-conversation")
+  )
   const { activateCurrentPackage } = yield* Effect.promise(
     () => import("@hapsland/administration/onboarding/client-lifecycle")
   )
@@ -999,10 +1035,17 @@ const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClien
           : runSetup(request, {
               ...configuration,
               onProgress,
-              readCredential: () =>
-                captureCredential.pipe(
+              credentialConversation: (settings) =>
+                runLoginConversation().pipe(
                   Effect.provideService(InteractionService, interaction),
-                  Effect.tap(() => Effect.sync(entered))
+                  Effect.provide(
+                    credentialLoginLayer({
+                      root: settings.configuration.policy.root,
+                      envVar: settings.credentialEnvVar,
+                      referenceExplicit: settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in"
+                    })
+                  ),
+                  Effect.tap((model) => (model.storage?.status === "stored" ? Effect.sync(entered) : Effect.void))
                 )
             }),
       activate: activateCurrentPackage(command),
@@ -1222,7 +1265,8 @@ const updateInteractive = Effect.fn("InteractiveUpdate.run")(function* () {
     () => import("@hapsland/administration/interaction/interaction-session")
   )
   const { InteractionService } = yield* Effect.promise(() => import("@hapsland/administration/interaction/interaction"))
-  if (!process.stdin.isTTY || !process.stderr.isTTY || process.env.TERM === "dumb")
+  const terminalKind = yield* Config.String("TERM").pipe(Config.withDefault(""))
+  if (!process.stdin.isTTY || !process.stderr.isTTY || terminalKind === "dumb")
     return yield* Effect.fail(new Error(UPDATE_TERMINAL_REQUIRED))
   return yield* withInteractionSession(
     (interaction) =>
@@ -1259,7 +1303,8 @@ const maintenanceInteractive = Effect.fn("InteractiveMaintenance.run")(function*
   const { maintainClients, maintenanceOwnerLayer, maintenanceTerminalRequired } = yield* Effect.promise(
     () => import("@hapsland/administration/onboarding/maintenance")
   )
-  if (!process.stdin.isTTY || !process.stderr.isTTY || process.env.TERM === "dumb")
+  const terminalKind = yield* Config.String("TERM").pipe(Config.withDefault(""))
+  if (!process.stdin.isTTY || !process.stderr.isTTY || terminalKind === "dumb")
     return yield* Effect.fail(new Error(maintenanceTerminalRequired(command)))
   const { withInteractionSession } = yield* Effect.promise(
     () => import("@hapsland/administration/interaction/interaction-session")
@@ -1328,8 +1373,10 @@ const writeLogoutEnvironmentWarning = (result: Readonly<Record<string, unknown>>
 }
 const writeCredentialSummary = (result: Readonly<Record<string, unknown>>): void => {
   if (result.operation === "login" && result.status === "stored") {
+    const destination = result.destination as { target?: string } | undefined
+    const active = result.activeCredential as { source?: string; file?: string; status?: string } | undefined
     process.stdout.write(
-      `${JEV_PROVIDER.name} key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}. No ${JEV_PROVIDER.name} request or review was sent.\nNext: run ${setupCommand("claude")} or ${setupCommand("codex")}, then complete client sign-in and native trust.\n`
+      `${JEV_PROVIDER.name} key saved in ${destination?.target ?? (process.platform === "darwin" ? "Keychain" : "Secret Service")}. No ${JEV_PROVIDER.name} request or review was sent.\n${active === undefined ? "" : `Effective credential: ${active.source}${active.file === undefined ? "" : ` (${active.file})`}; ${active.status}.\n`}Next: run ${setupCommand("claude")} or ${setupCommand("codex")}, then complete client sign-in and native trust.\n`
     )
   } else {
     const next = credentialNextAction(result)

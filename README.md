@@ -414,14 +414,25 @@ printf '%s\n' '{"version":1,"operation":"credentials","cwd":"/absolute/repo"}' \
   | node src/cli.ts --inspect-credentials
 ```
 
-`--inspect-credentials` reports only the configured environment-variable name and
-whether the resolved source is present. On Linux and macOS, `hapsland --login` uses masked
-terminal input with the platform's native credential store;
-`hapsland --login --credential-stdin` is the explicit headless form, and
-`hapsland --logout` removes the owned saved item. Project configuration refers to a
-credential environment-variable name; secret values are never stored in review
-configuration or printed. User configuration selects Jev or Cloudflare Clef/Clef-flash; see
-[provider selection and limits](docs/review-providers.md). Arbitrary endpoint routing is not supported. Hooks do not prompt.
+`--inspect-credentials` reports only the configured reference and presence. See
+[provider selection and limits](docs/review-providers.md) for review backends.
+
+<!-- credential-policy:start -->
+
+Guided login, setup and `--new-key` use these reviewed save destinations:
+
+- **Every project on this machine — default:** $XDG_CONFIG_HOME/hapsland/.env (normally ~/.config/hapsland/.env). Local plaintext file; user scope.
+- **This project only:** repository-root .env.local. Local plaintext file; project scope.
+- **Native credential store:** macOS Keychain or Linux Secret Service. Platform credential store; user scope.
+
+The exact validated target and current selected source are shown before hidden key entry. Saving requires a separate full-line `y` confirmation with a declining default. Back discards entered key material; cancellation preserves the previous credential before saving. A changed proposal requires fresh entry and approval. Project saving requires an untracked, Git-ignored `.env.local`; Hapsland does not change ignore rules. Files are written with owner-only permissions using atomic replacement, preserving unrelated dotenv entries. Stored and effective credential sources are reported separately.
+
+Lookup order: environment variable `TYPESAFE_API_KEY` → repository-root .env.local → repository-root .env → $XDG_CONFIG_HOME/hapsland/.env (normally ~/.config/hapsland/.env) → macOS Keychain or Linux Secret Service. An explicitly present environment value, including an empty one, stops lookup. Missing/empty file fields continue; unreadable, symlinked, nonregular or oversized files stop with a safe diagnostic. Explicit configured references allow environment/files and prohibit native fallback, including when they name the built-in variable. Callers without repository scope retain environment/native-only lookup. Captured hook inputs remain authoritative. Saving never changes lookup precedence and grants no paid-verification consent.
+
+`hapsland --login --credential-stdin` retains its explicit direct native-save automation contract without dialogs. `hapsland --logout` removes only the native saved item; it does not delete file credentials. Keys never enter models, traces, diagnostics or review configuration. Development setup uses the same flow against the reviewed repository and configured user directory; rebuild/update/activation preserves credentials and never copies them into snapshots, caches, archives or worktrees.
+
+<!-- credential-policy:end -->
+
 An unavailable credential prevents provider dispatch. Changing effective exclusions
 affects future dispatches and cannot recall a request already sent.
 
@@ -430,12 +441,8 @@ The Codex event boundary is documented in the
 integration uses a synchronous pre-edit permit and its matching composed post-edit hook.
 An isolated `--codex-hook` call without that lifecycle stays quiet. The installed
 hooks invoke the packed standalone CLI and never depend on this source path.
-Setup and hooks read the selected key from environment → project `.env.local` →
-project `.env` → user `~/.config/hapsland/.env` (or `$XDG_CONFIG_HOME/hapsland/.env`).
-An explicit environment value takes priority, including empty. The default key reference
-then falls back to native saved login. File keys need no special agent launcher;
-[credential lookup](docs/installation-workflows.md#personal-development-on-your-own-clients)
-describes file limits and diagnostics.
+The generated credential policy above describes setup and hook lookup, file limits,
+explicit-reference eligibility and the direct-input exception.
 
 Live use selects `TYPESAFE_API_KEY` for Jev or `CLOUDFLARE_API_TOKEN` for Cloudflare
 through the Effect provider configuration. Run the live integration checks only with explicit

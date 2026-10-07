@@ -57,7 +57,7 @@ if (!evaluation.includes("Config.Redacted(name)")) {
   throw new Error("evaluation credential presence must be read through redacted Effect Config")
 }
 
-const credentials = read("packages/credential-storage/src/credentials/secret-service.ts")
+const credentials = read("packages/credential-storage/src/credentials/owner.ts")
 if (/Effect\.run(?:Sync|Promise|Fork)\(|new Promise|\basync\b|setTimeout\(/u.test(credentials)) {
   throw new Error("credential workflows must compose in the caller Effect runtime")
 }
@@ -72,7 +72,7 @@ if (
 const installationLock = read("packages/administration/src/onboarding/installation-lock.ts")
 for (const path of [
   "packages/administration/src/onboarding/installation-lock.ts",
-  "packages/credential-storage/src/credentials/secret-service.ts",
+  "packages/credential-storage/src/credentials/owner.ts",
   "packages/administration/src/onboarding/first-review-demo.ts",
   "packages/resident-transport/src/resident/client.ts"
 ]) {

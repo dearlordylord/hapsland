@@ -5,11 +5,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, watch, writeFileSync } f
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { runSecretServiceProcess } from "@hapsland/credential-storage/credentials/secret-service-process"
-import {
-  resolveCredential,
-  runSecretService,
-  saveCredential
-} from "@hapsland/credential-storage/credentials/secret-service"
+import { resolveCredential, runSecretService, saveCredential } from "@hapsland/credential-storage/credentials/owner"
 
 const fixture = (body: string) =>
   Effect.acquireRelease(

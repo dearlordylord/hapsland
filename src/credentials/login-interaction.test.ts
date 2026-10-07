@@ -1,198 +1,194 @@
 import { it, expect } from "@effect/vitest"
-import { Effect, Terminal } from "effect"
+import { Deferred, Effect, Fiber } from "effect"
+import { InteractionService } from "@hapsland/administration/interaction/interaction"
 import {
   LoginOwnerService,
   runLoginConversation,
   type LoginTransition
 } from "@hapsland/administration/credentials/login-conversation"
-import { MaskedInputError } from "@hapsland/administration/credentials/masked-input"
 import { initialLogin, reduceLogin } from "@hapsland/administration/credentials/login-model"
+import type { CredentialOwner } from "@hapsland/credential-storage/credentials/owner"
 import { makeInitialCredentialState } from "@hapsland/runtime-inputs/credentials/state"
-import type { CredentialLifecycleResult } from "@hapsland/credential-storage/credentials/secret-service"
+import { scriptedInteraction, type ScriptStep } from "../../scripts/test-support/scripted-interaction.ts"
 
-const stored: CredentialLifecycleResult = {
-  status: "stored",
-  state: { ...makeInitialCredentialState(), generation: 8 },
-  stateLock: "acquired"
+const proposal = {
+  id: "owner-proposal",
+  availability: "available" as const,
+  plan: {
+    destination: "user" as const,
+    target: "/controlled/user/.env",
+    scope: "user",
+    storage: "Local plaintext file"
+  },
+  reason: undefined,
+  activeSource: "environment" as const,
+  activeFile: undefined
+}
+const stored = {
+  status: "stored" as const,
+  state: { ...makeInitialCredentialState(), generation: 1 },
+  stateLock: "acquired" as const
 }
 
-it.effect("login checks availability before input and saves once without putting the key in transitions", () =>
+it.effect("entry requires a separate decline-default confirmation and reports saved versus active sources", () =>
   Effect.gen(function* () {
-    const calls: string[] = []
+    const script = scriptedInteraction([
+      { kind: "choose", index: 0 },
+      { kind: "hidden", value: "private-guided-key" },
+      { kind: "confirm", line: "y" }
+    ])
     const transitions: LoginTransition[] = []
-    const key = "controlled-private-login-key"
-    const result = yield* runLoginConversation({
-      input: Effect.sync(() => {
-        calls.push("input")
-        return key
-      }),
-      inputKind: "terminal",
+    let saves = 0
+    const owner: CredentialOwner = {
+      prepare: (destination) => {
+        expect(destination).toBe("user")
+        return Effect.succeed(proposal)
+      },
+      save: (id, value) =>
+        Effect.sync(() => {
+          expect(id).toBe(proposal.id)
+          expect(value).toBe("private-guided-key")
+          saves++
+          return stored
+        }),
+      active: () => Effect.succeed({ status: "present", source: "environment", generation: 1 }),
+      discard: () => Effect.void
+    }
+    const model = yield* runLoginConversation({
       observe: (transition) =>
         Effect.sync(() => {
           transitions.push(transition)
         })
     }).pipe(
-      Effect.provideService(LoginOwnerService, {
-        probe: Effect.sync(() => {
-          calls.push("probe")
-          return "available" as const
-        }),
-        save: (value) =>
-          Effect.sync(() => {
-            expect(value).toBe(key)
-            calls.push("save")
-            return stored
-          })
-      })
+      Effect.provideService(LoginOwnerService, owner),
+      Effect.provideService(InteractionService, script.interaction)
     )
-    expect(calls).toEqual(["probe", "input", "save"])
-    expect(result.outcome).toEqual({ kind: "observed", result: stored })
-    expect(result.model.storage).toEqual({ status: "stored", generation: 8, stateLock: "acquired", savedUse: "active" })
-    expect(JSON.stringify(transitions)).not.toContain(key)
-    expect(JSON.stringify(result.model)).not.toContain(key)
+    expect(model.storage?.status).toBe("stored")
+    expect(model.active?.source).toBe("environment")
+    expect(saves).toBe(1)
+    expect(script.remaining()).toBe(0)
+    expect(script.transcript.join("\n")).toContain("/controlled/user/.env")
+    expect(JSON.stringify({ transitions, model, transcript: script.transcript })).not.toContain("private-guided-key")
   })
 )
 
-it.effect.each(["locked", "interaction-required", "unavailable"] as const)(
-  "an unavailable native store (%s) never requests input or saves",
-  (status) =>
-    Effect.gen(function* () {
-      let inputs = 0
-      let saves = 0
-      const result = yield* runLoginConversation({
-        input: Effect.sync(() => {
-          inputs++
-          return "unused"
-        }),
-        inputKind: "terminal"
-      }).pipe(
-        Effect.provideService(LoginOwnerService, {
-          probe: Effect.succeed(status),
-          save: () =>
-            Effect.sync(() => {
-              saves++
-              return stored
-            })
-        })
-      )
-      expect(result.outcome).toEqual({ kind: "unavailable", status })
-      expect(inputs).toBe(0)
-      expect(saves).toBe(0)
-    })
-)
-
-it.effect("hidden cancellation preserves the previous credential by never calling its mutation owner", () =>
+it.effect.each(["", "yes", "n"])("confirmation %s preserves the previous key", (line) =>
   Effect.gen(function* () {
+    const script = scriptedInteraction([
+      { kind: "choose", index: 0 },
+      { kind: "hidden", value: "discard-fixture" },
+      { kind: "confirm", line }
+    ])
     let saves = 0
-    const result = yield* runLoginConversation({
-      input: Effect.fail(new Terminal.QuitError({})),
-      inputKind: "terminal"
-    }).pipe(
+    const model = yield* runLoginConversation().pipe(
+      Effect.provideService(InteractionService, script.interaction),
       Effect.provideService(LoginOwnerService, {
-        probe: Effect.succeed("available" as const),
+        prepare: () => Effect.succeed(proposal),
         save: () =>
           Effect.sync(() => {
             saves++
             return stored
-          })
+          }),
+        active: () => Effect.succeed({ status: "present", source: "user", generation: 1 }),
+        discard: () => Effect.void
       })
     )
-    expect(result.model.phase).toBe("Cancelled")
-    expect(result.outcome.kind).toBe("cancelled")
+    expect(model.phase).toBe("Cancelled")
     expect(saves).toBe(0)
   })
 )
 
-it.effect.each(["busy", "indeterminate"] as const)("login retains the owner's %s result", (status) =>
+it.effect("Back discards input and stale replacement requires a fresh preview, entry and approval", () =>
   Effect.gen(function* () {
-    const observed: CredentialLifecycleResult = {
-      status,
-      state: { ...makeInitialCredentialState(), generation: 3, savedUseSuspended: true },
-      stateLock: status === "busy" ? "busy" : "acquired"
-    }
-    const result = yield* runLoginConversation({ input: Effect.succeed("private"), inputKind: "stdin" }).pipe(
+    const steps: ScriptStep[] = [
+      { kind: "choose", index: 0 },
+      { kind: "hidden", value: "discarded" },
+      { kind: "back" },
+      { kind: "choose", index: 0 },
+      { kind: "hidden", value: "stale-input" },
+      { kind: "confirm", line: "y" },
+      { kind: "hidden", value: "fresh-input" },
+      { kind: "confirm", line: "y" }
+    ]
+    const script = scriptedInteraction(steps)
+    const values: string[] = []
+    let prepares = 0
+    const discarded: string[] = []
+    const model = yield* runLoginConversation().pipe(
+      Effect.provideService(InteractionService, script.interaction),
       Effect.provideService(LoginOwnerService, {
-        probe: Effect.succeed("available" as const),
-        save: () => Effect.succeed(observed)
+        prepare: () => Effect.sync(() => ({ ...proposal, id: `proposal-${++prepares}` })),
+        save: (id, value) =>
+          Effect.sync(() => {
+            values.push(value)
+            expect(id).toBe(`proposal-${prepares}`)
+            return values.length === 1 ? { ...stored, status: "stale" as const } : stored
+          }),
+        active: () => Effect.succeed({ status: "present", source: "user", generation: 1 }),
+        discard: (id) =>
+          Effect.sync(() => {
+            discarded.push(id)
+          })
       })
     )
-    expect(result.outcome).toEqual({ kind: "observed", result: observed })
-    expect(result.model.storage?.status).toBe(status)
-    expect(result.model.storage?.savedUse).toBe("suspended")
-    expect(reduceLogin(result.model, { revision: result.model.revision, action: { kind: "exit" } })).toBe(result.model)
+    expect(values).toEqual(["stale-input", "fresh-input"])
+    expect(discarded).toContain("proposal-1")
+    expect(prepares).toBe(3)
+    expect(model.storage?.status).toBe("stored")
+    expect(script.remaining()).toBe(0)
   })
 )
 
-it.effect("a storage owner failure propagates without becoming input cancellation or a fabricated storage result", () =>
-  Effect.gen(function* () {
-    const transitions: LoginTransition[] = []
-    const failure = new Error("controlled storage failure")
-    const result = yield* runLoginConversation({
-      input: Effect.succeed("private"),
-      inputKind: "stdin",
-      observe: (transition) =>
-        Effect.sync(() => {
-          transitions.push(transition)
-        })
-    }).pipe(
-      Effect.provideService(LoginOwnerService, {
-        probe: Effect.succeed("available" as const),
-        save: () => Effect.fail(failure)
-      }),
-      Effect.result
-    )
-    expect(result._tag).toBe("Failure")
-    expect(transitions.at(-1)?.after.phase).toBe("SavingKey")
-    expect(transitions.at(-1)?.after.storage).toBeUndefined()
-    expect(transitions.some((transition) => transition.after.phase === "Cancelled")).toBe(false)
-    expect(JSON.stringify(transitions)).not.toContain(failure.message)
+it("the reducer rejects approval for another owner proposal and stale completions", () => {
+  const initial = initialLogin()
+  const selected = reduceLogin(initial, { revision: 0, action: { kind: "selected", destination: "user" } })
+  const entering = reduceLogin(selected, { revision: 1, action: { kind: "prepared", commandId: 1, proposal } })
+  const confirming = reduceLogin(entering, {
+    revision: 2,
+    action: { kind: "entered", commandId: 2, proposalId: proposal.id }
   })
-)
-
-it("login rejects stale and foreign completions and does not abandon an in-flight save", () => {
-  const initial = initialLogin("terminal")
-  expect(reduceLogin(initial, { revision: 1, action: { kind: "checked", commandId: 0, status: "available" } })).toBe(
-    initial
+  expect(reduceLogin(confirming, { revision: 3, action: { kind: "approved", yes: true, proposalId: "foreign" } })).toBe(
+    confirming
   )
-  expect(reduceLogin(initial, { revision: 0, action: { kind: "checked", commandId: 1, status: "available" } })).toBe(
-    initial
-  )
-  const entering = reduceLogin(initial, { revision: 0, action: { kind: "checked", commandId: 0, status: "available" } })
-  const saving = reduceLogin(entering, { revision: 1, action: { kind: "entered", commandId: 1 } })
-  expect(saving.phase).toBe("SavingKey")
-  expect(reduceLogin(saving, { revision: 2, action: { kind: "exit" } })).toBe(saving)
-  expect(reduceLogin(saving, { revision: 2, action: { kind: "entered", commandId: 2 } })).toBe(saving)
-  expect(reduceLogin(saving, { revision: 1, action: { kind: "input-ended", commandId: 1 } })).toBe(saving)
+  expect(
+    reduceLogin(confirming, { revision: 2, action: { kind: "approved", yes: true, proposalId: proposal.id } })
+  ).toBe(confirming)
 })
 
-it.effect.each([
-  new MaskedInputError({ message: "credential input is too long", reason: "invalid" }),
-  new Error("controlled stdin read failure")
-])("input errors propagate instead of being described as cancellation", (failure) =>
-  Effect.gen(function* () {
-    let saves = 0
-    const transitions: LoginTransition[] = []
-    const result = yield* runLoginConversation({
-      input: Effect.fail(failure),
-      inputKind: "stdin",
-      observe: (transition) =>
-        Effect.sync(() => {
-          transitions.push(transition)
-        })
-    }).pipe(
-      Effect.provideService(LoginOwnerService, {
-        probe: Effect.succeed("available" as const),
-        save: () =>
+it.effect("interruption after mutation starts retains the known completed storage observation", () =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const entered = yield* Deferred.make<void>()
+      const finish = yield* Deferred.make<void>()
+      const script = scriptedInteraction([
+        { kind: "choose", index: 0 },
+        { kind: "hidden", value: "private" },
+        { kind: "confirm", line: "y" }
+      ])
+      const transitions: LoginTransition[] = []
+      const fiber = yield* runLoginConversation({
+        observe: (transition) =>
           Effect.sync(() => {
-            saves++
-            return stored
+            transitions.push(transition)
           })
-      }),
-      Effect.result
-    )
-    expect(result._tag).toBe("Failure")
-    expect(saves).toBe(0)
-    expect(transitions.at(-1)?.after.phase).toBe("EnteringKey")
-    expect(transitions.some((transition) => transition.after.phase === "Cancelled")).toBe(false)
-  })
+      }).pipe(
+        Effect.provideService(InteractionService, script.interaction),
+        Effect.provideService(LoginOwnerService, {
+          prepare: () => Effect.succeed(proposal),
+          save: () =>
+            Deferred.succeed(entered, undefined).pipe(Effect.andThen(Deferred.await(finish)), Effect.as(stored)),
+          active: () => Effect.succeed({ status: "present", source: "user", generation: 1 }),
+          discard: () => Effect.void
+        }),
+        Effect.forkScoped
+      )
+      yield* Deferred.await(entered)
+      const interrupt = yield* Fiber.interrupt(fiber).pipe(Effect.forkScoped)
+      yield* Effect.yieldNow
+      yield* Deferred.succeed(finish, undefined)
+      yield* Fiber.join(interrupt)
+      expect(transitions.at(-1)?.after.storage?.status).toBe("stored")
+      expect(transitions.some((transition) => transition.after.phase === "Cancelled")).toBe(false)
+    })
+  )
 )

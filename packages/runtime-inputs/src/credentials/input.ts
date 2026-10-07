@@ -4,9 +4,10 @@ import * as Option from "effect/Option"
 import * as Redacted from "effect/Redacted"
 import * as Schema from "effect/Schema"
 import { closeSync, constants, fstatSync, openSync, readSync } from "node:fs"
-import { join } from "node:path"
 import { parseEnv } from "node:util"
-import { HAPSLAND_CONFIG_DIRECTORY } from "@hapsland/runtime-environment/runtime/user-paths"
+import { credentialCoordinates } from "@hapsland/runtime-environment/runtime/user-paths"
+
+import { deriveLookupPlan } from "./policy.ts"
 
 export interface CredentialInput {
   readonly value?: Redacted.Redacted | undefined
@@ -70,12 +71,15 @@ export const resolveCredentialInput = Effect.fn("Credentials.input")(function* (
   if (Option.isSome(explicit)) return { value: explicit.value } satisfies CredentialInput
   // Callers without a repository scope retain environment/native-only resolution.
   if (options.root === undefined) return {} satisfies CredentialInput
-  const files = [
-    join(options.root, ".env.local"),
-    join(options.root, ".env"),
-    join(options.userDirectory ?? HAPSLAND_CONFIG_DIRECTORY, ".env")
-  ]
-  for (const file of files) {
+  const plan = deriveLookupPlan({
+    ...credentialCoordinates(options.root, options.userDirectory),
+    envVar: options.envVar,
+    referenceExplicit: false,
+    captured: false
+  })
+  for (const step of plan) {
+    if (!("file" in step)) continue
+    const file = step.file
     const value = yield* Effect.try({
       try: () => readCredentialFile(file, options.envVar),
       catch: () => new CredentialInputError({ file })

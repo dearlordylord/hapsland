@@ -5,7 +5,7 @@ import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import * as TestClock from "effect/testing/TestClock"
 import { makeInitialCredentialState } from "@hapsland/runtime-inputs/credentials/state"
-import type { CredentialLifecycleResult } from "@hapsland/credential-storage/credentials/secret-service"
+import type { CredentialLifecycleResult } from "@hapsland/credential-storage/credentials/owner"
 import { InteractionService } from "@hapsland/administration/interaction/interaction"
 import {
   runVerificationConversation,

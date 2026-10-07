@@ -13,7 +13,7 @@ import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-supp
 import { makeInspectionStorage } from "@hapsland/inspection-records/inspection/storage"
 import { makeInspectionHttpServer } from "@hapsland/administration/inspection/http"
 import { configuredRules, connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
-import { readCredentialState } from "@hapsland/credential-storage/credentials/secret-service"
+import { readCredentialState } from "@hapsland/credential-storage/credentials/owner"
 import { nativeDeferred } from "@hapsland/build-tooling/test-support/native-deferred"
 
 const root = await makeGitFixture()

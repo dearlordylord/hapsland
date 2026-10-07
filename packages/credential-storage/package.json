@@ -11,6 +11,10 @@
     "./credentials/secret-service-process": {
       "types": "./dist/credentials/secret-service-process.d.ts",
       "default": "./dist/credentials/secret-service-process.js"
+    },
+    "./credentials/owner": {
+      "types": "./dist/credentials/owner.d.ts",
+      "default": "./dist/credentials/owner.js"
     }
   },
   "dependencies": {

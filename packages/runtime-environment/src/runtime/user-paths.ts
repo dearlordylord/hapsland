@@ -11,3 +11,15 @@ export const HAPSLAND_STATE_DIRECTORY = xdgProductDirectory(
   process.env.XDG_STATE_HOME,
   join(homedir(), ".local", "state")
 )
+
+/** Resolved coordinates; credential policy consumes these without reading process state. */
+export const credentialCoordinates = (root?: string, userDirectory = HAPSLAND_CONFIG_DIRECTORY) => ({
+  root,
+  userFile: join(userDirectory, ".env"),
+  projectLocalFile: root === undefined ? undefined : join(root, ".env.local"),
+  projectFile: root === undefined ? undefined : join(root, ".env"),
+  nativeTarget:
+    process.platform === "darwin"
+      ? "macOS login Keychain (Hapsland Jev key)"
+      : "Linux Secret Service (Hapsland Jev key)"
+})

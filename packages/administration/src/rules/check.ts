@@ -5,7 +5,7 @@ import * as Option from "effect/Option"
 import type * as HttpClient from "effect/http/HttpClient"
 import { discoverPhysicalWorkingTreeRoot, rootRelativePath } from "@hapsland/native-observation/repository/root"
 import { loadReviewSettings } from "@hapsland/review-definition/runtime/review-config"
-import { resolveCredential } from "@hapsland/credential-storage/credentials/secret-service"
+import { resolveCredential } from "@hapsland/credential-storage/credentials/owner"
 import { reviewDecisionModelLayer } from "@hapsland/review-execution/review-providers/live"
 import {
   prepareSourceLine,
