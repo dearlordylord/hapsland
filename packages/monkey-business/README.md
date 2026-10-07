@@ -84,6 +84,84 @@ Every observation has ordered `event`, `commands`, checked canonical `before`/`a
 
 Size facts distinguish source bytes, evidence-tree bytes, preparation reservation bytes, review-unit bytes and encoded output bytes. `sizePreparationInput` maps only reservation/review-unit facts into canonical inputs. `runSizeGraph` separately runs supplied source-free graph events through the checked import-graph adapter and emits identified `model:'import-graph'` frames with replayable events/limits. Its tests cover exact source boundary, tree overflow, exclusion without a read, and deadline incompleteness. Reservation experiments alone do not validate capture or import traversal. Encoded output facts require an explicit `collectionFitCheck`; generated submission does not model actual serialization size.
 
+### Preparation accounting recommendation (#236)
+
+This is advisory research for [#236](https://github.com/dearlordylord/hapsland/issues/236),
+not an accepted accounting contract. Review this recommendation when a separate
+implementation decision is accepted; consolidate that decision into the supported
+API guidance here and remove superseded proposal text.
+
+The [TS Run](src/index.ts) generates a tree per supplied review unit and schedules
+graph facts during preparation; completion still uses the supplied `unitBytes`.
+[NativeRun](../monkey-business-bend/NativeRun.bend) does the same through
+`unit_inputs`, `preparation_inputs` and `preparation_completed`. Both use the
+shared [TreeFacts](../monkey-business-bend/TreeFacts.bend) generator and checked
+ImportGraph decisions. Neither derives or resizes the preparation reservation
+from the generated root, preflight metadata or graph observations. TS additionally
+accepts per-input tree identities/profiles/limits; NativeRun's base job instead
+uses its captured environment and operation identity. Agreement between lanes
+does not establish production workspace accounting.
+
+Production [workspace calculation](../../src/resident/preparation-workspace.ts)
+reserves unknown-size capture first, then measured analysis before materializing
+units. With `L(x)` the UTF-8 byte length of `canonicalValue(x)`, it uses
+`C(path,s) = 8*s + 64*(L(path)+512)` and
+`A = C(path,s) + (hasImports ? 8 MiB : 0) + expandedUnitBytes + declarations*(L(rules)+s+4*L(path)+4096)`.
+Initial `s` is 262,144; absent preflight uses 64 declarations and 64*262,144
+expanded bytes. The import margin is fixed, not the sum of traversed tree bytes.
+Source bytes, graph read bytes, evidence-tree bytes and retained workspace are
+therefore distinct facts. [Resident preparation](../../src/resident/server.ts)
+processes candidate paths sequentially, checks resize before analysis and replaces
+workspace with admitted retained-unit charges after rule/reuse decisions.
+`residentUnitReservationBytes` measures the larger of complete retained unit and
+promised advice, plus overhead; it is neither graph tree bytes nor wire input size.
+
+Recommend **BORROW** these production calculations and stage ordering in a
+source-free shared accounting owner, consumed by both Run lanes. Keep Canonical /
+Ledger authoritative for admission, resize, replacement and release. Have the
+synthetic source/preflight owner supply stable path length, root source size,
+declaration count, expansion bound, import presence and serialized rules size;
+the present tree profile lacks the preflight/rule facts needed to derive them.
+Have the artifact owner supply independently justified retained-unit measurements
+or bounds, including outcome overhead. Reuse the TS production functions as the
+comparison oracle; model equivalent arithmetic in the common Bend owner rather
+than copy constants into UI or game. **REJECT** deriving workspace or unit charges
+from tree totals alone, and rejecting all incomplete graphs: rule requirements
+must determine whether missing evidence prevents a usable unit.
+
+The actual [tower defence consumer](../../prototypes/canonical-defense/DefenseConsumer.bend)
+uses NativeRun with reservation 100, units [10,20], ledger 480 bytes and generated
+sources 4–8 / trees 3–6 bytes per file. These intentionally tiny independent
+facts would refuse even initial production capture. Its consumer configuration
+must explicitly adopt byte-accurate budgets or a clearly labelled teaching scale;
+game buildings must not own accounting formulas. The separate
+[road-game abstraction](../../prototypes/bend-tower-defense/README.md) approximates
+service/storage and encoded output; it does not capture production workspaces.
+
+Focused acceptance examples for a later decision:
+
+- For path `a.ts`, rules `[]`, source 100, one declaration and expansion 20,
+  initial capture is 2,130,304 bytes; analysis is 38,194 without imports or
+  8,426,802 with imports. Exactly sufficient free global **and** partition bytes
+  admit; one byte short refuses. Successful shrinking releases the difference;
+  failed growth leaves the old charge intact and prevents materialization.
+- With global 100 / partition 80 and item bounds 4 / 3, workspace 20 resizes to
+  80, refuses 81, then atomically replaces with [30,30,20,1]: first three admit,
+  fourth refuses, leaving 80 bytes / 3 items. Existing
+  [capacity tests](../../src/resident/capacity.test.ts) establish this ledger case.
+- After skipped/unsupported capture, resize refusal, cancellation or preparation
+  error, release workspace exactly once; no rejected unit starts Jev. Completion
+  releases workspace before admitting units, and each terminal unit releases its
+  own charge. Test another partition's admission after release and replay the
+  same ordered facts through TS, NativeRun and the actual game consumer.
+
+Source class: first-party source and accepted contract links. Verification state:
+the current formulas and lane gaps are source-traced. The three concrete workspace
+values above were also evaluated with the production functions; existing workspace,
+capacity, size and generated-tree suites passed locally. Acceptance examples
+describe proposed accounting coverage, not an implemented simulator change,
+native execution, game qualification or live measurement.
+
 Coverage excludes actual filesystem measurement, native capture, runtime hooks, real Jev, semantic repair quality and complete resident execution. The synthetic environment covers supported adapters, not empirical performance or a new proof of all product logic. Revisit native gaps at an explicitly bounded validation milestone or when an applicable deterministic adapter becomes available. The dashboard owns presentation and playback; graph observations remain separate from canonical frames.
 
 A multi-agent example is `createRun({seed:7,sessions:[{agent:"alpha",seed:11},{agent:"beta",seed:29}]})`.
