@@ -34,6 +34,14 @@ the distinction between current recording and retained history.
 An absent, empty, or relative XDG base uses `~/.config`. An explicitly empty
 `REVIEW_USER_CONFIG_PATH` is an error; only an absent override selects the default.
 Invocation from a subdirectory does not change the configuration root or pattern base.
+For native edits, the configuration root is the target's physical Git working copy,
+independently of agent cwd. Pre-edit hooks capture root-specific settings even
+before new files exist. The first admitted eligible edit pins one root for the
+virtual round; later other-root edits are skipped and do not change that policy.
+A saved configuration change applies to later edit captures; it cannot replace an
+outstanding edit's snapshot. Invalid target configuration cannot use cwd settings
+as a fallback. Collection and inspection retain the pinned source's settings and
+consent when cwd changes. See [recipient admission](advicing-target-contract.md#advicee-identity-and-admission).
 
 Omitted fields inherit. Include lists and language selections use the highest
 explicitly supplied list; an empty list selects nothing. Exclusions accumulate

@@ -117,7 +117,8 @@ try {
   if (permit.status !== "advanced") throw new Error(`resident rejected fixture permit: ${permit.status}`)
   const admit = await runClient(residentRequest(paths, admission))
   events.push({ kind: "admit", status: admit.status, source: "production", repoId: "fixture-repo", path })
-  if (admit.status !== "accepted") throw new Error(`resident rejected fixture: ${admit.status}`)
+  const expectedAdmission = scenario === "exclude-at-admission" ? "rejected-stale" : "accepted"
+  if (admit.status !== expectedAdmission) throw new Error(`resident rejected fixture: ${admit.status}`)
   if (scenario !== "exclude-at-admission") {
     await waitFile(join(root, "wire-prepared"), child)
     events.push({ kind: "prepared", source: "production", repoId: "fixture-repo", path })

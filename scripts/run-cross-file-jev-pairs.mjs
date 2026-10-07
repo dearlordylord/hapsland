@@ -8,7 +8,7 @@ import { decide, Live } from "@hapsland/review-execution/jev-decision"
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
-import { adaptCodexAdd } from "@hapsland/native-observation/direct-event/adapter"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import {
   prepareObservation,
   preparedProviderInput,
@@ -165,7 +165,7 @@ try {
         },
         tool_response: { success: true }
       }
-      const observation = await Effect.runPromise(adaptCodexAdd(event))
+      const observation = await Effect.runPromise(adaptCodexDirectEvent(event))
       if (!observation) throw new Error("Fixture adaptation failed")
       const selectedRules = configuredRules.filter((rule) => rule.id === declaration.targetRule)
       if (selectedRules.length !== 1) throw new Error("Target rule unavailable")

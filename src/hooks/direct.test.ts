@@ -6,6 +6,10 @@ import type { DirectObservation } from "@hapsland/native-observation/direct-even
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 
 const ports = vi.hoisted(() => ({
+  identity: vi.fn(),
+  policy: vi.fn(),
+  retire: vi.fn(),
+  eligible: vi.fn(),
   native: vi.fn(),
   reply: vi.fn(),
   observation: vi.fn(),
@@ -21,15 +25,19 @@ const ports = vi.hoisted(() => ({
 vi.mock("@hapsland/native-observation/direct-event/adapter", () => ({
   isCodexNativeApplyPatch: ports.native,
   adaptCodexReply: ports.reply,
-  adaptCodexDirectEvent: ports.observation
+  adaptCodexDirectEvent: ports.observation,
+  adaptComposedHookIdentity: ports.identity
 }))
 vi.mock("@hapsland/resident-transport/resident/client", async (original) => ({
   ...(await original<typeof import("@hapsland/resident-transport/resident/client")>()),
   ensureResidentEffect: ports.owner,
   makeResidentDispatchContextEffect: ports.dispatch,
   admitObservationEffect: ports.admit,
-  admitAndCollectEffect: ports.collect
+  admitAndCollectEffect: ports.collect,
+  readComposedEditPolicyEffect: ports.policy,
+  retireComposedEditEffect: ports.retire
 }))
+vi.mock("@hapsland/native-observation/direct-event/selection", () => ({ eligibleNamedPath: ports.eligible }))
 vi.mock("@hapsland/activity-observation/activity/status", async (original) => ({
   ...(await original<typeof import("@hapsland/activity-observation/activity/status")>()),
   recordActivity: ports.activity
@@ -52,6 +60,12 @@ const observation: DirectObservation = {
     toolUseId: "edit",
     subagentId: null
   },
+  candidateRoots: [
+    {
+      root: "/fixture",
+      rootIdentity: { rootDevice: "1", rootInode: "2", gitDirectory: "/fixture/.git", gitDevice: "1", gitInode: "3" }
+    }
+  ],
   candidates: [{ operation: "add", path: "count.ts", addedLines: ["type Count = number"] }]
 }
 const advice: CollectedAdvice = {
@@ -100,6 +114,10 @@ const codex = (controlledWriter = true) =>
 const claude = () => run(dispatcher().runDirectBoundedHook(observation, undefined, "/state", "/activity", "/user"))
 beforeEach(() => {
   vi.clearAllMocks()
+  ports.identity.mockReturnValue(Effect.succeed(undefined))
+  ports.policy.mockReturnValue(Effect.succeed({ filePolicy: {} }))
+  ports.retire.mockReturnValue(Effect.succeed(true))
+  ports.eligible.mockReturnValue(Effect.succeed(true))
   ports.native.mockReturnValue(true)
   ports.reply.mockReturnValue(Effect.succeed(observation))
   ports.observation.mockReturnValue(Effect.succeed(observation))
@@ -123,8 +141,14 @@ it("leaves non-native events unhandled without starting a resident or adapting a
 it("admits the exact controlled Codex observation while keeping native output quiet", async () => {
   expect(await codex()).toEqual({ handled: true, output: {} })
   expect(ports.owner).toHaveBeenCalledWith(undefined, 3400)
-  expect(ports.dispatch).toHaveBeenCalledWith("/fixture", "/state", "/activity", "/user", undefined)
-  expect(ports.admit).toHaveBeenCalledWith(observation, true, { captured: true }, undefined, true)
+  expect(ports.dispatch).toHaveBeenCalledWith("/fixture", "/state", "/activity", "/user", undefined, { filePolicy: {} })
+  expect(ports.admit).toHaveBeenCalledWith(
+    observation,
+    true,
+    { captured: true, sourceContexts: [{ root: "/fixture", credential: undefined, sessionAnalytics: false }] },
+    undefined,
+    true
+  )
   expect(ports.trace).toHaveBeenCalledWith("/trace", observation.root, observation.advicee, { kind: "edit" })
   expect(ports.activity).not.toHaveBeenCalled()
 })

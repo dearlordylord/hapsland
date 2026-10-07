@@ -14,7 +14,7 @@ import {
   DEFAULT_BACKEND,
   DEFAULT_DESTINATION
 } from "@hapsland/review-definition/runtime/review-config"
-import { adaptCodexAdd } from "@hapsland/native-observation/direct-event/adapter"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import { prepareObservation, evaluatePrepared } from "@hapsland/review-execution/direct-event/pipeline"
 import { makeGitFixture, put, updateEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
 
@@ -97,7 +97,7 @@ const prepare = (
     yield* Effect.promise(() => put(root, path, source))
     const changedLine = source.split("\n").find((line) => line.includes("interface "))
     if (changedLine === undefined) throw new Error("fixture has no interface update line")
-    const observation = yield* adaptCodexAdd(updateEvent(root, path, [changedLine]))
+    const observation = yield* adaptCodexDirectEvent(updateEvent(root, path, [changedLine]))
     expect(observation).toBeDefined()
     if (observation === undefined) throw new Error("fixture adaptation failed")
     return yield* prepareObservation(observation, {

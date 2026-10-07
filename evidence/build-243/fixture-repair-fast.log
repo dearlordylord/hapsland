@@ -1,0 +1,8 @@
+
+> @hapsland/hapsland@0.1.0 verify
+> node scripts/test-harness/verify.mjs --profile=fast --timeout-ms=180000
+
+RUN 20261007162838393-1937964-c0197f focused; deadline 2026-10-07T16:31:38.395Z; records /workspace/typescript/hapsland-243/.test-runs/20261007162838393-1937964-c0197f
+START check-fast; log /workspace/typescript/hapsland-243/.test-runs/20261007162838393-1937964-c0197f/1937964-001-check-fast.log
+PASSED check-fast 65.74s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007162838393-1937964-c0197f/1937964-001-check-fast.log
+END passed; 82.571s; 0 failed stages, 0 test failures; results /workspace/typescript/hapsland-243/.test-runs/20261007162838393-1937964-c0197f/results.json

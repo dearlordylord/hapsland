@@ -120,6 +120,11 @@ The runner accepts 0.155.1 and 0.156.0, checks versions before packing or creati
 Keychain fixture, and writes a separate evidence file for each real-host version. The retained
 release manifest verifies the macOS arm64 real-host cell specifically for Codex CLI 0.156.0.
 
+The [target-root recipient contract](advicing-target-contract.md#advicee-identity-and-admission)
+separates recipient identity from physical source identity. Local deterministic
+fixtures do not extend native host/platform cells or retroactively change their
+measured release evidence.
+
 The observation profile still cannot attribute overlapping invisible writes in a shared
 root when the host supplies no direct writer evidence. Such observations are
 `unsupported-unattributed`; they do not publish agent-addressed advice. This limitation is part of

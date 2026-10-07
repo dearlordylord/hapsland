@@ -46,6 +46,13 @@ import * as Option from "effect/Option"
 import * as ConfigProvider from "effect/ConfigProvider"
 import * as Effect from "effect/Effect"
 import * as Deferred from "effect/Deferred"
+import * as Semaphore from "effect/Semaphore"
+import { discoverPhysicalWorkingTreeRoot } from "@hapsland/native-observation/repository/root"
+import {
+  candidateRootObservation,
+  candidatesForSourceRoot,
+  observationForTargetRoot
+} from "@hapsland/native-observation/direct-event/target-observation"
 
 import * as Schema from "effect/Schema"
 import type * as HttpClient from "effect/http/HttpClient"
@@ -74,6 +81,7 @@ import {
 import { verifyObservationRoot } from "@hapsland/native-observation/direct-event/adapter"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import {
+  eligibleNamedPath,
   resolvedDirectFilePolicy,
   selectedByDirectFilePolicy
 } from "@hapsland/native-observation/direct-event/selection"
@@ -329,15 +337,45 @@ type DispatchAuthorityObservationDetails = {
   readonly credentialGeneration: number | null
 }
 
-/** Stable identity of the agent receiving advice, across edits and virtual rounds. */
-const adviceePartition = (root: string, advicee: DirectAdvicee) =>
+/** Stable recipient identity, independent of source root and runtime turn. */
+const recipientPartition = (advicee: DirectAdvicee) =>
   canonicalValue({
-    root,
     host: advicee.host,
     hostVersion: advicee.hostVersion,
     sessionId: advicee.sessionId,
     subagentId: advicee.subagentId
   })
+
+/** Source identity remains root-qualified for revision and evaluation isolation. */
+const sourcePartition = (root: string, advicee: DirectAdvicee) =>
+  canonicalValue({ root, recipient: recipientPartition(advicee) })
+const evaluationSourcePartition = (
+  observation: DirectObservation,
+  workId: string,
+  credentialGeneration: number | "controlled",
+  settingsDigest: string
+) =>
+  `${sourcePartition(observation.root, observation.advicee)}\0work:${workId}\0credential-generation:${credentialGeneration}\0settings:${settingsDigest}`
+const editPermitIdentity = (root: string, advicee: DirectAdvicee) => canonicalValue({ root, tool: advicee.toolUseId })
+
+const dispatchForSourceRoot = (
+  dispatch: ResidentDispatchContext,
+  root: string
+): ResidentDispatchContext | undefined => {
+  const { sourceContexts, ...shared } = dispatch
+  if (sourceContexts === undefined) return shared
+  const source = sourceContexts.find((context) => context.root === root)
+  return source === undefined
+    ? undefined
+    : { ...shared, credential: source.credential, sessionAnalytics: source.sessionAnalytics }
+}
+const findingAtDeliveryRoot = (finding: Finding, sourceRoot: string, callerRoot: string): Finding =>
+  sourceRoot === callerRoot ? finding : { ...finding, path: resolve(sourceRoot, finding.path) }
+const handoffCallerRoot = (request: HandoffRequest, sourceRoot: string): string =>
+  "dispatch" in request
+    ? (request.dispatch.deliveryCwd ??
+      ("root" in request ? request.root : "observation" in request ? request.observation.root : sourceRoot))
+    : sourceRoot
 
 const reservedRevision = (partition: string, prepared: PreparedUnit): WorkRevision => ({
   subject: workSubject(partition, prepared),
@@ -408,9 +446,17 @@ export const residentUnitReservationBytes = (
   prepared: PreparedUnit
 ): number => {
   const findings = worstCaseFindings(prepared)
-  const partition = adviceePartition(observation.root, observation.advicee)
-  const evaluationKey = residentEvaluationIdentity(partition, prepared)
-  const revision = reservedRevision(partition, prepared)
+  const partition = recipientPartition(observation.advicee)
+  const evaluationKey = residentEvaluationIdentity(
+    evaluationSourcePartition(
+      observation,
+      "00000000-0000-0000-0000-000000000000",
+      Number.MAX_SAFE_INTEGER,
+      "f".repeat(64)
+    ),
+    prepared
+  )
+  const revision = reservedRevision(sourcePartition(observation.root, observation.advicee), prepared)
   const currentWork = {
     subject: revision.subject,
     token: revision.token,
@@ -586,6 +632,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   )
   const reviewSettings = yield* makeReviewSettings()
   const residentLedger = yield* makeResidentState<UnitJob, string, Job>()
+  const admissionLock = yield* Semaphore.make(1)
   const lifetime = residentLedger.residentLifetime
   // Optional provenance is bounded independently of review authority and contains no source.
   const inspectionOrigins = new Map<string, string>()
@@ -855,7 +902,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     requirePermit: boolean
   ) {
     return composed
-      ? yield* residentComposedDelivery.admitEdit(group, observation.advicee.toolUseId, monotonicNow(), requirePermit)
+      ? yield* residentComposedDelivery.admitEditObservation(
+          group,
+          editPermitIdentity(observation.root, observation.advicee),
+          monotonicNow(),
+          requirePermit
+        )
       : undefined
   })
   const residentBindAdmissionRound = Effect.fn("ResidentRuntime.bindAdmissionRound")(function* (
@@ -869,7 +921,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       : yield* residentLedger.rounds.bind(
           group,
           generation,
-          { root: observation.root, advicee: observation.advicee, activityPath: dispatch.activityPath },
+          {
+            root: observation.root,
+            rootIdentity: observation.rootIdentity,
+            advicee: observation.advicee,
+            activityPath: dispatch.activityPath
+          },
           randomUUID()
         )
   })
@@ -941,7 +998,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     group: string,
     dispatch: ResidentDispatchContext
   ) {
-    const registered = yield* residentComposedDelivery.registeredEditSettings(group, observation.advicee.toolUseId)
+    const registered = yield* residentComposedDelivery.registeredEditSettings(
+      group,
+      editPermitIdentity(observation.root, observation.advicee)
+    )
     return (
       registered ??
       (yield* reviewSettings
@@ -949,27 +1009,57 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         .pipe(Effect.catch(() => Effect.succeed(undefined))))
     )
   })
-  const residentReserveAdmission = Effect.fn("ResidentRuntime.reserveAdmission")(function* (
+  const residentPinnedActivity = Effect.fn("ResidentRuntime.pinnedActivity")(function* (group: string) {
+    const active = yield* residentLedger.rounds.get(group)
+    return active === undefined ? undefined : yield* residentLedger.rounds.activity(active)
+  })
+  const residentAnyEligibleTarget = Effect.fn("ResidentRuntime.anyEligibleTarget")(function* (
     observation: DirectObservation,
-    dispatch: ResidentDispatchContext,
-    partition: string,
-    canonicalRound: number
+    settings: ReviewSettingsSnapshot
   ) {
-    const reservation = yield* residentLedger.reserve(
-      partition,
-      logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES,
-      "observationDispatch"
-    )
-    if (reservation === undefined) {
-      yield* residentRejectAdmissionCapacity(observation, dispatch)
-      return undefined
+    if (!(yield* verifyObservationRoot(observation))) return false
+    for (const candidate of observation.candidates) {
+      if (candidate.operation !== "add" && candidate.operation !== "update") continue
+      if (
+        yield* eligibleNamedPath(
+          observation.root,
+          candidate.path,
+          resolvedDirectFilePolicy(settings.configuration.policy),
+          observation.rootIdentity
+        )
+      )
+        return true
     }
-    const admission = yield* Effect.exit(residentLedger.admitObservation(partition, canonicalRound))
-    if (Exit.isFailure(admission)) {
-      yield* residentLedger.release(reservation)
-      return undefined
-    }
-    return { reservation, canonicalObservationId: admission.value }
+    return false
+  })
+  const residentRootIdentityMatches = (
+    expected: DirectObservation["rootIdentity"] | undefined,
+    actual: DirectObservation["rootIdentity"]
+  ) => expected === undefined || canonicalValue(expected) === canonicalValue(actual)
+  const residentSourceRefusal = Effect.fn("ResidentRuntime.sourceRefusal")(function* (
+    observation: DirectObservation,
+    settings: ReviewSettingsSnapshot,
+    group: string,
+    composed: boolean
+  ) {
+    if (!residentRootIdentityMatches(settings.rootIdentity, observation.rootIdentity)) return "rejected-stale" as const
+    if (!composed) return undefined
+    const pin = yield* residentPinnedActivity(group)
+    if (pin === undefined)
+      return (yield* residentAnyEligibleTarget(observation, settings)) ? undefined : ("rejected-stale" as const)
+    if (pin.root !== observation.root) return "skipped-other-root" as const
+    if (!residentRootIdentityMatches(pin.rootIdentity, observation.rootIdentity)) return "rejected-stale" as const
+    return undefined
+  })
+  const residentCanonicalAdmissionIds = Effect.fn("ResidentRuntime.canonicalAdmissionIds")(function* (
+    editAdmission: Effect.Success<ReturnType<typeof residentAdmissionGeneration>>,
+    round: RoundWork | undefined,
+    partition: string
+  ) {
+    const canonicalRound = editAdmission?.canonicalRound ?? (yield* residentAdmissionCanonicalRound(round, partition))
+    const canonicalObservationId =
+      editAdmission?.canonicalObservationId ?? (yield* residentLedger.admitObservation(partition, canonicalRound))
+    return { canonicalRound, canonicalObservationId }
   })
   const admitCore = Effect.fn("ResidentRuntime.admitCore")(function* (
     observation: DirectObservation,
@@ -985,23 +1075,39 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     yield* residentPruneNoticeCooldowns(now)
     if ((yield* residentLedger.runtime.snapshot()).lifecycle !== "active")
       return { response: { status: "rejected-capacity" } }
-    const group = adviceePartition(observation.root, observation.advicee)
+    const group = recipientPartition(observation.advicee)
     const settings = yield* residentAdmissionSettings(observation, group, dispatch)
     // A registered edit keeps its original snapshot, even after the cache expires.
     if (settings === undefined) return { response: { status: "rejected-stale" } }
+    const sourceRefusal = yield* residentSourceRefusal(observation, settings, group, composed)
+    if (sourceRefusal !== undefined) {
+      yield* residentComposedDelivery.retireEdit(group, editPermitIdentity(observation.root, observation.advicee))
+      return { response: { status: sourceRefusal } }
+    }
+    const reservation = yield* residentLedger.reserve(
+      group,
+      logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES,
+      "observationDispatch"
+    )
+    if (reservation === undefined) {
+      yield* residentRejectAdmissionCapacity(observation, dispatch)
+      return { response: { status: "rejected-capacity" } }
+    }
     const editAdmission = yield* residentAdmissionGeneration(group, observation, composed, requirePermit)
     const generation = editAdmission?.generation
     const editSettings = editAdmission?.settings ?? settings
     if (residentAdmissionStale(composed, generation)) {
       recordResidentObservationActivity(observation, dispatch, "incomplete")
+      yield* residentLedger.release(reservation)
       return { response: { status: "rejected-stale" } }
     }
     const round = yield* residentBindAdmissionRound(group, generation, observation, dispatch)
     const partition = group
-    const canonicalRound = yield* residentAdmissionCanonicalRound(round, partition)
-    const reserved = yield* residentReserveAdmission(observation, dispatch, partition, canonicalRound)
-    if (reserved === undefined) return { response: { status: "rejected-capacity" } }
-    const { reservation, canonicalObservationId } = reserved
+    const { canonicalRound, canonicalObservationId } = yield* residentCanonicalAdmissionIds(
+      editAdmission,
+      round,
+      partition
+    )
     const job = yield* residentAdmissionJob(
       observation,
       dispatch,
@@ -1024,24 +1130,216 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     return { response: { status: "accepted" }, settings: editSettings }
   }, Effect.uninterruptible)
 
-  const residentAdmit = Effect.fn("ResidentRuntime.admit")(function* (
+  const residentRetireCandidateRoots = Effect.fn("ResidentRuntime.retireCandidateRoots")(function* (
+    observation: DirectObservation,
+    keepRoot?: string
+  ) {
+    const roots = new Set(observation.candidateRoots?.flatMap((target) => (target === null ? [] : [target.root])))
+    for (const root of roots) {
+      if (root === keepRoot) continue
+      yield* residentComposedDelivery.retireEdit(
+        recipientPartition(observation.advicee),
+        editPermitIdentity(root, observation.advicee)
+      )
+    }
+  })
+  const residentCandidateEligible = Effect.fn("ResidentRuntime.candidateEligible")(function* (
+    single: DirectObservation,
+    group: string,
+    dispatch: ResidentDispatchContext,
+    requirePermit: boolean
+  ) {
+    if (
+      requirePermit &&
+      (yield* residentComposedDelivery.registeredEditSettings(
+        group,
+        editPermitIdentity(single.root, single.advicee)
+      )) === undefined
+    )
+      return false
+    const settings = yield* residentAdmissionSettings(single, group, dispatch)
+    if (settings === undefined) return false
+    if (
+      settings.rootIdentity !== undefined &&
+      canonicalValue(settings.rootIdentity) !== canonicalValue(single.rootIdentity)
+    )
+      return false
+    return yield* residentAnyEligibleTarget(single, settings)
+  })
+  const residentFirstTarget = Effect.fn("ResidentRuntime.firstTarget")(function* (
+    observation: DirectObservation,
+    group: string,
+    dispatch: ResidentDispatchContext,
+    requirePermit: boolean,
+    pinnedRoot?: string
+  ) {
+    for (let index = 0; index < observation.candidates.length; index += 1) {
+      const single = candidateRootObservation(observation, index, pinnedRoot)
+      if (single === undefined) continue
+      if (pinnedRoot !== undefined) return single
+      if (yield* residentCandidateEligible(single, group, dispatch, requirePermit)) return single
+    }
+    return undefined
+  })
+  const residentRouteSingleSource = Effect.fn("ResidentRuntime.routeSingleSource")(function* (
+    observation: DirectObservation,
+    group: string,
+    pinnedRoot?: string
+  ) {
+    if (pinnedRoot === undefined || pinnedRoot === observation.root) return { observation, skipped: [] as string[] }
+    yield* residentComposedDelivery.retireEdit(group, editPermitIdentity(observation.root, observation.advicee))
+    return { skipped: observation.candidates.map((candidate) => resolve(observation.root, candidate.path)) }
+  })
+  const residentRouteObservation = Effect.fn("ResidentRuntime.routeObservation")(function* (
     observation: DirectObservation,
     dispatch: ResidentDispatchContext,
-    composed = false,
-    requirePermit = false
+    composed: boolean,
+    requirePermit: boolean
   ) {
-    const receipt = inspectionReceive(observation, dispatch)
-    const admission = yield* admitCore(observation, dispatch, composed, requirePermit, receipt)
-    const response = admission.response
-    if (
-      response.status === "accepted" ||
-      response.status === "rejected-capacity" ||
-      response.status === "rejected-stale"
-    ) {
-      inspection.offer(receipt.scope, receipt.correlation, { kind: "edit-admission", outcome: response.status })
+    if (!composed) return { observation, skipped: [] as string[] }
+    const group = recipientPartition(observation.advicee)
+    yield* residentComposedDelivery.expirePermits(monotonicNow())
+    const pin = yield* residentPinnedActivity(group)
+    if (observation.candidateRoots === undefined) return yield* residentRouteSingleSource(observation, group, pin?.root)
+    if (observation.candidateRoots.length !== observation.candidates.length) return undefined
+    const selected = yield* residentFirstTarget(observation, group, dispatch, requirePermit, pin?.root)
+    if (selected === undefined) {
+      yield* residentRetireCandidateRoots(observation, pin?.root)
+      return { skipped: observation.candidates.map((candidate) => resolve(observation.root, candidate.path)) }
     }
-    return admission
-  }, Effect.uninterruptible)
+    const { indices, skipped } = candidatesForSourceRoot(observation, selected.root)
+    if (pin !== undefined) yield* residentRetireCandidateRoots(observation, selected.root)
+    return {
+      observation: observationForTargetRoot(observation, selected.root, selected.rootIdentity, indices),
+      skipped
+    }
+  })
+
+  const residentRecordAdmission = (receipt: InspectionReceipt, status: ResidentResponse["status"]) => {
+    if (status === "accepted" || status === "rejected-capacity" || status === "rejected-stale")
+      inspection.offer(receipt.scope, receipt.correlation, { kind: "edit-admission", outcome: status })
+  }
+  const residentSkippedAdmission = Effect.fn("ResidentRuntime.skippedAdmission")(function* (
+    observation: DirectObservation,
+    dispatch: ResidentDispatchContext,
+    skipped: ReadonlyArray<string>
+  ) {
+    const active = yield* residentLedger.rounds.get(recipientPartition(observation.advicee))
+    const pin = active === undefined ? undefined : yield* residentLedger.rounds.activity(active)
+    if (pin !== undefined && active !== undefined) {
+      const receipt = inspectionReceive(
+        {
+          ...observation,
+          root: pin.root,
+          candidates: observation.candidates.map((candidate) => ({
+            ...candidate,
+            path: resolve(observation.root, candidate.path)
+          }))
+        },
+        dispatch
+      )
+      inspection.offer(receipt.scope, receipt.correlation, { kind: "edit-admission", outcome: "skipped-other-root" })
+      inspection.offer(receipt.scope, receipt.correlation, {
+        kind: "round-membership",
+        roundId: `${lifetime}:${active.canonicalRound}`,
+        pinnedRoot: pin.root,
+        skippedPaths: skipped
+      })
+    }
+    return {
+      response: { status: active === undefined ? ("rejected-stale" as const) : ("skipped-other-root" as const) }
+    }
+  })
+  const residentRetryCandidates = Effect.fn("ResidentRuntime.retryCandidates")(function* (
+    native: DirectObservation,
+    remaining: DirectObservation,
+    selected: DirectObservation,
+    status: ResidentResponse["status"],
+    composed: boolean
+  ) {
+    if (!composed || native.candidateRoots === undefined) return undefined
+    if (status !== "rejected-stale" && status !== "rejected-capacity") return undefined
+    if ((yield* residentLedger.rounds.get(recipientPartition(selected.advicee))) !== undefined) return undefined
+    yield* residentComposedDelivery.retireEdit(
+      recipientPartition(selected.advicee),
+      editPermitIdentity(selected.root, selected.advicee)
+    )
+    const candidateRoots = remaining.candidateRoots!.map((target) => (target?.root === selected.root ? null : target))
+    return candidateRoots.some((target) => target !== null) ? { ...native, candidateRoots } : undefined
+  })
+  const residentAcceptedMembership = Effect.fn("ResidentRuntime.acceptedMembership")(function* (
+    observation: DirectObservation,
+    native: DirectObservation,
+    receipt: InspectionReceipt,
+    skipped: ReadonlyArray<string>,
+    status: ResidentResponse["status"],
+    composed: boolean
+  ) {
+    if (!composed || status !== "accepted") return
+    const active = yield* residentLedger.rounds.get(recipientPartition(observation.advicee))
+    if (active === undefined) return
+    yield* residentRetireCandidateRoots(native, observation.root)
+    inspection.offer(receipt.scope, receipt.correlation, {
+      kind: "round-membership",
+      roundId: `${lifetime}:${active.canonicalRound}`,
+      pinnedRoot: observation.root,
+      skippedPaths: skipped
+    })
+  })
+  const residentAdmitSource = Effect.fn("ResidentRuntime.admitSource")(function* (
+    observation: DirectObservation,
+    dispatch: ResidentDispatchContext,
+    composed: boolean,
+    requirePermit: boolean,
+    receipt: InspectionReceipt
+  ) {
+    const sourceDispatch = dispatchForSourceRoot(dispatch, observation.root)
+    if (sourceDispatch === undefined) return { response: { status: "rejected-stale" as const } }
+    return yield* admitCore(observation, sourceDispatch, composed, requirePermit, receipt)
+  })
+  const residentAdmit = Effect.fn("ResidentRuntime.admit")(
+    function* (
+      observation: DirectObservation,
+      dispatch: ResidentDispatchContext,
+      composed = false,
+      requirePermit = false
+    ): Effect.fn.Return<{ readonly response: ResidentResponse; readonly settings?: ReviewSettingsSnapshot }> {
+      let remaining = observation
+      while (true) {
+        const routed = yield* residentRouteObservation(remaining, dispatch, composed, requirePermit)
+        if (routed === undefined) return { response: { status: "rejected-stale" as const } }
+        if (routed.observation === undefined)
+          return yield* residentSkippedAdmission(observation, dispatch, routed.skipped)
+        const selected = routed.observation
+        const receipt = inspectionReceive(selected, dispatch)
+        const admission = yield* residentAdmitSource(selected, dispatch, composed, requirePermit, receipt)
+        const retry = yield* residentRetryCandidates(
+          observation,
+          remaining,
+          selected,
+          admission.response.status,
+          composed
+        )
+        if (retry !== undefined) {
+          remaining = retry
+          residentRecordAdmission(receipt, admission.response.status)
+          continue
+        }
+        yield* residentAcceptedMembership(
+          selected,
+          observation,
+          receipt,
+          routed.skipped,
+          admission.response.status,
+          composed
+        )
+        residentRecordAdmission(receipt, admission.response.status)
+        return admission
+      }
+    },
+    admissionLock.withPermits(1),
+    Effect.uninterruptible
+  )
   const admit = Effect.fn("ResidentRuntime.admitResponse")((...args: Parameters<typeof residentAdmit>) =>
     residentAdmit(...args).pipe(Effect.map(({ response }) => response))
   )
@@ -1123,7 +1421,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     firstOnly = false
   ) {
     const retained: Array<Finding> = []
-    const partition = adviceePartition(advice.observation.root, advice.observation.advicee)
+    const partition = recipientPartition(advice.observation.advicee)
     for (const finding of findings) {
       if (
         yield* residentComposedDelivery.suppresses(advice.id, partition, finding, stopCollector ? "stop" : undefined)
@@ -1174,6 +1472,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   }
 
   type CollectionFrame = {
+    readonly callerRoot: string
     readonly partition: string
     readonly dispatch: ResidentDispatchContext
     readonly composed: boolean
@@ -1212,19 +1511,25 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     authority: ResponseAuthority | undefined,
     composed: boolean
   ) {
-    const partition = adviceePartition(root, advicee)
+    const partition = recipientPartition(advicee)
     const claudeSurface = residentClaudeCollectionSurface(advicee, mode, authority, composed)
     const now = residentNow()
     if (yield* residentCollectionBlocked(partition, mode, composed)) return undefined
     const stopCollector = yield* residentStopCollector(partition, mode, composed)
-    return { partition, dispatch, composed, authority, claudeSurface, now, stopCollector } satisfies Omit<
-      CollectionFrame,
-      "credentialGeneration"
-    >
+    return {
+      partition,
+      callerRoot: dispatch.deliveryCwd ?? root,
+      dispatch,
+      composed,
+      authority,
+      claudeSurface,
+      now,
+      stopCollector
+    } satisfies Omit<CollectionFrame, "credentialGeneration">
   })
   const residentCollectionSameScope = (frame: CollectionFrame, advice: Advice): boolean =>
     frame.composed
-      ? adviceePartition(advice.observation.root, advice.observation.advicee) === frame.partition
+      ? recipientPartition(advice.observation.advicee) === frame.partition
       : advice.partition === frame.partition
   const residentCollectionCredentialCheck = Effect.fn("ResidentRuntime.collectionCredentialCheck")(function* (
     frame: CollectionFrame,
@@ -1250,7 +1555,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     for (const advice of [...(yield* residentAdvice())]) yield* residentCollectionCredentialCheck(frame, advice)
     // Stop reoffers an uncertain background write only after its writer terminated.
     for (const { capability: advice, content } of yield* residentLedger.advice.snapshots()) {
-      const sameGroup = adviceePartition(advice.observation.root, advice.observation.advicee) === frame.partition
+      const sameGroup = recipientPartition(advice.observation.advicee) === frame.partition
       if (content.delivery !== undefined)
         yield* residentCheckAdviceLease(advice, frame.now, frame.stopCollector, sameGroup)
     }
@@ -1627,7 +1932,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       frame.composed
     )
     const { delivery } = yield* residentLedger.advice.current(advice)
-    return (delivery?.findings ?? []).map((finding) => ({ advice, finding, facts }))
+    return (delivery?.findings ?? []).map((finding) => ({
+      advice,
+      finding: findingAtDeliveryRoot(finding, advice.observation.root, frame.callerRoot),
+      facts
+    }))
   })
   const residentSelectHandoffFindings = Effect.fn("ResidentRuntime.selectHandoffFindings")(function* (
     frame: CollectionFrame,
@@ -1660,7 +1969,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         yield* residentReleaseAdviceLease(advice)
     }
     const contents = yield* Effect.forEach(handoff, (advice) => residentLedger.advice.current(advice))
-    const findings = contents.flatMap((content) => content.delivery?.findings ?? [])
+    const findings = contents.flatMap((content, index) =>
+      (content.delivery?.findings ?? []).map((finding) =>
+        findingAtDeliveryRoot(finding, handoff[index]!.observation.root, frame.callerRoot)
+      )
+    )
     return findings
   })
   const residentCollectionResponse = (
@@ -1983,7 +2296,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       hasDelivery: content.delivery !== undefined,
       pendingCapacity: yield* residentPendingSubmissionCapacity(item, content.delivery),
       submissionAllowed: yield* residentComposedDelivery.canBeginSubmission(
-        adviceePartition(item.observation.root, item.observation.advicee),
+        recipientPartition(item.observation.advicee),
         surface,
         token
       ),
@@ -2040,10 +2353,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   ) {
     if (surface !== "stop") return true
     const first = advice[0]!.capability
-    return yield* residentComposedDelivery.authorizeFinishOutput(
-      adviceePartition(first.observation.root, first.observation.advicee),
-      token
-    )
+    return yield* residentComposedDelivery.authorizeFinishOutput(recipientPartition(first.observation.advicee), token)
   })
   const residentBeginSubmissionAdvice = Effect.fn("ResidentRuntime.beginSubmissionAdvice")(function* (
     token: string,
@@ -2056,7 +2366,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       if (finishPermit) continue
       const begun = yield* residentComposedDelivery.beginSubmission(
         item.id,
-        adviceePartition(item.observation.root, item.observation.advicee),
+        recipientPartition(item.observation.advicee),
         token,
         content.delivery?.findings ?? [],
         surface,
@@ -2138,7 +2448,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   ) {
     return (yield* residentLedger.advice.snapshots()).filter(
       ({ capability: item, content }) =>
-        (composed ? adviceePartition(item.observation.root, item.observation.advicee) : item.partition) === partition &&
+        (composed ? recipientPartition(item.observation.advicee) : item.partition) === partition &&
         content.delivery !== undefined
     ).length
   })
@@ -2156,7 +2466,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     advicee: DirectAdvicee,
     composed = false
   ): Effect.fn.Return<number> {
-    const partition = adviceePartition(root, advicee)
+    const partition = recipientPartition(advicee)
     const dispatcherWork = composed ? 0 : yield* residentDispatcherWorkCount(partition)
     const work = composed ? yield* residentComposedWorkCount(partition) : dispatcherWork
     const pendingEdits = composed && (yield* residentComposedDelivery.hasPendingEdits(partition))
@@ -2272,7 +2582,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   ): Effect.fn.Return<void> {
     if ((yield* residentLedger.runtime.snapshot()).lifecycle !== "active" || !addressableAdvicee(observation.advicee))
       return
-    yield* residentNotices.record(adviceePartition(observation.root, observation.advicee), kind, now ?? residentNow())
+    yield* residentNotices.record(recipientPartition(observation.advicee), kind, now ?? residentNow())
   })
 
   const residentAdviceCollectionReady = (
@@ -2945,7 +3255,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         })
         const { rejectedDeliverable, deliverable } = yield* filterDeliverableOutcomes()
         const preparationGenerationPartition = () => {
-          const generationPartition = `${job.partition}\0work:${job.work?.id ?? "standalone"}\0credential-generation:${job.dispatch.credential?.generation ?? "controlled"}\0settings:${job.settings.configuration.policy.digest}`
+          const generationPartition = evaluationSourcePartition(
+            job.observation,
+            job.work?.id ?? "standalone",
+            job.dispatch.credential?.generation ?? "controlled",
+            job.settings.configuration.policy.digest
+          )
           return generationPartition
         }
         const planned = yield* Effect.forEach(
@@ -2962,7 +3277,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               case "joinedPending": {
                 const pending = yield* residentReuse.pending(evaluationKey)
                 if (pending === undefined) throw new Error("canonical reuse route lacks pending evaluation")
-                pending.revision = yield* residentRestoreCurrentWork(job.partition, outcome.prepared)
+                pending.revision = yield* residentRestoreCurrentWork(
+                  sourcePartition(job.observation.root, job.observation.advicee),
+                  outcome.prepared
+                )
                 return { kind: "joined" as const, join: "pending" as const, outcome, evaluationKey }
               }
               case "cached":
@@ -3067,7 +3385,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           item: (typeof planned)[number]
         ) {
           if (item.kind === "cached" && item.cached.evaluation.findings.length === 0) {
-            const revision = yield* residentRegisterCurrentWork(job.partition, item.outcome.prepared)
+            const revision = yield* residentRegisterCurrentWork(
+              sourcePartition(job.observation.root, job.observation.advicee),
+              item.outcome.prepared
+            )
 
             yield* residentReleaseCurrentWork(revision)
             expectedActivityUnits.push(item.evaluationKey)
@@ -3181,7 +3502,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             return true
           }
           const reservation = admitted.reservation
-          const revision = yield* residentRegisterCurrentWork(job.partition, item.outcome.prepared)
+          const revision = yield* residentRegisterCurrentWork(
+            sourcePartition(job.observation.root, job.observation.advicee),
+            item.outcome.prepared
+          )
 
           const registerPreparedWork = Effect.fn("ResidentRuntime.registerPreparedWork")(function* () {
             return job.round === undefined || job.workObservationId === undefined
@@ -4397,13 +4721,18 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   ): Effect.fn.Return<ResidentResponse, ResidentAdapterError> {
     const { observation, dispatch } = request
     const startedAt = residentNow()
-    const group = adviceePartition(observation.root, observation.advicee)
+    const group = recipientPartition(observation.advicee)
     const admission = yield* residentAdmit(observation, dispatch, true, true)
     const admitted = admission.response
     if (admitted.status !== "accepted" || admission.settings === undefined)
       return {
         requestRoute: "edit",
-        status: admitted.status === "rejected-stale" ? "rejected-stale" : "rejected-capacity"
+        status:
+          admitted.status === "skipped-other-root"
+            ? "skipped-other-root"
+            : admitted.status === "rejected-stale"
+              ? "rejected-stale"
+              : "rejected-capacity"
       }
     const authority = yield* residentAdmittedResponseAuthority(request, group, admission.settings, startedAt)
     yield* Ref.set(context, { authority })
@@ -4439,7 +4768,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentHandlePromptMarker = Effect.fn("ResidentRuntime.handle.prompt-marker")(function* (
     request: Extract<ResidentRequest, { operation: "prompt-marker" }>
   ) {
-    const group = adviceePartition(request.root, request.advicee)
+    const group = recipientPartition(request.advicee)
     return residentResponse(
       (
         request.onlyIfMissing === true
@@ -4450,10 +4779,17 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         : { status: "rejected-capacity" }
     )
   })
+  const residentHandleRecipientRoot = Effect.fn("ResidentRuntime.handle.recipient-root")(function* (
+    request: Extract<ResidentRequest, { operation: "recipient-root" | "edit-policy" }>
+  ) {
+    const round = yield* residentLedger.rounds.get(recipientPartition(request.advicee))
+    const activity = round === undefined ? undefined : yield* residentLedger.rounds.activity(round)
+    return residentResponse({ status: "recipient-root", root: activity?.root ?? null })
+  })
   const residentHandleBeginStop = Effect.fn("ResidentRuntime.handle.begin-stop")(function* (
     request: Extract<ResidentRequest, { operation: "begin-stop" | "finish-stop" }>
   ) {
-    const group = adviceePartition(request.root, request.advicee)
+    const group = recipientPartition(request.advicee)
     if (!(yield* residentComposedDelivery.beginStop(group, request.token))) return residentResponse({ status: "busy" })
     const expiry = yield* Effect.forkIn(
       Effect.sleep("5 seconds").pipe(
@@ -4479,7 +4815,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         const expiry = residentStopExpiries.get(request.token)
         if (expiry !== undefined) yield* Fiber.interrupt(expiry)
         residentStopExpiries.delete(request.token)
-        const group = adviceePartition(request.root, request.advicee)
+        const group = recipientPartition(request.advicee)
         const counts = yield* residentComposedDelivery.closureCounts(group)
         const closed = yield* residentComposedDelivery.finishStop(
           group,
@@ -4497,7 +4833,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   ) {
     return residentResponse(
       (yield* residentComposedDelivery.claimBackground(
-        adviceePartition(request.root, request.advicee),
+        recipientPartition(request.advicee),
         request.token,
         residentNow()
       ))
@@ -4508,7 +4844,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentHandleReleaseBackground = Effect.fn("ResidentRuntime.handle.release-background")(function* (
     request: Extract<ResidentRequest, { operation: "claim-background" | "release-background" }>
   ) {
-    yield* residentComposedDelivery.releaseBackground(adviceePartition(request.root, request.advicee), request.token)
+    yield* residentComposedDelivery.releaseBackground(recipientPartition(request.advicee), request.token)
     return residentResponse({ status: "released" })
   })
   const residentHandleBeginSubmission = Effect.fn("ResidentRuntime.handle.begin-submission")(function* (
@@ -4521,30 +4857,64 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   ) {
     return residentResponse(yield* runtime.releaseComposedSubmission(request.token))
   })
-  const residentHandleRegisterEdit = Effect.fn("ResidentRuntime.handle.register-edit")(function* (
-    request: Extract<ResidentRequest, { operation: "register-edit" | "retire-edit" }>
+  const residentPreEditSnapshot = Effect.fn("ResidentRuntime.preEditSnapshot")(function* (
+    root: string,
+    settings: ReviewSettingsSnapshot
   ) {
-    const group = adviceePartition(request.root, request.advicee)
-    if (request.operation === "retire-edit") {
-      yield* residentComposedDelivery.retireEdit(group, request.advicee.toolUseId)
-      return residentResponse({ status: "advanced" })
-    }
-    const capture =
-      (yield* residentComposedDelivery.registeredEditSettings(group, request.advicee.toolUseId)) ??
+    const discovered = yield* discoverPhysicalWorkingTreeRoot(root).pipe(Effect.option)
+    if (discovered._tag === "None" || discovered.value.root !== root) return undefined
+    const snapshot =
+      settings.rootIdentity === undefined
+        ? Object.freeze({ ...settings, rootIdentity: Object.freeze({ ...discovered.value.rootIdentity }) })
+        : settings
+    return residentRootIdentityMatches(snapshot.rootIdentity, discovered.value.rootIdentity) ? snapshot : undefined
+  })
+  const residentRegistrationSettings = Effect.fn("ResidentRuntime.registrationSettings")(function* (
+    request: Extract<ResidentRequest, { operation: "register-edit" | "retire-edit" }>,
+    group: string
+  ) {
+    return (
+      (yield* residentComposedDelivery.registeredEditSettings(
+        group,
+        editPermitIdentity(request.root, request.advicee)
+      )) ??
       (yield* reviewSettings
         .capture(settingsSource(request.root, request.userConfigPath))
         .pipe(Effect.catch(() => Effect.succeed(undefined))))
+    )
+  })
+  const residentRegisterEdit = Effect.fn("ResidentRuntime.registerEdit")(function* (
+    request: Extract<ResidentRequest, { operation: "register-edit" | "retire-edit" }>,
+    group: string
+  ) {
+    const pin = yield* residentPinnedActivity(group)
+    if (pin !== undefined && pin.root !== request.root) {
+      yield* residentComposedDelivery.retireEdit(group, editPermitIdentity(request.root, request.advicee))
+      return residentResponse({ status: "skipped-other-root" })
+    }
+    const capture = yield* residentRegistrationSettings(request, group)
     if (capture === undefined) return residentResponse({ status: "rejected-stale", reason: "InvalidConfiguration" })
+    const snapshot = yield* residentPreEditSnapshot(request.root, capture)
+    if (snapshot === undefined) return residentResponse({ status: "rejected-stale" })
     const decision = yield* residentComposedDelivery.registerEditDecision(
       group,
-      request.advicee.toolUseId,
+      editPermitIdentity(request.root, request.advicee),
       request.startedAt,
       monotonicNow(),
       effectiveEditPermitLimits(capture.configuration.policy),
       effectiveVirtualRoundQuietMs(capture.configuration.policy),
-      capture
+      snapshot
     )
-    if (!decision.accepted) return residentResponse({ status: "rejected-stale", reason: decision.reason })
+    return residentResponse(
+      decision.accepted ? { status: "advanced" } : { status: "rejected-stale", reason: decision.reason }
+    )
+  })
+  const residentHandleRegisterEdit = Effect.fn("ResidentRuntime.handle.register-edit")(function* (
+    request: Extract<ResidentRequest, { operation: "register-edit" | "retire-edit" }>
+  ) {
+    const group = recipientPartition(request.advicee)
+    if (request.operation !== "retire-edit") return yield* residentRegisterEdit(request, group)
+    yield* residentComposedDelivery.retireEdit(group, editPermitIdentity(request.root, request.advicee))
     return residentResponse({ status: "advanced" })
   })
   const residentHandleAdmit = Effect.fn("ResidentRuntime.handle.admit")(function* (
@@ -4611,14 +4981,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       const finish = request.finish
       if (finish === undefined) return undefined
 
-      const group = adviceePartition(request.root, request.advicee)
+      const group = recipientPartition(request.advicee)
       if (!(yield* residentComposedDelivery.ownsStop(group, finish.token))) return residentResponse({ status: "empty" })
       // Expired leases represent uncertain external output, not live writers.
       yield* residentPruneNoticeCooldowns(residentNow())
       const pruneFinishLeases = Effect.fn("ResidentRuntime.pruneFinishLeases")(function* () {
         for (const { capability: advice, content } of yield* residentLedger.advice.snapshots()) {
           if (
-            adviceePartition(advice.observation.root, advice.observation.advicee) === group &&
+            recipientPartition(advice.observation.advicee) === group &&
             content.delivery !== undefined &&
             content.delivery.leaseUntil <= residentNow()
           )
@@ -4671,7 +5041,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       const finish = request.finish
       if (finish === undefined) return undefined
 
-      const group = adviceePartition(request.root, request.advicee)
+      const group = recipientPartition(request.advicee)
       const round = yield* residentLedger.rounds.get(group)
       const selection = yield* residentFinishSelection(collected)
       const pendingFindings = (yield* residentLedger.canonicalProjection()).pendingFindings
@@ -4744,10 +5114,68 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }
     return undefined
   })
+  const residentRecordSkippedPolicy = (
+    request: Extract<ResidentRequest, { operation: "recipient-root" | "edit-policy" }>,
+    active: RoundWork | undefined,
+    pinnedRoot: string
+  ) => {
+    if (active === undefined || request.targetPaths === undefined) return
+    const scope = {
+      root: pinnedRoot,
+      runtime: request.advicee.host,
+      runtimeVersion: request.advicee.hostVersion,
+      sessionId: request.advicee.sessionId,
+      subagentId: request.advicee.subagentId
+    }
+    const roundId = `${lifetime}:${active.canonicalRound}`
+    const correlation = { receiptId: randomUUID(), roundId }
+    inspection.offer(scope, correlation, {
+      kind: "edit-received",
+      candidates: request.targetPaths.map((path) => ({ operation: "update", path }))
+    })
+    inspection.offer(scope, correlation, { kind: "edit-admission", outcome: "skipped-other-root" })
+    inspection.offer(scope, correlation, {
+      kind: "round-membership",
+      roundId,
+      pinnedRoot,
+      skippedPaths: request.targetPaths
+    })
+  }
+  const residentHandleEditPolicy = Effect.fn("ResidentRuntime.handle.edit-policy")(function* (
+    request: Extract<ResidentRequest, { operation: "recipient-root" | "edit-policy" }>
+  ) {
+    const group = recipientPartition(request.advicee)
+    const active = yield* residentLedger.rounds.get(group)
+    const pin = active === undefined ? undefined : yield* residentLedger.rounds.activity(active)
+    if (pin !== undefined && pin.root !== request.root) {
+      yield* residentComposedDelivery.retireEdit(group, editPermitIdentity(request.root, request.advicee))
+      residentRecordSkippedPolicy(request, active, pin.root)
+      return residentResponse({ status: "skipped-other-root" })
+    }
+    const settings = yield* residentComposedDelivery.registeredEditSettings(
+      group,
+      editPermitIdentity(request.root, request.advicee)
+    )
+    if (settings === undefined) return residentResponse({ status: "rejected-stale" })
+    if ((yield* residentPreEditSnapshot(request.root, settings)) === undefined) {
+      yield* residentComposedDelivery.retireEdit(group, editPermitIdentity(request.root, request.advicee))
+      return residentResponse({ status: "rejected-stale" })
+    }
+    return residentResponse({
+      status: "edit-policy",
+      policy: {
+        filePolicy: resolvedDirectFilePolicy(settings.configuration.policy),
+        credentialEnvVar: settings.configuration.policy.credentialEnvVar.value,
+        sessionAnalytics: effectiveSessionAnalytics(settings.configuration.policy)
+      }
+    })
+  })
   const residentRouteBoundary = Effect.fn("ResidentRuntime.routeBoundary")(function* (
     request: ResidentRequest,
     _context: Ref.Ref<ResponseContext>
   ) {
+    if (request.operation === "edit-policy") return yield* residentHandleEditPolicy(request)
+    if (request.operation === "recipient-root") return yield* residentHandleRecipientRoot(request)
     if (request.operation === "prompt-marker") return yield* residentHandlePromptMarker(request)
     if (request.operation === "begin-stop") return yield* residentHandleBeginStop(request)
     if (request.operation === "finish-stop") return yield* residentHandleFinishStop(request)
@@ -4853,9 +5281,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   })
 
   const residentAdvicePartitionMatches = (item: Advice, partition: string, composed: boolean): boolean =>
-    composed
-      ? adviceePartition(item.observation.root, item.observation.advicee) === partition
-      : item.partition === partition
+    composed ? recipientPartition(item.observation.advicee) === partition : item.partition === partition
   const residentEditCollectionStatus = Effect.fn("ResidentRuntime.editCollectionStatus")(function* (
     authority: ResponseAuthority,
     root: string,
@@ -4863,7 +5289,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     composed: boolean,
     now: number
   ): Effect.fn.Return<ResidentResponse> {
-    const partition = composed ? adviceePartition(root, advicee) : authority.partition
+    const partition = composed ? recipientPartition(advicee) : authority.partition
     let hasAdvice = false
     for (const item of yield* residentAdvice()) {
       if (residentAdvicePartitionMatches(item, partition, composed) && !(yield* residentAdviceExpired(item, now))) {
@@ -4993,9 +5419,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentMissingEditAuthority = (request: HandoffRequest, authority: ResponseAuthority | undefined): boolean =>
     residentEditCollectRequest(request) && authority === undefined
   const inspectionMessageOwner = (
-    request: HandoffRequest
+    request: HandoffRequest,
+    handoff: ReadonlyArray<Advice>
   ): { root: string; advicee: DirectObservation["advicee"] } | undefined => {
-    const owner = request.operation === "admit-and-collect" ? request.observation : request
+    const owner = handoff[0]?.observation ?? (request.operation === "admit-and-collect" ? request.observation : request)
     if (!("root" in owner) || !("advicee" in owner) || !inspection.isEnabled(owner.root)) return undefined
     return owner
   }
@@ -5007,7 +5434,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     handoff: ReadonlyArray<Advice>
   ): void => {
     if (finalResponse.status !== "advice") return
-    const messageOwner = inspectionMessageOwner(request)
+    const messageOwner = inspectionMessageOwner(request, handoff)
     if (messageOwner === undefined) return
     const payload = captureInspectionFate(findings, "retained", "pending-advice").payload
     if (payload.status === "available") {
@@ -5178,7 +5605,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const fitHandoffFindings = Effect.fn("ResidentRuntime.fitHandoffFindings")(function* () {
       if (request.operation === "collect") {
         const composed = request.composed === true
-        const partition = adviceePartition(request.root, request.advicee)
+        const partition = recipientPartition(request.advicee)
         const generation = request.dispatch.credential?.generation ?? null
         const pruneHandoffBounds = Effect.fn("ResidentRuntime.pruneHandoffBounds")(function* () {
           if (composed)
@@ -5200,7 +5627,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           Effect.fn("ResidentRuntime.finalOffers")(function* (advice) {
             const facts = yield* residentFindingSelectionFacts(advice, partition, generation, now, composed)
             const { delivery } = yield* residentLedger.advice.current(advice)
-            return (delivery?.findings ?? []).map((finding) => ({ finding, facts }))
+            return (delivery?.findings ?? []).map((finding) => ({
+              finding: findingAtDeliveryRoot(
+                finding,
+                advice.observation.root,
+                handoffCallerRoot(request, advice.observation.root)
+              ),
+              facts
+            }))
           })
         )).flat()
         const accepted = new Set(
@@ -5228,7 +5662,15 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       yield* fitHandoffFindings()
     }
     const finalContents = yield* Effect.forEach(handoff, (advice) => residentLedger.advice.current(advice))
-    const findings = finalContents.flatMap((content) => content.delivery?.findings ?? [])
+    const findings = finalContents.flatMap((content, index) =>
+      (content.delivery?.findings ?? []).map((finding) =>
+        findingAtDeliveryRoot(
+          finding,
+          handoff[index]!.observation.root,
+          handoffCallerRoot(request, handoff[index]!.observation.root)
+        )
+      )
+    )
     const notices = yield* residentNoticesForToken(response.token)
     const checkHandoffOutputFit = Effect.fn("ResidentRuntime.checkHandoffOutputFit")(function* (): Effect.fn.Return<
       ResidentResponse | undefined
@@ -5355,7 +5797,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   ): Effect.fn.Return<ResidentResponse> {
     if (request.operation !== "collect" || request.finish === undefined || !residentFindingResponse(provisional))
       return final
-    const group = adviceePartition(request.root, request.advicee)
+    const group = recipientPartition(request.advicee)
     if (
       !(yield* residentComposedDelivery.revokeProvisionalFinishOutput(group, request.finish.token, provisional.token))
     ) {

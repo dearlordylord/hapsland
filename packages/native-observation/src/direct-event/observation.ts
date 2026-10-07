@@ -66,6 +66,8 @@ export type DirectObservation = {
   readonly rootIdentity: PhysicalRootIdentity
   readonly advicee: DirectAdvicee
   readonly candidates: ReadonlyArray<DirectCandidate>
+  /** Root discoveries in native candidate order; null denotes an unsafe or unavailable target. */
+  readonly candidateRoots?: ReadonlyArray<{ readonly root: string; readonly rootIdentity: PhysicalRootIdentity } | null>
   /** Bounded Codex patch retained only to verify Update coordinates after capture. */
   readonly nativePatchCommand?: string
   /** Claude's exact pre/post image establishes these ranges for one captured snapshot. */

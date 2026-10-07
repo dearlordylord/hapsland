@@ -25,7 +25,8 @@ import {
 import { createHash, randomUUID } from "node:crypto"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
-import { spawn } from "node:child_process"
+import { spawn, type ChildProcess } from "node:child_process"
+import { prepareTestPackage, type TestPackage } from "../../scripts/test-support/test-package.ts"
 import { spawnSync } from "../../scripts/test-harness/process.mjs"
 import { afterEach, describe, expect, it } from "vitest"
 import {
@@ -43,6 +44,8 @@ const runInstallation = <A, E>(effect: Effect.Effect<A, E>) =>
   )
 
 const roots: Array<string> = []
+const packageCleanups: Array<() => void> = []
+const operationChildren: Array<{ child: ChildProcess; closed: Promise<number | null> }> = []
 const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex")
 const stableJson = (value: unknown): string => {
@@ -57,7 +60,12 @@ const stableJson = (value: unknown): string => {
   return JSON.stringify(value)
 }
 
-afterEach(() => {
+afterEach(async () => {
+  for (const operation of operationChildren.splice(0)) {
+    if (operation.child.exitCode === null && operation.child.signalCode === null) operation.child.kill("SIGKILL")
+    await operation.closed
+  }
+  for (const cleanup of packageCleanups.splice(0)) cleanup()
   delete process.env.REVIEW_INSTALL_FAIL_AFTER_WRITES
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
@@ -226,20 +234,31 @@ const waitFor = async <A>(read: () => A | undefined, timeout = 5_000): Promise<A
   throw new Error("timed out waiting for controlled lock state")
 }
 
-const spawnOperation = (operation: Record<string, unknown>, env: NodeJS.ProcessEnv) => {
-  const child = spawn(bunExecutable(), ["packages/cli-entry/src/cli.ts", `--${String(operation.operation)}`], {
+const spawnOperation = (operation: Record<string, unknown>, env: NodeJS.ProcessEnv, runtime: TestPackage) => {
+  const command = runtime.cli
+  const child = spawn(command.executable, [...command.args, `--${String(operation.operation)}`], {
     cwd: process.cwd(),
-    env:
-      env.REVIEW_INSTALL_ENTRYPOINT !== undefined || typeof operation.codexHome !== "string"
-        ? env
-        : { ...env, REVIEW_INSTALL_ENTRYPOINT: createInstallationPackageFixture(dirname(operation.codexHome)) },
+    env: {
+      ...runtime.environment,
+      ...env,
+      PATH: runtime.environment.PATH,
+      BUN_OPTIONS: runtime.environment.BUN_OPTIONS
+    },
     stdio: ["pipe", "pipe", "pipe"]
+  })
+  let diagnostics = ""
+  child.stdout.on("data", (chunk) => {
+    diagnostics += chunk.toString()
+  })
+  child.stderr.on("data", (chunk) => {
+    diagnostics += chunk.toString()
   })
   const closed = new Promise<number | null>((resolveClosed) => {
     child.once("close", (code) => resolveClosed(code))
   })
+  operationChildren.push({ child, closed })
   child.stdin.end(JSON.stringify({ version: 1, ...operation }))
-  return { child, closed }
+  return { child, closed, diagnostics: () => diagnostics }
 }
 
 describe("public Codex installation operations", async () => {
@@ -1377,8 +1396,16 @@ responses_websockets_v2 = true`)
     const operation = { operation: "update", codexHome: home, codexExecutable: bin, proposalDigest: digest }
     const lockPath = join(home, ".hapsland", "installation.lock")
     const baseline = currentLockGeneration(lockPath)?.number ?? 0n
-    const owner = spawnOperation(operation, { ...targetEnvironment, REVIEW_INSTALL_TEST_HOLD_LOCK_MS: "10000" })
+    // Use the packaged CLI for the real cross-process lock race.
+    const runtime = prepareTestPackage()
+    packageCleanups.push(runtime.cleanup)
+    const owner = spawnOperation(
+      operation,
+      { ...targetEnvironment, REVIEW_INSTALL_TEST_HOLD_LOCK_MS: "10000" },
+      runtime
+    )
     const deadGeneration = await waitFor(() => {
+      if (owner.child.exitCode !== null) throw new Error(`Lock owner exited: ${owner.diagnostics()}`)
       const current = currentLockGeneration(lockPath)
       return current !== undefined && current.number > baseline && current.record.pid === owner.child.pid
         ? current
@@ -1391,8 +1418,8 @@ responses_websockets_v2 = true`)
     await new Promise((resolveWait) => setTimeout(resolveWait, 5_100))
 
     const contenderEnvironment = { ...targetEnvironment, REVIEW_INSTALL_TEST_HOLD_LOCK_MS: "10000" }
-    const first = spawnOperation(operation, contenderEnvironment)
-    const second = spawnOperation(operation, contenderEnvironment)
+    const first = spawnOperation(operation, contenderEnvironment, runtime)
+    const second = spawnOperation(operation, contenderEnvironment, runtime)
     const replacement = await waitFor(() => {
       const current = currentLockGeneration(lockPath)
       return current !== undefined && current.number > deadGeneration.number ? current : undefined

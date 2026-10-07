@@ -66,14 +66,16 @@ export const machineMonotonicNanos = (): bigint => readMachineClock()
 export const machineClockLayer = Layer.effect(
   Clock.Clock,
   Clock.Clock.pipe(
-    Effect.map((clock) => ({
-      currentTimeMillisUnsafe: () => clock.currentTimeMillisUnsafe(),
-      currentTimeNanosUnsafe: () => clock.currentTimeNanosUnsafe(),
-      currentTimeMillis: clock.currentTimeMillis,
-      currentTimeNanos: clock.currentTimeNanos,
-      sleep: (duration) => clock.sleep(duration),
-      monotonicTimeNanosUnsafe: machineMonotonicNanos,
-      monotonicTimeNanos: Effect.sync(machineMonotonicNanos)
-    }))
+    Effect.map(
+      (clock): Clock.Clock => ({
+        currentTimeMillisUnsafe: () => clock.currentTimeMillisUnsafe(),
+        currentTimeNanosUnsafe: () => clock.currentTimeNanosUnsafe(),
+        currentTimeMillis: clock.currentTimeMillis,
+        currentTimeNanos: clock.currentTimeNanos,
+        sleep: (duration) => clock.sleep(duration),
+        monotonicTimeNanosUnsafe: machineMonotonicNanos,
+        monotonicTimeNanos: Effect.sync(machineMonotonicNanos)
+      })
+    )
   )
 )

@@ -182,7 +182,8 @@ describe.each([
 
   it("retains the edit's blocking snapshot after settings change at final IPC handoff", async () => {
     const root = await makeGitFixture()
-    roots.push(root)
+    const caller = await makeGitFixture()
+    roots.push(root, caller)
     const statePath = join(root, "consent")
     const path = await put(root, "type.ts", "type RevokedCount = number\n")
     const userConfigPath = await put(
@@ -194,7 +195,7 @@ describe.each([
     const event = {
       hook_event_name: "PostToolUse",
       tool_name: "Write",
-      cwd: root,
+      cwd: caller,
       session_id: "revoked-session",
       tool_use_id: "revoked-tool",
       tool_input: { file_path: path, content: "type RevokedCount = number\n" },
@@ -257,6 +258,7 @@ describe.each([
       writeFileSync(`${gate}.release`, "release\n")
       expect(await completed, stderr).toBe(0)
       expect(JSON.parse(stdout)).toHaveProperty("decision", "block")
+      expect(JSON.parse(stdout).reason).toContain(path)
       expect(readFileSync(path, "utf8")).toBe("type RevokedCount = number\n")
       const paths = residentPaths(join(root, "runtime"))
       const owner = await observeResident(paths)
@@ -474,9 +476,19 @@ describe.each([
         const response =
           request.operation === "hello"
             ? JSON.stringify({ version: 1, status: "ready", lifetime: "fake-lifetime", pid: process.pid })
-            : request.operation === "admit-and-collect"
-              ? reply
-              : JSON.stringify({ version: 1, status: "unsupported" })
+            : request.operation === "edit-policy"
+              ? JSON.stringify({
+                  version: 1,
+                  status: "edit-policy",
+                  policy: {
+                    filePolicy: { includes: ["**/*"], excludes: [] },
+                    credentialEnvVar: "JEV_API_KEY",
+                    sessionAnalytics: false
+                  }
+                })
+              : request.operation === "admit-and-collect"
+                ? reply
+                : JSON.stringify({ version: 1, status: "unsupported" })
         socket.end(`${response}\n`)
       })
     })

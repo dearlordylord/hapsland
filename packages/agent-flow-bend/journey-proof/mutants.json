@@ -1,0 +1,92 @@
+[
+  {
+    "law": "cutoff_preserves_every_finding",
+    "file": "../Canonical.bend",
+    "from": "retain_work_pick(item, retain_after_stop(rest, partition, lifetime, round),\n            Bool.and(same_ids(partition, lifetime, round, owner, generation, current),\n              unfinished(kind)))",
+    "to": "retain_work_pick(item, retain_after_stop(rest, partition, lifetime, round),\n            same_ids(partition, lifetime, round, owner, generation, current))"
+  },
+  {
+    "law": "removal_preserves_other_findings",
+    "file": "../Canonical.bend",
+    "from": "remove_work_pick(item, remove_work(operation, rest), Nat.is_eq(op, operation))",
+    "to": "remove_work_pick(item, remove_work(operation, rest), True{})"
+  },
+  {
+    "law": "stage_change_preserves_other_findings",
+    "file": "../Canonical.bend",
+    "from": "replace_work_kind(operation, kind, rest), Nat.is_eq(current, operation))",
+    "to": "replace_work_kind(operation, kind, rest), True{})"
+  },
+  {
+    "law": "findings_do_not_block_collection",
+    "file": "../Canonical.bend",
+    "from": "case Work{_, _, _, _, _, PendingFinding{_}, _} <> rest:\n      unfinished_for_observation(rest, partition, lifetime, round, observation)",
+    "to": "case Work{_, _, _, _, _, PendingFinding{_}, _} <> rest:\n      True{}"
+  },
+  {
+    "law": "completed_edit_becomes_collectible",
+    "file": "../Canonical.bend",
+    "from": "Bool.not(Bool.or(joined_pending,\n                unfinished_for_observation(work, partition, lifetime, round, observation)))",
+    "to": "Bool.or(joined_pending,\n                unfinished_for_observation(work, partition, lifetime, round, observation))"
+  },
+  {
+    "law": "terminal_owner_resolves_every_member",
+    "file": "../Reuse.bend",
+    "from": "Bool.pick(JoinedDisposition, has_revision, SetJoinedClear{}, SetJoinedLost{})",
+    "to": "Bool.pick(JoinedDisposition, has_revision, SetJoinedUnavailable{}, SetJoinedLost{})",
+    "location": "member_reply"
+  },
+  {
+    "law": "terminal_members_never_remain_pending",
+    "file": "core.bend",
+    "from": "Reply{id, Reuse.joined_disposition(terminal_state(outcome), False{}, revision, advice)}",
+    "to": "Reply{id, Reuse.KeepJoined{}}",
+    "location": "reply_done"
+  },
+  {
+    "law": "earliest_runnable_cannot_be_overtaken",
+    "file": "../Dispatch.bend",
+    "from": "Bool.pick(DispatchResult, can_start(entry, running),",
+    "to": "Bool.pick(DispatchResult, False{},",
+    "location": "waiting_prefix_step"
+  },
+  {
+    "law": "transient_resources_drain_without_reset",
+    "file": "../Ledger.bend",
+    "from": "Granted{Ledger{limits, next_id, remove(id, charges)}, id}",
+    "to": "Granted{Ledger{limits, next_id, charges}, id}",
+    "location": "release_head"
+  },
+  {
+    "law": "admitted_edit_reaches_resolution_and_submission",
+    "file": "../Canonical.bend",
+    "from": "Advanced{State{ledger, rounds, remove_work(operation, work),\n        next_round, next_operation, admissions, dispatch, collection, history}, ObservationCompleted{} <> Nil{}}",
+    "to": "Advanced{State{ledger, rounds, work,\n        next_round, next_operation, admissions, dispatch, collection, history}, ObservationCompleted{} <> Nil{}}",
+    "location": "journey_complete_source"
+  },
+  {
+    "law": "another_edit_does_not_block_collection",
+    "file": "../Canonical.bend",
+    "from": "Bool.or(Nat.is_eq(operation, observation), Nat.is_eq(parent, observation))",
+    "to": "True{}"
+  },
+  {
+    "law": "newer_advice_cannot_sort_before_older",
+    "file": "../Collection.bend",
+    "from": "Nat.is_lt(left_sequence, right_sequence), Before{},",
+    "to": "Nat.is_lt(left_sequence, right_sequence), After{},"
+  },
+  {
+    "law": "released_resources_allow_fresh_capacity",
+    "file": "core.bend",
+    "from": "case Some{ledger}: Some{Ledger.reserve_for(ledger, partition, bytes, purpose)}",
+    "to": "case Some{ledger}: Some{Ledger.Rejected{ledger}}"
+  },
+  {
+    "law": "admitted_edit_reaches_resolution_and_submission",
+    "file": "../Canonical.bend",
+    "from": "Prepare{next_operation, charge} <> Nil{}",
+    "to": "Nil{}",
+    "location": "journey_begin"
+  }
+]

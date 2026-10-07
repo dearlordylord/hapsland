@@ -4306,11 +4306,14 @@ describe("resident delivery lease", () => {
     ).toEqual(metadata.map(({ id }) => ({ id, delivery: "available" })))
     const otherRoot = await makeGitFixture()
     expect(await Effect.runPromise(server.collect(otherRoot, observation.advicee, dispatch))).toMatchObject({
-      status: "empty"
+      status: "advice"
     })
+    const afterCrossRootCollection = await Effect.runPromise(server.pendingAdviceMetadata())
+    expect(afterCrossRootCollection.map(({ id }) => id)).toEqual(metadata.map(({ id }) => id))
+    expect(afterCrossRootCollection.some(({ delivery }) => delivery === "leased-unacknowledged")).toBe(true)
     expect(
-      (await Effect.runPromise(server.pendingAdviceMetadata())).map(({ id, delivery }) => ({ id, delivery }))
-    ).toEqual(metadata.map(({ id }) => ({ id, delivery: "available" })))
+      afterCrossRootCollection.every(({ delivery }) => delivery === "leased-unacknowledged" || delivery === "available")
+    ).toBe(true)
   })
 })
 

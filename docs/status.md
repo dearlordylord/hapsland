@@ -91,6 +91,14 @@ For actual feedback, inspect the agent runtime's session transcript. Status
 intentionally does not retain advice text. Submission records cannot prove
 that the agent read, acknowledged, or applied a finding.
 
+Virtual-round inspection associates receipts with an opaque round ID and pinned
+physical working root. The Skipped file view distinguishes `skipped-other-root`
+from preparation omissions and backend failures. Skipped target paths are metadata;
+other-root source is not captured. Recording consent and source-bearing history
+follow the pinned source root when the caller changes cwd. This is the bounded
+[#246 contract](advicing-target-contract.md#advicee-identity-and-admission);
+[complete multi-root review remains research #247](https://github.com/dearlordylord/hapsland/issues/247).
+
 ## Opt-in local inspection
 
 | Use | Command | Page source |

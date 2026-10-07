@@ -23,6 +23,7 @@ import {
   makeResidentDispatchContextEffect,
   markComposedUserPromptEffect,
   releaseComposedSubmissionEffect,
+  resolveComposedRootEffect,
   releaseComposedBackgroundEffect
 } from "@hapsland/resident-transport/resident/client"
 import { resolveResidentPaths } from "@hapsland/resident-transport/resident/paths"
@@ -39,6 +40,7 @@ export class ComposedHookRuntime extends Context.Service<
     readonly startedAt: number
     readonly identity: typeof adaptComposedHookIdentity
     readonly client: {
+      readonly resolveComposedRootEffect: BoundClient<typeof resolveComposedRootEffect>
       readonly acknowledgeAdviceEffect: BoundClient<typeof acknowledgeAdviceEffect>
       readonly registerComposedEditEffect: BoundClient<typeof registerComposedEditEffect>
       readonly composedStopBoundaryEffect: BoundClient<typeof composedStopBoundaryEffect>
@@ -62,6 +64,7 @@ export const composedHookRuntimeLayer = Layer.effect(
       startedAt: hookProcessStartedAt,
       identity: adaptComposedHookIdentity,
       client: {
+        resolveComposedRootEffect,
         acknowledgeAdviceEffect,
         registerComposedEditEffect: (...args) =>
           registerComposedEditEffect(...args).pipe(Effect.provideService(ResidentStartup, startup)),
@@ -143,6 +146,7 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
 }) {
   const runtime = yield* ComposedHookRuntime
   const {
+    resolveComposedRootEffect,
     acknowledgeAdviceEffect,
     registerComposedEditEffect,
     composedStopBoundaryEffect,
@@ -176,19 +180,22 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
   })
   const context = yield* resolveIdentity()
   if (context === undefined) return yield* quiet()
-  const { event, eventName, root, advicee } = context
+  const { event, eventName, root: callerRoot, advicee } = context
+  let root = callerRoot
   const paths = yield* resolveResidentPaths()
 
   const handleNotification = Effect.fn("ComposedHook.handleNotification")(function* () {
     if (input.kind === "before-edit") {
-      yield* registerComposedEditEffect(
-        root,
-        advicee,
-        runtime.startedAt,
-        paths,
-        input.activityPath,
-        input.userConfigPath ?? undefined
-      ).pipe(Effect.catch(() => Effect.succeed(false)))
+      for (const targetRoot of context.editRoots ?? [root]) {
+        yield* registerComposedEditEffect(
+          targetRoot,
+          advicee,
+          runtime.startedAt,
+          paths,
+          input.activityPath,
+          input.userConfigPath ?? undefined
+        ).pipe(Effect.catch(() => Effect.succeed(false)))
+      }
       return true
     }
     if (input.kind === "prompt") {
@@ -204,6 +211,7 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
     return false
   })
   if (yield* handleNotification()) return yield* quiet()
+  root = yield* resolveComposedRootEffect(root, advicee, paths).pipe(Effect.catch(() => Effect.succeed(root)))
   const initializeChildRound = Effect.fn("ComposedHook.initializeChildRound")(function* () {
     // stop_hook_active means a prior hook requested continuation. It must not
     // bypass this virtual round's remaining wait, cleanup, or four-request budget.
@@ -244,14 +252,15 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
   })
   yield* initializeChildRound()
   yield* initializeCodexStop()
-  const dispatch = yield* makeResidentDispatchContextEffect(
+  const sourceDispatch = yield* makeResidentDispatchContextEffect(
     root,
     input.statePath,
     input.activityPath,
     input.userConfigPath,
     input.controlled
   ).pipe(Effect.catch(() => Effect.succeed(undefined)))
-  if (dispatch === undefined) return yield* quiet()
+  if (sourceDispatch === undefined) return yield* quiet()
+  const dispatch = { ...sourceDispatch, deliveryCwd: callerRoot }
 
   const collectAndSubmit = Effect.fn("ComposedHook.collectAndSubmit")(function* () {
     const collectorKind = input.kind === "background" ? "background" : "stop"

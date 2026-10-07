@@ -21,6 +21,18 @@ flowchart LR
   G --> H[Feedback to agent runtime]
 ```
 
+## Recipient rounds and source roots
+
+A recipient is an agent runtime/version, session and reliably identified child,
+independent of cwd. Its first admitted eligible edit pins one physical Git working
+copy for the virtual round. Settings, revisions, evidence and evaluation reuse
+remain source-qualified. Other-root edits produce explicit skips before source
+capture, without cancelling work or resetting allowances. Collection follows the
+recipient from any cwd and renders target-identifying paths. Pre-edit policy
+snapshots stay immutable through delivery; physical-root and dependency freshness
+remain checked. See the [accepted advice contract](advicing-target-contract.md#advicee-identity-and-admission)
+and [complete multi-root research #247](https://github.com/dearlordylord/hapsland/issues/247).
+
 ## Context follows code structure
 
 Hapsland uses the local edit to find the changed type or function. It expands beyond the edited lines to the complete declaration, then follows local references to collect related definitions. The resulting tree marks references it could not include. Files, traversal work, and selected code have limits. The edit diff stays local; it is not sent to Jev. The request contains neither a whole file nor agent transcript, absolute path, or unrelated source. Related definitions provide context; they are not separate review targets. This makes questions about representable states and API relationships possible beyond the changed lines.

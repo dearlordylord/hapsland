@@ -38,6 +38,13 @@ Paths in the implementation column are entry points, not a complete module inven
 | Change status or optional session analytics | [Status and analytics](../status.md), [configuration](../configuration.md) | [Status](../../packages/activity-observation/src/activity/status.ts), [analytics](../../packages/activity-observation/src/activity/analytics.ts), [storage limits](../../packages/activity-observation/src/activity/storage.ts) | [Status](../../src/activity/status.test.ts), [analytics](../../src/activity/analytics.test.ts), [storage](../../src/activity/storage.test.ts) |
 | Implement opt-in local inspection history and its live dashboard | [Accepted feature #225](https://github.com/dearlordylord/hapsland/issues/225), implementation slices #226–233 | [Executable design model](../models/sessionInspection.qnt), [recorder and private journal](../../packages/inspection-records/src/inspection/recorder.ts), [foreground HTTP dashboard](../../packages/administration/src/inspection/http.ts), [private source discovery](../../packages/administration/src/inspection/registry.ts), [resident agent-message capture](../../packages/resident-runtime/src/resident/server.ts), [retained replay](../../packages/inspection-records/src/inspection/replay.ts); full-feature acceptance checks are pending | `node scripts/check-inspection-model.mjs`; [model sampling evidence](../../evidence/inspection/model-sampling.json); `npm --prefix packages/agent-flow-viz run test:inspection-browser`; remaining production gates in #225 |
 
+For target-root changes, [recipient admission](../advicing-target-contract.md#advicee-identity-and-admission)
+owns the behavior. [Root-routing resident fixtures](../../src/resident/root-routing.test.ts)
+exercise real Git roots with deterministic reviewers; adapter, pre-edit settings,
+IPC and installed-hook checks cover their physical boundaries. Keep recipient
+routing separate from source-qualified revisions and evaluations. Complete
+multi-root design is deferred to [research #247](https://github.com/dearlordylord/hapsland/issues/247).
+
 ## Website, diagrams, and brand assets
 
 | Artifact | Owner and entry point |

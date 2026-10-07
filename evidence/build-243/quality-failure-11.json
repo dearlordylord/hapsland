@@ -1,0 +1,28 @@
+{
+  "format": 1,
+  "authority": "Validation evidence; user requested a new full quality pass after bounded completion",
+  "run": "20261007154130033-1589640-50e8e1",
+  "state": "aborted",
+  "exitCode": 1,
+  "elapsedMs": 2100244,
+  "terminalLedger": "quality-11/results.json",
+  "failures": [
+    {
+      "file": "/workspace/typescript/hapsland-243/src/cli-command.test.ts",
+      "test": "declarative CLI subprocess contracts > accepts an installed composed hook ownership marker before quieting unsupported input",
+      "message": "expected '' to be '{}' // Object.is equality"
+    },
+    {
+      "file": "/workspace/typescript/hapsland-243/src/activity/subprocess.test.ts",
+      "test": "production resident activity subprocess > reports a controlled native event as pending, then restarted/lost after resident death",
+      "message": "timed out waiting for subprocess state"
+    },
+    {
+      "file": "/workspace/typescript/hapsland-243/src/onboarding/codex-installation.test.ts",
+      "test": "public Codex installation operations > serializes multiple stale reclaimers, a replacement owner, and a third contender",
+      "message": "timed out waiting for controlled lock state"
+    }
+  ],
+  "coverageCrapPassClaim": false,
+  "nextAction": "Focused fixture repair with unchanged product deadlines; require passing prerequisites before another full gate"
+}

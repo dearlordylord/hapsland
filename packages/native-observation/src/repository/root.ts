@@ -1,7 +1,8 @@
+import type { Stats } from "node:fs"
 import { execFileClosedStdin } from "@hapsland/runtime-environment/process/closed-stdin"
 import { existsSync } from "node:fs"
-import { realpath, stat } from "node:fs/promises"
-import { dirname, join, relative, resolve, sep } from "node:path"
+import { lstat, realpath, stat } from "node:fs/promises"
+import { dirname, isAbsolute, join, parse, relative, resolve, sep } from "node:path"
 import * as Effect from "effect/Effect"
 
 import * as Schema from "effect/Schema"
@@ -53,6 +54,63 @@ export const discoverPhysicalWorkingTreeRoot = Effect.fn("Repository.discoverPhy
       gitInode: String(gitStatus.ino)
     } satisfies PhysicalRootIdentity)
   }
+})
+
+/** Translate a tool path against its actual base, preserving rejected target symlinks. */
+export const absoluteToolTarget = Effect.fn("Repository.absoluteToolTarget")(function* (cwd: string, path: string) {
+  if (path.length === 0 || path.includes("\0"))
+    return yield* Effect.fail(new RepositoryObservationError({ message: "invalid tool target" }))
+  if (!isAbsolute(path)) {
+    const base = yield* fileObservation("tool path base is inaccessible", () => realpath(cwd))
+    return resolve(base, path)
+  }
+  const fromBase = relative(resolve(cwd), path)
+  if (fromBase !== ".." && !fromBase.startsWith(`..${sep}`) && !isAbsolute(fromBase)) {
+    const base = yield* fileObservation("tool path base is inaccessible", () => realpath(cwd))
+    return resolve(base, fromBase)
+  }
+  return resolve(path)
+})
+
+const targetAncestorStatus = Effect.fn("Repository.targetAncestorStatus")((path: string) =>
+  Effect.tryPromise({ try: () => lstat(path), catch: (error) => error }).pipe(
+    Effect.catch((error) => {
+      if (error !== null && typeof error === "object" && "code" in error && error.code === "ENOENT")
+        return Effect.succeed(undefined)
+      return Effect.fail(new RepositoryObservationError({ message: "tool target metadata is inaccessible" }))
+    })
+  )
+)
+
+const safeTargetAncestor = (status: Stats, final: boolean): boolean =>
+  !status.isSymbolicLink() && (status.isDirectory() || (final && status.isFile()))
+
+/** Discover from the target's existing ancestors, including before a new file exists. No source is read. */
+export const discoverAbsoluteToolTargetRoot = Effect.fn("Repository.discoverAbsoluteToolTargetRoot")(function* (
+  absolutePath: string
+) {
+  if (!isAbsolute(absolutePath) || absolutePath.includes("\0"))
+    return yield* Effect.fail(new RepositoryObservationError({ message: "invalid absolute tool target" }))
+  const filesystemRoot = parse(absolutePath).root
+  const segments = relative(filesystemRoot, absolutePath).split(sep)
+  let directory = filesystemRoot
+  for (let index = 0; index < segments.length; index += 1) {
+    const current = join(directory, segments[index]!)
+    const status = yield* targetAncestorStatus(current)
+    if (status === undefined) break
+    if (!safeTargetAncestor(status, index === segments.length - 1))
+      return yield* Effect.fail(new RepositoryObservationError({ message: "unsafe tool target ancestor" }))
+    if (status.isDirectory()) directory = current
+  }
+  const discovered = yield* discoverPhysicalWorkingTreeRoot(directory)
+  return { ...discovered, absolutePath }
+})
+
+export const discoverToolTargetRoot = Effect.fn("Repository.discoverToolTargetRoot")(function* (
+  cwd: string,
+  path: string
+) {
+  return yield* discoverAbsoluteToolTargetRoot(yield* absoluteToolTarget(cwd, path))
 })
 
 /** Native marker observation for distinguishing a missing Git command from a non-repository path. */

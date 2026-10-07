@@ -1,5 +1,5 @@
-import { discoverPhysicalWorkingTreeRoot } from "../../repository/root.ts"
-import { isAbsolute, relative, resolve, sep } from "node:path"
+import { discoverToolTargetRoot } from "../../repository/root.ts"
+import { relative, sep } from "node:path"
 import * as Effect from "effect/Effect"
 import { captureStable, MAX_SOURCE_BYTES, type CaptureHooks } from "../../direct-event/capture.ts"
 import { eligibleNamedPath } from "../../direct-event/selection.ts"
@@ -58,7 +58,6 @@ const boundedToolSource = (input: OpenCodeInput): boolean =>
   input.tool === "edit"
     ? boundedSource(input.args.oldString) && boundedSource(input.args.newString)
     : boundedSource(input.args.content)
-const insideRelativePath = (path: string): boolean => path !== ".." && !path.startsWith(`..${sep}`) && !isAbsolute(path)
 const editMetadataValid = (args: Record<string, unknown>, metadata: Record<string, unknown>): boolean => {
   if (args.replaceAll !== undefined && typeof args.replaceAll !== "boolean") return false
   return nonempty(metadata.diff) || nonempty(metadata.filediff)
@@ -112,13 +111,9 @@ const openCodeObservation = (
   return Object.freeze({ root, rootIdentity, advicee, candidates: Object.freeze([Object.freeze(candidate)]) })
 }
 const openCodePath = Effect.fn("DirectEvent.openCodePath")(function* (cwd: string, path: string) {
-  const root = yield* discoverPhysicalWorkingTreeRoot(cwd).pipe(Effect.option)
+  const root = yield* discoverToolTargetRoot(cwd, path).pipe(Effect.option)
   if (root._tag === "None") return undefined
-  const fromRoot = relative(root.value.root, root.value.physicalCwd)
-  if (!insideRelativePath(fromRoot)) return undefined
-  const fromCwd = relative(resolve(cwd), resolve(cwd, path))
-  if (!insideRelativePath(fromCwd)) return undefined
-  const relativePath = [fromRoot, fromCwd].filter(Boolean).join(sep).replaceAll(sep, "/")
+  const relativePath = relative(root.value.root, root.value.absolutePath).replaceAll(sep, "/")
   const eligible = yield* eligibleNamedPath(root.value.root, relativePath, undefined, root.value.rootIdentity)
   return eligible === undefined ? undefined : { root: root.value, relativePath, eligible }
 })

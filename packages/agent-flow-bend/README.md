@@ -232,8 +232,8 @@ Run `npm run test:progress` for `progress-proof/LAWS.bend` and
 `progress-proof/core.bend` contains proof drivers composing the production
 `Dispatch`, `Handoff` and `Canonical` functions. It is not a second production
 scheduler. The proof covers these checked boundaries, not execution of the
-TypeScript resident or simulator, source capture, aggregate ledger admission,
-collector fairness, actual agent receipt, or an infinite trace with continuing
+TypeScript resident or simulator, source capture, whole-runtime ledger ownership,
+collector opportunity fairness, actual agent receipt, or an infinite trace with continuing
 new admissions. External responsiveness, eventual scheduling, stable eligibility,
 available capacity and delivery opportunities remain host obligations. The
 simulator's bounded recovery/replay tests exercise that orchestration separately.
@@ -258,3 +258,39 @@ review outcome. Missing/wrong tuples and other work kinds refuse atomically.
 This represents the existing scoped release behavior in `packages/resident-runtime/src/resident/capacity.ts`
 without using a fabricated backend completion; accepted release/retention
 behavior remains owned by `docs/advicing-target-contract.md`.
+
+### Edit-to-submission journey laws
+
+The same `test:progress` gate also checks [journey-proof/LAWS.bend](journey-proof/LAWS.bend)
+and [journey-proof/PROOF.bend](journey-proof/PROOF.bend): thirteen additional general
+laws implementing the six approved directions.
+
+- Findings retain their exact identity, ownership and charge across Stop cutoff,
+  removal of another operation and changes to another operation's stage.
+- Completed dependencies make that edit collectible; pending findings and
+  unrelated edits do not block it.
+- A terminal shared evaluation resolves every current member of an arbitrary
+  finite cohort with the specified disposition and preserves member identities.
+- An arbitrary blocked prefix cannot let later entries overtake the earliest
+  runnable dispatch entry. Later advice sequence numbers sort after older ones.
+- A finite cohort of distinct transient charges drains exactly, preserving
+  retained owners and the next identifier. Fresh work fitting the remaining
+  capacity can reserve without reset.
+- A permitted, admitted edit with one prepared unit follows actual `Canonical.step`
+  transitions through each of the six request outcomes. A finding reaches recorded
+  submission with matching collection, authorization and successful write facts.
+  Required commands must be emitted, including preparation and dispatch commands.
+
+The journey quantifies over partition, payload size, fingerprint and capacity;
+its structural trace has one unit. This does not prove arbitrary fanout orchestration,
+execution of emitted commands, physical IO or eventual agent receipt. The finite
+cohort laws quantify over arbitrary lists, but do not prove fairness on an infinite
+host trace. Capacity, responsiveness, current joined members, stable eligibility
+and a permitted delivery opportunity are explicit boundaries.
+
+The journey gate checks 661 literal instances and their premises, fourteen compiling
+mutants, isolated positive proof controls, the kernel verdict and rejection with the
+kernel disabled. Mutation failures in supporting lemmas are identified by name.
+`journey-proof/core.bend` composes production functions; `fixtures.bend` supplies
+expected snapshots rather than a replacement state machine. Review this section
+and these laws when the covered transitions or host assumptions change.

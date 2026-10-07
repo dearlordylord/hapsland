@@ -33,11 +33,14 @@ describe("launched resident wire witness", () => {
         const journal = JSON.parse(output) as {
           version: number
           verdict: string
-          events: Array<{ kind: string; classification?: string }>
+          events: Array<{ kind: string; classification?: string; status?: string }>
           requests: Array<{ classification: string }>
         }
         expect(journal.version).toBe(1)
         expect(journal.verdict).toBe("pass")
+        expect(journal.events.find((event) => event.kind === "admit")?.status).toBe(
+          scenario === "exclude-at-admission" ? "rejected-stale" : "accepted"
+        )
         expect(journal.events.some((event) => event.kind === "prepared")).toBe(expectedPreparation)
         expect(journal.events.at(-1)?.kind).toBe("settled")
         expect(journal.requests).toHaveLength(expectedRequests)

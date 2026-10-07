@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto"
+import { resolve } from "node:path"
 import * as Clock from "effect/Clock"
 import * as Effect from "effect/Effect"
 import { adaptPiDirectEvent, adaptPiHookIdentity } from "@hapsland/native-observation/direct-event/pi-adapter"
@@ -12,8 +13,10 @@ import {
   composedStopBoundaryEffect,
   inspectResidentEffect,
   makeResidentDispatchContextEffect,
+  readComposedEditPolicyEffect,
   registerComposedEditEffect,
   residentRequestEffect,
+  resolveComposedRootEffect,
   type AdviceeCollectionOutcome
 } from "@hapsland/resident-transport/resident/client"
 import type { ResidentControlledOptions, ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
@@ -85,12 +88,13 @@ const close = Effect.fn("Pi.close")(function* ({ root, advicee, paths }: Context
     yield* composedStopBoundaryEffect("finish-stop", root, advicee, token, true, paths, "abandoned-stop")
   return { status: "closed" }
 })
-const admitEdit = Effect.fn("Pi.admit")(function* (context: Context, dispatch: ResidentDispatchContext) {
-  const { event, options, paths } = context
-  const observation = yield* adaptPiDirectEvent(
-    event,
-    options.userConfigPath === undefined ? {} : { userConfigPath: options.userConfigPath }
-  )
+const admitEdit = Effect.fn("Pi.admit")(function* (
+  context: Context,
+  dispatch: ResidentDispatchContext,
+  filePolicy: import("@hapsland/native-observation/direct-event/selection").DirectFilePolicy
+) {
+  const { event, paths } = context
+  const observation = yield* adaptPiDirectEvent(event, { filePolicy })
   if (observation === undefined) return false
   const admitted = yield* admitObservationEffect(observation, true, dispatch, paths)
   return admitted.status === "accepted"
@@ -165,17 +169,36 @@ const collect = Effect.fn("Pi.collect")(function* (context: Context, dispatch: R
   yield* closeCollection(context, collection)
   return empty
 })
+const editTargetPaths = (context: Context): ReadonlyArray<string> | undefined => {
+  const { event, root } = context
+  const target = typeof event.target_path === "string" ? event.target_path : object(event.input)?.path
+  if (typeof target !== "string") return undefined
+  const cwd = typeof event.cwd === "string" ? event.cwd : root
+  return [resolve(cwd, target)]
+}
+const reviewPolicy = Effect.fn("Pi.reviewPolicy")(function* (context: Context, root: string) {
+  if (context.event.operation !== "edit") return undefined
+  return yield* readComposedEditPolicyEffect(root, context.advicee, context.paths, editTargetPaths(context))
+})
 const review = Effect.fn("Pi.review")(function* (context: Context) {
-  const { root, event, options } = context
-  const dispatch = yield* makeResidentDispatchContextEffect(
+  const { event, options } = context
+  const root =
+    event.operation === "edit"
+      ? context.root
+      : yield* resolveComposedRootEffect(context.root, context.advicee, context.paths)
+  const editPolicy = yield* reviewPolicy(context, root)
+  if (event.operation === "edit" && editPolicy === undefined) return empty
+  const sourceDispatch = yield* makeResidentDispatchContextEffect(
     root,
     options.statePath,
     options.activityPath,
     options.userConfigPath,
-    options.controlled
+    options.controlled,
+    editPolicy
   )
-  if (event.operation === "edit" && !(yield* admitEdit(context, dispatch))) return incomplete
-  return yield* collect(context, dispatch)
+  const dispatch = { ...sourceDispatch, deliveryCwd: typeof event.cwd === "string" ? resolve(event.cwd) : context.root }
+  if (event.operation === "edit" && !(yield* admitEdit(context, dispatch, editPolicy!.filePolicy))) return incomplete
+  return yield* collect({ ...context, root }, dispatch)
 })
 const handlers = { before, retire, ack: acknowledge, close, edit: review, finish: review }
 export const runPiHook = Effect.fn("Pi.transport")(function* (input: unknown, options: Options) {

@@ -1,3 +1,4 @@
+import type { DirectFilePolicy } from "@hapsland/native-observation/direct-event/selection"
 import type { CodexDirectEventOutput } from "@hapsland/delivery-output/direct-event/output"
 import { InspectionRecordingRoot } from "@hapsland/inspection-records/inspection/contract"
 import { ROUND_CLOSE_REASONS, type RoundCloseReason } from "@hapsland/activity-observation/activity/status"
@@ -33,7 +34,22 @@ export type ResidentControlledOptions = {
   readonly syntheticR6BrandedRepair?: "control" | "finding"
 }
 
+/** Source-free admission metadata from the immutable pre-edit settings capture. */
+export type ResidentEditPolicy = {
+  readonly filePolicy: DirectFilePolicy
+  readonly credentialEnvVar: string
+  readonly sessionAnalytics: boolean
+}
+
+export type ResidentSourceDispatchContext = {
+  readonly root: string
+  readonly credential: ResidentDispatchContext["credential"]
+  readonly sessionAnalytics: boolean
+}
+
 export type ResidentDispatchContext = {
+  readonly sourceContexts?: ReadonlyArray<ResidentSourceDispatchContext>
+  readonly deliveryCwd?: string
   readonly statePath: string
   readonly activityPath?: string
   readonly sessionAnalytics?: boolean
@@ -64,6 +80,14 @@ export type ResidentRequest =
       readonly waitMs: number
     }
   | { readonly requestRoute: "shared"; readonly operation: "hello" }
+  | {
+      readonly requestRoute: "shared"
+      readonly operation: "recipient-root" | "edit-policy"
+      readonly lifetime: string
+      readonly root: string
+      readonly advicee: DirectAdvicee
+      readonly targetPaths?: ReadonlyArray<string>
+    }
   | {
       readonly requestRoute: "shared"
       readonly operation: "prompt-marker"
@@ -152,9 +176,16 @@ export type ResidentRequest =
   | { readonly requestRoute: "shared"; readonly operation: "cleanup"; readonly lifetime: string }
 
 export type ResidentResponse =
+  | { readonly status: "edit-policy"; readonly policy: ResidentEditPolicy }
+  | { readonly status: "recipient-root"; readonly root: string | null }
   | {
       readonly requestRoute: "edit"
-      readonly status: "rejected-capacity" | "rejected-stale" | "obsolete-lifetime" | "unsupported"
+      readonly status:
+        | "rejected-capacity"
+        | "rejected-stale"
+        | "skipped-other-root"
+        | "obsolete-lifetime"
+        | "unsupported"
     }
   | { readonly requestRoute: "edit"; readonly status: "pending" | "empty" }
   | { readonly requestRoute: "edit"; readonly status: "unavailable"; readonly reason: ResidentUnavailableReason }
@@ -176,6 +207,7 @@ export type ResidentResponse =
   | {
       readonly status:
         | "accepted"
+        | "skipped-other-root"
         | "rejected-capacity"
         | "rejected-stale"
         | "obsolete-lifetime"
@@ -259,23 +291,30 @@ const ControlledOptions = Schema.Struct({
   requireCredential: Schema.optionalKey(Schema.Boolean),
   syntheticR6BrandedRepair: Schema.optionalKey(Schema.Literals(["control", "finding"]))
 })
+const Credential = Schema.NullOr(
+  Schema.Struct({
+    name: Schema.String.check(Schema.isPattern(/^[A-Z_][A-Z0-9_]*$/)),
+    environmentValue: Schema.NullOr(
+      Schema.String.check(Schema.makeFilter((value) => Buffer.byteLength(value, "utf8") <= 32_768))
+    ),
+    generation: SafeNatural,
+    // Preserve the credential owner's path contract independently of general path bounds.
+    statePath: Schema.String.check(Schema.isPattern(/^\//))
+  })
+)
 const Dispatch = Schema.Struct({
+  sourceContexts: Schema.optionalKey(
+    Schema.Array(Schema.Struct({ root: AbsolutePath, credential: Credential, sessionAnalytics: Schema.Boolean })).check(
+      Schema.isMaxLength(16)
+    )
+  ),
+  deliveryCwd: Schema.optionalKey(AbsolutePath),
   statePath: AbsolutePath,
   activityPath: Schema.optionalKey(AbsolutePath),
   sessionAnalytics: Schema.optionalKey(Schema.Boolean),
   userConfigPath: Schema.NullOr(AbsolutePath),
   demoBudgetPath: Schema.optionalKey(Schema.NullOr(AbsolutePath)),
-  credential: Schema.NullOr(
-    Schema.Struct({
-      name: Schema.String.check(Schema.isPattern(/^[A-Z_][A-Z0-9_]*$/)),
-      environmentValue: Schema.NullOr(
-        Schema.String.check(Schema.makeFilter((value) => Buffer.byteLength(value, "utf8") <= 32_768))
-      ),
-      generation: SafeNatural,
-      // Preserve the credential owner's path contract independently of general path bounds.
-      statePath: Schema.String.check(Schema.isPattern(/^\//))
-    })
-  ),
+  credential: Credential,
   controlled: Schema.NullOr(ControlledOptions)
 })
 const AddedLines = Schema.Array(Schema.String).check(Schema.isMaxLength(65_536))
@@ -307,6 +346,22 @@ const observationFields = {
     gitInode: BoundedString
   }),
   candidates: Schema.Array(Candidate).check(Schema.isMinLength(1), Schema.isMaxLength(16)),
+  candidateRoots: Schema.optionalKey(
+    Schema.Array(
+      Schema.NullOr(
+        Schema.Struct({
+          root: AbsolutePath,
+          rootIdentity: Schema.Struct({
+            rootDevice: BoundedString,
+            rootInode: BoundedString,
+            gitDirectory: AbsolutePath,
+            gitDevice: BoundedString,
+            gitInode: BoundedString
+          })
+        })
+      )
+    ).check(Schema.isMinLength(1), Schema.isMaxLength(16))
+  ),
   nativePatchCommand: Schema.optionalKey(Schema.String),
   verifiedPostEditHunks: Schema.optionalKey(VerifiedHunks)
 }
@@ -335,6 +390,11 @@ const ResidentRequestSchema = Schema.Union([
     waitMs: SafeNatural.check(Schema.isLessThanOrEqualTo(EDIT_REQUEST_DEADLINE_MS))
   }),
   Schema.Struct({ ...shared, operation: Schema.Literal("hello") }),
+  Schema.Struct({
+    ...owner,
+    operation: Schema.Literals(["recipient-root", "edit-policy"]),
+    targetPaths: Schema.optionalKey(Schema.Array(AbsolutePath).check(Schema.isMaxLength(16)))
+  }),
   Schema.Struct({
     ...owner,
     operation: Schema.Literal("prompt-marker"),
@@ -404,10 +464,28 @@ const ClaudeBlockHostOutput = Schema.Struct({
   reason: Schema.NonEmptyString.check(Schema.isMaxLength(MAX_IPC_FRAME_BYTES))
 })
 
+const FilePolicy = Schema.Struct({
+  includes: Schema.Array(Schema.String).check(Schema.isMaxLength(1024)),
+  excludes: Schema.Array(Schema.String).check(Schema.isMaxLength(1024)),
+  languages: Schema.optionalKey(Schema.Array(Schema.String).check(Schema.isMaxLength(1024))),
+  contextIncludes: Schema.optionalKey(Schema.Array(Schema.String).check(Schema.isMaxLength(1024))),
+  contextExcludes: Schema.optionalKey(Schema.Array(Schema.String).check(Schema.isMaxLength(1024)))
+})
 const ResidentResponseSchema = Schema.Union([
   Schema.Struct({
+    status: Schema.Literal("edit-policy"),
+    policy: Schema.Struct({ filePolicy: FilePolicy, credentialEnvVar: BoundedString, sessionAnalytics: Schema.Boolean })
+  }),
+  Schema.Struct({ status: Schema.Literal("recipient-root"), root: Schema.NullOr(AbsolutePath) }),
+  Schema.Struct({
     requestRoute: Schema.Literal("edit"),
-    status: Schema.Literals(["rejected-capacity", "rejected-stale", "obsolete-lifetime", "unsupported"])
+    status: Schema.Literals([
+      "rejected-capacity",
+      "rejected-stale",
+      "skipped-other-root",
+      "obsolete-lifetime",
+      "unsupported"
+    ])
   }),
   Schema.Struct({ requestRoute: Schema.Literal("edit"), status: Schema.Literals(["pending", "empty"]) }),
   Schema.Struct({
@@ -442,6 +520,7 @@ const ResidentResponseSchema = Schema.Union([
   Schema.Struct({
     status: Schema.Literals([
       "accepted",
+      "skipped-other-root",
       "rejected-capacity",
       "rejected-stale",
       "obsolete-lifetime",

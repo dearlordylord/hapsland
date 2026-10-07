@@ -1,4 +1,4 @@
-import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
+import { prepareTestSourceRuntime, type TestSourceRuntime } from "@hapsland/build-tooling/test-support/source-runtime"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs"
 import { execFileSync, spawnSync } from "../../scripts/test-harness/process.mjs"
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
@@ -6,11 +6,15 @@ import { EventEmitter } from "node:events"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { spawn, type ChildProcess } from "node:child_process"
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, beforeAll, describe, expect, it } from "vitest"
 
 type ResidentFixture = { root: string; child?: ChildProcess; spawnedPid: number | undefined }
 const fixtures: Array<ResidentFixture> = []
 const RESIDENT_EXIT_TIMEOUT_MS = 3_000
+let sourceRuntime: TestSourceRuntime
+beforeAll(() => {
+  sourceRuntime = prepareTestSourceRuntime()
+}, 125_000)
 
 const waitForExit = (child: ChildProcess, timeoutMs: number): Promise<boolean> => {
   if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve(true)
@@ -114,6 +118,7 @@ describe("production resident activity subprocess", () => {
     execFileSync("git", ["-C", repository, "commit", "--quiet", "-m", "fixture"])
     const environment = {
       ...process.env,
+      ...sourceRuntime.environment,
       REVIEW_STATE_PATH: state,
       REVIEW_RESIDENT_DIR: runtime,
       REVIEW_ACTIVITY_PATH: activity,
@@ -134,20 +139,19 @@ describe("production resident activity subprocess", () => {
     }
     // This witness starts with a running resident and observes its loss. Cold
     // startup admission is covered separately by the resident startup suite.
-    const resident = spawn(bunExecutable(), ["packages/resident-entry/src/resident/main.ts", runtime], {
-      cwd: process.cwd(),
-      env: environment,
-      detached: true,
-      stdio: "ignore"
-    })
+    const resident = spawn(
+      sourceRuntime.commands.resident.executable,
+      [...sourceRuntime.commands.resident.args, runtime],
+      { cwd: process.cwd(), env: environment, detached: true, stdio: "ignore" }
+    )
     fixture.child = resident
     fixture.spawnedPid = resident.pid
     resident.unref()
     waitFor(() => existsSync(join(runtime, "owner.json")) && existsSync(join(runtime, "resident.sock")))
     const before = spawnSync(
-      bunExecutable(),
+      sourceRuntime.commands.hook.executable,
       [
-        "packages/hook-entry/src/hook-main.ts",
+        ...sourceRuntime.commands.hook.args,
         "--composed-before-edit-hook",
         "--composed-host=codex-cli",
         "--controlled-reviewer"
@@ -163,9 +167,9 @@ describe("production resident activity subprocess", () => {
     expect(before.status).toBe(0)
     expect(JSON.parse(before.stdout)).toEqual({})
     const hook = spawnSync(
-      bunExecutable(),
+      sourceRuntime.commands.hook.executable,
       [
-        "packages/hook-entry/src/hook-main.ts",
+        ...sourceRuntime.commands.hook.args,
         "--codex-hook",
         "--controlled-reviewer",
         "--controlled-writer",
@@ -182,12 +186,16 @@ describe("production resident activity subprocess", () => {
     expect(hook.status).toBe(0)
     expect(JSON.parse(hook.stdout)).toEqual({})
     const readStatus = () => {
-      const result = spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", "--status"], {
-        cwd: process.cwd(),
-        env: environment,
-        input: JSON.stringify({ version: 1, operation: "status", cwd: repository, sessionId: "restart-session" }),
-        encoding: "utf8"
-      })
+      const result = spawnSync(
+        sourceRuntime.commands.cli.executable,
+        [...sourceRuntime.commands.cli.args, "--status"],
+        {
+          cwd: process.cwd(),
+          env: environment,
+          input: JSON.stringify({ version: 1, operation: "status", cwd: repository, sessionId: "restart-session" }),
+          encoding: "utf8"
+        }
+      )
       expect(result.status).toBe(0)
       return JSON.parse(result.stdout) as { activitySource: string; activity: { kind: string } }
     }

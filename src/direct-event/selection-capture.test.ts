@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
 import { captureStable, MAX_SOURCE_BYTES } from "@hapsland/native-observation/direct-event/capture"
 import { eligibleNamedPath, inspectNamedPath } from "@hapsland/native-observation/direct-event/selection"
-import { adaptCodexAdd } from "@hapsland/native-observation/direct-event/adapter"
+import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 const required = <A>(value: A | undefined): A => {
@@ -122,7 +122,7 @@ describe("direct-event named-path selection", () => {
     await writeFile(join(root, ".git"), "gitdir: git-admin\n")
     await put(root, "git-admin/evidence.ts", "type Secret = string")
     await put(root, "git-admin-sibling/source.ts", "type Safe = string")
-    const observation = await Effect.runPromise(adaptCodexAdd(addEvent(root, ["git-admin/evidence.ts"])))
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["git-admin/evidence.ts"])))
     expect(observation?.rootIdentity.gitDirectory).toBe(gitDirectory)
     expect(
       await Effect.runPromise(eligibleNamedPath(root, "git-admin/evidence.ts", undefined, observation?.rootIdentity))
@@ -142,7 +142,7 @@ describe("direct-event named-path selection", () => {
     await writeFile(join(root, ".git"), `gitdir: ${gitDirectory}\n`)
     await put(root, "source.ts", "type Safe = string")
     await put(holder, "external-admin/secret.ts", "type Secret = string")
-    const observation = await Effect.runPromise(adaptCodexAdd(addEvent(root, ["source.ts"])))
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["source.ts"])))
     expect(observation?.rootIdentity.gitDirectory).toBe(gitDirectory)
     expect(
       await Effect.runPromise(eligibleNamedPath(root, "source.ts", undefined, observation?.rootIdentity))

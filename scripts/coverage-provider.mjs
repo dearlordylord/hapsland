@@ -269,6 +269,7 @@ class ContextAwareV8CoverageProvider extends V8CoverageProvider {
       join(ctx.config.root, ".test-runs", "coverage-preload", String(process.pid))
     )
     const flag = `--preload=${pathToFileURL(preload).href}`
+    process.env.HAPSLAND_BUN_COVERAGE_PRELOAD_FLAG = flag
     const options = (process.env.BUN_OPTIONS ?? "").split(/\s+/).filter((option) => option && option !== flag)
     process.env.BUN_OPTIONS = [...options, flag].join(" ")
   }

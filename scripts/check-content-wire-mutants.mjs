@@ -97,6 +97,7 @@ const mutants = [
     test: "changing private envelopes preserves exact nonempty wire contents"
   }
 ]
+const selectedFiles = ["src/direct-event/content-isolation.test.ts", "src/review-providers/request-content.test.ts"]
 const run = (name, testName) => {
   const args = [
     join(root, "node_modules/vitest/vitest.mjs"),
@@ -106,11 +107,16 @@ const run = (name, testName) => {
     "--config",
     join(fixture, "vitest.mutants.config.mts"),
     "--maxWorkers=1",
-    "src/direct-event/content-isolation.test.ts",
-    "src/review-providers/request-content.test.ts"
+    ...selectedFiles
   ]
   if (testName) args.push("-t", testName)
-  const result = spawnSync(process.execPath, args, { cwd: fixture, encoding: "utf8", timeout: 20_000 })
+  const result = spawnSync(process.execPath, args, {
+    cwd: fixture,
+    encoding: "utf8",
+    timeout: 20_000,
+    // CLI selection and harness inventory must describe the same isolated boundary.
+    env: { ...process.env, HAPSLAND_FOCUSED_TEST_SELECTION: JSON.stringify({ files: selectedFiles, options: [] }) }
+  })
   const output = result.stdout + result.stderr
   writeFileSync(join(evidence, `${name}.log`), output)
   assert.ifError(result.error)

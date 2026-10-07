@@ -675,6 +675,15 @@ export const deliveryOperations = (
     return generation === undefined ? undefined : { generation }
   }
 
+  /** Permit consumption and canonical observation admission publish in one resident-state commit. */
+  function admitEditObservation(partition: string, eventId: string, now: number, requirePermit = false) {
+    const admitted = admitEdit(partition, eventId, now, requirePermit)
+    if (admitted === undefined) return undefined
+    const canonicalRound = canonicalOwner.currentRoundId(partition)!
+    const canonicalObservationId = canonicalOwner.admitObservation(partition, canonicalRound)
+    return { ...admitted, canonicalRound, canonicalObservationId }
+  }
+
   function expirePermits(now = monotonicNow()): void {
     for (const [key, permit] of state.permits) {
       const result = canonicalOwner.transition({
@@ -1756,6 +1765,7 @@ export const deliveryOperations = (
     registerEditDecision,
     retireEdit,
     admitEdit,
+    admitEditObservation,
     expirePermits,
     hasPendingEdits,
     isActive,

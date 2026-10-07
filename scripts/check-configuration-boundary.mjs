@@ -38,7 +38,8 @@ for (const access of [
 }
 const credentialInput = read("packages/runtime-inputs/src/credentials/input.ts")
 if (
-  !client.includes("resolveCredentialInput({ envVar: capture.policy.credentialEnvVar.value, root })") ||
+  !client.includes("resolveCredentialInput({ envVar: credentialEnvVar, root })") ||
+  !client.includes("editPolicy?.credentialEnvVar ?? capture!.policy.credentialEnvVar.value") ||
   !client.includes("Redacted.value(credentialInput.value)") ||
   !credentialInput.includes("readonly value?: Redacted.Redacted") ||
   !credentialInput.includes("Config.Redacted(options.envVar)") ||

@@ -6,6 +6,14 @@
 **Expected use:** Select the smallest relevant gate before a change, locate the current manual native integration runner, and distinguish source-checkout observations from package or platform support.
 **Lifecycle:** Update this matrix whenever a test scenario, runner, language or runtime profile, or evidence owner changes. Review it when a milestone retires or replaces a runner; delete obsolete instructions and retain evidence only while a current decision, claim, or open review needs its provenance.
 
+Target-root round changes use [real-Git resident routing fixtures](../src/resident/root-routing.test.ts)
+with offline reviewers, plus native path translation, edit-settings, physical
+capture, composed delivery and IPC checks. Verify concurrent first admission,
+other-root skip without source reads or authority, return to the pinned root,
+recipient-wide closure fences, and delivery across cwd changes. Linked worktrees
+and independent repositories are distinct physical sources. These checks prove
+local behavior; they do not extend declared native-host/platform support.
+
 ## Verification profiles
 
 Use `npm run verify -- --profile=PROFILE [explicit test files]`. Every run records
@@ -13,6 +21,10 @@ its resolved plan and finite deadline under `.test-runs`; build and archive reus
 never reuses test outcomes or coverage. Source application commands and resident fixtures select pinned Bun;
 Node runs the test harness and synthetic process fixtures. Coverage runs attach a Bun
 preload and merge original-source Istanbul counters with Vitest/V8 counters.
+Compiled fixture commands use `standaloneEnvironment` to remove only the owned
+source preload token; unrelated Bun options remain. Its real compiled/source
+regression runs in cheap quality preflight. Host-loaded Pi and source clients
+retain their coverage settings.
 Incomplete statement ends need unique authored AST ranges; positive aliases also
 need precise same-context hits. Unknown ends cannot inflate exact-zero counters.
 Coverage-provider regressions preserve ambiguous and uncovered evidence across contexts.
@@ -732,6 +744,9 @@ home where personal state is outside the scenario; registration and dispatch use
 the same configuration selector. Keep tests of intentional precedence explicit.
 Installed focused checks supply the reviewed archive above rather than rebuilding
 inside an instrumented child. A passing build does not establish these assertions.
+Resident installed canaries launch the extracted native command through the existing
+startup test port in both Node and independent Bun clients. Stale-probe timing
+starts after the child import handshake; readiness and IPC deadlines stay unchanged.
 Positive Pi finding assertions observe the actual classified batch through the
 configured resident before collection. A source recovery regression delays the
 reviewer beyond the finish window, then requires fresh advice after readiness;

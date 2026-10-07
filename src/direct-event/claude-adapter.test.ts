@@ -1,7 +1,8 @@
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import { describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
-import { symlink, writeFile } from "node:fs/promises"
+import { mkdtemp, symlink, writeFile } from "node:fs/promises"
+import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { adaptClaudeDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import { makeReviewGitFixture as makeGitFixture } from "@hapsland/build-tooling/test-support/test-fixtures"
@@ -28,6 +29,16 @@ const base = (root: string, path: string) => ({
 })
 
 describe("Claude Code 2.1.218 direct adapter", () => {
+  it("discovers an edited target in another Git working copy independently of cwd", async () => {
+    const cwd = await makeGitFixture()
+    const targetRoot = await makeGitFixture()
+    const path = join(targetRoot, "types.ts")
+    await writeFile(path, "export interface Item { value: number }\n")
+    expect(await Effect.runPromise(adaptClaudeDirectEvent(base(cwd, path)))).toMatchObject({
+      root: targetRoot,
+      candidates: [{ path: "types.ts", operation: "update" }]
+    })
+  })
   it("reviews only the declaration changed by a verified Edit", async () => {
     const root = await makeGitFixture()
     const path = join(root, "types.ts")
@@ -225,9 +236,9 @@ describe("Claude Code 2.1.218 direct adapter", () => {
     expect(await Effect.runPromise(adaptClaudeDirectEvent(event))).toBeUndefined()
   })
 
-  it("rejects outside, symlink, and oversized source before an adapter read", async () => {
+  it("rejects targets outside Git, symlink, and oversized source before an adapter read", async () => {
     const root = await makeGitFixture()
-    const other = await makeGitFixture()
+    const other = await mkdtemp(join(tmpdir(), "haps-outside-"))
     const outside = join(other, "other.ts")
     const content = "export type Item = string;\n"
     await writeFile(outside, content)

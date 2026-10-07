@@ -7,7 +7,14 @@ type Context = { cwd: string; sessionManager: { getSessionId(): string } }
 type Event = Record<string, any>
 type Handler = (event: Event, context: Context) => Promise<unknown>
 type ExtensionAPI = { on(name: string, handler: Handler): unknown }
-type Identity = { cwd: string; session_id: string; tool_use_id: string; host_version: "1.0.0"; tool_name: string }
+type Identity = {
+  cwd: string
+  session_id: string
+  tool_use_id: string
+  host_version: "1.0.0"
+  tool_name: string
+  target_path?: string
+}
 type Options = { command?: readonly string[]; env?: NodeJS.ProcessEnv }
 // Sixfold JSON escaping of both bounded native evidence inputs fits this command envelope.
 const MAX_PI_COMMAND_BYTES = 4 * 1_024 * 1_024
@@ -56,7 +63,7 @@ const identity = (ctx: Context, tool: string, id: string): Identity => ({
   host_version: "1.0.0",
   tool_name: tool
 })
-const partition = (id: Identity): string => `${id.cwd}\0${id.session_id}`
+const partition = (id: Identity): string => id.session_id
 const supported = (event: Event): boolean =>
   event.toolName === piHooks.toolCall.tool &&
   typeof event.toolCallId === "string" &&
@@ -177,7 +184,11 @@ export const createPiExtension =
       if (!supported(event) || calls.size >= 64) return
       const fingerprint = digest(event.input)
       if (fingerprint === undefined) return
-      const id = identity(ctx, event.toolName, event.toolCallId)
+      const nativeInput = event.input !== null && typeof event.input === "object" ? event.input : undefined
+      const id = {
+        ...identity(ctx, event.toolName, event.toolCallId),
+        ...(typeof nativeInput?.path === "string" ? { target_path: nativeInput.path } : {})
+      }
       const key = `${partition(id)}\0${id.tool_use_id}`
       if (calls.has(key)) return
       await registerCall(id, key, fingerprint)

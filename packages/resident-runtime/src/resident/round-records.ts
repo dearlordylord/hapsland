@@ -1,11 +1,12 @@
 import type { Effect } from "effect"
-import type { DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
+import type { DirectAdvicee, PhysicalRootIdentity } from "@hapsland/native-observation/direct-event/observation"
 import type { CapacityLedger } from "./capacity.ts"
 import type { BendWorkView } from "./bend-work.ts"
 
 export type WorkCohort = { readonly id: string; readonly controller: AbortController }
 export type RoundActivity = {
   readonly root: string
+  readonly rootIdentity?: PhysicalRootIdentity
   readonly advicee: DirectAdvicee
   readonly activityPath: string | undefined
 }
@@ -28,6 +29,7 @@ export const draftRoundRecords = (state: RoundRecordsState) => ({ entries: new M
 const snapshotActivity = (activity: RoundActivity): RoundActivity =>
   Object.freeze({
     root: activity.root,
+    ...(activity.rootIdentity === undefined ? {} : { rootIdentity: Object.freeze({ ...activity.rootIdentity }) }),
     advicee: Object.freeze({ ...activity.advicee }),
     activityPath: activity.activityPath
   })

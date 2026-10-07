@@ -1,9 +1,14 @@
 import { mkdtempSync, existsSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { afterEach, expect, it } from "vitest"
+import { afterEach, beforeAll, expect, it } from "vitest"
 import { spawnSync } from "../scripts/test-harness/process.mjs"
-import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
+import { prepareTestSourceRuntime, type TestSourceRuntime } from "@hapsland/build-tooling/test-support/source-runtime"
+
+let source: TestSourceRuntime
+beforeAll(() => {
+  source = prepareTestSourceRuntime()
+}, 125_000)
 
 const roots: string[] = []
 afterEach(() => {
@@ -13,11 +18,11 @@ const invoke = (flags: ReadonlyArray<string>, input: string, control = "malforme
   const root = mkdtempSync(join(tmpdir(), "hapsland-hook-root-"))
   roots.push(root)
   const runtime = join(root, "runtime")
-  const child = spawnSync(bunExecutable(), ["packages/hook-entry/src/hook-main.ts", ...flags], {
+  const child = spawnSync(source.commands.hook.executable, [...source.commands.hook.args, ...flags], {
     cwd: process.cwd(),
     input,
     encoding: "utf8",
-    env: { ...process.env, REVIEW_RESIDENT_DIR: runtime, REVIEW_CONTROL_JSON: control }
+    env: { ...process.env, ...source.environment, REVIEW_RESIDENT_DIR: runtime, REVIEW_CONTROL_JSON: control }
   })
   expect(child.status).toBe(0)
   expect(child.stderr).toBe("")

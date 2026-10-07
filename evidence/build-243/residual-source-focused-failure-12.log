@@ -1,0 +1,35 @@
+
+ RUN  v5.0.1 /workspace/typescript/hapsland-243
+      Coverage enabled with v8
+
+ ✓ src/cli.test.ts (15 tests | 12 skipped) 48687ms
+   ✓ JSON subprocess contract (15)
+     ✓ keeps Claude input quiet without valid dispatch metadata, composed=false 7836ms
+     ✓ keeps Claude input quiet without valid dispatch metadata, composed=true 8659ms
+     ✓ quiets retired native hooks before decoding input or reviewer settings 32191ms
+
+FAIL /workspace/typescript/hapsland-243/src/hook-main.test.ts > refuses administration flags without reading or dispatching input
+TestProcessTimeoutError: Test harness phase=child execution; child=bun hook-main.ts; deadline=30000ms; pid=2293495
+    at syncProcess (/workspace/typescript/hapsland-243/scripts/test-harness/process.mjs:54:50)
+    at Object.apply (/workspace/typescript/hapsland-243/scripts/test-harness/process.mjs:60:91)
+    at invoke (/workspace/typescript/hapsland-243/src/hook-main.test.ts:16:17)
+    at /workspace/typescript/hapsland-243/src/hook-main.test.ts:28:10
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:1628:35
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2783:26
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3319:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3314:10)
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3299:20
+
+FAIL /workspace/typescript/hapsland-243/src/hook-main.test.ts > quiets retired channels before input or controlled-option decoding
+TestProcessTimeoutError: Test harness phase=child execution; child=bun hook-main.ts; deadline=30000ms; pid=2296094
+    at syncProcess (/workspace/typescript/hapsland-243/scripts/test-harness/process.mjs:54:50)
+    at Object.apply (/workspace/typescript/hapsland-243/scripts/test-harness/process.mjs:60:91)
+    at invoke (/workspace/typescript/hapsland-243/src/hook-main.test.ts:16:17)
+    at /workspace/typescript/hapsland-243/src/hook-main.test.ts:31:10
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:1628:35
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:2783:26
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3319:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3314:10)
+    at file:///workspace/typescript/hapsland-243/node_modules/vitest/dist/chunks/run.C5UmxDPh.js:3299:20

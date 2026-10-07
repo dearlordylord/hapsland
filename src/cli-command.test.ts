@@ -10,19 +10,22 @@ import { spawnSync } from "../scripts/test-harness/process.mjs"
 import { mkdtempSync, readdirSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { prepareTestSourceRuntime } from "@hapsland/build-tooling/test-support/source-runtime"
 
 const cli = (args: ReadonlyArray<string>, input = "", hook = false) => {
+  const runtime = hook ? prepareTestSourceRuntime() : undefined
   const home = mkdtempSync(join(tmpdir(), "hapsland-cli-arguments-"))
   try {
     const result = spawnSync(
       bunExecutable(),
-      [hook ? "packages/hook-entry/src/hook-main.ts" : "packages/cli-entry/src/cli.ts", ...args],
+      [...(runtime?.commands.hook.args ?? ["packages/cli-entry/src/cli.ts"]), ...args],
       {
         input,
         encoding: "utf8",
         timeout: DEFAULT_CHILD_TIMEOUT_MS,
         env: {
           ...process.env,
+          ...runtime?.environment,
           HOME: home,
           HAPSLAND_ACTIVE_DISPATCH: "1",
           REVIEW_USER_CONFIG_PATH: join(home, "user.json"),

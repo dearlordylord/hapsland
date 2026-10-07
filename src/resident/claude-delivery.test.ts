@@ -34,9 +34,10 @@ const fixture = async () => {
   const observation = async (
     toolUseId = "first",
     sessionId = "session",
-    subagentId: string | null = null
+    subagentId: string | null = null,
+    source?: string
   ): Promise<DirectObservation> => {
-    const content = `type ${toolUseId}Count = number\n`
+    const content = source ?? `type ${toolUseId}Count = number\n`
     const path = await put(root, `${toolUseId}.ts`, content)
     const value = await Effect.runPromise(
       adaptClaudeDirectEvent({
@@ -174,11 +175,12 @@ describe("registry-free Claude edit response", () => {
 
   it.each(["clear", "no-work", "failure"])("returns quietly after %s without an aggregate outcome", async (kind) => {
     const data = await fixture()
-    const base = await data.observation()
-    const observation =
-      kind === "no-work"
-        ? { ...base, candidates: [{ operation: "delete" as const, path: "first.ts", addedLines: [] as const }] }
-        : base
+    const observation = await data.observation(
+      "first",
+      "session",
+      null,
+      kind === "no-work" ? "const firstCount = 1\n" : undefined
+    )
     const dispatch = {
       ...data.dispatch,
       controlled:
@@ -252,10 +254,10 @@ describe("registry-free Claude edit response", () => {
     }
   })
 
-  it.each(["session", "child", "root"])("never collects another %s's advice", async (scope) => {
+  it.each(["session", "child"])("never collects another %s's advice", async (scope) => {
     const data = await fixture()
     const first = await data.observation()
-    const other = scope === "root" ? await fixture() : data
+    const other = data
     const second = await other.observation(
       "second",
       scope === "session" ? "other-session" : "session",
@@ -276,6 +278,42 @@ describe("registry-free Claude edit response", () => {
       expect(text(response)).not.toContain("firstCount")
       await Effect.runPromise(server.whenIdle())
       expect((await ordinary(server, first, data.dispatch)).status).toBe("advice")
+    } finally {
+      await Effect.runPromise(server.close)
+    }
+  })
+
+  it("skips another root's edit without synchronous advice or blocking and preserves pending advice", async () => {
+    const data = await fixture()
+    const other = await fixture()
+    data.feedback("block-current-findings")
+    other.feedback("block-current-findings")
+    const first = await data.observation()
+    const second = await other.observation("second")
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")))
+    await Effect.runPromise(server.listen())
+    try {
+      await admitReady(server, first, data.dispatch)
+      expect(
+        await Effect.runPromise(
+          server.handle({
+            requestRoute: "shared",
+            operation: "register-edit",
+            lifetime: server.lifetime,
+            root: second.root,
+            advicee: second.advicee,
+            userConfigPath: join(other.root, "user.jsonc"),
+            startedAt: monotonicNow()
+          })
+        )
+      ).toEqual({ status: "skipped-other-root" })
+      expect(await send(server, second, other.dispatch)).toEqual({ requestRoute: "edit", status: "skipped-other-root" })
+      expect(Effect.runSync(server.pendingAdviceMetadata())).toMatchObject([
+        { path: "first.ts", delivery: "available" }
+      ])
+      const pending = await ordinary(server, first, data.dispatch)
+      expect(pending.status).toBe("advice")
+      expect(text(pending)).toContain("firstCount")
     } finally {
       await Effect.runPromise(server.close)
     }
@@ -707,10 +745,7 @@ describe("registry-free Claude edit response", () => {
 
   it("binds admission to the native tool permit and original resident lifetime", async () => {
     const data = await fixture()
-    const observation = {
-      ...(await data.observation()),
-      candidates: [{ operation: "delete" as const, path: "collector.ts", addedLines: [] as const }]
-    }
+    const observation = await data.observation("first", "session", null, "const firstCount = 1\n")
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")))
     await Effect.runPromise(server.listen())
     try {

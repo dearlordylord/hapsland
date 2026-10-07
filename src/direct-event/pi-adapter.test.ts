@@ -26,6 +26,18 @@ const fixture = async () => {
     }
   }
 }
+it("discovers Pi's absolute edited target outside its runtime cwd", async () => {
+  const { root, event } = await fixture()
+  const cwd = await makeGitFixture()
+  const path = join(root, "a.ts")
+  const input = {
+    ...event,
+    cwd,
+    input: { ...event.input, path },
+    details: { patch: event.details.patch.replaceAll("a.ts", path) }
+  }
+  expect(await Effect.runPromise(adaptPiDirectEvent(input))).toMatchObject({ root, candidates: [{ path: "a.ts" }] })
+})
 it("captures Pi patch coordinates with main-thread identity and current content hash", async () => {
   const { root, event } = await fixture()
   const result = await Effect.runPromise(adaptPiDirectEvent(event))
