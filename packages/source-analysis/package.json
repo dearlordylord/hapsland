@@ -71,6 +71,14 @@
     "./direct-event/languages/native-bindings": {
       "types": "./dist/direct-event/languages/native-bindings.d.ts",
       "default": "./dist/direct-event/languages/native-bindings.js"
+    },
+    "./direct-event/languages/bend/bundled-evidence": {
+      "types": "./dist/direct-event/languages/bend/bundled-evidence.d.ts",
+      "default": "./dist/direct-event/languages/bend/bundled-evidence.js"
+    },
+    "./direct-event/languages/bend/lexical": {
+      "types": "./dist/direct-event/languages/bend/lexical.d.ts",
+      "default": "./dist/direct-event/languages/bend/lexical.js"
     }
   },
   "dependencies": {

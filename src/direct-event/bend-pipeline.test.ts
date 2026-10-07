@@ -92,6 +92,120 @@ describe("Bend direct review integration", () => {
     })
   )
 
+  it.effect("prepares quantified generic applications with actual imported and local datatype closure", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      yield* Effect.promise(() =>
+        put(
+          root,
+          "list.bend",
+          "type List<-q: Quant, A: Data> is Data:\n  NoItems{}\n  MoreItems{head: A, tail: List<q,A>}"
+        )
+      )
+      yield* Effect.promise(() =>
+        put(root, "requirement.bend", "type Requirement<S: Data> is Data:\n  Requirement{subject: S}")
+      )
+      yield* Effect.promise(() =>
+        put(
+          root,
+          "model.bend",
+          "import ./list.bend as L\nimport ./requirement.bend as R\ntype Subject is Data:\n  Subject{}\ntype Provision<S: Data> is Data:\n  Provision{requirements: L.List<&2,R.Requirement<S>>}\ntype Schedule is Data:\n  Schedule{provision: Provision<Subject>}"
+        )
+      )
+      const prepared = yield* prepare(addEvent(root, ["model.bend"]))
+      const ready = prepared.outcomes.filter((outcome) => outcome.status === "ready")
+      expect(ready.map((outcome) => outcome.prepared.input.declaration.name)).toEqual([
+        "Subject",
+        "Provision",
+        "Schedule"
+      ])
+      const schedule = ready.find((outcome) => outcome.prepared.input.declaration.name === "Schedule")
+      if (!schedule) throw new Error("Quantified generic closure was not prepared")
+      const input = preparedProviderInput(schedule.prepared)
+      expect(input?.inputContract.completeness).toBe("complete")
+      expect(input?.evidence.nodes.map((node) => node.name)).toEqual(["Provision", "List", "Requirement", "Subject"])
+      expect(JSON.stringify(input)).toContain("MoreItems{head: A, tail: List<q,A>}")
+      expect(JSON.stringify(input)).not.toContain('"symbol":"S"')
+      expect(JSON.stringify(input)).not.toContain('"symbol":"q"')
+      let calls = 0
+      const evaluated = yield* evaluatePrepared(schedule.prepared).pipe(
+        Effect.provide(
+          controlledDecisionModelLayer({
+            answers: { shape: { _tag: "Probability", probability: 0.91 } },
+            onRequest: Effect.sync(() => {
+              calls += 1
+            })
+          })
+        )
+      )
+      expect(evaluated.status).toBe("evaluated")
+      expect(calls).toBe(1)
+    })
+  )
+
+  it.effect("reviews actual Base List applications and retires changed imported payload evidence", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      yield* Effect.promise(() =>
+        put(root, "requirement.bend", "type Requirement<S: Data> is Data:\n  Requirement{subject: S}")
+      )
+      yield* Effect.promise(() =>
+        put(
+          root,
+          "model.bend",
+          "import Base\nimport ./requirement.bend as R\ntype Subject is Data:\n  Subject{}\ntype Provision<S: Data> is Data:\n  Provision{requirements: List<&2,R.Requirement<S>>}\ntype Schedule is Data:\n  Schedule{provision: Provision<Subject>}"
+        )
+      )
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["model.bend"]))
+      if (!observation) throw new Error("adaptation failed")
+      const context = {
+        controlledWriter: true,
+        advicee: observation.advicee,
+        settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
+        rules: rules(true),
+        inputContract: TYPE_INPUT_CONTRACT
+      } as const
+      const prepared = yield* prepareObservation(observation, context)
+      const schedule = prepared.outcomes.find(
+        (outcome) => outcome.status === "ready" && outcome.prepared.input.declaration.name === "Schedule"
+      )
+      if (schedule?.status !== "ready") throw new Error("Actual Base evidence was not prepared")
+      const input = preparedProviderInput(schedule.prepared)
+      expect(input?.inputContract.completeness).toBe("complete")
+      expect(input?.evidence.nodes.map((node) => node.name)).toEqual(["Provision", "List", "Requirement", "Subject"])
+      expect(input?.evidence.nodes.find((node) => node.name === "List")?.domain).toMatch(/^compiler:\/\/bend\//)
+      expect(input?.evidence.nodes.find((node) => node.name === "List")?.source).toBe(
+        "type List<a, -A: Kind(a)> is Kind(a):\n  Nil{}\n  Con{head: A, tail: List<a, A>}"
+      )
+      expect(schedule.prepared.input.sourceFingerprints?.map((fingerprint) => fingerprint.path)).toEqual([
+        "model.bend",
+        "requirement.bend"
+      ])
+      let calls = 0
+      const evaluated = yield* evaluatePrepared(schedule.prepared).pipe(
+        Effect.provide(
+          controlledDecisionModelLayer({
+            answers: { shape: { _tag: "Probability", probability: 0.91 } },
+            onRequest: Effect.sync(() => {
+              calls += 1
+            })
+          })
+        )
+      )
+      expect(evaluated.status).toBe("evaluated")
+      expect(calls).toBe(1)
+      expect(yield* preparedUnitStillCurrent(observation, schedule.prepared, context)).toBe(true)
+      yield* Effect.promise(() =>
+        put(
+          root,
+          "requirement.bend",
+          "import Base\ntype Requirement<S: Data> is Data:\n  Requirement{subject: S, priority: U32}"
+        )
+      )
+      expect(yield* preparedUnitStillCurrent(observation, schedule.prepared, context)).toBe(false)
+    })
+  )
+
   it.effect("does not bind TypeScript imports to Bend declarations", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
@@ -445,6 +559,48 @@ describe("Bend cross-file review evidence", () => {
         ).toBe(false)
         expect(reads, mode).toEqual(["model.bend", "model.bend"])
       }
+    })
+  )
+
+  it.effect("charges actual bundled Base source to file and read limits", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      const source = "import Base\ntype Root is Data:\n  Root{values: List<&2,U32>}"
+      yield* Effect.promise(() => put(root, "model.bend", source))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["model.bend"]))
+      if (!observation) throw new Error("adaptation failed")
+      const selected = yield* eligibleNamedPath(
+        root,
+        "model.bend",
+        DEFAULT_DIRECT_FILE_POLICY,
+        observation.rootIdentity
+      )
+      if (!selected) throw new Error("selection failed")
+      const capture = yield* captureStable(root, selected, {}, observation.rootIdentity)
+      if (!capture) throw new Error("capture failed")
+      const libraryBytes = Buffer.byteLength(
+        "type List<a, -A: Kind(a)> is Kind(a):\n  Nil{}\n  Con{head: A, tail: List<a, A>}"
+      )
+      const sourceBytes = Math.max(capture.byteLength, libraryBytes)
+      for (const limits of [
+        { ...GRAPH_LIMIT_CEILINGS, files: 1 },
+        { ...GRAPH_LIMIT_CEILINGS, sourceBytes, readBytes: capture.byteLength + libraryBytes - 1 }
+      ]) {
+        const unit = yield* resolveGraphUnit("model.bend", capture, "Root", {
+          root,
+          rootIdentity: observation.rootIdentity,
+          policy: DEFAULT_DIRECT_FILE_POLICY,
+          limits
+        })
+        expect(unit && omitted(unit.root)).toBe(true)
+      }
+      const complete = yield* resolveGraphUnit("model.bend", capture, "Root", {
+        root,
+        rootIdentity: observation.rootIdentity,
+        policy: DEFAULT_DIRECT_FILE_POLICY,
+        limits: { ...GRAPH_LIMIT_CEILINGS, sourceBytes, files: 2, readBytes: capture.byteLength + libraryBytes }
+      })
+      expect(complete && omitted(complete.root)).toBe(false)
     })
   )
 

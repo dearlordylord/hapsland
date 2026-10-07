@@ -8,6 +8,7 @@ import { resolve } from "node:path"
 import { generatePackageConfigs } from "./package-graph.mjs"
 import { generateReleaseIdentity } from "./generate-release-identity.mjs"
 import { prepareBendProducerToolchain } from "./build-bend-producers.mjs"
+import { generateBendBaseEvidence } from "./generate-bend-base-evidence.mjs"
 import { resolvePinnedTypeScript } from "./pinned-typescript.mjs"
 import { prepareAuthoredTaskInputs, verifyAuthoredTaskInputs } from "./authored-task-inputs.mjs"
 import { prepareNativeTaskInputs } from "./native-task-inputs.mjs"
@@ -23,6 +24,7 @@ await withBuildLock(root, async (buildEnvironment) => {
   generateTurboConfig(root, { check: true })
   mkdirSync(resolve(root, ".test-runs"), { recursive: true })
   const bendToolchain = await prepareBendProducerToolchain(root, graph)
+  generateBendBaseEvidence(root, bendToolchain, true)
   const profiles = process.env.HAPSLAND_BUILD_PROFILE
     ? [process.env.HAPSLAND_BUILD_PROFILE]
     : ["linux-arm64", "darwin-arm64"]

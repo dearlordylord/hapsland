@@ -3,6 +3,7 @@ import { createHash } from "node:crypto"
 import { dirname, extname, join, normalize } from "node:path"
 import * as Effect from "effect/Effect"
 import { MAX_TYPE_DECLARATIONS, type GraphFile, type LanguageAdapter } from "../contracts.ts"
+import { bundledBendArtifact, bundledBendDeclarations } from "./bundled-evidence.ts"
 import { extractBendDeclarations } from "./extractor.ts"
 
 /** Normalize Bend surface facts without imposing another language's parser shape. */
@@ -18,7 +19,13 @@ export const parseBendDeclarations = (path: string, source: string, limit: numbe
         source: declaration.source,
         sourceHash: createHash("sha256").update(declaration.source, "utf8").digest("hex")
       },
-      references: declaration.references,
+      references: declaration.references.map((reference) => ({
+        kind: reference.kind,
+        name: reference.name,
+        ...(reference.library === "bend/Base" && bundledBendArtifact(reference.name) !== undefined
+          ? { targetId: bundledBendArtifact(reference.name)!.id }
+          : {})
+      })),
       exported: true,
       location: {
         start: { line: declaration.startPosition.row + 1, column: declaration.startPosition.column + 1 },
@@ -45,7 +52,8 @@ const inspectBend = (path: string, source: string): GraphFile | undefined => {
         { ...declaration, artifact: { ...declaration.artifact, path } }
       ])
     ),
-    imports: parsed.imports
+    imports: parsed.imports,
+    supportingDeclarations: bundledBendDeclarations()
   }
 }
 
@@ -59,6 +67,7 @@ export const bendAdapter: LanguageAdapter = {
     return "reason" in parsed ? { status: "unsupported", reason: parsed.reason, units: [] } : parsed.declarations
   },
   inspect: inspectBend,
+  supportingTypes: () => bundledBendDeclarations(),
   hasImports: (source) => /\bimport\b/u.test(source),
   combinedPreflight: (_path, _source, typeBound) => typeBound,
   prepareGraph: (_path, _capture, _host, limits) =>

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-10-01T04:09:15.264Z",
-  "compilerVersion": "bend 2.0.34",
+  "recordedAt": "2026-10-07T21:44:27.833Z",
+  "compilerVersion": "bend 2.0.35",
   "command": "bend <synthetic-fixture> --check-only",
   "outcomes": [
     {
@@ -13,6 +13,37 @@
     {
       "fixtureId": "bend-payment-good",
       "sourceHash": "ce65d21bc5a0771ca5733669558d11b21b3d7c896b8f8dbfc60ad7ee6297a074",
+      "expected": "accepted",
+      "actual": "accepted"
+    },
+    {
+      "fixtureId": "generic-data-and-type-bindings",
+      "sourceHash": "be039839c839839798cb09ecc888d64803fc6119e18d1786f2c42ace1cea798c",
+      "expected": "accepted",
+      "actual": "accepted"
+    },
+    {
+      "fixtureId": "base-list-bound-and-nested-local-payloads",
+      "sourceHash": "3f96d244008f48bcf904abae7513980a4efa6fa490c3f0e32705e52714d20968",
+      "expected": "accepted",
+      "actual": "accepted"
+    },
+    {
+      "fixtureId": "base-list-imported-type-arguments",
+      "sourceHash": "53a5c163269eb2f49be30f620c32533f4efef9c5e603ab41fc3cfbcc3e350f8e",
+      "supportingSourceHashes": {
+        "requirement.bend": "ce9523151293f7b796af26462832bf2d26a307b13c7093e75c9f2871658509bc"
+      },
+      "expected": "accepted",
+      "actual": "accepted"
+    },
+    {
+      "fixtureId": "quantified-imported-and-local-closure",
+      "sourceHash": "1dd364a41959b3ab1026e870ae8a60679538b92ad51060b98ea26264cf72fa8c",
+      "supportingSourceHashes": {
+        "list.bend": "4f869e3d04e4cbd4f7e91a30d96b53791bdfb077c0a26d4e9282c5ad46982540",
+        "requirement.bend": "ce9523151293f7b796af26462832bf2d26a307b13c7093e75c9f2871658509bc"
+      },
       "expected": "accepted",
       "actual": "accepted"
     },
@@ -54,5 +85,5 @@
     }
   ],
   "verdict": "demonstrated",
-  "scope": "Synthetic fixture validity and constructor arity only; no proof, review-quality, or native delivery claim."
+  "scope": "Synthetic fixture syntax, generic binding and quantity arguments, imports and constructor arity only; no proof, review-quality, or native delivery claim."
 }

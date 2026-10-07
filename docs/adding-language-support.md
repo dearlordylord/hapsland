@@ -12,7 +12,9 @@ TypeScript, Rust, and Bend use the shared review pipeline. The
 [README language table](../README.md#languages-and-limits) describes user-facing
 support; the [branch contracts](type-function-review-proposal.md#branch-contracts)
 own exact syntax, binding, and omission rules. External crates, Bend hub imports,
-and unsupported or ambiguous bindings remain outside resolution scope.
+and unsupported or ambiguous bindings remain outside resolution scope. Bend’s
+pinned Base `List` is the bounded bundled-evidence exception, owned by the
+[Bend profile](type-function-review-proposal.md#branch-contracts).
 
 Source-language code lives in
 [`src/direct-event/languages/`](../src/direct-event/languages). The static
@@ -40,7 +42,10 @@ TypeScript type and function extraction share native grammar setup. Rust keeps
 Cargo/module authority inside its adapter. Bend uses an independent surface
 extractor returning common facts; it does not fabricate TypeScript syntax nodes
 or execute the compiler on edited files. Generic traversal must not acquire
-language flags, grammar selection, or filename conventions.
+language flags, grammar selection, or filename conventions. Bundled declarations
+use explicit library origins and supporting-only identities, never invented
+project captures. Their catalog is generated from the selected build toolchain;
+runtime analysis does not invoke that toolchain.
 
 ## Adding a language
 

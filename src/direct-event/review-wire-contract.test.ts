@@ -1,11 +1,21 @@
+import { bundledBendArtifact } from "@hapsland/source-analysis/direct-event/languages/bend/bundled-evidence"
 import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import { createHash } from "node:crypto"
 import { readFile, writeFile } from "node:fs/promises"
 import { describe, expect, it } from "vitest"
 import { compileRule } from "@hapsland/review-definition/rules/compiler"
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
-import { canonicalValue, freezeRules, type PreparedUnit } from "@hapsland/review-definition/direct-event/model"
-import type { ReviewArtifact, ReviewNode } from "@hapsland/source-artifacts/direct-event/artifact-model"
+import {
+  canonicalValue,
+  freezeRules,
+  semanticIdentity,
+  type PreparedUnit
+} from "@hapsland/review-definition/direct-event/model"
+import {
+  bundledArtifactDomain,
+  type ReviewArtifact,
+  type ReviewNode
+} from "@hapsland/source-artifacts/direct-event/artifact-model"
 import {
   candidateReviewInput,
   encodedFullJevRequestBytes,
@@ -223,5 +233,99 @@ describe("candidate wire no-send cases", () => {
     }
     expect(preparedProviderInput(absolutePathUnit)).toBeUndefined()
     expect(encodedFullJevRequestBytes(absolutePathUnit)).toBe(Number.POSITIVE_INFINITY)
+  })
+})
+
+describe("bundled Bend provider evidence", () => {
+  const libraryUnit = (): PreparedUnit => {
+    const unit = prepared("type")
+    const library = bundledBendArtifact("List")
+    if (library === undefined) throw new Error("pinned Base.List evidence unavailable")
+    const root = unit.input.unit.root.artifact
+    return {
+      ...unit,
+      input: {
+        ...unit.input,
+        unit: { root: node(root, [{ kind: "expanded", site: { symbol: "List" }, node: node(library) }]) }
+      }
+    }
+  }
+
+  it("renders actual compiler bytes and explicit provenance without a project path", () => {
+    const unit = libraryUnit()
+    const library = bundledBendArtifact("List")!
+    const candidate = candidateReviewInput(unit.input)
+    const rendered = preparedProviderInput(unit)
+    expect(candidate?.nodes[0]).toMatchObject({
+      id: library.id,
+      source: library.source,
+      origin: library.origin,
+      domain: bundledArtifactDomain(library.origin!)
+    })
+    expect(rendered?.evidence.nodes[0]).toEqual(candidate?.nodes[0])
+    expect(library.path).toBeUndefined()
+    expect(candidate?.artifact.domain).toBe(unit.input.path)
+    expect(JSON.stringify(rendered)).toContain(library.source.replaceAll("\n", "\\n"))
+  })
+
+  it("rejects forged provenance, mismatched bytes, fake project paths and bundled roots", () => {
+    const unit = libraryUnit()
+    const candidate = candidateReviewInput(unit.input)!
+    const library = candidate.nodes[0]!
+    for (const changed of [
+      { ...library, source: `${library.source}\n` },
+      { ...library, domain: "Base.bend" },
+      { ...library, origin: { ...library.origin, declarationHash: "0".repeat(64) } },
+      { ...library, origin: { ...library.origin, compilerSource: "forged" } },
+      { ...library, origin: { ...library.origin, extra: true } },
+      { ...library, origin: undefined }
+    ])
+      expect(renderCandidateReviewInput({ ...candidate, nodes: [changed] })).toBeUndefined()
+    expect(renderCandidateReviewInput({ ...candidate, artifact: library, nodes: [] })).toBeUndefined()
+    const support = unit.input.unit.root.references[0]!
+    if (support.kind !== "expanded") throw new Error("missing library support")
+    const forged = { ...support.node.artifact, path: "Base.bend" }
+    expect(
+      candidateReviewInput({
+        ...unit.input,
+        unit: { root: node(unit.input.declaration, [{ ...support, node: node(forged) }]) }
+      })
+    ).toBeUndefined()
+  })
+
+  it("keeps a project List distinct from compiler List", () => {
+    const unit = libraryUnit()
+    const reference = unit.input.unit.root.references[0]!
+    const project = artifact("src/List.bend", "datatype", "List", "type List is Data:\n  Empty{}")
+    const input = {
+      ...unit.input,
+      unit: {
+        root: node(unit.input.declaration, [
+          reference,
+          { kind: "expanded" as const, site: { symbol: "Project.List" }, node: node(project) }
+        ])
+      }
+    }
+    const candidate = candidateReviewInput(input)
+    const rendered = candidate === undefined ? undefined : renderCandidateReviewInput(candidate)
+    expect(rendered?.evidence.nodes.map(({ id }) => id)).toEqual([bundledBendArtifact("List")!.id, project.id])
+    expect(rendered?.evidence.nodes[1]?.origin).toBeUndefined()
+  })
+
+  it("keeps bundle provenance and bytes in semantic reuse identity", () => {
+    const unit = libraryUnit()
+    const before = semanticIdentity(unit.input)
+    const support = unit.input.unit.root.references[0]!
+    if (support.kind !== "expanded") throw new Error("missing support")
+    for (const artifact of [
+      { ...support.node.artifact, source: `${support.node.artifact.source}\n` },
+      { ...support.node.artifact, origin: { ...support.node.artifact.origin!, compilerSource: "changed" } }
+    ]) {
+      const changed = {
+        ...unit.input,
+        unit: { root: node(unit.input.declaration, [{ ...support, node: node(artifact) }]) }
+      }
+      expect(semanticIdentity(changed)).not.toBe(before)
+    }
   })
 })
