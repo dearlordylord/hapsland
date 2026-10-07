@@ -1,4 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process"
+import { writeFileSync } from "node:fs"
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import { mkdtemp, mkdir, writeFile, readFile, rm, chmod, symlink } from "node:fs/promises"
@@ -602,3 +603,28 @@ for (const input of ["linked target", "submodule content"]) {
     assert.deepEqual(records.find((stage) => stage.name === "source-identity").evidence.changedPaths, [changedPath])
   })
 }
+
+test("input invalidation during stage admission does not launch the child", async (t) => {
+  const root = await fixture(t)
+  execFileSync("git", ["init", "-q", root])
+  await mkdir(join(root, "src"))
+  const input = join(root, "src/input.ts"),
+    launched = join(root, ".test-runs/launched")
+  await writeFile(input, "before")
+  const run = await createRun({
+    root,
+    mode: "test",
+    timeoutMs: 10000,
+    output(message) {
+      if (message.startsWith("START admission;")) writeFileSync(input, "after")
+    }
+  })
+  await run.observeInputs()
+  const stage = await run.runStage(
+    command("admission", `require('node:fs').writeFileSync(${JSON.stringify(launched)}, 'launched')`)
+  )
+  assert.equal(stage.state, "not-started")
+  await assert.rejects(readFile(launched), { code: "ENOENT" })
+  assert.equal(await run.finish(), 1)
+  assert.match(stage.reason, /src\/input.ts/)
+})
