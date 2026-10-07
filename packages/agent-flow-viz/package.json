@@ -83,6 +83,10 @@
     "./permit-controls": {
       "types": "./src/permit-controls.ts",
       "default": "./src/permit-controls.ts"
+    },
+    "./production-flow-mermaid": {
+      "types": "./src/production-flow-mermaid.ts",
+      "default": "./src/production-flow-mermaid.ts"
     }
   }
 }

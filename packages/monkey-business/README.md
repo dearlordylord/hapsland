@@ -284,14 +284,12 @@ returns one synchronous immutable snapshot of virtual time, event count,
 resident projection, retained frames, capacity metadata and advicee scopes.
 Earlier snapshots cannot change when the run advances; retention still limits
 only observations. `replayRun` reconstructs inputs; `restoreReplay` restores
-the recorded endpoint. These are the same version-one API and replay format,
-not a parallel migration facade. Advance options use the existing exact
+the recorded endpoint. The API and replay format are version one. Advance options use exact
 synchronous Effect Schema decoding convention and reject excess fields before
 any advancement. UI cameras, layout, playback speed and unapplied form drafts
-remain presentation-owned. The dashboard's retained history reads this boundary;
-there is no visual layout change in this prefactor.
+remain presentation-owned. The dashboard's retained history reads this boundary.
 
-The numeric migration contract preserves actual Run support: nonnegative
+Run supports: nonnegative
 integer scripted absolute times, preparation/Jev delays, replay endpoint time,
 seed and advance bounds reach **2^48−1**. Canonical identities use the same
 immediate Nat domain; byte facts are bounded by **2^47−1**. JS numbers represent
@@ -330,7 +328,6 @@ private Engine/Runtime layouts are not a required oracle. Retained-output checks
 are explicit, source/tool guarded and reported as retained evidence, not fresh
 compilation. Mixed failed runs preserve their passing owner results.
 
-The current game-absent dashboard build passed at `e823083a` in 14.722 seconds with the game directory physically removed and restored afterward. Current master is integrated through `11ac3f03`, with fresh Engine artifacts. Seven fresh NativeRun cases passed in 44.593 seconds, and the complete game native/emitted/public/replay comparison passed at `e823083a` in 138.673 seconds with Bend 2.0.35. Recovery, output and collection-response checks retain their recorded source/tool scopes. The global compiler update correctly invalidated old-output reuse; a minimal importer-local foreign effect name fix preserves identical numeric output.
 See [qualified game and runner evidence](../../prototypes/canonical-defense/README.md#completed-performance-investigation).
 These recorded scopes do not impose an exhaustive theorem inventory, CI wait or
 another native compilation of already qualified unchanged families. Accepted

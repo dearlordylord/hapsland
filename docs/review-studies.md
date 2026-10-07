@@ -59,7 +59,7 @@ Each scenario has three layouts, each with a defective input and an authored val
 | [Compact examples across all nine rules](./abide-contextual-review-study.md) | A separate duplicate-fact matrix and a matrix for the eight other rules | Additional examples, per-rule results, false warnings and final source |
 | [Hapsland and Abide](./abide-comparison.md) | Review inputs, file access and data retention | Architecture, joint operation and links to measured review quality |
 
-The older “eight rules” count refers to the eight rules besides duplicate-fact rule `r4`, which had its own study. New setup now provisions **seven defaults** after [the default review](./configuration.md#default-rule-dispositions). These historical studies evaluated nine rules, including the two removed defaults. The studies use different inputs and repetitions; their repair counts are not pooled into a single rating.
+Setup provisions [seven defaults](./configuration.md#default-rules). These studies evaluated nine recorded rule definitions. The studies use different inputs and repetitions; their repair counts are not pooled into a single rating.
 
 ## Inspect the evidence
 

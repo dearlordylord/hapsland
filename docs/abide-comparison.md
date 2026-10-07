@@ -34,11 +34,11 @@ The reader extracts recognized credential fields without loading the whole file
 into process environment. Login writes an owner-only file; it does not use a
 native credential store. These are SRC / SOURCE-INSPECTED claims.
 
-Hapsland setup, status and hook dispatch now share [credential input lookup](../packages/runtime-inputs/src/credentials/input.ts).
+Hapsland setup, status and hook dispatch share [credential input lookup](../packages/runtime-inputs/src/credentials/input.ts).
 They read the selected key from process environment, repository `.env.local`,
 repository `.env`, then the user Hapsland configuration directory's `.env`.
 The native saved-key resolver remains the fallback for the default reference.
-Dev-install no longer injects checkout dotenv into its child environment. The
+Dev-install leaves credential-file lookup to the installed child. The
 fresh-process regression exercises file lookup with no inherited key; native
 agent delivery and provider validity remain separate checks.
 

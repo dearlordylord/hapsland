@@ -97,8 +97,7 @@ controls, boundaries and ordinary replay. Native and emitted JavaScript still
 compare every word of the complete encoding.
 
 Writer's thirteen original cases use one `writer-original-scenarios.bend`
-fixture and one `writer_scenarios` vector. The superseded thirteen per-case
-wrappers have been removed. `writer-native.test.ts` retains every original
+fixture and one `writer_scenarios` vector. `writer-native.test.ts` checks every
 configuration and independent public expectation, with fresh native/JavaScript
 whole-vector equality and public/replay comparison for all thirteen entries.
 Compilation runs once per backend for the family, rather than once per case.

@@ -37,8 +37,7 @@ Selection requires activation and both inclusion checks, with neither exclusion.
 These are 32 combinations, not every configuration. Independently vary intrinsic
 and configured language/kind support, observed evidence, filesystem eligibility,
 context selection, and privacy exclusions. Configuration validity is checked before
-source capture, including when some valid rules could otherwise run. The retired
-pack-enabled and repository-consent axes are not current settings.
+source capture, including when some valid rules could otherwise run.
 
 | Scenario | Required observable outcome |
 |---|---|

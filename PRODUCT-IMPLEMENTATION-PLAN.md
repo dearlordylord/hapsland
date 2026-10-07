@@ -410,8 +410,7 @@ do not establish validation of that later change.
 Current [installation workflows](./docs/installation-workflows.md),
 [installed compatibility](./docs/installed-release-compatibility.md), and
 [publishing guidance](./docs/npm-publishing.md) own the maintained onboarding,
-update/removal, and distribution instructions. The superseded #62 onboarding
-snapshot has been deleted; the issue and Git history retain its original scope.
+update/removal, and distribution instructions.
 Use the [direct-event supported profile](./docs/direct-event-v1-supported-profile.md)
 and [testing matrix](./docs/testing-matrix.md) for current runtime boundaries
 and validation gates rather than the early synchronous assumptions in this plan.

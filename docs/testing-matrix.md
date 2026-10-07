@@ -79,10 +79,16 @@ The materialized runtime is kept outside `dist` so production builds cannot remo
 
 Run `npm run hooks:install` once per repository. The shared Git dispatcher invokes
 the current worktree's maintained `.husky/pre-commit`, including lint-staged,
-typechecking, and `config:check` (rejects stale generated documentation and schemas), for existing and newly created worktrees.
-Run `npm run config:generate` after changing schema metadata or documented runtime
-constants; `npm run config:check` verifies the checked-in schemas and marked Markdown
-sections without rewriting them. [Fact renderers](../scripts/documentation-facts.ts)
+typechecking, and `docs:generated:check`, for existing and newly created worktrees.
+Run `npm run docs:generate` after changing schemas, documented runtime constants,
+hook definitions, or the dashboard flow model. One generator inventory updates
+configuration schemas/references, the hook table, the architecture Mermaid, and
+comparison pages from frozen evidence. It makes no provider requests or new measurements.
+`docs:generated:check` verifies those artifacts without rewriting them; fast checks,
+pre-commit and the deterministic runner precheck invoke it. A stale artifact blocks
+the workflow with its generator's diagnostic. The focused `config:generate`,
+`hooks:generate` and `architecture:generate` commands remain available.
+[Fact renderers](../scripts/documentation-facts.ts)
 import limits and names from their implementation owners. Edit those owners and
 renderers, rather than generated sections.
 
@@ -149,7 +155,7 @@ evidence before regenerating the scenario pages.
 | Inspection evaluation reuse | `npm --prefix packages/agent-flow-viz run test:inspection-reuse-browser` | Actual provider request held while another edit joins, clear result reused from cache, separate controlled DecisionModel call, public API/browser links and filtered retained totals, repeated recovery and physical policy-record loss | Joins/cache add no model or transport calls; controlled model activity remains distinct from live HTTP. Unknown activity after policy loss is explicit. Totals count retained immutable identities and do not claim complete capture |
 | Inspection classifier outcomes | `npm --prefix packages/agent-flow-viz run test:inspection-outcomes-browser` | Real resident and offline production provider transport through private journal and public API/browser; clear/findings, invalid answers, backend failure, timeout, interruption, oversized capture, exact copy and credential/error-body exclusion | Observed outcomes remain distinct from submission. The backend-error fixture exercises the resident error boundary without suppressing the original failure; no live Jev or model-visibility claim |
 | Pi inspector handoffs | `npm --prefix packages/agent-flow-viz run test:pi-inspection-browser`; [native fixture matrix](../src/pi/inspection-native.test.ts) | Existing native extension fixtures → freshly packed production command/resident → private journal → public HTTP/SSE → Chromium; actual edit and finish offers, general resident messages independent of native output and lost acknowledgement, original edit links, verified multi-source health, retained history after resident exit, identity filters, keyboard focus/button activation and 375 px layout. Native matrix additionally covers session switch, recording disabled, and altered native output with the original native value preserved. | Native handler proposed output and resident replies remain distinct from completed writes or model visibility. One-rule edit fixture permits at most two later eligible comment mutations without starting unrelated classifier work, each with the existing short callback deadline; the extracted package boundary does not establish npm installation or other-platform support; no general latency or repair claim |
-| Repository documentation | `npm run docs:install` once; `npm run docs:check` | Local Markdown links, raw HTML images and links, and heading anchors in tracked and new non-ignored Markdown | Files and headings exist; no external URL requests or documentation-truth claim |
+| Repository documentation | `npm run docs:install` once; `npm run docs:check` | Local Markdown links, raw HTML images and links, heading anchors, and generated architecture Mermaid matching the dashboard flow model and module table/graph matching workspace manifests and curated descriptions | Files and headings exist; generated views are current and stale checks preserve prose. No external URL requests, native execution or documentation-truth claim |
 | Code lint and formatting | `npm run lint:code`; `npm run lint:changed`; `npm run format` | Oxlint correctness and shared code rules; dprint/OXC formatting of authored code | Full or changed-file checks; Git pre-commit fixes staged formatting and rejects lint failures. Generated, vendor, fixture and evidence assets remain outside this selection. |
 | Lint workflow regression | `node --test scripts/quality-file-discovery.test.mjs scripts/quality-lint.test.mjs` | Git selection, failure propagation, shared worktree hooks, lint-staged formatting, preservation of unstaged edits and commit rejection | Offline temporary-repository workflow; no build or agent invocation |
 | Installed hook inventory | `npm run hooks:generate`; `npm run docs:check` | README table generated from the shared Codex, Claude Code and Pi hook catalog | Documentation matches registration definitions; no native lifecycle execution claim |
@@ -422,7 +428,7 @@ native/emitted-JS agreement under a 300-second watchdog (C90/clang120/native5,
 JS15+5). Their independent public milestones and replay also run as separate
 TypeScript tests. The concurrent-notice comparison uses the shared native runner
 and its C30/clang30/native5 allowances under the same 100-second watchdog;
-it no longer owns a separate compiler subprocess implementation.
+it uses the shared compiler subprocess implementation.
 These are fixture compilation budgets, not product latency deadlines.
 
 Shared-resident contention/cancellation and generated PRE comparisons use
@@ -658,7 +664,7 @@ C60/clang90/native5/JS15+5 with a 190-second aggregate watchdog.
 
 `packages/monkey-business/src/writer-native.test.ts` compares all thirteen
 original cases through the single `writer-original-scenarios.bend` fixture and
-`writer_scenarios` vector. The thirteen per-case wrappers have been removed;
+`writer_scenarios` vector.
 one compilation per backend retains every original case and independent
 public/replay expectation. Its full comparison uses C90/clang120/native15/JS30+5
 with a 275-second aggregate watchdog. These allowances establish no pass by
@@ -763,11 +769,8 @@ Slow process checks are canaries: use the smallest independent actors that can
 exercise the physical boundary, explicit readiness and barriers, and an isolated
 fixture. Value, parsing and lifecycle policy matrices call their production
 services directly; representative CLI, TTY and installed executable cases retain
-transport and packaging assurance. Singleton convergence now uses six requests
-across three client processes; the historical 100-request/eight-process record
-is prior stress evidence, not an assertion made by the current routine suite.
-Pi no longer repeats stale-result scheduling through cold CLI calls with a
-650 ms reviewer delay. Deterministic resident tests own stale handoff and
+transport and packaging assurance. Singleton convergence uses six requests
+across three client processes. Deterministic resident tests own stale handoff and
 supersession during final revalidation; installed Pi cases retain attribution,
 transport, cancellation and lifetime checks.
 Installed resident idle expiry, live connection retention and accepted-work
@@ -855,7 +858,7 @@ The 2026-10-01 run has 24 selected demonstrated cells and zero Jev requests. Its
 | Historical or separate runner | Relationship to this matrix |
 | --- | --- |
 | [`run-native-codex-136.mjs`](../scripts/run-native-codex-136.mjs), [`run-native-claude-136.mjs`](../scripts/run-native-claude-136.mjs) | Preserve the declared #136 experiments and their original fixtures. New source-checkout agent and language checks use `run-native-crossfile-current.mjs`. |
-| [`run-rust-native-codex.mjs`](../scripts/run-rust-native-codex.mjs) | Preserve the initial Rust adoption record. The common runner now owns current TypeScript/Rust/Bend cross-file scenarios. |
+| [`run-rust-native-codex.mjs`](../scripts/run-rust-native-codex.mjs) | Preserve the initial Rust adoption record. The common runner owns TypeScript/Rust/Bend cross-file scenarios. |
 | [`run-direct-event-live-milestone.mjs`](../scripts/run-direct-event-live-milestone.mjs), [`run-first-review-live-milestone.mjs`](../scripts/run-first-review-live-milestone.mjs) | Retain separately declared direct-event and first-review milestones. They validate different package or initial-review boundaries and do not replace the current three-language source-checkout matrix. |
 | [`run-clean-package-conformance.mjs`](../scripts/run-clean-package-conformance.mjs), [`run-setup-package-conformance.mjs`](../scripts/run-setup-package-conformance.mjs) | Current package gates. They are not duplicates of source-checkout native sessions. |
 

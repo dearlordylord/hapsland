@@ -283,7 +283,4 @@ additional evidence. The storage root can be relocated with `REVIEW_ACTIVITY_PAT
 Activity is stored under `$XDG_STATE_HOME/hapsland/activity`, normally
 `~/.local/state/hapsland/activity`. XDG bases must be absolute; absent, empty or
 relative bases use their standard defaults. The explicit `REVIEW_ACTIVITY_PATH`
-overrides that location. Superseded `realtime-review-tool` config/state directories
-are not read or migrated automatically. If you used the earlier pre-release, move
-your chosen configuration to the new location before restarting the agent; old
-activity remains in its original directory.
+overrides that location.

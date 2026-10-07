@@ -1,0 +1,533 @@
+{
+  "@hapsland/activity-observation": {
+    "summary": "Source-free review activity, status, analytics and demo budgets",
+    "contracts": [
+      {
+        "label": "Status contract",
+        "target": "docs/status.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "src/activity/{status,analytics,storage,demo-budget}.test.ts"
+      }
+    ]
+  },
+  "@hapsland/administration": {
+    "summary": "Setup/update/repair, credential mutation, rule management, dashboard and evaluation command workflows",
+    "contracts": [
+      {
+        "label": "Installation",
+        "target": "docs/installation-workflows.md"
+      },
+      {
+        "label": "rules",
+        "target": "docs/configuration.md#declarative-rules"
+      },
+      {
+        "label": "inspection",
+        "target": "docs/status.md#opt-in-local-inspection"
+      },
+      {
+        "label": "evaluation",
+        "target": "docs/evaluation.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "src/onboarding, src/rules/cli.test.ts, src/evaluation"
+      }
+    ]
+  },
+  "@hapsland/agent-flow-bend": {
+    "summary": "Source-free canonical transitions, bounded import-graph decisions and request-content selection/framing compiled from Bend",
+    "contracts": [
+      {
+        "label": "Bend laws and proof scope",
+        "target": "packages/agent-flow-bend/README.md"
+      },
+      {
+        "label": "authored abi declarations"
+      }
+    ],
+    "verification": [
+      {
+        "label": "producer receipt, compiler rejection tests, independent canonical/import-graph traces and request-content proof/wire mutation checks"
+      }
+    ]
+  },
+  "@hapsland/agent-flow-projection": {
+    "summary": "Reducer-derived flow stages, record locations and evidence of accepted transitions",
+    "contracts": [
+      {
+        "label": "Projection boundary",
+        "target": "packages/agent-flow-projection/README.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "Projection typechecking and dashboard replay fixtures"
+      }
+    ]
+  },
+  "@hapsland/agent-flow-viz": {
+    "summary": "Public site, decision dashboard and visual presentation of checked flow evidence",
+    "contracts": [
+      {
+        "label": "Visualization guidance",
+        "target": "packages/agent-flow-viz/README.md"
+      },
+      {
+        "label": "Dashboard rules",
+        "target": "packages/agent-flow-viz/DASHBOARD-RULES.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "Dashboard replay fixtures and browser checks"
+      }
+    ]
+  },
+  "@hapsland/build-tooling": {
+    "summary": "Build orchestration, artifact publication, repository generators and verification harness adapters",
+    "contracts": [
+      {
+        "label": "Build ownership guidance",
+        "target": "docs/architecture.md#compiler-and-executable-ownership"
+      },
+      {
+        "label": "Check selection and evidence boundaries",
+        "target": "docs/testing-matrix.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "Build tooling and harness focused tests"
+      }
+    ]
+  },
+  "@hapsland/canonical-defense": {
+    "summary": "Optional native teaching game and balance laboratory over a separate shared simulation engine instance",
+    "contracts": [
+      {
+        "label": "Game proposal and evidence scope",
+        "target": "prototypes/canonical-defense/README.md"
+      },
+      {
+        "label": "Balance laboratory guidance",
+        "target": "prototypes/canonical-defense/lab/README.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "Optional game and laboratory focused checks"
+      }
+    ]
+  },
+  "@hapsland/canonical-policy": {
+    "summary": "Checked Bend transition ABI, import-graph policy, limits and immutable decision records",
+    "contracts": [
+      {
+        "label": "Decision ledger",
+        "target": "docs/typescript-decision-boundary-ledger.md"
+      },
+      {
+        "label": "Bend laws/proofs",
+        "target": "packages/agent-flow-bend/README.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "canonical authority scripts and src/canonical"
+      }
+    ]
+  },
+  "@hapsland/cli-entry": {
+    "summary": "Administrative command composition and installed CLI entry",
+    "contracts": [
+      {
+        "label": "Installation",
+        "target": "docs/installation-workflows.md"
+      },
+      {
+        "label": "evaluation",
+        "target": "docs/evaluation.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "src/cli.test.ts, src/cli-command.test.ts, installed CLI checks"
+      }
+    ]
+  },
+  "@hapsland/credential-storage": {
+    "summary": "Native credential resolution/store transport and generation-lock lifetime",
+    "contracts": [
+      {
+        "label": "Credential configuration",
+        "target": "docs/configuration.md"
+      },
+      {
+        "label": "installation authorization",
+        "target": "docs/installation-workflows.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "src/credentials/{secret-service,secret-service-process}.test.ts"
+      }
+    ]
+  },
+  "@hapsland/delivery-output": {
+    "summary": "Feedback text and runtime-specific response encoding, including Claude stop authority",
+    "contracts": [
+      {
+        "label": "Advice contract",
+        "target": "docs/advicing-target-contract.md"
+      },
+      {
+        "label": "Claude authority",
+        "target": "docs/adr/0003-claude-direct-edit-blocking-authority.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "src/feedback, src/direct-event/output.test.ts, Claude delivery checks"
+      }
+    ]
+  },
+  "@hapsland/doctor-entry": {
+    "summary": "Standalone read-only installed diagnostic composition",
+    "contracts": [
+      {
+        "label": "Status/doctor",
+        "target": "docs/status.md"
+      },
+      {
+        "label": "installed compatibility",
+        "target": "docs/installed-release-compatibility.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "src/onboarding/doctor.test.ts, package doctor checks"
+      }
+    ]
+  },
+  "@hapsland/hook-entry": {
+    "summary": "Standalone Bun native-hook process composition",
+    "contracts": [
+      {
+        "label": "Supported events",
+        "target": "docs/direct-event-v1-supported-profile.md"
+      },
+      {
+        "label": "installation",
+        "target": "docs/installation-workflows.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "src/hook-main.test.ts, installed hook checks"
+      }
+    ]
+  },
+  "@hapsland/hook-runtime": {
+    "summary": "Quiet hook grammar, direct/composed execution and Pi subprocess transport",
+    "contracts": [
+      {
+        "label": "Advice contract",
+        "target": "docs/advicing-target-contract.md"
+      },
+      {
+        "label": "Pi",
+        "target": "docs/pi-installation.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "src/hooks/command.test.ts, src/resident/composed-hook.test.ts, src/pi/installed-boundary.test.ts"
+      }
+    ]
+  },
+  "@hapsland/inspection-records": {
+    "summary": "Private source-free inspection journal, recording and retained replay",
+    "contracts": [
+      {
+        "label": "Inspection contract #225",
+        "target": "https://github.com/dearlordylord/hapsland/issues/225"
+      },
+      {
+        "label": "status",
+        "target": "docs/status.md#opt-in-local-inspection"
+      }
+    ],
+    "verification": [
+      {
+        "label": "src/inspection recording/replay tests and inspection browser gates"
+      }
+    ]
+  },
+  "@hapsland/monkey-business": {
+    "summary": "Source-free deterministic simulation API, seeded boundary facts and exact replay over checked reducers",
+    "contracts": [
+      {
+        "label": "Simulation API and evidence scope",
+        "target": "packages/monkey-business/README.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "Simulation package tests and typechecking"
+      }
+    ]
+  },
+  "@hapsland/monkey-business-bend": {
+    "summary": "Shared source-free simulation state, virtual-time scheduler and review scenario driver",
+    "contracts": [
+      {
+        "label": "Shared engine and host obligations",
+        "target": "packages/monkey-business-bend/README.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "Generated engine freshness and simulation boundary checks"
+      }
+    ]
+  },
+  "@hapsland/native-observation": {
+    "summary": "Native edit/session observations, attribution, source capture and file-access facts",
+    "contracts": [
+      {
+        "label": "Supported events",
+        "target": "docs/direct-event-v1-supported-profile.md"
+      },
+      {
+        "label": "input identity",
+        "target": "docs/review-contract-compatibility.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "src/direct-event/{adapter,selection-capture,edit-attribution}.test.ts, file-policy checks"
+      }
+    ]
+  },
+  "@hapsland/parser-entry": {
+    "summary": "Standalone constrained source-analysis worker composition",
+    "contracts": [
+      {
+        "label": "Input contract",
+        "target": "docs/review-contract-compatibility.md"
+      },
+      {
+        "label": "supported languages",
+        "target": "docs/adding-language-support.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "parser subprocess/security boundary checks"
+      }
+    ]
+  },
+  "@hapsland/pi-extension": {
+    "summary": "Node-hosted Pi event translation and installed subprocess invocation",
+    "contracts": [
+      {
+        "label": "Pi contract",
+        "target": "docs/pi-installation.md"
+      },
+      {
+        "label": "advice contract",
+        "target": "docs/advicing-target-contract.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "src/pi/{extension,installed-boundary,inspection-native}.test.ts, native Pi runner"
+      }
+    ]
+  },
+  "@hapsland/resident-entry": {
+    "summary": "Standalone resident lifetime/process composition",
+    "contracts": [
+      {
+        "label": "Advice contract",
+        "target": "docs/advicing-target-contract.md"
+      },
+      {
+        "label": "decision ledger",
+        "target": "docs/typescript-decision-boundary-ledger.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "src/resident/subprocess.test.ts, lifecycle/reuse integration checks"
+      }
+    ]
+  },
+  "@hapsland/resident-runtime": {
+    "summary": "Resident admission, shared review scheduling, freshness, collection and state lifetime",
+    "contracts": [
+      {
+        "label": "Advice contract",
+        "target": "docs/advicing-target-contract.md"
+      },
+      {
+        "label": "resources",
+        "target": "docs/review-resources.md"
+      },
+      {
+        "label": "decision ledger",
+        "target": "docs/typescript-decision-boundary-ledger.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "resident server/capacity/collection/reuse/security tests"
+      }
+    ]
+  },
+  "@hapsland/resident-transport": {
+    "summary": "Version-one IPC schema, client discovery/reuse and bounded request transport",
+    "contracts": [
+      {
+        "label": "IPC/advice contract",
+        "target": "docs/advicing-target-contract.md"
+      },
+      {
+        "label": "compatibility",
+        "target": "docs/review-contract-compatibility.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "src/resident/{protocol,client}.test.ts, process lifecycle checks"
+      }
+    ]
+  },
+  "@hapsland/review-definition": {
+    "summary": "Editable rule/input definitions, compilation, settings snapshots and provider limits",
+    "contracts": [
+      {
+        "label": "Rule/input contract",
+        "target": "docs/review-contract-compatibility.md"
+      },
+      {
+        "label": "configuration",
+        "target": "docs/configuration.md"
+      },
+      {
+        "label": "provider limits",
+        "target": "docs/review-providers.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "src/rules, editable-rule/settings tests"
+      }
+    ]
+  },
+  "@hapsland/review-execution": {
+    "summary": "Review preparation, rule evaluation, provider effects and result explanation",
+    "contracts": [
+      {
+        "label": "Input/result contract",
+        "target": "docs/review-contract-compatibility.md"
+      },
+      {
+        "label": "provider contract",
+        "target": "docs/review-providers.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "src/direct-event/{pipeline,provider-http-wire,review-wire-contract}.test.ts, src/jev-decision.test.ts"
+      }
+    ]
+  },
+  "@hapsland/runtime-environment": {
+    "summary": "Installed runtime coordinates, command/event catalog, bounded processes, clocks and process-role guards",
+    "contracts": [
+      {
+        "label": "Installation",
+        "target": "docs/installation-workflows.md"
+      },
+      {
+        "label": "runtime bounds",
+        "target": "docs/installed-release-compatibility.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "runtime catalog/package-layout, clock and process-role tests"
+      }
+    ]
+  },
+  "@hapsland/runtime-inputs": {
+    "summary": "Read-only configuration, credential state/input, selectors and settings errors",
+    "contracts": [
+      {
+        "label": "Configuration/precedence",
+        "target": "docs/configuration.md"
+      },
+      {
+        "label": "compatibility",
+        "target": "docs/review-contract-compatibility.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "src/configuration, src/credentials/{state,input}.test.ts"
+      }
+    ]
+  },
+  "@hapsland/source-analysis": {
+    "summary": "Language parsing, physical native parser bindings, related-definition resolution and constrained demo validation",
+    "contracts": [
+      {
+        "label": "Input contract",
+        "target": "docs/review-contract-compatibility.md"
+      },
+      {
+        "label": "language ownership",
+        "target": "docs/adding-language-support.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "analyzer/function/graph/language and demo-validation tests; scripts/native-bindings.test.mjs"
+      }
+    ]
+  },
+  "@hapsland/source-artifacts": {
+    "summary": "Dependency-free source-analysis artifact and reference/evidence data contracts",
+    "contracts": [
+      {
+        "label": "Review input identity",
+        "target": "docs/review-contract-compatibility.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "analyzer, graph resolver, rule compiler and review-wire consumer tests"
+      }
+    ]
+  },
+  "@hapsland/verification": {
+    "summary": "Deterministic product tests and cross-component conformance fixtures consuming private exports",
+    "contracts": [
+      {
+        "label": "Testing matrix",
+        "target": "docs/testing-matrix.md"
+      }
+    ],
+    "verification": [
+      {
+        "label": "Deterministic test and boundary suites"
+      }
+    ]
+  }
+}

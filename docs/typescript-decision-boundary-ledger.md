@@ -46,11 +46,10 @@ a second resident policy engine.
 
 The [production authority check](../scripts/check-production-authority.mjs)
 rejects direct generated-policy consumers in production and the dashboard and
-checks the former work/round owners are views or native bindings. The retained
+checks that work/round consumers are views or native bindings. The retained
 standalone `Lifecycle` test model and `Flow` capacity dependency are not
 production transition entry points. Their historical model results do not
-substitute for canonical resident evidence. The old sidecar and superseded
-direct-review and production finish paths have no current consumers.
+substitute for canonical resident evidence.
 
 Static import and ownership checks establish their scanned boundary, not every
 possible dynamic execution or native race. Independent canonical traces,
@@ -119,7 +118,7 @@ The [Pi attribution checks](../src/direct-event/pi-adapter.test.ts) and [install
 | TypeScript owner | [Composed delivery](../packages/resident-runtime/src/resident/composed-delivery.ts) maps a fixed-size digest of each runtime edit ID to an opaque numeric identity for Bend and pairs it with a pending permit. On completion, it follows Bend's eviction command to discard the oldest digest mapping. The resident writes Bend-requested source-free repeat diagnostics to a file reset at 256 KiB and keeps a fixed-size marker showing that at least one repeat occurred. |
 | Bend boundary | [Admission](../packages/agent-flow-bend/Admission.bend) owns pending permit uniqueness. [Edit history](../packages/agent-flow-bend/EditHistory.bend), inside the [canonical reducer](../packages/agent-flow-bend/Canonical.bend), owns the resident-wide last-1,000 window, repeat decision, first-repeat reporting flag, and eviction order. |
 | Why outside Bend | Reading native runtime identities, maintaining their opaque numeric mapping, and writing diagnostic output are adapter operations. TypeScript makes no completed-history retention or repeat-admission decision. |
-| Review and limits | On 2026-09-29 the owner replaced the earlier resident-lifetime deduplication rule with a 1,000-entry window. This limits completed edit history, not pending permits, open virtual rounds, or retained advicee records. Those records have their own bounds, described in TS-005c, TS-005d, and TS-005h. |
+| Review and limits | The 1,000-entry window limits completed edit history, not pending permits, open virtual rounds, or retained advicee records. Those records have their own bounds, described in TS-005c, TS-005d, and TS-005h. |
 
 ## TS-005c — Bound pending edit permits in Bend
 
@@ -129,14 +128,14 @@ The [Pi attribution checks](../src/direct-event/pi-adapter.test.ts) and [install
 | TypeScript owner | The [resident](../packages/resident-runtime/src/resident/server.ts) loads user configuration and passes the two limit values through [composed delivery](../packages/resident-runtime/src/resident/composed-delivery.ts). The hook passes the path to the user's configuration, when explicitly supplied. Project configuration cannot set shared resident limits. |
 | Bend boundary | [Canonical Bend admission](../packages/agent-flow-bend/Canonical.bend) counts pending permits in its own admission state, checks the advicee and resident limits, and reports which limit denied an attempt. TypeScript supplies no current count and makes no capacity verdict. |
 | Why outside Bend | Reading the user's configuration is a filesystem effect. The occupancy count and permission to issue a permit are reducer decisions. The limit values are inputs so a user can tune capacity without changing the reducer. |
-| Review and limits | On 2026-09-29 the owner chose two configurable limits and the starting values 32 and 4096. This entry covers simultaneous **pending edit permits**, not IPC connections, accepted edits, active rounds, or review capacity. The former accepted-edit event count and its 4096 gate were removed with the lifetime identity history. |
+| Review and limits | This entry covers simultaneous **pending edit permits**, not IPC connections, accepted edits, active rounds, or review capacity. |
 
 ## TS-005d — Count open virtual rounds in Bend
 
 | Field | Reviewed boundary |
 | --- | --- |
 | Decision | At most 64 virtual rounds may be open in one resident at once. A pre-edit permit does not reserve a round slot. The first accepted edit opens a round if a slot is free; closure releases that slot. An advicee whose virtual round has closed does not occupy open-round capacity. |
-| TypeScript owner | [Composed delivery](../packages/resident-runtime/src/resident/composed-delivery.ts) pairs native edit notifications with pending permits. It no longer supplies a round count, a new-round verdict, or a round-limit value to the permit gate. |
+| TypeScript owner | [Composed delivery](../packages/resident-runtime/src/resident/composed-delivery.ts) pairs native edit notifications with pending permits. |
 | Bend boundary | [Canonical Bend](../packages/agent-flow-bend/Canonical.bend) counts open rounds in its own state when the edit consumes its permit and atomically opens or joins a round. A failed opening leaves the permit admission unconsumed. |
 | Why outside Bend | Native event pairing remains TypeScript adapter work. The count and admission limit are entirely reducer decisions. |
 | Review and limits | On 2026-09-29 the owner chose the 64-record limit to apply to **simultaneously open rounds**, rather than advicees ever seen in a resident lifetime. Completed edit identities have a separate 1,000-entry window. Retained advicee identities have the separate TS-005h bound. An advicee is not itself closed. |

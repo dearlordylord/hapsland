@@ -20,6 +20,15 @@ commands. The root `bun.lock` and catalog own dependency versions; this private
 workspace uses shared workspace packages and has no independent npm lockfile.
 `npm run` remains a script launcher after that root installation.
 
+`npm run docs:generate` from the repository root updates generated documentation,
+including the dashboard's possible flow connections in the marked Mermaid block
+in `docs/architecture.md`.
+The pure serializer is `src/production-flow-mermaid.ts`; it uses the same stage
+titles and connections as the SVG view. `npm run docs:generated:check` rejects a stale
+block in fast checks, pre-commit and the deterministic runner precheck.
+`npm run architecture:generate` updates only this diagram.
+This static export is not a replay trace or evidence that a native effect occurred.
+
 Run `npm run dev` in this package and open `/site.html` for the FoldKit public
 site, or `/index.html` for the full dashboard. `npm run build` emits both entries
 with relative asset paths. Building is separate from deploying either page.
@@ -218,11 +227,7 @@ Unread descendants do not acquire outcomes. Generation can exceed checked caps
 (8 file reads, depth 4, 20 KiB evidence) for pressure cases; reservation bytes
 remain a separate synthetic admission fact.
 
-The pre-#119 Flow.bend diagram's connected routes, numbered arrows, and
-separate finish decision view informed this production diagram. Its retired
-illustrative reducer and TypeScript page were removed from the active source.
-The current
-view projects fourteen canonical places, checked operation/request identities
+The view projects fourteen canonical places, checked operation/request identities
 and queue order, highlighted paths, outcome branches, and a finish/output
 decision card. Source capture and Jev/host I/O remain labeled native boundaries.
 Both the composed preparation detail and standalone import section replay
@@ -514,7 +519,7 @@ Run `npm run test:simulation-browser` for focused offline browser checks;
 separately from design acceptance, native enforcement and release support. An
 owner review request should link `/#monkey-business`, name the exact control or
 replay case, describe the panel's added behavior and state the requested design
-decision. The multi-agent layer layout is a new visual change; positions within each reused SVG remain the same.
+decision. Each agent layer reuses the SVG layout.
 
 ## Capacity inspection in the shared resident
 
@@ -525,8 +530,7 @@ the selected agent's count/recorded ceiling and all agents' count/resident ceili
 Advice collection shows resident-wide background collector claims against their
 recorded capacity, separate from advice leases and host output slots. Claim
 groups and owner tokens remain in the SVG title and inspector; unknown capacity
-shows the count without a bar. The external shared heading retains agent/event
-status only; its duplicate resource meters are removed.
+shows the count without a bar. The shared heading shows agent/event status.
 Admission's transient event facts remain in its SVG title and checked event details
 so the two permit rows stay readable. Cache retention,
 and operational-failure diagnostic notice retention are intentionally omitted
@@ -599,7 +603,7 @@ ledger, not additional capacity granted per agent. Native constants are unchange
 retain their supplied maxima; existing replay values remain explicit and are not
 rewritten. Optional scenarios create at most two notice
 identities independently of these maxima, so ordinary demos do not imply that a
-handful of records saturates native retention. The retained-resource inset proposal is rejected; retained resource details
+handful of records saturates native retention. Retained resource details
 are omitted from the diagram.
 
 
@@ -608,5 +612,4 @@ and 64 for the shared resident. Explicit replay/fixture ceilings remain unchange
 native permit defaults remain 32 per advicee and 4096 per resident.
 
 
-Ticket state and its exercise were removed with master issue #171; active review
-responses use response authority rather than retained ticket records.
+Review responses use response authority.

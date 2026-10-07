@@ -353,8 +353,8 @@ or publication is needed. See [repeated installation](./docs/installation-workfl
 
 ```sh
 npx --yes bun@1.3.14 install
-npm run config:generate
-npm run config:check
+npm run docs:generate
+npm run docs:generated:check
 npm run typecheck
 npm test
 npm run conformance:package

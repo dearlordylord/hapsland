@@ -1,18 +1,14 @@
 # Issue #93: diff-selected type and function review target specification
 
 **Purpose:** Define the direct-edit type and function review behavior.
-**Status:** Accepted target, amended by owner decisions on 2026-09-29 to restore rule-level evidence checks and remove the total-request byte ceiling, and by the 2026-09-30 request to add Rust support and the 2026-10-01 request to add Bend support and cross-file support for both languages, and the 2026-10-04 decision to assume valid source syntax and isolate unrelated Bend literals, followed by the 2026-10-05 authorization of individual rules and distinct root/context policy.
+**Status:** Accepted target.
 **Authority:** Accepted product contract. Implementation and tests are separate evidence.
 **Expected use:** Build and review the direct-edit path.
 **Lifecycle:** Maintained as that path changes; review after a new owner decision or a changed runtime boundary.
 
-The owner approved the cross-file type and function path for users on
-2026-09-29. The one-file named-type input is retired as a production route.
-The owner did not require a comparative study before this change. A later study
-can measure advice quality as a separate task. The file-selection, rule-evidence,
-source-size, freshness, and Jev-request limits below still apply.
-This decision is about product behavior; it is not a claim that live Jev results
-have been measured. Contract identifiers distinguish incompatible backend inputs;
+Direct-edit review selects types and functions and captures related cross-file
+source within the file-selection, rule-evidence, source-size, freshness, and
+Jev-request limits below. Contract identifiers distinguish backend inputs;
 they are not product release names. Jev is the external review backend.
 
 ## Decision boundary and prior evidence
@@ -310,11 +306,9 @@ The implementation must check the graph boundary and each rule's declared needs;
 
 ## Rule and configuration contract
 
-The 2026-10-05 owner authorization replaces rule packs with one version-one JSONC
-rule per file and moves all path policy into configuration. This supersedes the
-corresponding #220 decisions; no compatibility loader or parallel legacy definition
-is retained. The [configuration guide](configuration.md#declarative-rules) describes
-authoring and the amended [Phase F contract](../PRODUCT-PHASE-F-SPEC.md) owns layering.
+Rules use one version-one JSONC document per file. Configuration owns path policy.
+The [configuration guide](configuration.md#declarative-rules) describes authoring;
+the [Phase F contract](../PRODUCT-PHASE-F-SPEC.md) owns layering.
 
 Each rule declares `inputs`: accepted combinations of `languages`, `kind`, and
 `requires`. Input kinds are `type` for TypeScript/Rust/Bend and `function` for

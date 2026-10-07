@@ -10,16 +10,51 @@ Hapsland helps a coding agent revisit data-model and API decisions before more c
 
 Feedback follows the edit. It cannot undo that edit or guarantee that the agent repairs it. Optional stronger feedback depends on the agent runtime and user settings; see [feedback configuration](configuration.md#configuration-fields).
 
+<!-- production-flow:start -->
+
 ```mermaid
-flowchart LR
-  A[Edited lines] --> B[Find the changed type or function]
-  B --> C[Check file access and read source]
-  C --> D[Changed type or function and related code]
-  D --> E[Choose checks with enough code]
-  E --> F[Jev evaluates rule questions]
-  F --> G[Discard outdated feedback]
-  G --> H[Feedback to agent runtime]
+flowchart TB
+  observation["Agent edit"]
+  admission["Admission #38; capacity"]
+  sourcePending["Awaiting source read"]
+  scheduling["Job scheduling"]
+  preparation["Read #38; prepare source"]
+  units["Review work items"]
+  authorization["Jev ready check"]
+  effect["Jev request attempt"]
+  jev["Awaiting Jev result"]
+  outcomes["Review outcomes"]
+  advice["Ready advice"]
+  collection["Advice collection"]
+  delivery["Host output"]
+  round["Round state"]
+  observation -->|"Edit attempt or observation supplied"| admission
+  admission -->|"observation admitted as source work"| sourcePending
+  sourcePending -->|"source job scheduled"| scheduling
+  units -->|"review job scheduled"| scheduling
+  scheduling -->|"job scheduling status changes"| scheduling
+  sourcePending -->|"source read phase entered"| preparation
+  admission -->|"preparation admitted"| preparation
+  preparation -->|"review unit admitted"| units
+  units -->|"ready facts supplied"| authorization
+  units -->|"work enters Jev phase"| jev
+  authorization -->|"request command or observed start"| effect
+  authorization -->|"request unavailable or never sent"| outcomes
+  effect -->|"attempt observed"| jev
+  effect -->|"attempt interrupted or failed"| outcomes
+  jev -->|"review result supplied"| outcomes
+  outcomes -->|"finding marked ready"| advice
+  outcomes -->|"outcome recorded"| outcomes
+  advice -->|"advice selected or leased"| collection
+  collection -->|"wait, keep, or allow finish"| collection
+  collection -->|"cancel work command"| preparation
+  collection -->|"Stop decision"| round
+  collection -->|"output authorized"| delivery
+  delivery -->|"delivery phase recorded"| delivery
+  delivery -->|"output fact changes round"| round
+  round -->|"round retirement and release"| round
 ```
+<!-- production-flow:end -->
 
 ## Recipient rounds and source roots
 
@@ -63,7 +98,7 @@ Before dispatch, captured files must still match. Before advice is delivered, Ha
 
 Effect 4 services compose the resident, client, source preparation, backend evaluation, and host-output workflows. Each resident acquisition owns one shared state record: short synchronous commits publish the Bend state and matching native records together, while filesystem and network effects run outside those commits. Scoped fibers execute admitted work; process and host adapters enter the Effect runtime at their boundaries. Review integration uses provider-neutral `Decision` / `DecisionModel` with `@effect/ai-typesafe` for Jev, a Workers AI REST adapter for Cloudflare, and `Decision.probability` for probability rules.
 
-Version-one resident requests and responses decode through Effect Schema. Requests use exact operation alternatives after size-limited JSON framing, with recursive excess-field rejection and structural identity, credential, collection, and coordinate bounds. The decoder rejects retired ticket fields, unsupported runtime identities, internal route fields on the wire, and finish decisions outside composed turn-end collection. Optional collection mode remains absent when omitted; runtime lifetime, authorization, credential generation, and canonical decisions retain their existing owners. Native patch commands must be strings, and unknown request fields are rejected rather than silently discarded.
+Version-one resident requests and responses decode through Effect Schema. Requests use exact operation alternatives after size-limited JSON framing, with recursive excess-field rejection and structural identity, credential, collection, and coordinate bounds. The decoder rejects unsupported runtime identities, internal route fields on the wire, and finish decisions outside composed turn-end collection. Optional collection mode remains absent when omitted; runtime lifetime, authorization, credential generation, and canonical decisions retain their existing owners. Native patch commands must be strings, and unknown request fields are rejected rather than silently discarded.
 
 An IPC connection owns its response context and provisional delivery lease. Shared review work belongs to the resident lifetime, so disconnecting a collector does not cancel another collector's evaluation. Cancellation stops further authorized work, but issued requests and capture workspace retain their accounting until native work physically settles. Shutdown waits for that settlement before releasing ownership artifacts. Claude edit feedback uses one admission-and-collection request with a deadline and immutable response authority; it retains no edit tickets or duplicate outcome registry. The [advicee contract](advicing-target-contract.md) owns the delivery rules.
 
@@ -108,35 +143,249 @@ The [interactive architecture dashboard](../packages/agent-flow-viz/README.md) r
 
 This section records the current implementation structure for [issue #243](https://github.com/dearlordylord/hapsland/issues/243). It is maintained implementation guidance, not issue completion, a new product contract, or a platform/performance acceptance record. Package names and seams are implementation/reviewer choices; the linked contracts continue to own behavior.
 
-The 30 private workspaces comprise 23 production owners and seven tooling/verification owners. Workspace manifests own dependencies, exact private exports, compiler hosts and entry surfaces. [`package-graph.mjs`](../scripts/package-graph.mjs) derives TypeScript references; `npm run build:configure` regenerates them and ordinary builds reject drift. Turbo schedules dependency-first private compilation from those manifests. Each private owner emits JavaScript/declarations into its own `dist`; the root alone publishes the installable release. The table records direct manifest consumers and permitted outward dependencies, not a second build graph. Regenerate its relationships from manifests when an edge changes; manifests and import checks prevail over this explanation. Production deterministic tests remain under `src` and consume private exports; moved harness helpers are exported by `scripts/test-support`. The table lists production consumers; auxiliary consumers declare their own dependencies separately.
+Workspace manifests own dependencies, exact private exports, compiler hosts and entry surfaces. [`package-graph.mjs`](../scripts/package-graph.mjs) derives the structural model used by builds and the module views below. [`architecture-descriptions.json`](../scripts/architecture-descriptions.json) adds descriptions and selected contract/verification references; it contains no dependency inventory. `npm run docs:generate` regenerates both views; `npm run docs:generated:check` rejects drift.
 
-| Private owner and domain concept | Direct consumers; outward dependency direction | Contract and verification owner |
-| --- | --- | --- |
-| [`activity-observation`](../packages/activity-observation/package.json): Source-free review activity, status, analytics and demo budgets | Consumers: `administration`, `cli-entry`, `hook-runtime`, `resident-runtime`, `resident-transport`. Depends on: `native-observation`. | [Status contract](status.md); `src/activity/{status,analytics,storage,demo-budget}.test.ts` |
-| [`administration`](../packages/administration/package.json): Setup/update/repair, credential mutation, rule management, dashboard and evaluation command workflows | Consumers: `cli-entry`, `doctor-entry`. Depends on: `activity-observation`, `credential-storage`, `delivery-output`, `inspection-records`, `native-observation`, `resident-runtime`, `resident-transport`, `review-definition`, `review-execution`, `runtime-environment`, `runtime-inputs`, `source-analysis`, `source-artifacts`. | [Installation](installation-workflows.md), [rules](configuration.md#declarative-rules), [inspection](status.md#opt-in-local-inspection), [evaluation](evaluation.md); `src/onboarding`, `src/rules/cli.test.ts`, `src/evaluation` |
-| [`agent-flow-bend`](../packages/agent-flow-bend/package.json): Source-free canonical transitions, bounded import-graph decisions and request-content selection/framing compiled from Bend | Consumers: `canonical-policy`, `review-execution`. Depends on: No private dependency. | [Bend laws and proof scope](../packages/agent-flow-bend/README.md), authored `abi` declarations; producer receipt, compiler rejection tests, independent canonical/import-graph traces and request-content proof/wire mutation checks |
-| [`canonical-policy`](../packages/canonical-policy/package.json): Checked Bend transition ABI, import-graph policy, limits and immutable decision records | Consumers: `resident-runtime`, `review-definition`, `review-execution`, `runtime-inputs`, `source-analysis`. Depends on: `agent-flow-bend`. | [Decision ledger](typescript-decision-boundary-ledger.md), [Bend laws/proofs](../packages/agent-flow-bend/README.md); canonical authority scripts and `src/canonical` |
-| [`cli-entry`](../packages/cli-entry/package.json): Administrative command composition and installed CLI entry | Consumers: Root release only. Depends on: `activity-observation`, `administration`, `credential-storage`, `delivery-output`, `native-observation`, `resident-transport`, `review-definition`, `runtime-environment`, `runtime-inputs`. | [Installation](installation-workflows.md), [evaluation](evaluation.md); `src/cli.test.ts`, `src/cli-command.test.ts`, installed CLI checks |
-| [`credential-storage`](../packages/credential-storage/package.json): Native credential resolution/store transport and generation-lock lifetime | Consumers: `administration`, `cli-entry`, `resident-runtime`. Depends on: `runtime-environment`, `runtime-inputs`. | [Credential configuration](configuration.md), [installation authorization](installation-workflows.md); `src/credentials/{secret-service,secret-service-process}.test.ts` |
-| [`delivery-output`](../packages/delivery-output/package.json): Feedback text and runtime-specific response encoding, including Claude stop authority | Consumers: `administration`, `cli-entry`, `hook-runtime`, `resident-runtime`, `resident-transport`, `review-execution`. Depends on: No private dependency. | [Advice contract](advicing-target-contract.md), [Claude authority](adr/0003-claude-direct-edit-blocking-authority.md); `src/feedback`, `src/direct-event/output.test.ts`, Claude delivery checks |
-| [`doctor-entry`](../packages/doctor-entry/package.json): Standalone read-only installed diagnostic composition | Consumers: Root release only. Depends on: `administration`, `runtime-environment`. | [Status/doctor](status.md), [installed compatibility](installed-release-compatibility.md); `src/onboarding/doctor.test.ts`, package doctor checks |
-| [`hook-entry`](../packages/hook-entry/package.json): Standalone Bun native-hook process composition | Consumers: Root release only. Depends on: `hook-runtime`, `resident-transport`, `runtime-environment`. | [Supported events](direct-event-v1-supported-profile.md), [installation](installation-workflows.md); `src/hook-main.test.ts`, installed hook checks |
-| [`hook-runtime`](../packages/hook-runtime/package.json): Quiet hook grammar, direct/composed execution and Pi subprocess transport | Consumers: `hook-entry`. Depends on: `activity-observation`, `delivery-output`, `native-observation`, `resident-transport`, `runtime-environment`, `runtime-inputs`. | [Advice contract](advicing-target-contract.md), [Pi](pi-installation.md); `src/hooks/command.test.ts`, `src/resident/composed-hook.test.ts`, `src/pi/installed-boundary.test.ts` |
-| [`inspection-records`](../packages/inspection-records/package.json): Private source-free inspection journal, recording and retained replay | Consumers: `administration`, `resident-runtime`, `resident-transport`, `review-execution`. Depends on: `runtime-environment`, `runtime-inputs`. | [Inspection contract #225](https://github.com/dearlordylord/hapsland/issues/225), [status](status.md#opt-in-local-inspection); `src/inspection` recording/replay tests and inspection browser gates |
-| [`native-observation`](../packages/native-observation/package.json): Native edit/session observations, attribution, source capture and file-access facts | Consumers: `activity-observation`, `administration`, `cli-entry`, `hook-runtime`, `resident-runtime`, `resident-transport`, `review-definition`, `review-execution`, `source-analysis`. Depends on: `runtime-environment`, `runtime-inputs`. | [Supported events](direct-event-v1-supported-profile.md), [input identity](review-contract-compatibility.md); `src/direct-event/{adapter,selection-capture,edit-attribution}.test.ts`, file-policy checks |
-| [`parser-entry`](../packages/parser-entry/package.json): Standalone constrained source-analysis worker composition | Consumers: Root release only. Depends on: `runtime-environment`, `source-analysis`. | [Input contract](review-contract-compatibility.md), [supported languages](adding-language-support.md); parser subprocess/security boundary checks |
-| [`pi-extension`](../packages/pi-extension/package.json): Node-hosted Pi event translation and installed subprocess invocation | Consumers: Root release only. Depends on: `runtime-environment`. | [Pi contract](pi-installation.md), [advice contract](advicing-target-contract.md); `src/pi/{extension,installed-boundary,inspection-native}.test.ts`, native Pi runner |
-| [`resident-entry`](../packages/resident-entry/package.json): Standalone resident lifetime/process composition | Consumers: Root release only. Depends on: `resident-runtime`, `runtime-environment`. | [Advice contract](advicing-target-contract.md), [decision ledger](typescript-decision-boundary-ledger.md); `src/resident/subprocess.test.ts`, lifecycle/reuse integration checks |
-| [`resident-runtime`](../packages/resident-runtime/package.json): Resident admission, shared review scheduling, freshness, collection and state lifetime | Consumers: `administration`, `resident-entry`. Depends on: `activity-observation`, `canonical-policy`, `credential-storage`, `delivery-output`, `inspection-records`, `native-observation`, `resident-transport`, `review-definition`, `review-execution`, `runtime-environment`, `runtime-inputs`, `source-analysis`. | [Advice contract](advicing-target-contract.md), [resources](review-resources.md), [decision ledger](typescript-decision-boundary-ledger.md); resident server/capacity/collection/reuse/security tests |
-| [`resident-transport`](../packages/resident-transport/package.json): Version-one IPC schema, client discovery/reuse and bounded request transport | Consumers: `administration`, `cli-entry`, `hook-entry`, `hook-runtime`, `resident-runtime`. Depends on: `activity-observation`, `delivery-output`, `inspection-records`, `native-observation`, `runtime-environment`, `runtime-inputs`. | [IPC/advice contract](advicing-target-contract.md), [compatibility](review-contract-compatibility.md); `src/resident/{protocol,client}.test.ts`, process lifecycle checks |
-| [`review-definition`](../packages/review-definition/package.json): Editable rule/input definitions, compilation, settings snapshots and provider limits | Consumers: `administration`, `cli-entry`, `resident-runtime`, `review-execution`. Depends on: `canonical-policy`, `native-observation`, `runtime-environment`, `runtime-inputs`, `source-artifacts`. | [Rule/input contract](review-contract-compatibility.md), [configuration](configuration.md), [provider limits](review-providers.md); `src/rules`, editable-rule/settings tests |
-| [`review-execution`](../packages/review-execution/package.json): Review preparation, rule evaluation, provider effects and result explanation | Consumers: `administration`, `resident-runtime`. Depends on: `agent-flow-bend`, `canonical-policy`, `delivery-output`, `inspection-records`, `native-observation`, `review-definition`, `runtime-environment`, `runtime-inputs`, `source-analysis`, `source-artifacts`. | [Input/result contract](review-contract-compatibility.md), [provider contract](review-providers.md); `src/direct-event/{pipeline,provider-http-wire,review-wire-contract}.test.ts`, `src/jev-decision.test.ts` |
-| [`runtime-environment`](../packages/runtime-environment/package.json): Installed runtime coordinates, command/event catalog, bounded processes, clocks and process-role guards | Consumers: `administration`, `cli-entry`, `credential-storage`, `doctor-entry`, `hook-entry`, `hook-runtime`, `inspection-records`, `native-observation`, `parser-entry`, `pi-extension`, `resident-entry`, `resident-runtime`, `resident-transport`, `review-definition`, `review-execution`, `runtime-inputs`, `source-analysis`. Depends on: No private dependency. | [Installation](installation-workflows.md), [runtime bounds](installed-release-compatibility.md); runtime catalog/package-layout, clock and process-role tests |
-| [`runtime-inputs`](../packages/runtime-inputs/package.json): Read-only configuration, credential state/input, selectors and settings errors | Consumers: `administration`, `cli-entry`, `credential-storage`, `hook-runtime`, `inspection-records`, `native-observation`, `resident-runtime`, `resident-transport`, `review-definition`, `review-execution`. Depends on: `canonical-policy`, `runtime-environment`. | [Configuration/precedence](configuration.md), [compatibility](review-contract-compatibility.md); `src/configuration`, `src/credentials/{state,input}.test.ts` |
-| [`source-analysis`](../packages/source-analysis/package.json): Language parsing, physical native parser bindings, related-definition resolution and constrained demo validation | Consumers: `administration`, `parser-entry`, `resident-runtime`, `review-execution`. Depends on: `canonical-policy`, `native-observation`, `runtime-environment`, `source-artifacts`. | [Input contract](review-contract-compatibility.md), [language ownership](adding-language-support.md); analyzer/function/graph/language and demo-validation tests; `scripts/native-bindings.test.mjs` |
-| [`source-artifacts`](../packages/source-artifacts/package.json): Dependency-free source-analysis artifact and reference/evidence data contracts | Consumers: `administration`, `review-definition`, `review-execution`, `source-analysis`. Depends on: No private dependency. | [Review input identity](review-contract-compatibility.md); analyzer, graph resolver, rule compiler and review-wire consumer tests |
+Turbo schedules dependency-first private compilation from manifests. Production owners emit JavaScript/declarations into their own `dist`; the root publishes the installable release. Production deterministic tests remain under `src` and consume private exports. Auxiliary owners retain test, simulation and browser consumers without becoming production dependencies. Production owners cannot depend on auxiliary owners; the production runtime-dependency graph remains acyclic. Root conformance JSON owns fixtures and root release metadata owns the release.
 
-The seven auxiliary owners are [`build-tooling`](../scripts/package.json), [`verification`](../src/package.json), [`agent-flow-viz`](../packages/agent-flow-viz/package.json), [`agent-flow-projection`](../packages/agent-flow-projection/package.json), [`monkey-business`](../packages/monkey-business/package.json), [`monkey-business-bend`](../packages/monkey-business-bend/package.json) and [`canonical-defense`](../prototypes/canonical-defense/package.json). Six owners—build tooling, verification, visualization, both monkey-business owners and canonical defense—form an explicit auxiliary strongly connected component through maintained test, simulation and browser consumers. Projection is a separate auxiliary dependency. It is not scheduled as a production build or projected into production TypeScript references. Production owners cannot depend on auxiliary owners; the production graph remains acyclic. Exact source exports and declared development resources retain consumer ownership without making test harnesses production dependencies. Root conformance JSON remains fixture authority and root release metadata remains release authority; the development checker records the actual resource hashes.
+<!-- architecture-modules:start -->
+
+30 private workspaces: 23 production and 7 auxiliary owners.
+
+Edges point from consumer to dependency and retain the manifest dependency field. External dependencies are omitted. Selected verification references identify checks to consult; they do not claim coverage or a passing result.
+
+### Production owners
+
+| Workspace and concept | Direct consumers | Workspace dependencies | Contracts and selected verification |
+| --- | --- | --- | --- |
+| [@hapsland/activity-observation](../packages/activity-observation/package.json): Source-free review activity, status, analytics and demo budgets | dependencies: `@hapsland/administration`, `@hapsland/build-tooling`, `@hapsland/cli-entry`, `@hapsland/hook-runtime`, `@hapsland/resident-runtime`, `@hapsland/resident-transport`, `@hapsland/verification` | dependencies: `@hapsland/native-observation` | [Status contract](../docs/status.md)<br>Selected verification: src/activity/\{status,analytics,storage,demo-budget\}.test.ts |
+| [@hapsland/administration](../packages/administration/package.json): Setup/update/repair, credential mutation, rule management, dashboard and evaluation command workflows | dependencies: `@hapsland/agent-flow-viz`, `@hapsland/build-tooling`, `@hapsland/cli-entry`, `@hapsland/doctor-entry`, `@hapsland/verification` | dependencies: `@hapsland/activity-observation`, `@hapsland/credential-storage`, `@hapsland/delivery-output`, `@hapsland/inspection-records`, `@hapsland/native-observation`, `@hapsland/resident-runtime`, `@hapsland/resident-transport`, `@hapsland/review-definition`, `@hapsland/review-execution`, `@hapsland/runtime-environment`, `@hapsland/runtime-inputs`, `@hapsland/source-analysis`, `@hapsland/source-artifacts` | [Installation](../docs/installation-workflows.md); [rules](../docs/configuration.md#declarative-rules); [inspection](../docs/status.md#opt-in-local-inspection); [evaluation](../docs/evaluation.md)<br>Selected verification: src/onboarding, src/rules/cli.test.ts, src/evaluation |
+| [@hapsland/agent-flow-bend](../packages/agent-flow-bend/package.json): Source-free canonical transitions, bounded import-graph decisions and request-content selection/framing compiled from Bend | dependencies: `@hapsland/agent-flow-viz`, `@hapsland/canonical-policy`, `@hapsland/monkey-business`, `@hapsland/review-execution`, `@hapsland/verification` | — | [Bend laws and proof scope](../packages/agent-flow-bend/README.md); authored abi declarations<br>Selected verification: producer receipt, compiler rejection tests, independent canonical/import-graph traces and request-content proof/wire mutation checks |
+| [@hapsland/canonical-policy](../packages/canonical-policy/package.json): Checked Bend transition ABI, import-graph policy, limits and immutable decision records | dependencies: `@hapsland/agent-flow-projection`, `@hapsland/agent-flow-viz`, `@hapsland/build-tooling`, `@hapsland/canonical-defense`, `@hapsland/monkey-business`, `@hapsland/resident-runtime`, `@hapsland/review-definition`, `@hapsland/review-execution`, `@hapsland/runtime-inputs`, `@hapsland/source-analysis`, `@hapsland/verification` | dependencies: `@hapsland/agent-flow-bend` | [Decision ledger](../docs/typescript-decision-boundary-ledger.md); [Bend laws/proofs](../packages/agent-flow-bend/README.md)<br>Selected verification: canonical authority scripts and src/canonical |
+| [@hapsland/cli-entry](../packages/cli-entry/package.json): Administrative command composition and installed CLI entry | — | dependencies: `@hapsland/activity-observation`, `@hapsland/administration`, `@hapsland/credential-storage`, `@hapsland/delivery-output`, `@hapsland/native-observation`, `@hapsland/resident-transport`, `@hapsland/review-definition`, `@hapsland/runtime-environment`, `@hapsland/runtime-inputs` | [Installation](../docs/installation-workflows.md); [evaluation](../docs/evaluation.md)<br>Selected verification: src/cli.test.ts, src/cli-command.test.ts, installed CLI checks |
+| [@hapsland/credential-storage](../packages/credential-storage/package.json): Native credential resolution/store transport and generation-lock lifetime | dependencies: `@hapsland/administration`, `@hapsland/agent-flow-viz`, `@hapsland/cli-entry`, `@hapsland/resident-runtime`, `@hapsland/verification` | dependencies: `@hapsland/runtime-environment`, `@hapsland/runtime-inputs` | [Credential configuration](../docs/configuration.md); [installation authorization](../docs/installation-workflows.md)<br>Selected verification: src/credentials/\{secret-service,secret-service-process\}.test.ts |
+| [@hapsland/delivery-output](../packages/delivery-output/package.json): Feedback text and runtime-specific response encoding, including Claude stop authority | dependencies: `@hapsland/administration`, `@hapsland/build-tooling`, `@hapsland/cli-entry`, `@hapsland/hook-runtime`, `@hapsland/resident-runtime`, `@hapsland/resident-transport`, `@hapsland/review-execution`, `@hapsland/verification` | — | [Advice contract](../docs/advicing-target-contract.md); [Claude authority](../docs/adr/0003-claude-direct-edit-blocking-authority.md)<br>Selected verification: src/feedback, src/direct-event/output.test.ts, Claude delivery checks |
+| [@hapsland/doctor-entry](../packages/doctor-entry/package.json): Standalone read-only installed diagnostic composition | — | dependencies: `@hapsland/administration`, `@hapsland/runtime-environment` | [Status/doctor](../docs/status.md); [installed compatibility](../docs/installed-release-compatibility.md)<br>Selected verification: src/onboarding/doctor.test.ts, package doctor checks |
+| [@hapsland/hook-entry](../packages/hook-entry/package.json): Standalone Bun native-hook process composition | — | dependencies: `@hapsland/hook-runtime`, `@hapsland/resident-transport`, `@hapsland/runtime-environment` | [Supported events](../docs/direct-event-v1-supported-profile.md); [installation](../docs/installation-workflows.md)<br>Selected verification: src/hook-main.test.ts, installed hook checks |
+| [@hapsland/hook-runtime](../packages/hook-runtime/package.json): Quiet hook grammar, direct/composed execution and Pi subprocess transport | dependencies: `@hapsland/hook-entry`, `@hapsland/verification` | dependencies: `@hapsland/activity-observation`, `@hapsland/delivery-output`, `@hapsland/native-observation`, `@hapsland/resident-transport`, `@hapsland/runtime-environment`, `@hapsland/runtime-inputs` | [Advice contract](../docs/advicing-target-contract.md); [Pi](../docs/pi-installation.md)<br>Selected verification: src/hooks/command.test.ts, src/resident/composed-hook.test.ts, src/pi/installed-boundary.test.ts |
+| [@hapsland/inspection-records](../packages/inspection-records/package.json): Private source-free inspection journal, recording and retained replay | dependencies: `@hapsland/administration`, `@hapsland/agent-flow-viz`, `@hapsland/build-tooling`, `@hapsland/resident-runtime`, `@hapsland/resident-transport`, `@hapsland/review-execution`, `@hapsland/verification` | dependencies: `@hapsland/runtime-environment`, `@hapsland/runtime-inputs` | [Inspection contract #225](https://github.com/dearlordylord/hapsland/issues/225); [status](../docs/status.md#opt-in-local-inspection)<br>Selected verification: src/inspection recording/replay tests and inspection browser gates |
+| [@hapsland/native-observation](../packages/native-observation/package.json): Native edit/session observations, attribution, source capture and file-access facts | dependencies: `@hapsland/activity-observation`, `@hapsland/administration`, `@hapsland/agent-flow-viz`, `@hapsland/build-tooling`, `@hapsland/cli-entry`, `@hapsland/hook-runtime`, `@hapsland/resident-runtime`, `@hapsland/resident-transport`, `@hapsland/review-definition`, `@hapsland/review-execution`, `@hapsland/source-analysis`, `@hapsland/verification` | dependencies: `@hapsland/runtime-environment`, `@hapsland/runtime-inputs` | [Supported events](../docs/direct-event-v1-supported-profile.md); [input identity](../docs/review-contract-compatibility.md)<br>Selected verification: src/direct-event/\{adapter,selection-capture,edit-attribution\}.test.ts, file-policy checks |
+| [@hapsland/parser-entry](../packages/parser-entry/package.json): Standalone constrained source-analysis worker composition | — | dependencies: `@hapsland/runtime-environment`, `@hapsland/source-analysis` | [Input contract](../docs/review-contract-compatibility.md); [supported languages](../docs/adding-language-support.md)<br>Selected verification: parser subprocess/security boundary checks |
+| [@hapsland/pi-extension](../packages/pi-extension/package.json): Node-hosted Pi event translation and installed subprocess invocation | dependencies: `@hapsland/build-tooling`, `@hapsland/verification` | dependencies: `@hapsland/runtime-environment` | [Pi contract](../docs/pi-installation.md); [advice contract](../docs/advicing-target-contract.md)<br>Selected verification: src/pi/\{extension,installed-boundary,inspection-native\}.test.ts, native Pi runner |
+| [@hapsland/resident-entry](../packages/resident-entry/package.json): Standalone resident lifetime/process composition | — | dependencies: `@hapsland/resident-runtime`, `@hapsland/runtime-environment` | [Advice contract](../docs/advicing-target-contract.md); [decision ledger](../docs/typescript-decision-boundary-ledger.md)<br>Selected verification: src/resident/subprocess.test.ts, lifecycle/reuse integration checks |
+| [@hapsland/resident-runtime](../packages/resident-runtime/package.json): Resident admission, shared review scheduling, freshness, collection and state lifetime | dependencies: `@hapsland/administration`, `@hapsland/agent-flow-viz`, `@hapsland/build-tooling`, `@hapsland/resident-entry`, `@hapsland/verification` | dependencies: `@hapsland/activity-observation`, `@hapsland/canonical-policy`, `@hapsland/credential-storage`, `@hapsland/delivery-output`, `@hapsland/inspection-records`, `@hapsland/native-observation`, `@hapsland/resident-transport`, `@hapsland/review-definition`, `@hapsland/review-execution`, `@hapsland/runtime-environment`, `@hapsland/runtime-inputs`, `@hapsland/source-analysis` | [Advice contract](../docs/advicing-target-contract.md); [resources](../docs/review-resources.md); [decision ledger](../docs/typescript-decision-boundary-ledger.md)<br>Selected verification: resident server/capacity/collection/reuse/security tests |
+| [@hapsland/resident-transport](../packages/resident-transport/package.json): Version-one IPC schema, client discovery/reuse and bounded request transport | dependencies: `@hapsland/administration`, `@hapsland/agent-flow-viz`, `@hapsland/build-tooling`, `@hapsland/cli-entry`, `@hapsland/hook-entry`, `@hapsland/hook-runtime`, `@hapsland/resident-runtime`, `@hapsland/verification` | dependencies: `@hapsland/activity-observation`, `@hapsland/delivery-output`, `@hapsland/inspection-records`, `@hapsland/native-observation`, `@hapsland/runtime-environment`, `@hapsland/runtime-inputs` | [IPC/advice contract](../docs/advicing-target-contract.md); [compatibility](../docs/review-contract-compatibility.md)<br>Selected verification: src/resident/\{protocol,client\}.test.ts, process lifecycle checks |
+| [@hapsland/review-definition](../packages/review-definition/package.json): Editable rule/input definitions, compilation, settings snapshots and provider limits | dependencies: `@hapsland/administration`, `@hapsland/build-tooling`, `@hapsland/cli-entry`, `@hapsland/monkey-business`, `@hapsland/resident-runtime`, `@hapsland/review-execution`, `@hapsland/verification` | dependencies: `@hapsland/canonical-policy`, `@hapsland/native-observation`, `@hapsland/runtime-environment`, `@hapsland/runtime-inputs`, `@hapsland/source-artifacts` | [Rule/input contract](../docs/review-contract-compatibility.md); [configuration](../docs/configuration.md); [provider limits](../docs/review-providers.md)<br>Selected verification: src/rules, editable-rule/settings tests |
+| [@hapsland/review-execution](../packages/review-execution/package.json): Review preparation, rule evaluation, provider effects and result explanation | dependencies: `@hapsland/administration`, `@hapsland/build-tooling`, `@hapsland/resident-runtime`, `@hapsland/verification` | dependencies: `@hapsland/agent-flow-bend`, `@hapsland/canonical-policy`, `@hapsland/delivery-output`, `@hapsland/inspection-records`, `@hapsland/native-observation`, `@hapsland/review-definition`, `@hapsland/runtime-environment`, `@hapsland/runtime-inputs`, `@hapsland/source-analysis`, `@hapsland/source-artifacts` | [Input/result contract](../docs/review-contract-compatibility.md); [provider contract](../docs/review-providers.md)<br>Selected verification: src/direct-event/\{pipeline,provider-http-wire,review-wire-contract\}.test.ts, src/jev-decision.test.ts |
+| [@hapsland/runtime-environment](../packages/runtime-environment/package.json): Installed runtime coordinates, command/event catalog, bounded processes, clocks and process-role guards | dependencies: `@hapsland/administration`, `@hapsland/build-tooling`, `@hapsland/cli-entry`, `@hapsland/credential-storage`, `@hapsland/doctor-entry`, `@hapsland/hook-entry`, `@hapsland/hook-runtime`, `@hapsland/inspection-records`, `@hapsland/native-observation`, `@hapsland/parser-entry`, `@hapsland/pi-extension`, `@hapsland/resident-entry`, `@hapsland/resident-runtime`, `@hapsland/resident-transport`, `@hapsland/review-definition`, `@hapsland/review-execution`, `@hapsland/runtime-inputs`, `@hapsland/source-analysis`, `@hapsland/verification` | — | [Installation](../docs/installation-workflows.md); [runtime bounds](../docs/installed-release-compatibility.md)<br>Selected verification: runtime catalog/package-layout, clock and process-role tests |
+| [@hapsland/runtime-inputs](../packages/runtime-inputs/package.json): Read-only configuration, credential state/input, selectors and settings errors | dependencies: `@hapsland/administration`, `@hapsland/build-tooling`, `@hapsland/cli-entry`, `@hapsland/credential-storage`, `@hapsland/hook-runtime`, `@hapsland/inspection-records`, `@hapsland/monkey-business`, `@hapsland/native-observation`, `@hapsland/resident-runtime`, `@hapsland/resident-transport`, `@hapsland/review-definition`, `@hapsland/review-execution`, `@hapsland/verification` | dependencies: `@hapsland/canonical-policy`, `@hapsland/runtime-environment` | [Configuration/precedence](../docs/configuration.md); [compatibility](../docs/review-contract-compatibility.md)<br>Selected verification: src/configuration, src/credentials/\{state,input\}.test.ts |
+| [@hapsland/source-analysis](../packages/source-analysis/package.json): Language parsing, physical native parser bindings, related-definition resolution and constrained demo validation | dependencies: `@hapsland/administration`, `@hapsland/build-tooling`, `@hapsland/parser-entry`, `@hapsland/resident-runtime`, `@hapsland/review-execution`, `@hapsland/verification` | dependencies: `@hapsland/canonical-policy`, `@hapsland/native-observation`, `@hapsland/runtime-environment`, `@hapsland/source-artifacts` | [Input contract](../docs/review-contract-compatibility.md); [language ownership](../docs/adding-language-support.md)<br>Selected verification: analyzer/function/graph/language and demo-validation tests; scripts/native-bindings.test.mjs |
+| [@hapsland/source-artifacts](../packages/source-artifacts/package.json): Dependency-free source-analysis artifact and reference/evidence data contracts | dependencies: `@hapsland/administration`, `@hapsland/review-definition`, `@hapsland/review-execution`, `@hapsland/source-analysis`, `@hapsland/verification` | — | [Review input identity](../docs/review-contract-compatibility.md)<br>Selected verification: analyzer, graph resolver, rule compiler and review-wire consumer tests |
+
+### Auxiliary owners
+
+| Workspace and concept | Direct consumers | Workspace dependencies | Contracts and selected verification |
+| --- | --- | --- | --- |
+| [@hapsland/agent-flow-projection](../packages/agent-flow-projection/package.json): Reducer-derived flow stages, record locations and evidence of accepted transitions | dependencies: `@hapsland/agent-flow-viz` | dependencies: `@hapsland/canonical-policy` | [Projection boundary](../packages/agent-flow-projection/README.md)<br>Selected verification: Projection typechecking and dashboard replay fixtures |
+| [@hapsland/agent-flow-viz](../packages/agent-flow-viz/package.json): Public site, decision dashboard and visual presentation of checked flow evidence | dependencies: `@hapsland/build-tooling`, `@hapsland/monkey-business` | dependencies: `@hapsland/administration`, `@hapsland/agent-flow-bend`, `@hapsland/agent-flow-projection`, `@hapsland/canonical-policy`, `@hapsland/credential-storage`, `@hapsland/inspection-records`, `@hapsland/monkey-business`, `@hapsland/native-observation`, `@hapsland/resident-runtime`, `@hapsland/resident-transport`<br>devDependencies: `@hapsland/build-tooling` | [Visualization guidance](../packages/agent-flow-viz/README.md); [Dashboard rules](../packages/agent-flow-viz/DASHBOARD-RULES.md)<br>Selected verification: Dashboard replay fixtures and browser checks |
+| [@hapsland/build-tooling](../scripts/package.json): Build orchestration, artifact publication, repository generators and verification harness adapters | dependencies: `@hapsland/monkey-business`, `@hapsland/verification`<br>devDependencies: `@hapsland/agent-flow-viz` | dependencies: `@hapsland/activity-observation`, `@hapsland/administration`, `@hapsland/agent-flow-viz`, `@hapsland/canonical-defense`, `@hapsland/canonical-policy`, `@hapsland/delivery-output`, `@hapsland/inspection-records`, `@hapsland/monkey-business-bend`, `@hapsland/native-observation`, `@hapsland/pi-extension`, `@hapsland/resident-runtime`, `@hapsland/resident-transport`, `@hapsland/review-definition`, `@hapsland/review-execution`, `@hapsland/runtime-environment`, `@hapsland/runtime-inputs`, `@hapsland/source-analysis` | [Build ownership guidance](../docs/architecture.md#compiler-and-executable-ownership); [Check selection and evidence boundaries](../docs/testing-matrix.md)<br>Selected verification: Build tooling and harness focused tests |
+| [@hapsland/canonical-defense](../prototypes/canonical-defense/package.json): Optional native teaching game and balance laboratory over a separate shared simulation engine instance | dependencies: `@hapsland/build-tooling` | dependencies: `@hapsland/canonical-policy`, `@hapsland/monkey-business`, `@hapsland/monkey-business-bend` | [Game proposal and evidence scope](../prototypes/canonical-defense/README.md); [Balance laboratory guidance](../prototypes/canonical-defense/lab/README.md)<br>Selected verification: Optional game and laboratory focused checks |
+| [@hapsland/monkey-business](../packages/monkey-business/package.json): Source-free deterministic simulation API, seeded boundary facts and exact replay over checked reducers | dependencies: `@hapsland/agent-flow-viz`, `@hapsland/canonical-defense`, `@hapsland/monkey-business-bend`, `@hapsland/verification` | dependencies: `@hapsland/agent-flow-bend`, `@hapsland/agent-flow-viz`, `@hapsland/build-tooling`, `@hapsland/canonical-policy`, `@hapsland/monkey-business-bend`, `@hapsland/review-definition`, `@hapsland/runtime-inputs`, `@hapsland/verification` | [Simulation API and evidence scope](../packages/monkey-business/README.md)<br>Selected verification: Simulation package tests and typechecking |
+| [@hapsland/monkey-business-bend](../packages/monkey-business-bend/package.json): Shared source-free simulation state, virtual-time scheduler and review scenario driver | dependencies: `@hapsland/build-tooling`, `@hapsland/canonical-defense`, `@hapsland/monkey-business`, `@hapsland/verification` | dependencies: `@hapsland/monkey-business` | [Shared engine and host obligations](../packages/monkey-business-bend/README.md)<br>Selected verification: Generated engine freshness and simulation boundary checks |
+| [@hapsland/verification](../src/package.json): Deterministic product tests and cross-component conformance fixtures consuming private exports | dependencies: `@hapsland/monkey-business` | dependencies: `@hapsland/activity-observation`, `@hapsland/administration`, `@hapsland/agent-flow-bend`, `@hapsland/build-tooling`, `@hapsland/canonical-policy`, `@hapsland/credential-storage`, `@hapsland/delivery-output`, `@hapsland/hook-runtime`, `@hapsland/inspection-records`, `@hapsland/monkey-business`, `@hapsland/monkey-business-bend`, `@hapsland/native-observation`, `@hapsland/pi-extension`, `@hapsland/resident-runtime`, `@hapsland/resident-transport`, `@hapsland/review-definition`, `@hapsland/review-execution`, `@hapsland/runtime-environment`, `@hapsland/runtime-inputs`, `@hapsland/source-analysis`, `@hapsland/source-artifacts` | [Testing matrix](../docs/testing-matrix.md)<br>Selected verification: Deterministic test and boundary suites |
+
+### Workspace dependency graph
+
+```mermaid
+flowchart LR
+  subgraph production["Production"]
+    module0["@hapsland/activity-observation"]
+    module1["@hapsland/administration"]
+    module2["@hapsland/agent-flow-bend"]
+    module7["@hapsland/canonical-policy"]
+    module8["@hapsland/cli-entry"]
+    module9["@hapsland/credential-storage"]
+    module10["@hapsland/delivery-output"]
+    module11["@hapsland/doctor-entry"]
+    module12["@hapsland/hook-entry"]
+    module13["@hapsland/hook-runtime"]
+    module14["@hapsland/inspection-records"]
+    module17["@hapsland/native-observation"]
+    module18["@hapsland/parser-entry"]
+    module19["@hapsland/pi-extension"]
+    module20["@hapsland/resident-entry"]
+    module21["@hapsland/resident-runtime"]
+    module22["@hapsland/resident-transport"]
+    module23["@hapsland/review-definition"]
+    module24["@hapsland/review-execution"]
+    module25["@hapsland/runtime-environment"]
+    module26["@hapsland/runtime-inputs"]
+    module27["@hapsland/source-analysis"]
+    module28["@hapsland/source-artifacts"]
+  end
+  subgraph tooling["Tooling"]
+    module5["@hapsland/build-tooling"]
+  end
+  subgraph verification["Verification"]
+    module3["@hapsland/agent-flow-projection"]
+    module4["@hapsland/agent-flow-viz"]
+    module6["@hapsland/canonical-defense"]
+    module15["@hapsland/monkey-business"]
+    module16["@hapsland/monkey-business-bend"]
+    module29["@hapsland/verification"]
+  end
+  module0 -->|dependencies| module17
+  module1 -->|dependencies| module0
+  module1 -->|dependencies| module9
+  module1 -->|dependencies| module10
+  module1 -->|dependencies| module14
+  module1 -->|dependencies| module17
+  module1 -->|dependencies| module21
+  module1 -->|dependencies| module22
+  module1 -->|dependencies| module23
+  module1 -->|dependencies| module24
+  module1 -->|dependencies| module25
+  module1 -->|dependencies| module26
+  module1 -->|dependencies| module27
+  module1 -->|dependencies| module28
+  module3 -->|dependencies| module7
+  module4 -->|dependencies| module1
+  module4 -->|dependencies| module2
+  module4 -->|dependencies| module3
+  module4 -->|dependencies| module7
+  module4 -->|dependencies| module9
+  module4 -->|dependencies| module14
+  module4 -->|dependencies| module15
+  module4 -->|dependencies| module17
+  module4 -->|dependencies| module21
+  module4 -->|dependencies| module22
+  module4 -->|devDependencies| module5
+  module5 -->|dependencies| module0
+  module5 -->|dependencies| module1
+  module5 -->|dependencies| module4
+  module5 -->|dependencies| module6
+  module5 -->|dependencies| module7
+  module5 -->|dependencies| module10
+  module5 -->|dependencies| module14
+  module5 -->|dependencies| module16
+  module5 -->|dependencies| module17
+  module5 -->|dependencies| module19
+  module5 -->|dependencies| module21
+  module5 -->|dependencies| module22
+  module5 -->|dependencies| module23
+  module5 -->|dependencies| module24
+  module5 -->|dependencies| module25
+  module5 -->|dependencies| module26
+  module5 -->|dependencies| module27
+  module6 -->|dependencies| module7
+  module6 -->|dependencies| module15
+  module6 -->|dependencies| module16
+  module7 -->|dependencies| module2
+  module8 -->|dependencies| module0
+  module8 -->|dependencies| module1
+  module8 -->|dependencies| module9
+  module8 -->|dependencies| module10
+  module8 -->|dependencies| module17
+  module8 -->|dependencies| module22
+  module8 -->|dependencies| module23
+  module8 -->|dependencies| module25
+  module8 -->|dependencies| module26
+  module9 -->|dependencies| module25
+  module9 -->|dependencies| module26
+  module11 -->|dependencies| module1
+  module11 -->|dependencies| module25
+  module12 -->|dependencies| module13
+  module12 -->|dependencies| module22
+  module12 -->|dependencies| module25
+  module13 -->|dependencies| module0
+  module13 -->|dependencies| module10
+  module13 -->|dependencies| module17
+  module13 -->|dependencies| module22
+  module13 -->|dependencies| module25
+  module13 -->|dependencies| module26
+  module14 -->|dependencies| module25
+  module14 -->|dependencies| module26
+  module15 -->|dependencies| module2
+  module15 -->|dependencies| module4
+  module15 -->|dependencies| module5
+  module15 -->|dependencies| module7
+  module15 -->|dependencies| module16
+  module15 -->|dependencies| module23
+  module15 -->|dependencies| module26
+  module15 -->|dependencies| module29
+  module16 -->|dependencies| module15
+  module17 -->|dependencies| module25
+  module17 -->|dependencies| module26
+  module18 -->|dependencies| module25
+  module18 -->|dependencies| module27
+  module19 -->|dependencies| module25
+  module20 -->|dependencies| module21
+  module20 -->|dependencies| module25
+  module21 -->|dependencies| module0
+  module21 -->|dependencies| module7
+  module21 -->|dependencies| module9
+  module21 -->|dependencies| module10
+  module21 -->|dependencies| module14
+  module21 -->|dependencies| module17
+  module21 -->|dependencies| module22
+  module21 -->|dependencies| module23
+  module21 -->|dependencies| module24
+  module21 -->|dependencies| module25
+  module21 -->|dependencies| module26
+  module21 -->|dependencies| module27
+  module22 -->|dependencies| module0
+  module22 -->|dependencies| module10
+  module22 -->|dependencies| module14
+  module22 -->|dependencies| module17
+  module22 -->|dependencies| module25
+  module22 -->|dependencies| module26
+  module23 -->|dependencies| module7
+  module23 -->|dependencies| module17
+  module23 -->|dependencies| module25
+  module23 -->|dependencies| module26
+  module23 -->|dependencies| module28
+  module24 -->|dependencies| module2
+  module24 -->|dependencies| module7
+  module24 -->|dependencies| module10
+  module24 -->|dependencies| module14
+  module24 -->|dependencies| module17
+  module24 -->|dependencies| module23
+  module24 -->|dependencies| module25
+  module24 -->|dependencies| module26
+  module24 -->|dependencies| module27
+  module24 -->|dependencies| module28
+  module26 -->|dependencies| module7
+  module26 -->|dependencies| module25
+  module27 -->|dependencies| module7
+  module27 -->|dependencies| module17
+  module27 -->|dependencies| module25
+  module27 -->|dependencies| module28
+  module29 -->|dependencies| module0
+  module29 -->|dependencies| module1
+  module29 -->|dependencies| module2
+  module29 -->|dependencies| module5
+  module29 -->|dependencies| module7
+  module29 -->|dependencies| module9
+  module29 -->|dependencies| module10
+  module29 -->|dependencies| module13
+  module29 -->|dependencies| module14
+  module29 -->|dependencies| module15
+  module29 -->|dependencies| module16
+  module29 -->|dependencies| module17
+  module29 -->|dependencies| module19
+  module29 -->|dependencies| module21
+  module29 -->|dependencies| module22
+  module29 -->|dependencies| module23
+  module29 -->|dependencies| module24
+  module29 -->|dependencies| module25
+  module29 -->|dependencies| module26
+  module29 -->|dependencies| module27
+  module29 -->|dependencies| module28
+```
+
+Strongly connected auxiliary components below use only `dependencies` edges, matching the build graph reader; development, peer and optional edges remain visible above.
+
+- `@hapsland/agent-flow-viz`, `@hapsland/build-tooling`, `@hapsland/canonical-defense`, `@hapsland/monkey-business`, `@hapsland/monkey-business-bend`, `@hapsland/verification`
+<!-- architecture-modules:end -->
 
 The root manifest's standard Bun default `catalog` is the single authority for shared external dependency pins and the Effect cohort. Consuming manifests use `catalog:`; workspace dependencies use `workspace:*`. The graph resolver validates and resolves those declarations without retaining another version table. Single-owner tools retain their exact manifest pins. The separate research scorer alias retains its classic TypeScript compiler API and is not the production compiler.
 
@@ -156,17 +405,17 @@ Fresh cached-receipt checks establish complete output inventories and current by
 
 The [Turbo 2.11.7 feasibility evidence](../evidence/build-243/turbo-feasibility/summary.json) records actual multilingual builds, restoration, invalidation and failure experiments. These observations concern the pinned tool, not an untested reading of newer documentation.
 
-| Custom mechanism | Guarantee and corresponding Turbo capability | Disposition and demonstrated gap |
+| Mechanism | Responsibility | Guarantee and limits |
 | --- | --- | --- |
-| Executable and native output caches | Reuse and restoration correspond to task `inputs`, dependency hashes and `outputs` | Deleted; Turbo owns both artifact types. Fresh receipts validate restored bytes, modes and inventories. |
-| Whole-build archive cache | Skipping compilation/restoring `dist` duplicates task caching | Deleted. Archive preparation always runs ordinary build, validation and packing; only immutable archive bytes and SHA retention remain. |
-| Per-role/platform scheduling loops | Dependency ordering corresponds to `dependsOn` | Deleted; manifest projections select ordinary Turbo tasks. |
-| Repeated global source/compiler analysis in every assembler | Invalidation corresponds to task inputs; source admission is a separate product guarantee | Consolidated into the uncached global gate and scoped entry prerequisites. The [gate experiment](../evidence/build-243/turbo-feasibility/gate-fanout-08.json) demonstrates why the gate is not a transitive assembly dependency. |
-| Exact loader/resolver and emitted-contribution checks | Turbo boundaries checks workspace relationships | Retained. [Actual boundary probes](../evidence/build-243/turbo-feasibility/boundaries.jsonl) accepted undeclared `require`, computed/reflective loaders and unsupported private targets. |
-| Input drift, artifact provenance and publication guard | Turbo hashes inputs and caches successful tasks | Retained. Failed producers left prior public output and partial private output; incomplete valid cache archives also required fresh inventory rejection. |
-| Build lease, finite deadline and descendant draining | Turbo schedules task processes | Retained for owned process groups, interrupted publication and unresolved descendants. Scheduler success alone does not prove lifecycle cleanup. |
-| Watch transaction coordinator | Turbo watches source changes | Retained as a transaction/event adapter, without a task dependency graph or artifact cache. [Pinned watch probes](../evidence/build-243/turbo-feasibility/watch.jsonl) observed no rebuild for an explicitly declared ignored identity file or deleted output. |
-| Dependency byte identity memo | Turbo accepts preformed tool/platform identities in inputs | Retained to detect actual installed bytes and resolver suppliers, which a lockfile version alone does not describe; it stores digest observations, not build artifacts. |
+| Turbo artifact cache | Executable and native reuse and restoration use task `inputs`, dependency hashes and `outputs` | Fresh receipts validate restored bytes, modes and inventories. |
+| Archive preparation | Ordinary build, validation and packing | Immutable archive bytes and SHA retention identify the packed release. |
+| Turbo task graph | Dependency ordering uses `dependsOn` | Manifest projections select role and platform tasks. |
+| Global source/compiler admission | An uncached global gate supplies scoped entry prerequisites | The [gate experiment](../evidence/build-243/turbo-feasibility/gate-fanout-08.json) demonstrates why the gate is not a transitive assembly dependency. |
+| Exact loader/resolver and emitted-contribution checks | Turbo boundaries checks workspace relationships | [Actual boundary probes](../evidence/build-243/turbo-feasibility/boundaries.jsonl) accepted undeclared `require`, computed/reflective loaders and unsupported private targets. |
+| Input drift, artifact provenance and publication guard | Turbo hashes inputs and caches successful tasks | Failed producers left prior public output and partial private output; incomplete valid cache archives also required fresh inventory rejection. |
+| Build lease, finite deadline and descendant draining | Turbo schedules task processes | Owns process groups, interrupted publication and unresolved descendants. Scheduler success alone does not prove lifecycle cleanup. |
+| Watch transaction coordinator | Turbo watches source changes | A transaction/event adapter, without a task dependency graph or artifact cache. [Pinned watch probes](../evidence/build-243/turbo-feasibility/watch.jsonl) observed no rebuild for an explicitly declared ignored identity file or deleted output. |
+| Dependency byte identity memo | Turbo accepts preformed tool/platform identities in inputs | Detects actual installed bytes and resolver suppliers, which a lockfile version alone does not describe; it stores digest observations, not build artifacts. |
 
 Compiler output restoration has an additional lifecycle boundary: pinned Turbo restored an older complete cache entry without deleting files emitted by a newer valid source shape. The strict compiler inventory rejected those leftover files and publication stayed revoked. Each production compiler owner therefore has an uncached `clean:compiler` prerequisite that removes only its own `dist` before compilation or restoration, under the existing build lease. Its inputs are static manifest/helper identities rather than owner source, and it has no cached outputs. The [isolated pinned-Turbo probe](../evidence/build-243/compiler-cleanup-turbo-probe/result.json) observed warm cache hits and source-add/delete/revert convergence while cleanup executed; ordinary production acceptance remains separate. This trades warm in-place output retention for complete cache restoration. Native artifacts, public release output and receipts retain their separate ownership and strict checks; cleanup does not prune or excuse malformed restored inventories.
 
@@ -189,7 +438,7 @@ The leaves are domain contracts rather than a generic common package: canonical 
 
 ### Architectural review and enforcement disposition
 
-The extraction reviews removed the shared-CLI hook closure, mutable credential defaults, provider-owned hook option types, parser-to-rule-compiler artifact types, onboarding-owned shared demo observations, and canonical-to-configuration graph-limit dependency. Credential storage resolved the administrative facade cycle without deleting maintained mutation behavior. The parser binding map, native configuration and Bun loader transformer now belong together in [`source-analysis/direct-event/languages/native-bindings.ts`](../packages/source-analysis/src/direct-event/languages/native-bindings.ts), exposed by its exact private export; the superseded runtime-environment source/export was deleted. This removes parser transformation from a capability-neutral shared owner. Runtime-environment retains the process-role guard consumed by parser/provider modules. These are structural dispositions; focused tests establish only the behavior they exercised.
+The parser binding map, native configuration and Bun loader transformer belong to [`source-analysis/direct-event/languages/native-bindings.ts`](../packages/source-analysis/src/direct-event/languages/native-bindings.ts), exposed through its exact private export. Runtime-environment owns the process-role guard consumed by parser/provider modules.
 
 The dedicated [`hook-main`](../packages/hook-entry/src/hook-main.ts) composes [`hook-runtime/program`](../packages/hook-runtime/src/hooks/program.ts). Administrative routing and native hook grammar are separate. The launcher and owned registrations select the retained hook command. Root manifest policies forbid administration, credential mutation, source analysis, provider execution and review orchestration in both standalone-hook and Pi source closures. Lazy and type-only imports do not excuse forbidden ownership.
 

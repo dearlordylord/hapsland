@@ -6,4 +6,4 @@ npm exec --no -- lint-staged
 
 npm run typecheck
 
-npm run config:check
+npm run docs:generated:check

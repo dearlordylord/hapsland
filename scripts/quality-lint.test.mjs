@@ -77,7 +77,7 @@ test("real pre-commit formats staged code and rejects a lint defect", () => {
         private: true,
         scripts: {
           typecheck: "tsc --noEmit --skipLibCheck --types node src/example.ts",
-          "config:check": `node -e "process.exit(require('node:fs').existsSync('stale-docs') ? 1 : 0)"`
+          "docs:generated:check": `node -e "process.exit(require('node:fs').existsSync('stale-docs') ? 1 : 0)"`
         },
         "lint-staged": { "*.ts": `${process.execPath} ${runner} --staged --fix` }
       })

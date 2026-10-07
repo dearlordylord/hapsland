@@ -9,6 +9,7 @@
     "@bcoe/v8-coverage": "catalog:",
     "@hapsland/activity-observation": "workspace:*",
     "@hapsland/administration": "workspace:*",
+    "@hapsland/agent-flow-viz": "workspace:*",
     "@hapsland/canonical-defense": "workspace:*",
     "@hapsland/canonical-policy": "workspace:*",
     "@hapsland/delivery-output": "workspace:*",

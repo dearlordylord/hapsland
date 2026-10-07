@@ -209,8 +209,6 @@ ledger, not additional capacity granted per agent. Native constants are unchange
 retain their supplied maxima; existing replay values remain explicit and are not
 rewritten. Optional scenarios create at most two notice
 identities independently of these maxima, so ordinary demos do not imply that a
-handful of records saturates native retention. The retained-resource inset proposal is rejected; retained resource details
-are omitted from the diagram.
+handful of records saturates native retention. Retained resource details are omitted from the diagram.
 
-Ticket state and its exercise were removed with master issue #171; active review
-responses use response authority rather than retained ticket records.
+Review responses use response authority.

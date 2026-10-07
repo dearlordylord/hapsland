@@ -1,25 +1,20 @@
 # Review contract compatibility
 
 **Purpose:** Record how direct-edit type and function review fits configuration, rules, identity, and delivery.
-**Status:** Maintained; amended by the 2026-09-29 and 2026-10-05 owner decisions.
+**Status:** Maintained.
 **Authority:** Accepted product contract for the named compatibility decisions. Tests and conformance records supply implementation evidence.
 **Expected use:** Check changes to configuration, rule definitions, review input, and review result reuse.
 **Lifecycle:** Review when any of those boundaries or the #93 type/function contract changes.
 
-The owner approved cross-file source use within graph limits for direct-edit type and
-function review on 2026-09-29. The earlier one-file named-type input is retired
-as a production route. A later comparison of advice quality is a separate task;
-this decision does not claim measured live Jev quality. The [#93 contract](type-function-review-proposal.md)
-owns the source, completeness, and input requirements.
+Direct-edit type and function review uses cross-file source within graph limits.
+The [#93 contract](type-function-review-proposal.md) owns the source, completeness,
+and input requirements.
 
 ## Configuration and individual rules
 
-The 2026-10-05 user authorization adopts individual rule documents and separates
-intrinsic input requirements from configured application policy. It supersedes the
-pack, content-version, authored-path and source-rung decisions in #220 and its
-#221–224 implementation tasks. Those historical issues retain their chronology;
-this contract and the amended [Phase F contract](../PRODUCT-PHASE-F-SPEC.md) own
-current behavior. Formats remain version 1 during this pre-release change.
+Individual rule documents separate intrinsic input requirements from configured
+application policy. This contract and the [Phase F contract](../PRODUCT-PHASE-F-SPEC.md)
+own that behavior. Formats are version 1.
 
 Built-in, user, and project settings retain their order. Includes and language
 lists use the highest supplied list; exclusions accumulate. Omission inherits,
@@ -57,9 +52,8 @@ languages, paths, threshold, and message settings. Paths belong to configuration
 A duplicate identity or rebinding to a different file is an error. Rule content and
 effective settings have content digests; there are no pack identities or content
 version labels. Shipped default IDs use descriptive names without numeric prefixes (for example,
-`meaningless_combinations`). The #240 cleanup removes inferred-case and duplicate-encoding
-defaults and removes `rN_` prefixes from retained defaults. Existing authored files and
-explicit selections remain authoritative; setup does not rename or rewrite them. Initial setup provisions seven editable defaults only when no configuration layer
+`meaningless_combinations`). Existing authored files and explicit selections remain
+authoritative; setup preserves them. Initial setup provisions seven editable defaults only when no configuration layer
 declares `rules`. Any explicit selection, including `rules: []`, is authoritative:
 repeat setup preserves it and authored files, without enabling unselected defaults.
 Missing rule files fail validation instead of being recreated.

@@ -122,6 +122,35 @@ rule restricted to `tests/**` cannot select anything when the global root scope 
 `src/**`. Required context denied by privacy or context selection is missing evidence,
 not a clear review result. Rules that do not need the omitted evidence may still run.
 
+### Selecting `src/` across Git worktrees
+
+To review files under `src/`, put this in `.hapsland.jsonc` at the Git working-tree
+root, or set `includes` in an existing configuration:
+
+```jsonc
+{
+  "version": 1,
+  "includes": ["src/**"]
+}
+```
+
+Use `src/**`, rather than the directory name `src/`, to include files at every
+depth. The pattern is relative to the edited file's Git working-tree root, so it
+selects `src/payment.ts` in both the main checkout and linked worktrees, regardless
+of their absolute locations. Running the agent from a subdirectory does not change
+that base. Absolute checkout paths are unnecessary and invalid as include patterns.
+
+Commit `.hapsland.jsonc` so worktrees created from that commit receive the same
+configuration. Existing worktrees need the configuration commit merged or
+cherry-picked; uncommitted edits in another worktree are not shared. Each worktree
+reads its own project configuration, while the user configuration is shared.
+This include list replaces an inherited include list; exclusions, protected paths,
+repository `.gitignore`, and enabled languages still apply. Switching worktrees
+during a virtual round does not change its pinned root; see
+[recipient admission](advicing-target-contract.md#advicee-identity-and-admission).
+
+### Pattern syntax
+
 Patterns are repository-relative and use `/` separators. Matching is case-sensitive;
 `*` and `?` do not cross `/`, while `**` may cross directories. Dot-files require a
 pattern segment beginning with `.`. Bracket classes and simple brace alternatives
@@ -261,38 +290,17 @@ disabling it changes effective review. Deleting its file
 reports a missing-source error, rather than restoring a hidden default. Repeated
 setup preserves authored files. An unreferenced file is inactive in every directory.
 
-### Default rule dispositions
+### Default rules
 
-The [#240 cleanup](https://github.com/dearlordylord/hapsland/issues/240) removes
-`inferred_case` and `duplicate_encoding` from shipped defaults and removes `rN_`
-prefixes from retained IDs and filenames. This changes new provisioning only.
-Existing selections and user-edited files are neither renamed nor overwritten;
-use `hapsland rules disable --id <authored-id> --scope personal` to disable a rule.
+New setup provisions seven defaults: `meaningless_combinations`,
+`split_correlations`, `absence_confusion`, `bare_domain_value`,
+`name_wider_than_type`, `name_claims_resource`, and `body_reaches_undeclared`.
+Repeated setup preserves existing selections and user-edited files.
+Use `hapsland rules disable --id <authored-id> --scope personal` to disable a rule.
 
-The dispositions below use the predefined defective and clean examples in the
-[compact study](./abide-contextual-review-study.md#results-by-rule) and the separate
-[larger study](./abide-large-declaration-study.md#results). Counts are historical
-observations of the recorded definitions, with repeated inputs, not independent
-samples or fresh classifier validation. The retained questions, criteria and
-0.7 thresholds are unchanged. Renaming an ID does not validate classifier accuracy.
-
-| Recorded ID | Current default | Concern and disposition |
-| --- | --- | --- |
-| `r1_inferred_case` | Removed | Unnamed operation alternatives: 0/6 defects detected, 0/3 clean warnings, 0/2 checked repairs. No demonstrated unique acceptance value in this set. |
-| `r2_meaningless_combinations` | `meaningless_combinations` | Conditional fields reachable where meaningless. Compact 6/6 detections, 0/3 clean warnings, 1/2 repairs; report-delivery larger study supplies separate positive, clean and layout cases. |
-| `r3_split_correlations` | `split_correlations` | Parts of one fact independently settable. Compact 3/6 detections, 0/3 clean warnings, 0/2 repairs; color-channels repair was unassessed. Map-camera study detected 6/6 defects and repaired 2/2, with 1/6 clean warnings. Retain with that isolated warning recorded, without pooling batches. |
-| `r4_duplicate_fact` / `r4_duplicate_encoding` | Removed | Contradictory stored copies of one fact. Separate compact batch: 12/12 detections, 6/6 clean warnings, 12/12 repairs. Attachment-manifest batch had 6/6 detections, 0/6 clean warnings and 2/2 repairs. Useful in that domain, but systematic compact clean warnings remain unexplained; unsuitable as a general default. |
-| `r5_absence_confusion` | `absence_confusion` | Missing, empty and null states with ambiguous or duplicate meanings. Compact 3/6 detections, 0/3 clean warnings, 0/2 repairs. Retain demonstrated findings; repair failure is a separate limitation. |
-| `r6_bare_domain_value` | `bare_domain_value` | Domain distinctions lost in broad primitives. Compact 3/6 detections, 0/3 clean warnings, 1/2 repairs. |
-| `r7_name_wider_than_type` | `name_wider_than_type` | Values contradicting constraints promised by a name. Compact 6/6 detections, 0/3 clean warnings, 2/2 repairs. |
-| `r8_name_claims_resource` | `name_claims_resource` | Resource claimed by an operation name but absent from its declaration. Compact 6/6 detections, 0/3 clean warnings, 0/2 repairs; publish-bulletin was unassessed. Retain detection value without claiming repair success. |
-| `r9_body_reaches_undeclared` | `body_reaches_undeclared` | Visible body dependencies absent from the declaration. Compact 6/6 detections, 0/3 clean warnings, 2/2 repairs. Omitted source remains unknown. |
-
-No question revision or new live study is part of this cleanup. Historical edge
-cases and unfavorable outcomes remain in their study owners. The executable default
-evaluation suite now uses conditional-field positive, negative, independent-attribute
-and ambiguous examples; its controlled tests establish transport and reporting
-behavior, not classifier efficacy or native repair.
+The [compact study](./abide-contextual-review-study.md#results-by-rule) and
+[larger study](./abide-large-declaration-study.md#results) record classifier
+observations for their named definitions and inputs.
 
 ### Rule document contract
 
@@ -705,9 +713,8 @@ passes the selected credential reference/value and generation, without a separat
 configuration-derived authentication flag.
 
 The resident dispatches eligible semantic units after final source currentness
-checks under the edit settings snapshot. The old whole-file JSON review command and its `settings`
-configuration were retired under issue #148. The configuration parser rejects
-`settings`; review request capacity and deadlines are resident policy, not JSONC controls.
+checks under the edit settings snapshot. Review request capacity and deadlines
+are resident policy, not JSONC controls.
 `editPermitLimits` controls only simultaneously pending pre-edit permits and belongs in
 the user configuration because the resident is shared across projects.
 
@@ -718,12 +725,10 @@ selected key, the built-in reference can use native saved login; explicit
 `credentialEnvVar` settings select environment/file authentication only. File
 credentials are not copied or persisted by Hapsland, and values are never printed
 or included in diagnostics. See [credential lookup](installation-workflows.md#personal-development-on-your-own-clients) for file requirements.
-The configuration schema rejects retired `consent` and `enabled` fields.
 User-only `reviewBackend` settings select Jev or Cloudflare Clef/Clef-flash.
 Each selection determines a fixed provider origin and model route; arbitrary
 endpoint routing cannot be configured. See [provider selection](review-providers.md#selection-and-credentials).
 
-The old version-1 whole-file JSON request/response process contract is retired.
 Configuration capture and explanation use the same policy digest. Shared
 fixture, configuration-case, scenario, observation, and comparison identities
 are defined in [`packages/administration/src/evaluation/model.ts`](../packages/administration/src/evaluation/model.ts).
