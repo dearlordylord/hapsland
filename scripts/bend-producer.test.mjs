@@ -10,7 +10,8 @@ import {
   rmSync,
   copyFileSync,
   chmodSync,
-  existsSync
+  existsSync,
+  realpathSync
 } from "node:fs"
 import { tmpdir } from "node:os"
 import { resolve } from "node:path"
@@ -21,13 +22,13 @@ import {
   buildBendProducer,
   bendImportInputs,
   bendGeneratedLoaderEvidence,
-  bendDarwinLibraries,
+  bendDarwinLoadedLibraries,
   bendProducerContext,
   checkBendProducerReceipt
 } from "./bend-producer.mjs"
 const repository = resolve(import.meta.dirname, "..")
 function temporary(t) {
-  const root = mkdtempSync(resolve(tmpdir(), "hapsland-bend-producer-"))
+  const root = realpathSync(mkdtempSync(resolve(tmpdir(), "hapsland-bend-producer-")))
   t.after(() => rmSync(root, { recursive: true, force: true }))
   return root
 }
@@ -129,19 +130,6 @@ for (const text of [
 ])
   test(`rejects unsupported generated loader ${text}`, () =>
     assert.throws(() => bendGeneratedLoaderEvidence(text, "generated.js"), /Unsupported generated Bend loader/))
-test("Darwin library evidence accepts absolute install names and rejects unresolved rpaths", () => {
-  assert.deepEqual(
-    bendDarwinLibraries(
-      "/compiler:\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1351.0.0)"
-    ),
-    ["/usr/lib/libSystem.B.dylib"]
-  )
-  assert.throws(
-    () => bendDarwinLibraries("/compiler:\n\t@rpath/libx.dylib (compatibility version 1.0.0, current version 1.0.0)"),
-    /Unsupported Darwin/
-  )
-  assert.throws(() => bendDarwinLibraries("/compiler:"), /Missing Darwin/)
-})
 test("valid receipt binds actual compiler/support/input bytes and exact six outputs", async (t) => {
   const f = await fixture(t)
   assert.equal(f.verify().format, 1)
@@ -329,3 +317,25 @@ for (const file of ["request-content.generated.js", "request-content.generated.d
     rmSync(resolve(f.directory, "dist", file))
     assert.throws(f.verify, /Incomplete or changed Bend producer output inventory/)
   })
+
+test("Darwin loaded-library evidence records resolved and transitive paths without guessing rpaths", () => {
+  assert.deepEqual(
+    bendDarwinLoadedLibraries(
+      "dyld[12]: <AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE> /tools/node\n" +
+        "dyld[12]: move loaded to delayed: libOptional.dylib\n" +
+        "dyld[12]: <AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE> /tools/lib/libnode.dylib\n" +
+        "dyld[12]: <AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE> /usr/lib/libSystem.B.dylib\n",
+      "/tools/node"
+    ),
+    ["/tools/lib/libnode.dylib", "/usr/lib/libSystem.B.dylib"]
+  )
+  assert.throws(() => bendDarwinLoadedLibraries("", "/tools/node"), /Missing Darwin loaded/)
+  assert.throws(
+    () => bendDarwinLoadedLibraries("dyld[12]: @rpath/libnode.dylib", "/tools/node"),
+    /Unsupported Darwin loaded/
+  )
+  assert.throws(
+    () => bendDarwinLoadedLibraries("dyld[12]: <AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE> /other/node", "/tools/node"),
+    /Missing Darwin executable/
+  )
+})

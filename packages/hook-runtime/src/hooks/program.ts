@@ -83,6 +83,9 @@ const runComposed = Effect.fn("Hook.runComposed")(function* (
   })
 })
 
+const hookCallerCwd = (event: unknown): string | undefined =>
+  event !== null && typeof event === "object" && "cwd" in event && typeof event.cwd === "string" ? event.cwd : undefined
+
 const runNative = Effect.fn("Hook.runNative")(function* (
   options: HookArguments,
   codexVersion: CodexVersion,
@@ -101,10 +104,7 @@ const runNative = Effect.fn("Hook.runNative")(function* (
   if (options["claude-hook"]) {
     if (!options["composed-edit-hook"]) return {}
     let editPolicy: ResidentEditPolicy | undefined
-    const callerCwd =
-      event !== null && typeof event === "object" && "cwd" in event && typeof event.cwd === "string"
-        ? event.cwd
-        : undefined
+    const callerCwd = hookCallerCwd(event)
     const observation = yield* adaptClaudeDirectEvent(event, {
       ...(userConfigPath === undefined ? {} : { userConfigPath }),
       capturePolicy: (root, advicee, path) =>

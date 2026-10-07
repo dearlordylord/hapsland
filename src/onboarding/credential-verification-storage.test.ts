@@ -5,13 +5,16 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { execFileSync } from "../../scripts/test-harness/process.mjs"
 import { saveCredential, resolveCredential } from "@hapsland/credential-storage/credentials/secret-service"
+import { type KeyVerification } from "@hapsland/administration/onboarding/credential-verification"
 import {
-  runGuidedCredentialCheck,
-  type KeyVerification
-} from "@hapsland/administration/onboarding/credential-verification"
+  nativeVerificationLayer,
+  runVerificationConversation
+} from "@hapsland/administration/onboarding/verification-conversation"
+import { InteractionService } from "@hapsland/administration/interaction/interaction"
+import { scriptedInteraction, type ScriptStep } from "../../scripts/test-support/scripted-interaction.ts"
 import { JEV_PROVIDER } from "@hapsland/runtime-environment/runtime/backend"
 
-it.each(["rate-limited", "unconfirmed", "replace"] as const)(
+it.each(["rate-limited", "unconfirmed", "replace", "precedence"] as const)(
   "preserves usable native storage through verification: %s",
   async (scenario) => {
     const root = mkdtempSync(join(tmpdir(), "hapsland-key-check-"))
@@ -39,26 +42,49 @@ if (process.argv[2] === "set") {
           REVIEW_CREDENTIAL_STATE_PATH: join(root, "credential-state.json")
         })
       )
-      const output: string[] = []
+      const steps: ScriptStep[] = [
+        { kind: "confirm", line: "y" },
+        ...(scenario === "replace" || scenario === "precedence"
+          ? ([
+              { kind: "choose", index: 0 },
+              { kind: "confirm", line: "y" },
+              { kind: "hidden", value: "replacement-key" },
+              { kind: "confirm", line: "y" }
+            ] as const)
+          : [])
+      ]
+      const script = scriptedInteraction(steps)
+      const output = script.transcript
       let requests = 0
       await Effect.runPromise(
         Effect.gen(function* () {
           expect((yield* saveCredential("original-key")).status).toBe("stored")
-          yield* runGuidedCredentialCheck({
-            cwd: root,
-            host: "codex",
-            platform: "linux",
-            userConfigPath: join(root, "user.jsonc"),
-            confirm: () => Effect.succeed(true),
-            readCredential: () => Effect.succeed("replacement-key"),
-            write: (text) => output.push(text),
-            verify: (key) =>
-              Effect.sync((): KeyVerification => {
-                requests++
-                if (scenario === "replace") return Redacted.value(key) === "replacement-key" ? "accepted" : "rejected"
-                return scenario
+          yield* runVerificationConversation().pipe(
+            Effect.provideService(InteractionService, script.interaction),
+            Effect.provide(
+              nativeVerificationLayer({
+                cwd: root,
+                host: "codex",
+                platform: "linux",
+                userConfigPath: join(root, "user.jsonc"),
+                verify: (key) =>
+                  Effect.sync((): KeyVerification => {
+                    requests++
+                    if (scenario === "precedence") {
+                      if (requests === 1) {
+                        writeFileSync(join(root, ".env"), `${JEV_PROVIDER.credentialEnvVar}=file-priority-key\n`)
+                        return "rejected"
+                      }
+                      expect(Redacted.value(key)).toBe("file-priority-key")
+                      return "accepted"
+                    }
+                    if (scenario === "replace")
+                      return Redacted.value(key) === "replacement-key" ? "accepted" : "rejected"
+                    return scenario
+                  })
               })
-          })
+            )
+          )
           const selected = yield* resolveCredential({
             envVar: JEV_PROVIDER.credentialEnvVar,
             root,
@@ -66,15 +92,23 @@ if (process.argv[2] === "set") {
           })
           expect(selected).toMatchObject({
             status: "present",
-            source: "saved",
-            value: scenario === "replace" ? "replacement-key" : "original-key"
+            source: scenario === "precedence" ? "environment" : "saved",
+            value:
+              scenario === "precedence"
+                ? "file-priority-key"
+                : scenario === "replace"
+                  ? "replacement-key"
+                  : "original-key"
           })
         }).pipe(Effect.provide(layer))
       )
-      expect(readFileSync(vault, "utf8")).toBe(scenario === "replace" ? "replacement-key" : "original-key")
-      expect(requests).toBe(scenario === "replace" ? 2 : 1)
-      expect(output.join("")).not.toMatch(/original-key|replacement-key/)
-      if (scenario !== "replace") expect(output.join("")).not.toMatch(/rerun|retry|restart/i)
+      expect(readFileSync(vault, "utf8")).toBe(
+        scenario === "replace" || scenario === "precedence" ? "replacement-key" : "original-key"
+      )
+      expect(requests).toBe(scenario === "replace" || scenario === "precedence" ? 2 : 1)
+      expect(output.join("")).not.toMatch(/original-key|replacement-key|file-priority-key/)
+      if (scenario !== "replace" && scenario !== "precedence")
+        expect(output.join("")).not.toMatch(/rerun|retry|restart/i)
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

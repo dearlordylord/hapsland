@@ -53,7 +53,7 @@
     "docs:install": "node scripts/install-doc-link-checker.mjs && node scripts/install-bend-toolchain.mjs --github-actions",
     "docs:generate": "node scripts/generate-documentation.mjs --update",
     "docs:generated:check": "node scripts/generate-documentation.mjs --check",
-    "docs:check": "node --test scripts/check-doc-links.test.mjs scripts/generate-architecture-diagram.test.mjs scripts/generate-documentation.test.mjs scripts/generate-module-architecture.test.mjs && npm run docs:generated:check && node scripts/check-doc-links.mjs",
+    "docs:check": "node --test scripts/check-doc-links.test.mjs scripts/generate-architecture-diagram.test.mjs scripts/generate-documentation.test.mjs scripts/generate-module-architecture.test.mjs && npm run docs:generated:check && node scripts/check-doc-links.mjs && npm run interaction:diagrams:check",
     "architecture:generate": "node scripts/generate-architecture-diagram.mjs",
     "build": "node scripts/build-product.mjs",
     "prepack": "npm run build",
@@ -102,7 +102,9 @@
     "build:watch": "node scripts/build-watch.mjs",
     "test:content-isolation": "node packages/agent-flow-bend/scripts/check-content-isolation.mjs && node scripts/check-content-wire-mutants.mjs",
     "format:fix": "python3 scripts/bend-format.py fix",
-    "format:check": "python3 scripts/bend-format.py check"
+    "format:check": "python3 scripts/bend-format.py check",
+    "interaction:diagrams:write": "node scripts/build-workspaces.mjs && node --experimental-strip-types scripts/generate-interaction-diagrams.mts --write",
+    "interaction:diagrams:check": "node scripts/build-workspaces.mjs && node --experimental-strip-types scripts/generate-interaction-diagrams.mts --check"
   },
   "devDependencies": {
     "@babel/parser": "catalog:",

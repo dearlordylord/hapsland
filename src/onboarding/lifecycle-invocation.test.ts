@@ -44,3 +44,15 @@ it("rejects malformed output without exposing the child payload", async () => {
   })
   expect(JSON.stringify(result)).not.toContain("synthetic-private-payload")
 })
+
+it.each(["busy", "indeterminate"])("retains checked %s owner observation from a nonzero exit", async (status) => {
+  const output = await Effect.runPromise(
+    invokeLifecycle(
+      process.execPath,
+      ["-e", `process.stdout.write(JSON.stringify({status:${JSON.stringify(status)}}));process.exitCode=6`],
+      "claude",
+      { version: 1, operation: "update" }
+    )
+  )
+  expect(output.status).toBe(status)
+})

@@ -376,7 +376,7 @@ export const invokeLifecycle = Effect.fn("ClientLifecycle.invoke")(function* (
     })
   const parsed = yield* Effect.try({ try: () => JSON.parse(result.stdout), catch: unreadable })
   const output = yield* Schema.decodeUnknownEffect(LifecycleResult)(parsed).pipe(Effect.mapError(unreadable))
-  if (!result.succeeded && output.status !== "partial") {
+  if (!result.succeeded && !["partial", "busy", "indeterminate"].includes(output.status)) {
     const compatibility = formatCompatibility(record(output.host).compatibility)
     return yield* Effect.fail(
       new LifecycleInvocationError({ message: [formatFailure(output, host), ...compatibility].join("\n") })

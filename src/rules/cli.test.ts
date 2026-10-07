@@ -165,14 +165,21 @@ it("binds all authored sources to previews and rejects unsupported active schema
   const create = { action: "create", scope: "project", id: "domain/count" } as const
   const initial = await Effect.runPromise(previewRuleChange(root, create, options))
   await Effect.runPromise(applyRuleChange(root, create, initial.digest, options))
-  const { formatRuleChangePreview } = await import("@hapsland/administration/rules/command")
-  expect(formatRuleChangePreview(initial)).toContain(
-    `This will update the rule settings in ${join(root, ".hapsland.jsonc")}. The rule will be enabled.`
-  )
+  const { rulesPreview } = await import("@hapsland/administration/rules/interaction-model")
+  const preview = (plan: typeof initial) =>
+    rulesPreview({
+      action: plan.change.action,
+      scope: plan.change.scope,
+      digest: plan.digest,
+      configuration: plan.configurationPath,
+      rule: plan.path ?? "domain/count",
+      enabled: plan.enabled === true
+    })
+  expect(preview(initial)).toContain(`Configuration: ${join(root, ".hapsland.jsonc")}`)
   expect(initial.path).toBe(join(root, ".hapsland/rules/custom/domain%2Fcount.jsonc"))
   const toggle = { action: "disable", scope: "project", id: "domain/count" } as const
   const plan = await Effect.runPromise(previewRuleChange(root, toggle, options))
-  expect(formatRuleChangePreview(plan)).toContain("The rule will be disabled.")
+  expect(preview(plan)).toContain("The rule will be disabled.")
   const path = initial.path
   if (path === undefined) throw new Error("missing authored file")
   const document = parseJsonc(readFileSync(path, "utf8"))
