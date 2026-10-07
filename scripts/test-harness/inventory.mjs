@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs"
+import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs"
 import { dirname, extname, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { parse } from "@babel/parser"
@@ -8,7 +8,7 @@ import { boundedScenarioFiles, timeoutForKind } from "./policy.mjs"
 
 const processModules = new Set(["node:child_process", "child_process", "node:worker_threads", "worker_threads"])
 const sourceExtensions = new Set([".ts", ".tsx", ".mts", ".mjs", ".js"])
-const importsOf = (file) => {
+const importsOf = (file, sourceOnly = false) => {
   const ast = parse(readFileSync(file, "utf8"), {
     sourceType: "unambiguous",
     plugins: [
@@ -33,7 +33,14 @@ const importsOf = (file) => {
         modules.push(node.source.value)
     } else if (node.type === "CallExpression" && (node.callee?.type === "Import" || node.callee?.name === "require")) {
       const argument = node.arguments?.[0]
-      if (argument?.type === "StringLiteral") modules.push(argument.value)
+      if (sourceOnly) modules.push(undefined)
+      else if (argument?.type === "StringLiteral") modules.push(argument.value)
+    } else if (
+      sourceOnly &&
+      node.type === "Identifier" &&
+      ["require", "module", "process", "global", "globalThis", "eval", "Function"].includes(node.name)
+    ) {
+      modules.push(undefined)
     }
     for (const [key, value] of Object.entries(node)) {
       if (["loc", "start", "end", "comments", "tokens"].includes(key)) continue
@@ -60,6 +67,40 @@ const localModule = (root, file, specifier) => {
   return candidates.find(
     (candidate) => sourceExtensions.has(extname(candidate)) && existsSync(candidate) && statSync(candidate).isFile()
   )
+}
+
+const sourceOnlyBuiltins = new Set(["node:test", "node:assert", "node:assert/strict"])
+
+/** Recognize the source-only .mjs convention; every other selection prepares
+ * workspaces. This is a bounded import check, not general JS loader analysis. */
+export const workspaceCompilationReason = (root, selectedFiles) => {
+  let current = selectedFiles[0] ?? "."
+  try {
+    const canonicalRoot = realpathSync(root),
+      pending = selectedFiles.map((file) => resolve(root, file)),
+      seen = new Set()
+    while (pending.length) {
+      const requested = pending.pop()
+      current = relative(root, requested)
+      const file = realpathSync(requested),
+        local = relative(canonicalRoot, file)
+      const required = (reason) => ({ path: current, reason })
+      if (local.startsWith("..") || local.split(/[\\/]/).includes("dist") || !file.endsWith(".mjs"))
+        return required("Outside the source-only .mjs convention")
+      if (seen.has(file)) continue
+      seen.add(file)
+      for (const specifier of importsOf(file, true)) {
+        if (typeof specifier !== "string") return required("Dynamic loading or ambient globals")
+        if (sourceOnlyBuiltins.has(specifier)) continue
+        if (!specifier.startsWith(".") || !specifier.endsWith(".mjs"))
+          return required(`Dependency outside explicit source-only ESM imports: ${specifier}`)
+        pending.push(resolve(dirname(file), specifier))
+      }
+    }
+    return null
+  } catch {
+    return { path: current, reason: "Unreadable module or unsupported syntax" }
+  }
 }
 
 const testFiles = (root) => {

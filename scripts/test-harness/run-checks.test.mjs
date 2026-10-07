@@ -6,8 +6,9 @@ import { mkdtemp, mkdir, writeFile, readFile, rm, chmod, symlink } from "node:fs
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { createRun, stageResults, runQualityStages, focusedSelection, main } from "./run-checks.mjs"
+import { createRun, stageResults, runQualityStages, focusedSelection, runSelectedTests, main } from "./run-checks.mjs"
 import { withBuildLock } from "../build-lock.mjs"
+import { workspaceCompilationReason } from "./inventory.mjs"
 
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), "hapsland-checks-"))
@@ -172,6 +173,129 @@ test("focused mode refuses empty and broad selections", async (t) => {
   const selection = await focusedSelection(root, ["src/one.test.ts", "--coverage"])
   assert.deepEqual(selection.vitestFiles, ["src/one.test.ts"])
 })
+
+test("source-only Node selection executes without workspace preparation", async (t) => {
+  const root = await fixture(t)
+  await writeFile(join(root, "package.json"), JSON.stringify({ type: "module", workspaces: ["scripts"] }))
+  await writeFile(join(root, "scripts/build-workspaces.mjs"), "throw new Error('unneeded preparation')")
+  await writeFile(join(root, "scripts/value.mjs"), "export const value = 42")
+  await writeFile(join(root, "scripts/helper.mjs"), 'export { value } from "./value.mjs"')
+  await writeFile(
+    join(root, "scripts/selected.test.mjs"),
+    'import test from "node:test"; import assert from "node:assert/strict"; import { value } from "./helper.mjs"; test("source value", () => assert.equal(value, 42))'
+  )
+  const run = await createRun({ root, mode: "focused", timeoutMs: 10000, output() {} })
+  await runSelectedTests(run, root, await focusedSelection(root, ["scripts/selected.test.mjs"]))
+  assert.equal(await run.finish(), 0)
+  assert.deepEqual(
+    (await stageResults(run.runDirectory)).map(({ name }) => name),
+    ["node-focused"]
+  )
+})
+
+test("Node preparation selection follows cycles and retains uncertain or physical dependencies", async (t) => {
+  const root = await fixture(t)
+  await writeFile(join(root, "scripts/selected.test.mjs"), 'import "./helper.mjs"')
+  await writeFile(join(root, "scripts/helper.mjs"), 'export * from "./cycle.mjs"')
+  await writeFile(join(root, "scripts/cycle.mjs"), 'import "./helper.mjs"; import "node:assert/strict"')
+  assert.equal(workspaceCompilationReason(root, ["scripts/selected.test.mjs"]), null)
+  await writeFile(join(root, "scripts/value.ts"), "export const value = 42")
+  await mkdir(join(root, "scripts/dist"))
+  await writeFile(join(root, "scripts/dist/value.js"), "export const value = 42")
+  for (const source of [
+    'import "@hapsland/runtime-environment/runtime/backend"',
+    'import "external-package"',
+    'import "node:fs/promises"',
+    'import "node:child_process"',
+    'import "node:worker_threads"',
+    'import "node:module"',
+    'import "node:vm"',
+    'import "node:http"',
+    'import "./missing.mjs"',
+    'import "./value.cjs"',
+    'import("./helper.mjs")',
+    'import "./value.ts"',
+    'import "./dist/value.js"',
+    "import(process.env.SELECTED_MODULE)",
+    "require(process.env.SELECTED_MODULE)",
+    'eval("load something")',
+    'new Function("load something")',
+    'process.getBuiltinModule("fs")',
+    "const malformed = "
+  ]) {
+    await writeFile(join(root, "scripts/helper.mjs"), source)
+    assert.ok(workspaceCompilationReason(root, ["scripts/selected.test.mjs"]), source)
+  }
+  const outside = await fixture(t)
+  await writeFile(join(outside, "value.mjs"), "export const value = 42")
+  await symlink(join(outside, "value.mjs"), join(root, "scripts/linked.mjs"))
+  await writeFile(join(root, "scripts/helper.mjs"), 'import "./linked.mjs"')
+  assert.ok(workspaceCompilationReason(root, ["scripts/selected.test.mjs"]))
+})
+
+test("Node preparation keeps extensionless imports and ambient loader aliases outside the source-only convention", async (t) => {
+  const root = await fixture(t)
+  await writeFile(join(root, "scripts/value.mjs"), "export const value = 42")
+  for (const source of [
+    'import "./value"',
+    'const getBuiltinModule = process.getBuiltinModule; getBuiltinModule("fs")',
+    'const getBuiltinModule = process["getBuiltinModule"]; getBuiltinModule("fs")',
+    'const load = eval; load("something")'
+  ]) {
+    await writeFile(join(root, "scripts/selected.test.mjs"), source)
+    assert.ok(workspaceCompilationReason(root, ["scripts/selected.test.mjs"]), source)
+  }
+})
+
+test("a mixed Node and Vitest selection retains one shared workspace preparation", async (t) => {
+  const root = await fixture(t)
+  await writeFile(join(root, "package.json"), JSON.stringify({ workspaces: ["scripts"] }))
+  await writeFile(join(root, "scripts/selected.test.mjs"), 'import "node:test"')
+  const stages = []
+  await runSelectedTests(
+    {
+      runStage: async (stage) => {
+        stages.push(stage.name)
+        return { state: "passed" }
+      }
+    },
+    root,
+    { nodeFiles: ["scripts/selected.test.mjs"], vitestFiles: ["src/selected.test.ts"], options: [] }
+  )
+  assert.deepEqual(stages, ["workspace-compilation", "node-focused", "vitest-focused"])
+})
+
+for (const buildFails of [false, true]) {
+  test(`compiled Node consumer ${buildFails ? "stops after failed preparation" : "receives freshly prepared output"}`, async (t) => {
+    const root = await fixture(t)
+    await writeFile(join(root, "package.json"), JSON.stringify({ type: "module", workspaces: ["scripts"] }))
+    await mkdir(join(root, "packages/value/dist"), { recursive: true })
+    await writeFile(join(root, "packages/value/dist/value.js"), "export const value = 'stale'")
+    await writeFile(
+      join(root, "scripts/build-workspaces.mjs"),
+      buildFails
+        ? "process.exit(7)"
+        : 'import { writeFileSync } from "node:fs"; writeFileSync("packages/value/dist/value.js", "export const value = 42")'
+    )
+    await writeFile(
+      join(root, "scripts/selected.test.mjs"),
+      'import test from "node:test"; import assert from "node:assert/strict"; import { value } from "../packages/value/dist/value.js"; test("fresh compiled value", () => assert.equal(value, 42))'
+    )
+    const run = await createRun({ root, mode: "focused", timeoutMs: 10000, output() {} })
+    const execute = () =>
+      runSelectedTests(run, root, { nodeFiles: ["scripts/selected.test.mjs"], vitestFiles: [], options: [] })
+    if (buildFails) await assert.rejects(execute, /Workspace compilation failed/)
+    else await execute()
+    assert.equal(await run.finish(), buildFails ? 1 : 0)
+    const stages = await stageResults(run.runDirectory)
+    assert.equal(stages[0].evidence.path, "scripts/selected.test.mjs")
+    assert.match(stages[0].evidence.reason, /explicit source-only ESM/)
+    assert.deepEqual(
+      stages.map(({ name }) => name),
+      buildFails ? ["workspace-compilation"] : ["workspace-compilation", "node-focused"]
+    )
+  })
+}
 
 test("persistent reporter failures prevent a nominal zero exit from passing", async (t) => {
   const root = await fixture(t)

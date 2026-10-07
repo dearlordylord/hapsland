@@ -44,6 +44,14 @@ finding. A new tool-call ID alone is not a fresh edit under the
 | `stress` | Saturation tests with a deadline, seeded simulation or contention checks | Required explicit files; assertions and seeds stay unchanged |
 | `quality` | Existing full deterministic gate and fresh coverage/CRAP analysis | Complete inventory; filters are refused |
 
+Focused Node-only selections omit workspace preparation for the source-only
+convention: `.mjs` modules with explicit static relative `.mjs` imports and
+`node:test`/`node:assert` imports, without ambient loading globals. Every other
+dependency or unsupported form retains preparation, with its reason and path in
+stage evidence. Vitest and mixed selections prepare workspaces once before their
+tests. Both `test:focused` and verification profiles use this convention; test
+assertions and coverage requirements remain unchanged.
+
 Quality runs harness preflight, lint, then the pinned crap4ts complexity lower
 bound before coverage generation. Complexity above the configured threshold
 ceiling guarantees a CRAP breach and stops expensive checks with exit 2. Path

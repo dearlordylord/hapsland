@@ -345,7 +345,7 @@ export async function createRun({
   }
   const failureTimer = inherited ? undefined : setInterval(reportFailures, 100)
   failureTimer?.unref()
-  async function runStage({ name, command, args = [], cwd = root, env = {} }) {
+  async function runStage({ name, command, args = [], cwd = root, env = {}, evidence }) {
     await checkInputs()
     if (aborted || Date.now() >= context.deadline) {
       aborted = true
@@ -368,6 +368,7 @@ export async function createRun({
       ownerPid: process.pid,
       command,
       args,
+      ...(evidence === undefined ? {} : { evidence }),
       startedAt: new Date(begin).toISOString(),
       state: "running",
       exitCode: null,
@@ -613,11 +614,17 @@ export async function runSelectedTests(run, root, selection, environment = {}) {
       if (error.code === "ENOENT") return {}
       throw error
     })
-  if (manifest.workspaces) {
+  const preparation = manifest.workspaces
+    ? selection.vitestFiles.length
+      ? { path: selection.vitestFiles[0], reason: "Vitest selection requires workspace preparation" }
+      : (await import("./inventory.mjs")).workspaceCompilationReason(root, selection.nodeFiles)
+    : null
+  if (preparation) {
     const result = await run.runStage({
       name: "workspace-compilation",
       command: process.execPath,
-      args: [join(root, "scripts/build-workspaces.mjs")]
+      args: [join(root, "scripts/build-workspaces.mjs")],
+      evidence: preparation
     })
     if (result.state !== "passed") throw new Error("Workspace compilation failed before focused tests")
   }
