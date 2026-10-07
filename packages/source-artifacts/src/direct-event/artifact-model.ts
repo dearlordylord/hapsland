@@ -1,4 +1,17 @@
+export type BundledArtifactOrigin = {
+  readonly kind: "bundled"
+  readonly library: "bend/Base"
+  readonly compilerVersion: string
+  readonly compilerSource: string
+  readonly moduleHash: string
+  readonly declarationHash: string
+}
+
+export const bundledArtifactDomain = (origin: BundledArtifactOrigin): string =>
+  `compiler://bend/${origin.compilerVersion}-${origin.compilerSource}/${origin.moduleHash}/Base`
+
 export type TypeDeclaration = {
+  readonly origin?: BundledArtifactOrigin
   readonly path?: string
   readonly id: string
   readonly kind: "interface" | "type-alias" | "struct" | "enum" | "datatype"

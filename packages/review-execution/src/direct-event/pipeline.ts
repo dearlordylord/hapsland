@@ -52,7 +52,8 @@ import {
   type ObservationResult,
   type PathObservationOutcome
 } from "@hapsland/review-definition/direct-event/model"
-import type { ReviewUnit } from "@hapsland/source-artifacts/direct-event/artifact-model"
+import { bundledArtifactDomain, type ReviewUnit } from "@hapsland/source-artifacts/direct-event/artifact-model"
+import { isBundledBendArtifact } from "@hapsland/source-analysis/direct-event/languages/bend/bundled-evidence"
 import { type DirectObservation, type DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
 import {
   DEFAULT_DIRECT_FILE_POLICY,
@@ -187,8 +188,13 @@ const unitDependencyPaths = (unit: ReviewUnit): ReadonlySet<string> | undefined 
   const pending = [unit.root]
   while (pending.length > 0) {
     const node = pending.pop()
-    if (node === undefined || node.artifact.path === undefined) return undefined
-    paths.add(node.artifact.path)
+    if (node === undefined) return undefined
+    if (node.artifact.origin !== undefined) {
+      if (node === unit.root || !isBundledBendArtifact(node.artifact)) return undefined
+    } else {
+      if (node.artifact.path === undefined) return undefined
+      paths.add(node.artifact.path)
+    }
     for (const reference of node.references) if (reference.kind === "expanded") pending.push(reference.node)
   }
   return paths
@@ -985,7 +991,13 @@ const candidateRootArtifact = (
     return undefined
   const root = input.unit.root
   const path = root.artifact.path
-  if (path === undefined || path !== input.path || root.artifact.id !== input.declaration.id) return undefined
+  if (
+    root.artifact.origin !== undefined ||
+    path === undefined ||
+    path !== input.path ||
+    root.artifact.id !== input.declaration.id
+  )
+    return undefined
   return {
     contract: input.contract,
     artifact: {
@@ -1011,7 +1023,9 @@ export const candidateReviewInput = (input: ReviewInput): CandidateReviewInput |
     reference: Extract<(typeof root.references)[number], { readonly kind: "expanded" }>
   ): typeof root | undefined => {
     const child = reference.node
-    const domain = child.artifact.path
+    const origin = child.artifact.origin
+    if (origin !== undefined && !isBundledBendArtifact(child.artifact)) return undefined
+    const domain = origin === undefined ? child.artifact.path : bundledArtifactDomain(origin)
     if (domain === undefined || seen.has(child.artifact.id)) return undefined
     seen.add(child.artifact.id)
     nodes.push({
@@ -1020,6 +1034,7 @@ export const candidateReviewInput = (input: ReviewInput): CandidateReviewInput |
       name: child.artifact.name,
       domain,
       source: child.artifact.source,
+      ...(origin === undefined ? {} : { origin }),
       order: nodes.length
     })
     edges.push({

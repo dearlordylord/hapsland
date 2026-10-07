@@ -31,6 +31,7 @@ type Pending = {
   readonly name: string
   readonly depth: number
   readonly expectedKind?: "type" | "function"
+  readonly bundled?: { readonly declaration: FactDeclaration; readonly file: FactFile }
 }
 type Built = { readonly node: ReviewNode; readonly pending: ReadonlyArray<Pending> }
 type LocalBudget = {
@@ -157,6 +158,47 @@ const materializeLocalReference = (frame: LocalFrame, reference: FactReference):
     frame.node.references.push(omittedReference(reference.name, "unsupported"))
     return
   }
+  if (reference.targetId !== undefined) {
+    const declaration = frame.file.supportingDeclarations?.get(reference.targetId)
+    if (
+      declaration === undefined ||
+      declaration.artifact.origin?.kind !== "bundled" ||
+      declaration.artifact.id !== reference.targetId ||
+      !correctKind(declaration.artifact, reference.expectedKind)
+    ) {
+      frame.node.references.push(omittedReference(reference.name, "unsupported"))
+      return
+    }
+    fileTargets.add(declaration.artifact.id)
+    budget.maxTargetsInFile = Math.max(budget.maxTargetsInFile, fileTargets.size)
+    if (frame.visited.has(declaration.artifact.id)) budget.work += 1
+    if (!permitLocalGraphFacts(budget.limits, budget.work, budget.maxDepth, fileTargets.size, budget.graphWork)) {
+      frame.node.references.push(omittedReference(reference.name, "reference-limit"))
+      return
+    }
+    if (frame.visited.has(declaration.artifact.id)) {
+      frame.node.references.push({
+        kind: "included",
+        site: { symbol: reference.name },
+        target: declaration.artifact.id
+      })
+    } else {
+      const index = frame.node.references.length
+      frame.node.references.push(omittedReference(reference.name, "unavailable"))
+      frame.pending.push({
+        owner: frame.node,
+        index,
+        from: frame.path,
+        symbol: reference.name,
+        importPath: "",
+        name: reference.name,
+        depth: frame.depth,
+        bundled: { declaration, file: frame.file },
+        ...(reference.expectedKind === undefined ? {} : { expectedKind: reference.expectedKind })
+      })
+    }
+    return
+  }
   const local = declarationFor(frame.file, reference.name, reference.expectedKind)
   const imported = frame.file.imports.get(reference.name)
   fileTargets.add(localReferenceTargetKey(frame.path, reference.name, local, imported))
@@ -186,6 +228,7 @@ const buildLocal = (
 ): Built | undefined => {
   const declaration = declarationFor(file, name, expectedKind)
   if (declaration === undefined) return undefined
+  visited.add(declaration.artifact.id)
   const node: MutableNode = { artifact: declaration.artifact, references: [] }
   const pending: Pending[] = []
   const fileTargets = budget.targetsByPath.get(path) ?? new Set<string>()
@@ -202,7 +245,9 @@ type GraphBinding = PreparedGraph & {
   readonly branch: "type" | "function"
   readonly expired: () => boolean
 }
-type GraphTarget = { readonly path: string; readonly name: string; readonly edge: Pending }
+type GraphTarget =
+  | { readonly kind: "file"; readonly path: string; readonly name: string; readonly edge: Pending }
+  | { readonly kind: "bundled"; readonly declaration: FactDeclaration; readonly file: FactFile; readonly edge: Pending }
 type GraphFrame = GraphBinding & {
   readonly unit: ReviewUnit
   readonly budget: LocalBudget
@@ -376,7 +421,7 @@ const resolveKnownTarget = (frame: GraphFrame, selectedPath: string, edge: Pendi
   // Only Bend can authorize a new supporting source read through CheckPath.
   advanceGraph(frame, { kind: "resolved", target: targetId, result: "found" })
   includeKnownTarget(frame, targetId, edge)
-  frame.pathForTarget.set(targetId, { path: selectedPath, name: edge.name, edge })
+  frame.pathForTarget.set(targetId, { kind: "file", path: selectedPath, name: edge.name, edge })
 }
 const missingImportResult = (count: number): "missing" | "ambiguous" => (count === 0 ? "missing" : "ambiguous")
 const resolveGraphEdge = Effect.fn("DirectEvent.resolveGraphEdge")(function* (
@@ -385,6 +430,15 @@ const resolveGraphEdge = Effect.fn("DirectEvent.resolveGraphEdge")(function* (
 ): Effect.fn.Return<GraphCommandResult> {
   const edge = frame.pending.get(edgeId)
   if (edge === undefined) return "invalid"
+  if (edge.bundled !== undefined) {
+    const key = edge.bundled.declaration.artifact.id
+    const targetId = graphTargetId(frame, key)
+    frame.targetIds.set(key, targetId)
+    advanceGraph(frame, { kind: "resolved", target: targetId, result: "found" })
+    includeKnownTarget(frame, targetId, edge)
+    frame.pathForTarget.set(targetId, { kind: "bundled", ...edge.bundled, edge })
+    return "next"
+  }
   const base = normalize(join(dirname(edge.from), edge.importPath))
   if (outsideImportPath(base)) {
     advanceGraph(frame, { kind: "resolved", target: frame.nextTargetId++, result: "unsupported" })
@@ -415,6 +469,10 @@ const checkGraphPath = Effect.fn("DirectEvent.checkGraphPath")(function* (
 ): Effect.fn.Return<GraphCommandResult> {
   const target = frame.pathForTarget.get(targetId)
   if (target === undefined) return "invalid"
+  if (target.kind === "bundled") {
+    advanceGraph(frame, { kind: "pathChecked", allowed: true })
+    return "next"
+  }
   const selected = yield* eligibleNamedPath(
     frame.context.root,
     target.path,
@@ -443,7 +501,10 @@ const captureGraphSource = Effect.fn("DirectEvent.captureGraphSource")(function*
   }
   return source
 })
-const sourceFileDeclaration = (file: FactFile | undefined, target: GraphTarget): FactDeclaration | undefined => {
+const sourceFileDeclaration = (
+  file: FactFile | undefined,
+  target: Extract<GraphTarget, { kind: "file" }>
+): FactDeclaration | undefined => {
   if (file === undefined) return undefined
   const declaration = declarationFor(file, target.name, target.edge.expectedKind)
   return supportedExport(declaration, target.edge.expectedKind) ? declaration : undefined
@@ -460,13 +521,14 @@ const capturedChildAllowed = (frame: GraphFrame, child: Built | undefined): chil
 const attachCapturedChild = (
   frame: GraphFrame,
   targetId: number,
-  target: GraphTarget,
+  target: Extract<GraphTarget, { kind: "file" }>,
   path: string,
   source: StableCapture,
   file: FactFile,
   declaration: FactDeclaration,
   child: Built,
-  localWorkBefore: number
+  localWorkBefore: number,
+  visited: ReadonlySet<string>
 ): void => {
   const previous = bytes(frame.unit)
   target.edge.owner.references[target.edge.index] = {
@@ -489,6 +551,7 @@ const attachCapturedChild = (
       target.edge.name
     )
   } else {
+    for (const id of visited) frame.visited.add(id)
     frame.captured.set(path, { file, sourceBytes: source.byteLength })
     frame.artifactsByTarget.set(targetId, declaration.artifact.id)
   }
@@ -496,7 +559,7 @@ const attachCapturedChild = (
 const inspectCapturedSource = (
   frame: GraphFrame,
   targetId: number,
-  target: GraphTarget,
+  target: Extract<GraphTarget, { kind: "file" }>,
   path: string,
   source: StableCapture
 ): void => {
@@ -508,11 +571,13 @@ const inspectCapturedSource = (
     advanceGraph(frame, { kind: "captureFailed" })
     return
   }
+  // Rejected captures must not publish identities that later edges can include.
+  const visited = new Set(frame.visited)
   const child = buildLocal(
     file,
     path,
     target.name,
-    frame.visited,
+    visited,
     frame.budget,
     target.edge.depth + 1,
     target.edge.expectedKind
@@ -531,7 +596,54 @@ const inspectCapturedSource = (
     advanceGraph(frame, { kind: "captureFailed" })
     return
   }
-  attachCapturedChild(frame, targetId, target, path, source, file, declaration, child, localWorkBefore)
+  attachCapturedChild(frame, targetId, target, path, source, file, declaration, child, localWorkBefore, visited)
+}
+const attachBundledSource = (
+  frame: GraphFrame,
+  targetId: number,
+  target: Extract<GraphTarget, { kind: "bundled" }>
+): void => {
+  const declaration = target.declaration
+  const sourceBytes = Buffer.byteLength(declaration.artifact.source, "utf8")
+  if (sourceBytes > frame.limits.sourceBytes) {
+    advanceGraph(frame, { kind: "captured", sourceBytes, treeBytes: 0, edges: [] })
+    return
+  }
+  const previous = bytes(frame.unit)
+  const localWorkBefore = frame.budget.work
+  frame.budget.graphWork = projectImportGraph(frame.state).work - frame.budget.work
+  const visited = new Set(frame.visited)
+  const file: FactFile = { ...target.file, declarations: new Map([[declaration.artifact.name, declaration]]) }
+  const child = buildLocal(
+    file,
+    target.edge.from,
+    declaration.artifact.name,
+    visited,
+    frame.budget,
+    target.edge.depth + 1
+  )
+  if (!capturedChildAllowed(frame, child)) {
+    advanceGraph(frame, { kind: "captureFailed" })
+    return
+  }
+  target.edge.owner.references[target.edge.index] = {
+    kind: "expanded",
+    site: { symbol: target.edge.symbol },
+    node: child.node
+  }
+  advanceGraph(frame, {
+    kind: "captured",
+    sourceBytes,
+    treeBytes: Math.max(0, bytes(frame.unit) - previous),
+    localWork: frame.budget.work - localWorkBefore,
+    edges: addGraphEdges(frame, child.pending)
+  })
+  if (frame.command.kind === "skipImport") {
+    target.edge.owner.references[target.edge.index] = omittedReference(target.edge.symbol, "reference-limit")
+  } else {
+    for (const id of visited) frame.visited.add(id)
+    frame.artifactsByTarget.set(targetId, declaration.artifact.id)
+  }
 }
 const readGraphSource = Effect.fn("DirectEvent.readGraphSource")(function* (
   frame: GraphFrame,
@@ -539,6 +651,10 @@ const readGraphSource = Effect.fn("DirectEvent.readGraphSource")(function* (
 ): Effect.fn.Return<GraphCommandResult> {
   const target = frame.pathForTarget.get(targetId)
   if (target === undefined) return "invalid"
+  if (target.kind === "bundled") {
+    attachBundledSource(frame, targetId, target)
+    return "next"
+  }
   const selected = yield* eligibleNamedPath(
     frame.context.root,
     target.path,

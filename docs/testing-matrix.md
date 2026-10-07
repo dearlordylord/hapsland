@@ -485,7 +485,11 @@ Run the installer once and add its printed bin directories to `PATH` for local
 `npm test`. The explicit `--github-actions` mode in `docs:install` installs this
 proof prerequisite only when `GITHUB_ACTIONS=true`; ordinary local documentation
 installs do not download Bend or Lean. Updating either pin requires proof
-validation and digest review.
+validation and digest review. After changing the Bend pin or bundled declaration
+selection, run `npm run bend:base:generate` and review its exact source and
+identity diff. Ordinary workspace builds check catalog freshness before
+compilation; `npm run bend:base:check` performs that check directly. Run
+`node --test scripts/generate-bend-base-evidence.test.mjs` for generator changes.
 
 The [crap4ts configuration](../crap4ts.json) selects TypeScript under `src`,
 the 22 production TypeScript owners’ `src` directories and the moved

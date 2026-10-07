@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto"
 import { posix } from "node:path"
+import {
+  bundledArtifactDomain,
+  type BundledArtifactOrigin
+} from "@hapsland/source-artifacts/direct-event/artifact-model"
+import { isBundledBendArtifact } from "@hapsland/source-analysis/direct-event/languages/bend/bundled-evidence"
 import { canonicalValue } from "@hapsland/review-definition/direct-event/model"
 
 export const CANDIDATE_RENDERER_VERSION = "candidate-semantic-evidence/1"
@@ -9,11 +14,18 @@ const MAX_CANDIDATE_NODES = 128
 const MAX_CANDIDATE_EDGES = 128
 const sha256 = (value: string): string => createHash("sha256").update(value, "utf8").digest("hex")
 export const CANDIDATE_RENDERER_DIGEST = sha256(
-  "candidate-semantic-evidence/1:artifact(kind,name,domain,source):evidence(rootId,nodes[id,kind,name,domain,source,order],edges[from,to?,kind,symbol,reason?,order];omitted-symbol=bounded-opaque-source):inputContract(id,completeness,projectionFingerprint,rendererVersion,rendererDigest)"
+  "candidate-semantic-evidence/1:artifact(kind,name,domain,source):evidence(rootId,nodes[id,kind,name,domain,source,origin?,order],edges[from,to?,kind,symbol,reason?,order];omitted-symbol=bounded-opaque-source):inputContract(id,completeness,projectionFingerprint,rendererVersion,rendererDigest)"
 )
 
 type Kind = "interface" | "type-alias" | "struct" | "enum" | "datatype" | "function"
-type Artifact = Readonly<{ id: string; kind: Kind; name: string; domain: string; source: string }>
+type Artifact = Readonly<{
+  id: string
+  kind: Kind
+  name: string
+  domain: string
+  source: string
+  origin?: BundledArtifactOrigin
+}>
 type Node = Artifact & Readonly<{ order: number }>
 type Edge =
   | Readonly<{ from: string; to: string; kind: "expanded" | "included"; symbol: string; order: number }>
@@ -74,11 +86,30 @@ const kind = (value: unknown): value is Kind =>
   value === "function"
 const source = (value: unknown): value is string =>
   typeof value === "string" && Buffer.byteLength(value, "utf8") <= MAX_CANDIDATE_SOURCE_BYTES
+const bundledWireArtifactValid = (item: Record<string, unknown>): boolean => {
+  const origin = record(item.origin)
+  if (
+    origin === undefined ||
+    !exactKeys(origin, ["kind", "library", "compilerVersion", "compilerSource", "moduleHash", "declarationHash"])
+  )
+    return false
+  const typed = origin as BundledArtifactOrigin
+  return (
+    isBundledBendArtifact({
+      id: item.id as string,
+      kind: item.kind as "datatype",
+      name: item.name as string,
+      source: item.source as string,
+      sourceHash: typeof item.source === "string" ? sha256(item.source) : "",
+      origin: typed
+    }) && item.domain === bundledArtifactDomain(typed)
+  )
+}
 const artifactIdentityValid = (item: Record<string, unknown>): boolean =>
   identifier(item.id) &&
   kind(item.kind) &&
   declarationName(item.name) &&
-  relativeDomain(item.domain) &&
+  (item.origin === undefined ? relativeDomain(item.domain) : bundledWireArtifactValid(item)) &&
   source(item.source) &&
   item.id === `${item.domain}:${item.kind}:${item.name}`
 const validOrder = (value: unknown): boolean => Number.isSafeInteger(value) && Number(value) >= 0
@@ -89,7 +120,9 @@ const artifact = (value: unknown, ordered: boolean): Artifact | Node | undefined
     item === undefined ||
     !exactKeys(
       item,
-      ordered ? ["id", "kind", "name", "domain", "source", "order"] : ["id", "kind", "name", "domain", "source"]
+      ordered
+        ? ["id", "kind", "name", "domain", "source", "order", ...(item.origin === undefined ? [] : ["origin"])]
+        : ["id", "kind", "name", "domain", "source"]
     ) ||
     !artifactIdentityValid(item) ||
     (ordered && !validOrder(item.order))

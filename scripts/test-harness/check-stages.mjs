@@ -77,6 +77,7 @@ export const precheckStages = [
     "scripts/source-type-evidence.test.mjs",
     "scripts/assembly-context.test.mjs",
     "scripts/bend-producer.test.mjs",
+    "scripts/generate-bend-base-evidence.test.mjs",
     "scripts/hook-import-boundary.test.mjs",
     "scripts/source-loader-policy.test.mjs",
     "scripts/source-analysis-receipt.test.mjs",

@@ -4,14 +4,19 @@ import { createHash } from "node:crypto"
 import { mkdtemp, writeFile, rm, mkdir } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { bendFixtures } from "./bend-validation-fixtures.mjs"
+import { fileURLToPath } from "node:url"
+import { readBendToolchain } from "./bend-toolchain.mjs"
+import { bendFixtures, bendExtractionFixtures } from "./bend-validation-fixtures.mjs"
 const root = new URL("../", import.meta.url)
+const expectedVersion = `bend ${readBendToolchain(fileURLToPath(root)).bend.version}`
 const version = execFileSync("bend", ["version"], { encoding: "utf8" }).trim()
+if (version !== expectedVersion) throw new Error(`Expected pinned ${expectedVersion}; observed ${version}`)
 const temporary = await mkdtemp(join(tmpdir(), "hapsland-bend-compiler-"))
 const outcomes = []
 const good = bendFixtures.find((fixture) => fixture.id.endsWith("good"))
 const examples = [
   ...bendFixtures.map((fixture) => ({ ...fixture, expected: "accepted" })),
+  ...bendExtractionFixtures.map((fixture) => ({ ...fixture, expected: "accepted" })),
   ...[
     { id: "pending", expression: "Pending{}" },
     { id: "succeeded", expression: 'Succeeded{"receipt"}' },
@@ -34,6 +39,7 @@ const examples = [
 try {
   for (const fixture of examples) {
     const path = join(temporary, "fixture.bend")
+    for (const [name, source] of Object.entries(fixture.files ?? {})) await writeFile(join(temporary, name), source)
     await writeFile(path, fixture.source)
     let actual = "accepted"
     try {
@@ -45,6 +51,16 @@ try {
     outcomes.push({
       fixtureId: fixture.id,
       sourceHash: createHash("sha256").update(fixture.source).digest("hex"),
+      ...(fixture.files === undefined
+        ? {}
+        : {
+            supportingSourceHashes: Object.fromEntries(
+              Object.entries(fixture.files).map(([name, source]) => [
+                name,
+                createHash("sha256").update(source).digest("hex")
+              ])
+            )
+          }),
       expected: fixture.expected,
       actual
     })
@@ -59,7 +75,8 @@ const record = {
   command: "bend <synthetic-fixture> --check-only",
   outcomes,
   verdict: outcomes.every((outcome) => outcome.actual === outcome.expected) ? "demonstrated" : "incomplete",
-  scope: "Synthetic fixture validity and constructor arity only; no proof, review-quality, or native delivery claim."
+  scope:
+    "Synthetic fixture syntax, generic binding and quantity arguments, imports and constructor arity only; no proof, review-quality, or native delivery claim."
 }
 await mkdir(new URL("evidence/bend-support/", root), { recursive: true })
 await writeFile(new URL("evidence/bend-support/compiler-fixtures.json", root), JSON.stringify(record, null, 2) + "\n")

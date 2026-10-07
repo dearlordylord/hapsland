@@ -116,6 +116,75 @@ describe("bounded Bend datatype extraction", () => {
     expect(combinedAnalyzerMaterializationPreflight("model.bend", source)?.declarations).toBe(2)
   })
 
+  it("keeps ordinary Data and Type parameters bound without inventing graph dependencies", () => {
+    const source =
+      "import Base\ntype Generic<S: Data> is Data:\n  Generic{id: U32}\ntype Container<C: Type> is Type:\n  Container{value: C}"
+    expect(analyze(source).every((unit) => unit.status === "ready")).toBe(true)
+    expect(inspectGraphFile("model.bend", source)?.declarations.get("Container")?.references).toEqual([])
+  })
+
+  it("extracts quantity arguments separately from bound and local datatype dependencies", () => {
+    const source =
+      "type List<-q: Quant, A: Data> is Data:\n  NoItems{}\n  MoreItems{head: A, tail: List<q,A>}\ntype Value is Data:\n  Value{}\ntype Bound<T: Data> is Data:\n  Bound{items: List<&2,T>}\ntype Local is Data:\n  Local{items: List<&2,List<&2,Value>>}"
+    expect(analyze(source).every((unit) => unit.status === "ready")).toBe(true)
+    const graph = inspectGraphFile("model.bend", source)
+    expect(graph?.declarations.get("Bound")?.references).toEqual([{ kind: "named", name: "List" }])
+    expect(graph?.declarations.get("Local")?.references).toEqual([
+      { kind: "named", name: "List" },
+      { kind: "named", name: "Value" }
+    ])
+    expect(graph?.declarations.get("List")?.references).toEqual([{ kind: "named", name: "List" }])
+  })
+
+  it.each([
+    "type Root<-q: Quant, A: Data> is Type:\n  Root{q: Quant, value: Box<q,A>}",
+    "type Root<-q: Quant> is Type:\n  Root{value: q}",
+    "type Root<A: Data> is Data:\n  Root{value: Box<&3,A>}",
+    "type Root<A: Data> is Data:\n  Root{value: Box<&2 <&> &1,A>}",
+    "type Root<A: Data> is Data:\n  Root{value: Box<(&2),A>}",
+    "type Root<A: Data, A: Type> is Type:\n  Root{}",
+    "type Root<q: Quant, q: Data> is Data:\n  Root{}"
+  ])("keeps unsupported or shadowed quantity forms omitted: %s", (source) => {
+    const extracted = extractBendDeclarations(source, 64)
+    if (!("declarations" in extracted)) throw new Error(extracted.reason)
+    expect(extracted.declarations.at(-1)?.references).toContainEqual({ kind: "unsupported", name: "Root" })
+    expect(analyze(source).at(-1)?.status).toBe("unsupported")
+  })
+
+  it.each(["&0", "&1", "&2"])("does not turn literal quantity %s into a datatype dependency", (quantity) => {
+    const source = `type List<-q: Quant, A: Data> is Data:\n  Items{value: A}\ntype Value is Data:\n  Value{}\ntype Root is Data:\n  Root{items: List<${quantity},Value>}`
+    expect(analyze(source).every((unit) => unit.status === "ready")).toBe(true)
+  })
+
+  it("preserves the datatype application depth refusal with quantity arguments", () => {
+    const nested = "List<&2,".repeat(34) + "A" + ">".repeat(34)
+    const extracted = extractBendDeclarations(`type Root<A: Data> is Data:\n  Root{items: ${nested}}`, 64)
+    if (!("declarations" in extracted)) throw new Error(extracted.reason)
+    expect(extracted.declarations[0]?.references).toContainEqual({ kind: "unsupported", name: "Root" })
+  })
+
+  it("includes actual bundled Base List evidence without making the library an edited root", () => {
+    const source =
+      "import Base\ntype Requirement<S: Data> is Data:\n  Requirement{subject: S}\ntype Provision<S: Data> is Data:\n  Provision{requirements: List<&2,Requirement<S>>}"
+    const outcomes = analyze(source)
+    expect(outcomes.map((outcome) => outcome.unit.root.artifact.name)).toEqual(["Requirement", "Provision"])
+    expect(outcomes.every((outcome) => outcome.status === "ready")).toBe(true)
+    const provision = outcomes[1]?.unit.root
+    const list = provision?.references.find((reference) => reference.site.symbol === "List")
+    expect(list).toMatchObject({
+      kind: "expanded",
+      node: {
+        artifact: {
+          name: "List",
+          source: "type List<a, -A: Kind(a)> is Kind(a):\n  Nil{}\n  Con{head: A, tail: List<a, A>}",
+          origin: { kind: "bundled", library: "bend/Base" }
+        },
+        references: [{ kind: "included", site: { symbol: "List" } }]
+      }
+    })
+    expect(combinedAnalyzerMaterializationPreflight("model.bend", source)?.declarations).toBe(2)
+  })
+
   it("supports erased type parameters and nested local datatype arguments", () => {
     expect(
       analyze(
@@ -131,7 +200,7 @@ describe("bounded Bend datatype extraction", () => {
     "import hub/other.bend as M\ntype Root is Data:\n  Root{}",
     "import Base as B\ntype Root is Data:\n  Root{}",
     "type Root is Kind(a):\n  Root{}",
-    "type Root<a, -A: Kind(a)> is Data:\n  Root{value: A}",
+    "type Root<a, -A: Kind(q)> is Data:\n  Root{value: A}",
     "type Root<-n: Nat> is Data:\n  Root{}",
     "type Root is Data:\n  Root{value: Word(32n)}",
     "type Root is Data:\n  Root{value: M.Remote}",
