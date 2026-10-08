@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import { readFileSync } from "node:fs"
 import { basename } from "node:path"
-import { preparePackageArchive } from "./artifact-store.mjs"
+import { prepareReleaseArchive } from "./release-archive.mjs"
 import { validateReleaseCoordinates } from "./release-coordinates.mjs"
 
 if (process.argv.length > 2)
@@ -62,14 +62,7 @@ checked("mise", ["exec", manifest.packageManager, "--", "bun", "install", "--fro
   env: { ...process.env, CI: "true" }
 })
 if (!clean()) throw new Error("frozen dependency installation changed tracked or untracked files")
-const artifact = await preparePackageArchive({
-  root: process.cwd(),
-  recipe: "release",
-  runStage: async ({ command, args, env }) => {
-    checked(command, args, { stdio: "inherit", env })
-    return { exitCode: 0 }
-  }
-})
+const artifact = await prepareReleaseArchive({ root: process.cwd() })
 if (!clean()) throw new Error("release build changed tracked or untracked files")
 const archive = artifact.archivePath
 if (basename(archive) !== releasePin.archiveFilename)

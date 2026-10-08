@@ -71,6 +71,12 @@ host OS with Bun 1.3.14 through mise and scripts disabled. This repairs a
 compiler package, before starting the build. The frozen install leaves the
 lockfile unchanged.
 
+Archive preparation has a shared twenty-minute deadline for the build, native
+validation, source inventories and packing. Compilation retains its five-minute
+deadline; standalone assembly has eleven minutes for ten producers at concurrency
+two, with each producer still limited to two minutes. On interruption or timeout, the release
+runner stops the build process group before releasing its checkout build lease.
+
 The release script prints the npm account name, archive path, and checksums.
 It does not print Jev credentials. npm may ask for an OTP or web login during
 publication. Save the successful terminal output with the release record,

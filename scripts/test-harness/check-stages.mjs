@@ -91,6 +91,7 @@ export const precheckStages = [
     "scripts/generate-turbo-config.test.mjs",
     "scripts/release-assets.test.mjs",
     "scripts/audit-release-tarball.test.mjs",
+    "scripts/release-archive.test.mjs",
     "scripts/native-artifact.test.mjs",
     "scripts/host-module-imports.test.mjs",
     "scripts/external-loader-profile.test.mjs",
