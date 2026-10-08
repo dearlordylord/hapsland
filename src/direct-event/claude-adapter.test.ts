@@ -282,3 +282,55 @@ describe("Claude Code 2.1.218 direct adapter", () => {
     ).toBeUndefined()
   })
 })
+
+it("observes an excluded Claude candidate without reading its source", async () => {
+  const root = await makeGitFixture()
+  const path = join(root, "private.mjs")
+  await writeFile(path, "PRIVATE_EXCLUDED_CLAUDE_SOURCE\n")
+  const observed: Array<import("@hapsland/native-observation/direct-event/observation").NativeEditMetadata> = []
+  let reads = 0
+  expect(
+    await Effect.runPromise(
+      adaptClaudeDirectEvent(base(root, path), {
+        observeNative: (metadata) => observed.push(metadata),
+        captureHooks: {
+          sourceRead: () => {
+            reads += 1
+          }
+        }
+      })
+    )
+  ).toBeUndefined()
+  expect(reads).toBe(0)
+  expect(observed[0]?.candidates).toEqual([
+    {
+      position: 0,
+      operation: "update",
+      path: "private.mjs",
+      selection: {
+        status: "excluded",
+        diagnostic: { stage: "selection", code: "file-extension", args: { extension: ".mjs" } }
+      }
+    }
+  ])
+  expect(JSON.stringify(observed)).not.toContain("PRIVATE_EXCLUDED_CLAUDE_SOURCE")
+})
+
+it("records a source-free panic only when stable capture unexpectedly defects", async () => {
+  const root = await makeGitFixture()
+  const path = join(root, "types.ts")
+  await writeFile(path, "export interface Item { value: number }\n")
+  const observed: Array<import("@hapsland/native-observation/direct-event/observation").NativeEditMetadata> = []
+  expect(
+    await Effect.runPromise(
+      adaptClaudeDirectEvent(base(root, path), {
+        observeNative: (metadata) => observed.push(metadata),
+        captureHooks: { betweenReads: () => Effect.die("PRIVATE_CAPTURE_ERROR") }
+      })
+    )
+  ).toBeUndefined()
+  expect(observed.map((metadata) => metadata.diagnostic).filter(Boolean)).toEqual([
+    { stage: "capture", code: "panic", args: { boundary: "stable-capture" } }
+  ])
+  expect(JSON.stringify(observed)).not.toContain("PRIVATE_CAPTURE_ERROR")
+})

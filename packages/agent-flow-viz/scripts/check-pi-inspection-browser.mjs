@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { revealInspection } from "./inspection-browser-controls.mjs"
+import { revealInspection } from "@hapsland/build-tooling/test-harness/inspection-browser-controls"
 import { existsSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs"
 import { unlink } from "node:fs/promises"
 import { tmpdir } from "node:os"

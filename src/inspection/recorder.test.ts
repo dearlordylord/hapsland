@@ -11,7 +11,12 @@ const scope = {
   subagentId: null
 }
 const source = { endpoint: "/private/resident.sock", lifetime: "lifetime" }
-const edit = { kind: "edit-received" as const, candidates: [{ operation: "update" as const, path: "a.ts" }] }
+const edit = {
+  kind: "edit-received" as const,
+  candidates: [
+    { position: 0, selection: { status: "not-evaluated" as const }, operation: "update" as const, path: "a.ts" }
+  ]
+}
 
 describe("optional inspection recording", () => {
   it.each([{ items: 0 }, { items: 1000000 }, { bytes: 0 }, { bytes: Number.NaN }])(
@@ -123,7 +128,12 @@ describe("optional inspection recording", () => {
           })
           recorder.observeRecording(scope.root, true)
           expect(recorder.offer(scope, { receiptId: "failure" }, edit)).toBe("queued")
-          const candidate = { operation: "update" as const, path: "original-日本語.ts" }
+          const candidate = {
+            position: 0,
+            selection: { status: "not-evaluated" as const },
+            operation: "update" as const,
+            path: "original-日本語.ts"
+          }
           expect(
             recorder.offer(scope, { receiptId: "immutable" }, { kind: "edit-received", candidates: [candidate] })
           ).toBe("queued")
@@ -134,7 +144,14 @@ describe("optional inspection recording", () => {
           const captured = saved.find((record) => record.correlation.receiptId === "immutable")
           expect(captured?.fact).toEqual({
             kind: "edit-received",
-            candidates: [{ operation: "update", path: "original-日本語.ts" }]
+            candidates: [
+              {
+                position: 0,
+                selection: { status: "not-evaluated" as const },
+                operation: "update",
+                path: "original-日本語.ts"
+              }
+            ]
           })
           expect(saved.some((record) => record.correlation.receiptId === "failure")).toBe(false)
         })

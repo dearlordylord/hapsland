@@ -140,6 +140,10 @@
     "./test-support/scripted-interaction": {
       "types": "./test-support/scripted-interaction.ts",
       "default": "./test-support/scripted-interaction.ts"
+    },
+    "./test-harness/inspection-browser-controls": {
+      "types": "./test-harness/inspection-browser-controls.mjs",
+      "default": "./test-harness/inspection-browser-controls.mjs"
     }
   }
 }

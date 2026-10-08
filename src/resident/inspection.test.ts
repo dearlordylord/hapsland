@@ -14,6 +14,7 @@ import { makeInspectionStorage } from "@hapsland/inspection-records/inspection/s
 import * as inspectionStorage from "@hapsland/inspection-records/inspection/storage"
 import { nativeDeferred } from "@hapsland/build-tooling/test-support/native-deferred"
 import type { ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
+import type { InspectionRecord } from "@hapsland/inspection-records/inspection/contract"
 
 describe("resident inspection capture", () => {
   it("reuses the production journal writer across edits instead of rereading every payload", async () => {
@@ -352,6 +353,60 @@ describe("resident inspection capture", () => {
     ])
   })
 
+  it("keeps a capture refusal linked to its original candidate without a model request", async () => {
+    const root = await makeGitFixture()
+    await put(root, "excluded.js", "const count = 1;\n")
+    await put(root, "selected.ts", "type Count = number;\n")
+    await writeFile(
+      join(root, ".hapsland.jsonc"),
+      JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+    )
+    const stored = nativeDeferred<void>()
+    const records: InspectionRecord[] = []
+    const diagnostic = { stage: "capture", code: "capture-unavailable", args: { reason: "missing" } } as const
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+      captureSource: () => Effect.succeed({ status: "unavailable" as const, diagnostic }),
+      inspectionPersistence: {
+        write: (record) =>
+          Effect.sync(() => {
+            records.push(record)
+            if (record.fact.kind === "diagnostic") stored.resolve()
+          })
+      }
+    })
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["excluded.js", "selected.ts"])))
+    if (!observation) throw new Error("missing observation")
+    expect(
+      (
+        await Effect.runPromise(
+          server.admit(observation, {
+            statePath: join(root, "consent"),
+            userConfigPath: join(root, "absent-user"),
+            credential: null,
+            controlled: { answers: {} }
+          })
+        )
+      ).status
+    ).toBe("accepted")
+    await Effect.runPromise(server.whenIdle())
+    await stored.promise
+    const receipt = records.find((record) => record.fact.kind === "edit-received")!
+    expect(receipt.fact).toMatchObject({
+      candidates: [
+        { path: "excluded.js", position: 0, selection: { status: "not-evaluated" } },
+        { path: "selected.ts", position: 1, selection: { status: "not-evaluated" } }
+      ]
+    })
+    const refusals = records.filter((record) => record.fact.kind === "diagnostic")
+    expect(refusals.map((record) => record.fact)).toEqual([
+      { kind: "diagnostic", path: "selected.ts", candidatePosition: 1, diagnostic }
+    ])
+    expect(refusals[0]!.correlation.receiptId).toBe(receipt.correlation.receiptId)
+    expect(records.filter((record) => record.fact.kind === "transport-invoked")).toHaveLength(0)
+    expect(records.filter((record) => record.fact.kind === "model-input")).toHaveLength(0)
+    expect(records.filter((record) => record.fact.kind === "evaluation-outcome")).toHaveLength(0)
+  })
+
   it("links a cached clear review to its captured original without inventing a second request", async () => {
     const root = await makeGitFixture()
     await put(root, "type.ts", "type OrderCount = number\n")
@@ -452,7 +507,12 @@ describe("resident inspection capture", () => {
     expect(records.map((record) => record.fact)).toEqual([
       { kind: "recording-state", state: "enabled" },
       { kind: "source-registration" },
-      { kind: "edit-received", candidates: [{ operation: "add", path: "type.ts" }] },
+      {
+        kind: "edit-received",
+        candidates: [
+          { position: 0, selection: { status: "not-evaluated" as const }, operation: "add", path: "type.ts" }
+        ]
+      },
       { kind: "edit-admission", outcome: "obsolete-lifetime" }
     ])
     expect(await Effect.runPromise(server.stats())).toMatchObject({ pendingAdvice: 0 })
@@ -572,7 +632,10 @@ describe("resident inspection capture", () => {
     const received = records.find((record) => record.fact.kind === "edit-received")!
     expect(received.source.lifetime).toBe(server.lifetime)
     expect(received.scope.runtime).toBe("codex-cli")
-    expect(received.fact).toEqual({ kind: "edit-received", candidates: [{ operation: "add", path: "type.ts" }] })
+    expect(received.fact).toEqual({
+      kind: "edit-received",
+      candidates: [{ position: 0, selection: { status: "not-evaluated" as const }, operation: "add", path: "type.ts" }]
+    })
     expect(JSON.stringify(received)).not.toContain("OrderCount")
     expect(records.find((record) => record.fact.kind === "edit-admission")?.correlation).toEqual(received.correlation)
     await Effect.runPromise(server.whenIdle())

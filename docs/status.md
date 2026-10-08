@@ -97,11 +97,12 @@ For actual feedback, inspect the agent runtime's session transcript. Status
 intentionally does not retain advice text. Submission records cannot prove
 that the agent read, acknowledged, or applied a finding.
 
-Virtual-round inspection associates receipts with an opaque round ID and pinned
-physical working root. The Skipped file view distinguishes `skipped-other-root`
-from preparation omissions and backend failures. Skipped target paths are metadata;
-other-root source is not captured. Recording consent and source-bearing history
-follow the pinned source root when the caller changes cwd. This is the bounded
+Virtual-round inspection associates admitted work with an opaque round ID and
+pinned physical working root. Native receipts remain under each positively
+discovered edited root, including `skipped-other-root` outcomes. Each root's
+recording consent applies independently; a routing skip does not fabricate a
+receipt under the pinned root. Skipped target paths are metadata and other-root
+source is not captured. This preserves the bounded
 [#246 contract](advicing-target-contract.md#advicee-identity-and-admission);
 [complete multi-root review remains research #247](https://github.com/dearlordylord/hapsland/issues/247).
 
@@ -176,8 +177,22 @@ residents. Unreachable residents have unknown recording state. Configuration
 changes apply on the next edit; enabled capture does not guarantee that every
 event was retained.
 
-Filters are always visible. Edits without captured classifier calls are hidden by
-default, with a count in each hidden span. Clear filters restores that default.
+Filters are always visible. The default list shows edits with directly correlated,
+retained transport-invocation facts, including failed attempts and attempts whose
+payload bytes are unavailable. Model input alone does not establish a request
+attempt. The existing filter reveals excluded, reused and other observations
+without retained request evidence, with a count in each hidden span. Missing
+retained evidence does not establish that no request occurred. Clear filters
+restores that default.
+Valid native candidates within the supported event bounds retain their original
+position, operation and root-local path, plus any supplied move destination.
+Known selection exclusions are recorded before source capture, with closed codes
+and typed arguments. Unsupported `.mjs` candidates therefore remain visible in
+the show-all view without capturing their source or invoking a classifier.
+Unavailable policy or capture remains distinct from a known exclusion. Recording
+is bounded and best effort; malformed events and undiscovered roots can remain
+unobserved, and absent admission evidence remains unknown.
+
 Finding counts distinguish returned findings from a completed clear review;
 pending or failed reviews are not presented as zero findings. Debug contains
 finding status changes labelled with their rule and declaration, plus raw events.

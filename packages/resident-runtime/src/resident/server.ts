@@ -1,3 +1,9 @@
+import {
+  type NativeEditMetadata,
+  isCodexHostVersion,
+  type DirectObservation,
+  type DirectAdvicee
+} from "@hapsland/native-observation/direct-event/observation"
 import { providerEnvironmentOnly } from "@hapsland/runtime-environment/runtime/backend"
 import { InspectionTransportObservation } from "@hapsland/inspection-records/inspection/transport"
 import {
@@ -46,6 +52,7 @@ import * as Config from "effect/Config"
 import * as Option from "effect/Option"
 import * as ConfigProvider from "effect/ConfigProvider"
 import * as Effect from "effect/Effect"
+import * as Cause from "effect/Cause"
 import * as Deferred from "effect/Deferred"
 import * as Semaphore from "effect/Semaphore"
 import { discoverPhysicalWorkingTreeRoot } from "@hapsland/native-observation/repository/root"
@@ -65,13 +72,9 @@ import { join, resolve } from "node:path"
 import {
   canonicalValue,
   type PreparedUnit,
-  type MaterializationAdmission
+  type MaterializationAdmission,
+  type PreparationDiagnostic
 } from "@hapsland/review-definition/direct-event/model"
-import {
-  isCodexHostVersion,
-  type DirectObservation,
-  type DirectAdvicee
-} from "@hapsland/native-observation/direct-event/observation"
 import {
   evaluatePrepared,
   encodedPreparedProviderInputBytes,
@@ -84,7 +87,7 @@ import {
   type RevalidationResult
 } from "@hapsland/review-execution/direct-event/pipeline"
 import { verifyObservationRoot } from "@hapsland/native-observation/direct-event/adapter"
-import { captureStable } from "@hapsland/native-observation/direct-event/capture"
+import { captureStable, type CaptureDiagnostic } from "@hapsland/native-observation/direct-event/capture"
 import {
   eligibleNamedPath,
   resolvedDirectFilePolicy,
@@ -285,7 +288,11 @@ type EditCollectionRequest = {
 type HandoffRequest = ResidentRequest | EditCollectionRequest
 type ResponseContext = { readonly authority?: ResponseAuthority; readonly token?: string }
 
-type InspectionReceipt = { readonly scope: InspectionScope; readonly correlation: InspectionCorrelation }
+type InspectionReceipt = {
+  readonly scope: InspectionScope
+  readonly correlation: InspectionCorrelation
+  readonly candidates: ReadonlyArray<{ readonly path: string; readonly position: number }>
+}
 
 type UnitJob = {
   readonly inspectionEvaluationId?: string
@@ -707,7 +714,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       captureInspectionFate(findings, fate, reason, advice.id)
     )
   }
-  const refreshInspectionConsent = (root: string, dispatch: ResidentDispatchContext): void => {
+  const refreshInspectionConsent = (root: string, dispatch: Pick<ResidentDispatchContext, "userConfigPath">): void => {
     const settings = readInspectionSettings(root, dispatch.userConfigPath ?? undefined)
     if (settings && (inspectionLimits.has(root) || inspectionLimits.size < 128)) inspectionLimits.set(root, settings)
     inspection.observeRecording(root, inspectionLimits.has(root) ? settings?.enabled : undefined)
@@ -724,30 +731,80 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         inspectionRegistrations.set(scope.root, { epoch, at: registrationTime })
     }
   }
-  const inspectionReceive = (observation: DirectObservation, dispatch: ResidentDispatchContext) => {
-    refreshInspectionConsent(observation.root, dispatch)
+  const inspectionReceiveMetadata = (
+    metadata: NativeEditMetadata,
+    dispatch: Pick<ResidentDispatchContext, "userConfigPath">
+  ): InspectionReceipt => {
+    refreshInspectionConsent(metadata.root, dispatch)
     const scope = {
-      root: observation.root,
-      runtime: observation.advicee.host,
-      runtimeVersion: observation.advicee.hostVersion,
-      sessionId: observation.advicee.sessionId,
-      subagentId: observation.advicee.subagentId
+      root: metadata.root,
+      runtime: metadata.advicee.host,
+      runtimeVersion: metadata.advicee.hostVersion,
+      sessionId: metadata.advicee.sessionId,
+      subagentId: metadata.advicee.subagentId
     }
     const correlation = { receiptId: randomUUID() }
     registerInspectionSource(scope)
-    inspection.offer(scope, correlation, {
-      kind: "edit-received",
-      candidates: observation.candidates.map(({ operation, path }) => ({ operation, path }))
-    })
-    return { scope, correlation }
+    inspection.offer(scope, correlation, { kind: "edit-received", candidates: metadata.candidates })
+    if (metadata.admission !== undefined)
+      inspection.offer(scope, correlation, { kind: "edit-admission", outcome: metadata.admission })
+    if (metadata.diagnostic !== undefined) {
+      const candidate =
+        metadata.diagnostic.stage === "capture" && metadata.candidates.length === 1 ? metadata.candidates[0] : undefined
+      inspection.offer(scope, correlation, {
+        kind: "diagnostic",
+        ...(candidate === undefined ? {} : { path: candidate.path, candidatePosition: candidate.position }),
+        diagnostic: metadata.diagnostic
+      })
+    }
+    return {
+      scope,
+      correlation,
+      candidates: Object.freeze(metadata.candidates.map(({ path, position }) => Object.freeze({ path, position })))
+    }
+  }
+  const inspectionIngress = (observation: DirectObservation, dispatch: ResidentDispatchContext) => {
+    const metadata =
+      observation.nativeMetadata ??
+      (observation.candidateRoots === undefined
+        ? [
+            {
+              ...observation,
+              candidates: observation.candidates.map(({ operation, path, ...candidate }, position) => ({
+                operation,
+                path,
+                ...("moveTo" in candidate && candidate.moveTo !== undefined ? { moveTo: candidate.moveTo } : {}),
+                position,
+                selection: { status: "not-evaluated" as const }
+              }))
+            }
+          ]
+        : [...new Set(observation.candidateRoots.flatMap((target) => (target === null ? [] : [target.root])))].map(
+            (root) => {
+              const { indices } = candidatesForSourceRoot(observation, root)
+              const target = observation.candidateRoots!.find((target) => target?.root === root)!
+              const local = observationForTargetRoot(observation, root, target.rootIdentity, indices)
+              return {
+                ...local,
+                candidates: local.candidates.map(({ operation, path, ...candidate }, index) => ({
+                  operation,
+                  path,
+                  ...("moveTo" in candidate && candidate.moveTo !== undefined ? { moveTo: candidate.moveTo } : {}),
+                  position: indices[index]!,
+                  selection: { status: "not-evaluated" as const }
+                }))
+              }
+            }
+          ))
+    return new Map(metadata.map((projection) => [projection.root, inspectionReceiveMetadata(projection, dispatch)]))
   }
   const inspectionRefuse = (
     observation: DirectObservation,
     dispatch: ResidentDispatchContext,
     outcome: "unsupported" | "obsolete-lifetime"
   ) => {
-    const receipt = inspectionReceive(observation, dispatch)
-    inspection.offer(receipt.scope, receipt.correlation, { kind: "edit-admission", outcome })
+    for (const receipt of inspectionIngress(observation, dispatch).values())
+      inspection.offer(receipt.scope, receipt.correlation, { kind: "edit-admission", outcome })
   }
   const residentJoined = residentLedger.joinedReviews(logicalBytes)
   const residentRuntimeScope = yield* Scope.Scope
@@ -1243,30 +1300,23 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   }
   const residentSkippedAdmission = Effect.fn("ResidentRuntime.skippedAdmission")(function* (
     observation: DirectObservation,
-    dispatch: ResidentDispatchContext,
+    receipts: ReadonlyMap<string, InspectionReceipt>,
     skipped: ReadonlyArray<string>
   ) {
     const active = yield* residentLedger.rounds.get(recipientPartition(observation.advicee))
     const pin = active === undefined ? undefined : yield* residentLedger.rounds.activity(active)
-    if (pin !== undefined && active !== undefined) {
-      const receipt = inspectionReceive(
-        {
-          ...observation,
-          root: pin.root,
-          candidates: observation.candidates.map((candidate) => ({
-            ...candidate,
-            path: resolve(observation.root, candidate.path)
-          }))
-        },
-        dispatch
-      )
-      inspection.offer(receipt.scope, receipt.correlation, { kind: "edit-admission", outcome: "skipped-other-root" })
+    for (const receipt of receipts.values()) {
       inspection.offer(receipt.scope, receipt.correlation, {
-        kind: "round-membership",
-        roundId: `${lifetime}:${active.canonicalRound}`,
-        pinnedRoot: pin.root,
-        skippedPaths: skipped
+        kind: "edit-admission",
+        outcome: active === undefined ? "rejected-stale" : "skipped-other-root"
       })
+      if (pin !== undefined && active !== undefined)
+        inspection.offer(receipt.scope, receipt.correlation, {
+          kind: "round-membership",
+          roundId: `${lifetime}:${active.canonicalRound}`,
+          pinnedRoot: pin.root,
+          skippedPaths: skipped
+        })
     }
     return {
       response: { status: active === undefined ? ("rejected-stale" as const) : ("skipped-other-root" as const) }
@@ -1326,22 +1376,18 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       composed = false,
       requirePermit = false
     ): Effect.fn.Return<{ readonly response: ResidentResponse; readonly settings?: ReviewSettingsSnapshot }> {
-      let remaining = observation
+      const receipts = inspectionIngress(observation, dispatch)
+      // Metadata is consumed at ingress; review jobs retain only review observations.
+      const { nativeMetadata: _nativeMetadata, ...native } = observation
+      let remaining = native
       while (true) {
         const routed = yield* residentRouteObservation(remaining, dispatch, composed, requirePermit)
         if (routed === undefined) return { response: { status: "rejected-stale" as const } }
-        if (routed.observation === undefined)
-          return yield* residentSkippedAdmission(observation, dispatch, routed.skipped)
+        if (routed.observation === undefined) return yield* residentSkippedAdmission(native, receipts, routed.skipped)
         const selected = routed.observation
-        const receipt = inspectionReceive(selected, dispatch)
+        const receipt = receipts.get(selected.root)!
         const admission = yield* residentAdmitSource(selected, dispatch, composed, requirePermit, receipt)
-        const retry = yield* residentRetryCandidates(
-          observation,
-          remaining,
-          selected,
-          admission.response.status,
-          composed
-        )
+        const retry = yield* residentRetryCandidates(native, remaining, selected, admission.response.status, composed)
         if (retry !== undefined) {
           remaining = retry
           residentRecordAdmission(receipt, admission.response.status)
@@ -1349,13 +1395,20 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         }
         yield* residentAcceptedMembership(
           selected,
-          observation,
+          native,
           receipt,
           routed.skipped,
           admission.response.status,
           composed
         )
         residentRecordAdmission(receipt, admission.response.status)
+        if (admission.response.status === "accepted")
+          for (const [root, otherReceipt] of receipts)
+            if (root !== selected.root)
+              inspection.offer(otherReceipt.scope, otherReceipt.correlation, {
+                kind: "edit-admission",
+                outcome: "skipped-other-root"
+              })
         return admission
       }
     },
@@ -2748,9 +2801,35 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       captureInspectionFate(findings, fate, reason)
     )
   }
+  const inspectionObserveDiagnostic = (
+    receipt: InspectionReceipt | undefined,
+    candidatePath: string,
+    path: string,
+    diagnostic: CaptureDiagnostic | PreparationDiagnostic
+  ): void => {
+    if (receipt === undefined) return
+    try {
+      if (!inspection.isEnabled(receipt.scope.root)) return
+      const candidates = receipt.candidates.filter((candidate) => candidate.path === candidatePath)
+      const candidatePosition = candidates.length === 1 ? candidates[0]!.position : undefined
+      inspection.offer(receipt.scope, receipt.correlation, {
+        kind: "diagnostic",
+        path,
+        ...(candidatePosition === undefined ? {} : { candidatePosition }),
+        diagnostic
+      })
+    } catch {
+      /* Optional diagnosis cannot change preparation or resource authority. */
+    }
+  }
   const preparationInspectionPorts = (
     job: IngressJob
-  ): Pick<Parameters<typeof prepareObservation>[1], "observePreparationOmission" | "captureHooks"> => ({
+  ): Pick<
+    Parameters<typeof prepareObservation>[1],
+    "observePreparationOmission" | "observeCaptureDiagnostic" | "captureHooks"
+  > => ({
+    observeCaptureDiagnostic: (candidatePath, sourcePath, diagnostic) =>
+      inspectionObserveDiagnostic(job.inspectionReceipt, candidatePath, sourcePath, diagnostic),
     observePreparationOmission: (path, declaration, reason) => {
       const receipt = job.inspectionReceipt
       if (receipt !== undefined && inspection.isEnabled(receipt.scope.root))
@@ -2782,8 +2861,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     receipt: InspectionReceipt
   ): void => {
     if (outcome.status === "incomplete") {
-      if ("diagnostic" in outcome)
-        return // Connected when the #256 persisted diagnostic foundation is integrated.
+      if ("diagnostic" in outcome) inspectionObserveDiagnostic(receipt, outcome.path, outcome.path, outcome.diagnostic)
       else
         inspection.offer(receipt.scope, receipt.correlation, {
           kind: "preparation-omission",
@@ -3185,221 +3263,33 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       // supported logical workspace is charged. Processing candidates one at
       // a time prevents a 16-path event from materializing 1,024 complete
       // inputs outside the ledger.
-      const prepareCandidate = Effect.fn("ResidentRuntime.prepareCandidate")(function* (
-        candidate: DirectObservation["candidates"][number]
-      ) {
-        if (!(yield* residentJobActive(job))) return false
-        const requestedBytes = captureWorkspaceBytes(candidate.path)
-        const preparation = yield* residentLedger.beginObservedPreparation(
-          job.partition,
-          job.canonicalObservationId,
-          requestedBytes,
-          job.canonicalRound
-        )
-        if (preparation.status !== "admitted") {
-          if (preparation.status === "capacity-refused") yield* residentLedger.runtime.rejectCapacity()
-          yield* residentRecordAnalytics(
-            job,
-            preparation.status === "capacity-refused" ? "capacity-rejected" : "preparation-failed"
+      const prepareCandidate = Effect.fn("ResidentRuntime.prepareCandidate")(
+        function* (candidate: DirectObservation["candidates"][number]) {
+          if (!(yield* residentJobActive(job))) return false
+          const requestedBytes = captureWorkspaceBytes(candidate.path)
+          const preparation = yield* residentLedger.beginObservedPreparation(
+            job.partition,
+            job.canonicalObservationId,
+            requestedBytes,
+            job.canonicalRound
           )
-          recordActivity({
-            statePath: job.dispatch.activityPath,
-            root: job.observation.root,
-            advicee: job.observation.advicee,
-            lifetime: server.lifetime,
-            stage: "unavailable"
-          })
-          return true
-        }
-        const workspace = preparation.reservation
-        activeWorkspaces.add(workspace)
-        const pathObservation: DirectObservation = { ...job.observation, candidates: [candidate] }
-        const prepared: PreparedObservation = yield* withinWork(
-          Effect.gen(function* () {
-            return yield* prepareObservation(pathObservation, {
-              controlledWriter: true,
-              advicee: pathObservation.advicee,
-              settings,
-              ...preparationInspectionPorts(job),
-              ...(residentCaptureSource === undefined ? {} : { captureSource: residentCaptureSource }),
-              beforeAnalyze: (path, sourceBytes, preflight) =>
-                Effect.gen(function* () {
-                  const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules)
-                  const resized = yield* residentLedger.resize(workspace, required)
-                  if (resized.status === "capacity-refused") {
-                    yield* residentLedger.runtime.rejectCapacity()
-                    yield* residentRecordAnalytics(job, "capacity-rejected")
+          if (preparation.status !== "admitted") {
+            const diagnostic: PreparationDiagnostic =
+              preparation.status === "capacity-refused"
+                ? {
+                    stage: "preparation",
+                    code: "preparation-resource-refused",
+                    args: { phase: "capture-workspace", requestedBytes }
                   }
-                  return resizePreparationAdmission(resized, required)
-                })
-            })
-          }),
-          preparationSignal
-        ).pipe(Effect.onError(() => residentLedger.release(workspace)))
-        inspectionObservePreparation(job, prepared)
-        if (!(yield* residentJobActive(job))) {
-          yield* residentLedger.release(workspace)
-          return false
-        }
-        const admitPreparedOutcomes = Effect.fn("ResidentRuntime.admitPreparedOutcomes")(function* () {
-          const ready: Extract<(typeof prepared.outcomes)[number], { status: "ready" }>[] = []
-          for (const outcome of prepared.outcomes) {
-            const offer = yield* residentLedger.preparedOffer(outcome.status === "ready", true)
-            if (offer === "preparedAdmitted" && outcome.status === "ready") ready.push(outcome)
-          }
-          if (ready.length === 0) {
+                : preparation.status === "unavailable"
+                  ? { stage: "preparation", code: "preparation-unavailable", args: { reason: preparation.reason } }
+                  : { stage: "preparation", code: "panic", args: { boundary: "review-preparation" } }
+            inspectionObserveDiagnostic(job.inspectionReceipt, candidate.path, candidate.path, diagnostic)
+            if (preparation.status === "capacity-refused") yield* residentLedger.runtime.rejectCapacity()
             yield* residentRecordAnalytics(
               job,
-              prepared.observation.status === "incomplete" ? "incomplete-candidate" : "skipped-candidate"
+              preparation.status === "capacity-refused" ? "capacity-rejected" : "preparation-failed"
             )
-            recordActivity({
-              statePath: job.dispatch.activityPath,
-              root: job.observation.root,
-              advicee: job.observation.advicee,
-              lifetime: server.lifetime,
-              stage: prepared.observation.status === "incomplete" ? "incomplete" : "skipped"
-            })
-          }
-          return ready
-        })
-        const ready = yield* admitPreparedOutcomes()
-        yield* residentLedger.runtime.observePreparedUnits(ready.length)
-        const filterDeliverableOutcomes = Effect.fn("ResidentRuntime.filterDeliverableOutcomes")(function* () {
-          let rejectedDeliverable = false
-          const deliverable: typeof ready = []
-          for (const outcome of ready) {
-            const accepted =
-              (yield* residentLedger.preparedOffer(
-                true,
-                residentUnitWorstOutcomeBytes(outcome.prepared) <= MAX_IPC_FRAME_BYTES - 1024
-              )) === "preparedAdmitted"
-            if (!accepted) {
-              yield* residentLedger.runtime.rejectCapacity()
-              yield* residentRecordAnalytics(job, "capacity-rejected")
-              rejectedDeliverable = true
-            }
-            if (accepted) deliverable.push(outcome)
-          }
-          return { rejectedDeliverable, deliverable }
-        })
-        const { rejectedDeliverable, deliverable } = yield* filterDeliverableOutcomes()
-        const preparationGenerationPartition = () => {
-          const generationPartition = evaluationSourcePartition(
-            job.observation,
-            job.work?.id ?? "standalone",
-            job.dispatch.credential?.generation ?? "controlled",
-            job.settings.configuration.policy.digest
-          )
-          return generationPartition
-        }
-        const planned = yield* Effect.forEach(
-          deliverable,
-          Effect.fn("ResidentRuntime.planPreparedUnit")(function* (outcome) {
-            const generationPartition = preparationGenerationPartition()
-            const evaluationKey = residentReuse.key(generationPartition, outcome.prepared)
-            const liveAdvice = (yield* residentAdvice()).some((advice) => advice.evaluationKey === evaluationKey)
-            switch (yield* residentReuse.route(evaluationKey, liveAdvice)) {
-              case "joinedAdvice":
-                return { kind: "joined" as const, join: "advice" as const, outcome, evaluationKey }
-              case "joinedClaimed":
-                return { kind: "joined" as const, join: "claimed" as const, outcome, evaluationKey }
-              case "joinedPending": {
-                const pending = yield* residentReuse.pending(evaluationKey)
-                if (pending === undefined) throw new Error("canonical reuse route lacks pending evaluation")
-                pending.revision = yield* residentRestoreCurrentWork(
-                  sourcePartition(job.observation.root, job.observation.advicee),
-                  outcome.prepared
-                )
-                return { kind: "joined" as const, join: "pending" as const, outcome, evaluationKey }
-              }
-              case "cached":
-                return {
-                  kind: "cached" as const,
-                  outcome,
-                  evaluationKey,
-                  cached: yield* residentReuse.cached(evaluationKey)
-                }
-              case "owner":
-                unassignedClaims.add(evaluationKey)
-                return { kind: "owner" as const, outcome, evaluationKey }
-            }
-          })
-        )
-        const inspectionEvaluationRouteFact = (
-          item: (typeof planned)[number],
-          evaluationId: string | undefined
-        ): Parameters<typeof inspection.offer>[2] => ({
-          kind: "evaluation-route",
-          route:
-            item.kind === "owner"
-              ? "fresh"
-              : item.kind === "cached"
-                ? "cached"
-                : item.join === "advice"
-                  ? "existing-advice"
-                  : item.join === "pending"
-                    ? "joined-pending"
-                    : "joined-claimed",
-          semanticIdentity: item.outcome.prepared.identity,
-          path: item.outcome.path,
-          declaration: item.outcome.prepared.input.declaration.name,
-          original:
-            evaluationId === undefined
-              ? { status: "missing", reason: "not-captured" }
-              : { status: "linked", evaluationId }
-        })
-        const observePlannedEvaluation = (item: (typeof planned)[number]): void => {
-          const receipt = job.inspectionReceipt
-          if (item.kind === "owner") inspectionOrigins.delete(item.evaluationKey)
-          if (receipt === undefined || !inspection.isEnabled(receipt.scope.root)) return
-          if (item.kind === "owner") registerInspectionOrigin(item.evaluationKey)
-          const evaluationId = inspectionOrigins.get(item.evaluationKey)
-          inspection.offer(
-            receipt.scope,
-            { ...receipt.correlation, ...(evaluationId === undefined ? {} : { evaluationId }) },
-            inspectionEvaluationRouteFact(item, evaluationId)
-          )
-        }
-        for (const item of planned) observePlannedEvaluation(item)
-        const recordReuseAnalytics = Effect.fn("ResidentRuntime.recordReuseAnalytics")(function* () {
-          for (const item of planned) {
-            if (item.kind === "cached")
-              yield* residentRecordAnalytics(job, "cache-hit", item.cached.evaluation.findings)
-            else if (item.kind === "joined") yield* residentRecordAnalytics(job, "joined-review")
-          }
-        })
-        yield* recordReuseAnalytics()
-        const observeOwnerBoundary = Effect.fn("ResidentRuntime.observeOwnerBoundary")(function* () {
-          if (planned.some((item) => item.kind === "owner")) {
-            yield* withinWork(
-              residentPreparationControls
-                .afterReuseBoundary("ownerClaimed")
-                .pipe(Effect.mapError(() => new ResidentAdapterError({ operation: "owner claim barrier" }))),
-              preparationSignal
-            )
-          }
-        })
-        yield* observeOwnerBoundary()
-        if (!(yield* residentJobActive(job))) {
-          yield* residentLedger.release(workspace)
-          return false
-        }
-        const retained = planned.filter(
-          (item) => item.kind === "owner" || (item.kind === "cached" && item.cached.evaluation.findings.length > 0)
-        )
-        const reservations = yield* residentLedger.completePreparation(
-          job.partition,
-          preparation.operation,
-          workspace,
-          retained.map((item) => residentUnitReservationBytes(pathObservation, job.dispatch, item.outcome.prepared)),
-          job.canonicalRound
-        )
-        activeWorkspaces.delete(workspace)
-        // Workspace has been released and all accepted unit reservations are
-        // fixed, so best-effort notice retention cannot displace fresh work.
-        const recordRejectedDeliverable = Effect.fn("ResidentRuntime.recordRejectedDeliverable")(function* () {
-          if (rejectedDeliverable) {
-            yield* residentRecordOperationalFailure(job.observation, "capacity")
             recordActivity({
               statePath: job.dispatch.activityPath,
               root: job.observation.root,
@@ -3407,115 +3297,196 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               lifetime: server.lifetime,
               stage: "unavailable"
             })
+            return true
           }
-        })
-        yield* recordRejectedDeliverable()
-        const recordReuseObservation = Effect.fn("ResidentRuntime.recordReuseObservation")(function* (
-          item: (typeof planned)[number]
-        ) {
-          if (item.kind === "cached" && item.cached.evaluation.findings.length === 0) {
-            const revision = yield* residentRegisterCurrentWork(
-              sourcePartition(job.observation.root, job.observation.advicee),
-              item.outcome.prepared
-            )
-
-            yield* residentReleaseCurrentWork(revision)
-            expectedActivityUnits.push(item.evaluationKey)
-            recordActivity({
-              statePath: job.dispatch.activityPath,
-              root: job.observation.root,
-              advicee: job.observation.advicee,
-              lifetime: server.lifetime,
-              stage: "clear",
-              unitIdentity: item.evaluationKey
-            })
-          } else if (item.kind === "joined") {
-            const recordJoinedObservation = Effect.fn("ResidentRuntime.recordJoinedObservation")(function* () {
-              const existing = (yield* residentAdvice()).find((advice) => advice.evaluationKey === item.evaluationKey)
-              if (existing !== undefined) {
-                yield* residentRecordJoinedOutcomes(yield* residentLedger.advice.publish(existing), existing.id)
-                recordActivity({
-                  statePath: job.dispatch.activityPath,
-                  root: job.observation.root,
-                  advicee: job.observation.advicee,
-                  lifetime: server.lifetime,
-                  stage: "findings",
-                  findings: (yield* residentLedger.advice.current(existing)).findings.length,
-                  unitIdentity: item.evaluationKey
-                })
-              } else {
-                const pending = yield* residentReuse.pending(item.evaluationKey)
-                if (pending === undefined && item.join !== "claimed") {
-                  recordActivity({
-                    statePath: job.dispatch.activityPath,
-                    root: job.observation.root,
-                    advicee: job.observation.advicee,
-                    lifetime: server.lifetime,
-                    stage: "unavailable",
-                    unitIdentity: item.evaluationKey
+          const workspace = preparation.reservation
+          activeWorkspaces.add(workspace)
+          const pathObservation: DirectObservation = { ...job.observation, candidates: [candidate] }
+          const prepared: PreparedObservation = yield* withinWork(
+            Effect.gen(function* () {
+              return yield* prepareObservation(pathObservation, {
+                controlledWriter: true,
+                advicee: pathObservation.advicee,
+                settings,
+                ...preparationInspectionPorts(job),
+                ...(residentCaptureSource === undefined ? {} : { captureSource: residentCaptureSource }),
+                beforeAnalyze: (path, sourceBytes, preflight) =>
+                  Effect.gen(function* () {
+                    const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules)
+                    const resized = yield* residentLedger.resize(workspace, required)
+                    if (resized.status === "capacity-refused") {
+                      yield* residentLedger.runtime.rejectCapacity()
+                      yield* residentRecordAnalytics(job, "capacity-rejected")
+                    }
+                    return resizePreparationAdmission(resized, required)
                   })
-                } else {
-                  const joined: JoinedReview = {
-                    admission: job.canonicalObservationId,
-                    evaluationKey: item.evaluationKey,
-                    observation: pathObservation,
-                    activityPath: job.dispatch.activityPath,
-                    ...(pending === undefined ? {} : { revision: pending.revision })
-                  }
-                  yield* residentJoined.append(joined)
-                  expectedActivityUnits.push(item.evaluationKey)
-                }
-              }
-            })
-            yield* recordJoinedObservation()
-          }
-        })
-        for (const item of planned) yield* recordReuseObservation(item)
-        const observeJoinedBoundary = Effect.fn("ResidentRuntime.observeJoinedBoundary")(function* () {
-          if (planned.some((item) => item.kind === "joined" && item.join === "claimed")) {
-            yield* withinWork(
-              residentPreparationControls
-                .afterReuseBoundary("claimJoined")
-                .pipe(Effect.mapError(() => new ResidentAdapterError({ operation: "joined claim barrier" }))),
-              preparationSignal
-            )
-          }
-        })
-        yield* observeJoinedBoundary()
-        const retainPreparedUnit = Effect.fn("ResidentRuntime.retainPreparedUnit")(function* (
-          index: number,
-          item: (typeof retained)[number]
-        ) {
-          const releaseRemainingReservation = Effect.fn("ResidentRuntime.releaseRemainingReservation")(function* (
-            reservation: CapacityReservation | undefined
-          ) {
-            if (reservation !== undefined) yield* residentLedger.release(reservation)
-          })
-          const releaseRemainingClaim = Effect.fn("ResidentRuntime.releaseRemainingClaim")(function* (
-            item: (typeof retained)[number] | undefined
-          ) {
-            if (item?.kind === "owner") yield* residentReleaseReuseClaim(item.evaluationKey)
-          })
-          const discardRemainingPreparedUnits = Effect.fn("ResidentRuntime.discardRemainingPreparedUnits")(
-            function* () {
-              for (let remaining = index; remaining < retained.length; remaining++) {
-                const admitted = reservations[remaining]
-                yield* releaseRemainingReservation(admitted?.reservation)
-                const pending = retained[remaining]
-                yield* releaseRemainingClaim(pending)
-              }
-            }
-          )
+              })
+            }),
+            preparationSignal
+          ).pipe(Effect.onError(() => residentLedger.release(workspace)))
+          inspectionObservePreparation(job, prepared)
           if (!(yield* residentJobActive(job))) {
-            yield* discardRemainingPreparedUnits()
+            yield* residentLedger.release(workspace)
             return false
           }
-          const admitted = reservations[index]
-          const reportRetainedCapacityRefusal = Effect.fn("ResidentRuntime.reportRetainedCapacityRefusal")(
-            function* () {
-              if (item.kind === "owner") yield* residentReleaseReuseClaim(item.evaluationKey, "capacity")
-              yield* residentLedger.runtime.rejectCapacity()
-              yield* residentRecordAnalytics(job, "capacity-rejected")
+          const admitPreparedOutcomes = Effect.fn("ResidentRuntime.admitPreparedOutcomes")(function* () {
+            const ready: Extract<(typeof prepared.outcomes)[number], { status: "ready" }>[] = []
+            for (const outcome of prepared.outcomes) {
+              const offer = yield* residentLedger.preparedOffer(outcome.status === "ready", true)
+              if (offer === "preparedAdmitted" && outcome.status === "ready") ready.push(outcome)
+            }
+            if (ready.length === 0) {
+              yield* residentRecordAnalytics(
+                job,
+                prepared.observation.status === "incomplete" ? "incomplete-candidate" : "skipped-candidate"
+              )
+              recordActivity({
+                statePath: job.dispatch.activityPath,
+                root: job.observation.root,
+                advicee: job.observation.advicee,
+                lifetime: server.lifetime,
+                stage: prepared.observation.status === "incomplete" ? "incomplete" : "skipped"
+              })
+            }
+            return ready
+          })
+          const ready = yield* admitPreparedOutcomes()
+          yield* residentLedger.runtime.observePreparedUnits(ready.length)
+          const filterDeliverableOutcomes = Effect.fn("ResidentRuntime.filterDeliverableOutcomes")(function* () {
+            let rejectedDeliverable = false
+            const deliverable: typeof ready = []
+            for (const outcome of ready) {
+              const accepted =
+                (yield* residentLedger.preparedOffer(
+                  true,
+                  residentUnitWorstOutcomeBytes(outcome.prepared) <= MAX_IPC_FRAME_BYTES - 1024
+                )) === "preparedAdmitted"
+              if (!accepted) {
+                yield* residentLedger.runtime.rejectCapacity()
+                yield* residentRecordAnalytics(job, "capacity-rejected")
+                rejectedDeliverable = true
+              }
+              if (accepted) deliverable.push(outcome)
+            }
+            return { rejectedDeliverable, deliverable }
+          })
+          const { rejectedDeliverable, deliverable } = yield* filterDeliverableOutcomes()
+          const preparationGenerationPartition = () => {
+            const generationPartition = evaluationSourcePartition(
+              job.observation,
+              job.work?.id ?? "standalone",
+              job.dispatch.credential?.generation ?? "controlled",
+              job.settings.configuration.policy.digest
+            )
+            return generationPartition
+          }
+          const planned = yield* Effect.forEach(
+            deliverable,
+            Effect.fn("ResidentRuntime.planPreparedUnit")(function* (outcome) {
+              const generationPartition = preparationGenerationPartition()
+              const evaluationKey = residentReuse.key(generationPartition, outcome.prepared)
+              const liveAdvice = (yield* residentAdvice()).some((advice) => advice.evaluationKey === evaluationKey)
+              switch (yield* residentReuse.route(evaluationKey, liveAdvice)) {
+                case "joinedAdvice":
+                  return { kind: "joined" as const, join: "advice" as const, outcome, evaluationKey }
+                case "joinedClaimed":
+                  return { kind: "joined" as const, join: "claimed" as const, outcome, evaluationKey }
+                case "joinedPending": {
+                  const pending = yield* residentReuse.pending(evaluationKey)
+                  if (pending === undefined) throw new Error("canonical reuse route lacks pending evaluation")
+                  pending.revision = yield* residentRestoreCurrentWork(
+                    sourcePartition(job.observation.root, job.observation.advicee),
+                    outcome.prepared
+                  )
+                  return { kind: "joined" as const, join: "pending" as const, outcome, evaluationKey }
+                }
+                case "cached":
+                  return {
+                    kind: "cached" as const,
+                    outcome,
+                    evaluationKey,
+                    cached: yield* residentReuse.cached(evaluationKey)
+                  }
+                case "owner":
+                  unassignedClaims.add(evaluationKey)
+                  return { kind: "owner" as const, outcome, evaluationKey }
+              }
+            })
+          )
+          const inspectionEvaluationRouteFact = (
+            item: (typeof planned)[number],
+            evaluationId: string | undefined
+          ): Parameters<typeof inspection.offer>[2] => ({
+            kind: "evaluation-route",
+            route:
+              item.kind === "owner"
+                ? "fresh"
+                : item.kind === "cached"
+                  ? "cached"
+                  : item.join === "advice"
+                    ? "existing-advice"
+                    : item.join === "pending"
+                      ? "joined-pending"
+                      : "joined-claimed",
+            semanticIdentity: item.outcome.prepared.identity,
+            path: item.outcome.path,
+            declaration: item.outcome.prepared.input.declaration.name,
+            original:
+              evaluationId === undefined
+                ? { status: "missing", reason: "not-captured" }
+                : { status: "linked", evaluationId }
+          })
+          const observePlannedEvaluation = (item: (typeof planned)[number]): void => {
+            const receipt = job.inspectionReceipt
+            if (item.kind === "owner") inspectionOrigins.delete(item.evaluationKey)
+            if (receipt === undefined || !inspection.isEnabled(receipt.scope.root)) return
+            if (item.kind === "owner") registerInspectionOrigin(item.evaluationKey)
+            const evaluationId = inspectionOrigins.get(item.evaluationKey)
+            inspection.offer(
+              receipt.scope,
+              { ...receipt.correlation, ...(evaluationId === undefined ? {} : { evaluationId }) },
+              inspectionEvaluationRouteFact(item, evaluationId)
+            )
+          }
+          for (const item of planned) observePlannedEvaluation(item)
+          const recordReuseAnalytics = Effect.fn("ResidentRuntime.recordReuseAnalytics")(function* () {
+            for (const item of planned) {
+              if (item.kind === "cached")
+                yield* residentRecordAnalytics(job, "cache-hit", item.cached.evaluation.findings)
+              else if (item.kind === "joined") yield* residentRecordAnalytics(job, "joined-review")
+            }
+          })
+          yield* recordReuseAnalytics()
+          const observeOwnerBoundary = Effect.fn("ResidentRuntime.observeOwnerBoundary")(function* () {
+            if (planned.some((item) => item.kind === "owner")) {
+              yield* withinWork(
+                residentPreparationControls
+                  .afterReuseBoundary("ownerClaimed")
+                  .pipe(Effect.mapError(() => new ResidentAdapterError({ operation: "owner claim barrier" }))),
+                preparationSignal
+              )
+            }
+          })
+          yield* observeOwnerBoundary()
+          if (!(yield* residentJobActive(job))) {
+            yield* residentLedger.release(workspace)
+            return false
+          }
+          const retained = planned.filter(
+            (item) => item.kind === "owner" || (item.kind === "cached" && item.cached.evaluation.findings.length > 0)
+          )
+          const reservations = yield* residentLedger.completePreparation(
+            job.partition,
+            preparation.operation,
+            workspace,
+            retained.map((item) => residentUnitReservationBytes(pathObservation, job.dispatch, item.outcome.prepared)),
+            job.canonicalRound
+          )
+          activeWorkspaces.delete(workspace)
+          // Workspace has been released and all accepted unit reservations are
+          // fixed, so best-effort notice retention cannot displace fresh work.
+          const recordRejectedDeliverable = Effect.fn("ResidentRuntime.recordRejectedDeliverable")(function* () {
+            if (rejectedDeliverable) {
               yield* residentRecordOperationalFailure(job.observation, "capacity")
               recordActivity({
                 statePath: job.dispatch.activityPath,
@@ -3525,138 +3496,272 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                 stage: "unavailable"
               })
             }
-          )
-          if (admitted === undefined) {
-            yield* reportRetainedCapacityRefusal()
-            return true
-          }
-          const reservation = admitted.reservation
-          const revision = yield* residentRegisterCurrentWork(
-            sourcePartition(job.observation.root, job.observation.advicee),
-            item.outcome.prepared
-          )
-
-          const registerPreparedWork = Effect.fn("ResidentRuntime.registerPreparedWork")(function* () {
-            return job.round === undefined || job.workObservationId === undefined
-              ? undefined
-              : item.kind === "cached"
-                ? (yield* residentLedger.rounds.policyWork(job.round)).cachedFinding(
-                    job.workObservationId,
-                    item.cached.evaluation.findings.length,
-                    logicalBytes(item.cached.evaluation.findings),
-                    admitted.operation
-                  )
-                : (yield* residentLedger.rounds.policyWork(job.round)).spawn(job.workObservationId, admitted.operation)
           })
-          const workUnitId = yield* registerPreparedWork()
-          const releaseUnspawnedUnit = Effect.fn("ResidentRuntime.releaseUnspawnedUnit")(function* () {
-            if (item.kind === "owner") yield* residentReleaseReuseClaim(item.evaluationKey)
-            yield* residentLedger.release(reservation)
-            yield* residentReleaseCurrentWork(revision)
-          })
-          if (job.round !== undefined && workUnitId === undefined) {
-            yield* releaseUnspawnedUnit()
-            return true
-          }
-          expectedActivityUnits.push(item.evaluationKey)
-          const sourceHash = prepared.observation.outcomes.flatMap((outcome) =>
-            outcome.status === "observed" && outcome.path === item.outcome.path ? [outcome.snapshot.sourceHash] : []
-          )[0]
-          const makePreparedUnit = (): UnitJob => {
-            const inspectionEvaluationId = inspectionOrigins.get(item.evaluationKey)
-            return {
-              kind: "unit",
-              ...(inspectionEvaluationId === undefined ? {} : { inspectionEvaluationId }),
-              ...(job.inspectionReceipt === undefined ? {} : { inspectionReceipt: job.inspectionReceipt }),
-              settings: job.settings,
-              canonicalRound: job.canonicalRound,
-              ...(job.round === undefined ? {} : { round: job.round, work: job.work }),
-              ...(workUnitId === undefined ? {} : { workUnitId }),
-              admissionId: job.canonicalObservationId,
-              canonicalOperationId: admitted.operation,
-              observation: pathObservation,
-              partition: job.partition,
-              reservation,
-              dispatch: job.dispatch,
-              analyticsEnabled,
-              prepared: item.outcome.prepared,
-              ...(sourceHash === undefined ? {} : { sourceHash }),
-              revision,
-              evaluationKey: item.evaluationKey
-            }
-          }
-          const unit = makePreparedUnit()
-          inspectionObservePreparedUnit(unit)
-          if (item.kind === "cached") {
-            const settleCachedUnit = Effect.fn("ResidentRuntime.settleCachedUnit")(function* () {
-              if (
-                !(yield* residentLedger.startReview(job.partition, admitted.operation, job.canonicalRound)) ||
-                !(yield* residentLedger.completeReview(
-                  job.partition,
-                  admitted.operation,
-                  reservation,
-                  "finding",
-                  job.canonicalRound
-                ))
-              ) {
-                throw new Error("canonical cached review settlement refused")
-              }
-              recordActivity({
-                statePath: job.dispatch.activityPath,
-                root: job.observation.root,
-                advicee: job.observation.advicee,
-                lifetime: server.lifetime,
-                stage: "findings",
-                findings: item.cached.evaluation.findings.length,
-                unitIdentity: item.evaluationKey
-              })
-              yield* residentRetainAdvice(
-                unit,
-                { prepared: item.outcome.prepared, findings: item.cached.evaluation.findings },
-                sequence
-              ).pipe(
-                Effect.ensuring(
-                  Effect.gen(function* () {
-                    yield* residentRetireCachedUnit(unit, job.round, workUnitId)
-                  })
-                )
+          yield* recordRejectedDeliverable()
+          const recordReuseObservation = Effect.fn("ResidentRuntime.recordReuseObservation")(function* (
+            item: (typeof planned)[number]
+          ) {
+            if (item.kind === "cached" && item.cached.evaluation.findings.length === 0) {
+              const revision = yield* residentRegisterCurrentWork(
+                sourcePartition(job.observation.root, job.observation.advicee),
+                item.outcome.prepared
               )
-              return true
-            })
-            return yield* settleCachedUnit()
-          }
-          if (!(yield* residentJoined.attachOwner(item.evaluationKey, unit, revision))) {
-            throw new Error("canonical evaluation attachment refused")
-          }
-          unassignedClaims.delete(item.evaluationKey)
-          const enqueuePreparedUnit = Effect.fn("ResidentRuntime.enqueuePreparedUnit")(function* () {
-            if (!(yield* residentDispatcher.enqueue(job.partition, unit))) {
-              yield* residentReleaseReuseClaim(item.evaluationKey, "capacity")
-              yield* residentReleaseUnit(unit)
-              yield* residentLedger.runtime.rejectCapacity()
-              yield* residentRecordAnalytics(job, "capacity-rejected")
-              yield* residentRecordOperationalFailure(job.observation, "capacity")
+
+              yield* residentReleaseCurrentWork(revision)
+              expectedActivityUnits.push(item.evaluationKey)
               recordActivity({
                 statePath: job.dispatch.activityPath,
                 root: job.observation.root,
                 advicee: job.observation.advicee,
                 lifetime: server.lifetime,
-                stage: "unavailable",
+                stage: "clear",
                 unitIdentity: item.evaluationKey
               })
+            } else if (item.kind === "joined") {
+              const recordJoinedObservation = Effect.fn("ResidentRuntime.recordJoinedObservation")(function* () {
+                const existing = (yield* residentAdvice()).find((advice) => advice.evaluationKey === item.evaluationKey)
+                if (existing !== undefined) {
+                  yield* residentRecordJoinedOutcomes(yield* residentLedger.advice.publish(existing), existing.id)
+                  recordActivity({
+                    statePath: job.dispatch.activityPath,
+                    root: job.observation.root,
+                    advicee: job.observation.advicee,
+                    lifetime: server.lifetime,
+                    stage: "findings",
+                    findings: (yield* residentLedger.advice.current(existing)).findings.length,
+                    unitIdentity: item.evaluationKey
+                  })
+                } else {
+                  const pending = yield* residentReuse.pending(item.evaluationKey)
+                  if (pending === undefined && item.join !== "claimed") {
+                    recordActivity({
+                      statePath: job.dispatch.activityPath,
+                      root: job.observation.root,
+                      advicee: job.observation.advicee,
+                      lifetime: server.lifetime,
+                      stage: "unavailable",
+                      unitIdentity: item.evaluationKey
+                    })
+                  } else {
+                    const joined: JoinedReview = {
+                      admission: job.canonicalObservationId,
+                      evaluationKey: item.evaluationKey,
+                      observation: pathObservation,
+                      activityPath: job.dispatch.activityPath,
+                      ...(pending === undefined ? {} : { revision: pending.revision })
+                    }
+                    yield* residentJoined.append(joined)
+                    expectedActivityUnits.push(item.evaluationKey)
+                  }
+                }
+              })
+              yield* recordJoinedObservation()
             }
           })
-          yield* enqueuePreparedUnit()
-          return true
-        })
-        const retainPreparedUnits = Effect.fn("ResidentRuntime.retainPreparedUnits")(function* () {
-          for (const [index, item] of retained.entries()) {
-            if (!(yield* retainPreparedUnit(index, item))) return false
-          }
-          return true
-        })
-        return yield* retainPreparedUnits()
-      })
+          for (const item of planned) yield* recordReuseObservation(item)
+          const observeJoinedBoundary = Effect.fn("ResidentRuntime.observeJoinedBoundary")(function* () {
+            if (planned.some((item) => item.kind === "joined" && item.join === "claimed")) {
+              yield* withinWork(
+                residentPreparationControls
+                  .afterReuseBoundary("claimJoined")
+                  .pipe(Effect.mapError(() => new ResidentAdapterError({ operation: "joined claim barrier" }))),
+                preparationSignal
+              )
+            }
+          })
+          yield* observeJoinedBoundary()
+          const retainPreparedUnit = Effect.fn("ResidentRuntime.retainPreparedUnit")(function* (
+            index: number,
+            item: (typeof retained)[number]
+          ) {
+            const releaseRemainingReservation = Effect.fn("ResidentRuntime.releaseRemainingReservation")(function* (
+              reservation: CapacityReservation | undefined
+            ) {
+              if (reservation !== undefined) yield* residentLedger.release(reservation)
+            })
+            const releaseRemainingClaim = Effect.fn("ResidentRuntime.releaseRemainingClaim")(function* (
+              item: (typeof retained)[number] | undefined
+            ) {
+              if (item?.kind === "owner") yield* residentReleaseReuseClaim(item.evaluationKey)
+            })
+            const discardRemainingPreparedUnits = Effect.fn("ResidentRuntime.discardRemainingPreparedUnits")(
+              function* () {
+                for (let remaining = index; remaining < retained.length; remaining++) {
+                  const admitted = reservations[remaining]
+                  yield* releaseRemainingReservation(admitted?.reservation)
+                  const pending = retained[remaining]
+                  yield* releaseRemainingClaim(pending)
+                }
+              }
+            )
+            if (!(yield* residentJobActive(job))) {
+              yield* discardRemainingPreparedUnits()
+              return false
+            }
+            const admitted = reservations[index]
+            const reportRetainedCapacityRefusal = Effect.fn("ResidentRuntime.reportRetainedCapacityRefusal")(
+              function* () {
+                if (item.kind === "owner") yield* residentReleaseReuseClaim(item.evaluationKey, "capacity")
+                yield* residentLedger.runtime.rejectCapacity()
+                yield* residentRecordAnalytics(job, "capacity-rejected")
+                yield* residentRecordOperationalFailure(job.observation, "capacity")
+                recordActivity({
+                  statePath: job.dispatch.activityPath,
+                  root: job.observation.root,
+                  advicee: job.observation.advicee,
+                  lifetime: server.lifetime,
+                  stage: "unavailable"
+                })
+              }
+            )
+            if (admitted === undefined) {
+              yield* reportRetainedCapacityRefusal()
+              return true
+            }
+            const reservation = admitted.reservation
+            const revision = yield* residentRegisterCurrentWork(
+              sourcePartition(job.observation.root, job.observation.advicee),
+              item.outcome.prepared
+            )
+
+            const registerPreparedWork = Effect.fn("ResidentRuntime.registerPreparedWork")(function* () {
+              return job.round === undefined || job.workObservationId === undefined
+                ? undefined
+                : item.kind === "cached"
+                  ? (yield* residentLedger.rounds.policyWork(job.round)).cachedFinding(
+                      job.workObservationId,
+                      item.cached.evaluation.findings.length,
+                      logicalBytes(item.cached.evaluation.findings),
+                      admitted.operation
+                    )
+                  : (yield* residentLedger.rounds.policyWork(job.round)).spawn(
+                      job.workObservationId,
+                      admitted.operation
+                    )
+            })
+            const workUnitId = yield* registerPreparedWork()
+            const releaseUnspawnedUnit = Effect.fn("ResidentRuntime.releaseUnspawnedUnit")(function* () {
+              if (item.kind === "owner") yield* residentReleaseReuseClaim(item.evaluationKey)
+              yield* residentLedger.release(reservation)
+              yield* residentReleaseCurrentWork(revision)
+            })
+            if (job.round !== undefined && workUnitId === undefined) {
+              yield* releaseUnspawnedUnit()
+              return true
+            }
+            expectedActivityUnits.push(item.evaluationKey)
+            const sourceHash = prepared.observation.outcomes.flatMap((outcome) =>
+              outcome.status === "observed" && outcome.path === item.outcome.path ? [outcome.snapshot.sourceHash] : []
+            )[0]
+            const makePreparedUnit = (): UnitJob => {
+              const inspectionEvaluationId = inspectionOrigins.get(item.evaluationKey)
+              return {
+                kind: "unit",
+                ...(inspectionEvaluationId === undefined ? {} : { inspectionEvaluationId }),
+                ...(job.inspectionReceipt === undefined ? {} : { inspectionReceipt: job.inspectionReceipt }),
+                settings: job.settings,
+                canonicalRound: job.canonicalRound,
+                ...(job.round === undefined ? {} : { round: job.round, work: job.work }),
+                ...(workUnitId === undefined ? {} : { workUnitId }),
+                admissionId: job.canonicalObservationId,
+                canonicalOperationId: admitted.operation,
+                observation: pathObservation,
+                partition: job.partition,
+                reservation,
+                dispatch: job.dispatch,
+                analyticsEnabled,
+                prepared: item.outcome.prepared,
+                ...(sourceHash === undefined ? {} : { sourceHash }),
+                revision,
+                evaluationKey: item.evaluationKey
+              }
+            }
+            const unit = makePreparedUnit()
+            inspectionObservePreparedUnit(unit)
+            if (item.kind === "cached") {
+              const settleCachedUnit = Effect.fn("ResidentRuntime.settleCachedUnit")(function* () {
+                if (
+                  !(yield* residentLedger.startReview(job.partition, admitted.operation, job.canonicalRound)) ||
+                  !(yield* residentLedger.completeReview(
+                    job.partition,
+                    admitted.operation,
+                    reservation,
+                    "finding",
+                    job.canonicalRound
+                  ))
+                ) {
+                  throw new Error("canonical cached review settlement refused")
+                }
+                recordActivity({
+                  statePath: job.dispatch.activityPath,
+                  root: job.observation.root,
+                  advicee: job.observation.advicee,
+                  lifetime: server.lifetime,
+                  stage: "findings",
+                  findings: item.cached.evaluation.findings.length,
+                  unitIdentity: item.evaluationKey
+                })
+                yield* residentRetainAdvice(
+                  unit,
+                  { prepared: item.outcome.prepared, findings: item.cached.evaluation.findings },
+                  sequence
+                ).pipe(
+                  Effect.ensuring(
+                    Effect.gen(function* () {
+                      yield* residentRetireCachedUnit(unit, job.round, workUnitId)
+                    })
+                  )
+                )
+                return true
+              })
+              return yield* settleCachedUnit()
+            }
+            if (!(yield* residentJoined.attachOwner(item.evaluationKey, unit, revision))) {
+              throw new Error("canonical evaluation attachment refused")
+            }
+            unassignedClaims.delete(item.evaluationKey)
+            const enqueuePreparedUnit = Effect.fn("ResidentRuntime.enqueuePreparedUnit")(function* () {
+              if (!(yield* residentDispatcher.enqueue(job.partition, unit))) {
+                yield* residentReleaseReuseClaim(item.evaluationKey, "capacity")
+                yield* residentReleaseUnit(unit)
+                yield* residentLedger.runtime.rejectCapacity()
+                yield* residentRecordAnalytics(job, "capacity-rejected")
+                yield* residentRecordOperationalFailure(job.observation, "capacity")
+                recordActivity({
+                  statePath: job.dispatch.activityPath,
+                  root: job.observation.root,
+                  advicee: job.observation.advicee,
+                  lifetime: server.lifetime,
+                  stage: "unavailable",
+                  unitIdentity: item.evaluationKey
+                })
+              }
+            })
+            yield* enqueuePreparedUnit()
+            return true
+          })
+          const retainPreparedUnits = Effect.fn("ResidentRuntime.retainPreparedUnits")(function* () {
+            for (const [index, item] of retained.entries()) {
+              if (!(yield* retainPreparedUnit(index, item))) return false
+            }
+            return true
+          })
+          return yield* retainPreparedUnits()
+        },
+        (effect, candidate) =>
+          effect.pipe(
+            Effect.onError((cause) =>
+              Effect.sync(() => {
+                if (Cause.hasDies(cause) && !Cause.hasInterrupts(cause))
+                  inspectionObserveDiagnostic(job.inspectionReceipt, candidate.path, candidate.path, {
+                    stage: "preparation",
+                    code: "panic",
+                    args: { boundary: "review-preparation" }
+                  })
+              })
+            )
+          )
+      )
       for (const candidate of job.observation.candidates) {
         if (!(yield* prepareCandidate(candidate))) return
       }
@@ -5144,33 +5249,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }
     return undefined
   })
-  const residentRecordSkippedPolicy = (
-    request: Extract<ResidentRequest, { operation: "recipient-root" | "edit-policy" }>,
-    active: RoundWork | undefined,
-    pinnedRoot: string
-  ) => {
-    if (active === undefined || request.targetPaths === undefined) return
-    const scope = {
-      root: pinnedRoot,
-      runtime: request.advicee.host,
-      runtimeVersion: request.advicee.hostVersion,
-      sessionId: request.advicee.sessionId,
-      subagentId: request.advicee.subagentId
-    }
-    const roundId = `${lifetime}:${active.canonicalRound}`
-    const correlation = { receiptId: randomUUID(), roundId }
-    inspection.offer(scope, correlation, {
-      kind: "edit-received",
-      candidates: request.targetPaths.map((path) => ({ operation: "update", path }))
-    })
-    inspection.offer(scope, correlation, { kind: "edit-admission", outcome: "skipped-other-root" })
-    inspection.offer(scope, correlation, {
-      kind: "round-membership",
-      roundId,
-      pinnedRoot,
-      skippedPaths: request.targetPaths
-    })
-  }
   const residentHandleEditPolicy = Effect.fn("ResidentRuntime.handle.edit-policy")(function* (
     request: Extract<ResidentRequest, { operation: "recipient-root" | "edit-policy" }>
   ) {
@@ -5179,7 +5257,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const pin = active === undefined ? undefined : yield* residentLedger.rounds.activity(active)
     if (pin !== undefined && pin.root !== request.root) {
       yield* residentComposedDelivery.retireEdit(group, editPermitIdentity(request.root, request.advicee))
-      residentRecordSkippedPolicy(request, active, pin.root)
       return residentResponse({ status: "skipped-other-root" })
     }
     const settings = yield* residentComposedDelivery.registeredEditSettings(
@@ -5233,12 +5310,42 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (request.operation === "acknowledge") return residentResponse(yield* runtime.acknowledge(request.token))
     return residentResponse(yield* runtime.finalize(request.token))
   })
+  const residentRecordNative = Effect.fn("ResidentRuntime.recordNative")(function* (
+    request: Extract<ResidentRequest, { operation: "record-native" }>
+  ) {
+    for (const metadata of request.metadata) {
+      const discovered = yield* discoverPhysicalWorkingTreeRoot(metadata.root).pipe(Effect.option)
+      if (
+        Option.isNone(discovered) ||
+        discovered.value.root !== metadata.root ||
+        !residentRootIdentityMatches(metadata.rootIdentity, discovered.value.rootIdentity)
+      )
+        continue
+      inspectionReceiveMetadata(metadata, { userConfigPath: request.userConfigPath })
+      if (request.activityPath !== undefined)
+        recordActivity({
+          statePath: request.activityPath,
+          root: metadata.root,
+          advicee: metadata.advicee,
+          lifetime,
+          stage:
+            metadata.admission === "skipped-other-root" ||
+            metadata.candidates.every((candidate) => candidate.selection.status === "excluded")
+              ? "skipped"
+              : metadata.diagnostic?.stage === "admission"
+                ? "unavailable"
+                : "incomplete"
+        })
+    }
+    return residentResponse({ status: "empty" })
+  })
   const residentRouteAdministration = Effect.fn("ResidentRuntime.routeAdministration")(function* (
     request: ResidentRequest,
     _context: Ref.Ref<ResponseContext>
   ) {
     if (request.operation === "acknowledge" || request.operation === "finalize")
       return yield* residentTokenAdministration(request)
+    if (request.operation === "record-native") return yield* residentRecordNative(request)
     if (request.operation === "inspection-status")
       return residentResponse({
         status: "inspection-status",

@@ -10,6 +10,7 @@ const ports = vi.hoisted(() => ({
   policy: vi.fn(),
   retire: vi.fn(),
   eligible: vi.fn(),
+  record: vi.fn(),
   native: vi.fn(),
   reply: vi.fn(),
   observation: vi.fn(),
@@ -30,6 +31,7 @@ vi.mock("@hapsland/native-observation/direct-event/adapter", () => ({
 }))
 vi.mock("@hapsland/resident-transport/resident/client", async (original) => ({
   ...(await original<typeof import("@hapsland/resident-transport/resident/client")>()),
+  recordNativeMetadataEffect: ports.record,
   ensureResidentEffect: ports.owner,
   makeResidentDispatchContextEffect: ports.dispatch,
   admitObservationEffect: ports.admit,
@@ -37,7 +39,7 @@ vi.mock("@hapsland/resident-transport/resident/client", async (original) => ({
   readComposedEditPolicyEffect: ports.policy,
   retireComposedEditEffect: ports.retire
 }))
-vi.mock("@hapsland/native-observation/direct-event/selection", () => ({ eligibleNamedPath: ports.eligible }))
+vi.mock("@hapsland/native-observation/direct-event/selection", () => ({ nativeSelection: ports.eligible }))
 vi.mock("@hapsland/activity-observation/activity/status", async (original) => ({
   ...(await original<typeof import("@hapsland/activity-observation/activity/status")>()),
   recordActivity: ports.activity
@@ -117,7 +119,8 @@ beforeEach(() => {
   ports.identity.mockReturnValue(Effect.succeed(undefined))
   ports.policy.mockReturnValue(Effect.succeed({ filePolicy: {} }))
   ports.retire.mockReturnValue(Effect.succeed(true))
-  ports.eligible.mockReturnValue(Effect.succeed(true))
+  ports.eligible.mockReturnValue(Effect.succeed({ status: "selected" }))
+  ports.record.mockReturnValue(Effect.void)
   ports.native.mockReturnValue(true)
   ports.reply.mockReturnValue(Effect.succeed(observation))
   ports.observation.mockReturnValue(Effect.succeed(observation))
@@ -143,7 +146,7 @@ it("admits the exact controlled Codex observation while keeping native output qu
   expect(ports.owner).toHaveBeenCalledWith(undefined, 3400)
   expect(ports.dispatch).toHaveBeenCalledWith("/fixture", "/state", "/activity", "/user", undefined, { filePolicy: {} })
   expect(ports.admit).toHaveBeenCalledWith(
-    observation,
+    expect.objectContaining(observation),
     true,
     { captured: true, sourceContexts: [{ root: "/fixture", credential: undefined, sessionAnalytics: false }] },
     undefined,

@@ -12,7 +12,7 @@ import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-supp
 import { makeInspectionStorage } from "@hapsland/inspection-records/inspection/storage"
 import { makeInspectionHttpServer } from "@hapsland/administration/inspection/http"
 import { configuredRules, connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
-import { readCredentialState } from "@hapsland/credential-storage/credentials/owner"
+import { readCredentialState } from "@hapsland/runtime-inputs/credentials/state"
 import { nativeDeferred } from "@hapsland/build-tooling/test-support/native-deferred"
 
 const root = await makeGitFixture()
@@ -134,14 +134,19 @@ try {
   assert.equal(snapshot.records.filter((record) => record.fact.kind === "model-input").length, 2)
   assert.equal(snapshot.records.filter((record) => record.fact.kind === "transport-invoked").length, 1)
   browser = await chromium.launch({ headless: true })
-  const context = await browser.newContext({
-    viewport: { width: 375, height: 812 },
-    permissions: ["clipboard-read", "clipboard-write"]
-  })
+  const context = await browser.newContext({ viewport: { width: 375, height: 812 } })
   const page = await context.newPage()
   const errors = []
   page.on("pageerror", (error) => errors.push(error.message))
   await page.goto(server.url)
+  await page.waitForFunction(() => document.querySelectorAll("#edits button").length === 1)
+  assert.equal(await page.locator("#hide-unreviewed").isChecked(), true)
+  assert.equal(
+    await page.locator("#edits button").filter({ hasText: "controlled.ts" }).count(),
+    0,
+    "Model input without transport remains hidden"
+  )
+  await page.locator("#hide-unreviewed").uncheck()
   await page.waitForFunction(() => document.querySelectorAll("#edits li").length === 4)
   historyUnavailable = true
   await page.waitForFunction(() =>
@@ -165,7 +170,7 @@ try {
     await page.keyboard.press("Enter")
     await page.waitForFunction((expected) => document.querySelector("#routes").textContent.includes(expected), route)
     assert.equal(await page.locator("#requests button").count(), 0)
-    assert.equal(await page.locator("#copy").isDisabled(), true)
+    assert.equal(await page.locator("#copy").count(), 0)
     await page.getByRole("button", { name: "Inspect original evaluation", exact: true }).focus()
     await page.keyboard.press("Enter")
     assert.equal(await page.locator("#exact").textContent(), dispatched[0].toString("utf8"))
