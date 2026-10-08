@@ -2,7 +2,7 @@ import { readPackageGraph } from "./package-graph.mjs"
 import { checkAssemblyPrerequisite, requiredAssemblyNativePaths } from "./assembly-prerequisites.mjs"
 import { createHash } from "node:crypto"
 import { standaloneBuiltin } from "./standalone-runtime-profile.mjs"
-import { resolve } from "node:path"
+import { relative, resolve } from "node:path"
 import { fileEvidence } from "./compiler-evidence.mjs"
 import { checkExternalRuntimeEvidence } from "./external-runtime-evidence.mjs"
 
@@ -19,8 +19,8 @@ export const checkAssemblyReceipt = (root, receipt, context, entry, output, nati
     !receipt.inputs.length ||
     !Array.isArray(receipt.transformations) ||
     !Array.isArray(receipt.nativeAssets) ||
-    receipt.entry?.path !== fileEvidence(root, entry).path ||
-    receipt.output?.path !== fileEvidence(root, output).path
+    receipt.entry?.path !== relative(root, entry).replaceAll("\\", "/") ||
+    receipt.output?.path !== relative(root, output).replaceAll("\\", "/")
   )
     throw new Error("Missing, mismatched or stale assembly receipt")
   if (context.prerequisite) {
@@ -83,7 +83,16 @@ export const checkAssemblyReceipt = (root, receipt, context, entry, output, nati
         throw new Error("Assembly receipt omits a contributing import target")
   const assetPaths = receipt.nativeAssets.map((asset) => asset.path)
   if (new Set(assetPaths).size !== assetPaths.length) throw new Error("Duplicate native asset evidence")
+  // Imports can reference the same file or manifest hundreds of times. All
+  // references must agree, then observe each distinct file once in this check.
+  const files = new Map()
   for (const recorded of evidence) {
+    const previous = files.get(recorded.path)
+    if (previous && (previous.mode !== recorded.mode || previous.sha256 !== recorded.sha256))
+      throw new Error(`Changed assembly evidence: ${recorded.path}`)
+    files.set(recorded.path, recorded)
+  }
+  for (const recorded of files.values()) {
     const actual = fileEvidence(root, resolve(root, recorded.path))
     if (actual.path !== recorded.path || actual.mode !== recorded.mode || actual.sha256 !== recorded.sha256)
       throw new Error(`Changed assembly evidence: ${recorded.path}`)

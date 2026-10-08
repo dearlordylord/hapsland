@@ -4,12 +4,7 @@ import type { DecisionModel } from "effect/ai"
 import type * as HttpClient from "effect/http/HttpClient"
 import { liveLayer as jevLiveLayer } from "../jev-decision.ts"
 import type { ReviewSettings } from "@hapsland/review-definition/runtime/review-config"
-import {
-  JEV_BACKEND,
-  OPENAI_BACKEND,
-  CLOUDFLARE_BACKEND,
-  type BackendId
-} from "@hapsland/runtime-environment/runtime/backend"
+import type { BackendId } from "@hapsland/runtime-environment/runtime/backend"
 import { liveLayer as openaiLiveLayer } from "./openai.ts"
 import { liveLayer as cloudflareLiveLayer } from "./cloudflare.ts"
 
@@ -20,19 +15,19 @@ type ProviderLayerFactory = (
 
 /** The sole exhaustive execution registration; declarations live in the provider catalog. */
 const REVIEW_PROVIDER_LAYERS = {
-  [JEV_BACKEND]: (settings, httpClient) =>
+  jev: (settings, httpClient) =>
     jevLiveLayer({
       apiUrl: settings.apiBase,
       credentialEnvVar: settings.credentialEnvVar,
       ...(httpClient === undefined ? {} : { httpClient })
     }),
-  [OPENAI_BACKEND]: (settings, httpClient) =>
+  openai: (settings, httpClient) =>
     openaiLiveLayer({
       identity: settings.providerIdentity,
       credentialEnvVar: settings.credentialEnvVar,
       ...(httpClient === undefined ? {} : { httpClient })
     }),
-  [CLOUDFLARE_BACKEND]: (settings, httpClient) =>
+  cloudflare: (settings, httpClient) =>
     cloudflareLiveLayer({
       identity: settings.providerIdentity,
       credentialEnvVar: settings.credentialEnvVar,

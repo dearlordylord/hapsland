@@ -262,28 +262,28 @@ const indexedDispatchProfiles = {
   }
 }
 const dangerous = new Set(["eval", "Function", "require", "createRequire", "Worker", "SharedWorker", "importScripts"])
-/** Scan the actual transformed contribution. Exceptions pin the entire file, not a package. */
-export function externalLoaderProfile(text, file, { resolveTarget, approval } = {}) {
+// Cache syntax only, never resolved targets, ownership or filesystem evidence.
+// The full byte digest, filename and native approval identify every scan input.
+// Bound this process-local cache; no ASTs or build receipts are retained.
+const syntaxProfiles = new Map()
+const syntaxProfileLimit = 512
+function scanExternalLoader(text, file, approval, sha256) {
   const reject = (reason) => {
     throw new Error(`Unsupported external loader: ${file}: ${reason}`)
   }
-  if (typeof resolveTarget !== "function") reject("missing target resolver")
   const ast = parse(text, { sourceType: "unambiguous", createImportExpressions: true })
   const edges = []
   const indexedDispatch = Object.entries(indexedDispatchProfiles).find(
-    ([suffix, profile]) => file.endsWith(`/effect/dist/${suffix}`) && externalLoaderHash(text) === profile.sha256
+    ([suffix, profile]) => file.endsWith(`/effect/dist/${suffix}`) && sha256 === profile.sha256
   )?.[1]
   const reflectionFile = Object.entries(dataReflectionProfiles).find(
-    ([suffix, hash]) => file.endsWith(`/effect/dist/${suffix}`) && externalLoaderHash(text) === hash
+    ([suffix, hash]) => file.endsWith(`/effect/dist/${suffix}`) && sha256 === hash
   )?.[0]
   const approvedNodes = new Set()
   let nativeUses = 0
   let codegenUses = 0
   if (approval) {
-    if (
-      !/^[a-f0-9]{64}$/.test(approval.originalSha256 ?? "") ||
-      approval.transformedSha256 !== externalLoaderHash(text)
-    )
+    if (!/^[a-f0-9]{64}$/.test(approval.originalSha256 ?? "") || approval.transformedSha256 !== sha256)
       reject("missing or stale pinned transformation evidence")
     if (!approval.file || approval.file !== file) reject("approval file mismatch")
     if (!["tree-sitter-native", "tree-sitter-native-and-node-class"].includes(approval.policy))
@@ -300,7 +300,8 @@ export function externalLoaderProfile(text, file, { resolveTarget, approval } = 
       !approval.packageName ||
       !approval.nativeBinding ||
       !Array.isArray(approval.nativeTargets) ||
-      approval.nativeTargets.length !== 1
+      approval.nativeTargets.length !== 1 ||
+      typeof approval.nativeTargets[0] !== "string"
     )
       reject("missing finite native target evidence")
     const expected = shape(
@@ -333,12 +334,7 @@ export function externalLoaderProfile(text, file, { resolveTarget, approval } = 
         approvedNodes.add(path.node)
         if (value === expected) {
           nativeUses++
-          edges.push({
-            kind: "native",
-            specifier: approval.nativeTargets[0],
-            target: resolveTarget(approval.nativeTargets[0], file, "native"),
-            start: path.node.start
-          })
+          edges.push({ kind: "native", specifier: approval.nativeTargets[0], start: path.node.start })
         } else codegenUses++
       }
     })
@@ -347,9 +343,7 @@ export function externalLoaderProfile(text, file, { resolveTarget, approval } = 
   }
   const record = (node, kind) => {
     if (node?.type !== "StringLiteral") reject(`computed ${kind}`)
-    const target = resolveTarget(node.value, file, kind)
-    if (!target) reject(`unresolved ${node.value}`)
-    edges.push({ kind, specifier: node.value, target, start: node.start })
+    edges.push({ kind, specifier: node.value, start: node.start })
   }
   traverse(ast, {
     enter(path) {
@@ -435,13 +429,31 @@ export function externalLoaderProfile(text, file, { resolveTarget, approval } = 
       if (path.isReferencedIdentifier() && node.name === "Reflect") reject("Reflect loader indirection")
     }
   })
-  if (edges.some((edge) => !edge.target)) reject("unresolved native target")
+  return { sha256, edges, nativeUses, codegenUses }
+}
+/** Scan the actual transformed contribution and freshly resolve every loader edge. */
+export function externalLoaderProfile(text, file, { resolveTarget, approval } = {}) {
+  if (typeof resolveTarget !== "function")
+    throw new Error(`Unsupported external loader: ${file}: missing target resolver`)
+  const sha256 = externalLoaderHash(text)
+  const key = JSON.stringify([file, sha256, approval ?? null])
+  let syntax = syntaxProfiles.get(key)
+  if (!syntax) {
+    syntax = scanExternalLoader(text, file, approval, sha256)
+    if (syntaxProfiles.size >= syntaxProfileLimit) syntaxProfiles.delete(syntaxProfiles.keys().next().value)
+    syntaxProfiles.set(key, syntax)
+  }
+  const edges = syntax.edges.map((edge) => {
+    const target = resolveTarget(edge.specifier, file, edge.kind)
+    if (!target) throw new Error(`Unsupported external loader: ${file}: unresolved ${edge.specifier}`)
+    return { ...edge, target }
+  })
   return {
-    approval: approval ? { ...approval } : null,
+    approval: approval ? { ...approval, nativeTargets: [...approval.nativeTargets] } : null,
     file,
-    sha256: externalLoaderHash(text),
+    sha256,
     edges: edges.sort((a, b) => a.start - b.start),
-    nativeUses,
-    codegenUses
+    nativeUses: syntax.nativeUses,
+    codegenUses: syntax.codegenUses
   }
 }

@@ -54,6 +54,21 @@ const verify = (f) => checkAssemblyReceipt(f.root, f.receipt, f.context, f.entry
 test("validates current input, discarded target, native asset and executable evidence", (t) => {
   assert.ok(verify(fixture(t)))
 })
+test("repeated references must agree and each receipt check observes current bytes", (t) => {
+  const f = fixture(t)
+  const reference = f.receipt.inputs[0].imports[0]
+  f.receipt.inputs[0].imports.push(structuredClone(reference))
+  f.receipt.digest = assemblyReceiptDigest(f.receipt)
+  assert.ok(verify(f))
+  f.receipt.inputs[0].imports[2].resolved.sha256 = "a".repeat(64)
+  f.receipt.digest = assemblyReceiptDigest(f.receipt)
+  assert.throws(() => verify(f), /Changed assembly evidence/)
+  f.receipt.inputs[0].imports[2] = structuredClone(reference)
+  f.receipt.digest = assemblyReceiptDigest(f.receipt)
+  assert.ok(verify(f))
+  writeFileSync(resolve(f.root, reference.resolved.path), "changed")
+  assert.throws(() => verify(f), /Changed assembly evidence/)
+})
 test("Node-only builtins cannot authorize a Bun assembly receipt", (t) => {
   const f = fixture(t)
   f.receipt.inputs[0].imports.push({ kind: "import-statement", external: true, path: "node:sea" })

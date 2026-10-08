@@ -574,7 +574,7 @@ These retain their version-one input/output contracts. Operations described as J
 | `--evaluation-report` | — | Read version-one evaluation report JSON from stdin; format the supplied evidence as JSON |
 | `--setup` | — | Read version-one setup JSON from stdin; preview/apply only the request's authorized stages; interactive requests may prompt for credentials; return JSON |
 | `--demo` | — | Read version-one demo JSON from stdin; preview/cancel a first review or execute its explicitly authorized live selection |
-| `--login` | — | Save a Jev key in native storage using a masked terminal prompt; --json selects structured output; no Jev call |
+| `--login` | — | Choose and approve user-file, project-file or native Jev key saving with hidden entry; --json selects structured output; no Jev call |
 | `--logout` | — | Remove native saved login; environment/file credentials remain separate; --json selects structured output; no Jev call |
 | `--pilot` | — | Guided terminal setup; optional CLIENT or --host selects one runtime, otherwise opens the client selector |
 

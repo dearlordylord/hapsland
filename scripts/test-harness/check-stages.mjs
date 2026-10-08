@@ -72,6 +72,7 @@ export const precheckStages = [
     "scripts/package-graph.test.mjs",
     "scripts/check-development-imports.test.mjs",
     "scripts/check-compiler-receipts.test.mjs",
+    "scripts/compiler-evidence.test.mjs",
     "scripts/clean-compiler-output.test.mjs",
     "scripts/check-workspace-imports.test.mjs",
     "scripts/source-type-evidence.test.mjs",

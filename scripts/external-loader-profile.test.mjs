@@ -20,6 +20,39 @@ test("requires resolution evidence and rejects unresolved targets", () => {
     /unresolved/
   )
 })
+test("reused syntax resolves each edge against the current resolver and returns independent evidence", () => {
+  const text = 'require("./dependency.js"); import("./lazy.js")'
+  const calls = []
+  const resolveTarget = (generation) => (specifier, file, kind) => {
+    calls.push([generation, specifier, file, kind])
+    return { path: `${generation}/${specifier}`, sha256: generation }
+  }
+  const first = externalLoaderProfile(text, "reused.js", { resolveTarget: resolveTarget("before") })
+  first.edges[0].specifier = "corrupt"
+  first.edges[1].target.path = "corrupt"
+  const second = externalLoaderProfile(text, "reused.js", { resolveTarget: resolveTarget("after") })
+  assert.deepEqual(
+    second.edges.map((edge) => edge.target.sha256),
+    ["after", "after"]
+  )
+  assert.deepEqual(
+    second.edges.map((edge) => edge.specifier),
+    ["./dependency.js", "./lazy.js"]
+  )
+  assert.equal(calls.length, 4)
+  assert.throws(() => externalLoaderProfile(text, "reused.js", { resolveTarget: () => undefined }), /unresolved/)
+  assert.throws(
+    () =>
+      externalLoaderProfile(text, "reused.js", {
+        resolveTarget: () => {
+          throw new Error("Forbidden current owner")
+        }
+      }),
+    /Forbidden current owner/
+  )
+  assert.throws(() => externalLoaderProfile(text, "reused.js"), /missing target resolver/)
+  assert.throws(() => externalLoaderProfile(text + "; require(name)", "reused.js", options), /computed require/)
+})
 for (const text of [
   "require(name)",
   "import(name)",
@@ -68,6 +101,28 @@ test("missing native target evidence fails closed", () => {
   const policy = approve(native)
   policy.approval.nativeTargets = []
   assert.throws(() => externalLoaderProfile(native, "asset.js", policy), /finite native/)
+  policy.approval.nativeTargets = [{ path: "mutable-target" }]
+  assert.throws(() => externalLoaderProfile(native, "asset.js", policy), /finite native/)
+})
+test("reused native syntax requires current approval and fresh native target evidence", () => {
+  const policy = approve(native)
+  const first = externalLoaderProfile(native, "asset.js", policy)
+  first.approval.nativeTargets[0] = "corrupt"
+  assert.equal(externalLoaderProfile(native, "asset.js", policy).edges[0].specifier, policy.approval.nativeTargets[0])
+  assert.throws(() => externalLoaderProfile(native, "different.js", policy), /approval file mismatch/)
+  policy.approval.nativeTargets[0] = "/native/new.node"
+  const calls = []
+  const second = externalLoaderProfile(native, "asset.js", {
+    ...policy,
+    resolveTarget: (specifier) => {
+      calls.push(specifier)
+      return { path: specifier }
+    }
+  })
+  assert.deepEqual(calls, ["/native/new.node"])
+  assert.equal(second.edges[0].target.path, "/native/new.node")
+  policy.approval.originalSha256 = "a".repeat(64)
+  assert.throws(() => externalLoaderProfile(native, "asset.js", policy), /unapproved external dependency/)
 })
 test("pinned installed parser wrappers satisfy their finite native and codegen profiles", async () => {
   const { readFileSync } = await import("node:fs")

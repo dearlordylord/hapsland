@@ -95,28 +95,28 @@ test("receipts reject corruption, stale inputs, extra output and missing evidenc
       })
     )
   }
-  const originalRead = fs.readFileSync
-  let reads = 0,
+  const originalOpen = fs.openSync
+  let observations = 0,
     mutate = false,
     replaceStamp = false
-  fs.readFileSync = function (path, ...args) {
-    if (resolve(String(path)) === compiler) reads++
-    const bytes = originalRead.call(this, path, ...args)
+  fs.openSync = function (path, ...args) {
+    if (resolve(String(path)) === compiler) observations++
+    const descriptor = originalOpen.call(this, path, ...args)
     if (mutate && resolve(String(path)) === output) {
       mutate = false
       writeFileSync(compiler, "changed compiler bytes")
       if (replaceStamp)
         writeFileSync(stampPath, JSON.stringify({ typescript: { executable: fileEvidence(root, compiler) } }))
     }
-    return bytes
+    return descriptor
   }
   syncBuiltinESMExports()
   try {
     assert.equal(checkCompilerReceipts(root), 3)
-    assert.equal(reads, 2)
-    reads = 0
+    assert.equal(observations, 2)
+    observations = 0
     assert.equal(checkCompilerReceipts(root), 3)
-    assert.equal(reads, 2)
+    assert.equal(observations, 2)
     mutate = true
     assert.throws(() => checkCompilerReceipts(root), /Compiler toolchain identity changed/)
     assert.throws(() => checkCompilerReceipts(root), /Compiler toolchain identity changed/)
@@ -127,7 +127,7 @@ test("receipts reject corruption, stale inputs, extra output and missing evidenc
     writeFileSync(compiler, "compiler bytes")
     writeFileSync(stampPath, JSON.stringify({ typescript: { executable: fileEvidence(root, compiler) } }))
   } finally {
-    fs.readFileSync = originalRead
+    fs.openSync = originalOpen
     syncBuiltinESMExports()
   }
   // Continue the original corruption cases with one owner and its fresh context.
