@@ -2,7 +2,7 @@
   "packageName": "@hapsland/hapsland",
   "repositoryUrl": "https://github.com/dearlordylord/hapsland.git",
   "version": "0.1.0",
-  "sourceCommit": "5c38cf28c7017501b83a012cf03922af1c27e01a",
-  "archiveSha256": "516837f11e1efa20ad4dd8bd75ebb4473211db488e44ad28a8d1e8c020c54e79",
+  "sourceCommit": "4c3432380c2fbacb2b42a51b5dfbd14876eb9531",
+  "archiveSha256": "21a4bbca77fd46458c54d0452764fd8d757aa58ae3788ab7c90cb986352151cd",
   "tag": "latest"
 }
