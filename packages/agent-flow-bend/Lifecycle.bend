@@ -414,7 +414,7 @@ def finish.continue(admission: Admission.AdmissionState, work: Work.Work,
 def finish.result(admission: Admission.AdmissionState, work: Work.Work, at: Nat, collector: Nat,
     result: Handoff.FinishResult) -> LifecycleResult:
   match result:
-    case Handoff.Wait{finish}:
+    case Handoff.FinishWait{finish}:
       Advanced{Lifecycle{admission, work, finish}, FinishWaiting{}}
     case Handoff.Continue{finish}:
       finish.continue(admission, work, finish, collector)

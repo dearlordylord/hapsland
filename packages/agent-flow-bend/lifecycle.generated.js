@@ -64,7 +64,7 @@ function f32_from_bits(u) {
 }
 
 function f32_read(s) {
-  const re = /^\s*[+-]?((\d+\.?\d*|\.\d+)(e[+-]?\d+)?|inf(inity)?|nan)$/i;
+  const re = /^[\t\n\v\f\r ]*[+-]?((\d+\.?\d*|\.\d+)(e[+-]?\d+)?|inf(inity)?|nan)$/i;
   const v = f32_round(s.replace(/inf\w*/i, "Infinity"));
   return re.test(s) ? {$: "Some", value: v} : {$: "None"};
 }
@@ -123,7 +123,7 @@ function array_rmw(a, i, f) {
 // ===
 
 function run_tail(f, x) {
-  return {$: "$JMP", f: f.j?.f === f ? f.j : f, x: [x]};
+  return {$: "$JMP", f: f.j?.f === f ? f.j : f, x};
 }
 
 function run_clo(j) {
@@ -135,7 +135,7 @@ function run_clo(j) {
 
 function run_loop(r) {
   while (r !== null && typeof r === "object" && r.$ === "$JMP") {
-    r = r.f(...r.x);
+    r = r.f(r.x);
   }
   return r;
 }
@@ -150,11 +150,14 @@ function run_lib(f, n) {
 
 const $0eff = Object.create(null);
 
-function io_eff(k, run, need) {
+function io_eff(k, run) {
+  if (arguments.length > 2) {
+    throw new Error("bend: " + k + " takes no need: an effect that waits parks itself");
+  }
   if (k in $0eff) {
     throw new Error("bend: two effects register " + k);
   }
-  $0eff[k] = { run, need };
+  $0eff[k] = run;
 }
 // Program
 // =======
@@ -508,7 +511,7 @@ function $Lifecycle$058interrupt$valid$(_admission_0, _work_0, _finish_0, _id_0,
 }
 
 function $Lifecycle$058finish$result$(_admission_0, _work_0, _at_0, _collector_0, _result_0) {
-  if (_result_0.$ === "Handoff.Wait") {
+  if (_result_0.$ === "Handoff.FinishWait") {
     const _finish_0 = _result_0["state"];
     return {$: "Lifecycle.Advanced", "state": {$: "Lifecycle.Lifecycle", "admission": _admission_0, "work": _work_0, "finish": _finish_0}, "command": {$: "Lifecycle.FinishWaiting"}};
   } else if (_result_0.$ === "Handoff.Continue") {
@@ -663,7 +666,7 @@ function $Work$058find_observation$(_id_0, _observations_0) {
     const _current_0 = _t_0["id"];
     const __0 = _t_0["stage"];
     const _rest_0 = _observations_0["tail"];
-    return $Work$058find_observation$pick$({$: "Work.Observation", "id": _current_0, "stage": __0}, ($Work$058find_observation$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+    return $List$find$put$({$: "Work.Observation", "id": _current_0, "stage": __0}, ($Work$058find_observation$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
   }
 }
 
@@ -689,7 +692,7 @@ function $Work$058find_unit$(_id_0, _units_0) {
     const __2 = _t_0["findings"];
     const __3 = _t_0["bytes"];
     const _rest_0 = _units_0["tail"];
-    return $Work$058find_unit$pick$({$: "Work.ReviewUnit", "id": _current_0, "observation": __0, "stage": __1, "findings": __2, "bytes": __3}, ($Work$058find_unit$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+    return $List$find$put$({$: "Work.ReviewUnit", "id": _current_0, "observation": __0, "stage": __1, "findings": __2, "bytes": __3}, ($Work$058find_unit$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
   }
 }
 
@@ -943,11 +946,11 @@ function $Work$058prepare$stage$(_work_0, _observation_0, _count_0, _stage_0) {
   }
 }
 
-function $Work$058find_observation$pick$(_observation_0, _fallback_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Some", "value": _observation_0};
+function $List$find$put$(_h_0, _r_0, _hit_0) {
+  if (!_hit_0) {
+    return _r_0;
   } else {
-    return _fallback_0;
+    return {$: "Some", "value": _h_0};
   }
 }
 
@@ -956,14 +959,6 @@ function $Work$058outcome$stage$(_work_0, _id_0, _observation_0, _stage_0, _resu
     return $Work$058outcome$kind$(_work_0, _id_0, _observation_0, _result_0);
   } else {
     return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitNotAtJev"}};
-  }
-}
-
-function $Work$058find_unit$pick$(_unit_0, _fallback_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Some", "value": _unit_0};
-  } else {
-    return _fallback_0;
   }
 }
 
@@ -1183,7 +1178,7 @@ function $Admission$058find_permit$(_token_0, _permits_0) {
     const __2 = _t_0["started"];
     const __3 = _t_0["deadline"];
     const _rest_0 = _permits_0["tail"];
-    return $Admission$058find_permit$pick$({$: "Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($Admission$058find_permit$(_token_0, _rest_0)), ($Nat$is_eq$(_current_0, _token_0)));
+    return $List$find$put$({$: "Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($Admission$058find_permit$(_token_0, _rest_0)), ($Nat$is_eq$(_current_0, _token_0)));
   }
 }
 
@@ -1333,14 +1328,6 @@ function $Admission$058consume$check$(_state_0, _token_0, _tool_0, _now_0, _perm
   return $Admission$058consume$tool$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0}, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _token_0, _tool_0, _now_0, _permitted_round_0, _started_0, _deadline_0, ($Nat$is_eq$(_tool_0, _permitted_tool_0)));
 }
 
-function $Admission$058find_permit$pick$(_permit_0, _fallback_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Some", "value": _permit_0};
-  } else {
-    return _fallback_0;
-  }
-}
-
 function $Admission$058remove_permit$(_token_0, _permits_0) {
   if (_permits_0.$ === "Nil") {
     return {$: "Nil"};
@@ -1352,7 +1339,7 @@ function $Admission$058remove_permit$(_token_0, _permits_0) {
     const __2 = _t_0["started"];
     const __3 = _t_0["deadline"];
     const _rest_0 = _permits_0["tail"];
-    return $Admission$058remove_permit$pick$({$: "Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($Admission$058remove_permit$(_token_0, _rest_0)), ($Nat$is_eq$(_current_0, _token_0)));
+    return $List$filter$put$({$: "Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($Admission$058remove_permit$(_token_0, _rest_0)), ($Bool$not$(($Nat$is_eq$(_current_0, _token_0)))));
   }
 }
 
@@ -1400,7 +1387,7 @@ function $Work$058remove_observation$pick$(_observation_0, _tail_0, _hit_0) {
 
 function $Handoff$058finish$pending$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0, _reserved_0) {
   if (_reserved_0) {
-    return {$: "Handoff.Wait", "state": _state_0};
+    return {$: "Handoff.FinishWait", "state": _state_0};
   } else {
     return $Handoff$058finish$ready$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0);
   }
@@ -1422,11 +1409,11 @@ function $Admission$058consume$tool$(_state_0, _partition_0, _lifetime_0, _round
   }
 }
 
-function $Admission$058remove_permit$pick$(_permit_0, _tail_0, _hit_0) {
-  if (_hit_0) {
-    return _tail_0;
+function $List$filter$put$(_h_0, _r_0, _keep_0) {
+  if (!_keep_0) {
+    return _r_0;
   } else {
-    return {$: "Con", "head": _permit_0, "tail": _tail_0};
+    return {$: "Con", "head": _h_0, "tail": _r_0};
   }
 }
 
@@ -1505,7 +1492,7 @@ function $Handoff$058finish$zero$(_state_0, _actionable_findings_0, _zero_0) {
   if (_zero_0) {
     return $Handoff$058finish$choose$(_state_0, _actionable_findings_0);
   } else {
-    return {$: "Handoff.Wait", "state": _state_0};
+    return {$: "Handoff.FinishWait", "state": _state_0};
   }
 }
 
@@ -1600,9 +1587,10 @@ function show_val(D, N, d, v, chain) {
 // Apple arm64 passes variadic fcntl flags on the stack, so io_sys
 // binds fcntl there with the flags as the ninth fixed argument. A
 // parked effect waits for fd (a write when out) or until at
-// (performance.now()), either one undefined when unused; io_wake
-// resumes k with the value of more, and undefined parks it again. The
-// waits stay in deadline order, as io_park does in C.
+// (performance.now()), either one undefined when unused; once due, io_wait
+// calls more at once, as C calls pack, and resumes k with its value, while
+// undefined parks it again. The waits stay in deadline order, as io_park
+// does in C.
 
 function io_exit(main, show) {
   try {
@@ -1678,13 +1666,25 @@ function io_strerror(code) {
   }
 }
 
-function io_fail(code) {
-  return { $: "Fail",
-    error: io_tup(code >>> 0, io_strerror(code)) };
+function io_fail(code, ...rest) {
+  const err = io_tup(code >>> 0, io_strerror(code));
+  return { $: "Fail", error: io_tup(err, ...rest) };
 }
 
 function io_done(value) {
   return { $: "Done", value };
+}
+
+function io_until(ms) {
+  return performance.now() + Number(ms);
+}
+
+function io_late(at) {
+  return at !== undefined && performance.now() >= at;
+}
+
+function io_ready(at, r) {
+  return at === undefined ? r : { $: "Ready", value: r };
 }
 
 function io_tup(...xs) {
@@ -1758,19 +1758,16 @@ function io_wait(io, block) {
     set.fill(0);
   }
   const now = performance.now();
-  io.waits = io.waits.filter((w) => {
-    const ready = w.at <= now || w.fd !== undefined
-      && set[at(w)] & 1 << (w.fd & 7);
-    if (ready) {
-      io_push(io_wake, w, false);
+  const due = (w) => w.at <= now || w.fd !== undefined
+    && set[at(w)] & 1 << (w.fd & 7);
+  const todo = io.waits;
+  io.waits = todo.filter((w) => !due(w));
+  for (const w of todo.filter(due)) {
+    const x = w.more();
+    if (x !== undefined) {
+      io_push(w.k, x, false);
     }
-    return !ready;
-  });
-}
-
-function io_wake(w) {
-  const x = w.more();
-  return x === undefined ? undefined : w.k(x);
+  }
 }
 
 function io_park_on(fd, out, k, more, at) {
@@ -1815,29 +1812,19 @@ function io_run(m) {
           io_errs(op.message);
           return op.code;
         }
-        const need = op.need?.() ?? {};
-        if (need.time || need.read) {
-          const more = () => op.run(...op.args, op.kont);
-          io_park_on(need.read ? op.args[0] : undefined, false, op.kont, more,
-            need.read ? undefined : performance.now() + Number(op.args[0]));
-          break;
+        const run = $0eff[op.$];
+        if (run === undefined) {
+          throw "bend: no effect registers " + op.$;
         }
-        const x = op.run(...op.args, op.kont);
+        const x = run(...op.args, op.kont);
         if (x === undefined) {
           break;
         }
         op = op.kont(x);
       }
     }
-  } catch (req) {
-    if (req instanceof RangeError) {
-      throw "bend: memory fault (machine stack overflow?)";
-    }
-    if (req?.$ !== "$FFI") {
-      throw req;
-    }
-    io_errs("bend: runtime fail-stop");
-    return 1;
+  } catch (e) {
+    throw e instanceof RangeError ? "bend: memory fault (machine stack overflow?)" : e;
   }
 }
 

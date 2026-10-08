@@ -1452,7 +1452,7 @@ law sixth_finding_from_same_unit_is_selected_when_bytes_fit:
 
 law finish_waits_for_review_work:
   {Handoff.finish.decide(Handoff.finish.initial(1n), 1n, False{}, 1n) ==
-    Handoff.Wait{Handoff.finish.initial(1n)} : Handoff.FinishResult}
+    Handoff.FinishWait{Handoff.finish.initial(1n)} : Handoff.FinishResult}
 
 law finish_ignores_notice_without_findings:
   {Handoff.finish.decide(Handoff.finish.initial(1n), 0n, False{}, 0n) ==
@@ -1481,7 +1481,7 @@ law next_attempt_gets_its_own_deadline:
   {Handoff.finish.decide_at(
     Handoff.finish.complete(Handoff.Finish{1n, True{}, False{}, 1n, True{}, 1n, 7n, 20n},
       1n, 1n, 1n, 7n), 1n, 30n, 50n, 1n) ==
-    Handoff.Wait{Handoff.Finish{1n, True{}, False{}, 1n, False{}, 1n, 7n, 50n}} : Handoff.FinishResult}
+    Handoff.FinishWait{Handoff.Finish{1n, True{}, False{}, 1n, False{}, 1n, 7n, 50n}} : Handoff.FinishResult}
 
 def background_reserved() -> Handoff.Lease:
   Handoff.Lease{7n, 1n, False{}, False{}, Handoff.Reserved{11n, Handoff.Background{}}}

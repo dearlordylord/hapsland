@@ -161,7 +161,7 @@ type Finish is Data:
 type FinishResult is Data:
   Continue{state: Finish}
   Allow{state: Finish}
-  Wait{state: Finish}
+  FinishWait{state: Finish}
 
 def finish.initial(round: Nat) -> Finish:
   Finish{round, True{}, False{}, 0n, False{}, 0n, 0n, 0n}
@@ -199,7 +199,7 @@ def finish.zero(state: Finish, actionable_findings: Nat, zero: Bool) -> FinishRe
     case True{}:
       finish.choose(state, actionable_findings)
     case False{}:
-      Wait{state}
+      FinishWait{state}
 
 def finish.ready(
   state: Finish,
@@ -222,7 +222,7 @@ def finish.pending(
 ) -> FinishResult:
   match reserved:
     case True{}:
-      Wait{state}
+      FinishWait{state}
     case False{}:
       finish.ready(state, unfinished, deadline, actionable_findings)
 
