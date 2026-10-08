@@ -40,6 +40,10 @@
     "workspaceRole": "tooling"
   },
   "exports": {
+    "./interaction-diagram-generators": {
+      "types": "./interaction-diagram-generators.ts",
+      "default": "./interaction-diagram-generators.ts"
+    },
     "./dev-inspection": {
       "types": "./dev-inspection.mjs",
       "default": "./dev-inspection.mjs"

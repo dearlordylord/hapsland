@@ -80,6 +80,10 @@
     ]
   },
   "exports": {
+    "./setup-copy": {
+      "types": "./src/setup-copy.ts",
+      "default": "./src/setup-copy.ts"
+    },
     "./permit-controls": {
       "types": "./src/permit-controls.ts",
       "default": "./src/permit-controls.ts"

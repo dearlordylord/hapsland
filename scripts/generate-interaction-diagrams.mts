@@ -4,7 +4,7 @@ import { resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { Effect } from "effect"
 import { uiFlows } from "../packages/administration/src/interaction/flow-registry.ts"
-import { diagramGenerators } from "./interaction-diagram-generators.mts"
+import { diagramGenerators } from "./interaction-diagram-generators.ts"
 import { checkUiFlows } from "./check-ui-flows.mjs"
 import { flowInventoryDocument } from "./ui-flow-inventory.mts"
 

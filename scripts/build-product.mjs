@@ -28,7 +28,7 @@ await withBuildLock(root, async (environment) => {
       "turbo.json",
       "scripts/check-ui-flows.mjs",
       "scripts/generate-interaction-diagrams.mts",
-      "scripts/interaction-diagram-generators.mts",
+      "scripts/interaction-diagram-generators.ts",
       "packages/administration/src/interaction/flow-registry.ts",
       ...[
         "build-product",

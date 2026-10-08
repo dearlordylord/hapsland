@@ -312,7 +312,7 @@ export function checkUiFlows(
     if (!tree || !declarations(tree).has(definition.entry))
       errors.push(`Missing UI entry: ${id}: ${definition.owner}#${definition.entry}`)
   }
-  const generator = ast(readFileSync(resolve(candidateRoot, "scripts/interaction-diagram-generators.mts"), "utf8"))
+  const generator = ast(readFileSync(resolve(candidateRoot, "scripts/interaction-diagram-generators.ts"), "utf8"))
   let generatorIds = []
   const generatorBindings = new Map()
   walk(generator, (node) => {

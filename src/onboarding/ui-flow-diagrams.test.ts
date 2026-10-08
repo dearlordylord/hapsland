@@ -3,7 +3,7 @@ import { Effect } from "effect"
 import { expect, it } from "vitest"
 import { childFlow, cliJourney, flowInteraction } from "../../packages/administration/src/interaction/flow-input.ts"
 import { uiFlows } from "../../packages/administration/src/interaction/flow-registry.ts"
-import { diagramGenerators } from "../../scripts/interaction-diagram-generators.mts"
+import { diagramGenerators } from "@hapsland/build-tooling/interaction-diagram-generators"
 import { readFile } from "node:fs/promises"
 import { resolve } from "node:path"
 
