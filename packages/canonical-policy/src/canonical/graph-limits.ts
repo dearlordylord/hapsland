@@ -12,10 +12,10 @@ export type GraphLimits = Readonly<{
 
 export const GRAPH_LIMIT_CEILINGS: GraphLimits = Object.freeze({
   version: 1,
-  sourceBytes: 262_144,
+  sourceBytes: 2_097_152,
   treeBytes: 20_480,
   files: 8,
-  readBytes: 1_572_864,
+  readBytes: 12_582_912,
   outgoingEdges: 16,
   depth: 4,
   work: 128

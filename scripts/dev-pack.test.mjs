@@ -40,6 +40,15 @@ test("fast dev archive respects npm file selection, package prefix and executabl
       "package/package.json"
     ])
     assert.equal(entries.find((entry) => entry.path === "package/bin/launch.js").mode & 0o111, 0o111)
+    const previousRunner = process.env.npm_execpath
+    try {
+      process.env.npm_execpath = join(root, "bun")
+      writeFileSync(process.env.npm_execpath, "Bun runner fixture")
+      assert.equal(await packDevelopmentArchive({ root, destination: join(root, "archives") }), archive)
+    } finally {
+      if (previousRunner === undefined) delete process.env.npm_execpath
+      else process.env.npm_execpath = previousRunner
+    }
   } finally {
     rmSync(root, { recursive: true, force: true })
   }

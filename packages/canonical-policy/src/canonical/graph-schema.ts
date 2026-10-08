@@ -99,10 +99,10 @@ export const BoundedGraphConstructor = ctor("Bounded", { graph: GraphConstructor
 export const GraphStepConstructor = ctor("BoundedStep", { state: Schema.Unknown, command: GraphCommandSchema })
 export const GraphProfileSchema = Schema.Struct({
   version: Schema.Literal(1),
-  sourceBytes: Nat.check(Schema.isBetween({ minimum: 1, maximum: 262_144 })),
+  sourceBytes: Nat.check(Schema.isBetween({ minimum: 1, maximum: 2_097_152 })),
   treeBytes: Nat.check(Schema.isBetween({ minimum: 1, maximum: 20_480 })),
   files: Nat.check(Schema.isBetween({ minimum: 1, maximum: 8 })),
-  readBytes: Nat.check(Schema.isBetween({ minimum: 1, maximum: 1_572_864 })),
+  readBytes: Nat.check(Schema.isBetween({ minimum: 1, maximum: 12_582_912 })),
   outgoingEdges: Nat.check(Schema.isBetween({ minimum: 1, maximum: 16 })),
   depth: Nat.check(Schema.isBetween({ minimum: 1, maximum: 4 })),
   work: Nat.check(Schema.isBetween({ minimum: 1, maximum: 128 }))

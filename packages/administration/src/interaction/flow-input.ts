@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import { absurd, Effect } from "effect"
 import { InteractionService, type Interaction } from "./interaction.ts"
 import {
   inputOwners,
@@ -16,11 +16,24 @@ export const flowInteraction = <K extends InputOwnerId>(
   owner: K
 ): Effect.Effect<FlowInteraction<K>, never, InteractionService> =>
   Effect.map(InteractionService, (interaction) => {
-    const definition = inputOwners[owner]
+    const definition = Object.entries(inputOwners).find(([id]) => id === owner)?.[1]
     if (definition === undefined) throw new Error(`Unregistered UI input owner: ${owner}`)
     return Object.fromEntries([
       ["present", interaction.present],
-      ...definition.inputs.map((kind) => [kind, interaction[kind]])
+      ...definition.inputs.map((kind): readonly [string, Interaction[keyof Interaction]] => {
+        switch (kind) {
+          case "choose":
+            return [kind, interaction.choose]
+          case "chooseMany":
+            return [kind, interaction.chooseMany]
+          case "confirm":
+            return [kind, interaction.confirm]
+          case "hidden":
+            return [kind, interaction.hidden]
+          default:
+            return absurd(kind)
+        }
+      })
     ]) as FlowInteraction<K>
   })
 

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url"
 import { resolve } from "node:path"
 
 /** Use the invoking npm's packlist and tar implementation, with fast local compression. */
-export async function packDevelopmentArchive({ root, destination, npmEntrypoint = process.env.npm_execpath }) {
+export async function packDevelopmentArchive({ root, destination, npmEntrypoint }) {
   const require = npmToolingRequire(npmEntrypoint)
   const tar = require("tar")
   const manifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"))

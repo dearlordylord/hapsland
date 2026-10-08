@@ -293,7 +293,7 @@ describe("configuration v1 decoding", () => {
 describe("layered selection and provenance", () => {
   it("captures bounded graph limits with field origins and lower-only project policy", () => {
     const original = effectiveGraphLimits(resolveConfiguration([], "/repo"))
-    expect(original).toMatchObject({ version: 1, sourceBytes: 262144, treeBytes: 20480, readBytes: 1572864 })
+    expect(original).toMatchObject({ version: 1, sourceBytes: 2097152, treeBytes: 20480, readBytes: 12582912 })
     const user = source(
       "user",
       '{"version":1,"graphLimits":{"version":1,"sourceBytes":100,"readBytes":200,"treeBytes":1000}}'
