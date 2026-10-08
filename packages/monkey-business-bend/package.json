@@ -16,10 +16,6 @@
       "types": "./conformance/native-preflight-fixtures.mjs",
       "default": "./conformance/native-preflight-fixtures.mjs"
     },
-    "./conformance/native-run-public": {
-      "types": "./conformance/native-run-public.mjs",
-      "default": "./conformance/native-run-public.mjs"
-    },
     "./conformance/native-run-runner": {
       "types": "./conformance/native-run-runner.mjs",
       "default": "./conformance/native-run-runner.mjs"
@@ -37,9 +33,7 @@
       "default": "./session.mjs"
     }
   },
-  "dependencies": {
-    "@hapsland/monkey-business": "workspace:*"
-  },
+  "dependencies": {},
   "hapsland": {
     "workspaceRole": "verification"
   }

@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest"
 import SharedEngine from "../../monkey-business-bend/engine.mjs"
-import * as boundary from "../../../src/canonical/simulation-adapter.ts"
+import * as boundary from "./simulation-adapter.ts"
 import { createRun, restoreReplay } from "./index.ts"
 
 afterEach(() => vi.restoreAllMocks())

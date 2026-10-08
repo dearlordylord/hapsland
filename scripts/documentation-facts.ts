@@ -1,4 +1,4 @@
-import { SETUP_COPY } from "@hapsland/agent-flow-viz/setup-copy"
+import { SETUP_COPY } from "@hapsland/agent-flow-projection/setup-copy"
 import { credentialPolicy, deriveLookupPlan, deriveSavePlan } from "@hapsland/runtime-inputs/credentials/policy"
 import { JEV_PROVIDER, CLOUDFLARE_PROVIDER, REVIEW_PROVIDERS } from "@hapsland/runtime-environment/runtime/backend"
 import { PROJECT_CONFIGURATION_FILE } from "@hapsland/runtime-inputs/configuration/load"

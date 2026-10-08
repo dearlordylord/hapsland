@@ -28,7 +28,6 @@ test("one model retains every declared workspace edge and leaves scheduler seman
   const key = ({ from, to, kind }) => `${from}:${to}:${kind}`
   assert.deepEqual(model.edges.map(key).sort(), expected.map(key).sort())
   assert.equal(model.nodes.length, graph.workspaces.size)
-  assert.deepEqual(model.auxiliarySccs, graph.auxiliarySccs)
   assert.equal(JSON.stringify([...graph.workspaces]), before)
   const rendered = renderModuleArchitecture(model)
   for (const name of graph.workspaces.keys()) assert.ok(rendered.includes(name.replace("@hapsland/", "")))
@@ -74,7 +73,7 @@ test("ordinary CLI checks stale output without writing and repairs it on generat
     // CLI fixture isolates filesystem behavior; the preceding test checks the real reader's graph.
     writeFileSync(
       resolve(fixture, "scripts/package-graph.mjs"),
-      `export const readPackageGraph = () => ({ workspaces: new Map(${JSON.stringify([...graph.workspaces])}), auxiliarySccs: ${JSON.stringify(graph.auxiliarySccs)} });`
+      `export const readPackageGraph = () => ({ workspaces: new Map(${JSON.stringify([...graph.workspaces])}) });`
     )
     const path = resolve(fixture, "docs/architecture.md")
     const stale = "intro\n<!-- architecture-modules:start -->\nstale\n<!-- architecture-modules:end -->\noutro\n"

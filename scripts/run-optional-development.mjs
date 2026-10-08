@@ -18,6 +18,7 @@ else {
     }
   }
   visit(resolve(root, "packages/monkey-business/src"))
+  files.push("src/canonical/session-port.test.ts", "packages/agent-flow-viz/src/permit-dashboard.test.ts")
 }
 files.sort()
 if (!files.length) throw new Error("Optional test scope must contain explicit test files")

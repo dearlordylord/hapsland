@@ -1,7 +1,7 @@
 import { beforeAll, expect, it } from "vitest"
 import { createRun, restoreReplay, type RunConfig } from "./index.ts"
 import { runNativeScenarios, runEmittedScenarios } from "../../monkey-business-bend/conformance/native-run-runner.mjs"
-import { nativeRows, publicRows } from "../../monkey-business-bend/conformance/native-run-public.mjs"
+import { nativeRows, publicRows } from "./native-run-public.mjs"
 import { readRetainedWorkloadOutput } from "../../monkey-business-bend/conformance/workload-native-runner.mjs"
 
 // Independently specified original inputs. Native executes the same workload

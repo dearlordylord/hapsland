@@ -1,6 +1,6 @@
 import { expect, it, vi } from "vitest"
 import SharedEngine from "../../monkey-business-bend/engine.mjs"
-import * as boundary from "../../../src/canonical/simulation-adapter.ts"
+import * as boundary from "./simulation-adapter.ts"
 import { encodeCollectionResponse } from "./collection-scenario.ts"
 import { encodeSharedValue } from "@hapsland/canonical-policy/canonical/simulation-codec"
 import { readRecord } from "@hapsland/canonical-policy/canonical/boundary-schema"

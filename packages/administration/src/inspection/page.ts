@@ -139,7 +139,7 @@ function renderHandoffs(snapshot, records, evaluationIds, fates) {
   panelSummary.replaceChildren(document.createTextNode('To agent · '));
   const findingBadge = document.createElement('span');
   findingBadge.className = 'edit-badge badge-' + (messages.length ? findingIds.size ? 'findings' : 'clear' : 'muted');
-  findingBadge.textContent = messages.length ? 'Findings · ' + findingIds.size : 'Findings not captured';
+  findingBadge.textContent = messages.length ? 'Findings · ' + findingIds.size : 'Agent message not captured';
   panelSummary.append(findingBadge);
   const record = messages.find(item => identity(item) === selectedHandoff);
   document.querySelector('#handoff-metadata').hidden = !record;

@@ -10,7 +10,6 @@
     "@effect/platform-node": "catalog:",
     "@hapsland/activity-observation": "workspace:*",
     "@hapsland/administration": "workspace:*",
-    "@hapsland/agent-flow-viz": "workspace:*",
     "@hapsland/canonical-defense": "workspace:*",
     "@hapsland/canonical-policy": "workspace:*",
     "@hapsland/delivery-output": "workspace:*",
@@ -34,7 +33,8 @@
     "tree-sitter-typescript": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "@hapsland/agent-flow-projection": "workspace:*"
   },
   "hapsland": {
     "workspaceRole": "tooling"

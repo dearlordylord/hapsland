@@ -7,6 +7,18 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./setup-copy": {
+      "types": "./src/setup-copy.ts",
+      "default": "./src/setup-copy.ts"
+    },
+    "./production-flow-mermaid": {
+      "types": "./src/production-flow-mermaid.ts",
+      "default": "./src/production-flow-mermaid.ts"
+    },
+    "./production-flow-presentation": {
+      "types": "./src/production-flow-presentation.ts",
+      "default": "./src/production-flow-presentation.ts"
     }
   },
   "scripts": {
