@@ -8,6 +8,7 @@ import { prepareReleaseArchive, auditPreparedArchive } from "./release-archive.m
 import { bendProducerEnvironmentKeys } from "./bend-producer.mjs"
 import {
   RELEASE_ARCHIVE_TIMEOUT_MS,
+  STANDALONE_PRODUCER_TIMEOUT_MS,
   PRODUCT_COMPILATION_TIMEOUT_MS,
   PRODUCT_ASSEMBLY_TIMEOUT_MS
 } from "./build-deadlines.mjs"
@@ -37,7 +38,8 @@ async function fixture(t) {
 }
 
 test("release budgets accommodate the standalone producer waves and archive work", () => {
-  assert.ok(PRODUCT_ASSEMBLY_TIMEOUT_MS > 5 * 120_000)
+  assert.ok(STANDALONE_PRODUCER_TIMEOUT_MS > 165_626)
+  assert.ok(PRODUCT_ASSEMBLY_TIMEOUT_MS > 5 * STANDALONE_PRODUCER_TIMEOUT_MS)
   assert.ok(RELEASE_ARCHIVE_TIMEOUT_MS > PRODUCT_COMPILATION_TIMEOUT_MS + PRODUCT_ASSEMBLY_TIMEOUT_MS)
   assert.ok(Number.isSafeInteger(RELEASE_ARCHIVE_TIMEOUT_MS))
 })

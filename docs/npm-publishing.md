@@ -66,9 +66,12 @@ host must receive the exact archive and audit in the same content-addressed
 layout or prepare and review a new candidate; missing artifacts never trigger
 an implicit rebuild.
 
-Archive preparation has a shared twenty-minute deadline. Compilation retains
-its five-minute deadline; standalone assembly has eleven minutes for ten
-producers at concurrency two, with each producer limited to two minutes. On
+Archive preparation has a shared thirty-minute deadline. Compilation retains
+its five-minute deadline; standalone assembly has twenty-one minutes for ten
+producers at concurrency two, with each producer limited to four minutes. A
+measured CLI producer on macOS arm64 took 165.6 seconds, exceeding the former
+two-minute producer limit. An inherited process-group deadline prints its cause
+before stopping the group, so the initiating failure remains visible. On
 interruption or timeout, owned process groups stop before their build lease is
 released. Incomplete or failed audits never produce a prepared pin.
 
