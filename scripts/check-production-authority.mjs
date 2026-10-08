@@ -104,6 +104,13 @@ const scan = (directory) => {
     )
       obsoleteImports.push(path)
     if (
+      path !== "packages/canonical-policy/src/canonical/maintenance-adapter.ts" &&
+      /from ["'](?:[^"']*maintenance-policy\.generated(?:\.js)?|@hapsland\/agent-flow-bend\/maintenance-policy)["']/.test(
+        source
+      )
+    )
+      obsoleteImports.push(path)
+    if (
       path !== "packages/canonical-policy/src/canonical/graph-adapter.ts" &&
       /from ["']@hapsland\/agent-flow-bend\/import-graph["']/.test(source)
     )

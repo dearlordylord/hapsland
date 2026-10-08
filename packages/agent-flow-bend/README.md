@@ -100,6 +100,15 @@ retains first-match stage extraction, exact digest and token comparisons,
 observation references, sequence/revision arithmetic, consent and Effect owners.
 These proofs do not establish physical installation or platform support.
 
+`maintenance-policy/core.bend` owns repair, reinstall and uninstall commands
+and transition plans. Two Astra-approved exact laws preserve discovery gates,
+per-host approval, callback fences, failure continuation, activation and
+navigation. The generator compares the complete phase/action/Boolean domain
+before binding native materializers. Host code retains host and digest equality,
+lowercase digest validation, native cursor arithmetic, ordered discovery,
+untouched agent references, consent and owner effects. The laws alone establish
+neither physical mutation nor platform support.
+
 `Canonical.bend` is the production transition model and drives the main
 visualization through the checked TypeScript adapter.
 The maintained [TypeScript decision boundary ledger](../../docs/typescript-decision-boundary-ledger.md)

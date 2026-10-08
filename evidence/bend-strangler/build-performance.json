@@ -1,7 +1,7 @@
 {
   "baselineRevision": "8772653dd5546eeb72e14787e6d22aaaefd17766",
-  "startedAt": "2026-10-08T12:11:38.259Z",
-  "at": "2026-10-08T12:11:57.617Z",
+  "startedAt": "2026-10-08T12:36:33.742Z",
+  "at": "2026-10-08T12:36:54.576Z",
   "roots": {
     "typescript": "/workspace/typescript/hapsland-bend-baseline-current",
     "integratedBend": "/workspace/typescript/hapsland-bend-setup"
@@ -19,7 +19,7 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 5.388314469,
+        "seconds": 5.626019759,
         "exitCode": 0,
         "signal": null,
         "error": null
@@ -27,7 +27,7 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 4.840761031,
+        "seconds": 5.159634131000001,
         "exitCode": 0,
         "signal": null,
         "error": null
@@ -37,7 +37,7 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 4.665572516999999,
+        "seconds": 5.338239905,
         "exitCode": 0,
         "signal": null,
         "error": null
@@ -45,14 +45,14 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 4.448654429999999,
+        "seconds": 4.699902317999999,
         "exitCode": 0,
         "signal": null,
         "error": null
       }
     ]
   },
-  "meanRatio": 0.891011797400459,
+  "meanRatio": 0.9306938944431488,
   "buildParity": true,
   "scope": "paired warm workspace builds; declared frozen baseline and current candidate; both separately prepared; native release assembly excluded"
 }

@@ -66,6 +66,9 @@ async function fixture(t) {
     })
   )
   mkdirSync(resolve(directory, "request-content"), { recursive: true })
+  mkdirSync(resolve(directory, "maintenance-policy"), { recursive: true })
+  writeFileSync(resolve(directory, "maintenance-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
+  writeFileSync(resolve(directory, "maintenance-policy/core.bend"), "// Maintenance fixture\n")
   mkdirSync(resolve(directory, "setup-policy"), { recursive: true })
   writeFileSync(resolve(directory, "setup-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
   writeFileSync(resolve(directory, "setup-policy/core.bend"), "// Setup fixture\n")
@@ -93,7 +96,8 @@ async function fixture(t) {
     "build-login-policy.mjs",
     "build-verification-policy.mjs",
     "build-update-policy.mjs",
-    "build-setup-policy.mjs"
+    "build-setup-policy.mjs",
+    "build-maintenance-policy.mjs"
   ])
     writeFileSync(resolve(directory, "scripts", name), "// Generator fixture identity\n")
   for (const name of [
@@ -104,7 +108,8 @@ async function fixture(t) {
     "login-policy.generated.d.ts",
     "verification-policy.generated.d.ts",
     "update-policy.generated.d.ts",
-    "setup-policy.generated.d.ts"
+    "setup-policy.generated.d.ts",
+    "maintenance-policy.generated.d.ts"
   ]) {
     writeFileSync(resolve(directory, "abi", name), "export declare const fixture: number;\n")
     writeFileSync(resolve(directory, "dist", name), "export declare const fixture: number;\n")
@@ -117,7 +122,8 @@ async function fixture(t) {
     "login-policy.generated.js",
     "verification-policy.generated.js",
     "update-policy.generated.js",
-    "setup-policy.generated.js"
+    "setup-policy.generated.js",
+    "maintenance-policy.generated.js"
   ])
     writeFileSync(resolve(directory, "dist", name), "export const fixture=1;\n")
   const node = { path: directory },
@@ -173,13 +179,13 @@ for (const text of [
 ])
   test(`rejects unsupported generated loader ${text}`, () =>
     assert.throws(() => bendGeneratedLoaderEvidence(text, "generated.js"), /Unsupported generated Bend loader/))
-test("valid receipt binds actual compiler/support/input bytes and exact sixteen outputs", async (t) => {
+test("valid receipt binds actual compiler/support/input bytes and exact eighteen outputs", async (t) => {
   const f = await fixture(t)
   assert.equal(f.verify().format, 1)
   assert.equal(f.context.toolchain.version, "bend 2.0.36")
   assert.ok(f.context.toolchain.support.inventory.length)
   assert.ok(f.context.toolchain.toolLibraries.length)
-  assert.equal(f.receipt.outputs.length, 16)
+  assert.equal(f.receipt.outputs.length, 18)
 })
 test("Bend-only scheduling replaces a stale PATH task stamp before the scheduler reads it", async (t) => {
   const f = await fixture(t)
@@ -339,6 +345,7 @@ test("Bend producer rejects unconsumed authored input drift and clears owned out
   writeFileSync(resolve(f.directory, "scripts/build-verification-policy.mjs"), generator("verification-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-update-policy.mjs"), generator("update-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-setup-policy.mjs"), generator("setup-policy"))
+  writeFileSync(resolve(f.directory, "scripts/build-maintenance-policy.mjs"), generator("maintenance-policy"))
   let toolchain = await bendProducerToolchain(f.root)
   prepareAuthoredTaskInputs(f.root, { packages: new Map([[manifest.name, owner]]) }, { bendToolchain: toolchain })
   await buildBendProducer(f.root, owner)
@@ -367,11 +374,13 @@ for (const file of [
   "verification-policy.generated.js",
   "update-policy.generated.js",
   "setup-policy.generated.js",
+  "maintenance-policy.generated.js",
   "credential-policy.generated.d.ts",
   "login-policy.generated.d.ts",
   "verification-policy.generated.d.ts",
   "update-policy.generated.d.ts",
-  "setup-policy.generated.d.ts"
+  "setup-policy.generated.d.ts",
+  "maintenance-policy.generated.d.ts"
 ])
   test(`omitted declared producer output ${file} cannot pass a receipt`, async (t) => {
     const f = await fixture(t)
@@ -440,5 +449,12 @@ test("setup proof edits invalidate producer receipt authority", async (t) => {
   const f = await fixture(t)
   f.verify()
   writeFileSync(resolve(f.directory, "setup-policy/PROOF.bend"), "import Base\n// Changed proof input\n")
+  assert.throws(f.verify, /Stale Bend producer receipt context|caller context is stale/)
+})
+
+test("maintenance proof edits invalidate producer receipt authority", async (t) => {
+  const f = await fixture(t)
+  f.verify()
+  writeFileSync(resolve(f.directory, "maintenance-policy/PROOF.bend"), "import Base\n// Changed proof input\n")
   assert.throws(f.verify, /Stale Bend producer receipt context|caller context is stale/)
 })

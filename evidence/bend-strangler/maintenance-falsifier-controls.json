@@ -1,0 +1,19 @@
+{
+  "at": "2026-10-08T12:22:10.339558+00:00",
+  "passed": true,
+  "results": [
+    {
+      "law": "command_exact",
+      "mutant": "command",
+      "exitCode": 1,
+      "detectedByDraftLawComparator": true
+    },
+    {
+      "law": "step_exact",
+      "mutant": "step",
+      "exitCode": 1,
+      "detectedByDraftLawComparator": true
+    }
+  ],
+  "scope": "two deliberate well-formed draft core faults detected by comparisons against unchanged draft law spec helpers; no universal proof or production acceptance"
+}
