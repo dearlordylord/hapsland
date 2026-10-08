@@ -8,7 +8,9 @@
 
 The [architecture decision](../adr/0004-administration-cli-interactions.md) defines ownership, consent and Effect lifetime. Installation and credential behavior remain governed by [installation workflows](../installation-workflows.md). The [testing matrix](../testing-matrix.md) determines required checks.
 
-`node scripts/check-ui-flows.mjs` checks source registration without building dependencies. The supported TypeScript compiler and workspace-build entries run it before compiling. The product build runs every registered replay and rejects stale Markdown before assembling a release. The [architecture decision](../adr/0004-administration-cli-interactions.md) records the enforcement boundary. [Flow-contract tests](../../scripts/check-ui-flows.test.mjs) exercise missing registrations, diagrams and generators against the real compiler/replay entries; [production replay checks](../../src/onboarding/ui-flow-diagrams.test.ts) run every registered interpreter.
+`node scripts/check-ui-flows.mjs` checks source registration without building dependencies. The supported TypeScript compiler and workspace-build entries run it before compiling. The product build runs every registered replay and rejects stale Markdown before assembling a release. [Flow-contract tests](../../scripts/check-ui-flows.test.mjs) exercise missing registrations, diagrams and generators against the real compiler/replay entries; [production replay checks](../../src/onboarding/ui-flow-diagrams.test.ts) run every registered interpreter.
+
+The closed registry governs each prompt owner’s permitted input kinds, shared fragments, child-flow connections and replay generator. Production input uses `flowInteraction`; child effects use typed `childFlow` dispatch. Source preflight rejects unregistered input, undeclared child entries or fragments, missing production dispatches, diagrams and replay mappings. Raw input capabilities are restricted to the fixed transport and composition boundaries. These checks enforce workflow registration and generated-document freshness; finite replay scenarios do not establish exhaustive transition coverage.
 
 <!-- ui-flow-inventory:start -->
 
