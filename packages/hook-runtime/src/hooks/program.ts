@@ -1,3 +1,4 @@
+import type { NativeEditMetadata } from "@hapsland/native-observation/direct-event/observation"
 import * as ConfigProvider from "effect/ConfigProvider"
 import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
@@ -104,11 +105,27 @@ const runNative = Effect.fn("Hook.runNative")(function* (
   if (options["claude-hook"]) {
     if (!options["composed-edit-hook"]) return {}
     let editPolicy: ResidentEditPolicy | undefined
+    let metadata: NativeEditMetadata | undefined
+    let skippedOtherRoot = false
     const callerCwd = hookCallerCwd(event)
     const observation = yield* adaptClaudeDirectEvent(event, {
       ...(userConfigPath === undefined ? {} : { userConfigPath }),
+      observeNative: (value) => {
+        metadata = skippedOtherRoot
+          ? {
+              ...value,
+              admission: "skipped-other-root",
+              candidates: value.candidates.map((candidate) => ({
+                ...candidate,
+                selection: { status: "not-evaluated" }
+              }))
+            }
+          : value
+      },
       capturePolicy: (root, advicee, path) =>
-        readComposedEditPolicyEffect(root, advicee, undefined, [path]).pipe(
+        readComposedEditPolicyEffect(root, advicee, undefined, [path], (outcome) => {
+          skippedOtherRoot = outcome === "skipped-other-root"
+        }).pipe(
           Effect.catch(() => Effect.succeed(undefined)),
           Effect.map((policy) => {
             editPolicy = policy
@@ -118,7 +135,16 @@ const runNative = Effect.fn("Hook.runNative")(function* (
     })
     if (observation === undefined) yield* dispatch.retireNativeEditPermits(event, "claude-code")
     return yield* dispatch
-      .runDirectBoundedHook(observation, controlled, statePath, activityPath, userConfigPath, editPolicy, callerCwd)
+      .runDirectBoundedHook(
+        observation,
+        controlled,
+        statePath,
+        activityPath,
+        userConfigPath,
+        editPolicy,
+        callerCwd,
+        metadata
+      )
       .pipe(Effect.catch(() => Effect.succeed({})))
   }
   if (options["codex-hook"]) {

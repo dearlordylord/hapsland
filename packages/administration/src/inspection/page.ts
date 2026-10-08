@@ -353,6 +353,35 @@ function omissionLabel(reason) {
   };
   return labels[reason] || reason;
 }
+function diagnosticContext(fact, receipt) {
+  const candidate = receipt?.fact.candidates.find(item => item.position === fact.candidatePosition);
+  const source = fact.path;
+  const paths = candidate && source && candidate.path !== source
+    ? 'Edited: ' + candidate.path + ' · Capture source: ' + source
+    : source || candidate?.path || '';
+  const ownership = fact.candidatePosition !== undefined && !candidate ? 'Original candidate unavailable' : '';
+  return [paths, fact.declaration, ownership].filter(Boolean).join(' · ');
+}
+function diagnosticLabel(diagnostic) {
+  const args = diagnostic.args;
+  const labels = {
+    'file-extension': 'Unsupported extension', 'edit-policy-unavailable': 'Pre-edit selection policy unavailable',
+    'capture-size-limit': 'Source exceeds capture limit', 'capture-budget-limit': 'Capture budget exhausted',
+    'capture-unavailable': 'Capture unavailable', 'capture-unstable': 'Source changed during capture',
+    'capture-validation-failed': 'Capture validation refused', 'preparation-resource-refused': 'Preparation capacity refused',
+    'preparation-unavailable': 'Preparation unavailable', 'attribution-unavailable': 'Native edit attribution unavailable',
+    'dispatch-unavailable': 'Review dispatch unavailable', 'unsupported-operation': 'Operation outside the supported review profile'
+  };
+  const label = diagnostic.code === 'panic' ? 'Unexpected failure at ' + args.boundary : labels[diagnostic.code] || omissionLabel(diagnostic.code);
+  let details = '';
+  if (diagnostic.code === 'file-extension') details = args.extension || '(no extension)';
+  else if (diagnostic.code === 'capture-size-limit') details = args.observedBytes + ' bytes observed; limit ' + args.limitBytes + ' bytes';
+  else if (diagnostic.code === 'capture-budget-limit') details = args.resource + ': used ' + args.used + ', requested ' + args.requested + ', limit ' + args.limit;
+  else if (diagnostic.code === 'preparation-resource-refused') details = args.phase + ': requested ' + args.requestedBytes + ' bytes' + (args.constraint ? '; constraint ' + args.constraint : '');
+  else if (args.reason !== undefined) details = args.reason === 'unknown' ? 'precise cause not observed' : args.reason;
+  else if (args.checkpoint !== undefined) details = args.checkpoint;
+  return diagnostic.stage + ' · ' + label + (details ? ' · ' + details : '') + ' [' + diagnostic.code + ']';
+}
 function editReviewBadges(records) {
   const unique = Array.from(new Map(records.map(record => [record.source.id + ':' + record.sequence, record])).values());
   const calls = unique.filter(record => record.fact.kind === 'model-input').length;
@@ -423,7 +452,7 @@ function render(snapshot) {
   const showHiddenGroup = () => {
     if (!hiddenCount) return;
     const marker = document.createElement('li'); marker.className = 'hidden-edits muted';
-    marker.textContent = hiddenCount + ' edits without classifier calls'; list.append(marker); hiddenCount = 0;
+    marker.textContent = hiddenCount + ' edits without retained request attempts'; list.append(marker); hiddenCount = 0;
   };
   for (const [identity, records] of Array.from(rows).reverse()) {
     const received = records.find(record => record.fact.kind === 'edit-received');
@@ -431,11 +460,11 @@ function render(snapshot) {
     const label = first.scope.root + ' · ' + (first.scope.runtime || 'runtime unavailable') + ' · ' + (received ? received.fact.candidates.map(item => item.path).join(', ') : 'Receipt data unavailable');
     const searchable = label + ' · ' + first.source.endpoint + ' · ' + first.source.lifetime + ' · ' + (first.scope.sessionId || '') + ' · ' + (first.scope.subagentId || '');
     if (!matchesIdentity(first) || !searchable.toLowerCase().includes(filter.value.toLowerCase())) continue;
-    if (hideUnreviewed.checked && !records.some(record => record.fact.kind === 'model-input')) { hiddenCount += 1; continue; }
+    if (hideUnreviewed.checked && !records.some(record => record.fact.kind === 'transport-invoked')) { hiddenCount += 1; continue; }
     showHiddenGroup();
     const button = document.createElement('button');
     button.type = 'button'; button.dataset.key = identity;
-    if (!records.some(record => record.fact.kind === 'model-input')) button.classList.add('edit-unreviewed');
+    if (!records.some(record => record.fact.kind === 'transport-invoked')) button.classList.add('edit-unreviewed');
     const pathLabel = document.createElement('strong'); pathLabel.textContent = received ? received.fact.candidates.map(item => item.path).join(', ') : 'Edit paths unavailable';
     const contextLabel = document.createElement('small'); contextLabel.textContent = (first.scope.runtime || 'Runtime unavailable') + ' · ' + new Date(first.capturedAt).toLocaleTimeString();
     const badges = document.createElement('span'); badges.className = 'edit-badges';
@@ -469,6 +498,17 @@ function render(snapshot) {
   const activeRoute = document.activeElement?.dataset.route;
   routes.replaceChildren();
 
+  for (const candidate of receipt?.fact.candidates || []) {
+    const item = requestElement('p');
+    const selection = candidate.selection;
+    item.textContent = candidate.path + ' · ' + (selection.status === 'selected' ? 'Selected for capture' :
+      selection.status === 'not-evaluated' ? 'Selection not evaluated' : diagnosticLabel(selection.diagnostic));
+    routes.append(item);
+  }
+  for (const record of records.filter(record => record.fact.kind === 'diagnostic')) {
+    const context = diagnosticContext(record.fact, receipt);
+    const item = requestElement('p', (context ? context + ' · ' : '') + diagnosticLabel(record.fact.diagnostic)); routes.append(item);
+  }
   const routeRecords = records.filter(record => record.fact.kind === 'evaluation-route');
   const skippedRecords = records.filter(record => record.fact.kind === 'preparation-skipped');
   const omissionRecords = records.filter(record => record.fact.kind === 'preparation-omission');
@@ -623,7 +663,7 @@ const hash = (value: string) => `'sha256-${createHash("sha256").update(value).di
 export const inspectionPagePolicy = `default-src 'none'; script-src ${hash(script)}; style-src ${hash(style)}; img-src data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'`
 export const inspectionPage = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hapsland inspection</title><link rel="icon" type="image/svg+xml" href="${inspectionFavicon}"><style>${style}</style><body>
 <header><h1><img class="brand-icon" src="${inspectionProductIcon}" alt="" width="32" height="32">Hapsland inspection</h1><div class="header-actions"><p id="status" role="status">Connecting…</p><span id="recording-summary">Recording: Unknown</span></div></header>
-<div class="toolbar"><label class="search">Search edits<input id="filter" type="search" placeholder="Path, project or runtime"></label><div id="filter-panel"><div class="identity-filters"><label>Project<span id="root-filter-count" class="muted"> · 0</span><select id="root-filter"><option value="">All</option></select></label><label>Runtime<span id="runtime-filter-count" class="muted"> · 0</span><select id="runtime-filter"><option value="">All</option></select></label><label>Session<span id="session-filter-count" class="muted"> · 0</span><select id="session-filter"><option value="">All</option></select></label><label>Child<span id="child-filter-count" class="muted"> · 0</span><select id="child-filter"><option value="">All</option></select></label><label>Resident<span id="resident-filter-count" class="muted"> · 0</span><select id="resident-filter"><option value="">All</option></select></label><label class="checkbox-filter"><input id="hide-unreviewed" type="checkbox"${defaultInspectionFilters.hideUnreviewed ? " checked" : ""}>Hide edits without classifier calls</label><button id="clear-filters" type="button">Clear filters</button></div></div></div>
+<div class="toolbar"><label class="search">Search edits<input id="filter" type="search" placeholder="Path, project or runtime"></label><div id="filter-panel"><div class="identity-filters"><label>Project<span id="root-filter-count" class="muted"> · 0</span><select id="root-filter"><option value="">All</option></select></label><label>Runtime<span id="runtime-filter-count" class="muted"> · 0</span><select id="runtime-filter"><option value="">All</option></select></label><label>Session<span id="session-filter-count" class="muted"> · 0</span><select id="session-filter"><option value="">All</option></select></label><label>Child<span id="child-filter-count" class="muted"> · 0</span><select id="child-filter"><option value="">All</option></select></label><label>Resident<span id="resident-filter-count" class="muted"> · 0</span><select id="resident-filter"><option value="">All</option></select></label><label class="checkbox-filter"><input id="hide-unreviewed" type="checkbox"${defaultInspectionFilters.hideUnreviewed ? " checked" : ""}>Hide edits without retained requests</label><button id="clear-filters" type="button">Clear filters</button></div></div></div>
 <main><section class="edit-list" aria-label="Captured edits"><p id="visible-count" class="muted" role="status"></p><p id="call-summary" class="muted"></p><p class="muted">Last captured event: <time id="last-event">No retained events</time><br>Last received edit: <time id="last-edit">No retained events</time><small>Across all retained activity, including hidden edits.</small></p><ul id="edits"></ul></section><section id="selected-evidence" aria-label="Selected evidence"><p id="selection-status" role="status"></p><p id="edit-empty" class="empty">Select an edit</p><div id="edit-content" hidden><h2 id="edit-title"></h2><p id="edit-context" class="muted"></p><section id="review"><h3>Review</h3><div id="routes"></div><div id="finding-summary"></div></section>
 <details id="panel-request"><summary id="request-panel-summary">Request</summary><p class="muted">Captured HTTP attempts do not confirm remote receipt.</p><ul id="requests"></ul><div id="request-view"></div><details id="request-raw"><summary>JSON</summary><pre id="exact"></pre></details><details><summary>Request metadata</summary><pre id="request-metadata"></pre></details><details><summary>Model input</summary><pre id="input"></pre></details></details>
 <details id="panel-files"><summary>Files</summary><div id="files"></div><details><summary>Included source</summary><pre id="source"></pre></details></details>

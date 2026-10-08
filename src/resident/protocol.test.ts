@@ -341,3 +341,100 @@ describe("resident protocol bounds", () => {
     ).toBeUndefined()
   })
 })
+
+it("bounds source-free native recording independently of review admission", () => {
+  const projection = {
+    root: "/tmp/repository",
+    rootIdentity: {
+      rootDevice: "1",
+      rootInode: "2",
+      gitDirectory: "/tmp/repository/.git",
+      gitDevice: "1",
+      gitInode: "3"
+    },
+    advicee: advicee(),
+    candidates: [
+      {
+        position: 0,
+        operation: "update",
+        path: "private.mjs",
+        selection: {
+          status: "excluded",
+          diagnostic: { stage: "selection", code: "file-extension", args: { extension: ".mjs" } }
+        }
+      }
+    ]
+  }
+  const request = {
+    requestRoute: "shared",
+    operation: "record-native",
+    lifetime: "owner",
+    metadata: [projection],
+    userConfigPath: null
+  }
+  expect(decodeResidentRequest(JSON.stringify(request))).toEqual(request)
+  const admission = {
+    requestRoute: "shared",
+    operation: "admit",
+    lifetime: "owner",
+    composed: true,
+    controlledWriter: true,
+    dispatch: { statePath: "/tmp/consent", userConfigPath: null, credential: null, controlled: {} },
+    observation: {
+      root: projection.root,
+      rootIdentity: projection.rootIdentity,
+      advicee: projection.advicee,
+      candidates: [{ operation: "update", path: "private.mjs", addedLines: [] }],
+      nativeMetadata: [projection]
+    }
+  }
+  expect(decodeResidentRequest(JSON.stringify(admission))).toEqual(admission)
+  for (const observation of [
+    {
+      ...admission.observation,
+      candidates: [...admission.observation.candidates, { operation: "add", path: "other.ts" }]
+    },
+    { ...admission.observation, candidateRoots: [] },
+    {
+      ...admission.observation,
+      candidates: [{ operation: "delete", path: "private.mjs", addedLines: [], moveTo: "other.mjs" }]
+    }
+  ])
+    expect(decodeResidentRequest(JSON.stringify({ ...admission, observation }))).toBeUndefined()
+  for (const metadata of [
+    { ...projection, root: "/unrelated" },
+    { ...projection, advicee: { ...projection.advicee, sessionId: "other" } },
+    { ...projection, rootIdentity: { ...projection.rootIdentity, rootInode: "other" } },
+    { ...projection, candidates: [{ ...projection.candidates[0], path: "unrelated.mjs" }] },
+    { ...projection, candidates: [{ ...projection.candidates[0], operation: "delete" }] },
+    { ...projection, candidates: [{ ...projection.candidates[0], position: 1 }] }
+  ])
+    expect(
+      decodeResidentRequest(
+        JSON.stringify({ ...admission, observation: { ...admission.observation, nativeMetadata: [metadata] } })
+      )
+    ).toBeUndefined()
+  for (const change of [
+    { credential: { secret: "PRIVATE" } },
+    { dispatch: {} },
+    { receiptId: "caller" },
+    { facts: [] },
+    { source: "PRIVATE" },
+    { metadata: [{ ...projection, source: "PRIVATE" }] },
+    { metadata: [{ ...projection, candidates: [{ ...projection.candidates[0], source: "PRIVATE" }] }] },
+    { metadata: [projection, projection] },
+    {
+      metadata: [
+        { ...projection, candidates: [{ ...projection.candidates[0], position: 1 }, projection.candidates[0]] }
+      ]
+    },
+    { metadata: [{ ...projection, candidates: [{ ...projection.candidates[0], position: 16 }] }] },
+    {
+      metadata: [
+        { ...projection, diagnostic: { stage: "capture", code: "panic", args: { boundary: "file-selection" } } }
+      ]
+    },
+    { metadata: [{ ...projection, diagnostic: { stage: "capture", code: "error", args: { message: "PRIVATE" } } }] }
+  ])
+    expect(decodeResidentRequest(JSON.stringify({ ...request, ...change }))).toBeUndefined()
+})

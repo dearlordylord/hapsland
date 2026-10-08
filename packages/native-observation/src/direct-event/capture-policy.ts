@@ -1,9 +1,12 @@
 import * as Effect from "effect/Effect"
-import type { CaptureHooks } from "./capture.ts"
-import type { DirectAdvicee } from "./observation.ts"
-import type { DirectFilePolicy } from "./selection.ts"
+import { captureStable, type CaptureHooks } from "./capture.ts"
+import type { NativeEditMetadata, DirectAdvicee } from "./observation.ts"
+import { resolvedDirectFilePolicy, type DirectFilePolicy } from "./selection.ts"
+import { loadConfiguration } from "@hapsland/runtime-inputs/configuration/load"
 
 export type DirectCaptureOptions = {
+  readonly observeNative?: (metadata: NativeEditMetadata) => void
+
   readonly userConfigPath?: string
   readonly captureHooks?: CaptureHooks
   readonly filePolicy?: DirectFilePolicy
@@ -25,3 +28,50 @@ export const captureOptionsForTarget = Effect.fn("DirectEvent.captureOptionsForT
   const filePolicy = yield* options.capturePolicy(root, advicee, path)
   return filePolicy === undefined ? undefined : { ...options, filePolicy }
 })
+
+export const captureFilePolicy = Effect.fn("DirectEvent.captureFilePolicy")(function* (
+  root: string,
+  selected: DirectCaptureOptions | undefined,
+  userConfigPath: string | undefined
+) {
+  if (selected === undefined) return undefined
+  if (selected.filePolicy !== undefined && selected.filePolicy !== null) return selected.filePolicy
+  const configuration = yield* loadConfiguration(root, userConfigPath === undefined ? {} : { userConfigPath })
+  return resolvedDirectFilePolicy(configuration.policy)
+})
+export const captureNativeTarget = Effect.fn("DirectEvent.captureNativeTarget")(function* (
+  metadata: NativeEditMetadata,
+  relativePath: string,
+  absolutePath: string,
+  selected: DirectCaptureOptions,
+  options: DirectCaptureOptions
+) {
+  let panicked = false
+  const content = yield* captureStable(
+    metadata.root,
+    { relativePath, absolutePath },
+    selected.captureHooks,
+    metadata.rootIdentity
+  ).pipe(
+    Effect.catchDefect(() =>
+      Effect.sync(() => {
+        panicked = true
+        observeNativeMetadata(options, {
+          ...metadata,
+          diagnostic: { stage: "capture", code: "panic", args: { boundary: "stable-capture" } }
+        })
+        return undefined
+      })
+    )
+  )
+  if (content === undefined && !panicked)
+    observeNativeMetadata(options, {
+      ...metadata,
+      diagnostic: { stage: "capture", code: "capture-unavailable", args: { reason: "unknown" } }
+    })
+  return content
+})
+
+export const observeNativeMetadata = (options: DirectCaptureOptions, metadata: NativeEditMetadata): void => {
+  options.observeNative?.(metadata)
+}

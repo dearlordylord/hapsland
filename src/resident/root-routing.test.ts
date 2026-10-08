@@ -123,13 +123,13 @@ describe("target-root virtual rounds", () => {
       residentUnitReservationBytes({ ...observation, root }, dispatch, { ...ready.prepared, root })
     expect(charge(longRoot) - charge(shortRoot)).toBeGreaterThanOrEqual(6 * (longRoot.length - shortRoot.length))
   })
-  it("records source-free skipped native targets against the pinned round through IPC", async () => {
+  it.each([false, true])("uses the skipped target's own inspection consent (%s) through IPC", async (enabled) => {
     const a = await makeReviewGitFixture()
     const b = await makeReviewGitFixture()
     const c = await makeReviewGitFixture()
     const user = await put(a, "user.jsonc", JSON.stringify({ version: 1 }))
     await put(b, ".hapsland.jsonc", JSON.stringify({ version: 1, sessionInspection: true }))
-    await put(c, ".hapsland.jsonc", JSON.stringify({ version: 1, sessionInspection: false }))
+    await put(c, ".hapsland.jsonc", JSON.stringify({ version: 1, sessionInspection: enabled }))
     const target = await put(b, "value.ts", "const value = 1\n")
     const skipped = await put(c, "value.ts", "const secretFromOtherRoot = 2\n")
     const records: InspectionRecord[] = []
@@ -139,12 +139,13 @@ describe("target-root virtual rounds", () => {
         write: (record) =>
           Effect.sync(() => {
             records.push(record)
-            if (record.fact.kind === "round-membership" && record.fact.skippedPaths.includes(skipped)) written.resolve()
+            if (record.scope.root === c && record.fact.kind === "edit-admission") written.resolve()
           })
       }
     })
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(a, [target])))
-    if (observation === undefined) throw new Error("missing inspected target")
+    const other = await Effect.runPromise(adaptCodexDirectEvent(addEvent(c, [skipped], { tool_use_id: "skipped" })))
+    if (observation === undefined || other === undefined) throw new Error("missing native target")
     const dispatch: ResidentDispatchContext = {
       statePath: join(a, "state"),
       userConfigPath: user,
@@ -154,32 +155,44 @@ describe("target-root virtual rounds", () => {
     expect((await Effect.runPromise(server.admit(observation, dispatch, true))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     await Effect.runPromise(server.listen())
+    const call = (request: Parameters<typeof residentRequestEffect>[1]) =>
+      Effect.runPromise(residentRequestEffect(server.paths, request))
     expect(
-      await Effect.runPromise(
-        residentRequestEffect(server.paths, {
-          requestRoute: "shared",
-          operation: "edit-policy",
-          lifetime: server.lifetime,
-          root: c,
-          advicee: { ...observation.advicee, toolUseId: "skipped" },
-          targetPaths: [skipped]
-        })
-      )
+      await call({
+        requestRoute: "shared",
+        operation: "edit-policy",
+        lifetime: server.lifetime,
+        root: c,
+        advicee: other.advicee,
+        targetPaths: [skipped]
+      })
     ).toEqual({ status: "skipped-other-root" })
-    await written.promise
-    const membership = records.find(
-      (record) => record.fact.kind === "round-membership" && record.fact.skippedPaths.includes(skipped)
-    )!
-    expect(membership.scope.root).toBe(b)
-    expect(membership.correlation.roundId).toBeDefined()
-    const receipt = records.filter((record) => record.correlation.receiptId === membership.correlation.receiptId)
-    expect(receipt.map(({ fact }) => fact.kind)).toEqual(["edit-received", "edit-admission", "round-membership"])
-    expect(receipt.find(({ fact }) => fact.kind === "edit-admission")?.fact).toEqual({
-      kind: "edit-admission",
-      outcome: "skipped-other-root"
-    })
+    // A policy lookup alone is not a native observation and must not invent a receipt.
+    expect(records.some((record) => record.fact.kind === "edit-received" && record.scope.root === c)).toBe(false)
+    expect(
+      await call({
+        requestRoute: "shared",
+        operation: "record-native",
+        lifetime: server.lifetime,
+        userConfigPath: user,
+        metadata: [
+          {
+            root: c,
+            rootIdentity: other.rootIdentity,
+            advicee: other.advicee,
+            admission: "skipped-other-root",
+            candidates: [{ position: 0, operation: "add", path: "value.ts", selection: { status: "not-evaluated" } }]
+          }
+        ]
+      })
+    ).toEqual({ status: "empty" })
+    if (enabled) {
+      await written.promise
+      const receipt = records.filter((record) => record.scope.root === c && record.correlation.receiptId !== undefined)
+      expect(receipt.map(({ fact }) => fact.kind)).toEqual(["edit-received", "edit-admission"])
+      expect(receipt[1]?.fact).toEqual({ kind: "edit-admission", outcome: "skipped-other-root" })
+    } else expect(records.every(({ scope }) => scope.root === b)).toBe(true)
     expect(JSON.stringify(records)).not.toContain("secretFromOtherRoot")
-    expect(records.every(({ scope }) => scope.root === b)).toBe(true)
   })
   it("rejects replacement of a physical target after its pre-edit capture without selecting a root", async () => {
     const a = await makeReviewGitFixture()

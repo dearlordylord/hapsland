@@ -1,11 +1,16 @@
-import { captureOptionsForTarget, type DirectCaptureOptions } from "./capture-policy.ts"
-import { relative, resolve, isAbsolute, sep } from "node:path"
+import {
+  captureOptionsForTarget,
+  captureFilePolicy,
+  captureNativeTarget,
+  observeNativeMetadata,
+  type DirectCaptureOptions
+} from "./capture-policy.ts"
+import { relative, resolve, sep } from "node:path"
 import * as Effect from "effect/Effect"
 import { discoverPhysicalWorkingTreeRoot, discoverToolTargetRoot } from "../repository/root.ts"
-import { loadConfiguration } from "@hapsland/runtime-inputs/configuration/load"
-import { captureStable, MAX_SOURCE_BYTES, type CaptureHooks } from "./capture.ts"
-import { eligibleNamedPath, resolvedDirectFilePolicy, type DirectFilePolicy } from "./selection.ts"
-import type { DirectAdvicee, DirectObservation, PhysicalRootIdentity } from "./observation.ts"
+import { MAX_SOURCE_BYTES } from "./capture.ts"
+import { nativeSelection } from "./selection.ts"
+import type { NativeEditMetadata, DirectAdvicee, DirectObservation } from "./observation.ts"
 import { verifyPiPostEditHunks } from "./pi-patch-hunks.ts"
 
 const record = (value: unknown): Record<string, unknown> | undefined =>
@@ -79,53 +84,19 @@ const payload = (event: Record<string, unknown>) => {
   if (!boundedAscii(input.path, 16_384) || !boundedAscii(details.patch, MAX_SOURCE_BYTES)) return undefined
   return validNativeEdits(input.edits) ? { path: input.path, patch: details.patch } : undefined
 }
-type AdapterOptions = {
-  readonly userConfigPath?: string
-  readonly captureHooks?: CaptureHooks
-  readonly filePolicy?: DirectFilePolicy
-  readonly capturePolicy?: (
-    root: string,
-    advicee: DirectAdvicee,
-    path: string
-  ) => Effect.Effect<DirectFilePolicy | undefined>
+const identifiedPiPayload = (value: unknown) => {
+  const identified = identity(value)
+  if (identified === undefined) return undefined
+  const input = payload(identified.event)
+  return input === undefined ? undefined : { ...identified, input }
 }
-const rootRelativePath = (root: string, cwd: string, namedPath: string): string | undefined => {
-  const path = relative(root, resolve(cwd, namedPath))
-  return isAbsolute(path) || path === ".." || path.startsWith(`..${sep}`) ? undefined : path
-}
-const captureSelectedPiFile = Effect.fn("DirectEvent.captureSelectedPiFile")(function* (
-  root: { root: string; rootIdentity: PhysicalRootIdentity },
-  cwd: string,
-  namedPath: string,
-  options: AdapterOptions
-) {
-  const path = rootRelativePath(root.root, cwd, namedPath)
-  if (path === undefined) return undefined
-  const configuration =
-    options.filePolicy === undefined
-      ? yield* loadConfiguration(
-          root.root,
-          options.userConfigPath === undefined ? {} : { userConfigPath: options.userConfigPath }
-        )
-      : undefined
-  const eligible = yield* eligibleNamedPath(
-    root.root,
-    path,
-    options.filePolicy ?? resolvedDirectFilePolicy(configuration!.policy),
-    root.rootIdentity
-  )
-  if (eligible === undefined) return undefined
-  const source = yield* captureStable(root.root, eligible, options.captureHooks, root.rootIdentity)
-  return source === undefined || !ascii(source.text) ? undefined : { source, eligible }
-})
 export const adaptPiDirectEvent = Effect.fn("DirectEvent.adaptPiDirectEvent")(function* (
   value: unknown,
   options: DirectCaptureOptions = {}
 ) {
-  const identified = identity(value)
+  const identified = identifiedPiPayload(value)
   if (identified === undefined) return undefined
-  const input = payload(identified.event)
-  if (input === undefined) return undefined
+  const input = identified.input
   const cwd = identified.event.cwd as string
   const root = yield* discoverToolTargetRoot(cwd, input.path).pipe(Effect.option)
   if (root._tag === "None") return undefined
@@ -135,17 +106,41 @@ export const adaptPiDirectEvent = Effect.fn("DirectEvent.adaptPiDirectEvent")(fu
     identified.advicee,
     root.value.absolutePath
   )
-  if (selectedOptions === undefined) return undefined
-  const captured = yield* captureSelectedPiFile(root.value, cwd, root.value.absolutePath, selectedOptions)
-  if (captured === undefined) return undefined
-  const { source, eligible } = captured
-  const evidence = verifyPiPostEditHunks(input.patch, input.path, source.text, eligible.relativePath)
-  if (evidence === undefined) return undefined
-  return {
+  const relativePath = relative(root.value.root, root.value.absolutePath).replaceAll(sep, "/")
+  const filePolicy = yield* captureFilePolicy(root.value.root, selectedOptions, options.userConfigPath)
+  const selection = yield* nativeSelection(
+    root.value.root,
+    { operation: "update", path: relativePath },
+    filePolicy,
+    root.value.rootIdentity
+  )
+  const metadata: NativeEditMetadata = {
     root: root.value.root,
     rootIdentity: root.value.rootIdentity,
     advicee: identified.advicee,
-    candidates: [{ operation: "update", path: eligible.relativePath, addedLines: evidence.addedLines }],
-    verifiedPostEditHunks: { path: eligible.relativePath, contentHash: source.contentHash, hunks: evidence.hunks }
+    candidates: [{ position: 0, operation: "update", path: relativePath, selection }]
+  }
+  observeNativeMetadata(options, metadata)
+  if (selection.status !== "selected" || selectedOptions === undefined) return undefined
+  const source = yield* captureNativeTarget(metadata, relativePath, root.value.absolutePath, selectedOptions, options)
+  if (source === undefined) return undefined
+
+  const evidence = ascii(source.text)
+    ? verifyPiPostEditHunks(input.patch, input.path, source.text, relativePath)
+    : undefined
+  if (evidence === undefined) {
+    observeNativeMetadata(options, {
+      ...metadata,
+      diagnostic: { stage: "observation", code: "attribution-unavailable", args: {} }
+    })
+    return undefined
+  }
+  return {
+    nativeMetadata: [metadata],
+    root: root.value.root,
+    rootIdentity: root.value.rootIdentity,
+    advicee: identified.advicee,
+    candidates: [{ operation: "update", path: relativePath, addedLines: evidence.addedLines }],
+    verifiedPostEditHunks: { path: relativePath, contentHash: source.contentHash, hunks: evidence.hunks }
   } satisfies DirectObservation
 })

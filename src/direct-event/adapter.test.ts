@@ -272,7 +272,7 @@ describe("direct-event Codex Add adapter", () => {
       { operation: "add", path: "add.ts", addedLines: ["type Add = number"] },
       { operation: "update", path: "update.ts", addedLines: ["type Update = number"] },
       { operation: "delete", path: "delete.ts", addedLines: [] },
-      { operation: "move", path: "old.ts", addedLines: [] }
+      { operation: "move", path: "old.ts", addedLines: [], moveTo: "new.ts" }
     ])
   })
 
@@ -294,7 +294,7 @@ describe("direct-event Codex Add adapter", () => {
       adaptCodexDirectEvent(addEvent(root, ["ignored.ts"], { tool_input: { command } }))
     )
     expect(result?.candidates).toEqual([
-      { operation: "move", path: "old.ts", addedLines: [] },
+      { operation: "move", path: "old.ts", addedLines: [], moveTo: "new.ts" },
       { operation: "add", path: "good.ts", addedLines: ["type Good = number"] }
     ])
   })

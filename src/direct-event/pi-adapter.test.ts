@@ -312,3 +312,59 @@ it("enforces the aggregate added-line bound across separate native hunks", async
     )
   ).toBeUndefined()
 })
+
+it("observes an excluded Pi candidate without reading its source", async () => {
+  const { root, event } = await fixture()
+  await writeFile(join(root, "private.mjs"), "PRIVATE_EXCLUDED_PI_SOURCE\n")
+  const observed: Array<import("@hapsland/native-observation/direct-event/observation").NativeEditMetadata> = []
+  let reads = 0
+  expect(
+    await Effect.runPromise(
+      adaptPiDirectEvent(
+        {
+          ...event,
+          input: { ...event.input, path: "private.mjs" },
+          details: { patch: event.details.patch.replaceAll("a.ts", "private.mjs") }
+        },
+        {
+          observeNative: (metadata) => observed.push(metadata),
+          captureHooks: {
+            sourceRead: () => {
+              reads += 1
+            }
+          }
+        }
+      )
+    )
+  ).toBeUndefined()
+  expect(reads).toBe(0)
+  expect(observed[0]?.candidates).toEqual([
+    {
+      position: 0,
+      operation: "update",
+      path: "private.mjs",
+      selection: {
+        status: "excluded",
+        diagnostic: { stage: "selection", code: "file-extension", args: { extension: ".mjs" } }
+      }
+    }
+  ])
+  expect(JSON.stringify(observed)).not.toContain("PRIVATE_EXCLUDED_PI_SOURCE")
+})
+
+it("records a source-free Pi capture panic at the failing boundary", async () => {
+  const { event } = await fixture()
+  const observed: Array<import("@hapsland/native-observation/direct-event/observation").NativeEditMetadata> = []
+  expect(
+    await Effect.runPromise(
+      adaptPiDirectEvent(event, {
+        observeNative: (metadata) => observed.push(metadata),
+        captureHooks: { betweenReads: () => Effect.die("PRIVATE_PI_CAPTURE_ERROR") }
+      })
+    )
+  ).toBeUndefined()
+  expect(observed.map((metadata) => metadata.diagnostic).filter(Boolean)).toEqual([
+    { stage: "capture", code: "panic", args: { boundary: "stable-capture" } }
+  ])
+  expect(JSON.stringify(observed)).not.toContain("PRIVATE_PI_CAPTURE_ERROR")
+})

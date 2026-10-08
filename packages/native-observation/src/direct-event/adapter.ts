@@ -1,4 +1,10 @@
-import { captureOptionsForTarget, type DirectCaptureOptions } from "./capture-policy.ts"
+import {
+  captureOptionsForTarget,
+  captureFilePolicy,
+  captureNativeTarget,
+  observeNativeMetadata,
+  type DirectCaptureOptions
+} from "./capture-policy.ts"
 import {
   discoverPhysicalWorkingTreeRoot,
   discoverToolTargetRoot,
@@ -7,17 +13,16 @@ import {
 } from "../repository/root.ts"
 import { isAbsolute, relative, resolve, sep } from "node:path"
 import * as Effect from "effect/Effect"
-import { loadConfiguration } from "@hapsland/runtime-inputs/configuration/load"
 import type {
+  NativeEditMetadata,
   DirectCandidate,
   DirectObservation,
   DirectAdvicee,
-  PhysicalRootIdentity,
   CodexHostVersion
 } from "./observation.ts"
 import type { PostEditLocation, VerifiedPatchHunk } from "./edit-attribution.ts"
-import { MAX_SOURCE_BYTES, captureStable, type CaptureHooks } from "./capture.ts"
-import { eligibleNamedPath, resolvedDirectFilePolicy, type DirectFilePolicy } from "./selection.ts"
+import { MAX_SOURCE_BYTES } from "./capture.ts"
+import { nativeSelection } from "./selection.ts"
 
 export const MAX_CODEX_COMMAND_BYTES = 65_536
 export const MAX_CODEX_CANDIDATES = 16
@@ -38,7 +43,7 @@ export const isCodexNativeApplyPatch = (value: unknown): boolean => {
   return event?.hook_event_name === "PostToolUse" && event.tool_name === "apply_patch"
 }
 
-type PatchCandidate = { operation: DirectCandidate["operation"]; path: string; addedLines: string[] }
+type PatchCandidate = { operation: DirectCandidate["operation"]; path: string; addedLines: string[]; moveTo?: string }
 type PatchFrame = { candidates: PatchCandidate[]; paths: Set<string>; current?: PatchCandidate }
 const patchOperation = (header: string | undefined): DirectCandidate["operation"] => {
   if (header === "Add") return "add"
@@ -56,6 +61,7 @@ const patchContextLine = (line: string): boolean => line.startsWith("+") || line
 const movePatchFile = (candidate: PatchCandidate, line: string): boolean => {
   if (candidate.operation !== "update" || line.slice("*** Move to: ".length).trim().length === 0) return false
   candidate.operation = "move"
+  candidate.moveTo = line.slice("*** Move to: ".length).trim()
   return true
 }
 const addPatchBodyLine = (candidate: PatchCandidate, line: string): boolean => {
@@ -90,7 +96,12 @@ const directPatchCandidate = (candidate: PatchCandidate): DirectCandidate => {
       addedLines: Object.freeze([...candidate.addedLines])
     }
   }
-  return { operation: candidate.operation, path: candidate.path, addedLines: [] }
+  return {
+    operation: candidate.operation,
+    path: candidate.path,
+    addedLines: [],
+    ...(candidate.moveTo === undefined ? {} : { moveTo: candidate.moveTo })
+  }
 }
 const patchLines = (command: string): string[] | undefined => {
   if (Buffer.byteLength(command, "utf8") > MAX_CODEX_COMMAND_BYTES) return undefined
@@ -218,7 +229,18 @@ export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEven
   const normalized = candidates.map((candidate, index) => {
     const absolutePath = absolutePaths.value[index]!
     const path = relative(root.value.root, absolutePath)
-    return { ...candidate, path: outsideParent(path) ? absolutePath : path.replaceAll(sep, "/") }
+    const moveTo = "moveTo" in candidate && candidate.moveTo !== undefined ? resolve(base, candidate.moveTo) : undefined
+    const normalizedMoveTo =
+      moveTo === undefined
+        ? undefined
+        : outsideParent(relative(root.value.root, moveTo))
+          ? moveTo
+          : relative(root.value.root, moveTo).replaceAll(sep, "/")
+    return {
+      ...candidate,
+      path: outsideParent(path) ? absolutePath : path.replaceAll(sep, "/"),
+      ...(normalizedMoveTo === undefined ? {} : { moveTo: normalizedMoveTo })
+    }
   })
   const command = normalizedPatchCommand(patch.command, candidates, normalized)
   return Object.freeze({
@@ -544,37 +566,8 @@ const claudePayload = (event: ClaudeEvent) => {
   if (Buffer.byteLength(input.file_path) > 16_384 || !boundedClaudeSource(event, input, response)) return undefined
   return { input, response, path: input.file_path }
 }
-const captureSelectedClaudeFile = Effect.fn("DirectEvent.captureSelectedClaudeFile")(function* (
-  root: string,
-  rootIdentity: PhysicalRootIdentity,
-  relativePath: string,
-  options: {
-    readonly userConfigPath?: string
-    readonly captureHooks?: CaptureHooks
-    readonly filePolicy?: DirectFilePolicy
-    readonly capturePolicy?: (
-      root: string,
-      advicee: DirectAdvicee,
-      path: string
-    ) => Effect.Effect<DirectFilePolicy | undefined>
-  }
-) {
-  const configuration =
-    options.filePolicy === undefined
-      ? yield* loadConfiguration(
-          root,
-          options.userConfigPath === undefined ? {} : { userConfigPath: options.userConfigPath }
-        )
-      : undefined
-  const eligible = yield* eligibleNamedPath(
-    root,
-    relativePath,
-    options.filePolicy ?? resolvedDirectFilePolicy(configuration!.policy),
-    rootIdentity
-  )
-  if (eligible === undefined) return undefined
-  return yield* captureStable(root, eligible, options.captureHooks, rootIdentity)
-})
+const claudeEditOperation = (event: ClaudeEvent, response: NonNullable<ReturnType<typeof record>>) =>
+  event.tool_name === "Write" && response.originalFile === null ? "add" : "update"
 /** Claude has no observed turn ID; preserve supplied child identity. */
 export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEvent")(function* (
   value: unknown,
@@ -594,17 +587,34 @@ export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEv
     claudeAdvicee(event),
     root.value.absolutePath
   )
-  if (selectedOptions === undefined) return undefined
-  const content = yield* captureSelectedClaudeFile(
+  const filePolicy = yield* captureFilePolicy(root.value.root, selectedOptions, options.userConfigPath)
+  const selection = yield* nativeSelection(
     root.value.root,
-    root.value.rootIdentity,
-    relativePath,
-    selectedOptions
+    { operation: "update", path: relativePath },
+    filePolicy,
+    root.value.rootIdentity
   )
+  const metadata: NativeEditMetadata = {
+    root: root.value.root,
+    rootIdentity: root.value.rootIdentity,
+    advicee: claudeAdvicee(event),
+    candidates: [{ position: 0, operation: claudeEditOperation(event, response), path: relativePath, selection }]
+  }
+  observeNativeMetadata(options, metadata)
+  if (selection.status !== "selected" || selectedOptions === undefined) return undefined
+  const content = yield* captureNativeTarget(metadata, relativePath, root.value.absolutePath, selectedOptions, options)
   if (content === undefined) return undefined
+
   const change = verifiedClaudeChange(event, input, response, path, relativePath, content.text)
-  if (change === undefined) return undefined
+  if (change === undefined) {
+    observeNativeMetadata(options, {
+      ...metadata,
+      diagnostic: { stage: "observation", code: "attribution-unavailable", args: {} }
+    })
+    return undefined
+  }
   return Object.freeze({
+    nativeMetadata: [metadata],
     root: root.value.root,
     rootIdentity: root.value.rootIdentity,
     advicee: claudeAdvicee(event),
