@@ -2,8 +2,8 @@ import { createHash } from "node:crypto"
 import { constants, openSync, closeSync, fstatSync, lstatSync, readFileSync, readdirSync } from "node:fs"
 import { relative, resolve } from "node:path"
 
-// Same Linux metadata boundary as dependency-digests, but scoped to this live
-// process: no persisted evidence and no cross-boot/namespace reuse. Every call
+// Linux metadata reuse is scoped to this live process: no persisted evidence
+// and no cross-boot/namespace reuse. Every call
 // opens the current regular file and checks its descriptor and pathname again.
 const digests = new Map()
 const digestLimit = 8192

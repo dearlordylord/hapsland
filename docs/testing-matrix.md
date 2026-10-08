@@ -72,15 +72,11 @@ preparation always invokes the ordinary build, fresh native-profile validation a
 packing; it never restores a whole build or skips those stages from a source-keyed
 archive cache. Completed archives are retained by their SHA-256 under
 `.git/hapsland-artifacts/archives` so installed candidates and one test run can use
-immutable bytes. Preparation rejects source, dependency or runtime-output drift
+immutable bytes. Preparation rejects source or runtime-output drift
 and corrupt retained archive bytes.
-Dependency hashing retains a filesystem-local digest memo. Every check still
-walks names and links and checks nanosecond file metadata; changed files are
-hashed through an open descriptor and checked again before publication. The
-memo assumes ordinary local filesystem metadata semantics and is not copied
-between filesystem namespaces. Invalid memo data causes fresh hashing.
-Atomic checkpoints retain completed file digests after interruption; they do
-not publish or validate an incomplete dependency fingerprint or build artifact.
+Dependency installation uses the frozen lockfile. Turbo owns dependency inputs
+for its task cache; build, archive and source-runtime preparation do not hash the
+installed `node_modules` tree separately.
 Prepared source roles share one immutable `.test-runs/source-runtime/<identity>` bundle set
 through the same artifact store; production task outputs are owned by Turbo.
 The materialized runtime is kept outside `dist` so production builds cannot remove entrypoints used by a running CLI or resident.

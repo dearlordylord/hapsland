@@ -173,36 +173,6 @@ export const buildAcceptanceCases = [
     }
   },
   {
-    id: "dependency-byte-change",
-    async run(context) {
-      const before = JSON.parse(context.read(".test-runs/build-toolchain.json")).dependencies
-      await context.mutate(
-        "node_modules/effect/dist/Effect.js",
-        (text) => text + "\n// Build acceptance changes dependency bytes with unchanged exports.\n"
-      )
-      const result = await context.build("dependency-byte-change")
-      const after = JSON.parse(context.read(".test-runs/build-toolchain.json")).dependencies
-      assert.notEqual(after, before, "Dependency byte mutation did not invalidate strong identity")
-      for (const role of ["hook", "resident", "parser", "doctor"]) {
-        const receipt = context.assemblyReceipt(role)
-        assert(
-          context
-            .taskCacheEvents(result.log)
-            .some(
-              (event) => event.task === `@hapsland/${role}-entry:assemble:${context.profile}` && event.state !== "hit"
-            ),
-          "Changed runtime dependency restored stale assembly"
-        )
-        assert.equal(
-          receipt.context.prerequisite.toolchain.dependencies,
-          after,
-          "Assembly reused prior dependency identity"
-        )
-        await context.probe(role, ["--version"])
-      }
-    }
-  },
-  {
     id: "native-input-change",
     async run(context) {
       const source = "native/src/inspection-lock.c"

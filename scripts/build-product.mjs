@@ -7,7 +7,6 @@ import { checkCompilerReceipts } from "./check-compiler-receipts.mjs"
 import { checkWorkspaceImports } from "./check-workspace-imports.mjs"
 import { checkCompilerContributions } from "./build-contributions.mjs"
 import { sourceAnalysisContext, sourceAnalysisReceipt } from "./source-analysis-receipt.mjs"
-import { dependencyIdentity } from "./artifact-store.mjs"
 import { nativeTaskArtifacts } from "./native-task-inputs.mjs"
 import { createAssemblyPrerequisites, writeAssemblyPrerequisites } from "./assembly-prerequisites.mjs"
 import { validateAssemblyArtifact } from "./assemble-entry.mjs"
@@ -114,8 +113,6 @@ await withBuildLock(root, async (environment) => {
           throw new Error(`Product composition input changed: ${recorded.path}`)
       sourceAnalysisReceipt(root, analysis, before)
       if (boundary !== "publish") return
-      if ((await dependencyIdentity(root)) !== before.toolchain.dependencies)
-        throw new Error("Dependencies changed during product assembly")
       checkCompilerReceipts(root)
       for (const profile of profiles) await nativeTaskArtifacts(root, graph, profile, { environment })
       sourceAnalysisReceipt(root, analysis, before)

@@ -1,6 +1,5 @@
 import { checkUiFlows } from "./check-ui-flows.mjs"
 import { mkdirSync, writeFileSync, realpathSync } from "node:fs"
-import { dependencyIdentity } from "./artifact-store.mjs"
 import { fileEvidence } from "./compiler-evidence.mjs"
 import { resolveBunRuntime } from "./pinned-bun.mjs"
 import { runBuildProcess } from "./build-process.mjs"
@@ -36,7 +35,6 @@ await withBuildLock(root, async (buildEnvironment) => {
     node: fileEvidence(root, realpathSync(process.execPath)),
     bun: fileEvidence(root, realpathSync(resolveBunRuntime().executable)),
     typescript: (await resolvePinnedTypeScript(resolve(root, "scripts"))).identity,
-    dependencies: await dependencyIdentity(root),
     platform: process.platform,
     architecture: process.arch,
     environment: Object.fromEntries(

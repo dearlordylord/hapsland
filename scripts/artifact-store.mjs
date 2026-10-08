@@ -20,7 +20,6 @@ import { promisify } from "node:util"
 import { dirname, join, relative, resolve } from "node:path"
 import { sourceIdentity } from "./test-harness/source-identity.mjs"
 import { npmToolingRequire, npmPackageFiles } from "./npm-tooling.mjs"
-import { dependencyDigestMemo } from "./dependency-digests.mjs"
 import { readPackageGraph } from "./package-graph.mjs"
 import { generatedNativePaths } from "./native-task-inputs.mjs"
 
@@ -70,72 +69,6 @@ export async function artifactStoreDirectory(root) {
 }
 // Hash dependency contents under logical names, following workspace links without
 // putting a checkout's physical path or timestamps into the artifact identity.
-let dependencyReaders = 0
-const dependencyReadQueue = []
-async function readDependency(path, metadata, deadline, memo) {
-  if (Date.now() >= deadline) throw new Error("Dependency identity deadline exceeded")
-  if (dependencyReaders >= 8) await new Promise((ready) => dependencyReadQueue.push(ready))
-  else dependencyReaders += 1
-  try {
-    return await memo.digest(path, metadata)
-  } finally {
-    const next = dependencyReadQueue.shift()
-    if (next) next()
-    else dependencyReaders -= 1
-  }
-}
-export async function dependencyIdentity(root, { deadline = Date.now() + 30000, metrics } = {}) {
-  const memo = await dependencyDigestMemo({
-    directory: join(await artifactStoreDirectory(root), "dependency-digests"),
-    deadline,
-    metrics
-  })
-  const manifest = await json(join(root, "package.json")).catch((error) => {
-    if (error.code === "ENOENT") return {}
-    throw error
-  })
-  const workspaceRoots = new Map()
-  if (manifest.workspaces !== undefined)
-    for (const workspace of readPackageGraph(root).workspaces.values())
-      workspaceRoots.set(await realpath(workspace.path), workspace.manifest.name)
-  const directories = new Map()
-  const visit = async (path, ancestors) => {
-    if (Date.now() >= deadline) throw new Error("Dependency identity deadline exceeded")
-    if (!(await exists(path))) return { digest: hash("missing"), cyclic: false }
-    let actual
-    try {
-      actual = await realpath(path)
-    } catch (error) {
-      if (error.code !== "ENOENT") throw error
-      return { digest: hash("missing-target"), cyclic: false }
-    }
-    // Workspace code/configuration belongs to source identity. Its generated
-    // outputs must not recursively change the external dependency identity.
-    if (workspaceRoots.has(actual)) return { digest: hash(`workspace:${workspaceRoots.get(actual)}`), cyclic: false }
-    const metadata = await lstat(actual, { bigint: true })
-    if (metadata.isFile()) {
-      const digest = await readDependency(actual, metadata, deadline, memo)
-      if ((await realpath(path)) !== actual) throw new Error("Dependency link changed during hashing")
-      return { digest: hash(`${metadata.mode & 0o777n}:${digest}`), cyclic: false }
-    }
-    if (!metadata.isDirectory()) throw new Error("Unsupported dependency input")
-    if (ancestors.has(actual)) return { digest: hash("cycle"), cyclic: true }
-    if (directories.has(actual)) return directories.get(actual)
-    const next = new Set([...ancestors, actual])
-    const names = (await readdir(actual))
-      .sort()
-      .filter((name) => ![".cache", ".vite", ".vite-temp", ".vitest", ".git"].includes(name))
-    const children = await Promise.all(names.map((name) => visit(join(actual, name), next)))
-    const entries = children.map((child, index) => [names[index], child.digest])
-    const cyclic = children.some((child) => child.cyclic)
-    const result = { digest: hash(JSON.stringify(entries)), cyclic }
-    if (!cyclic) directories.set(actual, result)
-    return result
-  }
-  const identity = (await visit(join(root, "node_modules"), new Set())).digest
-  await memo.publish()
-  return identity
-}
 export async function verifyArtifact(directory, expectedIdentity, { deadline = Date.now() + 30000 } = {}) {
   requireTime(deadline)
   let record
@@ -367,7 +300,7 @@ export async function packageSourceIdentity(root, { deadline = Date.now() + 3000
     if (!metadata.isFile()) throw new Error(`Packaged input is not a regular file: ${path}`)
     shipped.push({ path, mode: metadata.mode & 0o777, sha256: await fileDigest(join(root, path), { deadline }) })
   }
-  return hash(JSON.stringify({ source, shipped, dependencies: await dependencyIdentity(root, { deadline }) }))
+  return hash(JSON.stringify({ source, shipped }))
 }
 async function packageRuntimeInventory(root, { deadline }) {
   const result = []

@@ -50,7 +50,6 @@ export const precheckStages = [
     "--test",
     "--test-concurrency=1",
     "scripts/artifact-store.test.mjs",
-    "scripts/dependency-digests.test.mjs",
     "scripts/dev-pack.test.mjs",
     "scripts/dev-install.test.mjs",
     "scripts/archive-inventory.test.mjs",

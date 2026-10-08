@@ -3,7 +3,6 @@ import { existsSync, readdirSync, realpathSync } from "node:fs"
 import { resolve } from "node:path"
 import { readPackageGraph } from "./package-graph.mjs"
 import { fileEvidence, fileInventory } from "./compiler-evidence.mjs"
-import { dependencyIdentity } from "./artifact-store.mjs"
 import { resolveBunRuntime } from "./pinned-bun.mjs"
 import { bendProducerToolchain } from "./bend-producer.mjs"
 import { nativeTaskPlans, observeNativeTaskInputs } from "./native-task-inputs.mjs"
@@ -39,7 +38,6 @@ export const createBuildWatchObserver = (
   root,
   {
     environment = process.env,
-    observeDependencies = dependencyIdentity,
     observeRuntime = async () => ({
       node: fileEvidence(root, realpathSync(process.execPath)),
       bun: fileEvidence(root, realpathSync(resolveBunRuntime(environment).executable)),
@@ -69,7 +67,6 @@ export const createBuildWatchObserver = (
         })),
         tooling: authoredInventory(root, resolve(root, "scripts")),
         native: await observeNative(root, graph, environment),
-        dependencies: await observeDependencies(root),
         runtime: await observeRuntime(),
         platform: process.platform,
         architecture: process.arch,
