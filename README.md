@@ -38,6 +38,12 @@ unavailable, Hapsland skips that rule.
 > Python or shell scripts and linter autofixes—are outside that scope and are not
 > automatically reviewed.
 
+## Subagents
+
+Hapsland also reviews supported native edits made by Codex CLI and Claude Code
+subagents. When the runtime reliably identifies the editing subagent, Hapsland
+directs review feedback to it.
+
 ## What leaves my repository?
 
 Sending source to a review service is a data-sharing decision.
