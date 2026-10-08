@@ -1,10 +1,13 @@
-import { physicalNativeBindings, configureNativeBindings } from "./native-bindings.ts"
+import { physicalNativeBindings, configureNativeBindings, sourceNativeParserRoot } from "./native-bindings.ts"
 import { assertReviewEngineBoundary } from "@hapsland/runtime-environment/runtime/review-engine-boundary"
-import { packageAssetPath, standalone } from "@hapsland/runtime-environment/runtime/package-runtime"
+import { packageAssetPath, packageRoot, standalone } from "@hapsland/runtime-environment/runtime/package-runtime"
 import { extname } from "node:path"
 assertReviewEngineBoundary("native-parser")
 
-const nativeRoot = packageAssetPath("native", "prebuilt", `${process.platform}-${process.arch}`)
+const profile = `${process.platform}-${process.arch}`
+const nativeRoot = standalone
+  ? packageAssetPath("native", "prebuilt", profile)
+  : sourceNativeParserRoot(packageRoot, profile)
 if (!standalone && typeof Bun !== "undefined") Bun.plugin(physicalNativeBindings(JSON.stringify(nativeRoot), true))
 configureNativeBindings(nativeRoot)
 export const { default: Parser } = await import("tree-sitter")

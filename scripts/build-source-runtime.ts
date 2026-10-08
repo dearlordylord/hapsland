@@ -45,7 +45,7 @@ const sourceCoverage: BunPlugin = {
   }
 }
 const nativeRoot =
-  'require("node:path").resolve(require("node:path").dirname(process.argv[1]),"../../../native/prebuilt",process.platform+"-"+process.arch)'
+  'require("node:path").resolve(require("node:path").dirname(process.argv[1]),"../../../packages/source-analysis/artifacts/native",process.platform+"-"+process.arch)'
 for (const [role, entry] of Object.entries(sourceRuntimeEntries)) {
   const result = await Bun.build({
     entrypoints: [join(process.cwd(), entry)],

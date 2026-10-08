@@ -1178,6 +1178,36 @@ const validateUpdateHook = (hookRoot: Record<string, unknown>, record: Ownership
   }
 }
 
+const equivalentHookUpdate = (
+  inputs: ReturnType<typeof buildInputs>,
+  record: OwnershipRecord,
+  hooks: ReturnType<typeof snapshot>,
+  config: ReturnType<typeof snapshot>,
+  nextHooks: string,
+  nextConfig: string
+): boolean =>
+  inputs.binding !== undefined &&
+  snapshot(inputs.paths.binding).exists &&
+  record.owned.some((entry) => entry.file === inputs.binding?.path) &&
+  sameStandaloneImplementation(record, commandFromEntrypoint(inputs.executable, inputs.entrypoint)) &&
+  nextHooks === hooks.content &&
+  nextConfig === config.content
+const updateRecordMutations = (
+  ownership: ReturnType<typeof snapshot>,
+  hooks: ReturnType<typeof snapshot>,
+  config: ReturnType<typeof snapshot>,
+  nextOwnership: string,
+  nextHooks: string,
+  nextConfig: string,
+  equivalent: boolean,
+  bindingChanges: ReadonlyArray<Mutation>
+): Mutation[] =>
+  nextOwnership === ownership.content &&
+  nextHooks === hooks.content &&
+  nextConfig === config.content &&
+  (equivalent || bindingChanges.length === 0)
+    ? []
+    : [mutation(ownership, nextOwnership, "record the target packaged runtime")]
 const makeUpdatePlan = (request: InstallationRequest, inputs: ReturnType<typeof buildInputs>) => {
   requireTargetPackageMetadata(inputs)
   const record = updateOwnership(inputs)
@@ -1214,13 +1244,7 @@ const makeUpdatePlan = (request: InstallationRequest, inputs: ReturnType<typeof 
   )
   const ownership = snapshot(inputs.paths.ownership)
   const bindingChanges = bindingMutation(inputs, record)
-  const equivalent =
-    inputs.binding !== undefined &&
-    snapshot(inputs.paths.binding).exists &&
-    record.owned.some((entry) => entry.file === inputs.binding?.path) &&
-    sameStandaloneImplementation(record, commandFromEntrypoint(inputs.executable, inputs.entrypoint)) &&
-    nextHooks === hooks.content &&
-    nextConfig === config.content
+  const equivalent = equivalentHookUpdate(inputs, record, hooks, config, nextHooks, nextConfig)
   const nextOwnership = equivalent
     ? ownership.content
     : encodeJson(
@@ -1229,12 +1253,16 @@ const makeUpdatePlan = (request: InstallationRequest, inputs: ReturnType<typeof 
   const mutations = [
     // Recording the target first retains the previous working hook if a later
     // per-file write fails. The journal reports and safely resumes this exact state.
-    ...(nextOwnership === ownership.content &&
-    nextHooks === hooks.content &&
-    nextConfig === config.content &&
-    (equivalent || bindingChanges.length === 0)
-      ? []
-      : [mutation(ownership, nextOwnership, "record the target packaged runtime")]),
+    ...updateRecordMutations(
+      ownership,
+      hooks,
+      config,
+      nextOwnership,
+      nextHooks,
+      nextConfig,
+      equivalent,
+      bindingChanges
+    ),
     ...(equivalent ? [] : bindingChanges),
     ...(nextConfig === config.content ? [] : [mutation(config, nextConfig, "enable Codex's native hooks feature")]),
     ...(nextHooks === hooks.content
@@ -1738,6 +1766,42 @@ const recoveryValidators = {
   uninstall: validateUninstallRecoveryPlan
 }
 
+const validateRemovedRecoveryBinding = (
+  change: Mutation,
+  inputs: ReturnType<typeof buildInputs>,
+  plan: ReturnType<typeof recoveryPlan>
+): void => {
+  const owned = Array.isArray(plan.priorOwnership?.owned) ? plan.priorOwnership.owned : []
+  if (
+    change.afterContent !== null ||
+    change.description !== "remove the owned hook launcher" ||
+    !owned.some(
+      (entry: unknown) =>
+        isObject(entry) &&
+        entry.file === inputs.paths.binding &&
+        entry.kind === "hook" &&
+        entry.fingerprint === bindingDigest(change.beforeContent ?? "")
+    )
+  )
+    throw new Error("recovery journal does not remove an owned hook launcher")
+}
+const validateRecoveryBinding = (
+  journal: Journal,
+  inputs: ReturnType<typeof buildInputs>,
+  plan: ReturnType<typeof recoveryPlan>
+): void => {
+  const change = journal.mutations.find((entry) => entry.path === inputs.paths.binding)
+  if (change !== undefined) {
+    if (journal.operation === "uninstall") validateRemovedRecoveryBinding(change, inputs, plan)
+    else if (inputs.binding === undefined || change.afterContent !== inputs.binding.content)
+      throw new Error("recovery journal does not select the target hook launcher")
+  } else if (
+    inputs.binding !== undefined &&
+    journal.operation !== "uninstall" &&
+    snapshot(inputs.paths.binding).content !== inputs.binding.content
+  )
+    throw new Error("target hook launcher changed during recovery")
+}
 const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof buildInputs>) => {
   if (new Set(journal.completed).size !== journal.completed.length) {
     throw new Error("recovery journal repeats a completed step")
@@ -1758,34 +1822,7 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof bu
   }
 
   const plan = recoveryPlan(journal, inputs)
-  const bindingChange = journal.mutations.find((change) => change.path === inputs.paths.binding)
-  if (bindingChange !== undefined && journal.operation === "uninstall") {
-    const owned = Array.isArray(plan.priorOwnership?.owned) ? plan.priorOwnership.owned : []
-    if (
-      bindingChange.afterContent !== null ||
-      bindingChange.description !== "remove the owned hook launcher" ||
-      !owned.some(
-        (entry: unknown) =>
-          isObject(entry) &&
-          entry.file === inputs.paths.binding &&
-          entry.kind === "hook" &&
-          entry.fingerprint === bindingDigest(bindingChange.beforeContent ?? "")
-      )
-    )
-      throw new Error("recovery journal does not remove an owned hook launcher")
-  } else if (
-    bindingChange !== undefined &&
-    (inputs.binding === undefined || bindingChange.afterContent !== inputs.binding.content)
-  ) {
-    throw new Error("recovery journal does not select the target hook launcher")
-  } else if (
-    inputs.binding !== undefined &&
-    journal.operation !== "uninstall" &&
-    bindingChange === undefined &&
-    snapshot(inputs.paths.binding).content !== inputs.binding.content
-  ) {
-    throw new Error("target hook launcher changed during recovery")
-  }
+  validateRecoveryBinding(journal, inputs, plan)
   recoveryValidators[journal.operation](journal, inputs, plan)
 }
 
@@ -1847,6 +1884,14 @@ const validateRecoveryOwnershipContent = (
   }
 }
 
+const validateSelectedRecoveryBinding = (change: Mutation, inputs: ReturnType<typeof buildInputs>): void => {
+  if (
+    inputs.binding === undefined ||
+    change.afterContent !== inputs.binding.content ||
+    change.description !== "select the scoped hook implementation"
+  )
+    throw new Error("recovery journal hook launcher does not match the selected package")
+}
 const validateRecoveryMutation = (
   change: Mutation,
   operation: Journal["operation"],
@@ -1854,12 +1899,7 @@ const validateRecoveryMutation = (
 ) => {
   if (change.afterContent === null) return
   if (change.path === inputs.paths.binding) {
-    if (
-      inputs.binding === undefined ||
-      change.afterContent !== inputs.binding.content ||
-      change.description !== "select the scoped hook implementation"
-    )
-      throw new Error("recovery journal hook launcher does not match the selected package")
+    validateSelectedRecoveryBinding(change, inputs)
   } else if (change.path === inputs.paths.config) {
     assertHooksSemanticState(change.afterContent, operation === "uninstall" ? "absent" : true)
   } else if (change.path === inputs.paths.hooks) {

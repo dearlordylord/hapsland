@@ -1,3 +1,4 @@
+import { resolveTurboExecutable } from "./pinned-turbo.mjs"
 import { checkUiFlows } from "./check-ui-flows.mjs"
 import { mkdirSync, writeFileSync, realpathSync } from "node:fs"
 import { fileEvidence } from "./compiler-evidence.mjs"
@@ -45,7 +46,7 @@ await withBuildLock(root, async (buildEnvironment) => {
   writeFileSync(resolve(root, ".test-runs/build-toolchain.json"), JSON.stringify(toolchain))
   const authored = prepareAuthoredTaskInputs(root, graph, { toolchain, bendToolchain })
   await runBuildProcess(
-    resolve(root, "node_modules/.bin/turbo"),
+    resolveTurboExecutable(root),
     [
       "run",
       "build",

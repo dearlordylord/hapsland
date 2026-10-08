@@ -60,6 +60,7 @@ for (const path of [
 ]) {
   symlinkSync(join(root, path), join(fixture, path))
 }
+symlinkSync(join(root, "packages/source-analysis/artifacts"), join(fixture, "packages/source-analysis/artifacts"))
 const mutants = [
   {
     name: "openai-profile-selects-state",

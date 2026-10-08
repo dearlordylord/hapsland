@@ -81,7 +81,7 @@ test("unresolved owned descendants preserve both lock and lease for audit", () =
     assert.equal(typeof lease.token, "string")
   }))
 
-test("registered detached task retains custody until explicit recovery", () =>
+test("registered detached task reports failure and releases custody after confirmed shutdown", () =>
   fixture(async (root) => {
     let child, closed
     try {
@@ -113,14 +113,14 @@ test("registered detached task retains custody until explicit recovery", () =>
         }),
         /Registered build task group outlived/
       )
-      await access(join(root, ".test-runs/product-build/lock"))
-      await access(join(root, ".test-runs/product-build/lease.json"))
+      await assert.rejects(access(join(root, ".test-runs/product-build/lock")), { code: "ENOENT" })
+      await assert.rejects(access(join(root, ".test-runs/product-build/lease.json")), { code: "ENOENT" })
     } finally {
       child?.kill("SIGTERM")
       await closed
     }
     assert.throws(() => process.kill(-child.pid, 0), { code: "ESRCH" })
-    await access(join(root, ".test-runs/product-build/lock"))
+    await withBuildLock(root, async () => {})
   }))
 
 test("unreadable group evidence keeps checkout ownership for audit", () =>

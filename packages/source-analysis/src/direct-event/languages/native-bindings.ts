@@ -7,6 +7,8 @@ const bindings = {
   "tree-sitter-typescript": "tree_sitter_typescript_binding.node",
   "tree-sitter-rust": "tree_sitter_rust_binding.node"
 } as const
+export const sourceNativeParserRoot = (root: string, profile = `${process.platform}-${process.arch}`): string =>
+  join(root, "packages/source-analysis/artifacts/native", profile)
 export const nativeParserBindings = bindings
 const bindingEnvironment = {
   "tree-sitter": "TREE_SITTER_PREBUILD",

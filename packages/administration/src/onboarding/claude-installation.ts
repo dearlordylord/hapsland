@@ -112,6 +112,15 @@ const validComposedRecord = (value: unknown): boolean => {
     optionalStringField(value, "preToolUseDigest")
   )
 }
+const validImplementationRecord = (value: unknown): boolean => {
+  if (value === undefined) return true
+  return (
+    object(value) &&
+    typeof value.executable === "string" &&
+    Array.isArray(value.args) &&
+    value.args.every((arg) => typeof arg === "string")
+  )
+}
 const readRecord = (path: string): OwnedRecord | undefined => {
   const content = file(path)
   if (content === undefined) return undefined
@@ -121,11 +130,7 @@ const readRecord = (path: string): OwnedRecord | undefined => {
     value.adapter !== "claude" ||
     !requiredStringFields(value, ["home", "hookDigest", "command"]) ||
     !optionalStringField(value, "bindingDigest") ||
-    (value.implementation !== undefined &&
-      (!object(value.implementation) ||
-        typeof value.implementation.executable !== "string" ||
-        !Array.isArray(value.implementation.args) ||
-        !value.implementation.args.every((arg) => typeof arg === "string"))) ||
+    !validImplementationRecord(value.implementation) ||
     !validComposedRecord(value.composed)
   ) {
     throw new Error("Claude ownership record has an unsupported shape")
@@ -429,6 +434,42 @@ const plannedSettingsContent = (
   (before !== undefined && canonical(parseObject(before, "Claude settings.json")) === canonical(next))
     ? before
     : encode(next)
+const assertOwnedBinding = (
+  before: string | undefined,
+  request: ClaudeInstallationRequest,
+  record: OwnedRecord | undefined
+): void => {
+  if (
+    before !== undefined &&
+    !request.reinstall &&
+    (record?.bindingDigest === undefined || bindingDigest(before) !== record.bindingDigest)
+  )
+    throw new Error("Claude hook launcher was locally modified or is not owned")
+}
+const equivalentUpdate = (
+  kind: Kind,
+  record: OwnedRecord | undefined,
+  beforeBinding: string | undefined,
+  input: ClaudeInputs,
+  beforeSettings: string | undefined,
+  afterSettings: string | undefined
+): boolean =>
+  kind === "update" &&
+  record?.implementation !== undefined &&
+  record.bindingDigest !== undefined &&
+  beforeBinding !== undefined &&
+  sameStandaloneImplementation(record.implementation, commandFromEntrypoint(input.runtime, input.entrypoint)) &&
+  beforeSettings === afterSettings
+const plannedBindingContent = (
+  kind: Kind,
+  record: OwnedRecord | undefined,
+  equivalent: boolean,
+  input: ClaudeInputs,
+  before: string | undefined
+): string | undefined => {
+  if (kind === "uninstall") return record?.bindingDigest === undefined ? before : undefined
+  return equivalent ? before : (input.binding?.content ?? before)
+}
 const plan = (kind: Kind, request: ClaudeInstallationRequest, input: ReturnType<typeof inputs>) => {
   const beforeSettings = file(input.paths.settings)
   const beforeRecord = file(input.paths.ownership)
@@ -446,30 +487,9 @@ const plan = (kind: Kind, request: ClaudeInstallationRequest, input: ReturnType<
   const nextGroups = plannedPostToolGroups(kind, settings, input, current)
   const nextSettings = plannedSettings(kind, settings, nextGroups, input, record)
   const afterSettings = plannedSettingsContent(kind, record, beforeSettings, nextSettings)
-  if (
-    beforeBinding !== undefined &&
-    !request.reinstall &&
-    (previousRecord?.bindingDigest === undefined || bindingDigest(beforeBinding) !== previousRecord.bindingDigest)
-  )
-    throw new Error("Claude hook launcher was locally modified or is not owned")
-  const equivalent =
-    kind === "update" &&
-    previousRecord?.implementation !== undefined &&
-    previousRecord.bindingDigest !== undefined &&
-    beforeBinding !== undefined &&
-    sameStandaloneImplementation(
-      previousRecord.implementation,
-      commandFromEntrypoint(input.runtime, input.entrypoint)
-    ) &&
-    beforeSettings === afterSettings
-  const afterBinding =
-    kind === "uninstall"
-      ? previousRecord?.bindingDigest === undefined
-        ? beforeBinding
-        : undefined
-      : equivalent
-        ? beforeBinding
-        : (input.binding?.content ?? beforeBinding)
+  assertOwnedBinding(beforeBinding, request, previousRecord)
+  const equivalent = equivalentUpdate(kind, previousRecord, beforeBinding, input, beforeSettings, afterSettings)
+  const afterBinding = plannedBindingContent(kind, previousRecord, equivalent, input, beforeBinding)
   const afterRecord =
     kind === "uninstall" ? undefined : equivalent ? beforeRecord : encode(installationOwnedRecord(input))
   const proposalDigest = digest(
@@ -590,6 +610,18 @@ const rollbackOwnedRecord = (input: ClaudeInputs, next: ReturnType<typeof plan>)
     /* Preserve primary failure; inspection exposes partial state. */
   }
 }
+const rollbackOwnedBinding = (input: ClaudeInputs, next: ReturnType<typeof plan>): void => {
+  try {
+    if (
+      file(input.paths.settings) === next.beforeSettings &&
+      file(input.paths.binding) === next.afterBinding &&
+      next.beforeBinding !== next.afterBinding
+    )
+      atomicInstallationFile(input.paths.binding, next.beforeBinding)
+  } catch {
+    /* Inspection reports partial state. */
+  }
+}
 const commitClaudePlan = (input: ClaudeInputs, next: ReturnType<typeof plan>): void => {
   // Settings is applied last; each owned file is checked before mutation.
   try {
@@ -612,16 +644,7 @@ const commitClaudePlan = (input: ClaudeInputs, next: ReturnType<typeof plan>): v
     if (next.beforeBinding !== next.afterBinding) atomicInstallationFile(input.paths.binding, next.afterBinding)
     if (next.beforeSettings !== next.afterSettings) atomicInstallationFile(input.paths.settings, next.afterSettings)
   } catch (cause) {
-    try {
-      if (
-        file(input.paths.settings) === next.beforeSettings &&
-        file(input.paths.binding) === next.afterBinding &&
-        next.beforeBinding !== next.afterBinding
-      )
-        atomicInstallationFile(input.paths.binding, next.beforeBinding)
-    } catch {
-      /* Inspection reports partial state. */
-    }
+    rollbackOwnedBinding(input, next)
     rollbackOwnedRecord(input, next)
     throw cause
   }

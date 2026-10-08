@@ -217,6 +217,21 @@ const startWatchdog = Effect.fn("Hook.startWatchdog")(function* (options: HookAr
   )
 })
 
+const hookNoticeEvent = (kind: ComposedHookKind | undefined): string =>
+  kind === "before-edit" ? "PreToolUse" : kind === "prompt" ? "UserPromptSubmit" : "PostToolUse"
+const attachUpdateNotice = Effect.fn("Hook.attachUpdateNotice")(function* (
+  options: HookArguments,
+  kind: ComposedHookKind | undefined,
+  granted: Ref.Ref<boolean>,
+  noticeOutput: typeof HookOutput.Service,
+  output: unknown,
+  deadline: number
+) {
+  if (kind === "background" && (yield* Ref.get(granted))) yield* noticeOutput.write({}, deadline)
+  if (options["pi-hook"] && (yield* Ref.getAndSet(granted, false)))
+    return { status: "update-required", text: UPDATE_REQUIRED_TEXT }
+  return output
+})
 /** Wire the hook capability without any administration or review execution. */
 export const runHookProgram = async (options: HookArguments, startedAt: number): Promise<void> => {
   const kind = composedKind(options)
@@ -238,7 +253,7 @@ export const runHookProgram = async (options: HookArguments, startedAt: number):
   const run = Effect.gen(function* () {
     const watchdog = yield* startWatchdog(options, startedAt)
     const granted = yield* Ref.make(false)
-    const event = kind === "before-edit" ? "PreToolUse" : kind === "prompt" ? "UserPromptSubmit" : "PostToolUse"
+    const event = hookNoticeEvent(kind)
     const noticeOutput = makeUpdateNoticeOutput(yield* HookOutput, granted, event)
     let output = yield* program.pipe(
       Effect.provideService(ResidentUpdateNotice, {
@@ -247,9 +262,7 @@ export const runHookProgram = async (options: HookArguments, startedAt: number):
       }),
       Effect.provideService(HookOutput, noticeOutput)
     )
-    if (kind === "background" && (yield* Ref.get(granted))) yield* noticeOutput.write({}, deadline)
-    if (options["pi-hook"] && (yield* Ref.getAndSet(granted, false)))
-      output = { status: "update-required", text: UPDATE_REQUIRED_TEXT }
+    output = yield* attachUpdateNotice(options, kind, granted, noticeOutput, output, deadline)
     const written = yield* writeHookResult(options, kind, output, deadline, dispatch).pipe(
       Effect.provideService(HookOutput, noticeOutput)
     )

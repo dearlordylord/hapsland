@@ -96,6 +96,13 @@ const previewObservation = (preview: LifecycleResult): PreviewObservation => {
   }
   return { kind: preview.status === "busy" || preview.status === "indeterminate" ? preview.status : "failed" }
 }
+const requiresHookRestart = (
+  host: UpdateScope,
+  result:
+    | { readonly _tag: "Success"; readonly success: LifecycleResult }
+    | { readonly _tag: "Failure"; readonly failure: unknown }
+): boolean => host !== "resident" && result._tag === "Success" && result.success.restart?.required !== false
+
 export const updateClients = Effect.fn("Update.clients")(function* (options: UpdateOptions) {
   if (!options.terminal) return yield* Effect.fail(new Error(UPDATE_TERMINAL_REQUIRED))
   const owner = yield* UpdateOwnerService
@@ -180,8 +187,7 @@ export const updateClients = Effect.fn("Update.clients")(function* (options: Upd
   ) {
     const result = yield* owner.apply(target, command.host, command.digest).pipe(Effect.result)
     const outcome = result._tag === "Failure" ? "failed" : applyOutcome(result.success.status)
-    if (command.host !== "resident" && result._tag === "Success" && result.success.restart?.required !== false)
-      restartRequired.add(command.host)
+    if (requiresHookRestart(command.host, result)) restartRequired.add(command.host)
     // Retain observation before reporting or activation can fail/interruption arrive.
     yield* dispatch({ kind: "observed", commandId: command.id, host: command.host, outcome })
     if (outcome === "partial")

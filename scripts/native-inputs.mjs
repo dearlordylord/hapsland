@@ -14,6 +14,7 @@ import {
 import { runBuildProcess } from "./build-process.mjs"
 
 export async function provisionNativeInputs(root, operation, profile, supplied) {
+  if (operation === "prepare-parsers" && profile === "host") profile = `${process.platform}-${process.arch}`
   if (!["linux-arm64", "darwin-arm64"].includes(profile))
     throw new Error("Native inputs require linux-arm64 or darwin-arm64")
   const graph = readPackageGraph(root)
@@ -21,7 +22,20 @@ export async function provisionNativeInputs(root, operation, profile, supplied) 
   const recipe = nativeInputRecipe(root, plans, profile)
   const name = `native-inputs-${profile}-${recipe.digest}`
   let directory
-  if (operation === "build") {
+  if (operation === "prepare-parsers") {
+    if (supplied || profile !== `${process.platform}-${process.arch}`)
+      throw new Error("Source parser preparation requires the current host and no bundle path")
+    const owner = "@hapsland/source-analysis"
+    await withBuildLock(root, async (environment) => {
+      await prepareNativeTaskInputs(root, graph, environment, [owner], [profile])
+      await runBuildProcess(process.execPath, [resolve(root, "scripts/native-task.mjs"), profile], {
+        cwd: graph.packages.get(owner).path,
+        env: environment,
+        timeout: 30000
+      })
+    })
+    directory = resolve(graph.packages.get(owner).path, "artifacts/native", profile)
+  } else if (operation === "build") {
     if (profile !== `${process.platform}-${process.arch}` || process.version !== "v24.20.0")
       throw new Error("Native input production requires the target host and Node 24.20.0")
     const owners = plans
@@ -102,14 +116,15 @@ export async function provisionNativeInputs(root, operation, profile, supplied) 
     }
   } else if (operation === "identity") {
     directory = nativeInputDirectory(root, recipe)
-  } else throw new Error("Use native:inputs -- build|fetch|import|identity <profile> [bundle-directory]")
+  } else
+    throw new Error("Use native:inputs -- build|fetch|import|identity|prepare-parsers <profile> [bundle-directory]")
   if (process.env.GITHUB_OUTPUT)
     writeFileSync(process.env.GITHUB_OUTPUT, `name=${name}\ndirectory=${directory}\n`, { flag: "a" })
   return { name, directory }
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   if (process.argv.length < 4 || process.argv.length > 5)
-    throw new Error("Use native:inputs -- build|fetch|import|identity <profile> [bundle-directory]")
+    throw new Error("Use native:inputs -- build|fetch|import|identity|prepare-parsers <profile> [bundle-directory]")
   const result = await provisionNativeInputs(resolve(import.meta.dirname, ".."), ...process.argv.slice(2))
   process.stdout.write(`${result.name}\n${result.directory}\n`)
 }

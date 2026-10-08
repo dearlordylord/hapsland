@@ -4,23 +4,29 @@ import { HookOutput } from "./hook-output.ts"
 export const UPDATE_REQUIRED_TEXT =
   "Hapsland hooks are incompatible with the shared resident. Update this runtime's Hapsland hooks and restart the runtime."
 
+const objectOutput = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === "object" && !Array.isArray(value)
+const blockedReason = (value: Record<string, unknown>): string | undefined =>
+  value.decision === "block" && typeof value.reason === "string" ? value.reason : undefined
+const additionalContext = (value: unknown): value is { additionalContext: string } =>
+  value !== undefined &&
+  value !== null &&
+  typeof value === "object" &&
+  "additionalContext" in value &&
+  typeof value.additionalContext === "string"
+const acceptsNotice = (value: Record<string, unknown>): boolean =>
+  Object.keys(value).length === 0 || typeof value.systemMessage === "string"
 const appendNotice = (value: unknown, event: string): unknown => {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) return value
-  if ("decision" in value && value.decision === "block" && "reason" in value && typeof value.reason === "string")
-    return { ...value, reason: `${value.reason}\n\n${UPDATE_REQUIRED_TEXT}` }
-  const specific = "hookSpecificOutput" in value ? value.hookSpecificOutput : undefined
-  if (
-    specific !== undefined &&
-    specific !== null &&
-    typeof specific === "object" &&
-    "additionalContext" in specific &&
-    typeof specific.additionalContext === "string"
-  )
+  if (!objectOutput(value)) return value
+  const reason = blockedReason(value)
+  if (reason !== undefined) return { ...value, reason: `${reason}\n\n${UPDATE_REQUIRED_TEXT}` }
+  const specific = value.hookSpecificOutput
+  if (additionalContext(specific))
     return {
       ...value,
       hookSpecificOutput: { ...specific, additionalContext: `${specific.additionalContext}\n\n${UPDATE_REQUIRED_TEXT}` }
     }
-  if (Object.keys(value).length === 0 || ("systemMessage" in value && typeof value.systemMessage === "string"))
+  if (acceptsNotice(value))
     return { ...value, hookSpecificOutput: { hookEventName: event, additionalContext: UPDATE_REQUIRED_TEXT } }
   return value
 }

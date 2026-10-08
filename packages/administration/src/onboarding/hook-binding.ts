@@ -21,6 +21,28 @@ export const standaloneHookBinding = (
   const content = `#!/bin/sh\nexec ${commandTokens(runtime, entrypoint).map(quote).join(" ")} "$@"\n`
   return { path, content, fingerprint: bindingDigest(content), command: `${quote("/bin/sh")} ${quote(path)}` }
 }
+const sharedRuntimeVersion = (executable: string): string => {
+  if (!existsSync(join(dirname(executable), "hapsland"))) throw new Error("Missing shared runtime")
+  const declaration = JSON.parse(
+    readFileSync(join(packageRootFromEntrypoint(executable), "package-runtime.json"), "utf8")
+  ).runtime
+  if (
+    declaration?.name !== "bun" ||
+    typeof declaration.version !== "string" ||
+    declaration.version.length === 0 ||
+    declaration.distribution !== "shared-embedded-runtime"
+  )
+    throw new Error("Invalid shared runtime declaration")
+  return declaration.version
+}
+const sameHookPayload = (previous: string, next: string): boolean => {
+  const previousPayload = `${previous}.js`,
+    nextPayload = `${next}.js`
+  if (!existsSync(previousPayload) && !existsSync(nextPayload)) return true
+  if (!readFileSync(previousPayload).equals(readFileSync(nextPayload))) return false
+  // The shared binary also embeds unrelated CLI code; only its Bun runtime affects hooks.
+  return sharedRuntimeVersion(previous) === sharedRuntimeVersion(next)
+}
 export const sameStandaloneImplementation = (
   previous: { executable: string; args: ReadonlyArray<string> },
   next: { executable: string; args: ReadonlyArray<string> },
@@ -29,27 +51,7 @@ export const sameStandaloneImplementation = (
   if (previous.args.length !== 0 || next.args.length !== 0) return false
   try {
     if (!readFileSync(previous.executable).equals(readFileSync(next.executable))) return false
-    const previousPayload = `${previous.executable}.js`
-    const nextPayload = `${next.executable}.js`
-    if (existsSync(previousPayload) || existsSync(nextPayload)) {
-      if (!readFileSync(previousPayload).equals(readFileSync(nextPayload))) return false
-      const runtime = (executable: string): string => {
-        if (!existsSync(join(dirname(executable), "hapsland"))) throw new Error("Missing shared runtime")
-        const declaration = JSON.parse(
-          readFileSync(join(packageRootFromEntrypoint(executable), "package-runtime.json"), "utf8")
-        ).runtime
-        if (
-          declaration?.name !== "bun" ||
-          typeof declaration.version !== "string" ||
-          declaration.version.length === 0 ||
-          declaration.distribution !== "shared-embedded-runtime"
-        )
-          throw new Error("Invalid shared runtime declaration")
-        return declaration.version
-      }
-      // The shared binary also embeds unrelated CLI code; only its Bun runtime affects hooks.
-      if (runtime(previous.executable) !== runtime(next.executable)) return false
-    }
+    if (!sameHookPayload(previous.executable, next.executable)) return false
     if (platform !== "darwin") return true
     const capture = (executable: string) =>
       join(packageRootFromEntrypoint(executable), "native/prebuilt/darwin-arm64/capture-open")
