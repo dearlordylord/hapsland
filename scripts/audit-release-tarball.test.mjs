@@ -1,3 +1,5 @@
+import { nativeInputRecipe, retainNativeInputBundle } from "./native-input-bundle.mjs"
+import { nativeTaskPlans, prepareNativeTaskInputs, nativeTaskArtifacts } from "./native-task-inputs.mjs"
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import { mkdtempSync, mkdirSync, writeFileSync, chmodSync, rmSync, cpSync } from "node:fs"
@@ -6,7 +8,6 @@ import { join, resolve } from "node:path"
 import { fileEvidence } from "./compiler-evidence.mjs"
 import { validateReleasePublication, nativeReleaseArtifacts } from "./audit-release-tarball.mjs"
 import { readPackageGraph } from "./package-graph.mjs"
-import { prepareNativeTaskInputs, nativeTaskArtifacts } from "./native-task-inputs.mjs"
 import { buildNativeTask } from "./native-task.mjs"
 
 test("release consumer binds physical owner, public path, and shipped byte and mode evidence", () => {
@@ -41,6 +42,7 @@ test("native release audit re-observes the build PATH and still rejects changed 
   t.after(() => rmSync(root, { recursive: true, force: true }))
   mkdirSync(join(root, "scripts"))
   for (const name of [
+    "native-input-bundle",
     "native-task-inputs",
     "native-task",
     "native-task-receipt",
@@ -79,7 +81,7 @@ test("native release audit re-observes the build PATH and still rejects changed 
     }
   }
   writeFileSync(join(root, "packages/native-owner/package.json"), JSON.stringify(manifest))
-  const supplied = join(root, "native/prebuilt", profile, "helper")
+  let supplied = join(root, "native/prebuilt", profile, "helper")
   mkdirSync(join(supplied, ".."), { recursive: true })
   const bytes = Buffer.alloc(24)
   if (profile === "linux-arm64") {
@@ -90,7 +92,10 @@ test("native release audit re-observes the build PATH and still rejects changed 
     bytes.writeUInt32LE(0x0100000c, 4)
   }
   writeFileSync(supplied, bytes, { mode: 0o755 })
+  writeFileSync(join(root, "native/helper.c"), "int main(void) { return 0; }\n")
   const graph = readPackageGraph(root)
+  const recipe = nativeInputRecipe(root, nativeTaskPlans(root, graph, profile), profile)
+  supplied = resolve(retainNativeInputBundle(root, recipe, [supplied]), recipe.assets[0].path)
   const buildEnvironment = { ...process.env, PATH: `/npm-build-path:${process.env.PATH}` }
   await prepareNativeTaskInputs(root, graph, buildEnvironment)
   await buildNativeTask(root, manifest.name, profile, buildEnvironment)
@@ -99,5 +104,5 @@ test("native release audit re-observes the build PATH and still rejects changed 
   const changed = Buffer.from(bytes)
   changed[23] = 1
   writeFileSync(supplied, changed)
-  await assert.rejects(nativeReleaseArtifacts(root, graph, profile), /Native task inputs changed/)
+  await assert.rejects(nativeReleaseArtifacts(root, graph, profile), /Native input bundle changed/)
 })

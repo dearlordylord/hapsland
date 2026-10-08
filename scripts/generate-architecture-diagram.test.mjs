@@ -1,7 +1,16 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import { spawnSync } from "node:child_process"
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
+import {
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { architectureWithFlowDiagram } from "./generate-architecture-diagram.mjs"
@@ -39,7 +48,7 @@ test("refuses incomplete, reversed or duplicate markers rather than overwriting 
 })
 
 test("the documentation command rejects drift without writing, then repairs it", () => {
-  const directory = mkdtempSync(join(tmpdir(), "hapsland-mermaid-"))
+  const directory = realpathSync(mkdtempSync(join(tmpdir(), "hapsland-mermaid-")))
   try {
     mkdirSync(join(directory, "scripts"))
     mkdirSync(join(directory, "docs"))

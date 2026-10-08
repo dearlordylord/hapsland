@@ -62,7 +62,7 @@ async function preparedFixture(t) {
   const archiveSha256 = createHash("sha256").update(bytes).digest("hex")
   const sourceCommit = git(f.root, "rev-parse", "HEAD")
   const buildPlatform = "darwin-arm64"
-  const sourceTreeSha256 = releaseSourceTree(f.root, sourceCommit, buildPlatform)
+  const sourceTreeSha256 = releaseSourceTree(f.root, sourceCommit)
   const audit = {
     format: 1,
     package: "@hapsland/hapsland@0.1.0",

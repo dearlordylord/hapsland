@@ -62,7 +62,7 @@ export async function auditReleaseTarball(
   const command = (tool, args) => execFileSync(tool, args, { cwd: root, timeout: 5000, maxBuffer: 32 * 1024 * 1024 })
   const pin = coordinates ?? JSON.parse(readFileSync(resolve(root, "scripts/npm-release-pin.json"), "utf8"))
   const head = command("git", ["rev-parse", "HEAD"]).toString().trim()
-  if (head !== commit || assertReleaseSource(root, pin, { allowGenerated: true }) !== commit) {
+  if (head !== commit || assertReleaseSource(root, pin) !== commit) {
     throw new Error("release audit requires the exact pinned commit in a clean worktree")
   }
   const inventory = await archiveInventory(archive, { timeoutMs: deadline - Date.now() })
@@ -183,14 +183,6 @@ export async function auditReleaseTarball(
         { ...owned, publicPath: asset.installedPath },
         archiveRecord(asset.installedPath)
       )
-      const plan = nativeTaskPlans(root, graph, profile)
-        .flatMap((plan) => plan.assets)
-        .find((item) => item.installedPath === asset.installedPath)
-      if (
-        !(profile === pin.buildPlatform && plan.asset.producer.kind === "c") &&
-        archiveContentDigest(asset.installedPath) !== sha256(gitFile(asset.installedPath))
-      )
-        throw new Error(`copied native artifact differs from pinned release commit: ${asset.installedPath}`)
     }
     for (const node of graph.packages.values()) {
       if (!node.manifest.hapsland?.role) continue
@@ -228,10 +220,7 @@ export async function auditReleaseTarball(
     }
   }
   const archiveHash = sha256(readFileSync(archive))
-  if (
-    command("git", ["rev-parse", "HEAD"]).toString().trim() !== commit ||
-    assertReleaseSource(root, pin, { allowGenerated: true }) !== commit
-  )
+  if (command("git", ["rev-parse", "HEAD"]).toString().trim() !== commit || assertReleaseSource(root, pin) !== commit)
     throw new Error("release source identity changed during archive audit")
   requireTime()
   const record = {

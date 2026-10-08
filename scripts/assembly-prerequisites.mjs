@@ -16,6 +16,7 @@ export const assemblyPrerequisitePath = (root, role, profile) => {
 export const assemblyProducerFiles = [
   "scripts/assembly-prerequisites.mjs",
   "scripts/native-task-inputs.mjs",
+  "scripts/native-input-bundle.mjs",
   "scripts/assemble-entry.mjs",
   "scripts/compile-standalone.mjs",
   "scripts/assembly-context.mjs",

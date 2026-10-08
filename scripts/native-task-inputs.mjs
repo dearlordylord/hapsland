@@ -1,3 +1,4 @@
+import { foreignNativeInput } from "./native-input-bundle.mjs"
 import { createHash } from "node:crypto"
 import { existsSync, lstatSync, readFileSync, realpathSync, mkdirSync, writeFileSync, renameSync } from "node:fs"
 import { createRequire } from "node:module"
@@ -87,14 +88,12 @@ export function nativeTaskPlans(root, graph, profile, selectedOwners) {
   }
   return result
 }
-export const generatedNativePaths = (root, graph, host = `${process.platform}-${process.arch}`) =>
-  !["linux-arm64", "darwin-arm64"].includes(host)
-    ? []
-    : nativeTaskPlans(root, graph, host).flatMap((plan) =>
-        plan.assets
-          .filter(({ asset }) => asset.producer.kind === "c")
-          .map(({ installedPath }) => resolve(root, installedPath))
-      )
+export const generatedNativePaths = (root, graph) =>
+  ["linux-arm64", "darwin-arm64"].flatMap((profile) =>
+    nativeTaskPlans(root, graph, profile).flatMap((plan) =>
+      plan.assets.map(({ installedPath }) => resolve(root, installedPath))
+    )
+  )
 export function validateNativeEvidence(root, evidence) {
   for (const input of evidence.files ?? []) {
     const current = record(root, input.requested ?? resolve(root, input.path))
@@ -117,6 +116,7 @@ export function validateNativeEvidence(root, evidence) {
 }
 const tooling = (root) =>
   [
+    "native-input-bundle",
     "native-task-inputs",
     "native-task",
     "native-task-receipt",
@@ -280,7 +280,6 @@ function bindingInputs(root, graph, node, plan, profile) {
     host = `${process.platform}-${process.arch}`
   const candidates = [
     ...(profile === host ? [resolve(packageRoot, producer.localBuild)] : []),
-    resolve(root, plan.installedPath),
     resolve(packageRoot, producer.publishedPrebuild.replace("{profile}", profile))
   ]
   const observed = []
@@ -327,7 +326,15 @@ export async function observeNativeTaskInputs(root, graph, plan, env = process.e
       mode === "binding"
         ? bindingInputs(root, graph, plan.node, item, plan.profile)
         : mode === "retained"
-          ? { selected: record(root, resolve(root, installedPath)), mode: "retained-foreign-prebuilt" }
+          ? (() => {
+              const input = foreignNativeInput(
+                root,
+                nativeTaskPlans(root, graph, plan.profile),
+                plan.profile,
+                installedPath
+              )
+              return { selected: record(root, input.path), recipe: input.recipe, mode: "source-bound-foreign-bundle" }
+            })()
           : await cInputs(root, asset, plan.profile, env, previous?.assets[index]?.input)
     assets.push({ declaration: asset, installedPath, output: relative(root, output), mode, input })
   }
@@ -342,9 +349,15 @@ export async function observeNativeTaskInputs(root, graph, plan, env = process.e
     assets
   }
 }
-export async function prepareNativeTaskInputs(root, graph, environment = process.env, selectedOwners) {
+export async function prepareNativeTaskInputs(
+  root,
+  graph,
+  environment = process.env,
+  selectedOwners,
+  profiles = ["linux-arm64", "darwin-arm64"]
+) {
   const stamps = []
-  for (const profile of ["linux-arm64", "darwin-arm64"])
+  for (const profile of profiles)
     for (const plan of nativeTaskPlans(root, graph, profile, selectedOwners)) {
       const path = nativeTaskStampPath(root, plan.node, profile)
       let previous

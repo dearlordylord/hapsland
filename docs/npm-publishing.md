@@ -27,6 +27,8 @@ prerelease to `latest` as a release shortcut.
 Prepare the candidate on Linux/macOS arm64 with Node 24.20.0, mise, and the exact
 Bun 1.3.14 compiler available:
 
+Prepare the foreign [native inputs](#native-build-inputs) before this command.
+
 ```sh
 mise exec node@24.20.0 -- npm run release:prepare
 ```
@@ -37,23 +39,21 @@ running dependency postinstall scripts, builds both platform targets, validates
 native artifacts, packs with npm, and
 runs the archive audit while the same checkout build lease is held. The audit
 checks every standalone and host-module receipt, published bytes and modes,
-default rules against their committed sources, copied native assets against
-committed binaries, and host-compiled native assets against fresh compiler
-receipts. It also checks the archive inventory and private-content markers.
+default rules against their committed sources, parser bindings against pinned
+npm dependencies, foreign C assets against source-bound input bundles, and
+host-compiled native assets against fresh compiler receipts. It also checks the archive inventory and private-content markers.
 It does not make authenticated agent or Jev requests.
 
 Host-compiled native files are generated outputs, not required to equal binaries
 from another compiler/SDK. Their sources and declared compiler inputs still
-participate in build validation. Preparation restores the checkout's original
-host-native files after auditing; the verified bytes remain in the retained
-archive. No cross-host or cross-SDK bit-for-bit reproducibility is claimed.
+participate in build validation. Generated files remain ignored after auditing;
+the verified bytes also remain in the retained archive. No cross-host or cross-SDK bit-for-bit reproducibility is claimed.
 
 Only after successful build and audit does preparation atomically write the
 version-one pin. It records source commit, source-tree SHA-256, build platform,
 archive SHA-256 and audit SHA-256. The source-tree identity covers all committed
-inputs except the pin itself and native outputs compiled on the preparation
-host. Changing application code, build scripts, lockfiles, documentation or
-copied native inputs invalidates the candidate. A pin-only follow-up commit
+inputs except the pin itself. Changing application code, build scripts,
+lockfiles, documentation or native producer sources invalidates the candidate. A pin-only follow-up commit
 preserves its identity.
 
 The archive is retained under the Git common directory's
@@ -146,3 +146,27 @@ review-and-repair evidence pass. If a published version fails validation,
 deprecate it, pause guidance, preserve user state, and release a verified patch
 version. The current npm session must be used for the deprecation command;
 capture the reason and recovery instructions in the release record.
+
+## Native build inputs
+
+Generated native files under `native/prebuilt/` are ignored by Git and are still
+included in the npm archive through the explicit `package.json` files list.
+Parser bindings come from the exact installed npm dependency versions. Our C
+helpers compile on their target host; the foreign profile uses a source-bound
+bundle in ignored `.test-runs/native-inputs/`, checked against current C sources,
+producer declarations, Node version, tooling, file modes and SHA-256 digests.
+A missing or stale bundle fails native preparation before compilation starts.
+
+Run `npm run native:inputs -- build darwin-arm64` on macOS arm64 or
+`npm run native:inputs -- build linux-arm64` on Linux arm64. The command prints
+the bundle directory. Transfer that directory, then run
+`npm run native:inputs -- import <profile> <bundle-directory>` on the release host.
+Alternatively, run `npm run native:inputs -- fetch <profile>` to download a
+matching master artifact produced by the Native inputs GitHub workflow (`gh`
+authentication is required). CI produces both profiles on their own hosts before
+importing the foreign profile. These commands do not publish npm packages.
+
+Source snapshot archives are excluded from the current Git tree; historical
+snapshots remain in Git history. Images remain tracked product and documentation
+resources. Removing an ignored generated file requires regeneration or importing
+its matching native inputs; it never requires committing a binary.

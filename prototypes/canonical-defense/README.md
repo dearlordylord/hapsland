@@ -178,7 +178,7 @@ The controlled Finding fixture establishes `SENT`, retained-record and full-iden
 
 ## Earlier prototype selection index
 
-Retain [earlier game sources](../bend-tower-defense/) and the `prototypes/bend-*-source.tar.gz` bundles until the owner selects useful road, automatic-workload, flow or combat mechanics. These earlier prototypes are not runtime dependencies of this game, core or dashboard. Cleanup trigger: owner's mechanic selection; transfer selected mechanics to their chosen owner, update references and **delete** rejected variants/bundles. Do not delete them automatically during #199.
+Retain [earlier game sources](../bend-tower-defense/) ; archived source bundles are available in [Git history](https://github.com/dearlordylord/hapsland/tree/886c16f60/prototypes) until the owner selects useful road, automatic-workload, flow or combat mechanics. These earlier prototypes are not runtime dependencies of this game, core or dashboard. Cleanup trigger: owner's mechanic selection; transfer selected mechanics to their chosen owner, update references and **delete** rejected variants. The current tree keeps source and images; generated native binaries and source archives are excluded from Git.
 
 ## Completed performance investigation
 
