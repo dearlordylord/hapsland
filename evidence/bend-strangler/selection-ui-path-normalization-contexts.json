@@ -1,0 +1,14 @@
+{
+  "at": "2026-10-08T16:37:10.104Z",
+  "passed": true,
+  "rawPathEntries": [
+    46,
+    41
+  ],
+  "normalizedPathEntries": 30,
+  "fullToolchainEqual": true,
+  "fullAuthoredBendInputsEqual": true,
+  "toolchainSha256": "a96c99e233b538d7924bb92c3cce6fd7e5f4a6f615d44515ac6da22ea12fea28",
+  "authoredInputsSha256": "1e160d923cb8cf1f6d04a601bc3b77e9da9e54488a9e9306d0eb2e3e351ddd58",
+  "scope": "actual toolchain and complete authored task inputs under recorded fast/focused environments; distinct path precedence, tool/library byte checks and receipt gates retained; not build/performance qualification"
+}

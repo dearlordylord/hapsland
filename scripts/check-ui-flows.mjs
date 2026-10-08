@@ -20,8 +20,8 @@ const walk = (node, visit, parent) => {
     return
   }
   if (typeof node.type === "string") visit(node, parent)
-  for (const [key, child] of Object.entries(node))
-    if (key !== "loc" && key !== "tokens" && key !== "comments") walk(child, visit, node)
+  for (const key of Object.keys(node))
+    if (key !== "loc" && key !== "tokens" && key !== "comments") walk(node[key], visit, node)
 }
 const sourceFiles = (directory) =>
   existsSync(directory)

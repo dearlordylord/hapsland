@@ -1,0 +1,15 @@
+{
+  "at": "2026-10-08T18:24:56.606157+00:00",
+  "status": "outer preparation wrapper amended after verified interruption; product deadlines unchanged",
+  "failedLogs": [
+    "/tmp/hapsland-selection-ui-focused-id-workspaces.log",
+    "/tmp/hapsland-selection-ui-focused-id-workspaces-after-isolation.log"
+  ],
+  "observed": "both logs record Build process interrupted; first had regenerated UI before termination, second had cached Bend and successful canonical/runtime-inputs/inspection outputs; owner processes absent and lock cleanup complete",
+  "outerWrapperSeconds": 360,
+  "outerTerminationGraceSeconds": 30,
+  "unchangedProductBuildSeconds": 180,
+  "unchangedBendCheckSeconds": 5,
+  "purpose": "allow measured lengthy preparation before the existing product build budget; no claim that earlier interrupted runs pass",
+  "preExecutionDeclaration": "commentary immediately preceding corrected-wrapper tool call; this record is an amendment outcome, not original declaration"
+}

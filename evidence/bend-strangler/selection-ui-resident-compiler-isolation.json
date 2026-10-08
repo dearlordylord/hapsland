@@ -1,0 +1,8 @@
+{
+  "at": "2026-10-08T16:07:50.374Z",
+  "passed": true,
+  "package": "@hapsland/resident-runtime",
+  "milliseconds": 18689.581297999997,
+  "affinity": "CPU11,12 nonexclusive",
+  "scope": "actual compiler task after owned-process lock audit, captured environment and original compiler limits; not whole workspace qualification"
+}

@@ -388,3 +388,14 @@ The native host copies newly selected agents, preserves selected references on
 observations, and performs exact JavaScript index and revision arithmetic.
 The interpreter retains remembered selections and reported results; per-agent
 setup effects and consent remain separately owned.
+
+`selection-ui-policy/core.bend` owns keyboard navigation, submission precedence,
+and choice-toggle decisions. Three Astra-approved laws and their kernel proofs
+pin the helpers and every key constructor. Its source-free specialization calls
+native materializers through the canonical-policy selection UI adapter. Choice
+IDs are prepared once for Space; other keys do not prepare them. Native code
+retains JavaScript focus arithmetic, selected/choice array order and duplicates,
+copy/filter operations, state identity, renderer strings and Effect Prompt IO.
+Use the selection keyboard row in the [testing matrix](../../docs/testing-matrix.md)
+for the kernel, artifact and actual terminal consumers. Conditional laws do not
+establish host facts, terminal lifecycle, platform support or performance parity.

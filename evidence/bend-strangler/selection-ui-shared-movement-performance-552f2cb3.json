@@ -1,0 +1,206 @@
+{
+  "at": "2026-10-08T17:48:49.749Z",
+  "runtime": "Bun 1.3.14",
+  "baselineRevision": "552f2cb34727f5b021391e88c69bf71eee9bcd31",
+  "timedCases": 72000,
+  "roundsPerSample": 8,
+  "warmupRounds": 20,
+  "samplePairs": 31,
+  "medianRatio": 1.1646823836020563,
+  "diagnosticControl": false,
+  "productionCompared": true,
+  "executionParity": false,
+  "sha256": {
+    "selection-ui-performance.mjs": "956e667349be5bf32d0e39d2cd4e7119958665ad6fd2257719d86722b57998d4",
+    "selection-ui-parity.mjs": "9bb9aea9e4d210b46c054d50622ac36bde65d43c8d6cf7aec07c61a308841d78"
+  },
+  "samples": [
+    {
+      "typescriptMilliseconds": 499.2394039999999,
+      "integratedBendMilliseconds": 644.9062110000013,
+      "ratio": 1.2917774635433252,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 703.3681609999985,
+      "integratedBendMilliseconds": 713.1451180000004,
+      "ratio": 1.0139001984197034,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 555.6867530000018,
+      "integratedBendMilliseconds": 789.6790949999995,
+      "ratio": 1.4210867736845203,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 303.7020940000002,
+      "integratedBendMilliseconds": 678.7779549999977,
+      "ratio": 2.2350124296475786,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 371.50062199999957,
+      "integratedBendMilliseconds": 724.8237580000059,
+      "ratio": 1.9510701061491271,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 292.89696099999856,
+      "integratedBendMilliseconds": 626.2212629999995,
+      "ratio": 2.138025812428974,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 639.6882100000003,
+      "integratedBendMilliseconds": 655.1595480000033,
+      "ratio": 1.0241857482413237,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 853.7128830000001,
+      "integratedBendMilliseconds": 1055.404036,
+      "ratio": 1.2362517387476273,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 785.189056999996,
+      "integratedBendMilliseconds": 930.2268170000025,
+      "ratio": 1.1847169910316355,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 1077.0840510000053,
+      "integratedBendMilliseconds": 756.4852739999988,
+      "ratio": 0.7023456278065295,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 871.3199060000043,
+      "integratedBendMilliseconds": 1014.8109450000047,
+      "ratio": 1.1646823836020563,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 1052.0743000000002,
+      "integratedBendMilliseconds": 451.22958399999334,
+      "ratio": 0.4288951683355379,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 777.1523220000017,
+      "integratedBendMilliseconds": 694.3240440000009,
+      "ratio": 0.8934207932534484,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 643.3232810000045,
+      "integratedBendMilliseconds": 439.35040099999605,
+      "ratio": 0.6829387556393952,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 334.0644319999992,
+      "integratedBendMilliseconds": 463.0993079999971,
+      "ratio": 1.386257451077576,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 700.7603060000038,
+      "integratedBendMilliseconds": 608.9959930000041,
+      "ratio": 0.8690503554292369,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 904.6003530000016,
+      "integratedBendMilliseconds": 760.7580180000004,
+      "ratio": 0.8409879738351143,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 648.0317789999972,
+      "integratedBendMilliseconds": 669.5647519999984,
+      "ratio": 1.0332282670353445,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 257.12220199999865,
+      "integratedBendMilliseconds": 618.7757000000056,
+      "ratio": 2.4065432513681135,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 556.5060939999967,
+      "integratedBendMilliseconds": 444.2745250000007,
+      "ratio": 0.7983282299870078,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 463.75564699999813,
+      "integratedBendMilliseconds": 812.1501579999967,
+      "ratio": 1.7512458624573901,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 526.9754699999976,
+      "integratedBendMilliseconds": 625.3773389999988,
+      "ratio": 1.1867295056447345,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 897.4286659999998,
+      "integratedBendMilliseconds": 908.4140929999994,
+      "ratio": 1.0122410030080313,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 520.0334539999967,
+      "integratedBendMilliseconds": 675.4551770000035,
+      "ratio": 1.2988687012432238,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 617.2786880000058,
+      "integratedBendMilliseconds": 371.7506649999996,
+      "ratio": 0.6022412116713093,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 356.3945789999998,
+      "integratedBendMilliseconds": 640.7827190000025,
+      "ratio": 1.7979586580636595,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 503.8284419999982,
+      "integratedBendMilliseconds": 305.45727500000066,
+      "ratio": 0.6062723926173302,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 540.1113719999994,
+      "integratedBendMilliseconds": 649.959087999996,
+      "ratio": 1.2033797503526675,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 631.3423060000059,
+      "integratedBendMilliseconds": 312.5058350000036,
+      "ratio": 0.4949863679814934,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 833.7532570000039,
+      "integratedBendMilliseconds": 513.5921079999971,
+      "ratio": 0.6160001219641349,
+      "checksum": -355615488
+    },
+    {
+      "typescriptMilliseconds": 638.1669469999906,
+      "integratedBendMilliseconds": 812.0213249999942,
+      "ratio": 1.2724277382545264,
+      "checksum": -355615488
+    }
+  ],
+  "scope": "actual compiled keyboard reducer; independent identical consumers of all fixture result fields, identity, IDs and order; alternating paired samples, CPU11 nonexclusive; no cold terminal/IO/platform claim"
+}

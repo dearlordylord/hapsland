@@ -1,0 +1,32 @@
+{
+  "at": "2026-10-08T18:07:42.078Z",
+  "diagnosticOnly": true,
+  "scope": "isolated unchanged producer preparation phases; no build parity verdict",
+  "rows": [
+    {
+      "phase": "UI source preflight",
+      "seconds": 7.018755988,
+      "cpuMilliseconds": 5738.687
+    },
+    {
+      "phase": "package graph",
+      "seconds": 0.04618207899999925,
+      "cpuMilliseconds": 60.536
+    },
+    {
+      "phase": "Bend toolchain",
+      "seconds": 1.6494355079999996,
+      "cpuMilliseconds": 1296.363
+    },
+    {
+      "phase": "Bend Base evidence",
+      "seconds": 0.002182142999999996,
+      "cpuMilliseconds": 2.303
+    },
+    {
+      "phase": "authored task inputs",
+      "seconds": 1.2674588219999987,
+      "cpuMilliseconds": 1209.211
+    }
+  ]
+}

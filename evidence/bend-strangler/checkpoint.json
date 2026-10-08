@@ -1,46 +1,94 @@
 {
-  "at": "2026-10-08T13:33:22.396571+00:00",
-  "branch": "migration/bend-setup-selection",
-  "baseRevision": "fbff5020a809bfc56583a87c207e7f9d632f6cc1",
-  "predecessorRevision": "b2bec81a",
-  "frontier": "outer setup selection transition decisions",
-  "sliceStatus": "eight policies integrated on latest master; outer setup selection locally qualified",
-  "priorSlices": {
-    "credential": "247e1448",
-    "login": "5f213083",
-    "verification": "becfce84",
-    "update": "b53e7bd2",
-    "setup": "0920b06f",
-    "maintenance": "6070d956",
-    "rules": "b2bec81a"
+  "at": "2026-10-08T19:58:16.960056+00:00",
+  "branch": "migration/bend-selection-ui",
+  "masterRevision": "bc37e318df95bfff969e6e07f8f45742725e9789",
+  "mergedRevision": "15f0b6366351e529ef29a43570464d4b4569184e",
+  "frontier": "selection keyboard navigation, submission and toggle decisions",
+  "sliceStatus": "qualified selection keyboard frontier against frozen bc37e318: final selected checks pass; warm build 0.9467191580149081 with matched 23/46 caches; hot balanced execution 0.9704208565342902; overall migration and current-master reconciliation remain active",
+  "previousQualifiedCheckpoint": {
+    "revision": "64adfcebfe91497ec469982e6303396a6e80c59a",
+    "scope": "eight policies qualified before subsequent master merges; retained in Git history"
   },
-  "lawApproval": "setup-selection-law-approval.json",
-  "checks": {
-    "fast": "passed; /tmp/hapsland-selection-check-fast.log",
-    "sourceTyping": "passed; /tmp/hapsland-selection-source-typecheck.log",
-    "producerAndRealConsumerTests": 92,
-    "focusedTests": 55,
-    "focusedFiles": 3,
-    "focusedRun": "20261008133041378-4114441-065898",
-    "setupSelectionMutantsDetected": 9,
-    "finiteLawFalsificationCases": 144,
-    "productionTransitionParityCases": 2352,
-    "proofRevalidation": "setup-selection-candidate-proof-revalidation.json",
-    "artifactAuthorityRevalidation": "setup-selection-candidate-artifact-revalidation.json",
-    "documentation": "passed; 11 documentation tests, 3 decision-ledger tests and 1860 offline links; /tmp/hapsland-selection-docs-check.log",
-    "diagrams": "unchanged; generated replay and actual consumers passed; no new visual diff",
-    "fullGate": "not run; bounded policy slice and affected producer consumers",
-    "githubCi": "not checked; not a completion gate",
-    "nativeInterpreterUnchanged": true
+  "pendingDirectLoginIncluded": false,
+  "lawApproval": "selection-ui-law-approval.json",
+  "masterReconciliation": "selection-ui-master-bc37e318-reconciliation.json",
+  "afterLatestMerge": {
+    "producerConsumers": {
+      "passed": true,
+      "tests": 69,
+      "log": "/tmp/hapsland-selection-ui-3fd-master-producer.log"
+    },
+    "workspaceBuild": {
+      "passed": false,
+      "attempts": [
+        {
+          "log": "/tmp/hapsland-selection-ui-3fd-master-prepared.log",
+          "failure": "existing verification-policy proof exceeded five seconds",
+          "isolatedProofPassed": true
+        },
+        {
+          "log": "/tmp/hapsland-selection-ui-3fd-master-prepared-affinity.log",
+          "failure": "aggregate workspace build exceeded 180 seconds on CPU11",
+          "producerAndCanonicalCompilationPassed": true
+        },
+        {
+          "log": "/tmp/hapsland-selection-ui-3fd-master-prepared-cached-producer.log",
+          "failure": "subprocess deadline before build-task logs; no build qualification"
+        },
+        {
+          "log": "/tmp/hapsland-selection-ui-3fd-master-prepared-affinity-cached.log",
+          "failure": "aggregate workspace build deadline reached during remaining runtime packages",
+          "producerAndCanonicalCompilationReused": true,
+          "groupUnresolved": false
+        }
+      ],
+      "isolatedToolchain": "selection-ui-toolchain-isolation.json",
+      "currentAttempt": null,
+      "nextDiagnostic": "isolate remaining actual runtime compiler task in its captured producer environment before another aggregate run"
+    },
+    "residentCompilerIsolation": "selection-ui-resident-compiler-isolation.json",
+    "workspaceBeforeFinalFormatting": {
+      "passed": true,
+      "tasks": 46,
+      "cachedTasks": 17,
+      "seconds": 61.436,
+      "log": "/tmp/hapsland-selection-ui-3fd-workspace-two-cpus.log"
+    },
+    "finalFormattedWorkspace": {
+      "passed": true,
+      "tasks": 46,
+      "cachedTasks": 4,
+      "seconds": 140.68,
+      "log": "/tmp/hapsland-selection-ui-final-formatted-workspaces.log"
+    }
   },
+  "beforeLatestMerge": {
+    "fastPassed": true,
+    "focusedTests": 17,
+    "focusedFiles": 4,
+    "focusedRun": "20261008154044567-1167465-1de1d3",
+    "productionCases": 72000,
+    "wellFormedMutantsRejected": 12,
+    "executionBeforeOptimizationRatio": 1.0736641317472388,
+    "executionAfterCallbackBindingRatio": 0.9889636791688168,
+    "executionScope": "hot actual reducer vs frozen c1 master with identical reducer source; not whole CLI or new-master acceptance"
+  },
+  "preservation": {
+    "stash": "75b93811e94db753b8da516238c2cd650ce854a7",
+    "stashRetained": true
+  },
+  "nextPeriodicBuildMeasurementBy": "2026-10-08T16:48:10.689000+00:00",
+  "periodicScopeNote": "direct-login branch remains a separate pending candidate against frozen c1; same-master UI build baseline at 3fd is not prepared yet",
   "latestPeriodicCheckpoint": {
     "build": {
-      "baselineRevision": "fbff5020a809bfc56583a87c207e7f9d632f6cc1",
-      "startedAt": "2026-10-08T13:28:23.738Z",
-      "at": "2026-10-08T13:28:52.394Z",
+      "warmPreparationCriterion": "all 23 package build tasks cached and 23 uncached clean tasks per lane; identical total task counts across all four samples",
+      "warmPreparationMatched": true,
+      "baselineRevision": "3fd2726422e7cfef0804e57acc004d0c4100daba",
+      "startedAt": "2026-10-08T16:18:10.689Z",
+      "at": "2026-10-08T16:18:29.873Z",
       "roots": {
-        "typescript": "/workspace/typescript/hapsland-bend-baseline-latest",
-        "integratedBend": "/workspace/typescript/hapsland-bend-setup"
+        "typescript": "/workspace/typescript/hapsland-bend-baseline-master-3fd27264",
+        "integratedBend": "/workspace/typescript/hapsland-bend-selection-ui"
       },
       "command": [
         "taskset",
@@ -55,7 +103,7 @@
           {
             "cachedTasks": 23,
             "totalTasks": 46,
-            "seconds": 8.868244500000001,
+            "seconds": 5.109663019000001,
             "exitCode": 0,
             "signal": null,
             "error": null
@@ -63,7 +111,7 @@
           {
             "cachedTasks": 23,
             "totalTasks": 46,
-            "seconds": 5.888578840000002,
+            "seconds": 4.470836535999999,
             "exitCode": 0,
             "signal": null,
             "error": null
@@ -73,7 +121,7 @@
           {
             "cachedTasks": 23,
             "totalTasks": 46,
-            "seconds": 7.264515771,
+            "seconds": 4.905565037,
             "exitCode": 0,
             "signal": null,
             "error": null
@@ -81,378 +129,2188 @@
           {
             "cachedTasks": 23,
             "totalTasks": 46,
-            "seconds": 6.628263489999999,
+            "seconds": 4.688685291,
             "exitCode": 0,
             "signal": null,
             "error": null
           }
         ]
       },
-      "meanRatio": 0.9414478266024967,
-      "buildParity": true,
+      "meanRatio": 1.001435287682136,
+      "buildParity": false,
       "scope": "paired warm workspace builds; declared frozen baseline and current candidate; both separately prepared; native release assembly excluded"
     },
-    "setupSelectionExecution": {
-      "at": "2026-10-08T13:24:24.223Z",
-      "runtime": {
-        "kind": "Bun",
-        "versions": {
-          "node": "24.3.0",
-          "bun": "1.3.14",
-          "boringssl": "0c5fce43b7ed5eb6001487ee48ac65766f5ddcd1",
-          "openssl": "1.1.0",
-          "llhttp": "9.3.0",
-          "libarchive": "ded82291ab41d5e355831b96b0e1ff49e24d8939",
-          "mimalloc": "f15aecb94fc8096008bf87b90c53ed682026914a",
-          "picohttpparser": "066d2b1e9ab820703db0837a7255d92d30f0c9f5",
-          "uwebsockets": "0d9b296af33f2b851fcbf4df3e9ec89751734ba4",
-          "webkit": "5488984d20e0dbfe4be2c3ba8fb18eb81a5e0e8b",
-          "zig": "04e7f6ac1e009525bc00934f20199c68f04e0a24",
-          "zlib": "12731092979c6d07f42da27da673a9f6c7b13586",
-          "tinycc": "12882eee073cfe5c7621bcfadf679e1372d4537b",
-          "lolhtml": "77127cd2b8545998756e8d64e36ee2313c4bb312",
-          "ares": "3ac47ee46edd8ea40370222f91613fc16c434853",
-          "libdeflate": "c8c56a20f8f621e6a966b716b31f1dedab6a41e3",
-          "usockets": "0d9b296af33f2b851fcbf4df3e9ec89751734ba4",
-          "lshpack": "8905c024b6d052f083a3d11d0a169b3c2735c8a1",
-          "zstd": "f8745da6ff1ad1e7bab384bd1f9d742439278e99",
-          "v8": "13.6.233.10-node.18",
-          "uv": "1.48.0",
-          "napi": "10",
-          "icu": "75.1",
-          "unicode": "15.1",
-          "modules": "137"
-        },
-        "executable": "/home/node/.local/share/mise/installs/bun/1.3.14/bin/bun"
-      },
-      "baselineRevision": "fbff5020a809bfc56583a87c207e7f9d632f6cc1",
-      "roundsPerSample": 128,
+    "execution": {
+      "at": "2026-10-08T16:20:43.905Z",
+      "runtime": "Bun 1.3.14",
+      "baselineRevision": "3fd2726422e7cfef0804e57acc004d0c4100daba",
+      "timedCases": 72000,
+      "roundsPerSample": 8,
       "warmupRounds": 20,
       "samplePairs": 31,
-      "timedCases": 840,
+      "medianRatio": 0.9412849264872375,
+      "executionParity": true,
+      "sha256": {
+        "selection-ui-performance.mjs": "805b6de52a1eeb2f0d58072ccf16b839b9c1a1ce366e43430b32d30271e1ccc5",
+        "selection-ui-parity.mjs": "9bb9aea9e4d210b46c054d50622ac36bde65d43c8d6cf7aec07c61a308841d78"
+      },
+      "samples": [
+        {
+          "typescriptMilliseconds": 724.6030959999989,
+          "integratedBendMilliseconds": 365.70649700000104,
+          "ratio": 0.5046990538941909,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 487.5313150000002,
+          "integratedBendMilliseconds": 458.9058780000014,
+          "ratio": 0.9412849264872375,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 352.86545900000056,
+          "integratedBendMilliseconds": 465.7113580000005,
+          "ratio": 1.3197986544781073,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 415.550177000001,
+          "integratedBendMilliseconds": 268.8970410000002,
+          "ratio": 0.6470868161848948,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 434.80223300000216,
+          "integratedBendMilliseconds": 606.5741479999997,
+          "ratio": 1.3950575732208732,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 342.51819500000056,
+          "integratedBendMilliseconds": 964.7967830000016,
+          "ratio": 2.8167752752521658,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 232.0031089999975,
+          "integratedBendMilliseconds": 305.2933840000005,
+          "ratio": 1.3159021243978408,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 464.0224679999992,
+          "integratedBendMilliseconds": 294.96449500000017,
+          "ratio": 0.6356685620662677,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 323.92822700000033,
+          "integratedBendMilliseconds": 287.044378999999,
+          "ratio": 0.8861357395692433,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 238.81892300000254,
+          "integratedBendMilliseconds": 320.15177499999845,
+          "ratio": 1.3405628455999488,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 326.42741699999897,
+          "integratedBendMilliseconds": 269.51696300000185,
+          "ratio": 0.8256566359436736,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 395.03919099999985,
+          "integratedBendMilliseconds": 304.36654199999975,
+          "ratio": 0.7704717631421028,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 244.39889200000107,
+          "integratedBendMilliseconds": 525.0347519999996,
+          "ratio": 2.148269772024978,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 752.3132749999968,
+          "integratedBendMilliseconds": 712.9385699999984,
+          "ratio": 0.947661823460448,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 349.1146320000007,
+          "integratedBendMilliseconds": 301.9901869999994,
+          "ratio": 0.8650172731803427,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 279.7080590000005,
+          "integratedBendMilliseconds": 293.3265629999987,
+          "ratio": 1.048688278945864,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 293.7326089999988,
+          "integratedBendMilliseconds": 328.9029819999996,
+          "ratio": 1.1197360181415914,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 255.0399090000028,
+          "integratedBendMilliseconds": 313.49550400000226,
+          "ratio": 1.2292017560279118,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 372.40847700000086,
+          "integratedBendMilliseconds": 246.25832699999955,
+          "ratio": 0.6612586506724416,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 420.0601349999997,
+          "integratedBendMilliseconds": 357.0715820000005,
+          "ratio": 0.8500487245713063,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 291.92442500000107,
+          "integratedBendMilliseconds": 211.95058599999902,
+          "ratio": 0.7260460853866484,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 216.60171299999638,
+          "integratedBendMilliseconds": 229.8901310000001,
+          "ratio": 1.0613495517461764,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 248.22813700000188,
+          "integratedBendMilliseconds": 217.15292699999918,
+          "ratio": 0.8748118953170789,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 511.57658399999855,
+          "integratedBendMilliseconds": 231.67089699999997,
+          "ratio": 0.45285672613975747,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 476.80783800000063,
+          "integratedBendMilliseconds": 475.2926989999978,
+          "ratio": 0.9968223278242275,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 431.7643289999978,
+          "integratedBendMilliseconds": 434.19401999999536,
+          "ratio": 1.0056273546395667,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 397.33058800000435,
+          "integratedBendMilliseconds": 326.0425389999946,
+          "ratio": 0.8205825296289321,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 281.9914970000027,
+          "integratedBendMilliseconds": 316.72874299999967,
+          "ratio": 1.123185437750971,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 274.5209690000047,
+          "integratedBendMilliseconds": 280.80507000000216,
+          "ratio": 1.02289115116739,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 396.57220600000437,
+          "integratedBendMilliseconds": 354.07188699999824,
+          "ratio": 0.8928308178006664,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 470.60207100000116,
+          "integratedBendMilliseconds": 409.408617999994,
+          "ratio": 0.8699677354373415,
+          "checksum": -355615488
+        }
+      ],
+      "scope": "actual compiled keyboard reducer; independent identical consumers of all fixture result fields, identity, IDs and order; alternating paired samples, CPU11 nonexclusive; no cold terminal/IO/platform claim"
+    }
+  },
+  "currentMasterValidation": {
+    "at": "2026-10-08T17:35:32.516336+00:00",
+    "focusedScriptTests": {
+      "passed": 94,
+      "failed": 0,
+      "log": "/tmp/hapsland-master-552-reconciliation-tests-fixed.log"
+    },
+    "workspaceBuild": {
+      "successfulTasks": 46,
+      "totalTasks": 46,
+      "cachedTasks": 11,
+      "seconds": 29.542,
+      "log": "/tmp/hapsland-master-552-matching-environment-build.log"
+    },
+    "checkFast": {
+      "passed": true,
+      "log": "/tmp/hapsland-master-552-fast-matching-environment.log"
+    },
+    "selectionConsumers": {
+      "passed": true,
+      "run": "20261008173451465-2060313-7f4025",
+      "log": "/tmp/hapsland-master-552-focused.log"
+    },
+    "preservedFailures": [
+      {
+        "log": "/tmp/hapsland-master-552-reconciliation-tests.log",
+        "cause": "initial environment selected global Bend 2.0.35 and omitted newly required native bundle"
+      },
+      {
+        "log": "/tmp/hapsland-master-552-fast.log",
+        "cause": "documentation preparation deadline expired during compilation"
+      },
+      {
+        "log": "/tmp/hapsland-master-552-workspaces.log",
+        "cause": "workspace build deadline expired on CPU 11,12 with a different PATH identity"
+      }
+    ]
+  },
+  "latestPeriodicBuild": {
+    "warmPreparationCriterion": "all 23 package build tasks cached and 23 uncached clean tasks per lane; identical total task counts across all four samples",
+    "warmPreparationMatched": true,
+    "baselineRevision": "552f2cb34727f5b021391e88c69bf71eee9bcd31",
+    "startedAt": "2026-10-08T17:49:36.927Z",
+    "at": "2026-10-08T17:50:32.534Z",
+    "roots": {
+      "typescript": "/workspace/typescript/hapsland-bend-baseline-master-552f2cb3",
+      "integratedBend": "/workspace/typescript/hapsland-bend-selection-ui"
+    },
+    "command": [
+      "taskset",
+      "-c",
+      "11",
+      "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "scripts/build-workspaces.mjs"
+    ],
+    "affinity": "CPU 11 for both lanes; not exclusive",
+    "samples": {
+      "typescript": [
+        {
+          "cachedTasks": 23,
+          "totalTasks": 46,
+          "seconds": 12.909811827,
+          "exitCode": 0,
+          "signal": null,
+          "error": null
+        },
+        {
+          "cachedTasks": 23,
+          "totalTasks": 46,
+          "seconds": 11.081908797999997,
+          "exitCode": 0,
+          "signal": null,
+          "error": null
+        }
+      ],
+      "integratedBend": [
+        {
+          "cachedTasks": 23,
+          "totalTasks": 46,
+          "seconds": 15.132231378,
+          "exitCode": 0,
+          "signal": null,
+          "error": null
+        },
+        {
+          "cachedTasks": 23,
+          "totalTasks": 46,
+          "seconds": 16.464372449,
+          "exitCode": 0,
+          "signal": null,
+          "error": null
+        }
+      ]
+    },
+    "meanRatio": 1.3169794830836565,
+    "buildParity": false,
+    "scope": "paired warm workspace builds; declared frozen baseline and current candidate; both separately prepared; native release assembly excluded"
+  },
+  "nextPeriodicBuildDueAt": "2026-10-08T18:19:36.927000+00:00",
+  "performanceCadenceGap": {
+    "recordedAt": "2026-10-08T17:44:12.016671+00:00",
+    "execution": "last accepted-mode measurement was before latest master merge; reconciliation and clean baseline preparation delayed the next run",
+    "build": "same-master baseline preparation required before a qualified warm comparison"
+  },
+  "lawReconfirmation": "selection-ui-law-reconfirmation-552f2cb3.json",
+  "latestPeriodicExecution": {
+    "at": "2026-10-08T17:48:49.749Z",
+    "runtime": "Bun 1.3.14",
+    "baselineRevision": "552f2cb34727f5b021391e88c69bf71eee9bcd31",
+    "timedCases": 72000,
+    "roundsPerSample": 8,
+    "warmupRounds": 20,
+    "samplePairs": 31,
+    "medianRatio": 1.1646823836020563,
+    "diagnosticControl": false,
+    "productionCompared": true,
+    "executionParity": false,
+    "sha256": {
+      "selection-ui-performance.mjs": "956e667349be5bf32d0e39d2cd4e7119958665ad6fd2257719d86722b57998d4",
+      "selection-ui-parity.mjs": "9bb9aea9e4d210b46c054d50622ac36bde65d43c8d6cf7aec07c61a308841d78"
+    },
+    "samples": [
+      {
+        "typescriptMilliseconds": 499.2394039999999,
+        "integratedBendMilliseconds": 644.9062110000013,
+        "ratio": 1.2917774635433252,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 703.3681609999985,
+        "integratedBendMilliseconds": 713.1451180000004,
+        "ratio": 1.0139001984197034,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 555.6867530000018,
+        "integratedBendMilliseconds": 789.6790949999995,
+        "ratio": 1.4210867736845203,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 303.7020940000002,
+        "integratedBendMilliseconds": 678.7779549999977,
+        "ratio": 2.2350124296475786,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 371.50062199999957,
+        "integratedBendMilliseconds": 724.8237580000059,
+        "ratio": 1.9510701061491271,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 292.89696099999856,
+        "integratedBendMilliseconds": 626.2212629999995,
+        "ratio": 2.138025812428974,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 639.6882100000003,
+        "integratedBendMilliseconds": 655.1595480000033,
+        "ratio": 1.0241857482413237,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 853.7128830000001,
+        "integratedBendMilliseconds": 1055.404036,
+        "ratio": 1.2362517387476273,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 785.189056999996,
+        "integratedBendMilliseconds": 930.2268170000025,
+        "ratio": 1.1847169910316355,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 1077.0840510000053,
+        "integratedBendMilliseconds": 756.4852739999988,
+        "ratio": 0.7023456278065295,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 871.3199060000043,
+        "integratedBendMilliseconds": 1014.8109450000047,
+        "ratio": 1.1646823836020563,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 1052.0743000000002,
+        "integratedBendMilliseconds": 451.22958399999334,
+        "ratio": 0.4288951683355379,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 777.1523220000017,
+        "integratedBendMilliseconds": 694.3240440000009,
+        "ratio": 0.8934207932534484,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 643.3232810000045,
+        "integratedBendMilliseconds": 439.35040099999605,
+        "ratio": 0.6829387556393952,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 334.0644319999992,
+        "integratedBendMilliseconds": 463.0993079999971,
+        "ratio": 1.386257451077576,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 700.7603060000038,
+        "integratedBendMilliseconds": 608.9959930000041,
+        "ratio": 0.8690503554292369,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 904.6003530000016,
+        "integratedBendMilliseconds": 760.7580180000004,
+        "ratio": 0.8409879738351143,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 648.0317789999972,
+        "integratedBendMilliseconds": 669.5647519999984,
+        "ratio": 1.0332282670353445,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 257.12220199999865,
+        "integratedBendMilliseconds": 618.7757000000056,
+        "ratio": 2.4065432513681135,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 556.5060939999967,
+        "integratedBendMilliseconds": 444.2745250000007,
+        "ratio": 0.7983282299870078,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 463.75564699999813,
+        "integratedBendMilliseconds": 812.1501579999967,
+        "ratio": 1.7512458624573901,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 526.9754699999976,
+        "integratedBendMilliseconds": 625.3773389999988,
+        "ratio": 1.1867295056447345,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 897.4286659999998,
+        "integratedBendMilliseconds": 908.4140929999994,
+        "ratio": 1.0122410030080313,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 520.0334539999967,
+        "integratedBendMilliseconds": 675.4551770000035,
+        "ratio": 1.2988687012432238,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 617.2786880000058,
+        "integratedBendMilliseconds": 371.7506649999996,
+        "ratio": 0.6022412116713093,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 356.3945789999998,
+        "integratedBendMilliseconds": 640.7827190000025,
+        "ratio": 1.7979586580636595,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 503.8284419999982,
+        "integratedBendMilliseconds": 305.45727500000066,
+        "ratio": 0.6062723926173302,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 540.1113719999994,
+        "integratedBendMilliseconds": 649.959087999996,
+        "ratio": 1.2033797503526675,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 631.3423060000059,
+        "integratedBendMilliseconds": 312.5058350000036,
+        "ratio": 0.4949863679814934,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 833.7532570000039,
+        "integratedBendMilliseconds": 513.5921079999971,
+        "ratio": 0.6160001219641349,
+        "checksum": -355615488
+      },
+      {
+        "typescriptMilliseconds": 638.1669469999906,
+        "integratedBendMilliseconds": 812.0213249999942,
+        "ratio": 1.2724277382545264,
+        "checksum": -355615488
+      }
+    ],
+    "scope": "actual compiled keyboard reducer; independent identical consumers of all fixture result fields, identity, IDs and order; alternating paired samples, CPU11 nonexclusive; no cold terminal/IO/platform claim"
+  },
+  "nextPeriodicExecutionDueAt": "2026-10-08T18:18:49.749000+00:00",
+  "currentLawReconfirmation": "selection-ui-law-reconfirmation-resumed.json",
+  "currentPerformancePreparation": {
+    "baseline": "/workspace/typescript/hapsland-bend-baseline-master-bc37e318",
+    "candidate": "/workspace/typescript/hapsland-bend-selection-ui",
+    "environment": "common captured raw PATH environment; candidate normalizes duplicates; baseline preserves them",
+    "status": "baseline 46/46 actual workspace tasks passed; frozen clean",
+    "log": "/tmp/hapsland-baseline-bc37-preparation.log"
+  },
+  "lastMeasuredFocusedIdBeforeDirectHold": {
+    "execution": {
+      "at": "2026-10-08T18:38:00.649Z",
+      "runtime": "Bun 1.3.14",
+      "baselineRevision": "552f2cb34727f5b021391e88c69bf71eee9bcd31",
+      "timedCases": 72000,
+      "roundsPerSample": 8,
+      "warmupRounds": 20,
+      "samplePairs": 31,
+      "medianRatio": 1.0035080956814637,
+      "diagnosticControl": false,
+      "productionCompared": true,
+      "executionParity": false,
+      "sha256": {
+        "selection-ui-performance.mjs": "956e667349be5bf32d0e39d2cd4e7119958665ad6fd2257719d86722b57998d4",
+        "selection-ui-parity.mjs": "9bb9aea9e4d210b46c054d50622ac36bde65d43c8d6cf7aec07c61a308841d78"
+      },
+      "samples": [
+        {
+          "typescriptMilliseconds": 964.0486400000009,
+          "integratedBendMilliseconds": 1232.5791260000042,
+          "ratio": 1.2785445410721217,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 809.8014509999994,
+          "integratedBendMilliseconds": 887.0359210000024,
+          "ratio": 1.0953745759588707,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 805.5367100000003,
+          "integratedBendMilliseconds": 836.9460350000008,
+          "ratio": 1.0389917983998527,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 1780.9592709999997,
+          "integratedBendMilliseconds": 1126.3474330000026,
+          "ratio": 0.6324386252626453,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 1227.281127999995,
+          "integratedBendMilliseconds": 1564.7366459999976,
+          "ratio": 1.2749618732832042,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 1039.883765999999,
+          "integratedBendMilliseconds": 1304.5207230000015,
+          "ratio": 1.2544870548541698,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 1361.8367479999943,
+          "integratedBendMilliseconds": 935.4034610000017,
+          "ratio": 0.6868690115564466,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 1104.541723000002,
+          "integratedBendMilliseconds": 813.0703510000021,
+          "ratio": 0.7361155618383105,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 991.6552699999957,
+          "integratedBendMilliseconds": 1271.4373429999978,
+          "ratio": 1.2821364252922323,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 1004.9288709999964,
+          "integratedBendMilliseconds": 1257.0170230000003,
+          "ratio": 1.2508517361523837,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 1031.3257840000006,
+          "integratedBendMilliseconds": 994.3448320000025,
+          "ratio": 0.964142318001042,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 890.5894490000064,
+          "integratedBendMilliseconds": 893.7137220000004,
+          "ratio": 1.0035080956814637,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 913.0883719999983,
+          "integratedBendMilliseconds": 1014.3056110000034,
+          "ratio": 1.1108515255520144,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 904.5716820000089,
+          "integratedBendMilliseconds": 755.9606610000046,
+          "ratio": 0.8357111725281681,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 633.1052559999953,
+          "integratedBendMilliseconds": 643.1071660000016,
+          "ratio": 1.015798178747084,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 582.0582369999902,
+          "integratedBendMilliseconds": 814.4786119999917,
+          "ratio": 1.399307767205441,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 1061.3481410000095,
+          "integratedBendMilliseconds": 999.5797060000041,
+          "ratio": 0.9418019096525606,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 943.9645270000037,
+          "integratedBendMilliseconds": 942.6953089999879,
+          "ratio": 0.9986554388817453,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 1112.456158999994,
+          "integratedBendMilliseconds": 1224.0012689999858,
+          "ratio": 1.1002692187890457,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 1089.1651049999928,
+          "integratedBendMilliseconds": 1197.8431090000086,
+          "ratio": 1.099781018966832,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 1083.9542729999957,
+          "integratedBendMilliseconds": 960.7099480000034,
+          "ratio": 0.8863011770239196,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 1140.6772930000006,
+          "integratedBendMilliseconds": 1120.2036770000122,
+          "ratio": 0.9820513513106389,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 1040.8086480000056,
+          "integratedBendMilliseconds": 928.1809880000073,
+          "ratio": 0.8917883126582191,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 913.9051289999916,
+          "integratedBendMilliseconds": 886.3498739999923,
+          "ratio": 0.9698488889868134,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 1629.7951889999968,
+          "integratedBendMilliseconds": 1662.5893170000054,
+          "ratio": 1.0201216252332481,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 1553.731310999996,
+          "integratedBendMilliseconds": 1976.46832,
+          "ratio": 1.2720785801297436,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 1344.074528000012,
+          "integratedBendMilliseconds": 1049.561131999988,
+          "ratio": 0.7808801596454171,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 951.840962000002,
+          "integratedBendMilliseconds": 891.8495420000108,
+          "ratio": 0.936973273482644,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 1000.9127580000059,
+          "integratedBendMilliseconds": 751.4440429999959,
+          "ratio": 0.7507587819157276,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 1347.956640999997,
+          "integratedBendMilliseconds": 932.7626900000032,
+          "ratio": 0.6919827104438779,
+          "checksum": -355615488
+        },
+        {
+          "typescriptMilliseconds": 753.827060999989,
+          "integratedBendMilliseconds": 1017.6943040000042,
+          "ratio": 1.3500368408769807,
+          "checksum": -355615488
+        }
+      ],
+      "scope": "actual compiled keyboard reducer; independent identical consumers of all fixture result fields, identity, IDs and order; alternating paired samples, CPU11 nonexclusive; no cold terminal/IO/platform claim"
+    },
+    "build": {
+      "warmPreparationCriterion": "all 23 package build tasks cached and 23 uncached clean tasks per lane; identical total task counts across all four samples",
+      "warmPreparationMatched": true,
+      "baselineRevision": "552f2cb34727f5b021391e88c69bf71eee9bcd31",
+      "startedAt": "2026-10-08T18:39:02.324Z",
+      "at": "2026-10-08T18:41:34.930Z",
+      "roots": {
+        "typescript": "/workspace/typescript/hapsland-bend-baseline-master-552f2cb3",
+        "integratedBend": "/workspace/typescript/hapsland-bend-selection-ui"
+      },
+      "command": [
+        "taskset",
+        "-c",
+        "11",
+        "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+        "scripts/build-workspaces.mjs"
+      ],
+      "affinity": "CPU 11 for both lanes; not exclusive",
       "samples": {
         "typescript": [
           {
-            "milliseconds": 3.1978560000006837,
-            "checksum": 2230784
+            "cachedTasks": 23,
+            "totalTasks": 46,
+            "seconds": 48.497414924,
+            "exitCode": 0,
+            "signal": null,
+            "error": null
           },
           {
-            "milliseconds": 1.824470000000474,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 8.595016999999643,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 4.19782000000032,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 4.885825000000295,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 8.709351000000424,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 2.000554999999622,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 1.7716370000007373,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 1.5251349999998638,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 2.064346999999543,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 5.311952999999448,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 3.4991079999999783,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 14.277763999999479,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 3.792609000000084,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 3.04181299999982,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 6.380668000000696,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 3.6547329999993963,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 1.6778860000003988,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 1.6351360000007844,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 2.133097999999336,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 2.018597000000227,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 1.5392189999993207,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 26.381178999999975,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 13.704134999999951,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 16.285527000000002,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 15.659689000000071,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 8.605058999999528,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 1.876220999999532,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 5.336119999999937,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 5.315368999999919,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 3.2131880000006277,
-            "checksum": 2230784
+            "cachedTasks": 23,
+            "totalTasks": 46,
+            "seconds": 43.36526268399999,
+            "exitCode": 0,
+            "signal": null,
+            "error": null
           }
         ],
         "integratedBend": [
           {
-            "milliseconds": 2.3386829999999463,
-            "checksum": 2230784
+            "cachedTasks": 23,
+            "totalTasks": 46,
+            "seconds": 29.397132791999997,
+            "exitCode": 0,
+            "signal": null,
+            "error": null
           },
           {
-            "milliseconds": 1.9820550000004005,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 15.256561999999576,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 14.113636999999471,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 2.354016000000229,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 2.3754739999994854,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 11.985498000000007,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 4.5019890000003215,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 1.9016380000002755,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 7.097130999999536,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 4.739448999999695,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 2.3210989999997764,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 8.401181999999608,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 3.611399999999776,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 1.9780140000002575,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 2.9927699999998367,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 4.006777000000511,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 6.1290829999998095,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 3.104895999999826,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 4.048526999999922,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 2.0070969999997033,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 1.887220999999954,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 2.0166390000003958,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 22.223525999999765,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 7.802678000000014,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 10.341112000000066,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 2.104889999999614,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 2.4551839999994627,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 2.7426439999999275,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 4.903324999999313,
-            "checksum": 2230784
-          },
-          {
-            "milliseconds": 5.9849990000002435,
-            "checksum": 2230784
+            "cachedTasks": 23,
+            "totalTasks": 46,
+            "seconds": 30.823010232999994,
+            "exitCode": 0,
+            "signal": null,
+            "error": null
           }
         ]
       },
-      "medianRatio": 0.988143319908834,
-      "executionParity": true,
-      "sha256": {
-        "/workspace/typescript/hapsland-bend-baseline-latest/packages/administration/dist/onboarding/setup-selection.js": "d57aaf50693ad5084f27ba1c4f0f4fa4991c309282eae00e52c4c82daae8094a",
-        "evidence/bend-strangler/setup-selection-reference.ts": "6a76fbfe130b97bfc8431662b04f06412288e18f61d4a53426dcd48228f3035f",
-        "evidence/bend-strangler/setup-selection-draft-parity.mjs": "664dd4b8f3c8958e4ac63330f78c51c56b3811ad7ae44f99539e099e439f9329",
-        "evidence/bend-strangler/setup-selection-performance.mjs": "61719961bd8794d5225222afd903f37104eba7a5b30e3387ed3cc86d79de68c5",
-        "packages/agent-flow-bend/setup-selection-policy/core.bend": "fa3a4b2e0945719c5fc5debb0e04e97b47c92eff96b9ee7b56aa9d57aa55afe0",
-        "packages/agent-flow-bend/setup-selection-policy/LAWS.bend": "6f57603ef2cf2a3135d8ed03a24ce5bed0bb17bc387b84258de0a56f2b9567c4",
-        "packages/agent-flow-bend/setup-selection-policy/PROOF.bend": "d2a2710cc023828232dafbc8d18041a4df939130b13918175e794d43479585c9",
-        "packages/agent-flow-bend/scripts/build-setup-selection-policy.mjs": "3528098498e87bc4956237122ba46d01720077d2884cf359cff70bfb8ca58e40",
-        "packages/canonical-policy/src/canonical/setup-selection-adapter.ts": "10798984a18f0e797252d273ed75bdcb8b7d96b3a197b4620261b936a814cb3f",
-        "packages/administration/src/onboarding/setup-selection.ts": "a5f369ba1efc539141803aee0a5dd0798eccebb5ca65a16a4889daebb0c33676",
-        "packages/agent-flow-bend/dist/setup-selection-policy.generated.js": "6ed03dba84858d88ce58493174f4dc6b7e76e55e2cc2dbcfe0568224b7336ba7",
-        "packages/canonical-policy/dist/canonical/setup-selection-adapter.js": "c874a6c755c479d9e6d795bb98cd6a74c60787e746f4d4567f4639eba0002a7e",
-        "packages/administration/dist/onboarding/setup-selection.js": "7f6f63534efab569ae12b7fb7c84cd9ecf96d6f7c0345e85b5dcd583d37f7c69"
-      },
-      "scope": "actual emitted outer setup selection reducer; independent identical full-field-consuming harness functions; finite native models/events; CPU11 nonexclusive; no acquisition, owner IO, startup or platform claim"
+      "meanRatio": 0.6555452616129234,
+      "buildParity": true,
+      "scope": "paired warm workspace builds; declared frozen baseline and current candidate; both separately prepared; native release assembly excluded"
     }
   },
-  "nextPerformanceCheckpointUtc": "2026-10-08T13:58:23.738000+00:00",
-  "sourceSha256": {
-    "docs/testing-matrix.md": "6b947149e52703beab2284ad6c907f5ae536af5a90d8452a7e2a7e76ab90f4d6",
-    "docs/typescript-decision-boundary-ledger.md": "e90350c0dc47e27e9858e1b5827a300264700af250249dad4dd229eee6cbd954",
-    "packages/administration/src/onboarding/setup-selection.ts": "a5f369ba1efc539141803aee0a5dd0798eccebb5ca65a16a4889daebb0c33676",
-    "packages/agent-flow-bend/README.md": "f39bbaadbd938b518ad268c63cf9756da92337d9129ac9467912785ec71f07ae",
-    "packages/agent-flow-bend/abi/setup-selection-policy.generated.d.ts": "6591156a2246e44fbd13f8501b43ad5dd8b76d55cfc33d3612f6bf4be991e0f3",
-    "packages/agent-flow-bend/package.json": "199bbb734bb3fb33bd7ed280d43cadf193e0399159046a01927188e9ced2eb02",
-    "packages/agent-flow-bend/scripts/build-setup-selection-policy.mjs": "3528098498e87bc4956237122ba46d01720077d2884cf359cff70bfb8ca58e40",
-    "packages/agent-flow-bend/setup-selection-policy/LAWS.bend": "6f57603ef2cf2a3135d8ed03a24ce5bed0bb17bc387b84258de0a56f2b9567c4",
-    "packages/agent-flow-bend/setup-selection-policy/PROOF.bend": "d2a2710cc023828232dafbc8d18041a4df939130b13918175e794d43479585c9",
-    "packages/agent-flow-bend/setup-selection-policy/core.bend": "fa3a4b2e0945719c5fc5debb0e04e97b47c92eff96b9ee7b56aa9d57aa55afe0",
-    "packages/canonical-policy/package.json": "5b3c975100d008bff330162c1c11f1ff3c477e522ceeb9bc0b5c145122247bbb",
-    "packages/canonical-policy/src/canonical/setup-selection-adapter.ts": "10798984a18f0e797252d273ed75bdcb8b7d96b3a197b4620261b936a814cb3f",
-    "scripts/bend-producer-test-fixture.mjs": "00a8b29c3ad3fd6b92729c3a85dc5e8a3c8312196e49eee876fa38ea8afe7a1b",
-    "scripts/bend-producer.mjs": "53c51a33a9eae7e8e037491456a4195c7c04b7cb7d1e9aeb2f698ece1dba0bce",
-    "scripts/bend-producer.test.mjs": "ae2bb90b31ee2a39fd78352d947481ff436317b3e090e1a870555f8cfbb1eaa9",
-    "scripts/check-production-authority.mjs": "95f24404f61218d31d05814f7451ba90bd7938e15f0829f29e9b427de37f8751"
-  },
-  "limits": [
-    "paired matched warm workspace builds only; all four samples 23 cached tasks of 46; native release assembly excluded",
-    "outer selection warm execution under pinned Bun 1.3.14; CPU 11 nonexclusive; no owner IO, startup or platform claim",
-    "initial build comparison had unequal preparation and failed raw parity; retained in setup-selection-build-unmatched-preparation.json; matching warm comparison followed demonstrated 23-cache preparation for both lanes",
-    "earlier slices remain historical evidence in their named records and commit history",
-    "full canonical kernel root exceeds its five-second deadline; migrated policy roots independently pass; no full-root pass claimed",
-    "direct-login Bend migration absent from this candidate; latest-master native TypeScript direct-login model unchanged"
-  ],
-  "preservedPendingCandidate": {
-    "worktree": "/workspace/typescript/hapsland-bend-strangler",
-    "branch": "migration/bend-strangler",
-    "status": "resolved upstream merge and uncommitted direct-login/setup work preserved; direct-login cold parity remains unqualified; no acceptance waiver",
-    "stash": "bend migration pending direct-login and setup before master reconciliation"
-  },
-  "remaining": [
-    "continue strangler migration from the next reasonable pure policy frontier",
-    "obtain Astra approval for each new or amended law",
-    "repeat actual build and product-runtime measurements within each 30-minute interval"
-  ],
-  "upstreamReconciliation": {
-    "upstreamRevision": "fbff5020a809bfc56583a87c207e7f9d632f6cc1",
-    "mergeRevision": "0146c8aec73214ea767bce495199f0f071445563",
-    "conflicts": false,
-    "sourceSha256Unchanged": true,
-    "checks": {
-      "fast": "passed; /tmp/hapsland-latest-master-check-fast.log",
-      "releaseArchiveConsumerTests": "4 passed; /tmp/hapsland-latest-master-release-archive.log"
+  "currentPerformance": {
+    "execution": {
+      "at": "2026-10-08T19:49:29.948Z",
+      "runtime": "Bun 1.3.14",
+      "baselineRevision": "bc37e318df95bfff969e6e07f8f45742725e9789",
+      "timedCases": 72000,
+      "roundsPerSample": 8,
+      "warmupRounds": 20,
+      "samplePairs": 31,
+      "callerDirectionsPerSample": 2,
+      "method": "balanced caller crossover",
+      "medianRatio": 0.9704208565342902,
+      "diagnosticControl": false,
+      "productionCompared": true,
+      "executionParity": true,
+      "sha256": {
+        "selection-ui-performance.mjs": "1d096c58d5242af1c85be91f62de546956e8066e854692dd224ea4fc2a9ee0ee",
+        "selection-ui-parity.mjs": "9bb9aea9e4d210b46c054d50622ac36bde65d43c8d6cf7aec07c61a308841d78"
+      },
+      "samples": [
+        {
+          "typescriptMilliseconds": 450.444273000001,
+          "integratedBendMilliseconds": 506.8530260000007,
+          "ratio": 1.1252291490450352,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 211.6049000000021,
+              "integratedBendMilliseconds": 238.00040699999954,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 238.8393729999989,
+              "integratedBendMilliseconds": 268.85261900000114,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 456.0574030000025,
+          "integratedBendMilliseconds": 494.59146800000235,
+          "ratio": 1.0844938920989287,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 241.20655900000202,
+              "integratedBendMilliseconds": 256.7060190000011,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 214.8508440000005,
+              "integratedBendMilliseconds": 237.88544900000124,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 454.6402649999982,
+          "integratedBendMilliseconds": 480.4749359999987,
+          "ratio": 1.0568244235912554,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 216.98265199999878,
+              "integratedBendMilliseconds": 216.2765220000001,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 237.6576129999994,
+              "integratedBendMilliseconds": 264.1984139999986,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 468.2497519999961,
+          "integratedBendMilliseconds": 510.0695110000015,
+          "ratio": 1.0893107979692123,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 252.19331599999714,
+              "integratedBendMilliseconds": 233.439620000001,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 216.05643599999894,
+              "integratedBendMilliseconds": 276.6298910000005,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 550.020714000002,
+          "integratedBendMilliseconds": 660.4004520000017,
+          "ratio": 1.2006828746453342,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 277.5434400000013,
+              "integratedBendMilliseconds": 253.36811800000214,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 272.47727400000076,
+              "integratedBendMilliseconds": 407.03233399999954,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 484.130591000001,
+          "integratedBendMilliseconds": 472.0922839999985,
+          "ratio": 0.9751341740765923,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 273.8419939999985,
+              "integratedBendMilliseconds": 256.94735500000024,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 210.28859700000248,
+              "integratedBendMilliseconds": 215.14492899999823,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 449.99451899999985,
+          "integratedBendMilliseconds": 506.51052399999753,
+          "ratio": 1.1255926519407178,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 211.18431299999793,
+              "integratedBendMilliseconds": 231.89206600000034,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 238.81020600000193,
+              "integratedBendMilliseconds": 274.6184579999972,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 482.16253199999846,
+          "integratedBendMilliseconds": 464.75426499999594,
+          "ratio": 0.9638954380636059,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 267.9302359999965,
+              "integratedBendMilliseconds": 242.85911399999895,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 214.23229600000195,
+              "integratedBendMilliseconds": 221.89515099999699,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 463.81596600000194,
+          "integratedBendMilliseconds": 450.0966870000011,
+          "ratio": 0.9704208565342902,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 225.235095,
+              "integratedBendMilliseconds": 214.30125500000213,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 238.58087100000193,
+              "integratedBendMilliseconds": 235.79543199999898,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 453.823758999999,
+          "integratedBendMilliseconds": 458.7070489999969,
+          "ratio": 1.010760322488973,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 243.7084959999993,
+              "integratedBendMilliseconds": 226.96660899999915,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 210.1152629999997,
+              "integratedBendMilliseconds": 231.74043999999776,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 487.36803399999917,
+          "integratedBendMilliseconds": 450.9757360000003,
+          "ratio": 0.9253289188843294,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 209.96576099999947,
+              "integratedBendMilliseconds": 217.59757399999944,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 277.4022729999997,
+              "integratedBendMilliseconds": 233.37816200000088,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 450.7204009999987,
+          "integratedBendMilliseconds": 440.19198099999994,
+          "ratio": 0.9766409064762995,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 235.81368199999997,
+              "integratedBendMilliseconds": 225.46068000000014,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 214.9067189999987,
+              "integratedBendMilliseconds": 214.7313009999998,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 464.8054749999974,
+          "integratedBendMilliseconds": 446.82682600000044,
+          "ratio": 0.9613200576004466,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 205.68543499999942,
+              "integratedBendMilliseconds": 214.78463399999964,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 259.12003999999797,
+              "integratedBendMilliseconds": 232.0421920000008,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 466.6474469999994,
+          "integratedBendMilliseconds": 449.87231000000247,
+          "ratio": 0.9640517973304225,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 251.74897899999996,
+              "integratedBendMilliseconds": 229.599089000003,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 214.8984679999994,
+              "integratedBendMilliseconds": 220.27322099999947,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 465.09897700000147,
+          "integratedBendMilliseconds": 439.3868070000026,
+          "ratio": 0.9447167779945498,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 229.3097540000017,
+              "integratedBendMilliseconds": 209.93576100000064,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 235.78922299999977,
+              "integratedBendMilliseconds": 229.45104600000195,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 461.3255710000085,
+          "integratedBendMilliseconds": 435.3100249999916,
+          "ratio": 0.9436069716585981,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 246.82577200000378,
+              "integratedBendMilliseconds": 222.85078399999475,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 214.4997990000047,
+              "integratedBendMilliseconds": 212.45924099999684,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 457.8580010000005,
+          "integratedBendMilliseconds": 463.080418000005,
+          "ratio": 1.0114061935984482,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 215.39930599999934,
+              "integratedBendMilliseconds": 236.50481199999922,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 242.45869500000117,
+              "integratedBendMilliseconds": 226.5756060000058,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 464.8155160000024,
+          "integratedBendMilliseconds": 460.9549840000036,
+          "ratio": 0.9916944855171341,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 242.03177400000277,
+              "integratedBendMilliseconds": 237.65307100000064,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 222.78374199999962,
+              "integratedBendMilliseconds": 223.30191300000297,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 454.12630199999694,
+          "integratedBendMilliseconds": 509.00504500000534,
+          "ratio": 1.1208446697720864,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 218.14032800000132,
+              "integratedBendMilliseconds": 253.22207500000513,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 235.98597399999562,
+              "integratedBendMilliseconds": 255.7829700000002,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 449.03355299999384,
+          "integratedBendMilliseconds": 468.19587599999795,
+          "ratio": 1.0426745905110668,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 235.04129999999714,
+              "integratedBendMilliseconds": 223.73637400000007,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 213.9922529999967,
+              "integratedBendMilliseconds": 244.45950199999788,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 459.4657209999932,
+          "integratedBendMilliseconds": 452.7810830000017,
+          "ratio": 0.9854512802708265,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 207.4461569999985,
+              "integratedBendMilliseconds": 215.32538800000475,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 252.01956399999472,
+              "integratedBendMilliseconds": 237.45569499999692,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 461.7847830000028,
+          "integratedBendMilliseconds": 462.39232900000206,
+          "ratio": 1.0013156475101936,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 246.17151600000216,
+              "integratedBendMilliseconds": 225.70101599999907,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 215.61326700000063,
+              "integratedBendMilliseconds": 236.691313000003,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 468.30129500000476,
+          "integratedBendMilliseconds": 438.64076000000205,
+          "ratio": 0.9366635639988943,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 215.36647300000186,
+              "integratedBendMilliseconds": 208.81921000000148,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 252.9348220000029,
+              "integratedBendMilliseconds": 229.82155000000057,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 523.9101660000015,
+          "integratedBendMilliseconds": 454.52055599999585,
+          "ratio": 0.8675543738160534,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 236.3516860000018,
+              "integratedBendMilliseconds": 226.98935899999924,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 287.5584799999997,
+              "integratedBendMilliseconds": 227.5311969999966,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 493.19862300000386,
+          "integratedBendMilliseconds": 448.05992000000697,
+          "ratio": 0.9084776378217979,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 219.37888000000385,
+              "integratedBendMilliseconds": 221.74865000000136,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 273.819743,
+              "integratedBendMilliseconds": 226.3112700000056,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 502.01065400000516,
+          "integratedBendMilliseconds": 484.565677999999,
+          "ratio": 0.9652497893002766,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 259.4202920000025,
+              "integratedBendMilliseconds": 257.95998800000234,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 242.59036200000264,
+              "integratedBendMilliseconds": 226.60568999999668,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 491.7293189999982,
+          "integratedBendMilliseconds": 448.80192699999316,
+          "ratio": 0.9127011745256434,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 226.6152729999958,
+              "integratedBendMilliseconds": 221.62494099999458,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 265.1140460000024,
+              "integratedBendMilliseconds": 227.17698599999858,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 509.422421999996,
+          "integratedBendMilliseconds": 438.6257609999957,
+          "ratio": 0.8610256283536714,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 271.87376799999765,
+              "integratedBendMilliseconds": 227.37602999999945,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 237.54865399999835,
+              "integratedBendMilliseconds": 211.24973099999625,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 534.2440840000054,
+          "integratedBendMilliseconds": 449.7383090000003,
+          "ratio": 0.8418217860883149,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 223.31253700000525,
+              "integratedBendMilliseconds": 209.80380200000218,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 310.93154700000014,
+              "integratedBendMilliseconds": 239.93450699999812,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 520.5160560000004,
+          "integratedBendMilliseconds": 442.2885810000007,
+          "ratio": 0.8497116965014435,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 309.820037999998,
+              "integratedBendMilliseconds": 234.92959100000007,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 210.69601800000237,
+              "integratedBendMilliseconds": 207.35899000000063,
+              "checksum": -355615488
+            }
+          ]
+        },
+        {
+          "typescriptMilliseconds": 459.2589280000029,
+          "integratedBendMilliseconds": 434.29705800000374,
+          "ratio": 0.9456475019251035,
+          "checksum": -355615488,
+          "callerDirections": [
+            {
+              "mirrored": false,
+              "typescriptMilliseconds": 222.41407199999958,
+              "integratedBendMilliseconds": 212.9470780000047,
+              "checksum": -355615488
+            },
+            {
+              "mirrored": true,
+              "typescriptMilliseconds": 236.84485600000335,
+              "integratedBendMilliseconds": 221.34997999999905,
+              "checksum": -355615488
+            }
+          ]
+        }
+      ],
+      "scope": "actual compiled keyboard reducer; independent identical consumers of all fixture result fields, identity, IDs and order; both reducers through both identical caller sites per sample; alternating paired samples, CPU11 nonexclusive; no cold terminal/IO/platform claim"
     },
-    "preservedCandidateStash": "13aabefe53a2ef5f819ee23e57da4f612457016d",
-    "preCommit": "first attempt stopped at documentation build 180-second deadline; successful post-merge check:fast completed actual workspace/doc preparation on unchanged rules inputs",
-    "performance": "last measurement predates this merge and remains against 8772653d; new upstream baseline required for next checkpoint"
-  }
+    "build": {
+      "warmPreparationCriterion": "all 23 package build tasks cached and 23 uncached clean tasks per lane; identical total task counts across all four samples",
+      "warmPreparationMatched": true,
+      "baselineRevision": "bc37e318df95bfff969e6e07f8f45742725e9789",
+      "startedAt": "2026-10-08T19:54:18.718Z",
+      "at": "2026-10-08T19:54:44.096Z",
+      "roots": {
+        "typescript": "/workspace/typescript/hapsland-bend-baseline-master-bc37e318",
+        "integratedBend": "/workspace/typescript/hapsland-bend-selection-ui"
+      },
+      "command": [
+        "taskset",
+        "-c",
+        "11",
+        "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+        "scripts/build-workspaces.mjs"
+      ],
+      "affinity": "CPU 11 for both lanes; not exclusive",
+      "samples": {
+        "typescript": [
+          {
+            "cachedTasks": 23,
+            "totalTasks": 46,
+            "seconds": 6.836716091,
+            "exitCode": 0,
+            "signal": null,
+            "error": null
+          },
+          {
+            "cachedTasks": 23,
+            "totalTasks": 46,
+            "seconds": 6.194726414999997,
+            "exitCode": 0,
+            "signal": null,
+            "error": null
+          }
+        ],
+        "integratedBend": [
+          {
+            "cachedTasks": 23,
+            "totalTasks": 46,
+            "seconds": 6.7367838980000005,
+            "exitCode": 0,
+            "signal": null,
+            "error": null
+          },
+          {
+            "cachedTasks": 23,
+            "totalTasks": 46,
+            "seconds": 5.600332379000001,
+            "exitCode": 0,
+            "signal": null,
+            "error": null
+          }
+        ]
+      },
+      "meanRatio": 0.9467191580149081,
+      "buildParity": true,
+      "scope": "paired warm workspace builds; declared frozen baseline and current candidate; both separately prepared; native release assembly excluded"
+    }
+  },
+  "nextPerformanceDue": {
+    "execution": "2026-10-08T20:19:29.948000+00:00",
+    "build": "2026-10-08T20:24:18.718000+00:00"
+  },
+  "sessionRecovery": "selection-ui-session-recovery.json",
+  "directExportCandidate": {
+    "sourceSha256": "77fabdb47473e1389c2ce26b57474380529aac58cc6da9ff2f5a024750e35b93",
+    "focusedRun": "20261008194046098-2980533-6c4e0f",
+    "focusedTestsPassed": 17,
+    "experiment": "selection-ui-direct-export-experiment.json",
+    "lawMeaningsChanged": false,
+    "fastPassed": true,
+    "productionCasesPassed": 72000
+  },
+  "sameBinaryControl": {
+    "at": "2026-10-08T19:50:38.630Z",
+    "runtime": "Bun 1.3.14",
+    "baselineRevision": "bc37e318df95bfff969e6e07f8f45742725e9789",
+    "timedCases": 72000,
+    "roundsPerSample": 8,
+    "warmupRounds": 20,
+    "samplePairs": 31,
+    "callerDirectionsPerSample": 2,
+    "method": "balanced caller crossover",
+    "medianRatio": 0.98800287603827,
+    "diagnosticControl": true,
+    "productionCompared": false,
+    "executionParity": null,
+    "sha256": {
+      "selection-ui-performance.mjs": "1d096c58d5242af1c85be91f62de546956e8066e854692dd224ea4fc2a9ee0ee",
+      "selection-ui-parity.mjs": "9bb9aea9e4d210b46c054d50622ac36bde65d43c8d6cf7aec07c61a308841d78"
+    },
+    "samples": [
+      {
+        "typescriptMilliseconds": 469.904515000002,
+        "integratedBendMilliseconds": 512.796575999997,
+        "ratio": 1.091278248305392,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 249.58225200000015,
+            "integratedBendMilliseconds": 250.12838199999896,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 220.32226300000184,
+            "integratedBendMilliseconds": 262.66819399999804,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 445.43473300000187,
+        "integratedBendMilliseconds": 432.228664000002,
+        "ratio": 0.9703524040187504,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 221.45410600000105,
+            "integratedBendMilliseconds": 203.11828800000148,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 223.98062700000082,
+            "integratedBendMilliseconds": 229.11037600000054,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 476.676403999998,
+        "integratedBendMilliseconds": 434.0228049999969,
+        "ratio": 0.9105187530952312,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 205.29705599999943,
+            "integratedBendMilliseconds": 217.9130759999971,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 271.3793479999986,
+            "integratedBendMilliseconds": 216.1097289999998,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 443.75025999999707,
+        "integratedBendMilliseconds": 428.1434240000017,
+        "ratio": 0.9648296859589547,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 221.415646999998,
+            "integratedBendMilliseconds": 207.39103199999954,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 222.33461299999908,
+            "integratedBendMilliseconds": 220.75239200000215,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 455.55548199999976,
+        "integratedBendMilliseconds": 425.4926519999972,
+        "ratio": 0.9340084112959866,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 233.28878600000098,
+            "integratedBendMilliseconds": 221.3724379999985,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 222.26669599999877,
+            "integratedBendMilliseconds": 204.12021399999867,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 468.52750500000184,
+        "integratedBendMilliseconds": 430.6091940000042,
+        "ratio": 0.9190691889049343,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 257.56402700000035,
+            "integratedBendMilliseconds": 204.48309200000222,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 210.9634780000015,
+            "integratedBendMilliseconds": 226.126102000002,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 459.2592199999999,
+        "integratedBendMilliseconds": 449.1743039999965,
+        "ratio": 0.9780409068325217,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 233.4157039999991,
+            "integratedBendMilliseconds": 239.15391699999964,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 225.84351600000082,
+            "integratedBendMilliseconds": 210.02038699999684,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 435.92115399999966,
+        "integratedBendMilliseconds": 464.54597200000353,
+        "ratio": 1.0656651271390327,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 222.80886699999974,
+            "integratedBendMilliseconds": 236.52864500000214,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 213.11228699999992,
+            "integratedBendMilliseconds": 228.0173270000014,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 441.0199869999997,
+        "integratedBendMilliseconds": 602.7008960000021,
+        "ratio": 1.366606761067277,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 213.27687199999855,
+            "integratedBendMilliseconds": 372.87705500000084,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 227.74311500000113,
+            "integratedBendMilliseconds": 229.82384100000127,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 434.22684899999877,
+        "integratedBendMilliseconds": 468.3403769999968,
+        "ratio": 1.0785615354705949,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 228.31928699999844,
+            "integratedBendMilliseconds": 243.93241399999897,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 205.90756200000033,
+            "integratedBendMilliseconds": 224.40796299999784,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 429.37760100000014,
+        "integratedBendMilliseconds": 477.650746000003,
+        "ratio": 1.1124258575379269,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 203.82817000000068,
+            "integratedBendMilliseconds": 235.85572400000092,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 225.54943099999946,
+            "integratedBendMilliseconds": 241.79502200000206,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 473.3002940000006,
+        "integratedBendMilliseconds": 485.5284780000002,
+        "ratio": 1.0258359949381304,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 268.1905310000002,
+            "integratedBendMilliseconds": 215.19563800000105,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 205.10976300000038,
+            "integratedBendMilliseconds": 270.3328399999991,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 425.96111299999757,
+        "integratedBendMilliseconds": 469.30330200000026,
+        "ratio": 1.1017515159887445,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 205.09334599999784,
+            "integratedBendMilliseconds": 228.36724500000128,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 220.86776699999973,
+            "integratedBendMilliseconds": 240.93605699999898,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 444.7000999999982,
+        "integratedBendMilliseconds": 427.677211000002,
+        "ratio": 0.9617205190644296,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 218.31162100000074,
+            "integratedBendMilliseconds": 204.61596700000155,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 226.38847899999746,
+            "integratedBendMilliseconds": 223.06124400000044,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 439.3535990000055,
+        "integratedBendMilliseconds": 422.6341290000055,
+        "ratio": 0.9619452986431556,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 203.98271300000124,
+            "integratedBendMilliseconds": 219.6884659999996,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 235.37088600000425,
+            "integratedBendMilliseconds": 202.94566300000588,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 425.3845250000013,
+        "integratedBendMilliseconds": 418.43042799999967,
+        "ratio": 0.9836522097271836,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 220.27501199999824,
+            "integratedBendMilliseconds": 200.20180699999764,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 205.10951300000306,
+            "integratedBendMilliseconds": 218.22862100000202,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 452.624333000007,
+        "integratedBendMilliseconds": 429.826353000004,
+        "ratio": 0.9496315634449051,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 225.88055900000472,
+            "integratedBendMilliseconds": 219.44317199999932,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 226.7437740000023,
+            "integratedBendMilliseconds": 210.3831810000047,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 459.01930100000027,
+        "integratedBendMilliseconds": 476.9821990000055,
+        "ratio": 1.0391332084748333,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 247.07819000000018,
+            "integratedBendMilliseconds": 235.99760000000242,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 211.9411110000001,
+            "integratedBendMilliseconds": 240.98459900000307,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 428.5185530000017,
+        "integratedBendMilliseconds": 434.86135300000024,
+        "ratio": 1.0148016928452535,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 210.6442259999967,
+            "integratedBendMilliseconds": 231.9265660000019,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 217.874327000005,
+            "integratedBendMilliseconds": 202.93478699999832,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 428.9749709999887,
+        "integratedBendMilliseconds": 491.8003619999945,
+        "ratio": 1.1464546774222113,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 221.62027299999318,
+            "integratedBendMilliseconds": 253.54357699999673,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 207.35469799999555,
+            "integratedBendMilliseconds": 238.25678499999776,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 435.08543899999495,
+        "integratedBendMilliseconds": 440.9091950000002,
+        "ratio": 1.0133853157977215,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 209.6030499999979,
+            "integratedBendMilliseconds": 222.8679090000005,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 225.48238899999706,
+            "integratedBendMilliseconds": 218.04128599999967,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 436.32790700000623,
+        "integratedBendMilliseconds": 434.74585199999274,
+        "ratio": 0.9963741604086455,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 222.8635340000037,
+            "integratedBendMilliseconds": 204.1747139999934,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 213.46437300000252,
+            "integratedBendMilliseconds": 230.57113799999934,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 472.0914499999926,
+        "integratedBendMilliseconds": 435.8257769999982,
+        "ratio": 0.9231808307479515,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 206.9516949999961,
+            "integratedBendMilliseconds": 224.23725299999933,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 265.1397549999965,
+            "integratedBendMilliseconds": 211.58852399999887,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 579.9572919999991,
+        "integratedBendMilliseconds": 500.74781000000075,
+        "ratio": 0.8634218707263043,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 225.12734400000045,
+            "integratedBendMilliseconds": 220.51897299999837,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 354.8299479999987,
+            "integratedBendMilliseconds": 280.2288370000024,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 508.0411200000017,
+        "integratedBendMilliseconds": 547.0992320000005,
+        "ratio": 1.076879824215801,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 282.11035300000367,
+            "integratedBendMilliseconds": 299.6169549999977,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 225.930766999998,
+            "integratedBendMilliseconds": 247.4822770000028,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 460.3398129999987,
+        "integratedBendMilliseconds": 439.8886879999991,
+        "ratio": 0.9555738512671298,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 223.22657900000195,
+            "integratedBendMilliseconds": 209.646467999999,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 237.11323399999674,
+            "integratedBendMilliseconds": 230.2422200000001,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 436.11007300000347,
+        "integratedBendMilliseconds": 424.73023000000103,
+        "ratio": 0.9739060303704511,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 202.74970300000132,
+            "integratedBendMilliseconds": 221.32664700000169,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 233.36037000000215,
+            "integratedBendMilliseconds": 203.40358299999934,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 429.3113930000036,
+        "integratedBendMilliseconds": 424.16089099999954,
+        "ratio": 0.98800287603827,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 225.14909500000067,
+            "integratedBendMilliseconds": 205.33888999999908,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 204.16229800000292,
+            "integratedBendMilliseconds": 218.82200100000045,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 447.767835000006,
+        "integratedBendMilliseconds": 423.37992700000177,
+        "ratio": 0.9455344799386853,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 227.1757360000047,
+            "integratedBendMilliseconds": 221.550940000001,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 220.59209900000133,
+            "integratedBendMilliseconds": 201.82898700000078,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 440.17768899999646,
+        "integratedBendMilliseconds": 454.38288900000043,
+        "ratio": 1.0322715129707631,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 234.1007099999988,
+            "integratedBendMilliseconds": 228.60662299999967,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 206.07697899999766,
+            "integratedBendMilliseconds": 225.77626600000076,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 418.4909689999986,
+        "integratedBendMilliseconds": 436.762536000002,
+        "ratio": 1.0436606004752362,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 202.07978000000003,
+            "integratedBendMilliseconds": 233.03919999999925,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 216.41118899999856,
+            "integratedBendMilliseconds": 203.72333600000275,
+            "checksum": -355615488
+          }
+        ]
+      }
+    ],
+    "scope": "actual compiled keyboard reducer; independent identical consumers of all fixture result fields, identity, IDs and order; both reducers through both identical caller sites per sample; alternating paired samples, CPU11 nonexclusive; no cold terminal/IO/platform claim"
+  },
+  "runtimeOutputReuse": {
+    "byteIdenticalOutputs": 530,
+    "reason": "Astra-approved comment-only law correction; all prepared JavaScript and declaration bytes unchanged from measured candidate",
+    "evidence": "selection-ui-session-recovery.json"
+  },
+  "qualification": {
+    "passed": true,
+    "scope": "selection keyboard frontier on frozen bc37e318: accepted laws, kernel/artifact/ABI/receipt/format checks, unchanged-output reuse of 17 focused consumers, 55 producer and 8 registration tests, docs, final fast, hot balanced execution and warm workspace parity; not full-suite, latest-master, native-release, cold-terminal or platform qualification",
+    "evidence": "selection-ui-session-recovery.json",
+    "sourceSha256": {
+      "packages/agent-flow-bend/selection-ui-policy/core.bend": "3606ba50f9f170a849177cc94b68b0e7715262fb0c5ab72adfbdc719c396aea8",
+      "packages/agent-flow-bend/selection-ui-policy/LAWS.bend": "e81198947f04bb4777687e06b9174e9d4377df71a6efb6d54047c70db1fd2908",
+      "packages/agent-flow-bend/selection-ui-policy/PROOF.bend": "01dd450cce41a237dac78490d2a10917e8bc453aebe67999db739b03f7f4dd5c",
+      "packages/administration/src/interaction/selection.ts": "77fabdb47473e1389c2ce26b57474380529aac58cc6da9ff2f5a024750e35b93",
+      "packages/agent-flow-bend/scripts/build-selection-ui-policy.mjs": "d6c1958fa23bbb625d09c1ddde57d1a1aa05429bd423fd9d8fd9883885352bf3",
+      "scripts/check-ui-flows.mjs": "ac4827120d9e35122954f9e4ebc2c17926d221e57529bdb59fc83ab41f12d5cb"
+    },
+    "executionMeasurementMethod": "balanced caller crossover; each actual reducer through both identical callers; 31 samples, 8 rounds per direction, exact <=1 threshold; original direction-sensitive failures retained as evidence"
+  },
+  "nextAction": "reconcile master c277ed82; then continue most reasonable pure decision frontier, with next build/execution measurement by nextPerformanceDue"
 }
