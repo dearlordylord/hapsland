@@ -5,7 +5,7 @@ import * as Fiber from "effect/Fiber"
 import * as TestClock from "effect/testing/TestClock"
 import type * as DecisionModel from "effect/ai/DecisionModel"
 import { execFileAsync } from "../../scripts/test-harness/process.mjs"
-import { writeFile, rm, symlink, rename, mkdir } from "node:fs/promises"
+import { readFile, writeFile, rm, symlink, rename, mkdir } from "node:fs/promises"
 import { join } from "node:path"
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
@@ -55,6 +55,47 @@ const enabledReview = (
   }).pipe(Effect.provide(controlledDecisionModelLayer(modelOptions)))
 
 describe("direct-event vertical slice", () => {
+  it.effect("reviews queue types alongside functions when a native Add includes unrelated value imports", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      const source = yield* Effect.promise(() => readFile(new URL("./fixtures/queue.ts.txt", import.meta.url), "utf8"))
+      yield* Effect.promise(() => put(root, "src/queue.ts", source))
+      const command = [
+        "*** Begin Patch",
+        "*** Add File: src/queue.ts",
+        ...source
+          .trimEnd()
+          .split("\n")
+          .map((line) => `+${line}`),
+        "*** End Patch"
+      ].join("\n")
+      const states: Array<unknown> = []
+      const result = yield* enabledReview(root, addEvent(root, ["src/queue.ts"], { tool_input: { command } }), {
+        answers: findingAnswers(),
+        inspectRequest: (request) =>
+          Effect.sync(() => {
+            states.push(request.state)
+          })
+      })
+      expect(result.status).toBe("ready")
+      expect(states).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ artifact: expect.objectContaining({ name: "nonempty" }) }),
+          expect.objectContaining({ artifact: expect.objectContaining({ name: "load" }) }),
+          expect.objectContaining({ artifact: expect.objectContaining({ name: "save" }) }),
+          expect.objectContaining({ artifact: expect.objectContaining({ name: "change" }) })
+        ])
+      )
+      expect(states).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ artifact: expect.objectContaining({ kind: "type-alias", name: "Base" }) }),
+          expect.objectContaining({ artifact: expect.objectContaining({ kind: "type-alias", name: "Job" }) }),
+          expect.objectContaining({ artifact: expect.objectContaining({ kind: "type-alias", name: "Command" }) })
+        ])
+      )
+    })
+  )
+
   it.effect("charges recursively expanded evidence and rejects over-budget input before dispatch", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
