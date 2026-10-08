@@ -7,6 +7,10 @@
 **Expected use:** Compare prior measured behavior with the active #93 type/function contract.
 **Lifecycle:** Temporary; consolidate still-useful host evidence into the replacement direct-event conformance record and delete this snapshot when that record is accepted.
 
+Current logical capacity defaults are **512 MiB per resident** and **256 MiB per
+recipient partition**, as documented in [review resources](review-resources.md).
+The capacity figures below describe the original historical measured profile.
+
 The matrix below records the earlier one-file input. Hapsland now selects the
 cross-file type/function path in production code. The new path has not
 yet inherited the matrix's host or live Jev validation claims.
@@ -35,7 +39,7 @@ ceiling, and a 20 KiB evidence-tree ceiling. The active path prepares size-limit
 type/function units under distinct contracts and explicit schema-1 rule targets.
 Expanded source egress is enabled by the 2026-09-29 owner decision.
 This matrix is the validated v1 record, not validation of cross-file Jev
-results. The resident uses 32 MiB per partition and
+results. At the historical validation point, the resident used 32 MiB per partition and
 256 MiB globally as logical admission limits; those figures do not establish
 an RSS bound or supersede this v1 conformance record. Keep this matrix until a
 new validated support record replaces it.

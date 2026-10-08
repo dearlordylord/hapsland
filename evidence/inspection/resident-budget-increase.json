@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "authority": "local implementation and validation evidence; maintained resource guidance owns current limits",
+  "baseline": "d2c0eb53c55c97cde73866657060f063fde10cf9",
+  "limits": {
+    "globalBytes": 536870912,
+    "partitionBytes": 268435456,
+    "globalItems": 512,
+    "partitionItems": 16
+  },
+  "checks": {
+    "initialFocusedRun": "20261008225716484-3577927-99730d",
+    "initialResult": {
+      "passedTests": 132,
+      "failedTests": 2,
+      "failures": "Test fixtures still assumed old byte pressure and no admitted replacement state; runtime constants remained unchanged during repair."
+    },
+    "repairedServerRun": "20261008230203254-3600030-0e3032",
+    "strengthenedReleaseRun": "20261008230341013-3607808-d36733",
+    "fast": "passed",
+    "documentationLinks": "passed",
+    "generatedDocumentation": "passed"
+  },
+  "observedCases": [
+    "203 MiB logical preparation admitted",
+    "Exact 256 MiB partition and 512 MiB global boundaries admitted; next byte refused",
+    "Reservation release idempotent",
+    "Expansion above partition budget refused before recursive materialization",
+    "Retired workspace remains charged during admitted replacement and is released after finalization"
+  ],
+  "limitsOfEvidence": [
+    "Logical reservations are not an OS RSS cap",
+    "No new installed native Codex campaign or live Jev request",
+    "No complete Dalph classifier-review claim"
+  ]
+}

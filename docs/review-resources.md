@@ -59,8 +59,8 @@ reservations separately from dispatch slots:
 
 | Scope | Item bound | Logical byte bound |
 | --- | --- | --- |
-| Whole resident | 512 | 256 MiB |
-| One advicee recipient, with its active pinned source root | 16 | 32 MiB |
+| Whole resident | 512 | 512 MiB |
+| One advicee recipient, with its active pinned source root | 16 | 256 MiB |
 
 The executor measures the charge for an observation, preparation workspace,
 review unit, result, or advice recheck. Bend owns admission, resizing,

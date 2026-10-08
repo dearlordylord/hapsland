@@ -3576,10 +3576,10 @@ describe("resident delivery lease", () => {
 
   it("rejects adversarial long-ID expansion before recursive unit materialization", async () => {
     const root = await makeGitFixture()
-    const source = mutuallyReferencingTypes(64, 120)
+    const source = mutuallyReferencingTypes(384, 120)
     await put(root, longNestedPath, source)
     const preflight = analyzerMaterializationPreflight(longNestedPath, source)
-    expect(preflight?.declarations).toBe(64)
+    expect(preflight?.declarations).toBe(384)
     expect(preflight?.expandedUnitBytes).toBeGreaterThan(PARTITION_BYTE_LIMIT)
     const statePath = join(root, "consent")
     const capturePath = join(root, "backend-calls")
@@ -3750,7 +3750,7 @@ describe("resident delivery lease", () => {
     ).resolves.toMatchObject({ status: "advice" })
   })
 
-  it("keeps retired advice workspace charged until active revalidation finalizes", async () => {
+  it("keeps retired advice workspace charged while replacement fits the enlarged budget", async () => {
     const root = await makeGitFixture()
     await put(root, "type.ts", "type OrderCount = number\n")
     const statePath = join(root, "consent")
@@ -3788,7 +3788,7 @@ describe("resident delivery lease", () => {
       const cacheBytes = (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes
       expect(Effect.runSync(server.stats()).retainedBytes).toBeGreaterThan(cacheBytes)
 
-      // Two maximum-size capture workspaces cannot fit the recipient budget.
+      // The enlarged budget admits replacement while retired revalidation remains charged.
       await put(root, "type.ts", "type OrderCount = string\n")
       const replacement = await Effect.runPromise(
         adaptCodexDirectEvent(addEvent(root, ["type.ts"], { tool_use_id: "replacement-during-active-revalidation" }))
@@ -3797,18 +3797,27 @@ describe("resident delivery lease", () => {
       const rejectedBefore = Effect.runSync(server.stats()).rejectedCapacity
       expect((await Effect.runPromise(server.admit(replacement, dispatch))).status).toBe("accepted")
       await Effect.runPromise(server.whenIdle())
-      expect(await Effect.runPromise(server.pendingAdviceMetadata())).toHaveLength(0)
-      expect(Effect.runSync(server.stats()).rejectedCapacity).toBe(rejectedBefore + 1)
-      expect(Effect.runSync(server.stats()).retainedBytes).toBeGreaterThan(cacheBytes)
+      expect(await Effect.runPromise(server.pendingAdviceMetadata())).toHaveLength(1)
+      expect(Effect.runSync(server.stats()).rejectedCapacity).toBe(rejectedBefore)
+      const [pendingReplacement] = await Effect.runPromise(server.pendingAdviceMetadata())
+      expect(pendingReplacement).toBeDefined()
+      expect(Effect.runSync(server.stats()).retainedBytes).toBeGreaterThan(
+        (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes +
+          (pendingReplacement?.retainedBytes ?? 0)
+      )
     } finally {
       releaseRevalidation.resolve()
       await collecting
     }
     await expect(collecting).resolves.toMatchObject({ status: "empty" })
+    const [replacementAdvice] = await Effect.runPromise(server.pendingAdviceMetadata())
+    expect(replacementAdvice).toBeDefined()
     expect(Effect.runSync(server.stats())).toMatchObject({
-      pendingAdvice: 0,
-      currentWork: 0,
-      retainedBytes: (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes
+      pendingAdvice: 1,
+      currentWork: 1,
+      retainedBytes:
+        (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes +
+        (replacementAdvice?.retainedBytes ?? 0)
     })
     const retry = await Effect.runPromise(
       adaptCodexDirectEvent(addEvent(root, ["type.ts"], { tool_use_id: "replacement-after-workspace-release" }))
