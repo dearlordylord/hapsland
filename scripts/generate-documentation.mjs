@@ -8,7 +8,7 @@ const generators = [
   { file: "scripts/generate-architecture-diagram.mjs", update: [] },
   { file: "scripts/generate-module-architecture.mjs", update: [] },
   { file: "scripts/generate-decision-boundary-ledger.mts", update: ["--update"] },
-  { file: "scripts/generate-interaction-diagrams.mts", update: ["--write"] },
+  { file: "scripts/generate-interaction-diagrams.mts", update: ["--write"], timeoutMs: 90_000 },
   { file: "scripts/generate-abide-scenario-pages.mjs", update: [] }
 ]
 
@@ -27,7 +27,7 @@ export const generateDocumentation = (mode, root = resolve(import.meta.dirname, 
     const result = spawnSync(
       process.execPath,
       ["--experimental-strip-types", generator.file, ...(mode === "--check" ? ["--check"] : generator.update)],
-      { cwd: root, stdio: "inherit", timeout: 30_000 }
+      { cwd: root, stdio: "inherit", timeout: generator.timeoutMs ?? 30_000 }
     )
     if (result.error) throw result.error
     if (result.status !== 0) return result.status ?? 1

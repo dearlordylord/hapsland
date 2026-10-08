@@ -25,6 +25,10 @@ type ParsedDeclaration = {
 
 const supported = new Set<string>(LANGUAGE_EXTENSIONS.typescript)
 const importSyntax = new Set(["import", "import_alias", "import_require_clause", "import_statement", "import_type"])
+const valueImportStatement = (node: SyntaxNode): boolean =>
+  node.type === "import_statement" &&
+  !/^import\s+type\b/u.test(node.text) &&
+  node.namedChildren.some((child) => child.type === "import_clause")
 
 /** Iterative traversal contains adversarially deep, but byte-bounded, syntax. */
 const kindOf = (node: SyntaxNode): TypeDeclaration["kind"] | undefined =>
@@ -133,7 +137,7 @@ const parsedDeclarations = (
     const tree = { rootNode: typeScriptRoot(path, source) }
     if (tree.rootNode.hasError) return { status: "unsupported", reason: "parse", units: [] }
     const nodes = [tree.rootNode, ...descendants(tree.rootNode)]
-    if (!allowImports && nodes.some((node) => importSyntax.has(node.type))) {
+    if (!allowImports && nodes.some((node) => importSyntax.has(node.type) && !valueImportStatement(node))) {
       return { status: "unsupported", reason: "import", units: [] }
     }
     const declarations = allowImports
@@ -174,7 +178,7 @@ const graphTypeImports = (root: SyntaxNode): Map<string, TypeImport> | undefined
   const imports = new Map<string, TypeImport>()
   for (const node of root.namedChildren) {
     if (node.type !== "import_statement") continue
-    if (!collectTypeImport(node, imports)) return undefined
+    if (!collectTypeImport(node, imports) && !valueImportStatement(node)) return undefined
   }
   for (const node of descendants(root)) {
     if (unsupportedTypeImport(node)) return undefined

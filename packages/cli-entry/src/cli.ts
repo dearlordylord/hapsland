@@ -1067,6 +1067,11 @@ const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClien
   )
   if (result.exitCode !== 0) process.exitCode = result.exitCode
   if (result.kind === "completed") yield* writeSetupRuleInventory(terminal, cwd, configuration)
+  if (result.kind === "completed" && result.exitCode === 0 && result.model.activation === "completed") {
+    yield* interaction.present(
+      `\n✅ Setup complete.\nNext: restart ${CLIENT_NAMES[host]}, complete any native trust prompts, then make an edit and check the inspection dashboard.\n`
+    )
+  }
   return result
 })
 
