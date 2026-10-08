@@ -1,4 +1,7 @@
+import { complete, preview } from "./test-support/setup-observations.ts"
+import { generateSetupJourneyDiagram } from "./generate-setup-journey-diagram.mts"
 import assert from "node:assert/strict"
+import type { Exit } from "effect"
 import { Effect } from "effect"
 import { InteractionService } from "@hapsland/administration/interaction/interaction"
 import {
@@ -13,50 +16,8 @@ import type { runSetup } from "@hapsland/administration/onboarding/setup"
 import { scriptedInteraction, type ScriptStep } from "./test-support/scripted-interaction.ts"
 
 type Result = Effect.Success<ReturnType<typeof runSetup>>
-const complete: Result = {
-  version: 1,
-  operation: "setup",
-  status: "completed",
-  host: { adapter: "codex" },
-  scope: { repository: "/controlled", review: "enabled" },
-  providerCalls: 0,
-  paidVerificationPerformed: false,
-  stages: ["compatibility", "installation", "credential", "repository"].map((stage) => ({
-    stage,
-    status: "complete",
-    summary: `${stage} complete`
-  })) as Result["stages"],
-  completed: [],
-  pending: [],
-  actions: []
-}
-const preview = (digest = "hooks-current"): Result => ({
-  ...complete,
-  status: "needs-user-action",
-  stages: complete.stages.map((stage) =>
-    stage.stage === "installation"
-      ? { ...stage, status: "pending", observed: { proposal: { changes: ["owned hook"] } } }
-      : stage
-  ),
-  actions: [
-    {
-      stage: "installation",
-      code: "approve-installation",
-      action: "install owned hooks",
-      authorization: { installProposalDigest: digest }
-    },
-    {
-      stage: "rules",
-      code: "approve-default-rules",
-      action: "connect default rules",
-      authorization: { rulesProposalDigest: "rules-current" }
-    }
-  ]
-})
 export const generateSetupDiagram = Effect.gen(function* () {
   const edges = new Set<string>()
-  const ignored = new Set<string>()
-  const rows: string[] = []
   const scenarios = [
     "approved",
     "declined-hooks",
@@ -117,7 +78,7 @@ export const generateSetupDiagram = Effect.gen(function* () {
               )
             }
           : complete
-    const result = yield* runPilotSetup(
+    const result: Exit.Exit<Effect.Success<ReturnType<typeof runPilotSetup>>, unknown> = yield* runPilotSetup(
       { terminal: true, host: "codex", fields: { host: "codex" }, cwd: "/controlled", platform: "linux" },
       {
         observe: (transition) =>
@@ -128,7 +89,7 @@ export const generateSetupDiagram = Effect.gen(function* () {
     ).pipe(
       Effect.provideService(InteractionService, script.interaction),
       Effect.provideService(SetupOwnerService, {
-        run: (request, _entered, progress) =>
+        run: (request, _entered, progress): ReturnType<SetupOwner["run"]> =>
           Effect.sync(() => {
             requests.push(request)
             if (!request.interactive) {
@@ -217,8 +178,6 @@ export const generateSetupDiagram = Effect.gen(function* () {
     })
     assert.strictEqual(repeated, first.after, "duplicate completion is ignored")
     assert.strictEqual(stale, first.after, "stale digest is ignored")
-    ignored.add(`  ${first.after.phase} -->|"ignored duplicate completion"| ${repeated.phase}`)
-    ignored.add(`  ${first.after.phase} -->|"ignored stale digest"| ${stale.phase}`)
     for (const { before, event, after } of transitions) {
       const action = event.action
       const detail =
@@ -231,43 +190,21 @@ export const generateSetupDiagram = Effect.gen(function* () {
             : ""
       const label = `${action.kind} ${detail}`.trim()
       edges.add(`  ${before.phase} -->|"${label}"| ${after.phase}`)
-      rows.push(
-        `| ${name} | ${before.revision} | ${label} | ${"commandId" in action ? action.commandId : "—"} | ${after.revision} |`
-      )
     }
   }
   return `# Setup interaction
 
-**Purpose:** Show production setup approval, observed mutation and readiness transitions.
+**Purpose:** Show the CLI setup journey from agent selection through per-agent approval, credential saving, verification and readiness.
 **Status:** Maintained generated diagram.
 **Authority:** Implementation and controlled validation evidence for #244; accepted installation and credential contracts retain authority.
-**Expected use:** Inspect bounded scenarios and run \`npm run interaction:diagrams:check\` for non-writing freshness.
-**Lifecycle:** Regenerate with \`npm run interaction:diagrams:write\` when the reducer, interpreter or scenarios change; review when setup authorization or credential behavior changes.
+**Expected use:** Understand setup choices and outcomes and run \`npm run interaction:diagrams:check\` for non-writing freshness.
+**Lifecycle:** Regenerate with \`npm run interaction:diagrams:write\` when the reducer, interpreter or diagram generation changes; review when setup authorization or credential behavior changes.
 
-Fifteen bounded scenarios replay the actual production setup interpreter with controlled owners and scripted interaction. Independent assertions check separate hook and rule consent, current digest forwarding, initial noninteractive preview, changed-proposal reapproval, Back/Exit/EOF, retained partial and credential busy/indeterminate observations, hidden/verification cancellation, true effect interruption after observed installation, failed activation, and no keys in models, transitions or output. These replays perform no credential-store access or provider requests. Owner, terminal, installed-package and platform behavior require their separate checks. Diagram freshness is not exhaustive correctness evidence.
-
-Setup delegates mutation to the existing setup owner. Installation, credential availability, public-command activation, optional paid key verification, offline readiness, native trust and actual observed review are distinct. Back retains prior observations and invalidates current consent. A changed proposal requires a new preview and approval. Hidden cancellation completes required public-command activation for observed completed or partial installation, then ends input, paid checks and doctor without claiming rollback. An interrupted owner cannot fabricate completion or activation.
+Run \`hapsland setup\` to select agents, or \`hapsland setup <agent>\` to configure a named agent directly. Selected agents are configured in order. Review the proposed setup, then approve hooks and rules separately. Back returns to the previous choice; a changed proposal requires another review and approval. Completed or partial installation remains visible if later activation or input fails. Optional paid credential verification has its own consent; readiness checks follow separately. Exiting does not undo completed changes.
 
 \`\`\`mermaid
 flowchart TD
-${[...edges].join("\n")}
+${yield* generateSetupJourneyDiagram(edges)}
 \`\`\`
-
-## Ignored input
-
-Independent replay assertions submit a repeated command completion and a stale approval digest to the actual reducer. They return the same model and authorize no command. These ignored inputs are separate from state-changing edges above; this is session correlation, not process-wide exactly-once evidence.
-
-\`\`\`mermaid
-flowchart LR
-${[...ignored].join("\n")}
-\`\`\`
-
-## Replay correlation
-
-Only safe stage statuses and revision/command identities are retained. Raw owner records, credentials and provider payloads are excluded.
-
-| Replay | Input revision | Event | Command identity | Output revision |
-| --- | --- | --- | --- | --- |
-${rows.join("\n")}
 `
 })

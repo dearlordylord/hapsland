@@ -1,3 +1,4 @@
+import { userFlowDiagram } from "./interaction-diagram-view.mts"
 import assert from "node:assert/strict"
 import { Effect } from "effect"
 import { InteractionService } from "@hapsland/administration/interaction/interaction"
@@ -17,7 +18,6 @@ export const generateUpdateDiagram = Effect.gen(function* () {
     "indeterminate"
   ] as const
   const edges = new Set<string>()
-  const rows: string[] = []
   for (const name of scenarios) {
     const steps: ScriptStep[] =
       name === "current"
@@ -104,32 +104,21 @@ export const generateUpdateDiagram = Effect.gen(function* () {
                 ? `approve ${action.yes ? "y" : "non-y"}`
                 : action.kind
       edges.add(`  ${before.phase} -->|"${label}"| ${after.phase}`)
-      rows.push(
-        `| ${name} | ${before.revision} | ${label} | ${"commandId" in action ? action.commandId : "—"} | ${after.revision} |`
-      )
     }
   }
   return `# Update interaction
 
-**Purpose:** Show production grouped update and its witnessed command correlation.
+**Purpose:** Show grouped update review, approval and outcomes.
 **Status:** Maintained generated diagram.
 **Authority:** Implementation and controlled validation evidence for #244; accepted installation contracts and lifecycle owners retain authority.
 **Expected use:** Inspect grouped approval, Back, observed mutation and activation outcomes; run \`npm run interaction:diagrams:check\` for non-writing freshness.
-**Lifecycle:** Regenerate with \`npm run interaction:diagrams:write\` when the reducer, interpreter or replay cases change; review when accepted update behavior changes.
+**Lifecycle:** Regenerate with \`npm run interaction:diagrams:write\` when the reducer, interpreter or generated flow changes; review when accepted update behavior changes.
 
-Nine bounded replays run the production interpreter with scripted input and controlled owners. Independent assertions check both previews before mutation, exact per-agent digest forwarding, mutation counts, input consumption and durable outcomes. They perform no installation or credential access and do not validate physical terminals or installed platforms. Current targets activate without mutation approval, preserving existing behavior. Group approval covers all proposed profiles; Escape at approval returns to Review. Partial, busy and indeterminate results remain observations. Failed activation cannot erase an observed update. Explicit JSON preview/update commands remain direct automation exceptions.
+Review proposed updates for all selected agents before approving the group. Back returns to the review; Exit ends navigation. Agents that are already current activate without an update. Partial updates, busy operations and uncertain results remain visible. Activation failure does not undo a completed update. JSON preview and update commands remain direct automation paths.
 
 \`\`\`mermaid
 flowchart TD
-${[...edges].join("\n")}
+${userFlowDiagram("update", edges)}
 \`\`\`
-
-## Replay correlation
-
-Labels exclude environment, paths, credential values and full owner previews. Revisions and command identities correlate session events; owner digests authorize actual mutations. Same-phase edges below advance to another agent and are state-changing transitions, not ignored input.
-
-| Replay | Input revision | Event | Command identity | Output revision |
-| --- | --- | --- | --- | --- |
-${rows.join("\n")}
 `
 })

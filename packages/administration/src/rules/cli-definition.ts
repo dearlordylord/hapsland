@@ -92,8 +92,10 @@ const textFlag = (name: string, description: string) =>
     Flag.map(([value]) => value),
     Flag.withDescription(description)
   )
-const id = textFlag("id", "Rule identity (required); find it with rules list")
-const path = textFlag("path", "Existing local JSON rule file (required)")
+const ruleIdName = "id"
+const rulePathName = "path"
+const id = textFlag(ruleIdName, "Rule identity (required); find it with rules list")
+const path = textFlag(rulePathName, "Existing local JSON rule file (required)")
 const scope = Flag.Literals("scope", ["personal", "project"]).pipe(
   Flag.atMost(1),
   Flag.map(([value]) => value),
@@ -109,13 +111,16 @@ const flags = {
   id: { id },
   explain: {
     id,
-    path: textFlag("path", "Repository-relative source path to inspect").pipe(
+    path: textFlag(rulePathName, "Repository-relative source path to inspect").pipe(
       Flag.optional,
       Flag.map(Option.getOrUndefined)
     )
   },
   check: {
-    path: textFlag("path", "Source file relative to the current directory (required); normal source policy applies"),
+    path: textFlag(
+      rulePathName,
+      "Source file relative to the current directory (required); normal source policy applies"
+    ),
     line: Flag.Int("line").pipe(
       Flag.between(1, 1),
       Flag.map(([value]) => value ?? 0),
@@ -125,13 +130,13 @@ const flags = {
       ),
       Flag.withDescription("One-based line inside a type or function (required)")
     ),
-    id: textFlag("id", "Enabled rule identity; omit to run all eligible enabled rules").pipe(
+    id: textFlag(ruleIdName, "Enabled rule identity; omit to run all eligible enabled rules").pipe(
       Flag.optional,
       Flag.map(Option.getOrUndefined)
     )
   },
   changeId: { id, scope },
-  createId: { id: textFlag("id", `New rule identity (required), such as ${CUSTOM_RULE_EXAMPLE_ID}`), scope },
+  createId: { id: textFlag(ruleIdName, `New rule identity (required), such as ${CUSTOM_RULE_EXAMPLE_ID}`), scope },
   changePath: { path, scope }
 }
 
@@ -188,3 +193,14 @@ export const ruleCommandReference = () =>
       examples: command.examples
     }))
   )
+
+/** Interactive syntax comes from the same action and parameter objects passed to Command.make. */
+export const interactiveRuleCommands = () => {
+  const parent = makeRulesCommand(() => {})
+  return ruleActions.flatMap((action) => {
+    const options = flags[action.flags]
+    if (!("scope" in options)) return []
+    const name = "id" in options ? ruleIdName : rulePathName
+    return [`${parent.name} ${action.name} --${name} <${name}>`]
+  })
+}

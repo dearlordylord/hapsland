@@ -31,6 +31,19 @@ related definitions, including those in other files. Each rule reviews the
 changed declaration with the related code it needs. If the necessary code is
 unavailable, Hapsland skips that rule.
 
+> [!WARNING]
+> Hapsland focuses automatic review on agent edits made through supported native
+> editing tools, such as [`apply_patch`](https://developers.openai.com/codex/hooks#tool-coverage),
+> Codex’s standard file-editing tool. Changes made through other paths—including
+> Python or shell scripts and linter autofixes—are outside that scope and are not
+> automatically reviewed.
+
+## Subagents
+
+Hapsland also reviews supported native edits made by Codex CLI and Claude Code
+subagents. When the runtime reliably identifies the editing subagent, Hapsland
+directs review feedback to it.
+
 ## What leaves my repository?
 
 Sending source to a review service is a data-sharing decision.
@@ -205,7 +218,11 @@ establish that size caused the difference or general review superiority.
 
 Ask your coding agent to install it:
 
+<!-- agent-setup-instruction:start -->
+
 > Install Hapsland for my coding agent using https://github.com/dearlordylord/hapsland/blob/master/docs/installation-workflows.md. Let me review and approve the setup changes interactively. Ask me to enter any Jev key in the masked setup prompt, not in chat.
+
+<!-- agent-setup-instruction:end -->
 
 The public npm package returned **404 on 2026-10-06**. Until a release is
 published, use the [local checkout installation](./docs/installation-workflows.md#install-before-publication)

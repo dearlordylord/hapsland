@@ -1,3 +1,4 @@
+import { userFlowDiagram } from "./interaction-diagram-view.mts"
 import assert from "node:assert/strict"
 import { Effect } from "effect"
 import { InteractionService } from "@hapsland/administration/interaction/interaction"
@@ -12,14 +13,24 @@ import { scriptedInteraction, type ScriptStep } from "./test-support/scripted-in
 export const generateLoginDiagram = Effect.gen(function* () {
   const key = "controlled-private-replay-key"
   const edges = new Set<string>()
-  const rows: string[] = []
-  const scenarios = ["stored", "declined", "back", "cancelled", "blocked", "stale", "busy", "indeterminate"] as const
+  const scenarios = [
+    "stored",
+    "project-stored",
+    "native-stored",
+    "declined",
+    "back",
+    "cancelled",
+    "blocked",
+    "stale",
+    "busy",
+    "indeterminate"
+  ] as const
   for (const name of scenarios) {
     const steps: ScriptStep[] =
       name === "blocked"
         ? [{ kind: "choose", index: 1 }, { kind: "exit" }]
         : [
-            { kind: "choose", index: 0 },
+            { kind: "choose", index: name === "native-stored" ? 2 : name === "project-stored" ? 1 : 0 },
             ...(name === "cancelled"
               ? [{ kind: "eof" } as const]
               : [
@@ -51,7 +62,7 @@ export const generateLoginDiagram = Effect.gen(function* () {
               destination,
               target: destination === "user" ? "/fixture/user/.env" : "/fixture/repo/.env.local",
               scope: "fixture",
-              storage: "Local plaintext file"
+              storage: destination === "native" ? "Native credential store" : "Local plaintext file"
             },
             availability: name === "blocked" ? ("blocked" as const) : ("available" as const),
             reason: name === "blocked" ? "Project target is not Git-ignored" : undefined,
@@ -90,9 +101,13 @@ export const generateLoginDiagram = Effect.gen(function* () {
     assert.equal(script.remaining(), 0)
     assert(!JSON.stringify({ transitions, result, transcript: script.transcript }).includes(key))
     for (const { before, event, after } of transitions) {
-      const label = event.action.kind === "observed" ? `observed ${event.action.storage.status}` : event.action.kind
+      const label =
+        event.action.kind === "observed"
+          ? `observed ${event.action.storage.status}`
+          : event.action.kind === "selected"
+            ? `selected ${event.action.destination}`
+            : event.action.kind
       edges.add(`  ${before.phase} -->|"${label}"| ${after.phase}`)
-      rows.push(`| ${name} | ${before.revision} | ${label} | ${after.revision} |`)
     }
   }
   return `# Login interaction
@@ -100,18 +115,14 @@ export const generateLoginDiagram = Effect.gen(function* () {
 **Purpose:** Show production credential destination selection and approved saving.
 **Status:** Maintained generated diagram.
 **Authority:** Implementation and controlled validation evidence for #248; the issue and accepted credential contracts own requirements.
-**Expected use:** Inspect the named scenarios and run \`npm run interaction:diagrams:check\` for freshness.
-**Lifecycle:** Regenerate with production reducer, interpreter or replay changes; review when credential consent changes.
+**Expected use:** Understand destination selection, save approval and recovery and run \`npm run interaction:diagrams:check\` for freshness.
+**Lifecycle:** Regenerate with production reducer, interpreter or diagram generation changes; review when credential consent changes.
 
-These production interpreter/reducer replays use controlled owners and scripted interaction. They establish destination selection, separate decline-default confirmation, Back discarding input, blocked saving, stale reapproval, cancellation and observed storage outcomes. Storage and effective source remain separate: saving the user file here leaves the environment selected. Keys stay outside every trace. No native writes or provider requests occur; this does not establish physical terminal or platform support. The explicit \`--credential-stdin\` automation contract retains its direct native-save path without dialogs.
+Choose where to save your key, enter it privately, then confirm the save. Declining saves nothing; Back discards the entered key. If the destination changes, review and approve it again. A busy or uncertain save is reported separately from the credential currently in use. Saving does not override an environment credential. The explicit \`--credential-stdin\` command keeps its direct native-save automation path.
 
 \`\`\`mermaid
 flowchart TD
-${[...edges].join("\n")}
+${userFlowDiagram("login", edges)}
 \`\`\`
-
-| Case | Before revision | Action | After revision |
-| --- | --- | --- | --- |
-${rows.join("\n")}
 `
 })

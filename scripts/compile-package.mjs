@@ -1,3 +1,4 @@
+import { checkUiFlows } from "./check-ui-flows.mjs"
 import { resolvePinnedTypeScript } from "./pinned-typescript.mjs"
 import { withBuildLock } from "./build-lock.mjs"
 import { spawnSync } from "node:child_process"
@@ -9,6 +10,7 @@ import { readPackageGraph } from "./package-graph.mjs"
 import { verifyAuthoredInputStamp } from "./authored-task-inputs.mjs"
 
 const root = resolve(import.meta.dirname, "..")
+checkUiFlows(root)
 await withBuildLock(root, async () => {
   const graph = readPackageGraph(root)
   const node = [...graph.packages.values()].find((candidate) => candidate.path === process.cwd())

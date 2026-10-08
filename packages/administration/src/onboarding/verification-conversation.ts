@@ -1,3 +1,4 @@
+import { flowInteraction } from "../interaction/flow-input.ts"
 import { Context, Effect, Exit, Layer, Redacted, Terminal } from "effect"
 import {
   resolveCredential,
@@ -15,7 +16,6 @@ import {
   type BackendId
 } from "@hapsland/runtime-environment/runtime/backend"
 import { captureCredential, MaskedInputError } from "../credentials/masked-input.ts"
-import { InteractionService } from "../interaction/interaction.ts"
 import { credentialSourceGuidance } from "./credential-guidance.ts"
 import { formatOutcome } from "./human-output.ts"
 import type { SetupClient } from "./client-selection.ts"
@@ -89,7 +89,7 @@ export const runVerificationConversation = Effect.fn("Verification.run")(functio
   options: { observe?: (transition: VerificationTransition) => Effect.Effect<void> } = {}
 ) {
   const owner = yield* VerificationOwnerService
-  const interaction = yield* InteractionService
+  const interaction = yield* flowInteraction("verification")
   let model = initialVerification()
   let credential: CredentialResolution | undefined
   let entered: string | undefined
