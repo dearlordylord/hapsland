@@ -98,15 +98,18 @@ const invalidCapture = (
   reason: Extract<CaptureDiagnostic, { code: "capture-validation-failed" }>["args"]["reason"]
 ): SourceCaptureError =>
   new SourceCaptureError({ stage: "capture", code: "capture-validation-failed", args: { reason } })
-const sourceCaptureError = (error: unknown): SourceCaptureError => {
-  if (error instanceof SourceCaptureError) return error
-  const code = error instanceof Error && "code" in error ? error.code : undefined
+const operationalCaptureError = (code: unknown): SourceCaptureError | undefined => {
   if (code === "ENOENT") return unavailableCapture("missing")
   if (code === "EACCES" || code === "EPERM") return unavailableCapture("access")
   if (code === "ELOOP" || code === "ENOTDIR") return invalidCapture("file-kind")
   // An actual OS failure is operational unavailability, not an application panic.
   if (typeof code === "string" && /^E[A-Z]+$/.test(code)) return unavailableCapture("io")
-  return new SourceCaptureError(capturePanic())
+  return undefined
+}
+const sourceCaptureError = (error: unknown): SourceCaptureError => {
+  if (error instanceof SourceCaptureError) return error
+  const code = error instanceof Error && "code" in error ? error.code : undefined
+  return operationalCaptureError(code) ?? new SourceCaptureError(capturePanic())
 }
 const nativeIdentityWord = (value: string | undefined): string => value ?? "-"
 const darwinCaptureArguments = (

@@ -439,6 +439,38 @@ const observationFields = {
   verifiedPostEditHunks: Schema.optionalKey(VerifiedHunks)
 }
 const BaseObservation = Schema.Struct({ ...observationFields, advicee: Advicee })
+const metadataTarget = (value: typeof BaseObservation.Type, position: number) =>
+  value.candidateRoots?.[position] ?? (value.candidateRoots === undefined ? value : undefined)
+const nativeMoveMatches = (
+  value: typeof BaseObservation.Type,
+  projection: NativeEditMetadata,
+  candidate: NativeEditMetadata["candidates"][number],
+  native: (typeof BaseObservation.Type)["candidates"][number]
+): boolean =>
+  !("moveTo" in native) || native.moveTo === undefined
+    ? candidate.moveTo === undefined
+    : candidate.moveTo !== undefined &&
+      resolve(value.root, native.moveTo) === resolve(projection.root, candidate.moveTo)
+const metadataCandidateMatches = (
+  value: typeof BaseObservation.Type,
+  projection: NativeEditMetadata,
+  candidate: NativeEditMetadata["candidates"][number]
+): boolean => {
+  const native = value.candidates[candidate.position]
+  const target = metadataTarget(value, candidate.position)
+  if (native === undefined || target === undefined || target === null) return false
+  return (
+    target.root === projection.root &&
+    Object.keys(target.rootIdentity).every(
+      (key) =>
+        target.rootIdentity[key as keyof typeof target.rootIdentity] ===
+        projection.rootIdentity[key as keyof typeof target.rootIdentity]
+    ) &&
+    candidate.operation === native.operation &&
+    resolve(value.root, native.path) === resolve(projection.root, candidate.path) &&
+    nativeMoveMatches(value, projection, candidate, native)
+  )
+}
 /** A normal admission can carry only metadata for its own discovered native candidates. */
 const metadataMatchesObservation = (value: typeof BaseObservation.Type): boolean =>
   (value.candidateRoots === undefined || value.candidateRoots.length === value.candidates.length) &&
@@ -452,29 +484,7 @@ const metadataMatchesObservation = (value: typeof BaseObservation.Type): boolean
           Object.keys(value.advicee).every(
             (key) =>
               projection.advicee[key as keyof typeof value.advicee] === value.advicee[key as keyof typeof value.advicee]
-          ) &&
-          projection.candidates.every((candidate) => {
-            const native = value.candidates[candidate.position]
-            const target =
-              value.candidateRoots?.[candidate.position] ?? (value.candidateRoots === undefined ? value : undefined)
-            return (
-              native !== undefined &&
-              target !== undefined &&
-              target !== null &&
-              target.root === projection.root &&
-              Object.keys(target.rootIdentity).every(
-                (key) =>
-                  target.rootIdentity[key as keyof typeof target.rootIdentity] ===
-                  projection.rootIdentity[key as keyof typeof target.rootIdentity]
-              ) &&
-              candidate.operation === native.operation &&
-              resolve(value.root, native.path) === resolve(projection.root, candidate.path) &&
-              (!("moveTo" in native) || native.moveTo === undefined
-                ? candidate.moveTo === undefined
-                : candidate.moveTo !== undefined &&
-                  resolve(value.root, native.moveTo) === resolve(projection.root, candidate.moveTo))
-            )
-          })
+          ) && projection.candidates.every((candidate) => metadataCandidateMatches(value, projection, candidate))
       )))
 const Observation = BaseObservation.check(Schema.makeFilter(metadataMatchesObservation))
 const ClaudeObservation = Schema.Struct({ ...observationFields, advicee: ClaudeAdvicee }).check(

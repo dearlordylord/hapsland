@@ -3263,6 +3263,38 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       // supported logical workspace is charged. Processing candidates one at
       // a time prevents a 16-path event from materializing 1,024 complete
       // inputs outside the ledger.
+      const recordRefusedPreparation = Effect.fn("ResidentRuntime.recordRefusedPreparation")(function* (
+        candidate: DirectObservation["candidates"][number],
+        preparation: Exclude<
+          Effect.Success<ReturnType<typeof residentLedger.beginObservedPreparation>>,
+          { status: "admitted" }
+        >,
+        requestedBytes: number
+      ) {
+        const diagnostic: PreparationDiagnostic =
+          preparation.status === "capacity-refused"
+            ? {
+                stage: "preparation",
+                code: "preparation-resource-refused",
+                args: { phase: "capture-workspace", requestedBytes }
+              }
+            : preparation.status === "unavailable"
+              ? { stage: "preparation", code: "preparation-unavailable", args: { reason: preparation.reason } }
+              : { stage: "preparation", code: "panic", args: { boundary: "review-preparation" } }
+        inspectionObserveDiagnostic(job.inspectionReceipt, candidate.path, candidate.path, diagnostic)
+        if (preparation.status === "capacity-refused") yield* residentLedger.runtime.rejectCapacity()
+        yield* residentRecordAnalytics(
+          job,
+          preparation.status === "capacity-refused" ? "capacity-rejected" : "preparation-failed"
+        )
+        recordActivity({
+          statePath: job.dispatch.activityPath,
+          root: job.observation.root,
+          advicee: job.observation.advicee,
+          lifetime: server.lifetime,
+          stage: "unavailable"
+        })
+      })
       const prepareCandidate = Effect.fn("ResidentRuntime.prepareCandidate")(
         function* (candidate: DirectObservation["candidates"][number]) {
           if (!(yield* residentJobActive(job))) return false
@@ -3274,29 +3306,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             job.canonicalRound
           )
           if (preparation.status !== "admitted") {
-            const diagnostic: PreparationDiagnostic =
-              preparation.status === "capacity-refused"
-                ? {
-                    stage: "preparation",
-                    code: "preparation-resource-refused",
-                    args: { phase: "capture-workspace", requestedBytes }
-                  }
-                : preparation.status === "unavailable"
-                  ? { stage: "preparation", code: "preparation-unavailable", args: { reason: preparation.reason } }
-                  : { stage: "preparation", code: "panic", args: { boundary: "review-preparation" } }
-            inspectionObserveDiagnostic(job.inspectionReceipt, candidate.path, candidate.path, diagnostic)
-            if (preparation.status === "capacity-refused") yield* residentLedger.runtime.rejectCapacity()
-            yield* residentRecordAnalytics(
-              job,
-              preparation.status === "capacity-refused" ? "capacity-rejected" : "preparation-failed"
-            )
-            recordActivity({
-              statePath: job.dispatch.activityPath,
-              root: job.observation.root,
-              advicee: job.observation.advicee,
-              lifetime: server.lifetime,
-              stage: "unavailable"
-            })
+            yield* recordRefusedPreparation(candidate, preparation, requestedBytes)
             return true
           }
           const workspace = preparation.reservation
@@ -5310,6 +5320,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (request.operation === "acknowledge") return residentResponse(yield* runtime.acknowledge(request.token))
     return residentResponse(yield* runtime.finalize(request.token))
   })
+  const nativeMetadataStage = (metadata: NativeEditMetadata) =>
+    metadata.admission === "skipped-other-root" ||
+    metadata.candidates.every((candidate) => candidate.selection.status === "excluded")
+      ? "skipped"
+      : metadata.diagnostic?.stage === "admission"
+        ? "unavailable"
+        : "incomplete"
   const residentRecordNative = Effect.fn("ResidentRuntime.recordNative")(function* (
     request: Extract<ResidentRequest, { operation: "record-native" }>
   ) {
@@ -5328,13 +5345,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           root: metadata.root,
           advicee: metadata.advicee,
           lifetime,
-          stage:
-            metadata.admission === "skipped-other-root" ||
-            metadata.candidates.every((candidate) => candidate.selection.status === "excluded")
-              ? "skipped"
-              : metadata.diagnostic?.stage === "admission"
-                ? "unavailable"
-                : "incomplete"
+          stage: nativeMetadataStage(metadata)
         })
     }
     return residentResponse({ status: "empty" })

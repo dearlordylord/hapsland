@@ -149,6 +149,46 @@ const queueImportedReference = (
     ...(reference.expectedKind === undefined ? {} : { expectedKind: reference.expectedKind })
   })
 }
+const validBundledDeclaration = (
+  declaration: FactDeclaration | undefined,
+  reference: FactReference
+): declaration is FactDeclaration =>
+  declaration !== undefined &&
+  declaration.artifact.origin?.kind === "bundled" &&
+  declaration.artifact.id === reference.targetId &&
+  correctKind(declaration.artifact, reference.expectedKind)
+const materializeBundledReference = (frame: LocalFrame, reference: FactReference, targetId: string): void => {
+  const { budget, fileTargets } = frame
+  const declaration = frame.file.supportingDeclarations?.get(targetId)
+  if (!validBundledDeclaration(declaration, reference)) {
+    frame.node.references.push(omittedReference(reference.name, "unsupported"))
+    return
+  }
+  fileTargets.add(declaration.artifact.id)
+  budget.maxTargetsInFile = Math.max(budget.maxTargetsInFile, fileTargets.size)
+  if (frame.visited.has(declaration.artifact.id)) budget.work += 1
+  if (!permitLocalGraphFacts(budget.limits, budget.work, budget.maxDepth, fileTargets.size, budget.graphWork)) {
+    frame.node.references.push(omittedReference(reference.name, "reference-limit"))
+    return
+  }
+  if (frame.visited.has(declaration.artifact.id)) {
+    frame.node.references.push({ kind: "included", site: { symbol: reference.name }, target: declaration.artifact.id })
+  } else {
+    const index = frame.node.references.length
+    frame.node.references.push(omittedReference(reference.name, "unavailable"))
+    frame.pending.push({
+      owner: frame.node,
+      index,
+      from: frame.path,
+      symbol: reference.name,
+      importPath: "",
+      name: reference.name,
+      depth: frame.depth,
+      bundled: { declaration, file: frame.file },
+      ...(reference.expectedKind === undefined ? {} : { expectedKind: reference.expectedKind })
+    })
+  }
+}
 const materializeLocalReference = (frame: LocalFrame, reference: FactReference): void => {
   const { budget, fileTargets } = frame
   budget.maxDepth = Math.max(budget.maxDepth, frame.depth + 1)
@@ -157,44 +197,7 @@ const materializeLocalReference = (frame: LocalFrame, reference: FactReference):
     return
   }
   if (reference.targetId !== undefined) {
-    const declaration = frame.file.supportingDeclarations?.get(reference.targetId)
-    if (
-      declaration === undefined ||
-      declaration.artifact.origin?.kind !== "bundled" ||
-      declaration.artifact.id !== reference.targetId ||
-      !correctKind(declaration.artifact, reference.expectedKind)
-    ) {
-      frame.node.references.push(omittedReference(reference.name, "unsupported"))
-      return
-    }
-    fileTargets.add(declaration.artifact.id)
-    budget.maxTargetsInFile = Math.max(budget.maxTargetsInFile, fileTargets.size)
-    if (frame.visited.has(declaration.artifact.id)) budget.work += 1
-    if (!permitLocalGraphFacts(budget.limits, budget.work, budget.maxDepth, fileTargets.size, budget.graphWork)) {
-      frame.node.references.push(omittedReference(reference.name, "reference-limit"))
-      return
-    }
-    if (frame.visited.has(declaration.artifact.id)) {
-      frame.node.references.push({
-        kind: "included",
-        site: { symbol: reference.name },
-        target: declaration.artifact.id
-      })
-    } else {
-      const index = frame.node.references.length
-      frame.node.references.push(omittedReference(reference.name, "unavailable"))
-      frame.pending.push({
-        owner: frame.node,
-        index,
-        from: frame.path,
-        symbol: reference.name,
-        importPath: "",
-        name: reference.name,
-        depth: frame.depth,
-        bundled: { declaration, file: frame.file },
-        ...(reference.expectedKind === undefined ? {} : { expectedKind: reference.expectedKind })
-      })
-    }
+    materializeBundledReference(frame, reference, reference.targetId)
     return
   }
   const local = declarationFor(frame.file, reference.name, reference.expectedKind)

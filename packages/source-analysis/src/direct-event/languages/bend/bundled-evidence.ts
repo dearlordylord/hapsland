@@ -58,21 +58,23 @@ export const bundledBendArtifact = (name: string): TypeDeclaration | undefined =
   [...declarations.values()].find((declaration) => declaration.artifact.name === name)?.artifact
 
 /** Provenance is accepted only for an exact compiler-generated catalog member. */
+const validBundledOrigin = (origin: ReviewArtifact["origin"]): origin is NonNullable<ReviewArtifact["origin"]> =>
+  origin !== undefined &&
+  origin !== null &&
+  typeof origin === "object" &&
+  !Array.isArray(origin) &&
+  Object.keys(origin).length === 6
 export const isBundledBendArtifact = (artifact: ReviewArtifact): boolean => {
   const actual = declarations.get(artifact.id)?.artifact
   const origin = artifact.origin
   if (
     actual === undefined ||
-    origin === undefined ||
-    origin === null ||
-    typeof origin !== "object" ||
-    Array.isArray(origin) ||
+    !validBundledOrigin(origin) ||
     artifact.path !== undefined ||
     artifact.kind !== actual.kind ||
     artifact.name !== actual.name ||
     artifact.source !== actual.source ||
-    artifact.sourceHash !== actual.sourceHash ||
-    Object.keys(origin).length !== 6
+    artifact.sourceHash !== actual.sourceHash
   )
     return false
   return Object.entries(actual.origin!).every(([key, value]) => origin[key as keyof typeof origin] === value)

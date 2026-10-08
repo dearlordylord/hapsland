@@ -81,6 +81,30 @@ const validateGit = (plan: SavePlan, root: string | undefined) => {
     throw new Error(".env.local is not Git-ignored; add it to your ignore rules and review a fresh proposal")
   }
 }
+const validateTargetStats = (stats: import("node:fs").Stats): void => {
+  if (
+    !stats.isFile() ||
+    stats.isSymbolicLink() ||
+    stats.nlink !== 1 ||
+    stats.uid !== process.getuid?.() ||
+    (stats.mode & 0o077) !== 0 ||
+    stats.size > 65_536
+  )
+    throw new Error("Credential file must be an owner-only bounded regular file without links")
+}
+const readTargetContent = (fd: number, stats: import("node:fs").Stats): string => {
+  const buffer = Buffer.alloc(65_537)
+  let length = 0
+  for (;;) {
+    const read = readSync(fd, buffer, length, buffer.length - length, null)
+    length += read
+    if (read === 0 || length === buffer.length) break
+  }
+  const content = buffer.subarray(0, length).toString("utf8")
+  if (Buffer.byteLength(content) > 65_536 || identity(fstatSync(fd)) !== identity(stats))
+    throw new Error("Credential target changed")
+  return content
+}
 export const observeFileTarget = (plan: SavePlan, root?: string): FileObservation => {
   validateParents(plan.target)
   validateGit(plan, root)
@@ -92,28 +116,11 @@ export const observeFileTarget = (plan: SavePlan, root?: string): FileObservatio
     if (absent(error)) return { identity: "absent", parents }
     throw error
   }
-  if (
-    !stats.isFile() ||
-    stats.isSymbolicLink() ||
-    stats.nlink !== 1 ||
-    stats.uid !== process.getuid?.() ||
-    (stats.mode & 0o077) !== 0 ||
-    stats.size > 65_536
-  )
-    throw new Error("Credential file must be an owner-only bounded regular file without links")
+  validateTargetStats(stats)
   const fd = openSync(plan.target, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK)
   try {
     if (identity(fstatSync(fd)) !== identity(stats)) throw new Error("Credential target changed")
-    const buffer = Buffer.alloc(65_537)
-    let length = 0
-    for (;;) {
-      const read = readSync(fd, buffer, length, buffer.length - length, null)
-      length += read
-      if (read === 0 || length === buffer.length) break
-    }
-    const content = buffer.subarray(0, length).toString("utf8")
-    if (Buffer.byteLength(content) > 65_536 || identity(fstatSync(fd)) !== identity(stats))
-      throw new Error("Credential target changed")
+    const content = readTargetContent(fd, stats)
     parseEnv(content)
     return { identity: identity(stats), parents, content }
   } finally {
@@ -122,9 +129,15 @@ export const observeFileTarget = (plan: SavePlan, root?: string): FileObservatio
 }
 // Parsed logical entries allow quoted multiline values. Preserve every unrelated
 // byte by removing only the selected key's assignments, including continuations.
-const replaceEntry = (content: string, envVar: string, value: string): string => {
-  if (!/^[A-Za-z_][A-Za-z0-9_]*$/u.test(envVar)) throw new Error("Invalid credential reference")
-  const lines = content.match(/[^\n]*\n|[^\n]+$/gu) ?? []
+const quotedEntryEnd = (lines: string[], start: number, first: string | undefined): number => {
+  if (first !== '"' && first !== "'" && first !== "`") return start
+  let entry = lines[start]!
+  let end = start
+  // Node dotenv closes a quoted field at the next matching quote.
+  while (entry.slice(entry.indexOf(first) + 1).indexOf(first) < 0 && end + 1 < lines.length) entry += lines[++end]
+  return end
+}
+const withoutEnvEntry = (lines: string[], envVar: string): string[] => {
   const kept: string[] = []
   for (let index = 0; index < lines.length; index++) {
     const line = lines[index]!
@@ -133,25 +146,59 @@ const replaceEntry = (content: string, envVar: string, value: string): string =>
       kept.push(line)
       continue
     }
-    let entry = line
-    const first = match[2]!.trimStart()[0]
-    if (first === '"' || first === "'" || first === "`") {
-      // Node dotenv closes a quoted field at the next matching quote.
-      while (entry.slice(entry.indexOf(first) + 1).indexOf(first) < 0 && index + 1 < lines.length)
-        entry += lines[++index]
-    }
+    const end = quotedEntryEnd(lines, index, match[2]!.trimStart()[0])
+    const entry = lines.slice(index, end + 1).join("")
+    index = end
     if (match[1] !== envVar) kept.push(entry)
   }
+  return kept
+}
+const credentialQuote = (value: string): string => {
+  if (value.includes("'") && value.includes('"')) throw new Error("Key contains incompatible dotenv quotes")
+  return value.includes("'") ? '"' : "'"
+}
+const entrySeparator = (prefix: string): string => (prefix.length && !prefix.endsWith("\n") ? "\n" : "")
+const replaceEntry = (content: string, envVar: string, value: string): string => {
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/u.test(envVar)) throw new Error("Invalid credential reference")
+  const lines = content.match(/[^\n]*\n|[^\n]+$/gu) ?? []
+  const kept = withoutEnvEntry(lines, envVar)
   // Single quoting preserves literal double quotes/backslashes; choose double
   // quoting for apostrophes. Node dotenv has no quote escaping: reject both.
-  if (value.includes("'") && value.includes('"')) throw new Error("Key contains incompatible dotenv quotes")
-  const quote = value.includes("'") ? '"' : "'"
+  const quote = credentialQuote(value)
   const prefix = kept.join("")
-  const result = `${prefix}${prefix.length && !prefix.endsWith("\n") ? "\n" : ""}${envVar}=${quote}${value}${quote}\n`
+  const result = `${prefix}${entrySeparator(prefix)}${envVar}=${quote}${value}${quote}\n`
   if (parseEnv(result)[envVar] !== value || Buffer.byteLength(result) > 65_536)
     throw new Error("Key cannot be represented safely in dotenv")
   return result
 }
+const prepareTargetParents = (target: string): void => {
+  for (const parent of ancestors(target)) {
+    try {
+      mkdirSync(parent, { mode: 0o700 })
+    } catch (error) {
+      if (!(typeof error === "object" && error !== null && "code" in error && error.code === "EEXIST")) throw error
+    }
+    validateParents(target)
+  }
+}
+const cleanupTemporary = (descriptor: number | undefined, temporary: string | undefined): void => {
+  if (descriptor !== undefined) {
+    try {
+      closeSync(descriptor)
+    } catch {
+      /* preserve outcome */
+    }
+  }
+  if (temporary !== undefined) {
+    try {
+      rmSync(temporary, { force: true })
+    } catch {
+      /* preserve outcome */
+    }
+  }
+}
+const targetChanged = (observed: FileObservation, current: FileObservation): boolean =>
+  current.identity !== observed.identity || parentChanged(observed, current)
 export const commitFileCredential = (
   plan: SavePlan,
   observed: FileObservation,
@@ -164,17 +211,10 @@ export const commitFileCredential = (
   try {
     const content = replaceEntry(observed.content ?? "", envVar, value)
     const before = observeFileTarget(plan, root)
-    if (before.identity !== observed.identity || parentChanged(observed, before)) return "stale"
-    for (const parent of ancestors(plan.target)) {
-      try {
-        mkdirSync(parent, { mode: 0o700 })
-      } catch (error) {
-        if (!(typeof error === "object" && error !== null && "code" in error && error.code === "EEXIST")) throw error
-      }
-      validateParents(plan.target)
-    }
+    if (targetChanged(observed, before)) return "stale"
+    prepareTargetParents(plan.target)
     const ready = observeFileTarget(plan, root)
-    if (ready.identity !== observed.identity || parentChanged(observed, ready)) return "stale"
+    if (targetChanged(observed, ready)) return "stale"
     temporary = `${plan.target}.${randomUUID()}.tmp`
     descriptor = openSync(
       temporary,
@@ -192,19 +232,6 @@ export const commitFileCredential = (
   } catch {
     return "unavailable"
   } finally {
-    if (descriptor !== undefined) {
-      try {
-        closeSync(descriptor)
-      } catch {
-        /* preserve outcome */
-      }
-    }
-    if (temporary !== undefined) {
-      try {
-        rmSync(temporary, { force: true })
-      } catch {
-        /* preserve outcome */
-      }
-    }
+    cleanupTemporary(descriptor, temporary)
   }
 }
