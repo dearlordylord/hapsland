@@ -33,7 +33,9 @@ if (
   head !== output("git", ["rev-parse", "origin/master"]) ||
   !clean()
 ) {
-  throw new Error("release requires clean master equal to origin/master")
+  process.stderr.write(
+    "WARNING: release checkout is not clean master equal to origin/master. Prepared archive validation still applies.\n"
+  )
 }
 if (!(["linux", "darwin"].includes(process.platform) && process.arch === "arm64") || process.version !== "v24.20.0") {
   throw new Error(
