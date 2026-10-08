@@ -1,3 +1,4 @@
+import { userFlowDiagram } from "./interaction-diagram-view.mts"
 import assert from "node:assert/strict"
 import { Effect } from "effect"
 import { InteractionService } from "@hapsland/administration/interaction/interaction"
@@ -103,7 +104,6 @@ export const generateRulesDiagram = Effect.gen(function* () {
     replayed.push({ name: scenario.name, transitions })
   }
   const edges = new Set<string>()
-  const correlation: string[] = []
   for (const replay of replayed)
     for (const { before, event, after } of replay.transitions) {
       const action = event.action
@@ -114,10 +114,21 @@ export const generateRulesDiagram = Effect.gen(function* () {
             ? `observed ${action.outcome}`
             : action.kind
       edges.add(`  ${before.phase} -->|"${label}"| ${after.phase}`)
-      correlation.push(
-        `| ${replay.name} | ${before.revision} | ${label} | ${"commandId" in action ? action.commandId : "—"} | ${after.revision} |`
-      )
     }
-  const markdown = `# Rules interaction\n\n**Purpose:** Show the production rules conversation and the correlation witnessed by its replays.\n**Status:** Maintained generated diagram.\n**Authority:** Implementation and controlled validation evidence for #244; the accepted issue and rule owners retain product authority.\n**Expected use:** Inspect navigation and approval boundaries; run \`npm run interaction:diagrams:check\` to check freshness without writing.\n**Lifecycle:** Regenerate with \`npm run interaction:diagrams:write\` whenever the production reducer, interpreter or replay cases change. Review when the accepted rules interaction changes.\n\nThese replays run the production interpreter with scripted input and controlled owner outcomes. They do not write real rules or validate a native terminal. Owner digests authorize writes; revisions and command identities reject stale session events.\n\n\`\`\`mermaid\nflowchart TD\n${[...edges].join("\n")}\n\`\`\`\n\n## Replay correlation\n\nCommand completions carry the revision of the command that issued them. The table records actual production transitions; it contains no credentials, rule content or user input text.\n\n| Replay | Input revision | Event | Command identity | Output revision |\n| --- | --- | --- | --- | --- |\n${correlation.join("\n")}\n`
+  const markdown = `# Rules interaction
+
+**Purpose:** Show rule selection, review, approval and outcomes.
+**Status:** Maintained generated diagram.
+**Authority:** Implementation and controlled validation evidence for #244; the accepted issue and rule owners retain product authority.
+**Expected use:** Inspect navigation and approval boundaries; run \`npm run interaction:diagrams:check\` to check freshness without writing.
+**Lifecycle:** Regenerate with \`npm run interaction:diagrams:write\` whenever the production reducer, interpreter or generated flow changes. Review when the accepted rules interaction changes.
+
+Choose the rule scope, review the proposed changes, then confirm before applying them. Declining leaves rules unchanged. Back returns to the preview or scope choice; Exit ends the conversation. If the proposal changes, Hapsland shows a fresh preview and asks for approval again.
+
+\`\`\`mermaid
+flowchart TD
+${userFlowDiagram("rules", edges)}
+\`\`\`
+`
   return markdown
 })

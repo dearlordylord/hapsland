@@ -63,30 +63,8 @@ multi-root design is deferred to [research #247](https://github.com/dearlordylor
 
 The [interaction architecture](../adr/0004-administration-cli-interactions.md) records
 the adopted reducer and Effect design. The [workflow inventory](../cli-interactions/README.md)
-links production diagrams, behavior tests and validation limits. Additional credential
-destinations remain tracked separately in [#248](https://github.com/dearlordylord/hapsland/issues/248).
+links production diagrams, behavior tests and validation limits.
 
 Read the current contract and executable check before a milestone report. Use the
 [issue tracker guide](issue-tracker.md) when an originating issue or owner decision
 is needed. Research is advisory until an accepted contract adopts it.
-
-The [#137 final authority review](https://github.com/dearlordylord/hapsland/issues/137#issuecomment-5873005822)
-records the completed authority milestone and its then-current limits. The
-[later reconciliation](https://github.com/dearlordylord/hapsland/issues/137#issuecomment-5881756901)
-records retired checkpoints and subsequent decisions; neither describes the current
-implementation by itself. Current authority placement is in the
-[TypeScript decision ledger](../typescript-decision-boundary-ledger.md), contracts,
-and structural checks above. The [#170 implementation](https://github.com/dearlordylord/hapsland/pull/171)
-removed retained Claude edit tickets; current response authority belongs to the
-[advice contract](../advicing-target-contract.md).
-
-Delete superseded snapshots once their useful decisions and validation limits are
-in their current owner. Git and GitHub retain the history. Keep repository evidence
-only when a current decision, claim, or still-open review requires its provenance.
-The [#136 native evidence index](../../evidence/native-136/index.json) retains
-the selected outcomes, limitations and immutable record checksums. Its historical
-declaration and report links preserve their exact pre-cleanup commit; those
-temporary Markdown snapshots were consolidated and deleted at #116 closure.
-The [#116 closure record](https://github.com/dearlordylord/hapsland/issues/116)
-accounts for the original criteria against current owners and reviewed native
-exceptions. Diagram design acceptance remains separate in #147.

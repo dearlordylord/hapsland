@@ -1,3 +1,4 @@
+import { userFlowDiagram } from "./interaction-diagram-view.mts"
 import assert from "node:assert/strict"
 import { Effect } from "effect"
 import { InteractionService } from "@hapsland/administration/interaction/interaction"
@@ -28,7 +29,6 @@ export const generateMaintenanceDiagram = Effect.gen(function* () {
     "empty-reinstall"
   ] as const
   const edges = new Set<string>()
-  const rows: string[] = []
   for (const name of names) {
     const command: MaintenanceCommand =
       name === "uninstall" ? "uninstall" : name === "reinstall" || name === "empty-reinstall" ? "reinstall" : "repair"
@@ -138,9 +138,6 @@ export const generateMaintenanceDiagram = Effect.gen(function* () {
                   : ""
       const label = `${action.kind} ${detail}`.trim()
       edges.add(`  ${before.phase} -->|"${label}"| ${after.phase}`)
-      rows.push(
-        `| ${name} | ${before.revision} | ${label} | ${"commandId" in action ? action.commandId : "—"} | ${after.revision} |`
-      )
     }
   }
   return `# Maintenance interaction
@@ -149,21 +146,13 @@ export const generateMaintenanceDiagram = Effect.gen(function* () {
 **Status:** Maintained generated diagram.
 **Authority:** Implementation and controlled validation evidence for #244; accepted installation contracts and lifecycle owners retain authority.
 **Expected use:** Inspect per-agent consent and observed recovery results; use \`npm run interaction:diagrams:check\` for non-writing freshness.
-**Lifecycle:** Regenerate with \`npm run interaction:diagrams:write\` when the reducer, interpreter or named scenarios change; review when accepted maintenance behavior changes.
+**Lifecycle:** Regenerate with \`npm run interaction:diagrams:write\` when the reducer, interpreter or diagram generation changes; review when accepted maintenance behavior changes.
 
-Thirteen bounded replays run the production interpreter with scripted input and controlled owners. Independent assertions check operation selection, owner digest forwarding, consent, mutation and activation counts, input consumption and durable outcomes. They perform no real profile or credential writes and do not validate physical terminal or installed-platform behavior. Repair resumes the inspected operation; uninstall does not activate a package. Reinstall without registrations retains its existing active-package recovery. Escape at approval returns to Review; Exit and EOF end navigation. A failed activation cannot erase an observed mutation. Version-one installation JSON remains a direct automation exception.
+Review repair, reinstall or uninstall changes and confirm before applying them. Back returns to the review; Exit ends navigation. Repair resumes the inspected operation. Uninstall does not activate a package. Reinstall can restore the active package when no registrations exist. Partial, busy or uncertain results remain visible; activation failure does not undo a completed change.
 
 \`\`\`mermaid
 flowchart TD
-${[...edges].join("\n")}
+${userFlowDiagram("maintenance", edges)}
 \`\`\`
-
-## Replay correlation
-
-Labels omit paths, credentials and full owner previews. Revisions and command identities correlate session events; owner digests authorize mutations. The graph contains accepted state changes. Focused workflow tests separately exercise stale/foreign consent rejection and preservation of earlier agents when later navigation exits.
-
-| Replay | Input revision | Event | Command identity | Output revision |
-| --- | --- | --- | --- | --- |
-${rows.join("\n")}
 `
 })

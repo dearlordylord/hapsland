@@ -20,7 +20,7 @@ export const flowInventoryDocument = () => {
       edges.push(`  direct_${safe(id)}["${id}"] -->|"authorized terminal subflow"| ${safe(child)}`)
   const workflows = Object.entries(uiFlows).map(
     ([id, flow]) =>
-      `| ${id} | [${flow.entry}](../../${flow.owner}) | ${flow.inputs.join(", ")} | [Replay diagram](${flow.diagram.split("/").at(-1)}) |`
+      `| ${id} | [${flow.entry}](../../${flow.owner}) | ${flow.inputs.join(", ")} | [Flow diagram](${flow.diagram.split("/").at(-1)}) |`
   )
   const fragments = Object.entries(inputFragments).map(
     ([id, fragment]) =>
@@ -29,7 +29,7 @@ export const flowInventoryDocument = () => {
   const exceptions = Object.entries(directUiExceptions).map(
     ([id, exception]) => `| ${id} | [${exception.entry}](../../${exception.owner}) | ${exception.reason} |`
   )
-  return `This inventory and connection graph derive from the closed [production registry](../../packages/administration/src/interaction/flow-registry.ts). Connections declare interpreter composition; workflow diagrams below derive from actual named replays. Neither graph establishes exhaustive transition coverage or physical terminal support.
+  return `This inventory and connection graph derive from the closed [production registry](../../packages/administration/src/interaction/flow-registry.ts). Connections declare interpreter composition; workflow diagrams below show user-visible choices and outcomes from production transitions. Neither graph establishes exhaustive transition coverage or physical terminal support.
 
 \`\`\`mermaid
 flowchart TD

@@ -10,6 +10,10 @@ it("replays every registered production UI flow and matches its maintained Merma
   for (const id of Object.keys(uiFlows) as (keyof typeof uiFlows)[]) {
     const generated = await Effect.runPromise(diagramGenerators[id])
     expect(generated).toContain("```mermaid")
+    expect(generated).not.toMatch(
+      /Before revision|Input revision|Output revision|Command identity|Replay correlation|\| Case \||\| Replay \|/
+    )
+    expect(generated).toMatch(/\w+\["[^"\n]+"\]/)
     expect(await readFile(resolve(uiFlows[id].diagram), "utf8"), id).toBe(generated)
   }
 })

@@ -1,3 +1,4 @@
+import { userFlowDiagram } from "./interaction-diagram-view.mts"
 import assert from "node:assert/strict"
 import { Effect, Redacted } from "effect"
 import { makeInitialCredentialState } from "@hapsland/runtime-inputs/credentials/state"
@@ -30,7 +31,6 @@ export const generateVerificationDiagram = Effect.gen(function* () {
     "unconfirmed"
   ] as const
   const edges = new Set<string>()
-  const rows: string[] = []
   for (const name of scenarios) {
     const replacing = [
       "replacement",
@@ -143,9 +143,6 @@ export const generateVerificationDiagram = Effect.gen(function* () {
                 : ""
       const label = `${action.kind} ${detail}`.trim()
       edges.add(`  ${before.phase} -->|"${label}"| ${after.phase}`)
-      rows.push(
-        `| ${name} | ${before.revision} | ${label} | ${"commandId" in action ? action.commandId : "—"} | ${"keyRevision" in action ? action.keyRevision : "—"} | ${after.revision} |`
-      )
     }
   }
   return `# Credential verification and replacement interaction
@@ -153,24 +150,14 @@ export const generateVerificationDiagram = Effect.gen(function* () {
 **Purpose:** Show production paid-check consent, source-specific correction and replacement outcomes.
 **Status:** Maintained generated diagram.
 **Authority:** Implementation and controlled validation evidence for #244; accepted credential and installation contracts retain authority.
-**Expected use:** Inspect bounded request consent and recovery; run \`npm run interaction:diagrams:check\` for non-writing freshness.
-**Lifecycle:** Regenerate with \`npm run interaction:diagrams:write\` when the reducer, interpreter or named scenarios change; review when accepted verification or credential behavior changes.
+**Expected use:** Understand paid-check consent and recovery; run \`npm run interaction:diagrams:check\` for non-writing freshness.
+**Lifecycle:** Regenerate with \`npm run interaction:diagrams:write\` when the reducer, interpreter or diagram generation changes; review when accepted verification or credential behavior changes.
 
-Fifteen bounded replays run the actual production interpreter with scripted input and controlled owners. Independent assertions check a fresh approval per request, a maximum of three checks, source-specific correction, save counts, retained results, exact input consumption and absence of keys from models, transitions and output. These replays perform no paid requests or credential-store access. Separate provider tests establish the built-in greeting, sanitized outcomes and 15-second timeout; separate storage and terminal tests own those physical boundaries.
-
-Selecting replacement does not save a key. Saving requires its own confirmation and built-in hidden capture; every subsequent paid check needs fresh consent after normal precedence is resolved again. File correction only rereads the file; environment rejection gives launch-environment guidance. Busy and indeterminate saves remain visible and cause no subsequent check. Hidden cancellation ends the conversation. A successful key check is not evidence of native agent trust or a real code review.
+Review the active credential source before approving a paid check. Each retry needs fresh approval, with at most three checks. Replacing a saved key needs separate confirmation and private input. For a file credential, correct the file and choose Recheck; for an environment credential, update the launch environment. Busy or uncertain saving stops further checks. A successful key check does not establish agent trust or a completed code review.
 
 \`\`\`mermaid
 flowchart TD
-${[...edges].join("\n")}
+${userFlowDiagram("verification", edges)}
 \`\`\`
-
-## Replay correlation
-
-Labels omit credentials, file paths and raw provider payloads. Session revision and credential-selection revision reject stale answers/completions; native credential locks and journals remain authoritative. The graph records accepted transitions. Focused tests separately assert ignored stale events and preservation of observations during Back/Exit.
-
-| Replay | Input revision | Event | Command identity | Credential revision | Output revision |
-| --- | --- | --- | --- | --- | --- |
-${rows.join("\n")}
 `
 })
