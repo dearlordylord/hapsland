@@ -368,7 +368,7 @@ The implementation must check the graph boundary and each rule's declared needs;
 ## Rule and configuration contract
 
 Rules use one version-one JSONC document per file. Configuration owns path policy.
-The [configuration guide](configuration.md#declarative-rules) describes authoring;
+The [configuration guide](rules.md#editable-rule-files) describes authoring;
 [compatibility contract](review-contract-compatibility.md#configuration-and-individual-rules) owns layering.
 
 Each rule declares `inputs`: accepted combinations of `languages`, `kind`, and

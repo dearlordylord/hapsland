@@ -1,5 +1,11 @@
 # Hapsland
 
+**Purpose:** Introduce Hapsland and help users choose, install, and configure it.
+**Status:** Active product introduction.
+**Authority:** Maintained user guidance; linked contracts and evidence own behavior and validation claims.
+**Expected use:** Understand review boundaries, choose an installation path, and find detailed guidance.
+**Lifecycle:** Update with user-facing behavior and distribution changes; review when supported runtimes, source scope, or setup changes.
+
 <p align="center"><img src="./assets/brand/readme-splash.svg" alt="Hapsland: a human hand correcting a skeletal robot hand" width="900"></p>
 
 Catch design mistakes before your agent builds on them. Immediately slap its hand.
@@ -120,7 +126,7 @@ the denied dependency. This is a proof of that case, not a general proof of
 absence of leaks across every execution. Source parsing, filesystem observations,
 and network calls remain native code. See [proof scope and evidence](./docs/architecture.md#what-verification-establishes).
 
-## Built-in rules and your own
+## Rules
 
 <!-- shipped-rules:start -->
 
@@ -128,91 +134,18 @@ By default, authorized setup enables 7 editable JSON rule files with questions a
 
 <!-- shipped-rules:end -->
 
+You can edit these rules or write your own concern as a local JSONC file.
+
 <!-- rule-inspection:start -->
 
 Inspect them with `hapsland rules list` or `hapsland rules show --id meaningless_combinations`.
 
 <!-- rule-inspection:end -->
-Author one rule per file and enable it. Choose personal or project
-settings for activation, languages, file scope, threshold, and feedback messages.
-File paths belong to settings; the rule defines the concern and evidence it needs.
-A configured rule runs only on inputs with sufficient evidence. See
-[custom rules](./docs/configuration.md#declarative-rules).
 
-See [languages and limits](#languages-and-limits) before setup.
-
-## Write your first rule
-
-<!-- first-rule-defaults:start -->
-
-Start with the **7 editable default rules**.
-
-<!-- first-rule-defaults:end -->
-
-<!-- first-rule-inspection:start -->
-
-Run `hapsland rules list`, then `hapsland rules show --id meaningless_combinations` to inspect one and its source file.
-
-<!-- first-rule-inspection:end -->
-You may already have a rule for your concern. Setup enables defaults when no
-explicit rule selection is configured; your current inventory shows what is
-available and enabled.
-
-For a custom concern, follow the [first-rule walkthrough](./docs/configuration.md#write-your-first-rule):
-create a starter with `hapsland rules create`, edit its JSON in your
-editor, then test examples that should trigger and stay clear with `rules check`.
-You can also write a JSON file yourself and use `rules connect`. These are local
-editable files; you do not need the Hapsland source checkout.
-
-## Does my rule work?
-
-Try a rule against an interface or function without making an agent edit. This
-example uses the custom rule created in the walkthrough; substitute an enabled ID
-from `hapsland rules list` to check another rule:
-
-<!-- rule-check-example:start -->
-
-```sh
-hapsland rules check --path src/primitive-obsession-examples.ts --line 2 --id no-primitive-obsession
-```
-
-<!-- rule-check-example:end -->
-
-The line is one-based and selects its enclosing declaration. Hapsland sends the
-declaration to the classifier you configured in the [setup guide](#installation).
-
-<!-- rule-check-exits:start -->
-
-Exit 0 means evaluation completed, including findings; exit 6 means skipped or unavailable.
-
-<!-- rule-check-exits:end -->
-
-Try both examples that should trigger and examples that should stay clear;
-one result does not establish rule accuracy.
-
-<!-- rule-check-dashboard:start -->
-
-To inspect **ordinary agent reviews**, enable the debug recording setting by adding `"sessionInspection": true` into the repository's `.hapsland.jsonc`, make a new edit through an agent with [installed Hapsland](#installation), then run `hapsland dashboard`. The dashboard lets you inspect classifier requests and responses. Recording is off by default, contains source, and is independent of analytics. Opening the dashboard does not enable recording or backfill history. One-off `hapsland rules check` results are not recorded in the debug journal. See [rule checks](./docs/configuration.md#try-a-rule-on-a-file-and-line) and [dashboard setup](./docs/status.md#opt-in-local-inspection).
-
-<!-- rule-check-dashboard:end -->
-
-## A contextual comparison with Abide
-
-[Explore the studies, examples and evidence](./docs/review-studies.md).
-Our larger-declaration comparison covers **six scenarios: four types and two
-functions**, using **Codex CLI 0.155.1, model `gpt-6-luna`, reasoning `max`**.
-Both reviewers used Jev and the same target design concerns; Abide 0.0.7 used an
-active custom rubric. All conditions included equal diagnostic feedback reporting.
-
-With **one larger defective input per scenario**, Hapsland sessions produced
-**6/6 independently checked repairs**, versus **0/6 in Abide sessions**. Including
-one compact input per scenario, the counts were **11/12 and 2/12**. Hapsland also
-produced one false warning in 36 clean detection observations, versus zero for
-Abide. Each native cell was one session.
-
-The overview links readable scenario pages, starting and final code, methodology
-and detailed checks. Gaps also appeared on compact inputs; these results do not
-establish that size caused the difference or general review superiority.
+Use the [rule reference](./docs/rules.md) to inspect, manage, and test rules, or
+follow [Write your first rule](./docs/write-first-rule.md) for a complete example.
+Rule checks send selected source to your configured classifier; one result does
+not establish rule accuracy. See [languages and limits](#languages-and-limits).
 
 ## Installation
 
@@ -289,7 +222,7 @@ guides for exact host limits and automation.
 
 ## Configuration
 
-Configure file selection and exclusions, individual local rules and per-rule selection, and the credential environment-variable reference. The product accepts layered JSONC files. With no file settings, all otherwise eligible files are selected; user exclusions can turn review off.
+Configure file selection, related-code access, privacy exclusions, and per-rule application through personal and project JSONC settings. With no file settings, all otherwise eligible files are selected; user exclusions can turn review off.
 
 A small project configuration:
 
@@ -302,7 +235,7 @@ A small project configuration:
 }
 ```
 
-See the [complete configuration guide](./docs/configuration.md) for field details, rules, precedence, and runtime behavior.
+See the [complete configuration guide](./docs/configuration.md) for fields, precedence, rule selection, and when saved changes apply.
 
 <!-- configuration-readme:end -->
 
@@ -326,206 +259,13 @@ is not confirmation that the code passed review. See the
 the syntax limits and [session status](./docs/status.md) to inspect
 review activity.
 
+## Documentation
+
+Use the [documentation guide](https://github.com/dearlordylord/hapsland/blob/master/docs/README.md) to find installation, configuration,
+rule authoring, diagnostics, architecture, and [comparisons with existing solutions](./docs/review-studies.md).
+
 ## Development
 
-See the [comparison with Abide](./docs/abide-comparison.md)
-for the main architectural differences and the rationale for a separate product.
-
-Use the [repository map](./docs/agents/navigation.md) to locate contracts,
-implementation entry points, tests, the website, and research assets.
-
-Native build outputs are generated and ignored by Git. Before a build for both
-platforms, obtain the foreign native bundle using the
-[native input workflow](./docs/npm-publishing.md#native-build-inputs); parser
-bindings come from pinned npm dependencies.
-
-For the inspection dashboard, choose the page source explicitly:
-
-| Use | Command | Page |
-| --- | --- | --- |
-| Development | `npm run dev:inspection` | Current checkout; page edits reload the browser automatically |
-| Bundled production | `hapsland dashboard` | Page embedded in the installed package |
-
-Both read the same local inspection journal. Page development needs no package
-build or installation update. See [inspection development](./docs/status.md#opt-in-local-inspection)
-for the source owner, port selection, and checks.
-
-<!-- inspection-recording:start -->
-
-Recording is off by default: add `"sessionInspection": true` into your project's `.hapsland.jsonc` using the [configuration template](./docs/examples/session-inspection.jsonc), then make a new edit. Neither dashboard enables recording or backfills old edits; retained history can remain visible after recording is turned off.
-
-<!-- inspection-recording:end -->
-
-Install a fresh local snapshot on your own client without publishing. First install
-the [source-build prerequisites](./docs/installation-workflows.md#install-before-publication),
-including Node 24.20.0; installed Hapsland executables need neither Node nor Bun on PATH.
-
-```sh
-mise install node@24.20.0 bun@1.3.14
-mise exec node@24.20.0 bun@1.3.14 -- npm run dev-install -- --host=claude
-mise exec node@24.20.0 bun@1.3.14 -- npm run dev-install -- --host=codex
-# Rerun the same command after source changes; --update optionally selects the update flow.
-```
-
-For installing a freshly packed snapshot into your own Claude Code or Codex profile,
-see [installation and development workflows](./docs/installation-workflows.md#personal-development-on-your-own-clients).
-
-This installs a fixed snapshot; source edits require rebuilding and updating it.
-The script handles building, packing and activation; no manual archive handling
-or publication is needed. See [repeated installation](./docs/installation-workflows.md#source-changes-and-repeated-installation).
-
-
-```sh
-npx --yes bun@1.3.14 install
-npm run docs:generate
-npm run docs:generated:check
-npm run typecheck
-npm test
-npm run conformance:package
-```
-
-`npm pack` builds a CLI executable containing pinned Bun 1.3.14 for each platform.
-The parser, resident, hook, and package doctor use that embedded runtime with
-their own bundled JavaScript and executable launchers. Agent-loaded Pi extension JavaScript
-remains a separate integration asset. The declared build targets are Linux arm64 and
-macOS arm64; cross-compilation alone does not establish execution compatibility.
-The [installed compatibility record](./docs/installed-release-compatibility.md)
-distinguishes current validation from earlier Node-based observations.
-
-Public commands use the package's executables and physical native assets. They do not
-require Node or Bun on PATH and do not acquire packages per edit. Run `hapsland-doctor`
-after installation for source-free compatibility checks. Source development and package
-assembly still require the pinned development toolchain; installing the tarball with
-scripts disabled does not compile native code.
-
-The packaged CLI's preview/install/enable/disable/uninstall contract, ownership rules, recovery
-behavior, and native trust handoff are documented in
-[`docs/codex-installation.md`](./docs/codex-installation.md).
-For publishing stable and `next` releases, use the
-[publishing runbook](./docs/npm-publishing.md). The public command is
-`hapsland`. The product is Hapsland and Jev is the external backend. The
-[local release preflight](./evidence/release/npm-0.1.0-preflight.md) is not a registry release record.
-After setup completes, the [installation guide](./docs/codex-installation.md) also documents the separate `hapsland --demo` preview and
-live-confirmation flow. Its default preview is offline; a live run requires an exact
-selection digest for a generated disposable repository and has explicit request,
-source, and time limits.
-
-`npm run conformance:package` packs into an isolated temporary prefix, installs with production
-dependencies only, and runs the parser and controlled offline review outside the checkout. Add
-`-- --real-codex --write-evidence` only for the declared real-host acceptance fixture; it uses
-an isolated Codex home and temporary Git repository, does not change the user's host, removes
-provider credentials, and retains only sanitized package/host outcomes.
-
-`npm run conformance:installed-release` verifies the assembled installed-product evidence and
-replays the complete offline lifecycle in isolated homes. Its declared compatibility cells include
-a supervised synthetic first review through real Jev on Linux arm64; that test used normal native
-hook trust and a labeled host sandbox bypass in this container. Exact versions, checksums,
-setup-effort evidence, and the rule that untested cells remain
-gaps are published in
-[`docs/installed-release-compatibility.md`](./docs/installed-release-compatibility.md). The command
-does not call Jev or perform an authenticated Codex retry.
-The local single-repository opt-in pilot is scoped in
-[`docs/codex-opt-in-pilot.md`](./evidence/codex-pilot/README.md).
-
-Review dispatch uses effective file settings. With no file settings, every otherwise
-eligible file is selected. User `excludes` accumulate with project exclusions and
-`["**/*"]` turns review off even when a project supplies includes. Protected paths,
-Git ignore rules, and invalid configuration still stop the relevant work.
-
-```sh
-printf '%s\n' '{"version":1,"operation":"credentials","cwd":"/absolute/repo"}' \\
-  | node src/cli.ts --inspect-credentials
-```
-
-`--inspect-credentials` reports only the configured reference and presence. See
-[provider selection and limits](docs/review-providers.md) for review backends.
-
-<!-- credential-policy:start -->
-
-Guided login, setup and `--new-key` use these reviewed save destinations:
-
-- **Every project on this machine — default:** $XDG_CONFIG_HOME/hapsland/.env (normally ~/.config/hapsland/.env). Local plaintext file; user scope.
-- **This project only:** repository-root .env.local. Local plaintext file; project scope.
-- **Native credential store:** macOS Keychain or Linux Secret Service. Platform credential store; user scope.
-
-The exact validated target and current selected source are shown before hidden key entry. Saving requires a separate full-line `y` confirmation with a declining default. Back discards entered key material; cancellation preserves the previous credential before saving. A changed proposal requires fresh entry and approval. Project saving requires an untracked, Git-ignored `.env.local`; Hapsland does not change ignore rules. Files are written with owner-only permissions using atomic replacement, preserving unrelated dotenv entries. Stored and effective credential sources are reported separately.
-
-Lookup order: environment variable `TYPESAFE_API_KEY` → repository-root .env.local → repository-root .env → $XDG_CONFIG_HOME/hapsland/.env (normally ~/.config/hapsland/.env) → macOS Keychain or Linux Secret Service. An explicitly present environment value, including an empty one, stops lookup. Missing/empty file fields continue; unreadable, symlinked, nonregular or oversized files stop with a safe diagnostic. Explicit configured references allow environment/files and prohibit native fallback, including when they name the built-in variable. Callers without repository scope retain environment/native-only lookup. Captured hook inputs remain authoritative. Saving never changes lookup precedence and grants no paid-verification consent.
-
-`hapsland --login --credential-stdin` retains its explicit direct native-save automation contract without dialogs. `hapsland --logout` removes only the native saved item; it does not delete file credentials. Keys never enter models, traces, diagnostics or review configuration. Development setup uses the same flow against the reviewed repository and configured user directory; rebuild/update/activation preserves credentials and never copies them into snapshots, caches, archives or worktrees.
-
-<!-- credential-policy:end -->
-
-An unavailable credential prevents provider dispatch. Changing effective exclusions
-affects future dispatches and cannot recall a request already sent.
-
-The Codex event boundary is documented in the
-[direct-event profile](./docs/direct-event-v1-supported-profile.md). The installed Codex
-integration uses a synchronous pre-edit permit and its matching composed post-edit hook.
-An isolated `--codex-hook` call without that lifecycle stays quiet. The installed
-hooks invoke the packed standalone CLI and never depend on this source path.
-The generated credential policy above describes setup and hook lookup, file limits,
-explicit-reference eligibility and the direct-input exception.
-
-Live use selects `TYPESAFE_API_KEY` for Jev or `CLOUDFLARE_API_TOKEN` for Cloudflare
-through the Effect provider configuration. Run the live integration checks only with explicit
-opt-in via `npm run test:live`.
-The initial direct-event capture profile is Linux-only. It binds the adapted working-tree
-device/inode to an open directory descriptor and traverses through `/proc/self/fd`; hosts
-without that facility are unsupported rather than falling back to path-only source reads.
-
-Offline readiness diagnosis and headless activity inspection are documented in
-[`docs/status.md`](./docs/status.md). Doctor checks the selected installed integration
-without prompts, repairs, source reads, or Jev calls. Status uses an explicit host session
-ID and source-free review activity, and never treats silence or missing
-instrumentation as a clear review. Optional [session analytics](./docs/status.md#optional-session-analytics)
-are disabled by default; user configuration can enable Jev outcome totals and recent
-rule-ID history. See the [shared activity storage limits](./docs/status.md).
-
-The maintainer-only semantic evaluation protocol and its sanitized offline milestone
-evidence are documented in [`docs/evaluation.md`](./docs/evaluation.md) and
-[`evidence/evaluation/README.md`](./evidence/evaluation/README.md). Ordinary tests and
-the review hook never run the maintainer evaluation suite against Jev.
-
-## Code style
-
-Run `npm run format` to apply Oxlint fixes and dprint/OXC formatting.
-`npm run lint:code` checks all authored code; `npm run lint:changed` checks staged,
-unstaged and untracked code against `HEAD`. For a branch comparison, use
-`npm run lint:changed -- --base=origin/master`. `check:fast` includes changed-file
-checks, and CI checks all authored code.
-
-`npm run prepare` installs the Husky Git hook (also run during dependency
-installation). Pre-commit runs lint-staged: it fixes and restages selected code,
-and rejects remaining lint errors. Generated, vendor, fixture and evidence files
-are excluded. [The formatter configuration](./dprint.json) and
-[lint rules](./.oxlintrc.json) own the exact settings. The imported Dalph setup uses
-two-space indentation and 120-column formatting. Hapsland keeps Effect generators
-without `yield` and inline import types; namespace type resolution is checked by
-TypeScript because Oxlint's import namespace check reports false positives for Effect.
-
-<!-- hapsland-hooks:start -->
-## Agent hooks
-
-Generated from [the hook catalog](./packages/runtime-environment/src/runtime/hook-catalog.ts). Command timeouts are upper limits, not measured latency. Pi limits each Hapsland command call; a callback may make multiple calls. Codex does not install a `UserPromptSubmit` hook. OpenCode review hooks are currently inactive.
-
-| Runtime | Event | Selection | Mode | Limit | Purpose |
-| --- | --- | --- | --- | --- | --- |
-| Codex CLI | `PreToolUse` | `^(apply_patch\|Edit\|Write\|Bash)$` | Sync command | 5 s | Register an edit attempt before the tool runs |
-| Codex CLI | `PostToolUse` | `^(apply_patch\|Edit\|Write\|Bash)$` | Sync command | 10 s | Report the edit and collect ready advice |
-| Codex CLI | `PostToolUse` | `^(apply_patch\|Edit\|Write\|Bash)$` | Async command | 25 s | Deliver advice that finishes after the edit response |
-| Codex CLI | `Stop` | All | Sync command | 5 s | Collect admitted review results before the agent finishes |
-| Codex CLI | `SubagentStop` | All | Sync command | 5 s | Collect admitted review results before a subagent finishes |
-| Claude Code | `PreToolUse` | `Edit\|Write` | Sync command | 5 s | Register an edit attempt before the tool runs |
-| Claude Code | `PostToolUse` | `Edit\|Write` | Sync command | 5 s | Report the edit and collect ready advice |
-| Claude Code | `Stop` | All | Sync command | 5 s | Collect admitted review results before the agent finishes |
-| Claude Code | `SubagentStop` | All | Sync command | 5 s | Collect admitted review results before a subagent finishes |
-| Claude Code | `UserPromptSubmit` | All | Sync command | 4 s | Notify Hapsland of the user prompt; does not open a review round |
-| Pi | `agent_start` | All | Extension callback | No IPC | Remember the agent identity for cleanup |
-| Pi | `tool_call` | `edit` | Extension callback | 7 s per IPC call | Register an edit attempt |
-| Pi | `tool_result` | `edit` | Extension callback | 7 s per IPC call | Report the edit and offer ready advice in the tool result |
-| Pi | `agent_before_settle` | All | Extension callback | 7 s per IPC call | Offer review advice before the agent settles |
-| Pi | `session_before_switch` | All | Extension callback | 7 s per IPC call | Retire edit attempts and close owned partitions |
-| Pi | `session_shutdown` | All | Extension callback | 7 s per IPC call | Retire edit attempts and close owned partitions |
-| Pi | `agent_settled` | All | Extension callback | 7 s per IPC call | Close the originating agent partition |
-<!-- hapsland-hooks:end -->
+See [Contributing](https://github.com/dearlordylord/hapsland/blob/master/CONTRIBUTING.md) for source setup, code style, checks, and
+local development workflows. The [repository map](./docs/agents/navigation.md)
+locates contracts, implementation owners, tests, website assets, and research.

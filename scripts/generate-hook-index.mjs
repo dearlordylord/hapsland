@@ -2,7 +2,7 @@ import { CLIENT_NAMES } from "@hapsland/runtime-environment/runtime/agent-client
 import { readFileSync, writeFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { commandHooks, piHooks, piHookCommand } from "@hapsland/runtime-environment/runtime/hook-catalog"
-const path = resolve(import.meta.dirname, "../README.md")
+const path = resolve(import.meta.dirname, "../docs/architecture.md")
 const start = "<!-- hapsland-hooks:start -->"
 const end = "<!-- hapsland-hooks:end -->"
 const cell = (value) => String(value).replaceAll("|", "\\|")
@@ -31,7 +31,7 @@ const table = [
   start,
   "## Agent hooks",
   "",
-  "Generated from [the hook catalog](./packages/runtime-environment/src/runtime/hook-catalog.ts). Command timeouts are upper limits, not measured latency. Pi limits each Hapsland command call; a callback may make multiple calls. Codex does not install a `UserPromptSubmit` hook. OpenCode review hooks are currently inactive.",
+  "Generated from [the hook catalog](../packages/runtime-environment/src/runtime/hook-catalog.ts). Command timeouts are upper limits, not measured latency. Pi limits each Hapsland command call; a callback may make multiple calls. Codex does not install a `UserPromptSubmit` hook. OpenCode review hooks are currently inactive.",
   "",
   "| Runtime | Event | Selection | Mode | Limit | Purpose |",
   "| --- | --- | --- | --- | --- | --- |",
@@ -41,12 +41,12 @@ const table = [
 const current = readFileSync(path, "utf8")
 const begin = current.indexOf(start)
 const finish = current.indexOf(end)
-if (begin < 0 !== finish < 0) throw new Error("README hook-index markers are incomplete")
+if (begin < 0 !== finish < 0) throw new Error("Architecture hook-index markers are incomplete")
 const next =
   begin < 0
     ? `${current.trimEnd()}\n\n${table}\n`
     : `${current.slice(0, begin)}${table}${current.slice(finish + end.length)}`
 if (process.argv.includes("--check")) {
-  if (next !== current) throw new Error("README hook index is stale; run npm run hooks:generate")
-  console.log("README hook index matches installed definitions")
+  if (next !== current) throw new Error("Architecture hook index is stale; run npm run hooks:generate")
+  console.log("Architecture hook index matches installed definitions")
 } else writeFileSync(path, next)

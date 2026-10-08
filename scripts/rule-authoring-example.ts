@@ -90,5 +90,5 @@ export const authoringExampleFacts = () => {
       text: `**5. Test a violation and an acceptable case.** Create \`${authoringSourcePath}\` with a loose domain type and a version using distinct ID types:\n\n${fenced("ts", authoringSourceExample)}`
     },
     { name: "authoring-check", text: fenced("sh", authoringCheckCommands.join("\n")) }
-  ].map((fact) => ({ ...fact, path: "docs/configuration.md" }))
+  ].map((fact) => ({ ...fact, path: fact.name === "authoring-connect" ? "docs/rules.md" : "docs/write-first-rule.md" }))
 }

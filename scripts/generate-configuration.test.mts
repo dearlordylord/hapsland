@@ -43,9 +43,13 @@ const withFixture = (run: (root: string) => void): void => {
   )
   writeFileSync(
     join(root, "docs/configuration.md"),
-    "# Configuration\n\nAuthored guide before.\n\n<!-- configuration-guide:start -->\nold\n<!-- configuration-guide:end -->\n\nAuthored pack notes before.\n\n<!-- rule-guide:start -->\nold\n<!-- rule-guide:end -->\n\nAuthored guide after.\n"
+    "# Configuration\n\nAuthored guide before.\n\n<!-- configuration-guide:start -->\nold\n<!-- configuration-guide:end -->\n\nAuthored guide after.\n"
   )
-  for (const name of ["README.md", "docs/installation-workflows.md", "docs/status.md"]) {
+  writeFileSync(
+    join(root, "docs/rules.md"),
+    "Authored rules before.\n<!-- rule-guide:start -->\nold\n<!-- rule-guide:end -->\nAuthored rules after.\n"
+  )
+  for (const name of ["docs/installation-workflows.md", "docs/status.md"]) {
     const path = join(root, name)
     const text = name === "docs/status.md" ? "Authored status guide.\n" : readFileSync(path, "utf8")
     writeFileSync(path, text + "\n<!-- inspection-recording:start -->\nold\n<!-- inspection-recording:end -->\n")
@@ -82,7 +86,9 @@ const generatedFiles = (root: string): ReadonlyArray<string> => [
   join(root, "docs/pi-installation.md"),
   join(root, "docs/review-providers.md"),
   join(root, "docs/review-resources.md"),
-  join(root, "packages/administration/src/inspection/brand.ts")
+  join(root, "packages/administration/src/inspection/brand.ts"),
+  join(root, "docs/rules.md"),
+  join(root, "docs/write-first-rule.md")
 ]
 
 const codeBlocks = (markdown: string): ReadonlyArray<string> =>
@@ -190,15 +196,18 @@ describe("configuration documentation generator", () => {
       const readme = initial[0] ?? ""
       const guide = initial[1] ?? ""
       expect(readme).toContain("Configure file selection")
-      expect(readme).toContain("individual local rules")
+      expect(readme).toContain("personal and project JSONC settings")
       expect(guide).toContain("`rules[].path`")
       expect(guide).toContain("`rules[].threshold`")
-      expect(guide).toContain("`inputs[].languages`")
+      const rules = readFileSync(join(root, "docs/rules.md"), "utf8")
+      expect(rules).toContain("`inputs[].languages`")
+      expect(rules).toContain("Authored rules before.")
+      expect(rules).toContain("Authored rules after.")
       expect(readme).toContain("Authored README before.")
       expect(readme).toContain("Authored README after.")
       expect(guide).toContain("Authored guide before.")
       expect(guide).toContain("Authored guide after.")
-      const examples = codeBlocks(guide)
+      const examples = codeBlocks(rules)
       const ruleExample = examples.find((example) => example.includes('"question"'))
       expect(ruleExample).toBeDefined()
       expect(decodeRuleText(ruleExample ?? "{}", "guide example").inputs[0]).toMatchObject({
@@ -283,7 +292,7 @@ describe("configuration documentation generator", () => {
   it("refuses malformed documentation boundaries without partially updating files", () => {
     withFixture((root) => {
       const readme = join(root, "README.md")
-      const guide = join(root, "docs/configuration.md")
+      const guide = join(root, "docs/rules.md")
       const originalReadme = readFileSync(readme, "utf8")
       const malformedGuide = readFileSync(guide, "utf8").replace("<!-- rule-guide:start -->", "")
       writeFileSync(guide, malformedGuide)

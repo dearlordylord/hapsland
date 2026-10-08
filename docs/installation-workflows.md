@@ -141,7 +141,8 @@ hapsland setup codex
 hapsland setup pi
 ```
 
-Setup rechecks credentials on every run: environment and file credentials take precedence over saved login; an explicitly configured `credentialEnvVar` selects environment-only authentication. An available key is reused. A missing saved key triggers masked input in an interactive terminal after installation approval. An unavailable or locked store is reported separately with recovery instructions; local setup checks do not validate the key against Jev. Guided terminal setup then offers a separate optional live key check. Package installation alone does not ask for a key.
+See [Credentials and login](#credentials-and-login) for save destinations and lookup.
+Setup rechecks credentials on every run: environment and file credentials take precedence over saved login; an explicitly configured `credentialEnvVar` allows environment/file lookup and disables native credential fallback. An available key is reused. A missing saved key triggers masked input in an interactive terminal after installation approval. An unavailable or locked store is reported separately with recovery instructions; local setup checks do not validate the key against Jev. Guided terminal setup then offers a separate optional live key check. Package installation alone does not ask for a key.
 
 Use `hapsland setup codex --new-key` (also available for Claude and Pi) to skip the existing-key lookup and request a replacement. This requires a terminal and a validated selected destination. It does not change environment/file/native lookup precedence. Automation may set `newKey: true` in its version-1 `--setup` JSON request.
 
@@ -188,7 +189,7 @@ An installed integration still needs native trust and an ordinary observed revie
 unknown trust/readiness can therefore return 6 after installation succeeds.
 
 Setup shows the effective rule inventory once per guided invocation, including
-when several clients are selected. See [editable and custom rules](configuration.md#declarative-rules)
+when several clients are selected. See [editable and custom rules](rules.md#editable-rule-files)
 for their paths, eligibility and management commands.
 
 <!-- shipped-rules:start -->
@@ -298,8 +299,8 @@ hooks in the selected client profile.
 | npm reports a permissions error, or `hapsland` is missing | Use a [user-owned prefix](#user-owned-prefix-alternative); for a local candidate, use its printed executable path. |
 | Setup requires a terminal | Run guided setup in your own terminal. For automation, use [explicit unattended choices](#unattended-setup); suppressing prompts alone does not authorize installation. |
 | Agent executable missing or unsupported | Install the agent, check its version and PATH, or pass the matching `--CLIENT-executable=/absolute/path` option. Check the compatibility table above. |
-| Credential store locked or unavailable | Unlock the login keyring/Keychain, or use an ignored, owner-only credential file as described in [credential lookup](#personal-development-on-your-own-clients). |
-| A new saved key is not active | Environment and file keys take precedence. Replace the source shown by setup; `--new-key` changes saved login only. |
+| Credential store locked or unavailable | Unlock the login keyring/Keychain, or use an ignored, owner-only credential file as described in [credential lookup](#credentials-and-login). |
+| A new saved key is not active | Environment and file keys take precedence. Replace the source shown by setup; `--new-key` saves to the approved destination and does not change lookup precedence. |
 | Hooks installed, readiness still `unknown` | Finish current work, restart the agent, complete native trust prompts, make a supported edit, then use the [opt-in inspection dashboard](status.md#opt-in-local-inspection). |
 | No feedback after an edit | Run `hapsland doctor CLIENT` from that repository; check credentials, file scope, rules and supported syntax. Silence does not mean a review passed. |
 | Changed hooks or an interrupted install | Run doctor, then [repair or reinstall](#disablement-removal-and-recovery) after reviewing the proposed changes. |
@@ -351,11 +352,19 @@ To return to stable from `next`, run `hapsland update --channel=latest` (all ins
 
 ### Iterating on the inspection page
 
-Run `npm run dev:inspection` from the repository root for the inspection dashboard
-served from the current checkout. Browser pages reload when
-`packages/administration/src/inspection/page.ts` changes; this workflow reads the existing local journal
-and requires no package rebuild or hook update. See the
-[inspection guide](status.md#opt-in-local-inspection) for port selection and limits.
+From a checkout, `npm run dev:inspection` runs the same private, read-only
+inspector directly from source and prints its URL. Edits to
+[`packages/administration/src/inspection/page.ts`](../packages/administration/src/inspection/page.ts) automatically reload the
+visible browser page while keeping the server and capability URL alive. A page
+syntax error returns HTTP 503 until the source is fixed; the browser then reloads
+the repaired page. Server-side changes require restarting the command. Use
+`npm run dev:inspection -- --port=4318` to choose a port. This workflow uses the
+existing local journal and does not rebuild a package, invoke Tree-sitter,
+update installed hooks, or start a resident.
+
+Run `npm --prefix packages/agent-flow-viz run test:inspection-dev-browser` to
+check automatic reload, a stable private URL, syntax-error recovery, and HTTP
+route protection against the real page source.
 
 <!-- inspection-recording:start -->
 
@@ -402,31 +411,14 @@ To request a replacement key during development installation:
 mise exec node@24.20.0 bun@1.3.14 -- npm run dev-install -- --host=codex --new-key
 ```
 
-<!-- credential-policy:start -->
-
-Guided login, setup and `--new-key` use these reviewed save destinations:
-
-- **Every project on this machine — default:** $XDG_CONFIG_HOME/hapsland/.env (normally ~/.config/hapsland/.env). Local plaintext file; user scope.
-- **This project only:** repository-root .env.local. Local plaintext file; project scope.
-- **Native credential store:** macOS Keychain or Linux Secret Service. Platform credential store; user scope.
-
-The exact validated target and current selected source are shown before hidden key entry. Saving requires a separate full-line `y` confirmation with a declining default. Back discards entered key material; cancellation preserves the previous credential before saving. A changed proposal requires fresh entry and approval. Project saving requires an untracked, Git-ignored `.env.local`; Hapsland does not change ignore rules. Files are written with owner-only permissions using atomic replacement, preserving unrelated dotenv entries. Stored and effective credential sources are reported separately.
-
-Lookup order: environment variable `TYPESAFE_API_KEY` → repository-root .env.local → repository-root .env → $XDG_CONFIG_HOME/hapsland/.env (normally ~/.config/hapsland/.env) → macOS Keychain or Linux Secret Service. An explicitly present environment value, including an empty one, stops lookup. Missing/empty file fields continue; unreadable, symlinked, nonregular or oversized files stop with a safe diagnostic. Explicit configured references allow environment/files and prohibit native fallback, including when they name the built-in variable. Callers without repository scope retain environment/native-only lookup. Captured hook inputs remain authoritative. Saving never changes lookup precedence and grants no paid-verification consent.
-
-`hapsland --login --credential-stdin` retains its explicit direct native-save automation contract without dialogs. `hapsland --logout` removes only the native saved item; it does not delete file credentials. Keys never enter models, traces, diagnostics or review configuration. Development setup uses the same flow against the reviewed repository and configured user directory; rebuild/update/activation preserves credentials and never copies them into snapshots, caches, archives or worktrees.
-
-<!-- credential-policy:end -->
+For credential entry, save destinations, and lookup precedence, see
+[Credentials and login](#credentials-and-login).
 
 `--new-key` cannot be combined with `--update`, which does not run guided credential entry.
 
-Before submitting a code change, run the contributor checks separately:
-
-```sh
-npm run typecheck
-npm test
-npm run conformance:client-lifecycle
-```
+For source changes, follow [Contributing](../CONTRIBUTING.md) and select checks
+using [CHECKS.md](../CHECKS.md) and the [testing matrix](testing-matrix.md).
+Installation, update, and removal changes may require the client lifecycle gate:
 
 `conformance:client-lifecycle` uses isolated profiles and a local registry fixture to check ordinary update twice, active command routing, repair, reinstall, missing-package fallback, and removal. It performs no Jev or authenticated client work. Package conformance separately checks the production archive.
 
@@ -448,6 +440,30 @@ repeatability does not authorize overwriting user changes.
 Hooks execute the installed snapshot until the next successful activation.
 Direct source execution or a watch-mode resident is not required for this
 workflow and is not offered by the current installer.
+
+## Credentials and login
+
+**Audience:** End users and contributors configuring installed integrations.
+
+Run `hapsland --login` from your project repository for guided key saving; setup
+also offers this flow. Setup and login share the credential policy below. Local
+development uses the same destinations; a new snapshot preserves existing credentials.
+
+<!-- credential-policy:start -->
+
+Guided login, setup and `--new-key` use these reviewed save destinations:
+
+- **Every project on this machine — default:** $XDG_CONFIG_HOME/hapsland/.env (normally ~/.config/hapsland/.env). Local plaintext file; user scope.
+- **This project only:** repository-root .env.local. Local plaintext file; project scope.
+- **Native credential store:** macOS Keychain or Linux Secret Service. Platform credential store; user scope.
+
+The exact validated target and current selected source are shown before hidden key entry. Saving requires a separate full-line `y` confirmation with a declining default. Back discards entered key material; cancellation preserves the previous credential before saving. A changed proposal requires fresh entry and approval. Project saving requires an untracked, Git-ignored `.env.local`; Hapsland does not change ignore rules. Files are written with owner-only permissions using atomic replacement, preserving unrelated dotenv entries. Stored and effective credential sources are reported separately.
+
+Lookup order: environment variable `TYPESAFE_API_KEY` → repository-root .env.local → repository-root .env → $XDG_CONFIG_HOME/hapsland/.env (normally ~/.config/hapsland/.env) → macOS Keychain or Linux Secret Service. An explicitly present environment value, including an empty one, stops lookup. Missing/empty file fields continue; unreadable, symlinked, nonregular or oversized files stop with a safe diagnostic. Explicit configured references allow environment/files and prohibit native fallback, including when they name the built-in variable. Callers without repository scope retain environment/native-only lookup. Captured hook inputs remain authoritative. Saving never changes lookup precedence and grants no paid-verification consent.
+
+`hapsland --login --credential-stdin` retains its explicit direct native-save automation contract without dialogs. `hapsland --logout` removes only the native saved item; it does not delete file credentials. Keys never enter models, traces, diagnostics or review configuration. Development setup uses the same flow against the reviewed repository and configured user directory; rebuild/update/activation preserves credentials and never copies them into snapshots, caches, archives or worktrees.
+
+<!-- credential-policy:end -->
 
 ## Publishing
 

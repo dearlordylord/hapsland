@@ -1,17 +1,25 @@
-# Review studies and code examples
+# Comparisons with existing solutions
 
-**Purpose:** Guide readers from comparative results to concrete code, scenario explanations and detailed evidence.
+**Purpose:** Route comparisons with existing solutions to architectural differences, concrete code examples, and measured evidence.
 **Audience:** Prospective users; rule authors; evaluation contributors and reviewers.
 **Status:** Maintained research navigation; linked studies own their measured results.
 **Authority:** Maintained navigation for comparative research advisory and validation evidence, not a product contract or release certification.
 **Expected use:** Choose an example, understand what was tested and inspect the checks behind a result.
 **Lifecycle:** Update when a study, scenario or current evidence owner changes. Review when fixtures, scoring, rule wording or comparison scope change; replace superseded summaries and remove obsolete links.
 
-[Main README](../README.md) → Studies
+[Documentation guide](README.md) → Comparisons
 
 A small maintenance edit can leave a design problem elsewhere in a type or function. These studies compare whether review identifies that problem, whether feedback reaches the agent and whether the agent makes a correct repair.
 
-## Start with an example
+## Abide
+
+Start with [Hapsland and Abide](abide-comparison.md) for review inputs, access and
+storage boundaries, and observations of joint operation. The studies below
+compare review and repair on selected synthetic inputs; they do not provide a
+general product ranking. Abide is the only solution with a measured comparison
+in this index.
+
+### Start with an example
 
 - [Email needs recipients](./examples/large-declarations/report-delivery/README.md): a type permits combinations the delivery mode should forbid.
 - [One source for an attachment count](./examples/large-declarations/attachment-manifest/README.md): a stored count can disagree with its list.
@@ -19,7 +27,7 @@ A small maintenance edit can leave a design problem elsewhere in a type or funct
 
 Each scenario page shows the problem, actual input code, final agent code and the specific correctness checks. All six scenarios, including the [compact render-pool counterexample](./examples/large-declarations/render-pool/README.md), are below.
 
-## What the current numbers mean
+### What the current numbers mean
 
 The larger-declaration study contains **six scenarios: four types and two functions, covering five of the nine Hapsland rules evaluated at execution time**. Each scenario has one compact defective input and one larger separated defective input in the native comparison.
 
@@ -35,7 +43,7 @@ All twelve defective Hapsland sessions had a positive Jev answer and confirmed f
 
 These are selected synthetic examples. Differences also appeared on compact inputs; the collection does not establish that size caused the gap or that either product is generally superior. See the [complete results](./abide-large-declaration-study.md#results) for all outcomes and limits.
 
-## Choose a scenario
+### Choose a scenario
 
 | Scenario | Code | Problem and rule | Read the example |
 | --- | --- | --- | --- |
@@ -52,7 +60,7 @@ A **rule** defines the concern to check. A **scenario** gives that concern a con
 
 Each scenario has three layouts, each with a defective input and an authored valid control: **6 × 3 × 2 = 36 input variants**. Detection tests all three layouts; native work tests compact and larger separated layouts. The valid controls are starting inputs, not copies of an agent’s repair.
 
-## Explore the full studies
+### Explore the full studies
 
 | Study | Coverage | What to inspect |
 | --- | --- | --- |
@@ -60,8 +68,8 @@ Each scenario has three layouts, each with a defective input and an authored val
 | [Compact examples across all nine rules](./abide-contextual-review-study.md) | A separate duplicate-fact matrix and a matrix for the eight other rules | Additional examples, per-rule results, false warnings and final source |
 | [Hapsland and Abide](./abide-comparison.md) | Review inputs, file access and data retention | Architecture, joint operation and links to measured review quality |
 
-Setup provisions [seven defaults](./configuration.md#default-rules). These studies evaluated nine recorded rule definitions. The studies use different inputs and repetitions; their repair counts are not pooled into a single rating.
+Setup provisions [seven defaults](./rules.md#default-rules). These studies evaluated nine recorded rule definitions. The studies use different inputs and repetitions; their repair counts are not pooled into a single rating.
 
-## Inspect the evidence
+### Inspect the evidence
 
 For most readers, start with a scenario page: it links directly to that scenario’s final source, anonymous scores and compiler or behavior probes. For the complete matrix, see the [current comparison and source-batch map](../evidence/abide-large-declarations-current/effective-comparison.json) and the [methodology](./abide-large-declaration-study.md#methodology). The full report explains the declared moderation rerun and distinguishes executed sessions from the current comparison.

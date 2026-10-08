@@ -131,6 +131,8 @@ export async function auditReleaseTarball(
       "docs/installed-release-compatibility.md",
       "docs/status.md",
       "docs/configuration.md",
+      "docs/rules.md",
+      "docs/write-first-rule.md",
       "docs/review-providers.md",
       "docs/installation-workflows.md",
       "docs/npm-publishing.md"
