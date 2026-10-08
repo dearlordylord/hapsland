@@ -104,7 +104,7 @@ function runCase(
     const late = captured.find((frame) => frame.event.kind === "preparationCompleted")
     expect(late?.event).toMatchObject(preparation.owner)
     expect(late?.rejection).toBe("StaleOperation")
-    expect(late?.commands).toEqual([])
+    expect(late?.outputs).toEqual([])
     expect(run.projection.dispatch.running).toEqual([])
     if (kind === "latePreparationRetainedOne") expect(run.observe().callbackTargets).not.toContainEqual(preparation)
     else expect(run.observe().callbackTargets).toContainEqual(preparation)
@@ -151,7 +151,7 @@ function runCase(
       run.observations
         .filter((frame) => frame.event.kind === "jevRequestSettled")
         .at(-1)
-        ?.commands.map((command) => command.kind)
+        ?.outputs.map((command) => command.kind)
     ).toEqual(["jevObservationIgnored"])
     const released = run.projection
     control(end, "duplicate")
@@ -189,6 +189,19 @@ const nativePrograms = [
   ["latePreparationRetainedOne", "late-preparation-retained-one"]
 ] as const
 
+function compareOriginalCallbacks(value: unknown, expected: readonly ReturnType<typeof runCase>[]) {
+  expect(expected).toHaveLength(nativePrograms.length)
+  const actual = decodeCallbackNativeBoundary(decodeCallbackNativePrefix(value))
+  expect(actual).toHaveLength(nativePrograms.length)
+  for (const [index, [kind]] of nativePrograms.entries()) expect(actual[index], kind).toEqual(expected[index])
+}
+
+it("compares all six original callback emitted/public/replay boundaries", () => {
+  const expected = nativePrograms.map(([kind]) => runCase(kind))
+  const fixture = new URL("../../monkey-business-bend/conformance/callback-original-scenarios.bend", import.meta.url)
+  compareOriginalCallbacks(runWorkloadEmitted(fixture, { emissionTimeoutMs: 30000 }), expected)
+}, 45000)
+
 // Aggregate allowance: C60s + clang90s + native15s + JS30s + run5s,
 // plus15s cleanup. All original cases remain; runner defaults are unchanged.
 it("compares all six original callback cases at the full immutable native/emitted/public/replay boundary", () => {
@@ -206,9 +219,8 @@ it("compares all six original callback cases at the full immutable native/emitte
   const nativeDTO = decodeCallbackNativePrefix(native),
     emittedDTO = decodeCallbackNativePrefix(emitted)
   expect(nativeDTO).toEqual(emittedDTO)
-  expect(expected).toHaveLength(6)
-  expect(decodeCallbackNativeBoundary(nativeDTO)).toEqual(expected)
-  expect(decodeCallbackNativeBoundary(emittedDTO)).toEqual(expected)
+  compareOriginalCallbacks(native, expected)
+  compareOriginalCallbacks(emitted, expected)
 }, 215000)
 
 it("consumes a rejected late preparation receipt while releasing its original physical parent", () => {
@@ -238,7 +250,7 @@ it("consumes a rejected late preparation receipt while releasing its original ph
     if (result?.event.kind === "preparationCompleted") {
       expect(result.event).toMatchObject(target.owner)
       expect(result.rejection).toBe("StaleOperation")
-      expect(result.commands).toEqual([])
+      expect(result.outputs).toEqual([])
       rejected = true
     }
     if (run.projection.dispatch.running.length === 0) break

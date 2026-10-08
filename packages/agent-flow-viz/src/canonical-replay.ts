@@ -10,7 +10,7 @@ import {
   initialCanonical,
   projectCanonical,
   stepCanonical,
-  type CanonicalCommand,
+  type CanonicalOutput,
   type CanonicalEvent,
   type CanonicalProjection
 } from "@hapsland/canonical-policy/canonical/adapter"
@@ -20,7 +20,7 @@ export type ReplayEvent = Readonly<{ event: CanonicalEvent | PreparationEvent; o
 export type ReplayStep = Readonly<{
   event: CanonicalEvent | PreparationEvent
   origin: ReplayEvent["origin"]
-  commands: readonly CanonicalCommand[]
+  outputs: readonly CanonicalOutput[]
   before: CanonicalProjection
   after: CanonicalProjection
   rejection?: string
@@ -253,7 +253,7 @@ const stepReplayEntry = (
     )
       throw new Error("graph facts require an active enclosing preparation operation")
     const frame = preparation.step(event)
-    return { state, step: { event, origin: entry.origin, commands: [], before, after: before, preparation: frame } }
+    return { state, step: { event, origin: entry.origin, outputs: [], before, after: before, preparation: frame } }
   }
   const result = stepCanonical(state, entry.event)
   return {
@@ -261,7 +261,7 @@ const stepReplayEntry = (
     step: {
       event: entry.event,
       origin: entry.origin,
-      commands: result.commands,
+      outputs: result.outputs,
       before,
       after: projectCanonical(result.state),
       ...(result.rejection === undefined ? {} : { rejection: result.rejection })

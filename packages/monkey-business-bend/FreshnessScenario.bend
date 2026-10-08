@@ -21,7 +21,10 @@ def initial() -> State:
 def same(left: Scope, right: Scope) -> Bool:
   match left right:
     case Scope{p, l, r, op} Scope{other_p, other_l, other_r, other_op}:
-      Nat.is_eq(p, other_p) && Nat.is_eq(l, other_l) && Nat.is_eq(r, other_r) && Nat.is_eq(op, other_op)
+      Nat.is_eq(p, other_p) && Nat.is_eq(l, other_l) && Nat.is_eq(r, other_r) && Nat.is_eq(
+        op,
+        other_op
+      )
 
 def found(equal: Bool, binding: Binding, rest: Maybe<&2, Binding>) -> Maybe<&2, Binding>:
   match equal:
@@ -51,17 +54,30 @@ def retain(state: State, +scope: Scope, source: Source, generation: Nat) -> Stat
 
 def registration_member(source: Source, add_member: Bool) -> Driver.Action:
   match source:
-    case Source{subject, input}: Driver.immediate(Canonical.RevisionRegister{subject, input, add_member}, False{})
+    case Source{subject, input}: Driver.immediate(
+      Canonical.RevisionRegister{subject, input, add_member},
+      False{}
+    )
 
 def registration(source: Source) -> Driver.Action:
-  registration_member(source,False{})
+  registration_member(source, False{})
 
 # Call only with the command emitted by this actual registration transition;
 # rejected admission must never publish registration or change these captures.
-def registered(state: State, scope: Scope, source: Source, command: Canonical.Command) -> State:
+def registered(state: State, scope: Scope, source: Source, command: Canonical.Output) -> State:
   match command:
-    case Canonical.RevisionReused{generation}: retain(state, scope, source, generation)
-    case Canonical.RevisionReplaced{generation}: retain(state, scope, source, generation)
+    case Canonical.EventEstablished{Canonical.RevisionReused{generation}}: retain(
+      state,
+      scope,
+      source,
+      generation
+    )
+    case Canonical.EventEstablished{Canonical.RevisionReplaced{generation}}: retain(
+      state,
+      scope,
+      source,
+      generation
+    )
     case _: state
 
 def inherit(state: State, child: Scope, parent: Maybe<&2, Binding>) -> State:
@@ -71,9 +87,11 @@ def inherit(state: State, child: Scope, parent: Maybe<&2, Binding>) -> State:
 
 # Unit facts inherit the admitted parent's captured generation, even if another
 # edit replaced the subject while preparation was still physically in flight.
-def unit(+state: State, +parent: Scope, command: Canonical.Command) -> State:
+def unit(+state: State, +parent: Scope, command: Canonical.Output) -> State:
   match state parent command:
-    case State{+bindings} Scope{+p, +l, +r, +operation} Canonical.UnitAdmitted{child, _, _, _, _}:
+    case State{+bindings} Scope{+p, +l, +r, +operation} Canonical.EventEstablished{
+      Canonical.UnitAdmitted{child, _, _, _, _}
+    }:
       inherit(state, Scope{p, l, r, child}, lookup(bindings, Scope{p, l, r, operation}))
     case _ _ _: state
 
@@ -106,76 +124,157 @@ def retired(state: State, scope: Scope) -> State:
 
 # Physical requests survive logical retirement; their original revision capture
 # must remain until the actual request terminates, including cancellation.
-def requests_owned(requests: List<&2,Dispatch.Request>, +scope: Scope) -> Bool:
+def requests_owned(requests: List<&2, Dispatch.Request>, +scope: Scope) -> Bool:
   match requests scope:
     case Nil{} _: False{}
-    case Dispatch.Request{p,l,r,o,_,_,_} <> tail Scope{+partition,+lifetime,+round,+operation}:
-      same(Scope{p,l,r,o},Scope{partition,lifetime,round,operation}) || requests_owned(tail,Scope{partition,lifetime,round,operation})
+    case Dispatch.Request{p, l, r, o, _, _, _} <> tail Scope{
+      +partition,
+      +lifetime,
+      +round,
+      +operation
+    }:
+      same(Scope{p, l, r, o}, Scope{partition, lifetime, round, operation}) || requests_owned(
+        tail,
+        Scope{partition, lifetime, round, operation}
+      )
 
-def work_owned(found: Maybe<&2,Canonical.Work>) -> Bool:
+def work_owned(found: Maybe<&2, Canonical.Work>) -> Bool:
   match found:
     case Some{_}: True{}
     case None{}: False{}
 
 def live(canonical: Canonical.State, scope: Scope) -> Bool:
   match canonical scope:
-    case Canonical.State{_,_,+work,_,_,_,Dispatch.State{_,_,_,_,+requests},_,_} Scope{+p,+l,+r,+o}:
-      work_owned(Canonical.find_work(p,l,r,o,work)) || requests_owned(requests,Scope{p,l,r,o})
+    case Canonical.State{_, _, +work, _, _, _, Dispatch.State{_, _, _, _, +requests}, _, _} Scope{
+      +p,
+      +l,
+      +r,
+      +o
+    }:
+      work_owned(Canonical.find_work(p, l, r, o, work)) || requests_owned(
+        requests,
+        Scope{p, l, r, o}
+      )
 
-def retained_bindings(bindings: List<&2,Binding>, +canonical: Canonical.State) -> List<&2,Binding>:
+def retained_bindings(
+  bindings: List<&2, Binding>,
+  +canonical: Canonical.State
+) -> List<&2, Binding>:
   match bindings:
     case Nil{}: []
-    case Binding{+scope,+source,+generation} <> tail:
-      kept(Bool.not(live(canonical,scope)),Binding{scope,source,generation},retained_bindings(tail,canonical))
+    case Binding{+scope, +source, +generation} <> tail:
+      kept(
+        Bool.not(live(canonical, scope)),
+        Binding{scope, source, generation},
+        retained_bindings(tail, canonical)
+      )
 
 def retained(state: State, canonical: Canonical.State) -> State:
   match state:
-    case State{bindings}: State{retained_bindings(bindings,canonical)}
+    case State{bindings}: State{retained_bindings(bindings, canonical)}
 
-def bindings(state: State) -> List<&2,Binding>:
+def bindings(state: State) -> List<&2, Binding>:
   match state:
     case State{bindings}: bindings
 
-def registered_bindings(bindings: List<&2,Binding>, +source: Source, +generation: Nat) -> List<&2,Binding>:
+def registered_bindings(
+  bindings: List<&2, Binding>,
+  +source: Source,
+  +generation: Nat
+) -> List<&2, Binding>:
   match bindings source:
     case Nil{} _: []
-    case Binding{scope,Source{+subject,+input},+old} <> tail Source{+s,+i}:
-      Binding{scope,Source{subject,input},Bool.pick(Nat,Nat.is_eq(old,0n) && Nat.is_eq(subject,s) && Nat.is_eq(input,i),generation,old)} <> registered_bindings(tail,Source{s,i},generation)
+    case Binding{scope, Source{+subject, +input}, +old} <> tail Source{+s, +i}:
+      Binding{
+        scope,
+        Source{subject, input},
+        Bool.pick(
+          Nat,
+          Nat.is_eq(old, 0n) && Nat.is_eq(subject, s) && Nat.is_eq(input, i),
+          generation,
+          old
+        )
+      } <> registered_bindings(tail, Source{s, i}, generation)
 
-def registration_feedback(state: State, source: Source, command: Canonical.Command) -> State:
+def registration_feedback(state: State, source: Source, command: Canonical.Output) -> State:
   match state command:
-    case State{bindings} Canonical.RevisionReused{generation}: State{registered_bindings(bindings,source,generation)}
-    case State{bindings} Canonical.RevisionReplaced{generation}: State{registered_bindings(bindings,source,generation)}
+    case State{bindings} Canonical.EventEstablished{Canonical.RevisionReused{generation}}: State{
+      registered_bindings(bindings, source, generation)
+    }
+    case State{bindings} Canonical.EventEstablished{Canonical.RevisionReplaced{generation}}: State{
+      registered_bindings(bindings, source, generation)
+    }
     case _ _: state
 
-def preparation_feedback(+state: State, +p: Nat, +l: Nat, +r: Nat, parent: Nat, child: Nat) -> State:
+def preparation_feedback(
+  +state: State,
+  +p: Nat,
+  +l: Nat,
+  +r: Nat,
+  parent: Nat,
+  child: Nat
+) -> State:
   match state:
-    case State{+bindings}: inherit(state,Scope{p,l,r,child},lookup(bindings,Scope{p,l,r,parent}))
+    case State{+bindings}: inherit(
+      state,
+      Scope{p, l, r, child},
+      lookup(bindings, Scope{p, l, r, parent})
+    )
 
-def command_feedback(+state: State, event: Canonical.CanonicalEvent, command: Canonical.Command) -> State:
+def command_feedback(
+  +state: State,
+  event: Canonical.CanonicalEvent,
+  command: Canonical.Output
+) -> State:
   match event command:
-    case Canonical.RevisionRegister{subject,input,_} _: registration_feedback(state,Source{subject,input},command)
-    case Canonical.BeginObservedPreparation{p,l,r,parent,_} Canonical.Prepare{child,_}:
-      preparation_feedback(state,p,l,r,parent,child)
-    case Canonical.PreparationCompleted{p,l,r,parent,_} _: unit(state,Scope{p,l,r,parent},command)
+    case Canonical.RevisionRegister{subject, input, _} _: registration_feedback(
+      state,
+      Source{subject, input},
+      command
+    )
+    case Canonical.BeginObservedPreparation{p, l, r, parent, _} Canonical.ActionRequested{
+      Canonical.Prepare{child, _}
+    }:
+      preparation_feedback(state, p, l, r, parent, child)
+    case Canonical.PreparationCompleted{p, l, r, parent, _} _: unit(
+      state,
+      Scope{p, l, r, parent},
+      command
+    )
     case _ _: state
 
-def feedback(commands: List<&2,Canonical.Command>, state: State, +event: Canonical.CanonicalEvent) -> State:
-  match commands:
+def feedback(
+  outputs: List<&2, Canonical.Output>,
+  state: State,
+  +event: Canonical.CanonicalEvent
+) -> State:
+  match outputs:
     case Nil{}: state
-    case command <> tail: feedback(tail,command_feedback(state,event,command),event)
+    case command <> tail: feedback(tail, command_feedback(state, event, command), event)
 
-def referenced(scopes: List<&2,Scope>, +scope: Scope) -> Bool:
+def referenced(scopes: List<&2, Scope>, +scope: Scope) -> Bool:
   match scopes:
     case Nil{}: False{}
-    case head <> tail: same(head,scope) || referenced(tail,scope)
+    case head <> tail: same(head, scope) || referenced(tail, scope)
 
-def retained_reference_bindings(bindings: List<&2,Binding>, +canonical: Canonical.State, +references: List<&2,Scope>) -> List<&2,Binding>:
+def retained_reference_bindings(
+  bindings: List<&2, Binding>,
+  +canonical: Canonical.State,
+  +references: List<&2, Scope>
+) -> List<&2, Binding>:
   match bindings:
     case Nil{}: []
-    case Binding{+scope,+source,+generation} <> tail:
-      kept(Bool.not(live(canonical,scope) || referenced(references,scope)),Binding{scope,source,generation},retained_reference_bindings(tail,canonical,references))
+    case Binding{+scope, +source, +generation} <> tail:
+      kept(
+        Bool.not(live(canonical, scope) || referenced(references, scope)),
+        Binding{scope, source, generation},
+        retained_reference_bindings(tail, canonical, references)
+      )
 
-def retained_references(state: State, canonical: Canonical.State, references: List<&2,Scope>) -> State:
+def retained_references(
+  state: State,
+  canonical: Canonical.State,
+  references: List<&2, Scope>
+) -> State:
   match state:
-    case State{bindings}: State{retained_reference_bindings(bindings,canonical,references)}
+    case State{bindings}: State{retained_reference_bindings(bindings, canonical, references)}

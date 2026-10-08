@@ -31,30 +31,36 @@ const cases: ReadonlyArray<{
   stored: SharingIdentityFacts
   next: SharingIdentityFacts
   id: number
-  command: "reuseCached" | "reuseOwn"
+  command: "reuseCacheHit" | "reuseOwned"
 }> = [
-  { name: "SameNamespaceHit", stored: original, next: { ...original }, id: 11, command: "reuseCached" },
-  { name: "ChangedWorkMiss", stored: original, next: { ...original, workId: "cohort-B" }, id: 22, command: "reuseOwn" },
+  { name: "SameNamespaceHit", stored: original, next: { ...original }, id: 11, command: "reuseCacheHit" },
+  {
+    name: "ChangedWorkMiss",
+    stored: original,
+    next: { ...original, workId: "cohort-B" },
+    id: 22,
+    command: "reuseOwned"
+  },
   {
     name: "AuthenticatedGenerationChangedMiss",
     stored: original,
     next: { ...original, credentialGeneration: 4 },
     id: 33,
-    command: "reuseOwn"
+    command: "reuseOwned"
   },
   {
     name: "ControlledNullSameNamespaceHit",
     stored: controlled,
     next: { ...controlled },
     id: 11,
-    command: "reuseCached"
+    command: "reuseCacheHit"
   },
   {
     name: "ControlledWithConfiguredCredentialMiss",
     stored: controlled,
     next: { ...controlled, credentialGeneration: 3 },
     id: 44,
-    command: "reuseOwn"
+    command: "reuseOwned"
   }
 ]
 // Ids are fixture-local bijective intern labels supplied at the public boundary,
@@ -63,14 +69,14 @@ it.each(cases)(
   "$name observes actual Canonical without changing original payload ownership",
   ({ stored, next, id, command }) => {
     expect(next.preparedIdentity).toBe(stored.preparedIdentity)
-    if (command === "reuseCached") expect(sharingIdentityLabel(next)).toBe(sharingIdentityLabel(stored))
+    if (command === "reuseCacheHit") expect(sharingIdentityLabel(next)).toBe(sharingIdentityLabel(stored))
     else expect(sharingIdentityLabel(next)).not.toBe(sharingIdentityLabel(stored))
     let state = initialCanonical({ globalItems: 512, globalBytes: 1048576, partitionItems: 16, partitionBytes: 65536 })
     const send = (event: CanonicalEvent) => {
       const result = stepCanonical(state, event)
       expect(result.rejection).toBeUndefined()
       state = result.state
-      return result.commands
+      return result.outputs
     }
     send({ kind: "reserveCapacity", partition: 1, bytes: 5, purpose: "storedResult" })
     expect(
@@ -83,14 +89,14 @@ it.each(cases)(
         entryLimit: 8,
         byteLimit: 128 * 1024
       })
-    ).toContainEqual({ kind: "cacheCommitted" })
+    ).toContainEqual({ category: "event", kind: "cacheCommitted" })
     const before = projectCanonical(state)
-    expect(send({ kind: "reuseRoute", id, liveAdvice: false })).toContainEqual({ kind: command })
+    expect(send({ kind: "reuseRoute", id, liveAdvice: false })).toContainEqual({ category: "event", kind: command })
     const after = projectCanonical(state)
     expect(after.reuse.cache).toEqual(before.reuse.cache)
     expect(after.charges).toEqual(before.charges)
     expect(after.global).toEqual({ items: 1, bytes: 5 })
-    expect(after.reuse.claims.map((claim) => claim.id)).toEqual(command === "reuseOwn" ? [id] : [])
+    expect(after.reuse.claims.map((claim) => claim.id)).toEqual(command === "reuseOwned" ? [id] : [])
   }
 )
 it(
@@ -110,7 +116,7 @@ it(
         const result = stepCanonical(state, event)
         expect(result.rejection).toBeUndefined()
         state = result.state
-        return result.commands
+        return result.outputs
       }
       send({ kind: "reserveCapacity", partition: 1, bytes: 5, purpose: "storedResult" })
       send({
@@ -122,11 +128,11 @@ it(
         entryLimit: 8,
         byteLimit: 128 * 1024
       })
-      const commands = send({ kind: "reuseRoute", id, liveAdvice: false }),
+      const outputs = send({ kind: "reuseRoute", id, liveAdvice: false }),
         p = projectCanonical(state)
-      const code = commands.some((c) => c.kind === "reuseCached")
+      const code = outputs.some((c) => c.kind === "reuseCacheHit")
         ? 1
-        : commands.some((c) => c.kind === "reuseOwn")
+        : outputs.some((c) => c.kind === "reuseOwned")
           ? 2
           : 99
       return [
@@ -210,22 +216,20 @@ it.each(cases)("$name applies the actual configured runtime and ordinary replay"
   const originalEntry = run.projection.reuse.cache[0]
   expect(originalEntry).toBeDefined()
   const originalIssued = run.observations.filter((frame) =>
-    frame.commands.some((value) => value.kind === "jevRequestIssued")
+    frame.outputs.some((value) => value.kind === "jevRequestIssued")
   )
   expect(originalIssued).toHaveLength(1)
   run.advance({ untilTime: 20, maxEvents: 1000 })
-  const allIssued = run.observations.filter((frame) =>
-    frame.commands.some((value) => value.kind === "jevRequestIssued")
-  )
-  expect(allIssued).toHaveLength(command === "reuseCached" ? 1 : 2)
-  expect(run.observations.filter((frame) => frame.commands.some((value) => value.kind === "reuseCached"))).toHaveLength(
-    command === "reuseCached" ? 1 : 0
-  )
-  expect(run.projection.reuse.cache).toHaveLength(command === "reuseCached" ? 1 : 2)
+  const allIssued = run.observations.filter((frame) => frame.outputs.some((value) => value.kind === "jevRequestIssued"))
+  expect(allIssued).toHaveLength(command === "reuseCacheHit" ? 1 : 2)
+  expect(
+    run.observations.filter((frame) => frame.outputs.some((value) => value.kind === "reuseCacheHit"))
+  ).toHaveLength(command === "reuseCacheHit" ? 1 : 0)
+  expect(run.projection.reuse.cache).toHaveLength(command === "reuseCacheHit" ? 1 : 2)
   expect(run.projection.reuse.cache.some((entry) => entry.reservation === originalEntry?.reservation)).toBe(true)
   expect(run.projection.global).toEqual({
-    items: command === "reuseCached" ? 1 : 2,
-    bytes: command === "reuseCached" ? 5 : 10
+    items: command === "reuseCacheHit" ? 1 : 2,
+    bytes: command === "reuseCacheHit" ? 5 : 10
   })
   expect(run.projection.work).toEqual([])
   expect(run.projection.dispatch.requests).toEqual([])
@@ -253,9 +257,9 @@ it("keeps captured numeric zero distinct from the controlled null namespace", ()
   })
   run.advance({ untilTime: 20, maxEvents: 1000 })
   expect(
-    run.observations.filter((frame) => frame.commands.some((value) => value.kind === "jevRequestIssued"))
+    run.observations.filter((frame) => frame.outputs.some((value) => value.kind === "jevRequestIssued"))
   ).toHaveLength(2)
-  expect(run.observations.some((frame) => frame.commands.some((value) => value.kind === "reuseCached"))).toBe(false)
+  expect(run.observations.some((frame) => frame.outputs.some((value) => value.kind === "reuseCacheHit"))).toBe(false)
   expect(run.projection.reuse.cache).toHaveLength(2)
   expect(run.projection.global).toEqual({ items: 2, bytes: 10 })
   expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe())

@@ -23,7 +23,7 @@ it(
       const result = stepCanonical(state, event)
       expect(result.rejection).toBeUndefined()
       state = result.state
-      return result.commands
+      return result.outputs
     }
     const row = (payloads: number) => {
       const p = projectCanonical(state)
@@ -49,9 +49,9 @@ it(
     rows.push(row(1))
     add(22, 2, 2, 2)
     rows.push(row(2))
-    expect(send({ kind: "reuseTouch", id: 11 }).some((c) => c.kind === "reuseCached")).toBe(true)
+    expect(send({ kind: "reuseTouch", id: 11 }).some((c) => c.kind === "reuseCacheHit")).toBe(true)
     rows.push(row(2))
-    expect(prepare(33, 2)).toContainEqual({ kind: "cachePrepared", evicted: [22] })
+    expect(prepare(33, 2)).toContainEqual({ category: "event", kind: "cachePrepared", evicted: [22] })
     send({ kind: "releaseCapacity", reservation: 2 })
     rows.push(row(1))
     reserve(1)
@@ -60,13 +60,14 @@ it(
     add(44, 2, 4, 3)
     rows.push(row(3))
     expect(send({ kind: "cacheDiscardPartition", partition: 1 })).toContainEqual({
+      category: "event",
       kind: "cacheDiscarded",
       ids: [11, 33]
     })
     send({ kind: "releaseCapacity", reservation: 1 })
     send({ kind: "releaseCapacity", reservation: 3 })
     rows.push(row(1))
-    expect(send({ kind: "cacheClear" })).toContainEqual({ kind: "cacheDiscarded", ids: [44] })
+    expect(send({ kind: "cacheClear" })).toContainEqual({ category: "event", kind: "cacheDiscarded", ids: [44] })
     send({ kind: "releaseCapacity", reservation: 4 })
     rows.push(row(0))
     state = initialCanonical({ globalItems: 512, globalBytes: 1048576, partitionItems: 16, partitionBytes: 65536 })
@@ -76,7 +77,7 @@ it(
     prepare(22, 1)
     commit(11, 1, 1, 1)
     rows.push(row(1))
-    expect(commit(22, 2, 2, 1)).toContainEqual({ kind: "reuseRefused" })
+    expect(commit(22, 2, 2, 1)).toContainEqual({ category: "decision", kind: "reuseRefused" })
     send({ kind: "releaseCapacity", reservation: 2 })
     rows.push(row(1))
     send({ kind: "cacheClear" })
@@ -86,6 +87,7 @@ it(
     add(11, 1, 1, 1)
     rows.push(row(1))
     expect(send({ kind: "cachePrepare", id: 22, bytes: 21, entryLimit: 1, byteLimit: 20 })).toContainEqual({
+      category: "decision",
       kind: "cacheRejected"
     })
     rows.push(row(1))

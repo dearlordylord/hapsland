@@ -6,7 +6,7 @@ import type { CapacityMetadata } from "../../monkey-business/src/index"
 import { Option } from "effect"
 import { preparationMini, type PreparationSnapshot } from "./preparation-mini"
 import type { HtmlBuilder } from "foldkit/html"
-import type { CanonicalCommand, CanonicalProjection } from "@hapsland/canonical-policy/canonical/adapter"
+import type { CanonicalOutput, CanonicalProjection } from "@hapsland/canonical-policy/canonical/adapter"
 import type { ReplayStep } from "./canonical-replay"
 import {
   findingLineage,
@@ -31,13 +31,13 @@ const unreachable = (value: never): never => {
 }
 const arrowKind = (evidence: readonly FlowEvidence[]): ArrowKind => {
   if (evidence.length === 0) return "possible"
-  let command = false
+  let request = false
   let external = false
   let native = false
   for (const item of evidence) {
     switch (item.source) {
-      case "command":
-        command = true
+      case "request":
+        request = true
         break
       case "external fact":
         external = true
@@ -45,14 +45,16 @@ const arrowKind = (evidence: readonly FlowEvidence[]): ArrowKind => {
       case "native fact":
         native = true
         break
+      case "event":
+      case "decision":
       case "state":
         break
       default:
         unreachable(item.source)
     }
   }
-  if (command && evidence.some((item) => item.source !== "command")) return external ? "mixed external" : "mixed"
-  if (command) return "command"
+  if (request && evidence.some((item) => item.source !== "request")) return external ? "mixed external" : "mixed"
+  if (request) return "request"
   if (external) return "external fact"
   return native ? "native fact" : "state"
 }
@@ -60,12 +62,14 @@ const arrowPaint = (kind: ArrowKind) => {
   switch (kind) {
     case "possible":
       return { color: "#91a4ba", dashed: false, overlay: false, external: false, command: false }
+    case "event":
+    case "decision":
     case "state":
     case "native fact":
       return { color: "#e66035", dashed: false, overlay: false, external: false, command: false }
     case "external fact":
       return { color: "#8a5a00", dashed: false, overlay: false, external: true, command: false }
-    case "command":
+    case "request":
       return { color: "#794aa0", dashed: true, overlay: false, external: false, command: true }
     case "mixed":
       return { color: "#e66035", dashed: false, overlay: true, external: false, command: false }
@@ -75,8 +79,8 @@ const arrowPaint = (kind: ArrowKind) => {
       return unreachable(kind)
   }
 }
-const has = (commands: readonly CanonicalCommand[], ...kinds: CanonicalCommand["kind"][]) =>
-  commands.some((command) => kinds.includes(command.kind))
+const has = (outputs: readonly CanonicalOutput[], ...kinds: CanonicalOutput["kind"][]) =>
+  outputs.some((command) => kinds.includes(command.kind))
 
 const NODE_WIDTH = 224
 const NODE_HEIGHT = 116
@@ -271,7 +275,7 @@ const routeGeometry = (route: Route, offset: number) => {
   }
 }
 
-/** A read-only projection. Every active route is keyed to a checked event or command. */
+/** A read-only projection. Every active route is keyed to a checked event or output. */
 /** Topology annotations, not additional states or observed traffic. */
 export const INFRASTRUCTURE_CONTACTS = [
   {
@@ -324,16 +328,16 @@ export const productionFlowView = <Message>(
     ].includes(selected.group)
   )
     selected = { ...selected, group: undefined }
-  const commands = last?.rejection === undefined ? (last?.commands ?? []) : []
+  const outputs = last?.rejection === undefined ? (last?.outputs ?? []) : []
   const event = last?.rejection === undefined ? last?.event.kind : undefined
-  const consumed = commands.find((command) => command.kind === "permitConsumed")
+  const consumed = outputs.find((command) => command.kind === "permitConsumed")
   const editAccepted =
     event === "consumePermit" && last?.event.kind === "consumePermit" && consumed?.kind === "permitConsumed"
       ? { tool: last.event.tool, token: last.event.token, round: consumed.round }
       : undefined
-  const issuedPermit = commands.find((command) => command.kind === "permitIssued")
-  const startedRound = commands.find((command) => command.kind === "roundStarted")
-  const admittedSource = commands.find((command) => command.kind === "observationAdmitted")
+  const issuedPermit = outputs.find((command) => command.kind === "permitIssued")
+  const startedRound = outputs.find((command) => command.kind === "roundStarted")
+  const admittedSource = outputs.find((command) => command.kind === "observationAdmitted")
   const stopEvent = event === "stopPolled" || event === "stopGroupPolled"
   const requests = projection.dispatch.requests
   const flow = projectFlowStep(
@@ -370,7 +374,7 @@ export const productionFlowView = <Message>(
     (last?.event.kind === "jevRequestSettled" ||
       last?.event.kind === "reviewCompleted" ||
       last?.event.kind === "reviewObserved") &&
-    commands.some((command) => command.kind === "retainFinding")
+    outputs.some((command) => command.kind === "findingRetained")
       ? last.event.operation
       : undefined
   const retainedFindingLabel =
@@ -421,28 +425,28 @@ export const productionFlowView = <Message>(
             return `${newlyInPhase("authorized")} advice records and their Stop output authorized together; no host write is established.`
           if (last?.event.kind === "finishTerminal" && newlyInPhase("submitted") > 1)
             return `${newlyInPhase("submitted")} advice submissions and one Stop result recorded together as acknowledged; agent use of advice is not observed.`
-          if (last?.event.kind === "stopPolled" && has(commands, "finishReady"))
+          if (last?.event.kind === "stopPolled" && has(outputs, "finishReady"))
             return "Stop decision ready; this step does not reserve or send output."
-          if (last?.event.kind === "collectionReserveLease" && has(commands, "collectionLeaseReserved"))
+          if (last?.event.kind === "collectionReserveLease" && has(outputs, "collectionLeaseReserved"))
             return `${recordLabel("advice", last.event.advice, numbers).split("/")[0]} leased for collection${projection.collection.ready.includes(last.event.advice) ? "; still ready" : ""}.`
-          if (last?.event.kind === "finishReserve" && has(commands, "finishReserved"))
+          if (last?.event.kind === "finishReserve" && has(outputs, "finishReserved"))
             return `Stop output slot reserved for ${last.event.selected.length} selected advice groups; output is not yet authorized.`
-          if (last?.event.kind === "submissionBegin" && has(commands, "submissionBegun")) {
+          if (last?.event.kind === "submissionBegin" && has(outputs, "submissionBegun")) {
             const { advice, token, surface } = last.event
             const phase = projection.delivery.submissions.batches.find(
               (batch) => batch.advice === advice && batch.token === token
             )?.phase
             return `${recordLabel("advice", advice, numbers).split("/")[0]} submission ${phase ?? "begun"} for ${surface === "stop" ? "Stop" : surface} output; no host write is established.`
           }
-          if (last?.event.kind === "finishAuthorize" && has(commands, "finishAuthorized"))
+          if (last?.event.kind === "finishAuthorize" && has(outputs, "finishAuthorized"))
             return "Stop output authorized; no host write is established."
-          if (last?.event.kind === "submissionAuthorize" && has(commands, "submissionAuthorized"))
+          if (last?.event.kind === "submissionAuthorize" && has(outputs, "submissionAuthorized"))
             return `${recordLabel("advice", last.event.advice, numbers).split("/")[0]} submission authorized; acknowledgment remains to be checked.`
-          if (last?.event.kind === "deliveryAcknowledgeCheck" && has(commands, "deliveryAckReady"))
+          if (last?.event.kind === "deliveryAcknowledgeCheck" && has(outputs, "deliveryAckReady"))
             return `Acknowledgment gate passed for ${last.event.items} items; no host write is observed by this step.`
-          if (last?.event.kind === "submissionTerminal" && has(commands, "submissionRecorded"))
+          if (last?.event.kind === "submissionTerminal" && has(outputs, "submissionRecorded"))
             return `${recordLabel("advice", last.event.advice, numbers).split("/")[0]} submission recorded as ${last.event.certain ? "certain" : "uncertain"}.`
-          if (last?.event.kind === "finishTerminal" && commands.some((command) => command.kind === "finishRecorded"))
+          if (last?.event.kind === "finishTerminal" && outputs.some((command) => command.kind === "finishRecorded"))
             return `Stop result recorded as ${last.event.outcome}; agent use of advice is not observed.`
           return undefined
         })()
@@ -489,17 +493,17 @@ export const productionFlowView = <Message>(
     return index
   })
   const finishBranches = [
-    { label: "Wait for work", active: has(commands, "waitForWork", "collectionWaiting") },
-    { label: "Decision ready", active: has(commands, "finishReady", "reofferAtStop") },
-    { label: "Advice output authorized", active: has(commands, "finishAuthorized") },
-    { label: "Continuation consumed", active: has(commands, "continuationConsumed") },
+    { label: "Wait for work", active: has(outputs, "waitForWork", "collectionWaiting") },
+    { label: "Decision ready", active: has(outputs, "finishReady", "reofferAtStop") },
+    { label: "Advice output authorized", active: has(outputs, "finishAuthorized") },
+    { label: "Continuation consumed", active: has(outputs, "continuationConsumed") },
     {
       label: "Allow finish",
-      active: has(commands, "finishAllowedNoAdvice", "finishAllowedDeadline", "finishAllowedUnavailable")
+      active: has(outputs, "finishAllowedNoAdvice", "finishAllowedDeadline", "finishAllowedUnavailable")
     },
     {
       label: "Cancel unfinished work",
-      active: stopEvent && has(commands, "cancelWork", "discardAllUnfinished", "discardNamedOnly")
+      active: stopEvent && has(outputs, "cancelWork", "discardAllUnfinished", "discardNamedOnly")
     }
   ]
   return h.div(
@@ -510,7 +514,7 @@ export const productionFlowView = <Message>(
             h.p(
               [h.Class("flow-legend")],
               [
-                "Blue: state or decision · Gray: external work · Gold: Jev result · Orange: transition · Orange dotted: linked work and job with the same ID · Purple dashed: command"
+                "Blue: state or decision · Gray: external work · Gold: Jev result · Orange: transition · Orange dotted: linked work and job with the same ID · Purple dashed: action request"
               ]
             )
           ]
@@ -1262,7 +1266,7 @@ export const productionFlowView = <Message>(
                         ? `${last.event.kind} rejected: ${last.rejection}. Bend state and item locations did not change.`
                         : last.preparation
                           ? `ImportGraph: ${last.preparation.event.fact.kind} → ${last.preparation.command.kind} · ${recordLabel("preparation", last.preparation.event.operation, numbers)}`
-                          : `${last.event.kind} accepted · ${commands.length} command(s): ${commands.map((command) => command.kind).join(", ") || "none"}`
+                          : `${last.event.kind} accepted · ${outputs.length} output(s): ${outputs.map((command) => command.kind).join(", ") || "none"}`
                   ]
                 ),
                 ...(showcase && last?.origin === "guided" && last.event.kind === "issuePermit"
@@ -1280,7 +1284,7 @@ export const productionFlowView = <Message>(
                       h.p(
                         [h.Class("flow-provenance")],
                         [
-                          commands.some((command) => command.kind === "roundStarted")
+                          outputs.some((command) => command.kind === "roundStarted")
                             ? "Why this round opened: the first accepted attributed edit consumed its permit. Bend opened virtual round #1 in that same transition."
                             : "This accepted attributed edit consumed its permit and joined the already open virtual round."
                         ]
@@ -1317,8 +1321,8 @@ export const productionFlowView = <Message>(
                               ? `State changed in ${flow.changedStages.map((stage) => SQUARES[stage].title).join(", ")}; no item crossed a displayed connection.`
                               : flow.projectionChanged
                                 ? "Checked reducer state changed outside the displayed square details; no displayed movement is established."
-                                : commands.length
-                                  ? `Decision emitted ${commands.map((command) => command.kind).join(", ")}; no displayed item movement is established.`
+                                : outputs.length
+                                  ? `Decision emitted ${outputs.map((command) => command.kind).join(", ")}; no displayed item movement is established.`
                                   : "Accepted event; no displayed item movement or square change is established."
                   ]
                 ),
@@ -1336,7 +1340,7 @@ export const productionFlowView = <Message>(
                   [],
                   [
                     `Branches at this step: ${
-                      commands
+                      outputs
                         .filter((command) =>
                           /Refused|Unavailable|Interrupted|Ignored|Stale|Cancel|Clear|Finding|Waiting|Allowed|Expired|Lease|Reoffer|Unknown|Recorded|Terminal/.test(
                             command.kind

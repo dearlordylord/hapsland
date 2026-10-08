@@ -52,7 +52,7 @@ describe("preparation within the operation timeline", () => {
       if (frame.event.kind !== "preparationGraph") continue
       const operation = frame.event.operation
       expect(frame.after.work.some((work) => work.kind === "preparing" && work.operation === operation)).toBe(true)
-      expect(frame.commands).toEqual([])
+      expect(frame.outputs).toEqual([])
     }
     expect(inner.map((frame) => frame.preparation?.command.kind)).toEqual([
       "none",
@@ -71,7 +71,7 @@ describe("preparation within the operation timeline", () => {
     const completion = run.observations.find((frame) => frame.event.kind === "preparationCompleted")
     expect(completion?.sequence).toBeGreaterThan(inner.at(-1)!.sequence)
     expect(
-      completion?.commands.filter((command) => command.kind === "unitAdmitted").map((command) => command.bytes)
+      completion?.outputs.filter((command) => command.kind === "unitAdmitted").map((command) => command.bytes)
     ).toEqual([5, 7])
   })
 

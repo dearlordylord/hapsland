@@ -1,6 +1,6 @@
 # Mechanical source generator; does not run Bend or validate business policy.
 from pathlib import Path
-import re,json,hashlib,sys,os,argparse,subprocess,tempfile,importlib.util
+import re,json,hashlib,sys,os,argparse,subprocess,tempfile
 root=Path(__file__).resolve().parents[3]
 parser=argparse.ArgumentParser(description='Generate the ONE lossless owner prefix transport')
 parser.add_argument('--check',action='store_true')
@@ -157,21 +157,42 @@ for name in order:
  item=needed[name]
  if item[0]=='List':
   _,inner=item;metadata[name]={'kind':'list','element':inner,'representation':'bend'}
-  # For commands, fold reversed input into the suffix: E(c1,E(c2,s))
-  # equals this tail-recursive accumulator. Transport proposal, not a proof.
-  items = (name+'_items([tail],'+encode(inner,'head','suffix')+')' if name=='list_canonical_command'
+  # Fold wide output/physical-delivery elements head-first into a suffix.
+  # Reversing preserves E(first,E(second,suffix)) without holding an expanded
+  # element across the recursive tail. Transport proposal, not a proof.
+  reversed_fold = name in {'list_canonical_output','list_nativeruntypes_physicaldelivery'}
+  items = (name+'_items([tail],'+encode(inner,'head','suffix')+')' if reversed_fold
     else encode(inner,'head',name+'_items([tail],suffix)'))
-  source = ('List.reverse(&2,Canonical.Command,value)' if name=='list_canonical_command' else 'value')
+  source = ('List.reverse(&2,'+typename(inner)+',value)' if reversed_fold else 'value')
   lines += [f'def {name}_items(values: List<&2,{typename(name)}>, suffix: List<&2,Nat>) -> List<&2,Nat>:','  match values:','    case Nil{} <> Nil{}: suffix','    case Con{head,tail} <> Nil{}: '+items, '    case _: 999999n <> suffix','',f'def {name}(values: List<&2,{typename(name)}>, suffix: List<&2,Nat>) -> List<&2,Nat>:','  match values:', f'    case +value <> Nil{{}}: List.length(&2,{typename(inner)},value) <> {name}_items([{source}],suffix)', '    case _: 999999n <> suffix','']
  elif item[0]=='Maybe':
   _,inner=item;metadata[name]={'kind':'maybe','element':inner,'representation':'bend'}
   lines += [f'def {name}(values: List<&2,{typename(name)}>, suffix: List<&2,Nat>) -> List<&2,Nat>:','  match values:','    case None{} <> Nil{}: 0n <> suffix','    case Some{value} <> Nil{}: 1n <> '+encode(inner,'value','suffix'), '    case _: 999999n <> suffix','']
  else:
   path,t,cases=item;metadata[name]={'kind':'adt','constructors':[{'tag':aliases[path]+'.'+ctor,'fields':fs} for ctor,fs in cases]}
+  # FrameDetails and PhysicalDelivery contain complete runtime snapshots. Their nested suffix
+  # expression otherwise captures both expanded snapshots across field calls,
+  # exceeding the native continuation ABI. Box fields before traversing them;
+  # these private helpers introduce no prefix words or owner schema changes.
+  boxed_fields = name in {'nativeruntypes_framedetails','nativeruntypes_physicaldelivery'}
+  if boxed_fields:
+   for ordinal,(ctor,fields) in enumerate(cases):
+    vs=['v'+str(i) for i in range(len(fields))]
+    parameters=[];expr='suffix'
+    for v,(_,fn) in zip(vs,fields):
+     parameters.append(v+': '+(typename(fn) if fn in {'nat','bool','u32','string'} else 'List<&2,'+typename(fn)+'>'))
+    for v,(_,fn) in reversed(list(zip(vs,fields))):
+     expr=encode(fn,v,expr) if fn in {'nat','bool','u32','string'} else fn+'('+v+','+expr+')'
+    lines += [f'def {name}_fields_{ordinal}('+', '.join(parameters+['suffix: List<&2,Nat>'])+') -> List<&2,Nat>:',
+      '  '+expr,'']
   lines += [f'def {name}(values: List<&2,{typename(name)}>, suffix: List<&2,Nat>) -> List<&2,Nat>:','  match values:']
   for ordinal,(ctor,fields) in enumerate(cases):
    vs=['v'+str(i) for i in range(len(fields))];expr='suffix'
-   for v,(_,fn) in reversed(list(zip(vs,fields))):expr=encode(fn,v,expr)
+   if boxed_fields:
+    field_arguments=[v if fn in {'nat','bool','u32','string'} else '['+v+']' for v,(_,fn) in zip(vs,fields)]
+    expr=name+'_fields_'+str(ordinal)+'('+','.join(field_arguments+['suffix'])+')'
+   else:
+    for v,(_,fn) in reversed(list(zip(vs,fields))):expr=encode(fn,v,expr)
    lines += ['    case '+aliases[path]+'.'+ctor+'{'+','.join(vs)+'} <> Nil{}: '+str(ordinal)+'n <> '+expr]
   lines+=['    case _: 999999n <> suffix','']
 # Existing envelope calls use the same generated typed encoders. Box their
@@ -211,7 +232,7 @@ if profile is None:
   'wire_scenario':record([['frames','wire_frames'],['endpoint','wire_endpoint']]),
   'wire_scenarios':{'kind':'list','element':'wire_scenario','representation':'plain'},
   'wire_frame':{'kind':'variant','constructors':[
-  {'kind':'canonical','fields':[['time','nat'],['before','canonical_state'],['after','canonical_state'],['event','canonical_canonicalevent'],['result','canonical_step'],['commandScopes','wire_scopes'],['receipt','wire_receipt']]},
+  {'kind':'canonical','fields':[['time','nat'],['before','canonical_state'],['after','canonical_state'],['event','canonical_canonicalevent'],['result','canonical_step'],['outputScopes','wire_scopes'],['receipt','wire_receipt']]},
   {'kind':'graph','fields':[['time','nat'],['before','canonical_state'],['after','canonical_state'],['key','types_graphkey'],['position','nat'],['event','importgraph_graphevent'],['graph','wire_graph']]},
   {'kind':'callback','fields':[['time','nat'],['before','canonical_state'],['after','canonical_state'],['target','callbacks_target'],['action','callbacks_control'],['result','callbacks_applicability']]},
   {'kind':'lifecycle','fields':[['before','canonical_state'],['after','canonical_state'],['partition','nat'],['action','adviceelifecycle_action']]},
@@ -225,25 +246,21 @@ if profile is None:
  metadata_text = subprocess.run([str(root/'node_modules/.bin/dprint'),'fmt','--stdin','ts'],
   input=metadata_text,text=True,capture_output=True,cwd=root,timeout=5,check=True).stdout
 native_text = '\n'.join(lines)
-if profile is not None:
- # Optional codecs share the repository's pinned formatter with the commit gate.
- sys.dont_write_bytecode=True
- spec=importlib.util.spec_from_file_location('bend_format',root/'scripts/bend-format.py')
- formatter=importlib.util.module_from_spec(spec);spec.loader.exec_module(formatter)
- jar=os.environ.get('BEND_FORMAT_JAR')
- command=([os.environ.get('BEND_FORMAT_JAVA','java'),'-jar',jar]
-  if jar else [os.environ.get('BEND_FORMAT_BIN','bend-format')])
- version=subprocess.run(command+['--version'],text=True,capture_output=True,timeout=10,check=True)
- if version.stdout.strip()!=formatter.VERSION:
-  raise SystemExit('Optional codec generation requires '+formatter.VERSION)
- with tempfile.NamedTemporaryFile(mode='w',suffix='.bend',dir=out.parent,delete=False) as staged:
-  staged.write(native_text);temporary=Path(staged.name)
- try:
-  subprocess.run(command+['fix',str(temporary)],capture_output=True,text=True,timeout=60,check=True)
-  native_text=temporary.read_text()
- finally:
-  temporary.unlink()
-
+formatter_jar = os.environ.get('BEND_FORMAT_JAR')
+formatter = ([os.environ.get('BEND_FORMAT_JAVA','java'),'-jar',formatter_jar]
+             if formatter_jar else [os.environ.get('BEND_FORMAT_BIN','bend-format')])
+version = subprocess.run(formatter+['--version'],capture_output=True,text=True,timeout=10,check=True)
+if version.stdout.strip() != 'bend-format 0.1.19':
+ raise SystemExit('Generated Bend transport requires bend-format 0.1.19')
+# Keep the temporary source beside its output so EditorConfig resolves identically.
+with tempfile.NamedTemporaryFile(mode='w',suffix='.bend',dir=out.parent,delete=False) as staged:
+ staged.write(native_text)
+ staged_path=Path(staged.name)
+try:
+ subprocess.run(formatter+['fix','--',str(staged_path)],capture_output=True,text=True,timeout=60,check=True)
+ native_text=staged_path.read_text()
+finally:
+ staged_path.unlink(missing_ok=True)
 if arguments.check:
  if out.read_text() != native_text or p.read_text() != metadata_text:
   raise SystemExit('callback numeric transport differs from actual owner generation')

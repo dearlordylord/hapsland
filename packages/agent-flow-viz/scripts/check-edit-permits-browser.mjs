@@ -91,7 +91,7 @@ try {
   )
   assert.ok(
     ordinary.observations.every(
-      (frame) => frame.event.kind === "issuePermit" && frame.commands.some((command) => command.kind === "permitIssued")
+      (frame) => frame.event.kind === "issuePermit" && frame.outputs.some((command) => command.kind === "permitIssued")
     )
   )
   await load(ordinary)

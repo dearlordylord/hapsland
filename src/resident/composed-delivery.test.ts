@@ -29,7 +29,7 @@ const canonicalFinding = (
   const round = Effect.runSync(state.canonical.roundId(partition))
   const observation = Effect.runSync(
     state.canonical.transition({ kind: "admitObservation", partition: owner, lifetime: 1, round })
-  ).commands[0]
+  ).outputs[0]
   if (observation?.kind !== "observationAdmitted") throw new Error("canonical source admission failed")
   Effect.runSync(
     state.canonical.transition({
@@ -49,9 +49,10 @@ const canonicalFinding = (
       observation: observation.id,
       bytes: 10
     })
-  ).commands[0]
+  ).outputs[0]
   if (preparation?.kind !== "prepare") throw new Error("canonical preparation failed")
-  const admitted = Effect.runSync(
+  expect(preparation.category).toBe("request")
+  const completed = Effect.runSync(
     state.canonical.transition({
       kind: "preparationCompleted",
       partition: owner,
@@ -60,7 +61,12 @@ const canonicalFinding = (
       operation: preparation.operation,
       unitBytes: [5]
     })
-  ).commands.find((command) => command.kind === "unitAdmitted")
+  ).outputs
+  expect(completed.map(({ category, kind }) => ({ category, kind }))).toEqual([
+    { category: "event", kind: "preparationReleased" },
+    { category: "event", kind: "unitAdmitted" }
+  ])
+  const admitted = completed.find((output) => output.kind === "unitAdmitted")
   if (admitted?.kind !== "unitAdmitted") throw new Error("canonical unit admission failed")
   Effect.runSync(
     state.canonical.transition({
@@ -100,7 +106,14 @@ const canonicalFinding = (
       currentWork: true
     })
   )
-  if (reviewed.commands.at(-1)?.kind !== "retainFinding") throw new Error("canonical finding not retained")
+  expect(reviewed.outputs.every((output) => output.category === "event")).toBe(true)
+  // A collection fit decision evaluates a proposed nonempty output batch;
+  // an empty batch is deliberately limited even when its byte count is zero.
+  const fit = Effect.runSync(state.canonical.transition({ kind: "collectionFitCheck", items: 1, bytes: 5 }))
+  expect(fit.outputs.map(({ category, kind }) => ({ category, kind }))).toEqual([
+    { category: "decision", kind: "collectionFits" }
+  ])
+  if (reviewed.outputs.at(-1)?.kind !== "findingRetained") throw new Error("canonical finding not retained")
   return admitted.operation
 }
 
@@ -327,7 +340,7 @@ describe("shared Hapsland rounds", () => {
     const group = Effect.runSync(state.canonical.partitionId("agent"))
     const round = Effect.runSync(state.canonical.roundId("agent"))
     expect(
-      Effect.runSync(state.canonical.transition({ kind: "continuationConsume", group, round })).commands[0]?.kind
+      Effect.runSync(state.canonical.transition({ kind: "continuationConsume", group, round })).outputs[0]?.kind
     ).toBe("continuationConsumed")
     expect(Effect.runSync(state.canonical.canonicalProjection()).delivery.counters).toHaveLength(1)
     expect(Effect.runSync(state.beginStop("agent", "stop"))).toBe(true)
@@ -667,12 +680,12 @@ describe("shared Hapsland rounds", () => {
           token: firstBatch.token,
           certain: true
         })
-      ).commands[0]?.kind
+      ).outputs[0]?.kind
     ).toBe("submissionRefused")
     expect(
       Effect.runSync(
         state.canonical.transition({ kind: "submissionRelease", advice: firstBatch.advice, token: firstBatch.token })
-      ).commands[0]?.kind
+      ).outputs[0]?.kind
     ).toBe("submissionRefused")
     const slot = before.delivery.slots[0]
     if (slot === undefined) throw new Error("expected Stop output slot")
@@ -685,7 +698,7 @@ describe("shared Hapsland rounds", () => {
           attempt: slot.attempt,
           token: slot.token
         })
-      ).commands[0]?.kind
+      ).outputs[0]?.kind
     ).toBe("finishRefused")
     expect(
       Effect.runSync(state.canonical.transition({ kind: "submissionForget", advice: firstBatch.advice })).rejection

@@ -124,7 +124,7 @@ it.each([9, 10, 11])("retains a PRE-captured duration of %i across suspension an
   run.applyControl({ kind: "suspendArrivals", agent: "writer", suspended: true })
   run.advance({ untilTime: 100, maxEvents: 500 })
   const consumed = run.observations.filter((frame) =>
-    frame.commands.some((command) => command.kind === "permitConsumed")
+    frame.outputs.some((command) => command.kind === "permitConsumed")
   )
   expect(consumed.map((frame) => frame.time)).toEqual(duration <= 10 ? [10 + duration] : [])
   expect(run.projection.admissions.flatMap((admission) => admission.permits)).toEqual([])
@@ -139,7 +139,7 @@ it("keeps an issued request's outcome and deadline across a profile control", ()
   const run = createRun({ seed: 7, inputs: inputs.slice(0, 2), jevDelay: 20, outcomeWeights: weights({ clear: 1 }) })
   for (let count = 0; count < 100; count++) {
     const frame = run.step()
-    if (frame?.commands.some((command) => command.kind === "jevRequestIssued")) break
+    if (frame?.outputs.some((command) => command.kind === "jevRequestIssued")) break
   }
   const started = run.observations.flatMap((frame) =>
     frame.effects.flatMap((effect) => (effect.kind === "jev" && effect.phase === "started" ? [effect.due] : []))
@@ -180,7 +180,7 @@ it("orders equal-time advicees identically under stepping and bounded advancemen
   expect(stepped.observations).toEqual(batched.observations)
   expect(
     batched.observations
-      .filter((frame) => frame.commands.some((command) => command.kind === "permitConsumed"))
+      .filter((frame) => frame.outputs.some((command) => command.kind === "permitConsumed"))
       .map((frame) => [frame.time, frame.agent])
   ).toEqual([
     [40, "first"],
@@ -255,13 +255,13 @@ it(
             frame.time,
             event.kind === "issuePermit" ? 31 : event.kind === "consumePermit" ? 32 : 33,
             event.kind === "issuePermit"
-              ? frame.commands.find((command) => command.kind === "permitIssued")?.token
+              ? frame.outputs.find((command) => command.kind === "permitIssued")?.token
               : event.token,
             event.kind === "issuePermit" ? event.deadline : 0,
             frame.after.admissions.flatMap((admission) => admission.permits).length,
             frame.after.rounds.length,
             frame.rejection ? 1 : 0,
-            ...frame.commands.map((command) => codes[command.kind])
+            ...frame.outputs.map((command) => codes[command.kind])
           ]
         ]
       })

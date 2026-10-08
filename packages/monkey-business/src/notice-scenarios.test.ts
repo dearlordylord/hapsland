@@ -67,14 +67,14 @@ it("keeps concurrent failure counts, cooldown and ordinary collection scoped wit
   expect(first.pending?.count).toBe(2)
   expect(run.projection.notices.find((n) => n.partition === 2)?.suppressed).toBe(1)
   run.advance({ untilTime: 19, maxEvents: 100 })
-  const selections = run.observations.flatMap((f) => f.commands.filter((c) => c.kind === "noticeSelected"))
+  const selections = run.observations.flatMap((f) => f.outputs.filter((c) => c.kind === "noticeSelected"))
   expect(selections).toEqual([
-    { kind: "noticeSelected", ids: [101] },
-    { kind: "noticeSelected", ids: [202] },
-    { kind: "noticeSelected", ids: [202] },
-    { kind: "noticeSelected", ids: [] },
-    { kind: "noticeSelected", ids: [] },
-    { kind: "noticeSelected", ids: [202] }
+    { category: "decision", kind: "noticeSelected", ids: [101] },
+    { category: "decision", kind: "noticeSelected", ids: [202] },
+    { category: "decision", kind: "noticeSelected", ids: [202] },
+    { category: "decision", kind: "noticeSelected", ids: [] },
+    { category: "decision", kind: "noticeSelected", ids: [] },
+    { category: "decision", kind: "noticeSelected", ids: [202] }
   ])
   expect(run.projection.notices.find((n) => n.partition === 1)?.pending).toBeUndefined()
   expect(run.projection.notices.find((n) => n.partition === 2)?.pending?.id).toBe(202)
@@ -103,7 +103,7 @@ it(
     const selectedAt = (at: number) => {
       const selected = run.observations
         .find((f) => f.time === at && f.event.kind === "noticeSelect")
-        ?.commands.find((c) => c.kind === "noticeSelected")
+        ?.outputs.find((c) => c.kind === "noticeSelected")
       if (selected?.kind !== "noticeSelected") throw new Error("missing notice selection")
       return [...selected.ids]
     }

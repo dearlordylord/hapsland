@@ -7,7 +7,11 @@ const ignored = new Set(["node_modules", "dist", "coverage", "vendor", "fixtures
 export const isQualityFile = (path) => {
   if (path === ".." || path.startsWith("../") || isAbsolute(path)) return false
   if (!extensions.has(extname(path)) || path.split("/").some((part) => ignored.has(part))) return false
-  if (/\.generated\./u.test(path) || path === "packages/monkey-business-bend/engine.mjs") return false
+  if (
+    /\.generated\./u.test(path) ||
+    ["packages/monkey-business-bend/engine.mjs", "packages/monkey-business-bend/run.mjs"].includes(path)
+  )
+    return false
   return /^(?:src|packages|scripts|test)\//u.test(path) || /^[^/]+\.config\.[^/]+$/u.test(path)
 }
 const gitPaths = (args, cwd) =>

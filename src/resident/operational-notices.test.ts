@@ -333,7 +333,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     const apply = (event: Parameters<typeof stepCanonical>[1]) => {
       const result = stepCanonical(state, event)
       state = result.state
-      return result.commands[0]
+      return result.outputs[0]
     }
     expect(apply({ kind: "reserveCapacity", partition: 1, bytes: 20, purpose: "operationalNotice" })?.kind).toBe(
       "capacityGranted"
@@ -359,12 +359,12 @@ console.log('{"version":1,"status":"interaction-required"}');
       sequence: 2,
       maxCount: 2
     }
-    expect(apply(suppressed)).toEqual({ kind: "noticeSuppressed", count: 1 })
-    expect(apply(suppressed)).toEqual({ kind: "noticeSuppressed", count: 2 })
-    expect(apply(suppressed)).toEqual({ kind: "noticeSuppressed", count: 2 })
-    expect(apply({ ...suppressed, remaining: 0 })).toEqual({ kind: "noticeMergePending", count: 2 })
+    expect(apply(suppressed)).toEqual({ category: "event", kind: "noticeSuppressed", count: 1 })
+    expect(apply(suppressed)).toEqual({ category: "event", kind: "noticeSuppressed", count: 2 })
+    expect(apply(suppressed)).toEqual({ category: "event", kind: "noticeSuppressed", count: 2 })
+    expect(apply({ ...suppressed, remaining: 0 })).toEqual({ category: "event", kind: "noticePendingMerged", count: 2 })
     expect(apply({ kind: "noticeLease", key: 1, leased: true })?.kind).toBe("noticeLeased")
-    expect(apply({ ...suppressed, remaining: 0 })?.kind).toBe("noticeKeepLeased")
+    expect(apply({ ...suppressed, remaining: 0 })?.kind).toBe("noticeLeaseKept")
     expect(projectCanonical(state).notices[0]).toMatchObject({
       suppressed: 0,
       pending: { id: 1, count: 2, leased: true }

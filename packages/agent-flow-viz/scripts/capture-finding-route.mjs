@@ -38,7 +38,7 @@ try {
   }
   assert.match(
     await page.locator(".topology-step").innerText(),
-    /jevRequestSettled accepted.*reviewRecorded.*retainFinding/s
+    /jevRequestSettled accepted.*reviewRecorded.*findingRetained/s
   )
   assert.equal(
     await page.locator(".topology-node").filter({ hasText: "CMD · retain finding for Review item" }).count(),

@@ -217,7 +217,7 @@ export const deliveryOperations = (
       active: isActive(partition),
       capacity: MAX_BACKGROUND_WAITERS
     })
-    if (claimed.rejection !== undefined || claimed.commands[0]?.kind !== "collectionBackgroundClaimed") return false
+    if (claimed.rejection !== undefined || claimed.outputs[0]?.kind !== "collectionBackgroundClaimed") return false
     state.backgroundWaiters.set(partition, { token, id, at: now })
     return true
   }
@@ -230,7 +230,7 @@ export const deliveryOperations = (
       group: canonicalOwner.partitionId(partition),
       token: canonicalOwner.collectionTokenId(token)
     })
-    if (release.rejection !== undefined || release.commands[0]?.kind !== "collectionBackgroundReleased") return
+    if (release.rejection !== undefined || release.outputs[0]?.kind !== "collectionBackgroundReleased") return
     state.backgroundWaiters.delete(partition)
     markBackgroundUncertain(partition)
   }
@@ -284,7 +284,7 @@ export const deliveryOperations = (
   function checkCompleted(key: string): boolean {
     const tool = toolId(key)
     const result = canonicalOwner.transition({ kind: "checkCompletedEdit", tool })
-    const command = result.commands[0]
+    const command = result.outputs[0]
     if (result.rejection !== undefined || command === undefined) throw new Error("invalid Bend completed edit check")
     if (command.kind === "completedEditAbsent") {
       dropTool(key)
@@ -318,7 +318,7 @@ export const deliveryOperations = (
     const tool = state.toolIds.get(editDigest(key))
     if (tool === undefined) throw new Error("missing completed edit identity")
     const result = canonicalOwner.transition({ kind: "rememberCompletedEdit", tool, reason })
-    const command = result.commands[0]
+    const command = result.outputs[0]
     if (result.rejection !== undefined || command?.kind !== "completedEditRemembered")
       throw new Error("invalid Bend completed edit record")
     if (command.evicted !== undefined) forgetToolIdentity(command.evicted)
@@ -368,7 +368,7 @@ export const deliveryOperations = (
 
   type AdmissionProjection = ReturnType<CapacityLedger["canonicalProjection"]>["admissions"][number]
   type PermitTransition = ReturnType<CapacityLedger["transition"]>
-  type PermitCommand = Extract<PermitTransition["commands"][number], { kind: "permitIssued" }>
+  type PermitCommand = Extract<PermitTransition["outputs"][number], { kind: "permitIssued" }>
   type EditDecision = { readonly accepted: true } | { readonly accepted: false; readonly reason: string }
   type EditPermitLimits = { readonly perAdvicee: number; readonly resident: number }
 
@@ -446,7 +446,7 @@ export const deliveryOperations = (
     result: PermitTransition,
     facts: ReturnType<typeof prospectivePermitFacts>
   ): EditDecision {
-    const command = result.commands[0]
+    const command = result.outputs[0]
     if (result.rejection !== undefined || command?.kind !== "permitIssued") {
       discardFailedPermit(partition, key, known)
       return { accepted: false, reason: permitRejectionReason(result.rejection, facts.clockValid) }
@@ -522,7 +522,7 @@ export const deliveryOperations = (
     return admission !== undefined && permit.generation === nextAdmissionRound(admission)
   }
   function validPermitConsumed(result: PermitTransition, permit: EditPermit): boolean {
-    const command = result.commands[0]
+    const command = result.outputs[0]
     return result.rejection === undefined && command?.kind === "permitConsumed" && command.round === permit.generation
   }
   function consumeRegisteredPermit(partition: string, permit: EditPermit, now: number): boolean {
@@ -604,7 +604,7 @@ export const deliveryOperations = (
         residentPermitLimit: limits.resident
       }
     })
-    const permit = issued.commands[0]
+    const permit = issued.outputs[0]
     if (permit?.kind === "permitIssued") return permit
     dropTool(key)
     return undefined
@@ -625,7 +625,7 @@ export const deliveryOperations = (
       tool,
       now: syntheticNow
     })
-    const command = consumed.commands[0]
+    const command = consumed.outputs[0]
     if (command?.kind === "permitConsumed") return command.round
     releaseCompletedPermit(partition, key, permit)
     return undefined
@@ -693,8 +693,8 @@ export const deliveryOperations = (
         token: permit.token,
         deadlineReached: permit.expiresAt <= now
       })
-      if (result.commands[0]?.kind === "permitKept") continue
-      if (result.rejection !== undefined || result.commands[0]?.kind !== "permitExpired")
+      if (result.outputs[0]?.kind === "permitKept") continue
+      if (result.rejection !== undefined || result.outputs[0]?.kind !== "permitExpired")
         throw new Error("invalid Bend permit expiry")
       finishPermit(key, "expired")
     }
@@ -719,9 +719,9 @@ export const deliveryOperations = (
       closedAt: admission?.closedAt ?? 0,
       expectedGeneration: generation
     })
-    if (result.rejection !== undefined || result.commands.length !== 1)
+    if (result.rejection !== undefined || result.outputs.length !== 1)
       throw new Error("canonical round activity refused")
-    return result.commands[0]?.kind === "roundActive"
+    return result.outputs[0]?.kind === "roundActive"
   }
 
   function beginStop(partition: string, token: string): boolean {
@@ -732,14 +732,14 @@ export const deliveryOperations = (
       hasStop: state.stops.has(partition),
       token: id
     })
-    if (decision.rejection !== undefined || decision.commands[0]?.kind !== "roundStopBegun") return false
+    if (decision.rejection !== undefined || decision.outputs[0]?.kind !== "roundStopBegun") return false
     const reset = canonicalOwner.transition({
       kind: "quietRoundReset",
       partition: canonicalOwner.partitionId(partition),
       lifetime: 1,
       round: canonicalOwner.currentRoundId(partition)!
     })
-    if (reset.rejection !== undefined || reset.commands[0]?.kind !== "quietRoundResetRecorded") {
+    if (reset.rejection !== undefined || reset.outputs[0]?.kind !== "quietRoundResetRecorded") {
       throw new Error("canonical quiet reset refused at Stop")
     }
     state.stops.set(partition, {
@@ -761,9 +761,9 @@ export const deliveryOperations = (
       tokenMatches: stop?.token === token,
       deciding: isDeciding(partition)
     })
-    if (decision.rejection !== undefined || decision.commands.length !== 1)
+    if (decision.rejection !== undefined || decision.outputs.length !== 1)
       throw new Error("canonical Stop ownership refused")
-    return decision.commands[0]?.kind === "roundStopOwned"
+    return decision.outputs[0]?.kind === "roundStopOwned"
   }
 
   function unfinishedSourceOperations(
@@ -783,7 +783,7 @@ export const deliveryOperations = (
     )
   }
   function acknowledgeCutoffReservations(cutoff: PermitTransition): void {
-    for (const command of cutoff.commands)
+    for (const command of cutoff.outputs)
       if (command.kind === "reservationReleased") canonicalOwner.acknowledgeStopRelease(command.id)
   }
   function releaseCutoffPermit(partition: string, key: string, permit: EditPermit): void {
@@ -832,11 +832,11 @@ export const deliveryOperations = (
       continuations: continuationCount(partition, canonicalRound)
     })
     if (cutoff.rejection !== undefined) return undefined
-    if (cutoff.commands[0]?.kind === "waitForWork") return { status: "waiting" }
-    const terminal = cutoff.commands.at(-1)?.kind
+    if (cutoff.outputs[0]?.kind === "waitForWork") return { status: "waiting" }
+    const terminal = cutoff.outputs.at(-1)?.kind
     if (terminal !== "finishReady" && terminal !== "finishLimit") throw new Error("invalid canonical Stop command")
     const source = unfinishedSourceOperations(projection, owner, canonicalRound)
-    const cancelled = cutoff.commands.filter((item) => item.kind === "cancelWork").map((item) => item.operation)
+    const cancelled = cutoff.outputs.filter((item) => item.kind === "cancelWork").map((item) => item.operation)
     acknowledgeCutoffReservations(cutoff)
     releaseCutoffPermits(partition)
     return {
@@ -863,21 +863,21 @@ export const deliveryOperations = (
   type FinishOutputRoute =
     | { readonly kind: "reserved" | "notices" | "failed" }
     | { readonly kind: "allowed"; readonly reason: "no-advice" | "deadline" | "unavailable" }
-  const finishReservationRoutes: Partial<Record<PermitTransition["commands"][number]["kind"], FinishOutputRoute>> = {
+  const finishReservationRoutes: Partial<Record<PermitTransition["outputs"][number]["kind"], FinishOutputRoute>> = {
     finishNotices: { kind: "notices" },
     finishAllowedNoAdvice: { kind: "allowed", reason: "no-advice" },
     finishAllowedDeadline: { kind: "allowed", reason: "deadline" },
     finishAllowedUnavailable: { kind: "allowed", reason: "unavailable" },
     finishReserved: { kind: "reserved" }
   }
-  function finishReservationRoute(kind: PermitTransition["commands"][number]["kind"] | undefined): FinishOutputRoute {
+  function finishReservationRoute(kind: PermitTransition["outputs"][number]["kind"] | undefined): FinishOutputRoute {
     return kind === undefined ? { kind: "failed" } : (finishReservationRoutes[kind] ?? { kind: "failed" })
   }
   function canonicalCommandAccepted(
     result: PermitTransition,
-    expected: PermitTransition["commands"][number]["kind"]
+    expected: PermitTransition["outputs"][number]["kind"]
   ): boolean {
-    return result.rejection === undefined && result.commands[0]?.kind === expected
+    return result.rejection === undefined && result.outputs[0]?.kind === expected
   }
   function rollbackStagedSubmission(id: string, token: string, submission: Submission): void {
     const rollback = canonicalOwner.transition({
@@ -933,7 +933,7 @@ export const deliveryOperations = (
       deadlineReached
     })
     if (decision.rejection !== undefined) return { kind: "failed" }
-    const route = finishReservationRoute(decision.commands[0]?.kind)
+    const route = finishReservationRoute(decision.outputs[0]?.kind)
     if (route.kind !== "reserved") return route
     const staged = advice.map(
       (item) =>
@@ -983,7 +983,7 @@ export const deliveryOperations = (
       attempt: stop.id,
       token: canonicalOwner.collectionTokenId(outputToken)
     })
-    if (released.rejection !== undefined || released.commands[0]?.kind !== "finishReleased") return false
+    if (released.rejection !== undefined || released.outputs[0]?.kind !== "finishReleased") return false
     permit.revoked = true
     release(outputToken)
     state.finishPermits.delete(outputToken)
@@ -1048,9 +1048,9 @@ export const deliveryOperations = (
       active: isActive(partition),
       deciding: isDeciding(partition)
     })
-    if (decision.rejection !== undefined || decision.commands.length !== 1)
+    if (decision.rejection !== undefined || decision.outputs.length !== 1)
       throw new Error("canonical unreserved Stop gate refused")
-    return decision.commands[0]?.kind === "deliveryUnreservedStopAllowed"
+    return decision.outputs[0]?.kind === "deliveryUnreservedStopAllowed"
   }
   function finishPermitCurrent(
     partition: string,
@@ -1085,7 +1085,7 @@ export const deliveryOperations = (
       token: canonicalOwner.collectionTokenId(token),
       selected: permit.selected
     })
-    if (authorization.rejection !== undefined || authorization.commands[0]?.kind !== "finishAuthorized") {
+    if (authorization.rejection !== undefined || authorization.outputs[0]?.kind !== "finishAuthorized") {
       release(token)
       return false
     }
@@ -1112,7 +1112,7 @@ export const deliveryOperations = (
       authorized: stop.outputToken !== undefined && state.finishPermits.get(stop.outputToken)?.authorized === true,
       requestedClose: close
     })
-    const command = terminal.commands[0]
+    const command = terminal.outputs[0]
     if (terminal.rejection !== undefined || command?.kind !== "roundStopTerminal") return undefined
     if (!stopProvisionalRevoked(partition, token, stop, command.revokeProvisional)) return undefined
     return command
@@ -1127,7 +1127,7 @@ export const deliveryOperations = (
       round: canonicalRound,
       scopes: [{ partition: owner, round: canonicalRound }]
     })
-    if (ended.rejection !== undefined || ended.commands[0]?.kind !== "stopEnded")
+    if (ended.rejection !== undefined || ended.outputs[0]?.kind !== "stopEnded")
       throw new Error("canonical Stop end refused")
   }
 
@@ -1141,7 +1141,7 @@ export const deliveryOperations = (
       attempt: stop.id,
       token: canonicalOwner.collectionTokenId(stop.outputToken)
     })
-    if (ended.rejection !== undefined || ended.commands[0]?.kind !== "finishEnded")
+    if (ended.rejection !== undefined || ended.outputs[0]?.kind !== "finishEnded")
       throw new Error("canonical finish slot end refused")
   }
 
@@ -1161,8 +1161,8 @@ export const deliveryOperations = (
     })
     if (
       closed.rejection !== undefined ||
-      closed.commands[0]?.kind !== "permitRoundClosed" ||
-      closed.commands[0].round !== stop.generation
+      closed.outputs[0]?.kind !== "permitRoundClosed" ||
+      closed.outputs[0].round !== stop.generation
     )
       throw new Error("canonical permit closure disagrees with round")
     return true
@@ -1232,7 +1232,7 @@ export const deliveryOperations = (
       round: admission.round,
       at: Math.max(bendTime(now + 1), admission.closedAt)
     })
-    if (closed.rejection !== undefined || closed.commands[0]?.kind !== "permitRoundClosed") {
+    if (closed.rejection !== undefined || closed.outputs[0]?.kind !== "permitRoundClosed") {
       throw new Error("canonical quiet closure refused")
     }
     return admission
@@ -1257,8 +1257,8 @@ export const deliveryOperations = (
       window: bendTime(round.quietMs),
       facts: { ...facts, handoffIdle, stopAbsent: !state.stops.has(partition) }
     })
-    if (tick.rejection !== undefined || tick.commands.length !== 1) throw new Error("canonical quiet tick refused")
-    if (tick.commands[0]?.kind !== "quietRoundExpired") return undefined
+    if (tick.rejection !== undefined || tick.outputs.length !== 1) throw new Error("canonical quiet tick refused")
+    if (tick.outputs[0]?.kind !== "quietRoundExpired") return undefined
     const admission = closeQuietRound(partition, now)
     retireClosedRound(partition, canonicalRound)
     return admission.round
@@ -1295,8 +1295,8 @@ export const deliveryOperations = (
       barrier: stopBarrier(partition),
       authorizedOutput
     })
-    if (expiry.rejection !== undefined || expiry.commands.length !== 1) throw new Error("canonical Stop expiry refused")
-    return finishStop(partition, token, expiry.commands[0]?.kind === "roundExpireCloses")
+    if (expiry.rejection !== undefined || expiry.outputs.length !== 1) throw new Error("canonical Stop expiry refused")
+    return finishStop(partition, token, expiry.outputs[0]?.kind === "roundExpireCloses")
   }
 
   function isDeciding(partition: string): boolean {
@@ -1314,9 +1314,9 @@ export const deliveryOperations = (
       existingToken: false,
       finishPermit: false
     })
-    if (result.rejection !== undefined || result.commands.length !== 1)
+    if (result.rejection !== undefined || result.outputs.length !== 1)
       throw new Error("canonical submission eligibility refused")
-    return result.commands[0]?.kind === "deliverySubmissionAllowed"
+    return result.outputs[0]?.kind === "deliverySubmissionAllowed"
   }
 
   function canBeginSubmission(partition: string, surface: DeliverySurface, token: string): boolean {
@@ -1329,9 +1329,9 @@ export const deliveryOperations = (
       existingToken: hasToken(token),
       finishPermit: surface === "stop" && hasFinishPermit(token)
     })
-    if (result.rejection !== undefined || result.commands.length !== 1)
+    if (result.rejection !== undefined || result.outputs.length !== 1)
       throw new Error("canonical submission eligibility refused")
-    return result.commands[0]?.kind === "deliverySubmissionAllowed"
+    return result.outputs[0]?.kind === "deliverySubmissionAllowed"
   }
 
   function canBeginExistingToken(surface: DeliverySurface, token: string): boolean {
@@ -1341,9 +1341,9 @@ export const deliveryOperations = (
       existingToken: hasToken(token),
       finishPermit: surface === "stop" && hasFinishPermit(token)
     })
-    if (result.rejection !== undefined || result.commands.length !== 1)
+    if (result.rejection !== undefined || result.outputs.length !== 1)
       throw new Error("canonical existing token gate refused")
-    return result.commands[0]?.kind === "deliveryExistingTokenAllowed"
+    return result.outputs[0]?.kind === "deliveryExistingTokenAllowed"
   }
 
   function readGeneration(partition: string): number {
@@ -1360,7 +1360,7 @@ export const deliveryOperations = (
       group: canonicalOwner.partitionId(partition),
       round: canonicalOwner.roundId(partition)
     })
-    if (consumed.rejection !== undefined || consumed.commands[0]?.kind !== "continuationConsumed") return false
+    if (consumed.rejection !== undefined || consumed.outputs[0]?.kind !== "continuationConsumed") return false
     return true
   }
 
@@ -1371,9 +1371,9 @@ export const deliveryOperations = (
       active: isActive(partition),
       count: continuationCount(partition)
     })
-    if (result.rejection !== undefined || result.commands.length !== 1)
+    if (result.rejection !== undefined || result.outputs.length !== 1)
       throw new Error("canonical continuation budget refused")
-    return result.commands[0]?.kind === "roundContinuationAvailable"
+    return result.outputs[0]?.kind === "roundContinuationAvailable"
   }
 
   function stopBarrier(partition: string): boolean {
@@ -1384,9 +1384,8 @@ export const deliveryOperations = (
       usedAtStart: stop?.continuationsAtStart ?? 0,
       usedNow: stop === undefined ? 0 : continuationCount(partition)
     })
-    if (result.rejection !== undefined || result.commands.length !== 1)
-      throw new Error("canonical Stop barrier refused")
-    return result.commands[0]?.kind === "roundBarrierRaised"
+    if (result.rejection !== undefined || result.outputs.length !== 1) throw new Error("canonical Stop barrier refused")
+    return result.outputs[0]?.kind === "roundBarrierRaised"
   }
 
   function continuationCount(partition: string, round = canonicalOwner.currentRoundId(partition)): number {
@@ -1461,7 +1460,7 @@ export const deliveryOperations = (
       fingerprints: [...fingerprints].map((digest) => fingerprintId(adviceId, digest)),
       units: submissionUnits(findings, unit)
     })
-    if (offered.rejection !== undefined || offered.commands[0]?.kind !== "submissionBegun") {
+    if (offered.rejection !== undefined || offered.outputs[0]?.kind !== "submissionBegun") {
       return undefined
     }
     assertSubmissionAuthorization(adviceId, id, status)
@@ -1523,7 +1522,7 @@ export const deliveryOperations = (
           }
     )
     const expected = status === "authorized" ? "submissionAuthorized" : "submissionRecorded"
-    if (result.rejection !== undefined || result.commands[0]?.kind !== expected)
+    if (result.rejection !== undefined || result.outputs[0]?.kind !== expected)
       throw new Error("canonical submission transition refused resident owner")
     const batches = new Map(item.submission.batches)
     batches.set(token, { ...item.batch, status })
@@ -1632,7 +1631,7 @@ export const deliveryOperations = (
       ? canonicalOwner.transition({ kind: "finishTerminal", ...common, selected: permit.selected, outcome: "failed" })
       : canonicalOwner.transition({ kind: "finishRelease", ...common })
     const expected = permit.authorized ? "finishRecorded" : "finishReleased"
-    if (result.rejection !== undefined || result.commands[0]?.kind !== expected)
+    if (result.rejection !== undefined || result.outputs[0]?.kind !== expected)
       throw new Error("canonical finish release refused")
     permit.terminal = permit.authorized
   }
@@ -1655,7 +1654,7 @@ export const deliveryOperations = (
       advice: submissionAdviceId(adviceId),
       token: batch.id
     })
-    if (rollback.rejection !== undefined || rollback.commands[0]?.kind !== "submissionReleased")
+    if (rollback.rejection !== undefined || rollback.outputs[0]?.kind !== "submissionReleased")
       throw new Error("canonical submission rollback refused")
   }
 
@@ -1676,7 +1675,7 @@ export const deliveryOperations = (
 
   function forget(adviceId: string): void {
     const result = canonicalOwner.transition({ kind: "submissionForget", advice: submissionAdviceId(adviceId) })
-    if (result.rejection !== undefined || result.commands[0]?.kind !== "submissionForgotten") {
+    if (result.rejection !== undefined || result.outputs[0]?.kind !== "submissionForgotten") {
       throw new Error("canonical submission forget refused")
     }
     state.submissions.delete(adviceId)
@@ -1699,7 +1698,7 @@ export const deliveryOperations = (
       surface: surface ?? "edit"
     })
     if (checked.rejection !== undefined) throw new Error("canonical submission suppression refused")
-    return checked.commands[0]?.kind === "submissionSuppresses"
+    return checked.outputs[0]?.kind === "submissionSuppresses"
   }
 
   function backgroundReofferable(adviceId: string, token: string): boolean {
@@ -1711,7 +1710,7 @@ export const deliveryOperations = (
       token: batch.id
     })
     if (checked.rejection !== undefined) throw new Error("canonical submission reoffer check refused")
-    return checked.commands[0]?.kind === "submissionReofferable"
+    return checked.outputs[0]?.kind === "submissionReofferable"
   }
 
   function expireBackgroundWaiter(
@@ -1728,8 +1727,8 @@ export const deliveryOperations = (
       lifetime: BACKGROUND_WAITER_EXPIRY_MS
     })
     if (result.rejection !== undefined) throw new Error("canonical background expiry refused")
-    if (result.commands[0]?.kind === "collectionBackgroundReleased") state.backgroundWaiters.delete(partition)
-    else if (result.commands[0]?.kind !== "collectionBackgroundKept")
+    if (result.outputs[0]?.kind === "collectionBackgroundReleased") state.backgroundWaiters.delete(partition)
+    else if (result.outputs[0]?.kind !== "collectionBackgroundKept")
       throw new Error("invalid canonical background expiry")
   }
 
@@ -1743,7 +1742,7 @@ export const deliveryOperations = (
       lifetime: DELIVERY_LEASE_MS
     })
     if (checked.rejection !== undefined) throw new Error("canonical submission expiry refused")
-    return checked.commands[0]?.kind === "submissionExpired"
+    return checked.outputs[0]?.kind === "submissionExpired"
   }
 
   function expire(now: number): void {

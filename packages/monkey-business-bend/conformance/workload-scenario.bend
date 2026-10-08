@@ -44,18 +44,18 @@ def permit_count(admissions: List<&2, Admission.AdmissionState>) -> Nat:
     case Admission.AdmissionState{_, _, _, _, _, _, permits} <> tail:
       Nat.add(List.length(&2, Admission.Permit, permits), permit_count(tail))
 
-def permit_command(command: Canonical.Command) -> Nat:
+def permit_command(command: Canonical.Output) -> Nat:
   match command:
-    case Canonical.PermitIssued{_, _}: 1n
-    case Canonical.PermitConsumed{_}: 2n
-    case Canonical.PermitExpired{}: 3n
-    case Canonical.RoundStarted{_}: 4n
+    case Canonical.EventEstablished{Canonical.PermitIssued{_, _}}: 1n
+    case Canonical.EventEstablished{Canonical.PermitConsumed{_}}: 2n
+    case Canonical.EventEstablished{Canonical.PermitExpired{}}: 3n
+    case Canonical.EventEstablished{Canonical.RoundStarted{_}}: 4n
     case _: 99n
 
-def issued_token(commands: List<&2, Canonical.Command>) -> Nat:
-  match commands:
+def issued_token(outputs: List<&2, Canonical.Output>) -> Nat:
+  match outputs:
     case Nil{}: 0n
-    case Canonical.PermitIssued{token, _} <> _: token
+    case Canonical.EventEstablished{Canonical.PermitIssued{token, _}} <> _: token
     case _ <> tail: issued_token(tail)
 
 def control_state(transition: Engine.WorkloadTransition) -> Types.State:
@@ -92,23 +92,43 @@ def changed_duration(transition: Engine.WorkloadTransition) -> List<&2, Nat>:
 def emissions(events: List<&2, Workload.Emission>) -> List<&2, List<&2, Nat>>:
   match events:
     case Nil{}: []
-    case Workload.Emission{at, partition, generation, kind, task, revision, bytes, units, repair, recurring} <> tail:
+    case Workload.Emission{
+      at,
+      partition,
+      generation,
+      kind,
+      task,
+      revision,
+      bytes,
+      units,
+      repair,
+      recurring
+    } <> tail:
       [at, partition, generation, U32.to_nat(kind), task, revision, bytes,
-        sum(units), Bool.pick(Nat, repair, 1n, 0n), Bool.pick(Nat, recurring, 1n, 0n)] <> emissions(tail)
+        sum(units), Bool.pick(Nat, repair, 1n, 0n), Bool.pick(Nat, recurring, 1n, 0n)] <> emissions(
+          tail
+        )
 
 def permit_canonical(state: Canonical.State) -> List<&2, Nat>:
   match state:
     case Canonical.State{_, rounds, _, _, _, admissions, _, _, _}:
       [permit_count(admissions), List.length(&2, Canonical.Round, rounds)]
 
-def permit_codes(commands: List<&2, Canonical.Command>) -> List<&2, Nat>:
-  match commands:
+def permit_codes(outputs: List<&2, Canonical.Output>) -> List<&2, Nat>:
+  match outputs:
     case Nil{}: []
     case head <> tail: permit_command(head) <> permit_codes(tail)
 
-def permit_event(event: Canonical.CanonicalEvent, commands: List<&2, Canonical.Command>) -> List<&2, Nat>:
+def permit_event(
+  event: Canonical.CanonicalEvent,
+  outputs: List<&2, Canonical.Output>
+) -> List<&2, Nat>:
   match event:
-    case Canonical.IssuePermit{_, _, _, _, deadline, _, _, _}: [31n, issued_token(commands), deadline]
+    case Canonical.IssuePermit{_, _, _, _, deadline, _, _, _}: [
+      31n,
+      issued_token(outputs),
+      deadline
+    ]
     case Canonical.ConsumePermit{_, _, token, _, _}: [32n, token, 0n]
     case Canonical.ExpirePermit{_, _, token, _}: [33n, token, 0n]
     case _: [99n, 0n, 0n]
@@ -120,20 +140,27 @@ def permit_fact_actions(facts: List<&2, PermitScenario.Fact>) -> List<&2, Driver
     case PermitScenario.Fact{event, delay, job} <> tail:
       Driver.Action{event, delay, None{}, job, None{}} <> permit_fact_actions(tail)
 
-def permit_follow(event: Canonical.CanonicalEvent, commands: List<&2, Canonical.Command>,
+def permit_follow(event: Canonical.CanonicalEvent, outputs: List<&2, Canonical.Output>,
     state: Types.State, queue: Minimal.Queue, duration: Nat, now: Nat) -> Minimal.Queue:
   match event:
     case Canonical.IssuePermit{partition, lifetime, tool, +started, deadline, _, _, _}:
       Minimal.enqueue(permit_fact_actions(Engine.permit_issued(
         PermitScenario.Capture{partition, lifetime, tool, started, deadline, duration,
-          PermitScenario.Successful{}, 2n, 2n}, issued_token(commands))), queue, started)
+          PermitScenario.Successful{}, 2n, 2n}, issued_token(outputs))), queue, started)
     case _: queue
 
 def permit_control(+state: Types.State, event: Canonical.CanonicalEvent) -> Types.State:
   match event:
     case Canonical.IssuePermit{_, _, _, _, _, _, _, _}:
-      control_state(Engine.workload_action(control_state(Engine.workload_action(state, 1n,
-        Workload.Controlled{Workload.Duration{0n}})), 1n, Workload.Controlled{Workload.Suspend{True{}}}))
+      control_state(
+        Engine.workload_action(
+          control_state(
+            Engine.workload_action(state, 1n, Workload.Controlled{Workload.Duration{0n}})
+          ),
+          1n,
+          Workload.Controlled{Workload.Suspend{True{}}}
+        )
+      )
     case _: state
 
 def advance_workload(state: Types.State, partition: Nat) -> Types.State:
@@ -141,8 +168,15 @@ def advance_workload(state: Types.State, partition: Nat) -> Types.State:
 
 def equal_second(transition: Engine.WorkloadTransition, first_time: Nat) -> List<&2, List<&2, Nat>>:
   match transition:
-    case Engine.WorkloadTransition{state, Workload.Emission{second_time, _, _, 1, _, _, _, _, _, _} <> Nil{}, True{}}:
-      equal_taken(2n, Engine.take(Engine.enqueue(Engine.enqueue(state, first_time, 0n), second_time, 1n)))
+    case Engine.WorkloadTransition{
+      state,
+      Workload.Emission{second_time, _, _, 1, _, _, _, _, _, _} <> Nil{},
+      True{}
+    }:
+      equal_taken(
+        2n,
+        Engine.take(Engine.enqueue(Engine.enqueue(state, first_time, 0n), second_time, 1n))
+      )
     case _: [[97n]]
 
 def next(state_queue: Types.State & Minimal.Queue,
@@ -174,7 +208,11 @@ def endpoint_burst(transition: Engine.WorkloadTransition) -> List<&2, List<&2, N
 
 def equal_first(transition: Engine.WorkloadTransition) -> List<&2, List<&2, Nat>>:
   match transition:
-    case Engine.WorkloadTransition{state, Workload.Emission{time, _, _, 1, _, _, _, _, _, _} <> Nil{}, True{}}:
+    case Engine.WorkloadTransition{
+      state,
+      Workload.Emission{time, _, _, 1, _, _, _, _, _, _} <> Nil{},
+      True{}
+    }:
       equal_second(Engine.workload_action(advance_workload(state, 2n), 2n, Workload.Next{}), time)
     case _: [[97n]]
 
@@ -192,17 +230,19 @@ def actions_run(actions: List<&2, Workload.Action>, +state: Types.State) -> List
       [[80n, Bool.pick(Nat, Engine.workload_valid(state, 1n, 0n, True{}), 1n, 0n),
         Bool.pick(Nat, Engine.workload_valid(state, 1n, 1n, True{}), 1n, 0n),
         Bool.pick(Nat, Engine.workload_valid(state, 1n, 0n, False{}), 1n, 0n)]]
-    case action <> tail: action_result(Engine.workload_action(state, 1n, action), next => actions_run(tail, next))
+    case action <> tail:
+      continuation: Types.State -> List<&2, List<&2, Nat>> = next => actions_run(tail, next)
+      action_result(Engine.workload_action(state, 1n, action), continuation)
 
 # Supplied finish/advice facts cross the actual owner; no Stop policy is modeled.
 def permit_transition(transition: Engine.Transition, +event: Canonical.CanonicalEvent,
     queue: Minimal.Queue, +duration: Nat, +now: Nat,
     ih: (Types.State & Minimal.Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match transition:
-    case Engine.Transition{+state, Canonical.Advanced{_, +commands}}:
-      +queue = permit_follow(event, commands, state, queue, duration, now)
-      List.append(&2, Nat, [now], List.append(&2, Nat, permit_event(event, commands),
-        List.append(&2, Nat, permit_state(state), 0n <> permit_codes(commands)))) <>
+    case Engine.Transition{+state, Canonical.Advanced{_, +outputs}}:
+      +queue = permit_follow(event, outputs, state, queue, duration, now)
+      List.append(&2, Nat, [now], List.append(&2, Nat, permit_event(event, outputs),
+        List.append(&2, Nat, permit_state(state), 0n <> permit_codes(outputs)))) <>
         ih((permit_control(state, event), queue))
     case Engine.Transition{+state, Canonical.Rejected{_, _}}:
       List.append(&2, Nat, [now], List.append(&2, Nat, permit_event(event, []),
@@ -210,12 +250,24 @@ def permit_transition(transition: Engine.Transition, +event: Canonical.Canonical
 
 def endpoint_started(transition: Engine.WorkloadTransition) -> List<&2, List<&2, Nat>>:
   match transition:
-    case Engine.WorkloadTransition{state, Workload.Emission{time, _, _, 1, _, _, _, _, _, _} <> Nil{}, True{}}:
+    case Engine.WorkloadTransition{
+      state,
+      Workload.Emission{time, _, _, 1, _, _, _, _, _, _} <> Nil{},
+      True{}
+    }:
       +state = advance_workload(at(state, time, 1001n), 1n)
-      +state = control_state(Engine.workload_action(state, 1n, Workload.Controlled{Workload.Sizes{25n, [7n, 8n]}}))
-      +state = control_state(Engine.workload_action(state, 1n, Workload.Controlled{Workload.Pace{70}}))
-      +state = control_state(Engine.workload_action(state, 1n, Workload.Controlled{Workload.Duration{2n}}))
-      +state = control_state(Engine.workload_action(state, 1n, Workload.Controlled{Workload.Suspend{True{}}}))
+      +state = control_state(
+        Engine.workload_action(state, 1n, Workload.Controlled{Workload.Sizes{25n, [7n, 8n]}})
+      )
+      +state = control_state(
+        Engine.workload_action(state, 1n, Workload.Controlled{Workload.Pace{70}})
+      )
+      +state = control_state(
+        Engine.workload_action(state, 1n, Workload.Controlled{Workload.Duration{2n}})
+      )
+      +state = control_state(
+        Engine.workload_action(state, 1n, Workload.Controlled{Workload.Suspend{True{}}})
+      )
       [Engine.clock(state), Engine.workload_duration(state, 1n, 0n),
         Bool.pick(Nat, Engine.workload_valid(state, 1n, 0n, True{}), 1n, 0n),
         Bool.pick(Nat, Engine.workload_valid(state, 1n, 1n, True{}), 1n, 0n),
@@ -245,9 +297,18 @@ def feedback() -> List<&2, List<&2, Nat>>:
     1n, Workload.Profile{Session.Settings{10, 0, 1, 100, 3, 20}, 7,
       [119, 114, 105, 116, 101, 114], 10n, [5n], None{}}), 50n, 1000n)
   actions_run(
-    [Workload.Next{}, Workload.Next{}, Workload.Controlled{Workload.Suspend{True{}}},
-     Workload.Advice{}, Workload.Controlled{Workload.Burst{2n}}, Workload.Finished{True{}},
-     Workload.Controlled{Workload.Sizes{25n, [7n, 8n]}}, Workload.Controlled{Workload.Burst{1n}}], state)
+    [
+      Workload.Next{},
+      Workload.Next{},
+      Workload.Controlled{Workload.Suspend{True{}}},
+      Workload.Advice{},
+      Workload.Controlled{Workload.Burst{2n}},
+      Workload.Finished{True{}},
+      Workload.Controlled{Workload.Sizes{25n, [7n, 8n]}},
+      Workload.Controlled{Workload.Burst{1n}}
+    ],
+    state
+  )
 
 def permit_input(input: Minimal.Input, +state: Types.State, queue: Minimal.Queue,
     duration: Nat, now: Nat,
@@ -259,7 +320,11 @@ def permit_input(input: Minimal.Input, +state: Types.State, queue: Minimal.Queue
 
 def endpoint_task(transition: Engine.WorkloadTransition) -> List<&2, List<&2, Nat>>:
   match transition:
-    case Engine.WorkloadTransition{state, Workload.Emission{time, _, _, 0, _, _, _, _, _, _} <> Nil{}, True{}}:
+    case Engine.WorkloadTransition{
+      state,
+      Workload.Emission{time, _, _, 0, _, _, _, _, _, _} <> Nil{},
+      True{}
+    }:
       endpoint_started(Engine.workload_action(at(state, time, 1000n), 1n, Workload.Next{}))
     case _: [[97n]]
 
@@ -270,8 +335,13 @@ def arrival(events: List<&2, Workload.Emission>, state: Types.State) -> List<&2,
         Workload.Controlled{Workload.Suspend{True{}}}), time)
     case _: [[97n]]
 
-def permit_taken(taken: Engine.Taken, +items: List<&2, Minimal.Item>, +sequence: Nat,
-    duration: Nat, ih: (Types.State & Minimal.Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+def permit_taken(
+  taken: Engine.Taken,
+  +items: List<&2, Minimal.Item>,
+  +sequence: Nat,
+  duration: Nat,
+  ih: (Types.State & Minimal.Queue) -> List<&2, List<&2, Nat>>
+) -> List<&2, List<&2, Nat>>:
   match taken:
     case Engine.Taken{+state, Some{Scheduler.Entry{+now, +order}}}:
       permit_input(Minimal.lookup(items, order), state,
@@ -296,14 +366,22 @@ def permit_next(state_queue: Types.State & Minimal.Queue, duration: Nat,
       permit_taken(Engine.take(Minimal.sync(items, state, synced)), items, sequence, duration,
         ih)
 
-def permit_loop(fuel: Nat, state_queue: Types.State & Minimal.Queue, +duration: Nat) -> List<&2, List<&2, Nat>>:
+def permit_loop(
+  fuel: Nat,
+  state_queue: Types.State & Minimal.Queue,
+  +duration: Nat
+) -> List<&2, List<&2, Nat>>:
   match fuel:
     case 0n: [[98n]]
     case 1n+rest: permit_next(state_queue, duration, pair => permit_loop(rest, pair, duration))
 
 def tasked(transition: Engine.WorkloadTransition) -> List<&2, List<&2, Nat>>:
   match transition:
-    case Engine.WorkloadTransition{state, Workload.Emission{time, _, _, 0, _, _, _, _, _, _} <> Nil{}, True{}}:
+    case Engine.WorkloadTransition{
+      state,
+      Workload.Emission{time, _, _, 0, _, _, _, _, _, _} <> Nil{},
+      True{}
+    }:
       edited(Engine.workload_action(at(state, time, 1000n), 1n, Workload.Next{}))
     case _: [[97n]]
 
@@ -323,9 +401,39 @@ def permits() -> List<&2, List<&2, List<&2, Nat>>>:
   [permit_scenario(9n), permit_scenario(10n), permit_scenario(11n)]
 
 def main() -> IO(Unit):
-  IO.print(String.append("[", String.append(Minimal.bracket(Minimal.show_rows(trace())),
-    String.append(",", String.append(Minimal.bracket(Minimal.show_rows(timings())),
-      String.append(",", String.append(Minimal.bracket(Minimal.show_rows(feedback())),
-        String.append(",", String.append(Minimal.bracket(Minimal.show_traces(permits())),
-          String.append(",", String.append(Minimal.bracket(Minimal.show_rows(endpoint())),
-            String.append(",", String.append(Minimal.bracket(Minimal.show_rows(equal_times())), "]")))))))))))))
+  IO.print(
+    String.append(
+      "[",
+      String.append(
+        Minimal.bracket(Minimal.show_rows(trace())),
+        String.append(
+          ",",
+          String.append(
+            Minimal.bracket(Minimal.show_rows(timings())),
+            String.append(
+              ",",
+              String.append(
+                Minimal.bracket(Minimal.show_rows(feedback())),
+                String.append(
+                  ",",
+                  String.append(
+                    Minimal.bracket(Minimal.show_traces(permits())),
+                    String.append(
+                      ",",
+                      String.append(
+                        Minimal.bracket(Minimal.show_rows(endpoint())),
+                        String.append(
+                          ",",
+                          String.append(Minimal.bracket(Minimal.show_rows(equal_times())), "]")
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  )

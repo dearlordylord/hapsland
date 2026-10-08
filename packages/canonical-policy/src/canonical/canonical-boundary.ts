@@ -19,6 +19,7 @@ import {
 } from "./constructors.ts"
 import {
   CanonicalLimitsSchema,
+  CanonicalOutputSchema,
   type JevRequestOutcome,
   type CompletedEditReason,
   type CapacityPurpose,
@@ -30,7 +31,7 @@ import {
   type CapacityView,
   type DispatchEntry,
   type CanonicalProjection,
-  type CanonicalCommand,
+  type CanonicalOutput,
   type CanonicalEvent
 } from "./models.ts"
 import { freezeCanonicalData } from "./immutable.ts"
@@ -57,7 +58,7 @@ export type {
   CapacityCharge,
   CapacityView,
   CanonicalProjection,
-  CanonicalCommand,
+  CanonicalOutput,
   CanonicalEvent
 } from "./models.ts"
 
@@ -1368,19 +1369,23 @@ const capacityRefusal = (value: unknown): CapacityRefusal => {
   decodeCanonicalConstructor(value, tag(value))
   return reason
 }
-const decodeCapacityGranted = (value: unknown): CanonicalCommand => {
+type OutputFields<T> = T extends { readonly category: string } ? Omit<T, "category"> : never
+type DecodedOutputFields = OutputFields<CanonicalOutput>
+const readOutput = decoder(CanonicalOutputSchema)
+
+const decodeCapacityGranted = (value: unknown): DecodedOutputFields => {
   const x = decodeCanonicalConstructor(value, "Canonical.CapacityGranted")
   return { kind: "capacityGranted", id: nat(x.id, true), after: capacityView(x.after) }
 }
-const decodeCapacityRefused = (value: unknown): CanonicalCommand => {
+const decodeCapacityRefused = (value: unknown): DecodedOutputFields => {
   const x = decodeCanonicalConstructor(value, "Canonical.CapacityRefused")
   return { kind: "capacityRefused", reason: capacityRefusal(x.reason), after: capacityView(x.after) }
 }
-const decodeCapacityResized = (value: unknown): CanonicalCommand => {
+const decodeCapacityResized = (value: unknown): DecodedOutputFields => {
   const x = decodeCanonicalConstructor(value, "Canonical.CapacityResized")
   return { kind: "capacityResized", id: nat(x.id, true), after: capacityView(x.after) }
 }
-const decodeCapacityUnitAdmitted = (value: unknown): CanonicalCommand => {
+const decodeCapacityUnitAdmitted = (value: unknown): DecodedOutputFields => {
   const x = decodeCanonicalConstructor(value, "Canonical.CapacityUnitAdmitted")
   return {
     kind: "capacityUnitAdmitted",
@@ -1390,7 +1395,7 @@ const decodeCapacityUnitAdmitted = (value: unknown): CanonicalCommand => {
     after: capacityView(x.after)
   }
 }
-const decodeCapacityUnitRefused = (value: unknown): CanonicalCommand => {
+const decodeCapacityUnitRefused = (value: unknown): DecodedOutputFields => {
   const x = decodeCanonicalConstructor(value, "Canonical.CapacityUnitRefused")
   return {
     kind: "capacityUnitRefused",
@@ -1400,98 +1405,98 @@ const decodeCapacityUnitRefused = (value: unknown): CanonicalCommand => {
     after: capacityView(x.after)
   }
 }
-const decodePermitIssued = (value: unknown): CanonicalCommand => {
+const decodePermitIssued = (value: unknown): DecodedOutputFields => {
   const x = decodeCanonicalConstructor(value, "Canonical.PermitIssued")
   return { kind: "permitIssued", token: nat(x.token, true), round: nat(x.round, true) }
 }
-const decodeCompletedEditAbsent = (value: unknown): CanonicalCommand => {
+const decodeCompletedEditAbsent = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.CompletedEditAbsent")
   return { kind: "completedEditAbsent" }
 }
-const decodeCompletedEditSeen = (value: unknown): CanonicalCommand => {
+const decodeCompletedEditSeen = (value: unknown): DecodedOutputFields => {
   const x = decodeCanonicalConstructor(value, "Canonical.CompletedEditSeen")
   return { kind: "completedEditSeen", reason: decodeCompletedEditReason(x.reason), report: bool(x.report) }
 }
-const decodeCompletedEditRemembered = (value: unknown): CanonicalCommand => {
+const decodeCompletedEditRemembered = (value: unknown): DecodedOutputFields => {
   const x = decodeCanonicalConstructor(value, "Canonical.CompletedEditRemembered")
   const evicted = tag(x.evicted) === "Some" ? nat(decodeCanonicalConstructor(x.evicted, "Some").value, true) : undefined
   if (evicted === undefined) decodeCanonicalConstructor(x.evicted, "None")
   return { kind: "completedEditRemembered", ...(evicted === undefined ? {} : { evicted }) }
 }
-const decodeQuietRoundBusy = (value: unknown): CanonicalCommand => {
+const decodeQuietRoundBusy = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.QuietRoundBusy")
   return { kind: "quietRoundBusy" }
 }
-const decodeQuietRoundResetRecorded = (value: unknown): CanonicalCommand => {
+const decodeQuietRoundResetRecorded = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.QuietRoundResetRecorded")
   return { kind: "quietRoundResetRecorded" }
 }
-const decodeQuietRoundWaiting = (value: unknown): CanonicalCommand => {
+const decodeQuietRoundWaiting = (value: unknown): DecodedOutputFields => {
   return {
     kind: "quietRoundWaiting",
     since: nat(decodeCanonicalConstructor(value, "Canonical.QuietRoundWaiting").since)
   }
 }
-const decodeQuietRoundExpired = (value: unknown): CanonicalCommand => {
+const decodeQuietRoundExpired = (value: unknown): DecodedOutputFields => {
   return {
     kind: "quietRoundExpired",
     since: nat(decodeCanonicalConstructor(value, "Canonical.QuietRoundExpired").since)
   }
 }
-const decodePermitConsumed = (value: unknown): CanonicalCommand => {
+const decodePermitConsumed = (value: unknown): DecodedOutputFields => {
   return {
     kind: "permitConsumed",
     round: nat(decodeCanonicalConstructor(value, "Canonical.PermitConsumed").round, true)
   }
 }
-const decodePermitReleased = (value: unknown): CanonicalCommand => {
+const decodePermitReleased = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.PermitReleased")
   return { kind: "permitReleased" }
 }
-const decodePermitExpired = (value: unknown): CanonicalCommand => {
+const decodePermitExpired = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.PermitExpired")
   return { kind: "permitExpired" }
 }
-const decodePermitKept = (value: unknown): CanonicalCommand => {
+const decodePermitKept = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.PermitKept")
   return { kind: "permitKept" }
 }
-const decodePermitRoundClosed = (value: unknown): CanonicalCommand => {
+const decodePermitRoundClosed = (value: unknown): DecodedOutputFields => {
   return {
     kind: "permitRoundClosed",
     round: nat(decodeCanonicalConstructor(value, "Canonical.PermitRoundClosed").round, true)
   }
 }
-const decodeRoundStarted = (value: unknown): CanonicalCommand => {
+const decodeRoundStarted = (value: unknown): DecodedOutputFields => {
   return { kind: "roundStarted", id: nat(decodeCanonicalConstructor(value, "Canonical.RoundStarted").id, true) }
 }
-const decodeObservationAdmitted = (value: unknown): CanonicalCommand => {
+const decodeObservationAdmitted = (value: unknown): DecodedOutputFields => {
   return {
     kind: "observationAdmitted",
     id: nat(decodeCanonicalConstructor(value, "Canonical.ObservationAdmitted").id, true)
   }
 }
-const decodeObservationStarted = (value: unknown): CanonicalCommand => {
+const decodeObservationStarted = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.ObservationStarted")
   return { kind: "observationStarted" }
 }
-const decodeObservationCompleted = (value: unknown): CanonicalCommand => {
+const decodeObservationCompleted = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.ObservationCompleted")
   return { kind: "observationCompleted" }
 }
-const decodeObservationInterrupted = (value: unknown): CanonicalCommand => {
+const decodeObservationInterrupted = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.ObservationInterrupted")
   return { kind: "observationInterrupted" }
 }
-const decodePrepare = (value: unknown): CanonicalCommand => {
+const decodePrepare = (value: unknown): DecodedOutputFields => {
   const x = decodeCanonicalConstructor(value, "Canonical.Prepare")
   return { kind: "prepare", operation: nat(x.operation, true), reservation: nat(x.reservation, true) }
 }
-const decodePreparationRefused = (value: unknown): CanonicalCommand => {
+const decodePreparationRefused = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.PreparationRefused")
   return { kind: "preparationRefused" }
 }
-const decodeUnitAdmitted = (value: unknown): CanonicalCommand => {
+const decodeUnitAdmitted = (value: unknown): DecodedOutputFields => {
   const x = decodeCanonicalConstructor(value, "Canonical.UnitAdmitted")
   return {
     kind: "unitAdmitted",
@@ -1502,7 +1507,7 @@ const decodeUnitAdmitted = (value: unknown): CanonicalCommand => {
     after: capacityView(x.after)
   }
 }
-const decodeUnitRefused = (value: unknown): CanonicalCommand => {
+const decodeUnitRefused = (value: unknown): DecodedOutputFields => {
   const x = decodeCanonicalConstructor(value, "Canonical.UnitRefused")
   return {
     kind: "unitRefused",
@@ -1512,15 +1517,15 @@ const decodeUnitRefused = (value: unknown): CanonicalCommand => {
     after: capacityView(x.after)
   }
 }
-const decodePreparationReleased = (value: unknown): CanonicalCommand => {
+const decodePreparationReleased = (value: unknown): DecodedOutputFields => {
   const x = decodeCanonicalConstructor(value, "Canonical.PreparationReleased")
   return { kind: "preparationReleased", id: nat(x.id, true), after: capacityView(x.after) }
 }
-const decodeReviewStarted = (value: unknown): CanonicalCommand => {
+const decodeReviewStarted = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.ReviewStarted")
   return { kind: "reviewStarted" }
 }
-const decodeJevRequestIssued = (value: unknown): CanonicalCommand => {
+const decodeJevRequestIssued = (value: unknown): DecodedOutputFields => {
   const x = decodeCanonicalConstructor(value, "Canonical.JevRequestIssued")
   return {
     kind: "jevRequestIssued",
@@ -1531,145 +1536,173 @@ const decodeJevRequestIssued = (value: unknown): CanonicalCommand => {
     request: nat(x.request, true)
   }
 }
-const decodeJevRequestUnavailable = (value: unknown): CanonicalCommand => {
+const decodeJevRequestUnavailable = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.JevRequestUnavailable")
   return { kind: "jevRequestUnavailable" }
 }
-const decodeJevRequestStartRecorded = (value: unknown): CanonicalCommand => {
+const decodeJevRequestStartRecorded = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.JevRequestStartRecorded")
   return { kind: "jevRequestStartRecorded" }
 }
-const decodeJevInterruptionRecorded = (value: unknown): CanonicalCommand => {
+const decodeJevInterruptionRecorded = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.JevInterruptionRecorded")
   return { kind: "jevInterruptionRecorded" }
 }
-const decodeJevObservationIgnored = (value: unknown): CanonicalCommand => {
+const decodeJevObservationIgnored = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.JevObservationIgnored")
   return { kind: "jevObservationIgnored" }
 }
-const decodeJevRequestOutcomeRecorded = (value: unknown): CanonicalCommand => {
+const decodeJevRequestOutcomeRecorded = (value: unknown): DecodedOutputFields => {
   return {
     kind: "jevRequestOutcomeRecorded",
     outcome: decodeJevRequestOutcome(decodeCanonicalConstructor(value, "Canonical.JevRequestOutcomeRecorded").outcome)
   }
 }
-const decodeReservationReleased = (value: unknown): CanonicalCommand => {
+const decodeReservationReleased = (value: unknown): DecodedOutputFields => {
   return {
     kind: "reservationReleased",
     id: nat(decodeCanonicalConstructor(value, "Canonical.ReservationReleased").id, true)
   }
 }
-const decodeReviewRecorded = (value: unknown): CanonicalCommand => {
+const decodeReviewRecorded = (value: unknown): DecodedOutputFields => {
   return {
     kind: "reviewRecorded",
     outcome: outcome(decodeCanonicalConstructor(value, "Canonical.ReviewRecorded").outcome)
   }
 }
-const decodeRetainFinding = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.RetainFinding")
-  return { kind: "retainFinding" }
+const decodeFindingRetained = (value: unknown): DecodedOutputFields => {
+  decodeCanonicalConstructor(value, "Canonical.FindingRetained")
+  return { kind: "findingRetained" }
 }
-const decodeFindingCountRecorded = (value: unknown): CanonicalCommand => {
+const decodeFindingCountRecorded = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.FindingCountRecorded")
   return { kind: "findingCountRecorded" }
 }
-const decodeSettleClear = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.SettleClear")
-  return { kind: "settleClear" }
+const decodeClearSettled = (value: unknown): DecodedOutputFields => {
+  decodeCanonicalConstructor(value, "Canonical.ClearSettled")
+  return { kind: "clearSettled" }
 }
-const decodeSettleStaleClear = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.SettleStaleClear")
-  return { kind: "settleStaleClear" }
+const decodeStaleClearSettled = (value: unknown): DecodedOutputFields => {
+  decodeCanonicalConstructor(value, "Canonical.StaleClearSettled")
+  return { kind: "staleClearSettled" }
 }
-const decodeRetireStaleFinding = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.RetireStaleFinding")
-  return { kind: "retireStaleFinding" }
+const decodeStaleFindingRetired = (value: unknown): DecodedOutputFields => {
+  decodeCanonicalConstructor(value, "Canonical.StaleFindingRetired")
+  return { kind: "staleFindingRetired" }
 }
-const decodePreparedSkipped = (value: unknown): CanonicalCommand => {
+const decodePreparedSkipped = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.PreparedSkipped")
   return { kind: "preparedSkipped" }
 }
-const decodePreparedAdmitted = (value: unknown): CanonicalCommand => {
+const decodePreparedAdmitted = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.PreparedAdmitted")
   return { kind: "preparedAdmitted" }
 }
-const decodePreparedCapacityRefused = (value: unknown): CanonicalCommand => {
+const decodePreparedCapacityRefused = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.PreparedCapacityRefused")
   return { kind: "preparedCapacityRefused" }
 }
-const decodeEmptyLost = (value: unknown): CanonicalCommand => {
+const decodeEmptyLost = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.EmptyLost")
   return { kind: "emptyLost" }
 }
-const decodeEmptyAccepted = (value: unknown): CanonicalCommand => {
+const decodeEmptyAccepted = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.EmptyAccepted")
   return { kind: "emptyAccepted" }
 }
-const decodeFailureBackend = (value: unknown): CanonicalCommand => {
+const decodeFailureBackend = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.FailureBackend")
   return { kind: "failureBackend" }
 }
-const decodeFailureCredential = (value: unknown): CanonicalCommand => {
+const decodeFailureCredential = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.FailureCredential")
   return { kind: "failureCredential" }
 }
-const decodeFailureLost = (value: unknown): CanonicalCommand => {
+const decodeFailureLost = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.FailureLost")
   return { kind: "failureLost" }
 }
-const decodeFailureNone = (value: unknown): CanonicalCommand => {
+const decodeFailureNone = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.FailureNone")
   return { kind: "failureNone" }
 }
-const decodeDispatchStarted = (value: unknown): CanonicalCommand => {
+const decodeDispatchStarted = (value: unknown): DecodedOutputFields => {
   const x = decodeCanonicalConstructor(value, "Canonical.DispatchStarted")
   return { kind: "dispatchStarted", operation: nat(x.operation, true), sequence: nat(x.sequence) }
 }
-const decodeDispatchDiscarded = (value: unknown): CanonicalCommand => {
+const decodeDispatchDiscarded = (value: unknown): DecodedOutputFields => {
   const x = decodeCanonicalConstructor(value, "Canonical.DispatchDiscarded")
   return { kind: "dispatchDiscarded", operation: nat(x.operation, true), running: bool(x.running) }
 }
-const decodeDiscardNamedOnly = (value: unknown): CanonicalCommand => {
+const decodeDiscardNamedOnly = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.DiscardNamedOnly")
   return { kind: "discardNamedOnly" }
 }
-const decodeDiscardAllUnfinished = (value: unknown): CanonicalCommand => {
+const decodeDiscardAllUnfinished = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.DiscardAllUnfinished")
   return { kind: "discardAllUnfinished" }
 }
-const decodeWaitForWork = (value: unknown): CanonicalCommand => {
+const decodeWaitForWork = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.WaitForWork")
   return { kind: "waitForWork" }
 }
-const decodeCancelWork = (value: unknown): CanonicalCommand => {
+const decodeCancelWork = (value: unknown): DecodedOutputFields => {
   return {
     kind: "cancelWork",
     operation: nat(decodeCanonicalConstructor(value, "Canonical.CancelWork").operation, true)
   }
 }
-const decodeFinishReady = (value: unknown): CanonicalCommand => {
+const decodeFinishReady = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.FinishReady")
   return { kind: "finishReady" }
 }
-const decodeFinishLimit = (value: unknown): CanonicalCommand => {
+const decodeFinishLimit = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.FinishLimit")
   return { kind: "finishLimit" }
 }
-const decodeStopEnded = (value: unknown): CanonicalCommand => {
+const decodeStopEnded = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.StopEnded")
   return { kind: "stopEnded" }
 }
-const decodeCollectionEligible = (value: unknown): CanonicalCommand => {
+const collectionOutputFields: Readonly<Record<string, DecodedOutputFields>> = {
+  "Canonical.CollectionEligible": { kind: "collectionEligible" },
+  "Canonical.CollectionWaiting": { kind: "collectionWaiting" },
+  "Canonical.CollectionRetireCredential": { kind: "collectionRetireCredential" },
+  "Canonical.CollectionRetainCredential": { kind: "collectionRetainCredential" },
+  "Canonical.CollectionCandidate": { kind: "collectionCandidate" },
+  "Canonical.CollectionSkip": { kind: "collectionSkip" },
+  "Canonical.CollectionBefore": { kind: "collectionBefore" },
+  "Canonical.CollectionEqual": { kind: "collectionEqual" },
+  "Canonical.CollectionAfter": { kind: "collectionAfter" },
+  "Canonical.CollectionExpired": { kind: "collectionExpired" },
+  "Canonical.CollectionCurrent": { kind: "collectionCurrent" },
+  "Canonical.CollectionFits": { kind: "collectionFits" },
+  "Canonical.CollectionLimited": { kind: "collectionLimited" },
+  "Canonical.CollectionFindingSelected": { kind: "collectionFindingSelected" },
+  "Canonical.CollectionFindingRetained": { kind: "collectionFindingRetained" },
+  "Canonical.CollectionFindingLimited": { kind: "collectionFindingLimited" },
+  "Canonical.CollectionFindingExpired": { kind: "collectionFindingExpired" },
+  "Canonical.CollectionNoticeIncluded": { kind: "collectionNoticeIncluded" },
+  "Canonical.CollectionNoticeSkipped": { kind: "collectionNoticeSkipped" },
+  "Canonical.CollectionNoticeStopped": { kind: "collectionNoticeStopped" },
+  "Canonical.CollectionLeaseReserved": { kind: "collectionLeaseReserved" },
+  "Canonical.CollectionLeaseRefused": { kind: "collectionLeaseRefused" },
+  "Canonical.CollectionLeaseReleased": { kind: "collectionLeaseReleased" },
+  "Canonical.CollectionLeaseKept": { kind: "collectionLeaseKept" },
+  "Canonical.CollectionAdviceRetired": { kind: "collectionAdviceRetired" },
+  "Canonical.CollectionBackgroundClaimed": { kind: "collectionBackgroundClaimed" },
+  "Canonical.CollectionBackgroundRefused": { kind: "collectionBackgroundRefused" },
+  "Canonical.CollectionBackgroundReleased": { kind: "collectionBackgroundReleased" },
+  "Canonical.CollectionBackgroundKept": { kind: "collectionBackgroundKept" }
+}
+const decodeCollectionEligible = (value: unknown): DecodedOutputFields => {
   const name = tag(value)
   decodeCanonicalConstructor(value, name)
-  return {
-    kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Extract<
-      CanonicalCommand,
-      { kind: `collection${string}` }
-    >["kind"]
-  }
+  const fields = collectionOutputFields[name]
+  if (fields === undefined) throw new TypeError("unknown collection output")
+  return fields
 }
-const decodeFinishReserved = (value: unknown): CanonicalCommand => {
+const decodeFinishReserved = (value: unknown): DecodedOutputFields => {
   const name = tag(value)
   decodeCanonicalConstructor(value, name)
   return {
@@ -1687,23 +1720,23 @@ const decodeFinishReserved = (value: unknown): CanonicalCommand => {
       | "continuationRefused"
   }
 }
-const decodeFinishRecorded = (value: unknown): CanonicalCommand => {
+const decodeFinishRecorded = (value: unknown): DecodedOutputFields => {
   return {
     kind: "finishRecorded",
     outcome: writeOutcome(decodeCanonicalConstructor(value, "Canonical.FinishRecorded").outcome)
   }
 }
-const decodeSubmissionBegun = (value: unknown): CanonicalCommand => {
+const decodeSubmissionBegun = (value: unknown): DecodedOutputFields => {
   const name = tag(value)
   decodeCanonicalConstructor(value, name)
   return {
     kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Extract<
-      CanonicalCommand,
+      CanonicalOutput,
       { kind: `submission${string}` }
     >["kind"]
   }
 }
-const decodeRevisionReused = (value: unknown): CanonicalCommand => {
+const decodeRevisionReused = (value: unknown): DecodedOutputFields => {
   const name = tag(value)
   return {
     kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as
@@ -1713,10 +1746,10 @@ const decodeRevisionReused = (value: unknown): CanonicalCommand => {
     generation: nat(decodeCanonicalConstructor(value, name).generation)
   }
 }
-const decodeRevisionCount = (value: unknown): CanonicalCommand => {
+const decodeRevisionCount = (value: unknown): DecodedOutputFields => {
   return { kind: "revisionCount", count: nat(decodeCanonicalConstructor(value, "Canonical.RevisionCount").count) }
 }
-const decodeRevisionReleased = (value: unknown): CanonicalCommand => {
+const decodeRevisionReleased = (value: unknown): DecodedOutputFields => {
   const name = tag(value)
   decodeCanonicalConstructor(value, name)
   return {
@@ -1728,13 +1761,13 @@ const decodeRevisionReleased = (value: unknown): CanonicalCommand => {
       | "revisionNotSuperseded"
   }
 }
-const decodeCollectorUnavailable = (value: unknown): CanonicalCommand => {
+const decodeCollectorUnavailable = (value: unknown): DecodedOutputFields => {
   return {
     kind: "collectorUnavailable",
     reason: decodeCollectorReason(decodeCanonicalConstructor(value, "Canonical.CollectorUnavailable").reason)
   }
 }
-const decodeCleanupReady = (value: unknown): CanonicalCommand => {
+const decodeCleanupReady = (value: unknown): DecodedOutputFields => {
   const name = tag(value)
   decodeCanonicalConstructor(value, name)
   return {
@@ -1755,7 +1788,7 @@ const decodeCleanupReady = (value: unknown): CanonicalCommand => {
       | "deliveryKeepForReoffer"
   }
 }
-const decodeDeliverySubmissionCandidate = (value: unknown): CanonicalCommand => {
+const decodeDeliverySubmissionCandidate = (value: unknown): DecodedOutputFields => {
   const name = tag(value)
   decodeCanonicalConstructor(value, name)
   return {
@@ -1768,7 +1801,7 @@ const decodeDeliverySubmissionCandidate = (value: unknown): CanonicalCommand => 
       | "deliveryCredentialValid"
   }
 }
-const decodeIgnoreCandidate = (value: unknown): CanonicalCommand => {
+const decodeIgnoreCandidate = (value: unknown): DecodedOutputFields => {
   const name = tag(value)
   decodeCanonicalConstructor(value, name)
   return {
@@ -1780,7 +1813,7 @@ const decodeIgnoreCandidate = (value: unknown): CanonicalCommand => {
       | "retainCandidate"
   }
 }
-const decodeRoundStopBegun = (value: unknown): CanonicalCommand => {
+const decodeRoundStopBegun = (value: unknown): DecodedOutputFields => {
   const name = tag(value)
   decodeCanonicalConstructor(value, name)
   return {
@@ -1805,21 +1838,21 @@ const decodeRoundStopBegun = (value: unknown): CanonicalCommand => {
       | "deliveryUnreservedStopDenied"
   }
 }
-const decodeRoundStopTerminal = (value: unknown): CanonicalCommand => {
+const decodeRoundStopTerminal = (value: unknown): DecodedOutputFields => {
   const command = decodeCanonicalConstructor(value, "Canonical.RoundStopTerminal")
   return { kind: "roundStopTerminal", revokeProvisional: bool(command.revoke_provisional), close: bool(command.close) }
 }
-const decodeNoticeSuppressed = (value: unknown): CanonicalCommand => {
+const decodeNoticeSuppressed = (value: unknown): DecodedOutputFields => {
   const name = tag(value)
   return {
     kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as
       | "noticeSuppressed"
-      | "noticeCreatePending"
-      | "noticeMergePending",
+      | "noticePendingCreated"
+      | "noticePendingMerged",
     count: nat(decodeCanonicalConstructor(value, name).count)
   }
 }
-const decodeNoticePruned = (value: unknown): CanonicalCommand => {
+const decodeNoticePruned = (value: unknown): DecodedOutputFields => {
   const item = decodeCanonicalConstructor(value, "Canonical.NoticePruned")
   return {
     kind: "noticePruned",
@@ -1828,13 +1861,13 @@ const decodeNoticePruned = (value: unknown): CanonicalCommand => {
     dropKey: bool(item.drop_key)
   }
 }
-const decodeNoticeSelected = (value: unknown): CanonicalCommand => {
+const decodeNoticeSelected = (value: unknown): DecodedOutputFields => {
   return {
     kind: "noticeSelected",
     ids: readList(decodeCanonicalConstructor(value, "Canonical.NoticeSelected").ids, (id) => nat(id, true))
   }
 }
-const decodeIncludeChoice = (value: unknown): CanonicalCommand => {
+const decodeIncludeChoice = (value: unknown): DecodedOutputFields => {
   const choice = decodeCanonicalConstructor(value, "Canonical.IncludeChoice").choice
   const name = tag(choice)
   if (name !== "Configuration.ReplaceIncludes" && name !== "Configuration.KeepIncludes")
@@ -1845,7 +1878,7 @@ const decodeIncludeChoice = (value: unknown): CanonicalCommand => {
     choice: name === "Configuration.ReplaceIncludes" ? "replaceIncludes" : "keepIncludes"
   }
 }
-const decodeFileSelection = (value: unknown): CanonicalCommand => {
+const decodeFileSelection = (value: unknown): DecodedOutputFields => {
   const selection = decodeCanonicalConstructor(value, "Canonical.FileSelection").selection
   const names = ["Protected", "Excluded", "EmptyIncludes", "NotIncluded", "Selected"]
   const name = tag(selection)
@@ -1861,7 +1894,7 @@ const decodeFileSelection = (value: unknown): CanonicalCommand => {
       | "selected"
   }
 }
-const decodeFileProtection = (value: unknown): CanonicalCommand => {
+const decodeFileProtection = (value: unknown): DecodedOutputFields => {
   const protection = decodeCanonicalConstructor(value, "Canonical.FileProtection").protection
   const names = ["AllowedPath", "RepositoryBoundary", "SensitivePath", "GeneratedOrVendor", "FileExtension"]
   const name = tag(protection)
@@ -1877,7 +1910,7 @@ const decodeFileProtection = (value: unknown): CanonicalCommand => {
       | "fileExtension"
   }
 }
-const decodeCandidateFile = (value: unknown): CanonicalCommand => {
+const decodeCandidateFile = (value: unknown): DecodedOutputFields => {
   const candidate = decodeCanonicalConstructor(value, "Canonical.CandidateFile").candidate
   const names = ["CandidateAllowed", "RefuseGitAdmin", "RefuseFileKind", "RefuseGitIgnore"]
   const name = tag(candidate)
@@ -1892,7 +1925,7 @@ const decodeCandidateFile = (value: unknown): CanonicalCommand => {
       | "refuseGitIgnore"
   }
 }
-const decodeReviewAdmission = (value: unknown): CanonicalCommand => {
+const decodeReviewAdmission = (value: unknown): DecodedOutputFields => {
   const admission = decodeCanonicalConstructor(value, "Canonical.ReviewAdmission").admission
   const names = ["AdmitReview", "RefuseRoot", "RefuseConfiguration", "RefuseCredential", "RefuseSelection"]
   const name = tag(admission)
@@ -1908,14 +1941,14 @@ const decodeReviewAdmission = (value: unknown): CanonicalCommand => {
       | "refuseSelection"
   }
 }
-const decodeRuleGate = (value: unknown): CanonicalCommand => {
+const decodeRuleGate = (value: unknown): DecodedOutputFields => {
   const gate = decodeCanonicalConstructor(value, "Canonical.RuleGate").gate
   const name = tag(gate)
   if (name !== "RulePolicy.Admit" && name !== "RulePolicy.Omit") throw new TypeError("invalid rule gate")
   decodeCanonicalConstructor(gate, name)
   return { kind: "ruleGate", gate: name === "RulePolicy.Admit" ? "admit" : "omit" }
 }
-const decodeRuleOrder = (value: unknown): CanonicalCommand => {
+const decodeRuleOrder = (value: unknown): DecodedOutputFields => {
   const order = decodeCanonicalConstructor(value, "Canonical.RuleOrder").order
   const name = tag(order)
   if (name !== "RulePolicy.Before" && name !== "RulePolicy.Equal" && name !== "RulePolicy.After")
@@ -1926,14 +1959,14 @@ const decodeRuleOrder = (value: unknown): CanonicalCommand => {
     order: name === "RulePolicy.Before" ? "before" : name === "RulePolicy.After" ? "after" : "equal"
   }
 }
-const decodeNoticeRejectedFull = (value: unknown): CanonicalCommand => {
+const decodeNoticeRejectedFull = (value: unknown): DecodedOutputFields => {
   const name = tag(value)
   decodeCanonicalConstructor(value, name)
   return {
     kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as
       | "noticeRejectedFull"
-      | "noticeCreateKey"
-      | "noticeKeepLeased"
+      | "createNoticeKey"
+      | "noticeLeaseKept"
       | "noticeRefused"
       | "noticeCommitted"
       | "noticeDropped"
@@ -1941,69 +1974,69 @@ const decodeNoticeRejectedFull = (value: unknown): CanonicalCommand => {
       | "noticePendingCleared"
   }
 }
-const decodeCachePrepared = (value: unknown): CanonicalCommand => {
+const decodeCachePrepared = (value: unknown): DecodedOutputFields => {
   return {
     kind: "cachePrepared",
     evicted: readList(decodeCanonicalConstructor(value, "Canonical.CachePrepared").evicted, (id) => nat(id, true))
   }
 }
-const decodeCacheDiscarded = (value: unknown): CanonicalCommand => {
+const decodeCacheDiscarded = (value: unknown): DecodedOutputFields => {
   return {
     kind: "cacheDiscarded",
     ids: readList(decodeCanonicalConstructor(value, "Canonical.CacheDiscarded").ids, (id) => nat(id, true))
   }
 }
-const decodeReuseJoinAdvice = (value: unknown): CanonicalCommand => {
+const decodeReuseAdviceJoined = (value: unknown): DecodedOutputFields => {
   const name = tag(value)
   decodeCanonicalConstructor(value, name)
   return {
     kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Exclude<
-      Extract<CanonicalCommand, { kind: `reuse${string}` | `cache${string}` }>["kind"],
+      Extract<CanonicalOutput, { kind: `reuse${string}` | `cache${string}` }>["kind"],
       "cachePrepared" | "cacheDiscarded"
     >
   }
 }
-const decodeCollectorProceed = (value: unknown): CanonicalCommand => {
+const decodeCollectorProceed = (value: unknown): DecodedOutputFields => {
   const name = tag(value)
   decodeCanonicalConstructor(value, name)
   return {
     kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Exclude<
-      Extract<CanonicalCommand, { kind: `collector${string}` | `reuse${string}` }>["kind"],
+      Extract<CanonicalOutput, { kind: `collector${string}` | `reuse${string}` }>["kind"],
       "collectorUnavailable"
     >
   }
 }
-const decodeWriteAuthorized = (value: unknown): CanonicalCommand => {
+const decodeWriteAuthorized = (value: unknown): DecodedOutputFields => {
   return {
     kind: "writeAuthorized",
     operation: nat(decodeCanonicalConstructor(value, "Canonical.WriteAuthorized").operation, true)
   }
 }
-const decodeWriteRecorded = (value: unknown): CanonicalCommand => {
+const decodeWriteRecorded = (value: unknown): DecodedOutputFields => {
   return {
     kind: "writeRecorded",
     outcome: writeOutcome(decodeCanonicalConstructor(value, "Canonical.WriteRecorded").outcome)
   }
 }
-const decodeWaitForOutput = (value: unknown): CanonicalCommand => {
+const decodeWaitForOutput = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.WaitForOutput")
   return { kind: "waitForOutput" }
 }
-const decodeReofferAtStop = (value: unknown): CanonicalCommand => {
+const decodeReofferAtStop = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.ReofferAtStop")
   return { kind: "reofferAtStop" }
 }
-const decodePartitionRetired = (value: unknown): CanonicalCommand => {
+const decodePartitionRetired = (value: unknown): DecodedOutputFields => {
   return {
     kind: "partitionRetired",
     round: nat(decodeCanonicalConstructor(value, "Canonical.PartitionRetired").round, true)
   }
 }
-const decodeAdmissionForgotten = (value: unknown): CanonicalCommand => {
+const decodeAdmissionForgotten = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.AdmissionForgotten")
   return { kind: "admissionForgotten" }
 }
-const commandDecoders: Readonly<Record<string, (value: unknown) => CanonicalCommand>> = {
+const outputDecoders: Readonly<Record<string, (value: unknown) => DecodedOutputFields>> = {
   "Canonical.CapacityGranted": decodeCapacityGranted,
   "Canonical.CapacityRefused": decodeCapacityRefused,
   "Canonical.CapacityResized": decodeCapacityResized,
@@ -2041,11 +2074,11 @@ const commandDecoders: Readonly<Record<string, (value: unknown) => CanonicalComm
   "Canonical.JevRequestOutcomeRecorded": decodeJevRequestOutcomeRecorded,
   "Canonical.ReservationReleased": decodeReservationReleased,
   "Canonical.ReviewRecorded": decodeReviewRecorded,
-  "Canonical.RetainFinding": decodeRetainFinding,
+  "Canonical.FindingRetained": decodeFindingRetained,
   "Canonical.FindingCountRecorded": decodeFindingCountRecorded,
-  "Canonical.SettleClear": decodeSettleClear,
-  "Canonical.SettleStaleClear": decodeSettleStaleClear,
-  "Canonical.RetireStaleFinding": decodeRetireStaleFinding,
+  "Canonical.ClearSettled": decodeClearSettled,
+  "Canonical.StaleClearSettled": decodeStaleClearSettled,
+  "Canonical.StaleFindingRetired": decodeStaleFindingRetired,
   "Canonical.PreparedSkipped": decodePreparedSkipped,
   "Canonical.PreparedAdmitted": decodePreparedAdmitted,
   "Canonical.PreparedCapacityRefused": decodePreparedCapacityRefused,
@@ -2172,8 +2205,8 @@ const commandDecoders: Readonly<Record<string, (value: unknown) => CanonicalComm
   "Canonical.DeliveryUnreservedStopDenied": decodeRoundStopBegun,
   "Canonical.RoundStopTerminal": decodeRoundStopTerminal,
   "Canonical.NoticeSuppressed": decodeNoticeSuppressed,
-  "Canonical.NoticeCreatePending": decodeNoticeSuppressed,
-  "Canonical.NoticeMergePending": decodeNoticeSuppressed,
+  "Canonical.NoticePendingCreated": decodeNoticeSuppressed,
+  "Canonical.NoticePendingMerged": decodeNoticeSuppressed,
   "Canonical.NoticePruned": decodeNoticePruned,
   "Canonical.NoticeSelected": decodeNoticeSelected,
   "Canonical.IncludeChoice": decodeIncludeChoice,
@@ -2184,8 +2217,8 @@ const commandDecoders: Readonly<Record<string, (value: unknown) => CanonicalComm
   "Canonical.RuleGate": decodeRuleGate,
   "Canonical.RuleOrder": decodeRuleOrder,
   "Canonical.NoticeRejectedFull": decodeNoticeRejectedFull,
-  "Canonical.NoticeCreateKey": decodeNoticeRejectedFull,
-  "Canonical.NoticeKeepLeased": decodeNoticeRejectedFull,
+  "Canonical.CreateNoticeKey": decodeNoticeRejectedFull,
+  "Canonical.NoticeLeaseKept": decodeNoticeRejectedFull,
   "Canonical.NoticeRefused": decodeNoticeRejectedFull,
   "Canonical.NoticeCommitted": decodeNoticeRejectedFull,
   "Canonical.NoticeDropped": decodeNoticeRejectedFull,
@@ -2193,18 +2226,18 @@ const commandDecoders: Readonly<Record<string, (value: unknown) => CanonicalComm
   "Canonical.NoticePendingCleared": decodeNoticeRejectedFull,
   "Canonical.CachePrepared": decodeCachePrepared,
   "Canonical.CacheDiscarded": decodeCacheDiscarded,
-  "Canonical.ReuseJoinAdvice": decodeReuseJoinAdvice,
-  "Canonical.ReuseJoinPending": decodeReuseJoinAdvice,
-  "Canonical.ReuseJoinClaimed": decodeReuseJoinAdvice,
-  "Canonical.ReuseCached": decodeReuseJoinAdvice,
-  "Canonical.ReuseOwn": decodeReuseJoinAdvice,
-  "Canonical.ReuseClaimed": decodeReuseJoinAdvice,
-  "Canonical.ReuseAttached": decodeReuseJoinAdvice,
-  "Canonical.ReuseReleased": decodeReuseJoinAdvice,
-  "Canonical.ReuseRefused": decodeReuseJoinAdvice,
-  "Canonical.CacheAlready": decodeReuseJoinAdvice,
-  "Canonical.CacheRejected": decodeReuseJoinAdvice,
-  "Canonical.CacheCommitted": decodeReuseJoinAdvice,
+  "Canonical.ReuseAdviceJoined": decodeReuseAdviceJoined,
+  "Canonical.ReusePendingJoined": decodeReuseAdviceJoined,
+  "Canonical.ReuseClaimedJoined": decodeReuseAdviceJoined,
+  "Canonical.ReuseCacheHit": decodeReuseAdviceJoined,
+  "Canonical.ReuseOwned": decodeReuseAdviceJoined,
+  "Canonical.ReuseClaimed": decodeReuseAdviceJoined,
+  "Canonical.ReuseAttached": decodeReuseAdviceJoined,
+  "Canonical.ReuseReleased": decodeReuseAdviceJoined,
+  "Canonical.ReuseRefused": decodeReuseAdviceJoined,
+  "Canonical.CacheAlready": decodeReuseAdviceJoined,
+  "Canonical.CacheRejected": decodeReuseAdviceJoined,
+  "Canonical.CacheCommitted": decodeReuseAdviceJoined,
   "Canonical.CollectorProceed": decodeCollectorProceed,
   "Canonical.CollectorFinalProceed": decodeCollectorProceed,
   "Canonical.CollectorFinalRelease": decodeCollectorProceed,
@@ -2221,11 +2254,23 @@ const commandDecoders: Readonly<Record<string, (value: unknown) => CanonicalComm
   "Canonical.AdmissionForgotten": decodeAdmissionForgotten
 }
 
-const decodeCommand = (value: unknown): CanonicalCommand => {
-  const name = tag(value)
-  const decode = Object.hasOwn(commandDecoders, name) ? commandDecoders[name] : undefined
-  if (decode === undefined) throw new TypeError("unknown canonical command")
-  return decode(value)
+const decodeOutput = (value: unknown): CanonicalOutput => {
+  const wrapper = tag(value)
+  const category =
+    wrapper === "Canonical.ActionRequested"
+      ? "request"
+      : wrapper === "Canonical.EventEstablished"
+        ? "event"
+        : wrapper === "Canonical.PolicyDecided"
+          ? "decision"
+          : undefined
+  if (category === undefined) throw new TypeError("unknown canonical output")
+  const x = decodeCanonicalConstructor(value, wrapper)
+  const payload = category === "request" ? x.request : category === "event" ? x.event : x.decision
+  const name = tag(payload)
+  const decode = Object.hasOwn(outputDecoders, name) ? outputDecoders[name] : undefined
+  if (decode === undefined) throw new TypeError("unknown canonical output")
+  return readOutput({ ...object(decode(payload)), category })
 }
 const known = new WeakSet<object>()
 // Projections contain validated numeric facts, not native handles or payloads.
@@ -2838,20 +2883,20 @@ export const initialCanonical = (input: typeof CanonicalLimitsSchema.Type): unkn
 export const stepCanonical = (
   state: unknown,
   event: CanonicalEvent
-): { readonly state: unknown; readonly commands: readonly CanonicalCommand[]; readonly rejection?: string } => {
+): { readonly state: unknown; readonly outputs: readonly CanonicalOutput[]; readonly rejection?: string } => {
   projectCanonical(state)
   return decodeTrustedCanonicalStep(bendCanonicalStep(state, encodeCanonicalEvent(event)))
 }
 /** Decode a checked result produced by a core which composes Canonical directly. */
 export const decodeTrustedCanonicalStep = (
   raw: unknown
-): { readonly state: unknown; readonly commands: readonly CanonicalCommand[]; readonly rejection?: string } => {
+): { readonly state: unknown; readonly outputs: readonly CanonicalOutput[]; readonly rejection?: string } => {
   switch (tag(raw)) {
     case "Canonical.Advanced": {
       const x = decodeCanonicalConstructor(raw, "Canonical.Advanced")
-      const commands = readList(x.commands, decodeCommand)
+      const outputs = readList(x.outputs, decodeOutput)
       registerCanonical(x.state)
-      return { state: x.state, commands }
+      return { state: x.state, outputs }
     }
     case "Canonical.Rejected": {
       const x = decodeCanonicalConstructor(raw, "Canonical.Rejected")
@@ -2861,7 +2906,7 @@ export const decodeTrustedCanonicalStep = (
           ? reason.reason.$.slice("Admission.".length)
           : reason.$.slice("Canonical.".length)
       registerCanonical(x.state)
-      return { state: x.state, commands: [], rejection }
+      return { state: x.state, outputs: [], rejection }
     }
     default:
       throw new TypeError("unknown canonical step")

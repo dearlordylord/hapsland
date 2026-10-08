@@ -323,8 +323,8 @@ try {
   assert.ok(staleTrace)
   const staleEvents = staleTrace.events.slice(0, 12)
   for (const [index, event] of staleEvents.entries()) await applyManual(event, index + 1)
-  await waitForText(".topology-step", "retireStaleFinding")
-  assert.match(await page.locator(".topology-step").innerText(), /retireStaleFinding/)
+  await waitForText(".topology-step", "staleFindingRetired")
+  assert.match(await page.locator(".topology-step").innerText(), /staleFindingRetired/)
   assert.equal(
     await page
       .locator(".topology-route.active")

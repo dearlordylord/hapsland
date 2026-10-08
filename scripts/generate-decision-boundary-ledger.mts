@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs"
 import { relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import * as Schema from "effect/Schema"
-import { CanonicalEventSchema, CanonicalCommandSchema } from "@hapsland/canonical-policy/canonical/models"
+import { CanonicalEventSchema, CanonicalOutputSchema } from "@hapsland/canonical-policy/canonical/models"
 import { ImportGraphEventSchema, ImportGraphCommandSchema } from "@hapsland/canonical-policy/canonical/graph-schema"
 import { readPackageGraph, resolveWorkspaceTypeSource } from "./package-graph.mjs"
 
@@ -31,9 +31,14 @@ export const boundarySchemaRows = (schema: Schema.Constraint) => {
   const root = dereference(document.schema)
   const branches = root.anyOf ?? root.oneOf
   if (!Array.isArray(branches)) throw new Error("Boundary schema must be a tagged union")
-  const rows = branches
-    .flatMap((value) => {
+  const variants = (values: readonly unknown[]): ObjectValue[] =>
+    values.flatMap((value) => {
       const branch = dereference(value)
+      const nested = branch.anyOf ?? branch.oneOf
+      return Array.isArray(nested) ? variants(nested) : [branch]
+    })
+  const rows = variants(branches)
+    .flatMap((branch) => {
       const properties = object(branch.properties)
       const discriminator = dereference(properties.kind)
       const kinds = discriminator.const === undefined ? discriminator.enum : [discriminator.const]
@@ -41,10 +46,20 @@ export const boundarySchemaRows = (schema: Schema.Constraint) => {
         throw new Error("Boundary variant lacks kind literals")
       const required = branch.required
       if (!Array.isArray(required) || !required.includes("kind")) throw new Error("Boundary variant must require kind")
+      const categoryNode = properties.category === undefined ? undefined : dereference(properties.category)
+      const category =
+        categoryNode?.const ??
+        (Array.isArray(categoryNode?.enum) && categoryNode.enum.length === 1 ? categoryNode.enum[0] : undefined)
+      if (
+        properties.category !== undefined &&
+        (!["request", "event", "decision"].includes(String(category)) || !required.includes("category"))
+      )
+        throw new Error("Boundary output must require one recognized category")
       return kinds.map((kind: string) => ({
         kind,
+        ...(category === undefined ? {} : { category: String(category) }),
         fields: Object.keys(properties)
-          .filter((field) => field !== "kind")
+          .filter((field) => field !== "kind" && field !== "category")
           .sort()
           .map((field) => `${field}${required.includes(field) ? "" : "?"}`)
       }))
@@ -56,9 +71,9 @@ export const boundarySchemaRows = (schema: Schema.Constraint) => {
 const schemas = [
   { name: "Canonical events", specifier: "@hapsland/canonical-policy/canonical/models", schema: CanonicalEventSchema },
   {
-    name: "Canonical commands",
+    name: "Canonical outputs",
     specifier: "@hapsland/canonical-policy/canonical/models",
-    schema: CanonicalCommandSchema
+    schema: CanonicalOutputSchema
   },
   {
     name: "ImportGraph events",
@@ -161,6 +176,8 @@ export const decisionBoundaryDocument = (current: string, model: ReturnType<type
     "",
     "## Code-derived boundary inventory",
     "",
+    "Canonical outputs form one ordered stream. Each output is an action request (`request`), established canonical event (`event`), or policy decision (`decision`); the alphabetical inventory below does not create separate execution streams. Requests ask the host to act, events report committed canonical transitions, and decisions report policy outcomes. Native effects and observations retain their own execution boundary.",
+    "",
     "This inventory resolves declared private exports through the package graph and reads variant kinds and fields from the production Effect schemas. It establishes representation and ownership facts, not why a decision belongs outside Bend, review acceptance, runtime execution, or passing tests. A `?` marks an optional field. Regenerate with `npm run docs:generate`.",
     "",
     "### Reviewed event selections",
@@ -192,11 +209,15 @@ export const decisionBoundaryDocument = (current: string, model: ReturnType<type
       "",
       `Schema owner: ${link(inventory.source, inventory.source)}.`,
       "",
-      "| Kind | Fields after kind |",
-      "| --- | --- |"
+      inventory.name === "Canonical outputs"
+        ? "| Kind | Category | Fields after kind and category |"
+        : "| Kind | Fields after kind |",
+      inventory.name === "Canonical outputs" ? "| --- | --- | --- |" : "| --- | --- |"
     )
     for (const row of inventory.rows)
-      lines.push(`| ${markdown(row.kind)} | ${row.fields.map(markdown).join(", ") || "—"} |`)
+      lines.push(
+        `| ${markdown(row.kind)} | ${inventory.name === "Canonical outputs" ? `${markdown(row.category ?? "")} | ` : ""}${row.fields.map(markdown).join(", ") || "—"} |`
+      )
   }
   lines.push("", end)
   return `${current.slice(0, begin)}${lines.join("\n")}${current.slice(finish + end.length)}`

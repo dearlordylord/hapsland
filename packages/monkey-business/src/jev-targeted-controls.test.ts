@@ -6,7 +6,7 @@ const edit = { at: 0, kind: "edit" as const, bytes: 10, unitBytes: [5], outcome:
 const issued = (run: Run): JevRequestTarget => {
   for (let step = 0; step < 100; step++) {
     const frame = run.step()
-    const command = frame?.commands.find((command) => command.kind === "jevRequestIssued")
+    const command = frame?.outputs.find((command) => command.kind === "jevRequestIssued")
     if (command?.kind === "jevRequestIssued")
       return {
         partition: command.partition,
@@ -45,7 +45,7 @@ it("targets an issued request before start, preserves its due time and recovers 
   run.schedule({ ...edit, at: run.now })
   run.advance({ untilTime: run.now + 10 })
   expect(
-    run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "submissionRecorded")
+    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "submissionRecorded")
   ).toHaveLength(1)
   expect(run.observations.filter((frame) => frame.rejection)).toEqual([])
   replayExact(run)
@@ -75,7 +75,7 @@ it("visibly refuses wrong, unknown, started and terminal targets without replaci
     run.observations.filter((frame) => frame.event.kind === "jevRequestSettled").map((frame) => frame.event)
   ).toEqual([{ kind: "jevRequestSettled", ...target, outcome: "finding", currentWork: true }])
   expect(
-    run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "submissionRecorded")
+    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "submissionRecorded")
   ).toHaveLength(1)
   expect(run.observations.filter((frame) => frame.rejection)).toEqual([])
   replayExact(run)
@@ -111,12 +111,12 @@ it("restores availability without changing issuance authority, and rotation reti
   run.advance({ untilTime: 8 })
   expect(run.projection.pendingFindings).toHaveLength(1)
   expect(
-    run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "submissionRecorded")
+    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "submissionRecorded")
   ).toEqual([])
   run.applyControl({ kind: "credentials", action: "restore" })
   run.advance({ untilTime: 9 })
   expect(
-    run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "submissionRecorded")
+    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "submissionRecorded")
   ).toHaveLength(1)
   run.schedule({ ...edit, at: 10 })
   reach(run, () => run.observations.filter((frame) => frame.event.kind === "jevRequestSettled").length === 2)
@@ -128,13 +128,13 @@ it("restores availability without changing issuance authority, and rotation reti
   expect(run.projection.dispatch.running).toEqual([])
   expect(run.projection.collection.leases).toEqual([])
   expect(
-    run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "submissionRecorded")
+    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "submissionRecorded")
   ).toHaveLength(1)
   expect(run.interventions.map((report) => report.result)).toEqual(["applied", "applied", "applied"])
   run.schedule({ ...edit, at: 21 })
   run.advance({ untilTime: 30 })
   expect(
-    run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "submissionRecorded")
+    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "submissionRecorded")
   ).toHaveLength(2)
   expect(run.observations.filter((frame) => frame.rejection)).toEqual([])
   replayExact(run)
@@ -146,7 +146,7 @@ it("refuses issuance while credentials are unavailable and restores fresh admiss
   run.schedule(edit)
   run.advance({ untilTime: 10, maxEvents: 100 })
   expect(
-    run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "jevRequestUnavailable")
+    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "jevRequestUnavailable")
   ).toHaveLength(1)
   expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toEqual([])
   expect(run.projection.dispatch.requests).toEqual([])
@@ -156,7 +156,7 @@ it("refuses issuance while credentials are unavailable and restores fresh admiss
   run.advance({ untilTime: 21, maxEvents: 100 })
   expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(1)
   expect(
-    run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "submissionRecorded")
+    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "submissionRecorded")
   ).toHaveLength(1)
   expect(run.observations.filter((frame) => frame.rejection)).toEqual([])
   expect(run.interventions.map((report) => report.result)).toEqual(["applied", "applied"])
@@ -167,6 +167,14 @@ it.each([2, 2050])(
   "restores and rotates credentials after %i terminal requests on one resident",
   (count) => {
     const run = createRun({ inputs: [], jevDelay: 1 })
+    const observed = { started: 0, clear: 0, finding: 0, submitted: 0, rejected: 0 }
+    run.subscribe((frame) => {
+      if (frame.event.kind === "jevRequestStarted") observed.started++
+      if (frame.event.kind === "jevRequestSettled" && frame.event.outcome === "clear") observed.clear++
+      if (frame.event.kind === "jevRequestSettled" && frame.event.outcome === "finding") observed.finding++
+      if (frame.rejection) observed.rejected++
+      observed.submitted += frame.outputs.filter((output) => output.kind === "submissionRecorded").length
+    })
     for (let cycle = 0; cycle < count; cycle++) {
       run.schedule({ ...edit, outcome: "clear", at: cycle * 10 })
       run.advance({ untilTime: cycle * 10 + 9, maxEvents: 100 })
@@ -182,17 +190,7 @@ it.each([2, 2050])(
     expect(run.interventions.map((report) => report.result)).toEqual(["applied", "applied", "applied"])
     expect(run.projection.dispatch.requests).toEqual([])
     expect(run.projection.dispatch.running).toEqual([])
-    expect(run.observations.filter((frame) => frame.rejection)).toEqual([])
-    expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(count + 1)
-    expect(
-      run.observations.filter((frame) => frame.event.kind === "jevRequestSettled" && frame.event.outcome === "clear")
-    ).toHaveLength(count)
-    expect(
-      run.observations.filter((frame) => frame.event.kind === "jevRequestSettled" && frame.event.outcome === "finding")
-    ).toHaveLength(1)
-    expect(
-      run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "submissionRecorded")
-    ).toHaveLength(1)
+    expect(observed).toEqual({ started: count + 1, clear: count, finding: 1, submitted: 1, rejected: 0 })
   },
   300000
 )

@@ -15,10 +15,10 @@ for (const trace of fixture.traces) {
     state = result.state
     const actual =
       result.rejection === undefined
-        ? result.commands.map((command) => command.kind).join(",")
+        ? result.outputs.map((command) => command.kind).join(",")
         : `rejected:${result.rejection}`
     assert.equal(actual, expected, `${trace.name}: ${event.kind} operation ${event.operation ?? "-"}`)
-    const issued = result.commands.filter((command) => command.kind === "jevRequestIssued")
+    const issued = result.outputs.filter((command) => command.kind === "jevRequestIssued")
     assert.deepEqual(
       issued,
       issuedRequest === undefined ? [] : [issuedRequest],

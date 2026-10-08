@@ -268,53 +268,111 @@ type CapacityView is Data:
   CapacityView{global: Ledger.Usage, local: Ledger.Usage,
     charges: List<&2, Ledger.Charge>}
 
-type Command is Data:
+type ActionRequest is Data:
+  Prepare{operation: Nat, reservation: Nat}
+  CancelWork{operation: Nat}
+  CreateNoticeKey{}
+
+type DomainEvent is Data:
   CapacityGranted{id: Nat, after: CapacityView}
-  CapacityRefused{reason: Ledger.FitDecision, after: CapacityView}
   CapacityResized{id: Nat, after: CapacityView}
   CapacityUnitAdmitted{reservation: Nat, position: Nat, bytes: Nat, after: CapacityView}
-  CapacityUnitRefused{position: Nat, bytes: Nat, reason: Ledger.FitDecision,
-    after: CapacityView}
   PermitIssued{token: Nat, round: Nat}
-  CompletedEditAbsent{}
   CompletedEditSeen{reason: EditHistory.Reason, report: Bool}
   CompletedEditRemembered{evicted: Maybe<&2, Nat>}
   QuietRoundBusy{}
   QuietRoundWaiting{since: Nat}
-  QuietRoundExpired{since: Nat}
   QuietRoundResetRecorded{}
   PermitConsumed{round: Nat}
   PermitReleased{}
   PermitExpired{}
-  PermitKept{}
   PermitRoundClosed{round: Nat}
   RoundStarted{id: Nat}
   ObservationAdmitted{id: Nat}
   ObservationStarted{}
   ObservationCompleted{}
   ObservationInterrupted{}
-  Prepare{operation: Nat, reservation: Nat}
-  PreparationRefused{}
   UnitAdmitted{operation: Nat, reservation: Nat, position: Nat, bytes: Nat,
-    after: CapacityView}
-  UnitRefused{position: Nat, bytes: Nat, reason: Ledger.FitDecision,
     after: CapacityView}
   PreparationReleased{id: Nat, after: CapacityView}
   ReviewStarted{}
   JevRequestIssued{partition: Nat, lifetime: Nat, round: Nat,
     operation: Nat, request: Nat}
-  JevRequestUnavailable{}
   JevRequestStartRecorded{}
   JevInterruptionRecorded{}
   JevRequestOutcomeRecorded{outcome: RequestOutcome}
-  JevObservationIgnored{}
   ReservationReleased{id: Nat}
   ReviewRecorded{outcome: Outcome}
-  RetainFinding{}
+  FindingRetained{}
   FindingCountRecorded{}
-  SettleClear{}
-  SettleStaleClear{}
-  RetireStaleFinding{}
+  ClearSettled{}
+  StaleClearSettled{}
+  StaleFindingRetired{}
+  DispatchStarted{operation: Nat, sequence: Nat}
+  DispatchDiscarded{operation: Nat, running: Bool}
+  WaitForWork{}
+  FinishReady{}
+  FinishLimit{}
+  StopEnded{}
+  CollectionEligible{}
+  CollectionLeaseReserved{}
+  CollectionLeaseReleased{}
+  CollectionAdviceRetired{}
+  CollectionBackgroundClaimed{}
+  CollectionBackgroundReleased{}
+  FinishReserved{}
+  FinishReleased{}
+  FinishAuthorized{}
+  FinishRecorded{outcome: WriteOutcome}
+  FinishEnded{}
+  ContinuationConsumed{}
+  SubmissionBegun{}
+  SubmissionAuthorized{}
+  SubmissionRecorded{}
+  SubmissionReleased{}
+  SubmissionForgotten{}
+  RevisionReused{generation: Nat}
+  RevisionReplaced{generation: Nat}
+  RevisionReleased{}
+  CleanupCommitted{}
+  ReuseAdviceJoined{}
+  ReusePendingJoined{}
+  ReuseClaimedJoined{}
+  ReuseCacheHit{}
+  ReuseOwned{}
+  ReuseClaimed{}
+  ReuseAttached{}
+  ReuseReleased{}
+  CachePrepared{evicted: List<&2, Nat>}
+  CacheCommitted{}
+  CacheDiscarded{ids: List<&2, Nat>}
+  NoticeSuppressed{count: Nat}
+  NoticePendingCreated{count: Nat}
+  NoticePendingMerged{count: Nat}
+  NoticeLeaseKept{}
+  NoticeCommitted{}
+  NoticePruned{drop_lease: Bool, drop_pending: Bool, drop_key: Bool}
+  NoticeDropped{}
+  NoticeLeased{}
+  NoticePendingCleared{}
+  WriteAuthorized{operation: Nat}
+  WriteRecorded{outcome: WriteOutcome}
+  ReofferAtStop{}
+  PartitionRetired{round: Nat}
+  AdmissionForgotten{}
+
+type PolicyDecision is Data:
+  CapacityRefused{reason: Ledger.FitDecision, after: CapacityView}
+  CapacityUnitRefused{position: Nat, bytes: Nat, reason: Ledger.FitDecision,
+    after: CapacityView}
+  CompletedEditAbsent{}
+  QuietRoundExpired{since: Nat}
+  PermitKept{}
+  PreparationRefused{}
+  UnitRefused{position: Nat, bytes: Nat, reason: Ledger.FitDecision,
+    after: CapacityView}
+  JevRequestUnavailable{}
+  JevObservationIgnored{}
   PreparedSkipped{}
   PreparedAdmitted{}
   PreparedCapacityRefused{}
@@ -324,17 +382,8 @@ type Command is Data:
   FailureCredential{}
   FailureLost{}
   FailureNone{}
-  DispatchStarted{operation: Nat, sequence: Nat}
-  DispatchDiscarded{operation: Nat, running: Bool}
   DiscardNamedOnly{}
   DiscardAllUnfinished{}
-  WaitForWork{}
-  CancelWork{operation: Nat}
-  # Ready for advice selection; output still requires authorization.
-  FinishReady{}
-  FinishLimit{}
-  StopEnded{}
-  CollectionEligible{}
   CollectionWaiting{}
   CollectionRetireCredential{}
   CollectionRetainCredential{}
@@ -354,42 +403,23 @@ type Command is Data:
   CollectionNoticeIncluded{}
   CollectionNoticeSkipped{}
   CollectionNoticeStopped{}
-  CollectionLeaseReserved{}
   CollectionLeaseRefused{}
-  CollectionLeaseReleased{}
   CollectionLeaseKept{}
-  CollectionAdviceRetired{}
-  CollectionBackgroundClaimed{}
   CollectionBackgroundRefused{}
-  CollectionBackgroundReleased{}
   CollectionBackgroundKept{}
-  FinishReserved{}
   FinishNotices{}
   FinishAllowedNoAdvice{}
   FinishAllowedDeadline{}
   FinishAllowedUnavailable{}
   FinishRefused{}
-  FinishReleased{}
-  FinishAuthorized{}
-  FinishRecorded{outcome: WriteOutcome}
-  FinishEnded{}
-  ContinuationConsumed{}
   ContinuationRefused{}
-  SubmissionBegun{}
-  SubmissionAuthorized{}
-  SubmissionRecorded{}
-  SubmissionReleased{}
   SubmissionRefused{}
-  SubmissionForgotten{}
   SubmissionSuppresses{}
   SubmissionUnsuppressed{}
   SubmissionReofferable{}
   SubmissionNotReofferable{}
   SubmissionExpired{}
   SubmissionCurrent{}
-  RevisionReused{generation: Nat}
-  RevisionReplaced{generation: Nat}
-  RevisionReleased{}
   RevisionCurrent{}
   RevisionStale{}
   RevisionSuperseded{}
@@ -407,7 +437,6 @@ type Command is Data:
   ReuseSetMemberLost{}
   CleanupReady{}
   CleanupBusy{}
-  CleanupCommitted{}
   DeliveryReleaseUnacknowledged{}
   DeliveryKeepAcknowledged{}
   DeliveryAckReady{}
@@ -449,32 +478,11 @@ type Command is Data:
   DeliveryExistingTokenDenied{}
   DeliveryUnreservedStopAllowed{}
   DeliveryUnreservedStopDenied{}
-  ReuseJoinAdvice{}
-  ReuseJoinPending{}
-  ReuseJoinClaimed{}
-  ReuseCached{}
-  ReuseOwn{}
-  ReuseClaimed{}
-  ReuseAttached{}
-  ReuseReleased{}
   ReuseRefused{}
   CacheAlready{}
   CacheRejected{}
-  CachePrepared{evicted: List<&2, Nat>}
-  CacheCommitted{}
-  CacheDiscarded{ids: List<&2, Nat>}
-  NoticeSuppressed{count: Nat}
   NoticeRejectedFull{}
-  NoticeCreateKey{}
-  NoticeCreatePending{count: Nat}
-  NoticeMergePending{count: Nat}
-  NoticeKeepLeased{}
   NoticeRefused{}
-  NoticeCommitted{}
-  NoticePruned{drop_lease: Bool, drop_pending: Bool, drop_key: Bool}
-  NoticeDropped{}
-  NoticeLeased{}
-  NoticePendingCleared{}
   NoticeSelected{ids: List<&2, Nat>}
   IncludeChoice{choice: Configuration.IncludeChoice}
   FileSelection{selection: Configuration.Selection}
@@ -483,13 +491,12 @@ type Command is Data:
   ReviewAdmission{admission: Configuration.Admission}
   RuleGate{gate: RulePolicy.Gate}
   RuleOrder{order: RulePolicy.Order}
-  WriteAuthorized{operation: Nat}
-  WriteRecorded{outcome: WriteOutcome}
   WaitForOutput{}
-  ReofferAtStop{}
-  PartitionRetired{round: Nat}
-  AdmissionForgotten{}
 
+type Output is Data:
+  ActionRequested{request: ActionRequest}
+  EventEstablished{event: DomainEvent}
+  PolicyDecided{decision: PolicyDecision}
 type Reason is Data:
   InvalidIdentity{}
   RoundLimit{}
@@ -503,7 +510,7 @@ type Reason is Data:
   PermitDenied{reason: Admission.AdmissionRejection}
 
 type Step is Data:
-  Advanced{state: State, commands: List<&2, Command>}
+  Advanced{state: State, outputs: List<&2, Output>}
   Rejected{state: State, reason: Reason}
 
 def initial(limits: Ledger.Limits) -> State:
@@ -524,10 +531,10 @@ def history_of(state: State) -> EditHistory.State:
 def checked_completed_edit(+state: State, tool: Nat, result: EditHistory.Lookup) -> Step:
   match result:
     case EditHistory.Absent{}:
-      Advanced{state, CompletedEditAbsent{} <> Nil{}}
+      Advanced{state, PolicyDecided{CompletedEditAbsent{}} <> Nil{}}
     case EditHistory.Seen{reason, report}:
       Advanced{with_history(state, EditHistory.mark_reported(tool, history_of(state))),
-        CompletedEditSeen{reason, report} <> Nil{}}
+        EventEstablished{CompletedEditSeen{reason, report}} <> Nil{}}
 
 def check_completed_edit(+state: State, +tool: Nat) -> Step:
   checked_completed_edit(state, tool, EditHistory.lookup(tool, history_of(state)))
@@ -535,7 +542,10 @@ def check_completed_edit(+state: State, +tool: Nat) -> Step:
 def remembered_completed_edit(state: State, result: EditHistory.Record) -> Step:
   match result:
     case EditHistory.Recorded{replacement, evicted}:
-      Advanced{with_history(state, replacement), CompletedEditRemembered{evicted} <> Nil{}}
+      Advanced{
+        with_history(state, replacement),
+        EventEstablished{CompletedEditRemembered{evicted}} <> Nil{}
+      }
 
 def remember_completed_checked(+state: State, tool: Nat, reason: EditHistory.Reason,
     lookup: EditHistory.Lookup) -> Step:
@@ -543,7 +553,7 @@ def remember_completed_checked(+state: State, tool: Nat, reason: EditHistory.Rea
     case EditHistory.Absent{}:
       remembered_completed_edit(state, EditHistory.record(tool, reason, history_of(state)))
     case EditHistory.Seen{_, _}:
-      Advanced{state, CompletedEditRemembered{None{}} <> Nil{}}
+      Advanced{state, EventEstablished{CompletedEditRemembered{None{}}} <> Nil{}}
 
 def remember_completed_edit(+state: State, +tool: Nat, reason: EditHistory.Reason) -> Step:
   remember_completed_checked(state, tool, reason, EditHistory.lookup(tool, history_of(state)))
@@ -573,8 +583,11 @@ def find_admission(+partition: Nat,
       Bool.pick(Maybe<&2, Admission.AdmissionState>, admission_matches(partition, item),
         Some{item}, find_admission(partition, rest))
 
-def retain_admission(item: Admission.AdmissionState,
-    tail: List<&2, Admission.AdmissionState>, match_owner: Bool) -> List<&2, Admission.AdmissionState>:
+def retain_admission(
+  item: Admission.AdmissionState,
+  tail: List<&2, Admission.AdmissionState>,
+  match_owner: Bool
+) -> List<&2, Admission.AdmissionState>:
   match match_owner:
     case True{}:
       tail
@@ -593,7 +606,17 @@ def remove_admission(+partition: Nat,
 def with_admission(state: State, +partition: Nat,
     admission: Admission.AdmissionState) -> State:
   match state:
-    case State{ledger, rounds, work, next_round, next_operation, admissions, +dispatch, +collection, +history}:
+    case State{
+      ledger,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      admissions,
+      +dispatch,
+      +collection,
+      +history
+    }:
       State{ledger, rounds, work, next_round, next_operation,
         admission <> remove_admission(partition, admissions), dispatch, collection, history}
 
@@ -616,9 +639,11 @@ def forget_admission_found(+state: State, +partition: Nat, +lifetime: Nat,
     case State{ledger, rounds, work, next_round, next_operation, admissions,
         dispatch, collection, +history} None{}:
       Advanced{State{ledger, rounds, work, next_round, next_operation,
-        admissions, dispatch, collection, history}, AdmissionForgotten{} <> Nil{}}
+        admissions, dispatch, collection, history}, EventEstablished{AdmissionForgotten{}} <> Nil{}}
     case State{ledger, rounds, work, next_round, next_operation, admissions,
-        dispatch, collection, +history} Some{Admission.AdmissionState{owner, generation, _, active, _, _, permits}}:
+        dispatch, collection, +history} Some{
+          Admission.AdmissionState{owner, generation, _, active, _, _, permits}
+        }:
       Bool.pick(Step, Bool.and(Nat.is_eq(owner, partition),
         Bool.and(Nat.is_eq(generation, lifetime),
         Bool.and(Bool.not(active), Bool.and(List.is_empty(&2, Admission.Permit, permits),
@@ -626,7 +651,7 @@ def forget_admission_found(+state: State, +partition: Nat, +lifetime: Nat,
         no_round_for_partition(partition, rounds)))))),
         Advanced{State{ledger, rounds, work, next_round, next_operation,
           remove_admission(partition, admissions), dispatch, collection, history},
-          AdmissionForgotten{} <> Nil{}},
+          EventEstablished{AdmissionForgotten{}} <> Nil{}},
         Rejected{State{ledger, rounds, work, next_round, next_operation,
           admissions, dispatch, collection, history}, WrongStage{}})
 
@@ -667,7 +692,7 @@ def pending_resident_permits(admissions: List<&2, Admission.AdmissionState>) -> 
       (Admission.pending_count(admission) + pending_resident_permits(rest) : Nat)
 
 def permit_result(state: State, +partition: Nat,
-    result: Admission.AdmissionResult, command: Command) -> Step:
+    result: Admission.AdmissionResult, command: Output) -> Step:
   match result:
     case Admission.Accepted{admission, _, _}:
       Advanced{with_admission(state, partition, admission), command <> Nil{}}
@@ -695,7 +720,7 @@ def issue_result(state: State, +partition: Nat,
   match result:
     case Admission.Accepted{admission, Some{token}, Some{round}}:
       Advanced{with_quiet_round(with_admission(state, partition, admission), partition, None{}),
-        PermitIssued{token, round} <> Nil{}}
+        EventEstablished{PermitIssued{token, round}} <> Nil{}}
     case Admission.Rejected{_, reason}:
       Rejected{state, PermitDenied{reason}}
     case _:
@@ -706,7 +731,10 @@ def close_permit_result(state: State, +partition: Nat,
     result: Admission.AdmissionResult) -> Step:
   match result:
     case Admission.Accepted{admission, _, Some{round}}:
-      Advanced{with_admission(state, partition, admission), PermitRoundClosed{round} <> Nil{}}
+      Advanced{
+        with_admission(state, partition, admission),
+        EventEstablished{PermitRoundClosed{round}} <> Nil{}
+      }
     case Admission.Rejected{_, reason}:
       Rejected{state, PermitDenied{reason}}
     case _:
@@ -766,15 +794,18 @@ def issue_permit(+state: State, +partition: Nat, +lifetime: Nat,
 def release_permit(+state: State, +partition: Nat, +lifetime: Nat,
     +token: Nat) -> Step:
   permit_result(state, partition, Admission.step(current_admission(state, partition, lifetime),
-    partition, lifetime, Admission.Release{token}), PermitReleased{})
+    partition, lifetime, Admission.Release{token}), EventEstablished{PermitReleased{}})
 
 def expire_permit_result(state: State, +partition: Nat,
     result: Admission.ExpiryResult) -> Step:
   match result:
     case Admission.KeepPermit{_}:
-      Advanced{state, PermitKept{} <> Nil{}}
+      Advanced{state, PolicyDecided{PermitKept{}} <> Nil{}}
     case Admission.RemovePermit{admission}:
-      Advanced{with_admission(state, partition, admission), PermitExpired{} <> Nil{}}
+      Advanced{
+        with_admission(state, partition, admission),
+        EventEstablished{PermitExpired{}} <> Nil{}
+      }
 
 def expire_permit_checked(+state: State, +partition: Nat, +lifetime: Nat,
     +token: Nat, deadline_reached: Bool, admission: Admission.AdmissionState) -> Step:
@@ -812,7 +843,12 @@ def find_round(+partition: Nat, rounds: List<&2, Round>) -> Maybe<&2, Round>:
     case Nil{}:
       None{}
     case +round <> rest:
-      Bool.pick(Maybe<&2, Round>, same_partition(partition, round), Some{round}, find_round(partition, rest))
+      Bool.pick(
+        Maybe<&2, Round>,
+        same_partition(partition, round),
+        Some{round},
+        find_round(partition, rest)
+      )
 
 def remove_round_pick(round: Round, tail: List<&2, Round>, hit: Bool) -> List<&2, Round>:
   match hit:
@@ -892,12 +928,15 @@ def quiet_round_decision(+state: State, partition: Nat,
     decision: Quiescence.Decision) -> Step:
   match decision:
     case Quiescence.Busy{}:
-      Advanced{with_quiet_round(state, partition, None{}), QuietRoundBusy{} <> Nil{}}
+      Advanced{
+        with_quiet_round(state, partition, None{}),
+        EventEstablished{QuietRoundBusy{}} <> Nil{}
+      }
     case Quiescence.Waiting{+since}:
       Advanced{with_quiet_round(state, partition, Some{since}),
-        QuietRoundWaiting{since} <> Nil{}}
+        EventEstablished{QuietRoundWaiting{since}} <> Nil{}}
     case Quiescence.Expired{since}:
-      Advanced{state, QuietRoundExpired{since} <> Nil{}}
+      Advanced{state, PolicyDecided{QuietRoundExpired{since}} <> Nil{}}
 
 def quiet_round_current(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, now: Nat, window: Nat, facts: Quiescence.Facts,
@@ -937,7 +976,7 @@ def quiet_round_reset_found(+state: State, +partition: Nat, +lifetime: Nat,
     case Some{+current}:
       Bool.pick(Step, same_round(partition, lifetime, round, current),
         Advanced{with_quiet_round(state, partition, None{}),
-          QuietRoundResetRecorded{} <> Nil{}},
+          EventEstablished{QuietRoundResetRecorded{}} <> Nil{}},
         Rejected{state, StaleRound{}})
 
 def quiet_round_reset(+state: State, +partition: Nat, +lifetime: Nat,
@@ -947,15 +986,15 @@ def quiet_round_reset(+state: State, +partition: Nat, +lifetime: Nat,
       quiet_round_reset_found(state, partition, lifetime, round,
         find_round(partition, rounds))
 
-def cancel_pick(+operation: Nat, tail: List<&2, Command>, hit: Bool) -> List<&2, Command>:
+def cancel_pick(+operation: Nat, tail: List<&2, Output>, hit: Bool) -> List<&2, Output>:
   match hit:
     case True{}:
-      CancelWork{operation} <> tail
+      ActionRequested{CancelWork{operation}} <> tail
     case False{}:
       tail
 
 def cancel_commands(+partition: Nat, +lifetime: Nat, +round: Nat,
-    items: List<&2, Work>) -> List<&2, Command>:
+    items: List<&2, Work>) -> List<&2, Output>:
   match items:
     case Nil{}:
       Nil{}
@@ -964,15 +1003,15 @@ def cancel_commands(+partition: Nat, +lifetime: Nat, +round: Nat,
         Bool.and(same_ids(partition, lifetime, round, owner, generation, current),
           unfinished(kind)))
 
-def release_pick(charge: Nat, tail: List<&2, Command>, hit: Bool) -> List<&2, Command>:
+def release_pick(charge: Nat, tail: List<&2, Output>, hit: Bool) -> List<&2, Output>:
   match hit:
     case True{}:
-      ReservationReleased{charge} <> tail
+      EventEstablished{ReservationReleased{charge}} <> tail
     case False{}:
       tail
 
 def release_commands(+partition: Nat, +lifetime: Nat, +round: Nat,
-    items: List<&2, Work>) -> List<&2, Command>:
+    items: List<&2, Work>) -> List<&2, Output>:
   match items:
     case Nil{}:
       Nil{}
@@ -983,7 +1022,7 @@ def release_commands(+partition: Nat, +lifetime: Nat, +round: Nat,
             unfinished(kind))))
 
 def release_all_commands(+partition: Nat, +lifetime: Nat, +round: Nat,
-    items: List<&2, Work>) -> List<&2, Command>:
+    items: List<&2, Work>) -> List<&2, Output>:
   match items:
     case Nil{}:
       Nil{}
@@ -1058,15 +1097,56 @@ def open_found(+state: State, +partition: Nat, +lifetime: Nat,
   match state found:
     case _ Some{_}:
       Rejected{state, StaleRound{}}
-    case State{ledger, rounds, work, next_round, next_operation, +admissions, +dispatch, +collection, +history} None{}:
-      Bool.pick(Step, Bool.and(Nat.is_gt(partition, 0n),
-          Bool.and(Nat.is_gt(lifetime, 0n),
-            Nat.is_lt(List.length(&2, Round, rounds), 64n))),
-        Advanced{State{ledger, Round{partition, lifetime, next_round, False{}, False{}, None{}, False{}, None{}} <> rounds,
-          work, (next_round + 1n : Nat), next_operation, admissions, dispatch, collection, history}, RoundStarted{next_round} <> Nil{}},
-        Rejected{state, Bool.pick(Reason,
-          Bool.and(Nat.is_gt(partition, 0n), Nat.is_gt(lifetime, 0n)),
-          RoundLimit{}, InvalidIdentity{})})
+    case State{
+      ledger,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      +admissions,
+      +dispatch,
+      +collection,
+      +history
+    } None{}:
+      Bool.pick(
+        Step,
+        Bool.and(
+          Nat.is_gt(partition, 0n),
+          Bool.and(Nat.is_gt(lifetime, 0n), Nat.is_lt(List.length(&2, Round, rounds), 64n))
+        ),
+        Advanced{
+          State{
+            ledger,
+            Round{
+              partition,
+              lifetime,
+              next_round,
+              False{},
+              False{},
+              None{},
+              False{},
+              None{}
+            } <> rounds,
+            work,
+            (next_round + 1n : Nat),
+            next_operation,
+            admissions,
+            dispatch,
+            collection,
+            history
+          },
+          EventEstablished{RoundStarted{next_round}} <> Nil{}
+        },
+        Rejected{
+          state,
+          Bool.pick(
+            Reason,
+            Bool.and(Nat.is_gt(partition, 0n), Nat.is_gt(lifetime, 0n)),
+            RoundLimit{},
+            InvalidIdentity{}
+          )
+        }
+      )
 
 def open(+state: State, +partition: Nat, +lifetime: Nat) -> Step:
   match state:
@@ -1077,8 +1157,8 @@ def open(+state: State, +partition: Nat, +lifetime: Nat) -> Step:
 # leaves the permit unconsumed and cannot leave an active admission without a round.
 def consume_opened(original: State, round: Nat, opened: Step) -> Step:
   match opened:
-    case Advanced{state, commands}:
-      Advanced{state, PermitConsumed{round} <> commands}
+    case Advanced{state, outputs}:
+      Advanced{state, EventEstablished{PermitConsumed{round}} <> outputs}
     case Rejected{_, reason}:
       Rejected{original, reason}
 
@@ -1088,9 +1168,15 @@ def consume_existing(+original: State, +updated: State, +partition: Nat,
     case None{}:
       consume_opened(original, round, open(updated, partition, lifetime))
     case Some{Round{_, owner_lifetime, _, _, _, _, _, +quiet_since}}:
-      Bool.pick(Step, Nat.is_eq(lifetime, owner_lifetime),
-        Advanced{with_quiet_round(updated, partition, None{}), PermitConsumed{round} <> Nil{}},
-        Rejected{original, StaleRound{}})
+      Bool.pick(
+        Step,
+        Nat.is_eq(lifetime, owner_lifetime),
+        Advanced{
+          with_quiet_round(updated, partition, None{}),
+          EventEstablished{PermitConsumed{round}} <> Nil{}
+        },
+        Rejected{original, StaleRound{}}
+      )
 
 def consume_admitted(+state: State, +partition: Nat, lifetime: Nat,
     admission: Admission.AdmissionState, round: Nat) -> Step:
@@ -1111,8 +1197,17 @@ def consume_result(+state: State, +partition: Nat, lifetime: Nat,
 
 def consume_permit(+state: State, +partition: Nat, +lifetime: Nat,
     +token: Nat, +tool: Nat, +now: Nat) -> Step:
-  consume_result(state, partition, lifetime, Admission.step(current_admission(state, partition, lifetime),
-    partition, lifetime, Admission.Consume{token, tool, now}))
+  consume_result(
+    state,
+    partition,
+    lifetime,
+    Admission.step(
+      current_admission(state, partition, lifetime),
+      partition,
+      lifetime,
+      Admission.Consume{token, tool, now}
+    )
+  )
 
 def is_deciding(current: Round) -> Bool:
   match current:
@@ -1122,13 +1217,23 @@ def is_deciding(current: Round) -> Bool:
 def admit_observation_found(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, found: Maybe<&2, Round>) -> Step:
   match state found:
-    case State{ledger, rounds, work, next_round, +next_operation, admissions, +dispatch, +collection, +history} Some{+current}:
+    case State{
+      ledger,
+      rounds,
+      work,
+      next_round,
+      +next_operation,
+      admissions,
+      +dispatch,
+      +collection,
+      +history
+    } Some{+current}:
       Bool.pick(Step, Bool.and(same_round(partition, lifetime, round, current),
           Bool.not(is_deciding(current))),
         Advanced{State{ledger, rounds,
           Work{partition, lifetime, round, next_operation, 0n, AwaitingSourceRead{}, 0n} <> work,
           next_round, (next_operation + 1n : Nat), admissions, dispatch, collection, history},
-          ObservationAdmitted{next_operation} <> Nil{}},
+          EventEstablished{ObservationAdmitted{next_operation}} <> Nil{}},
         Rejected{state, StaleRound{}})
     case _ _:
       Rejected{state, StaleRound{}}
@@ -1139,7 +1244,12 @@ def admit_observation(+state: State, +partition: Nat, +lifetime: Nat,
     case State{_, rounds, _, _, _, _, +dispatch, +collection, +history}:
       admit_observation_found(state, partition, lifetime, round, find_round(partition, rounds))
 
-def replace_work_kind_pick(item: Work, next: Work, tail: List<&2, Work>, hit: Bool) -> List<&2, Work>:
+def replace_work_kind_pick(
+  item: Work,
+  next: Work,
+  tail: List<&2, Work>,
+  hit: Bool
+) -> List<&2, Work>:
   match hit:
     case True{}:
       next <> tail
@@ -1160,20 +1270,64 @@ def replace_work_kind(+operation: Nat, +kind: WorkKind, items: List<&2, Work>) -
 def observation_started_found(+state: State, +operation: Nat,
     found: Maybe<&2, Work>) -> Step:
   match state found:
-    case State{ledger, rounds, work, next_round, next_operation, admissions, +dispatch, +collection, +history}
+    case State{
+      ledger,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      admissions,
+      +dispatch,
+      +collection,
+      +history
+    }
         Some{Work{_, _, _, _, 0n, AwaitingSourceRead{}, _}}:
-      Advanced{State{ledger, rounds, replace_work_kind(operation, SourceReading{}, work),
-        next_round, next_operation, admissions, dispatch, collection, history}, ObservationStarted{} <> Nil{}}
+      Advanced{
+        State{
+          ledger,
+          rounds,
+          replace_work_kind(operation, SourceReading{}, work),
+          next_round,
+          next_operation,
+          admissions,
+          dispatch,
+          collection,
+          history
+        },
+        EventEstablished{ObservationStarted{}} <> Nil{}
+      }
     case _ _:
       Rejected{state, WrongStage{}}
 
 def observation_completed_found(+state: State, +operation: Nat,
     found: Maybe<&2, Work>) -> Step:
   match state found:
-    case State{ledger, rounds, work, next_round, next_operation, admissions, +dispatch, +collection, +history}
+    case State{
+      ledger,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      admissions,
+      +dispatch,
+      +collection,
+      +history
+    }
         Some{Work{_, _, _, _, 0n, SourceReading{}, _}}:
-      Advanced{State{ledger, rounds, remove_work(operation, work),
-        next_round, next_operation, admissions, dispatch, collection, history}, ObservationCompleted{} <> Nil{}}
+      Advanced{
+        State{
+          ledger,
+          rounds,
+          remove_work(operation, work),
+          next_round,
+          next_operation,
+          admissions,
+          dispatch,
+          collection,
+          history
+        },
+        EventEstablished{ObservationCompleted{}} <> Nil{}
+      }
     case _ _:
       Rejected{state, WrongStage{}}
 
@@ -1197,14 +1351,58 @@ def complete_observation(+state: State, +partition: Nat, +lifetime: Nat,
 def interrupt_observation_found(+state: State, +operation: Nat,
     found: Maybe<&2, Work>) -> Step:
   match state found:
-    case State{ledger, rounds, work, next_round, next_operation, admissions, +dispatch, +collection, +history}
+    case State{
+      ledger,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      admissions,
+      +dispatch,
+      +collection,
+      +history
+    }
         Some{Work{_, _, _, _, 0n, AwaitingSourceRead{}, _}}:
-      Advanced{State{ledger, rounds, remove_work(operation, work),
-        next_round, next_operation, admissions, dispatch, collection, history}, ObservationInterrupted{} <> Nil{}}
-    case State{ledger, rounds, work, next_round, next_operation, admissions, +dispatch, +collection, +history}
+      Advanced{
+        State{
+          ledger,
+          rounds,
+          remove_work(operation, work),
+          next_round,
+          next_operation,
+          admissions,
+          dispatch,
+          collection,
+          history
+        },
+        EventEstablished{ObservationInterrupted{}} <> Nil{}
+      }
+    case State{
+      ledger,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      admissions,
+      +dispatch,
+      +collection,
+      +history
+    }
         Some{Work{_, _, _, _, 0n, SourceReading{}, _}}:
-      Advanced{State{ledger, rounds, remove_work(operation, work),
-        next_round, next_operation, admissions, dispatch, collection, history}, ObservationInterrupted{} <> Nil{}}
+      Advanced{
+        State{
+          ledger,
+          rounds,
+          remove_work(operation, work),
+          next_round,
+          next_operation,
+          admissions,
+          dispatch,
+          collection,
+          history
+        },
+        EventEstablished{ObservationInterrupted{}} <> Nil{}
+      }
     case _ _:
       Rejected{state, WrongStage{}}
 
@@ -1218,16 +1416,26 @@ def interrupt_observation(+state: State, +partition: Nat, +lifetime: Nat,
 def begin_result(state: State, +partition: Nat, +lifetime: Nat, +round: Nat,
     +parent: Nat, result: Ledger.LedgerResult) -> Step:
   match state:
-    case State{_, rounds, work, next_round, +next_operation, +admissions, +dispatch, +collection, +history}:
+    case State{
+      _,
+      rounds,
+      work,
+      next_round,
+      +next_operation,
+      +admissions,
+      +dispatch,
+      +collection,
+      +history
+    }:
       match result:
         case Ledger.Granted{ledger, +charge}:
           Advanced{State{ledger, rounds,
             List.append(&2, Work, work, Work{partition, lifetime, round,
               next_operation, charge, Preparing{}, parent} <> Nil{}),
             next_round, (next_operation + 1n : Nat), admissions, dispatch, collection, history},
-            Prepare{next_operation, charge} <> Nil{}}
+            ActionRequested{Prepare{next_operation, charge}} <> Nil{}}
         case Ledger.Rejected{_}:
-          Advanced{state, PreparationRefused{} <> Nil{}}
+          Advanced{state, PolicyDecided{PreparationRefused{}} <> Nil{}}
 
 def begin_found(+state: State, +partition: Nat, +lifetime: Nat, +round: Nat,
     +bytes: Nat, +parent: Nat, found: Maybe<&2, Round>) -> Step:
@@ -1249,7 +1457,9 @@ def begin(+state: State, +partition: Nat, +lifetime: Nat, +round: Nat, +bytes: N
 def begin_observed_found(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, +observation: Nat, +bytes: Nat, found: Maybe<&2, Work>) -> Step:
   match state found:
-    case State{_, rounds, _, _, _, _, +dispatch, +collection, +history} Some{Work{_, _, _, _, 0n, SourceReading{}, _}}:
+    case State{_, rounds, _, _, _, _, +dispatch, +collection, +history} Some{
+      Work{_, _, _, _, 0n, SourceReading{}, _}
+    }:
       begin_found(state, partition, lifetime, round, bytes, observation,
         find_round(partition, rounds))
     case _ _:
@@ -1264,7 +1474,7 @@ def begin_observed(+state: State, +partition: Nat, +lifetime: Nat,
 
 type Batch is Data:
   Batch{ledger: Ledger.Ledger, work: List<&2, Work>,
-    +next_operation: Nat, commands: List<&2, Command>}
+    +next_operation: Nat, outputs: List<&2, Output>}
 
 def capacity_view(ledger: Ledger.Ledger, +partition: Nat) -> CapacityView:
   match ledger:
@@ -1273,20 +1483,20 @@ def capacity_view(ledger: Ledger.Ledger, +partition: Nat) -> CapacityView:
 
 def admit_one(result: Ledger.LedgerResult, +partition: Nat, +lifetime: Nat,
     +round: Nat, +operation: Nat, +position: Nat, +bytes: Nat, +parent: Nat,
-    work: List<&2, Work>, commands: List<&2, Command>) -> Batch:
+    work: List<&2, Work>, outputs: List<&2, Output>) -> Batch:
   match result:
     case Ledger.Granted{+granted, +id}:
       Batch{granted,
         Work{partition, lifetime, round, operation, id, Reviewing{}, parent} <> work,
         (operation + 1n : Nat),
-        List.append(&2, Command, commands,
-          UnitAdmitted{operation, id, position, bytes,
-            capacity_view(granted, partition)} <> Nil{})}
+        List.append(&2, Output, outputs,
+          EventEstablished{UnitAdmitted{operation, id, position, bytes,
+            capacity_view(granted, partition)}} <> Nil{})}
     case Ledger.Rejected{+unchanged}:
       Batch{unchanged, work, operation,
-        List.append(&2, Command, commands,
-          UnitRefused{position, bytes, Ledger.admission(unchanged, partition, bytes),
-            capacity_view(unchanged, partition)} <> Nil{})}
+        List.append(&2, Output, outputs,
+          PolicyDecided{UnitRefused{position, bytes, Ledger.admission(unchanged, partition, bytes),
+            capacity_view(unchanged, partition)}} <> Nil{})}
 
 # Continue after refusal: a later, smaller unit may still fit.
 def admit_units(sizes: List<&2, Nat>, batch: Batch, +partition: Nat,
@@ -1296,19 +1506,35 @@ def admit_units(sizes: List<&2, Nat>, batch: Batch, +partition: Nat,
       batch
     case +size <> rest:
       match batch:
-        case Batch{ledger, work, operation, commands}:
+        case Batch{ledger, work, operation, outputs}:
           admit_units(rest,
             admit_one(Ledger.reserve_for(ledger, partition, size, Ledger.ReviewUnit{}), partition,
-              lifetime, round, operation, position, size, parent, work, commands),
+              lifetime, round, operation, position, size, parent, work, outputs),
             partition, lifetime, round, (position + 1n : Nat), parent)
 
 def prepared_batch(state: State, +operation: Nat, +charge: Nat,
     +partition: Nat, released: Ledger.Ledger, batch: Batch) -> Step:
   match state batch:
-    case State{_, rounds, work, next_round, _, +admissions, +dispatch, +collection, +history} Batch{ledger, units, next, commands}:
-      Advanced{State{ledger, rounds,
-        List.append(&2, Work, remove_work(operation, work), units), next_round, next, admissions, dispatch, collection, history},
-        PreparationReleased{charge, capacity_view(released, partition)} <> commands}
+    case State{_, rounds, work, next_round, _, +admissions, +dispatch, +collection, +history} Batch{
+      ledger,
+      units,
+      next,
+      outputs
+    }:
+      Advanced{
+        State{
+          ledger,
+          rounds,
+          List.append(&2, Work, remove_work(operation, work), units),
+          next_round,
+          next,
+          admissions,
+          dispatch,
+          collection,
+          history
+        },
+        EventEstablished{PreparationReleased{charge, capacity_view(released, partition)}} <> outputs
+      }
 
 def prepared_released(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, +operation: Nat, +charge: Nat, +parent: Nat, bytes: List<&2, Nat>,
@@ -1316,10 +1542,16 @@ def prepared_released(+state: State, +partition: Nat, +lifetime: Nat,
   match state bytes result:
     case _ _ Ledger.Rejected{_}:
       Rejected{state, InconsistentLedger{}}
-    case State{_, _, _, _, next_operation, _, +dispatch, +collection, +history} Nil{} Ledger.Granted{+released, _}:
+    case State{_, _, _, _, next_operation, _, +dispatch, +collection, +history} Nil{} Ledger.Granted{
+      +released,
+      _
+    }:
       prepared_batch(state, operation, charge, partition, released,
         Batch{released, Nil{}, next_operation, Nil{}})
-    case State{_, _, _, _, next_operation, _, +dispatch, +collection, +history} +size <> +rest Ledger.Granted{+released, _}:
+    case State{_, _, _, _, next_operation, _, +dispatch, +collection, +history} +size <> +rest Ledger.Granted{
+      +released,
+      _
+    }:
       prepared_batch(state, operation, charge, partition, released,
         admit_units(size <> rest, Batch{released, Nil{}, next_operation, Nil{}},
           partition, lifetime, round, 1n, parent))
@@ -1357,9 +1589,19 @@ def interrupt_preparation(+state: State, +partition: Nat, +lifetime: Nat,
 def start_review_found(+state: State, +operation: Nat,
     found: Maybe<&2, Work>) -> Step:
   match state found:
-    case State{ledger, rounds, work, next_round, next_operation, admissions, +dispatch, +collection, +history}
+    case State{
+      ledger,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      admissions,
+      +dispatch,
+      +collection,
+      +history
+    }
         Some{Work{_, _, _, _, _, Reviewing{}, _}}:
-      Advanced{state, ReviewStarted{} <> Nil{}}
+      Advanced{state, EventEstablished{ReviewStarted{}} <> Nil{}}
     case _ _:
       Rejected{state, WrongStage{}}
 
@@ -1373,29 +1615,64 @@ def start_review(+state: State, +partition: Nat, +lifetime: Nat,
 def reviewed_released(+state: State, +operation: Nat, outcome: Outcome,
     +charge: Nat, result: Ledger.LedgerResult) -> Step:
   match state result:
-    case State{_, rounds, work, next_round, next_operation, +admissions, +dispatch, +collection, +history} Ledger.Granted{updated, _}:
-      Advanced{State{updated, rounds, remove_work(operation, work),
-        next_round, next_operation, admissions, dispatch, collection, history},
-        ReservationReleased{charge} <> ReviewRecorded{outcome} <> Nil{}}
+    case State{
+      _,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      +admissions,
+      +dispatch,
+      +collection,
+      +history
+    } Ledger.Granted{updated, _}:
+      Advanced{
+        State{
+          updated,
+          rounds,
+          remove_work(operation, work),
+          next_round,
+          next_operation,
+          admissions,
+          dispatch,
+          collection,
+          history
+        },
+        EventEstablished{
+          ReservationReleased{charge}
+        } <> EventEstablished{ReviewRecorded{outcome}} <> Nil{}
+      }
     case _ Ledger.Rejected{_}:
       Rejected{state, InconsistentLedger{}}
 
 def reviewed_retained_result(+state: State, +operation: Nat,
     result: Ledger.LedgerResult) -> Step:
   match state result:
-    case State{_, rounds, work, next_round, next_operation, +admissions, +dispatch, +collection, +history}
+    case State{
+      _,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      +admissions,
+      +dispatch,
+      +collection,
+      +history
+    }
         Ledger.Granted{updated, _}:
       Advanced{State{updated, rounds,
         replace_work_kind(operation, PendingFinding{1n}, work),
         next_round, next_operation, admissions, dispatch, collection, history},
-        ReviewRecorded{Finding{}} <> Nil{}}
+        EventEstablished{ReviewRecorded{Finding{}}} <> Nil{}}
     case _ Ledger.Rejected{_}:
       Rejected{state, InconsistentLedger{}}
 
 def reviewed_retained_charge(+state: State, +operation: Nat, +charge: Nat,
     found: Maybe<&2, Ledger.Charge>) -> Step:
   match state found:
-    case State{ledger, _, _, _, _, _, +dispatch, +collection, +history} Some{Ledger.Charge{_, _, bytes, _}}:
+    case State{ledger, _, _, _, _, _, +dispatch, +collection, +history} Some{
+      Ledger.Charge{_, _, bytes, _}
+    }:
       reviewed_retained_result(state, operation,
         Ledger.resize_for(ledger, charge, bytes, Ledger.StoredResult{}))
     case _ _:
@@ -1468,7 +1745,7 @@ def finding_count_found(+state: State, operation: Nat, +count: Nat,
         Advanced{State{ledger, rounds,
           replace_work_kind(operation, PendingFinding{count}, work),
           next_round, next_operation, admissions, dispatch, collection, history},
-          FindingCountRecorded{} <> Nil{}},
+          EventEstablished{FindingCountRecorded{}} <> Nil{}},
         Rejected{state, WrongStage{}})
     case _ _:
       Rejected{state, WrongStage{}}
@@ -1480,10 +1757,10 @@ def finding_count_update(+state: State, partition: Nat, lifetime: Nat,
       finding_count_found(state, operation, count,
         find_work(partition, lifetime, round, operation, work))
 
-def append_review_disposition(step: Step, command: Command) -> Step:
+def append_review_disposition(step: Step, command: Output) -> Step:
   match step:
-    case Advanced{state, commands}:
-      Advanced{state, List.append(&2, Command, commands, command <> Nil{})}
+    case Advanced{state, outputs}:
+      Advanced{state, List.append(&2, Output, outputs, command <> Nil{})}
     case Rejected{state, reason}:
       Rejected{state, reason}
 
@@ -1510,18 +1787,18 @@ def review_observed_choice(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, +operation: Nat, outcome: Outcome,
     choice: WorkPolicy.EvaluatedDisposition) -> Step:
   match choice:
-    case WorkPolicy.RetainFinding{}:
+    case WorkPolicy.FindingRetained{}:
       append_review_disposition(reviewed(state, partition, lifetime, round,
-        operation, outcome), RetainFinding{})
-    case WorkPolicy.RetireStaleFinding{}:
+        operation, outcome), EventEstablished{FindingRetained{}})
+    case WorkPolicy.StaleFindingRetired{}:
       append_review_disposition(reviewed_stale(state, partition, lifetime, round,
-        operation), RetireStaleFinding{})
-    case WorkPolicy.SettleClear{}:
+        operation), EventEstablished{StaleFindingRetired{}})
+    case WorkPolicy.ClearSettled{}:
       append_review_disposition(reviewed(state, partition, lifetime, round,
-        operation, outcome), SettleClear{})
-    case WorkPolicy.SettleStaleClear{}:
+        operation, outcome), EventEstablished{ClearSettled{}})
+    case WorkPolicy.StaleClearSettled{}:
       append_review_disposition(reviewed(state, partition, lifetime, round,
-        operation, outcome), SettleStaleClear{})
+        operation, outcome), EventEstablished{StaleClearSettled{}})
 
 def is_finding(outcome: Outcome) -> Bool:
   match outcome:
@@ -1549,18 +1826,18 @@ def request_settled_outcome(+state: State, +partition: Nat, +lifetime: Nat,
     case RequestFinding{}:
       append_review_disposition(review_observed(state, partition, lifetime,
         round, operation, Finding{}, current_work),
-        JevRequestOutcomeRecorded{RequestFinding{}})
+        EventEstablished{JevRequestOutcomeRecorded{RequestFinding{}}})
     case RequestClear{}:
       append_review_disposition(review_observed(state, partition, lifetime,
         round, operation, Clear{}, current_work),
-        JevRequestOutcomeRecorded{RequestClear{}})
+        EventEstablished{JevRequestOutcomeRecorded{RequestClear{}}})
     case RequestInterrupted{}:
       append_review_disposition(reviewed(state, partition, lifetime, round,
         operation, Interrupted{}),
-        JevRequestOutcomeRecorded{RequestInterrupted{}})
+        EventEstablished{JevRequestOutcomeRecorded{RequestInterrupted{}}})
     case _:
       append_review_disposition(reviewed(state, partition, lifetime, round,
-        operation, Unavailable{}), JevRequestOutcomeRecorded{outcome})
+        operation, Unavailable{}), EventEstablished{JevRequestOutcomeRecorded{outcome}})
 
 def request_settled_work(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, +operation: Nat, outcome: RequestOutcome, current_work: Bool,
@@ -1570,13 +1847,23 @@ def request_settled_work(+state: State, +partition: Nat, +lifetime: Nat,
       request_settled_outcome(state, partition, lifetime, round, operation,
         outcome, current_work)
     case _:
-      Advanced{state, JevObservationIgnored{} <> Nil{}}
+      Advanced{state, PolicyDecided{JevObservationIgnored{}} <> Nil{}}
 
 def request_settled_released(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, +operation: Nat, outcome: RequestOutcome, current_work: Bool,
     result: Dispatch.RequestResult) -> Step:
   match state result:
-    case State{ledger, rounds, work, next_round, next_operation, admissions, _, collection, +history}
+    case State{
+      ledger,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      admissions,
+      _,
+      collection,
+      +history
+    }
         Dispatch.RequestAccepted{dispatch}:
       request_settled_work(State{ledger, rounds, work, next_round, next_operation,
         admissions, dispatch, collection, history}, partition, lifetime, round, operation,
@@ -1621,14 +1908,24 @@ def request_ready_reserved(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, +operation: Nat, +request: Nat,
     result: Dispatch.RequestResult) -> Step:
   match state result:
-    case State{ledger, rounds, work, next_round, next_operation, admissions, _, collection, +history}
+    case State{
+      ledger,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      admissions,
+      _,
+      collection,
+      +history
+    }
         Dispatch.RequestAccepted{dispatch}:
       Advanced{State{ledger, rounds, replace_work_kind(operation, AtJev{}, work),
         next_round, (next_operation + 1n : Nat), admissions, dispatch, collection, history},
-        JevRequestIssued{partition, lifetime, round, operation, request} <> Nil{}}
+        EventEstablished{JevRequestIssued{partition, lifetime, round, operation, request}} <> Nil{}}
     case _ Dispatch.RequestDenied{_}:
       append_review_disposition(reviewed(state, partition, lifetime, round,
-        operation, Unavailable{}), JevRequestUnavailable{})
+        operation, Unavailable{}), PolicyDecided{JevRequestUnavailable{}})
 
 def request_ready_found(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, +operation: Nat, ready: Bool,
@@ -1641,7 +1938,7 @@ def request_ready_found(+state: State, +partition: Nat, +lifetime: Nat,
           next_operation, Dispatch.reserve_request(dispatch, partition, lifetime,
             round, operation, next_operation)),
         append_review_disposition(reviewed(state, partition, lifetime, round,
-          operation, Unavailable{}), JevRequestUnavailable{}))
+          operation, Unavailable{}), PolicyDecided{JevRequestUnavailable{}}))
     case _ _: Rejected{state, WrongStage{}}
 
 def request_ready(+state: State, +partition: Nat, +lifetime: Nat,
@@ -1656,9 +1953,19 @@ def request_ready(+state: State, +partition: Nat, +lifetime: Nat,
         find_work(partition, lifetime, round, operation, work))
 
 def request_update_result(+state: State, result: Dispatch.RequestResult,
-    command: Command) -> Step:
+    command: Output) -> Step:
   match state result:
-    case State{ledger, rounds, work, next_round, next_operation, admissions, _, collection, +history}
+    case State{
+      ledger,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      admissions,
+      _,
+      collection,
+      +history
+    }
         Dispatch.RequestAccepted{dispatch}:
       Advanced{State{ledger, rounds, work, next_round, next_operation,
         admissions, dispatch, collection, history}, command <> Nil{}}
@@ -1671,7 +1978,7 @@ def request_started(+state: State, +partition: Nat, +lifetime: Nat,
     case State{_, _, _, _, _, _, dispatch, _, +history}:
       request_update_result(state, Dispatch.request_update(dispatch, partition,
         lifetime, round, operation, request, True{}, False{}, False{}),
-        JevRequestStartRecorded{})
+        EventEstablished{JevRequestStartRecorded{}})
 
 def request_interrupted(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, +operation: Nat, +request: Nat) -> Step:
@@ -1679,16 +1986,16 @@ def request_interrupted(+state: State, +partition: Nat, +lifetime: Nat,
     case State{_, _, _, _, _, _, dispatch, _, +history}:
       request_update_result(state, Dispatch.request_update(dispatch, partition,
         lifetime, round, operation, request, False{}, True{}, False{}),
-        JevInterruptionRecorded{})
+        EventEstablished{JevInterruptionRecorded{}})
 
 def prepared_offer_result(state: State, decision: WorkPolicy.PreparedOffer) -> Step:
   match decision:
     case WorkPolicy.SkipPrepared{}:
-      Advanced{state, PreparedSkipped{} <> Nil{}}
+      Advanced{state, PolicyDecided{PreparedSkipped{}} <> Nil{}}
     case WorkPolicy.AdmitPrepared{}:
-      Advanced{state, PreparedAdmitted{} <> Nil{}}
+      Advanced{state, PolicyDecided{PreparedAdmitted{}} <> Nil{}}
     case WorkPolicy.RejectPreparedCapacity{}:
-      Advanced{state, PreparedCapacityRefused{} <> Nil{}}
+      Advanced{state, PolicyDecided{PreparedCapacityRefused{}} <> Nil{}}
 
 def prepared_offer_check(state: State, ready: Bool, within_frame: Bool) -> Step:
   prepared_offer_result(state, WorkPolicy.prepared_offer(ready, within_frame))
@@ -1696,9 +2003,9 @@ def prepared_offer_check(state: State, ready: Bool, within_frame: Bool) -> Step:
 def empty_prepared_result(state: State, decision: WorkPolicy.EmptyPrepared) -> Step:
   match decision:
     case WorkPolicy.FailEmptyLost{}:
-      Advanced{state, EmptyLost{} <> Nil{}}
+      Advanced{state, PolicyDecided{EmptyLost{}} <> Nil{}}
     case WorkPolicy.NoEmptyFailure{}:
-      Advanced{state, EmptyAccepted{} <> Nil{}}
+      Advanced{state, PolicyDecided{EmptyAccepted{}} <> Nil{}}
 
 def empty_prepared_check(state: State, ready_count: Nat,
     has_non_skipped: Bool, authority_bound: Bool) -> Step:
@@ -1708,13 +2015,13 @@ def empty_prepared_check(state: State, ready_count: Nat,
 def review_failure_result(state: State, decision: WorkPolicy.FailureDisposition) -> Step:
   match decision:
     case WorkPolicy.BackendUnavailable{}:
-      Advanced{state, FailureBackend{} <> Nil{}}
+      Advanced{state, PolicyDecided{FailureBackend{}} <> Nil{}}
     case WorkPolicy.CredentialUnavailable{}:
-      Advanced{state, FailureCredential{} <> Nil{}}
+      Advanced{state, PolicyDecided{FailureCredential{}} <> Nil{}}
     case WorkPolicy.LostUnavailable{}:
-      Advanced{state, FailureLost{} <> Nil{}}
+      Advanced{state, PolicyDecided{FailureLost{}} <> Nil{}}
     case WorkPolicy.NoFailure{}:
-      Advanced{state, FailureNone{} <> Nil{}}
+      Advanced{state, PolicyDecided{FailureNone{}} <> Nil{}}
 
 def review_failure_check(state: State, backend_or_timeout: Bool,
     credential: Bool, missing: Bool) -> Step:
@@ -1843,7 +2150,7 @@ def retain_scoped_work(items: List<&2, Work>, +lifetime: Nat,
               Bool.and(scope_contains(scopes, partition, round), unfinished(kind))))
 
 def release_scoped_commands(items: List<&2, Work>, +lifetime: Nat,
-    +scopes: List<&2, StopScope>) -> List<&2, Command>:
+    +scopes: List<&2, StopScope>) -> List<&2, Output>:
   match items:
     case Nil{}:
       Nil{}
@@ -1861,7 +2168,7 @@ def dispatch_work_unfinished(found: Maybe<&2, Work>) -> Bool:
       False{}
 
 def cancel_dispatch_entries(items: List<&2, Dispatch.Entry>, +work: List<&2, Work>,
-    +lifetime: Nat, +scopes: List<&2, StopScope>) -> List<&2, Command>:
+    +lifetime: Nat, +scopes: List<&2, StopScope>) -> List<&2, Output>:
   match items:
     case Nil{}:
       Nil{}
@@ -1872,68 +2179,168 @@ def cancel_dispatch_entries(items: List<&2, Dispatch.Entry>, +work: List<&2, Wor
             dispatch_work_unfinished(find_work(partition, generation, round, operation, work))))))
 
 def cancel_scoped_dispatch(dispatch: Dispatch.State, +work: List<&2, Work>, +lifetime: Nat,
-    +scopes: List<&2, StopScope>) -> List<&2, Command>:
+    +scopes: List<&2, StopScope>) -> List<&2, Output>:
   match dispatch:
     case Dispatch.State{queued, running, _, _, _}:
-      List.append(&2, Command, cancel_dispatch_entries(queued, work, lifetime, scopes),
+      List.append(&2, Output, cancel_dispatch_entries(queued, work, lifetime, scopes),
         cancel_dispatch_entries(running, work, lifetime, scopes))
 
 # Both Stop routes see the actual output owner. Scope membership comes from
 # the retained finding, and only its original authorized token lease can wait.
-def stop_output_work(work: List<&2,Work>, +advice: Nat, +lifetime: Nat, +scopes: List<&2,StopScope>) -> Bool:
+def stop_output_work(
+  work: List<&2, Work>,
+  +advice: Nat,
+  +lifetime: Nat,
+  +scopes: List<&2, StopScope>
+) -> Bool:
   match work:
     case Nil{}: False{}
-    case Work{p,l,r,o,_,PendingFinding{_},_} <> tail:
-      (Nat.is_eq(o,advice) && Nat.is_eq(l,lifetime) && scope_contains(scopes,p,r)) ||
-        stop_output_work(tail,advice,lifetime,scopes)
-    case _ <> tail: stop_output_work(tail,advice,lifetime,scopes)
+    case Work{p, l, r, o, _, PendingFinding{_}, _} <> tail:
+      (Nat.is_eq(o, advice) && Nat.is_eq(l, lifetime) && scope_contains(scopes, p, r)) ||
+        stop_output_work(tail, advice, lifetime, scopes)
+    case _ <> tail: stop_output_work(tail, advice, lifetime, scopes)
 
-def stop_output_batch(batch: SubmissionState.Batch, work: List<&2,Work>, leases: List<&2,CollectionState.Lease>, +group: Nat, lifetime: Nat, +round: Nat, scopes: List<&2,StopScope>) -> Bool:
+def stop_output_batch(
+  batch: SubmissionState.Batch,
+  work: List<&2, Work>,
+  leases: List<&2, CollectionState.Lease>,
+  +group: Nat,
+  lifetime: Nat,
+  +round: Nat,
+  scopes: List<&2, StopScope>
+) -> Bool:
   match batch:
-    case SubmissionState.Batch{+advice,owner,current,+token,_,Delivery.Authorized{},_,_}:
-      Nat.is_eq(owner,group) && Nat.is_eq(current,round) &&
-        CollectionState.lease_owned(advice,token,leases) && stop_output_work(work,advice,lifetime,scopes)
+    case SubmissionState.Batch{+advice, owner, current, +token, _, Delivery.Authorized{}, _, _}:
+      Nat.is_eq(owner, group) && Nat.is_eq(current, round) &&
+        CollectionState.lease_owned(advice, token, leases) && stop_output_work(
+          work,
+          advice,
+          lifetime,
+          scopes
+        )
     case _: False{}
 
-def stop_output_batches(batches: List<&2,SubmissionState.Batch>, +work: List<&2,Work>, +leases: List<&2,CollectionState.Lease>, +group: Nat, +lifetime: Nat, +round: Nat, +scopes: List<&2,StopScope>) -> Bool:
+def stop_output_batches(
+  batches: List<&2, SubmissionState.Batch>,
+  +work: List<&2, Work>,
+  +leases: List<&2, CollectionState.Lease>,
+  +group: Nat,
+  +lifetime: Nat,
+  +round: Nat,
+  +scopes: List<&2, StopScope>
+) -> Bool:
   match batches:
     case Nil{}: False{}
     case batch <> tail:
-      stop_output_batch(batch,work,leases,group,lifetime,round,scopes) ||
-        stop_output_batches(tail,work,leases,group,lifetime,round,scopes)
+      stop_output_batch(batch, work, leases, group, lifetime, round, scopes) ||
+        stop_output_batches(tail, work, leases, group, lifetime, round, scopes)
 
-def stop_group_authorized_output(state: State, group: Nat, lifetime: Nat, round: Nat, scopes: List<&2,StopScope>, continuations: Nat) -> Bool:
+def stop_group_authorized_output(
+  state: State,
+  group: Nat,
+  lifetime: Nat,
+  round: Nat,
+  scopes: List<&2, StopScope>,
+  continuations: Nat
+) -> Bool:
   match state:
-    case State{_,_,work,_,_,_,_,CollectionState.State{_,leases,_,DeliveryState.State{_,_,SubmissionState.State{_,batches}},_,_,_},_}:
-      Nat.is_lt(continuations,RoundPolicy.max_continuations()) &&
-        stop_output_batches(batches,work,leases,group,lifetime,round,scopes)
+    case State{
+      _,
+      _,
+      work,
+      _,
+      _,
+      _,
+      _,
+      CollectionState.State{
+        _,
+        leases,
+        _,
+        DeliveryState.State{_, _, SubmissionState.State{_, batches}},
+        _,
+        _,
+        _
+      },
+      _
+    }:
+      Nat.is_lt(continuations, RoundPolicy.max_continuations()) &&
+        stop_output_batches(batches, work, leases, group, lifetime, round, scopes)
 
 def stop_authorized_output(state: State, +p: Nat, l: Nat, +r: Nat) -> Bool:
   match state:
-    case State{_,_,work,_,_,_,_,CollectionState.State{_,leases,_,DeliveryState.State{_,counters,SubmissionState.State{_,batches}},_,_,_},_}:
-      Nat.is_lt(DeliveryState.count(p,r,counters),RoundPolicy.max_continuations()) &&
-        stop_output_batches(batches,work,leases,p,l,r,[StopScope{p,r}])
+    case State{
+      _,
+      _,
+      work,
+      _,
+      _,
+      _,
+      _,
+      CollectionState.State{
+        _,
+        leases,
+        _,
+        DeliveryState.State{_, counters, SubmissionState.State{_, batches}},
+        _,
+        _,
+        _
+      },
+      _
+    }:
+      Nat.is_lt(DeliveryState.count(p, r, counters), RoundPolicy.max_continuations()) &&
+        stop_output_batches(batches, work, leases, p, l, r, [StopScope{p, r}])
 
 def stop_group_wait(+state: State, +group: Nat, +lifetime: Nat,
     +round: Nat, scopes: List<&2, StopScope>) -> Step:
   match state:
-    case State{ledger, rounds, work, next_round, next_operation, admissions, dispatch, +collection, +history}:
-      Advanced{State{ledger, mark_stop_rounds(rounds, group, lifetime, round,
-        scopes, True{}, False{}), work, next_round, next_operation, admissions, dispatch, collection, history},
-        WaitForWork{} <> Nil{}}
+    case State{
+      ledger,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      admissions,
+      dispatch,
+      +collection,
+      +history
+    }:
+      Advanced{
+        State{
+          ledger,
+          mark_stop_rounds(rounds, group, lifetime, round, scopes, True{}, False{}),
+          work,
+          next_round,
+          next_operation,
+          admissions,
+          dispatch,
+          collection,
+          history
+        },
+        EventEstablished{WaitForWork{}} <> Nil{}
+      }
 
 def stop_group_ready(+state: State, +group: Nat, +lifetime: Nat,
     +round: Nat, +scopes: List<&2, StopScope>, continuations: Nat) -> Step:
   match state:
-    case State{ledger, rounds, +work, next_round, next_operation, admissions, +dispatch, +collection, +history}:
+    case State{
+      ledger,
+      rounds,
+      +work,
+      next_round,
+      next_operation,
+      admissions,
+      +dispatch,
+      +collection,
+      +history
+    }:
       Advanced{State{release_scoped_charges(work, ledger, lifetime, scopes),
         mark_stop_rounds(rounds, group, lifetime, round, scopes, False{}, True{}),
         retain_scoped_work(work, lifetime, scopes), next_round, next_operation,
         admissions, dispatch, collection, history},
-        List.append(&2, Command, release_scoped_commands(work, lifetime, scopes),
-          List.append(&2, Command, cancel_scoped_dispatch(dispatch, work, lifetime, scopes),
-            Bool.pick(Command, Nat.is_lt(continuations, 4n),
-              FinishReady{}, FinishLimit{}) <> Nil{}))}
+        List.append(&2, Output, release_scoped_commands(work, lifetime, scopes),
+          List.append(&2, Output, cancel_scoped_dispatch(dispatch, work, lifetime, scopes),
+            Bool.pick(Output, Nat.is_lt(continuations, 4n),
+              EventEstablished{FinishReady{}}, EventEstablished{FinishLimit{}}) <> Nil{}))}
 
 def stop_group_checked(+state: State, +group: Nat, +lifetime: Nat,
     +round: Nat, +scopes: List<&2, StopScope>, deadline: Bool,
@@ -1946,8 +2353,8 @@ def stop_group_checked(+state: State, +group: Nat, +lifetime: Nat,
             valid_stop_scopes(rounds, lifetime, scopes))),
         Bool.pick(Step,
           Bool.and(Bool.not(deadline),
-            Bool.or(extra_pending, Bool.or(scoped_pending(work,lifetime,scopes),
-              stop_group_authorized_output(state,group,lifetime,round,scopes,continuations)))),
+            Bool.or(extra_pending, Bool.or(scoped_pending(work, lifetime, scopes),
+              stop_group_authorized_output(state, group, lifetime, round, scopes, continuations)))),
           stop_group_wait(state, group, lifetime, round, scopes),
           stop_group_ready(state, group, lifetime, round, scopes, continuations)),
         Rejected{state, StaleRound{}})
@@ -1965,10 +2372,20 @@ def stop_group(+state: State, +group: Nat, +lifetime: Nat, +round: Nat,
 def stop_group_end_apply(state: State, group: Nat, lifetime: Nat,
     round: Nat, scopes: List<&2, StopScope>) -> Step:
   match state:
-    case State{ledger, rounds, work, next_round, next_operation, admissions, dispatch, +collection, +history}:
+    case State{
+      ledger,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      admissions,
+      dispatch,
+      +collection,
+      +history
+    }:
       Advanced{State{ledger, mark_stop_rounds(rounds, group, lifetime, round,
         scopes, False{}, False{}), work, next_round, next_operation, admissions,
-        dispatch, collection, history}, StopEnded{} <> Nil{}}
+        dispatch, collection, history}, EventEstablished{StopEnded{}} <> Nil{}}
 
 def stop_group_end_valid(+state: State, group: Nat, lifetime: Nat,
     round: Nat, scopes: List<&2, StopScope>, valid: Bool) -> Step:
@@ -1995,39 +2412,99 @@ def stop_group_end(+state: State, +group: Nat, +lifetime: Nat, +round: Nat,
 def stop_ready(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, deadline: Bool, +uncertain: Bool) -> Step:
   match state:
-    case State{ledger, rounds, +work, next_round, next_operation, +admissions, +dispatch, +collection, +history}:
+    case State{
+      ledger,
+      rounds,
+      +work,
+      next_round,
+      next_operation,
+      +admissions,
+      +dispatch,
+      +collection,
+      +history
+    }:
       Advanced{State{release_unfinished_charges(work, ledger, partition, lifetime, round),
         Round{partition, lifetime, round, False{}, True{}, None{}, uncertain, None{}} <>
           remove_round(partition, rounds),
         retain_after_stop(work, partition, lifetime, round),
         next_round, next_operation, admissions, dispatch, collection, history},
-        List.append(&2, Command,
+        List.append(&2, Output,
           release_commands(partition, lifetime, round, work),
-          List.append(&2, Command, cancel_commands(partition, lifetime, round, work),
-          Bool.pick(Command, Bool.and(uncertain, Bool.not(deadline)),
-            ReofferAtStop{}, FinishReady{}) <> Nil{}))}
+          List.append(&2, Output, cancel_commands(partition, lifetime, round, work),
+          Bool.pick(Output, Bool.and(uncertain, Bool.not(deadline)),
+            EventEstablished{ReofferAtStop{}}, EventEstablished{FinishReady{}}) <> Nil{}))}
 
-def stop_output_decision(wait: Bool, +state: State, p: Nat, l: Nat, r: Nat, deadline: Bool, uncertain: Bool) -> Step:
+def stop_output_decision(
+  wait: Bool,
+  +state: State,
+  p: Nat,
+  l: Nat,
+  r: Nat,
+  deadline: Bool,
+  uncertain: Bool
+) -> Step:
   match wait:
-    case True{}: Advanced{state,WaitForOutput{} <> Nil{}}
-    case False{}: stop_ready(state,p,l,r,deadline,uncertain)
+    case True{}: Advanced{state, PolicyDecided{WaitForOutput{}} <> Nil{}}
+    case False{}: stop_ready(state, p, l, r, deadline, uncertain)
 
 def stop_output(+state: State, +partition: Nat, +lifetime: Nat, +round: Nat,
-    +deadline: Bool, write: Maybe<&2,Nat>, +uncertain: Bool) -> Step:
-  stop_output_decision(Bool.not(deadline) &&
-    (Bool.not(Maybe.is_none(&2,Nat,write)) || stop_authorized_output(state,partition,lifetime,round)),
-    state,partition,lifetime,round,deadline,uncertain)
+    +deadline: Bool, write: Maybe<&2, Nat>, +uncertain: Bool) -> Step:
+  stop_output_decision(
+    Bool.not(
+      deadline
+    ) && (Bool.not(
+      Maybe.is_none(&2, Nat, write)
+    ) || stop_authorized_output(state, partition, lifetime, round)),
+    state,
+    partition,
+    lifetime,
+    round,
+    deadline,
+    uncertain
+  )
 
 def stop_current(+state: State, +partition: Nat, +lifetime: Nat, +round: Nat,
     +deadline: Bool, has_pending: Bool, +write: Maybe<&2, Nat>, +uncertain: Bool) -> Step:
   match state:
-    case State{ledger, rounds, work, next_round, next_operation, +admissions, +dispatch, +collection, +history}:
-      Bool.pick(Step, Bool.and(has_pending, Bool.not(deadline)),
-        Advanced{State{ledger,
-          Round{partition, lifetime, round, True{}, False{}, write, uncertain, None{}} <>
-            remove_round(partition, rounds), work, next_round, next_operation, admissions, dispatch, collection, history},
-          WaitForWork{} <> Nil{}},
-        stop_output(state, partition, lifetime, round, deadline, write, uncertain))
+    case State{
+      ledger,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      +admissions,
+      +dispatch,
+      +collection,
+      +history
+    }:
+      Bool.pick(
+        Step,
+        Bool.and(has_pending, Bool.not(deadline)),
+        Advanced{
+          State{
+            ledger,
+            Round{
+              partition,
+              lifetime,
+              round,
+              True{},
+              False{},
+              write,
+              uncertain,
+              None{}
+            } <> remove_round(partition, rounds),
+            work,
+            next_round,
+            next_operation,
+            admissions,
+            dispatch,
+            collection,
+            history
+          },
+          EventEstablished{WaitForWork{}} <> Nil{}
+        },
+        stop_output(state, partition, lifetime, round, deadline, write, uncertain)
+      )
 
 def match_pending(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, deadline: Bool, current: Round) -> Step:
@@ -2062,17 +2539,47 @@ def stop(+state: State, +partition: Nat, +lifetime: Nat, +round: Nat,
 def output_start_found(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, found: Maybe<&2, Round>) -> Step:
   match state found:
-    case State{ledger, rounds, work, next_round, +next_operation, +admissions, +dispatch, +collection, +history} Some{+current}:
+    case State{
+      ledger,
+      rounds,
+      work,
+      next_round,
+      +next_operation,
+      +admissions,
+      +dispatch,
+      +collection,
+      +history
+    } Some{+current}:
       match current:
         case Round{_, _, _, waiting, deciding, None{}, uncertain, +quiet_since}:
-          Bool.pick(Step, Bool.and(same_round(partition, lifetime, round, current),
-              Bool.not(deciding)),
-            Advanced{State{ledger,
-              Round{partition, lifetime, round, waiting, False{},
-                Some{next_operation}, uncertain, quiet_since} <> remove_round(partition, rounds),
-              work, next_round, (next_operation + 1n : Nat), admissions, dispatch, collection, history},
-              WriteAuthorized{next_operation} <> Nil{}},
-            Rejected{state, StaleRound{}})
+          Bool.pick(
+            Step,
+            Bool.and(same_round(partition, lifetime, round, current), Bool.not(deciding)),
+            Advanced{
+              State{
+                ledger,
+                Round{
+                  partition,
+                  lifetime,
+                  round,
+                  waiting,
+                  False{},
+                  Some{next_operation},
+                  uncertain,
+                  quiet_since
+                } <> remove_round(partition, rounds),
+                work,
+                next_round,
+                (next_operation + 1n : Nat),
+                admissions,
+                dispatch,
+                collection,
+                history
+              },
+              EventEstablished{WriteAuthorized{next_operation}} <> Nil{}
+            },
+            Rejected{state, StaleRound{}}
+          )
         case _:
           Rejected{state, StaleOperation{}}
     case _ None{}:
@@ -2095,14 +2602,24 @@ def output_terminal_current(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, +operation: Nat, +outcome: WriteOutcome,
     current: Round) -> Step:
   match state current:
-    case State{ledger, rounds, work, next_round, next_operation, +admissions, +dispatch, +collection, +history} Round{_, _, _, +waiting, +deciding, Some{+token}, _, +quiet_since}:
+    case State{
+      ledger,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      +admissions,
+      +dispatch,
+      +collection,
+      +history
+    } Round{_, _, _, +waiting, +deciding, Some{+token}, _, +quiet_since}:
       Bool.pick(Step,
         Bool.and(same_round(partition, lifetime, round, current), Nat.is_eq(token, operation)),
         Advanced{State{ledger,
           Round{partition, lifetime, round, waiting, deciding, None{},
             write_is_unknown(outcome), quiet_since} <> remove_round(partition, rounds),
           work, next_round, next_operation, admissions, dispatch, collection, history},
-          WriteRecorded{outcome} <> Nil{}},
+          EventEstablished{WriteRecorded{outcome}} <> Nil{}},
         Rejected{state, StaleOperation{}})
     case _ _:
       Rejected{state, StaleOperation{}}
@@ -2126,17 +2643,27 @@ def output_terminal(+state: State, +partition: Nat, +lifetime: Nat,
 def retire_current(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat) -> Step:
   match state:
-    case State{ledger, rounds, +work, next_round, next_operation, +admissions, +dispatch, +collection, +history}:
+    case State{
+      ledger,
+      rounds,
+      +work,
+      next_round,
+      next_operation,
+      +admissions,
+      +dispatch,
+      +collection,
+      +history
+    }:
       Advanced{State{release_round_charges(work, ledger, partition, lifetime, round),
         remove_round(partition, rounds),
         retain_other_work(work, partition, lifetime, round),
         next_round, next_operation, admissions, dispatch,
         CollectionState.retire_round(collection, partition, round), history},
-        List.append(&2, Command,
+        List.append(&2, Output,
           release_all_commands(partition, lifetime, round, work),
-          List.append(&2, Command,
+          List.append(&2, Output,
             cancel_commands(partition, lifetime, round, work),
-            PartitionRetired{round} <> Nil{}))}
+            EventEstablished{PartitionRetired{round}} <> Nil{}))}
 
 def retire_found(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, found: Maybe<&2, Round>) -> Step:
@@ -2156,12 +2683,34 @@ def retire(+state: State, +partition: Nat, +lifetime: Nat, +round: Nat) -> Step:
 def capacity_reserve_result(state: State, +partition: Nat, +bytes: Nat,
     result: Ledger.LedgerResult) -> Step:
   match state result:
-    case State{_, rounds, work, next_round, next_operation, +admissions, +dispatch, +collection, +history} Ledger.Granted{+ledger, id}:
-      Advanced{State{ledger, rounds, work, next_round, next_operation, admissions, dispatch, collection, history},
-        CapacityGranted{id, capacity_view(ledger, partition)} <> Nil{}}
+    case State{
+      _,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      +admissions,
+      +dispatch,
+      +collection,
+      +history
+    } Ledger.Granted{+ledger, id}:
+      Advanced{
+        State{
+          ledger,
+          rounds,
+          work,
+          next_round,
+          next_operation,
+          admissions,
+          dispatch,
+          collection,
+          history
+        },
+        EventEstablished{CapacityGranted{id, capacity_view(ledger, partition)}} <> Nil{}
+      }
     case _ Ledger.Rejected{+ledger}:
-      Advanced{state, CapacityRefused{Ledger.admission(ledger, partition, bytes),
-        capacity_view(ledger, partition)} <> Nil{}}
+      Advanced{state, PolicyDecided{CapacityRefused{Ledger.admission(ledger, partition, bytes),
+        capacity_view(ledger, partition)}} <> Nil{}}
 
 def capacity_reserve(+state: State, +partition: Nat, +bytes: Nat,
     purpose: Ledger.Purpose) -> Step:
@@ -2173,15 +2722,37 @@ def capacity_reserve(+state: State, +partition: Nat, +bytes: Nat,
 def capacity_resize_result(state: State, +id: Nat, +partition: Nat, +bytes: Nat,
     result: Ledger.LedgerResult) -> Step:
   match state result:
-    case State{_, rounds, work, next_round, next_operation, +admissions, +dispatch, +collection, +history} Ledger.Granted{+ledger, _}:
-      Advanced{State{ledger, rounds, work, next_round, next_operation, admissions, dispatch, collection, history},
-        CapacityResized{id, capacity_view(ledger, partition)} <> Nil{}}
+    case State{
+      _,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      +admissions,
+      +dispatch,
+      +collection,
+      +history
+    } Ledger.Granted{+ledger, _}:
+      Advanced{
+        State{
+          ledger,
+          rounds,
+          work,
+          next_round,
+          next_operation,
+          admissions,
+          dispatch,
+          collection,
+          history
+        },
+        EventEstablished{CapacityResized{id, capacity_view(ledger, partition)}} <> Nil{}
+      }
     case State{_, _, _, _, _, _, +dispatch, +collection, +history} Ledger.Rejected{+ledger}:
       match ledger:
         case Ledger.Ledger{limits, next_id, charges}:
           +others : Ledger.Ledger = Ledger.Ledger{limits, next_id, Ledger.remove(id, charges)}
-          Advanced{state, CapacityRefused{Ledger.admission(others, partition, bytes),
-            capacity_view(ledger, partition)} <> Nil{}}
+          Advanced{state, PolicyDecided{CapacityRefused{Ledger.admission(others, partition, bytes),
+            capacity_view(ledger, partition)}} <> Nil{}}
 
 def capacity_resize_found(+state: State, +id: Nat, +bytes: Nat,
     purpose: Ledger.Purpose,
@@ -2189,7 +2760,9 @@ def capacity_resize_found(+state: State, +id: Nat, +bytes: Nat,
   match state found:
     case _ None{}:
       Rejected{state, StaleOperation{}}
-    case State{ledger, _, _, _, _, _, +dispatch, +collection, +history} Some{Ledger.Charge{_, partition, _, _}}:
+    case State{ledger, _, _, _, _, _, +dispatch, +collection, +history} Some{
+      Ledger.Charge{_, partition, _, _}
+    }:
       capacity_resize_result(state, id, partition, bytes,
         Ledger.resize_for(ledger, id, bytes, purpose))
 
@@ -2204,9 +2777,31 @@ def capacity_resize(+state: State, +id: Nat, +bytes: Nat,
 def capacity_release_result(state: State, +id: Nat,
     result: Ledger.LedgerResult) -> Step:
   match state result:
-    case State{_, rounds, work, next_round, next_operation, +admissions, +dispatch, +collection, +history} Ledger.Granted{ledger, _}:
-      Advanced{State{ledger, rounds, work, next_round, next_operation, admissions, dispatch, collection, history},
-        ReservationReleased{id} <> Nil{}}
+    case State{
+      _,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      +admissions,
+      +dispatch,
+      +collection,
+      +history
+    } Ledger.Granted{ledger, _}:
+      Advanced{
+        State{
+          ledger,
+          rounds,
+          work,
+          next_round,
+          next_operation,
+          admissions,
+          dispatch,
+          collection,
+          history
+        },
+        EventEstablished{ReservationReleased{id}} <> Nil{}
+      }
     case _ Ledger.Rejected{_}:
       Rejected{state, StaleOperation{}}
 
@@ -2216,20 +2811,20 @@ def capacity_release(+state: State, +id: Nat) -> Step:
       capacity_release_result(state, id, Ledger.release(ledger, id))
 
 type CapacityBatch is Data:
-  CapacityBatch{ledger: Ledger.Ledger, commands: List<&2, Command>}
+  CapacityBatch{ledger: Ledger.Ledger, outputs: List<&2, Output>}
 
 def capacity_replace_one(+partition: Nat, +position: Nat, +bytes: Nat,
-    commands: List<&2, Command>, result: Ledger.LedgerResult) -> CapacityBatch:
+    outputs: List<&2, Output>, result: Ledger.LedgerResult) -> CapacityBatch:
   match result:
     case Ledger.Granted{+ledger, id}:
-      CapacityBatch{ledger, List.append(&2, Command, commands,
-        CapacityUnitAdmitted{id, position, bytes,
-          capacity_view(ledger, partition)} <> Nil{})}
+      CapacityBatch{ledger, List.append(&2, Output, outputs,
+        EventEstablished{CapacityUnitAdmitted{id, position, bytes,
+          capacity_view(ledger, partition)}} <> Nil{})}
     case Ledger.Rejected{+ledger}:
-      CapacityBatch{ledger, List.append(&2, Command, commands,
-        CapacityUnitRefused{position, bytes,
+      CapacityBatch{ledger, List.append(&2, Output, outputs,
+        PolicyDecided{CapacityUnitRefused{position, bytes,
           Ledger.admission(ledger, partition, bytes),
-          capacity_view(ledger, partition)} <> Nil{})}
+          capacity_view(ledger, partition)}} <> Nil{})}
 
 def capacity_replace_units(sizes: List<&2, Nat>, batch: CapacityBatch,
     +partition: Nat, +position: Nat) -> CapacityBatch:
@@ -2238,23 +2833,48 @@ def capacity_replace_units(sizes: List<&2, Nat>, batch: CapacityBatch,
       batch
     case +size <> rest:
       match batch:
-        case CapacityBatch{ledger, commands}:
+        case CapacityBatch{ledger, outputs}:
           capacity_replace_units(rest,
-            capacity_replace_one(partition, position, size, commands,
+            capacity_replace_one(partition, position, size, outputs,
               Ledger.reserve_for(ledger, partition, size, Ledger.ReviewUnit{})),
             partition, (position + 1n : Nat))
 
 def capacity_replace_batch(state: State, +id: Nat, +partition: Nat,
     released: Ledger.Ledger, batch: CapacityBatch) -> Step:
   match state batch:
-    case State{_, rounds, work, next_round, next_operation, +admissions, +dispatch, +collection, +history} CapacityBatch{ledger, commands}:
-      Advanced{State{ledger, rounds, work, next_round, next_operation, admissions, dispatch, collection, history},
-        PreparationReleased{id, capacity_view(released, partition)} <> commands}
+    case State{
+      _,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      +admissions,
+      +dispatch,
+      +collection,
+      +history
+    } CapacityBatch{ledger, outputs}:
+      Advanced{
+        State{
+          ledger,
+          rounds,
+          work,
+          next_round,
+          next_operation,
+          admissions,
+          dispatch,
+          collection,
+          history
+        },
+        EventEstablished{PreparationReleased{id, capacity_view(released, partition)}} <> outputs
+      }
 
 def capacity_replace_released(state: State, +id: Nat, +partition: Nat,
     sizes: List<&2, Nat>, result: Ledger.LedgerResult) -> Step:
   match state result:
-    case State{_, rounds, work, next_round, next_operation, _, +dispatch, +collection, +history} Ledger.Granted{+released, _}:
+    case State{_, rounds, work, next_round, next_operation, _, +dispatch, +collection, +history} Ledger.Granted{
+      +released,
+      _
+    }:
       capacity_replace_batch(state, id, partition, released,
         capacity_replace_units(sizes, CapacityBatch{released, Nil{}}, partition, 1n))
     case _ Ledger.Rejected{_}:
@@ -2263,7 +2883,9 @@ def capacity_replace_released(state: State, +id: Nat, +partition: Nat,
 def capacity_replace_found(+state: State, +id: Nat, sizes: List<&2, Nat>,
     found: Maybe<&2, Ledger.Charge>) -> Step:
   match state found:
-    case State{ledger, _, _, _, _, _, +dispatch, +collection, +history} Some{Ledger.Charge{_, partition, _, Ledger.Preparation{}}}:
+    case State{ledger, _, _, _, _, _, +dispatch, +collection, +history} Some{
+      Ledger.Charge{_, partition, _, Ledger.Preparation{}}
+    }:
       capacity_replace_released(state, id, partition, sizes,
         Ledger.release(ledger, id))
     case _ _:
@@ -2276,55 +2898,137 @@ def capacity_replace(+state: State, +id: Nat, sizes: List<&2, Nat>) -> Step:
         case Ledger.Ledger{_, _, charges}:
           capacity_replace_found(state, id, sizes, Ledger.find(id, charges))
 
-def dispatch_commands(items: List<&2, Dispatch.Command>) -> List<&2, Command>:
+def dispatch_commands(items: List<&2, Dispatch.Command>) -> List<&2, Output>:
   match items:
     case Nil{}:
       Nil{}
     case Dispatch.Started{operation, sequence} <> rest:
-      DispatchStarted{operation, sequence} <> dispatch_commands(rest)
+      EventEstablished{DispatchStarted{operation, sequence}} <> dispatch_commands(rest)
     case Dispatch.Discarded{operation, running} <> rest:
-      DispatchDiscarded{operation, running} <> dispatch_commands(rest)
+      EventEstablished{DispatchDiscarded{operation, running}} <> dispatch_commands(rest)
 
 # Genuine scoped logical cancellation, independent of physical Jev outcome.
 # Dispatch.discard preserves issued requests and marks only this running owner
 # canceled; a real original terminal will later release the physical request.
-def cancel_review_dispatched(original: State, updated: State, +operation: Nat, charge: Nat, result: Dispatch.DispatchResult) -> Step:
+def cancel_review_dispatched(
+  original: State,
+  updated: State,
+  +operation: Nat,
+  charge: Nat,
+  result: Dispatch.DispatchResult
+) -> Step:
   match updated result:
-    case State{ledger,rounds,work,next_round,next_operation,admissions,_,collection,history} Dispatch.Advanced{dispatch,commands}:
-      Advanced{State{ledger,rounds,work,next_round,next_operation,admissions,dispatch,collection,history},
-        ReservationReleased{charge} <> CancelWork{operation} <> dispatch_commands(commands)}
-    case _ Dispatch.Denied{_}: Rejected{original,StaleOperation{}}
+    case State{ledger, rounds, work, next_round, next_operation, admissions, _, collection, history} Dispatch.Advanced{
+      dispatch,
+      outputs
+    }:
+      Advanced{
+        State{
+          ledger,
+          rounds,
+          work,
+          next_round,
+          next_operation,
+          admissions,
+          dispatch,
+          collection,
+          history
+        },
+        EventEstablished{
+          ReservationReleased{charge}
+        } <> ActionRequested{CancelWork{operation}} <> dispatch_commands(outputs)
+      }
+    case _ Dispatch.Denied{_}: Rejected{original, StaleOperation{}}
 
-def cancel_review_released(+state: State, +operation: Nat, charge: Nat, result: Ledger.LedgerResult) -> Step:
+def cancel_review_released(
+  +state: State,
+  +operation: Nat,
+  charge: Nat,
+  result: Ledger.LedgerResult
+) -> Step:
   match state result:
-    case State{_,+rounds,work,+next_round,+next_operation,+admissions,+dispatch,+collection,+history} Ledger.Granted{ledger,_}:
-      cancel_review_dispatched(state,State{ledger,rounds,remove_work(operation,work),next_round,next_operation,admissions,dispatch,collection,history},operation,charge,Dispatch.discard(dispatch,[operation]))
-    case _ Ledger.Rejected{_}: Rejected{state,InconsistentLedger{}}
+    case State{
+      _,
+      +rounds,
+      work,
+      +next_round,
+      +next_operation,
+      +admissions,
+      +dispatch,
+      +collection,
+      +history
+    } Ledger.Granted{ledger, _}:
+      cancel_review_dispatched(
+        state,
+        State{
+          ledger,
+          rounds,
+          remove_work(operation, work),
+          next_round,
+          next_operation,
+          admissions,
+          dispatch,
+          collection,
+          history
+        },
+        operation,
+        charge,
+        Dispatch.discard(dispatch, [operation])
+      )
+    case _ Ledger.Rejected{_}: Rejected{state, InconsistentLedger{}}
 
 def cancel_review_kind(+state: State, operation: Nat, +charge: Nat, kind: WorkKind) -> Step:
   match state kind:
-    case State{ledger,_,_,_,_,_,_,_,_} Reviewing{}:
-      cancel_review_released(state,operation,charge,Ledger.release(ledger,charge))
-    case State{ledger,_,_,_,_,_,_,_,_} AtJev{}:
-      cancel_review_released(state,operation,charge,Ledger.release(ledger,charge))
-    case _ _: Rejected{state,StaleOperation{}}
+    case State{ledger, _, _, _, _, _, _, _, _} Reviewing{}:
+      cancel_review_released(state, operation, charge, Ledger.release(ledger, charge))
+    case State{ledger, _, _, _, _, _, _, _, _} AtJev{}:
+      cancel_review_released(state, operation, charge, Ledger.release(ledger, charge))
+    case _ _: Rejected{state, StaleOperation{}}
 
-def cancel_review_found(state: State, operation: Nat, found: Maybe<&2,Work>) -> Step:
+def cancel_review_found(state: State, operation: Nat, found: Maybe<&2, Work>) -> Step:
   match found:
-    case Some{Work{_,_,_,_,charge,kind,_}}: cancel_review_kind(state,operation,charge,kind)
-    case None{}: Rejected{state,StaleOperation{}}
+    case Some{Work{_, _, _, _, charge, kind, _}}: cancel_review_kind(state, operation, charge, kind)
+    case None{}: Rejected{state, StaleOperation{}}
 
-def cancel_review(+state: State, partition: Nat, lifetime: Nat, round: Nat, +operation: Nat) -> Step:
+def cancel_review(
+  +state: State,
+  partition: Nat,
+  lifetime: Nat,
+  round: Nat,
+  +operation: Nat
+) -> Step:
   match state:
-    case State{_,_,work,_,_,_,_,_,_}:
-      cancel_review_found(state,operation,find_work(partition,lifetime,round,operation,work))
+    case State{_, _, work, _, _, _, _, _, _}:
+      cancel_review_found(state, operation, find_work(partition, lifetime, round, operation, work))
 
 def dispatch_result(state: State, result: Dispatch.DispatchResult) -> Step:
   match state result:
-    case State{ledger, rounds, work, next_round, next_operation, admissions, _, +collection, +history}
-        Dispatch.Advanced{dispatch, commands}:
-      Advanced{State{ledger, rounds, work, next_round, next_operation, admissions, dispatch, collection, history},
-        dispatch_commands(commands)}
+    case State{
+      ledger,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      admissions,
+      _,
+      +collection,
+      +history
+    }
+        Dispatch.Advanced{dispatch, outputs}:
+      Advanced{
+        State{
+          ledger,
+          rounds,
+          work,
+          next_round,
+          next_operation,
+          admissions,
+          dispatch,
+          collection,
+          history
+        },
+        dispatch_commands(outputs)
+      }
     case _ Dispatch.Denied{_}:
       Rejected{state, StaleOperation{}}
 
@@ -2371,9 +3075,9 @@ def close_dispatch(+state: State) -> Step:
 def dispatch_scope_result(state: State, result: Retention.DiscardScope) -> Step:
   match result:
     case Retention.NamedOnly{}:
-      Advanced{state, DiscardNamedOnly{} <> Nil{}}
+      Advanced{state, PolicyDecided{DiscardNamedOnly{}} <> Nil{}}
     case Retention.AllUnfinished{}:
-      Advanced{state, DiscardAllUnfinished{} <> Nil{}}
+      Advanced{state, PolicyDecided{DiscardAllUnfinished{}} <> Nil{}}
 
 def dispatch_scope(state: State, named_count: Nat, cancelled_count: Nat,
     has_unnamed: Bool) -> Step:
@@ -2387,7 +3091,7 @@ def with_collection(state: State, replacement: CollectionState.State) -> State:
         dispatch, replacement, history}
 
 def collection_decision(+state: State, decision: CollectionState.Decision,
-    accepted: Command, refused: Command) -> Step:
+    accepted: Output, refused: Output) -> Step:
   match decision:
     case CollectionState.Accepted{collection}:
       Advanced{with_collection(state, collection), accepted <> Nil{}}
@@ -2442,45 +3146,45 @@ def collection_ready(+state: State, +advice: Nat,
                 partition, lifetime, round),
               Bool.not(Bool.or(joined_pending,
                 unfinished_for_observation(work, partition, lifetime, round, observation)))))),
-        CollectionEligible{}, CollectionWaiting{})
+        EventEstablished{CollectionEligible{}}, PolicyDecided{CollectionWaiting{}})
 
 def collection_credential_result(state: State,
     decision: Collection.CredentialDisposition) -> Step:
   match decision:
     case Collection.RetireAdvice{}:
-      Advanced{state, CollectionRetireCredential{} <> Nil{}}
+      Advanced{state, PolicyDecided{CollectionRetireCredential{}} <> Nil{}}
     case Collection.RetainAdvice{}:
-      Advanced{state, CollectionRetainCredential{} <> Nil{}}
+      Advanced{state, PolicyDecided{CollectionRetainCredential{}} <> Nil{}}
 
 def collection_candidate(state: State, same_partition: Bool, unleased: Bool,
     has_unsuppressed: Bool, authority_owns: Bool) -> Step:
-  Advanced{state, Bool.pick(Command,
+  Advanced{state, Bool.pick(Output,
     Delivery.advice_candidate(same_partition, unleased, has_unsuppressed, authority_owns),
-    CollectionCandidate{}, CollectionSkip{}) <> Nil{}}
+    PolicyDecided{CollectionCandidate{}}, PolicyDecided{CollectionSkip{}}) <> Nil{}}
 
 def collection_order_result(state: State, order: Collection.Order) -> Step:
   match order:
     case Collection.Before{}:
-      Advanced{state, CollectionBefore{} <> Nil{}}
+      Advanced{state, PolicyDecided{CollectionBefore{}} <> Nil{}}
     case Collection.Equal{}:
-      Advanced{state, CollectionEqual{} <> Nil{}}
+      Advanced{state, PolicyDecided{CollectionEqual{}} <> Nil{}}
     case Collection.After{}:
-      Advanced{state, CollectionAfter{} <> Nil{}}
+      Advanced{state, PolicyDecided{CollectionAfter{}} <> Nil{}}
 
 def collection_expiry(state: State, elapsed: Nat, lifetime: Nat) -> Step:
-  Advanced{state, Bool.pick(Command, Collection.expired(elapsed, lifetime),
-    CollectionExpired{}, CollectionCurrent{}) <> Nil{}}
+  Advanced{state, Bool.pick(Output, Collection.expired(elapsed, lifetime),
+    PolicyDecided{CollectionExpired{}}, PolicyDecided{CollectionCurrent{}}) <> Nil{}}
 
 def collection_fit(state: State, items: Nat, bytes: Nat) -> Step:
-  Advanced{state, Bool.pick(Command, Handoff.fits_batch(items, bytes),
-    CollectionFits{}, CollectionLimited{}) <> Nil{}}
+  Advanced{state, Bool.pick(Output, Handoff.fits_batch(items, bytes),
+    PolicyDecided{CollectionFits{}}, PolicyDecided{CollectionLimited{}}) <> Nil{}}
 
 def collection_finding_result(state: State, current: Bool, oversized: Bool,
     fits: Bool) -> Step:
-  Advanced{state, Bool.pick(Command, Bool.not(current), CollectionFindingExpired{},
-    Bool.pick(Command, oversized, CollectionFindingLimited{},
-      Bool.pick(Command, fits, CollectionFindingSelected{},
-        CollectionFindingRetained{}))) <> Nil{}}
+  Advanced{state, Bool.pick(Output, Bool.not(current), PolicyDecided{CollectionFindingExpired{}},
+    Bool.pick(Output, oversized, PolicyDecided{CollectionFindingLimited{}},
+      Bool.pick(Output, fits, PolicyDecided{CollectionFindingSelected{}},
+        PolicyDecided{CollectionFindingRetained{}}))) <> Nil{}}
 
 def collection_finding(state: State, selection_partition: Nat,
     selection_round: Nat, unit: Nat, partition: Nat, round: Nat,
@@ -2497,30 +3201,30 @@ def collection_finding(state: State, selection_partition: Nat,
 def collection_notice_result(state: State, result: Handoff.NoticeOffer) -> Step:
   match result:
     case Handoff.IncludeNotice{}:
-      Advanced{state, CollectionNoticeIncluded{} <> Nil{}}
+      Advanced{state, PolicyDecided{CollectionNoticeIncluded{}} <> Nil{}}
     case Handoff.SkipNotice{}:
-      Advanced{state, CollectionNoticeSkipped{} <> Nil{}}
+      Advanced{state, PolicyDecided{CollectionNoticeSkipped{}} <> Nil{}}
     case Handoff.StopNotices{}:
-      Advanced{state, CollectionNoticeStopped{} <> Nil{}}
+      Advanced{state, PolicyDecided{CollectionNoticeStopped{}} <> Nil{}}
 
 def collection_reserve(+state: State, advice: Nat, token: Nat) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}:
       collection_decision(state, CollectionState.reserve(collection, advice, token),
-        CollectionLeaseReserved{}, CollectionLeaseRefused{})
+        EventEstablished{CollectionLeaseReserved{}}, PolicyDecided{CollectionLeaseRefused{}})
 
 def collection_release(+state: State, advice: Nat, token: Nat) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}:
       collection_decision(state, CollectionState.release(collection, advice, token),
-        CollectionLeaseReleased{}, CollectionLeaseRefused{})
+        EventEstablished{CollectionLeaseReleased{}}, PolicyDecided{CollectionLeaseRefused{}})
 
 def collection_lease_keep(+state: State, advice: Nat, token: Nat) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}:
-      Advanced{state, Bool.pick(Command,
+      Advanced{state, Bool.pick(Output,
         CollectionState.owns_lease(collection, advice, token),
-        CollectionLeaseKept{}, CollectionLeaseRefused{}) <> Nil{}}
+        PolicyDecided{CollectionLeaseKept{}}, PolicyDecided{CollectionLeaseRefused{}}) <> Nil{}}
 
 def collection_lease_checked(+state: State, advice: Nat, token: Nat,
     action: Delivery.CollectionLeaseAction) -> Step:
@@ -2543,21 +3247,28 @@ def collection_retire(+state: State, +advice: Nat) -> Step:
       Bool.pick(Step, CollectionState.protected_advice(collection, advice),
         Rejected{state, WrongStage{}},
         Advanced{with_collection(state, CollectionState.retire(collection, advice)),
-          CollectionAdviceRetired{} <> Nil{}})
+          EventEstablished{CollectionAdviceRetired{}} <> Nil{}})
 
 def collection_claim(+state: State, group: Nat, token: Nat, active: Bool,
     capacity: Nat) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}:
-      collection_decision(state,
+      collection_decision(
+        state,
         CollectionState.claim(collection, group, token, active, capacity),
-        CollectionBackgroundClaimed{}, CollectionBackgroundRefused{})
+        EventEstablished{CollectionBackgroundClaimed{}},
+        PolicyDecided{CollectionBackgroundRefused{}}
+      )
 
 def collection_release_background(+state: State, group: Nat, token: Nat) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}:
-      collection_decision(state, CollectionState.release_claim(collection, group, token),
-        CollectionBackgroundReleased{}, CollectionBackgroundRefused{})
+      collection_decision(
+        state,
+        CollectionState.release_claim(collection, group, token),
+        EventEstablished{CollectionBackgroundReleased{}},
+        PolicyDecided{CollectionBackgroundRefused{}}
+      )
 
 def collection_expire_background(+state: State, group: Nat, token: Nat,
     elapsed: Nat, lifetime: Nat) -> Step:
@@ -2565,7 +3276,7 @@ def collection_expire_background(+state: State, group: Nat, token: Nat,
     case State{_, _, _, _, _, _, _, collection, +history}:
       collection_decision(state,
         CollectionState.expire_claim(collection, group, token, elapsed, lifetime),
-        CollectionBackgroundReleased{}, CollectionBackgroundKept{})
+        EventEstablished{CollectionBackgroundReleased{}}, PolicyDecided{CollectionBackgroundKept{}})
 
 def pending_count(+operation: Nat, items: List<&2, Work>) -> Nat:
   match items:
@@ -2606,7 +3317,7 @@ def finish_reserve_decision(+state: State, group: Nat, round: Nat,
     case State{_, _, _, _, _, _, _, collection, +history}:
       collection_decision(state,
         CollectionState.finish_reserve(collection, group, round, attempt,
-          token, selected), FinishReserved{}, FinishRefused{})
+          token, selected), EventEstablished{FinishReserved{}}, PolicyDecided{FinishRefused{}})
 
 def finish_reserve(+state: State, +group: Nat, lifetime: Nat, +round: Nat,
     +attempt: Nat, +token: Nat, +selected: List<&2, Nat>,
@@ -2614,20 +3325,49 @@ def finish_reserve(+state: State, +group: Nat, lifetime: Nat, +round: Nat,
     binding_valid: Bool, +deadline_reached: Bool) -> Step:
   match state:
     case State{_, rounds, work, _, _, _, _, _, +history}:
-      Bool.pick(Step, Bool.not(can_write),
-        Advanced{state, Bool.pick(Command, deadline_reached,
-          FinishAllowedDeadline{}, FinishAllowedNoAdvice{}) <> Nil{}},
-        Bool.pick(Step, Nat.is_eq(List.length(&2, Nat, selected), 0n),
-          Advanced{state, Bool.pick(Command,
-            Bool.and(has_notice, pass_notices), FinishNotices{},
-            Bool.pick(Command, deadline_reached,
-              FinishAllowedDeadline{}, FinishAllowedNoAdvice{})) <> Nil{}},
-          Bool.pick(Step,
-            Bool.and(binding_valid,
-              Bool.and(deciding_round(find_round(group, rounds), group,
-                lifetime, round), selected_pending(selected, work))),
+      Bool.pick(
+        Step,
+        Bool.not(can_write),
+        Advanced{
+          state,
+          Bool.pick(
+            Output,
+            deadline_reached,
+            PolicyDecided{FinishAllowedDeadline{}},
+            PolicyDecided{FinishAllowedNoAdvice{}}
+          ) <> Nil{}
+        },
+        Bool.pick(
+          Step,
+          Nat.is_eq(List.length(&2, Nat, selected), 0n),
+          Advanced{
+            state,
+            Bool.pick(
+              Output,
+              Bool.and(has_notice, pass_notices),
+              PolicyDecided{FinishNotices{}},
+              Bool.pick(
+                Output,
+                deadline_reached,
+                PolicyDecided{FinishAllowedDeadline{}},
+                PolicyDecided{FinishAllowedNoAdvice{}}
+              )
+            ) <> Nil{}
+          },
+          Bool.pick(
+            Step,
+            Bool.and(
+              binding_valid,
+              Bool.and(
+                deciding_round(find_round(group, rounds), group, lifetime, round),
+                selected_pending(selected, work)
+              )
+            ),
             finish_reserve_decision(state, group, round, attempt, token, selected),
-            Advanced{state, FinishAllowedUnavailable{} <> Nil{}})))
+            Advanced{state, PolicyDecided{FinishAllowedUnavailable{}} <> Nil{}}
+          )
+        )
+      )
 
 def finish_release(+state: State, group: Nat, round: Nat,
     attempt: Nat, token: Nat) -> Step:
@@ -2635,26 +3375,34 @@ def finish_release(+state: State, group: Nat, round: Nat,
     case State{_, _, _, _, _, _, _, collection, +history}:
       collection_decision(state,
         CollectionState.finish_release(collection, group, round, attempt, token),
-        FinishReleased{}, FinishRefused{})
+        EventEstablished{FinishReleased{}}, PolicyDecided{FinishRefused{}})
 
 def finish_authorize(+state: State, +group: Nat, +round: Nat,
     attempt: Nat, +token: Nat, +selected: List<&2, Nat>) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}:
-      Bool.pick(Step,
+      Bool.pick(
+        Step,
         CollectionState.submission_ready(collection, group, round, token, selected),
-        collection_decision(state,
-          CollectionState.finish_authorize(collection, group, round,
-            attempt, token, selected), FinishAuthorized{}, FinishRefused{}),
-        Advanced{state, FinishRefused{} <> Nil{}})
+        collection_decision(
+          state,
+          CollectionState.finish_authorize(collection, group, round, attempt, token, selected),
+          EventEstablished{FinishAuthorized{}},
+          PolicyDecided{FinishRefused{}}
+        ),
+        Advanced{state, PolicyDecided{FinishRefused{}} <> Nil{}}
+      )
 
 def finish_terminal_result(state: State, outcome: WriteOutcome,
     decision: CollectionState.Decision) -> Step:
   match decision:
     case CollectionState.Accepted{collection}:
-      Advanced{with_collection(state, collection), FinishRecorded{outcome} <> Nil{}}
+      Advanced{
+        with_collection(state, collection),
+        EventEstablished{FinishRecorded{outcome}} <> Nil{}
+      }
     case CollectionState.Refused{_}:
-      Advanced{state, FinishRefused{} <> Nil{}}
+      Advanced{state, PolicyDecided{FinishRefused{}} <> Nil{}}
 
 def finish_terminal(+state: State, group: Nat, round: Nat,
     attempt: Nat, token: Nat, selected: List<&2, Nat>,
@@ -2681,14 +3429,14 @@ def finish_end(+state: State, group: Nat, round: Nat,
     case State{_, _, _, _, _, _, _, collection, +history}:
       collection_decision(state,
         CollectionState.finish_end(collection, group, round, attempt, token),
-        FinishEnded{}, FinishRefused{})
+        EventEstablished{FinishEnded{}}, PolicyDecided{FinishRefused{}})
 
 def continuation_consume(+state: State, group: Nat, round: Nat) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}:
       collection_decision(state,
         CollectionState.consume_continuation(collection, group, round),
-        ContinuationConsumed{}, ContinuationRefused{})
+        EventEstablished{ContinuationConsumed{}}, PolicyDecided{ContinuationRefused{}})
 
 def submission_round_found(group: Nat, round: Nat, found: Maybe<&2, Round>) -> Bool:
   match found:
@@ -2713,26 +3461,34 @@ def submission_begin(+state: State, advice: Nat, +group: Nat, +round: Nat,
             group, round, token))),
         collection_decision(state, CollectionState.submission_begin(collection,
           advice, group, round, token, surface, authorize_now, fingerprints, units),
-          SubmissionBegun{}, SubmissionRefused{}),
-        Advanced{state, SubmissionRefused{} <> Nil{}})
+          EventEstablished{SubmissionBegun{}}, PolicyDecided{SubmissionRefused{}}),
+        Advanced{state, PolicyDecided{SubmissionRefused{}} <> Nil{}})
 
 def submission_authorize(+state: State, advice: Nat, token: Nat) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}:
-      collection_decision(state, CollectionState.submission_authorize(collection,
-        advice, token), SubmissionAuthorized{}, SubmissionRefused{})
+      collection_decision(
+        state,
+        CollectionState.submission_authorize(collection, advice, token),
+        EventEstablished{SubmissionAuthorized{}},
+        PolicyDecided{SubmissionRefused{}}
+      )
 
 def submission_terminal(+state: State, advice: Nat, token: Nat, certain: Bool) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}:
-      collection_decision(state, CollectionState.submission_terminal(collection,
-        advice, token, certain), SubmissionRecorded{}, SubmissionRefused{})
+      collection_decision(
+        state,
+        CollectionState.submission_terminal(collection, advice, token, certain),
+        EventEstablished{SubmissionRecorded{}},
+        PolicyDecided{SubmissionRefused{}}
+      )
 
 def submission_release(+state: State, advice: Nat, token: Nat) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}:
       collection_decision(state, CollectionState.submission_release(collection,
-        advice, token), SubmissionReleased{}, SubmissionRefused{})
+        advice, token), EventEstablished{SubmissionReleased{}}, PolicyDecided{SubmissionRefused{}})
 
 def submission_forget(+state: State, +advice: Nat) -> Step:
   match state:
@@ -2740,41 +3496,57 @@ def submission_forget(+state: State, +advice: Nat) -> Step:
       Bool.pick(Step, CollectionState.protected_advice(collection, advice),
         Rejected{state, WrongStage{}},
         Advanced{with_collection(state, CollectionState.submission_forget(collection, advice)),
-          SubmissionForgotten{} <> Nil{}})
+          EventEstablished{SubmissionForgotten{}} <> Nil{}})
 
 def submission_suppress_check(+state: State, advice: Nat, fingerprint: Nat,
     round: Nat, surface: Handoff.Surface) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}:
-      Advanced{state, Bool.pick(Command,
-        CollectionState.submission_suppresses(collection, advice, fingerprint,
-          round, surface), SubmissionSuppresses{}, SubmissionUnsuppressed{}) <> Nil{}}
+      Advanced{
+        state,
+        Bool.pick(
+          Output,
+          CollectionState.submission_suppresses(collection, advice, fingerprint, round, surface),
+          PolicyDecided{SubmissionSuppresses{}},
+          PolicyDecided{SubmissionUnsuppressed{}}
+        ) <> Nil{}
+      }
 
 def submission_reoffer_check(+state: State, advice: Nat, token: Nat) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}:
-      Advanced{state, Bool.pick(Command,
+      Advanced{state, Bool.pick(Output,
         CollectionState.submission_reofferable(collection, advice, token),
-        SubmissionReofferable{}, SubmissionNotReofferable{}) <> Nil{}}
+        PolicyDecided{SubmissionReofferable{}}, PolicyDecided{SubmissionNotReofferable{}}) <> Nil{}}
 
 def submission_expiry_check(+state: State, advice: Nat, token: Nat,
     elapsed: Nat, lifetime: Nat) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}:
-      Advanced{state, Bool.pick(Command,
-        CollectionState.submission_expired(collection, advice, token,
-          elapsed, lifetime), SubmissionExpired{}, SubmissionCurrent{}) <> Nil{}}
+      Advanced{
+        state,
+        Bool.pick(
+          Output,
+          CollectionState.submission_expired(collection, advice, token, elapsed, lifetime),
+          PolicyDecided{SubmissionExpired{}},
+          PolicyDecided{SubmissionCurrent{}}
+        ) <> Nil{}
+      }
 
 def revision_register_result(+state: State, result: RevisionState.Registration) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, +collection, +history}:
       match result:
         case RevisionState.Reused{replacement, generation}:
-          Advanced{with_collection(state, CollectionState.revision_replace(collection, replacement)),
-            RevisionReused{generation} <> Nil{}}
+          Advanced{
+            with_collection(state, CollectionState.revision_replace(collection, replacement)),
+            EventEstablished{RevisionReused{generation}} <> Nil{}
+          }
         case RevisionState.Replaced{replacement, generation}:
-          Advanced{with_collection(state, CollectionState.revision_replace(collection, replacement)),
-            RevisionReplaced{generation} <> Nil{}}
+          Advanced{
+            with_collection(state, CollectionState.revision_replace(collection, replacement)),
+            EventEstablished{RevisionReplaced{generation}} <> Nil{}
+          }
 
 def revision_register(+state: State, subject: Nat, input: Nat, add_member: Bool) -> Step:
   match state:
@@ -2786,32 +3558,53 @@ def revision_release(+state: State, subject: Nat, generation: Nat) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}:
       Advanced{with_collection(state, CollectionState.revision_release(collection,
-        subject, generation)), RevisionReleased{} <> Nil{}}
+        subject, generation)), EventEstablished{RevisionReleased{}} <> Nil{}}
 
 def revision_current_check(+state: State, subject: Nat, input: Nat,
     generation: Nat) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}:
-      Advanced{state, Bool.pick(Command, CollectionState.revision_current(collection,
-        subject, input, generation), RevisionCurrent{}, RevisionStale{}) <> Nil{}}
+      Advanced{
+        state,
+        Bool.pick(
+          Output,
+          CollectionState.revision_current(collection, subject, input, generation),
+          PolicyDecided{RevisionCurrent{}},
+          PolicyDecided{RevisionStale{}}
+        ) <> Nil{}
+      }
 
 def revision_superseded_check(+state: State, subject: Nat,
     candidate_subject: Nat, generation: Nat) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}:
-      Advanced{state, Bool.pick(Command, CollectionState.revision_superseded(collection,
-        subject, candidate_subject, generation), RevisionSuperseded{}, RevisionNotSuperseded{}) <> Nil{}}
+      Advanced{
+        state,
+        Bool.pick(
+          Output,
+          CollectionState.revision_superseded(collection, subject, candidate_subject, generation),
+          PolicyDecided{RevisionSuperseded{}},
+          PolicyDecided{RevisionNotSuperseded{}}
+        ) <> Nil{}
+      }
 
 def revision_generation_check(+state: State, subject: Nat) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}:
-      Advanced{state, RevisionGeneration{CollectionState.revision_generation(collection,
-        subject)} <> Nil{}}
+      Advanced{
+        state,
+        PolicyDecided{
+          RevisionGeneration{CollectionState.revision_generation(collection, subject)}
+        } <> Nil{}
+      }
 
 def revision_count_check(+state: State) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}:
-      Advanced{state, RevisionCount{CollectionState.revision_count(collection)} <> Nil{}}
+      Advanced{
+        state,
+        PolicyDecided{RevisionCount{CollectionState.revision_count(collection)}} <> Nil{}
+      }
 
 def collection_of(state: State) -> CollectionState.State:
   match state:
@@ -2820,24 +3613,30 @@ def collection_of(state: State) -> CollectionState.State:
 def collector_gate_result(state: State, result: CollectorAuthority.CollectGate) -> Step:
   match result:
     case CollectorAuthority.CollectProceed{}:
-      Advanced{state, CollectorProceed{} <> Nil{}}
+      Advanced{state, PolicyDecided{CollectorProceed{}} <> Nil{}}
     case CollectorAuthority.CollectUnavailable{reason}:
-      Advanced{state, CollectorUnavailable{reason} <> Nil{}}
+      Advanced{state, PolicyDecided{CollectorUnavailable{reason}} <> Nil{}}
 
-def collector_final_authority_result(state: State, result: CollectorAuthority.FinalAuthority) -> Step:
+def collector_final_authority_result(
+  state: State,
+  result: CollectorAuthority.FinalAuthority
+) -> Step:
   match result:
     case CollectorAuthority.FinalProceed{}:
-      Advanced{state, CollectorFinalProceed{} <> Nil{}}
+      Advanced{state, PolicyDecided{CollectorFinalProceed{}} <> Nil{}}
     case CollectorAuthority.FinalRelease{}:
-      Advanced{state, CollectorFinalRelease{} <> Nil{}}
+      Advanced{state, PolicyDecided{CollectorFinalRelease{}} <> Nil{}}
 
 def reuse_member_result(state: State, result: Reuse.JoinedDisposition) -> Step:
   match result:
-    case Reuse.KeepJoined{}: Advanced{state, ReuseKeepMember{} <> Nil{}}
-    case Reuse.SetJoinedClear{}: Advanced{state, ReuseSetMemberClear{} <> Nil{}}
-    case Reuse.SetJoinedFinding{}: Advanced{state, ReuseSetMemberFinding{} <> Nil{}}
-    case Reuse.SetJoinedUnavailable{}: Advanced{state, ReuseSetMemberUnavailable{} <> Nil{}}
-    case Reuse.SetJoinedLost{}: Advanced{state, ReuseSetMemberLost{} <> Nil{}}
+    case Reuse.KeepJoined{}: Advanced{state, PolicyDecided{ReuseKeepMember{}} <> Nil{}}
+    case Reuse.SetJoinedClear{}: Advanced{state, PolicyDecided{ReuseSetMemberClear{}} <> Nil{}}
+    case Reuse.SetJoinedFinding{}: Advanced{state, PolicyDecided{ReuseSetMemberFinding{}} <> Nil{}}
+    case Reuse.SetJoinedUnavailable{}: Advanced{
+      state,
+      PolicyDecided{ReuseSetMemberUnavailable{}} <> Nil{}
+    }
+    case Reuse.SetJoinedLost{}: Advanced{state, PolicyDecided{ReuseSetMemberLost{}} <> Nil{}}
 
 def cleanup_state_clean(state: State) -> Bool:
   match state:
@@ -2854,45 +3653,48 @@ def cleanup_state_clean(state: State) -> Bool:
 def cleanup_check_result(+state: State, result: Retention.CleanupGate) -> Step:
   match result:
     case Retention.CleanupReady{}:
-      Advanced{state, Bool.pick(Command, cleanup_state_clean(state),
-        CleanupReady{}, CleanupBusy{}) <> Nil{}}
-    case Retention.CleanupBusy{}: Advanced{state, CleanupBusy{} <> Nil{}}
+      Advanced{state, Bool.pick(Output, cleanup_state_clean(state),
+        PolicyDecided{CleanupReady{}}, PolicyDecided{CleanupBusy{}}) <> Nil{}}
+    case Retention.CleanupBusy{}: Advanced{state, PolicyDecided{CleanupBusy{}} <> Nil{}}
 
 def delivery_ack_result(state: State, decision: Delivery.AckDecision) -> Step:
   match decision:
-    case Delivery.AckReady{}: Advanced{state, DeliveryAckReady{} <> Nil{}}
-    case Delivery.AckExpired{}: Advanced{state, DeliveryAckExpired{} <> Nil{}}
-    case Delivery.AckEmpty{}: Advanced{state, DeliveryAckEmpty{} <> Nil{}}
+    case Delivery.AckReady{}: Advanced{state, PolicyDecided{DeliveryAckReady{}} <> Nil{}}
+    case Delivery.AckExpired{}: Advanced{state, PolicyDecided{DeliveryAckExpired{}} <> Nil{}}
+    case Delivery.AckEmpty{}: Advanced{state, PolicyDecided{DeliveryAckEmpty{}} <> Nil{}}
 
 def delivery_final_result(state: State, decision: Delivery.FinalDecision) -> Step:
   match decision:
-    case Delivery.FinalReady{}: Advanced{state, DeliveryFinalReady{} <> Nil{}}
-    case Delivery.FinalExpired{}: Advanced{state, DeliveryFinalExpired{} <> Nil{}}
-    case Delivery.FinalEmpty{}: Advanced{state, DeliveryFinalEmpty{} <> Nil{}}
+    case Delivery.FinalReady{}: Advanced{state, PolicyDecided{DeliveryFinalReady{}} <> Nil{}}
+    case Delivery.FinalExpired{}: Advanced{state, PolicyDecided{DeliveryFinalExpired{}} <> Nil{}}
+    case Delivery.FinalEmpty{}: Advanced{state, PolicyDecided{DeliveryFinalEmpty{}} <> Nil{}}
 
 def delivery_disposition_result(state: State, decision: Delivery.FindingDisposition) -> Step:
   match decision:
-    case Delivery.RetireAdvice{}: Advanced{state, DeliveryRetireAdvice{} <> Nil{}}
-    case Delivery.KeepRemaining{}: Advanced{state, DeliveryKeepRemaining{} <> Nil{}}
-    case Delivery.KeepForReoffer{}: Advanced{state, DeliveryKeepForReoffer{} <> Nil{}}
+    case Delivery.RetireAdvice{}: Advanced{state, PolicyDecided{DeliveryRetireAdvice{}} <> Nil{}}
+    case Delivery.KeepRemaining{}: Advanced{state, PolicyDecided{DeliveryKeepRemaining{}} <> Nil{}}
+    case Delivery.KeepForReoffer{}: Advanced{
+      state,
+      PolicyDecided{DeliveryKeepForReoffer{}} <> Nil{}
+    }
 
 def delivery_batch_result(state: State, decision: Delivery.BatchGate) -> Step:
   match decision:
-    case Delivery.BatchProceed{}: Advanced{state, DeliveryBatchProceed{} <> Nil{}}
-    case Delivery.BatchRelease{}: Advanced{state, DeliveryBatchRelease{} <> Nil{}}
+    case Delivery.BatchProceed{}: Advanced{state, PolicyDecided{DeliveryBatchProceed{}} <> Nil{}}
+    case Delivery.BatchRelease{}: Advanced{state, PolicyDecided{DeliveryBatchRelease{}} <> Nil{}}
 
 def candidate_route_result(state: State, decision: Handoff.CandidateAction) -> Step:
   match decision:
-    case Handoff.IgnoreCandidate{}: Advanced{state, IgnoreCandidate{} <> Nil{}}
-    case Handoff.ReleaseCandidate{}: Advanced{state, ReleaseCandidate{} <> Nil{}}
-    case Handoff.RetireCandidate{}: Advanced{state, RetireCandidate{} <> Nil{}}
-    case Handoff.ContinueCandidate{}: Advanced{state, ContinueCandidate{} <> Nil{}}
-    case Handoff.RetainCandidate{}: Advanced{state, RetainCandidate{} <> Nil{}}
+    case Handoff.IgnoreCandidate{}: Advanced{state, PolicyDecided{IgnoreCandidate{}} <> Nil{}}
+    case Handoff.ReleaseCandidate{}: Advanced{state, PolicyDecided{ReleaseCandidate{}} <> Nil{}}
+    case Handoff.RetireCandidate{}: Advanced{state, PolicyDecided{RetireCandidate{}} <> Nil{}}
+    case Handoff.ContinueCandidate{}: Advanced{state, PolicyDecided{ContinueCandidate{}} <> Nil{}}
+    case Handoff.RetainCandidate{}: Advanced{state, PolicyDecided{RetainCandidate{}} <> Nil{}}
 
 def stop_terminal_result(state: State, result: RoundPolicy.StopTerminal) -> Step:
   match result:
     case RoundPolicy.StopTerminal{revoke_provisional, close}:
-      Advanced{state, RoundStopTerminal{revoke_provisional, close} <> Nil{}}
+      Advanced{state, PolicyDecided{RoundStopTerminal{revoke_provisional, close}} <> Nil{}}
 
 def cleanup_commit_eligible(state: State) -> Bool:
   match state:
@@ -2903,50 +3705,88 @@ def cleanup_commit_eligible(state: State) -> Bool:
 
 def cleanup_closed(+state: State, result: Dispatch.DispatchResult) -> Step:
   match state result:
-    case State{ledger, rounds, work, next_round, next_operation, admissions, _, collection, +history}
+    case State{
+      ledger,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      admissions,
+      _,
+      collection,
+      +history
+    }
         Dispatch.Advanced{replacement, Nil{}}:
-      Advanced{State{ledger, rounds, work, next_round, next_operation,
-        admissions, replacement, collection, history}, CleanupCommitted{} <> Nil{}}
-    case _ _: Advanced{state, CleanupBusy{} <> Nil{}}
+      Advanced{
+        State{
+          ledger,
+          rounds,
+          work,
+          next_round,
+          next_operation,
+          admissions,
+          replacement,
+          collection,
+          history
+        },
+        EventEstablished{CleanupCommitted{}} <> Nil{}
+      }
+    case _ _: Advanced{state, PolicyDecided{CleanupBusy{}} <> Nil{}}
 
 def cleanup_commit_checked(+state: State, valid: Bool) -> Step:
   match state valid:
     case State{_, _, _, _, _, _, dispatch, _, +history} True{}:
       cleanup_closed(state, Dispatch.close(dispatch))
-    case _ False{}: Advanced{state, CleanupBusy{} <> Nil{}}
+    case _ False{}: Advanced{state, PolicyDecided{CleanupBusy{}} <> Nil{}}
 
 def cleanup_commit(+state: State) -> Step:
   cleanup_commit_checked(state, cleanup_commit_eligible(state))
 
-def reuse_step(+state: State, replacement: ReuseState.State, command: Command) -> Step:
+def reuse_step(+state: State, replacement: ReuseState.State, command: Output) -> Step:
   Advanced{with_collection(state,
     CollectionState.with_reuse(collection_of(state), replacement)), command <> Nil{}}
 
 def reuse_route_result(+state: State, result: ReuseState.Route) -> Step:
   match result:
-    case ReuseState.JoinAdvice{replacement}: reuse_step(state, replacement, ReuseJoinAdvice{})
-    case ReuseState.JoinPending{replacement}: reuse_step(state, replacement, ReuseJoinPending{})
-    case ReuseState.JoinClaimed{replacement}: reuse_step(state, replacement, ReuseJoinClaimed{})
-    case ReuseState.Cached{replacement}: reuse_step(state, replacement, ReuseCached{})
-    case ReuseState.Own{replacement}: reuse_step(state, replacement, ReuseOwn{})
+    case ReuseState.JoinAdvice{replacement}: reuse_step(
+      state,
+      replacement,
+      EventEstablished{ReuseAdviceJoined{}}
+    )
+    case ReuseState.JoinPending{replacement}: reuse_step(
+      state,
+      replacement,
+      EventEstablished{ReusePendingJoined{}}
+    )
+    case ReuseState.JoinClaimed{replacement}: reuse_step(
+      state,
+      replacement,
+      EventEstablished{ReuseClaimedJoined{}}
+    )
+    case ReuseState.Cached{replacement}: reuse_step(
+      state,
+      replacement,
+      EventEstablished{ReuseCacheHit{}}
+    )
+    case ReuseState.Own{replacement}: reuse_step(state, replacement, EventEstablished{ReuseOwned{}})
 
 def reuse_decision_result(+state: State, result: ReuseState.Decision,
-    granted: Command) -> Step:
+    granted: Output) -> Step:
   match result:
     case ReuseState.Granted{replacement}: reuse_step(state, replacement, granted)
-    case ReuseState.Refused{_}: Advanced{state, ReuseRefused{} <> Nil{}}
+    case ReuseState.Refused{_}: Advanced{state, PolicyDecided{ReuseRefused{}} <> Nil{}}
 
 def cache_plan_result(+state: State, result: ReuseState.Plan) -> Step:
   match result:
-    case ReuseState.Already{_}: Advanced{state, CacheAlready{} <> Nil{}}
-    case ReuseState.Reject{_}: Advanced{state, CacheRejected{} <> Nil{}}
+    case ReuseState.Already{_}: Advanced{state, PolicyDecided{CacheAlready{}} <> Nil{}}
+    case ReuseState.Reject{_}: Advanced{state, PolicyDecided{CacheRejected{}} <> Nil{}}
     case ReuseState.Prepared{replacement, ids}:
-      reuse_step(state, replacement, CachePrepared{ids})
+      reuse_step(state, replacement, EventEstablished{CachePrepared{ids}})
 
 def cache_discard_result(+state: State, result: ReuseState.Discard) -> Step:
   match result:
     case ReuseState.Discarded{replacement, ids}:
-      reuse_step(state, replacement, CacheDiscarded{ids})
+      reuse_step(state, replacement, EventEstablished{CacheDiscarded{ids}})
 
 def cache_charge_valid(found: Maybe<&2, Ledger.Charge>, partition: Nat, bytes: Nat) -> Bool:
   match found:
@@ -2961,9 +3801,9 @@ def cache_commit_checked(+state: State, id: Nat, partition: Nat, bytes: Nat,
     case True{}:
       reuse_decision_result(state, ReuseState.commit(
         CollectionState.reuse_state(collection_of(state)), id, partition, bytes,
-          reservation, entry_limit, byte_limit), CacheCommitted{})
+          reservation, entry_limit, byte_limit), EventEstablished{CacheCommitted{}})
     case False{}:
-      Advanced{state, ReuseRefused{} <> Nil{}}
+      Advanced{state, PolicyDecided{ReuseRefused{}} <> Nil{}}
 
 def cache_commit(+state: State, +id: Nat, +partition: Nat, +bytes: Nat,
     +reservation: Nat, entry_limit: Nat, byte_limit: Nat) -> Step:
@@ -2973,35 +3813,39 @@ def cache_commit(+state: State, +id: Nat, +partition: Nat, +bytes: Nat,
         entry_limit, byte_limit,
         cache_charge_valid(Ledger.find(reservation, charges), partition, bytes))
 
-def notice_step(+state: State, replacement: NoticeState.State, command: Command) -> Step:
+def notice_step(+state: State, replacement: NoticeState.State, command: Output) -> Step:
   Advanced{with_collection(state,
     CollectionState.with_notices(collection_of(state), replacement)), command <> Nil{}}
 
 def notice_advance_result(+state: State, result: NoticeState.Advance) -> Step:
   match result:
     case NoticeState.Suppressed{replacement, count}:
-      notice_step(state, replacement, NoticeSuppressed{count})
-    case NoticeState.RejectedFull{_}: Advanced{state, NoticeRejectedFull{} <> Nil{}}
-    case NoticeState.CreateKey{_}: Advanced{state, NoticeCreateKey{} <> Nil{}}
+      notice_step(state, replacement, EventEstablished{NoticeSuppressed{count}})
+    case NoticeState.RejectedFull{_}: Advanced{state, PolicyDecided{NoticeRejectedFull{}} <> Nil{}}
+    case NoticeState.CreateKey{_}: Advanced{state, ActionRequested{CreateNoticeKey{}} <> Nil{}}
     case NoticeState.CreatePending{replacement, count}:
-      notice_step(state, replacement, NoticeCreatePending{count})
+      notice_step(state, replacement, EventEstablished{NoticePendingCreated{count}})
     case NoticeState.MergePending{replacement, count}:
-      notice_step(state, replacement, NoticeMergePending{count})
+      notice_step(state, replacement, EventEstablished{NoticePendingMerged{count}})
     case NoticeState.KeepLeased{replacement}:
-      notice_step(state, replacement, NoticeKeepLeased{})
-    case NoticeState.RefusedAdvance{_}: Advanced{state, NoticeRefused{} <> Nil{}}
+      notice_step(state, replacement, EventEstablished{NoticeLeaseKept{}})
+    case NoticeState.RefusedAdvance{_}: Advanced{state, PolicyDecided{NoticeRefused{}} <> Nil{}}
 
 def notice_decision_result(+state: State, result: NoticeState.Decision,
-    granted: Command) -> Step:
+    granted: Output) -> Step:
   match result:
     case NoticeState.Granted{replacement}: notice_step(state, replacement, granted)
-    case NoticeState.Refused{_}: Advanced{state, NoticeRefused{} <> Nil{}}
+    case NoticeState.Refused{_}: Advanced{state, PolicyDecided{NoticeRefused{}} <> Nil{}}
 
 def notice_prune_result(+state: State, result: NoticeState.PruneResult) -> Step:
   match result:
     case NoticeState.Pruned{replacement, drop_lease, drop_pending, drop_key}:
-      notice_step(state, replacement, NoticePruned{drop_lease, drop_pending, drop_key})
-    case NoticeState.PruneMissing{_}: Advanced{state, NoticeRefused{} <> Nil{}}
+      notice_step(
+        state,
+        replacement,
+        EventEstablished{NoticePruned{drop_lease, drop_pending, drop_key}}
+      )
+    case NoticeState.PruneMissing{_}: Advanced{state, PolicyDecided{NoticeRefused{}} <> Nil{}}
 
 def notice_charge_valid(found: Maybe<&2, Ledger.Charge>, partition: Nat) -> Bool:
   match found:
@@ -3015,8 +3859,8 @@ def notice_commit_checked(+state: State, +key: Nat, +partition: Nat, +group: Nat
     case True{}:
       notice_decision_result(state, NoticeState.commit(
         CollectionState.notice_state(collection_of(state)), key, partition,
-        group, reservation, pending, sequence, maximum_keys), NoticeCommitted{})
-    case False{}: Advanced{state, NoticeRefused{} <> Nil{}}
+        group, reservation, pending, sequence, maximum_keys), EventEstablished{NoticeCommitted{}})
+    case False{}: Advanced{state, PolicyDecided{NoticeRefused{}} <> Nil{}}
 
 def notice_commit(+state: State, +key: Nat, +partition: Nat, +group: Nat,
     +reservation: Nat, +pending: Nat, sequence: Nat, maximum_keys: Nat) -> Step:
@@ -3208,7 +4052,10 @@ def step_unchecked(+state: State, event: CanonicalEvent) -> Step:
     case CollectorGateCheck{expired, credential_valid}:
       collector_gate_result(state, CollectorAuthority.collect_gate(expired, credential_valid))
     case CollectorFinalAuthorityCheck{admitted_block, current_block}:
-      collector_final_authority_result(state, CollectorAuthority.final_authority(admitted_block, current_block))
+      collector_final_authority_result(
+        state,
+        CollectorAuthority.final_authority(admitted_block, current_block)
+      )
     case ReuseMemberCheck{joined_state, stale_unavailable, has_revision, has_advice_id}:
       reuse_member_result(state, Reuse.joined_disposition(joined_state, stale_unavailable,
         has_revision, has_advice_id))
@@ -3217,8 +4064,15 @@ def step_unchecked(+state: State, event: CanonicalEvent) -> Step:
     case CleanupCommit{}:
       cleanup_commit(state)
     case DeliveryReleaseCheck{acknowledged}:
-      Advanced{state, Bool.pick(Command, Delivery.release_unacknowledged(acknowledged),
-        DeliveryReleaseUnacknowledged{}, DeliveryKeepAcknowledged{}) <> Nil{}}
+      Advanced{
+        state,
+        Bool.pick(
+          Output,
+          Delivery.release_unacknowledged(acknowledged),
+          PolicyDecided{DeliveryReleaseUnacknowledged{}},
+          PolicyDecided{DeliveryKeepAcknowledged{}}
+        ) <> Nil{}
+      }
     case DeliveryAcknowledgeCheck{items, any_expired}:
       delivery_ack_result(state, Delivery.acknowledge(items, any_expired))
     case DeliveryFinalizeCheck{items, all_acknowledged, any_expired}:
@@ -3226,13 +4080,27 @@ def step_unchecked(+state: State, event: CanonicalEvent) -> Step:
     case DeliveryFindingDispositionCheck{composed, remaining}:
       delivery_disposition_result(state, Delivery.finding_disposition(composed, remaining))
     case DeliverySubmissionCandidateCheck{facts}:
-      Advanced{state, Bool.pick(Command, Delivery.submission_candidate(facts),
-        DeliverySubmissionCandidate{}, DeliverySubmissionRefused{}) <> Nil{}}
+      Advanced{
+        state,
+        Bool.pick(
+          Output,
+          Delivery.submission_candidate(facts),
+          PolicyDecided{DeliverySubmissionCandidate{}},
+          PolicyDecided{DeliverySubmissionRefused{}}
+        ) <> Nil{}
+      }
     case DeliverySubmissionBatchCheck{count, all_valid}:
       delivery_batch_result(state, Delivery.submission_batch_gate(count, all_valid))
     case DeliveryCredentialObserveCheck{invalid_seen, generation_valid, authorized}:
-      Advanced{state, Bool.pick(Command, Delivery.credential_observe(invalid_seen,
-        generation_valid, authorized), DeliveryCredentialInvalid{}, DeliveryCredentialValid{}) <> Nil{}}
+      Advanced{
+        state,
+        Bool.pick(
+          Output,
+          Delivery.credential_observe(invalid_seen, generation_valid, authorized),
+          PolicyDecided{DeliveryCredentialInvalid{}},
+          PolicyDecided{DeliveryCredentialValid{}}
+        ) <> Nil{}
+      }
     case DeliveryFinalCredentialCheck{shared_collect, invalid_seen}:
       delivery_batch_result(state, Delivery.final_credential_gate(shared_collect, invalid_seen))
     case ValidationRouteCheck{owner_current, status}:
@@ -3244,94 +4112,130 @@ def step_unchecked(+state: State, event: CanonicalEvent) -> Step:
       candidate_route_result(state, Handoff.final_candidate(owner_current,
         credential_generation, credential_authorized, expired, work_current, has_findings))
     case RoundBeginStopCheck{active, has_stop, token}:
-      Advanced{state, Bool.pick(Command, Bool.and(active,
+      Advanced{state, Bool.pick(Output, Bool.and(active,
         Bool.and(Bool.not(has_stop), Nat.is_gt(token, 0n))),
-        RoundStopBegun{}, RoundStopRefused{}) <> Nil{}}
+        PolicyDecided{RoundStopBegun{}}, PolicyDecided{RoundStopRefused{}}) <> Nil{}}
     case RoundActivityCheck{bound, has_admission, +round, active, closed_at,
         expected_generation}:
-      Advanced{state, Bool.pick(Command, Bool.and(bound, Bool.and(has_admission,
+      Advanced{state, Bool.pick(Output, Bool.and(bound, Bool.and(has_admission,
         Bool.and(Nat.is_eq(expected_generation, round), active))),
-        RoundActive{}, RoundInactive{}) <> Nil{}}
+        PolicyDecided{RoundActive{}}, PolicyDecided{RoundInactive{}}) <> Nil{}}
     case RoundBarrierCheck{has_stop, used_at_start, used_now}:
-      Advanced{state, Bool.pick(Command, Bool.and(has_stop,
-        Nat.is_gt(used_now, used_at_start)), RoundBarrierRaised{}, RoundBarrierClear{}) <> Nil{}}
+      Advanced{
+        state,
+        Bool.pick(
+          Output,
+          Bool.and(has_stop, Nat.is_gt(used_now, used_at_start)),
+          PolicyDecided{RoundBarrierRaised{}},
+          PolicyDecided{RoundBarrierClear{}}
+        ) <> Nil{}
+      }
     case RoundOwnsStopCheck{active, token_matches, deciding}:
-      Advanced{state, Bool.pick(Command, Bool.and(active,
+      Advanced{state, Bool.pick(Output, Bool.and(active,
         Bool.and(token_matches, Bool.not(deciding))),
-        RoundStopOwned{}, RoundStopNotOwned{}) <> Nil{}}
+        PolicyDecided{RoundStopOwned{}}, PolicyDecided{RoundStopNotOwned{}}) <> Nil{}}
     case RoundStopTerminalCheck{has_output, authorized, requested_close}:
       stop_terminal_result(state, RoundPolicy.stop_terminal(has_output, authorized,
         requested_close))
     case RoundExpireCloseCheck{barrier, authorized_output}:
-      Advanced{state, Bool.pick(Command, Bool.and(Bool.not(authorized_output),
+      Advanced{state, Bool.pick(Output, Bool.and(Bool.not(authorized_output),
         RoundPolicy.expire_close(barrier)),
-        RoundExpireCloses{}, RoundExpireKeeps{}) <> Nil{}}
+        PolicyDecided{RoundExpireCloses{}}, PolicyDecided{RoundExpireKeeps{}}) <> Nil{}}
     case RoundContinuationBudgetCheck{active, count}:
-      Advanced{state, Bool.pick(Command, Bool.and(active,
-        Nat.is_lt(count, RoundPolicy.max_continuations())),
-        RoundContinuationAvailable{}, RoundContinuationExhausted{}) <> Nil{}}
+      Advanced{
+        state,
+        Bool.pick(
+          Output,
+          Bool.and(active, Nat.is_lt(count, RoundPolicy.max_continuations())),
+          PolicyDecided{RoundContinuationAvailable{}},
+          PolicyDecided{RoundContinuationExhausted{}}
+        ) <> Nil{}
+      }
     case DeliverySubmissionAllowedCheck{active, barrier, deciding, surface,
         existing_token, finish_permit}:
-      Advanced{state, Bool.pick(Command, Delivery.submission_allowed_facts(active,
-        barrier, deciding, surface, existing_token, finish_permit),
-        DeliverySubmissionAllowed{}, DeliverySubmissionDenied{}) <> Nil{}}
+      Advanced{
+        state,
+        Bool.pick(
+          Output,
+          Delivery.submission_allowed_facts(
+            active,
+            barrier,
+            deciding,
+            surface,
+            existing_token,
+            finish_permit
+          ),
+          PolicyDecided{DeliverySubmissionAllowed{}},
+          PolicyDecided{DeliverySubmissionDenied{}}
+        ) <> Nil{}
+      }
     case DeliveryExistingTokenCheck{surface, existing_token, finish_permit}:
-      Advanced{state, Bool.pick(Command, Delivery.existing_token_allowed(surface,
-        existing_token, finish_permit), DeliveryExistingTokenAllowed{},
-        DeliveryExistingTokenDenied{}) <> Nil{}}
+      Advanced{state, Bool.pick(Output, Delivery.existing_token_allowed(surface,
+        existing_token, finish_permit), PolicyDecided{DeliveryExistingTokenAllowed{}},
+        PolicyDecided{DeliveryExistingTokenDenied{}}) <> Nil{}}
     case DeliveryUnreservedStopCheck{active, deciding}:
-      Advanced{state, Bool.pick(Command, Delivery.unreserved_stop_allowed_facts(active,
-        deciding), DeliveryUnreservedStopAllowed{}, DeliveryUnreservedStopDenied{}) <> Nil{}}
+      Advanced{
+        state,
+        Bool.pick(
+          Output,
+          Delivery.unreserved_stop_allowed_facts(active, deciding),
+          PolicyDecided{DeliveryUnreservedStopAllowed{}},
+          PolicyDecided{DeliveryUnreservedStopDenied{}}
+        ) <> Nil{}
+      }
     case IncludeLayerCheck{supplied, current_rank, candidate_rank}:
-      Advanced{state, IncludeChoice{Configuration.include_choice(supplied,
-        current_rank, candidate_rank)} <> Nil{}}
+      Advanced{state, PolicyDecided{IncludeChoice{Configuration.include_choice(supplied,
+        current_rank, candidate_rank)}} <> Nil{}}
     case FileSelectionCheck{protected, excluded, includes_empty, included}:
-      Advanced{state, FileSelection{Configuration.select(protected, excluded,
-        includes_empty, included)} <> Nil{}}
+      Advanced{state, PolicyDecided{FileSelection{Configuration.select(protected, excluded,
+        includes_empty, included)}} <> Nil{}}
     case FileProtectionInvalid{}:
-      Advanced{state, FileProtection{Configuration.RepositoryBoundary{}} <> Nil{}}
+      Advanced{state, PolicyDecided{FileProtection{Configuration.RepositoryBoundary{}}} <> Nil{}}
     case FileProtectionCheck{sensitive_name, generated_or_vendor, allowed_extension}:
-      Advanced{state, FileProtection{Configuration.protection(sensitive_name,
+      Advanced{state, PolicyDecided{FileProtection{Configuration.protection(sensitive_name,
         generated_or_vendor,
-        allowed_extension)} <> Nil{}}
+        allowed_extension)}} <> Nil{}}
     case CandidateFileCheck{git_admin, physical_safe, git_allowed}:
-      Advanced{state, CandidateFile{Configuration.candidate(git_admin,
-        physical_safe, git_allowed)} <> Nil{}}
+      Advanced{state, PolicyDecided{CandidateFile{Configuration.candidate(git_admin,
+        physical_safe, git_allowed)}} <> Nil{}}
     case ReviewAdmissionCheck{root_valid, configuration_valid, credential_ready, selected}:
-      Advanced{state, ReviewAdmission{Configuration.admit(root_valid,
-        configuration_valid, credential_ready, selected)} <> Nil{}}
+      Advanced{state, PolicyDecided{ReviewAdmission{Configuration.admit(root_valid,
+        configuration_valid, credential_ready, selected)}} <> Nil{}}
     case RuleEnableCheck{pack_enabled, rule_enabled}:
-      Advanced{state, RuleGate{RulePolicy.enabled(pack_enabled, rule_enabled)} <> Nil{}}
+      Advanced{
+        state,
+        PolicyDecided{RuleGate{RulePolicy.enabled(pack_enabled, rule_enabled)}} <> Nil{}
+      }
     case RuleApplicabilityCheck{consent, complete, target,
         global_included, global_excluded, pack_enabled, rule_enabled,
         rule_included, rule_excluded, target_declared, capabilities_available,
         source_rung, minimum_rung}:
-      Advanced{state, RuleGate{RulePolicy.applicable(consent, complete, target,
+      Advanced{state, PolicyDecided{RuleGate{RulePolicy.applicable(consent, complete, target,
         global_included, global_excluded, pack_enabled, rule_enabled,
         rule_included, rule_excluded, target_declared, capabilities_available,
-        source_rung, minimum_rung)} <> Nil{}}
+        source_rung, minimum_rung)}} <> Nil{}}
     case RuleFindingCheck{probability, threshold}:
-      Advanced{state, RuleGate{RulePolicy.finding(probability, threshold)} <> Nil{}}
+      Advanced{state, PolicyDecided{RuleGate{RulePolicy.finding(probability, threshold)}} <> Nil{}}
     case RuleRankOrderCheck{left, right, left_rank, right_rank}:
-      Advanced{state, RuleOrder{RulePolicy.rank_order(left, right,
-        left_rank, right_rank)} <> Nil{}}
+      Advanced{state, PolicyDecided{RuleOrder{RulePolicy.rank_order(left, right,
+        left_rank, right_rank)}} <> Nil{}}
     case AdviceOrderCheck{left, right, path_order, id_order}:
-      Advanced{state, RuleOrder{RulePolicy.advice_order(left, right,
-        path_order, id_order)} <> Nil{}}
+      Advanced{state, PolicyDecided{RuleOrder{RulePolicy.advice_order(left, right,
+        path_order, id_order)}} <> Nil{}}
     case RuleBudgetCheck{position, limit}:
-      Advanced{state, RuleGate{RulePolicy.budget(position, limit)} <> Nil{}}
+      Advanced{state, PolicyDecided{RuleGate{RulePolicy.budget(position, limit)}} <> Nil{}}
     case ReuseRoute{id, live_advice}:
       reuse_route_result(state, ReuseState.route(
         CollectionState.reuse_state(collection_of(state)), id, live_advice))
     case ReuseClaim{id}:
       reuse_decision_result(state, ReuseState.claim(
-        CollectionState.reuse_state(collection_of(state)), id), ReuseClaimed{})
+        CollectionState.reuse_state(collection_of(state)), id), EventEstablished{ReuseClaimed{}})
     case ReuseAttach{id}:
       reuse_decision_result(state, ReuseState.attach(
-        CollectionState.reuse_state(collection_of(state)), id), ReuseAttached{})
+        CollectionState.reuse_state(collection_of(state)), id), EventEstablished{ReuseAttached{}})
     case ReuseRelease{id}:
       reuse_step(state, ReuseState.release(
-        CollectionState.reuse_state(collection_of(state)), id), ReuseReleased{})
+        CollectionState.reuse_state(collection_of(state)), id), EventEstablished{ReuseReleased{}})
     case ReuseTouch{id}:
       reuse_route_result(state, ReuseState.touch(
         CollectionState.reuse_state(collection_of(state)), id))
@@ -3358,17 +4262,23 @@ def step_unchecked(+state: State, event: CanonicalEvent) -> Step:
         pending_expired, excepted, cooldown_expired))
     case NoticeDrop{key}:
       notice_step(state, NoticeState.drop(
-        CollectionState.notice_state(collection_of(state)), key), NoticeDropped{})
+        CollectionState.notice_state(collection_of(state)), key), EventEstablished{NoticeDropped{}})
     case NoticeLease{key, leased}:
-      notice_decision_result(state, NoticeState.lease(
-        CollectionState.notice_state(collection_of(state)), key, leased), NoticeLeased{})
+      notice_decision_result(
+        state,
+        NoticeState.lease(CollectionState.notice_state(collection_of(state)), key, leased),
+        EventEstablished{NoticeLeased{}}
+      )
     case NoticeClearPending{key}:
-      notice_decision_result(state, NoticeState.clear_pending(
-        CollectionState.notice_state(collection_of(state)), key), NoticePendingCleared{})
+      notice_decision_result(
+        state,
+        NoticeState.clear_pending(CollectionState.notice_state(collection_of(state)), key),
+        EventEstablished{NoticePendingCleared{}}
+      )
     case NoticeSelect{partition, group, composed, authority_bound, allowed}:
-      Advanced{state, NoticeSelected{NoticeState.select(
+      Advanced{state, PolicyDecided{NoticeSelected{NoticeState.select(
         CollectionState.notice_state(collection_of(state)), partition, group,
-        composed, authority_bound, allowed)} <> Nil{}}
+        composed, authority_bound, allowed)}} <> Nil{}}
     case OutputStarted{partition, lifetime, round}:
       output_start(state, partition, lifetime, round)
     case OutputTerminal{partition, lifetime, round, operation, outcome}:
@@ -3396,19 +4306,19 @@ def unique_rounds(rounds: List<&2, Round>) -> Bool:
       Bool.and(round_not_found(find_round(partition, rest)), unique_rounds(rest))
 
 def check_round_invariant(original: State, updated: State,
-    commands: List<&2, Command>, valid: Bool) -> Step:
+    outputs: List<&2, Output>, valid: Bool) -> Step:
   match valid:
     case True{}:
-      Advanced{updated, commands}
+      Advanced{updated, outputs}
     case False{}:
       Rejected{original, InconsistentLedger{}}
 
 def check_step(original: State, result: Step) -> Step:
   match result:
-    case Advanced{+updated, commands}:
+    case Advanced{+updated, outputs}:
       match updated:
         case State{_, rounds, _, _, _, _, _, _, +history}:
-          check_round_invariant(original, updated, commands, unique_rounds(rounds))
+          check_round_invariant(original, updated, outputs, unique_rounds(rounds))
     case Rejected{state, reason}:
       Rejected{state, reason}
 

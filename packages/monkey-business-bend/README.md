@@ -1,10 +1,10 @@
-# Shared Monkey Business engine
+# Shared Monkey Business engine and runner
 
 **Purpose:** Explain the shared source-free simulation core and its checks.
 **Status:** Maintained implementation guidance.
-**Authority:** Implementation and validation evidence; #176/#179/#180 and the accepted advice/handoff contract own behavior. Candidate laws remain proposals.
+**Authority:** Implementation and validation evidence; #176/#179/#180, [#234](https://github.com/dearlordylord/hapsland/issues/234), and the accepted advice/handoff contract own behavior. Candidate laws remain proposals.
 **Expected use:** Extend the common scenario driver or validate its JavaScript/native boundary.
-**Lifecycle:** Update with state, driver, ABI or check changes; review when a dependent scenario replaces remaining host orchestration or a candidate law receives an owner decision.
+**Lifecycle:** Update with state, driver, ABI or check changes; review when runner ownership changes or a candidate law receives an owner decision.
 
 Generation and optional native/proof checks require the same exact **Bend 2.0.36**
 compiler declared by `packages/agent-flow-bend/package.json`. Install it with
@@ -14,40 +14,44 @@ be reused across compiler versions. For native checks, put the system C compiler
 in `PATH` (for example, Bend/bin, the working clang directory, then Lean/bin). The Lean
 installation also contains a clang executable intended for its own toolchain.
 
-`Engine.bend` composes the actual Canonical and bounded ImportGraph reducers.
-`Types.bend` owns their state and the scheduler. `Scheduler.bend` selects finite
-virtual-time work by exact Nat time and insertion order. The host keeps validated
-source-free facts keyed by those identities, rather than selecting queue order.
-`Preparation.bend` owns artifact graph state and ordinal validation.
-`Driver.bend` interprets the complete base edit/review/output path, generates
-valid Jev lifecycle facts, fences generated callbacks against current facts,
-revalidates findings after environment controls, and schedules certain output.
-Basic retained-finding expiry is already scheduled by this shared driver.
-`Postprocess.bend` generates parent-observation completion, physical dispatch
-release and collection-readiness facts from actual reducer state.
+[`NativeRun.bend`](NativeRun.bend) owns the complete event → command → scheduled-result
+loop used by the public TypeScript `Run` and native/game consumers. It combines
+Canonical and bounded ImportGraph transitions with virtual-time queue takes,
+metadata, generated sessions, captured callbacks, controls, Stop, sharing,
+collectors, writers, notices, expiry and quiet normalization. `Engine.bend` and
+the scenario modules provide its reducer and scheduling operations.
+`NativeRunControls.bend` applies validated factual controls, and
+`NativeGenerated.bend` interns generated evaluation/freshness identities.
 
-TypeScript supplies synthetic boundary facts and presents projections. The remaining host adapters belong to the dependent slices: expanded permit admission and
-round routing (#186), revision/reuse routing (#187–#189), notices (#190), failed or
-uncertain output and lease expiry (#191), response-authority/collector profiles
-(#192–#193), Stop and continuation orchestration (#194–#195), expanded finding/notice
-retention and exact collection-boundary profiles (#196), and quiet cleanup (#197). They still use this same state owner and
-scheduler. Continuous Session/outcome generation is integrated by #180. The optional game is not a dependency.
+The emitted [`RunExports.bend`](RunExports.bend) boundary exposes the same runner.
+TypeScript's [`NativeRunHost`](../monkey-business/src/native-run-host.ts) encodes
+facts and decodes immutable observations. The public [`Run`](../monkey-business/src/index.ts)
+keeps replay action/checkpoint ordering and delivers subscriptions synchronously.
+The runner yields physical callback deliveries before their logical events.
+The host notifies structural listeners at that checkpoint, then asks the runner
+whether to resume. Listener controls therefore affect the pending logical event;
+replay can stop at the physical checkpoint without another queue take or product
+observation. Bend supplies resumable advance decisions and
+normalization rather than a separate TypeScript scheduling policy.
 
 Run `node packages/monkey-business-bend/build.mjs` from the repository root to
 regenerate the compiler-emitted JavaScript module. `--check` rejects stale core,
 transitively imported production policy, declaration, build wrapper or module
-content. The wrapper follows the production immediate-Nat ABI: exact u48 Nats,
+content. Run `node packages/monkey-business-bend/build-run.mjs` to regenerate
+the common runner boundary, and use its `--check` mode to verify the runner's
+transitive Bend sources, declaration, host adapters and emitted module.
+The wrapper follows the production immediate-Nat ABI: exact u48 Nats,
 u47 bytes and explicit U32 probability words. It threads original trusted states
 without copying the entire graph at each queue operation. No handwritten policy
-is substituted for compiler output. The source digest is the ordinary replay's
-logic identity; incompatible recorded identities are refused in format 1.
+is substituted for compiler output. The common runner artifact's source digest is the ordinary replay's logic
+identity; incompatible recorded identities are refused in format 1.
 
 `npx vitest run packages/monkey-business/src/complete-minimal-path.test.ts --maxWorkers=1`
 checks literal expectations for graph progress, finding/clear results, request
 lifecycle, final authorization refusals, exact clocks and ordinary replay. Its
 native fixture starts with original source-free edit/configuration/control
 facts, uses the shared driver/scheduler, and compares ordered intermediate events,
-commands, identities, relevant effect facts and graph accounting with the public
+categorized canonical outputs, graph commands, identities, relevant effect facts and graph accounting with the public
 Run API. These checks are deterministic, finite and offline. They establish
 selected execution-lane agreement, not correctness of the compiler or native
 agent integration.
@@ -58,7 +62,7 @@ It requires all seven original cases: baseline, joined departure, owner departur
 another partition, last-member departure, joining live advice, and a superseded
 joined member. Every case starts with its original configuration and edits;
 native and emitted JavaScript retain the full typed owner envelope, then compare
-Canonical/Graph events, states, commands, rejection, scopes, receipts, controls,
+Canonical/Graph events, states, canonical outputs, graph commands, rejection, scopes, receipts, controls,
 advance endpoints and ordinary replay with the independent public scenarios.
 The mandatory aggregate `conformance/sharing-native.bend` compiles once per
 backend and retains all seven original envelopes in order. Callback originals
@@ -78,7 +82,7 @@ merely to compare execution lanes.
 
 The original eleven Stop roots and twelve output Stop roots retain their exact
 input declarations, including the original waiting inputs and boundary controls.
-Keep ordered intermediate events and commands, relevant identities and scopes,
+Keep ordered intermediate events and outputs, relevant identities and scopes,
 effects, membership and continuation facts, independent expectations, and the
 ordinary public replay. Native and emitted JavaScript must still produce equal
 complete encodings: equality covers every field and word in the replacement
@@ -110,7 +114,11 @@ configuration and independent public expectation, with fresh native/JavaScript
 whole-vector equality and public/replay comparison for all thirteen entries.
 Compilation runs once per backend for the family, rather than once per case.
 
-Python 3 is a development prerequisite for the one shared private prefix codec.
+Python 3 and the pinned `bend-format` 0.1.19 are development prerequisites for
+the one shared private prefix codec. The generator uses the formatter's PATH
+executable or the `BEND_FORMAT_BIN`, `BEND_FORMAT_JAR` and `BEND_FORMAT_JAVA`
+selection described in the testing matrix, so generated Bend conforms before
+its source identity is captured.
 Run `python3 packages/monkey-business-bend/conformance/generate-callback-native-prefix.py`
 after changing a serialized owner declaration, and add `--check` to reject stale
 typed encoders, descriptors or owner source hashes. The six original callback

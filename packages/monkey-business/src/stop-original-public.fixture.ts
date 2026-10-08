@@ -7,10 +7,23 @@ import {
   type RunStructuralFrame
 } from "./index.ts"
 
+// Original caller limits are independent of later production-default changes.
+const originalGraphLimits: NonNullable<RunConfig["graphLimits"]> = Object.freeze({
+  version: 1,
+  sourceBytes: 262144,
+  treeBytes: 20480,
+  files: 8,
+  readBytes: 1572864,
+  outgoingEdges: 16,
+  depth: 4,
+  work: 128
+})
+
 // Frozen caller inputs match the original delay8 directed case. They contain
 // no allocated scope, operation, request, callback or output capture.
 export const originalWaitingStopConfig = {
   seed: 7,
+  graphLimits: originalGraphLimits,
   retention: 1000,
   preparationDelay: 2,
   jevDelay: 8,
@@ -51,7 +64,7 @@ export function originalWaitingStopPublic() {
       const waiting = run.observations.find((frame) => frame.event.kind === "stopPolled")
       assert.equal(waiting?.time, 3, "original Stop starts at the caller boundary")
       assert.equal(
-        waiting?.commands.some((command) => command.kind === "waitForWork"),
+        waiting?.outputs.some((command) => command.kind === "waitForWork"),
         true
       )
       assert.equal(
@@ -59,7 +72,7 @@ export function originalWaitingStopPublic() {
         false
       )
     } else if (endpoint === 10) {
-      const ready = run.observations.find((frame) => frame.commands.some((command) => command.kind === "finishReady"))
+      const ready = run.observations.find((frame) => frame.outputs.some((command) => command.kind === "finishReady"))
       assert.equal(ready?.time, 10, "real settlement wakes Stop before original cutoff11")
       assert.equal(
         run.observations.some((frame) => frame.event.kind === "finishAuthorize"),
@@ -171,6 +184,7 @@ export const originalStopCases: readonly {
     name: "groupOutput",
     config: {
       seed: 7,
+      graphLimits: originalGraphLimits,
       retention: 1000,
       preparationDelay: 2,
       jevDelay: 5,
@@ -223,6 +237,7 @@ export const originalStopCases: readonly {
     name: "otherAdviceeOutput",
     config: {
       seed: 7,
+      graphLimits: originalGraphLimits,
       retention: 1000,
       preparationDelay: 2,
       jevDelay: 5,
@@ -316,6 +331,7 @@ const outputConfiguration = (
   lease = 20
 ): RunConfig => ({
   seed,
+  graphLimits: originalGraphLimits,
   retention,
   outcome: "finding",
   preparationDelay: preparation,

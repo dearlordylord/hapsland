@@ -60,7 +60,7 @@ it("coalesces a competing same-advicee trigger without replacing the original wa
   apply(run, { kind: "backgroundWriter", action: "claim", agent, capture: capture(20, 52) })
   run.advance({ untilTime: 7, maxEvents: 200 })
   expect(run.projection.collection.claims).toEqual([{ group: 1, owner: 51 }])
-  expect(run.observations.some((f) => f.commands.some((c) => c.kind === "collectionBackgroundRefused"))).toBe(true)
+  expect(run.observations.some((f) => f.outputs.some((c) => c.kind === "collectionBackgroundRefused"))).toBe(true)
   apply(run, {
     kind: "backgroundWriter",
     action: "attempt",
@@ -348,7 +348,7 @@ it("records the original queued claim, actual grant frame and Engine-issued resp
   })
   const frame = run.observations.find((frame) => frame.event.kind === "collectionClaimBackground")
   expect(frame?.before.collection.claims).toEqual([])
-  expect(frame?.commands).toEqual([{ kind: "collectionBackgroundClaimed" }])
+  expect(frame?.outputs).toEqual([{ category: "event", kind: "collectionBackgroundClaimed" }])
   expect(frame?.after.collection.claims).toEqual([{ group: 1, owner: 51 }])
   replay(run)
 })
@@ -378,7 +378,7 @@ it("overlapping writer and explicit Edit response cannot lease one item together
     run.observations.filter(
       (frame) =>
         frame.event.kind === "collectionReserveLease" &&
-        frame.commands.some((command) => command.kind === "collectionLeaseReserved")
+        frame.outputs.some((command) => command.kind === "collectionLeaseReserved")
     )
   ).toHaveLength(1)
   expect(terminal(run)).toEqual([])
@@ -471,7 +471,7 @@ it("Stop collection uses its independent original path while a background writer
   expect(
     run.observations.some(
       (frame) =>
-        frame.event.kind === "finishReserve" && frame.commands.some((command) => command.kind === "finishReserved")
+        frame.event.kind === "finishReserve" && frame.outputs.some((command) => command.kind === "finishReserved")
     )
   ).toBe(true)
   expect(run.observations.some((frame) => frame.event.kind === "finishTerminal")).toBe(true)

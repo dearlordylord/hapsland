@@ -99,11 +99,12 @@ registerHooks({ load(url, context, nextLoad) {
           ? ["scripts/build-game-lab.mjs", "--check"]
           : ["packages/monkey-business-bend/build.mjs", "--check"]
       )
-      assert.equal(captured.stages.length, scope === "game" ? 3 : 2)
+      assert.equal(captured.stages.length, 3)
     }
     for (const [scope, failedStage, expectedStages] of [
       ["game", "game-generated", 1],
       ["simulation", "simulation-generated", 1],
+      ["simulation", "simulation-runner-generated", 2],
       ["game", "game-lab-types", 2]
     ]) {
       const result = spawnSync(process.execPath, ["--import", hook, "scripts/run-optional-development.mjs", scope], {

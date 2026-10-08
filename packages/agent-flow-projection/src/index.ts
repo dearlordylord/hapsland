@@ -1,8 +1,4 @@
-import type {
-  CanonicalCommand,
-  CanonicalEvent,
-  CanonicalProjection
-} from "@hapsland/canonical-policy/canonical/adapter"
+import type { CanonicalOutput, CanonicalEvent, CanonicalProjection } from "@hapsland/canonical-policy/canonical/adapter"
 
 /** Stable conceptual stages of the observed review process, independent of a drawing. */
 export const FLOW_STAGES = [
@@ -22,7 +18,7 @@ export const FLOW_STAGES = [
   "round"
 ] as const
 export type FlowStage = (typeof FLOW_STAGES)[number]
-export type EvidenceSource = "state" | "command" | "native fact" | "external fact"
+export type EvidenceSource = "state" | "request" | "event" | "decision" | "native fact" | "external fact"
 /** A semantic transition or decision, with its evidence boundary and a readable account. */
 export type FlowEvidence = Readonly<{
   from: FlowStage
@@ -34,7 +30,7 @@ export type FlowEvidence = Readonly<{
 }>
 export type FlowStepInput = Readonly<{
   event: CanonicalEvent
-  commands: readonly CanonicalCommand[]
+  outputs: readonly CanonicalOutput[]
   before: CanonicalProjection
   after: CanonicalProjection
   rejection?: string
@@ -251,17 +247,17 @@ export const locateFlow = (state: CanonicalProjection, numbers?: RecordNumbers):
 ]
 const placements = (state: CanonicalProjection, numbers?: RecordNumbers) =>
   new Map(locateFlow(state, numbers).map((item) => [item.key, item] as const))
-const commandKinds = (commands: readonly CanonicalCommand[]) => new Set(commands.map((command) => command.kind))
+const outputKinds = (outputs: readonly CanonicalOutput[]) => new Set(outputs.map((command) => command.kind))
 
 type Rule = Readonly<{
   from: FlowStage
   to: FlowStage
-  source: EvidenceSource
+  source: EvidenceSource | "output"
   description: string
-  commands?: readonly CanonicalCommand["kind"][]
+  outputs?: readonly CanonicalOutput["kind"][]
   events?: readonly CanonicalEvent["kind"][]
 }>
-/** Links without a shared checked identity require explicit event or command evidence. */
+/** Links without a shared checked identity require explicit event or output evidence. */
 const FACT_RULES: readonly Rule[] = [
   {
     from: "observation",
@@ -287,9 +283,9 @@ const FACT_RULES: readonly Rule[] = [
   {
     from: "admission",
     to: "preparation",
-    source: "command",
-    description: "prepare command emitted",
-    commands: ["prepare"]
+    source: "output",
+    description: "preparation action requested",
+    outputs: ["prepare"]
   },
   {
     from: "units",
@@ -301,51 +297,51 @@ const FACT_RULES: readonly Rule[] = [
   {
     from: "authorization",
     to: "effect",
-    source: "command",
+    source: "output",
     description: "request permitted; native attempt not yet observed",
-    commands: ["jevRequestIssued"]
+    outputs: ["jevRequestIssued"]
   },
   {
     from: "authorization",
     to: "outcomes",
-    source: "command",
+    source: "output",
     description: "request unavailable or refused",
-    commands: ["jevRequestUnavailable"]
+    outputs: ["jevRequestUnavailable"]
   },
   {
     from: "effect",
     to: "jev",
     source: "native fact",
     description: "request start observed",
-    commands: ["jevRequestStartRecorded"]
+    outputs: ["jevRequestStartRecorded"]
   },
   {
     from: "effect",
     to: "outcomes",
     source: "native fact",
     description: "request interruption recorded",
-    commands: ["jevInterruptionRecorded"]
+    outputs: ["jevInterruptionRecorded"]
   },
   {
     from: "outcomes",
     to: "outcomes",
-    source: "command",
+    source: "output",
     description: "clear, stale, or backend outcome recorded",
-    commands: ["settleClear", "settleStaleClear", "retireStaleFinding", "failureBackend"]
+    outputs: ["clearSettled", "staleClearSettled", "staleFindingRetired", "failureBackend"]
   },
   {
     from: "advice",
     to: "collection",
-    source: "command",
+    source: "output",
     description: "advice eligible or selected",
-    commands: ["collectionEligible", "collectionBackgroundClaimed", "collectionFindingSelected"]
+    outputs: ["collectionEligible", "collectionBackgroundClaimed", "collectionFindingSelected"]
   },
   {
     from: "collection",
     to: "collection",
-    source: "command",
+    source: "output",
     description: "collection waits or retains advice",
-    commands: [
+    outputs: [
       "collectionFindingRetained",
       "waitForWork",
       "waitForOutput",
@@ -357,23 +353,23 @@ const FACT_RULES: readonly Rule[] = [
   {
     from: "collection",
     to: "preparation",
-    source: "command",
+    source: "output",
     description: "cancel unfinished work requested",
-    commands: ["cancelWork", "discardAllUnfinished", "discardNamedOnly"]
+    outputs: ["cancelWork", "discardAllUnfinished", "discardNamedOnly"]
   },
   {
     from: "collection",
     to: "round",
-    source: "command",
+    source: "output",
     description: "Stop decision ready or advice reoffered",
-    commands: ["finishReady", "reofferAtStop"]
+    outputs: ["finishReady", "reofferAtStop"]
   },
   {
     from: "collection",
     to: "delivery",
-    source: "command",
+    source: "output",
     description: "output authorized; host write not established",
-    commands: ["finishAuthorized", "submissionAuthorized", "writeAuthorized"]
+    outputs: ["finishAuthorized", "submissionAuthorized", "writeAuthorized"]
   }
 ]
 
@@ -447,7 +443,7 @@ export const projectFlowStep = (step: FlowStepInput | undefined, numbers?: Recor
     }
   }
   for (const [key, next] of after) if (!before.has(key)) changedStages.add(next.stage)
-  const admitted = step.commands.find((command) => command.kind === "observationAdmitted")
+  const admitted = step.outputs.find((command) => command.kind === "observationAdmitted")
   if (admitted?.kind === "observationAdmitted")
     for (const next of step.after.work)
       if (
@@ -547,11 +543,11 @@ export const projectFlowStep = (step: FlowStepInput | undefined, numbers?: Recor
         changedStages.add("outcomes")
         changedStages.add("advice")
       }
-  const kinds = commandKinds(step.commands)
+  const kinds = outputKinds(step.outputs)
   const clearedReview =
     event.kind === "jevRequestSettled" &&
     event.outcome === "clear" &&
-    step.commands.some((command) => command.kind === "reviewRecorded" && command.outcome === "clear") &&
+    step.outputs.some((command) => command.kind === "reviewRecorded" && command.outcome === "clear") &&
     step.before.work.some(
       (work) =>
         work.operation === event.operation &&
@@ -611,18 +607,31 @@ export const projectFlowStep = (step: FlowStepInput | undefined, numbers?: Recor
         }
       : undefined
   for (const rule of FACT_RULES) {
-    const matchedCommands = rule.commands?.filter((kind) => kinds.has(kind)) ?? []
-    if (!(rule.events?.includes(step.event.kind) ?? false) && matchedCommands.length === 0) continue
-    evidence.push({
-      from: rule.from,
-      to: rule.to,
-      source: rule.source,
-      description: matchedCommands.length ? `${rule.description} (${matchedCommands.join(", ")})` : rule.description
-    })
+    const matchedOutputs = rule.outputs?.filter((kind) => kinds.has(kind)) ?? []
+    if (!(rule.events?.includes(step.event.kind) ?? false) && matchedOutputs.length === 0) continue
+    const sources: readonly EvidenceSource[] =
+      rule.source === "output"
+        ? [
+            ...new Set(
+              step.outputs.filter((output) => matchedOutputs.includes(output.kind)).map((output) => output.category)
+            )
+          ]
+        : [rule.source]
+    for (const source of sources)
+      evidence.push({
+        from: rule.from,
+        to: rule.to,
+        source,
+        description: matchedOutputs.length ? `${rule.description} (${matchedOutputs.join(", ")})` : rule.description
+      })
     changedStages.add(rule.from)
-    // A command describes an authorized path; the destination is occupied
+    // An action request describes an authorized path; the destination is occupied
     // only when checked state or a later supplied fact places something there.
-    if (rule.source !== "command") changedStages.add(rule.to)
+    if (
+      rule.source !== "output" ||
+      step.outputs.some((output) => matchedOutputs.includes(output.kind) && output.category === "event")
+    )
+      changedStages.add(rule.to)
   }
   // Result facts identify the outcome after request tracking disappears. A missing
   // request alone cannot distinguish response, failure, timeout, or cancellation.
@@ -658,11 +667,11 @@ export const projectFlowStep = (step: FlowStepInput | undefined, numbers?: Recor
     changedStages.add("jev")
     changedStages.add("outcomes")
   }
-  if (step.commands.some((command) => command.kind === "reviewRecorded" && command.outcome !== "finding")) {
+  if (step.outputs.some((command) => command.kind === "reviewRecorded" && command.outcome !== "finding")) {
     evidence.push({
       from: "outcomes",
       to: "outcomes",
-      source: "command",
+      source: "event",
       description: "nonfinding review outcome recorded"
     })
     changedStages.add("outcomes")

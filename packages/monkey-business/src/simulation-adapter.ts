@@ -73,8 +73,8 @@ const graphKey = decoder(
 )
 const decodeLimits = decoder(CanonicalLimitsSchema)
 const readList = <T>(value: unknown, decode: (value: unknown) => T): T[] => readBendList(value, decode, 2048)
-const originalCommandList = (commands: readonly unknown[]): unknown =>
-  commands.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })
+const originalCommandList = (outputs: readonly unknown[]): unknown =>
+  outputs.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })
 const projectionOf = (state: EngineState): CanonicalProjection => {
   const projection = sharedProjections.get(state)
   if (projection === undefined) throw new TypeError("missing shared projection")
@@ -141,14 +141,14 @@ export const stepSharedCanonical = (state: EngineState, event: CanonicalEvent) =
     return { capture: decodeWriterIssuedCapture(raw.capture), event: decodeDriverEvent(raw.event) }
   })
   const raw = readRecord(transition.result)
-  const commands = raw.$ === "Canonical.Advanced" ? readList(raw.commands, (x) => x) : []
-  const cacheReleases = readList(SharedEngine.cache_removed(state, originalCommandList(commands)), (value) =>
+  const outputs = raw.$ === "Canonical.Advanced" ? readList(raw.outputs, (x) => x) : []
+  const cacheReleases = readList(SharedEngine.cache_removed(state, originalCommandList(outputs)), (value) =>
     decodeDriverEvent(decodeSharedValue(value))
   )
   sharedRegister(transition.state)
   sharedResidents.set(transition.state, residentOf(state))
   sharedProjections.set(transition.state, projection)
-  sharedCommands.set(transition.state, commands)
+  sharedCommands.set(transition.state, outputs)
   sharedSourceEvents.set(transition.state, freezeCanonicalData(event))
   // A detached root carries immediate transition facts without retaining the
   // bridge key and its predecessor metadata from earlier transitions.
@@ -374,11 +374,11 @@ const decodeEntry = (value: unknown): { readonly at: number; readonly order: num
 }
 const retain = (before: EngineState, next: EngineState): EngineState => {
   const projection = projectionOf(before)
-  const commands = sharedCommands.get(before)
+  const outputs = sharedCommands.get(before)
   sharedRegister(next)
   sharedResidents.set(next, residentOf(before))
   sharedProjections.set(next, projection)
-  if (commands !== undefined) sharedCommands.set(next, commands)
+  if (outputs !== undefined) sharedCommands.set(next, outputs)
   const event = sharedSourceEvents.get(before)
   if (event !== undefined) sharedSourceEvents.set(next, event)
   const predecessor = sharedPredecessors.get(before)
@@ -847,14 +847,14 @@ export const afterSharedNotice = (
 ) => {
   sharedCheck(state)
   const before = sharedPredecessors.get(state),
-    commands = sharedCommands.get(state)
-  if (!before || !commands) throw new TypeError("missing actual notice feedback")
+    outputs = sharedCommands.get(state)
+  if (!before || !outputs) throw new TypeError("missing actual notice feedback")
   const transition = SharedEngine.notice_after(
     before,
     state,
     encodeSharedValue(scope),
     encodeSharedValue(encodeCanonicalEvent(event)),
-    originalCommandList(commands),
+    originalCommandList(outputs),
     BigInt(readNat(now)),
     encodeSharedValue(profile)
   )
@@ -968,12 +968,12 @@ export const routeSharedSharing = (state: EngineState, route: unknown): unknown 
 }
 export const routedSharedSharing = (state: EngineState, route: unknown) => {
   sharedCheck(state)
-  const commands = sharedCommands.get(state)
+  const outputs = sharedCommands.get(state)
   const event = sharedSourceEvents.get(state)
   const captured = readRecord(route)
-  if (!commands || event?.kind !== "reuseRoute" || event.id !== readNat(captured.evaluation))
+  if (!outputs || event?.kind !== "reuseRoute" || event.id !== readNat(captured.evaluation))
     throw new RangeError("missing original shared route result")
-  const list = originalCommandList(commands)
+  const list = originalCommandList(outputs)
   const result = SharedEngine.sharing_routed(state, encodeSharedValue(route), list)
   return { state: retain(state, result.state), events: decodeSharedValue(result.events) }
 }
@@ -1016,21 +1016,21 @@ export const preprocessSharedSharing = (
   const afterState = frame.after as EngineState
   const result = decodeTrustedCanonicalStep(frame.result)
   const raw = readRecord(frame.result)
-  const commands = raw.$ === "Canonical.Advanced" ? readList(raw.commands, (command) => command) : []
+  const outputs = raw.$ === "Canonical.Advanced" ? readList(raw.outputs, (command) => command) : []
   sharedRegister(afterState)
   sharedResidents.set(afterState, residentOf(state))
   sharedProjections.set(afterState, projectCanonical(result.state))
-  sharedCommands.set(afterState, commands)
+  sharedCommands.set(afterState, outputs)
   sharedPredecessors.set(afterState, Object.freeze({ ...beforeState }))
   const provided = encodeSharedValue({ $: "Some", value: readNat(partition) })
-  const commandScopes = commands.map((command) => {
+  const outputScopes = outputs.map((command) => {
     const owner = scopeOption(decodeSharedValue(SharedEngine.scope_command(beforeState, afterState, command, provided)))
     return owner.$ === "Some" ? owner.value : undefined
   })
   sharedRegister(prepared.state)
   sharedResidents.set(prepared.state, residentOf(state))
   sharedProjections.set(prepared.state, projectCanonical(result.state))
-  sharedCommands.set(prepared.state, commands)
+  sharedCommands.set(prepared.state, outputs)
   sharedPredecessors.set(prepared.state, Object.freeze({ ...beforeState }))
   return {
     state: prepared.state,
@@ -1039,7 +1039,7 @@ export const preprocessSharedSharing = (
       result,
       before: projectionOf(state),
       after: projectCanonical(result.state),
-      commandScopes
+      outputScopes
     },
     events: decodeSharedValue(prepared.events),
     structural: prepared
@@ -1078,15 +1078,15 @@ export const configureSharedCache = (state: EngineState, entries: number, bytes:
 export const beginSharedCache = (state: EngineState, event: CanonicalEvent) => {
   sharedCheck(state)
   const before = sharedPredecessors.get(state)
-  const commands = sharedCommands.get(state)
+  const outputs = sharedCommands.get(state)
   const source = sharedSourceEvents.get(state)
-  if (!before || !commands || source !== event || consumedCacheResults.has(source))
+  if (!before || !outputs || source !== event || consumedCacheResults.has(source))
     throw new TypeError("missing or consumed actual cache result provenance")
   const published = SharedEngine.cache_begin(
     before,
     state,
     encodeSharedValue(encodeCanonicalEvent(source)),
-    originalCommandList(commands)
+    originalCommandList(outputs)
   )
   const releases = readList(published.releases, (value) => decodeDriverEvent(decodeSharedValue(value)))
   const facts = cacheFactsOf(state, published.facts)
@@ -1103,7 +1103,7 @@ export const stepSharedCache = (state: EngineState, capsule: SharedCacheFact) =>
   if (!readBool(transition.valid)) throw new TypeError("stale cache metadata phase")
   const result = decodeTrustedCanonicalStep(transition.result)
   const raw = readRecord(transition.result)
-  const commands = raw.$ === "Canonical.Advanced" ? readList(raw.commands, (value) => value) : []
+  const outputs = raw.$ === "Canonical.Advanced" ? readList(raw.outputs, (value) => value) : []
   const projection = projectCanonical(result.state)
   const afterActions = decodeDriver({
     handled: true,
@@ -1113,7 +1113,7 @@ export const stepSharedCache = (state: EngineState, capsule: SharedCacheFact) =>
   }).actions
   const cacheReleases = [
     ...readList(transition.releases, (value) => decodeDriverEvent(decodeSharedValue(value))),
-    ...readList(SharedEngine.cache_removed(state, originalCommandList(commands)), (value) =>
+    ...readList(SharedEngine.cache_removed(state, originalCommandList(outputs)), (value) =>
       decodeDriverEvent(decodeSharedValue(value))
     )
   ]
@@ -1121,7 +1121,7 @@ export const stepSharedCache = (state: EngineState, capsule: SharedCacheFact) =>
   sharedRegister(transition.state)
   sharedResidents.set(transition.state, provenance.owner)
   sharedProjections.set(transition.state, projection)
-  sharedCommands.set(transition.state, commands)
+  sharedCommands.set(transition.state, outputs)
   sharedSourceEvents.set(transition.state, capsule.event)
   sharedPredecessors.set(transition.state, Object.freeze({ ...state }))
   consumedCacheFacts.add(capsule)
@@ -1223,15 +1223,15 @@ export const controlSharedResponse = (state: EngineState, control: CollectionRes
 export const afterSharedResponse = (state: EngineState, target: CollectionResponseIdentity) => {
   sharedCheck(state)
   const event = sharedSourceEvents.get(state)
-  const commands = sharedCommands.get(state)
-  if (!event || !commands) throw new TypeError("missing response source transition")
+  const outputs = sharedCommands.get(state)
+  if (!event || !outputs) throw new TypeError("missing response source transition")
   return responseTransition(
     state,
     SharedEngine.collection_response_after(
       state,
       encodeSharedValue(encodeCollectionResponseIdentity(target)),
       encodeSharedValue(encodeCanonicalEvent(event)),
-      originalCommandList(commands)
+      originalCommandList(outputs)
     )
   )
 }
@@ -1302,8 +1302,8 @@ export const afterSharedQuiet = (
   stopAbsent: boolean
 ) => {
   sharedCheck(state)
-  const commands = sharedCommands.get(state)
-  if (!commands || sharedSourceEvents.get(state) !== event) throw new TypeError("missing original quiet transition")
+  const outputs = sharedCommands.get(state)
+  if (!outputs || sharedSourceEvents.get(state) !== event) throw new TypeError("missing original quiet transition")
   return decodeDriver({
     handled: true,
     actions: decodeSharedValue(
@@ -1419,13 +1419,13 @@ export const claimSharedWriter = (state: EngineState, pending: SharedWriterPendi
 export const afterSharedWriter = (state: EngineState, pending: SharedWriterPending, now: number) => {
   const fact = pendingWriterFact(state, pending),
     event = sharedSourceEvents.get(state),
-    commands = sharedCommands.get(state)
-  if (!event || event !== fact.event || !commands) throw new TypeError("missing original writer source transition")
+    outputs = sharedCommands.get(state)
+  if (!event || event !== fact.event || !outputs) throw new TypeError("missing original writer source transition")
   const transition = SharedEngine.writer_feedback(
     state,
     fact.raw,
     encodeSharedValue(encodeCanonicalEvent(event)),
-    originalCommandList(commands),
+    originalCommandList(outputs),
     BigInt(readNat(now))
   )
   const originalTarget = readRecord(readRecord(fact.raw).facts).target

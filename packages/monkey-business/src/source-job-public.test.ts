@@ -57,9 +57,9 @@ it("retains the original SourceJob when a second edit enters an active round", (
       frame.scheduled.job?.at === 40
   )
   expect(admitted?.scheduled.driverSourceJob).toEqual(expected)
-  if (!admitted || admitted.observation.event.kind !== "admitObservation")
+  if (!admitted || admitted.kind !== "canonical" || admitted.observation.event.kind !== "admitObservation")
     throw new Error("active-round edit was not admitted")
-  const operation = admitted.observation.commands.find((command) => command.kind === "observationAdmitted")?.id
+  const operation = admitted.observation.outputs.find((command) => command.kind === "observationAdmitted")?.id
   expect(operation).toBeDefined()
   expect(admitted.after.jobs.find(([id]) => id === operation)?.[1].driverSourceJob).toEqual(expected)
 
@@ -70,4 +70,27 @@ it("retains the original SourceJob when a second edit enters an active round", (
       frame.observation.event.operation === operation
   )
   expect(dispatch?.scheduled.driverSourceJob).toEqual(expected)
+})
+
+it("projects native queued callback metadata before delivery", () => {
+  const run = createRun({ preparationDelay: 2, inputs: [{ at: 0, kind: "edit", bytes: 10, unitBytes: [5] }] })
+  run.advance({ untilTime: 0, maxEvents: 200 })
+  const queued = run
+    .runtimeSnapshot()
+    .queue.find((item) => item.input.kind === "canonical" && item.input.event.kind === "preparationCompleted")
+  expect(queued).toMatchObject({
+    at: 2,
+    generated: true,
+    partition: 1,
+    driverSourceJob: { partition: 1, lifetime: 1, bytes: 10, units: [5], outcome: { $: "None" } },
+    callbackReceipt: { issuedAt: 0, dueAt: 2 }
+  })
+  expect(queued?.callbackReceipt?.target.originalOrder).toBe(queued?.order)
+  expect(run.runtimeSnapshot().jobs[0]?.[1].driverSourceJob).toEqual({
+    partition: 1,
+    lifetime: 1,
+    bytes: 10,
+    units: [5],
+    outcome: { $: "None" }
+  })
 })

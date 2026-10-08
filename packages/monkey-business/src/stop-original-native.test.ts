@@ -443,11 +443,8 @@ it("Stop business comparison ignores private Engine layout but rejects changed a
       finishes: readRecord(readRecord(engine.scenarios).stop).finishes
     }
   ])
-  compareStopBusiness(
-    business,
-    { ...before, engine: { ...engine, privateDiagnostic: "different representation" } },
-    "test original boundary"
-  )
+  const otherRepresentation = { ...before, engine: { ...before.engine, privateDiagnostic: "different representation" } }
+  compareStopBusiness(business, otherRepresentation, "test original boundary")
   run.advance({ untilTime: 0, maxEvents: 100 })
   expect(() => compareStopBusiness(business, run.runtimeSnapshot(), "test actual changed boundary")).toThrow(
     "Stop public business layer differs at test actual changed boundary Canonical accounting"

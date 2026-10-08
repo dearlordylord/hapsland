@@ -386,7 +386,7 @@ function publicCase(mode: number) {
         const reservations = run.observations.filter(
           (frame) =>
             frame.event.kind === "collectionReserveLease" &&
-            frame.commands.some((command) => command.kind === "collectionLeaseReserved")
+            frame.outputs.some((command) => command.kind === "collectionLeaseReserved")
         )
         const attempted = controls.some(
           (value) =>
@@ -528,6 +528,57 @@ it.each(modes)(
 )
 
 const fixture = new URL("../../monkey-business-bend/conformance/writer-original-scenarios.bend", import.meta.url)
+// These original edits name one shared source. Registry allocation order differs
+// between the native fixture and public host; validate references before comparing
+// their authoritative labels. All scheduler and policy identities remain exact.
+function originalSourceLabels(value: { readonly frames: readonly unknown[] }) {
+  const labels = intersectionOriginal(12).inputs.map((input) => {
+    if (!("revisionSubject" in input) || !("revisionInput" in input)) throw new Error("missing original source labels")
+    return { subject: input.revisionSubject, input: input.revisionInput }
+  })
+  expect(labels).toHaveLength(2)
+  expect(labels[1]).toEqual(labels[0])
+  const registrations = value.frames
+    .map((frame) => readRecord(readRecord(frame).event))
+    .filter((event) => event.$ === "Canonical.RevisionRegister")
+  expect(registrations).toHaveLength(2)
+  const first = registrations[0]!
+  if (first.$ !== "Canonical.RevisionRegister") throw new Error("missing original revision registration")
+  for (const event of registrations) {
+    if (event.$ !== "Canonical.RevisionRegister") throw new Error("foreign original revision registration")
+    expect(event.subject).toBe(first.subject)
+    expect(event.input).toBe(first.input)
+  }
+  expect(first.subject).not.toBe(first.input)
+  const normalize = (item: unknown): unknown => {
+    if (Array.isArray(item)) return item.map(normalize)
+    if (item === null || typeof item !== "object") return item
+    const record = item as Record<string, unknown>
+    const revision =
+      record.$ === "Canonical.RevisionRegister" ||
+      record.$ === "Canonical.RevisionCurrentCheck" ||
+      (Object.hasOwn(record, "members") &&
+        Object.hasOwn(record, "generation") &&
+        Object.hasOwn(record, "subject") &&
+        Object.hasOwn(record, "input"))
+    if (revision) {
+      expect(record.subject).toBe(first.subject)
+      expect(record.input).toBe(first.input)
+    }
+    return Object.fromEntries(
+      Object.entries(record).map(([key, child]) => [
+        key,
+        revision && key === "subject"
+          ? JSON.stringify(["revision-subject-label", labels[0]!.subject])
+          : revision && key === "input"
+            ? JSON.stringify(["revision-input-label", labels[0]!.input])
+            : normalize(child)
+      ])
+    )
+  }
+  return normalize(value)
+}
+
 function compareOriginalFamily(value: unknown, expected: readonly ReturnType<typeof publicCase>[]): void {
   const cases = readBendList(value, readRecord, 13)
   expect(cases).toHaveLength(modes.length)
@@ -535,7 +586,9 @@ function compareOriginalFamily(value: unknown, expected: readonly ReturnType<typ
   for (const [mode, original] of cases.entries()) {
     try {
       expect(original.input).toEqual(frozenNativeInput(mode))
-      expect(decodeWriterNativeBoundary(original)).toEqual(expected[mode])
+      const decoded = decodeWriterNativeBoundary(original)
+      if (mode === 12) expect(originalSourceLabels(decoded)).toEqual(originalSourceLabels(expected[mode]!))
+      else expect(decoded).toEqual(expected[mode])
     } catch (error) {
       throw new Error(
         `writer original case ${mode} business boundary: ${error instanceof Error ? error.message : String(error)}`,
@@ -558,7 +611,9 @@ it("compares all thirteen writer original cases full native/emitted/public/repla
       emissionTimeoutMs: 90000,
       clangTimeoutMs: 120000,
       executionTimeoutMs: 15000,
-      resumeNativeCompilerReceipt: process.env.HAPSLAND_WRITER_NATIVE_RESUME_RECEIPT
+      ...(process.env.HAPSLAND_WRITER_NATIVE_RESUME_RECEIPT === undefined
+        ? {}
+        : { resumeNativeCompilerReceipt: process.env.HAPSLAND_WRITER_NATIVE_RESUME_RECEIPT })
     }),
     emitted = runWorkloadEmitted(fixture, { emissionTimeoutMs: 30000 })
   expect(native).toEqual(emitted)

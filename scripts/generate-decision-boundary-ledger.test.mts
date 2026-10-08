@@ -22,6 +22,34 @@ test("schema fields track requiredness and shared multi-kind branches", () => {
     { kind: "third", fields: ["changed?"] }
   ])
 })
+test("nested output unions retain category ownership without separate streams", () => {
+  const requests = Schema.Struct({ category: Schema.Literal("request"), kind: Schema.Literal("prepare") })
+  const events = Schema.Union([
+    Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("findingRetained") }),
+    Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("clearSettled") })
+  ])
+  const decisions = Schema.Struct({ category: Schema.Literal("decision"), kind: Schema.Literal("collectionFits") })
+  assert.deepEqual(boundarySchemaRows(Schema.Union([Schema.suspend(() => requests), events, decisions])), [
+    { kind: "clearSettled", category: "event", fields: [] },
+    { kind: "collectionFits", category: "decision", fields: [] },
+    { kind: "findingRetained", category: "event", fields: [] },
+    { kind: "prepare", category: "request", fields: [] }
+  ])
+  assert.throws(
+    () =>
+      boundarySchemaRows(
+        Schema.Union([requests, Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("prepare") })])
+      ),
+    /Duplicate boundary kind/
+  )
+  assert.throws(
+    () =>
+      boundarySchemaRows(
+        Schema.Union([Schema.Struct({ category: Schema.Literal("unknown"), kind: Schema.Literal("first") }), requests])
+      ),
+    /recognized category/
+  )
+})
 test("current production schemas and exports produce the maintained ledger without changing reviewed prose", () => {
   const model = decisionBoundaryModel(root, descriptions)
   const next = decisionBoundaryDocument(current, model)
@@ -34,6 +62,13 @@ test("current production schemas and exports produce the maintained ledger witho
         row.fields.includes("sourceRung")
     )
   )
+  const outputs = model.inventories.find((inventory) => inventory.name === "Canonical outputs")!
+  assert.equal(outputs.rows.length, 215)
+  assert.equal(outputs.rows.find((row) => row.kind === "prepare")?.category, "request")
+  assert.equal(outputs.rows.find((row) => row.kind === "findingRetained")?.category, "event")
+  assert.equal(outputs.rows.find((row) => row.kind === "collectionFits")?.category, "decision")
+  assert.match(next, /Canonical outputs form one ordered stream/)
+  assert.doesNotMatch(next, /### Canonical commands/)
   const marker = "<!-- decision-boundary-facts:start -->"
   const changed = current.replace("## TS-006 —", "A retained owner explanation.\n\n## TS-006 —")
   assert.equal(decisionBoundaryDocument(changed, model).split(marker)[0], changed.split(marker)[0])

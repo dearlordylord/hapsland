@@ -1,4 +1,5 @@
 import Base
+import ../../packages/monkey-business-bend/Engine.bend as Engine
 import ../../packages/agent-flow-bend/Admission.bend as Admission
 import ../../packages/monkey-business-bend/AdviceeActivity.bend as AdviceeActivity
 import ../../packages/monkey-business-bend/AdviceeLifecycle.bend as AdviceeLifecycle
@@ -30,11 +31,14 @@ import ../../packages/monkey-business-bend/FreshnessScenario.bend as FreshnessSc
 import ../../packages/agent-flow-bend/Handoff.bend as Handoff
 import ../../packages/agent-flow-bend/ImportGraph.bend as ImportGraph
 import ../../packages/agent-flow-bend/Ledger.bend as Ledger
+import ../../packages/monkey-business-bend/NativeGenerated.bend as NativeGenerated
 import ../../packages/monkey-business-bend/NativeRunTypes.bend as NativeRunTypes
 import ../../packages/monkey-business-bend/NoticeScenario.bend as NoticeScenario
 import ../../packages/agent-flow-bend/NoticeState.bend as NoticeState
 import ../../packages/monkey-business-bend/Numeric.bend as Numeric
 import ../../packages/monkey-business-bend/OutputScenario.bend as OutputScenario
+import ../../packages/monkey-business-bend/PermitScenario.bend as PermitScenario
+import ../../packages/monkey-business-bend/PreparationScenario.bend as PreparationScenario
 import ../../packages/agent-flow-bend/Quiescence.bend as Quiescence
 import ../../packages/monkey-business-bend/Random.bend as Random
 import ../../packages/agent-flow-bend/Retention.bend as Retention
@@ -864,6 +868,16 @@ def canonical_state(values: List<&2, Canonical.State>, suffix: List<&2, Nat>) ->
     )
     case _: 999999n <> suffix
 
+def canonical_actionrequest(
+  values: List<&2, Canonical.ActionRequest>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case Canonical.Prepare{v0, v1} <> Nil{}: 0n <> v0 <> v1 <> suffix
+    case Canonical.CancelWork{v0} <> Nil{}: 1n <> v0 <> suffix
+    case Canonical.CreateNoticeKey{} <> Nil{}: 2n <> suffix
+    case _: 999999n <> suffix
+
 def ledger_usage(values: List<&2, Ledger.Usage>, suffix: List<&2, Nat>) -> List<&2, Nat>:
   match values:
     case Ledger.Usage{v0, v1} <> Nil{}: 0n <> v0 <> v1 <> suffix
@@ -878,18 +892,6 @@ def canonical_capacityview(
       [v0],
       ledger_usage([v1], list_ledger_charge([v2], suffix))
     )
-    case _: 999999n <> suffix
-
-def ledger_fitdecision(
-  values: List<&2, Ledger.FitDecision>,
-  suffix: List<&2, Nat>
-) -> List<&2, Nat>:
-  match values:
-    case Ledger.Fits{} <> Nil{}: 0n <> suffix
-    case Ledger.GlobalItemLimit{} <> Nil{}: 1n <> suffix
-    case Ledger.GlobalByteLimit{} <> Nil{}: 2n <> suffix
-    case Ledger.PartitionItemLimit{} <> Nil{}: 3n <> suffix
-    case Ledger.PartitionByteLimit{} <> Nil{}: 4n <> suffix
     case _: 999999n <> suffix
 
 def canonical_requestoutcome(
@@ -922,6 +924,133 @@ def canonical_writeoutcome(
     case Canonical.Acknowledged{} <> Nil{}: 0n <> suffix
     case Canonical.Failed{} <> Nil{}: 1n <> suffix
     case Canonical.Unknown{} <> Nil{}: 2n <> suffix
+    case _: 999999n <> suffix
+
+def canonical_domainevent(
+  values: List<&2, Canonical.DomainEvent>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case Canonical.CapacityGranted{v0, v1} <> Nil{}: 0n <> v0 <> canonical_capacityview(
+      [v1],
+      suffix
+    )
+    case Canonical.CapacityResized{v0, v1} <> Nil{}: 1n <> v0 <> canonical_capacityview(
+      [v1],
+      suffix
+    )
+    case Canonical.CapacityUnitAdmitted{v0, v1, v2, v3} <> Nil{}: 2n <> v0 <> v1 <> v2 <> canonical_capacityview(
+      [v3],
+      suffix
+    )
+    case Canonical.PermitIssued{v0, v1} <> Nil{}: 3n <> v0 <> v1 <> suffix
+    case Canonical.CompletedEditSeen{v0, v1} <> Nil{}: 4n <> edithistory_reason(
+      [v0],
+      boolean(v1, suffix)
+    )
+    case Canonical.CompletedEditRemembered{v0} <> Nil{}: 5n <> maybe_nat([v0], suffix)
+    case Canonical.QuietRoundBusy{} <> Nil{}: 6n <> suffix
+    case Canonical.QuietRoundWaiting{v0} <> Nil{}: 7n <> v0 <> suffix
+    case Canonical.QuietRoundResetRecorded{} <> Nil{}: 8n <> suffix
+    case Canonical.PermitConsumed{v0} <> Nil{}: 9n <> v0 <> suffix
+    case Canonical.PermitReleased{} <> Nil{}: 10n <> suffix
+    case Canonical.PermitExpired{} <> Nil{}: 11n <> suffix
+    case Canonical.PermitRoundClosed{v0} <> Nil{}: 12n <> v0 <> suffix
+    case Canonical.RoundStarted{v0} <> Nil{}: 13n <> v0 <> suffix
+    case Canonical.ObservationAdmitted{v0} <> Nil{}: 14n <> v0 <> suffix
+    case Canonical.ObservationStarted{} <> Nil{}: 15n <> suffix
+    case Canonical.ObservationCompleted{} <> Nil{}: 16n <> suffix
+    case Canonical.ObservationInterrupted{} <> Nil{}: 17n <> suffix
+    case Canonical.UnitAdmitted{v0, v1, v2, v3, v4} <> Nil{}: 18n <> v0 <> v1 <> v2 <> v3 <> canonical_capacityview(
+      [v4],
+      suffix
+    )
+    case Canonical.PreparationReleased{v0, v1} <> Nil{}: 19n <> v0 <> canonical_capacityview(
+      [v1],
+      suffix
+    )
+    case Canonical.ReviewStarted{} <> Nil{}: 20n <> suffix
+    case Canonical.JevRequestIssued{v0, v1, v2, v3, v4} <> Nil{}: 21n <> v0 <> v1 <> v2 <> v3 <> v4 <> suffix
+    case Canonical.JevRequestStartRecorded{} <> Nil{}: 22n <> suffix
+    case Canonical.JevInterruptionRecorded{} <> Nil{}: 23n <> suffix
+    case Canonical.JevRequestOutcomeRecorded{v0} <> Nil{}: 24n <> canonical_requestoutcome(
+      [v0],
+      suffix
+    )
+    case Canonical.ReservationReleased{v0} <> Nil{}: 25n <> v0 <> suffix
+    case Canonical.ReviewRecorded{v0} <> Nil{}: 26n <> canonical_outcome([v0], suffix)
+    case Canonical.FindingRetained{} <> Nil{}: 27n <> suffix
+    case Canonical.FindingCountRecorded{} <> Nil{}: 28n <> suffix
+    case Canonical.ClearSettled{} <> Nil{}: 29n <> suffix
+    case Canonical.StaleClearSettled{} <> Nil{}: 30n <> suffix
+    case Canonical.StaleFindingRetired{} <> Nil{}: 31n <> suffix
+    case Canonical.DispatchStarted{v0, v1} <> Nil{}: 32n <> v0 <> v1 <> suffix
+    case Canonical.DispatchDiscarded{v0, v1} <> Nil{}: 33n <> v0 <> boolean(v1, suffix)
+    case Canonical.WaitForWork{} <> Nil{}: 34n <> suffix
+    case Canonical.FinishReady{} <> Nil{}: 35n <> suffix
+    case Canonical.FinishLimit{} <> Nil{}: 36n <> suffix
+    case Canonical.StopEnded{} <> Nil{}: 37n <> suffix
+    case Canonical.CollectionEligible{} <> Nil{}: 38n <> suffix
+    case Canonical.CollectionLeaseReserved{} <> Nil{}: 39n <> suffix
+    case Canonical.CollectionLeaseReleased{} <> Nil{}: 40n <> suffix
+    case Canonical.CollectionAdviceRetired{} <> Nil{}: 41n <> suffix
+    case Canonical.CollectionBackgroundClaimed{} <> Nil{}: 42n <> suffix
+    case Canonical.CollectionBackgroundReleased{} <> Nil{}: 43n <> suffix
+    case Canonical.FinishReserved{} <> Nil{}: 44n <> suffix
+    case Canonical.FinishReleased{} <> Nil{}: 45n <> suffix
+    case Canonical.FinishAuthorized{} <> Nil{}: 46n <> suffix
+    case Canonical.FinishRecorded{v0} <> Nil{}: 47n <> canonical_writeoutcome([v0], suffix)
+    case Canonical.FinishEnded{} <> Nil{}: 48n <> suffix
+    case Canonical.ContinuationConsumed{} <> Nil{}: 49n <> suffix
+    case Canonical.SubmissionBegun{} <> Nil{}: 50n <> suffix
+    case Canonical.SubmissionAuthorized{} <> Nil{}: 51n <> suffix
+    case Canonical.SubmissionRecorded{} <> Nil{}: 52n <> suffix
+    case Canonical.SubmissionReleased{} <> Nil{}: 53n <> suffix
+    case Canonical.SubmissionForgotten{} <> Nil{}: 54n <> suffix
+    case Canonical.RevisionReused{v0} <> Nil{}: 55n <> v0 <> suffix
+    case Canonical.RevisionReplaced{v0} <> Nil{}: 56n <> v0 <> suffix
+    case Canonical.RevisionReleased{} <> Nil{}: 57n <> suffix
+    case Canonical.CleanupCommitted{} <> Nil{}: 58n <> suffix
+    case Canonical.ReuseAdviceJoined{} <> Nil{}: 59n <> suffix
+    case Canonical.ReusePendingJoined{} <> Nil{}: 60n <> suffix
+    case Canonical.ReuseClaimedJoined{} <> Nil{}: 61n <> suffix
+    case Canonical.ReuseCacheHit{} <> Nil{}: 62n <> suffix
+    case Canonical.ReuseOwned{} <> Nil{}: 63n <> suffix
+    case Canonical.ReuseClaimed{} <> Nil{}: 64n <> suffix
+    case Canonical.ReuseAttached{} <> Nil{}: 65n <> suffix
+    case Canonical.ReuseReleased{} <> Nil{}: 66n <> suffix
+    case Canonical.CachePrepared{v0} <> Nil{}: 67n <> list_nat([v0], suffix)
+    case Canonical.CacheCommitted{} <> Nil{}: 68n <> suffix
+    case Canonical.CacheDiscarded{v0} <> Nil{}: 69n <> list_nat([v0], suffix)
+    case Canonical.NoticeSuppressed{v0} <> Nil{}: 70n <> v0 <> suffix
+    case Canonical.NoticePendingCreated{v0} <> Nil{}: 71n <> v0 <> suffix
+    case Canonical.NoticePendingMerged{v0} <> Nil{}: 72n <> v0 <> suffix
+    case Canonical.NoticeLeaseKept{} <> Nil{}: 73n <> suffix
+    case Canonical.NoticeCommitted{} <> Nil{}: 74n <> suffix
+    case Canonical.NoticePruned{v0, v1, v2} <> Nil{}: 75n <> boolean(
+      v0,
+      boolean(v1, boolean(v2, suffix))
+    )
+    case Canonical.NoticeDropped{} <> Nil{}: 76n <> suffix
+    case Canonical.NoticeLeased{} <> Nil{}: 77n <> suffix
+    case Canonical.NoticePendingCleared{} <> Nil{}: 78n <> suffix
+    case Canonical.WriteAuthorized{v0} <> Nil{}: 79n <> v0 <> suffix
+    case Canonical.WriteRecorded{v0} <> Nil{}: 80n <> canonical_writeoutcome([v0], suffix)
+    case Canonical.ReofferAtStop{} <> Nil{}: 81n <> suffix
+    case Canonical.PartitionRetired{v0} <> Nil{}: 82n <> v0 <> suffix
+    case Canonical.AdmissionForgotten{} <> Nil{}: 83n <> suffix
+    case _: 999999n <> suffix
+
+def ledger_fitdecision(
+  values: List<&2, Ledger.FitDecision>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case Ledger.Fits{} <> Nil{}: 0n <> suffix
+    case Ledger.GlobalItemLimit{} <> Nil{}: 1n <> suffix
+    case Ledger.GlobalByteLimit{} <> Nil{}: 2n <> suffix
+    case Ledger.PartitionItemLimit{} <> Nil{}: 3n <> suffix
+    case Ledger.PartitionByteLimit{} <> Nil{}: 4n <> suffix
     case _: 999999n <> suffix
 
 def collectorauthority_reason(
@@ -1006,280 +1135,176 @@ def rulepolicy_order(values: List<&2, RulePolicy.Order>, suffix: List<&2, Nat>) 
     case RulePolicy.After{} <> Nil{}: 2n <> suffix
     case _: 999999n <> suffix
 
-def canonical_command(values: List<&2, Canonical.Command>, suffix: List<&2, Nat>) -> List<&2, Nat>:
+def canonical_policydecision(
+  values: List<&2, Canonical.PolicyDecision>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
   match values:
-    case Canonical.CapacityGranted{v0, v1} <> Nil{}: 0n <> v0 <> canonical_capacityview(
-      [v1],
-      suffix
-    )
-    case Canonical.CapacityRefused{v0, v1} <> Nil{}: 1n <> ledger_fitdecision(
+    case Canonical.CapacityRefused{v0, v1} <> Nil{}: 0n <> ledger_fitdecision(
       [v0],
       canonical_capacityview([v1], suffix)
     )
-    case Canonical.CapacityResized{v0, v1} <> Nil{}: 2n <> v0 <> canonical_capacityview(
-      [v1],
-      suffix
-    )
-    case Canonical.CapacityUnitAdmitted{v0, v1, v2, v3} <> Nil{}: 3n <> v0 <> v1 <> v2 <> canonical_capacityview(
-      [v3],
-      suffix
-    )
-    case Canonical.CapacityUnitRefused{v0, v1, v2, v3} <> Nil{}: 4n <> v0 <> v1 <> ledger_fitdecision(
+    case Canonical.CapacityUnitRefused{v0, v1, v2, v3} <> Nil{}: 1n <> v0 <> v1 <> ledger_fitdecision(
       [v2],
       canonical_capacityview([v3], suffix)
     )
-    case Canonical.PermitIssued{v0, v1} <> Nil{}: 5n <> v0 <> v1 <> suffix
-    case Canonical.CompletedEditAbsent{} <> Nil{}: 6n <> suffix
-    case Canonical.CompletedEditSeen{v0, v1} <> Nil{}: 7n <> edithistory_reason(
-      [v0],
-      boolean(v1, suffix)
-    )
-    case Canonical.CompletedEditRemembered{v0} <> Nil{}: 8n <> maybe_nat([v0], suffix)
-    case Canonical.QuietRoundBusy{} <> Nil{}: 9n <> suffix
-    case Canonical.QuietRoundWaiting{v0} <> Nil{}: 10n <> v0 <> suffix
-    case Canonical.QuietRoundExpired{v0} <> Nil{}: 11n <> v0 <> suffix
-    case Canonical.QuietRoundResetRecorded{} <> Nil{}: 12n <> suffix
-    case Canonical.PermitConsumed{v0} <> Nil{}: 13n <> v0 <> suffix
-    case Canonical.PermitReleased{} <> Nil{}: 14n <> suffix
-    case Canonical.PermitExpired{} <> Nil{}: 15n <> suffix
-    case Canonical.PermitKept{} <> Nil{}: 16n <> suffix
-    case Canonical.PermitRoundClosed{v0} <> Nil{}: 17n <> v0 <> suffix
-    case Canonical.RoundStarted{v0} <> Nil{}: 18n <> v0 <> suffix
-    case Canonical.ObservationAdmitted{v0} <> Nil{}: 19n <> v0 <> suffix
-    case Canonical.ObservationStarted{} <> Nil{}: 20n <> suffix
-    case Canonical.ObservationCompleted{} <> Nil{}: 21n <> suffix
-    case Canonical.ObservationInterrupted{} <> Nil{}: 22n <> suffix
-    case Canonical.Prepare{v0, v1} <> Nil{}: 23n <> v0 <> v1 <> suffix
-    case Canonical.PreparationRefused{} <> Nil{}: 24n <> suffix
-    case Canonical.UnitAdmitted{v0, v1, v2, v3, v4} <> Nil{}: 25n <> v0 <> v1 <> v2 <> v3 <> canonical_capacityview(
-      [v4],
-      suffix
-    )
-    case Canonical.UnitRefused{v0, v1, v2, v3} <> Nil{}: 26n <> v0 <> v1 <> ledger_fitdecision(
+    case Canonical.CompletedEditAbsent{} <> Nil{}: 2n <> suffix
+    case Canonical.QuietRoundExpired{v0} <> Nil{}: 3n <> v0 <> suffix
+    case Canonical.PermitKept{} <> Nil{}: 4n <> suffix
+    case Canonical.PreparationRefused{} <> Nil{}: 5n <> suffix
+    case Canonical.UnitRefused{v0, v1, v2, v3} <> Nil{}: 6n <> v0 <> v1 <> ledger_fitdecision(
       [v2],
       canonical_capacityview([v3], suffix)
     )
-    case Canonical.PreparationReleased{v0, v1} <> Nil{}: 27n <> v0 <> canonical_capacityview(
-      [v1],
-      suffix
-    )
-    case Canonical.ReviewStarted{} <> Nil{}: 28n <> suffix
-    case Canonical.JevRequestIssued{v0, v1, v2, v3, v4} <> Nil{}: 29n <> v0 <> v1 <> v2 <> v3 <> v4 <> suffix
-    case Canonical.JevRequestUnavailable{} <> Nil{}: 30n <> suffix
-    case Canonical.JevRequestStartRecorded{} <> Nil{}: 31n <> suffix
-    case Canonical.JevInterruptionRecorded{} <> Nil{}: 32n <> suffix
-    case Canonical.JevRequestOutcomeRecorded{v0} <> Nil{}: 33n <> canonical_requestoutcome(
-      [v0],
-      suffix
-    )
-    case Canonical.JevObservationIgnored{} <> Nil{}: 34n <> suffix
-    case Canonical.ReservationReleased{v0} <> Nil{}: 35n <> v0 <> suffix
-    case Canonical.ReviewRecorded{v0} <> Nil{}: 36n <> canonical_outcome([v0], suffix)
-    case Canonical.RetainFinding{} <> Nil{}: 37n <> suffix
-    case Canonical.FindingCountRecorded{} <> Nil{}: 38n <> suffix
-    case Canonical.SettleClear{} <> Nil{}: 39n <> suffix
-    case Canonical.SettleStaleClear{} <> Nil{}: 40n <> suffix
-    case Canonical.RetireStaleFinding{} <> Nil{}: 41n <> suffix
-    case Canonical.PreparedSkipped{} <> Nil{}: 42n <> suffix
-    case Canonical.PreparedAdmitted{} <> Nil{}: 43n <> suffix
-    case Canonical.PreparedCapacityRefused{} <> Nil{}: 44n <> suffix
-    case Canonical.EmptyLost{} <> Nil{}: 45n <> suffix
-    case Canonical.EmptyAccepted{} <> Nil{}: 46n <> suffix
-    case Canonical.FailureBackend{} <> Nil{}: 47n <> suffix
-    case Canonical.FailureCredential{} <> Nil{}: 48n <> suffix
-    case Canonical.FailureLost{} <> Nil{}: 49n <> suffix
-    case Canonical.FailureNone{} <> Nil{}: 50n <> suffix
-    case Canonical.DispatchStarted{v0, v1} <> Nil{}: 51n <> v0 <> v1 <> suffix
-    case Canonical.DispatchDiscarded{v0, v1} <> Nil{}: 52n <> v0 <> boolean(v1, suffix)
-    case Canonical.DiscardNamedOnly{} <> Nil{}: 53n <> suffix
-    case Canonical.DiscardAllUnfinished{} <> Nil{}: 54n <> suffix
-    case Canonical.WaitForWork{} <> Nil{}: 55n <> suffix
-    case Canonical.CancelWork{v0} <> Nil{}: 56n <> v0 <> suffix
-    case Canonical.FinishReady{} <> Nil{}: 57n <> suffix
-    case Canonical.FinishLimit{} <> Nil{}: 58n <> suffix
-    case Canonical.StopEnded{} <> Nil{}: 59n <> suffix
-    case Canonical.CollectionEligible{} <> Nil{}: 60n <> suffix
-    case Canonical.CollectionWaiting{} <> Nil{}: 61n <> suffix
-    case Canonical.CollectionRetireCredential{} <> Nil{}: 62n <> suffix
-    case Canonical.CollectionRetainCredential{} <> Nil{}: 63n <> suffix
-    case Canonical.CollectionCandidate{} <> Nil{}: 64n <> suffix
-    case Canonical.CollectionSkip{} <> Nil{}: 65n <> suffix
-    case Canonical.CollectionBefore{} <> Nil{}: 66n <> suffix
-    case Canonical.CollectionEqual{} <> Nil{}: 67n <> suffix
-    case Canonical.CollectionAfter{} <> Nil{}: 68n <> suffix
-    case Canonical.CollectionExpired{} <> Nil{}: 69n <> suffix
-    case Canonical.CollectionCurrent{} <> Nil{}: 70n <> suffix
-    case Canonical.CollectionFits{} <> Nil{}: 71n <> suffix
-    case Canonical.CollectionLimited{} <> Nil{}: 72n <> suffix
-    case Canonical.CollectionFindingSelected{} <> Nil{}: 73n <> suffix
-    case Canonical.CollectionFindingRetained{} <> Nil{}: 74n <> suffix
-    case Canonical.CollectionFindingLimited{} <> Nil{}: 75n <> suffix
-    case Canonical.CollectionFindingExpired{} <> Nil{}: 76n <> suffix
-    case Canonical.CollectionNoticeIncluded{} <> Nil{}: 77n <> suffix
-    case Canonical.CollectionNoticeSkipped{} <> Nil{}: 78n <> suffix
-    case Canonical.CollectionNoticeStopped{} <> Nil{}: 79n <> suffix
-    case Canonical.CollectionLeaseReserved{} <> Nil{}: 80n <> suffix
-    case Canonical.CollectionLeaseRefused{} <> Nil{}: 81n <> suffix
-    case Canonical.CollectionLeaseReleased{} <> Nil{}: 82n <> suffix
-    case Canonical.CollectionLeaseKept{} <> Nil{}: 83n <> suffix
-    case Canonical.CollectionAdviceRetired{} <> Nil{}: 84n <> suffix
-    case Canonical.CollectionBackgroundClaimed{} <> Nil{}: 85n <> suffix
-    case Canonical.CollectionBackgroundRefused{} <> Nil{}: 86n <> suffix
-    case Canonical.CollectionBackgroundReleased{} <> Nil{}: 87n <> suffix
-    case Canonical.CollectionBackgroundKept{} <> Nil{}: 88n <> suffix
-    case Canonical.FinishReserved{} <> Nil{}: 89n <> suffix
-    case Canonical.FinishNotices{} <> Nil{}: 90n <> suffix
-    case Canonical.FinishAllowedNoAdvice{} <> Nil{}: 91n <> suffix
-    case Canonical.FinishAllowedDeadline{} <> Nil{}: 92n <> suffix
-    case Canonical.FinishAllowedUnavailable{} <> Nil{}: 93n <> suffix
-    case Canonical.FinishRefused{} <> Nil{}: 94n <> suffix
-    case Canonical.FinishReleased{} <> Nil{}: 95n <> suffix
-    case Canonical.FinishAuthorized{} <> Nil{}: 96n <> suffix
-    case Canonical.FinishRecorded{v0} <> Nil{}: 97n <> canonical_writeoutcome([v0], suffix)
-    case Canonical.FinishEnded{} <> Nil{}: 98n <> suffix
-    case Canonical.ContinuationConsumed{} <> Nil{}: 99n <> suffix
-    case Canonical.ContinuationRefused{} <> Nil{}: 100n <> suffix
-    case Canonical.SubmissionBegun{} <> Nil{}: 101n <> suffix
-    case Canonical.SubmissionAuthorized{} <> Nil{}: 102n <> suffix
-    case Canonical.SubmissionRecorded{} <> Nil{}: 103n <> suffix
-    case Canonical.SubmissionReleased{} <> Nil{}: 104n <> suffix
-    case Canonical.SubmissionRefused{} <> Nil{}: 105n <> suffix
-    case Canonical.SubmissionForgotten{} <> Nil{}: 106n <> suffix
-    case Canonical.SubmissionSuppresses{} <> Nil{}: 107n <> suffix
-    case Canonical.SubmissionUnsuppressed{} <> Nil{}: 108n <> suffix
-    case Canonical.SubmissionReofferable{} <> Nil{}: 109n <> suffix
-    case Canonical.SubmissionNotReofferable{} <> Nil{}: 110n <> suffix
-    case Canonical.SubmissionExpired{} <> Nil{}: 111n <> suffix
-    case Canonical.SubmissionCurrent{} <> Nil{}: 112n <> suffix
-    case Canonical.RevisionReused{v0} <> Nil{}: 113n <> v0 <> suffix
-    case Canonical.RevisionReplaced{v0} <> Nil{}: 114n <> v0 <> suffix
-    case Canonical.RevisionReleased{} <> Nil{}: 115n <> suffix
-    case Canonical.RevisionCurrent{} <> Nil{}: 116n <> suffix
-    case Canonical.RevisionStale{} <> Nil{}: 117n <> suffix
-    case Canonical.RevisionSuperseded{} <> Nil{}: 118n <> suffix
-    case Canonical.RevisionNotSuperseded{} <> Nil{}: 119n <> suffix
-    case Canonical.RevisionGeneration{v0} <> Nil{}: 120n <> v0 <> suffix
-    case Canonical.RevisionCount{v0} <> Nil{}: 121n <> v0 <> suffix
-    case Canonical.CollectorProceed{} <> Nil{}: 122n <> suffix
-    case Canonical.CollectorUnavailable{v0} <> Nil{}: 123n <> collectorauthority_reason(
-      [v0],
-      suffix
-    )
-    case Canonical.CollectorFinalProceed{} <> Nil{}: 124n <> suffix
-    case Canonical.CollectorFinalRelease{} <> Nil{}: 125n <> suffix
-    case Canonical.ReuseKeepMember{} <> Nil{}: 126n <> suffix
-    case Canonical.ReuseSetMemberClear{} <> Nil{}: 127n <> suffix
-    case Canonical.ReuseSetMemberFinding{} <> Nil{}: 128n <> suffix
-    case Canonical.ReuseSetMemberUnavailable{} <> Nil{}: 129n <> suffix
-    case Canonical.ReuseSetMemberLost{} <> Nil{}: 130n <> suffix
-    case Canonical.CleanupReady{} <> Nil{}: 131n <> suffix
-    case Canonical.CleanupBusy{} <> Nil{}: 132n <> suffix
-    case Canonical.CleanupCommitted{} <> Nil{}: 133n <> suffix
-    case Canonical.DeliveryReleaseUnacknowledged{} <> Nil{}: 134n <> suffix
-    case Canonical.DeliveryKeepAcknowledged{} <> Nil{}: 135n <> suffix
-    case Canonical.DeliveryAckReady{} <> Nil{}: 136n <> suffix
-    case Canonical.DeliveryAckExpired{} <> Nil{}: 137n <> suffix
-    case Canonical.DeliveryAckEmpty{} <> Nil{}: 138n <> suffix
-    case Canonical.DeliveryFinalReady{} <> Nil{}: 139n <> suffix
-    case Canonical.DeliveryFinalExpired{} <> Nil{}: 140n <> suffix
-    case Canonical.DeliveryFinalEmpty{} <> Nil{}: 141n <> suffix
-    case Canonical.DeliveryRetireAdvice{} <> Nil{}: 142n <> suffix
-    case Canonical.DeliveryKeepRemaining{} <> Nil{}: 143n <> suffix
-    case Canonical.DeliveryKeepForReoffer{} <> Nil{}: 144n <> suffix
-    case Canonical.DeliverySubmissionCandidate{} <> Nil{}: 145n <> suffix
-    case Canonical.DeliverySubmissionRefused{} <> Nil{}: 146n <> suffix
-    case Canonical.DeliveryBatchProceed{} <> Nil{}: 147n <> suffix
-    case Canonical.DeliveryBatchRelease{} <> Nil{}: 148n <> suffix
-    case Canonical.DeliveryCredentialInvalid{} <> Nil{}: 149n <> suffix
-    case Canonical.DeliveryCredentialValid{} <> Nil{}: 150n <> suffix
-    case Canonical.IgnoreCandidate{} <> Nil{}: 151n <> suffix
-    case Canonical.ReleaseCandidate{} <> Nil{}: 152n <> suffix
-    case Canonical.RetireCandidate{} <> Nil{}: 153n <> suffix
-    case Canonical.ContinueCandidate{} <> Nil{}: 154n <> suffix
-    case Canonical.RetainCandidate{} <> Nil{}: 155n <> suffix
-    case Canonical.RoundStopBegun{} <> Nil{}: 156n <> suffix
-    case Canonical.RoundStopRefused{} <> Nil{}: 157n <> suffix
-    case Canonical.RoundActive{} <> Nil{}: 158n <> suffix
-    case Canonical.RoundInactive{} <> Nil{}: 159n <> suffix
-    case Canonical.RoundBarrierRaised{} <> Nil{}: 160n <> suffix
-    case Canonical.RoundBarrierClear{} <> Nil{}: 161n <> suffix
-    case Canonical.RoundStopOwned{} <> Nil{}: 162n <> suffix
-    case Canonical.RoundStopNotOwned{} <> Nil{}: 163n <> suffix
-    case Canonical.RoundStopTerminal{v0, v1} <> Nil{}: 164n <> boolean(v0, boolean(v1, suffix))
-    case Canonical.RoundExpireCloses{} <> Nil{}: 165n <> suffix
-    case Canonical.RoundExpireKeeps{} <> Nil{}: 166n <> suffix
-    case Canonical.RoundContinuationAvailable{} <> Nil{}: 167n <> suffix
-    case Canonical.RoundContinuationExhausted{} <> Nil{}: 168n <> suffix
-    case Canonical.DeliverySubmissionAllowed{} <> Nil{}: 169n <> suffix
-    case Canonical.DeliverySubmissionDenied{} <> Nil{}: 170n <> suffix
-    case Canonical.DeliveryExistingTokenAllowed{} <> Nil{}: 171n <> suffix
-    case Canonical.DeliveryExistingTokenDenied{} <> Nil{}: 172n <> suffix
-    case Canonical.DeliveryUnreservedStopAllowed{} <> Nil{}: 173n <> suffix
-    case Canonical.DeliveryUnreservedStopDenied{} <> Nil{}: 174n <> suffix
-    case Canonical.ReuseJoinAdvice{} <> Nil{}: 175n <> suffix
-    case Canonical.ReuseJoinPending{} <> Nil{}: 176n <> suffix
-    case Canonical.ReuseJoinClaimed{} <> Nil{}: 177n <> suffix
-    case Canonical.ReuseCached{} <> Nil{}: 178n <> suffix
-    case Canonical.ReuseOwn{} <> Nil{}: 179n <> suffix
-    case Canonical.ReuseClaimed{} <> Nil{}: 180n <> suffix
-    case Canonical.ReuseAttached{} <> Nil{}: 181n <> suffix
-    case Canonical.ReuseReleased{} <> Nil{}: 182n <> suffix
-    case Canonical.ReuseRefused{} <> Nil{}: 183n <> suffix
-    case Canonical.CacheAlready{} <> Nil{}: 184n <> suffix
-    case Canonical.CacheRejected{} <> Nil{}: 185n <> suffix
-    case Canonical.CachePrepared{v0} <> Nil{}: 186n <> list_nat([v0], suffix)
-    case Canonical.CacheCommitted{} <> Nil{}: 187n <> suffix
-    case Canonical.CacheDiscarded{v0} <> Nil{}: 188n <> list_nat([v0], suffix)
-    case Canonical.NoticeSuppressed{v0} <> Nil{}: 189n <> v0 <> suffix
-    case Canonical.NoticeRejectedFull{} <> Nil{}: 190n <> suffix
-    case Canonical.NoticeCreateKey{} <> Nil{}: 191n <> suffix
-    case Canonical.NoticeCreatePending{v0} <> Nil{}: 192n <> v0 <> suffix
-    case Canonical.NoticeMergePending{v0} <> Nil{}: 193n <> v0 <> suffix
-    case Canonical.NoticeKeepLeased{} <> Nil{}: 194n <> suffix
-    case Canonical.NoticeRefused{} <> Nil{}: 195n <> suffix
-    case Canonical.NoticeCommitted{} <> Nil{}: 196n <> suffix
-    case Canonical.NoticePruned{v0, v1, v2} <> Nil{}: 197n <> boolean(
-      v0,
-      boolean(v1, boolean(v2, suffix))
-    )
-    case Canonical.NoticeDropped{} <> Nil{}: 198n <> suffix
-    case Canonical.NoticeLeased{} <> Nil{}: 199n <> suffix
-    case Canonical.NoticePendingCleared{} <> Nil{}: 200n <> suffix
-    case Canonical.NoticeSelected{v0} <> Nil{}: 201n <> list_nat([v0], suffix)
-    case Canonical.IncludeChoice{v0} <> Nil{}: 202n <> configuration_includechoice([v0], suffix)
-    case Canonical.FileSelection{v0} <> Nil{}: 203n <> configuration_selection([v0], suffix)
-    case Canonical.FileProtection{v0} <> Nil{}: 204n <> configuration_protection([v0], suffix)
-    case Canonical.CandidateFile{v0} <> Nil{}: 205n <> configuration_candidate([v0], suffix)
-    case Canonical.ReviewAdmission{v0} <> Nil{}: 206n <> configuration_admission([v0], suffix)
-    case Canonical.RuleGate{v0} <> Nil{}: 207n <> rulepolicy_gate([v0], suffix)
-    case Canonical.RuleOrder{v0} <> Nil{}: 208n <> rulepolicy_order([v0], suffix)
-    case Canonical.WriteAuthorized{v0} <> Nil{}: 209n <> v0 <> suffix
-    case Canonical.WriteRecorded{v0} <> Nil{}: 210n <> canonical_writeoutcome([v0], suffix)
-    case Canonical.WaitForOutput{} <> Nil{}: 211n <> suffix
-    case Canonical.ReofferAtStop{} <> Nil{}: 212n <> suffix
-    case Canonical.PartitionRetired{v0} <> Nil{}: 213n <> v0 <> suffix
-    case Canonical.AdmissionForgotten{} <> Nil{}: 214n <> suffix
+    case Canonical.JevRequestUnavailable{} <> Nil{}: 7n <> suffix
+    case Canonical.JevObservationIgnored{} <> Nil{}: 8n <> suffix
+    case Canonical.PreparedSkipped{} <> Nil{}: 9n <> suffix
+    case Canonical.PreparedAdmitted{} <> Nil{}: 10n <> suffix
+    case Canonical.PreparedCapacityRefused{} <> Nil{}: 11n <> suffix
+    case Canonical.EmptyLost{} <> Nil{}: 12n <> suffix
+    case Canonical.EmptyAccepted{} <> Nil{}: 13n <> suffix
+    case Canonical.FailureBackend{} <> Nil{}: 14n <> suffix
+    case Canonical.FailureCredential{} <> Nil{}: 15n <> suffix
+    case Canonical.FailureLost{} <> Nil{}: 16n <> suffix
+    case Canonical.FailureNone{} <> Nil{}: 17n <> suffix
+    case Canonical.DiscardNamedOnly{} <> Nil{}: 18n <> suffix
+    case Canonical.DiscardAllUnfinished{} <> Nil{}: 19n <> suffix
+    case Canonical.CollectionWaiting{} <> Nil{}: 20n <> suffix
+    case Canonical.CollectionRetireCredential{} <> Nil{}: 21n <> suffix
+    case Canonical.CollectionRetainCredential{} <> Nil{}: 22n <> suffix
+    case Canonical.CollectionCandidate{} <> Nil{}: 23n <> suffix
+    case Canonical.CollectionSkip{} <> Nil{}: 24n <> suffix
+    case Canonical.CollectionBefore{} <> Nil{}: 25n <> suffix
+    case Canonical.CollectionEqual{} <> Nil{}: 26n <> suffix
+    case Canonical.CollectionAfter{} <> Nil{}: 27n <> suffix
+    case Canonical.CollectionExpired{} <> Nil{}: 28n <> suffix
+    case Canonical.CollectionCurrent{} <> Nil{}: 29n <> suffix
+    case Canonical.CollectionFits{} <> Nil{}: 30n <> suffix
+    case Canonical.CollectionLimited{} <> Nil{}: 31n <> suffix
+    case Canonical.CollectionFindingSelected{} <> Nil{}: 32n <> suffix
+    case Canonical.CollectionFindingRetained{} <> Nil{}: 33n <> suffix
+    case Canonical.CollectionFindingLimited{} <> Nil{}: 34n <> suffix
+    case Canonical.CollectionFindingExpired{} <> Nil{}: 35n <> suffix
+    case Canonical.CollectionNoticeIncluded{} <> Nil{}: 36n <> suffix
+    case Canonical.CollectionNoticeSkipped{} <> Nil{}: 37n <> suffix
+    case Canonical.CollectionNoticeStopped{} <> Nil{}: 38n <> suffix
+    case Canonical.CollectionLeaseRefused{} <> Nil{}: 39n <> suffix
+    case Canonical.CollectionLeaseKept{} <> Nil{}: 40n <> suffix
+    case Canonical.CollectionBackgroundRefused{} <> Nil{}: 41n <> suffix
+    case Canonical.CollectionBackgroundKept{} <> Nil{}: 42n <> suffix
+    case Canonical.FinishNotices{} <> Nil{}: 43n <> suffix
+    case Canonical.FinishAllowedNoAdvice{} <> Nil{}: 44n <> suffix
+    case Canonical.FinishAllowedDeadline{} <> Nil{}: 45n <> suffix
+    case Canonical.FinishAllowedUnavailable{} <> Nil{}: 46n <> suffix
+    case Canonical.FinishRefused{} <> Nil{}: 47n <> suffix
+    case Canonical.ContinuationRefused{} <> Nil{}: 48n <> suffix
+    case Canonical.SubmissionRefused{} <> Nil{}: 49n <> suffix
+    case Canonical.SubmissionSuppresses{} <> Nil{}: 50n <> suffix
+    case Canonical.SubmissionUnsuppressed{} <> Nil{}: 51n <> suffix
+    case Canonical.SubmissionReofferable{} <> Nil{}: 52n <> suffix
+    case Canonical.SubmissionNotReofferable{} <> Nil{}: 53n <> suffix
+    case Canonical.SubmissionExpired{} <> Nil{}: 54n <> suffix
+    case Canonical.SubmissionCurrent{} <> Nil{}: 55n <> suffix
+    case Canonical.RevisionCurrent{} <> Nil{}: 56n <> suffix
+    case Canonical.RevisionStale{} <> Nil{}: 57n <> suffix
+    case Canonical.RevisionSuperseded{} <> Nil{}: 58n <> suffix
+    case Canonical.RevisionNotSuperseded{} <> Nil{}: 59n <> suffix
+    case Canonical.RevisionGeneration{v0} <> Nil{}: 60n <> v0 <> suffix
+    case Canonical.RevisionCount{v0} <> Nil{}: 61n <> v0 <> suffix
+    case Canonical.CollectorProceed{} <> Nil{}: 62n <> suffix
+    case Canonical.CollectorUnavailable{v0} <> Nil{}: 63n <> collectorauthority_reason([v0], suffix)
+    case Canonical.CollectorFinalProceed{} <> Nil{}: 64n <> suffix
+    case Canonical.CollectorFinalRelease{} <> Nil{}: 65n <> suffix
+    case Canonical.ReuseKeepMember{} <> Nil{}: 66n <> suffix
+    case Canonical.ReuseSetMemberClear{} <> Nil{}: 67n <> suffix
+    case Canonical.ReuseSetMemberFinding{} <> Nil{}: 68n <> suffix
+    case Canonical.ReuseSetMemberUnavailable{} <> Nil{}: 69n <> suffix
+    case Canonical.ReuseSetMemberLost{} <> Nil{}: 70n <> suffix
+    case Canonical.CleanupReady{} <> Nil{}: 71n <> suffix
+    case Canonical.CleanupBusy{} <> Nil{}: 72n <> suffix
+    case Canonical.DeliveryReleaseUnacknowledged{} <> Nil{}: 73n <> suffix
+    case Canonical.DeliveryKeepAcknowledged{} <> Nil{}: 74n <> suffix
+    case Canonical.DeliveryAckReady{} <> Nil{}: 75n <> suffix
+    case Canonical.DeliveryAckExpired{} <> Nil{}: 76n <> suffix
+    case Canonical.DeliveryAckEmpty{} <> Nil{}: 77n <> suffix
+    case Canonical.DeliveryFinalReady{} <> Nil{}: 78n <> suffix
+    case Canonical.DeliveryFinalExpired{} <> Nil{}: 79n <> suffix
+    case Canonical.DeliveryFinalEmpty{} <> Nil{}: 80n <> suffix
+    case Canonical.DeliveryRetireAdvice{} <> Nil{}: 81n <> suffix
+    case Canonical.DeliveryKeepRemaining{} <> Nil{}: 82n <> suffix
+    case Canonical.DeliveryKeepForReoffer{} <> Nil{}: 83n <> suffix
+    case Canonical.DeliverySubmissionCandidate{} <> Nil{}: 84n <> suffix
+    case Canonical.DeliverySubmissionRefused{} <> Nil{}: 85n <> suffix
+    case Canonical.DeliveryBatchProceed{} <> Nil{}: 86n <> suffix
+    case Canonical.DeliveryBatchRelease{} <> Nil{}: 87n <> suffix
+    case Canonical.DeliveryCredentialInvalid{} <> Nil{}: 88n <> suffix
+    case Canonical.DeliveryCredentialValid{} <> Nil{}: 89n <> suffix
+    case Canonical.IgnoreCandidate{} <> Nil{}: 90n <> suffix
+    case Canonical.ReleaseCandidate{} <> Nil{}: 91n <> suffix
+    case Canonical.RetireCandidate{} <> Nil{}: 92n <> suffix
+    case Canonical.ContinueCandidate{} <> Nil{}: 93n <> suffix
+    case Canonical.RetainCandidate{} <> Nil{}: 94n <> suffix
+    case Canonical.RoundStopBegun{} <> Nil{}: 95n <> suffix
+    case Canonical.RoundStopRefused{} <> Nil{}: 96n <> suffix
+    case Canonical.RoundActive{} <> Nil{}: 97n <> suffix
+    case Canonical.RoundInactive{} <> Nil{}: 98n <> suffix
+    case Canonical.RoundBarrierRaised{} <> Nil{}: 99n <> suffix
+    case Canonical.RoundBarrierClear{} <> Nil{}: 100n <> suffix
+    case Canonical.RoundStopOwned{} <> Nil{}: 101n <> suffix
+    case Canonical.RoundStopNotOwned{} <> Nil{}: 102n <> suffix
+    case Canonical.RoundStopTerminal{v0, v1} <> Nil{}: 103n <> boolean(v0, boolean(v1, suffix))
+    case Canonical.RoundExpireCloses{} <> Nil{}: 104n <> suffix
+    case Canonical.RoundExpireKeeps{} <> Nil{}: 105n <> suffix
+    case Canonical.RoundContinuationAvailable{} <> Nil{}: 106n <> suffix
+    case Canonical.RoundContinuationExhausted{} <> Nil{}: 107n <> suffix
+    case Canonical.DeliverySubmissionAllowed{} <> Nil{}: 108n <> suffix
+    case Canonical.DeliverySubmissionDenied{} <> Nil{}: 109n <> suffix
+    case Canonical.DeliveryExistingTokenAllowed{} <> Nil{}: 110n <> suffix
+    case Canonical.DeliveryExistingTokenDenied{} <> Nil{}: 111n <> suffix
+    case Canonical.DeliveryUnreservedStopAllowed{} <> Nil{}: 112n <> suffix
+    case Canonical.DeliveryUnreservedStopDenied{} <> Nil{}: 113n <> suffix
+    case Canonical.ReuseRefused{} <> Nil{}: 114n <> suffix
+    case Canonical.CacheAlready{} <> Nil{}: 115n <> suffix
+    case Canonical.CacheRejected{} <> Nil{}: 116n <> suffix
+    case Canonical.NoticeRejectedFull{} <> Nil{}: 117n <> suffix
+    case Canonical.NoticeRefused{} <> Nil{}: 118n <> suffix
+    case Canonical.NoticeSelected{v0} <> Nil{}: 119n <> list_nat([v0], suffix)
+    case Canonical.IncludeChoice{v0} <> Nil{}: 120n <> configuration_includechoice([v0], suffix)
+    case Canonical.FileSelection{v0} <> Nil{}: 121n <> configuration_selection([v0], suffix)
+    case Canonical.FileProtection{v0} <> Nil{}: 122n <> configuration_protection([v0], suffix)
+    case Canonical.CandidateFile{v0} <> Nil{}: 123n <> configuration_candidate([v0], suffix)
+    case Canonical.ReviewAdmission{v0} <> Nil{}: 124n <> configuration_admission([v0], suffix)
+    case Canonical.RuleGate{v0} <> Nil{}: 125n <> rulepolicy_gate([v0], suffix)
+    case Canonical.RuleOrder{v0} <> Nil{}: 126n <> rulepolicy_order([v0], suffix)
+    case Canonical.WaitForOutput{} <> Nil{}: 127n <> suffix
     case _: 999999n <> suffix
 
-def list_canonical_command_items(
-  values: List<&2, List<&2, Canonical.Command>>,
+def canonical_output(values: List<&2, Canonical.Output>, suffix: List<&2, Nat>) -> List<&2, Nat>:
+  match values:
+    case Canonical.ActionRequested{v0} <> Nil{}: 0n <> canonical_actionrequest([v0], suffix)
+    case Canonical.EventEstablished{v0} <> Nil{}: 1n <> canonical_domainevent([v0], suffix)
+    case Canonical.PolicyDecided{v0} <> Nil{}: 2n <> canonical_policydecision([v0], suffix)
+    case _: 999999n <> suffix
+
+def list_canonical_output_items(
+  values: List<&2, List<&2, Canonical.Output>>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
     case Nil{} <> Nil{}: suffix
-    case Con{head, tail} <> Nil{}: list_canonical_command_items(
+    case Con{head, tail} <> Nil{}: list_canonical_output_items(
       [tail],
-      canonical_command([head], suffix)
+      canonical_output([head], suffix)
     )
     case _: 999999n <> suffix
 
-def list_canonical_command(
-  values: List<&2, List<&2, Canonical.Command>>,
+def list_canonical_output(
+  values: List<&2, List<&2, Canonical.Output>>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case +value <> Nil{}: List.length(&2, Canonical.Command, value) <> list_canonical_command_items(
-      [List.reverse(&2, Canonical.Command, value)],
+    case +value <> Nil{}: List.length(&2, Canonical.Output, value) <> list_canonical_output_items(
+      [List.reverse(&2, Canonical.Output, value)],
       suffix
     )
     case _: 999999n <> suffix
@@ -1320,7 +1345,7 @@ def canonical_step(values: List<&2, Canonical.Step>, suffix: List<&2, Nat>) -> L
   match values:
     case Canonical.Advanced{v0, v1} <> Nil{}: 0n <> canonical_state(
       [v0],
-      list_canonical_command([v1], suffix)
+      list_canonical_output([v1], suffix)
     )
     case Canonical.Rejected{v0, v1} <> Nil{}: 1n <> canonical_state(
       [v0],
@@ -3655,13 +3680,60 @@ def list_types_state(
     )
     case _: 999999n <> suffix
 
-def workload_emission(values: List<&2, Workload.Emission>, suffix: List<&2, Nat>) -> List<&2, Nat>:
+def writerscenario_claimfacts(
+  values: List<&2, WriterScenario.ClaimFacts>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
   match values:
-    case Workload.Emission{v0, v1, v2, v3, v4, v5, v6, v7, v8, v9} <> Nil{}: 0n <> v0 <> v1 <> v2 <> U32.to_nat(
-      v3
-    ) <> v4 <> v5 <> v6 <> list_nat(
-      [v7],
-      boolean(v8, boolean(v9, suffix))
+    case WriterScenario.ClaimFacts{v0, v1, v2, v3, v4} <> Nil{}: 0n <> writerscenario_target(
+      [v0],
+      v1 <> v2 <> v3 <> collectionscenario_response([v4], suffix)
+    )
+    case _: 999999n <> suffix
+
+def writerscenario_pending(
+  values: List<&2, WriterScenario.Pending>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case WriterScenario.Pending{v0, v1} <> Nil{}: 0n <> writerscenario_claimfacts(
+      [v0],
+      v1 <> suffix
+    )
+    case _: 999999n <> suffix
+
+def maybe_string(values: List<&2, Maybe<&2, String>>, suffix: List<&2, Nat>) -> List<&2, Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> text([value], suffix)
+    case _: 999999n <> suffix
+
+def maybe_collectionscenario_identity(
+  values: List<&2, Maybe<&2, CollectionScenario.Identity>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> collectionscenario_identity([value], suffix)
+    case _: 999999n <> suffix
+
+def maybe_writerscenario_pending(
+  values: List<&2, Maybe<&2, WriterScenario.Pending>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> writerscenario_pending([value], suffix)
+    case _: 999999n <> suffix
+
+def writerscenario_physicalrelease(
+  values: List<&2, WriterScenario.PhysicalRelease>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case WriterScenario.PhysicalRelease{v0, v1} <> Nil{}: 0n <> writerscenario_capture(
+      [v0],
+      canonical_canonicalevent([v1], suffix)
     )
     case _: 999999n <> suffix
 
@@ -3682,14 +3754,174 @@ def maybe_driver_sourcejob(
     case Some{value} <> Nil{}: 1n <> driver_sourcejob([value], suffix)
     case _: 999999n <> suffix
 
+def maybe_freshnessscenario_source(
+  values: List<&2, Maybe<&2, FreshnessScenario.Source>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> freshnessscenario_source([value], suffix)
+    case _: 999999n <> suffix
+
+def list_sharingscenario_sharingkey_items(
+  values: List<&2, List<&2, SharingScenario.SharingKey>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head, tail} <> Nil{}: sharingscenario_sharingkey(
+      [head],
+      list_sharingscenario_sharingkey_items([tail], suffix)
+    )
+    case _: 999999n <> suffix
+
+def list_sharingscenario_sharingkey(
+  values: List<&2, List<&2, SharingScenario.SharingKey>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2, SharingScenario.SharingKey, value) <> list_sharingscenario_sharingkey_items(
+      [value],
+      suffix
+    )
+    case _: 999999n <> suffix
+
+def nativeruntypes_treecapture(
+  values: List<&2, NativeRunTypes.TreeCapture>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case NativeRunTypes.TreeCapture{v0, v1, v2, v3, v4} <> Nil{}: 0n <> v0 <> treefacts_profile(
+      [v1],
+      importgraph_limits([v2], v3 <> v4 <> suffix)
+    )
+    case _: 999999n <> suffix
+
+def maybe_nativeruntypes_treecapture(
+  values: List<&2, Maybe<&2, NativeRunTypes.TreeCapture>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> nativeruntypes_treecapture([value], suffix)
+    case _: 999999n <> suffix
+
+def permitscenario_postoutcome(
+  values: List<&2, PermitScenario.PostOutcome>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case PermitScenario.Successful{} <> Nil{}: 0n <> suffix
+    case PermitScenario.Failed{} <> Nil{}: 1n <> suffix
+    case PermitScenario.Duplicate{} <> Nil{}: 2n <> suffix
+    case PermitScenario.Absent{} <> Nil{}: 3n <> suffix
+    case _: 999999n <> suffix
+
+def permitscenario_capture(
+  values: List<&2, PermitScenario.Capture>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case PermitScenario.Capture{v0, v1, v2, v3, v4, v5, v6, v7, v8} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> v4 <> v5 <> permitscenario_postoutcome(
+      [v6],
+      v7 <> v8 <> suffix
+    )
+    case _: 999999n <> suffix
+
+def maybe_permitscenario_capture(
+  values: List<&2, Maybe<&2, PermitScenario.Capture>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> permitscenario_capture([value], suffix)
+    case _: 999999n <> suffix
+
+def workload_emission(values: List<&2, Workload.Emission>, suffix: List<&2, Nat>) -> List<&2, Nat>:
+  match values:
+    case Workload.Emission{v0, v1, v2, v3, v4, v5, v6, v7, v8, v9} <> Nil{}: 0n <> v0 <> v1 <> v2 <> U32.to_nat(
+      v3
+    ) <> v4 <> v5 <> v6 <> list_nat(
+      [v7],
+      boolean(v8, boolean(v9, suffix))
+    )
+    case _: 999999n <> suffix
+
+def maybe_workload_emission(
+  values: List<&2, Maybe<&2, Workload.Emission>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> workload_emission([value], suffix)
+    case _: 999999n <> suffix
+
+def nativeruntypes_jobfacts(
+  values: List<&2, NativeRunTypes.JobFacts>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case NativeRunTypes.JobFacts{v0, v1, v2, v3, v4, v5, v6} <> Nil{}: 0n <> maybe_freshnessscenario_source(
+      [v0],
+      list_sharingscenario_sharingkey(
+        [v1],
+        maybe_nativeruntypes_treecapture(
+          [v2],
+          maybe_nat(
+            [v3],
+            maybe_permitscenario_capture([v4], v5 <> maybe_workload_emission([v6], suffix))
+          )
+        )
+      )
+    )
+    case _: 999999n <> suffix
+
+def maybe_nativeruntypes_jobfacts(
+  values: List<&2, Maybe<&2, NativeRunTypes.JobFacts>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> nativeruntypes_jobfacts([value], suffix)
+    case _: 999999n <> suffix
+
+def list_maybe_nativeruntypes_jobfacts_items(
+  values: List<&2, List<&2, Maybe<&2, NativeRunTypes.JobFacts>>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head, tail} <> Nil{}: maybe_nativeruntypes_jobfacts(
+      [head],
+      list_maybe_nativeruntypes_jobfacts_items([tail], suffix)
+    )
+    case _: 999999n <> suffix
+
+def list_maybe_nativeruntypes_jobfacts(
+  values: List<&2, List<&2, Maybe<&2, NativeRunTypes.JobFacts>>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2, Maybe<&2, NativeRunTypes.JobFacts>, value) <> list_maybe_nativeruntypes_jobfacts_items(
+      [value],
+      suffix
+    )
+    case _: 999999n <> suffix
+
 def nativeruntypes_job(
   values: List<&2, NativeRunTypes.Job>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case NativeRunTypes.Job{v0, v1, v2, v3, v4, v5, v6, v7, v8} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> list_nat(
+    case NativeRunTypes.Job{v0, v1, v2, v3, v4, v5, v6, v7, v8, v9} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> list_nat(
       [v4],
-      v5 <> boolean(v6, maybe_nat([v7], maybe_driver_sourcejob([v8], suffix)))
+      v5 <> boolean(
+        v6,
+        maybe_nat(
+          [v7],
+          maybe_driver_sourcejob([v8], list_maybe_nativeruntypes_jobfacts([v9], suffix))
+        )
+      )
     )
     case _: 999999n <> suffix
 
@@ -3800,9 +4032,12 @@ def nativeruntypes_emissioncontext(
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case NativeRunTypes.EmissionContext{v0, v1} <> Nil{}: 0n <> driver_context(
+    case NativeRunTypes.EmissionContext{v0, v1, v2, v3} <> Nil{}: 0n <> driver_context(
       [v0],
-      maybe_driver_outcomereceipt([v1], suffix)
+      maybe_driver_outcomereceipt(
+        [v1],
+        maybe_collectionscenario_identity([v2], boolean(v3, suffix))
+      )
     )
     case _: 999999n <> suffix
 
@@ -3815,6 +4050,29 @@ def maybe_nativeruntypes_emissioncontext(
     case Some{value} <> Nil{}: 1n <> nativeruntypes_emissioncontext([value], suffix)
     case _: 999999n <> suffix
 
+def list_maybe_nativeruntypes_emissioncontext_items(
+  values: List<&2, List<&2, Maybe<&2, NativeRunTypes.EmissionContext>>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head, tail} <> Nil{}: maybe_nativeruntypes_emissioncontext(
+      [head],
+      list_maybe_nativeruntypes_emissioncontext_items([tail], suffix)
+    )
+    case _: 999999n <> suffix
+
+def list_maybe_nativeruntypes_emissioncontext(
+  values: List<&2, List<&2, Maybe<&2, NativeRunTypes.EmissionContext>>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2, Maybe<&2, NativeRunTypes.EmissionContext>, value) <> list_maybe_nativeruntypes_emissioncontext_items(
+      [value],
+      suffix
+    )
+    case _: 999999n <> suffix
+
 def cacheruntime_fact(values: List<&2, CacheRuntime.Fact>, suffix: List<&2, Nat>) -> List<&2, Nat>:
   match values:
     case CacheRuntime.Fact{v0, v1, v2, v3, v4, v5} <> Nil{}: 0n <> cachescenario_offer(
@@ -3823,28 +4081,224 @@ def cacheruntime_fact(values: List<&2, CacheRuntime.Fact>, suffix: List<&2, Nat>
     )
     case _: 999999n <> suffix
 
+def treefacts_treefile(
+  values: List<&2, TreeFacts.TreeFile>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case TreeFacts.TreeFile{v0, v1, v2, v3, v4, v5, v6, v7, v8} <> Nil{}: 0n <> v0 <> v1 <> boolean(
+      v2,
+      v3 <> v4 <> list_nat([v5], boolean(v6, boolean(v7, boolean(v8, suffix))))
+    )
+    case _: 999999n <> suffix
+
+def list_treefacts_treefile_items(
+  values: List<&2, List<&2, TreeFacts.TreeFile>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head, tail} <> Nil{}: treefacts_treefile(
+      [head],
+      list_treefacts_treefile_items([tail], suffix)
+    )
+    case _: 999999n <> suffix
+
+def list_treefacts_treefile(
+  values: List<&2, List<&2, TreeFacts.TreeFile>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2, TreeFacts.TreeFile, value) <> list_treefacts_treefile_items(
+      [value],
+      suffix
+    )
+    case _: 999999n <> suffix
+
+def treefacts_tree(values: List<&2, TreeFacts.Tree>, suffix: List<&2, Nat>) -> List<&2, Nat>:
+  match values:
+    case TreeFacts.Tree{v0, v1} <> Nil{}: 0n <> list_treefacts_treefile([v0], v1 <> suffix)
+    case _: 999999n <> suffix
+
+def list_importgraph_graphevent_items(
+  values: List<&2, List<&2, ImportGraph.GraphEvent>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head, tail} <> Nil{}: importgraph_graphevent(
+      [head],
+      list_importgraph_graphevent_items([tail], suffix)
+    )
+    case _: 999999n <> suffix
+
+def list_importgraph_graphevent(
+  values: List<&2, List<&2, ImportGraph.GraphEvent>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2, ImportGraph.GraphEvent, value) <> list_importgraph_graphevent_items(
+      [value],
+      suffix
+    )
+    case _: 999999n <> suffix
+
+def preparationscenario_generated(
+  values: List<&2, PreparationScenario.Generated>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case PreparationScenario.Generated{v0, v1, v2, v3, v4, v5} <> Nil{}: 0n <> treefacts_tree(
+      [v0],
+      list_importgraph_graphevent(
+        [v1],
+        importgraph_bounded([v2], boolean(v3, rulepolicy_gate([v4], rulepolicy_gate([v5], suffix))))
+      )
+    )
+    case _: 999999n <> suffix
+
+def maybe_preparationscenario_generated(
+  values: List<&2, Maybe<&2, PreparationScenario.Generated>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> preparationscenario_generated([value], suffix)
+    case _: 999999n <> suffix
+
+def list_maybe_preparationscenario_generated_items(
+  values: List<&2, List<&2, Maybe<&2, PreparationScenario.Generated>>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head, tail} <> Nil{}: maybe_preparationscenario_generated(
+      [head],
+      list_maybe_preparationscenario_generated_items([tail], suffix)
+    )
+    case _: 999999n <> suffix
+
+def list_maybe_preparationscenario_generated(
+  values: List<&2, List<&2, Maybe<&2, PreparationScenario.Generated>>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2, Maybe<&2, PreparationScenario.Generated>, value) <> list_maybe_preparationscenario_generated_items(
+      [value],
+      suffix
+    )
+    case _: 999999n <> suffix
+
+def list_maybe_nativeruntypes_treecapture_items(
+  values: List<&2, List<&2, Maybe<&2, NativeRunTypes.TreeCapture>>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head, tail} <> Nil{}: maybe_nativeruntypes_treecapture(
+      [head],
+      list_maybe_nativeruntypes_treecapture_items([tail], suffix)
+    )
+    case _: 999999n <> suffix
+
+def list_maybe_nativeruntypes_treecapture(
+  values: List<&2, List<&2, Maybe<&2, NativeRunTypes.TreeCapture>>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2, Maybe<&2, NativeRunTypes.TreeCapture>, value) <> list_maybe_nativeruntypes_treecapture_items(
+      [value],
+      suffix
+    )
+    case _: 999999n <> suffix
+
 def nativeruntypes_input(
   values: List<&2, NativeRunTypes.Input>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case NativeRunTypes.Arrival{v0, v1} <> Nil{}: 0n <> workload_emission([v0], v1 <> suffix)
-    case NativeRunTypes.Edit{v0} <> Nil{}: 1n <> nativeruntypes_job([v0], suffix)
-    case NativeRunTypes.Event{v0, v1, v2, v3} <> Nil{}: 2n <> driver_action(
+    case NativeRunTypes.WriterPendingReleaseInput{v0, v1} <> Nil{}: 0n <> driver_action(
+      [v0],
+      writerscenario_pending([v1], suffix)
+    )
+    case NativeRunTypes.NoticeInput{v0, v1, v2, v3} <> Nil{}: 1n <> driver_action(
+      [v0],
+      noticescenario_scope([v1], maybe_string([v2], v3 <> suffix))
+    )
+    case NativeRunTypes.ResponseInput{v0, v1, v2, v3} <> Nil{}: 2n <> driver_action(
+      [v0],
+      maybe_collectionscenario_identity(
+        [v1],
+        maybe_writerscenario_pending([v2], boolean(v3, suffix))
+      )
+    )
+    case NativeRunTypes.WriterReleaseInput{v0, v1} <> Nil{}: 3n <> driver_action(
+      [v0],
+      writerscenario_physicalrelease([v1], suffix)
+    )
+    case NativeRunTypes.CapturedEdit{v0, v1} <> Nil{}: 4n <> nativeruntypes_job([v0], v1 <> suffix)
+    case NativeRunTypes.StartFinish{v0, v1, v2} <> Nil{}: 5n <> v0 <> v1 <> boolean(v2, suffix)
+    case NativeRunTypes.RawEvent{v0, v1} <> Nil{}: 6n <> driver_action([v0], v1 <> suffix)
+    case NativeRunTypes.Arrival{v0, v1, v2} <> Nil{}: 7n <> workload_emission(
+      [v0],
+      v1 <> maybe_canonical_requestoutcome([v2], suffix)
+    )
+    case NativeRunTypes.Event{v0, v1, v2, v3} <> Nil{}: 8n <> driver_action(
       [v0],
       maybe_nativeruntypes_job(
         [v1],
-        maybe_nativeruntypes_emissioncontext([v2], maybe_driver_sourcejob([v3], suffix))
+        list_maybe_nativeruntypes_emissioncontext([v2], maybe_driver_sourcejob([v3], suffix))
       )
     )
-    case NativeRunTypes.CacheFact{v0} <> Nil{}: 3n <> cacheruntime_fact([v0], suffix)
-    case NativeRunTypes.FinishInput{v0, v1, v2, v3} <> Nil{}: 4n <> driver_action(
+    case NativeRunTypes.CacheFact{v0, v1} <> Nil{}: 9n <> cacheruntime_fact([v0], v1 <> suffix)
+    case NativeRunTypes.FinishInput{v0, v1, v2, v3} <> Nil{}: 10n <> driver_action(
       [v0],
-      nativeruntypes_job([v1], v2 <> maybe_nativeruntypes_emissioncontext([v3], suffix))
+      nativeruntypes_job([v1], v2 <> list_maybe_nativeruntypes_emissioncontext([v3], suffix))
     )
-    case NativeRunTypes.GraphFact{v0, v1, v2, v3} <> Nil{}: 5n <> types_graphkey(
+    case NativeRunTypes.GraphFact{v0, v1, v2, v3, v4, v5} <> Nil{}: 11n <> types_graphkey(
       [v0],
-      v1 <> importgraph_graphevent([v2], importgraph_limits([v3], suffix))
+      v1 <> importgraph_graphevent(
+        [v2],
+        importgraph_limits(
+          [v3],
+          list_maybe_preparationscenario_generated(
+            [v4],
+            list_maybe_nativeruntypes_treecapture([v5], suffix)
+          )
+        )
+      )
+    )
+    case _: 999999n <> suffix
+
+def maybe_callbacks_fact(
+  values: List<&2, Maybe<&2, Callbacks.Fact>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> callbacks_fact([value], suffix)
+    case _: 999999n <> suffix
+
+def list_maybe_callbacks_fact_items(
+  values: List<&2, List<&2, Maybe<&2, Callbacks.Fact>>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head, tail} <> Nil{}: maybe_callbacks_fact(
+      [head],
+      list_maybe_callbacks_fact_items([tail], suffix)
+    )
+    case _: 999999n <> suffix
+
+def list_maybe_callbacks_fact(
+  values: List<&2, List<&2, Maybe<&2, Callbacks.Fact>>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2, Maybe<&2, Callbacks.Fact>, value) <> list_maybe_callbacks_fact_items(
+      [value],
+      suffix
     )
     case _: 999999n <> suffix
 
@@ -3853,7 +4307,10 @@ def nativeruntypes_item(
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case NativeRunTypes.Item{v0, v1} <> Nil{}: 0n <> v0 <> nativeruntypes_input([v1], suffix)
+    case NativeRunTypes.Item{v0, v1, v2} <> Nil{}: 0n <> v0 <> nativeruntypes_input(
+      [v1],
+      list_maybe_callbacks_fact([v2], suffix)
+    )
     case _: 999999n <> suffix
 
 def list_nativeruntypes_item_items(
@@ -3947,7 +4404,7 @@ def nativeruntypes_issuedrequest(
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case NativeRunTypes.IssuedRequest{v0, v1} <> Nil{}: 0n <> v0 <> canonical_command([v1], suffix)
+    case NativeRunTypes.IssuedRequest{v0, v1} <> Nil{}: 0n <> v0 <> canonical_output([v1], suffix)
     case _: 999999n <> suffix
 
 def list_nativeruntypes_issuedrequest_items(
@@ -4007,14 +4464,184 @@ def list_nativeruntypes_retainedcallback(
     )
     case _: 999999n <> suffix
 
+def nativeruntypes_permitprofile(
+  values: List<&2, NativeRunTypes.PermitProfile>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case NativeRunTypes.PermitProfile{v0, v1, v2, v3, v4} <> Nil{}: 0n <> v0 <> v1 <> permitscenario_postoutcome(
+      [v2],
+      v3 <> v4 <> suffix
+    )
+    case _: 999999n <> suffix
+
+def maybe_nativeruntypes_permitprofile(
+  values: List<&2, Maybe<&2, NativeRunTypes.PermitProfile>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> nativeruntypes_permitprofile([value], suffix)
+    case _: 999999n <> suffix
+
+def expiryscenario_profile(
+  values: List<&2, ExpiryScenario.Profile>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case ExpiryScenario.Profile{v0, v1, v2} <> Nil{}: 0n <> v0 <> v1 <> v2 <> suffix
+    case _: 999999n <> suffix
+
+def nativeruntypes_runtimeprofile(
+  values: List<&2, NativeRunTypes.RuntimeProfile>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case NativeRunTypes.RuntimeProfile{v0, v1, v2, v3, v4, v5, v6, v7, v8} <> Nil{}: 0n <> v0 <> v1 <> v2 <> maybe_nativeruntypes_permitprofile(
+      [v3],
+      expiryscenario_profile([v4], maybe_nat([v5], boolean(v6, v7 <> v8 <> suffix)))
+    )
+    case _: 999999n <> suffix
+
+def nativegenerated_generatedkey(
+  values: List<&2, NativeGenerated.GeneratedKey>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case NativeGenerated.GeneratedKey{v0} <> Nil{}: 0n <> list_nat([v0], suffix)
+    case _: 999999n <> suffix
+
+def nativegenerated_generatedentry(
+  values: List<&2, NativeGenerated.GeneratedEntry>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case NativeGenerated.GeneratedEntry{v0, v1} <> Nil{}: 0n <> nativegenerated_generatedkey(
+      [v0],
+      v1 <> suffix
+    )
+    case _: 999999n <> suffix
+
+def list_nativegenerated_generatedentry_items(
+  values: List<&2, List<&2, NativeGenerated.GeneratedEntry>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head, tail} <> Nil{}: nativegenerated_generatedentry(
+      [head],
+      list_nativegenerated_generatedentry_items([tail], suffix)
+    )
+    case _: 999999n <> suffix
+
+def list_nativegenerated_generatedentry(
+  values: List<&2, List<&2, NativeGenerated.GeneratedEntry>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2, NativeGenerated.GeneratedEntry, value) <> list_nativegenerated_generatedentry_items(
+      [value],
+      suffix
+    )
+    case _: 999999n <> suffix
+
+def nativegenerated_state(
+  values: List<&2, NativeGenerated.State>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case NativeGenerated.State{v0, v1} <> Nil{}: 0n <> v0 <> list_nativegenerated_generatedentry(
+      [v1],
+      suffix
+    )
+    case _: 999999n <> suffix
+
+def list_nativeruntypes_input_items(
+  values: List<&2, List<&2, NativeRunTypes.Input>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head, tail} <> Nil{}: nativeruntypes_input(
+      [head],
+      list_nativeruntypes_input_items([tail], suffix)
+    )
+    case _: 999999n <> suffix
+
+def list_nativeruntypes_input(
+  values: List<&2, List<&2, NativeRunTypes.Input>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2, NativeRunTypes.Input, value) <> list_nativeruntypes_input_items(
+      [value],
+      suffix
+    )
+    case _: 999999n <> suffix
+
+def nativeruntypes_deliverycontinuation(
+  values: List<&2, NativeRunTypes.DeliveryContinuation>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case NativeRunTypes.DeliveryContinuation{v0, v1, v2, v3} <> Nil{}: 0n <> v0 <> list_nativeruntypes_input(
+      [v1],
+      list_nativeruntypes_input([v2], maybe_callbacks_fact([v3], suffix))
+    )
+    case _: 999999n <> suffix
+
+def maybe_nativeruntypes_deliverycontinuation(
+  values: List<&2, Maybe<&2, NativeRunTypes.DeliveryContinuation>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> nativeruntypes_deliverycontinuation([value], suffix)
+    case _: 999999n <> suffix
+
+def list_maybe_nativeruntypes_deliverycontinuation_items(
+  values: List<&2, List<&2, Maybe<&2, NativeRunTypes.DeliveryContinuation>>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head, tail} <> Nil{}: maybe_nativeruntypes_deliverycontinuation(
+      [head],
+      list_maybe_nativeruntypes_deliverycontinuation_items([tail], suffix)
+    )
+    case _: 999999n <> suffix
+
+def list_maybe_nativeruntypes_deliverycontinuation(
+  values: List<&2, List<&2, Maybe<&2, NativeRunTypes.DeliveryContinuation>>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2, Maybe<&2, NativeRunTypes.DeliveryContinuation>, value) <> list_maybe_nativeruntypes_deliverycontinuation_items(
+      [value],
+      suffix
+    )
+    case _: 999999n <> suffix
+
 def nativeruntypes_hostfacts(
   values: List<&2, NativeRunTypes.HostFacts>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case NativeRunTypes.HostFacts{v0, v1, v2} <> Nil{}: 0n <> list_nativeruntypes_issuedrequest(
+    case NativeRunTypes.HostFacts{v0, v1, v2, v3, v4, v5} <> Nil{}: 0n <> list_nativeruntypes_issuedrequest(
       [v0],
-      list_nativeruntypes_retainedcallback([v1], list_nat([v2], suffix))
+      list_nativeruntypes_retainedcallback(
+        [v1],
+        list_nat(
+          [v2],
+          nativeruntypes_runtimeprofile(
+            [v3],
+            nativegenerated_state(
+              [v4],
+              list_maybe_nativeruntypes_deliverycontinuation([v5], suffix)
+            )
+          )
+        )
+      )
     )
     case _: 999999n <> suffix
 
@@ -4058,15 +4685,6 @@ def list_nativeruntypes_emissioncontext(
     )
     case _: 999999n <> suffix
 
-def maybe_callbacks_fact(
-  values: List<&2, Maybe<&2, Callbacks.Fact>>,
-  suffix: List<&2, Nat>
-) -> List<&2, Nat>:
-  match values:
-    case None{} <> Nil{}: 0n <> suffix
-    case Some{value} <> Nil{}: 1n <> callbacks_fact([value], suffix)
-    case _: 999999n <> suffix
-
 def maybe_driver_action(
   values: List<&2, Maybe<&2, Driver.Action>>,
   suffix: List<&2, Nat>
@@ -4076,14 +4694,82 @@ def maybe_driver_action(
     case Some{value} <> Nil{}: 1n <> driver_action([value], suffix)
     case _: 999999n <> suffix
 
+def nativeruntypes_consumedinput(
+  values: List<&2, NativeRunTypes.ConsumedInput>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case NativeRunTypes.ConsumedInput{v0, v1, v2} <> Nil{}: 0n <> v0 <> nativeruntypes_input(
+      [v1],
+      maybe_nat([v2], suffix)
+    )
+    case _: 999999n <> suffix
+
+def maybe_nativeruntypes_consumedinput(
+  values: List<&2, Maybe<&2, NativeRunTypes.ConsumedInput>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> nativeruntypes_consumedinput([value], suffix)
+    case _: 999999n <> suffix
+
+def nativeruntypes_finishregistered(
+  values: List<&2, NativeRunTypes.FinishRegistered>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case NativeRunTypes.FinishRegistered{v0, v1} <> Nil{}: 0n <> stopscenario_finish(
+      [v0],
+      boolean(v1, suffix)
+    )
+    case _: 999999n <> suffix
+
+def maybe_nativeruntypes_finishregistered(
+  values: List<&2, Maybe<&2, NativeRunTypes.FinishRegistered>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> nativeruntypes_finishregistered([value], suffix)
+    case _: 999999n <> suffix
+
+def nativeruntypes_physicaldelivery_fields_0(
+  v0: List<&2, NativeRunTypes.RuntimeSnapshot>,
+  v1: List<&2, NativeRunTypes.RuntimeSnapshot>,
+  v2: List<&2, Maybe<&2, Driver.Action>>,
+  v3: List<&2, Maybe<&2, Callbacks.Fact>>,
+  v4: List<&2, Maybe<&2, NativeRunTypes.ConsumedInput>>,
+  v5: List<&2, Maybe<&2, NativeRunTypes.FinishRegistered>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  nativeruntypes_runtimesnapshot(
+    v0,
+    nativeruntypes_runtimesnapshot(
+      v1,
+      maybe_driver_action(
+        v2,
+        maybe_callbacks_fact(
+          v3,
+          maybe_nativeruntypes_consumedinput(v4, maybe_nativeruntypes_finishregistered(v5, suffix))
+        )
+      )
+    )
+  )
+
 def nativeruntypes_physicaldelivery(
   values: List<&2, NativeRunTypes.PhysicalDelivery>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case NativeRunTypes.PhysicalDelivery{v0, v1, v2} <> Nil{}: 0n <> nativeruntypes_runtimesnapshot(
+    case NativeRunTypes.PhysicalDelivery{v0, v1, v2, v3, v4, v5} <> Nil{}: 0n <> nativeruntypes_physicaldelivery_fields_0(
       [v0],
-      nativeruntypes_runtimesnapshot([v1], maybe_driver_action([v2], suffix))
+      [v1],
+      [v2],
+      [v3],
+      [v4],
+      [v5],
+      suffix
     )
     case _: 999999n <> suffix
 
@@ -4093,9 +4779,9 @@ def list_nativeruntypes_physicaldelivery_items(
 ) -> List<&2, Nat>:
   match values:
     case Nil{} <> Nil{}: suffix
-    case Con{head, tail} <> Nil{}: nativeruntypes_physicaldelivery(
-      [head],
-      list_nativeruntypes_physicaldelivery_items([tail], suffix)
+    case Con{head, tail} <> Nil{}: list_nativeruntypes_physicaldelivery_items(
+      [tail],
+      nativeruntypes_physicaldelivery([head], suffix)
     )
     case _: 999999n <> suffix
 
@@ -4105,7 +4791,7 @@ def list_nativeruntypes_physicaldelivery(
 ) -> List<&2, Nat>:
   match values:
     case +value <> Nil{}: List.length(&2, NativeRunTypes.PhysicalDelivery, value) <> list_nativeruntypes_physicaldelivery_items(
-      [value],
+      [List.reverse(&2, NativeRunTypes.PhysicalDelivery, value)],
       suffix
     )
     case _: 999999n <> suffix
@@ -4130,48 +4816,72 @@ def list_maybe_nat(
     )
     case _: 999999n <> suffix
 
-def nativeruntypes_consumedinput(
-  values: List<&2, NativeRunTypes.ConsumedInput>,
+def collectionscenario_applicability(
+  values: List<&2, CollectionScenario.Applicability>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case NativeRunTypes.ConsumedInput{v0, v1, v2} <> Nil{}: 0n <> v0 <> nativeruntypes_input(
-      [v1],
-      maybe_nat([v2], suffix)
+    case CollectionScenario.Applied{} <> Nil{}: 0n <> suffix
+    case CollectionScenario.Missing{} <> Nil{}: 1n <> suffix
+    case CollectionScenario.WrongScope{} <> Nil{}: 2n <> suffix
+    case CollectionScenario.AlreadyAttempting{} <> Nil{}: 3n <> suffix
+    case CollectionScenario.IdentityExhausted{} <> Nil{}: 4n <> suffix
+    case CollectionScenario.ContextBound{} <> Nil{}: 5n <> suffix
+    case _: 999999n <> suffix
+
+def engine_responseresult(
+  values: List<&2, Engine.ResponseResult>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case Engine.ResponseResult{v0, v1} <> Nil{}: 0n <> collectionscenario_applicability(
+      [v0],
+      maybe_collectionscenario_identity([v1], suffix)
     )
     case _: 999999n <> suffix
 
-def maybe_nativeruntypes_consumedinput(
-  values: List<&2, Maybe<&2, NativeRunTypes.ConsumedInput>>,
+def maybe_engine_responseresult(
+  values: List<&2, Maybe<&2, Engine.ResponseResult>>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
     case None{} <> Nil{}: 0n <> suffix
-    case Some{value} <> Nil{}: 1n <> nativeruntypes_consumedinput([value], suffix)
+    case Some{value} <> Nil{}: 1n <> engine_responseresult([value], suffix)
     case _: 999999n <> suffix
 
-def nativeruntypes_framedetails(
-  values: List<&2, NativeRunTypes.FrameDetails>,
+def nativeruntypes_framedetails_fields_0(
+  v0: List<&2, NativeRunTypes.RuntimeSnapshot>,
+  v1: List<&2, NativeRunTypes.RuntimeSnapshot>,
+  v2: List<&2, List<&2, NativeRunTypes.EmissionContext>>,
+  v3: List<&2, Maybe<&2, NativeRunTypes.EmissionContext>>,
+  v4: List<&2, List<&2, Types.State>>,
+  v5: List<&2, Maybe<&2, Callbacks.Fact>>,
+  v6: List<&2, List<&2, NativeRunTypes.PhysicalDelivery>>,
+  v7: List<&2, Maybe<&2, Nat>>,
+  v8: List<&2, List<&2, Maybe<&2, Nat>>>,
+  v9: List<&2, Maybe<&2, NativeRunTypes.ConsumedInput>>,
+  v10: List<&2, Maybe<&2, Engine.ResponseResult>>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
-  match values:
-    case NativeRunTypes.FrameDetails{v0, v1, v2, v3, v4, v5, v6, v7, v8, v9} <> Nil{}: 0n <> nativeruntypes_runtimesnapshot(
-      [v0],
-      nativeruntypes_runtimesnapshot(
-        [v1],
-        list_nativeruntypes_emissioncontext(
-          [v2],
-          maybe_nativeruntypes_emissioncontext(
-            [v3],
-            list_types_state(
-              [v4],
-              maybe_callbacks_fact(
-                [v5],
-                list_nativeruntypes_physicaldelivery(
-                  [v6],
-                  maybe_nat(
-                    [v7],
-                    list_maybe_nat([v8], maybe_nativeruntypes_consumedinput([v9], suffix))
+  nativeruntypes_runtimesnapshot(
+    v0,
+    nativeruntypes_runtimesnapshot(
+      v1,
+      list_nativeruntypes_emissioncontext(
+        v2,
+        maybe_nativeruntypes_emissioncontext(
+          v3,
+          list_types_state(
+            v4,
+            maybe_callbacks_fact(
+              v5,
+              list_nativeruntypes_physicaldelivery(
+                v6,
+                maybe_nat(
+                  v7,
+                  list_maybe_nat(
+                    v8,
+                    maybe_nativeruntypes_consumedinput(v9, maybe_engine_responseresult(v10, suffix))
                   )
                 )
               )
@@ -4179,6 +4889,27 @@ def nativeruntypes_framedetails(
           )
         )
       )
+    )
+  )
+
+def nativeruntypes_framedetails(
+  values: List<&2, NativeRunTypes.FrameDetails>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case NativeRunTypes.FrameDetails{v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10} <> Nil{}: 0n <> nativeruntypes_framedetails_fields_0(
+      [v0],
+      [v1],
+      [v2],
+      [v3],
+      [v4],
+      [v5],
+      [v6],
+      [v7],
+      [v8],
+      [v9],
+      [v10],
+      suffix
     )
     case _: 999999n <> suffix
 
@@ -4216,7 +4947,7 @@ def nativeruntypes_frame(
         [v3],
         list_canonical_state(
           [v4],
-          list_canonical_command(
+          list_canonical_output(
             [v5],
             maybe_canonical_reason([v6], nativeruntypes_framedetails([v7], suffix))
           )

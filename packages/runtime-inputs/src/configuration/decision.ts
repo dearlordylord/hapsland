@@ -6,10 +6,10 @@ const initial = initialCanonical({ globalItems: 1, globalBytes: 1, partitionItem
 
 const decide = (event: CanonicalEvent) => {
   const result = stepCanonical(initial, event)
-  if (result.rejection !== undefined || result.commands.length !== 1) {
+  if (result.rejection !== undefined || result.outputs.length !== 1) {
     throw new Error("canonical configuration decision refused")
   }
-  return result.commands[0]
+  return result.outputs[0]
 }
 
 export const replaceIncludes = (supplied: boolean, currentRank: number, candidateRank: number): boolean => {

@@ -3,19 +3,35 @@ import ../ImportGraph.bend as ImportGraph
 import ./LAWS.bend as Laws
 
 def Laws.import_graph_fitting_tree_adds(t, n, cap, fits):
-  %Equal.sym(Bool, Nat.is_gt((t + n : Nat), cap), False{}, fits) : {Bool.pick(Nat, _, t, (t + n : Nat)) == (t + n : Nat) : Nat}
+  %Equal.sym(Bool, Nat.is_gt((t + n : Nat), cap), False{}, fits) : {
+    Bool.pick(Nat, _, t, (t + n : Nat))
+    == (t + n : Nat)
+    : Nat
+  }
   {==}
 
 def Laws.import_graph_nonfitting_tree_preserves_total(t, n, cap, exceeds):
-  %Equal.sym(Bool, Nat.is_gt((t + n : Nat), cap), True{}, exceeds) : {Bool.pick(Nat, _, t, (t + n : Nat)) == t : Nat}
+  %Equal.sym(Bool, Nat.is_gt((t + n : Nat), cap), True{}, exceeds) : {
+    Bool.pick(Nat, _, t, (t + n : Nat))
+    == t
+    : Nat
+  }
   {==}
 
 def Laws.import_graph_fitting_tree_stays_within_cap(t, n, cap, fits):
-  %Equal.sym(Bool, Nat.is_gt((t + n : Nat), cap), False{}, fits) : {Nat.is_gt(Bool.pick(Nat, _, t, (t + n : Nat)), cap) == False{} : Bool}
+  %Equal.sym(Bool, Nat.is_gt((t + n : Nat), cap), False{}, fits) : {
+    Nat.is_gt(Bool.pick(Nat, _, t, (t + n : Nat)), cap)
+    == False{}
+    : Bool
+  }
   fits
 
 def Laws.import_graph_skipped_tree_stays_within_cap(t, n, cap, valid, exceeds):
-  %Equal.sym(Bool, Nat.is_gt((t + n : Nat), cap), True{}, exceeds) : {Nat.is_gt(Bool.pick(Nat, _, t, (t + n : Nat)), cap) == False{} : Bool}
+  %Equal.sym(Bool, Nat.is_gt((t + n : Nat), cap), True{}, exceeds) : {
+    Nat.is_gt(Bool.pick(Nat, _, t, (t + n : Nat)), cap)
+    == False{}
+    : Bool
+  }
   %Equal.sym(Bool, Nat.is_gt(t, cap), False{}, valid) : {_ == False{} : Bool}
   {==}
 
@@ -110,7 +126,13 @@ def Laws.import_graph_responsive_termination(fuel, graph, events, fallback):
     case 1n++rest:
       %Laws.import_graph_wrap_projects_graph(
         ImportGraph.step(graph, ImportGraph.event_value(events, fallback)), rest) :
-        {ImportGraph.bounded_terminal(ImportGraph.responsive_run(rest, _, ImportGraph.event_rest(events), fallback)) == True{} : Bool}
+        {
+          ImportGraph.bounded_terminal(
+            ImportGraph.responsive_run(rest, _, ImportGraph.event_rest(events), fallback)
+          )
+          == True{}
+          : Bool
+        }
       Laws.import_graph_responsive_termination(rest,
         ImportGraph.step_graph(ImportGraph.step(graph, ImportGraph.event_value(events, fallback))),
         ImportGraph.event_rest(events), fallback)

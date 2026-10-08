@@ -46,6 +46,30 @@ IPC and installed-hook checks cover their physical boundaries. Keep recipient
 routing separate from source-qualified revisions and evaluations. Complete
 multi-root design is deferred to [research #247](https://github.com/dearlordylord/hapsland/issues/247).
 
+## Analyze package impact
+
+Use [the package-impact CLI](../../scripts/package-impact.mjs) to map a Git diff
+to changed workspaces and potential downstream consumers. It reads the same
+manifest-owned dependency graph as the build tooling at both endpoints, using
+workspace entries in the `dependencies` field.
+
+```sh
+npm run analysis:packages -- --base HEAD^ --head HEAD
+npm run analysis:packages -- --base origin/master --head HEAD --merge-base
+npm run analysis:packages -- --base HEAD --worktree --format json
+```
+
+The default is the last commit (`HEAD^` to `HEAD`). Branch review uses the merge
+base; worktree mode includes staged, unstaged and untracked files, excluding
+ignored files. ASCII marks changed workspaces with `*` and unchanged downstream
+consumers with `~`; arrows point from dependency to consumer. JSON includes all
+affected edges, added/removed edges, package membership changes and changed paths.
+Renames map both paths, and removed packages/dependencies remain visible through
+the union of endpoint graphs. This is conservative declared-dependency impact,
+not import usage, changed runtime behavior or a test-selection guarantee. Files
+outside workspace directories are listed separately and require manual review,
+including root configuration, shared fixtures and documentation.
+
 ## Website, diagrams, and brand assets
 
 | Artifact | Owner and entry point |
@@ -54,7 +78,7 @@ multi-root design is deferred to [research #247](https://github.com/dearlordylor
 | Public website and Cloudflare deployment | [Visualization package README](../../packages/agent-flow-viz/README.md#public-site-and-shared-import-replay); source starts at [site.ts](../../packages/agent-flow-viz/src/site.ts). Run package commands from `packages/agent-flow-viz`. |
 | Production decision dashboard | [Visualization package](../../packages/agent-flow-viz/README.md), [dashboard rules](../../packages/agent-flow-viz/DASHBOARD-RULES.md), [production page](../../packages/agent-flow-viz/src/production-main.ts). |
 | Reducer-to-diagram projection | [Projection package](../../packages/agent-flow-projection/README.md), [projection implementation](../../packages/agent-flow-projection/src/index.ts). This derives display evidence from checked transitions; layout belongs to the visualization package. |
-| Simulated agent activity | [Monkey Business](../../packages/monkey-business/README.md) and its [shared Bend core](../../packages/monkey-business-bend/README.md), including the sole `Session.bend` scheduler. See the [Stop observation scope](../../packages/monkey-business-bend/README.md#stop-observation-scope), [Stop-family comparison owner](../testing-matrix.md#stop-family-observation-owner), and [Expiry/Writer observation owners](../testing-matrix.md#expiry-and-writer-observation-owners) for the retained execution-lane boundaries. Simulation supplies events to the checked reducer; it does not establish native runtime behavior. |
+| Simulated agent activity | [Monkey Business](../../packages/monkey-business/README.md) and its [shared Bend core](../../packages/monkey-business-bend/README.md), including the common [`NativeRun.bend`](../../packages/monkey-business-bend/NativeRun.bend) execution loop and `Session.bend` activity scheduler. See the [Stop observation scope](../../packages/monkey-business-bend/README.md#stop-observation-scope), [Stop-family comparison owner](../testing-matrix.md#stop-family-observation-owner), and [Expiry/Writer observation owners](../testing-matrix.md#expiry-and-writer-observation-owners) for the retained execution-lane boundaries. Simulation supplies events to the checked reducer; it does not establish native runtime behavior. |
 | Approved brand artwork and README animation | [Brand assets](../../assets/brand/), [review animation](../../assets/review-flow.gif). |
 | Reader-facing comparison studies and code examples | [Studies overview](../review-studies.md) routes to scenario pages, [larger-declaration methodology](../abide-large-declaration-study.md) and [nine-rule coverage](../abide-contextual-review-study.md). Generate or check the six scenario pages with [the documentation generator](../../scripts/generate-abide-scenario-pages.mjs); fixtures and frozen comparisons own code and results. |
 | Research, video sources, and rendered presentation | [Sibling research repository](https://github.com/dearlordylord/hapsland-research). In this workspace it is `../hapsland-research`, with video source and render commands under `marketing/video/` and rendered output under `marketing/video/output/`. It is a separate Git checkout; `../research` is not its directory name. |

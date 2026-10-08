@@ -39,7 +39,7 @@ it.each([10239, 10240, 10241])(
     expect(fits.length).toBeGreaterThan(0)
     expect(
       fits.every((frame) =>
-        frame.commands.some((command) => command.kind === (bytes <= 10240 ? "collectionFits" : "collectionLimited"))
+        frame.outputs.some((command) => command.kind === (bytes <= 10240 ? "collectionFits" : "collectionLimited"))
       )
     ).toBe(true)
     if (bytes > 10240) {
@@ -86,9 +86,7 @@ it.each([10239, 10240, 10241])(
 it("releases a proven preauthorization provisional number without authorizing or claiming output", () => {
   const run = createRun(configuration(10240, "failed"))
   run.advance({ untilTime: 7, maxEvents: 300 })
-  const reserved = run.observations.find((frame) =>
-    frame.commands.some((command) => command.kind === "finishReserved")
-  )!
+  const reserved = run.observations.find((frame) => frame.outputs.some((command) => command.kind === "finishReserved"))!
   expect(reserved.time).toBe(7)
   expect(run.projection.delivery.counters.find((counter) => counter.group === 1 && counter.round === 1)?.used).toBe(1)
   expect(run.observations.some((frame) => frame.event.kind === "finishAuthorize")).toBe(false)
@@ -96,7 +94,7 @@ it("releases a proven preauthorization provisional number without authorizing or
   run.advance({ untilTime: 12, maxEvents: 300 })
   expect(
     run.observations.some(
-      (frame) => frame.commands.some((command) => command.kind === "finishReleased") && frame.time === 12
+      (frame) => frame.outputs.some((command) => command.kind === "finishReleased") && frame.time === 12
     )
   ).toBe(true)
   expect(run.projection.delivery.counters.find((counter) => counter.group === 1 && counter.round === 1)?.used).toBe(0)
@@ -119,7 +117,7 @@ it("consumes authorized uncertain output and refuses a mismatched terminal membe
     event: { kind: "finishTerminal", group, round, attempt, token, selected: [], outcome: "unknown" }
   })
   run.advance({ untilTime: 8, maxEvents: 300 })
-  expect(run.observations.at(-1)?.commands.some((command) => command.kind === "finishRefused")).toBe(true)
+  expect(run.observations.at(-1)?.outputs.some((command) => command.kind === "finishRefused")).toBe(true)
   expect(run.projection).toEqual(before)
   replay(run)
   run.advance({ untilTime: 12, maxEvents: 300 })

@@ -4,7 +4,7 @@ import { resolve, relative } from "node:path"
 import { fileURLToPath } from "node:url"
 import { createRun } from "./test-harness/run-checks.mjs"
 
-const root = fileURLToPath(new URL("../", import.meta.url))
+const root = resolve(fileURLToPath(new URL("../", import.meta.url)))
 const [scope, ...extra] = process.argv.slice(2)
 if (extra.length || !["game", "simulation"].includes(scope)) throw new Error("Expected game or simulation")
 const files = []
@@ -39,7 +39,15 @@ try {
         ? ["scripts/build-game-lab.mjs", "--check"]
         : ["packages/monkey-business-bend/build.mjs", "--check"]
   })
-  if (generated.state === "passed") {
+  const runner =
+    scope === "simulation" && generated.state === "passed"
+      ? await run.runStage({
+          name: "simulation-runner-generated",
+          command: process.execPath,
+          args: ["packages/monkey-business-bend/build-run.mjs", "--check"]
+        })
+      : undefined
+  if (generated.state === "passed" && (runner === undefined || runner.state === "passed")) {
     const types =
       scope === "game"
         ? await run.runStage({

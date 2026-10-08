@@ -31,7 +31,11 @@ def select(bindings: List<&2, Binding>, +partition: Nat) -> List<&2, Nat>:
   match bindings:
     case Nil{}: []
     case Binding{owner, id} <> tail:
-      select_if(Nat.is_eq(owner, partition) && Advicees.bounded(partition), id, select(tail, partition))
+      select_if(
+        Nat.is_eq(owner, partition) && Advicees.bounded(partition),
+        id,
+        select(tail, partition)
+      )
 
 def first(found: Maybe<&2, Nat>, fallback: Maybe<&2, Nat>) -> Maybe<&2, Nat>:
   match found:
@@ -64,7 +68,10 @@ def request_owner(requests: List<&2, Dispatch.Request>, +operation: Nat) -> Mayb
 def dispatch_owner(dispatch: Dispatch.State, +operation: Nat) -> Maybe<&2, Nat>:
   match dispatch:
     case Dispatch.State{queued, running, _, _, requests}:
-      first(entry_owner(queued, operation), first(entry_owner(running, operation), request_owner(requests, operation)))
+      first(
+        entry_owner(queued, operation),
+        first(entry_owner(running, operation), request_owner(requests, operation))
+      )
 
 def charge_owner(charges: List<&2, Ledger.Charge>, +reservation: Nat) -> Maybe<&2, Nat>:
   match charges:
@@ -115,11 +122,17 @@ def intrinsic(state: Canonical.State, reference: Reference) -> Maybe<&2, Nat>:
     case _ Direct{+partition}: owner_if(Advicees.bounded(partition), partition, None{})
     case Canonical.State{_, _, work, _, _, _, dispatch, _, _} Operation{+operation}:
       first(work_owner(work, operation), dispatch_owner(dispatch, operation))
-    case Canonical.State{ledger, _, _, _, _, _, _, _, _} Reservation{reservation}: ledger_owner(ledger, reservation)
+    case Canonical.State{ledger, _, _, _, _, _, _, _, _} Reservation{reservation}: ledger_owner(
+      ledger,
+      reservation
+    )
     case Canonical.State{_, rounds, _, _, _, _, _, _, _} Round{round}: round_owner(rounds, round)
     case Canonical.State{_, _, work, _, _, _, _, collection, _} Advice{+advice}:
       first(work_owner(work, advice), collection_advice_owner(collection, advice))
-    case Canonical.State{_, _, _, _, _, _, _, collection, _} Notice{key}: collection_notice_owner(collection, key)
+    case Canonical.State{_, _, _, _, _, _, _, collection, _} Notice{key}: collection_notice_owner(
+      collection,
+      key
+    )
     case _ _: None{}
 
 def context_owner(provided: Maybe<&2, Nat>) -> Maybe<&2, Nat>:
@@ -186,7 +199,9 @@ def event_reference(value: Canonical.CanonicalEvent) -> Reference:
     case Canonical.CollectionOrderCheck{_, _}: Context{}
     case Canonical.CollectionExpiryCheck{_, _}: Context{}
     case Canonical.CollectionFitCheck{_, _}: Context{}
-    case Canonical.CollectionFindingCheck{_, _, _, partition, _, _, _, _, _, _, _, _, _, _}: Direct{partition}
+    case Canonical.CollectionFindingCheck{_, _, _, partition, _, _, _, _, _, _, _, _, _, _}: Direct{
+      partition
+    }
     case Canonical.CollectionNoticeCheck{_, _, _}: Context{}
     case Canonical.CollectionReserveLease{advice, _}: Advice{advice}
     case Canonical.CollectionReleaseLease{advice, _}: Advice{advice}
@@ -273,226 +288,242 @@ def event_reference(value: Canonical.CanonicalEvent) -> Reference:
     case Canonical.OutputTerminal{partition, _, _, _, _}: Direct{partition}
     case Canonical.RetirePartition{partition, _, _}: Direct{partition}
 
-def event(before: Canonical.State, after: Canonical.State, value: Canonical.CanonicalEvent, provided: Maybe<&2, Nat>) -> Maybe<&2, Nat>:
+def event(
+  before: Canonical.State,
+  after: Canonical.State,
+  value: Canonical.CanonicalEvent,
+  provided: Maybe<&2, Nat>
+) -> Maybe<&2, Nat>:
   resolve(before, after, event_reference(value), provided)
 
-def command_reference(value: Canonical.Command) -> Reference:
+def command_reference(value: Canonical.Output) -> Reference:
   match value:
-    case Canonical.CapacityGranted{id, _}: Reservation{id}
-    case Canonical.CapacityRefused{_, _}: Context{}
-    case Canonical.CapacityResized{id, _}: Reservation{id}
-    case Canonical.CapacityUnitAdmitted{reservation, _, _, _}: Reservation{reservation}
-    case Canonical.CapacityUnitRefused{_, _, _, _}: Context{}
-    case Canonical.PermitIssued{_, _}: Context{}
-    case Canonical.CompletedEditAbsent{}: Context{}
-    case Canonical.CompletedEditSeen{_, _}: Context{}
-    case Canonical.CompletedEditRemembered{_}: Context{}
-    case Canonical.QuietRoundBusy{}: Context{}
-    case Canonical.QuietRoundWaiting{_}: Context{}
-    case Canonical.QuietRoundExpired{_}: Context{}
-    case Canonical.QuietRoundResetRecorded{}: Context{}
-    case Canonical.PermitConsumed{_}: Context{}
-    case Canonical.PermitReleased{}: Context{}
-    case Canonical.PermitExpired{}: Context{}
-    case Canonical.PermitKept{}: Context{}
-    case Canonical.PermitRoundClosed{_}: Context{}
-    case Canonical.RoundStarted{id}: Round{id}
-    case Canonical.ObservationAdmitted{id}: Operation{id}
-    case Canonical.ObservationStarted{}: Context{}
-    case Canonical.ObservationCompleted{}: Context{}
-    case Canonical.ObservationInterrupted{}: Context{}
-    case Canonical.Prepare{operation, _}: Operation{operation}
-    case Canonical.PreparationRefused{}: Context{}
-    case Canonical.UnitAdmitted{operation, _, _, _, _}: Operation{operation}
-    case Canonical.UnitRefused{_, _, _, _}: Context{}
-    case Canonical.PreparationReleased{id, _}: Reservation{id}
-    case Canonical.ReviewStarted{}: Context{}
-    case Canonical.JevRequestIssued{partition, _, _, _, _}: Direct{partition}
-    case Canonical.JevRequestUnavailable{}: Context{}
-    case Canonical.JevRequestStartRecorded{}: Context{}
-    case Canonical.JevInterruptionRecorded{}: Context{}
-    case Canonical.JevRequestOutcomeRecorded{_}: Context{}
-    case Canonical.JevObservationIgnored{}: Context{}
-    case Canonical.ReservationReleased{id}: Reservation{id}
-    case Canonical.ReviewRecorded{_}: Context{}
-    case Canonical.RetainFinding{}: Context{}
-    case Canonical.FindingCountRecorded{}: Context{}
-    case Canonical.SettleClear{}: Context{}
-    case Canonical.SettleStaleClear{}: Context{}
-    case Canonical.RetireStaleFinding{}: Context{}
-    case Canonical.PreparedSkipped{}: Context{}
-    case Canonical.PreparedAdmitted{}: Context{}
-    case Canonical.PreparedCapacityRefused{}: Context{}
-    case Canonical.EmptyLost{}: Context{}
-    case Canonical.EmptyAccepted{}: Context{}
-    case Canonical.FailureBackend{}: Context{}
-    case Canonical.FailureCredential{}: Context{}
-    case Canonical.FailureLost{}: Context{}
-    case Canonical.FailureNone{}: Context{}
-    case Canonical.DispatchStarted{operation, _}: Operation{operation}
-    case Canonical.DispatchDiscarded{operation, _}: Operation{operation}
-    case Canonical.DiscardNamedOnly{}: Context{}
-    case Canonical.DiscardAllUnfinished{}: Context{}
-    case Canonical.WaitForWork{}: Context{}
-    case Canonical.CancelWork{operation}: Operation{operation}
-    case Canonical.FinishReady{}: Context{}
-    case Canonical.FinishLimit{}: Context{}
-    case Canonical.StopEnded{}: Context{}
-    case Canonical.CollectionEligible{}: Context{}
-    case Canonical.CollectionWaiting{}: Context{}
-    case Canonical.CollectionRetireCredential{}: Context{}
-    case Canonical.CollectionRetainCredential{}: Context{}
-    case Canonical.CollectionCandidate{}: Context{}
-    case Canonical.CollectionSkip{}: Context{}
-    case Canonical.CollectionBefore{}: Context{}
-    case Canonical.CollectionEqual{}: Context{}
-    case Canonical.CollectionAfter{}: Context{}
-    case Canonical.CollectionExpired{}: Context{}
-    case Canonical.CollectionCurrent{}: Context{}
-    case Canonical.CollectionFits{}: Context{}
-    case Canonical.CollectionLimited{}: Context{}
-    case Canonical.CollectionFindingSelected{}: Context{}
-    case Canonical.CollectionFindingRetained{}: Context{}
-    case Canonical.CollectionFindingLimited{}: Context{}
-    case Canonical.CollectionFindingExpired{}: Context{}
-    case Canonical.CollectionNoticeIncluded{}: Context{}
-    case Canonical.CollectionNoticeSkipped{}: Context{}
-    case Canonical.CollectionNoticeStopped{}: Context{}
-    case Canonical.CollectionLeaseReserved{}: Context{}
-    case Canonical.CollectionLeaseRefused{}: Context{}
-    case Canonical.CollectionLeaseReleased{}: Context{}
-    case Canonical.CollectionLeaseKept{}: Context{}
-    case Canonical.CollectionAdviceRetired{}: Context{}
-    case Canonical.CollectionBackgroundClaimed{}: Context{}
-    case Canonical.CollectionBackgroundRefused{}: Context{}
-    case Canonical.CollectionBackgroundReleased{}: Context{}
-    case Canonical.CollectionBackgroundKept{}: Context{}
-    case Canonical.FinishReserved{}: Context{}
-    case Canonical.FinishNotices{}: Context{}
-    case Canonical.FinishAllowedNoAdvice{}: Context{}
-    case Canonical.FinishAllowedDeadline{}: Context{}
-    case Canonical.FinishAllowedUnavailable{}: Context{}
-    case Canonical.FinishRefused{}: Context{}
-    case Canonical.FinishReleased{}: Context{}
-    case Canonical.FinishAuthorized{}: Context{}
-    case Canonical.FinishRecorded{_}: Context{}
-    case Canonical.FinishEnded{}: Context{}
-    case Canonical.ContinuationConsumed{}: Context{}
-    case Canonical.ContinuationRefused{}: Context{}
-    case Canonical.SubmissionBegun{}: Context{}
-    case Canonical.SubmissionAuthorized{}: Context{}
-    case Canonical.SubmissionRecorded{}: Context{}
-    case Canonical.SubmissionReleased{}: Context{}
-    case Canonical.SubmissionRefused{}: Context{}
-    case Canonical.SubmissionForgotten{}: Context{}
-    case Canonical.SubmissionSuppresses{}: Context{}
-    case Canonical.SubmissionUnsuppressed{}: Context{}
-    case Canonical.SubmissionReofferable{}: Context{}
-    case Canonical.SubmissionNotReofferable{}: Context{}
-    case Canonical.SubmissionExpired{}: Context{}
-    case Canonical.SubmissionCurrent{}: Context{}
-    case Canonical.RevisionReused{_}: Context{}
-    case Canonical.RevisionReplaced{_}: Context{}
-    case Canonical.RevisionReleased{}: Context{}
-    case Canonical.RevisionCurrent{}: Context{}
-    case Canonical.RevisionStale{}: Context{}
-    case Canonical.RevisionSuperseded{}: Context{}
-    case Canonical.RevisionNotSuperseded{}: Context{}
-    case Canonical.RevisionGeneration{_}: Context{}
-    case Canonical.RevisionCount{_}: Context{}
-    case Canonical.CollectorProceed{}: Context{}
-    case Canonical.CollectorUnavailable{_}: Context{}
-    case Canonical.CollectorFinalProceed{}: Context{}
-    case Canonical.CollectorFinalRelease{}: Context{}
-    case Canonical.ReuseKeepMember{}: Context{}
-    case Canonical.ReuseSetMemberClear{}: Context{}
-    case Canonical.ReuseSetMemberFinding{}: Context{}
-    case Canonical.ReuseSetMemberUnavailable{}: Context{}
-    case Canonical.ReuseSetMemberLost{}: Context{}
-    case Canonical.CleanupReady{}: Context{}
-    case Canonical.CleanupBusy{}: Context{}
-    case Canonical.CleanupCommitted{}: Context{}
-    case Canonical.DeliveryReleaseUnacknowledged{}: Context{}
-    case Canonical.DeliveryKeepAcknowledged{}: Context{}
-    case Canonical.DeliveryAckReady{}: Context{}
-    case Canonical.DeliveryAckExpired{}: Context{}
-    case Canonical.DeliveryAckEmpty{}: Context{}
-    case Canonical.DeliveryFinalReady{}: Context{}
-    case Canonical.DeliveryFinalExpired{}: Context{}
-    case Canonical.DeliveryFinalEmpty{}: Context{}
-    case Canonical.DeliveryRetireAdvice{}: Context{}
-    case Canonical.DeliveryKeepRemaining{}: Context{}
-    case Canonical.DeliveryKeepForReoffer{}: Context{}
-    case Canonical.DeliverySubmissionCandidate{}: Context{}
-    case Canonical.DeliverySubmissionRefused{}: Context{}
-    case Canonical.DeliveryBatchProceed{}: Context{}
-    case Canonical.DeliveryBatchRelease{}: Context{}
-    case Canonical.DeliveryCredentialInvalid{}: Context{}
-    case Canonical.DeliveryCredentialValid{}: Context{}
-    case Canonical.IgnoreCandidate{}: Context{}
-    case Canonical.ReleaseCandidate{}: Context{}
-    case Canonical.RetireCandidate{}: Context{}
-    case Canonical.ContinueCandidate{}: Context{}
-    case Canonical.RetainCandidate{}: Context{}
-    case Canonical.RoundStopBegun{}: Context{}
-    case Canonical.RoundStopRefused{}: Context{}
-    case Canonical.RoundActive{}: Context{}
-    case Canonical.RoundInactive{}: Context{}
-    case Canonical.RoundBarrierRaised{}: Context{}
-    case Canonical.RoundBarrierClear{}: Context{}
-    case Canonical.RoundStopOwned{}: Context{}
-    case Canonical.RoundStopNotOwned{}: Context{}
-    case Canonical.RoundStopTerminal{_, _}: Context{}
-    case Canonical.RoundExpireCloses{}: Context{}
-    case Canonical.RoundExpireKeeps{}: Context{}
-    case Canonical.RoundContinuationAvailable{}: Context{}
-    case Canonical.RoundContinuationExhausted{}: Context{}
-    case Canonical.DeliverySubmissionAllowed{}: Context{}
-    case Canonical.DeliverySubmissionDenied{}: Context{}
-    case Canonical.DeliveryExistingTokenAllowed{}: Context{}
-    case Canonical.DeliveryExistingTokenDenied{}: Context{}
-    case Canonical.DeliveryUnreservedStopAllowed{}: Context{}
-    case Canonical.DeliveryUnreservedStopDenied{}: Context{}
-    case Canonical.ReuseJoinAdvice{}: Context{}
-    case Canonical.ReuseJoinPending{}: Context{}
-    case Canonical.ReuseJoinClaimed{}: Context{}
-    case Canonical.ReuseCached{}: Context{}
-    case Canonical.ReuseOwn{}: Context{}
-    case Canonical.ReuseClaimed{}: Context{}
-    case Canonical.ReuseAttached{}: Context{}
-    case Canonical.ReuseReleased{}: Context{}
-    case Canonical.ReuseRefused{}: Context{}
-    case Canonical.CacheAlready{}: Context{}
-    case Canonical.CacheRejected{}: Context{}
-    case Canonical.CachePrepared{_}: Context{}
-    case Canonical.CacheCommitted{}: Context{}
-    case Canonical.CacheDiscarded{_}: Context{}
-    case Canonical.NoticeSuppressed{_}: Context{}
-    case Canonical.NoticeRejectedFull{}: Context{}
-    case Canonical.NoticeCreateKey{}: Context{}
-    case Canonical.NoticeCreatePending{_}: Context{}
-    case Canonical.NoticeMergePending{_}: Context{}
-    case Canonical.NoticeKeepLeased{}: Context{}
-    case Canonical.NoticeRefused{}: Context{}
-    case Canonical.NoticeCommitted{}: Context{}
-    case Canonical.NoticePruned{_, _, _}: Context{}
-    case Canonical.NoticeDropped{}: Context{}
-    case Canonical.NoticeLeased{}: Context{}
-    case Canonical.NoticePendingCleared{}: Context{}
-    case Canonical.NoticeSelected{_}: Context{}
-    case Canonical.IncludeChoice{_}: Context{}
-    case Canonical.FileSelection{_}: Context{}
-    case Canonical.FileProtection{_}: Context{}
-    case Canonical.CandidateFile{_}: Context{}
-    case Canonical.ReviewAdmission{_}: Context{}
-    case Canonical.RuleGate{_}: Context{}
-    case Canonical.RuleOrder{_}: Context{}
-    case Canonical.WriteAuthorized{operation}: Operation{operation}
-    case Canonical.WriteRecorded{_}: Context{}
-    case Canonical.WaitForOutput{}: Context{}
-    case Canonical.ReofferAtStop{}: Context{}
-    case Canonical.PartitionRetired{_}: Context{}
-    case Canonical.AdmissionForgotten{}: Context{}
+    case Canonical.EventEstablished{Canonical.CapacityGranted{id, _}}: Reservation{id}
+    case Canonical.PolicyDecided{Canonical.CapacityRefused{_, _}}: Context{}
+    case Canonical.EventEstablished{Canonical.CapacityResized{id, _}}: Reservation{id}
+    case Canonical.EventEstablished{Canonical.CapacityUnitAdmitted{reservation, _, _, _}}: Reservation{
+      reservation
+    }
+    case Canonical.PolicyDecided{Canonical.CapacityUnitRefused{_, _, _, _}}: Context{}
+    case Canonical.EventEstablished{Canonical.PermitIssued{_, _}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CompletedEditAbsent{}}: Context{}
+    case Canonical.EventEstablished{Canonical.CompletedEditSeen{_, _}}: Context{}
+    case Canonical.EventEstablished{Canonical.CompletedEditRemembered{_}}: Context{}
+    case Canonical.EventEstablished{Canonical.QuietRoundBusy{}}: Context{}
+    case Canonical.EventEstablished{Canonical.QuietRoundWaiting{_}}: Context{}
+    case Canonical.PolicyDecided{Canonical.QuietRoundExpired{_}}: Context{}
+    case Canonical.EventEstablished{Canonical.QuietRoundResetRecorded{}}: Context{}
+    case Canonical.EventEstablished{Canonical.PermitConsumed{_}}: Context{}
+    case Canonical.EventEstablished{Canonical.PermitReleased{}}: Context{}
+    case Canonical.EventEstablished{Canonical.PermitExpired{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.PermitKept{}}: Context{}
+    case Canonical.EventEstablished{Canonical.PermitRoundClosed{_}}: Context{}
+    case Canonical.EventEstablished{Canonical.RoundStarted{id}}: Round{id}
+    case Canonical.EventEstablished{Canonical.ObservationAdmitted{id}}: Operation{id}
+    case Canonical.EventEstablished{Canonical.ObservationStarted{}}: Context{}
+    case Canonical.EventEstablished{Canonical.ObservationCompleted{}}: Context{}
+    case Canonical.EventEstablished{Canonical.ObservationInterrupted{}}: Context{}
+    case Canonical.ActionRequested{Canonical.Prepare{operation, _}}: Operation{operation}
+    case Canonical.PolicyDecided{Canonical.PreparationRefused{}}: Context{}
+    case Canonical.EventEstablished{Canonical.UnitAdmitted{operation, _, _, _, _}}: Operation{
+      operation
+    }
+    case Canonical.PolicyDecided{Canonical.UnitRefused{_, _, _, _}}: Context{}
+    case Canonical.EventEstablished{Canonical.PreparationReleased{id, _}}: Reservation{id}
+    case Canonical.EventEstablished{Canonical.ReviewStarted{}}: Context{}
+    case Canonical.EventEstablished{Canonical.JevRequestIssued{partition, _, _, _, _}}: Direct{
+      partition
+    }
+    case Canonical.PolicyDecided{Canonical.JevRequestUnavailable{}}: Context{}
+    case Canonical.EventEstablished{Canonical.JevRequestStartRecorded{}}: Context{}
+    case Canonical.EventEstablished{Canonical.JevInterruptionRecorded{}}: Context{}
+    case Canonical.EventEstablished{Canonical.JevRequestOutcomeRecorded{_}}: Context{}
+    case Canonical.PolicyDecided{Canonical.JevObservationIgnored{}}: Context{}
+    case Canonical.EventEstablished{Canonical.ReservationReleased{id}}: Reservation{id}
+    case Canonical.EventEstablished{Canonical.ReviewRecorded{_}}: Context{}
+    case Canonical.EventEstablished{Canonical.FindingRetained{}}: Context{}
+    case Canonical.EventEstablished{Canonical.FindingCountRecorded{}}: Context{}
+    case Canonical.EventEstablished{Canonical.ClearSettled{}}: Context{}
+    case Canonical.EventEstablished{Canonical.StaleClearSettled{}}: Context{}
+    case Canonical.EventEstablished{Canonical.StaleFindingRetired{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.PreparedSkipped{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.PreparedAdmitted{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.PreparedCapacityRefused{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.EmptyLost{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.EmptyAccepted{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.FailureBackend{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.FailureCredential{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.FailureLost{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.FailureNone{}}: Context{}
+    case Canonical.EventEstablished{Canonical.DispatchStarted{operation, _}}: Operation{operation}
+    case Canonical.EventEstablished{Canonical.DispatchDiscarded{operation, _}}: Operation{operation}
+    case Canonical.PolicyDecided{Canonical.DiscardNamedOnly{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DiscardAllUnfinished{}}: Context{}
+    case Canonical.EventEstablished{Canonical.WaitForWork{}}: Context{}
+    case Canonical.ActionRequested{Canonical.CancelWork{operation}}: Operation{operation}
+    case Canonical.EventEstablished{Canonical.FinishReady{}}: Context{}
+    case Canonical.EventEstablished{Canonical.FinishLimit{}}: Context{}
+    case Canonical.EventEstablished{Canonical.StopEnded{}}: Context{}
+    case Canonical.EventEstablished{Canonical.CollectionEligible{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionWaiting{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionRetireCredential{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionRetainCredential{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionCandidate{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionSkip{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionBefore{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionEqual{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionAfter{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionExpired{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionCurrent{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionFits{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionLimited{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionFindingSelected{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionFindingRetained{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionFindingLimited{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionFindingExpired{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionNoticeIncluded{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionNoticeSkipped{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionNoticeStopped{}}: Context{}
+    case Canonical.EventEstablished{Canonical.CollectionLeaseReserved{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionLeaseRefused{}}: Context{}
+    case Canonical.EventEstablished{Canonical.CollectionLeaseReleased{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionLeaseKept{}}: Context{}
+    case Canonical.EventEstablished{Canonical.CollectionAdviceRetired{}}: Context{}
+    case Canonical.EventEstablished{Canonical.CollectionBackgroundClaimed{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionBackgroundRefused{}}: Context{}
+    case Canonical.EventEstablished{Canonical.CollectionBackgroundReleased{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectionBackgroundKept{}}: Context{}
+    case Canonical.EventEstablished{Canonical.FinishReserved{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.FinishNotices{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.FinishAllowedNoAdvice{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.FinishAllowedDeadline{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.FinishAllowedUnavailable{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.FinishRefused{}}: Context{}
+    case Canonical.EventEstablished{Canonical.FinishReleased{}}: Context{}
+    case Canonical.EventEstablished{Canonical.FinishAuthorized{}}: Context{}
+    case Canonical.EventEstablished{Canonical.FinishRecorded{_}}: Context{}
+    case Canonical.EventEstablished{Canonical.FinishEnded{}}: Context{}
+    case Canonical.EventEstablished{Canonical.ContinuationConsumed{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.ContinuationRefused{}}: Context{}
+    case Canonical.EventEstablished{Canonical.SubmissionBegun{}}: Context{}
+    case Canonical.EventEstablished{Canonical.SubmissionAuthorized{}}: Context{}
+    case Canonical.EventEstablished{Canonical.SubmissionRecorded{}}: Context{}
+    case Canonical.EventEstablished{Canonical.SubmissionReleased{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.SubmissionRefused{}}: Context{}
+    case Canonical.EventEstablished{Canonical.SubmissionForgotten{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.SubmissionSuppresses{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.SubmissionUnsuppressed{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.SubmissionReofferable{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.SubmissionNotReofferable{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.SubmissionExpired{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.SubmissionCurrent{}}: Context{}
+    case Canonical.EventEstablished{Canonical.RevisionReused{_}}: Context{}
+    case Canonical.EventEstablished{Canonical.RevisionReplaced{_}}: Context{}
+    case Canonical.EventEstablished{Canonical.RevisionReleased{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RevisionCurrent{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RevisionStale{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RevisionSuperseded{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RevisionNotSuperseded{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RevisionGeneration{_}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RevisionCount{_}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectorProceed{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectorUnavailable{_}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectorFinalProceed{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CollectorFinalRelease{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.ReuseKeepMember{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.ReuseSetMemberClear{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.ReuseSetMemberFinding{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.ReuseSetMemberUnavailable{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.ReuseSetMemberLost{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CleanupReady{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CleanupBusy{}}: Context{}
+    case Canonical.EventEstablished{Canonical.CleanupCommitted{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliveryReleaseUnacknowledged{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliveryKeepAcknowledged{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliveryAckReady{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliveryAckExpired{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliveryAckEmpty{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliveryFinalReady{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliveryFinalExpired{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliveryFinalEmpty{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliveryRetireAdvice{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliveryKeepRemaining{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliveryKeepForReoffer{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliverySubmissionCandidate{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliverySubmissionRefused{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliveryBatchProceed{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliveryBatchRelease{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliveryCredentialInvalid{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliveryCredentialValid{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.IgnoreCandidate{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.ReleaseCandidate{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RetireCandidate{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.ContinueCandidate{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RetainCandidate{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RoundStopBegun{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RoundStopRefused{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RoundActive{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RoundInactive{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RoundBarrierRaised{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RoundBarrierClear{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RoundStopOwned{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RoundStopNotOwned{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RoundStopTerminal{_, _}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RoundExpireCloses{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RoundExpireKeeps{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RoundContinuationAvailable{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RoundContinuationExhausted{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliverySubmissionAllowed{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliverySubmissionDenied{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliveryExistingTokenAllowed{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliveryExistingTokenDenied{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliveryUnreservedStopAllowed{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.DeliveryUnreservedStopDenied{}}: Context{}
+    case Canonical.EventEstablished{Canonical.ReuseAdviceJoined{}}: Context{}
+    case Canonical.EventEstablished{Canonical.ReusePendingJoined{}}: Context{}
+    case Canonical.EventEstablished{Canonical.ReuseClaimedJoined{}}: Context{}
+    case Canonical.EventEstablished{Canonical.ReuseCacheHit{}}: Context{}
+    case Canonical.EventEstablished{Canonical.ReuseOwned{}}: Context{}
+    case Canonical.EventEstablished{Canonical.ReuseClaimed{}}: Context{}
+    case Canonical.EventEstablished{Canonical.ReuseAttached{}}: Context{}
+    case Canonical.EventEstablished{Canonical.ReuseReleased{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.ReuseRefused{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CacheAlready{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CacheRejected{}}: Context{}
+    case Canonical.EventEstablished{Canonical.CachePrepared{_}}: Context{}
+    case Canonical.EventEstablished{Canonical.CacheCommitted{}}: Context{}
+    case Canonical.EventEstablished{Canonical.CacheDiscarded{_}}: Context{}
+    case Canonical.EventEstablished{Canonical.NoticeSuppressed{_}}: Context{}
+    case Canonical.PolicyDecided{Canonical.NoticeRejectedFull{}}: Context{}
+    case Canonical.ActionRequested{Canonical.CreateNoticeKey{}}: Context{}
+    case Canonical.EventEstablished{Canonical.NoticePendingCreated{_}}: Context{}
+    case Canonical.EventEstablished{Canonical.NoticePendingMerged{_}}: Context{}
+    case Canonical.EventEstablished{Canonical.NoticeLeaseKept{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.NoticeRefused{}}: Context{}
+    case Canonical.EventEstablished{Canonical.NoticeCommitted{}}: Context{}
+    case Canonical.EventEstablished{Canonical.NoticePruned{_, _, _}}: Context{}
+    case Canonical.EventEstablished{Canonical.NoticeDropped{}}: Context{}
+    case Canonical.EventEstablished{Canonical.NoticeLeased{}}: Context{}
+    case Canonical.EventEstablished{Canonical.NoticePendingCleared{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.NoticeSelected{_}}: Context{}
+    case Canonical.PolicyDecided{Canonical.IncludeChoice{_}}: Context{}
+    case Canonical.PolicyDecided{Canonical.FileSelection{_}}: Context{}
+    case Canonical.PolicyDecided{Canonical.FileProtection{_}}: Context{}
+    case Canonical.PolicyDecided{Canonical.CandidateFile{_}}: Context{}
+    case Canonical.PolicyDecided{Canonical.ReviewAdmission{_}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RuleGate{_}}: Context{}
+    case Canonical.PolicyDecided{Canonical.RuleOrder{_}}: Context{}
+    case Canonical.EventEstablished{Canonical.WriteAuthorized{operation}}: Operation{operation}
+    case Canonical.EventEstablished{Canonical.WriteRecorded{_}}: Context{}
+    case Canonical.PolicyDecided{Canonical.WaitForOutput{}}: Context{}
+    case Canonical.EventEstablished{Canonical.ReofferAtStop{}}: Context{}
+    case Canonical.EventEstablished{Canonical.PartitionRetired{_}}: Context{}
+    case Canonical.EventEstablished{Canonical.AdmissionForgotten{}}: Context{}
 
-def command(before: Canonical.State, after: Canonical.State, value: Canonical.Command, provided: Maybe<&2, Nat>) -> Maybe<&2, Nat>:
+def command(
+  before: Canonical.State,
+  after: Canonical.State,
+  value: Canonical.Output,
+  provided: Maybe<&2, Nat>
+) -> Maybe<&2, Nat>:
   resolve(before, after, command_reference(value), provided)

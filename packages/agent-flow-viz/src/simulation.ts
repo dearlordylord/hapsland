@@ -280,19 +280,19 @@ let totals = { checked: 0, admitted: 0, refused: 0, failed: 0, advice: 0, uncert
 const currentTotals = () => totals
 const countFrame = (item: Observation) => {
   totals.checked++
-  totals.admitted += item.commands.filter((command) => command.kind === "observationAdmitted").length
+  totals.admitted += item.outputs.filter((command) => command.kind === "observationAdmitted").length
   totals.refused += item.rejection
     ? 1
-    : item.commands.filter((command) => /Refused$|Denied$|Unavailable$/.test(command.kind)).length
+    : item.outputs.filter((command) => /Refused$|Denied$|Unavailable$/.test(command.kind)).length
   if (/fail|timeout/i.test(JSON.stringify(item.event))) totals.failed++
   if (
     item.event.kind === "submissionTerminal" &&
-    item.commands.some((command) => command.kind === "submissionRecorded")
+    item.outputs.some((command) => command.kind === "submissionRecorded")
   ) {
     if (item.event.certain) totals.advice++
     else totals.uncertain++
   }
-  if (item.event.kind === "finishTerminal" && item.commands.some((command) => command.kind === "finishRecorded")) {
+  if (item.event.kind === "finishTerminal" && item.outputs.some((command) => command.kind === "finishRecorded")) {
     const token = item.event.token
     const changed = item.after.delivery.submissions.batches.filter(
       (batch) =>
@@ -304,7 +304,7 @@ const countFrame = (item: Observation) => {
     if (item.event.outcome === "acknowledged") totals.advice += changed
     else if (item.event.outcome === "unknown") totals.uncertain += changed
   }
-  totals.released += item.commands.filter((command) => command.kind === "submissionReleased").length
+  totals.released += item.outputs.filter((command) => command.kind === "submissionReleased").length
 }
 const speedValue = (raw: string) => {
   const value = Number(raw)
@@ -1235,7 +1235,7 @@ export const actSimulation = (model: SimulationModel, action: string): Simulatio
   // discovers an idle queue and automatically pauses the completed boundary.
   return actSimulationNow(action === "play" ? { ...settled, playing: model.playing } : settled, action)
 }
-/** Reserve one continuation, avoiding duplicate commands from animation ticks. */
+/** Reserve one continuation, avoiding duplicate outputs from animation ticks. */
 export const simulationContinuation = (): number | undefined => {
   if (!pendingAdvance || pendingAdvance.status.state !== "running" || pendingAdvance.scheduled || pendingAdvance.runner)
     return undefined
@@ -1445,7 +1445,7 @@ export const simulationView = <Message>(
   const last: ReplayStep | undefined = current
     ? {
         event: current.event,
-        commands: current.commands,
+        outputs: current.outputs,
         before: current.before,
         after: current.after,
         rejection: current.rejection,
@@ -1514,7 +1514,7 @@ export const simulationView = <Message>(
       h.div(
         [h.Class("simulation-controls")],
         [
-          ...(run && !run.agentScopes.length
+          ...(run && !activeReplay?.config.session && !activeReplay?.config.sessions?.length
             ? [h.p([], ["Scripted events · no generator controls"])]
             : [
                 controlForm("pace", [
@@ -1555,7 +1555,7 @@ export const simulationView = <Message>(
         [h.Class("simulation-controls")],
         [
           input("delay", "Simulated Jev delay (virtual ms)", model.delay),
-          ...(run && !run.agentScopes.length
+          ...(run && !run.appliedSettings.config.session && !run.appliedSettings.config.sessions?.length
             ? []
             : [
                 controlForm("sizes", [
@@ -1991,13 +1991,13 @@ export const simulationView = <Message>(
       h.details(
         [h.Class("simulation-details")],
         [
-          h.summary([], ["Checked event, ordered commands, refusals and synthetic effects"]),
+          h.summary([], ["Checked event, ordered outputs, refusals and synthetic effects"]),
           h.p(
             [],
             [
               current?.event.kind === "stopPolled"
                 ? "Agent finish attempt supplied to Hapsland."
-                : current?.commands.some((command) => command.kind.startsWith("finishAllowed"))
+                : current?.outputs.some((command) => command.kind.startsWith("finishAllowed"))
                   ? "Hapsland allows this agent finish attempt."
                   : "Synthetic environment facts and checked product outcomes are shown separately below."
             ]
@@ -2019,7 +2019,7 @@ export const simulationView = <Message>(
                 ? model.focus === "preparation"
                 : projectFlowStep({
                     event: item.event,
-                    commands: item.commands,
+                    outputs: item.outputs,
                     before: item.before,
                     after: item.after,
                     rejection: item.rejection
@@ -2029,7 +2029,7 @@ export const simulationView = <Message>(
             (item) =>
               model.filter === "all" ||
               item.rejection ||
-              item.commands.some((command) => /Refused$|Denied$|Unavailable$/.test(command.kind)) ||
+              item.outputs.some((command) => /Refused$|Denied$|Unavailable$/.test(command.kind)) ||
               (item.event.kind === "submissionTerminal" && !item.event.certain) ||
               (item.event.kind === "finishTerminal" && item.event.outcome === "unknown") ||
               item.event.kind === "submissionRelease" ||
@@ -2093,7 +2093,8 @@ export const simulationRun = () => run
 
 /** Load applied generator values when inspecting a different agent. */
 export const selectSimulationAgent = (model: SimulationModel, agent: string): SimulationModel => {
-  if (run && !run.agentScopes.length) return { ...model, agentId: agent, item: "" }
+  if (run && !run.appliedSettings.config.session && !run.appliedSettings.config.sessions?.length)
+    return { ...model, agentId: agent, item: "" }
   const replay = run?.appliedSettings
   const session = replay?.config.sessions?.find((session) => session.agent === agent) ?? replay?.config.session
   const latest = <Kind extends Control["kind"]>(kind: Kind) =>

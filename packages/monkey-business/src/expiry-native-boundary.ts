@@ -69,16 +69,16 @@ export function decodeExpiryNativeBoundary(words: unknown) {
             outcome = fullSingle(observed.result)
           const result = decodeTrustedCanonicalStep(
             outcome.$ === "expiry_observed_wire.Advanced"
-              ? { $: "Canonical.Advanced", state: after.canonical, commands: outcome.commands }
+              ? { $: "Canonical.Advanced", state: after.canonical, outputs: outcome.outputs }
               : { $: "Canonical.Rejected", state: after.canonical, reason: outcome.reason }
           )
-          const commandScopes = fullList(observed.command_scopes).map((value) => maybe(value) ?? null)
+          const outputScopes = fullList(observed.output_scopes).map((value) => maybe(value) ?? null)
           exact(
-            commandScopes,
+            outputScopes,
             fullList(maybe(frame.scopes)).map((value) => maybe(value) ?? null),
             "captured command scopes"
           )
-          if (commandScopes.length !== result.commands.length) throw new TypeError("expiry command scope count differs")
+          if (outputScopes.length !== result.outputs.length) throw new TypeError("expiry command scope count differs")
           exact(maybe(frame.receipt), undefined, "original receipt premise")
           exact(maybe(observed.receipt), undefined, "physical receipt premise")
           exact(fullList(observed.physical), [], "physical delivery premise")
@@ -88,8 +88,8 @@ export function decodeExpiryNativeBoundary(words: unknown) {
             before: projectTrustedCanonical(before.canonical),
             after: projectTrustedCanonical(after.canonical),
             event: decodePrefixCanonicalEvent(observed.event),
-            commands: result.commands,
-            commandScopes,
+            outputs: result.outputs,
+            outputScopes,
             rejection: result.rejection ?? null,
             receipt: null,
             noticeDiagnostic: diagnostic(frame.diagnostic)
@@ -284,7 +284,7 @@ function compareExpirySnapshot(value: unknown, source: RunRuntimeSnapshot, capsu
         `${field} input ${order} actual action`
       )
       const partition = pending.partition ?? 1
-      exact(item.partition, partition, `${field} input ${order} source partition`)
+      exact(item.partition, partition, `${field} input ${order} ${pending.input.event.kind} source partition`)
       const life = fullList(expected.lifecycles)
         .map(readRecord)
         .find((value) => value.partition === partition)
@@ -421,13 +421,13 @@ export function compareExpiryBusinessTrace(
         `case ${caseIndex} frame ${index} result kind`
       )
       exact(
-        result.commands ?? result.reason,
-        actualResult.commands ?? actualResult.reason,
-        `case ${caseIndex} frame ${index} ordered commands or rejection`
+        result.outputs ?? result.reason,
+        actualResult.outputs ?? actualResult.reason,
+        `case ${caseIndex} frame ${index} ordered outputs or rejection`
       )
       exact(
-        fullList(native.command_scopes).map(maybe),
-        actual.observation.commandScopes,
+        fullList(native.output_scopes).map(maybe),
+        actual.observation.outputScopes,
         `case ${caseIndex} frame ${index} scopes`
       )
       exact(maybe(native.receipt), undefined, `case ${caseIndex} frame ${index} selected receipt`)

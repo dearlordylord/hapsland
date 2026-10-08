@@ -37,7 +37,7 @@ it.each(["finding", "clear"] as const)(
     const run = createRun(minimal(outcome))
     run.advance({ untilTime: 6 })
     expect(
-      run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "retainFinding")
+      run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "findingRetained")
     ).toEqual([])
     expect(run.observations.filter((frame) => frame.event.kind === "jevRequestSettled")).toEqual([])
     expect(run.projection.global).toEqual({ items: 1, bytes: 5 })
@@ -54,7 +54,7 @@ it.each(["finding", "clear"] as const)(
     for (const frame of graphs) {
       expect(frame.after.work.some((work) => work.kind === "preparing")).toBe(true)
       expect(frame.after).toEqual(frame.before)
-      expect(frame.commands).toEqual([])
+      expect(frame.outputs).toEqual([])
     }
     run.advance({ untilTime: 10 })
     const frames = run.observations
@@ -62,7 +62,7 @@ it.each(["finding", "clear"] as const)(
     expect(frames.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(1)
     expect(frames.filter((frame) => frame.event.kind === "jevRequestSettled").map((frame) => frame.time)).toEqual([7])
     expect(
-      frames.flatMap((frame) => frame.commands).filter((command) => command.kind === "retainFinding")
+      frames.flatMap((frame) => frame.outputs).filter((command) => command.kind === "findingRetained")
     ).toHaveLength(outcome === "finding" ? 1 : 0)
     expect(frames.filter((frame) => frame.event.kind === "submissionTerminal")).toHaveLength(
       outcome === "finding" ? 1 : 0
@@ -175,7 +175,7 @@ it("refuses request issuance while credentials are unavailable and a later edit 
   const run = createRun({ ...minimal("finding"), environment: { currentWork: true, credentialReady: false } })
   run.advance({ untilTime: 10 })
   expect(
-    run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "jevRequestUnavailable")
+    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "jevRequestUnavailable")
   ).toHaveLength(1)
   expect(
     run.observations.filter(
@@ -277,7 +277,7 @@ it(
       prepare: 4,
       unitAdmitted: 5,
       jevRequestIssued: 6,
-      retainFinding: 7,
+      findingRetained: 7,
       collectionEligible: 8,
       retainCandidate: 9,
       submissionUnsuppressed: 10,
@@ -293,7 +293,7 @@ it(
       reservationReleased: 20,
       collectionLeaseKept: 21,
       collectionLeaseReleased: 22,
-      settleClear: 23,
+      clearSettled: 23,
       reviewRecorded: 24,
       retireCandidate: 25,
       releaseCandidate: 26,
@@ -448,7 +448,7 @@ it(
           frame.after.dispatch.requests.length,
           frame.after.collection.leases.length,
           Number(!!frame.rejection),
-          ...frame.commands.map((command) => {
+          ...frame.outputs.map((command) => {
             if (commandCodes[command.kind] === undefined) throw new Error(`unmapped command ${command.kind}`)
             return commandCodes[command.kind]!
           })

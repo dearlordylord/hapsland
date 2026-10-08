@@ -1,8 +1,7 @@
 import { expect, it, vi } from "vitest"
-import SharedEngine from "../../monkey-business-bend/engine.mjs"
-import * as boundary from "./simulation-adapter.ts"
-import { encodeCollectionResponse } from "./collection-scenario.ts"
-import { encodeSharedValue } from "@hapsland/canonical-policy/canonical/simulation-codec"
+import Native from "../../monkey-business-bend/run.mjs"
+import { createRun } from "./index.ts"
+import { encodeNativeRunList, nativeRunList } from "./native-run-codec.ts"
 import { readRecord } from "@hapsland/canonical-policy/canonical/boundary-schema"
 
 import { agent, target, control, opened, attempt, terminal, replayExact } from "./collection-response.fixture.ts"
@@ -107,10 +106,10 @@ it("overlapping response selections cannot both own one advice item", () => {
   run.advance({ untilTime: 8 })
   expect(terminal(run)).toHaveLength(1)
   expect(
-    run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "collectionLeaseReserved")
+    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "collectionLeaseReserved")
   ).toHaveLength(1)
   expect(
-    run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "submissionBegun")
+    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "submissionBegun")
   ).toHaveLength(1)
   expect(run.projection.collection.leases).toEqual([])
   replayExact(run)
@@ -139,16 +138,23 @@ it("refuses foreign response scopes before minting a capability and preserves al
 it.each(["laterAction", "extraEnvelopeField"] as const)(
   "rejects %s before publishing response state and retries the same issuance",
   (malformedKind) => {
-    const apply = boundary.controlSharedResponse
-    let checked = false
-    const interception = vi.spyOn(boundary, "controlSharedResponse").mockImplementation((state, value, now) => {
-      if (checked || value.action !== "open") return apply(state, value, now)
-      const before = boundary.projectSharedCanonical(state)
-      const queued = boundary.queuedShared(state)
-      const transition = SharedEngine.collection_response_open(
-        state,
-        encodeSharedValue(encodeCollectionResponse(value.response))
-      )
+    const run = createRun({
+      retention: 1000,
+      preparationDelay: 2,
+      jevDelay: 5,
+      inputs: [{ at: 0, kind: "edit", agent, bytes: 10, unitBytes: [5], outcome: "finding" }]
+    })
+    run.advance({ untilTime: 0 })
+    const before = run.observe()
+    const runtime = run.runtimeSnapshot()
+    const replay = run.exportReplay()
+    const apply = Native.control
+    const interception = vi.spyOn(Native, "control").mockImplementationOnce((state, value) => {
+      const transition = apply(state, value)
+      const report = readRecord(transition.report)
+      if (malformedKind === "extraEnvelopeField")
+        return { ...transition, report: { ...report, result: { ...readRecord(report.result), unexpected: true } } }
+      const nativeState = readRecord(transition.state)
       const action = {
         $: "Driver.Action",
         event: { $: "Canonical.CollectorGateCheck", expired: false, credential_valid: true },
@@ -157,42 +163,44 @@ it.each(["laterAction", "extraEnvelopeField"] as const)(
         candidate: { $: "None" },
         expiry_advice: { $: "None" }
       }
-      // Exercise the real decoder without stripping unexpected original fields.
-      const malformed =
-        malformedKind === "extraEnvelopeField"
-          ? { ...transition, result: { ...readRecord(transition.result), unexpected: true } }
-          : {
-              ...transition,
-              actions: encodeSharedValue({
-                $: "Con",
-                head: action,
-                tail: { $: "Con", head: { ...action, delay: true }, tail: { $: "Nil" } }
-              })
-            }
-      const failure = vi.spyOn(SharedEngine, "collection_response_open").mockReturnValueOnce(malformed)
-      try {
-        expect(() => apply(state, value, now)).toThrow()
-        expect(boundary.projectSharedCanonical(state)).toBe(before)
-        expect(boundary.queuedShared(state)).toEqual(queued)
-        expect(() => boundary.projectSharedCanonical(transition.state)).toThrow("foreign shared engine state")
-      } finally {
-        failure.mockRestore()
-      }
-      const retried = apply(state, value, now)
-      expect(retried.result).toBe("applied")
-      expect(retried.issued).toEqual(target)
-      checked = true
-      return retried
-    })
-    try {
-      const run = opened()
-      expect(checked).toBe(true)
-      control(run, {
-        kind: "collectionResponse",
-        action: "open",
-        agent,
-        response: { partition: 1, lifetime: 1, round: 1, started: 0, deadline: 20, admittedBlock: false }
+      const item = (order: number, delay: unknown) => ({
+        $: "NativeRunTypes.Item",
+        order,
+        input: {
+          $: "NativeRunTypes.ResponseInput",
+          action: { ...action, delay },
+          target: { $: "None" },
+          pending: { $: "None" },
+          writer: false
+        }
       })
+      return {
+        ...transition,
+        state: {
+          ...nativeState,
+          items: encodeNativeRunList([
+            ...nativeRunList(nativeState.items),
+            item(Number(nativeState.next), 0),
+            item(Number(nativeState.next) + 1, true)
+          ])
+        }
+      }
+    })
+    const open = {
+      kind: "collectionResponse" as const,
+      action: "open" as const,
+      agent,
+      response: { partition: 1, lifetime: 1, round: 1, started: 0, deadline: 20, admittedBlock: false }
+    }
+    try {
+      expect(() => control(run, open)).toThrow()
+      expect(interception).toHaveBeenCalledTimes(1)
+      expect(run.observe()).toEqual(before)
+      expect(run.runtimeSnapshot()).toEqual(runtime)
+      expect(run.exportReplay()).toEqual(replay)
+      control(run, open)
+      expect(run.observe().collectionResponseReports.at(-1)?.issued).toEqual(target)
+      control(run, open)
       expect(run.observe().collectionResponseReports.map((report) => report.issued?.id)).toEqual([1, 2])
       run.advance({ untilTime: 7 })
       attempt(run)

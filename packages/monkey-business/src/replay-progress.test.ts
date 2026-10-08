@@ -168,7 +168,9 @@ it("restores queue-only progress after an inactive preparation fact", () => {
     }
   })
   expect(run.advance({ maxEvents: 5 }).reason).toBe("eventLimit")
-  expect(run.observations.at(-1)?.commands).toContainEqual(expect.objectContaining({ kind: "prepare" }))
+  expect(run.observations.at(-1)?.outputs).toContainEqual(
+    expect.objectContaining({ category: "request", kind: "prepare" })
+  )
   expect(run.queuedFacts[0]?.input.kind).toBe("preparationGraph")
   const activeReplay = run.exportReplay()
   expect(restoreReplay(JSON.parse(JSON.stringify(activeReplay))).exportReplay()).toEqual(activeReplay)

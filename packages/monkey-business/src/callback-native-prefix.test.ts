@@ -19,7 +19,18 @@ it("pins the complete private descriptor inventory to actual Bend owners", () =>
   expect(generated.error).toBeUndefined()
   expect(generated.status, generated.stdout + generated.stderr).toBe(0)
   expect(callbackNativeDescriptors.canonical_canonicalevent.constructors).toHaveLength(136)
-  expect(callbackNativeDescriptors.canonical_command.constructors).toHaveLength(215)
+  expect(callbackNativeDescriptors.canonical_output.constructors).toEqual([
+    { tag: "Canonical.ActionRequested", fields: [["request", "canonical_actionrequest"]] },
+    { tag: "Canonical.EventEstablished", fields: [["event", "canonical_domainevent"]] },
+    { tag: "Canonical.PolicyDecided", fields: [["decision", "canonical_policydecision"]] }
+  ])
+  const categorized = [
+    ...callbackNativeDescriptors.canonical_actionrequest.constructors,
+    ...callbackNativeDescriptors.canonical_domainevent.constructors,
+    ...callbackNativeDescriptors.canonical_policydecision.constructors
+  ]
+  expect(categorized).toHaveLength(215)
+  expect(new Set(categorized.map(({ tag }) => tag)).size).toBe(215)
 })
 
 it("preserves complete Unicode input labels and rejects malformed scalar transport", () => {

@@ -155,11 +155,11 @@ export const evaluationReuseOperations = <Pending>(
     return "joinedAdvice"
   }
   const reuseRoutes = {
-    reuseJoinAdvice: adviceRoute,
-    reuseJoinPending: joinedPending,
-    reuseJoinClaimed: joinedClaimed,
-    reuseCached: cachedRoute,
-    reuseOwn: ownRoute
+    reuseAdviceJoined: adviceRoute,
+    reusePendingJoined: joinedPending,
+    reuseClaimedJoined: joinedClaimed,
+    reuseCacheHit: cachedRoute,
+    reuseOwned: ownRoute
   }
   type ReuseRouteKind = keyof typeof reuseRoutes
   function knownReuseRoute(kind: string | undefined): kind is ReuseRouteKind {
@@ -169,13 +169,13 @@ export const evaluationReuseOperations = <Pending>(
     key: string,
     liveAdvice: boolean
   ): "joinedAdvice" | "joinedPending" | "joinedClaimed" | "cached" | "owner" {
-    const command = ledger.transition({ kind: "reuseRoute", id: reuseId(key), liveAdvice }).commands[0]?.kind
+    const command = ledger.transition({ kind: "reuseRoute", id: reuseId(key), liveAdvice }).outputs[0]?.kind
     if (!knownReuseRoute(command)) throw new Error("canonical evaluation route refused")
     return reuseRoutes[command](key)
   }
 
   function claim(key: string): boolean {
-    const command = ledger.transition({ kind: "reuseClaim", id: reuseId(key) }).commands[0]?.kind
+    const command = ledger.transition({ kind: "reuseClaim", id: reuseId(key) }).outputs[0]?.kind
     if (command === "reuseClaimed") {
       if (state.pending.has(key)) throw new Error("duplicate native evaluation claim")
       state.pending.set(key, undefined)
@@ -188,7 +188,7 @@ export const evaluationReuseOperations = <Pending>(
   function attachPending(key: string, pending: Pending): boolean {
     const id = state.keyIds.get(key)
     if (id === undefined) return false
-    const command = ledger.transition({ kind: "reuseAttach", id }).commands[0]?.kind
+    const command = ledger.transition({ kind: "reuseAttach", id }).outputs[0]?.kind
     if (command === "reuseAttached") {
       if (!state.pending.has(key)) throw new Error("canonical attached evaluation lacks native claim")
       state.pending.set(key, pending)
@@ -201,7 +201,7 @@ export const evaluationReuseOperations = <Pending>(
   function releaseClaim(key: string): void {
     const id = state.keyIds.get(key)
     if (id === undefined) return
-    if (ledger.transition({ kind: "reuseRelease", id }).commands[0]?.kind !== "reuseReleased") {
+    if (ledger.transition({ kind: "reuseRelease", id }).outputs[0]?.kind !== "reuseReleased") {
       throw new Error("canonical evaluation release refused")
     }
     state.pending.delete(key)
@@ -211,9 +211,9 @@ export const evaluationReuseOperations = <Pending>(
   function get(key: string): CachedEvaluation | undefined {
     const id = state.keyIds.get(key)
     if (id === undefined) return undefined
-    const command = ledger.transition({ kind: "reuseTouch", id }).commands[0]?.kind
-    if (command === "reuseOwn") return undefined
-    if (command !== "reuseCached") throw new Error("canonical cache lookup refused")
+    const command = ledger.transition({ kind: "reuseTouch", id }).outputs[0]?.kind
+    if (command === "reuseOwned") return undefined
+    if (command !== "reuseCacheHit") throw new Error("canonical cache lookup refused")
     return touchCached(key)
   }
 
@@ -234,7 +234,7 @@ export const evaluationReuseOperations = <Pending>(
       reservation: reservation.id,
       entryLimit: SUCCESS_CACHE_ENTRY_LIMIT,
       byteLimit: SUCCESS_CACHE_BYTE_LIMIT
-    }).commands[0]?.kind
+    }).outputs[0]?.kind
     if (command !== "cacheCommitted") {
       ledger.release(reservation)
       throw new Error("canonical cache commit refused")
@@ -250,7 +250,7 @@ export const evaluationReuseOperations = <Pending>(
       bytes: logicalBytes,
       entryLimit: SUCCESS_CACHE_ENTRY_LIMIT,
       byteLimit: SUCCESS_CACHE_BYTE_LIMIT
-    }).commands[0]
+    }).outputs[0]
     if (plan?.kind === "cacheAlready") return alreadyCached(key)
     if (plan?.kind === "cacheRejected") return rejectedCache(key)
     if (plan?.kind !== "cachePrepared") throw new Error("canonical cache admission refused")
@@ -268,13 +268,13 @@ export const evaluationReuseOperations = <Pending>(
 
   function discardPartition(partition: string): void {
     const command = ledger.transition({ kind: "cacheDiscardPartition", partition: ledger.partitionId(partition) })
-      .commands[0]
+      .outputs[0]
     if (command?.kind !== "cacheDiscarded") throw new Error("canonical cache expiry refused")
     for (const id of command.ids) removeCachedId(id)
   }
 
   function clear(): void {
-    const command = ledger.transition({ kind: "cacheClear" }).commands[0]
+    const command = ledger.transition({ kind: "cacheClear" }).outputs[0]
     if (command?.kind !== "cacheDiscarded") throw new Error("canonical cache clear refused")
     for (const id of command.ids) removeCachedId(id)
     state.pending.clear()

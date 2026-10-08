@@ -19,7 +19,7 @@ it("keeps previous immutable snapshots intact through functional Bend transition
   const before = initialCanonical(limits)
   const snapshot = projectCanonical(before)
   const step = stepCanonical(before, { kind: "reserveCapacity", partition: 1, bytes: 10, purpose: "preparation" })
-  expect(step.commands[0]?.kind).toBe("capacityGranted")
+  expect(step.outputs[0]?.kind).toBe("capacityGranted")
   expect(Object.isFrozen(step.state)).toBe(true)
   const after = projectCanonical(step.state)
   expect(after.global).toEqual({ items: 1, bytes: 10 })
@@ -29,8 +29,8 @@ it("keeps previous immutable snapshots intact through functional Bend transition
   expect(projectCanonical(before)).toBe(snapshot)
   expect(snapshot.global).toEqual({ items: 0, bytes: 0 })
   expect(
-    stepCanonical(before, { kind: "reserveCapacity", partition: 1, bytes: 10, purpose: "preparation" }).commands
-  ).toEqual(step.commands)
+    stepCanonical(before, { kind: "reserveCapacity", partition: 1, bytes: 10, purpose: "preparation" }).outputs
+  ).toEqual(step.outputs)
 })
 
 it("rejects foreign copies even when their fields match a memoized state", () => {

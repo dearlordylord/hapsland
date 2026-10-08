@@ -20,7 +20,8 @@ import type { RunConfig, RunRuntimeSnapshot, RunStructuralFrame } from "./index.
 
 const list = (value: unknown) => readBendList(value, (value) => value, 2048)
 function same(actual: unknown, expected: unknown, field: string): void {
-  if (!isDeepStrictEqual(actual, expected)) throw new Error(`Stop public business layer differs at ${field}`)
+  if (!isDeepStrictEqual(actual, expected))
+    throw new Error(`Stop public business layer differs at ${field}`, { cause: { actual, expected } })
 }
 function tagged(value: unknown, tag: string): Record<string, unknown> {
   const record = readRecord(value)
@@ -89,14 +90,10 @@ function compareObservation(value: unknown, source: RunStructuralFrame, field: s
       [finish.partition, finish.lifetime, finish.round, finish.started, finish.deadline, finish.recurring],
       `${field} original registration input`
     )
-    same(list(observation.command_scopes), [], `${field} registration has no command scopes`)
+    same(list(observation.output_scopes), [], `${field} registration has no command scopes`)
     return
   }
-  same(
-    list(observation.command_scopes).map(optional),
-    source.observation.commandScopes ?? [],
-    `${field} command scopes`
-  )
+  same(list(observation.output_scopes).map(optional), source.observation.outputScopes ?? [], `${field} command scopes`)
   const transition = readRecord(source.transition)
   if (source.observation.preparation) {
     tagged(observation, "Graph")
@@ -131,13 +128,13 @@ function compareObservation(value: unknown, source: RunStructuralFrame, field: s
     state = single(observation.after).canonical
   const decoded =
     outcome.$ === "stop_observed_wire.Advanced"
-      ? decodeTrustedCanonicalStep({ $: "Canonical.Advanced", state, commands: outcome.commands })
+      ? decodeTrustedCanonicalStep({ $: "Canonical.Advanced", state, outputs: outcome.outputs })
       : outcome.$ === "stop_observed_wire.Rejected"
         ? decodeTrustedCanonicalStep({ $: "Canonical.Rejected", state, reason: outcome.reason })
         : (() => {
             throw new TypeError(`${field} invalid original outcome`)
           })()
-  same(decoded.commands, source.observation.commands, `${field} ordered commands`)
+  same(decoded.outputs, source.observation.outputs, `${field} ordered outputs`)
   same(decoded.rejection, source.observation.rejection, `${field} rejection`)
   if (observation.$ === "stop_observed_wire.Cache") same(observation.fact, source.source, `${field} actual cache fact`)
 }
@@ -219,19 +216,25 @@ function compareEmissions(value: unknown, source: RunStructuralFrame, config: Ru
       same(readRecord(emission.action).event, encodeCanonicalEvent(item.input.event), `${at} actual effect event`)
       // Stop wake facts already carry an absolute producer time; only ordinary
       // driver emissions expose a captured relative Driver.Action delay publicly.
-      if (item.driverAction) same(action.delay, item.driverAction.delay, `${at} captured effect delay`)
+      if (item.driverAction)
+        same(
+          action.delay,
+          item.driverAction.delay,
+          `${at} ${item.input.event.kind} captured effect delay (emitted ${action.delay}, public ${item.driverAction.delay})`
+        )
       same(action.expiryAdvice, item.expiryAdvice, `${at} expiry identity`)
       same(action.candidate, item.candidate, `${at} actual candidate`)
-      same(optional(emission.attempt), item.fitFinish, `${at} original Finish attempt`)
+      const attempt = optional(emission.attempt)
+      same(
+        attempt,
+        item.fitFinish,
+        `${at} ${item.input.event.kind} original Finish attempt (emitted ${String(attempt)}, public ${String(item.fitFinish)})`
+      )
       compareIssuedFacts(emission.issued, item, at)
     } else if (emission.$ === "stop_observed_wire.Arrival") {
       if (!item.workloadSource) throw new Error(`${at} missing actual Workload emission`)
       const event = readRecord(emission.event)
-      same(
-        { ...event, units: list(event.units) },
-        { $: "Workload.Emission", ...item.workloadSource },
-        `${at} actual arrival`
-      )
+      same({ ...event, units: list(event.units) }, { ...item.workloadSource }, `${at} actual arrival`)
       same(readNat(emission.activity), item.activityScope, `${at} activity identity`)
     } else if (emission.$ === "stop_observed_wire.GraphInput") {
       if (item.input.kind !== "preparationGraph") throw new Error(`${at} graph input changed kind`)

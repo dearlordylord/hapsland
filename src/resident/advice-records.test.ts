@@ -89,7 +89,7 @@ const fixture = (existing?: Owner) =>
     if (unit === undefined) throw new Error("fixture unit refused")
     expect(
       yield* owner.observeReview("agent", unit.operation, unit.reservation, "finding", true, round.canonicalRound)
-    ).toBe("retainFinding")
+    ).toBe("findingRetained")
     yield* owner.observation("agent", admissionId, "completeObservation", round.canonicalRound)
     const revision = (yield* owner.revision.register("agent", prepared, true, "revision")).revision
     const initial: AdviceInitial = {

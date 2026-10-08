@@ -40,7 +40,7 @@ it("another advicee's genuine authorized output does not hold this Stop open", (
   const stopped = run.observations.find((frame) => frame.event.kind === "stopPolled")
   expect(stopped?.time).toBe(8)
   expect(stopped?.event).toMatchObject({ partition: 1, lifetime: 1, round: 1, deadline: false })
-  expect(stopped?.commands.map((command) => command.kind)).toEqual(["finishReady"])
+  expect(stopped?.outputs.map((command) => command.kind)).toEqual(["finishReady"])
   expect(run.observations.some((frame) => frame.event.kind === "stopGroupEnded" && frame.time === 8)).toBe(true)
   expect(run.projection.delivery.submissions.batches).toEqual(original)
   expect(run.projection.collection.leases).toEqual(leases)
@@ -99,7 +99,7 @@ it("group Stop derives its real output wait even with extraPending false", () =>
   })
   run.advance({ untilTime: 8, maxEvents: 100 })
   const wait = run.observations.find((frame) => frame.event.kind === "stopGroupPolled")
-  expect(wait?.commands.map((command) => command.kind)).toEqual(["waitForWork"])
+  expect(wait?.outputs.map((command) => command.kind)).toEqual(["waitForWork"])
   expect(wait?.rejection).toBeUndefined()
   expect(run.projection.collection.leases).toEqual(original)
   expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe())
@@ -119,7 +119,7 @@ it("group Stop derives its real output wait even with extraPending false", () =>
   })
   run.advance({ untilTime: 9, maxEvents: 100 })
   const cutoff = run.observations.filter((frame) => frame.event.kind === "stopGroupPolled")[1]
-  expect(cutoff?.commands.map((command) => command.kind)).toEqual(["finishReady"])
+  expect(cutoff?.outputs.map((command) => command.kind)).toEqual(["finishReady"])
   expect(cutoff?.rejection).toBeUndefined()
   // The logical decision is distinct from the actual still-issued output.
   expect(run.projection.collection.leases).toEqual(original)

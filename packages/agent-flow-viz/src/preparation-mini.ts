@@ -12,7 +12,7 @@ export const preparationSnapshot = (steps: readonly ReplayStep[]): PreparationSn
   const latest = steps.at(-1)
   const frames = steps.flatMap((step) => (step.preparation ? [step.preparation] : []))
   const operation =
-    latest?.commands.find((command) => command.kind === "prepare")?.operation ?? frames.at(-1)?.event.operation
+    latest?.outputs.find((command) => command.kind === "prepare")?.operation ?? frames.at(-1)?.event.operation
   const frame = frames.findLast((item) => item.event.operation === operation)
   return {
     ...(operation === undefined ? {} : { operation }),

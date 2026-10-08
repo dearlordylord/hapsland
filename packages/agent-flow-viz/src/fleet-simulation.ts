@@ -435,7 +435,14 @@ export const simulationView = <Message>(
                             )
                           ]
                         ),
-                        h.span([], [run && !run.agentScopes.length ? "Scripted events" : `Seed ${agent.seed}`]),
+                        h.span(
+                          [],
+                          [
+                            run && !run.appliedSettings.config.session && !run.appliedSettings.config.sessions?.length
+                              ? "Scripted events"
+                              : `Seed ${agent.seed}`
+                          ]
+                        ),
                         h.span([], [`${model.playing ? "Running" : "Paused"} · ${history.length} retained events`]),
                         h.small([], [current?.event.kind ?? "Ready to start"])
                       ]
@@ -591,7 +598,7 @@ export const simulationView = <Message>(
           h.p(
             [],
             [
-              run && !run.agentScopes.length
+              run && !run.appliedSettings.config.session && !run.appliedSettings.config.sessions?.length
                 ? "Scripted replay: no event generator is attached. Backend/native profiles, playback, history and replay files apply to the whole resident."
                 : `Edit pace, duration, bursts, size and suspension target ${active.agent.agent}. Backend/native profiles, playback, history and replay files apply to the whole resident.`
             ]
