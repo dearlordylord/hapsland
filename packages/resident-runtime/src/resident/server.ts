@@ -1,3 +1,4 @@
+import { getUpdateNoticeGrant } from "@hapsland/canonical-policy/canonical/update-notice-adapter"
 import {
   type NativeEditMetadata,
   isCodexHostVersion,
@@ -116,7 +117,7 @@ import {
   residentUpdateRecipient,
   residentUpdateOpportunity,
   type UpdateRecipient,
-  CURRENT_HOOK_CONTRACT,
+  residentCallerIncompatible,
   UPDATE_NOTICE_COOLDOWN_MS,
   MAX_UPDATE_NOTICE_KEYS,
   DELIVERY_LEASE_MS,
@@ -5410,7 +5411,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       const now = residentNow()
       warn = yield* Ref.modify(updateNoticeBudgets, (current) => {
         const next = new Map([...current].filter(([, expiry]) => expiry > now))
-        if (next.has(key) || next.size >= MAX_UPDATE_NOTICE_KEYS) return [false, next] as const
+        if (!getUpdateNoticeGrant(next.has(key), next.size >= MAX_UPDATE_NOTICE_KEYS)) return [false, next] as const
         next.set(key, now + UPDATE_NOTICE_COOLDOWN_MS)
         return [true, next] as const
       })
@@ -5418,9 +5419,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     return residentResponse({ status: "update-required", warn })
   })
   const incompatibleCaller = (request: ResidentRequest) =>
-    request.operation === "hello" ||
-    request.hookContract === undefined ||
-    request.hookContract === CURRENT_HOOK_CONTRACT
+    !residentCallerIncompatible(request)
       ? Effect.succeed(undefined)
       : incompatibleCallerResponse(residentUpdateRecipient(request), residentUpdateOpportunity(request))
   const residentHandle = Effect.fn("ResidentRuntime.handle")(function* (

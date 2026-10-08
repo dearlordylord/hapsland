@@ -1,0 +1,77 @@
+{
+  "scope": "six alternating pairs of own source-only UI preflight; CPU11 nonexclusive; same process, includes GC; no workspace-build parity claim",
+  "samples": [
+    {
+      "pair": 0,
+      "lane": "typescript",
+      "wallSeconds": 2.67421101,
+      "cpuSeconds": 2.674165
+    },
+    {
+      "pair": 0,
+      "lane": "integratedBend",
+      "wallSeconds": 1.7158271069999995,
+      "cpuSeconds": 1.715797
+    },
+    {
+      "pair": 1,
+      "lane": "integratedBend",
+      "wallSeconds": 1.0631443499999995,
+      "cpuSeconds": 1.063119
+    },
+    {
+      "pair": 1,
+      "lane": "typescript",
+      "wallSeconds": 1.3620789809999996,
+      "cpuSeconds": 1.362019
+    },
+    {
+      "pair": 2,
+      "lane": "typescript",
+      "wallSeconds": 1.652348083,
+      "cpuSeconds": 1.652304
+    },
+    {
+      "pair": 2,
+      "lane": "integratedBend",
+      "wallSeconds": 0.9406182559999997,
+      "cpuSeconds": 0.94059
+    },
+    {
+      "pair": 3,
+      "lane": "integratedBend",
+      "wallSeconds": 0.883343992,
+      "cpuSeconds": 0.883318
+    },
+    {
+      "pair": 3,
+      "lane": "typescript",
+      "wallSeconds": 1.2549547230000007,
+      "cpuSeconds": 1.254926
+    },
+    {
+      "pair": 4,
+      "lane": "typescript",
+      "wallSeconds": 1.3620380650000006,
+      "cpuSeconds": 1.362005
+    },
+    {
+      "pair": 4,
+      "lane": "integratedBend",
+      "wallSeconds": 0.8028502449999997,
+      "cpuSeconds": 0.802818
+    },
+    {
+      "pair": 5,
+      "lane": "integratedBend",
+      "wallSeconds": 0.7908733549999997,
+      "cpuSeconds": 0.790848
+    },
+    {
+      "pair": 5,
+      "lane": "typescript",
+      "wallSeconds": 1.132637172999999,
+      "cpuSeconds": 1.132619
+    }
+  ]
+}

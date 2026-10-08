@@ -1,0 +1,37 @@
+{
+  "startedAt": "2026-10-08T22:16:52.559Z",
+  "at": "2026-10-08T22:16:53.874Z",
+  "baseline": "e31dac83",
+  "fixtures": 144,
+  "rounds": 20000,
+  "warmupPairs": 3,
+  "measuredPairs": 9,
+  "samples": {
+    "typescript": [
+      0.05657360900000003,
+      0.07681745000000001,
+      0.08252891500000009,
+      0.06532205900000009,
+      0.055159180000000106,
+      0.05529618199999982,
+      0.060309849999999866,
+      0.05903671400000007,
+      0.0610818569999999
+    ],
+    "integratedBend": [
+      0.022088438999999994,
+      0.0618446130000001,
+      0.10632424400000014,
+      0.026128015000000004,
+      0.029826338999999962,
+      0.023302449000000024,
+      0.02673014599999988,
+      0.029004330999999866,
+      0.024879547000000002
+    ]
+  },
+  "checksum": 1580000,
+  "meanRatio": 0.6119774937755998,
+  "executionParity": true,
+  "scope": "actual compiled residentUpdateOpportunity; alternating identical callers and checksum; CPU11 nonexclusive; no wire latency, budget map or delivery claim"
+}

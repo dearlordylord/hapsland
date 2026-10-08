@@ -88,6 +88,9 @@ async function fixture(t) {
   mkdirSync(resolve(directory, "setup-policy"), { recursive: true })
   writeFileSync(resolve(directory, "setup-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
   writeFileSync(resolve(directory, "setup-policy/core.bend"), "// Setup fixture\n")
+  mkdirSync(resolve(directory, "update-notice-policy"), { recursive: true })
+  writeFileSync(resolve(directory, "update-notice-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
+  writeFileSync(resolve(directory, "update-notice-policy/core.bend"), "// Update notice fixture\n")
   mkdirSync(resolve(directory, "update-policy"), { recursive: true })
   writeFileSync(resolve(directory, "update-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
   writeFileSync(resolve(directory, "update-policy/core.bend"), "// Update fixture\n")
@@ -113,6 +116,7 @@ async function fixture(t) {
     "build-direct-login-policy.mjs",
     "build-login-policy.mjs",
     "build-verification-policy.mjs",
+    "build-update-notice-policy.mjs",
     "build-update-policy.mjs",
     "build-setup-policy.mjs",
     "build-maintenance-policy.mjs",
@@ -129,6 +133,7 @@ async function fixture(t) {
     "direct-login-policy.generated.d.ts",
     "login-policy.generated.d.ts",
     "verification-policy.generated.d.ts",
+    "update-notice-policy.generated.d.ts",
     "update-policy.generated.d.ts",
     "setup-policy.generated.d.ts",
     "maintenance-policy.generated.d.ts",
@@ -147,6 +152,7 @@ async function fixture(t) {
     "direct-login-policy.generated.js",
     "login-policy.generated.js",
     "verification-policy.generated.js",
+    "update-notice-policy.generated.js",
     "update-policy.generated.js",
     "setup-policy.generated.js",
     "maintenance-policy.generated.js",
@@ -207,17 +213,20 @@ for (const text of [
 ])
   test(`rejects unsupported generated loader ${text}`, () =>
     assert.throws(() => bendGeneratedLoaderEvidence(text, "generated.js"), /Unsupported generated Bend loader/))
-test("valid receipt binds actual compiler/support/input bytes and exact twenty-six outputs", async (t) => {
+test("valid receipt binds actual compiler/support/input bytes and exact twenty-eight outputs", async (t) => {
   const f = await fixture(t)
   assert.equal(f.verify().format, 1)
   assert.equal(f.context.toolchain.version, "bend 2.0.36")
   assert.ok(f.context.toolchain.support.inventory.length)
   assert.ok(f.context.toolchain.toolLibraries.length)
-  assert.equal(f.receipt.outputs.length, 26)
+  assert.equal(f.receipt.outputs.length, 28)
 })
 test("Bend-only scheduling replaces a stale PATH task stamp before the scheduler reads it", async (t) => {
   const f = await fixture(t)
-  writeFileSync(resolve(f.root, "package.json"), JSON.stringify({ private: true }))
+  writeFileSync(
+    resolve(f.root, "package.json"),
+    JSON.stringify({ private: true, devDependencies: { turbo: "2.8.17" } })
+  )
   const node = {
     ...f.node,
     directory: "packages/agent-flow-bend",
@@ -231,7 +240,18 @@ test("Bend-only scheduling replaces a stale PATH task stamp before the scheduler
   const stampPath = authoredTaskInputPath(f.root, node)
   assert.equal(JSON.parse(readFileSync(stampPath)).toolchain.environment.PATH, stale.environment.PATH)
   mkdirSync(resolve(f.root, "node_modules/.bin"), { recursive: true })
-  const scheduler = resolve(f.root, "node_modules/.bin/turbo")
+  const binaryName = `@turbo/${process.platform}-${process.arch === "x64" ? "64" : process.arch}`
+  mkdirSync(resolve(f.root, "node_modules/turbo"), { recursive: true })
+  mkdirSync(resolve(f.root, "node_modules", binaryName, "bin"), { recursive: true })
+  writeFileSync(
+    resolve(f.root, "node_modules/turbo/package.json"),
+    JSON.stringify({ version: "2.8.17", optionalDependencies: { [binaryName]: "2.8.17" } })
+  )
+  writeFileSync(
+    resolve(f.root, "node_modules", binaryName, "package.json"),
+    JSON.stringify({ name: binaryName, version: "2.8.17" })
+  )
+  const scheduler = resolve(f.root, "node_modules", binaryName, "bin/turbo")
   writeFileSync(
     scheduler,
     `#!${process.execPath}\nconst fs=require('node:fs');const assert=require('node:assert/strict');const stamp=JSON.parse(fs.readFileSync(${JSON.stringify(stampPath)}));const current=JSON.parse(fs.readFileSync('.test-runs/bend-toolchain.json'));assert.deepEqual(stamp.toolchain,current);assert.equal(stamp.toolchain.environment.PATH,JSON.parse(process.env.HAPSLAND_BEND_PRODUCER_ENV).PATH);fs.writeFileSync('scheduler-observed.json',JSON.stringify(stamp.toolchain));\n`,
@@ -391,6 +411,7 @@ test("Bend producer rejects unconsumed authored input drift and clears owned out
   writeFileSync(resolve(f.directory, "scripts/build-direct-login-policy.mjs"), generator("direct-login-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-login-policy.mjs"), generator("login-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-verification-policy.mjs"), generator("verification-policy"))
+  writeFileSync(resolve(f.directory, "scripts/build-update-notice-policy.mjs"), generator("update-notice-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-update-policy.mjs"), generator("update-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-setup-policy.mjs"), generator("setup-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-maintenance-policy.mjs"), generator("maintenance-policy"))
@@ -424,6 +445,7 @@ for (const file of [
   "direct-login-policy.generated.js",
   "login-policy.generated.js",
   "verification-policy.generated.js",
+  "update-notice-policy.generated.js",
   "update-policy.generated.js",
   "setup-policy.generated.js",
   "maintenance-policy.generated.js",
@@ -434,6 +456,7 @@ for (const file of [
   "direct-login-policy.generated.d.ts",
   "login-policy.generated.d.ts",
   "verification-policy.generated.d.ts",
+  "update-notice-policy.generated.d.ts",
   "update-policy.generated.d.ts",
   "setup-policy.generated.d.ts",
   "maintenance-policy.generated.d.ts",

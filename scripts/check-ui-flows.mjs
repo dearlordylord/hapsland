@@ -95,9 +95,6 @@ export function checkUiFlows(
     const tree = ast(readFileSync(file, "utf8"))
     trees.set(path, tree)
     const parents = new WeakMap()
-    walk(tree, (node, parent) => {
-      if (parent) parents.set(node, parent)
-    })
     const owner = owners.get(path)
     let registered = false
     const serviceNames = new Set(["InteractionService"])
@@ -105,7 +102,8 @@ export function checkUiFlows(
     const childNames = new Set(["childFlow"])
     const journeyNames = new Set(["cliJourney"])
     const childEntries = new Map(Object.entries(entries).map(([id, definition]) => [definition.entry, id]))
-    walk(tree, (node) => {
+    walk(tree, (node, parent) => {
+      if (node.type === "ObjectProperty" && parent) parents.set(node, parent)
       if (node.type === "ImportDeclaration") {
         if (
           /\/flow-input(?:\.ts)?$/.test(node.source.value) &&

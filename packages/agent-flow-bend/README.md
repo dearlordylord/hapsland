@@ -91,6 +91,16 @@ and owner revalidation remain native obligations. The [migration checkpoint](../
 records current timing qualification and finite consumer evidence separately from
 the laws. These measurements do not establish acquisition, owner IO or platform support.
 
+`update-notice-policy/core.bend` owns caller incompatibility, update-notice
+opportunities and budget grant decisions. Three Astra-approved exact laws cover
+all operation and Boolean combinations; the generator compares all 132 finite
+cases before publishing its primitive ABI. The resident protocol and server use
+one shared incompatibility predicate. Wire eligibility requires explicit
+`updateNotice: true`; native request opportunities retain explicit overrides.
+Recipient identity, active-lifetime checking, atomic map pruning, the 1024-key
+capacity and ten-minute expiry remain host obligations. These laws do not prove
+clock behavior, delivery or native concurrency.
+
 `setup-policy/core.bend` owns per-agent setup commands, stage readiness and
 transition plans, including progress ordering, exact approval fences, fresh
 proposals, exit codes and activation before input cancellation. Five

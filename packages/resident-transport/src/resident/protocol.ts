@@ -1,3 +1,7 @@
+import {
+  getUpdateNoticeIncompatible,
+  getUpdateNoticeOpportunity
+} from "@hapsland/canonical-policy/canonical/update-notice-adapter"
 import type { DirectFilePolicy } from "@hapsland/native-observation/direct-event/selection"
 import type { CodexDirectEventOutput } from "@hapsland/delivery-output/direct-event/output"
 import {
@@ -721,13 +725,22 @@ export const residentUpdateRecipient = (request: ResidentRequest): UpdateRecipie
 }
 export const residentUpdateOpportunity = (request: ResidentRequest): boolean => {
   const recipient = residentUpdateRecipient(request)
-  return (
-    request.updateNotice ??
-    (["admit", "admit-and-collect", "edit-policy", "prompt-marker"].includes(request.operation) ||
-      (request.operation === "register-edit" && recipient?.host !== "pi") ||
-      (request.operation === "collect" && request.mode === "ordinary"))
+  return getUpdateNoticeOpportunity(
+    request.updateNotice,
+    request.operation,
+    recipient?.host === "pi",
+    request.operation === "collect" && request.mode === "ordinary"
   )
 }
+export const residentCallerIncompatible = (request: {
+  readonly operation: string
+  readonly hookContract?: number
+}): boolean =>
+  getUpdateNoticeIncompatible(
+    request.operation,
+    request.hookContract !== undefined,
+    request.hookContract === CURRENT_HOOK_CONTRACT
+  )
 /** Encode the current wire contract; the request route remains internal. */
 export const encodeCurrentResidentRequest = (request: ResidentRequest): string => {
   const { requestRoute: _requestRoute, updateNotice: _updateNotice, ...fields } = request
@@ -794,7 +807,7 @@ export const decodeCurrentResidentFrame = (encoded: string) => {
   const envelope = decodeEnvelope(encoded)
   if (Option.isNone(envelope)) return undefined
   const value = envelope.value
-  if (value.operation !== "hello" && value.hookContract !== undefined && value.hookContract !== CURRENT_HOOK_CONTRACT)
+  if (residentCallerIncompatible(value))
     return { kind: "incompatible" as const, recipient: value.updateRecipient, eligible: value.updateNotice === true }
   const request = requestFromEnvelope(value)
   return request === undefined ? undefined : { kind: "request" as const, request }

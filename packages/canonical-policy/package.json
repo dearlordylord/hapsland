@@ -87,6 +87,10 @@
     "./canonical/direct-login-adapter": {
       "types": "./dist/canonical/direct-login-adapter.d.ts",
       "default": "./dist/canonical/direct-login-adapter.js"
+    },
+    "./canonical/update-notice-adapter": {
+      "types": "./dist/canonical/update-notice-adapter.d.ts",
+      "default": "./dist/canonical/update-notice-adapter.js"
     }
   },
   "dependencies": {

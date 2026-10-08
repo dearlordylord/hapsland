@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-08T22:00:37.414246+00:00",
+  "at": "2026-10-08T22:47:43.952233+00:00",
   "branch": "migration/bend-direct-login-resumed",
-  "masterRevision": "56d1f39074276f96a65431ee9a2f5f1b8cea40bf",
+  "masterRevision": "e31dac837d5ccb2e83fe4096b177400d94fd7792",
   "mergedRevision": "0420829352101bbd1728d6947242b58b87e4c6e9",
-  "frontier": "direct stdin login commands/transitions/patch choices in Bend; shared masked-input error isolates offline interpreter from interactive UI",
-  "sliceStatus": "qualified for declared frozen baseline and measurement contexts",
+  "frontier": "resident update-notice incompatibility, opportunity and atomic-budget grant decisions in Bend; native IPC decoding/clock/map effects preserved",
+  "sliceStatus": "qualified for declared frozen e31 baseline and measurement contexts",
   "previousQualifiedCheckpoint": {
     "masterRevision": "bc37e318df95bfff969e6e07f8f45742725e9789",
     "qualification": {
@@ -1990,8 +1990,8 @@
     }
   },
   "nextPerformanceDue": {
-    "build": "2026-10-08T21:21:31.476000+00:00",
-    "execution": "2026-10-08T21:21:51.020000+00:00"
+    "build": "2026-10-08T23:03:45.467000+00:00",
+    "execution": "2026-10-08T23:15:27.253000+00:00"
   },
   "sessionRecovery": "selection-ui-session-recovery.json",
   "directExportCandidate": {
@@ -3367,6 +3367,49 @@
     "evidence": "e31-merge-preparation.json",
     "scope": "bounded source and merge consumers, warm build and hot execution; retained failures and scope exclusions in evidence",
     "nextPerformanceDue": "2026-10-08T22:21:55Z",
+    "goalComplete": false
+  },
+  "currentFrontier": {
+    "evidence": "update-notice-draft.json",
+    "qualification": {
+      "at": "2026-10-08T22:47:43.947716+00:00",
+      "parent": "9bcacf53574a08e5824a16a7f057a6d5b8759e57",
+      "laws": "Astra approved and format reconfirmed exact hashes in formattedApproval",
+      "proofs": true,
+      "mutantsDetected": 6,
+      "producerTestsPassed": 60,
+      "registrationTestsPassed": 8,
+      "focusedTestsPassed": 42,
+      "fastSerial": true,
+      "docsCheck": {
+        "documents": 109,
+        "linkErrors": 0
+      },
+      "productionAuthority": true,
+      "buildEvidence": "update-notice-sparse-build-performance.json",
+      "buildRatio": 0.7969771026466229,
+      "executionEvidence": "update-notice-final-execution.json",
+      "executionRatio": 0.4701556351592663,
+      "installedJourney": {
+        "run": "20261008224537519-3526487-fbe131",
+        "passed": true,
+        "seconds": 51.11,
+        "archiveDigest": "eab3abddc56c1a36581b7fcf94e1523921202fed96e8cd0218923af73abe5f57"
+      },
+      "scope": "pure update-notice kernel and typed native host integration, focused deterministic owners, installed Linux resident update, paired warm workspace build and hot opportunity; no full quality/native agent/Darwin runtime/cold IPC timing claim",
+      "goalComplete": false,
+      "sourceSha256": {
+        "packages/agent-flow-bend/update-notice-policy/core.bend": "d8fa672933b14c59b6e9ce3b870129cfcd6b057822d32c73185faeaf32a37d47",
+        "packages/agent-flow-bend/update-notice-policy/LAWS.bend": "cb98c86b9b78fafc7e8bff5afc99a1fadf522476d5c5ced8c689437b0d9dd50e",
+        "packages/agent-flow-bend/update-notice-policy/PROOF.bend": "bc9ca044ed684e8632217f729ff84e4849fa46e6d3fc4c89621c420f341df52b",
+        "packages/agent-flow-bend/scripts/build-update-notice-policy.mjs": "8b7d5e60eaefe0fe04da98985e64d99774e91d0dde3064e88615fb05f960f6d4",
+        "packages/canonical-policy/src/canonical/update-notice-adapter.ts": "d74db49f48b0dbe00062f88f4c2a8d64fa711444eecf045bb3b128b663cdb92d",
+        "packages/resident-transport/src/resident/protocol.ts": "2e8285b44f1e7671f86c56113d3fa3b79f724f958992294dbb9175b7a2aba450",
+        "packages/resident-runtime/src/resident/server.ts": "369710eebaffdd36a9ed5013933c9eee05d80951a46cbbd4db5b7d86f31095c5",
+        "scripts/check-ui-flows.mjs": "e82028025966bd0ffd41740d653d75e7dbfcb5c9ca294eb8e52bd05f85890f09"
+      }
+    },
+    "nextDirection": "resident request sweep/support/lifetime source-free decisions; draft laws before proofs",
     "goalComplete": false
   }
 }

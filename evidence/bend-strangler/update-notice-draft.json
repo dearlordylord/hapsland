@@ -1,0 +1,186 @@
+{
+  "at": "2026-10-08T22:03:25.427420+00:00",
+  "parent": "9bcacf53",
+  "status": "locally qualified update-notice production frontier; whole migration remains active",
+  "contract": "docs/update-context.md",
+  "lawNames": [
+    "incompatible_exact",
+    "opportunity_exact",
+    "grant_exact"
+  ],
+  "falsification": {
+    "passed": true,
+    "cases": 180,
+    "runner": "update-notice-draft-falsification.mjs",
+    "log": "/tmp/hapsland-update-notice-falsification.log",
+    "scope": "opportunity against actual compiled frozen e31 protocol; route/grant synthetic source-free facts; no universal/native-time/IO claim"
+  },
+  "coreTypeVerdict": {
+    "passed": true,
+    "deadlineSeconds": 5,
+    "log": "/tmp/hapsland-update-notice-core-check.log",
+    "initialAttempt": "bend check unsupported by Bend2; corrected to module --verdict"
+  },
+  "hostObligations": [
+    "exact recipient tuple and reliable subagent identity",
+    "prune budgets with expiry > native now",
+    "grant/update Map atomically under Ref.modify",
+    "capacity bound1024 and native now+600000 timestamp",
+    "inactive lifetime refusal before budget mutation",
+    "typed wire decoding, response payloads and IO remain native"
+  ],
+  "sha256": {
+    "packages/agent-flow-bend/update-notice-policy/core.bend": "f0c64634ed8c6c1def89f42dbb2a8a3c00b84fa9e87e34946b3aa740c7aec9f6",
+    "packages/agent-flow-bend/update-notice-policy/LAWS.bend": "9155b71dd0bbdc8dfceb99d30416f9c7639c4b42a31966562bbcbfbbe58131be",
+    "packages/resident-transport/src/resident/protocol.ts": "63f8b4a9e0ca6af815dbe9225d8a97e8472043aba5993a07d371a264585373f9",
+    "packages/resident-runtime/src/resident/server.ts": "e511411a22839aafaa76503de7c869dbfb74641547decdfaaa4e53116cf8c8a3"
+  },
+  "approval": {
+    "at": "2026-10-08T22:04:24.730170+00:00",
+    "reviewer": "/root/astra_selection_law_review",
+    "approved": [
+      "incompatible_exact",
+      "opportunity_exact",
+      "grant_exact"
+    ],
+    "coreSha256": "f0c64634ed8c6c1def89f42dbb2a8a3c00b84fa9e87e34946b3aa740c7aec9f6",
+    "lawsSha256": "9155b71dd0bbdc8dfceb99d30416f9c7639c4b42a31966562bbcbfbbe58131be",
+    "integrationObligations": [
+      "same incompatibility authority for decodeCurrentResidentFrame duplicate",
+      "wire envelope updateNotice === true, absence false; no automatic defaults there",
+      "missing recipient or ineligible request skips budget mutation",
+      "denied grant preserves pruned map"
+    ]
+  },
+  "proof": {
+    "passed": true,
+    "deadlineSeconds": 5,
+    "verdict": "ALL PROOFS CHECK",
+    "sha256": "bc9ca044ed684e8632217f729ff84e4849fa46e6d3fc4c89621c420f341df52b",
+    "log": "/tmp/hapsland-update-notice-proof-exhaustive.log",
+    "earlierFailure": "wildcard Boolean proof cases did not reduce multi-match spec; changed proof case split only, laws unchanged"
+  },
+  "next": "mutation sensitivity, generated specialization and checked bridge, replace production pure decisions including decoder duplicate, then consumer/performance qualification",
+  "integration": {
+    "at": "2026-10-08T22:19:36.855938+00:00",
+    "astraStaticReconfirmation": "approved; shared incompatibility; wire explicit true; exact tuple; expiry>now, capacity1024, cooldown600000 and atomic Ref.modify preserved; snapshot lifecycle only, no strengthened concurrency claim",
+    "producerTests": {
+      "passed": 60,
+      "log": "/tmp/hapsland-update-notice-producer-final.log",
+      "initialFailures": [
+        "output inventory ordering corrected",
+        "fixture missing new generator corrected",
+        "master pinned-Turbo fixture updated"
+      ]
+    },
+    "focused": {
+      "passed": 42,
+      "run": "20261008221452915-3413004-52ec2c",
+      "files": [
+        "src/resident/protocol.test.ts",
+        "src/resident/runtime.test.ts",
+        "src/hooks/program.test.ts"
+      ]
+    },
+    "nativeBundle": "bdb3b887df35ba1a1daf3e9a46bda9432a36a577de901394cc1e912a14e082f7",
+    "execution": "update-notice-performance.json",
+    "build": "update-notice-build-performance.json",
+    "buildQualified": false,
+    "formatting": "core/laws formatted; awaiting Astra hash reconfirmation"
+  },
+  "formattedApproval": {
+    "at": "2026-10-08T22:23:53.653153+00:00",
+    "reviewer": "Astra",
+    "core": "d8fa672933b14c59b6e9ce3b870129cfcd6b057822d32c73185faeaf32a37d47",
+    "laws": "cb98c86b9b78fafc7e8bff5afc99a1fadf522476d5c5ced8c689437b0d9dd50e",
+    "proof": "bc9ca044ed684e8632217f729ff84e4849fa46e6d3fc4c89621c420f341df52b",
+    "proofRerun": "ALL PROOFS CHECK within5sec",
+    "mutationRerun": "all six detected"
+  },
+  "phaseDiagnostic": {
+    "scope": "temporary instrumented copies of each checkout own build script, CPU11; cold candidate preparation separate from warm diagnostic; no parity claim",
+    "candidateWarm": {
+      "uiPreflight": 2.747533267,
+      "lockAdmission": 0.015348126,
+      "configuration": 0.027887645,
+      "bendToolchain": 0.584380831,
+      "taskInputs": 0.552818864,
+      "turbo": 3.335098707
+    },
+    "baselineWarm": {
+      "uiPreflight": 2.190590036,
+      "lockAdmission": 0.013304568,
+      "configuration": 0.040087495,
+      "bendToolchain": 0.480793399,
+      "taskInputs": 0.722559839,
+      "turbo": 2.265246939
+    },
+    "interpretation": "initial high durations were not lock waits; variation before and within Turbo; no verified cause yet"
+  },
+  "sparseParents": {
+    "experiment": "update-notice-sparse-parents-experiment.json",
+    "tests": 8,
+    "consumerBuild": {
+      "passed": true,
+      "cachedTasks": 23,
+      "totalTasks": 46
+    },
+    "fastSerial": true,
+    "fastConcurrentAttempt": "invalid preparation sequencing: typecheck observed dist cleanup; missing exports; rerun serial passed",
+    "build": "update-notice-sparse-build-performance.json",
+    "buildParity": true
+  },
+  "archiveAttempts": [
+    {
+      "run": "20261008223448731-3492726-c517fe",
+      "status": "aborted at360s during final CLI assembly",
+      "testFailures": 0,
+      "scope": "no archive or installed qualification",
+      "shutdown": "lease/group/lock removed by normal cleanup; empty admission directory remains; reconciliation refuses incomplete owner but no retained custody records"
+    },
+    {
+      "run": "20261008224157145-3516044-9e5def",
+      "status": "passed",
+      "seconds": 199.615,
+      "archiveDigest": "eab3abddc56c1a36581b7fcf94e1523921202fed96e8cd0218923af73abe5f57"
+    }
+  ],
+  "finalQualification": {
+    "at": "2026-10-08T22:47:43.947716+00:00",
+    "parent": "9bcacf53574a08e5824a16a7f057a6d5b8759e57",
+    "laws": "Astra approved and format reconfirmed exact hashes in formattedApproval",
+    "proofs": true,
+    "mutantsDetected": 6,
+    "producerTestsPassed": 60,
+    "registrationTestsPassed": 8,
+    "focusedTestsPassed": 42,
+    "fastSerial": true,
+    "docsCheck": {
+      "documents": 109,
+      "linkErrors": 0
+    },
+    "productionAuthority": true,
+    "buildEvidence": "update-notice-sparse-build-performance.json",
+    "buildRatio": 0.7969771026466229,
+    "executionEvidence": "update-notice-final-execution.json",
+    "executionRatio": 0.4701556351592663,
+    "installedJourney": {
+      "run": "20261008224537519-3526487-fbe131",
+      "passed": true,
+      "seconds": 51.11,
+      "archiveDigest": "eab3abddc56c1a36581b7fcf94e1523921202fed96e8cd0218923af73abe5f57"
+    },
+    "scope": "pure update-notice kernel and typed native host integration, focused deterministic owners, installed Linux resident update, paired warm workspace build and hot opportunity; no full quality/native agent/Darwin runtime/cold IPC timing claim",
+    "goalComplete": false,
+    "sourceSha256": {
+      "packages/agent-flow-bend/update-notice-policy/core.bend": "d8fa672933b14c59b6e9ce3b870129cfcd6b057822d32c73185faeaf32a37d47",
+      "packages/agent-flow-bend/update-notice-policy/LAWS.bend": "cb98c86b9b78fafc7e8bff5afc99a1fadf522476d5c5ced8c689437b0d9dd50e",
+      "packages/agent-flow-bend/update-notice-policy/PROOF.bend": "bc9ca044ed684e8632217f729ff84e4849fa46e6d3fc4c89621c420f341df52b",
+      "packages/agent-flow-bend/scripts/build-update-notice-policy.mjs": "8b7d5e60eaefe0fe04da98985e64d99774e91d0dde3064e88615fb05f960f6d4",
+      "packages/canonical-policy/src/canonical/update-notice-adapter.ts": "d74db49f48b0dbe00062f88f4c2a8d64fa711444eecf045bb3b128b663cdb92d",
+      "packages/resident-transport/src/resident/protocol.ts": "2e8285b44f1e7671f86c56113d3fa3b79f724f958992294dbb9175b7a2aba450",
+      "packages/resident-runtime/src/resident/server.ts": "369710eebaffdd36a9ed5013933c9eee05d80951a46cbbd4db5b7d86f31095c5",
+      "scripts/check-ui-flows.mjs": "e82028025966bd0ffd41740d653d75e7dbfcb5c9ca294eb8e52bd05f85890f09"
+    }
+  }
+}

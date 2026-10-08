@@ -17,6 +17,9 @@
       "path": "../activity-observation/tsconfig.json"
     },
     {
+      "path": "../canonical-policy/tsconfig.json"
+    },
+    {
       "path": "../delivery-output/tsconfig.json"
     },
     {

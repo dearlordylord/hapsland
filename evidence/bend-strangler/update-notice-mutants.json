@@ -1,0 +1,48 @@
+{
+  "scope": "six changed core decisions; unchanged approved laws and universal proofs; each rejection in its own law section; no production/native-host mutation claim",
+  "passed": true,
+  "records": [
+    {
+      "name": "hello-refused",
+      "law": "incompatible_exact",
+      "exitCode": 1,
+      "detected": true,
+      "output": "SOME PROOFS FAIL\nError:\n- expected : True{}\n- observed : False{}\nLocation: Laws.incompatible_exact\n6 |   match operation present current:\n7>|     case Core.Hello{} False{} False{}: {==}\n  |                                        ^^^^\n8 |     case Core.Hello{} False{} True{}: {==}\n"
+    },
+    {
+      "name": "missing-contract-refused",
+      "law": "incompatible_exact",
+      "exitCode": 1,
+      "detected": true,
+      "output": "SOME PROOFS FAIL\nError:\n- expected : True{}\n- observed : False{}\nLocation: Laws.incompatible_exact\n10 |     case Core.Hello{} True{} True{}: {==}\n11>|     case Core.Admit{} False{} False{}: {==}\n   |                                        ^^^^\n12 |     case Core.Admit{} False{} True{}: {==}\n"
+    },
+    {
+      "name": "explicit-false-ignored",
+      "law": "opportunity_exact",
+      "exitCode": 1,
+      "detected": true,
+      "output": "SOME PROOFS FAIL\nError:\n- expected : True{}\n- observed : value\nContext:\n- value     : Bool\n- operation : Core.Operation\n- pi        : Bool\n- ordinary  : Bool\nLocation: Laws.opportunity_exact\n41 |   match override operation pi ordinary:\n42>|     case Core.Explicit{value} _ _ _: {==}\n   |                                      ^^^^\n43 |     case Core.Automatic{} Core.Hello{} False{} False{}: {==}\n"
+    },
+    {
+      "name": "pi-register-eligible",
+      "law": "opportunity_exact",
+      "exitCode": 1,
+      "detected": true,
+      "output": "SOME PROOFS FAIL\nError:\n- expected : True{}\n- observed : False{}\nLocation: Laws.opportunity_exact\n64 |     case Core.Automatic{} Core.RegisterEdit{} False{} True{}: {==}\n65>|     case Core.Automatic{} Core.RegisterEdit{} True{} False{}: {==}\n   |                                                               ^^^^\n66 |     case Core.Automatic{} Core.RegisterEdit{} True{} True{}: {==}\n"
+    },
+    {
+      "name": "duplicate-granted",
+      "law": "grant_exact",
+      "exitCode": 1,
+      "detected": true,
+      "output": "SOME PROOFS FAIL\nError:\n- expected : True{}\n- observed : False{}\nLocation: Laws.grant_exact\n79 |     case False{} True{}: {==}\n80>|     case True{} False{}: {==}\n   |                          ^^^^\n81 |     case True{} True{}: {==}\n"
+    },
+    {
+      "name": "capacity-ignored",
+      "law": "grant_exact",
+      "exitCode": 1,
+      "detected": true,
+      "output": "SOME PROOFS FAIL\nError:\n- expected : True{}\n- observed : False{}\nLocation: Laws.grant_exact\n78 |     case False{} False{}: {==}\n79>|     case False{} True{}: {==}\n   |                          ^^^^\n80 |     case True{} False{}: {==}\n"
+    }
+  ]
+}

@@ -36,7 +36,8 @@
     "@hapsland/native-observation": "workspace:*",
     "@hapsland/runtime-environment": "workspace:*",
     "@hapsland/runtime-inputs": "workspace:*",
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "@hapsland/canonical-policy": "workspace:*"
   },
   "scripts": {
     "build": "node ../../scripts/compile-package.mjs",

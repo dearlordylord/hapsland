@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node ../../scripts/bend-producer.mjs",
-    "test": "node --test ../../scripts/bend-compiler-version.test.mjs && node scripts/build-import-graph.mjs && node scripts/build-canonical.mjs && node scripts/check-progress.mjs && node scripts/check-content-isolation.mjs && node scripts/build-credential-policy.mjs && node scripts/build-login-policy.mjs && node scripts/build-verification-policy.mjs && node scripts/build-update-policy.mjs && node scripts/build-setup-policy.mjs && node scripts/build-maintenance-policy.mjs && node scripts/build-rules-policy.mjs && node scripts/build-setup-selection-policy.mjs && node scripts/build-selection-ui-policy.mjs && node scripts/build-direct-login-policy.mjs && bend PROOF.bend && bend import-graph-proof/PROOF.bend --verdict && bend PolicyRuntime.bend && node scripts/check-lifecycle.mjs && node --experimental-strip-types scripts/check-import-graph.mjs && node --experimental-strip-types scripts/check-canonical.mjs && node --experimental-strip-types scripts/check-jev-request.mjs",
+    "test": "node --test ../../scripts/bend-compiler-version.test.mjs && node scripts/build-import-graph.mjs && node scripts/build-canonical.mjs && node scripts/check-progress.mjs && node scripts/check-content-isolation.mjs && node scripts/build-credential-policy.mjs && node scripts/build-login-policy.mjs && node scripts/build-verification-policy.mjs && node scripts/build-update-notice-policy.mjs && node scripts/build-update-policy.mjs && node scripts/build-setup-policy.mjs && node scripts/build-maintenance-policy.mjs && node scripts/build-rules-policy.mjs && node scripts/build-setup-selection-policy.mjs && node scripts/build-selection-ui-policy.mjs && node scripts/build-direct-login-policy.mjs && bend PROOF.bend && bend import-graph-proof/PROOF.bend --verdict && bend PolicyRuntime.bend && node scripts/check-lifecycle.mjs && node --experimental-strip-types scripts/check-import-graph.mjs && node --experimental-strip-types scripts/check-canonical.mjs && node --experimental-strip-types scripts/check-jev-request.mjs",
     "test:import-graph": "node scripts/build-import-graph.mjs && bend PROOF.bend && bend import-graph-proof/PROOF.bend --verdict && node --experimental-strip-types scripts/check-import-graph.mjs",
     "test:canonical": "node scripts/build-canonical.mjs && node scripts/check-progress.mjs && bend PROOF.bend && node --experimental-strip-types scripts/check-canonical.mjs && node --experimental-strip-types scripts/check-jev-request.mjs",
     "test:progress": "node scripts/check-progress.mjs",
@@ -64,6 +64,10 @@
     "./direct-login-policy": {
       "types": "./dist/direct-login-policy.generated.d.ts",
       "default": "./dist/direct-login-policy.generated.js"
+    },
+    "./update-notice-policy": {
+      "types": "./dist/update-notice-policy.generated.d.ts",
+      "default": "./dist/update-notice-policy.generated.js"
     }
   },
   "hapsland": {
@@ -85,7 +89,8 @@
       "./rules-policy": "./abi/rules-policy.generated.d.ts",
       "./setup-selection-policy": "./abi/setup-selection-policy.generated.d.ts",
       "./selection-ui-policy": "./abi/selection-ui-policy.generated.d.ts",
-      "./direct-login-policy": "./abi/direct-login-policy.generated.d.ts"
+      "./direct-login-policy": "./abi/direct-login-policy.generated.d.ts",
+      "./update-notice-policy": "./abi/update-notice-policy.generated.d.ts"
     },
     "loaderPolicies": {
       "dist/canonical.generated.js": "bend-system-ffi",
@@ -100,7 +105,8 @@
       "dist/rules-policy.generated.js": "bend-system-ffi",
       "dist/setup-selection-policy.generated.js": "bend-system-ffi",
       "dist/selection-ui-policy.generated.js": "bend-system-ffi",
-      "dist/direct-login-policy.generated.js": "bend-system-ffi"
+      "dist/direct-login-policy.generated.js": "bend-system-ffi",
+      "dist/update-notice-policy.generated.js": "bend-system-ffi"
     },
     "toolchain": {
       "bend": {

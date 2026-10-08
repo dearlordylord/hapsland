@@ -455,6 +455,12 @@ it("identifies incompatible removed operations through the bounded caller header
     recipient: caller,
     eligible: true
   })
+  for (const updateNotice of [undefined, false])
+    expect(decodeCurrentResidentFrame(JSON.stringify({ ...wire, updateNotice }))).toEqual({
+      kind: "incompatible",
+      recipient: caller,
+      eligible: false
+    })
   expect(decodeCurrentResidentRequest(JSON.stringify(wire))).toBeUndefined()
   expect(decodeCurrentResidentFrame(JSON.stringify({ ...wire, hookContract: 1 }))).toBeUndefined()
   expect(
