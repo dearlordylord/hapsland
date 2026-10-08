@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { childFlow } from "@hapsland/administration/interaction/flow-input"
 import { InteractionService } from "@hapsland/administration/interaction/interaction"
 import { controlledOptions } from "@hapsland/resident-transport/resident/controlled-options"
 import {
@@ -1036,7 +1037,7 @@ const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClien
               ...configuration,
               onProgress,
               credentialConversation: (settings) =>
-                runLoginConversation().pipe(
+                childFlow("setup", "login", runLoginConversation()).pipe(
                   Effect.provideService(InteractionService, interaction),
                   Effect.provide(
                     credentialLoginLayer({
@@ -1165,26 +1166,9 @@ const setupClientChoice = Effect.fn("InteractiveSetup.clientChoice")(function* (
   const status = yield* currentClientStatus(fields, initialClientStatus(decoded))
   return { host, name: CLIENT_NAMES[host], status }
 })
-const setupSelectedClients = Effect.fn("InteractiveSetup.selectedClients")(function* (
-  hosts: ReadonlyArray<SetupClient>
-) {
-  for (const host of hosts) {
-    const result = yield* pilotSetup(host).pipe(
-      Effect.catchDefect((cause) => Effect.fail(cause)),
-      Effect.result
-    )
-    if (result._tag === "Failure") {
-      process.stderr.write(`${host}: ${localFailureMessage(result.failure)}\n`)
-      process.exitCode = 6
-      return "cancelled" as const
-    }
-    if (result.success.kind !== "completed") return result.success.kind
-  }
-  return "completed" as const
-})
 const chooseSetupClients = Effect.fn("InteractiveSetup.chooseClients")(function* () {
-  const { selectSetupClients } = yield* Effect.promise(
-    () => import("@hapsland/administration/onboarding/client-selection")
+  const { runSetupSelection } = yield* Effect.promise(
+    () => import("@hapsland/administration/onboarding/setup-selection")
   )
   if (!process.stdin.isTTY || !process.stderr.isTTY)
     throw new Error("Guided setup needs a terminal. Use --setup JSON for automation.")
@@ -1195,22 +1179,20 @@ const chooseSetupClients = Effect.fn("InteractiveSetup.chooseClients")(function*
   )
   yield* withInteractionSession(
     (input) =>
-      Effect.gen(function* () {
-        let selected: SetupClient[] | undefined
-        while (true) {
-          const hosts = yield* selectSetupClients(choices, selected)
-          if (hosts.length === 0) {
-            process.stderr.write(
-              selected === undefined
-                ? "No clients selected. No changes made.\n"
-                : "No agents selected. Previously reported results remain.\n"
-            )
-            return
+      runSetupSelection(choices, (host) =>
+        Effect.gen(function* () {
+          const result = yield* pilotSetup(host).pipe(
+            Effect.catchDefect((cause) => Effect.fail(cause)),
+            Effect.result
+          )
+          if (result._tag === "Failure") {
+            process.stderr.write(`${host}: ${localFailureMessage(result.failure)}\n`)
+            process.exitCode = 6
+            return "cancelled" as const
           }
-          selected = hosts
-          if ((yield* setupSelectedClients(hosts)) !== "back") return
-        }
-      }).pipe(Effect.provideService(InteractionService, input)),
+          return result.success.kind
+        })
+      ).pipe(Effect.provideService(InteractionService, input)),
     Effect.sync(() => {
       process.exitCode = 130
     })

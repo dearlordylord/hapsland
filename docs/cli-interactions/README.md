@@ -1,26 +1,67 @@
 # CLI interaction surfaces and acceptance
 
-**Purpose:** Inventory the human-input surfaces, deliberate exceptions and evidence required for #244.
+**Purpose:** Inventory every registered administration terminal flow, shared input fragment, deliberate direct-command exception and its generated documentation.
 **Status:** Production integration and prototype consolidation completed; observed validation limits remain explicit below.
 **Authority:** Maintained implementation and validation inventory. [#244](https://github.com/dearlordylord/hapsland/issues/244) and the linked domain contracts own required behavior; test results establish only their executed scope.
-**Expected use:** Locate each workflow and its checks, and audit every row before declaring integration complete.
+**Expected use:** Locate workflow diagrams and prompt owners; use the source preflight and replay freshness checks before accepting UI changes.
 **Lifecycle:** Update when a CLI input surface, owner, scenario or validation result changes. Review all rows before closing #244 and when adding another interactive command.
 
 The [architecture decision](../adr/0004-administration-cli-interactions.md) defines ownership, consent and Effect lifetime. Installation and credential behavior remain governed by [installation workflows](../installation-workflows.md). The [testing matrix](../testing-matrix.md) determines required checks.
 
-| Surface | Production disposition | Behavior evidence owner | Replay documentation |
+`node scripts/check-ui-flows.mjs` checks source registration without building dependencies. The supported TypeScript compiler and workspace-build entries run it before compiling. The product build runs every registered replay and rejects stale Markdown before assembling a release. The [architecture decision](../adr/0004-administration-cli-interactions.md) records the enforcement boundary. [Flow-contract tests](../../scripts/check-ui-flows.test.mjs) exercise missing registrations, diagrams and generators against the real compiler/replay entries; [production replay checks](../../src/onboarding/ui-flow-diagrams.test.ts) run every registered interpreter.
+
+<!-- ui-flow-inventory:start -->
+
+This inventory and connection graph derive from the closed [production registry](../../packages/administration/src/interaction/flow-registry.ts). Connections declare interpreter composition; workflow diagrams below derive from actual named replays. Neither graph establishes exhaustive transition coverage or physical terminal support.
+
+```mermaid
+flowchart TD
+  setup_selection["setup-selection"]
+  setup_selection -->|"subflow"| setup
+  setup["setup"]
+  setup -->|"subflow"| login
+  setup -->|"subflow"| verification
+  login["login"]
+  verification["verification"]
+  rules["rules"]
+  update["update"]
+  maintenance["maintenance"]
+  fragment_credential_entry["credential-entry shared input"]
+  login -.-> fragment_credential_entry
+  verification -.-> fragment_credential_entry
+  fragment_agent_selection["agent-selection shared input"]
+  setup_selection -.-> fragment_agent_selection
+  direct_interactive_json_setup["interactive-json-setup"] -->|"authorized terminal subflow"| login
+```
+
+| Workflow | Production entry | Registered prompt kinds | Generated documentation |
 | --- | --- | --- | --- |
-| Bare setup / agent selection | Shared selection, then per-agent setup; Back preserves current selection | [selection](../../src/onboarding/client-selection.test.ts), [terminal setup](../../src/onboarding/interactive.test.ts) | Selection transport is tested independently; [setup](setup.md) covers each selected agent's conversation |
-| Explicit-client setup / pilot command | Setup reducer and Effect owner service; separate hook and default-rule approval | [pilot](../../src/onboarding/pilot.test.ts), [setup owner](../../src/onboarding/setup.test.ts) | [Setup](setup.md) |
-| Credential verification / replacement | Source-aware reducer; separate saving and paid-check consent; bounded requests | [verification](../../src/onboarding/credential-verification.test.ts), [native storage seam](../../src/onboarding/credential-verification-storage.test.ts) | [Verification](verification.md) |
-| Rules mutation | Project/Personal selection, actual owner preview and digest-bound approval | [rules interaction](../../src/rules/interaction.test.ts), [rules CLI](../../src/rules/cli.test.ts) | [Rules](rules.md) |
-| Update | All applicable previews precede grouped approval; per-agent outcomes and activation remain distinct | [update](../../src/onboarding/update.test.ts), [terminal lifecycle](../../src/onboarding/interactive.test.ts) | [Update](update.md) |
-| Repair / reinstall / uninstall | Inspected recovery operation and per-agent approval | [maintenance](../../src/onboarding/maintenance.test.ts), [terminal lifecycle](../../src/onboarding/interactive.test.ts) | [Maintenance](maintenance.md) |
-| Interactive login | Destination selection and owner-bound approval with scoped hidden capture | [login interaction](../../src/credentials/login-interaction.test.ts), [file saving](../../src/credentials/file-saving.test.ts), [credential process/TTY](../../src/credentials/cli.test.ts) | [Login](login.md) |
-| Explicit interactive JSON setup | Structured request remains on stdin; authorized key entry uses the controlling terminal | [setup process/TTY](../../src/onboarding/setup.test.ts), [installed setup](../../scripts/run-setup-package-conformance.mjs) | Deliberate structured-input exception; no invented dialog states |
-| Credential-stdin / logout | Explicit direct commands; no unsolicited dialog | [credential CLI](../../src/credentials/cli.test.ts) | Deliberate direct-input/output exceptions |
-| Doctor / rules list, show and explain / dashboard | Direct inspection; no wizard | [CLI parser](../../src/cli-command.test.ts), [rules CLI](../../src/rules/cli.test.ts), [dashboard HTTP](../../src/inspection/http.test.ts) | Deliberate inspection exceptions |
-| Ordinary JSON / unattended setup | Version-one request and explicit preview/apply contracts preserved | [CLI](../../src/cli.test.ts), [setup](../../src/onboarding/setup.test.ts), [unattended owner](../../packages/administration/src/onboarding/unattended.ts) | Deliberate automation exceptions |
+| setup-selection | [runSetupSelection](../../packages/administration/src/onboarding/setup-selection.ts) | chooseMany | [Replay diagram](setup-selection.md) |
+| setup | [runPilotSetup](../../packages/administration/src/onboarding/pilot.ts) | confirm | [Replay diagram](setup.md) |
+| login | [runLoginConversation](../../packages/administration/src/credentials/login-conversation.ts) | choose, confirm | [Replay diagram](login.md) |
+| verification | [runVerificationConversation](../../packages/administration/src/onboarding/verification-conversation.ts) | choose, confirm | [Replay diagram](verification.md) |
+| rules | [runRuleConversation](../../packages/administration/src/rules/conversation.ts) | choose, confirm | [Replay diagram](rules.md) |
+| update | [updateClients](../../packages/administration/src/onboarding/update.ts) | choose, confirm | [Replay diagram](update.md) |
+| maintenance | [maintainClients](../../packages/administration/src/onboarding/maintenance.ts) | choose, confirm | [Replay diagram](maintenance.md) |
+
+Shared input fragments belong to registered parent workflows; they cannot introduce a standalone conversation without their own workflow registration and replay generator.
+
+| Shared fragment | Production entry | Parent diagrams |
+| --- | --- | --- |
+| credential-entry | [captureCredential](../../packages/administration/src/credentials/masked-input.ts) | [login](login.md), [verification](verification.md) |
+| agent-selection | [selectSetupClients](../../packages/administration/src/onboarding/client-selection.ts) | [setup-selection](setup-selection.md) |
+
+Direct input/output exceptions have no invented dialog states. Any human prompt they add must use a registered workflow; interactive JSON setup delegates to login explicitly.
+
+| Direct exception | Production entry | Reason and boundary |
+| --- | --- | --- |
+| interactive-json-setup | [runJsonSetup](../../packages/cli-entry/src/cli.ts) | JSON stays on stdin; explicitly authorized input uses the registered login flow on the controlling terminal. |
+| credential-stdin | [runDirectCredentialInput](../../packages/administration/src/credentials/direct-input.ts) | Explicit direct native-save automation; no dialog. |
+| logout | [logoutSavedCredential](../../packages/cli-entry/src/cli.ts) | Direct native deletion; no dialog. |
+| inspection | [runOperation](../../packages/cli-entry/src/cli.ts) | Doctor, rules inspection and dashboard report observations without input dialogs. |
+| unattended-setup | [runUnattendedSetup](../../packages/administration/src/onboarding/unattended.ts) | Version-one preview/apply authorization is supplied as structured input; no implicit terminal consent. |
+
+<!-- ui-flow-inventory:end -->
 
 ## Observed integration evidence
 
@@ -42,7 +83,7 @@ The installed checks above used archive SHA-256 `916fc05605c9bf631a7178b104841d0
 
 On 2026-10-07 the owner accepted the completed full-quality attempt plus focused validation of its diagnosed complexity failure for #244, and directed continuation without another full run. This closes the separate full-run condition for this integration; it does not establish fresh full-project coverage or a passing final CRAP analysis. Those stages did not execute. Repository quality thresholds, missing-evidence policy and future gate requirements are unchanged.
 
-Adopted interaction decisions now live in the architecture decision, installation workflows and configuration guide. Production workflow tests and all six generators own the retained behavior and diagrams. The #244 setup-interaction prototype and superseded proposal have been removed; Git history retains the experiments. Unrelated prototypes are outside this cleanup.
+Adopted interaction decisions now live in the architecture decision, installation workflows and configuration guide. Production workflow tests and the closed registry’s replay generators own the retained behavior and diagrams. The #244 setup-interaction prototype and superseded proposal have been removed; Git history retains the experiments. Unrelated prototypes are outside this cleanup.
 
 Visual readability remains an owner assessment, distinct from programmatic PTY acceptance. The archive identities and installed-execution limits above remain unchanged.
 

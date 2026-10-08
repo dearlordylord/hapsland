@@ -1,6 +1,6 @@
 import type { SUPPORTED_CLIENTS } from "@hapsland/runtime-environment/runtime/agent-clients"
 import { Effect } from "effect"
-import { InteractionService } from "../interaction/interaction.ts"
+import { flowInteraction } from "../interaction/flow-input.ts"
 
 export type SetupClient = (typeof SUPPORTED_CLIENTS)[number]
 export type ClientChoice = {
@@ -14,7 +14,7 @@ export const selectSetupClients = Effect.fn("ClientSelection.select")(function* 
   choices: ReadonlyArray<ClientChoice>,
   selected?: ReadonlyArray<SetupClient>
 ) {
-  const interaction = yield* InteractionService
+  const interaction = yield* flowInteraction("agent-selection")
   yield* interaction.present("Unchecking an agent keeps its existing installation.\n")
   const answer = yield* interaction
     .chooseMany({

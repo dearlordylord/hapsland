@@ -5,6 +5,7 @@ import { InteractionService } from "@hapsland/administration/interaction/interac
 import {
   runVerificationConversation,
   VerificationOwnerService,
+  type VerificationOwner,
   type VerificationTransition
 } from "@hapsland/administration/onboarding/verification-conversation"
 import type { KeyVerification } from "@hapsland/administration/onboarding/verification-model"
@@ -70,7 +71,7 @@ export const generateVerificationDiagram = Effect.gen(function* () {
     }).pipe(
       Effect.provideService(InteractionService, script.interaction),
       Effect.provideService(VerificationOwnerService, {
-        read: Effect.succeed({
+        read: Effect.succeed<Effect.Success<VerificationOwner["read"]>>({
           provider: name === "other-provider" ? "cloudflare" : "jev",
           guidance: [],
           credential:

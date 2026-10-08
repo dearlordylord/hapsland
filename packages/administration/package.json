@@ -108,10 +108,6 @@
       "types": "./dist/onboarding/codex-installation.d.ts",
       "default": "./dist/onboarding/codex-installation.js"
     },
-    "./onboarding/confirmation": {
-      "types": "./dist/onboarding/confirmation.d.ts",
-      "default": "./dist/onboarding/confirmation.js"
-    },
     "./onboarding/credential-diagnostics": {
       "types": "./dist/onboarding/credential-diagnostics.d.ts",
       "default": "./dist/onboarding/credential-diagnostics.js"
@@ -283,6 +279,18 @@
     "./credentials/direct-login-model": {
       "types": "./dist/credentials/direct-login-model.d.ts",
       "default": "./dist/credentials/direct-login-model.js"
+    },
+    "./interaction/flow-registry": {
+      "types": "./dist/interaction/flow-registry.d.ts",
+      "default": "./dist/interaction/flow-registry.js"
+    },
+    "./interaction/flow-input": {
+      "types": "./dist/interaction/flow-input.d.ts",
+      "default": "./dist/interaction/flow-input.js"
+    },
+    "./onboarding/setup-selection": {
+      "types": "./dist/onboarding/setup-selection.d.ts",
+      "default": "./dist/onboarding/setup-selection.js"
     }
   },
   "dependencies": {

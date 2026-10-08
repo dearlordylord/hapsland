@@ -4,6 +4,7 @@ import { InteractionService } from "@hapsland/administration/interaction/interac
 import {
   maintainClients,
   MaintenanceOwnerService,
+  type MaintenanceOwner,
   type MaintenanceTransition
 } from "@hapsland/administration/onboarding/maintenance"
 import type { MaintenanceCommand } from "@hapsland/administration/onboarding/maintenance-model"
@@ -58,7 +59,10 @@ export const generateMaintenanceDiagram = Effect.gen(function* () {
     }).pipe(
       Effect.provideService(InteractionService, script.interaction),
       Effect.provideService(MaintenanceOwnerService, {
-        discover: Effect.succeed({ hosts: name === "empty-reinstall" ? [] : ["codex"], failures: [] }),
+        discover: Effect.succeed<Effect.Success<MaintenanceOwner["discover"]>>({
+          hosts: name === "empty-reinstall" ? [] : ["codex"],
+          failures: []
+        }),
         fields: (host) => profileFields(host, new Map()),
         inspect: () =>
           Effect.succeed({

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import type { Exit } from "effect"
 import { Effect } from "effect"
 import { InteractionService } from "@hapsland/administration/interaction/interaction"
 import {
@@ -117,7 +118,7 @@ export const generateSetupDiagram = Effect.gen(function* () {
               )
             }
           : complete
-    const result = yield* runPilotSetup(
+    const result: Exit.Exit<Effect.Success<ReturnType<typeof runPilotSetup>>, unknown> = yield* runPilotSetup(
       { terminal: true, host: "codex", fields: { host: "codex" }, cwd: "/controlled", platform: "linux" },
       {
         observe: (transition) =>
@@ -128,7 +129,7 @@ export const generateSetupDiagram = Effect.gen(function* () {
     ).pipe(
       Effect.provideService(InteractionService, script.interaction),
       Effect.provideService(SetupOwnerService, {
-        run: (request, _entered, progress) =>
+        run: (request, _entered, progress): ReturnType<SetupOwner["run"]> =>
           Effect.sync(() => {
             requests.push(request)
             if (!request.interactive) {

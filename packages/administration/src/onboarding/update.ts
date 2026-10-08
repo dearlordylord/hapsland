@@ -1,3 +1,4 @@
+import { flowInteraction } from "../interaction/flow-input.ts"
 import { Context, Effect, Exit, Layer } from "effect"
 import { formatOutcome, formatStatusOutcome } from "./human-output.ts"
 import { profileFields } from "./client-command.ts"
@@ -9,7 +10,6 @@ import {
   registeredClients
 } from "./client-lifecycle.ts"
 import type { SetupClient } from "./client-selection.ts"
-import { InteractionService } from "../interaction/interaction.ts"
 import {
   initialUpdate,
   reduceUpdate,
@@ -93,7 +93,7 @@ const previewObservation = (preview: LifecycleResult): PreviewObservation => {
 export const updateClients = Effect.fn("Update.clients")(function* (options: UpdateOptions) {
   if (!options.terminal) return yield* Effect.fail(new Error(UPDATE_TERMINAL_REQUIRED))
   const owner = yield* UpdateOwnerService
-  const interaction = yield* InteractionService
+  const interaction = yield* flowInteraction("update")
   let model = initialUpdate()
   let executable: string | undefined
   const previews = new Map<SetupClient, string>()
