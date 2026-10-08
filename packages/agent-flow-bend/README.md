@@ -109,6 +109,14 @@ lowercase digest validation, native cursor arithmetic, ordered discovery,
 untouched agent references, consent and owner effects. The laws alone establish
 neither physical mutation nor platform support.
 
+`rules-policy/core.bend` owns the rules conversation's commands and transitions.
+Two Astra-approved exact laws retain scope/plan command gates, terminal holds,
+approval digests, distinct Back behavior and stale-result recovery. The generated
+bridge preserves original plan references and delegates payload materialization
+to the native model. Rule parsing, proposal construction, displayed consent,
+owner revalidation and writes remain with their existing owners; a stale result
+selects a new preview without authorizing a write.
+
 `Canonical.bend` is the production transition model and drives the main
 visualization through the checked TypeScript adapter.
 The maintained [TypeScript decision boundary ledger](../../docs/typescript-decision-boundary-ledger.md)

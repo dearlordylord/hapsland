@@ -1,41 +1,42 @@
 {
-  "at": "2026-10-08T12:40:57.550810+00:00",
-  "branch": "migration/bend-maintenance",
+  "at": "2026-10-08T13:12:25.783253+00:00",
+  "branch": "migration/bend-rules",
   "baseRevision": "8772653dd5546eeb72e14787e6d22aaaefd17766",
-  "predecessorRevision": "0920b06f",
-  "frontier": "repair/reinstall/uninstall maintenance command and transition decisions",
-  "sliceStatus": "six policies integrated on current master; maintenance locally qualified acceptance candidate ready to commit",
+  "predecessorRevision": "6070d956",
+  "frontier": "rules conversation commands and transition decisions",
+  "sliceStatus": "seven policies integrated on current master; rules locally qualified acceptance candidate ready to commit",
   "priorSlices": {
     "credential": "247e1448",
     "login": "5f213083",
     "verification": "becfce84",
     "update": "b53e7bd2",
-    "setup": "0920b06f"
+    "setup": "0920b06f",
+    "maintenance": "6070d956"
   },
-  "lawApproval": "maintenance-law-approval.json",
+  "lawApproval": "rules-law-approval.json",
   "checks": {
-    "fast": "passed; /tmp/hapsland-maintenance-check-fast.log",
-    "sourceTyping": "passed; /tmp/hapsland-maintenance-typecheck.log",
-    "producerAndRealConsumerTests": 86,
-    "focusedTests": 44,
+    "fast": "passed; /tmp/hapsland-rules-check-fast.log",
+    "producerAndRealConsumerTests": 89,
+    "focusedTests": 11,
     "focusedFiles": 2,
-    "focusedRun": "20261008123456836-3941653-76fa21",
-    "maintenanceMutantsDetected": 21,
-    "finiteLawFalsificationCases": 61520,
-    "productionTransitionParityCases": 1488000,
-    "nativeCommandParityCases": 9600,
-    "proofRevalidation": "maintenance-candidate-proof-revalidation.json",
-    "artifactAuthorityRevalidation": "maintenance-candidate-artifact-revalidation.json",
-    "documentation": "passed; 11 documentation tests, 3 decision-ledger tests and 1851 offline links; /tmp/hapsland-maintenance-docs-check.log",
-    "diagrams": "unchanged; actual generated replay and consumer checks passed; no new visual diff",
+    "focusedRun": "20261008130430972-4002836-7eaeda",
+    "rulesMutantsDetected": 17,
+    "finiteLawFalsificationCases": 1596,
+    "productionTransitionParityCases": 459648,
+    "nativeCommandParityCases": 8064,
+    "proofRevalidation": "rules-candidate-proof-revalidation.json",
+    "artifactAuthorityRevalidation": "rules-candidate-artifact-revalidation.json",
+    "documentation": "passed; 11 documentation tests, 3 decision-ledger tests and 1856 offline links; /tmp/hapsland-rules-docs-check.log",
+    "diagrams": "unchanged; actual replay and consumer checks passed; no new visual diff",
     "fullGate": "not run; bounded policy slice and affected producer consumers",
-    "githubCi": "not checked; not a completion gate"
+    "githubCi": "not checked; not a completion gate",
+    "preparationRepair": "initial administration consumer TS2322 from optional Plan inference; corrected ABI Plan extends object and explicit optional undefined; actual canonical and administration compilers, repaired preparation, fast and focused checks passed"
   },
   "latestPeriodicCheckpoint": {
     "build": {
       "baselineRevision": "8772653dd5546eeb72e14787e6d22aaaefd17766",
-      "startedAt": "2026-10-08T12:36:33.742Z",
-      "at": "2026-10-08T12:36:54.576Z",
+      "startedAt": "2026-10-08T13:03:23.120Z",
+      "at": "2026-10-08T13:04:00.260Z",
       "roots": {
         "typescript": "/workspace/typescript/hapsland-bend-baseline-current",
         "integratedBend": "/workspace/typescript/hapsland-bend-setup"
@@ -53,7 +54,7 @@
           {
             "cachedTasks": 23,
             "totalTasks": 46,
-            "seconds": 5.626019759,
+            "seconds": 10.801166318,
             "exitCode": 0,
             "signal": null,
             "error": null
@@ -61,7 +62,7 @@
           {
             "cachedTasks": 23,
             "totalTasks": 46,
-            "seconds": 5.159634131000001,
+            "seconds": 6.085406045000004,
             "exitCode": 0,
             "signal": null,
             "error": null
@@ -71,7 +72,7 @@
           {
             "cachedTasks": 23,
             "totalTasks": 46,
-            "seconds": 5.338239905,
+            "seconds": 8.869554786,
             "exitCode": 0,
             "signal": null,
             "error": null
@@ -79,19 +80,19 @@
           {
             "cachedTasks": 23,
             "totalTasks": 46,
-            "seconds": 4.699902317999999,
+            "seconds": 6.615619161999999,
             "exitCode": 0,
             "signal": null,
             "error": null
           }
         ]
       },
-      "meanRatio": 0.9306938944431488,
+      "meanRatio": 0.9170110792838816,
       "buildParity": true,
       "scope": "paired warm workspace builds; declared frozen baseline and current candidate; both separately prepared; native release assembly excluded"
     },
-    "maintenanceExecution": {
-      "at": "2026-10-08T12:37:31.618Z",
+    "rulesExecution": {
+      "at": "2026-10-08T13:04:11.934Z",
       "runtime": {
         "kind": "Bun",
         "versions": {
@@ -126,303 +127,303 @@
       "baselineRevision": "8772653dd5546eeb72e14787e6d22aaaefd17766",
       "warmupRounds": 20,
       "samplePairs": 31,
-      "timedCases": 14880,
+      "timedCases": 12768,
       "samples": {
         "typescript": [
           {
-            "milliseconds": 17.933743000000504,
-            "checksum": 10056328
+            "milliseconds": 7.25850999999966,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 17.123655000000326,
-            "checksum": 10056328
+            "milliseconds": 14.720687999999882,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 21.036388999999872,
-            "checksum": 10056328
+            "milliseconds": 15.96498900000006,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 15.783895999999913,
-            "checksum": 10056328
+            "milliseconds": 10.776535999999851,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 16.022938999999496,
-            "checksum": 10056328
+            "milliseconds": 10.38261599999987,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 18.48349699999926,
-            "checksum": 10056328
+            "milliseconds": 10.339782999999898,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 20.381758999999875,
-            "checksum": 10056328
+            "milliseconds": 14.813939000000119,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 23.662405000000035,
-            "checksum": 10056328
+            "milliseconds": 13.791682000000037,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 18.19507799999974,
-            "checksum": 10056328
+            "milliseconds": 7.706513000000086,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 19.29804299999978,
-            "checksum": 10056328
+            "milliseconds": 12.211129000000255,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 20.701803000000837,
-            "checksum": 10056328
+            "milliseconds": 12.293963000000076,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 19.47421100000065,
-            "checksum": 10056328
+            "milliseconds": 15.592986999999994,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 19.710503999999673,
-            "checksum": 10056328
+            "milliseconds": 11.636375000000044,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 17.64994900000056,
-            "checksum": 10056328
+            "milliseconds": 8.501310999999987,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 17.300905999999486,
-            "checksum": 10056328
+            "milliseconds": 8.564311000000089,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 15.787604000000101,
-            "checksum": 10056328
+            "milliseconds": 12.477088999999978,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 19.52158700000018,
-            "checksum": 10056328
+            "milliseconds": 10.894660999999815,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 23.088110000000597,
-            "checksum": 10056328
+            "milliseconds": 19.657056999999895,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 17.32907299999988,
-            "checksum": 10056328
+            "milliseconds": 12.61492300000009,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 17.650242000000617,
-            "checksum": 10056328
+            "milliseconds": 9.153232000000116,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 22.32831399999941,
-            "checksum": 10056328
+            "milliseconds": 15.014982000000145,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 17.735200000000077,
-            "checksum": 10056328
+            "milliseconds": 9.703819999999723,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 21.62826799999948,
-            "checksum": 10056328
+            "milliseconds": 20.6789389999999,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 17.44028100000014,
-            "checksum": 10056328
+            "milliseconds": 8.745645999999851,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 22.467147999999725,
-            "checksum": 10056328
+            "milliseconds": 7.745846999999685,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 21.065930000000662,
-            "checksum": 10056328
+            "milliseconds": 9.389816999999766,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 17.350906000000577,
-            "checksum": 10056328
+            "milliseconds": 7.930099000000155,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 16.66435900000033,
-            "checksum": 10056328
+            "milliseconds": 7.7779310000000805,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 16.13827299999957,
-            "checksum": 10056328
+            "milliseconds": 11.998753000000306,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 19.957298000000264,
-            "checksum": 10056328
+            "milliseconds": 13.208677999999964,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 16.03681400000005,
-            "checksum": 10056328
+            "milliseconds": 14.442144999999982,
+            "checksum": 5972416
           }
         ],
         "integratedBend": [
           {
-            "milliseconds": 14.669930000000022,
-            "checksum": 10056328
+            "milliseconds": 7.615511999999853,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 15.30264200000056,
-            "checksum": 10056328
+            "milliseconds": 7.437010999999984,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 23.40777900000012,
-            "checksum": 10056328
+            "milliseconds": 9.85261199999968,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 19.964006000000154,
-            "checksum": 10056328
+            "milliseconds": 9.129648000000088,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 17.281405000000632,
-            "checksum": 10056328
+            "milliseconds": 10.16998999999987,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 18.757915999999568,
-            "checksum": 10056328
+            "milliseconds": 23.297582999999577,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 16.133230999999796,
-            "checksum": 10056328
+            "milliseconds": 9.014689999999973,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 18.86741600000005,
-            "checksum": 10056328
+            "milliseconds": 7.1452180000001135,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 19.00933299999997,
-            "checksum": 10056328
+            "milliseconds": 8.189890999999989,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 15.136058000000048,
-            "checksum": 10056328
+            "milliseconds": 15.224649999999656,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 16.57798400000047,
-            "checksum": 10056328
+            "milliseconds": 14.031724999999824,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 22.97648500000014,
-            "checksum": 10056328
+            "milliseconds": 11.18545499999982,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 21.2783900000004,
-            "checksum": 10056328
+            "milliseconds": 11.317789000000175,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 17.988994000000275,
-            "checksum": 10056328
+            "milliseconds": 6.708590000000186,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 17.679533000000447,
-            "checksum": 10056328
+            "milliseconds": 13.531762999999955,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 22.61935699999958,
-            "checksum": 10056328
+            "milliseconds": 17.23674800000026,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 16.046689000000697,
-            "checksum": 10056328
+            "milliseconds": 9.44785899999988,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 20.000923000000512,
-            "checksum": 10056328
+            "milliseconds": 13.396929,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 15.761853999999403,
-            "checksum": 10056328
+            "milliseconds": 9.534943000000112,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 16.473565999999664,
-            "checksum": 10056328
+            "milliseconds": 12.443671999999879,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 19.455377999999655,
-            "checksum": 10056328
+            "milliseconds": 12.623923999999988,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 17.305529999999635,
-            "checksum": 10056328
+            "milliseconds": 16.17432400000007,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 18.907999000000018,
-            "checksum": 10056328
+            "milliseconds": 9.124105999999756,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 22.73581600000034,
-            "checksum": 10056328
+            "milliseconds": 9.060939999999846,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 17.161071000000447,
-            "checksum": 10056328
+            "milliseconds": 17.314166000000114,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 20.490343000000394,
-            "checksum": 10056328
+            "milliseconds": 11.752791999999772,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 15.710853000000498,
-            "checksum": 10056328
+            "milliseconds": 8.665019999999913,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 19.217626000000564,
-            "checksum": 10056328
+            "milliseconds": 7.635804999999891,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 18.10882699999911,
-            "checksum": 10056328
+            "milliseconds": 12.188504000000194,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 15.702604000000065,
-            "checksum": 10056328
+            "milliseconds": 18.274046999999882,
+            "checksum": 5972416
           },
           {
-            "milliseconds": 17.21878000000015,
-            "checksum": 10056328
+            "milliseconds": 7.7833889999997155,
+            "checksum": 5972416
           }
         ]
       },
-      "medianRatio": 0.9886736402009672,
+      "medianRatio": 0.8739826621262922,
       "executionParity": true,
       "sha256": {
-        "/workspace/typescript/hapsland-bend-baseline-current/packages/administration/dist/onboarding/maintenance-model.js": "4a6739dc2d22b171dffddf40bf3c15e4362c462dd951aa68bdfcbe1d3cc8437e",
-        "evidence/bend-strangler/maintenance-reference.ts": "f608774890e122d7d616e4db804d8811d7effa5a581c3faacb87d9185f7ec303",
-        "evidence/bend-strangler/maintenance-draft-parity.mjs": "5116d1b58deb5b32d6c58b66b9ba4cdb69102da7e88a49a8b8499517efe87295",
-        "evidence/bend-strangler/maintenance-performance.mjs": "95aad501b664b06a51c03167e6b5dfbdb57d20e5e89067a4f3598f23b31fe1e4",
-        "packages/agent-flow-bend/maintenance-policy/core.bend": "89e532296dc1449f09c34dfc4388fea7d9ef03c28b67325987b01875bd71c197",
-        "packages/agent-flow-bend/maintenance-policy/LAWS.bend": "edd255e8fb6c5f53c87011091d49dd55e2babcc567cc3e204081def9ecf9b092",
-        "packages/agent-flow-bend/maintenance-policy/PROOF.bend": "0506e03f539770e93e93b1dd5fb85f6789266d50e7c38ee4778ea04884cca3f4",
-        "packages/agent-flow-bend/scripts/build-maintenance-policy.mjs": "fe5e095ac227f3b1bd20323e8f5ea1e4912b8d02e2cddbf6f157004610cbe257",
-        "packages/canonical-policy/src/canonical/maintenance-adapter.ts": "43832d92b70294506cd4b21b0539e2ee6b342a7088f483de126dd0a5be4e0e92",
-        "packages/administration/src/onboarding/maintenance-model.ts": "c8b64c6e6859628fce9157fa5f175bed5c31f359f2cd401cdc2a8e4601f99fec",
-        "packages/agent-flow-bend/dist/maintenance-policy.generated.js": "4c2af14217fbee893fe559f02b1f9092566d533a2ca280bf1895c8ad49cc176c",
-        "packages/canonical-policy/dist/canonical/maintenance-adapter.js": "1f21430d9c04f6abc1f0ac3273a61bc2cabe1b38adee232292f9923b6afdfed5",
-        "packages/administration/dist/onboarding/maintenance-model.js": "35f8a624c20660a211802628b4e7885bdca6b33adecffc59d74b9470f1920464"
+        "/workspace/typescript/hapsland-bend-baseline-current/packages/administration/dist/rules/interaction-model.js": "2e80b03b097fe44823a0d794958f1b490e897b9fce17b194241eb14a41d1558c",
+        "evidence/bend-strangler/rules-reference.ts": "4b0f027a6014eb79b2cdb25bc26015ccb327d33fba8b9822a4bf81c8784cb4ce",
+        "evidence/bend-strangler/rules-draft-parity.mjs": "03ac5288388cd3ad2213017007d96f22f19735ecf1aa3740f650920bc5a18c65",
+        "evidence/bend-strangler/rules-performance.mjs": "b6d0c8fd676d1eb8729811871e2069a0b10c760115f11210d1b16f02253da9a9",
+        "packages/agent-flow-bend/rules-policy/core.bend": "f885c4fb34c3408690b42cc252138abd34eebd24a67fe8e8e3b396081826af5f",
+        "packages/agent-flow-bend/rules-policy/LAWS.bend": "40a15668c233a18747d0337f02474220567e55e1f53fe5aa540ee3fc9b57e110",
+        "packages/agent-flow-bend/rules-policy/PROOF.bend": "61745d79e237f8571af99683ea16b34f979805d01578cba53ab0f85bc25d6342",
+        "packages/agent-flow-bend/scripts/build-rules-policy.mjs": "6d16ab861205ba347d0c75d4a321df67d313e63a8b496ed44cf24089c796b1f7",
+        "packages/canonical-policy/src/canonical/rules-adapter.ts": "eaa02a16e357fa40b80b57fd1ebccb57782b334434cfc78dceda039fd730442d",
+        "packages/administration/src/rules/interaction-model.ts": "7c4864753349286119c13605ee32ba05b1ac2c835f510aa25ce97f243492c984",
+        "packages/agent-flow-bend/dist/rules-policy.generated.js": "c125713756c19ecfde24c61511159f2165f5ad8c503c6866bc91517f0ae409a9",
+        "packages/canonical-policy/dist/canonical/rules-adapter.js": "05af308d545af9dc10d20be90656f3f4ee240be25538e015dd2e412e734441a4",
+        "packages/administration/dist/rules/interaction-model.js": "3c0bbf31ee9c6bcd01fbf4ebdf79b5fad55e848db0f731b99fa6c2811ed37328"
       },
-      "scope": "actual emitted maintenance reducers and commands; independent identical full-field-consuming harness functions; finite native models/events; CPU11 nonexclusive; no acquisition, owner IO, startup or platform claim"
+      "scope": "actual emitted rules conversation reducers and commands; independent identical full-field-consuming harness functions; finite native models/events; CPU11 nonexclusive; no acquisition, owner IO, startup or platform claim"
     }
   },
-  "nextPerformanceCheckpointUtc": "2026-10-08T13:06:33.742000+00:00",
+  "nextPerformanceCheckpointUtc": "2026-10-08T13:33:23.120000+00:00",
   "sourceSha256": {
-    "docs/testing-matrix.md": "6e490e8b72f27fe372c037ca7429f6c45a42f310c09b0fb086f07665d532c114",
-    "docs/typescript-decision-boundary-ledger.md": "0d9209f7cb53133f7fcee92845bd93a9d01df52306f681b5102262b10d4b84b8",
-    "packages/administration/src/onboarding/maintenance-model.ts": "c8b64c6e6859628fce9157fa5f175bed5c31f359f2cd401cdc2a8e4601f99fec",
-    "packages/agent-flow-bend/README.md": "9c8fd11f7956bb35b447b1bbf248eae26704d283ee7ac45e74d94f5b4e7395d8",
-    "packages/agent-flow-bend/abi/maintenance-policy.generated.d.ts": "8f7d9ceb262d053c966cad108758248e35fae226e833df6adbdee958decd7e18",
-    "packages/agent-flow-bend/maintenance-policy/LAWS.bend": "edd255e8fb6c5f53c87011091d49dd55e2babcc567cc3e204081def9ecf9b092",
-    "packages/agent-flow-bend/maintenance-policy/PROOF.bend": "0506e03f539770e93e93b1dd5fb85f6789266d50e7c38ee4778ea04884cca3f4",
-    "packages/agent-flow-bend/maintenance-policy/core.bend": "89e532296dc1449f09c34dfc4388fea7d9ef03c28b67325987b01875bd71c197",
-    "packages/agent-flow-bend/package.json": "1f713f7255a4b0314f2367deec68b9c97ce8b07969834a058a19d7c32c606d7c",
-    "packages/agent-flow-bend/scripts/build-maintenance-policy.mjs": "fe5e095ac227f3b1bd20323e8f5ea1e4912b8d02e2cddbf6f157004610cbe257",
-    "packages/canonical-policy/package.json": "0f4b7c5c7e84826999f17b90049023a708de5ee632009f908c34894b1e7dfeeb",
-    "packages/canonical-policy/src/canonical/maintenance-adapter.ts": "43832d92b70294506cd4b21b0539e2ee6b342a7088f483de126dd0a5be4e0e92",
-    "scripts/bend-producer-test-fixture.mjs": "bcf318960b9d9e724addb82409e3979fb16c738a756577a15b101722465f1452",
-    "scripts/bend-producer.mjs": "d62d863cbfee8b039b22275790a12c386ed8134a431259ab5089be06c479e4a9",
-    "scripts/bend-producer.test.mjs": "a85f1ce9d0083ee0644b7388a64ce3c79a42954515c60f2044952616914b7bcc",
-    "scripts/check-production-authority.mjs": "50ca10a4e1af035987a7ba978cd80d01f05f988dcb998ce74290ff6f0a3a120c"
+    "docs/testing-matrix.md": "49aa34c77dc49c28c69172067a47fe423b796a8c84f69ad0b3c1d86e84329a23",
+    "docs/typescript-decision-boundary-ledger.md": "e889110381ff82c90a929929bf48f5226ce56b552ff0bd4ec372a8943e6efa37",
+    "packages/administration/src/rules/interaction-model.ts": "7c4864753349286119c13605ee32ba05b1ac2c835f510aa25ce97f243492c984",
+    "packages/agent-flow-bend/README.md": "278bb579076b35785be4f5a5799e811683287a3b6582516d105e97fcee3e85e6",
+    "packages/agent-flow-bend/abi/rules-policy.generated.d.ts": "d1959b1108f625dc77961d8b8b3e1b91eb181ecc817b784672ee0f582e7e0782",
+    "packages/agent-flow-bend/package.json": "88e4b75b434338e72c9e3aba3177f634642db9070f9f11a86b25b2224559d5e1",
+    "packages/agent-flow-bend/rules-policy/LAWS.bend": "40a15668c233a18747d0337f02474220567e55e1f53fe5aa540ee3fc9b57e110",
+    "packages/agent-flow-bend/rules-policy/PROOF.bend": "61745d79e237f8571af99683ea16b34f979805d01578cba53ab0f85bc25d6342",
+    "packages/agent-flow-bend/rules-policy/core.bend": "f885c4fb34c3408690b42cc252138abd34eebd24a67fe8e8e3b396081826af5f",
+    "packages/agent-flow-bend/scripts/build-rules-policy.mjs": "6d16ab861205ba347d0c75d4a321df67d313e63a8b496ed44cf24089c796b1f7",
+    "packages/canonical-policy/package.json": "aef1eca20363523bfff27f5f796b8ead37e50b5d9f9b21db29f1312b541fb1db",
+    "packages/canonical-policy/src/canonical/rules-adapter.ts": "eaa02a16e357fa40b80b57fd1ebccb57782b334434cfc78dceda039fd730442d",
+    "scripts/bend-producer-test-fixture.mjs": "3591047875a821ed163eb2f636c8015c24fb8e0e5f121d9100e3303ce45bd595",
+    "scripts/bend-producer.mjs": "ec03467dcb133c1db18ce4b7d04e86806b74654cf2d2aeef87b0148d333aea4e",
+    "scripts/bend-producer.test.mjs": "2eea5738324cce39819b97a01844360f300c7e1fa0d9410bc104c1f980282498",
+    "scripts/check-production-authority.mjs": "37d21d5c19bbbc81291136a74f6f5d61c3e0f24f3d6b0cc6c25f5c9b46dd56ec"
   },
   "limits": [
     "paired warm workspace builds only; 23 cached tasks of 46; native release assembly excluded",
-    "maintenance warm execution under pinned Bun 1.3.14; CPU 11 is nonexclusive; no acquisition, owner IO, startup or platform claim",
+    "rules warm execution under pinned Bun 1.3.14; CPU 11 is nonexclusive; no owner IO, startup or platform claim",
     "earlier five-slice measurements remain historical evidence in their named records and original commit history",
     "full canonical kernel root on current master exceeds its five-second deadline; migrated policy roots independently pass; no full-root pass claimed",
     "direct-login Bend migration is absent from this candidate; current-master TypeScript direct-login model is unchanged"
@@ -434,9 +435,22 @@
     "stash": "bend migration pending direct-login and setup before master reconciliation"
   },
   "remaining": [
-    "commit qualified maintenance candidate",
+    "commit qualified rules candidate",
     "continue strangler migration from the next reasonable pure policy frontier",
     "obtain Astra approval for each new or amended law",
     "repeat actual build and product-runtime measurements within each 30-minute interval"
-  ]
+  ],
+  "upstreamReconciliation": {
+    "upstreamRevision": "fbff5020a809bfc56583a87c207e7f9d632f6cc1",
+    "mergeRevision": "0146c8aec73214ea767bce495199f0f071445563",
+    "conflicts": false,
+    "sourceSha256Unchanged": true,
+    "checks": {
+      "fast": "passed; /tmp/hapsland-latest-master-check-fast.log",
+      "releaseArchiveConsumerTests": "4 passed; /tmp/hapsland-latest-master-release-archive.log"
+    },
+    "preservedCandidateStash": "13aabefe53a2ef5f819ee23e57da4f612457016d",
+    "preCommit": "first attempt stopped at documentation build 180-second deadline; successful post-merge check:fast completed actual workspace/doc preparation on unchanged rules inputs",
+    "performance": "last measurement predates this merge and remains against 8772653d; new upstream baseline required for next checkpoint"
+  }
 }

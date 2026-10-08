@@ -31,7 +31,7 @@ export async function createBendReceiptFixture(root, repositoryRoot) {
   writeFileSync(manifestPath, JSON.stringify(manifest))
   for (const name of ["CanonicalRuntime.bend", "ImportGraphRuntime.bend", "request-content/Runtime.bend"])
     writeFileSync(resolve(directory, name), "import Base\n")
-  const policies = ["credential", "login", "verification", "update", "setup", "maintenance"]
+  const policies = ["credential", "login", "verification", "update", "setup", "maintenance", "rules"]
   for (const policy of policies) {
     const policyDirectory = resolve(directory, policy + "-policy")
     mkdirSync(policyDirectory, { recursive: true })

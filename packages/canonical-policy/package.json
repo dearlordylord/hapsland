@@ -71,6 +71,10 @@
     "./canonical/maintenance-adapter": {
       "types": "./dist/canonical/maintenance-adapter.d.ts",
       "default": "./dist/canonical/maintenance-adapter.js"
+    },
+    "./canonical/rules-adapter": {
+      "types": "./dist/canonical/rules-adapter.d.ts",
+      "default": "./dist/canonical/rules-adapter.js"
     }
   },
   "dependencies": {

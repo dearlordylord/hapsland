@@ -1,0 +1,114 @@
+{
+  "sourceSha256": {
+    "core.bend": "f885c4fb34c3408690b42cc252138abd34eebd24a67fe8e8e3b396081826af5f",
+    "LAWS.bend": "40a15668c233a18747d0337f02474220567e55e1f53fe5aa540ee3fc9b57e110",
+    "PROOF.bend": "61745d79e237f8571af99683ea16b34f979805d01578cba53ab0f85bc25d6342"
+  },
+  "at": "2026-10-08T12:51:39.622Z",
+  "mutantsDetected": 17,
+  "results": [
+    {
+      "name": "preview-without-scope",
+      "law": "command_exact",
+      "wellFormed": true,
+      "unchangedKernelProofRejected": true
+    },
+    {
+      "name": "apply-without-plan",
+      "law": "command_exact",
+      "wellFormed": true,
+      "unchangedKernelProofRejected": true
+    },
+    {
+      "name": "terminal-command",
+      "law": "command_exact",
+      "wellFormed": true,
+      "unchangedKernelProofRejected": true
+    },
+    {
+      "name": "stale-event-admitted",
+      "law": "step_exact",
+      "wellFormed": true,
+      "unchangedKernelProofRejected": true
+    },
+    {
+      "name": "preview-back-keeps-plan-outcome",
+      "law": "step_exact",
+      "wellFormed": true,
+      "unchangedKernelProofRejected": true
+    },
+    {
+      "name": "pending-preview-back-wrong-phase",
+      "law": "step_exact",
+      "wellFormed": true,
+      "unchangedKernelProofRejected": true
+    },
+    {
+      "name": "approval-back-clears-payloads",
+      "law": "step_exact",
+      "wellFormed": true,
+      "unchangedKernelProofRejected": true
+    },
+    {
+      "name": "exit-preserves-plan",
+      "law": "step_exact",
+      "wellFormed": true,
+      "unchangedKernelProofRejected": true
+    },
+    {
+      "name": "scope-selection-loses-scope",
+      "law": "step_exact",
+      "wellFormed": true,
+      "unchangedKernelProofRejected": true
+    },
+    {
+      "name": "preview-metadata-ignored",
+      "law": "step_exact",
+      "wellFormed": true,
+      "unchangedKernelProofRejected": true
+    },
+    {
+      "name": "preview-plan-lost",
+      "law": "step_exact",
+      "wellFormed": true,
+      "unchangedKernelProofRejected": true
+    },
+    {
+      "name": "approval-digest-ignored",
+      "law": "step_exact",
+      "wellFormed": true,
+      "unchangedKernelProofRejected": true
+    },
+    {
+      "name": "decline-authorizes-write",
+      "law": "step_exact",
+      "wellFormed": true,
+      "unchangedKernelProofRejected": true
+    },
+    {
+      "name": "stale-does-not-repreview",
+      "law": "step_exact",
+      "wellFormed": true,
+      "unchangedKernelProofRejected": true
+    },
+    {
+      "name": "observation-outcome-lost",
+      "law": "step_exact",
+      "wellFormed": true,
+      "unchangedKernelProofRejected": true
+    },
+    {
+      "name": "exit-during-apply",
+      "law": "step_exact",
+      "wellFormed": true,
+      "unchangedKernelProofRejected": true
+    },
+    {
+      "name": "terminal-reopened",
+      "law": "step_exact",
+      "wellFormed": true,
+      "unchangedKernelProofRejected": true
+    }
+  ],
+  "scope": "both rules conversation laws; each well-formed wrong core fails its unchanged law proof; host correctness checked separately"
+}

@@ -1,0 +1,26 @@
+{
+  "at": "2026-10-08T12:47:26.000775+00:00",
+  "reviewer": "Astra /root/approve_credential_laws",
+  "decision": "command_exact and step_exact approved as written",
+  "reviewedSha256": {
+    "packages/agent-flow-bend/rules-policy/core.bend": "f885c4fb34c3408690b42cc252138abd34eebd24a67fe8e8e3b396081826af5f",
+    "packages/agent-flow-bend/rules-policy/LAWS.bend": "40a15668c233a18747d0337f02474220567e55e1f53fe5aa540ee3fc9b57e110"
+  },
+  "preReviewFalsification": {
+    "lawCases": 1596,
+    "nativeTransitionCases": 229824,
+    "nativeCommandCases": 4032,
+    "deliberateFaultsDetected": 2
+  },
+  "hostObligations": [
+    "exact revision and optional commandID equality",
+    "scope and action equality for preview matching; exact opaque digest equality without new format/nonempty constraints",
+    "command action/scope/revision and original plan reference preserved",
+    "Scope selection sets scope/clears plan and outcome; Back Preview/Previewing clears plan/outcome retains scope; Back Approval preserves both",
+    "Exit clears only plan; decline preserves plan sets declined; stale clears plan sets stale; other observations preserve plan and exact outcome",
+    "preview completion replaces only plan preserving existing outcome",
+    "Hold identity; one native revision increment; unpatched fields preserved",
+    "displayed consent, owner revalidation and writes retain existing owners; stale recovery permits fresh preview not automatic write"
+  ],
+  "scope": "law approval only; permits proofs and mutations; reviewer did not rerun falsification; no production/effect/platform acceptance"
+}
