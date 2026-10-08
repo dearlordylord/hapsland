@@ -1,5 +1,7 @@
 # Codex turn-end delivery measurement
 
+**Audience:** Contributors, including coding agents validating runtime behavior; Build and release maintainers; Product and specification owners.
+
 **Historical prototype measurement.** The [advicing target contract](../../docs/advicing-target-contract.md)
 defines current accepted delivery behavior. The [installed release declaration](../../docs/installed-release-compatibility.md)
 states exact verified release support. The measurements below do not expand that

@@ -1,5 +1,7 @@
 # Preregistered paired evaluation protocol
 
+**Audience:** Evaluation contributors and reviewers; Product and specification owners.
+
 **Provenance clarification (2026-10-07):** References below to `TYPE-DESIGN-RULES.md` name the [frozen five-rule rubric](https://github.com/dearlordylord/hapsland/blob/2d5ec8f3e2359dd4aa3bf37a0588d9e69e3b2496/TYPE-DESIGN-RULES.md). Its removal from current guidance does not amend this historical declaration or scoring.
 
 **Historical frozen protocol.** The later run stopped incomplete; its observations

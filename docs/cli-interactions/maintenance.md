@@ -1,6 +1,7 @@
 # Maintenance interaction
 
 **Purpose:** Show production repair, reinstall and uninstall navigation and recovery.
+**Audience:** Contributors, including coding agents; Product and specification owners reviewing CLI journeys.
 **Status:** Maintained generated diagram.
 **Authority:** Implementation and controlled validation evidence for #244; accepted installation contracts and lifecycle owners retain authority.
 **Expected use:** Inspect per-agent consent and observed recovery results; use `npm run interaction:diagrams:check` for non-writing freshness.

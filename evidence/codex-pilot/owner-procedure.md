@@ -1,5 +1,7 @@
 # Single-repository Codex pilot — historical procedure
 
+**Audience:** Pilot owners and participating users; evaluation contributors and reviewers.
+
 **Historical pilot record, 2026-09-23.** The procedure and final repository state below
 were recorded for the selected pilot; they do not authorize another run or state current
 repository enablement.

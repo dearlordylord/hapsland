@@ -1,5 +1,7 @@
 # Install Hapsland for Codex
 
+**Audience:** End users consulting historical installation guidance; build and release maintainers.
+
 This guide applies after `@hapsland/hapsland@0.1.0` is published and the exact registry
 artifact is verified against a release record. The [local preflight](./npm-0.1.0-preflight.md)
 does not establish that registry verification.

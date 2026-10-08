@@ -1,6 +1,7 @@
 # Update interaction
 
 **Purpose:** Show grouped update review, approval and outcomes.
+**Audience:** Contributors, including coding agents; Product and specification owners reviewing CLI journeys.
 **Status:** Maintained generated diagram.
 **Authority:** Implementation and controlled validation evidence for #244; accepted installation contracts and lifecycle owners retain authority.
 **Expected use:** Inspect grouped approval, Back, observed mutation and activation outcomes; run `npm run interaction:diagrams:check` for non-writing freshness.

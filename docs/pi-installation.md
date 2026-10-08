@@ -1,6 +1,7 @@
 # Pi installation and native profile
 
 **Purpose:** Explain Pi registration, lifecycle operations, and the exact native evidence boundary.
+**Audience:** End users of the named agent runtime; contributors maintaining its integration.
 **Status:** Maintained installation guidance; native validation is recorded separately below.
 **Authority:** Maintained operational guidance implementing issues #204–209; validation evidence does not broaden the accepted review or advice contracts.
 **Expected use:** Install into a selected Pi agent home, diagnose readiness, and distinguish installed review from observed model use.

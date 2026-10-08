@@ -1,5 +1,7 @@
 # Codex pilot quickstart — historical procedure
 
+**Audience:** Pilot participants; evaluation contributors and reviewers.
+
 **Historical pilot record, 2026-09-23.** Commands, naming, distribution statements, and
 repository state below describe that pilot. They are not current installation instructions.
 Use the [Hapsland installation status](../../README.md#installation) for the release path.

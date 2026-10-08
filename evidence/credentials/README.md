@@ -1,5 +1,7 @@
 # Linux credential lifecycle evidence
 
+**Audience:** Contributors, including coding agents validating runtime behavior; Build and release maintainers; Product and specification owners.
+
 The JSON record in this directory contains only mechanism, status and timing evidence. The probe
 used a disposable session bus, HOME, runtime directory and GNOME Keyring login collection. It ran
 the compiled package helper as separate processes for probe, store, read, replace, read, delete and

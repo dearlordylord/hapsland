@@ -1,6 +1,7 @@
 # Hapsland architecture
 
 **Purpose:** Give technical users a short map of review context, user control, and verification boundaries.
+**Audience:** Prospective technical users; contributors, including coding agents; product and specification owners.
 **Status:** Active architecture explanation; public copy remains subject to editorial review.
 **Authority:** Maintained explanatory guidance. The linked accepted contracts own product behavior; this page introduces no new guarantees.
 **Expected use:** Understand what can leave the repository, why context is structured, and which guarantees have executable evidence.

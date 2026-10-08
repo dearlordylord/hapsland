@@ -1,6 +1,7 @@
 # Hapsland dashboard rules
 
 **Purpose:** Define the dashboard projection boundary and evidence requirements.
+**Audience:** Contributors, including coding agents maintaining this package and its consumers.
 **Status:** Active dashboard development rules.
 **Authority:** Maintained guidance implementing the accepted #116 production-authority constraint.
 **Expected use:** Assess visualization changes for decision ownership, source-free inputs, and truthful coverage claims.

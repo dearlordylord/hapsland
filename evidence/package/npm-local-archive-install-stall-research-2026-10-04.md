@@ -1,4 +1,5 @@
 **Purpose:** Explain what the final npm `fetch manifest` log line means for the timed-out local archive install and identify the smallest useful follow-up probe.
+**Audience:** Build and release maintainers; contributors investigating installed-package behavior.
 **Status:** Temporary diagnostic research report.
 **Authority:** First-party npm and Pacote source establish the described install path; local timing and timeout observations are implementation or validation evidence. This report is advisory and does not define product behavior.
 **Expected use:** Use this source trace to interpret the current npm install failure and choose a bounded diagnostic when the test host is idle.
