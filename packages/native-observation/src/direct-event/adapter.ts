@@ -43,7 +43,13 @@ export const isCodexNativeApplyPatch = (value: unknown): boolean => {
 }
 
 type PatchCandidate = { operation: DirectCandidate["operation"]; path: string; addedLines: string[]; moveTo?: string }
-type PatchFrame = { candidates: PatchCandidate[]; paths: Set<string>; current?: PatchCandidate }
+type PatchFrame = {
+  candidates: PatchCandidate[]
+  paths: Set<string>
+  current?: PatchCandidate
+  endOfFile?: true
+  lastLine?: string
+}
 const patchOperation = (header: string | undefined): DirectCandidate["operation"] => {
   if (header === "Add") return "add"
   return header === "Update" ? "update" : "delete"
@@ -53,6 +59,8 @@ const addPatchFile = (frame: PatchFrame, header: RegExpExecArray): boolean => {
   if (path === undefined || path.length === 0 || frame.paths.has(path)) return false
   frame.paths.add(path)
   frame.current = { operation: patchOperation(header[1]), path, addedLines: [] }
+  delete frame.endOfFile
+  delete frame.lastLine
   frame.candidates.push(frame.current)
   return true
 }
@@ -80,8 +88,20 @@ const acceptPatchLine = (frame: PatchFrame, line: string): boolean => {
   const header = /^\*\*\* (Add|Update|Delete) File: (.+)$/.exec(line)
   if (header !== null) return addPatchFile(frame, header)
   if (frame.current === undefined) return false
+  if (frame.endOfFile) return false
+  if (line === "*** End of File") {
+    if (
+      (frame.current.operation !== "update" && frame.current.operation !== "move") ||
+      frame.lastLine === undefined ||
+      !patchContextLine(frame.lastLine)
+    )
+      return false
+    frame.endOfFile = true
+    return true
+  }
   if (line.startsWith("*** Move to: ")) return movePatchFile(frame.current, line)
   if (line.startsWith("***")) return false
+  frame.lastLine = line
   return patchBodyLine(frame.current, line)
 }
 const reviewablePatchCandidate = (candidate: PatchCandidate): boolean =>

@@ -84,6 +84,7 @@ const unused = () => Effect.die("unexpected startup operation")
 const startup = Layer.succeed(
   ResidentStartup,
   ResidentStartup.of({
+    selectedBuild: Effect.succeed(undefined),
     now: Effect.succeed(100),
     prepare: unused,
     probe: unused,

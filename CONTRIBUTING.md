@@ -47,6 +47,7 @@ runner as described in the [testing matrix](docs/testing-matrix.md).
 | Build for both platforms or prepare a release | [Native inputs and publishing](docs/npm-publishing.md#native-build-inputs); [installed compatibility evidence](docs/installed-release-compatibility.md) |
 | Diagnose retained build ownership | [Build custody recovery](docs/testing-matrix.md#recovering-retained-build-custody) |
 | Change runtime hooks | [Generated hook inventory](docs/architecture.md#agent-hooks), accepted [advice contract](docs/advicing-target-contract.md), and [installation workflows](docs/installation-workflows.md) |
+| Automate a Codex hook experiment | [Invocation-only hook trust bypass](docs/testing-matrix.md#codex-hook-trust-in-automated-tests) |
 | Run maintainer semantic evaluation | [Evaluation protocol](docs/evaluation.md) and its scoped evidence; ordinary tests are offline |
 
 Ordinary tests are deterministic and offline. `npm run test:live` is an explicit

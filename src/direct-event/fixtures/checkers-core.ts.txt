@@ -1,0 +1,77 @@
+export type Player = 'black' | 'red';
+export type Piece = Readonly<{ player: Player; king: boolean }>;
+export type Board = ReadonlyArray<Piece | null>;
+export type Move = Readonly<{ from: number; to: number; captured: number | null }>;
+export type Game = Readonly<{
+  board: Board;
+  player: Player;
+  chain: number | null;
+  winner: Player | null;
+}>;
+
+export function opponent(player: Player): Player {
+  return player === 'black' ? 'red' : 'black';
+}
+
+export function createGame(): Game {
+  const board: (Piece | null)[] = Array(64).fill(null);
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      if ((row + col) % 2 === 1 && (row < 3 || row > 4)) {
+        board[row * 8 + col] = { player: row < 3 ? 'black' : 'red', king: false };
+      }
+    }
+  }
+  return { board, player: 'black', chain: null, winner: null };
+}
+
+function pieceMoves(board: Board, from: number, capturesOnly: boolean): Move[] {
+  const piece = board[from];
+  if (!piece) return [];
+  const row = Math.floor(from / 8);
+  const col = from % 8;
+  const directions = piece.king ? [-1, 1] : [piece.player === 'black' ? 1 : -1];
+  const moves: Move[] = [];
+  for (const dr of directions) {
+    for (const dc of [-1, 1]) {
+      const r = row + dr;
+      const c = col + dc;
+      if (r < 0 || r > 7 || c < 0 || c > 7) continue;
+      const adjacent = r * 8 + c;
+      const target = board[adjacent];
+      if (!target && !capturesOnly) moves.push({ from, to: adjacent, captured: null });
+      const jumpRow = row + 2 * dr;
+      const jumpCol = col + 2 * dc;
+      if (target && target.player !== piece.player && jumpRow >= 0 && jumpRow < 8 && jumpCol >= 0 && jumpCol < 8) {
+        const to = jumpRow * 8 + jumpCol;
+        if (!board[to]) moves.push({ from, to, captured: adjacent });
+      }
+    }
+  }
+  return moves;
+}
+
+export function legalMoves(game: Game): Move[] {
+  if (game.winner) return [];
+  if (game.chain !== null) return pieceMoves(game.board, game.chain, true);
+  const moves = game.board.flatMap((piece, from) =>
+    piece?.player === game.player ? pieceMoves(game.board, from, false) : []);
+  const captures = moves.filter(move => move.captured !== null);
+  return captures.length ? captures : moves;
+}
+
+export function applyMove(game: Game, from: number, to: number): Game {
+  const move = legalMoves(game).find(candidate => candidate.from === from && candidate.to === to);
+  if (!move) throw new Error('Illegal move');
+  const piece = game.board[from]!;
+  const board = [...game.board];
+  board[from] = null;
+  if (move.captured !== null) board[move.captured] = null;
+  const crowned = !piece.king && Math.floor(to / 8) === (piece.player === 'black' ? 7 : 0);
+  board[to] = { ...piece, king: piece.king || crowned };
+  if (move.captured !== null && !crowned && pieceMoves(board, to, true).length) {
+    return { board, player: game.player, chain: to, winner: null };
+  }
+  const next: Game = { board, player: opponent(game.player), chain: null, winner: null };
+  return legalMoves(next).length ? next : { ...next, winner: game.player };
+}

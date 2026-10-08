@@ -210,6 +210,16 @@ const ignoredTypeParents = new Set(["type_parameter", "nested_type_identifier"])
 const namedTypeContext = (child: SyntaxNode): boolean => !ignoredTypeParents.has(child.parent?.type ?? "")
 const declaredTypeName = (name: string, importedNames: ReadonlySet<string>): boolean =>
   !intrinsicTypes.has(name) || importedNames.has(name)
+const intrinsicReadonly = (node: SyntaxNode, boundTypes: ReadonlySet<string>): boolean => {
+  const parent = node.parent
+  return (
+    node.text === "Readonly" &&
+    !boundTypes.has(node.text) &&
+    parent?.type === "generic_type" &&
+    sameSyntaxNode(parent.namedChildren[0]!, node) &&
+    parent.namedChildren.find((child) => child.type === "type_arguments")?.namedChildren.length === 1
+  )
+}
 const eligibleNamedType = (
   child: SyntaxNode,
   ownName: string,
@@ -220,6 +230,7 @@ const eligibleNamedType = (
   child.text !== ownName &&
   namedTypeContext(child) &&
   !parameters.has(child.text) &&
+  !intrinsicReadonly(child, importedNames) &&
   declaredTypeName(child.text, importedNames)
 const typeReferenceKind = (
   child: SyntaxNode,

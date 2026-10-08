@@ -958,6 +958,21 @@ The installer and fixture were exercised locally on Linux arm64. Linux x64 is
 the configured CI platform; the macOS archive digests are pinned, but macOS
 installation and execution have not been validated in this change.
 
+## Codex hook trust in automated tests
+
+For automation that has already vetted every enabled hook source:
+
+```sh
+codex exec --ephemeral --json --dangerously-bypass-hook-trust \
+  -C /absolute/disposable-repo - < /absolute/test-prompt.txt
+```
+
+The flag bypasses hook trust for one invocation without enabling disabled hooks
+or changing persisted trust. Such runs do not validate ordinary native trust.
+Tool approvals and sandboxing are separate from hook trust; their bypass flag
+is `--dangerously-bypass-approvals-and-sandbox`.
+Source: installed `codex exec --help`, Codex CLI 0.161.0.
+
 ## Native scenario matrix
 
 | Scenario | Reviewer | Agent action and observable assertion | Run command suffix |

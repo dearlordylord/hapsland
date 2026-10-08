@@ -154,6 +154,7 @@ export const residentRequestEffect = Effect.fn("ResidentClient.request")(functio
 })
 
 export interface ResidentStartupOperations {
+  readonly selectedBuild: Effect.Effect<string | undefined, ResidentIpcError>
   readonly now: Effect.Effect<number>
   readonly prepare: (paths: ResidentPaths, timeoutMs: number) => Effect.Effect<void, ResidentEndpointError>
   readonly probe: (
@@ -261,6 +262,10 @@ export const makeResidentStartup = Effect.gen(function* () {
     )
   }, Effect.uninterruptible)
   return ResidentStartup.of({
+    selectedBuild: Effect.try({
+      try: () => readResidentTarget()?.build,
+      catch: () => new ResidentIpcError({ message: "selected resident target unavailable" })
+    }),
     now: launcher.now,
     prepare: Effect.fn("ResidentStartup.prepare")((paths: ResidentPaths) => prepareResidentDirectory(paths)),
     probe: Effect.fn("ResidentStartup.probe")((paths: ResidentPaths, timeoutMs: number) =>
@@ -296,10 +301,7 @@ export const ensureResidentEffect = Effect.fn("ResidentClient.ensureResident")(f
 ) {
   paths ??= yield* resolveResidentPaths()
   const dependencies = yield* ResidentStartup
-  const selectedBuild = yield* Effect.try({
-    try: () => readResidentTarget()?.build,
-    catch: () => new ResidentIpcError({ message: "selected resident target unavailable" })
-  })
+  const selectedBuild = yield* dependencies.selectedBuild
   const ready = (response: Extract<ResidentResponse, { status: "ready" }>) =>
     selectedBuild !== undefined && response.build !== selectedBuild
       ? Effect.fail(new ResidentIpcError({ message: "selected resident is not serving; run resident update" }))

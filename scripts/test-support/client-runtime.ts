@@ -15,9 +15,17 @@ const fixtureLaunch = Schema.Struct({
   command: Schema.Struct({ executable: Schema.String, args: Schema.Array(Schema.String) }),
   environment: Schema.Record(Schema.String, Schema.String)
 })
+const fixtureSelection = Layer.effect(
+  ResidentStartupService,
+  ResidentStartupService.pipe(
+    EffectRuntime.map((startup) =>
+      ResidentStartupService.of({ ...startup, selectedBuild: EffectRuntime.succeed(undefined) })
+    )
+  )
+)
 const makeRuntime = () => {
   const encoded = process.env.HAPSLAND_TEST_RESIDENT_LAUNCH
-  if (encoded === undefined) return ManagedRuntime.make(residentStartupLayer)
+  if (encoded === undefined) return ManagedRuntime.make(fixtureSelection.pipe(Layer.provide(residentStartupLayer)))
   const launch = Schema.decodeUnknownSync(fixtureLaunch)(JSON.parse(encoded))
   const launcher = Layer.succeed(
     ResidentLauncher,
@@ -43,7 +51,11 @@ const makeRuntime = () => {
       )
     })
   )
-  return ManagedRuntime.make(Layer.effect(ResidentStartupService, makeResidentStartup).pipe(Layer.provide(launcher)))
+  return ManagedRuntime.make(
+    fixtureSelection.pipe(
+      Layer.provide(Layer.effect(ResidentStartupService, makeResidentStartup).pipe(Layer.provide(launcher)))
+    )
+  )
 }
 
 /** Native fixture process boundary; all calls share its startup service lifetime. */

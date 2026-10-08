@@ -36,6 +36,25 @@ type Edge =
       reason: "unresolved" | "unsupported" | "reference-limit" | "unavailable"
       order: number
     }>
+export type CandidateInputFailure =
+  | {
+      readonly code: "review-input-invalid"
+      readonly args: {
+        readonly reason:
+          | "root-invalid"
+          | "supporting-artifact-invalid"
+          | "duplicate-expanded-target"
+          | "included-target-unavailable"
+          | "projection-invalid"
+          | "request-invalid"
+      }
+    }
+  | {
+      readonly code: "review-input-limit"
+      readonly args: { readonly constraint: "tree-bytes"; readonly observedBytes: number; readonly limitBytes: number }
+    }
+export type ReportCandidateInputFailure = (failure: CandidateInputFailure) => void
+
 export type CandidateReviewInput = Readonly<{
   contract: "direct-event/type-shape/v1" | "direct-event/function/v1"
   completeness: "complete" | "incomplete-irrelevant"
@@ -290,14 +309,21 @@ const orderCandidateProjection = (
 }
 
 /** Candidate wire proposal only; the accepted adoption gate must freeze its exact shape before egress. */
-export const renderCandidateReviewInput = (value: unknown): RenderedCandidateReviewInput | undefined => {
+export const renderCandidateReviewInput = (
+  value: unknown,
+  report?: ReportCandidateInputFailure
+): RenderedCandidateReviewInput | undefined => {
+  const invalid = () => {
+    report?.({ code: "review-input-invalid", args: { reason: "projection-invalid" } })
+    return undefined
+  }
   const input = record(value)
-  if (input === undefined || !candidateHeader(input)) return undefined
+  if (input === undefined || !candidateHeader(input)) return invalid()
   const projection = decodeCandidateProjection(input)
-  if (projection === undefined) return undefined
+  if (projection === undefined) return invalid()
   const { root, nodes, edges } = projection
   const ordered = orderCandidateProjection(root, nodes, edges, input.completeness)
-  if (ordered === undefined) return undefined
+  if (ordered === undefined) return invalid()
   const { orderedNodes, orderedEdges } = ordered
   const tree = {
     artifact: { kind: root.kind, name: root.name, domain: root.domain, source: root.source },
@@ -314,6 +340,13 @@ export const renderCandidateReviewInput = (value: unknown): RenderedCandidateRev
       rendererDigest: CANDIDATE_RENDERER_DIGEST
     }
   }
-  if (Buffer.byteLength(canonicalValue(rendered), "utf8") > Number(input.treeBytesLimit)) return undefined
+  const observedBytes = Buffer.byteLength(canonicalValue(rendered), "utf8")
+  if (observedBytes > Number(input.treeBytesLimit)) {
+    report?.({
+      code: "review-input-limit",
+      args: { constraint: "tree-bytes", observedBytes, limitBytes: Number(input.treeBytesLimit) }
+    })
+    return undefined
+  }
   return freeze(rendered)
 }

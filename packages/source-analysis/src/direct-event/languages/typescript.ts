@@ -54,14 +54,39 @@ const rootTypeParameters = (declaration: SyntaxNode): ReadonlySet<string> => {
 
 const unsupportedReferenceNodes = new Set(["nested_type_identifier", "type_query", "computed_property_name"])
 const ignoredTypeParents = new Set(["type_parameter", "nested_type_identifier"])
+const intrinsicContainers = new Set(["Readonly", "ReadonlyArray", "Array"])
+const unshadowedIntrinsicContainers = (nodes: ReadonlyArray<SyntaxNode>): ReadonlySet<string> => {
+  const names = new Set(intrinsicContainers)
+  for (const declaration of nodes) names.delete(declarationNameNode(declaration)?.text ?? "")
+  let root = nodes[0]!
+  while (root.parent != null) root = root.parent
+  for (const statement of root.namedChildren) {
+    if (statement.type !== "import_statement") continue
+    for (const binding of descendants(statement)) {
+      if (binding.type === "identifier" || binding.type === "type_identifier") names.delete(binding.text)
+    }
+  }
+  return names
+}
+const intrinsicContainerReference = (node: SyntaxNode, names: ReadonlySet<string>): boolean => {
+  const parent = node.parent
+  return (
+    parent?.type === "generic_type" &&
+    names.has(node.text) &&
+    sameSyntaxNode(parent.namedChildren[0]!, node) &&
+    parent.namedChildren.find((child) => child.type === "type_arguments")?.namedChildren.length === 1
+  )
+}
 const typeReference = (
   node: SyntaxNode,
   nameNode: SyntaxNode,
-  parameters: ReadonlySet<string>
+  parameters: ReadonlySet<string>,
+  intrinsicNames: ReadonlySet<string>
 ): ParsedDeclaration["references"][number] | undefined => {
   if (unsupportedReferenceNodes.has(node.type)) return { kind: "unsupported", name: node.text }
   if (node.type !== "type_identifier" || sameSyntaxNode(node, nameNode)) return undefined
   if (ignoredTypeParents.has(node.parent?.type ?? "") || parameters.has(node.text)) return undefined
+  if (intrinsicContainerReference(node, intrinsicNames)) return undefined
   return { kind: "named", name: node.text }
 }
 const distinctReferences = (references: ParsedDeclaration["references"]): ParsedDeclaration["references"] => {
@@ -73,11 +98,15 @@ const distinctReferences = (references: ParsedDeclaration["references"]): Parsed
     return true
   })
 }
-const referencesOf = (declaration: SyntaxNode, nameNode: SyntaxNode): ParsedDeclaration["references"] => {
+const referencesOf = (
+  declaration: SyntaxNode,
+  nameNode: SyntaxNode,
+  intrinsicNames: ReadonlySet<string>
+): ParsedDeclaration["references"] => {
   const parameters = rootTypeParameters(declaration)
   const references: Array<ParsedDeclaration["references"][number]> = []
   for (const node of descendants(declaration)) {
-    const reference = typeReference(node, nameNode, parameters)
+    const reference = typeReference(node, nameNode, parameters, intrinsicNames)
     if (reference !== undefined) references.push(reference)
   }
   return distinctReferences(references)
@@ -92,7 +121,11 @@ const topLevelTypes = (root: SyntaxNode): ReadonlyArray<SyntaxNode> =>
         ? []
         : [node]
   )
-const parseDeclaration = (path: string, node: SyntaxNode): ParsedDeclaration | undefined => {
+const parseDeclaration = (
+  path: string,
+  node: SyntaxNode,
+  intrinsicNames: ReadonlySet<string>
+): ParsedDeclaration | undefined => {
   const nameNode = declarationNameNode(node)
   const kind = kindOf(node)
   if (nameNode === undefined || kind === undefined || nameNode.text.length === 0 || node.hasError) return undefined
@@ -107,7 +140,7 @@ const parseDeclaration = (path: string, node: SyntaxNode): ParsedDeclaration | u
       source: rendered,
       sourceHash: createHash("sha256").update(rendered, "utf8").digest("hex")
     },
-    references: referencesOf(node, nameNode)
+    references: referencesOf(node, nameNode, intrinsicNames)
   }
 }
 const parseDeclarationNodes = (
@@ -116,9 +149,10 @@ const parseDeclarationNodes = (
 ): TypeExtractionFailure | ReadonlyArray<ParsedDeclaration> => {
   if (nodes.length === 0) return { status: "unsupported", reason: "no-declarations", units: [] }
   if (nodes.length > MAX_TYPE_DECLARATIONS) return { status: "unsupported", reason: "declaration-limit", units: [] }
+  const intrinsicNames = unshadowedIntrinsicContainers(nodes)
   const parsed: Array<ParsedDeclaration> = []
   for (const node of nodes) {
-    const declaration = parseDeclaration(path, node)
+    const declaration = parseDeclaration(path, node, intrinsicNames)
     if (declaration === undefined) return { status: "unsupported", reason: "parse", units: [] }
     parsed.push(declaration)
   }

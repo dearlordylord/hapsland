@@ -38,6 +38,23 @@ describe("Codex post-edit hunk verification", () => {
     expect(verifyCodexPostEditHunks(command, "another.ts", "elsewhere")).toBeDefined()
   })
 
+  it("anchors the native end-of-file marker to the actual final line", () => {
+    const command = update("-old\n+same\n*** End of File")
+    expect(spans(command, "same\nsame\n")).toEqual([{ start: { line: 2, column: 1 }, end: { line: 3, column: 1 } }])
+    expect(spans(command, "same\nlater\n")).toBeUndefined()
+    expect(spans(command, "same")).toEqual([{ start: { line: 1, column: 1 }, end: { line: 1, column: 5 } }])
+  })
+
+  it("rejects misplaced or repeated end-of-file markers", () => {
+    for (const body of [
+      "*** End of File\n+new",
+      "+new\n*** End of File\n+later",
+      "+new\n*** End of File\n*** End of File",
+      "+new\n*** End of File\n@@\n+later"
+    ])
+      expect(spans(update(body), "new\nlater")).toBeUndefined()
+  })
+
   it("rejects duplicate post-edit matches even when a header names one", () => {
     expect(spans(update("+same"), "same\nsame\n")).toBeUndefined()
     expect(spans(patch("*** Update File: src/example.ts\n@@ unique-name\n+same"), "same\nsame\n")).toBeUndefined()
