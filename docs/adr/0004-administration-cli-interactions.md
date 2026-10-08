@@ -1,7 +1,6 @@
 # Administration CLI interaction boundaries
 
 **Purpose:** Record the accepted ownership and execution model for human CLI interactions.
-**Audience:** Contributors, including coding agents; Product and specification owners.
 **Status:** Accepted design; production qualification is tracked separately.
 **Authority:** Accepted product and architecture decisions in [#244](https://github.com/dearlordylord/hapsland/issues/244), constrained by [#243](https://github.com/dearlordylord/hapsland/issues/243).
 **Expected use:** Design or change an administration conversation without moving authorization into presentation code.

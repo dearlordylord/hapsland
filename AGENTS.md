@@ -110,10 +110,11 @@ runtime behavior.
 
 ## Markdown lifecycle
 
-Every new Markdown document must state near its top **Purpose**, **Audience**, **Status**,
-**Authority**, **Expected use**, and **Lifecycle**. Authority must distinguish
-accepted product contract, maintained guidance, design proposal, and
-implementation or validation evidence; a report does not become a product
+Every new Markdown document must state near its top **Purpose**, **Status**,
+**Authority**, **Expected use**, and **Lifecycle**. Include **Audience** except in
+ADRs and user-facing README files, whose readership is implicit in their role.
+Authority must distinguish accepted product contract, maintained guidance,
+design proposal, and implementation or validation evidence; a report does not become a product
 contract merely by describing implemented behavior.
 
 **Audience** names the intended readers: end users, rule authors, contributors

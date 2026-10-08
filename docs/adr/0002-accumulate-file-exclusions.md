@@ -1,7 +1,5 @@
 # Preserve exclusions across configuration layers
 
-**Audience:** Contributors, including coding agents; Product and specification owners.
-
 Phase F replaces inherited include lists with the highest-precedence supplied list,
 but accumulates exclusions across built-in, user, and project configuration; exclusion
 always wins. This deliberately prevents project policy from weakening user privacy

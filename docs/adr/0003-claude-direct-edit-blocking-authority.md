@@ -1,7 +1,5 @@
 # User authority for Claude direct-edit blocking
 
-**Audience:** Contributors, including coding agents; Product and specification owners.
-
 The earlier Claude Code direct-edit feedback path is advisory by default. A block
 for current findings requires an explicit `block-current-findings` choice in the
 user configuration. Project configuration cannot grant that authority.
