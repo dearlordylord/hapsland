@@ -1,0 +1,23 @@
+{
+  "at": "2026-10-08T09:59:56.238973+00:00",
+  "reviewer": "delegated Astra /root/approve_credential_laws",
+  "decision": "approved as written",
+  "laws": [
+    "command_exact",
+    "installation_proceed_exact",
+    "installation_written_exact",
+    "readiness_exact"
+  ],
+  "scope": "initial command and predicate laws only; not full transitions or production acceptance",
+  "reviewedSha256": {
+    "packages/agent-flow-bend/setup-policy/core.bend": "161d0ac7bf0239c81e6b06b27137e74b56720d892e77885bc9c78868b4b5a174",
+    "packages/agent-flow-bend/setup-policy/LAWS.bend": "e493783aac3479d6e10ec5ccc584124d9a403a63cd35c9f7d26c836c1cf07de3"
+  },
+  "hostObligations": [
+    "first matching stage, including duplicate-stage semantics",
+    "undefined maps Missing; all unrecognized statuses including literal missing map Other",
+    "command ID preserves native revision; observation payload unchanged",
+    "readiness predicate alone establishes no compatibility, credential validity, executed hooks or review success",
+    "consent, digests, correlation, effects and observation ownership remain native"
+  ]
+}

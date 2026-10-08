@@ -1,9 +1,10 @@
 {
-  "startedAt": "2026-10-08T08:44:41.007Z",
-  "at": "2026-10-08T08:45:23.503Z",
+  "baselineRevision": "8772653dd5546eeb72e14787e6d22aaaefd17766",
+  "startedAt": "2026-10-08T12:11:38.259Z",
+  "at": "2026-10-08T12:11:57.617Z",
   "roots": {
-    "typescript": "/workspace/typescript/hapsland-bend-baseline",
-    "integratedBend": "/workspace/typescript/hapsland-bend-strangler"
+    "typescript": "/workspace/typescript/hapsland-bend-baseline-current",
+    "integratedBend": "/workspace/typescript/hapsland-bend-setup"
   },
   "command": [
     "taskset",
@@ -18,7 +19,7 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 12.949542071,
+        "seconds": 5.388314469,
         "exitCode": 0,
         "signal": null,
         "error": null
@@ -26,7 +27,7 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 12.620119630000005,
+        "seconds": 4.840761031,
         "exitCode": 0,
         "signal": null,
         "error": null
@@ -36,7 +37,7 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 12.046626406,
+        "seconds": 4.665572516999999,
         "exitCode": 0,
         "signal": null,
         "error": null
@@ -44,14 +45,14 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 4.869978423,
+        "seconds": 4.448654429999999,
         "exitCode": 0,
         "signal": null,
         "error": null
       }
     ]
   },
-  "meanRatio": 0.6615889184149202,
+  "meanRatio": 0.891011797400459,
   "buildParity": true,
-  "scope": "paired warm workspace builds; baseline master a071b9b58 and current candidate; both separately prepared; native release assembly excluded"
+  "scope": "paired warm workspace builds; declared frozen baseline and current candidate; both separately prepared; native release assembly excluded"
 }

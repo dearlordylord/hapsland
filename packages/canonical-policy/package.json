@@ -63,6 +63,10 @@
     "./canonical/update-adapter": {
       "types": "./dist/canonical/update-adapter.d.ts",
       "default": "./dist/canonical/update-adapter.js"
+    },
+    "./canonical/setup-adapter": {
+      "types": "./dist/canonical/setup-adapter.d.ts",
+      "default": "./dist/canonical/setup-adapter.js"
     }
   },
   "dependencies": {

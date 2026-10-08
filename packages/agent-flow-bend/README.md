@@ -47,7 +47,11 @@ consumed through the canonical-policy credential adapter; host code retains
 paths, target strings, descriptor text, file safety, empty-environment handling
 and save consent. The generator checks the proofs before emitting the artifact,
 and the producer receipt binds the laws, proofs, implementation and authored ABI.
-Finite caches retain only source kinds and Boolean decisions.
+The credential artifact retains only the compiled function dependency closure for
+lookup and save availability; generation compares all 32 lookup fact tuples and
+all ten save inputs with the complete compiler output. The host adapter checks
+the closed source constructors and Boolean result without initializing a schema
+codec. Finite caches retain only source kinds and Boolean decisions.
 
 `login-policy/core.bend` owns login command selection, navigation and payload
 patch selection through the canonical-policy login adapter. Astra-approved laws
@@ -85,6 +89,16 @@ hosts and digests. Array measurements, payload materialization, full-line consen
 and owner revalidation remain native obligations. The [migration checkpoint](../../evidence/bend-strangler/checkpoint.json)
 records current timing qualification and finite consumer evidence separately from
 the laws. These measurements do not establish acquisition, owner IO or platform support.
+
+`setup-policy/core.bend` owns per-agent setup commands, stage readiness and
+transition plans, including progress ordering, exact approval fences, fresh
+proposals, exit codes and activation before input cancellation. Five
+Astra-approved laws characterize these decisions conditional on native facts.
+The generator compares every Boolean transition tuple and stage-status tuple
+before emitting a compact reducer bound to native materializers. The host
+retains first-match stage extraction, exact digest and token comparisons,
+observation references, sequence/revision arithmetic, consent and Effect owners.
+These proofs do not establish physical installation or platform support.
 
 `Canonical.bend` is the production transition model and drives the main
 visualization through the checked TypeScript adapter.

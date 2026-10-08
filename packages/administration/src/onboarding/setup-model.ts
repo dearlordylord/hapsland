@@ -1,3 +1,10 @@
+import {
+  getSetupCommand,
+  getSetupInstallationCanProceed,
+  getSetupInstallationWasWritten,
+  getSetupReadiness,
+  bindSetupReducer
+} from "@hapsland/canonical-policy/canonical/setup-adapter"
 import type { SetupProgressObservation } from "./setup.ts"
 import type { VerificationOutcome } from "./verification-conversation.ts"
 
@@ -53,136 +60,111 @@ export const initialSetup = (): SetupModel => ({
   activation: "not-attempted",
   exitCode: 0
 })
-export const setupCommand = (model: SetupModel): SetupCommand | undefined => {
-  const kinds = {
-    Previewing: "preview",
-    Applying: "apply",
-    Activating: "activate",
-    Verifying: "verify",
-    Diagnosing: "diagnose"
-  } as const
-  return model.phase in kinds ? { kind: kinds[model.phase as keyof typeof kinds], id: model.revision } : undefined
-}
-const move = (model: SetupModel, phase: SetupModel["phase"], patch: Partial<SetupModel> = {}): SetupModel => ({
-  ...model,
-  ...patch,
-  progressSequence: 0,
-  phase,
-  revision: model.revision + 1
-})
+export const setupCommand: (model: SetupModel) => SetupCommand | undefined = getSetupCommand
 export const setupStageStatus = (
   observation: SetupObservation | undefined,
   stage: ObservedStage["stage"]
 ): ObservedStage["status"] | undefined => observation?.stages.find((item) => item.stage === stage)?.status
-const installationCanProceed = (status: ObservedStage["status"] | undefined): boolean =>
-  status === "complete" || status === "pending" || status === "partial"
-const installationWasWritten = (status: ObservedStage["status"] | undefined): boolean =>
-  status === "complete" || status === "partial"
-const approvalPhase = (observation: SetupObservation): SetupModel["phase"] =>
-  observation.installDigest ? "HookApproval" : observation.rulesDigest ? "RulesApproval" : "Applying"
-const previewed = (model: SetupModel, observation: SetupObservation): SetupModel => {
-  const patch = {
+export const setupObservationReady = (observation: SetupObservation | undefined): boolean =>
+  getSetupReadiness(setupStageStatus, observation)
+const observationFor = (model: SetupModel, action: SetupAction): SetupObservation | undefined =>
+  "observation" in action ? action.observation : model.observations.at(-1)
+const actionObservation = (action: SetupAction): SetupObservation => {
+  if (!("observation" in action)) throw new TypeError("Setup observation materializer requires an observation")
+  return action.observation
+}
+const move = (
+  model: SetupModel,
+  phase: SetupModel["phase"],
+  exit: number | undefined,
+  patch: Partial<SetupModel> = {}
+): SetupModel => ({
+  ...model,
+  ...patch,
+  ...(exit === undefined ? {} : { exitCode: exit }),
+  progressSequence: 0,
+  phase,
+  revision: model.revision + 1
+})
+const preview = (
+  model: SetupModel,
+  action: SetupAction,
+  phase: SetupModel["phase"],
+  exit: number | undefined
+): SetupModel => {
+  const observation = actionObservation(action)
+  return move(model, phase, exit, {
     proposal: observation,
     observations: [...model.observations, observation],
     installApproved: undefined,
     rulesApproved: undefined
-  }
-  if (setupStageStatus(observation, "compatibility") !== "complete")
-    return move(model, "Done", { ...patch, exitCode: 3 })
-  if (!installationCanProceed(setupStageStatus(observation, "installation")))
-    return move(model, "Done", { ...patch, exitCode: observation.status === "partial" ? 5 : 4 })
-  return move(model, approvalPhase(observation), patch)
-}
-export const setupObservationReady = (observation: SetupObservation | undefined): boolean => {
-  const ready = (["installation", "credential", "repository"] as const).every(
-    (stage) => setupStageStatus(observation, stage) === "complete"
-  )
-  const rules = setupStageStatus(observation, "rules")
-  return ready && (rules === undefined || rules === "complete" || rules === "skipped")
-}
-
-const afterActivation = (model: SetupModel): SetupModel => {
-  const observation = model.observations.at(-1)
-  if (observation?.credential?.status === "cancelled") return move(model, "Cancelled")
-  const ready = setupObservationReady(observation)
-  return move(model, ready ? "Verifying" : "Done", { exitCode: ready ? 0 : observation?.status === "partial" ? 5 : 6 })
-}
-const applied = (model: SetupModel, observation: SetupObservation): SetupModel => {
-  const next = { ...model, observations: [...model.observations, observation] }
-  // Activation completes the already authorized installation even when hidden
-  // input was cancelled. Cancellation then stops input, verification and doctor.
-  if (installationWasWritten(setupStageStatus(observation, "installation"))) return move(next, "Activating")
-  if (observation.credential?.status === "cancelled") return move(next, "Cancelled")
-  // A changed owner proposal is a fresh preview, never an automatic retry.
-  if (setupStageStatus(observation, "installation") === "pending" && observation.installDigest !== undefined)
-    return move(next, approvalPhase(observation), {
-      proposal: observation,
-      installApproved: undefined,
-      rulesApproved: undefined
-    })
-  return afterActivation(next)
-}
-const approveHooks = (model: SetupModel, action: SetupAction): SetupModel => {
-  if (action.kind !== "approveHooks" || action.digest !== model.proposal?.installDigest) return model
-  if (!action.yes) return move(model, "Done")
-  return move(model, model.proposal?.rulesDigest ? "RulesApproval" : "Applying", { installApproved: action.digest })
-}
-const approveRules = (model: SetupModel, action: SetupAction): SetupModel => {
-  if (action.kind !== "approveRules" || action.digest !== model.proposal?.rulesDigest) return model
-  return action.yes ? move(model, "Applying", { rulesApproved: action.digest }) : move(model, "Done")
-}
-const progress = (model: SetupModel, action: Extract<SetupAction, { kind: "progressed" }>): SetupModel => {
-  if (action.sequence !== model.progressSequence + 1) return model
-  return { ...model, progressSequence: action.sequence, observations: [...model.observations, action.observation] }
-}
-const applying = (model: SetupModel, action: SetupAction): SetupModel => {
-  if (action.kind === "progressed") return progress(model, action)
-  if (action.kind === "applied") return applied(model, action.observation)
-  if (action.kind === "stale")
-    return move(model, "Previewing", { installApproved: undefined, rulesApproved: undefined })
-  return model
-}
-const unchanged = (model: SetupModel) => model
-const transitions: Record<SetupModel["phase"], (model: SetupModel, action: SetupAction) => SetupModel> = {
-  Previewing: (model, action) => (action.kind === "previewed" ? previewed(model, action.observation) : model),
-  HookApproval: approveHooks,
-  RulesApproval: approveRules,
-  Applying: applying,
-  Activating: (model, action) =>
-    action.kind === "activated" ? afterActivation({ ...model, activation: "completed" }) : model,
-  Verifying: (model, action) =>
-    action.kind === "verified"
-      ? move(model, action.outcome.kind === "cancelled" ? "Cancelled" : "Diagnosing", { verification: action.outcome })
-      : model,
-  Diagnosing: (model, action) =>
-    action.kind === "diagnosed"
-      ? move(model, "Done", { readiness: action.status, exitCode: action.succeeded ? 0 : 6 })
-      : model,
-  Done: unchanged,
-  Cancelled: unchanged,
-  Back: unchanged,
-  Failed: unchanged
-}
-const navigate = (model: SetupModel, action: SetupAction): SetupModel => {
-  if (!["HookApproval", "RulesApproval"].includes(model.phase)) return model
-  if (action.kind === "exit") return move(model, "Cancelled")
-  return move(model, model.phase === "RulesApproval" ? "Previewing" : "Back", {
-    installApproved: undefined,
-    rulesApproved: undefined
   })
 }
-const failed = (model: SetupModel): SetupModel =>
-  setupCommand(model)
-    ? move(model, "Failed", { exitCode: 6, activation: model.phase === "Activating" ? "failed" : model.activation })
-    : model
-const matches = (model: SetupModel, event: SetupEvent): boolean => {
-  if (event.revision !== model.revision) return false
-  return !("commandId" in event.action) || event.action.commandId === model.revision
-}
-export const reduceSetup = (model: SetupModel, event: SetupEvent): SetupModel => {
-  if (!matches(model, event)) return model
-  const action = event.action
-  if (action.kind === "back" || action.kind === "exit") return navigate(model, action)
-  if (action.kind === "failed") return failed(model)
-  return transitions[model.phase](model, action)
-}
+export const reduceSetup: (model: SetupModel, event: SetupEvent) => SetupModel = bindSetupReducer(
+  {
+    compatOk: (model: SetupModel, action: SetupAction) =>
+      setupStageStatus(observationFor(model, action), "compatibility") === "complete",
+    proceed: (model: SetupModel, action: SetupAction) =>
+      getSetupInstallationCanProceed(setupStageStatus(observationFor(model, action), "installation")),
+    written: (model: SetupModel, action: SetupAction) =>
+      getSetupInstallationWasWritten(setupStageStatus(observationFor(model, action), "installation")),
+    pending: (model: SetupModel, action: SetupAction) =>
+      setupStageStatus(observationFor(model, action), "installation") === "pending",
+    installDigest: (model: SetupModel, action: SetupAction) => Boolean(observationFor(model, action)?.installDigest),
+    installPresent: (model: SetupModel, action: SetupAction) =>
+      observationFor(model, action)?.installDigest !== undefined,
+    rulesDigest: (model: SetupModel, action: SetupAction) =>
+      Boolean(
+        action.kind === "approveHooks" ? model.proposal?.rulesDigest : observationFor(model, action)?.rulesDigest
+      ),
+    digestMatch: (model: SetupModel, action: SetupAction) =>
+      action.kind === "approveHooks"
+        ? action.digest === model.proposal?.installDigest
+        : action.kind === "approveRules" && action.digest === model.proposal?.rulesDigest,
+    yes: (_model: SetupModel, action: SetupAction) => "yes" in action && action.yes,
+    ready: (model: SetupModel, action: SetupAction) => setupObservationReady(observationFor(model, action)),
+    cancelled: (model: SetupModel, action: SetupAction) =>
+      action.kind === "verified"
+        ? action.outcome.kind === "cancelled"
+        : observationFor(model, action)?.credential?.status === "cancelled",
+    partial: (model: SetupModel, action: SetupAction) => observationFor(model, action)?.status === "partial",
+    sequenceNext: (model: SetupModel, action: SetupAction) =>
+      action.kind === "progressed" && action.sequence === model.progressSequence + 1,
+    succeeded: (_model: SetupModel, action: SetupAction) => action.kind === "diagnosed" && action.succeeded
+  },
+  {
+    no: (model: SetupModel, _action: SetupAction, phase: SetupModel["phase"], exit: number | undefined) =>
+      move(model, phase, exit),
+    preview,
+    freshProposal: preview,
+    append: (model: SetupModel, action: SetupAction, phase: SetupModel["phase"], exit: number | undefined) =>
+      move(model, phase, exit, { observations: [...model.observations, actionObservation(action)] }),
+    installApproval: (model: SetupModel, action: SetupAction, phase: SetupModel["phase"], exit: number | undefined) => {
+      if (action.kind !== "approveHooks") throw new TypeError("Setup install approval requires its matching action")
+      return move(model, phase, exit, { installApproved: action.digest })
+    },
+    rulesApproval: (model: SetupModel, action: SetupAction, phase: SetupModel["phase"], exit: number | undefined) => {
+      if (action.kind !== "approveRules") throw new TypeError("Setup rules approval requires its matching action")
+      return move(model, phase, exit, { rulesApproved: action.digest })
+    },
+    clearApprovals: (model: SetupModel, _action: SetupAction, phase: SetupModel["phase"], exit: number | undefined) =>
+      move(model, phase, exit, { installApproved: undefined, rulesApproved: undefined }),
+    activated: (model: SetupModel, _action: SetupAction, phase: SetupModel["phase"], exit: number | undefined) =>
+      move(model, phase, exit, { activation: "completed" }),
+    verification: (model: SetupModel, action: SetupAction, phase: SetupModel["phase"], exit: number | undefined) => {
+      if (action.kind !== "verified")
+        throw new TypeError("Setup verification materializer requires its matching action")
+      return move(model, phase, exit, { verification: action.outcome })
+    },
+    diagnosis: (model: SetupModel, action: SetupAction, phase: SetupModel["phase"], exit: number | undefined) => {
+      if (action.kind !== "diagnosed") throw new TypeError("Setup diagnosis materializer requires its matching action")
+      return move(model, phase, exit, { readiness: action.status })
+    },
+    failedActivation: (model: SetupModel, _action: SetupAction, phase: SetupModel["phase"], exit: number | undefined) =>
+      move(model, phase, exit, { activation: "failed" }),
+    progress: (model: SetupModel, action: SetupAction) => {
+      if (action.kind !== "progressed") throw new TypeError("Setup progress materializer requires its matching action")
+      return { ...model, progressSequence: action.sequence, observations: [...model.observations, action.observation] }
+    }
+  }
+)

@@ -1,0 +1,309 @@
+{
+  "at": "2026-10-08T12:12:20.465Z",
+  "runtime": {
+    "kind": "Bun",
+    "versions": {
+      "node": "24.3.0",
+      "bun": "1.3.14",
+      "boringssl": "0c5fce43b7ed5eb6001487ee48ac65766f5ddcd1",
+      "openssl": "1.1.0",
+      "llhttp": "9.3.0",
+      "libarchive": "ded82291ab41d5e355831b96b0e1ff49e24d8939",
+      "mimalloc": "f15aecb94fc8096008bf87b90c53ed682026914a",
+      "picohttpparser": "066d2b1e9ab820703db0837a7255d92d30f0c9f5",
+      "uwebsockets": "0d9b296af33f2b851fcbf4df3e9ec89751734ba4",
+      "webkit": "5488984d20e0dbfe4be2c3ba8fb18eb81a5e0e8b",
+      "zig": "04e7f6ac1e009525bc00934f20199c68f04e0a24",
+      "zlib": "12731092979c6d07f42da27da673a9f6c7b13586",
+      "tinycc": "12882eee073cfe5c7621bcfadf679e1372d4537b",
+      "lolhtml": "77127cd2b8545998756e8d64e36ee2313c4bb312",
+      "ares": "3ac47ee46edd8ea40370222f91613fc16c434853",
+      "libdeflate": "c8c56a20f8f621e6a966b716b31f1dedab6a41e3",
+      "usockets": "0d9b296af33f2b851fcbf4df3e9ec89751734ba4",
+      "lshpack": "8905c024b6d052f083a3d11d0a169b3c2735c8a1",
+      "zstd": "f8745da6ff1ad1e7bab384bd1f9d742439278e99",
+      "v8": "13.6.233.10-node.18",
+      "uv": "1.48.0",
+      "napi": "10",
+      "icu": "75.1",
+      "unicode": "15.1",
+      "modules": "137"
+    },
+    "executable": "/home/node/.local/share/mise/installs/bun/1.3.14/bin/bun"
+  },
+  "baselineRevision": "8772653dd5546eeb72e14787e6d22aaaefd17766",
+  "warmupRounds": 20,
+  "samplePairs": 31,
+  "warmupOrder": "reference-first",
+  "timedCases": 27248,
+  "samples": {
+    "typescript": [
+      {
+        "milliseconds": 70.85894499999995,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 72.50683200000003,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 75.89268799999991,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 77.34028099999978,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 78.44599800000015,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 82.51848300000074,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 82.80652800000007,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 76.4238579999992,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 94.91761099999985,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 67.04150300000038,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 78.72366599999987,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 107.44686299999921,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 86.6145120000001,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 75.26901700000053,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 77.38828199999989,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 78.48516399999971,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 81.82110399999874,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 69.06722400000035,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 81.09205699999984,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 78.67533200000071,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 108.21532699999989,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 92.98130599999968,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 98.7673450000002,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 74.70105499999954,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 96.93199900000036,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 129.28559700000005,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 123.81214300000102,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 101.10319399999935,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 108.60212200000024,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 106.47927300000083,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 98.22367499999928,
+        "checksum": 72799824
+      }
+    ],
+    "integratedBend": [
+      {
+        "milliseconds": 66.82204200000069,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 65.70274299999983,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 65.29173999999966,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 67.69775700000082,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 83.95699299999978,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 74.97497299999941,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 78.95533400000022,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 60.56608299999971,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 80.98334900000009,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 65.49782499999947,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 65.82078499999898,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 83.84040900000036,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 69.37864400000035,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 65.76699299999927,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 57.327353000000585,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 66.25278900000012,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 63.40606099999968,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 58.073608000000604,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 79.033918000001,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 66.78095799999937,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 102.13628499999868,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 104.7525110000006,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 76.84656899999936,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 60.52429099999972,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 116.77763600000071,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 121.74458599999889,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 92.59230299999945,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 93.72485199999937,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 84.01320200000009,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 101.475864,
+        "checksum": 72799824
+      },
+      {
+        "milliseconds": 92.30534200000147,
+        "checksum": 72799824
+      }
+    ]
+  },
+  "medianRatio": 0.9163280539456001,
+  "executionParity": true,
+  "sha256": {
+    "/workspace/typescript/hapsland-bend-baseline-current/packages/administration/dist/onboarding/setup-model.js": "e9c6ddfa29c3ce0cdca5ad6f3fb23ef29b3d601a0425a451f09b896d2741a572",
+    "evidence/bend-strangler/setup-reference.ts": "171467aa50071255c0f8b1fc062290648b0414bbbe1f5c2b9ab091f7ebd99b5f",
+    "packages/agent-flow-bend/setup-policy/core.bend": "e2260f3e60cd9dca22b3d3588ca903cdd1c2e5a80b5b155146de2ed2caec3c94",
+    "packages/agent-flow-bend/setup-policy/LAWS.bend": "826004c502cd68cb86fa7176b255ac710a8a17553cd5ff6ee2502e3a8a0abe07",
+    "packages/agent-flow-bend/setup-policy/PROOF.bend": "5f35ba3eb8e77d88d1198d4744d1cf6ab400b8bc0eb8e0237f74a8f29bf0393c",
+    "packages/agent-flow-bend/scripts/build-setup-policy.mjs": "21d00f8020acb2e212475b3cc0e407a4d5d9cd7cf0f14fab1d6c1420ca28daf8",
+    "packages/canonical-policy/src/canonical/setup-adapter.ts": "5558660f9efe7b0bbcb06ab458166afac325b2e77e5c881899a0f37aaa7b2c50",
+    "packages/administration/src/onboarding/setup-model.ts": "33d974d9152e0bef60ebaeaf0b686ac86026fb7937aae3dac338f6eb684c2ba0",
+    "packages/agent-flow-bend/dist/setup-policy.generated.js": "bc314284c5e11395e5d87881147d28b84599e13a6070c492d57efbe25cf7694e",
+    "packages/canonical-policy/dist/canonical/setup-adapter.js": "eb378fcf20fe1da282cdab6e16e90ce3b1baef43bd17bf047ad8bfbe7830713e",
+    "packages/administration/dist/onboarding/setup-model.js": "a454734cdcaccbec0b3700afe48b3d39eb0131f575473e02a8213567a5ccaeab"
+  },
+  "scope": "emitted setup reducer/commands/readiness from both master and candidate; independent identical harness functions per lane; native finite-token cases with exact output field consumption; finite stage/status/digest/progress/correlation fixtures; no acquisition, owner IO, startup or platform claim"
+}

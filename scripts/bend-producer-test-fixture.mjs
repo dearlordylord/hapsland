@@ -20,7 +20,8 @@ export async function createBendReceiptFixture(root, repositoryRoot) {
     "build-process.mjs",
     "build-lock.mjs",
     "build-groups.mjs",
-    "owned-lock.mjs"
+    "owned-lock.mjs",
+    "pure-bend-artifact.mjs"
   ])
     copyFileSync(resolve(repositoryRoot, "scripts", name), resolve(root, "scripts", name))
   const manifestPath = resolve(directory, "package.json")
@@ -30,7 +31,19 @@ export async function createBendReceiptFixture(root, repositoryRoot) {
   writeFileSync(manifestPath, JSON.stringify(manifest))
   for (const name of ["CanonicalRuntime.bend", "ImportGraphRuntime.bend", "request-content/Runtime.bend"])
     writeFileSync(resolve(directory, name), "import Base\n")
-  for (const name of ["build-canonical.mjs", "build-import-graph.mjs", "build-request-content.mjs"])
+  const policies = ["credential", "login", "verification", "update", "setup"]
+  for (const policy of policies) {
+    const policyDirectory = resolve(directory, policy + "-policy")
+    mkdirSync(policyDirectory, { recursive: true })
+    writeFileSync(resolve(policyDirectory, "core.bend"), "import Base\n")
+    writeFileSync(resolve(policyDirectory, "PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
+  }
+  for (const name of [
+    "build-canonical.mjs",
+    "build-import-graph.mjs",
+    "build-request-content.mjs",
+    ...policies.map((policy) => "build-" + policy + "-policy.mjs")
+  ])
     writeFileSync(resolve(directory, "scripts", name), "// Fixture generator identity\n")
   for (const name of producer.bendProducerOutputs.filter((name) => name.endsWith(".d.ts"))) {
     writeFileSync(resolve(directory, "abi", name), "export declare const fixture: number;\n")

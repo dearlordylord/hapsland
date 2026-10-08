@@ -1,0 +1,18 @@
+{
+  "productionCompared": true,
+  "at": "2026-10-08T12:12:58.616Z",
+  "passed": true,
+  "transitionCases": 346336,
+  "observationCases": 20736,
+  "holdCases": 320032,
+  "sourceSha256": {
+    "packages/agent-flow-bend/setup-policy/core.bend": "e2260f3e60cd9dca22b3d3588ca903cdd1c2e5a80b5b155146de2ed2caec3c94",
+    "packages/agent-flow-bend/setup-policy/LAWS.bend": "826004c502cd68cb86fa7176b255ac710a8a17553cd5ff6ee2502e3a8a0abe07",
+    "evidence/bend-strangler/setup-reference.ts": "171467aa50071255c0f8b1fc062290648b0414bbbe1f5c2b9ab091f7ebd99b5f",
+    "packages/administration/src/onboarding/setup-model.ts": "33d974d9152e0bef60ebaeaf0b686ac86026fb7937aae3dac338f6eb684c2ba0",
+    "packages/administration/dist/onboarding/setup-model.js": "a454734cdcaccbec0b3700afe48b3d39eb0131f575473e02a8213567a5ccaeab",
+    "packages/canonical-policy/src/canonical/setup-adapter.ts": "5558660f9efe7b0bbcb06ab458166afac325b2e77e5c881899a0f37aaa7b2c50",
+    "packages/agent-flow-bend/dist/setup-policy.generated.js": "bc314284c5e11395e5d87881147d28b84599e13a6070c492d57efbe25cf7694e"
+  },
+  "scope": "draft full setup transition plans materialized into native model versus frozen master; exact fields/hold/payload identity, stage classifications including first duplicate stage, empty/present digests, partial/cancelled observations, finite and nonfinite correlation/progress; compiled production comparison only when productionCompared is true; no IO or platform claim"
+}

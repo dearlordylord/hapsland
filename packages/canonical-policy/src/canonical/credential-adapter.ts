@@ -1,9 +1,6 @@
-import { Schema } from "effect"
 import { lookupSources, saveAvailable, type CredentialSource } from "@hapsland/agent-flow-bend/credential-policy"
 
-const SourceName = Schema.Literals(["environment", "project-local", "project", "user", "native"])
-export type CredentialSourceName = typeof SourceName.Type
-const decodeSource = Schema.decodeUnknownSync(SourceName)
+export type CredentialSourceName = "environment" | "project-local" | "project" | "user" | "native"
 const names: Record<CredentialSource["$"], CredentialSourceName> = {
   Environment: "environment",
   ProjectLocal: "project-local",
@@ -50,7 +47,8 @@ export const credentialLookupSources = (
   const result: CredentialSourceName[] = []
   for (let list = lookupSources(explicit, captured, root, local, project); list.$ === "Con"; list = list.tail) {
     if (result.length >= 5) throw new TypeError("Credential planning returned an oversized source list")
-    result.push(decodeSource(names[list.head.$]))
+    if (!Object.hasOwn(names, list.head.$)) throw new TypeError("Unknown credential source")
+    result.push(names[list.head.$])
   }
   const immutable = Object.freeze(result)
   lookupCache[key] = immutable
@@ -63,7 +61,8 @@ export const credentialSaveAvailable = (destination: CredentialSourceName, local
   const key = sourceId * 2 + Number(local)
   const cached = saveCache[key]
   if (cached !== undefined) return cached
-  const available = Schema.decodeUnknownSync(Schema.Boolean)(saveAvailable(constructors[destination], local))
+  const available = saveAvailable(constructors[destination], local)
+  if (typeof available !== "boolean") throw new TypeError("Credential planning returned a non-Boolean save decision")
   saveCache[key] = available
   return available
 }
