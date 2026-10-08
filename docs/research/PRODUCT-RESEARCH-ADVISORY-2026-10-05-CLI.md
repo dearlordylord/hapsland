@@ -1,6 +1,7 @@
 # CLI help and interface patterns
 
 **Purpose:** Compare practical help and script-interface patterns for Hapsland’s local rules CLI.
+**Audience:** Contributors, including coding agents researching runtime and CLI design; Product and specification owners.
 **Status:** Product-specification advisory; temporary research report.
 **Authority:** Advisory evidence only. Accepted rule and configuration contracts remain in their named specification owners; this report does not approve a new dependency or feature.
 **Expected use:** Inform the rules CLI help/interface improvement and identify later decisions for JSON output, editor support, and shell completion.

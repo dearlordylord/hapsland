@@ -1,6 +1,7 @@
 # Large declarations: realistic examples and context visibility
 
 **Purpose:** Compare selected realistic declarations across compact, larger adjacent and larger separated layouts, with readable inputs and independent validation.
+**Audience:** Prospective users; rule authors; evaluation contributors and reviewers.
 **Status:** Completed exploratory comparison; current matrix includes the declared renderer-repair moderation batch.
 **Authority:** Comparative research advisory and validation evidence; not a product contract or a release certification.
 **Expected use:** Inspect the examples and their domain obligations, compare measured conditions, and assess relevance to your own maintenance edits.

@@ -1,5 +1,7 @@
 # Linux round contract probes for #105
 
+**Audience:** Contributors, including coding agents validating runtime behavior; Build and release maintainers; Product and specification owners.
+
 Run from the candidate worktree:
 
 ```sh

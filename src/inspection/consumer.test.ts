@@ -48,7 +48,12 @@ it("disconnects a stalled public feed while real resident reviews and persistenc
     correlation: {},
     fact: {
       kind: "edit-received",
-      candidates: Array.from({ length: 8 }, () => ({ operation: "update" as const, path: "x".repeat(7200) }))
+      candidates: Array.from({ length: 8 }, (_, position) => ({
+        position,
+        selection: { status: "not-evaluated" as const },
+        operation: "update" as const,
+        path: "x".repeat(7200)
+      }))
     }
   }))
   const scope = await Effect.runPromise(Scope.make())

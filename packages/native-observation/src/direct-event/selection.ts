@@ -1,13 +1,13 @@
 import { gitOutput } from "../repository/root.ts"
 import * as Schema from "effect/Schema"
 import { lstat, realpath } from "node:fs/promises"
-import { isAbsolute, join, relative, resolve, sep } from "node:path"
+import { extname, isAbsolute, join, relative, resolve, sep } from "node:path"
 import * as Effect from "effect/Effect"
 import { matchesAnyGlob } from "@hapsland/runtime-inputs/matcher/glob"
 import { admitCandidateFile, selectFile } from "@hapsland/runtime-inputs/configuration/decision"
 import { protectedPathReason } from "../policy/file-policy.ts"
 import { rootLanguageForPath } from "./languages/path-language.ts"
-import type { PhysicalRootIdentity } from "./observation.ts"
+import type { NativeSelection, PhysicalRootIdentity } from "./observation.ts"
 
 export type DirectFilePolicy = {
   /** The already-resolved, highest-precedence include list. Empty selects nothing. */
@@ -191,4 +191,31 @@ export const resolvedDirectFilePolicy = (policy: {
 export const contextDirectFilePolicy = (policy: DirectFilePolicy): DirectFilePolicy => ({
   includes: policy.contextIncludes ?? policy.includes,
   excludes: policy.contextExcludes ?? policy.excludes
+})
+
+/** Convert only an observed selection branch into bounded native facts, without reading source. */
+export const nativeSelection = Effect.fn("DirectEvent.nativeSelection")(function* (
+  root: string,
+  candidate: { readonly operation: string; readonly path: string },
+  policy: DirectFilePolicy | undefined,
+  rootIdentity: PhysicalRootIdentity
+): Effect.fn.Return<NativeSelection> {
+  if (policy === undefined)
+    return { status: "unavailable", diagnostic: { stage: "selection", code: "edit-policy-unavailable", args: {} } }
+  if (candidate.operation !== "add" && candidate.operation !== "update")
+    return { status: "excluded", diagnostic: { stage: "selection", code: "unsupported-operation", args: {} } }
+  const decision = yield* inspectNamedPath(root, candidate.path, policy, rootIdentity)
+  if (decision.status === "selected") return { status: "selected" }
+  if (decision.reason === "file-extension")
+    return {
+      status: "excluded",
+      diagnostic: {
+        stage: "selection",
+        code: decision.reason,
+        args: { extension: extname(candidate.path).slice(0, 256) }
+      }
+    }
+  if (decision.reason === "path-observation-unavailable")
+    return { status: "unavailable", diagnostic: { stage: "selection", code: decision.reason, args: {} } }
+  return { status: "excluded", diagnostic: { stage: "selection", code: decision.reason, args: {} } }
 })

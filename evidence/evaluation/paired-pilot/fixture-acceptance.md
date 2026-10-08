@@ -1,5 +1,7 @@
 # Paired evaluation fixture acceptance record
 
+**Audience:** Evaluation contributors and reviewers; Product and specification owners.
+
 **Historical Stage 1 snapshot.** The owner later accepted this fixture for the
 paired pilot. The acceptance and subsequent incomplete-pilot outcome are recorded
 in the [paired pilot evidence index](README.md).

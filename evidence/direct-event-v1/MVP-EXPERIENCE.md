@@ -1,5 +1,7 @@
 # Real Codex → real Jev → repair demonstration
 
+**Audience:** Contributors, including coding agents validating runtime behavior; Build and release maintainers; Product and specification owners.
+
 On 2026-09-22 the first headless run completed the full loop in approximately
 55 seconds, using Codex CLI 0.155.1 on Linux arm64 and the production review
 command, resident process, built-in Noul rules, and live Effect Jev provider.

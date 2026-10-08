@@ -1,3 +1,4 @@
+import { runCodexInspectionProfile } from "./native-codex-inspection.mjs"
 import { cleanupOwnedResident } from "./test-harness/cleanup-owned-resident.mjs"
 import {
   validateClaudeArchiveProfile,
@@ -67,7 +68,8 @@ if (
     "pre-timeout",
     "pre-crash",
     "unsupported-write",
-    "unicode-edit"
+    "unicode-edit",
+    "inspection-exclusions"
   ].includes(scenario)
 )
   throw new Error("Choose an adoption, reviewer, POST-hook or PRE-hook scenario")
@@ -147,6 +149,22 @@ const initialSourceMarker =
 const feedbackMessages = Object.fromEntries(configuredRules.map((rule) => [rule.id, rule.message]))
 const mode = process.argv.includes("--live") ? "live-jev" : "controlled-offline"
 const archiveArgument = process.argv.find((argument) => argument.startsWith("--archive="))
+if (scenario === "inspection-exclusions") {
+  if (
+    host !== "codex" ||
+    language !== "typescript" ||
+    mode !== "controlled-offline" ||
+    coexistence !== undefined ||
+    unicodeUpdate
+  )
+    throw new Error("Codex inspection requires controlled TypeScript without coexistence or Unicode mutation")
+  await runCodexInspectionProfile({
+    project,
+    archivePath: archiveArgument?.slice("--archive=".length),
+    model: requestedModel
+  })
+  process.exit(0)
+}
 if (archiveArgument !== undefined && (!["pi", "claude"].includes(host) || archiveArgument === "--archive="))
   throw new Error("--archive=PATH requires a local production tarball and the Pi or Claude profile")
 if (host === "claude")

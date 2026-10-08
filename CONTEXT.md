@@ -1,5 +1,7 @@
 # Product context
 
+**Audience:** Contributors, including coding agents; Product and specification owners.
+
 This glossary records the domain language for the product under design. It is not an
 implementation specification. Product explanations and dashboard labels use
 these meanings. A Bend or TypeScript constructor name appears in reader-facing

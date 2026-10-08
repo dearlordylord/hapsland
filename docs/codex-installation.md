@@ -1,6 +1,7 @@
 # Codex installation lifecycle
 
 **Purpose:** Explain Codex CLI registration, setup, updates, and removal.
+**Audience:** End users of the named agent runtime; contributors maintaining its integration.
 **Status:** Maintained installation guidance.
 **Authority:** Operational guidance for implemented lifecycle operations; exact compatibility claims are limited to the evidence cited below.
 **Expected use:** Configure a selected client profile and diagnose ownership or readiness problems.

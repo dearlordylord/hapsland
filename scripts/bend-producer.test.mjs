@@ -48,10 +48,13 @@ async function fixture(t) {
     "native-toolchain-inputs.mjs",
     "build-process.mjs",
     "build-lock.mjs",
+    "build-custody-gate.mjs",
     "build-groups.mjs",
     "owned-lock.mjs"
   ])
     copyFileSync(resolve(repository, "scripts", name), resolve(root, "scripts", name))
+  mkdirSync(resolve(root, "native/src"), { recursive: true })
+  copyFileSync(resolve(repository, "native/src/inspection-lock.c"), resolve(root, "native/src/inspection-lock.c"))
   writeFileSync(
     resolve(directory, "package.json"),
     JSON.stringify({

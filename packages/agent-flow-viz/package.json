@@ -46,7 +46,8 @@
     "@hapsland/resident-transport": "workspace:*",
     "effect": "catalog:",
     "foldkit": "0.165.0",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "@hapsland/runtime-inputs": "workspace:*"
   },
   "devDependencies": {
     "playwright": "1.63.0",

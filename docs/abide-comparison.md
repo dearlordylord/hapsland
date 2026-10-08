@@ -1,6 +1,7 @@
 # Hapsland and Abide
 
 **Purpose:** Explain Hapsland's relationship to Abide, architectural differences, joint operation and the measured comparisons.
+**Audience:** Prospective users; end users; product and specification owners.
 **Status:** Maintained comparison documentation.
 **Authority:** Maintained explanatory documentation; product contracts own behavior and linked research establishes only its measured evidence.
 **Expected use:** Understand why Hapsland is a separate product, how the tools can work together, and where to inspect comparison methodology and results.

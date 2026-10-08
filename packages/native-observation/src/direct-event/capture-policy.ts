@@ -1,9 +1,11 @@
 import * as Effect from "effect/Effect"
 import type { CaptureHooks } from "./capture.ts"
-import type { DirectAdvicee } from "./observation.ts"
+import type { NativeEditMetadata, DirectAdvicee } from "./observation.ts"
 import type { DirectFilePolicy } from "./selection.ts"
 
 export type DirectCaptureOptions = {
+  readonly observeNative?: (metadata: NativeEditMetadata) => void
+
   readonly userConfigPath?: string
   readonly captureHooks?: CaptureHooks
   readonly filePolicy?: DirectFilePolicy

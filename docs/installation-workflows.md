@@ -1,6 +1,7 @@
 # Installation, updates, and development workflows
 
 **Purpose:** Explain Hapsland's stable, published candidate, personal development, and client update lanes for Claude Code, Codex CLI, and Pi.
+**Audience:** End users; contributors building local snapshots; build and release maintainers.
 **Status:** Maintained operational guidance. Commands are implemented; public distribution and host compatibility require their own evidence.
 **Authority:** Maintained guidance implementing the user-approved four-lane scope on 2026-10-01. This document is not a release or platform support declaration.
 **Expected use:** Choose a lane, register its exact package in a selected client profile, and verify observed review activity.
@@ -63,6 +64,8 @@ check may use paid credits and sends a built-in greeting, not project code.
 
 ### Install before publication
 
+**Audience:** Contributors building a local snapshot from source.
+
 For a local source build, install Git, Node.js 24.20.0, npm, mise, the Bend
 toolchain and a C compiler first. Select Node 24.20.0 for the commands below;
 this development prerequisite does not apply to installed Hapsland executables.
@@ -102,6 +105,8 @@ Rerun `dev-install` after source changes to activate a new snapshot. See
 credential and update details.
 
 ## Stable installation and ordinary use
+
+**Audience:** End users installing and using ready-made packages.
 
 You can ask your coding agent to handle installation:
 
@@ -336,6 +341,8 @@ To return to stable from `next`, run `hapsland update --channel=latest` (all ins
 
 ## Personal development on your own clients
 
+**Audience:** Contributors testing source changes on their own agent profiles.
+
 ### Iterating on the inspection page
 
 Run `npm run dev:inspection` from the repository root for the inspection dashboard
@@ -437,6 +444,8 @@ Direct source execution or a watch-mode resident is not required for this
 workflow and is not offered by the current installer.
 
 ## Publishing
+
+**Audience:** Build and release maintainers.
 
 Use the [publishing runbook](npm-publishing.md). `release:prepare` builds and audits one archive, retains it locally, and writes the reviewed version-one pin with source-tree, archive and audit identities. Commit and push that pin before publishing. Stable versions use `latest`; prereleases use `next`. `local-release` rejects stale or missing candidates before npm authentication, publishes the retained archive without rebuilding, and verifies the registry download and selected tag. The registry conformance runners select the exact version in the release checkout's manifest.
 

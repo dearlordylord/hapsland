@@ -1,5 +1,7 @@
 # Claude Code and OpenCode host adapter research — 2026-09-24
 
+**Audience:** Contributors, including coding agents researching runtime and CLI design; Product and specification owners.
+
 **Status: historical advisory research.** At the time of this report, no Claude Code or OpenCode adapter had been implemented. Its candidate cards, unknowns, and recommendations are not current support claims. The later [Claude host decision and evidence](../host-94/decision-and-evidence.md) records the implemented exact-profile path and selected host trials; [installed release compatibility](../../docs/installed-release-compatibility.md) names the verified release cells. This report does not supersede the [direct-event v1 supported profile](../../docs/direct-event-v1-supported-profile.md). The [issue](https://github.com/dearlordylord/hapsland/issues/94) requires real-host compatibility and advice-reaction evidence before support is declared.
 
 ## Brief and scope

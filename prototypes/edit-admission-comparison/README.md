@@ -1,6 +1,7 @@
 # Current edit-admission proof prototype
 
 **Purpose:** Preserve three checked Current admission properties and their falsification controls.
+**Audience:** Prototype contributors and evaluators; Product and specification owners.
 **Status:** Temporary model/proof evidence; the rejected post-only A experiments have been deleted.
 **Authority:** Owner-approved model laws and implementation evidence, not a replacement for the accepted product contract.
 **Expected use:** Run the Current gates, inspect their explicit assumptions, and retain useful controls until production-aligned replacement checks exist.

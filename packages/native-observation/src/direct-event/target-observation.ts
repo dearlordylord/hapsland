@@ -14,7 +14,11 @@ export const observationForTargetRoot = (
     if (candidate === undefined) throw new Error("missing native target candidate")
     const path = relative(root, resolve(observation.root, candidate.path)).replaceAll(sep, "/")
     paths.set(candidate.path, path)
-    return { ...candidate, path }
+    const moveTo =
+      "moveTo" in candidate && candidate.moveTo !== undefined
+        ? relative(root, resolve(observation.root, candidate.moveTo)).replaceAll(sep, "/")
+        : undefined
+    return { ...candidate, path, ...(moveTo === undefined ? {} : { moveTo }) }
   })
   // Retain only selected source sections; skipped roots must not enter the job's source payload.
   let selectedSection = true
@@ -34,6 +38,9 @@ export const observationForTargetRoot = (
   return {
     root,
     rootIdentity,
+    ...(observation.nativeMetadata === undefined
+      ? {}
+      : { nativeMetadata: observation.nativeMetadata.filter((metadata) => metadata.root === root) }),
     advicee: observation.advicee,
     candidates,
     ...(nativePatchCommand === undefined ? {} : { nativePatchCommand }),

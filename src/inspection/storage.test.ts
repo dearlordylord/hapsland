@@ -133,7 +133,12 @@ const record = (sequence: number, capturedAt = 100, lifetime = "first"): Inspect
   consentEpoch: 1,
   scope: { root: "/project", runtime: "codex-cli", runtimeVersion: "0.155.1", sessionId: "session", subagentId: null },
   correlation: { receiptId: `receipt-${sequence}` },
-  fact: { kind: "edit-received", candidates: [{ operation: "update", path: "日本語.ts" }] }
+  fact: {
+    kind: "edit-received",
+    candidates: [
+      { position: 0, selection: { status: "not-evaluated" as const }, operation: "update", path: "日本語.ts" }
+    ]
+  }
 })
 const publish = (store: ReturnType<typeof makeInspectionStorage>, value: InspectionRecord, allowed = () => true) =>
   Effect.runPromise(store.write(value, JSON.stringify(value), { allowed, commit: allowed }))

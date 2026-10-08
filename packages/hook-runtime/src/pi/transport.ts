@@ -6,6 +6,7 @@ import { adaptPiDirectEvent, adaptPiHookIdentity } from "@hapsland/native-observ
 import { hookProcessStartedAt } from "@hapsland/resident-transport/resident/hook-clock"
 import { resolveResidentPaths, type ResidentPaths } from "@hapsland/resident-transport/resident/paths"
 import {
+  recordNativeMetadataEffect,
   acknowledgeAdviceEffect,
   admitObservationEffect,
   beginComposedSubmissionEffect,
@@ -20,7 +21,7 @@ import {
   type AdviceeCollectionOutcome
 } from "@hapsland/resident-transport/resident/client"
 import type { ResidentControlledOptions, ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
-import type { DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
+import type { NativeEditMetadata, DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
 
 /** Pi has an awaited boundary, with a four-second Hapsland wait inside its five-second resident fence. */
 export const PI_FINISH_DEADLINE_MS = 4_000
@@ -88,16 +89,60 @@ const close = Effect.fn("Pi.close")(function* ({ root, advicee, paths }: Context
     yield* composedStopBoundaryEffect("finish-stop", root, advicee, token, true, paths, "abandoned-stop")
   return { status: "closed" }
 })
-const admitEdit = Effect.fn("Pi.admit")(function* (
-  context: Context,
-  dispatch: ResidentDispatchContext,
-  filePolicy: import("@hapsland/native-observation/direct-event/selection").DirectFilePolicy
-) {
-  const { event, paths } = context
-  const observation = yield* adaptPiDirectEvent(event, { filePolicy })
-  if (observation === undefined) return false
+const admitEdit = Effect.fn("Pi.admit")(function* (context: Context) {
+  const { event, paths, options } = context
+  let metadata: NativeEditMetadata | undefined
+  let skippedOtherRoot = false
+  let policy: import("@hapsland/resident-transport/resident/protocol").ResidentEditPolicy | undefined
+  const observation = yield* adaptPiDirectEvent(event, {
+    observeNative: (value) => {
+      metadata = skippedOtherRoot
+        ? {
+            ...value,
+            admission: "skipped-other-root",
+            candidates: value.candidates.map((candidate) => ({ ...candidate, selection: { status: "not-evaluated" } }))
+          }
+        : value
+    },
+    capturePolicy: (root, advicee, path) =>
+      readComposedEditPolicyEffect(root, advicee, paths, [path], (outcome) => {
+        skippedOtherRoot = outcome === "skipped-other-root"
+      }).pipe(
+        Effect.catch(() => Effect.succeed(undefined)),
+        Effect.map((selected) => {
+          policy = selected
+          return selected?.filePolicy
+        })
+      )
+  })
+  if (observation === undefined) {
+    if (metadata !== undefined)
+      yield* recordNativeMetadataEffect([metadata], options.userConfigPath, options.activityPath, paths).pipe(
+        Effect.catch(() => Effect.void)
+      )
+    return undefined
+  }
+  const sourceDispatch = yield* makeResidentDispatchContextEffect(
+    observation.root,
+    options.statePath,
+    options.activityPath,
+    options.userConfigPath,
+    options.controlled,
+    policy
+  ).pipe(Effect.catch(() => Effect.succeed(undefined)))
+  if (sourceDispatch === undefined) {
+    if (metadata !== undefined)
+      yield* recordNativeMetadataEffect(
+        [{ ...metadata, diagnostic: { stage: "admission", code: "dispatch-unavailable", args: {} } }],
+        options.userConfigPath,
+        options.activityPath,
+        paths
+      ).pipe(Effect.catch(() => Effect.void))
+    return undefined
+  }
+  const dispatch = { ...sourceDispatch, deliveryCwd: typeof event.cwd === "string" ? resolve(event.cwd) : context.root }
   const admitted = yield* admitObservationEffect(observation, true, dispatch, paths)
-  return admitted.status === "accepted"
+  return admitted.status === "accepted" ? dispatch : undefined
 })
 type Advice = Extract<AdviceeCollectionOutcome, { status: "advice" }>["advice"]
 const offerAdvice = Effect.fn("Pi.offer")(function* (context: Context, advice: Advice, stopToken: string | undefined) {
@@ -169,35 +214,24 @@ const collect = Effect.fn("Pi.collect")(function* (context: Context, dispatch: R
   yield* closeCollection(context, collection)
   return empty
 })
-const editTargetPaths = (context: Context): ReadonlyArray<string> | undefined => {
-  const { event, root } = context
-  const target = typeof event.target_path === "string" ? event.target_path : object(event.input)?.path
-  if (typeof target !== "string") return undefined
-  const cwd = typeof event.cwd === "string" ? event.cwd : root
-  return [resolve(cwd, target)]
-}
-const reviewPolicy = Effect.fn("Pi.reviewPolicy")(function* (context: Context, root: string) {
-  if (context.event.operation !== "edit") return undefined
-  return yield* readComposedEditPolicyEffect(root, context.advicee, context.paths, editTargetPaths(context))
-})
 const review = Effect.fn("Pi.review")(function* (context: Context) {
   const { event, options } = context
   const root =
     event.operation === "edit"
       ? context.root
       : yield* resolveComposedRootEffect(context.root, context.advicee, context.paths)
-  const editPolicy = yield* reviewPolicy(context, root)
-  if (event.operation === "edit" && editPolicy === undefined) return empty
+  if (event.operation === "edit") {
+    const dispatch = yield* admitEdit(context)
+    return dispatch === undefined ? incomplete : yield* collect({ ...context, root }, dispatch)
+  }
   const sourceDispatch = yield* makeResidentDispatchContextEffect(
     root,
     options.statePath,
     options.activityPath,
     options.userConfigPath,
-    options.controlled,
-    editPolicy
+    options.controlled
   )
   const dispatch = { ...sourceDispatch, deliveryCwd: typeof event.cwd === "string" ? resolve(event.cwd) : context.root }
-  if (event.operation === "edit" && !(yield* admitEdit(context, dispatch, editPolicy!.filePolicy))) return incomplete
   return yield* collect({ ...context, root }, dispatch)
 })
 const handlers = { before, retire, ack: acknowledge, close, edit: review, finish: review }
