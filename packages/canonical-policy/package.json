@@ -75,6 +75,10 @@
     "./canonical/rules-adapter": {
       "types": "./dist/canonical/rules-adapter.d.ts",
       "default": "./dist/canonical/rules-adapter.js"
+    },
+    "./canonical/setup-selection-adapter": {
+      "types": "./dist/canonical/setup-selection-adapter.d.ts",
+      "default": "./dist/canonical/setup-selection-adapter.js"
     }
   },
   "dependencies": {

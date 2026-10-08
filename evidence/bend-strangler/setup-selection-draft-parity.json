@@ -1,0 +1,21 @@
+{
+  "at": "2026-10-08T13:24:22.452Z",
+  "passed": true,
+  "productionCompared": true,
+  "lawCases": 144,
+  "nativeTransitionCases": 2352,
+  "holds": 1848,
+  "sha256": {
+    "packages/agent-flow-bend/setup-selection-policy/core.bend": "fa3a4b2e0945719c5fc5debb0e04e97b47c92eff96b9ee7b56aa9d57aa55afe0",
+    "packages/agent-flow-bend/setup-selection-policy/LAWS.bend": "6f57603ef2cf2a3135d8ed03a24ce5bed0bb17bc387b84258de0a56f2b9567c4",
+    "evidence/bend-strangler/setup-selection-reference.ts": "6a76fbfe130b97bfc8431662b04f06412288e18f61d4a53426dcd48228f3035f",
+    "evidence/bend-strangler/setup-selection-draft-parity.mjs": "664dd4b8f3c8958e4ac63330f78c51c56b3811ad7ae44f99539e099e439f9329",
+    "packages/administration/src/onboarding/setup-selection.ts": "a5f369ba1efc539141803aee0a5dd0798eccebb5ca65a16a4889daebb0c33676",
+    "packages/administration/dist/onboarding/setup-selection.js": "7f6f63534efab569ae12b7fb7c84cd9ecf96d6f7c0345e85b5dcd583d37f7c69",
+    "packages/canonical-policy/src/canonical/setup-selection-adapter.ts": "10798984a18f0e797252d273ed75bdcb8b7d96b3a197b4620261b936a814cb3f",
+    "packages/canonical-policy/dist/canonical/setup-selection-adapter.js": "c874a6c755c479d9e6d795bb98cd6a74c60787e746f4d4567f4639eba0002a7e",
+    "packages/agent-flow-bend/scripts/build-setup-selection-policy.mjs": "3528098498e87bc4956237122ba46d01720077d2884cf359cff70bfb8ca58e40",
+    "packages/agent-flow-bend/dist/setup-selection-policy.generated.js": "6ed03dba84858d88ce58493174f4dc6b7e76e55e2cc2dbcfe0568224b7336ba7"
+  },
+  "scope": "draft finite closed phase/action/outcome/Bool law domain and native revision/index/payload identity parity; production compared only when productionCompared is true; no proof or effect claim"
+}

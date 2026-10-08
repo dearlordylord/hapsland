@@ -1,7 +1,7 @@
 {
   "baselineRevision": "fbff5020a809bfc56583a87c207e7f9d632f6cc1",
-  "startedAt": "2026-10-08T13:28:23.738Z",
-  "at": "2026-10-08T13:28:52.394Z",
+  "startedAt": "2026-10-08T13:24:37.790Z",
+  "at": "2026-10-08T13:27:16.620Z",
   "roots": {
     "typescript": "/workspace/typescript/hapsland-bend-baseline-latest",
     "integratedBend": "/workspace/typescript/hapsland-bend-setup"
@@ -19,7 +19,7 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 8.868244500000001,
+        "seconds": 23.604039680000003,
         "exitCode": 0,
         "signal": null,
         "error": null
@@ -27,7 +27,7 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 5.888578840000002,
+        "seconds": 14.76143299500001,
         "exitCode": 0,
         "signal": null,
         "error": null
@@ -35,9 +35,9 @@
     ],
     "integratedBend": [
       {
-        "cachedTasks": 23,
+        "cachedTasks": 4,
         "totalTasks": 46,
-        "seconds": 7.264515771,
+        "seconds": 114.749272266,
         "exitCode": 0,
         "signal": null,
         "error": null
@@ -45,14 +45,16 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 6.628263489999999,
+        "seconds": 5.680465175999998,
         "exitCode": 0,
         "signal": null,
         "error": null
       }
     ]
   },
-  "meanRatio": 0.9414478266024967,
-  "buildParity": true,
-  "scope": "paired warm workspace builds; declared frozen baseline and current candidate; both separately prepared; native release assembly excluded"
+  "meanRatio": 3.1390135203645047,
+  "buildParity": false,
+  "scope": "paired warm workspace builds; declared frozen baseline and current candidate; both separately prepared; native release assembly excluded",
+  "interpretation": "not an admissible paired warm parity result: first candidate sample had 4 cached tasks versus 23 baseline; second candidate and both baseline samples had 23; completed preparation before fresh matching warm comparison",
+  "matchedPreparation": false
 }

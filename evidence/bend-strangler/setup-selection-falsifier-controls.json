@@ -1,0 +1,17 @@
+{
+  "at": "2026-10-08T13:17:54.299750+00:00",
+  "passed": true,
+  "controls": [
+    {
+      "mutant": "back",
+      "exitCode": 1,
+      "assertionDetected": true
+    },
+    {
+      "mutant": "empty",
+      "exitCode": 1,
+      "assertionDetected": true
+    }
+  ],
+  "scope": "two planted source faults compiled successfully and falsification rejected their law agreement before proofs"
+}

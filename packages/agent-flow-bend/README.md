@@ -376,3 +376,10 @@ kernel disabled. Mutation failures in supporting lemmas are identified by name.
 `journey-proof/core.bend` composes production functions; `fixtures.bend` supplies
 expected snapshots rather than a replacement state machine. Review this section
 and these laws when the covered transitions or host assumptions change.
+
+`setup-selection-policy/core.bend` owns outer setup navigation. Its exact transition
+law retains empty-selection holds, completed iteration, Back and cancellation.
+The native host copies newly selected agents, preserves selected references on
+observations, and performs exact JavaScript index and revision arithmetic.
+The interpreter retains remembered selections and reported results; per-agent
+setup effects and consent remain separately owned.
