@@ -198,7 +198,32 @@ before interactive writes. Merely saving a rule file does not activate it.
 
 The selected profile is user-wide by default. File settings control repositories and files; invoking setup from a repository does not restrict the installed hooks to that repository. Use [configuration](configuration.md) to bound review scope. `--claude-home=PATH`, `--codex-home=PATH`, or `--pi-home=PATH` and the corresponding `--claude-executable=PATH`, `--codex-executable=PATH`, or `--pi-executable=PATH` select the registration and compatibility probe. An alternate registration home alone does not configure the client process to use that home.
 
-Finish current client work, restart the client normally, and complete its native repository/hook trust prompts. Enable [inspection recording](status.md#opt-in-local-inspection), make a new supported
+### Agent restart and hook permissions
+
+When an agent handles installation or activates changed hooks, it must explicitly
+ask the user to finish current work and restart the selected agent, then explain
+the native steps below. Setup approval authorizes Hapsland's configuration writes;
+it does not grant the agent runtime's trust.
+
+- **Codex CLI:** After restarting Codex, open `/hooks`, inspect the Hapsland
+  commands and trust each new or changed hook. Codex binds trust to the exact
+  definition and skips hooks pending review; changed definitions need renewed
+  approval. Complete repository trust prompts when shown. See the
+  [official Codex hook trust documentation](https://learn.chatgpt.com/docs/hooks#review-and-trust-hooks).
+- **Claude Code:** Restart for this installation workflow, accept the workspace
+  trust dialog when shown, then use `/hooks` to inspect the Hapsland commands.
+  The current reference describes `/hooks` as a read-only browser and normally
+  reloads settings-file hook changes automatically; it does not describe a
+  Codex-style per-hook approval step. Interactive sessions hold back settings-file
+  hooks, including user-profile hooks, until workspace trust is accepted.
+  These are documentation claims, not a new native validation of the pinned
+  Claude Code release. See the official
+  [hook browser](https://code.claude.com/docs/en/hooks#the-hooks-menu) and
+  [workspace trust](https://code.claude.com/docs/en/hooks#workspace-trust) reference.
+- **Pi:** Finish current work and restart Pi to load the installed extension;
+  follow the [Pi installation guide](pi-installation.md) for its native limits.
+
+Enable [inspection recording](status.md#opt-in-local-inspection), make a new supported
 agent edit, then run `hapsland dashboard` and open its printed URL. Installation and offline readiness do not prove a review or model repair happened. Diagnose without a JSON request:
 
 ```sh
