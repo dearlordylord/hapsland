@@ -399,3 +399,9 @@ copy/filter operations, state identity, renderer strings and Effect Prompt IO.
 Use the selection keyboard row in the [testing matrix](../../docs/testing-matrix.md)
 for the kernel, artifact and actual terminal consumers. Conditional laws do not
 establish host facts, terminal lifecycle, platform support or performance parity.
+
+`direct-login-policy/core.bend` owns commands and transitions for explicit stdin
+credential login. Native bindings preserve exact revision and optional command-ID
+comparisons, status and complete storage observations, and Hold identity.
+Keys, stdin capture, cleanup and storage stay with native owners. Its source-free
+laws do not establish cold startup parity or authorized storage behavior.

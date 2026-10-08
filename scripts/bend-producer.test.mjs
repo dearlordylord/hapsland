@@ -74,8 +74,11 @@ async function fixture(t) {
   writeFileSync(resolve(directory, "setup-selection-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
   writeFileSync(resolve(directory, "setup-selection-policy/core.bend"), "// Selection fixture\n")
   mkdirSync(resolve(directory, "selection-ui-policy"), { recursive: true })
+  mkdirSync(resolve(directory, "direct-login-policy"), { recursive: true })
   writeFileSync(resolve(directory, "selection-ui-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
+  writeFileSync(resolve(directory, "direct-login-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
   writeFileSync(resolve(directory, "selection-ui-policy/core.bend"), "// Selection UI fixture\n")
+  writeFileSync(resolve(directory, "direct-login-policy/core.bend"), "// Direct login fixture\n")
   mkdirSync(resolve(directory, "rules-policy"), { recursive: true })
   writeFileSync(resolve(directory, "rules-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
   writeFileSync(resolve(directory, "rules-policy/core.bend"), "// Rules fixture\n")
@@ -107,6 +110,7 @@ async function fixture(t) {
     "build-request-content.mjs",
     "build-credential-policy.mjs",
     "build-selection-ui-policy.mjs",
+    "build-direct-login-policy.mjs",
     "build-login-policy.mjs",
     "build-verification-policy.mjs",
     "build-update-policy.mjs",
@@ -122,6 +126,7 @@ async function fixture(t) {
     "request-content.generated.d.ts",
     "credential-policy.generated.d.ts",
     "selection-ui-policy.generated.d.ts",
+    "direct-login-policy.generated.d.ts",
     "login-policy.generated.d.ts",
     "verification-policy.generated.d.ts",
     "update-policy.generated.d.ts",
@@ -139,6 +144,7 @@ async function fixture(t) {
     "request-content.generated.js",
     "credential-policy.generated.js",
     "selection-ui-policy.generated.js",
+    "direct-login-policy.generated.js",
     "login-policy.generated.js",
     "verification-policy.generated.js",
     "update-policy.generated.js",
@@ -201,13 +207,13 @@ for (const text of [
 ])
   test(`rejects unsupported generated loader ${text}`, () =>
     assert.throws(() => bendGeneratedLoaderEvidence(text, "generated.js"), /Unsupported generated Bend loader/))
-test("valid receipt binds actual compiler/support/input bytes and exact twenty-four outputs", async (t) => {
+test("valid receipt binds actual compiler/support/input bytes and exact twenty-six outputs", async (t) => {
   const f = await fixture(t)
   assert.equal(f.verify().format, 1)
   assert.equal(f.context.toolchain.version, "bend 2.0.36")
   assert.ok(f.context.toolchain.support.inventory.length)
   assert.ok(f.context.toolchain.toolLibraries.length)
-  assert.equal(f.receipt.outputs.length, 24)
+  assert.equal(f.receipt.outputs.length, 26)
 })
 test("Bend-only scheduling replaces a stale PATH task stamp before the scheduler reads it", async (t) => {
   const f = await fixture(t)
@@ -382,6 +388,7 @@ test("Bend producer rejects unconsumed authored input drift and clears owned out
   writeFileSync(resolve(f.directory, "scripts/build-request-content.mjs"), generator("request-content"))
   writeFileSync(resolve(f.directory, "scripts/build-credential-policy.mjs"), generator("credential-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-selection-ui-policy.mjs"), generator("selection-ui-policy"))
+  writeFileSync(resolve(f.directory, "scripts/build-direct-login-policy.mjs"), generator("direct-login-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-login-policy.mjs"), generator("login-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-verification-policy.mjs"), generator("verification-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-update-policy.mjs"), generator("update-policy"))
@@ -414,6 +421,7 @@ for (const file of [
   "request-content.generated.d.ts",
   "credential-policy.generated.js",
   "selection-ui-policy.generated.js",
+  "direct-login-policy.generated.js",
   "login-policy.generated.js",
   "verification-policy.generated.js",
   "update-policy.generated.js",
@@ -423,6 +431,7 @@ for (const file of [
   "setup-selection-policy.generated.js",
   "credential-policy.generated.d.ts",
   "selection-ui-policy.generated.d.ts",
+  "direct-login-policy.generated.d.ts",
   "login-policy.generated.d.ts",
   "verification-policy.generated.d.ts",
   "update-policy.generated.d.ts",
@@ -525,5 +534,12 @@ test("selection UI proof edits invalidate producer receipt authority", async (t)
   const f = await fixture(t)
   f.verify()
   writeFileSync(resolve(f.directory, "selection-ui-policy/PROOF.bend"), "import Base\n// Changed proof input\n")
+  assert.throws(f.verify, /Stale Bend producer receipt context|caller context is stale/)
+})
+
+test("direct login proof edits invalidate producer receipt authority", async (t) => {
+  const f = await fixture(t)
+  f.verify()
+  writeFileSync(resolve(f.directory, "direct-login-policy/PROOF.bend"), "import Base\n// Changed proof input\n")
   assert.throws(f.verify, /Stale Bend producer receipt context|caller context is stale/)
 })

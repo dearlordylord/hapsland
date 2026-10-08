@@ -5,7 +5,7 @@ import {
   type CredentialLifecycleResult,
   type SecretServiceStatus
 } from "@hapsland/credential-storage/credentials/owner"
-import { MaskedInputError } from "./masked-input.ts"
+import { MaskedInputError } from "./masked-input-error.ts"
 import { initialLogin, loginCommand, reduceLogin, type LoginEvent, type LoginModel } from "./direct-login-model.ts"
 
 export interface DirectLoginOwner {

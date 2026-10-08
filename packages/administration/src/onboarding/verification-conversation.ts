@@ -15,7 +15,8 @@ import {
   providerEnvironmentOnly,
   type BackendId
 } from "@hapsland/runtime-environment/runtime/backend"
-import { captureCredential, MaskedInputError } from "../credentials/masked-input.ts"
+import { captureCredential } from "../credentials/masked-input.ts"
+import { MaskedInputError } from "../credentials/masked-input-error.ts"
 import { credentialSourceGuidance } from "./credential-guidance.ts"
 import { formatOutcome } from "./human-output.ts"
 import type { SetupClient } from "./client-selection.ts"

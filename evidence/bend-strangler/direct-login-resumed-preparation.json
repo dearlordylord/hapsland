@@ -1,0 +1,545 @@
+{
+  "at": "2026-10-08T20:25:10.561200+00:00",
+  "candidateBase": "04208293",
+  "nativeMaster": "56d1f39074276f96a65431ee9a2f5f1b8cea40bf",
+  "sourceWorktree": "/workspace/typescript/hapsland-bend-direct-login",
+  "branch": "migration/bend-direct-login-resumed",
+  "status": "qualified for declared frozen baseline and measurement contexts",
+  "astra": {
+    "reviewer": "/root/astra_selection_law_review",
+    "decision": "approved command_exact and step_exact without amendments; typed revision/command correlation, availability, identity, storage payload and host secret boundary reconfirmed",
+    "nativeSourceSha256": "d4eb3e697d1bd143268d176f2d54210d06fad5a73f29443b463411e072ab896e",
+    "limitations": "static only; no runtime/performance/platform acceptance"
+  },
+  "sha256": {
+    "packages/agent-flow-bend/direct-login-policy/core.bend": "18a9dbd9cc31bc7a861e1503af26a4c5df115ca077e48e28d65a1f0278384951",
+    "packages/agent-flow-bend/direct-login-policy/LAWS.bend": "e80d407fdddf6bd18429208c77500c0d45f5995f376cc27c7f5862eb157d354d",
+    "packages/agent-flow-bend/direct-login-policy/PROOF.bend": "6d95dfc2da5ca81cda3d8cc935f6941decf6ef62574be2a2a1d88f01e3ddab76",
+    "packages/administration/src/credentials/direct-login-model.ts": "2b3ca3dee1ccbbb3c8d481b6d1d93840795460c281ba33ba48762fec861ab992",
+    "packages/canonical-policy/src/canonical/direct-login-adapter.ts": "35fe3f4f90b2b686df011ef12fab903796051b23ace39f322ad4bc0f47809216"
+  },
+  "proof": "ALL PROOFS CHECK; compiler 2.0.36, 5 second deadline",
+  "producerFirstAttempt": {
+    "log": "/tmp/hapsland-direct-resumed-producer.log",
+    "failure": "unsorted authored output list compared against sorted receipt inventory",
+    "fix": "place direct-login outputs after credential outputs in alphabetical inventory; no guard change"
+  },
+  "coldGuard": {
+    "passed": false,
+    "evidence": "direct-login-current-cold.json",
+    "summary": {
+      "available": {
+        "isolation": {
+          "medianWallRatio": 1.0406974406621934,
+          "cpuRatio": 1.0356338519351214,
+          "wallParity": false,
+          "cpuParity": false
+        },
+        "upstreamGuard": {
+          "medianWallRatio": 1.0003629872212583,
+          "cpuRatio": 1.0649894434543796,
+          "wallParity": false,
+          "cpuParity": false
+        },
+        "accumulated": {
+          "medianWallRatio": 0.9612428628485236,
+          "cpuRatio": 1.0283455310623597,
+          "wallParity": true,
+          "cpuParity": false
+        }
+      },
+      "locked": {
+        "isolation": {
+          "medianWallRatio": 0.9524335745023417,
+          "cpuRatio": 0.9521167084659508,
+          "wallParity": true,
+          "cpuParity": true
+        },
+        "upstreamGuard": {
+          "medianWallRatio": 0.9185673253343765,
+          "cpuRatio": 0.9832660134423807,
+          "wallParity": true,
+          "cpuParity": true
+        },
+        "accumulated": {
+          "medianWallRatio": 0.9644424030456289,
+          "cpuRatio": 1.0327158474370413,
+          "wallParity": true,
+          "cpuParity": false
+        }
+      },
+      "empty": {
+        "isolation": {
+          "medianWallRatio": 1.0203041296136923,
+          "cpuRatio": 1.0203320578042394,
+          "wallParity": false,
+          "cpuParity": false
+        },
+        "upstreamGuard": {
+          "medianWallRatio": 1.0591095935967558,
+          "cpuRatio": 1.0945417605419634,
+          "wallParity": false,
+          "cpuParity": false
+        },
+        "accumulated": {
+          "medianWallRatio": 1.0380332323047206,
+          "cpuRatio": 1.0727309331997503,
+          "wallParity": false,
+          "cpuParity": false
+        }
+      }
+    },
+    "historicalFailurePreserved": true
+  },
+  "preservation": "original worktree and its staged/unstaged evidence left intact",
+  "producerPassed": {
+    "tests": 58,
+    "log": "/tmp/hapsland-direct-resumed-producer-fixed.log"
+  },
+  "mutantsPassed": 12,
+  "invalidRuns": [
+    {
+      "kind": "parity",
+      "log": "/tmp/hapsland-direct-resumed-parity.log",
+      "reason": "started before production dist compilation completed; import absent; not qualification"
+    },
+    {
+      "kind": "focused",
+      "run": "20261008202519032-3089579-34253f",
+      "reason": "docs edited during production phase; authored task input guard rejected result; tests not reached",
+      "nextDiagnostic": "repeat unchanged final inputs after all mutations stopped"
+    }
+  ],
+  "focusedPassed": {
+    "run": "20261008202648315-3097629-9a9829",
+    "seconds": 84.56,
+    "files": 5
+  },
+  "productionParity": {
+    "at": "2026-10-08T20:28:22.645Z",
+    "cases": 464100,
+    "commandCases": 975,
+    "productionCompared": true,
+    "result": "pass",
+    "scope": "finite direct stdin login native phase/action/status/storage/correlation cases, including large and nonfinite native tokens; exact fields, Hold identity and storage-object identity; no IO or universal native claim"
+  },
+  "fastPassed": {
+    "log": "/tmp/hapsland-direct-resumed-fast.log",
+    "passed": true
+  },
+  "periodicPerformance": {
+    "build": {
+      "warmPreparationCriterion": "all 23 package build tasks cached and 23 uncached clean tasks per lane; identical total task counts across all four samples",
+      "warmPreparationMatched": true,
+      "baselineRevision": "56d1f39074276f96a65431ee9a2f5f1b8cea40bf",
+      "startedAt": "2026-10-08T20:32:13.397Z",
+      "at": "2026-10-08T20:32:54.824Z",
+      "roots": {
+        "typescript": "/workspace/typescript/hapsland-bend-baseline-master-56d1f390",
+        "integratedBend": "/workspace/typescript/hapsland-bend-selection-ui"
+      },
+      "command": [
+        "taskset",
+        "-c",
+        "11",
+        "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+        "scripts/build-workspaces.mjs"
+      ],
+      "affinity": "CPU 11 for both lanes; not exclusive",
+      "samples": {
+        "typescript": [
+          {
+            "cachedTasks": 23,
+            "totalTasks": 46,
+            "seconds": 8.626612661000001,
+            "exitCode": 0,
+            "signal": null,
+            "error": null
+          },
+          {
+            "cachedTasks": 23,
+            "totalTasks": 46,
+            "seconds": 14.515707346999996,
+            "exitCode": 0,
+            "signal": null,
+            "error": null
+          }
+        ],
+        "integratedBend": [
+          {
+            "cachedTasks": 23,
+            "totalTasks": 46,
+            "seconds": 7.768069268,
+            "exitCode": 0,
+            "signal": null,
+            "error": null
+          },
+          {
+            "cachedTasks": 23,
+            "totalTasks": 46,
+            "seconds": 10.491650917,
+            "exitCode": 0,
+            "signal": null,
+            "error": null
+          }
+        ]
+      },
+      "meanRatio": 0.7890185676582059,
+      "buildParity": true,
+      "scope": "paired warm workspace builds; declared frozen baseline and current candidate; both separately prepared; native release assembly excluded"
+    },
+    "execution": {
+      "at": "2026-10-08T20:33:33.354Z",
+      "runtime": {
+        "kind": "Bun",
+        "versions": {
+          "node": "24.3.0",
+          "bun": "1.3.14",
+          "boringssl": "0c5fce43b7ed5eb6001487ee48ac65766f5ddcd1",
+          "openssl": "1.1.0",
+          "llhttp": "9.3.0",
+          "libarchive": "ded82291ab41d5e355831b96b0e1ff49e24d8939",
+          "mimalloc": "f15aecb94fc8096008bf87b90c53ed682026914a",
+          "picohttpparser": "066d2b1e9ab820703db0837a7255d92d30f0c9f5",
+          "uwebsockets": "0d9b296af33f2b851fcbf4df3e9ec89751734ba4",
+          "webkit": "5488984d20e0dbfe4be2c3ba8fb18eb81a5e0e8b",
+          "zig": "04e7f6ac1e009525bc00934f20199c68f04e0a24",
+          "zlib": "12731092979c6d07f42da27da673a9f6c7b13586",
+          "tinycc": "12882eee073cfe5c7621bcfadf679e1372d4537b",
+          "lolhtml": "77127cd2b8545998756e8d64e36ee2313c4bb312",
+          "ares": "3ac47ee46edd8ea40370222f91613fc16c434853",
+          "libdeflate": "c8c56a20f8f621e6a966b716b31f1dedab6a41e3",
+          "usockets": "0d9b296af33f2b851fcbf4df3e9ec89751734ba4",
+          "lshpack": "8905c024b6d052f083a3d11d0a169b3c2735c8a1",
+          "zstd": "f8745da6ff1ad1e7bab384bd1f9d742439278e99",
+          "v8": "13.6.233.10-node.18",
+          "uv": "1.48.0",
+          "napi": "10",
+          "icu": "75.1",
+          "unicode": "15.1",
+          "modules": "137"
+        },
+        "executable": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/bun/bin/bun.exe"
+      },
+      "baselineRevision": "56d1f39074276f96a65431ee9a2f5f1b8cea40bf",
+      "warmupRounds": 20,
+      "samplePairs": 31,
+      "warmupOrder": "reference-first",
+      "timedCases": 69615,
+      "samples": {
+        "typescript": [
+          {
+            "milliseconds": 205.2157479999987,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 250.7223009999998,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 344.63893500000086,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 358.35646799999995,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 404.17965000000004,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 607.2884209999993,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 186.71071400000073,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 292.39482300000054,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 316.47890299999926,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 252.775276999997,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 362.8976309999998,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 248.05273699999816,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 415.16395100000227,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 150.26465499999904,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 201.13417100000152,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 263.09474000000046,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 256.9182290000026,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 243.11131999999998,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 323.750297999999,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 215.18599900000117,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 206.49792499999967,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 204.4973659999996,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 261.6771030000018,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 187.36971999999878,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 228.72211400000015,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 271.57902099999774,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 249.25203899999906,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 255.6354680000004,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 244.01986899999974,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 307.0792399999991,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 368.45692899999995,
+            "checksum": 31137840
+          }
+        ],
+        "integratedBend": [
+          {
+            "milliseconds": 238.02644299999884,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 132.45166900000004,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 214.74224499999946,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 107.87975199999892,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 169.64490300000034,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 175.68357899999864,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 258.5700770000003,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 286.60748200000126,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 399.8985300000022,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 233.36340399999972,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 267.13185800000065,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 237.61627299999964,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 221.6332199999997,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 251.94672799999898,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 289.2561300000016,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 150.01956900000005,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 210.09662200000093,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 241.26655499999833,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 229.9266659999994,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 148.91580899999826,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 318.0075419999994,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 137.96075800000108,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 273.07578400000057,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 185.96216600000116,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 184.10165100000086,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 278.0458260000014,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 181.26075200000196,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 441.72617799999716,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 238.75557499999923,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 364.69568900000013,
+            "checksum": 31137840
+          },
+          {
+            "milliseconds": 122.18166500000007,
+            "checksum": 31137840
+          }
+        ]
+      },
+      "medianRatio": 0.9128756890651784,
+      "executionParity": true,
+      "sha256": {
+        "/workspace/typescript/hapsland-bend-baseline-master-56d1f390/packages/administration/dist/credentials/direct-login-model.js": "e31cc1781a471a63b4ccf8ca84c9af1dbed0d65bb5b3bde063d116ecd9e8abe6",
+        "evidence/bend-strangler/direct-login-reference.ts": "d4eb3e697d1bd143268d176f2d54210d06fad5a73f29443b463411e072ab896e",
+        "evidence/bend-strangler/direct-login-parity.mjs": "9fd63ff7fe49ca8d9e5797d2e85df579ccd2387bf0b7e58db588954c31d225ab",
+        "evidence/bend-strangler/direct-login-performance.mjs": "1140e3a2fd4006aaf9a8643bffc4e7811061865f4f9c289e3ad82fa6d7923e09",
+        "packages/agent-flow-bend/direct-login-policy/core.bend": "18a9dbd9cc31bc7a861e1503af26a4c5df115ca077e48e28d65a1f0278384951",
+        "packages/agent-flow-bend/direct-login-policy/LAWS.bend": "e80d407fdddf6bd18429208c77500c0d45f5995f376cc27c7f5862eb157d354d",
+        "packages/agent-flow-bend/direct-login-policy/PROOF.bend": "6d95dfc2da5ca81cda3d8cc935f6941decf6ef62574be2a2a1d88f01e3ddab76",
+        "packages/agent-flow-bend/scripts/build-direct-login-policy.mjs": "b09c46dfb77da474a78067295a7dd8ed5457f5afc5bacca6ba1976a2a29de58c",
+        "packages/canonical-policy/src/canonical/direct-login-adapter.ts": "35fe3f4f90b2b686df011ef12fab903796051b23ace39f322ad4bc0f47809216",
+        "packages/administration/src/credentials/direct-login-model.ts": "2b3ca3dee1ccbbb3c8d481b6d1d93840795460c281ba33ba48762fec861ab992",
+        "packages/agent-flow-bend/dist/direct-login-policy.generated.js": "1d12f00f62dbeda82c30960c7c225a91d99c581adae5e322495db332df2353fb",
+        "packages/canonical-policy/dist/canonical/direct-login-adapter.js": "12c724364c312d7e0ddee35b3413f6074e83baf223a577b1c3394a1c0d43fad1",
+        "packages/administration/dist/credentials/direct-login-model.js": "f16edefed592b5ac3fe6923488c1874d1b91ea74bbbc9290dbf44d1612210ef9"
+      },
+      "scope": "emitted direct stdin login reducer/commands from both master and candidate; independent identical harness functions per lane; native finite-token cases with exact output field consumption; finite status/storage/correlation fixtures; no acquisition, owner IO, startup or platform claim"
+    }
+  },
+  "phaseDiagnostic": {
+    "evidence": "direct-login-current-phase-results.json",
+    "interpretation": "no isolated direct-login slowdown identified in available initialization/journey medians; migrated control and candidate differ from upstream; dynamics do not qualify raw guard",
+    "nextExperiment": "compare pure compiled direct-login model initialization and first transitions with identical consumers; separate policy overhead from Effect/import graph"
+  },
+  "additionalChecks": {
+    "kernelVerdictPassed": true,
+    "receiptsPassed": true,
+    "productionAuthorityPassed": true,
+    "bendFormatPassed": true,
+    "lintChangedPassed": true,
+    "docsPassed": {
+      "documents": 108,
+      "localLinkErrors": 0,
+      "log": "/tmp/hapsland-direct-resumed-docs.log"
+    },
+    "artifactPassed": true
+  },
+  "nextMeasurementDue": {
+    "build": "2026-10-08T21:02:54.824000+00:00",
+    "execution": "2026-10-08T21:03:33.354000+00:00"
+  },
+  "pureModelDiagnostic": {
+    "evidence": "direct-login-model-cold-results.json",
+    "passedBehavior": true,
+    "interpretation": "~20 microseconds added model initialization; insufficient to account for millisecond-scale Effect/whole-process differences; raw cold guard remains failed",
+    "nextExperiment": "bundle/import inventory and controlled first Effect journey; locate accumulated graph initialization cost before production optimization",
+    "reproductionAmendment": "After execution, reproduction script runner path changed from /tmp to retained identical repository artifact; original declaration unchanged."
+  },
+  "finalQualification": "direct-login-qualified-checkpoint.json",
+  "coldGuardFinal": {
+    "evidence": "direct-login-common-context-cold.json",
+    "passed": true,
+    "scope": "all artifacts in one temporary directory; same cwd for every measured child; source compilation stays in its declared worktree; unchanged raw wall/CPU thresholds and 41 rounds; historical failures retained",
+    "oldFailuresPreserved": true
+  },
+  "finalGateFormattingRepair": {
+    "failedLog": "/tmp/hapsland-direct-error-final-fast.log",
+    "cause": "new cancellation test call formatting",
+    "fix": "project dprint, AST unchanged",
+    "finalPassedLog": "/tmp/hapsland-direct-error-qualification-gates.log"
+  }
+}

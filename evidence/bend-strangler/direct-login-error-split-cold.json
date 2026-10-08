@@ -1,0 +1,1994 @@
+{
+  "at": "2026-10-08T20:43:47.674114+00:00",
+  "startedAt": "2026-10-08T20:43:28.496038+00:00",
+  "diagnostic": true,
+  "declaration": {
+    "at": "2026-10-08T20:43:24.808206+00:00",
+    "kind": "pre-execution declaration",
+    "revisions": {
+      "upstream": "56d1f39074276f96a65431ee9a2f5f1b8cea40bf",
+      "qualifiedControl": "0420829352101bbd1728d6947242b58b87e4c6e9",
+      "directCandidate": "0420829352101bbd1728d6947242b58b87e4c6e9"
+    },
+    "sampleRounds": 41,
+    "ordering": "three lane rotations with alternating reversal; scenario rotations with alternating reversal",
+    "runtime": "/home/node/.local/share/mise/installs/bun/1.3.14/bin/bun",
+    "affinity": "CPU 11, nonexclusive",
+    "sourceSha256": {
+      "packages/administration/src/credentials/direct-login-model.ts": "2b3ca3dee1ccbbb3c8d481b6d1d93840795460c281ba33ba48762fec861ab992",
+      "packages/canonical-policy/src/canonical/direct-login-adapter.ts": "35fe3f4f90b2b686df011ef12fab903796051b23ace39f322ad4bc0f47809216",
+      "packages/agent-flow-bend/direct-login-policy/core.bend": "18a9dbd9cc31bc7a861e1503af26a4c5df115ca077e48e28d65a1f0278384951",
+      "packages/agent-flow-bend/direct-login-policy/LAWS.bend": "e80d407fdddf6bd18429208c77500c0d45f5995f376cc27c7f5862eb157d354d",
+      "packages/agent-flow-bend/direct-login-policy/PROOF.bend": "6d95dfc2da5ca81cda3d8cc935f6941decf6ef62574be2a2a1d88f01e3ddab76",
+      "packages/agent-flow-bend/scripts/build-direct-login-policy.mjs": "b09c46dfb77da474a78067295a7dd8ed5457f5afc5bacca6ba1976a2a29de58c",
+      "packages/agent-flow-bend/abi/direct-login-policy.generated.d.ts": "3ce123392392709cfa46c650eb5e4fcb71dd0740055b2f2d3891ddd6e957f0a2",
+      "evidence/bend-strangler/direct-login-error-split-cold.py": "d33d3609e679d06eea9a988e68996546424e3ffcb46ecfe32ea5abd59e8a5ce3",
+      "packages/administration/src/credentials/direct-input.ts": "8f5dc7d9d02cd002ca37dcb5f3f3a30b063f43aacdb3e57623f83309308a5481",
+      "packages/administration/src/credentials/masked-input-error.ts": "6d3e6350542603f4530dd694ea80197317bc79e5033fc64f76c1537cc009560a"
+    },
+    "runnerSha256": "ba26dc363a5ec2163a976c2ce0fbf04d271805f9af41d8ca73a75d2c02df3981",
+    "comparison": {
+      "isolation": "directCandidate / qualifiedControl isolates the additional direct-login migration",
+      "upstreamGuard": "directCandidate / upstream preserves raw <=1 median wall and summed CPU conditions for both actual journeys",
+      "accumulated": "qualifiedControl / upstream diagnoses prior migrated graph cost"
+    },
+    "limits": "compiled minified bytecode fixtures with controlled offline owners; identical empty controls are diagnostics, never subtracted or normalized; historical failed cold results retained; no native-store, Jev, installed-package or platform claim"
+  },
+  "sampleRounds": 41,
+  "executedArtifacts": {
+    "upstream": {
+      "sha256": "c6d8618b626b18bcad2b1bd0176ec77df1fd51947c11cb40b3edcab58a53de32",
+      "bytes": 100968592
+    },
+    "qualifiedControl": {
+      "sha256": "9bcae34a3d6f0baa294cd0b4c55b6a0deeab039e96184aee89529bfd440645cc",
+      "bytes": 101034128
+    },
+    "directCandidate": {
+      "sha256": "3c031fd913b84dd705e0820b65aa4b190e8f338107b9153fcbb4513978cf4bff",
+      "bytes": 99461264
+    }
+  },
+  "identicalEmptyControls": {
+    "upstream": "2c66a2a27996a94c170aef3a2fd2f249e97ec11190b8fd2945c9e3a7a4ec30e4",
+    "qualifiedControl": "2c66a2a27996a94c170aef3a2fd2f249e97ec11190b8fd2945c9e3a7a4ec30e4",
+    "directCandidate": "2c66a2a27996a94c170aef3a2fd2f249e97ec11190b8fd2945c9e3a7a4ec30e4"
+  },
+  "artifactsAndSourceFrozen": true,
+  "actualFixturePrerequisitesPassed": true,
+  "upstreamColdGuardPassed": false,
+  "summary": {
+    "available": {
+      "isolation": {
+        "medianWallRatio": 0.8865429347315477,
+        "cpuRatio": 0.9177561519172726,
+        "wallParity": true,
+        "cpuParity": true
+      },
+      "upstreamGuard": {
+        "medianWallRatio": 0.8931466447929497,
+        "cpuRatio": 0.8917186190969945,
+        "wallParity": true,
+        "cpuParity": true
+      },
+      "accumulated": {
+        "medianWallRatio": 1.0074488327667985,
+        "cpuRatio": 0.9716291383436838,
+        "wallParity": false,
+        "cpuParity": true
+      }
+    },
+    "locked": {
+      "isolation": {
+        "medianWallRatio": 0.8982902981851278,
+        "cpuRatio": 1.0052578330809994,
+        "wallParity": true,
+        "cpuParity": false
+      },
+      "upstreamGuard": {
+        "medianWallRatio": 0.9447743409074443,
+        "cpuRatio": 1.0860262702236811,
+        "wallParity": true,
+        "cpuParity": false
+      },
+      "accumulated": {
+        "medianWallRatio": 1.0517472389674374,
+        "cpuRatio": 1.080345991331533,
+        "wallParity": false,
+        "cpuParity": false
+      }
+    },
+    "empty": {
+      "isolation": {
+        "medianWallRatio": 1.0044678648555658,
+        "cpuRatio": 1.0534285486580142,
+        "wallParity": false,
+        "cpuParity": false
+      },
+      "upstreamGuard": {
+        "medianWallRatio": 1.0274201059420334,
+        "cpuRatio": 1.090623486974938,
+        "wallParity": false,
+        "cpuParity": false
+      },
+      "accumulated": {
+        "medianWallRatio": 1.0228501497056532,
+        "cpuRatio": 1.0353084586176322,
+        "wallParity": false,
+        "cpuParity": false
+      }
+    }
+  },
+  "samples": {
+    "available": {
+      "upstream": [
+        {
+          "milliseconds": 219.26298100152053,
+          "cpuSeconds": 0.1744119999999998,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 46.438268007477745,
+          "cpuSeconds": 0.045565999999999995,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 48.44945200602524,
+          "cpuSeconds": 0.0481069999999999,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 61.77789799403399,
+          "cpuSeconds": 0.060443000000000247,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 48.56545300572179,
+          "cpuSeconds": 0.04750000000000032,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 46.520726988092065,
+          "cpuSeconds": 0.04596499999999981,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 81.86561000184156,
+          "cpuSeconds": 0.08082299999999965,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 68.21291099186055,
+          "cpuSeconds": 0.0668289999999998,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 98.41716699884273,
+          "cpuSeconds": 0.09073200000000003,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 68.73112299945205,
+          "cpuSeconds": 0.06656899999999988,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 70.10350999189541,
+          "cpuSeconds": 0.06884500000000049,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 60.80809800187126,
+          "cpuSeconds": 0.05988400000000116,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 45.783887995639816,
+          "cpuSeconds": 0.04398400000000047,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 53.88079001568258,
+          "cpuSeconds": 0.05348700000000006,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 116.25323400949128,
+          "cpuSeconds": 0.1069049999999998,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 81.96086098905653,
+          "cpuSeconds": 0.07819600000000015,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 71.87944202451035,
+          "cpuSeconds": 0.07105599999999956,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 72.91782498941757,
+          "cpuSeconds": 0.0720679999999998,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 67.77015700936317,
+          "cpuSeconds": 0.06652600000000053,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 121.41831999178976,
+          "cpuSeconds": 0.12077000000000027,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 61.39314500615001,
+          "cpuSeconds": 0.06085600000000113,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 58.44320298638195,
+          "cpuSeconds": 0.05746600000000068,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 57.6106540102046,
+          "cpuSeconds": 0.05693400000000093,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 72.13911099825054,
+          "cpuSeconds": 0.06892599999999938,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 65.58359597693197,
+          "cpuSeconds": 0.0646179999999994,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 59.91596501553431,
+          "cpuSeconds": 0.059174999999999756,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 56.707022013142705,
+          "cpuSeconds": 0.05583900000000064,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 63.64828898222186,
+          "cpuSeconds": 0.06211299999999831,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 57.64728001668118,
+          "cpuSeconds": 0.05721799999999977,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 82.2234459919855,
+          "cpuSeconds": 0.0800800000000006,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 56.71885499032214,
+          "cpuSeconds": 0.05547399999999847,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 60.69522199686617,
+          "cpuSeconds": 0.05987599999999915,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 84.33450499433093,
+          "cpuSeconds": 0.08272499999999994,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 57.306443981360644,
+          "cpuSeconds": 0.056900000000001505,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 83.86779300053604,
+          "cpuSeconds": 0.08326699999999754,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 94.32254900457337,
+          "cpuSeconds": 0.09393899999999711,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 95.34897402045317,
+          "cpuSeconds": 0.09456699999999874,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 51.66410398669541,
+          "cpuSeconds": 0.051388999999998575,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 63.61224700231105,
+          "cpuSeconds": 0.06311000000000089,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 54.112958983751014,
+          "cpuSeconds": 0.05333099999999824,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 48.15753299044445,
+          "cpuSeconds": 0.04721199999999737,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        }
+      ],
+      "qualifiedControl": [
+        {
+          "milliseconds": 74.26187800592743,
+          "cpuSeconds": 0.07336600000000004,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 43.741037021391094,
+          "cpuSeconds": 0.0429520000000001,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 61.66952202329412,
+          "cpuSeconds": 0.061341000000000534,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 66.582188999746,
+          "cpuSeconds": 0.06372199999999983,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 59.615212987409905,
+          "cpuSeconds": 0.05843699999999963,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 60.92505797278136,
+          "cpuSeconds": 0.060502000000000056,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 85.08917898871005,
+          "cpuSeconds": 0.0837340000000002,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 58.159284002613276,
+          "cpuSeconds": 0.05736099999999977,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 83.52258199010976,
+          "cpuSeconds": 0.0639230000000004,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 67.38982000388205,
+          "cpuSeconds": 0.06538500000000091,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 67.99374200636521,
+          "cpuSeconds": 0.06716100000000047,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 54.56721200607717,
+          "cpuSeconds": 0.05387400000000131,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 103.62896099104546,
+          "cpuSeconds": 0.10226799999999914,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 54.503294988535345,
+          "cpuSeconds": 0.05419399999999985,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 115.7447719888296,
+          "cpuSeconds": 0.11036599999999863,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 59.86213099095039,
+          "cpuSeconds": 0.05869000000000035,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 70.70022297557443,
+          "cpuSeconds": 0.0643779999999996,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 65.30071899760514,
+          "cpuSeconds": 0.06481699999999968,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 70.06076001562178,
+          "cpuSeconds": 0.06938200000000094,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 63.197659997968,
+          "cpuSeconds": 0.06260799999999911,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 48.52920302073471,
+          "cpuSeconds": 0.04790399999999995,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 55.26188400108367,
+          "cpuSeconds": 0.05477999999999916,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 67.53036400186829,
+          "cpuSeconds": 0.06539899999999843,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 73.7438740034122,
+          "cpuSeconds": 0.07198300000000035,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 63.93820801167749,
+          "cpuSeconds": 0.06264400000000236,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 71.10176800051704,
+          "cpuSeconds": 0.07038600000000006,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 57.32790200272575,
+          "cpuSeconds": 0.05549199999999921,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 58.32678501610644,
+          "cpuSeconds": 0.057669000000001525,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 61.085307999746874,
+          "cpuSeconds": 0.0598920000000005,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 43.86224600602873,
+          "cpuSeconds": 0.04273099999999985,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 125.14093401841819,
+          "cpuSeconds": 0.1243679999999987,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 67.70882400451228,
+          "cpuSeconds": 0.06609899999999769,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 55.6505550048314,
+          "cpuSeconds": 0.05516400000000132,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 42.768527986481786,
+          "cpuSeconds": 0.04208499999999926,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 84.92567698704079,
+          "cpuSeconds": 0.08315100000000086,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 93.85696100071073,
+          "cpuSeconds": 0.09286299999999947,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 128.61596400034614,
+          "cpuSeconds": 0.12766699999999798,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 69.8848000029102,
+          "cpuSeconds": 0.06893499999999797,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 48.112407996086404,
+          "cpuSeconds": 0.04758000000000173,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 64.08608399215154,
+          "cpuSeconds": 0.06294099999999858,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 56.12618400482461,
+          "cpuSeconds": 0.05509400000000131,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        }
+      ],
+      "directCandidate": [
+        {
+          "milliseconds": 93.0770380073227,
+          "cpuSeconds": 0.09217699999999995,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 43.73841200140305,
+          "cpuSeconds": 0.04310800000000059,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 35.788177978247404,
+          "cpuSeconds": 0.03538899999999989,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 63.110160001087934,
+          "cpuSeconds": 0.06089100000000025,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 68.22661898331717,
+          "cpuSeconds": 0.06568500000000022,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 55.32746799872257,
+          "cpuSeconds": 0.05413500000000049,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 77.83170099719428,
+          "cpuSeconds": 0.07715799999999984,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 59.49208702077158,
+          "cpuSeconds": 0.059101999999999766,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 91.031396004837,
+          "cpuSeconds": 0.08930600000000055,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 52.14919100399129,
+          "cpuSeconds": 0.04712499999999942,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 56.81506497785449,
+          "cpuSeconds": 0.05613100000000104,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 73.34174599964172,
+          "cpuSeconds": 0.07236499999999868,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 104.63263600831851,
+          "cpuSeconds": 0.10406200000000032,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 55.03188300644979,
+          "cpuSeconds": 0.05457599999999907,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 42.72969500743784,
+          "cpuSeconds": 0.0422349999999998,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 46.28472501644865,
+          "cpuSeconds": 0.04377899999999979,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 67.38794600823894,
+          "cpuSeconds": 0.06640100000000082,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 48.46990999067202,
+          "cpuSeconds": 0.047729000000000354,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 47.89890500251204,
+          "cpuSeconds": 0.04719899999999999,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 63.94220801303163,
+          "cpuSeconds": 0.06220800000000004,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 47.98436499550007,
+          "cpuSeconds": 0.047223999999999045,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 43.04699000203982,
+          "cpuSeconds": 0.04206099999999946,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 55.37392699625343,
+          "cpuSeconds": 0.05440699999999943,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 67.73940700804815,
+          "cpuSeconds": 0.06438200000000105,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 66.47952098865062,
+          "cpuSeconds": 0.06563699999999884,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 56.40551898977719,
+          "cpuSeconds": 0.053920000000000634,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 58.05803299881518,
+          "cpuSeconds": 0.05715000000000092,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 74.170795007376,
+          "cpuSeconds": 0.07109299999999763,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 43.51828500512056,
+          "cpuSeconds": 0.042484000000000854,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 79.25596297718585,
+          "cpuSeconds": 0.06993399999999994,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 106.94982201675884,
+          "cpuSeconds": 0.10482299999999878,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 105.76818700064905,
+          "cpuSeconds": 0.10505300000000073,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 70.58084799791686,
+          "cpuSeconds": 0.07014000000000031,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 40.61763500794768,
+          "cpuSeconds": 0.04000899999999952,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 56.3878940010909,
+          "cpuSeconds": 0.04887899999999856,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 89.31042297626846,
+          "cpuSeconds": 0.08833000000000091,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 103.0102469958365,
+          "cpuSeconds": 0.09865100000000204,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 39.432041987311095,
+          "cpuSeconds": 0.03855600000000248,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 45.241715997690335,
+          "cpuSeconds": 0.04470099999999988,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 50.66747000091709,
+          "cpuSeconds": 0.05028599999999894,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        },
+        {
+          "milliseconds": 49.246667011175305,
+          "cpuSeconds": 0.04836599999999969,
+          "stdoutSha256": "1c41a6ac86bc1502d280f5d49e55dda77d223c19e89d116526670353de7df0ef"
+        }
+      ]
+    },
+    "locked": {
+      "upstream": [
+        {
+          "milliseconds": 72.53469701390713,
+          "cpuSeconds": 0.07183599999999979,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 39.71904399804771,
+          "cpuSeconds": 0.03926900000000044,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 45.993348001502454,
+          "cpuSeconds": 0.04520899999999983,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 64.23125200672075,
+          "cpuSeconds": 0.0634080000000008,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 53.20569998002611,
+          "cpuSeconds": 0.051663999999999266,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 59.126292006112635,
+          "cpuSeconds": 0.057694999999999386,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 69.74113199976273,
+          "cpuSeconds": 0.0690880000000007,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 60.04234100691974,
+          "cpuSeconds": 0.05960200000000038,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 57.119399978546426,
+          "cpuSeconds": 0.0554859999999997,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 87.0336529915221,
+          "cpuSeconds": 0.08418900000000029,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 81.60231600049883,
+          "cpuSeconds": 0.07260400000000011,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 50.459801976103336,
+          "cpuSeconds": 0.04963300000000048,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 57.6834469975438,
+          "cpuSeconds": 0.05689399999999978,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 52.99990699859336,
+          "cpuSeconds": 0.05248299999999961,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 56.893064989708364,
+          "cpuSeconds": 0.05616900000000147,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 60.30151099548675,
+          "cpuSeconds": 0.05988800000000083,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 52.79873899416998,
+          "cpuSeconds": 0.052456999999998644,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 60.375052999006584,
+          "cpuSeconds": 0.05955099999999902,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 55.7675140153151,
+          "cpuSeconds": 0.05524400000000007,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 51.26380900037475,
+          "cpuSeconds": 0.050677000000000305,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 59.151917026611045,
+          "cpuSeconds": 0.05701799999999935,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 80.78014198690653,
+          "cpuSeconds": 0.08030400000000082,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 68.16366099519655,
+          "cpuSeconds": 0.06748900000000013,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 85.68547500181012,
+          "cpuSeconds": 0.08369300000000024,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 55.66176300635561,
+          "cpuSeconds": 0.05469199999999841,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 57.737905997782946,
+          "cpuSeconds": 0.05600800000000028,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 65.14367597992532,
+          "cpuSeconds": 0.0642750000000003,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 55.3853019955568,
+          "cpuSeconds": 0.053940000000000765,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 65.63038899912499,
+          "cpuSeconds": 0.0644309999999999,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 59.15100101265125,
+          "cpuSeconds": 0.05793199999999743,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 68.42649600002915,
+          "cpuSeconds": 0.06687599999999883,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 60.44338701758534,
+          "cpuSeconds": 0.059093000000001616,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 54.96854899683967,
+          "cpuSeconds": 0.05427600000000243,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 57.46544498833828,
+          "cpuSeconds": 0.05698899999999796,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 55.33817698596977,
+          "cpuSeconds": 0.05368200000000112,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 72.29936198564246,
+          "cpuSeconds": 0.07171899999999809,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 76.8506089807488,
+          "cpuSeconds": 0.0761699999999994,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 61.6948549868539,
+          "cpuSeconds": 0.06112899999999932,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 62.875406991224736,
+          "cpuSeconds": 0.05838500000000035,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 49.66271200100891,
+          "cpuSeconds": 0.04918399999999856,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 52.15848298394121,
+          "cpuSeconds": 0.05169600000000152,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        }
+      ],
+      "qualifiedControl": [
+        {
+          "milliseconds": 103.41170898755081,
+          "cpuSeconds": 0.09872300000000012,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 40.24309100350365,
+          "cpuSeconds": 0.039807999999999844,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 68.27536999480799,
+          "cpuSeconds": 0.06776900000000108,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 57.54232101025991,
+          "cpuSeconds": 0.05549899999999974,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 77.16802900540642,
+          "cpuSeconds": 0.07345699999999944,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 51.13010000786744,
+          "cpuSeconds": 0.05025200000000085,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 55.86647300515324,
+          "cpuSeconds": 0.0543499999999999,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 46.641894994536415,
+          "cpuSeconds": 0.04563800000000029,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 69.91384201683104,
+          "cpuSeconds": 0.06907300000000038,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 95.12338798958808,
+          "cpuSeconds": 0.09408899999999987,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 81.71935798600316,
+          "cpuSeconds": 0.0711109999999997,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 61.78314800490625,
+          "cpuSeconds": 0.06072200000000061,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 48.044157010735944,
+          "cpuSeconds": 0.04765899999999901,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 65.57230500038713,
+          "cpuSeconds": 0.06455099999999936,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 46.14884901093319,
+          "cpuSeconds": 0.04572800000000132,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 46.67293600505218,
+          "cpuSeconds": 0.046066000000000606,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 127.10886797867715,
+          "cpuSeconds": 0.12650499999999987,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 56.01614102488384,
+          "cpuSeconds": 0.054530999999999885,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 49.85408901120536,
+          "cpuSeconds": 0.04751700000000092,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 56.9415649806615,
+          "cpuSeconds": 0.05543399999999821,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 79.18879602220841,
+          "cpuSeconds": 0.0786780000000018,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 87.81761900172569,
+          "cpuSeconds": 0.08692299999999964,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 67.94695000280626,
+          "cpuSeconds": 0.06694699999999898,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 44.53104399726726,
+          "cpuSeconds": 0.04332700000000056,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 62.792865006485954,
+          "cpuSeconds": 0.062333999999999,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 80.46876499429345,
+          "cpuSeconds": 0.07850100000000104,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 59.48358599562198,
+          "cpuSeconds": 0.05884199999999851,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 64.21737701748498,
+          "cpuSeconds": 0.06337499999999974,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 70.68993200664409,
+          "cpuSeconds": 0.06621700000000086,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 78.26437099720351,
+          "cpuSeconds": 0.07705100000000087,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 81.7900669935625,
+          "cpuSeconds": 0.07937499999999797,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 48.67057898081839,
+          "cpuSeconds": 0.04723100000000091,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 67.89019997813739,
+          "cpuSeconds": 0.06745600000000085,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 51.395767979556695,
+          "cpuSeconds": 0.04998299999999922,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 45.009505993220955,
+          "cpuSeconds": 0.04437399999999858,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 64.14437599596567,
+          "cpuSeconds": 0.06097500000000178,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 62.211901997216046,
+          "cpuSeconds": 0.06124499999999866,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 54.89504899014719,
+          "cpuSeconds": 0.05445299999999875,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 150.8465679944493,
+          "cpuSeconds": 0.14243000000000094,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 48.631994985044,
+          "cpuSeconds": 0.048178999999999306,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 53.96337297861464,
+          "cpuSeconds": 0.05346299999999893,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        }
+      ],
+      "directCandidate": [
+        {
+          "milliseconds": 126.29490299150348,
+          "cpuSeconds": 0.12497800000000003,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 39.80846199556254,
+          "cpuSeconds": 0.03941799999999995,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 43.538452009670436,
+          "cpuSeconds": 0.04304599999999992,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 48.45191101776436,
+          "cpuSeconds": 0.04777400000000087,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 45.86288798600435,
+          "cpuSeconds": 0.04527400000000048,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 46.471560024656355,
+          "cpuSeconds": 0.04581400000000002,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 55.884347995743155,
+          "cpuSeconds": 0.05539899999999953,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 62.265568994916975,
+          "cpuSeconds": 0.05910100000000007,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 125.24581101024523,
+          "cpuSeconds": 0.12158899999999928,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 52.942865004297346,
+          "cpuSeconds": 0.05253799999999931,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 235.41703500086442,
+          "cpuSeconds": 0.2152649999999996,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 51.036474003922194,
+          "cpuSeconds": 0.05072700000000019,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 44.49100201600231,
+          "cpuSeconds": 0.04385200000000067,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 64.34033598634414,
+          "cpuSeconds": 0.06358900000000034,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 98.73216898995452,
+          "cpuSeconds": 0.09474000000000071,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 46.847146993968636,
+          "cpuSeconds": 0.04625400000000024,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 57.98544900608249,
+          "cpuSeconds": 0.05687499999999979,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 59.98021599953063,
+          "cpuSeconds": 0.05836800000000064,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 51.34385099518113,
+          "cpuSeconds": 0.04787899999999912,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 73.51699800346978,
+          "cpuSeconds": 0.0729450000000007,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 58.26974401134066,
+          "cpuSeconds": 0.05768400000000007,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 106.44227598095313,
+          "cpuSeconds": 0.10185099999999991,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 57.19485899317078,
+          "cpuSeconds": 0.05664099999999994,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 63.26528498902917,
+          "cpuSeconds": 0.05753399999999864,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 47.76415499509312,
+          "cpuSeconds": 0.04658899999999999,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 57.27231802302413,
+          "cpuSeconds": 0.05636200000000002,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 62.18560997513123,
+          "cpuSeconds": 0.06165599999999927,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 57.477362017380074,
+          "cpuSeconds": 0.0542789999999993,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 51.346643012948334,
+          "cpuSeconds": 0.04828499999999991,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 61.94731598952785,
+          "cpuSeconds": 0.06012500000000198,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 90.27505599078722,
+          "cpuSeconds": 0.08927199999999935,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 53.28249299782328,
+          "cpuSeconds": 0.05294000000000132,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 48.909913981333375,
+          "cpuSeconds": 0.048493999999999815,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 50.41476001497358,
+          "cpuSeconds": 0.050143999999997746,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 61.36218598112464,
+          "cpuSeconds": 0.060518999999998435,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 165.18094099592417,
+          "cpuSeconds": 0.14594199999999713,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 43.9096629852429,
+          "cpuSeconds": 0.04288200000000142,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 49.362417979864404,
+          "cpuSeconds": 0.048782999999999355,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 49.176208005519584,
+          "cpuSeconds": 0.048614999999998965,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 46.52460300712846,
+          "cpuSeconds": 0.04617600000000088,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        },
+        {
+          "milliseconds": 54.011956992326304,
+          "cpuSeconds": 0.05362800000000156,
+          "stdoutSha256": "69995566bee1a7afc9f2f5848998ab8c36f4baaf588690e25e70b2069844b84b"
+        }
+      ]
+    },
+    "empty": {
+      "upstream": [
+        {
+          "milliseconds": 15.51542300148867,
+          "cpuSeconds": 0.014561000000000046,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 15.34942098078318,
+          "cpuSeconds": 0.014972000000000651,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 12.7503169933334,
+          "cpuSeconds": 0.012220999999999815,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 12.89031800115481,
+          "cpuSeconds": 0.012554000000000176,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 26.893519010627642,
+          "cpuSeconds": 0.026107000000000102,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 15.095002978341654,
+          "cpuSeconds": 0.013926000000000105,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 13.770034012850374,
+          "cpuSeconds": 0.012885999999999509,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 15.524548012763262,
+          "cpuSeconds": 0.014739000000000058,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 17.012769007124007,
+          "cpuSeconds": 0.015587999999999713,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 16.78964198799804,
+          "cpuSeconds": 0.01539500000000027,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 19.09695300855674,
+          "cpuSeconds": 0.018598999999999588,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 18.47661499050446,
+          "cpuSeconds": 0.01811400000000063,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 13.83711799280718,
+          "cpuSeconds": 0.013087000000000959,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 13.032443006522954,
+          "cpuSeconds": 0.01270700000000069,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 13.28982098493725,
+          "cpuSeconds": 0.01283499999999993,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 14.72237502457574,
+          "cpuSeconds": 0.01422599999999985,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 16.662557027302682,
+          "cpuSeconds": 0.015845999999999805,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 17.642816994339228,
+          "cpuSeconds": 0.013340000000002128,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 20.186670997645706,
+          "cpuSeconds": 0.01886100000000024,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 13.176987005863339,
+          "cpuSeconds": 0.012578000000000422,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 14.029326994204894,
+          "cpuSeconds": 0.013540000000001662,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 26.132554979994893,
+          "cpuSeconds": 0.023900000000000254,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 16.75555799738504,
+          "cpuSeconds": 0.014976000000002543,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 16.93322599749081,
+          "cpuSeconds": 0.016121000000000052,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 16.262429009657353,
+          "cpuSeconds": 0.015474000000001098,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 17.28302100673318,
+          "cpuSeconds": 0.016871999999999332,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 14.537372975610197,
+          "cpuSeconds": 0.014222000000000179,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 17.419604992028326,
+          "cpuSeconds": 0.016722999999998933,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 14.65058300527744,
+          "cpuSeconds": 0.013938999999998813,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 18.600448995130137,
+          "cpuSeconds": 0.01794999999999991,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 20.763467997312546,
+          "cpuSeconds": 0.018928999999999974,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 19.811334990663454,
+          "cpuSeconds": 0.018929999999999225,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 12.380730011500418,
+          "cpuSeconds": 0.010924999999997631,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 15.210252982797101,
+          "cpuSeconds": 0.014785000000003379,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 12.383604975184426,
+          "cpuSeconds": 0.01191999999999993,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 19.625874003395438,
+          "cpuSeconds": 0.01824999999999921,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 19.14478701655753,
+          "cpuSeconds": 0.018118999999998664,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 15.495547006139532,
+          "cpuSeconds": 0.014988999999999031,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 17.362272017635405,
+          "cpuSeconds": 0.01706800000000097,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 16.34763801121153,
+          "cpuSeconds": 0.015473999999998433,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 16.81926700985059,
+          "cpuSeconds": 0.016091000000001188,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        }
+      ],
+      "qualifiedControl": [
+        {
+          "milliseconds": 20.895719004329294,
+          "cpuSeconds": 0.020237999999999978,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 11.143428011564538,
+          "cpuSeconds": 0.010633999999999144,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 12.360563006950542,
+          "cpuSeconds": 0.012038999999999689,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 12.534106004750356,
+          "cpuSeconds": 0.01214700000000013,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 14.24841198604554,
+          "cpuSeconds": 0.013827000000000478,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 18.03827699040994,
+          "cpuSeconds": 0.017590000000000217,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 18.488405999960378,
+          "cpuSeconds": 0.017621999999999804,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 21.88072699937038,
+          "cpuSeconds": 0.02080700000000002,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 22.90461098891683,
+          "cpuSeconds": 0.017970999999999737,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 26.835185009986162,
+          "cpuSeconds": 0.021845999999999588,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 16.45747199654579,
+          "cpuSeconds": 0.016197000000000905,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 13.94366001477465,
+          "cpuSeconds": 0.013212999999999475,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 13.75295000616461,
+          "cpuSeconds": 0.013202000000000158,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 14.642914989963174,
+          "cpuSeconds": 0.014299000000000284,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 14.374620979651809,
+          "cpuSeconds": 0.013892000000000237,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 13.731908024055883,
+          "cpuSeconds": 0.013275999999998511,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 23.397697979817167,
+          "cpuSeconds": 0.022128000000001258,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 22.65327499480918,
+          "cpuSeconds": 0.02082099999999798,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 23.614657984580845,
+          "cpuSeconds": 0.01669199999999904,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 11.297887016553432,
+          "cpuSeconds": 0.010339000000000098,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 22.483356995508075,
+          "cpuSeconds": 0.022023999999999155,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 12.09793597809039,
+          "cpuSeconds": 0.011277999999999011,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 18.413448007777333,
+          "cpuSeconds": 0.0177789999999991,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 17.13010302046314,
+          "cpuSeconds": 0.0160279999999986,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 19.185120007023215,
+          "cpuSeconds": 0.018630000000000813,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 25.997636024840176,
+          "cpuSeconds": 0.021605000000000985,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 15.821300010429695,
+          "cpuSeconds": 0.015204999999998137,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 15.749215992400423,
+          "cpuSeconds": 0.014934000000001113,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 15.74859200627543,
+          "cpuSeconds": 0.015169999999998574,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 17.97785999951884,
+          "cpuSeconds": 0.017610000000000348,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 21.29263899405487,
+          "cpuSeconds": 0.020742999999998624,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 20.54796600714326,
+          "cpuSeconds": 0.019547000000000203,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 19.03316198149696,
+          "cpuSeconds": 0.016485999999999557,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 14.42620501620695,
+          "cpuSeconds": 0.013754999999998851,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 15.32996300375089,
+          "cpuSeconds": 0.014949000000001433,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 17.01314400997944,
+          "cpuSeconds": 0.016224000000002015,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 16.56509900931269,
+          "cpuSeconds": 0.015941000000001537,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 15.696590999141335,
+          "cpuSeconds": 0.01512199999999897,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 16.72118398710154,
+          "cpuSeconds": 0.015813999999998885,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 17.20460399519652,
+          "cpuSeconds": 0.014407000000002057,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 13.366071012569591,
+          "cpuSeconds": 0.012988000000001776,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        }
+      ],
+      "directCandidate": [
+        {
+          "milliseconds": 13.74961601686664,
+          "cpuSeconds": 0.013429999999999609,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 13.549657014664263,
+          "cpuSeconds": 0.012969999999999704,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 13.194112019846216,
+          "cpuSeconds": 0.0128560000000002,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 10.043667978607118,
+          "cpuSeconds": 0.009784999999999489,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 21.31205500336364,
+          "cpuSeconds": 0.020422999999999192,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 18.149944982724264,
+          "cpuSeconds": 0.017546999999999535,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 15.190295991487801,
+          "cpuSeconds": 0.014266000000000112,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 10.356462997151539,
+          "cpuSeconds": 0.009648000000000323,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 17.181561997858807,
+          "cpuSeconds": 0.01586000000000043,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 19.26678800373338,
+          "cpuSeconds": 0.018294999999999284,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 16.3568879943341,
+          "cpuSeconds": 0.01589699999999894,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 13.72715798788704,
+          "cpuSeconds": 0.013417000000000456,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 15.842508990317583,
+          "cpuSeconds": 0.01536099999999907,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 15.330796974012628,
+          "cpuSeconds": 0.014697999999999212,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 19.092578993877396,
+          "cpuSeconds": 0.01846399999999937,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 16.701767017366365,
+          "cpuSeconds": 0.016022000000000425,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 26.130220998311415,
+          "cpuSeconds": 0.0195230000000004,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 24.706292984774336,
+          "cpuSeconds": 0.022708999999999868,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 35.420550004346296,
+          "cpuSeconds": 0.034104999999999386,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 14.666873990790918,
+          "cpuSeconds": 0.013828999999999425,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 14.342454000143334,
+          "cpuSeconds": 0.012306999999998958,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 25.101795996306464,
+          "cpuSeconds": 0.023644,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 20.48079902306199,
+          "cpuSeconds": 0.019759000000000526,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 16.734307981096208,
+          "cpuSeconds": 0.01515199999999961,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 18.461489002220333,
+          "cpuSeconds": 0.017373999999998446,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 26.22434700606391,
+          "cpuSeconds": 0.02384699999999995,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 20.293879992095754,
+          "cpuSeconds": 0.019445999999999408,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 15.013336000265554,
+          "cpuSeconds": 0.01423299999999994,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 17.878318001748994,
+          "cpuSeconds": 0.017398000000000025,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 34.045288019115105,
+          "cpuSeconds": 0.032472000000002055,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 15.844134002691135,
+          "cpuSeconds": 0.014876000000001,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 15.224211994791403,
+          "cpuSeconds": 0.014078000000001367,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 15.333588002249599,
+          "cpuSeconds": 0.014800000000001923,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 16.817642987007275,
+          "cpuSeconds": 0.0164939999999989,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 17.881776991998777,
+          "cpuSeconds": 0.016938999999998927,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 21.15017900359817,
+          "cpuSeconds": 0.020548000000001565,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 16.893935011466965,
+          "cpuSeconds": 0.016559000000002655,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 19.45795599021949,
+          "cpuSeconds": 0.018920000000000492,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 16.79589197738096,
+          "cpuSeconds": 0.01593999999999962,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 14.94129397906363,
+          "cpuSeconds": 0.014326999999998868,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        },
+        {
+          "milliseconds": 13.094818976242095,
+          "cpuSeconds": 0.012332000000001564,
+          "stdoutSha256": "59f23e9d40d8fd25546a301f651c5aefa335719378c3f7f2cd4f89c5b9acc7a7"
+        }
+      ]
+    }
+  },
+  "scope": "compiled minified bytecode fixtures with controlled offline owners; identical empty controls are diagnostics, never subtracted or normalized; historical failed cold results retained; no native-store, Jev, installed-package or platform claim"
+}

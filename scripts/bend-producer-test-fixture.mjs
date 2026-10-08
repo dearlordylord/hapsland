@@ -43,7 +43,8 @@ export async function createBendReceiptFixture(root, repositoryRoot) {
     "maintenance",
     "rules",
     "setup-selection",
-    "selection-ui"
+    "selection-ui",
+    "direct-login"
   ]
   for (const policy of policies) {
     const policyDirectory = resolve(directory, policy + "-policy")

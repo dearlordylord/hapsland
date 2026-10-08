@@ -1,0 +1,5084 @@
+{
+  "inputs": {
+    ".test-runs/direct-error-bundle-inventory.mjs": {
+      "bytes": 1478,
+      "imports": [
+        {
+          "path": "assert/strict",
+          "kind": "import-statement",
+          "original": "node:assert/strict",
+          "external": true
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/index.js",
+          "kind": "import-statement",
+          "original": "effect"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/administration/dist/credentials/direct-input.js",
+          "kind": "import-statement",
+          "original": "../packages/administration/dist/credentials/direct-input.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/runtime-inputs/dist/credentials/state.js",
+          "kind": "import-statement",
+          "original": "../packages/runtime-inputs/dist/credentials/state.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "packages/administration/dist/credentials/direct-input.js": {
+      "bytes": 3326,
+      "imports": [
+        {
+          "path": "effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/credential-storage/dist/credentials/owner.js",
+          "kind": "import-statement",
+          "original": "@hapsland/credential-storage/credentials/owner"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/administration/dist/credentials/masked-input-error.js",
+          "kind": "import-statement",
+          "original": "./masked-input-error.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/administration/dist/credentials/direct-login-model.js",
+          "kind": "import-statement",
+          "original": "./direct-login-model.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/index.js": {
+      "bytes": 9654,
+      "imports": [
+        {
+          "path": "./Function.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Arbitrary.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Array.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./BigDecimal.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./BigInt.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Boolean.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Brand.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./ByteSize.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Cache.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Cause.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Channel.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./ChannelSchema.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Chunk.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Clock.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Combiner.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Config.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./ConfigProvider.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Console.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Context.js",
+          "kind": "import-statement",
+          "original": "./Context.js"
+        },
+        {
+          "path": "./Cron.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Crypto.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Data.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./DateTime.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Deferred.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Differ.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Duration.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Effect.js",
+          "kind": "import-statement",
+          "original": "./Effect.js"
+        },
+        {
+          "path": "./Effectable.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Equal.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Equivalence.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./ErrorReporter.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./ExecutionPlan.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Exit.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Fiber.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./FiberHandle.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./FiberMap.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./FiberSet.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./FileSystem.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Filter.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Formatter.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Graph.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Hash.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./HashMap.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./HashRing.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./HashSet.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./HKT.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Inspectable.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Iterable.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./JsonPatch.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./JsonPointer.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./JsonSchema.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Latch.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Layer.js",
+          "kind": "import-statement",
+          "original": "./Layer.js"
+        },
+        {
+          "path": "./LayerMap.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./LayerRef.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Logger.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./LogLevel.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./ManagedRuntime.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Match.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Metric.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./MutableHashMap.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./MutableHashSet.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./MutableList.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./MutableRef.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Newtype.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./NonEmptyIterable.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Number.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Optic.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Order.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Ordering.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./PartitionedSemaphore.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Path.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./PlatformError.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Pool.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./PrimaryKey.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./PubSub.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Pull.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Queue.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Random.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./RcMap.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./RcRef.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Record.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Redactable.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Redacted.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Reducer.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Ref.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./References.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./RegExp.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Request.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./RequestResolver.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Resource.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Runtime.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Schedule.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Scheduler.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Schema.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaAST.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./SchemaGetter.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./SchemaIssue.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./SchemaParser.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./SchemaRepresentation.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./SchemaTransformation.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Scope.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./ScopedCache.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./ScopedRef.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Semaphore.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Sink.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./StandardSchema.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Stdio.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Stream.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./String.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Struct.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./SubscriptionRef.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Symbol.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./SynchronizedRef.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Take.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Terminal.js",
+          "kind": "import-statement",
+          "original": "./Terminal.js"
+        },
+        {
+          "path": "./Tracer.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Trie.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Tuple.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./TxChunk.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./TxDeferred.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./TxHashMap.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./TxHashSet.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./TxPriorityQueue.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./TxPubSub.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./TxQueue.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./TxReentrantLock.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./TxRef.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./TxSemaphore.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./TxSubscriptionRef.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Types.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./UndefinedOr.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Unify.js",
+          "kind": "import-statement",
+          "external": true
+        },
+        {
+          "path": "./Utils.js",
+          "kind": "import-statement",
+          "external": true
+        }
+      ],
+      "format": "esm"
+    },
+    "packages/runtime-inputs/dist/credentials/state.js": {
+      "bytes": 1202,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/runtime-inputs/dist/credentials/policy.js",
+          "kind": "import-statement",
+          "original": "./policy.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Option.js",
+          "kind": "import-statement",
+          "original": "effect/Option"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Schema.js",
+          "kind": "import-statement",
+          "original": "effect/Schema"
+        },
+        {
+          "path": "fs",
+          "kind": "import-statement",
+          "original": "node:fs",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/runtime-environment/dist/runtime/user-paths.js",
+          "kind": "import-statement",
+          "original": "@hapsland/runtime-environment/runtime/user-paths"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/runtime-inputs/dist/credentials/policy.js",
+          "kind": "import-statement",
+          "original": "./policy.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "packages/credential-storage/dist/credentials/owner.js": {
+      "bytes": 26320,
+      "imports": [
+        {
+          "path": "@hapsland/runtime-environment/runtime/user-paths",
+          "kind": "import-statement"
+        },
+        {
+          "path": "@hapsland/runtime-inputs/credentials/policy",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/credential-storage/dist/credentials/files.js",
+          "kind": "import-statement",
+          "original": "./files.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Redacted.js",
+          "kind": "import-statement",
+          "original": "effect/Redacted"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/runtime-inputs/dist/credentials/input.js",
+          "kind": "import-statement",
+          "original": "@hapsland/runtime-inputs/credentials/input"
+        },
+        {
+          "path": "@hapsland/runtime-inputs/credentials/state",
+          "kind": "import-statement"
+        },
+        {
+          "path": "child_process",
+          "kind": "import-statement",
+          "original": "node:child_process",
+          "external": true
+        },
+        {
+          "path": "crypto",
+          "kind": "import-statement",
+          "original": "node:crypto",
+          "external": true
+        },
+        {
+          "path": "fs",
+          "kind": "import-statement",
+          "original": "node:fs",
+          "external": true
+        },
+        {
+          "path": "os",
+          "kind": "import-statement",
+          "original": "node:os",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Clock.js",
+          "kind": "import-statement",
+          "original": "effect/Clock"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Config.js",
+          "kind": "import-statement",
+          "original": "effect/Config"
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Option",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Schedule.js",
+          "kind": "import-statement",
+          "original": "effect/Schedule"
+        },
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/credential-storage/dist/credentials/secret-service.js",
+          "kind": "import-statement",
+          "original": "./secret-service.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/credential-storage/dist/credentials/secret-service.js",
+          "kind": "import-statement",
+          "original": "./secret-service.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "packages/administration/dist/credentials/masked-input-error.js": {
+      "bytes": 249,
+      "imports": [
+        {
+          "path": "effect",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "packages/administration/dist/credentials/direct-login-model.js": {
+      "bytes": 804,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/canonical-policy/dist/canonical/direct-login-adapter.js",
+          "kind": "import-statement",
+          "original": "@hapsland/canonical-policy/canonical/direct-login-adapter"
+        }
+      ],
+      "format": "esm"
+    },
+    "packages/runtime-inputs/dist/credentials/policy.js": {
+      "bytes": 5068,
+      "imports": [
+        {
+          "path": "effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/canonical-policy/dist/canonical/credential-adapter.js",
+          "kind": "import-statement",
+          "original": "@hapsland/canonical-policy/canonical/credential-adapter"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Option.js": {
+      "bytes": 56947,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Combiner.js",
+          "kind": "import-statement",
+          "original": "./Combiner.js"
+        },
+        {
+          "path": "./Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Equivalence.js",
+          "kind": "import-statement",
+          "original": "./Equivalence.js"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/doNotation.js",
+          "kind": "import-statement",
+          "original": "./internal/doNotation.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/option.js",
+          "kind": "import-statement",
+          "original": "./internal/option.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/record.js",
+          "kind": "import-statement",
+          "original": "./internal/record.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/result.js",
+          "kind": "import-statement",
+          "original": "./internal/result.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Order.js",
+          "kind": "import-statement",
+          "original": "./Order.js"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Reducer.js",
+          "kind": "import-statement",
+          "original": "./Reducer.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "packages/runtime-environment/dist/runtime/user-paths.js": {
+      "bytes": 1178,
+      "imports": [
+        {
+          "path": "os",
+          "kind": "import-statement",
+          "original": "node:os",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Schema.js": {
+      "bytes": 302483,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Array.js",
+          "kind": "import-statement",
+          "original": "./Array.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/BigDecimal.js",
+          "kind": "import-statement",
+          "original": "./BigDecimal.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/ByteSize.js",
+          "kind": "import-statement",
+          "original": "./ByteSize.js"
+        },
+        {
+          "path": "./Cause.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Chunk.js",
+          "kind": "import-statement",
+          "original": "./Chunk.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Data.js",
+          "kind": "import-statement",
+          "original": "./Data.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/DateTime.js",
+          "kind": "import-statement",
+          "original": "./DateTime.js"
+        },
+        {
+          "path": "./Duration.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/encoding/Base64.js",
+          "kind": "import-statement",
+          "original": "./encoding/Base64.js"
+        },
+        {
+          "path": "./Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Exit.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Formatter.js",
+          "kind": "import-statement",
+          "original": "./Formatter.js"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/HashMap.js",
+          "kind": "import-statement",
+          "original": "./HashMap.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/HashSet.js",
+          "kind": "import-statement",
+          "original": "./HashSet.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/http/Cookies.js",
+          "kind": "import-statement",
+          "original": "./http/Cookies.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/http/Headers.js",
+          "kind": "import-statement",
+          "original": "./http/Headers.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/http/UrlParams.js",
+          "kind": "import-statement",
+          "original": "./http/UrlParams.js"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/graph.js",
+          "kind": "import-statement",
+          "original": "./internal/graph.js"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/schema/annotations.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/annotations.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/schema/make.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/make.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/schema/standardSchema.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/standardSchema.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/schema/toCodec.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/toCodec.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/schema/toDifferJsonPatch.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/toDifferJsonPatch.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/schema/toEncoderXml.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/toEncoderXml.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/schema/toEquivalence.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/toEquivalence.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/schema/toFormatter.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/toFormatter.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/schema/toIso.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/toIso.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/schema/toJsonSchemaDocument.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/toJsonSchemaDocument.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/schema/toRepresentation.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/toRepresentation.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/schemaError.js",
+          "kind": "import-statement",
+          "original": "./internal/schemaError.js"
+        },
+        {
+          "path": "./internal/stackTraceLimit.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/net/IpInterface.js",
+          "kind": "import-statement",
+          "original": "./net/IpInterface.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/net/IpNetwork.js",
+          "kind": "import-statement",
+          "original": "./net/IpNetwork.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/net/NetAddress.js",
+          "kind": "import-statement",
+          "original": "./net/NetAddress.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Number.js",
+          "kind": "import-statement",
+          "original": "./Number.js"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Order.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Redacted.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/RegExp.js",
+          "kind": "import-statement",
+          "original": "./RegExp.js"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaAST.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaGetter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaIssue.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaParser.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaTransformation.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Struct.js",
+          "kind": "import-statement",
+          "original": "./Struct.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Effect.js": {
+      "bytes": 258644,
+      "imports": [
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Duration.js",
+          "kind": "import-statement",
+          "original": "./Duration.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Exit.js",
+          "kind": "import-statement",
+          "original": "./Exit.js"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/effect.js",
+          "kind": "import-statement",
+          "original": "./internal/effect.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/executionPlan.js",
+          "kind": "import-statement",
+          "original": "./internal/executionPlan.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/layer.js",
+          "kind": "import-statement",
+          "original": "./internal/layer.js"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/request.js",
+          "kind": "import-statement",
+          "original": "./internal/request.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/schedule.js",
+          "kind": "import-statement",
+          "original": "./internal/schedule.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Metric.js",
+          "kind": "import-statement",
+          "original": "./Metric.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/References.js",
+          "kind": "import-statement",
+          "original": "./References.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Layer.js": {
+      "bytes": 67250,
+      "imports": [
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Deferred.js",
+          "kind": "import-statement",
+          "original": "./Deferred.js"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/stackTraceLimit.js",
+          "kind": "import-statement",
+          "original": "./internal/stackTraceLimit.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/tracer.js",
+          "kind": "import-statement",
+          "original": "./internal/tracer.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Pipeable.js",
+          "kind": "import-statement",
+          "original": "./Pipeable.js"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./References.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Scope.js",
+          "kind": "import-statement",
+          "original": "./Scope.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Tracer.js",
+          "kind": "import-statement",
+          "original": "./Tracer.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Terminal.js": {
+      "bytes": 2448,
+      "imports": [
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Predicate.js",
+          "kind": "import-statement",
+          "original": "./Predicate.js"
+        },
+        {
+          "path": "./Schema.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Context.js": {
+      "bytes": 24101,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Effectable.js",
+          "kind": "import-statement",
+          "original": "./Effectable.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Equal.js",
+          "kind": "import-statement",
+          "original": "./Equal.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Function.js",
+          "kind": "import-statement",
+          "original": "./Function.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Hash.js",
+          "kind": "import-statement",
+          "original": "./Hash.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/core.js",
+          "kind": "import-statement",
+          "original": "./internal/core.js"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Schedule.js": {
+      "bytes": 33770,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Cause.js",
+          "kind": "import-statement",
+          "original": "./Cause.js"
+        },
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Cron.js",
+          "kind": "import-statement",
+          "original": "./Cron.js"
+        },
+        {
+          "path": "./Duration.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/random.js",
+          "kind": "import-statement",
+          "original": "./internal/random.js"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Pull.js",
+          "kind": "import-statement",
+          "original": "./Pull.js"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Redacted.js": {
+      "bytes": 5425,
+      "imports": [
+        {
+          "path": "./Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Equivalence.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/redacted.js",
+          "kind": "import-statement",
+          "original": "./internal/redacted.js"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "packages/runtime-inputs/dist/credentials/input.js": {
+      "bytes": 3191,
+      "imports": [
+        {
+          "path": "effect/Config",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Option",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Redacted",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        },
+        {
+          "path": "fs",
+          "kind": "import-statement",
+          "original": "node:fs",
+          "external": true
+        },
+        {
+          "path": "util",
+          "kind": "import-statement",
+          "original": "node:util",
+          "external": true
+        },
+        {
+          "path": "@hapsland/runtime-environment/runtime/user-paths",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./policy.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Clock.js": {
+      "bytes": 5752,
+      "imports": [
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "packages/credential-storage/dist/credentials/files.js": {
+      "bytes": 8748,
+      "imports": [
+        {
+          "path": "child_process",
+          "kind": "import-statement",
+          "original": "node:child_process",
+          "external": true
+        },
+        {
+          "path": "crypto",
+          "kind": "import-statement",
+          "original": "node:crypto",
+          "external": true
+        },
+        {
+          "path": "fs",
+          "kind": "import-statement",
+          "original": "node:fs",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        },
+        {
+          "path": "util",
+          "kind": "import-statement",
+          "original": "node:util",
+          "external": true
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Config.js": {
+      "bytes": 37664,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/ConfigProvider.js",
+          "kind": "import-statement",
+          "original": "./ConfigProvider.js"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/LogLevel.js",
+          "kind": "import-statement",
+          "original": "./LogLevel.js"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Record.js",
+          "kind": "import-statement",
+          "original": "./Record.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Result.js",
+          "kind": "import-statement",
+          "original": "./Result.js"
+        },
+        {
+          "path": "./Schema.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/SchemaAST.js",
+          "kind": "import-statement",
+          "original": "./SchemaAST.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/SchemaGetter.js",
+          "kind": "import-statement",
+          "original": "./SchemaGetter.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/SchemaIssue.js",
+          "kind": "import-statement",
+          "original": "./SchemaIssue.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/SchemaParser.js",
+          "kind": "import-statement",
+          "original": "./SchemaParser.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/SchemaTransformation.js",
+          "kind": "import-statement",
+          "original": "./SchemaTransformation.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "packages/credential-storage/dist/credentials/secret-service.js": {
+      "bytes": 985,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/runtime-environment/dist/runtime/package-runtime.js",
+          "kind": "import-statement",
+          "original": "@hapsland/runtime-environment/runtime/package-runtime"
+        },
+        {
+          "path": "effect/Config",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/credential-storage/dist/credentials/secret-service-process.js",
+          "kind": "import-statement",
+          "original": "./secret-service-process.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "packages/canonical-policy/dist/canonical/direct-login-adapter.js": {
+      "bytes": 681,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/agent-flow-bend/dist/direct-login-policy.generated.js",
+          "kind": "import-statement",
+          "original": "@hapsland/agent-flow-bend/direct-login-policy"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Predicate.js": {
+      "bytes": 32531,
+      "imports": [
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "packages/canonical-policy/dist/canonical/credential-adapter.js": {
+      "bytes": 2552,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/agent-flow-bend/dist/credential-policy.generated.js",
+          "kind": "import-statement",
+          "original": "@hapsland/agent-flow-bend/credential-policy"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Hash.js": {
+      "bytes": 13033,
+      "imports": [
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/equal.js",
+          "kind": "import-statement",
+          "original": "./internal/equal.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/hash.js",
+          "kind": "import-statement",
+          "original": "./internal/hash.js"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Effectable.js": {
+      "bytes": 3099,
+      "imports": [
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Equal.js": {
+      "bytes": 10990,
+      "imports": [
+        {
+          "path": "./Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Function.js": {
+      "bytes": 15283,
+      "imports": [
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/core.js": {
+      "bytes": 12448,
+      "imports": [
+        {
+          "path": "../Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Inspectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Utils.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./record.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/record.js": {
+      "bytes": 546,
+      "imports": [
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/option.js": {
+      "bytes": 2259,
+      "imports": [
+        {
+          "path": "../Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Inspectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Utils.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./core.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/result.js": {
+      "bytes": 2704,
+      "imports": [
+        {
+          "path": "../Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Inspectable.js",
+          "kind": "import-statement",
+          "original": "../Inspectable.js"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Utils.js",
+          "kind": "import-statement",
+          "original": "../Utils.js"
+        },
+        {
+          "path": "./core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./option.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Equivalence.js": {
+      "bytes": 21503,
+      "imports": [
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Reducer.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Order.js": {
+      "bytes": 24414,
+      "imports": [
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Reducer.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/doNotation.js": {
+      "bytes": 447,
+      "imports": [
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Exit.js": {
+      "bytes": 21930,
+      "imports": [
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/request.js": {
+      "bytes": 4296,
+      "imports": [
+        {
+          "path": "../Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Request.js",
+          "kind": "import-statement",
+          "original": "../Request.js"
+        },
+        {
+          "path": "../Scheduler.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./effect.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/layer.js": {
+      "bytes": 756,
+      "imports": [
+        {
+          "path": "../Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Layer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./effect.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/executionPlan.js": {
+      "bytes": 4136,
+      "imports": [
+        {
+          "path": "../Duration.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/ExecutionPlan.js",
+          "kind": "import-statement",
+          "original": "../ExecutionPlan.js"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Schedule.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./layer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./schedule.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/effect.js": {
+      "bytes": 124607,
+      "imports": [
+        {
+          "path": "../Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Duration.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Filter.js",
+          "kind": "import-statement",
+          "original": "../Filter.js"
+        },
+        {
+          "path": "../Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Inspectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Iterable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Order.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Redactable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Scheduler.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Tracer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Utils.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./doNotation.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./metric.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./references.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./stackTraceLimit.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./tracer.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Duration.js": {
+      "bytes": 41097,
+      "imports": [
+        {
+          "path": "./Combiner.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Inspectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Order.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Reducer.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schedule.js": {
+      "bytes": 3594,
+      "imports": [
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Pull.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Schedule.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Utils.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./effect.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Metric.js": {
+      "bytes": 60494,
+      "imports": [
+        {
+          "path": "./Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Duration.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/metric.js",
+          "kind": "import-statement",
+          "original": "./internal/metric.js"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Layer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Order.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/String.js",
+          "kind": "import-statement",
+          "original": "./String.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/References.js": {
+      "bytes": 18363,
+      "imports": [
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/references.js",
+          "kind": "import-statement",
+          "original": "./internal/references.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Scheduler.js",
+          "kind": "import-statement",
+          "original": "./Scheduler.js"
+        },
+        {
+          "path": "./Tracer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Scheduler.js",
+          "kind": "import-statement",
+          "original": "./Scheduler.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Deferred.js": {
+      "bytes": 22814,
+      "imports": [
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Pipeable.js": {
+      "bytes": 3948,
+      "imports": [
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/tracer.js": {
+      "bytes": 1124,
+      "imports": [
+        {
+          "path": "./stackTraceLimit.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Scope.js": {
+      "bytes": 11092,
+      "imports": [
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Tracer.js": {
+      "bytes": 9758,
+      "imports": [
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/encoding/Hex.js",
+          "kind": "import-statement",
+          "original": "./encoding/Hex.js"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/stackTraceLimit.js": {
+      "bytes": 1145,
+      "imports": [
+      ],
+      "format": "esm"
+    },
+    "packages/runtime-environment/dist/runtime/package-runtime.js": {
+      "bytes": 4596,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/runtime-environment/dist/runtime/release-identity.generated.js",
+          "kind": "import-statement",
+          "original": "./release-identity.generated.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/runtime-environment/dist/runtime/bun-runtime.js",
+          "kind": "import-statement",
+          "original": "./bun-runtime.js"
+        },
+        {
+          "path": "fs",
+          "kind": "import-statement",
+          "original": "node:fs",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        },
+        {
+          "path": "url",
+          "kind": "import-statement",
+          "original": "node:url",
+          "external": true
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/runtime-environment/dist/runtime/source-runtime-layout.js",
+          "kind": "import-statement",
+          "original": "./source-runtime-layout.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/runtime-environment/dist/runtime/cli-information.js",
+          "kind": "import-statement",
+          "original": "./cli-information.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/packages/runtime-environment/dist/runtime/bun-runtime.js",
+          "kind": "import-statement",
+          "original": "./bun-runtime.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "packages/credential-storage/dist/credentials/secret-service-process.js": {
+      "bytes": 5287,
+      "imports": [
+        {
+          "path": "child_process",
+          "kind": "import-statement",
+          "original": "node:child_process",
+          "external": true
+        },
+        {
+          "path": "effect/Effect",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Option",
+          "kind": "import-statement"
+        },
+        {
+          "path": "effect/Schema",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/redacted.js": {
+      "bytes": 460,
+      "imports": [
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Record.js": {
+      "bytes": 27534,
+      "imports": [
+        {
+          "path": "./Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Reducer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/SchemaGetter.js": {
+      "bytes": 55935,
+      "imports": [
+        {
+          "path": "./Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./DateTime.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./encoding/Base64.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/encoding/Base64Url.js",
+          "kind": "import-statement",
+          "original": "./encoding/Base64Url.js"
+        },
+        {
+          "path": "./encoding/Hex.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaIssue.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./String.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/SchemaTransformation.js": {
+      "bytes": 50320,
+      "imports": [
+        {
+          "path": "./BigDecimal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./ByteSize.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./DateTime.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Duration.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaGetter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaIssue.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/ConfigProvider.js": {
+      "bytes": 33532,
+      "imports": [
+        {
+          "path": "./Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Data.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/FileSystem.js",
+          "kind": "import-statement",
+          "original": "./FileSystem.js"
+        },
+        {
+          "path": "./Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Layer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Path.js",
+          "kind": "import-statement",
+          "original": "./Path.js"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./String.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/SchemaAST.js": {
+      "bytes": 102449,
+      "imports": [
+        {
+          "path": "./Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Cause.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Exit.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/schema/annotations.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/schema/cause.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/schema/parser.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaGetter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaIssue.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaTransformation.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/SchemaIssue.js": {
+      "bytes": 21283,
+      "imports": [
+        {
+          "path": "./Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/schema/annotations.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/schema/parser.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Result.js": {
+      "bytes": 38999,
+      "imports": [
+        {
+          "path": "./Equivalence.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/doNotation.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/SchemaParser.js": {
+      "bytes": 34535,
+      "imports": [
+        {
+          "path": "./Cause.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Exit.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/schema/cause.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/cause.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/schema/compilerRegistry.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/compilerRegistry.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/schema/parser.js",
+          "kind": "import-statement",
+          "original": "./internal/schema/parser.js"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaAST.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaIssue.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "packages/agent-flow-bend/dist/direct-login-policy.generated.js": {
+      "bytes": 1240,
+      "imports": [
+      ],
+      "format": "esm"
+    },
+    "packages/agent-flow-bend/dist/credential-policy.generated.js": {
+      "bytes": 1627,
+      "imports": [
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Cause.js": {
+      "bytes": 35498,
+      "imports": [
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Pull.js": {
+      "bytes": 7766,
+      "imports": [
+        {
+          "path": "./Cause.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Exit.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Filter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/hash.js": {
+      "bytes": 223,
+      "imports": [
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/equal.js": {
+      "bytes": 910,
+      "imports": [
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/annotations.js": {
+      "bytes": 1693,
+      "imports": [
+        {
+          "path": "../../Function.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/http/UrlParams.js": {
+      "bytes": 8936,
+      "imports": [
+        {
+          "path": "../Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Equivalence.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Tuple.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/BigDecimal.js": {
+      "bytes": 45773,
+      "imports": [
+        {
+          "path": "./Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Equivalence.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Inspectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Order.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/HashSet.js": {
+      "bytes": 9928,
+      "imports": [
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/hashSet.js",
+          "kind": "import-statement",
+          "original": "./internal/hashSet.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Number.js": {
+      "bytes": 19180,
+      "imports": [
+        {
+          "path": "./Equivalence.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Order.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Reducer.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/make.js": {
+      "bytes": 1782,
+      "imports": [
+        {
+          "path": "../../Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaAST.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaParser.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Formatter.js": {
+      "bytes": 9270,
+      "imports": [
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Redactable.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/HashMap.js": {
+      "bytes": 23872,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/hashMap.js",
+          "kind": "import-statement",
+          "original": "./internal/hashMap.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/net/NetAddress.js": {
+      "bytes": 39088,
+      "imports": [
+        {
+          "path": "../Data.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Inspectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Result.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/graph.js": {
+      "bytes": 6217,
+      "imports": [
+        {
+          "path": "../Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Inspectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/http/Cookies.js": {
+      "bytes": 18595,
+      "imports": [
+        {
+          "path": "../Data.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Duration.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Inspectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Result.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Struct.js": {
+      "bytes": 19520,
+      "imports": [
+        {
+          "path": "./Combiner.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Equivalence.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Order.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Reducer.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/toEncoderXml.js": {
+      "bytes": 3509,
+      "imports": [
+        {
+          "path": "../../Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaParser.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./annotations.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./toCodec.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/RegExp.js": {
+      "bytes": 2055,
+      "imports": [
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/standardSchema.js": {
+      "bytes": 3369,
+      "imports": [
+        {
+          "path": "../../Cause.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Exit.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../JsonSchema.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Scheduler.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaAST.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaIssue.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaParser.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./toCodec.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./toJsonSchemaDocument.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./toRepresentation.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/toEquivalence.js": {
+      "bytes": 7798,
+      "imports": [
+        {
+          "path": "../../Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Equivalence.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaAST.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaParser.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./annotations.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/toIso.js": {
+      "bytes": 529,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Optic.js",
+          "kind": "import-statement",
+          "original": "../../Optic.js"
+        },
+        {
+          "path": "../../SchemaParser.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./toCodec.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/toFormatter.js": {
+      "bytes": 9060,
+      "imports": [
+        {
+          "path": "../../Chunk.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../HashMap.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../HashSet.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaAST.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaParser.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./annotations.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Data.js": {
+      "bytes": 7324,
+      "imports": [
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/toJsonSchemaDocument.js": {
+      "bytes": 26706,
+      "imports": [
+        {
+          "path": "../../Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/JsonPointer.js",
+          "kind": "import-statement",
+          "original": "../../JsonPointer.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/JsonSchema.js",
+          "kind": "import-statement",
+          "original": "../../JsonSchema.js"
+        },
+        {
+          "path": "../../RegExp.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaAST.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/errors.js",
+          "kind": "import-statement",
+          "original": "../errors.js"
+        },
+        {
+          "path": "../record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./annotations.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/toDifferJsonPatch.js": {
+      "bytes": 780,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/JsonPatch.js",
+          "kind": "import-statement",
+          "original": "../../JsonPatch.js"
+        },
+        {
+          "path": "../../SchemaParser.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./toCodec.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/net/IpNetwork.js": {
+      "bytes": 8429,
+      "imports": [
+        {
+          "path": "../Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Inspectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./IpInterface.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./NetAddress.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/http/Headers.js": {
+      "bytes": 8440,
+      "imports": [
+        {
+          "path": "../Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Equivalence.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Inspectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Redactable.js",
+          "kind": "import-statement",
+          "original": "../Redactable.js"
+        },
+        {
+          "path": "../Redacted.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/toRepresentation.js": {
+      "bytes": 10169,
+      "imports": [
+        {
+          "path": "../../Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaAST.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./annotations.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/DateTime.js": {
+      "bytes": 60615,
+      "imports": [
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/dateTime.js",
+          "kind": "import-statement",
+          "original": "./internal/dateTime.js"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Layer.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/encoding/Base64.js": {
+      "bytes": 5317,
+      "imports": [
+        {
+          "path": "../Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./EncodingError.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schemaError.js": {
+      "bytes": 285,
+      "imports": [
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Chunk.js": {
+      "bytes": 65850,
+      "imports": [
+        {
+          "path": "./Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Equivalence.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Inspectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/count.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Order.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Array.js": {
+      "bytes": 110188,
+      "imports": [
+        {
+          "path": "./Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Equivalence.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/array.js",
+          "kind": "import-statement",
+          "original": "./internal/array.js"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/count.js",
+          "kind": "import-statement",
+          "original": "./internal/count.js"
+        },
+        {
+          "path": "./internal/doNotation.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Iterable.js",
+          "kind": "import-statement",
+          "original": "./Iterable.js"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Order.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Reducer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/Tuple.js",
+          "kind": "import-statement",
+          "original": "./Tuple.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/toCodec.js": {
+      "bytes": 9382,
+      "imports": [
+        {
+          "path": "../../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaAST.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaGetter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaTransformation.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./make.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/net/IpInterface.js": {
+      "bytes": 5174,
+      "imports": [
+        {
+          "path": "../Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Inspectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./NetAddress.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/ByteSize.js": {
+      "bytes": 15492,
+      "imports": [
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/BigInt.js",
+          "kind": "import-statement",
+          "original": "./BigInt.js"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/parser.js": {
+      "bytes": 815,
+      "imports": [
+        {
+          "path": "../../Exit.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../core.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/cause.js": {
+      "bytes": 608,
+      "imports": [
+        {
+          "path": "../../Cause.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaIssue.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/compilerRegistry.js": {
+      "bytes": 4570,
+      "imports": [
+        {
+          "path": "../../Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/internal/schema/interpreter.js",
+          "kind": "import-statement",
+          "original": "./interpreter.js"
+        },
+        {
+          "path": "./parser.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Inspectable.js": {
+      "bytes": 6336,
+      "imports": [
+        {
+          "path": "./Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Redactable.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Utils.js": {
+      "bytes": 2483,
+      "imports": [
+        {
+          "path": "./internal/stackTraceLimit.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "packages/runtime-environment/dist/runtime/release-identity.generated.js": {
+      "bytes": 1080,
+      "imports": [
+      ],
+      "format": "esm"
+    },
+    "packages/runtime-environment/dist/runtime/source-runtime-layout.js": {
+      "bytes": 1204,
+      "imports": [
+        {
+          "path": "path",
+          "kind": "import-statement",
+          "original": "node:path",
+          "external": true
+        },
+        {
+          "path": "./release-identity.generated.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "packages/runtime-environment/dist/runtime/cli-information.js": {
+      "bytes": 2954,
+      "imports": [
+        {
+          "path": "./release-identity.generated.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "packages/runtime-environment/dist/runtime/bun-runtime.js": {
+      "bytes": 704,
+      "imports": [
+        {
+          "path": "fs",
+          "kind": "import-statement",
+          "original": "node:fs",
+          "external": true
+        },
+        {
+          "path": "./release-identity.generated.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./release-identity.generated.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/encoding/Hex.js": {
+      "bytes": 6796,
+      "imports": [
+        {
+          "path": "../Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "/workspace/typescript/hapsland-bend-selection-ui/node_modules/effect/dist/encoding/EncodingError.js",
+          "kind": "import-statement",
+          "original": "./EncodingError.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/references.js": {
+      "bytes": 1924,
+      "imports": [
+        {
+          "path": "../Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Scheduler.js": {
+      "bytes": 6561,
+      "imports": [
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/metric.js": {
+      "bytes": 126,
+      "imports": [
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/String.js": {
+      "bytes": 34278,
+      "imports": [
+        {
+          "path": "./Equivalence.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/count.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Number.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Order.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Reducer.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Redactable.js": {
+      "bytes": 3651,
+      "imports": [
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/encoding/EncodingError.js": {
+      "bytes": 2210,
+      "imports": [
+        {
+          "path": "../Data.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/JsonPatch.js": {
+      "bytes": 9139,
+      "imports": [
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./JsonPointer.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/BigInt.js": {
+      "bytes": 22673,
+      "imports": [
+        {
+          "path": "./Combiner.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Equivalence.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Order.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Reducer.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/JsonSchema.js": {
+      "bytes": 46024,
+      "imports": [
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./JsonPointer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/JsonPointer.js": {
+      "bytes": 5298,
+      "imports": [
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/errors.js": {
+      "bytes": 249,
+      "imports": [
+        {
+          "path": "../Formatter.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/encoding/Base64Url.js": {
+      "bytes": 3502,
+      "imports": [
+        {
+          "path": "../Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Base64.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./EncodingError.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Optic.js": {
+      "bytes": 25983,
+      "imports": [
+        {
+          "path": "./Array.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaAST.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./SchemaIssue.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Struct.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Iterable.js": {
+      "bytes": 65513,
+      "imports": [
+        {
+          "path": "./Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/count.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Tuple.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/count.js": {
+      "bytes": 417,
+      "imports": [
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Tuple.js": {
+      "bytes": 15699,
+      "imports": [
+        {
+          "path": "./Combiner.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Equivalence.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Order.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Reducer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/array.js": {
+      "bytes": 261,
+      "imports": [
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/schema/interpreter.js": {
+      "bytes": 8117,
+      "imports": [
+        {
+          "path": "../../Cause.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../Effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaAST.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../../SchemaIssue.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./parser.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/ExecutionPlan.js": {
+      "bytes": 3974,
+      "imports": [
+        {
+          "path": "./Context.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Layer.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/Request.js": {
+      "bytes": 9466,
+      "imports": [
+        {
+          "path": "./Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/core.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/effect.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./internal/record.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./Predicate.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/dateTime.js": {
+      "bytes": 28522,
+      "imports": [
+        {
+          "path": "../Cause.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Clock.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Duration.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Equivalence.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Inspectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Order.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./effect.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/hashSet.js": {
+      "bytes": 4115,
+      "imports": [
+        {
+          "path": "../Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Inspectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./hashMap.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    },
+    "node_modules/effect/dist/internal/hashMap.js": {
+      "bytes": 24678,
+      "imports": [
+        {
+          "path": "../Equal.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Formatter.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Function.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Hash.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Inspectable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Option.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Pipeable.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Predicate.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "../Result.js",
+          "kind": "import-statement"
+        },
+        {
+          "path": "./hash.js",
+          "kind": "import-statement"
+        }
+      ],
+      "format": "esm"
+    }
+  },
+  "outputs": {
+    "./hapsland-direct-error-bundle.mjs": {
+      "bytes": 331062,
+      "inputs": {
+        "node_modules/effect/dist/Pipeable.js": {
+          "bytesInOutput": 626
+        },
+        "node_modules/effect/dist/Function.js": {
+          "bytesInOutput": 904
+        },
+        "node_modules/effect/dist/internal/equal.js": {
+          "bytesInOutput": 482
+        },
+        "node_modules/effect/dist/internal/hash.js": {
+          "bytesInOutput": 23
+        },
+        "node_modules/effect/dist/Predicate.js": {
+          "bytesInOutput": 735
+        },
+        "node_modules/effect/dist/Hash.js": {
+          "bytesInOutput": 1651
+        },
+        "node_modules/effect/dist/Equal.js": {
+          "bytesInOutput": 2325
+        },
+        "node_modules/effect/dist/Redactable.js": {
+          "bytesInOutput": 295
+        },
+        "node_modules/effect/dist/Formatter.js": {
+          "bytesInOutput": 2309
+        },
+        "node_modules/effect/dist/Inspectable.js": {
+          "bytesInOutput": 449
+        },
+        "node_modules/effect/dist/internal/stackTraceLimit.js": {
+          "bytesInOutput": 267
+        },
+        "node_modules/effect/dist/Utils.js": {
+          "bytesInOutput": 442
+        },
+        "node_modules/effect/dist/internal/record.js": {
+          "bytesInOutput": 240
+        },
+        "node_modules/effect/dist/internal/core.js": {
+          "bytesInOutput": 4796
+        },
+        "node_modules/effect/dist/Effectable.js": {
+          "bytesInOutput": 45
+        },
+        "node_modules/effect/dist/Equivalence.js": {
+          "bytesInOutput": 320
+        },
+        "node_modules/effect/dist/internal/doNotation.js": {
+          "bytesInOutput": 156
+        },
+        "node_modules/effect/dist/internal/option.js": {
+          "bytesInOutput": 797
+        },
+        "node_modules/effect/dist/internal/result.js": {
+          "bytesInOutput": 885
+        },
+        "node_modules/effect/dist/Order.js": {
+          "bytesInOutput": 474
+        },
+        "node_modules/effect/dist/Option.js": {
+          "bytesInOutput": 443
+        },
+        "node_modules/effect/dist/Context.js": {
+          "bytesInOutput": 3512
+        },
+        "node_modules/effect/dist/Duration.js": {
+          "bytesInOutput": 6006
+        },
+        "node_modules/effect/dist/internal/array.js": {
+          "bytesInOutput": 23
+        },
+        "node_modules/effect/dist/internal/count.js": {
+          "bytesInOutput": 32
+        },
+        "node_modules/effect/dist/Result.js": {
+          "bytesInOutput": 366
+        },
+        "node_modules/effect/dist/Tuple.js": {
+          "bytesInOutput": 10
+        },
+        "node_modules/effect/dist/Iterable.js": {
+          "bytesInOutput": 414
+        },
+        "node_modules/effect/dist/Record.js": {
+          "bytesInOutput": 288
+        },
+        "node_modules/effect/dist/Array.js": {
+          "bytesInOutput": 741
+        },
+        "node_modules/effect/dist/Scheduler.js": {
+          "bytesInOutput": 1526
+        },
+        "node_modules/effect/dist/Data.js": {
+          "bytesInOutput": 81
+        },
+        "node_modules/effect/dist/encoding/EncodingError.js": {
+          "bytesInOutput": 85
+        },
+        "node_modules/effect/dist/encoding/Hex.js": {
+          "bytesInOutput": 1858
+        },
+        "node_modules/effect/dist/Tracer.js": {
+          "bytesInOutput": 1155
+        },
+        "node_modules/effect/dist/internal/metric.js": {
+          "bytesInOutput": 43
+        },
+        "node_modules/effect/dist/internal/references.js": {
+          "bytesInOutput": 748
+        },
+        "node_modules/effect/dist/internal/tracer.js": {
+          "bytesInOutput": 441
+        },
+        "node_modules/effect/dist/internal/effect.js": {
+          "bytesInOutput": 40908
+        },
+        "node_modules/effect/dist/Exit.js": {
+          "bytesInOutput": 54
+        },
+        "node_modules/effect/dist/Deferred.js": {
+          "bytesInOutput": 495
+        },
+        "node_modules/effect/dist/References.js": {
+          "bytesInOutput": 26
+        },
+        "node_modules/effect/dist/Scope.js": {
+          "bytesInOutput": 42
+        },
+        "node_modules/effect/dist/Layer.js": {
+          "bytesInOutput": 5131
+        },
+        "node_modules/effect/dist/ExecutionPlan.js": {
+          "bytesInOutput": 411
+        },
+        "node_modules/effect/dist/Cause.js": {
+          "bytesInOutput": 138
+        },
+        "node_modules/effect/dist/Clock.js": {
+          "bytesInOutput": 20
+        },
+        "node_modules/effect/dist/internal/dateTime.js": {
+          "bytesInOutput": 6377
+        },
+        "node_modules/effect/dist/Number.js": {
+          "bytesInOutput": 694
+        },
+        "node_modules/effect/dist/String.js": {
+          "bytesInOutput": 46
+        },
+        "node_modules/effect/dist/Pull.js": {
+          "bytesInOutput": 457
+        },
+        "node_modules/effect/dist/Schedule.js": {
+          "bytesInOutput": 1153
+        },
+        "node_modules/effect/dist/internal/layer.js": {
+          "bytesInOutput": 149
+        },
+        "node_modules/effect/dist/internal/schedule.js": {
+          "bytesInOutput": 984
+        },
+        "node_modules/effect/dist/internal/executionPlan.js": {
+          "bytesInOutput": 1439
+        },
+        "node_modules/effect/dist/Request.js": {
+          "bytesInOutput": 97
+        },
+        "node_modules/effect/dist/internal/request.js": {
+          "bytesInOutput": 1692
+        },
+        "node_modules/effect/dist/Metric.js": {
+          "bytesInOutput": 3454
+        },
+        "node_modules/effect/dist/Effect.js": {
+          "bytesInOutput": 7359
+        },
+        "node_modules/effect/dist/BigDecimal.js": {
+          "bytesInOutput": 2319
+        },
+        "node_modules/effect/dist/BigInt.js": {
+          "bytesInOutput": 134
+        },
+        "node_modules/effect/dist/ByteSize.js": {
+          "bytesInOutput": 2412
+        },
+        "node_modules/effect/dist/Chunk.js": {
+          "bytesInOutput": 1879
+        },
+        "node_modules/effect/dist/DateTime.js": {
+          "bytesInOutput": 170
+        },
+        "node_modules/effect/dist/encoding/Base64.js": {
+          "bytesInOutput": 1455
+        },
+        "node_modules/effect/dist/internal/hashMap.js": {
+          "bytesInOutput": 8243
+        },
+        "node_modules/effect/dist/HashMap.js": {
+          "bytesInOutput": 62
+        },
+        "node_modules/effect/dist/internal/hashSet.js": {
+          "bytesInOutput": 618
+        },
+        "node_modules/effect/dist/HashSet.js": {
+          "bytesInOutput": 26
+        },
+        "node_modules/effect/dist/http/Cookies.js": {
+          "bytesInOutput": 3937
+        },
+        "node_modules/effect/dist/internal/redacted.js": {
+          "bytesInOutput": 149
+        },
+        "node_modules/effect/dist/Redacted.js": {
+          "bytesInOutput": 389
+        },
+        "node_modules/effect/dist/http/Headers.js": {
+          "bytesInOutput": 1005
+        },
+        "node_modules/effect/dist/http/UrlParams.js": {
+          "bytesInOutput": 1147
+        },
+        "node_modules/effect/dist/internal/graph.js": {
+          "bytesInOutput": 2228
+        },
+        "node_modules/effect/dist/internal/schema/annotations.js": {
+          "bytesInOutput": 660
+        },
+        "node_modules/effect/dist/internal/schema/parser.js": {
+          "bytesInOutput": 109
+        },
+        "node_modules/effect/dist/SchemaIssue.js": {
+          "bytesInOutput": 4317
+        },
+        "node_modules/effect/dist/internal/schema/cause.js": {
+          "bytesInOutput": 174
+        },
+        "node_modules/effect/dist/encoding/Base64Url.js": {
+          "bytesInOutput": 524
+        },
+        "node_modules/effect/dist/SchemaGetter.js": {
+          "bytesInOutput": 3754
+        },
+        "node_modules/effect/dist/SchemaTransformation.js": {
+          "bytesInOutput": 2781
+        },
+        "node_modules/effect/dist/SchemaAST.js": {
+          "bytesInOutput": 33527
+        },
+        "node_modules/effect/dist/internal/schema/interpreter.js": {
+          "bytesInOutput": 2304
+        },
+        "node_modules/effect/dist/internal/schema/compilerRegistry.js": {
+          "bytesInOutput": 1626
+        },
+        "node_modules/effect/dist/SchemaParser.js": {
+          "bytesInOutput": 3709
+        },
+        "node_modules/effect/dist/internal/schema/make.js": {
+          "bytesInOutput": 854
+        },
+        "node_modules/effect/dist/JsonPointer.js": {
+          "bytesInOutput": 608
+        },
+        "node_modules/effect/dist/JsonSchema.js": {
+          "bytesInOutput": 6813
+        },
+        "node_modules/effect/dist/internal/schema/toCodec.js": {
+          "bytesInOutput": 3548
+        },
+        "node_modules/effect/dist/RegExp.js": {
+          "bytesInOutput": 78
+        },
+        "node_modules/effect/dist/internal/errors.js": {
+          "bytesInOutput": 67
+        },
+        "node_modules/effect/dist/internal/schema/toJsonSchemaDocument.js": {
+          "bytesInOutput": 11008
+        },
+        "node_modules/effect/dist/internal/schema/toRepresentation.js": {
+          "bytesInOutput": 4022
+        },
+        "node_modules/effect/dist/internal/schema/standardSchema.js": {
+          "bytesInOutput": 1230
+        },
+        "node_modules/effect/dist/JsonPatch.js": {
+          "bytesInOutput": 2549
+        },
+        "node_modules/effect/dist/internal/schema/toDifferJsonPatch.js": {
+          "bytesInOutput": 178
+        },
+        "node_modules/effect/dist/internal/schema/toEncoderXml.js": {
+          "bytesInOutput": 1512
+        },
+        "node_modules/effect/dist/internal/schema/toEquivalence.js": {
+          "bytesInOutput": 2875
+        },
+        "node_modules/effect/dist/internal/schema/toFormatter.js": {
+          "bytesInOutput": 3417
+        },
+        "node_modules/effect/dist/Struct.js": {
+          "bytesInOutput": 492
+        },
+        "node_modules/effect/dist/Optic.js": {
+          "bytesInOutput": 4711
+        },
+        "node_modules/effect/dist/internal/schema/toIso.js": {
+          "bytesInOutput": 104
+        },
+        "node_modules/effect/dist/internal/schemaError.js": {
+          "bytesInOutput": 78
+        },
+        "node_modules/effect/dist/net/NetAddress.js": {
+          "bytesInOutput": 7726
+        },
+        "node_modules/effect/dist/net/IpInterface.js": {
+          "bytesInOutput": 1323
+        },
+        "node_modules/effect/dist/net/IpNetwork.js": {
+          "bytesInOutput": 1112
+        },
+        "node_modules/effect/dist/Schema.js": {
+          "bytesInOutput": 64991
+        },
+        "node_modules/effect/dist/Terminal.js": {
+          "bytesInOutput": 281
+        },
+        "node_modules/effect/dist/index.js": {
+          "bytesInOutput": 0
+        },
+        "packages/runtime-environment/dist/runtime/user-paths.js": {
+          "bytesInOutput": 500
+        },
+        "packages/agent-flow-bend/dist/credential-policy.generated.js": {
+          "bytesInOutput": 618
+        },
+        "packages/canonical-policy/dist/canonical/credential-adapter.js": {
+          "bytesInOutput": 702
+        },
+        "packages/runtime-inputs/dist/credentials/policy.js": {
+          "bytesInOutput": 2100
+        },
+        "packages/credential-storage/dist/credentials/files.js": {
+          "bytesInOutput": 0
+        },
+        "node_modules/effect/dist/ConfigProvider.js": {
+          "bytesInOutput": 1299
+        },
+        "node_modules/effect/dist/Config.js": {
+          "bytesInOutput": 2479
+        },
+        "packages/runtime-inputs/dist/credentials/input.js": {
+          "bytesInOutput": 1190
+        },
+        "packages/runtime-inputs/dist/credentials/state.js": {
+          "bytesInOutput": 383
+        },
+        "packages/runtime-environment/dist/runtime/release-identity.generated.js": {
+          "bytesInOutput": 272
+        },
+        "packages/runtime-environment/dist/runtime/bun-runtime.js": {
+          "bytesInOutput": 0
+        },
+        "packages/runtime-environment/dist/runtime/source-runtime-layout.js": {
+          "bytesInOutput": 484
+        },
+        "packages/runtime-environment/dist/runtime/cli-information.js": {
+          "bytesInOutput": 0
+        },
+        "packages/runtime-environment/dist/runtime/package-runtime.js": {
+          "bytesInOutput": 663
+        },
+        "packages/credential-storage/dist/credentials/secret-service-process.js": {
+          "bytesInOutput": 1975
+        },
+        "packages/credential-storage/dist/credentials/secret-service.js": {
+          "bytesInOutput": 321
+        },
+        "packages/credential-storage/dist/credentials/owner.js": {
+          "bytesInOutput": 7523
+        },
+        "packages/administration/dist/credentials/masked-input-error.js": {
+          "bytesInOutput": 116
+        },
+        "packages/agent-flow-bend/dist/direct-login-policy.generated.js": {
+          "bytesInOutput": 894
+        },
+        "packages/canonical-policy/dist/canonical/direct-login-adapter.js": {
+          "bytesInOutput": 310
+        },
+        "packages/administration/dist/credentials/direct-login-model.js": {
+          "bytesInOutput": 294
+        },
+        "packages/administration/dist/credentials/direct-input.js": {
+          "bytesInOutput": 1462
+        },
+        ".test-runs/direct-error-bundle-inventory.mjs": {
+          "bytesInOutput": 933
+        }
+      },
+      "imports": [
+      ],
+      "exports": [],
+      "entryPoint": ".test-runs/direct-error-bundle-inventory.mjs"
+    }
+  }
+}

@@ -291,6 +291,10 @@
     "./onboarding/setup-selection": {
       "types": "./dist/onboarding/setup-selection.d.ts",
       "default": "./dist/onboarding/setup-selection.js"
+    },
+    "./credentials/masked-input-error": {
+      "types": "./dist/credentials/masked-input-error.d.ts",
+      "default": "./dist/credentials/masked-input-error.js"
     }
   },
   "dependencies": {

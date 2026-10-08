@@ -1,0 +1,17 @@
+{
+  "at": "2026-10-08T20:36:39.839160+00:00",
+  "kind": "pre-execution declaration",
+  "purpose": "locate additional cost between pure model initialization and first transition sequence; Effect and storage owners excluded; raw failed cold guard unchanged",
+  "rounds": 41,
+  "affinity": "CPU11 nonexclusive",
+  "rotations": "three lanes, two scenarios; alternating reversal",
+  "metrics": [
+    "initializationMilliseconds",
+    "initializationCpuSeconds",
+    "journeyMilliseconds",
+    "journeyCpuSeconds"
+  ],
+  "runnerSha256": "2f4a96b563702172ca7a5ee755342457254af3d4dc5cf4bcacd97eefe06eb0d5",
+  "scope": "diagnostic only; no normalization or acceptance",
+  "deadlineSeconds": 120
+}

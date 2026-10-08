@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-08T20:46:45.564333+00:00",
+  "kind": "pre-execution declaration",
+  "rounds": 21,
+  "scope": "identical empty binary crossed through three physical sites and three working directories; diagnostics only, no guard subtraction/normalization",
+  "affinity": "CPU11 nonexclusive",
+  "order": "all nine cells; rotate and reverse every round",
+  "metrics": [
+    "wall",
+    "user CPU",
+    "system CPU",
+    "minor/major faults",
+    "voluntary/involuntary context switches"
+  ],
+  "deadlineSeconds": 120
+}

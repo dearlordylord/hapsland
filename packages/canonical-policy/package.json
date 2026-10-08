@@ -83,6 +83,10 @@
     "./canonical/selection-ui-adapter": {
       "types": "./dist/canonical/selection-ui-adapter.d.ts",
       "default": "./dist/canonical/selection-ui-adapter.js"
+    },
+    "./canonical/direct-login-adapter": {
+      "types": "./dist/canonical/direct-login-adapter.d.ts",
+      "default": "./dist/canonical/direct-login-adapter.js"
     }
   },
   "dependencies": {

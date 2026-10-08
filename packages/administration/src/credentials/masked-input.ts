@@ -1,12 +1,8 @@
-import { Effect, Redacted, Schema } from "effect"
+import { Effect, Redacted } from "effect"
+import { MaskedInputError } from "./masked-input-error.ts"
 import { flowInteraction } from "../interaction/flow-input.ts"
 import { JEV_KEY_ENTRY_GUIDANCE } from "../onboarding/credential-guidance.ts"
 import { JEV_PROVIDER } from "@hapsland/runtime-environment/runtime/backend"
-
-export class MaskedInputError extends Schema.TaggedError<MaskedInputError>()("MaskedInputError", {
-  message: Schema.String,
-  reason: Schema.Literals(["cancelled", "invalid"])
-}) {}
 
 // The secret lives only at the credential-owner boundary, never in a workflow model.
 // Prompt.Hidden owns editing and masking; this adapter owns the returned wrapper.

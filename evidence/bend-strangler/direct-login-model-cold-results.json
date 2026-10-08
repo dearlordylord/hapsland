@@ -1,0 +1,1562 @@
+{
+  "at": "2026-10-08T20:36:54.318472+00:00",
+  "declaration": {
+    "at": "2026-10-08T20:36:39.839160+00:00",
+    "kind": "pre-execution declaration",
+    "purpose": "locate additional cost between pure model initialization and first transition sequence; Effect and storage owners excluded; raw failed cold guard unchanged",
+    "rounds": 41,
+    "affinity": "CPU11 nonexclusive",
+    "rotations": "three lanes, two scenarios; alternating reversal",
+    "metrics": [
+      "initializationMilliseconds",
+      "initializationCpuSeconds",
+      "journeyMilliseconds",
+      "journeyCpuSeconds"
+    ],
+    "runnerSha256": "2f4a96b563702172ca7a5ee755342457254af3d4dc5cf4bcacd97eefe06eb0d5",
+    "scope": "diagnostic only; no normalization or acceptance",
+    "deadlineSeconds": 120
+  },
+  "artifactsSha256": {
+    "upstream": "92f11c5702139edd39d567a6491b849e24f706c2b4d7d99fa002f78c4ca51f0f",
+    "qualifiedControl": "92f11c5702139edd39d567a6491b849e24f706c2b4d7d99fa002f78c4ca51f0f",
+    "directCandidate": "b201c4575f4a8c50eceb39f71964e7e74bfab8b3f8497bc307167c0323d31b50"
+  },
+  "summary": {
+    "available": {
+      "upstream": {
+        "initializationMilliseconds": 0.021416999999999575,
+        "initializationCpuSeconds": 1.6e-05,
+        "journeyMilliseconds": 0.07687600000000216,
+        "journeyCpuSeconds": 7.5e-05
+      },
+      "qualifiedControl": {
+        "initializationMilliseconds": 0.02166700000000077,
+        "initializationCpuSeconds": 1.7e-05,
+        "journeyMilliseconds": 0.08558299999999974,
+        "journeyCpuSeconds": 8.5e-05
+      },
+      "directCandidate": {
+        "initializationMilliseconds": 0.040500000000001535,
+        "initializationCpuSeconds": 3.4e-05,
+        "journeyMilliseconds": 0.0816250000000025,
+        "journeyCpuSeconds": 8.1e-05
+      }
+    },
+    "locked": {
+      "upstream": {
+        "initializationMilliseconds": 0.021000000000000796,
+        "initializationCpuSeconds": 1.6e-05,
+        "journeyMilliseconds": 0.05837500000000162,
+        "journeyCpuSeconds": 5.7e-05
+      },
+      "qualifiedControl": {
+        "initializationMilliseconds": 0.022707999999997952,
+        "initializationCpuSeconds": 1.7e-05,
+        "journeyMilliseconds": 0.06441700000000239,
+        "journeyCpuSeconds": 6.3e-05
+      },
+      "directCandidate": {
+        "initializationMilliseconds": 0.04366700000000279,
+        "initializationCpuSeconds": 3.7e-05,
+        "journeyMilliseconds": 0.07350100000000026,
+        "journeyCpuSeconds": 7.3e-05
+      }
+    }
+  },
+  "samples": {
+    "available": {
+      "upstream": [
+        {
+          "initializationMilliseconds": 0.021959000000002504,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.0984589999999983,
+          "journeyCpuSeconds": 9.8e-05
+        },
+        {
+          "initializationMilliseconds": 0.0210829999999973,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.09358399999999989,
+          "journeyCpuSeconds": 9.3e-05
+        },
+        {
+          "initializationMilliseconds": 0.1293760000000006,
+          "initializationCpuSeconds": 0.000123,
+          "journeyMilliseconds": 0.24641899999999595,
+          "journeyCpuSeconds": 0.000243
+        },
+        {
+          "initializationMilliseconds": 0.04183399999999793,
+          "initializationCpuSeconds": 3e-05,
+          "journeyMilliseconds": 0.5004200000000019,
+          "journeyCpuSeconds": 0.000503
+        },
+        {
+          "initializationMilliseconds": 0.021416999999999575,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.07320899999999853,
+          "journeyCpuSeconds": 7.3e-05
+        },
+        {
+          "initializationMilliseconds": 0.021167000000001934,
+          "initializationCpuSeconds": 1.7e-05,
+          "journeyMilliseconds": 0.0722089999999973,
+          "journeyCpuSeconds": 7.2e-05
+        },
+        {
+          "initializationMilliseconds": 0.01920800000000611,
+          "initializationCpuSeconds": 1.4e-05,
+          "journeyMilliseconds": 0.08175099999999702,
+          "journeyCpuSeconds": 8.1e-05
+        },
+        {
+          "initializationMilliseconds": 0.020291999999997756,
+          "initializationCpuSeconds": 1.4e-05,
+          "journeyMilliseconds": 0.07362500000000693,
+          "journeyCpuSeconds": 7.3e-05
+        },
+        {
+          "initializationMilliseconds": 0.019458000000000197,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.07162600000000197,
+          "journeyCpuSeconds": 7e-05
+        },
+        {
+          "initializationMilliseconds": 0.03208399999999756,
+          "initializationCpuSeconds": 2.7e-05,
+          "journeyMilliseconds": 0.13925100000000157,
+          "journeyCpuSeconds": 0.000138
+        },
+        {
+          "initializationMilliseconds": 0.05666800000000194,
+          "initializationCpuSeconds": 4.7e-05,
+          "journeyMilliseconds": 0.2829180000000022,
+          "journeyCpuSeconds": 0.000281
+        },
+        {
+          "initializationMilliseconds": 0.022000999999999493,
+          "initializationCpuSeconds": 1.7e-05,
+          "journeyMilliseconds": 0.2636679999999991,
+          "journeyCpuSeconds": 0.000266
+        },
+        {
+          "initializationMilliseconds": 0.11229300000000109,
+          "initializationCpuSeconds": 8.6e-05,
+          "journeyMilliseconds": 0.31970999999999705,
+          "journeyCpuSeconds": 0.000314
+        },
+        {
+          "initializationMilliseconds": 0.02224999999999966,
+          "initializationCpuSeconds": 1.7e-05,
+          "journeyMilliseconds": 0.07787600000000339,
+          "journeyCpuSeconds": 7.7e-05
+        },
+        {
+          "initializationMilliseconds": 0.019041000000001418,
+          "initializationCpuSeconds": 1.4e-05,
+          "journeyMilliseconds": 0.06908399999999659,
+          "journeyCpuSeconds": 6.9e-05
+        },
+        {
+          "initializationMilliseconds": 0.04645900000000225,
+          "initializationCpuSeconds": 3.9e-05,
+          "journeyMilliseconds": 0.2545019999999987,
+          "journeyCpuSeconds": 0.000253
+        },
+        {
+          "initializationMilliseconds": 0.020417000000001906,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.07533399999999801,
+          "journeyCpuSeconds": 7.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.01854200000000006,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.07033399999999901,
+          "journeyCpuSeconds": 7e-05
+        },
+        {
+          "initializationMilliseconds": 0.01979199999999537,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.07041699999999906,
+          "journeyCpuSeconds": 7e-05
+        },
+        {
+          "initializationMilliseconds": 0.027042000000001565,
+          "initializationCpuSeconds": 2e-05,
+          "journeyMilliseconds": 0.09045899999999918,
+          "journeyCpuSeconds": 9e-05
+        },
+        {
+          "initializationMilliseconds": 0.021791999999997813,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.07687600000000216,
+          "journeyCpuSeconds": 7.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.019125999999999976,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.074542000000001,
+          "journeyCpuSeconds": 7.4e-05
+        },
+        {
+          "initializationMilliseconds": 0.05729199999999679,
+          "initializationCpuSeconds": 4.8e-05,
+          "journeyMilliseconds": 0.26758500000000396,
+          "journeyCpuSeconds": 0.000267
+        },
+        {
+          "initializationMilliseconds": 0.02029200000000486,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.07337599999999611,
+          "journeyCpuSeconds": 7.3e-05
+        },
+        {
+          "initializationMilliseconds": 0.01991700000000307,
+          "initializationCpuSeconds": 1.4e-05,
+          "journeyMilliseconds": 0.07129199999999969,
+          "journeyCpuSeconds": 7e-05
+        },
+        {
+          "initializationMilliseconds": 0.018582999999999572,
+          "initializationCpuSeconds": 1.3e-05,
+          "journeyMilliseconds": 0.07075100000000134,
+          "journeyCpuSeconds": 7e-05
+        },
+        {
+          "initializationMilliseconds": 0.020333999999998298,
+          "initializationCpuSeconds": 1.4e-05,
+          "journeyMilliseconds": 0.07320900000000208,
+          "journeyCpuSeconds": 7.2e-05
+        },
+        {
+          "initializationMilliseconds": 0.023917000000000854,
+          "initializationCpuSeconds": 1.7e-05,
+          "journeyMilliseconds": 0.09041699999999864,
+          "journeyCpuSeconds": 9e-05
+        },
+        {
+          "initializationMilliseconds": 0.018916999999998296,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.07004200000000083,
+          "journeyCpuSeconds": 6.9e-05
+        },
+        {
+          "initializationMilliseconds": 0.02650000000000219,
+          "initializationCpuSeconds": 1.8e-05,
+          "journeyMilliseconds": 0.13175099999999773,
+          "journeyCpuSeconds": 0.000131
+        },
+        {
+          "initializationMilliseconds": 0.021459000000000117,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.07412499999999866,
+          "journeyCpuSeconds": 7.4e-05
+        },
+        {
+          "initializationMilliseconds": 0.0191250000000025,
+          "initializationCpuSeconds": 1.4e-05,
+          "journeyMilliseconds": 0.13108399999999776,
+          "journeyCpuSeconds": 0.00013
+        },
+        {
+          "initializationMilliseconds": 0.021125000000001393,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.07525100000000151,
+          "journeyCpuSeconds": 7.4e-05
+        },
+        {
+          "initializationMilliseconds": 0.019459000000001225,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.07329199999999858,
+          "journeyCpuSeconds": 7.2e-05
+        },
+        {
+          "initializationMilliseconds": 0.021207999999997895,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.09679300000000168,
+          "journeyCpuSeconds": 9.6e-05
+        },
+        {
+          "initializationMilliseconds": 0.021750000000000824,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.07600100000000154,
+          "journeyCpuSeconds": 7.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.031542000000001735,
+          "initializationCpuSeconds": 2.8e-05,
+          "journeyMilliseconds": 0.0779999999999994,
+          "journeyCpuSeconds": 7.6e-05
+        },
+        {
+          "initializationMilliseconds": 0.025375000000003922,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.07224999999999682,
+          "journeyCpuSeconds": 7.1e-05
+        },
+        {
+          "initializationMilliseconds": 0.024457999999999203,
+          "initializationCpuSeconds": 1.8e-05,
+          "journeyMilliseconds": 0.08050099999999816,
+          "journeyCpuSeconds": 8e-05
+        },
+        {
+          "initializationMilliseconds": 0.01991699999999952,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.07358400000000032,
+          "journeyCpuSeconds": 7.3e-05
+        },
+        {
+          "initializationMilliseconds": 0.023500000000002075,
+          "initializationCpuSeconds": 1.7e-05,
+          "journeyMilliseconds": 0.08433399999999835,
+          "journeyCpuSeconds": 8.3e-05
+        }
+      ],
+      "qualifiedControl": [
+        {
+          "initializationMilliseconds": 0.021208000000001448,
+          "initializationCpuSeconds": 1.4e-05,
+          "journeyMilliseconds": 0.11195899999999881,
+          "journeyCpuSeconds": 0.000112
+        },
+        {
+          "initializationMilliseconds": 0.1732510000000005,
+          "initializationCpuSeconds": 0.000162,
+          "journeyMilliseconds": 0.6828810000000018,
+          "journeyCpuSeconds": 0.00068
+        },
+        {
+          "initializationMilliseconds": 0.06962599999999952,
+          "initializationCpuSeconds": 6.6e-05,
+          "journeyMilliseconds": 0.49321199999999976,
+          "journeyCpuSeconds": 0.000495
+        },
+        {
+          "initializationMilliseconds": 0.10825100000000276,
+          "initializationCpuSeconds": 8.9e-05,
+          "journeyMilliseconds": 0.19425100000000128,
+          "journeyCpuSeconds": 0.000194
+        },
+        {
+          "initializationMilliseconds": 0.04920800000000014,
+          "initializationCpuSeconds": 2.3e-05,
+          "journeyMilliseconds": 0.1777930000000012,
+          "journeyCpuSeconds": 0.000178
+        },
+        {
+          "initializationMilliseconds": 0.029417000000009352,
+          "initializationCpuSeconds": 2.1e-05,
+          "journeyMilliseconds": 0.41958599999999535,
+          "journeyCpuSeconds": 0.000423
+        },
+        {
+          "initializationMilliseconds": 0.029041999999996904,
+          "initializationCpuSeconds": 2.4e-05,
+          "journeyMilliseconds": 0.07283400000000029,
+          "journeyCpuSeconds": 7.2e-05
+        },
+        {
+          "initializationMilliseconds": 0.03258300000000247,
+          "initializationCpuSeconds": 2.6e-05,
+          "journeyMilliseconds": 0.11062599999999634,
+          "journeyCpuSeconds": 0.000108
+        },
+        {
+          "initializationMilliseconds": 0.03829199999999844,
+          "initializationCpuSeconds": 2.8e-05,
+          "journeyMilliseconds": 0.15154300000000376,
+          "journeyCpuSeconds": 0.000151
+        },
+        {
+          "initializationMilliseconds": 0.05804200000000037,
+          "initializationCpuSeconds": 4.9e-05,
+          "journeyMilliseconds": 0.4800869999999975,
+          "journeyCpuSeconds": 0.000479
+        },
+        {
+          "initializationMilliseconds": 0.391377999999996,
+          "initializationCpuSeconds": 0.000293,
+          "journeyMilliseconds": 1.1510919999999984,
+          "journeyCpuSeconds": 0.001148
+        },
+        {
+          "initializationMilliseconds": 0.020375000000001364,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.07383399999999796,
+          "journeyCpuSeconds": 7.3e-05
+        },
+        {
+          "initializationMilliseconds": 0.02012500000000017,
+          "initializationCpuSeconds": 1.4e-05,
+          "journeyMilliseconds": 0.07354199999999977,
+          "journeyCpuSeconds": 7.3e-05
+        },
+        {
+          "initializationMilliseconds": 0.01916699999999949,
+          "initializationCpuSeconds": 1.3e-05,
+          "journeyMilliseconds": 0.07020900000000196,
+          "journeyCpuSeconds": 6.9e-05
+        },
+        {
+          "initializationMilliseconds": 0.020333999999998298,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.08720900000000142,
+          "journeyCpuSeconds": 8.6e-05
+        },
+        {
+          "initializationMilliseconds": 0.06170799999999943,
+          "initializationCpuSeconds": 4.8e-05,
+          "journeyMilliseconds": 0.13241800000000126,
+          "journeyCpuSeconds": 0.000131
+        },
+        {
+          "initializationMilliseconds": 0.020375000000001364,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.06933399999999779,
+          "journeyCpuSeconds": 6.8e-05
+        },
+        {
+          "initializationMilliseconds": 0.021041000000003862,
+          "initializationCpuSeconds": 1.7e-05,
+          "journeyMilliseconds": 0.08129300000000228,
+          "journeyCpuSeconds": 8e-05
+        },
+        {
+          "initializationMilliseconds": 0.02599999999999625,
+          "initializationCpuSeconds": 1.8e-05,
+          "journeyMilliseconds": 0.0999180000000024,
+          "journeyCpuSeconds": 9.9e-05
+        },
+        {
+          "initializationMilliseconds": 0.04587499999999878,
+          "initializationCpuSeconds": 3.5e-05,
+          "journeyMilliseconds": 0.19500200000000234,
+          "journeyCpuSeconds": 0.000195
+        },
+        {
+          "initializationMilliseconds": 0.08429200000000137,
+          "initializationCpuSeconds": 4.7e-05,
+          "journeyMilliseconds": 0.4892119999999984,
+          "journeyCpuSeconds": 0.000489
+        },
+        {
+          "initializationMilliseconds": 0.020208000000000226,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.07575100000000035,
+          "journeyCpuSeconds": 7.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.02112499999999784,
+          "initializationCpuSeconds": 1.7e-05,
+          "journeyMilliseconds": 0.555213000000002,
+          "journeyCpuSeconds": 0.000557
+        },
+        {
+          "initializationMilliseconds": 0.01837499999999892,
+          "initializationCpuSeconds": 1.4e-05,
+          "journeyMilliseconds": 0.0689590000000031,
+          "journeyCpuSeconds": 6.8e-05
+        },
+        {
+          "initializationMilliseconds": 0.047167000000001735,
+          "initializationCpuSeconds": 3.3e-05,
+          "journeyMilliseconds": 0.44625300000000223,
+          "journeyCpuSeconds": 0.000447
+        },
+        {
+          "initializationMilliseconds": 0.01912499999999895,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.06975100000000012,
+          "journeyCpuSeconds": 6.7e-05
+        },
+        {
+          "initializationMilliseconds": 0.020167000000000712,
+          "initializationCpuSeconds": 1.4e-05,
+          "journeyMilliseconds": 0.07191699999999912,
+          "journeyCpuSeconds": 7.1e-05
+        },
+        {
+          "initializationMilliseconds": 0.021041999999997785,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.07212499999999977,
+          "journeyCpuSeconds": 7e-05
+        },
+        {
+          "initializationMilliseconds": 0.01991699999999952,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.0705840000000002,
+          "journeyCpuSeconds": 6.9e-05
+        },
+        {
+          "initializationMilliseconds": 0.01991599999999849,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.08662599999999898,
+          "journeyCpuSeconds": 8.6e-05
+        },
+        {
+          "initializationMilliseconds": 0.019041999999998893,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.08037600000000111,
+          "journeyCpuSeconds": 7.9e-05
+        },
+        {
+          "initializationMilliseconds": 0.024542000000000286,
+          "initializationCpuSeconds": 1.8e-05,
+          "journeyMilliseconds": 0.08558299999999974,
+          "journeyCpuSeconds": 8.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.02762599999999793,
+          "initializationCpuSeconds": 2e-05,
+          "journeyMilliseconds": 0.10387500000000216,
+          "journeyCpuSeconds": 0.000103
+        },
+        {
+          "initializationMilliseconds": 0.021207999999997895,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.07412599999999969,
+          "journeyCpuSeconds": 7.4e-05
+        },
+        {
+          "initializationMilliseconds": 0.01987500000000253,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.08312600000000003,
+          "journeyCpuSeconds": 8.2e-05
+        },
+        {
+          "initializationMilliseconds": 0.02133399999999952,
+          "initializationCpuSeconds": 1.7e-05,
+          "journeyMilliseconds": 0.07212599999999725,
+          "journeyCpuSeconds": 7.1e-05
+        },
+        {
+          "initializationMilliseconds": 0.02166700000000077,
+          "initializationCpuSeconds": 1.7e-05,
+          "journeyMilliseconds": 0.08158399999999943,
+          "journeyCpuSeconds": 8e-05
+        },
+        {
+          "initializationMilliseconds": 0.02224999999999966,
+          "initializationCpuSeconds": 1.7e-05,
+          "journeyMilliseconds": 0.08499999999999375,
+          "journeyCpuSeconds": 8.4e-05
+        },
+        {
+          "initializationMilliseconds": 0.02004100000000264,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.0704589999999996,
+          "journeyCpuSeconds": 7e-05
+        },
+        {
+          "initializationMilliseconds": 0.023458000000001533,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.09545899999999818,
+          "journeyCpuSeconds": 9.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.023375999999998953,
+          "initializationCpuSeconds": 1.7e-05,
+          "journeyMilliseconds": 0.08187500000000014,
+          "journeyCpuSeconds": 8.1e-05
+        }
+      ],
+      "directCandidate": [
+        {
+          "initializationMilliseconds": 0.05479199999999196,
+          "initializationCpuSeconds": 4.8e-05,
+          "journeyMilliseconds": 0.14708400000000665,
+          "journeyCpuSeconds": 0.000146
+        },
+        {
+          "initializationMilliseconds": 0.03900000000000148,
+          "initializationCpuSeconds": 3.3e-05,
+          "journeyMilliseconds": 0.07616799999999913,
+          "journeyCpuSeconds": 7.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.08716700000000088,
+          "initializationCpuSeconds": 7.8e-05,
+          "journeyMilliseconds": 0.16554299999999955,
+          "journeyCpuSeconds": 0.000163
+        },
+        {
+          "initializationMilliseconds": 0.07533399999999801,
+          "initializationCpuSeconds": 6.6e-05,
+          "journeyMilliseconds": 0.14275100000000407,
+          "journeyCpuSeconds": 0.000136
+        },
+        {
+          "initializationMilliseconds": 0.773965000000004,
+          "initializationCpuSeconds": 0.000767,
+          "journeyMilliseconds": 0.3740019999999973,
+          "journeyCpuSeconds": 0.000376
+        },
+        {
+          "initializationMilliseconds": 0.03600099999999884,
+          "initializationCpuSeconds": 3.1e-05,
+          "journeyMilliseconds": 0.0764999999999958,
+          "journeyCpuSeconds": 7.7e-05
+        },
+        {
+          "initializationMilliseconds": 0.044958999999991534,
+          "initializationCpuSeconds": 3.9e-05,
+          "journeyMilliseconds": 0.16337599999999952,
+          "journeyCpuSeconds": 0.000162
+        },
+        {
+          "initializationMilliseconds": 0.06291699999999878,
+          "initializationCpuSeconds": 5.5e-05,
+          "journeyMilliseconds": 0.13420900000000557,
+          "journeyCpuSeconds": 0.000132
+        },
+        {
+          "initializationMilliseconds": 0.2240019999999987,
+          "initializationCpuSeconds": 0.000217,
+          "journeyMilliseconds": 2.4425179999999926,
+          "journeyCpuSeconds": 0.002443
+        },
+        {
+          "initializationMilliseconds": 0.054791999999999064,
+          "initializationCpuSeconds": 4.8e-05,
+          "journeyMilliseconds": 0.08237600000000356,
+          "journeyCpuSeconds": 8.1e-05
+        },
+        {
+          "initializationMilliseconds": 0.03633400000000364,
+          "initializationCpuSeconds": 3.1e-05,
+          "journeyMilliseconds": 0.07787599999999628,
+          "journeyCpuSeconds": 7.7e-05
+        },
+        {
+          "initializationMilliseconds": 0.08495899999999779,
+          "initializationCpuSeconds": 7.7e-05,
+          "journeyMilliseconds": 0.19920899999999975,
+          "journeyCpuSeconds": 0.000197
+        },
+        {
+          "initializationMilliseconds": 0.03920799999999858,
+          "initializationCpuSeconds": 3.3e-05,
+          "journeyMilliseconds": 0.1319599999999994,
+          "journeyCpuSeconds": 0.000131
+        },
+        {
+          "initializationMilliseconds": 0.0928760000000004,
+          "initializationCpuSeconds": 8.8e-05,
+          "journeyMilliseconds": 0.11854199999999793,
+          "journeyCpuSeconds": 0.000116
+        },
+        {
+          "initializationMilliseconds": 0.0412089999999985,
+          "initializationCpuSeconds": 3.6e-05,
+          "journeyMilliseconds": 0.08370900000000248,
+          "journeyCpuSeconds": 8.2e-05
+        },
+        {
+          "initializationMilliseconds": 0.035667000000000115,
+          "initializationCpuSeconds": 3e-05,
+          "journeyMilliseconds": 0.06954200000000199,
+          "journeyCpuSeconds": 6.9e-05
+        },
+        {
+          "initializationMilliseconds": 0.20975099999999713,
+          "initializationCpuSeconds": 0.000196,
+          "journeyMilliseconds": 0.34646100000000146,
+          "journeyCpuSeconds": 0.000341
+        },
+        {
+          "initializationMilliseconds": 0.040500000000001535,
+          "initializationCpuSeconds": 3.4e-05,
+          "journeyMilliseconds": 0.0896259999999991,
+          "journeyCpuSeconds": 8.8e-05
+        },
+        {
+          "initializationMilliseconds": 0.04004199999999969,
+          "initializationCpuSeconds": 3.5e-05,
+          "journeyMilliseconds": 0.09725099999999998,
+          "journeyCpuSeconds": 9.7e-05
+        },
+        {
+          "initializationMilliseconds": 0.03770899999999955,
+          "initializationCpuSeconds": 3.3e-05,
+          "journeyMilliseconds": 0.07508400000000037,
+          "journeyCpuSeconds": 7.4e-05
+        },
+        {
+          "initializationMilliseconds": 0.04120800000000102,
+          "initializationCpuSeconds": 3.6e-05,
+          "journeyMilliseconds": 0.07945899999999995,
+          "journeyCpuSeconds": 7.8e-05
+        },
+        {
+          "initializationMilliseconds": 0.036333999999996536,
+          "initializationCpuSeconds": 3e-05,
+          "journeyMilliseconds": 0.07529200000000102,
+          "journeyCpuSeconds": 7.4e-05
+        },
+        {
+          "initializationMilliseconds": 0.038792000000000826,
+          "initializationCpuSeconds": 3.3e-05,
+          "journeyMilliseconds": 0.07529199999999747,
+          "journeyCpuSeconds": 7.4e-05
+        },
+        {
+          "initializationMilliseconds": 0.036333999999996536,
+          "initializationCpuSeconds": 3.1e-05,
+          "journeyMilliseconds": 0.07712500000000233,
+          "journeyCpuSeconds": 7.7e-05
+        },
+        {
+          "initializationMilliseconds": 0.08441699999999841,
+          "initializationCpuSeconds": 6.5e-05,
+          "journeyMilliseconds": 0.13229300000000066,
+          "journeyCpuSeconds": 0.000132
+        },
+        {
+          "initializationMilliseconds": 0.03662599999999827,
+          "initializationCpuSeconds": 3.2e-05,
+          "journeyMilliseconds": 0.07525000000000048,
+          "journeyCpuSeconds": 7.3e-05
+        },
+        {
+          "initializationMilliseconds": 0.047208999999998724,
+          "initializationCpuSeconds": 4.1e-05,
+          "journeyMilliseconds": 0.0985839999999989,
+          "journeyCpuSeconds": 9.7e-05
+        },
+        {
+          "initializationMilliseconds": 0.036042000000001906,
+          "initializationCpuSeconds": 3.1e-05,
+          "journeyMilliseconds": 0.07508400000000037,
+          "journeyCpuSeconds": 7.4e-05
+        },
+        {
+          "initializationMilliseconds": 0.12737599999999816,
+          "initializationCpuSeconds": 0.00012,
+          "journeyMilliseconds": 0.20287700000000086,
+          "journeyCpuSeconds": 0.000205
+        },
+        {
+          "initializationMilliseconds": 0.0394590000000008,
+          "initializationCpuSeconds": 3.4e-05,
+          "journeyMilliseconds": 0.07633300000000176,
+          "journeyCpuSeconds": 7.6e-05
+        },
+        {
+          "initializationMilliseconds": 0.037582999999997924,
+          "initializationCpuSeconds": 3.2e-05,
+          "journeyMilliseconds": 0.07566800000000029,
+          "journeyCpuSeconds": 7.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.03941700000000026,
+          "initializationCpuSeconds": 3.4e-05,
+          "journeyMilliseconds": 0.07854199999999878,
+          "journeyCpuSeconds": 7.8e-05
+        },
+        {
+          "initializationMilliseconds": 0.5252540000000039,
+          "initializationCpuSeconds": 0.000509,
+          "journeyMilliseconds": 0.3290439999999961,
+          "journeyCpuSeconds": 0.000327
+        },
+        {
+          "initializationMilliseconds": 0.0363749999999996,
+          "initializationCpuSeconds": 3.1e-05,
+          "journeyMilliseconds": 0.0762919999999987,
+          "journeyCpuSeconds": 7.6e-05
+        },
+        {
+          "initializationMilliseconds": 0.03504199999999713,
+          "initializationCpuSeconds": 3e-05,
+          "journeyMilliseconds": 0.07495899999999978,
+          "journeyCpuSeconds": 7.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.038582999999999146,
+          "initializationCpuSeconds": 3.3e-05,
+          "journeyMilliseconds": 0.07437600000000089,
+          "journeyCpuSeconds": 7.3e-05
+        },
+        {
+          "initializationMilliseconds": 0.08462600000000009,
+          "initializationCpuSeconds": 7.7e-05,
+          "journeyMilliseconds": 0.34675200000000217,
+          "journeyCpuSeconds": 0.000346
+        },
+        {
+          "initializationMilliseconds": 0.0417500000000004,
+          "initializationCpuSeconds": 3.4e-05,
+          "journeyMilliseconds": 0.07720899999999986,
+          "journeyCpuSeconds": 7.6e-05
+        },
+        {
+          "initializationMilliseconds": 0.036000000000001364,
+          "initializationCpuSeconds": 3.1e-05,
+          "journeyMilliseconds": 0.075959000000001,
+          "journeyCpuSeconds": 7.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.035834000000001254,
+          "initializationCpuSeconds": 3e-05,
+          "journeyMilliseconds": 0.0720839999999967,
+          "journeyCpuSeconds": 7.2e-05
+        },
+        {
+          "initializationMilliseconds": 0.04208399999999912,
+          "initializationCpuSeconds": 3.7e-05,
+          "journeyMilliseconds": 0.0816250000000025,
+          "journeyCpuSeconds": 8.1e-05
+        }
+      ]
+    },
+    "locked": {
+      "upstream": [
+        {
+          "initializationMilliseconds": 0.0484170000000006,
+          "initializationCpuSeconds": 3.8e-05,
+          "journeyMilliseconds": 0.2275439999999982,
+          "journeyCpuSeconds": 0.000228
+        },
+        {
+          "initializationMilliseconds": 0.05104199999999892,
+          "initializationCpuSeconds": 4.1e-05,
+          "journeyMilliseconds": 0.31829400000000163,
+          "journeyCpuSeconds": 0.00032
+        },
+        {
+          "initializationMilliseconds": 0.02283400000000313,
+          "initializationCpuSeconds": 1.8e-05,
+          "journeyMilliseconds": 0.05908399999999858,
+          "journeyCpuSeconds": 5.8e-05
+        },
+        {
+          "initializationMilliseconds": 0.30754400000000004,
+          "initializationCpuSeconds": 0.000256,
+          "journeyMilliseconds": 0.11600100000000424,
+          "journeyCpuSeconds": 0.00011
+        },
+        {
+          "initializationMilliseconds": 0.033958999999995854,
+          "initializationCpuSeconds": 2.7e-05,
+          "journeyMilliseconds": 0.42683599999999444,
+          "journeyCpuSeconds": 0.000425
+        },
+        {
+          "initializationMilliseconds": 0.01899999999999835,
+          "initializationCpuSeconds": 1.3e-05,
+          "journeyMilliseconds": 0.05504200000000026,
+          "journeyCpuSeconds": 5.4e-05
+        },
+        {
+          "initializationMilliseconds": 0.06074999999999875,
+          "initializationCpuSeconds": 5.3e-05,
+          "journeyMilliseconds": 0.15316800000000086,
+          "journeyCpuSeconds": 0.000152
+        },
+        {
+          "initializationMilliseconds": 0.018124999999997726,
+          "initializationCpuSeconds": 1.3e-05,
+          "journeyMilliseconds": 0.05808400000000091,
+          "journeyCpuSeconds": 5.7e-05
+        },
+        {
+          "initializationMilliseconds": 0.02495800000000159,
+          "initializationCpuSeconds": 1.9e-05,
+          "journeyMilliseconds": 0.06625099999999762,
+          "journeyCpuSeconds": 6.6e-05
+        },
+        {
+          "initializationMilliseconds": 0.021000000000000796,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.06520900000000296,
+          "journeyCpuSeconds": 6.4e-05
+        },
+        {
+          "initializationMilliseconds": 0.03591700000000131,
+          "initializationCpuSeconds": 2.9e-05,
+          "journeyMilliseconds": 0.08487599999999773,
+          "journeyCpuSeconds": 8.4e-05
+        },
+        {
+          "initializationMilliseconds": 0.017665999999998405,
+          "initializationCpuSeconds": 1.3e-05,
+          "journeyMilliseconds": 0.05200100000000063,
+          "journeyCpuSeconds": 5.1e-05
+        },
+        {
+          "initializationMilliseconds": 0.019999999999999574,
+          "initializationCpuSeconds": 1.3e-05,
+          "journeyMilliseconds": 0.05404200000000259,
+          "journeyCpuSeconds": 5.3e-05
+        },
+        {
+          "initializationMilliseconds": 0.01970900000000242,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.05408399999999958,
+          "journeyCpuSeconds": 5.3e-05
+        },
+        {
+          "initializationMilliseconds": 0.02704100000000409,
+          "initializationCpuSeconds": 2e-05,
+          "journeyMilliseconds": 0.23016899999999652,
+          "journeyCpuSeconds": 0.000237
+        },
+        {
+          "initializationMilliseconds": 0.020834000000000685,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.06229199999999935,
+          "journeyCpuSeconds": 6.2e-05
+        },
+        {
+          "initializationMilliseconds": 0.019666999999998325,
+          "initializationCpuSeconds": 1.4e-05,
+          "journeyMilliseconds": 0.058667000000003355,
+          "journeyCpuSeconds": 5.8e-05
+        },
+        {
+          "initializationMilliseconds": 0.019083999999999435,
+          "initializationCpuSeconds": 1.4e-05,
+          "journeyMilliseconds": 0.05587500000000034,
+          "journeyCpuSeconds": 5.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.02120900000000603,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.06724999999999426,
+          "journeyCpuSeconds": 6.7e-05
+        },
+        {
+          "initializationMilliseconds": 0.02008299999999963,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.0582509999999985,
+          "journeyCpuSeconds": 5.8e-05
+        },
+        {
+          "initializationMilliseconds": 0.02191699999999841,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.05645799999999923,
+          "journeyCpuSeconds": 5.6e-05
+        },
+        {
+          "initializationMilliseconds": 0.023208999999997815,
+          "initializationCpuSeconds": 1.7e-05,
+          "journeyMilliseconds": 0.06158399999999986,
+          "journeyCpuSeconds": 6e-05
+        },
+        {
+          "initializationMilliseconds": 0.02070799999999906,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.05583400000000438,
+          "journeyCpuSeconds": 5.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.017832999999999544,
+          "initializationCpuSeconds": 1.3e-05,
+          "journeyMilliseconds": 0.052042000000000144,
+          "journeyCpuSeconds": 5.1e-05
+        },
+        {
+          "initializationMilliseconds": 0.020042000000000115,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.056542000000000314,
+          "journeyCpuSeconds": 5.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.018874999999997755,
+          "initializationCpuSeconds": 1.4e-05,
+          "journeyMilliseconds": 0.05604200000000148,
+          "journeyCpuSeconds": 5.6e-05
+        },
+        {
+          "initializationMilliseconds": 0.02224999999999966,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.06854200000000077,
+          "journeyCpuSeconds": 6.9e-05
+        },
+        {
+          "initializationMilliseconds": 0.020834000000000685,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.0573750000000004,
+          "journeyCpuSeconds": 5.7e-05
+        },
+        {
+          "initializationMilliseconds": 0.02049999999999841,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.05670900000000145,
+          "journeyCpuSeconds": 5.6e-05
+        },
+        {
+          "initializationMilliseconds": 0.018333999999999406,
+          "initializationCpuSeconds": 1.4e-05,
+          "journeyMilliseconds": 0.056542000000000314,
+          "journeyCpuSeconds": 5.4e-05
+        },
+        {
+          "initializationMilliseconds": 0.043708999999999776,
+          "initializationCpuSeconds": 3.5e-05,
+          "journeyMilliseconds": 0.16450100000000134,
+          "journeyCpuSeconds": 0.000164
+        },
+        {
+          "initializationMilliseconds": 0.022290999999999173,
+          "initializationCpuSeconds": 1.7e-05,
+          "journeyMilliseconds": 0.06220899999999929,
+          "journeyCpuSeconds": 6.2e-05
+        },
+        {
+          "initializationMilliseconds": 0.019916000000002043,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.05566699999999969,
+          "journeyCpuSeconds": 5.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.03154199999999818,
+          "initializationCpuSeconds": 2.7e-05,
+          "journeyMilliseconds": 0.05250100000000302,
+          "journeyCpuSeconds": 5.2e-05
+        },
+        {
+          "initializationMilliseconds": 0.021959000000002504,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.05874999999999986,
+          "journeyCpuSeconds": 5.7e-05
+        },
+        {
+          "initializationMilliseconds": 0.018083999999998213,
+          "initializationCpuSeconds": 1.4e-05,
+          "journeyMilliseconds": 0.055542000000002645,
+          "journeyCpuSeconds": 5.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.049208999999997616,
+          "initializationCpuSeconds": 2.8e-05,
+          "journeyMilliseconds": 0.3535440000000065,
+          "journeyCpuSeconds": 0.000357
+        },
+        {
+          "initializationMilliseconds": 0.02370899999999665,
+          "initializationCpuSeconds": 1.8e-05,
+          "journeyMilliseconds": 0.06512500000000188,
+          "journeyCpuSeconds": 6.4e-05
+        },
+        {
+          "initializationMilliseconds": 0.021125000000001393,
+          "initializationCpuSeconds": 1.7e-05,
+          "journeyMilliseconds": 0.05837500000000162,
+          "journeyCpuSeconds": 5.7e-05
+        },
+        {
+          "initializationMilliseconds": 0.019125999999999976,
+          "initializationCpuSeconds": 1.4e-05,
+          "journeyMilliseconds": 0.055792000000000286,
+          "journeyCpuSeconds": 5.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.01912499999999895,
+          "initializationCpuSeconds": 1.4e-05,
+          "journeyMilliseconds": 0.05558300000000216,
+          "journeyCpuSeconds": 5.5e-05
+        }
+      ],
+      "qualifiedControl": [
+        {
+          "initializationMilliseconds": 0.027582999999999913,
+          "initializationCpuSeconds": 2e-05,
+          "journeyMilliseconds": 0.06595900000000299,
+          "journeyCpuSeconds": 6.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.02016599999999613,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.061626000000003955,
+          "journeyCpuSeconds": 6.1e-05
+        },
+        {
+          "initializationMilliseconds": 0.019583000000000794,
+          "initializationCpuSeconds": 1.4e-05,
+          "journeyMilliseconds": 0.057000999999999635,
+          "journeyCpuSeconds": 5.6e-05
+        },
+        {
+          "initializationMilliseconds": 0.09262600000000276,
+          "initializationCpuSeconds": 8.2e-05,
+          "journeyMilliseconds": 0.7489220000000003,
+          "journeyCpuSeconds": 0.000746
+        },
+        {
+          "initializationMilliseconds": 0.11604299999999768,
+          "initializationCpuSeconds": 8.9e-05,
+          "journeyMilliseconds": 0.4927119999999974,
+          "journeyCpuSeconds": 0.00049
+        },
+        {
+          "initializationMilliseconds": 0.03800000000000381,
+          "initializationCpuSeconds": 2.9e-05,
+          "journeyMilliseconds": 0.1339179999999942,
+          "journeyCpuSeconds": 0.000134
+        },
+        {
+          "initializationMilliseconds": 0.18345899999999915,
+          "initializationCpuSeconds": 0.00018,
+          "journeyMilliseconds": 0.3377529999999993,
+          "journeyCpuSeconds": 0.00033
+        },
+        {
+          "initializationMilliseconds": 0.024334000000003186,
+          "initializationCpuSeconds": 1.8e-05,
+          "journeyMilliseconds": 0.07000000000000028,
+          "journeyCpuSeconds": 7e-05
+        },
+        {
+          "initializationMilliseconds": 0.025625999999995486,
+          "initializationCpuSeconds": 2e-05,
+          "journeyMilliseconds": 0.08150000000000546,
+          "journeyCpuSeconds": 7.8e-05
+        },
+        {
+          "initializationMilliseconds": 0.031333000000000055,
+          "initializationCpuSeconds": 2.7e-05,
+          "journeyMilliseconds": 0.09470899999999816,
+          "journeyCpuSeconds": 9.2e-05
+        },
+        {
+          "initializationMilliseconds": 0.05329199999999901,
+          "initializationCpuSeconds": 4.5e-05,
+          "journeyMilliseconds": 0.36441900000000516,
+          "journeyCpuSeconds": 0.000363
+        },
+        {
+          "initializationMilliseconds": 0.021459000000000117,
+          "initializationCpuSeconds": 1.4e-05,
+          "journeyMilliseconds": 0.05824999999999392,
+          "journeyCpuSeconds": 5.8e-05
+        },
+        {
+          "initializationMilliseconds": 0.020458999999995342,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.05562500000000625,
+          "journeyCpuSeconds": 5.6e-05
+        },
+        {
+          "initializationMilliseconds": 0.12658500000000217,
+          "initializationCpuSeconds": 0.000119,
+          "journeyMilliseconds": 0.08812499999999801,
+          "journeyCpuSeconds": 8.3e-05
+        },
+        {
+          "initializationMilliseconds": 0.15087600000000023,
+          "initializationCpuSeconds": 0.000141,
+          "journeyMilliseconds": 0.17541799999999697,
+          "journeyCpuSeconds": 0.000173
+        },
+        {
+          "initializationMilliseconds": 0.02870900000000276,
+          "initializationCpuSeconds": 2.3e-05,
+          "journeyMilliseconds": 0.06670899999999946,
+          "journeyCpuSeconds": 6.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.021957999999997924,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.06195900000000165,
+          "journeyCpuSeconds": 6.1e-05
+        },
+        {
+          "initializationMilliseconds": 0.022707999999997952,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.06100100000000097,
+          "journeyCpuSeconds": 6.1e-05
+        },
+        {
+          "initializationMilliseconds": 0.026499999999998636,
+          "initializationCpuSeconds": 2e-05,
+          "journeyMilliseconds": 0.08295899999999534,
+          "journeyCpuSeconds": 8.2e-05
+        },
+        {
+          "initializationMilliseconds": 0.01962599999999881,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.0657919999999983,
+          "journeyCpuSeconds": 6.6e-05
+        },
+        {
+          "initializationMilliseconds": 0.06450099999999992,
+          "initializationCpuSeconds": 5.1e-05,
+          "journeyMilliseconds": 0.19321000000000055,
+          "journeyCpuSeconds": 0.000195
+        },
+        {
+          "initializationMilliseconds": 0.021125000000001393,
+          "initializationCpuSeconds": 1.4e-05,
+          "journeyMilliseconds": 0.05845899999999915,
+          "journeyCpuSeconds": 5.8e-05
+        },
+        {
+          "initializationMilliseconds": 0.02079100000000267,
+          "initializationCpuSeconds": 1.7e-05,
+          "journeyMilliseconds": 0.06325099999999395,
+          "journeyCpuSeconds": 6.2e-05
+        },
+        {
+          "initializationMilliseconds": 0.021042000000001337,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.06116699999999753,
+          "journeyCpuSeconds": 6e-05
+        },
+        {
+          "initializationMilliseconds": 0.05608399999999847,
+          "initializationCpuSeconds": 5e-05,
+          "journeyMilliseconds": 0.09129300000000029,
+          "journeyCpuSeconds": 8.9e-05
+        },
+        {
+          "initializationMilliseconds": 0.047125000000001194,
+          "initializationCpuSeconds": 3.7e-05,
+          "journeyMilliseconds": 0.26350199999999546,
+          "journeyCpuSeconds": 0.000263
+        },
+        {
+          "initializationMilliseconds": 0.02329199999999787,
+          "initializationCpuSeconds": 1.7e-05,
+          "journeyMilliseconds": 0.06441700000000239,
+          "journeyCpuSeconds": 6.3e-05
+        },
+        {
+          "initializationMilliseconds": 0.021625000000000227,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.057334000000000884,
+          "journeyCpuSeconds": 5.6e-05
+        },
+        {
+          "initializationMilliseconds": 0.018834000000001794,
+          "initializationCpuSeconds": 1.3e-05,
+          "journeyMilliseconds": 0.05816700000000097,
+          "journeyCpuSeconds": 5.7e-05
+        },
+        {
+          "initializationMilliseconds": 0.01837499999999892,
+          "initializationCpuSeconds": 1.4e-05,
+          "journeyMilliseconds": 0.05741700000000094,
+          "journeyCpuSeconds": 5.6e-05
+        },
+        {
+          "initializationMilliseconds": 0.022999999999996135,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.08366699999999838,
+          "journeyCpuSeconds": 8.3e-05
+        },
+        {
+          "initializationMilliseconds": 0.02066599999999852,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.05725100000000083,
+          "journeyCpuSeconds": 5.6e-05
+        },
+        {
+          "initializationMilliseconds": 0.02187499999999787,
+          "initializationCpuSeconds": 1.8e-05,
+          "journeyMilliseconds": 0.0725839999999991,
+          "journeyCpuSeconds": 7e-05
+        },
+        {
+          "initializationMilliseconds": 0.031583999999998724,
+          "initializationCpuSeconds": 1.7e-05,
+          "journeyMilliseconds": 0.05954200000000043,
+          "journeyCpuSeconds": 5.8e-05
+        },
+        {
+          "initializationMilliseconds": 0.01991699999999952,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.056167000000002076,
+          "journeyCpuSeconds": 5.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.019458000000000197,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.05687599999999904,
+          "journeyCpuSeconds": 5.7e-05
+        },
+        {
+          "initializationMilliseconds": 0.022417000000000797,
+          "initializationCpuSeconds": 1.8e-05,
+          "journeyMilliseconds": 0.0573750000000004,
+          "journeyCpuSeconds": 5.7e-05
+        },
+        {
+          "initializationMilliseconds": 0.023958999999997843,
+          "initializationCpuSeconds": 1.8e-05,
+          "journeyMilliseconds": 0.07066700000000026,
+          "journeyCpuSeconds": 7e-05
+        },
+        {
+          "initializationMilliseconds": 0.02070900000000009,
+          "initializationCpuSeconds": 1.6e-05,
+          "journeyMilliseconds": 0.05816700000000097,
+          "journeyCpuSeconds": 5.8e-05
+        },
+        {
+          "initializationMilliseconds": 0.020333000000000823,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.05895900000000154,
+          "journeyCpuSeconds": 5.7e-05
+        },
+        {
+          "initializationMilliseconds": 0.020291999999997756,
+          "initializationCpuSeconds": 1.5e-05,
+          "journeyMilliseconds": 0.05775000000000219,
+          "journeyCpuSeconds": 5.6e-05
+        }
+      ],
+      "directCandidate": [
+        {
+          "initializationMilliseconds": 0.04899999999999949,
+          "initializationCpuSeconds": 4.4e-05,
+          "journeyMilliseconds": 0.0758340000000004,
+          "journeyCpuSeconds": 7.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.1751260000000059,
+          "initializationCpuSeconds": 0.000174,
+          "journeyMilliseconds": 0.19216799999999523,
+          "journeyCpuSeconds": 0.000186
+        },
+        {
+          "initializationMilliseconds": 0.04345899999999858,
+          "initializationCpuSeconds": 3.7e-05,
+          "journeyMilliseconds": 0.07870899999999637,
+          "journeyCpuSeconds": 7.6e-05
+        },
+        {
+          "initializationMilliseconds": 0.6041290000000004,
+          "initializationCpuSeconds": 0.000595,
+          "journeyMilliseconds": 0.7407559999999975,
+          "journeyCpuSeconds": 0.000727
+        },
+        {
+          "initializationMilliseconds": 0.04216699999999918,
+          "initializationCpuSeconds": 3.5e-05,
+          "journeyMilliseconds": 0.09483399999999875,
+          "journeyCpuSeconds": 9.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.038875000000004434,
+          "initializationCpuSeconds": 3.4e-05,
+          "journeyMilliseconds": 0.06700099999999765,
+          "journeyCpuSeconds": 6.7e-05
+        },
+        {
+          "initializationMilliseconds": 0.03712600000000066,
+          "initializationCpuSeconds": 3.2e-05,
+          "journeyMilliseconds": 0.06495799999999718,
+          "journeyCpuSeconds": 6.4e-05
+        },
+        {
+          "initializationMilliseconds": 0.077376000000001,
+          "initializationCpuSeconds": 6.9e-05,
+          "journeyMilliseconds": 0.15245900000000034,
+          "journeyCpuSeconds": 0.000151
+        },
+        {
+          "initializationMilliseconds": 0.06279299999999921,
+          "initializationCpuSeconds": 5.5e-05,
+          "journeyMilliseconds": 0.11312499999999659,
+          "journeyCpuSeconds": 0.000111
+        },
+        {
+          "initializationMilliseconds": 0.23483600000000138,
+          "initializationCpuSeconds": 0.000222,
+          "journeyMilliseconds": 0.509211999999998,
+          "journeyCpuSeconds": 0.000505
+        },
+        {
+          "initializationMilliseconds": 0.04591699999999932,
+          "initializationCpuSeconds": 4e-05,
+          "journeyMilliseconds": 0.08383399999999952,
+          "journeyCpuSeconds": 8.1e-05
+        },
+        {
+          "initializationMilliseconds": 0.1760430000000035,
+          "initializationCpuSeconds": 0.000103,
+          "journeyMilliseconds": 0.20120999999999967,
+          "journeyCpuSeconds": 0.0002
+        },
+        {
+          "initializationMilliseconds": 0.036000000000001364,
+          "initializationCpuSeconds": 3.1e-05,
+          "journeyMilliseconds": 0.06554299999999813,
+          "journeyCpuSeconds": 6.6e-05
+        },
+        {
+          "initializationMilliseconds": 0.037834000000000145,
+          "initializationCpuSeconds": 3.3e-05,
+          "journeyMilliseconds": 0.06487500000000068,
+          "journeyCpuSeconds": 6.4e-05
+        },
+        {
+          "initializationMilliseconds": 0.03999999999999915,
+          "initializationCpuSeconds": 3.4e-05,
+          "journeyMilliseconds": 0.07316700000000154,
+          "journeyCpuSeconds": 7.2e-05
+        },
+        {
+          "initializationMilliseconds": 0.05299999999999727,
+          "initializationCpuSeconds": 4.5e-05,
+          "journeyMilliseconds": 0.0968340000000012,
+          "journeyCpuSeconds": 9.6e-05
+        },
+        {
+          "initializationMilliseconds": 0.04958400000000296,
+          "initializationCpuSeconds": 3.5e-05,
+          "journeyMilliseconds": 0.06933399999999779,
+          "journeyCpuSeconds": 6.8e-05
+        },
+        {
+          "initializationMilliseconds": 0.03870900000000432,
+          "initializationCpuSeconds": 3.3e-05,
+          "journeyMilliseconds": 0.06641699999999418,
+          "journeyCpuSeconds": 6.6e-05
+        },
+        {
+          "initializationMilliseconds": 0.18458499999999844,
+          "initializationCpuSeconds": 0.000178,
+          "journeyMilliseconds": 0.1433760000000035,
+          "journeyCpuSeconds": 0.00014
+        },
+        {
+          "initializationMilliseconds": 0.03766699999999901,
+          "initializationCpuSeconds": 3.3e-05,
+          "journeyMilliseconds": 0.06854200000000077,
+          "journeyCpuSeconds": 6.8e-05
+        },
+        {
+          "initializationMilliseconds": 0.040167000000000286,
+          "initializationCpuSeconds": 3.5e-05,
+          "journeyMilliseconds": 0.07025099999999895,
+          "journeyCpuSeconds": 6.8e-05
+        },
+        {
+          "initializationMilliseconds": 0.03870899999999722,
+          "initializationCpuSeconds": 3.3e-05,
+          "journeyMilliseconds": 0.0650010000000023,
+          "journeyCpuSeconds": 6.4e-05
+        },
+        {
+          "initializationMilliseconds": 0.043708999999999776,
+          "initializationCpuSeconds": 3.7e-05,
+          "journeyMilliseconds": 0.06883299999999792,
+          "journeyCpuSeconds": 6.9e-05
+        },
+        {
+          "initializationMilliseconds": 0.04595899999999986,
+          "initializationCpuSeconds": 4e-05,
+          "journeyMilliseconds": 0.06387600000000049,
+          "journeyCpuSeconds": 6.3e-05
+        },
+        {
+          "initializationMilliseconds": 0.04004199999999969,
+          "initializationCpuSeconds": 3.6e-05,
+          "journeyMilliseconds": 0.07187499999999858,
+          "journeyCpuSeconds": 7.1e-05
+        },
+        {
+          "initializationMilliseconds": 0.037834000000000145,
+          "initializationCpuSeconds": 3.4e-05,
+          "journeyMilliseconds": 0.8998820000000016,
+          "journeyCpuSeconds": 0.000903
+        },
+        {
+          "initializationMilliseconds": 0.046458999999998696,
+          "initializationCpuSeconds": 4.1e-05,
+          "journeyMilliseconds": 0.07704199999999872,
+          "journeyCpuSeconds": 7.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.04366700000000279,
+          "initializationCpuSeconds": 3.9e-05,
+          "journeyMilliseconds": 0.07487499999999869,
+          "journeyCpuSeconds": 7.4e-05
+        },
+        {
+          "initializationMilliseconds": 0.045999999999999375,
+          "initializationCpuSeconds": 4e-05,
+          "journeyMilliseconds": 0.07320899999999853,
+          "journeyCpuSeconds": 7.2e-05
+        },
+        {
+          "initializationMilliseconds": 0.035501000000000005,
+          "initializationCpuSeconds": 3e-05,
+          "journeyMilliseconds": 0.06174999999999997,
+          "journeyCpuSeconds": 6.1e-05
+        },
+        {
+          "initializationMilliseconds": 0.037041999999999575,
+          "initializationCpuSeconds": 3e-05,
+          "journeyMilliseconds": 0.06400000000000006,
+          "journeyCpuSeconds": 6.3e-05
+        },
+        {
+          "initializationMilliseconds": 0.03645799999999966,
+          "initializationCpuSeconds": 3e-05,
+          "journeyMilliseconds": 0.0657090000000018,
+          "journeyCpuSeconds": 6.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.05308400000000191,
+          "initializationCpuSeconds": 4.9e-05,
+          "journeyMilliseconds": 0.07637599999999978,
+          "journeyCpuSeconds": 7.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.12929199999999952,
+          "initializationCpuSeconds": 0.000119,
+          "journeyMilliseconds": 0.08854300000000137,
+          "journeyCpuSeconds": 8.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.03770899999999955,
+          "initializationCpuSeconds": 3.3e-05,
+          "journeyMilliseconds": 0.07475000000000165,
+          "journeyCpuSeconds": 7.3e-05
+        },
+        {
+          "initializationMilliseconds": 0.03833399999999898,
+          "initializationCpuSeconds": 3.3e-05,
+          "journeyMilliseconds": 0.06570899999999824,
+          "journeyCpuSeconds": 6.5e-05
+        },
+        {
+          "initializationMilliseconds": 0.08720900000000142,
+          "initializationCpuSeconds": 8.2e-05,
+          "journeyMilliseconds": 0.07350100000000026,
+          "journeyCpuSeconds": 7.3e-05
+        },
+        {
+          "initializationMilliseconds": 0.2607100000000031,
+          "initializationCpuSeconds": 0.000215,
+          "journeyMilliseconds": 0.4357529999999983,
+          "journeyCpuSeconds": 0.000432
+        },
+        {
+          "initializationMilliseconds": 0.03849999999999909,
+          "initializationCpuSeconds": 3.4e-05,
+          "journeyMilliseconds": 0.06825100000000361,
+          "journeyCpuSeconds": 6.7e-05
+        },
+        {
+          "initializationMilliseconds": 0.038167000000001394,
+          "initializationCpuSeconds": 3.2e-05,
+          "journeyMilliseconds": 0.06500099999999875,
+          "journeyCpuSeconds": 6.3e-05
+        },
+        {
+          "initializationMilliseconds": 0.05825000000000102,
+          "initializationCpuSeconds": 5.1e-05,
+          "journeyMilliseconds": 0.13212599999999952,
+          "journeyCpuSeconds": 0.000131
+        }
+      ]
+    }
+  },
+  "acceptance": false
+}

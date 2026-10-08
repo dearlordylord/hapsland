@@ -1,0 +1,45 @@
+{
+  "at": "2026-10-08T08:54:20.204429+00:00",
+  "reviewer": "delegated Astra /root/approve_credential_laws",
+  "decision": "approve command_exact and step_exact as written; no amendments",
+  "laws": [
+    "command_exact",
+    "step_exact"
+  ],
+  "scope": "direct stdin login source-free commands and transition/patch selection; all five phases, five actions and both currentness/availability Booleans",
+  "contractSources": [
+    "docs/installation-workflows.md: direct --login --credential-stdin automation",
+    "docs/adr/0004-administration-cli-interactions.md: safe models and Effect interpreters"
+  ],
+  "hostObligations": [
+    "exact event revision and optional command-ID equality; availability means status exactly available",
+    "initial CheckingStore phase, revision zero, stdin input kind; current revision command IDs",
+    "Hold identity; Advance increments revision once and preserves unpatched fields",
+    "exact checked status and original storage-observation object including generation, stateLock and savedUse",
+    "Done indicates observation completed, not necessarily successful storage",
+    "keys remain in stdin capture/owner operations; cleanup on cancellation/failure; secret-free models, events, Bend inputs and traces",
+    "explicit direct native-save automation remains offline and without interactive confirmation; retain Effect/ownership boundaries"
+  ],
+  "evidenceBoundary": "approval permits proof, falsification, mutation tests and integration; does not establish host correlation, secret handling, actual storage effects or platform support",
+  "currentBaselineReconfirmation": {
+    "at": "2026-10-08T13:38:19.088611+00:00",
+    "reviewer": "Astra /root/approve_credential_laws",
+    "approved": true,
+    "nativeBaseRevision": "64adfceb",
+    "nativeSourceSha256": "d4eb3e697d1bd143268d176f2d54210d06fad5a73f29443b463411e072ab896e",
+    "sha256": {
+      "core.bend": "18a9dbd9cc31bc7a861e1503af26a4c5df115ca077e48e28d65a1f0278384951",
+      "LAWS.bend": "e80d407fdddf6bd18429208c77500c0d45f5995f376cc27c7f5862eb157d354d",
+      "PROOF.bend": "6d95dfc2da5ca81cda3d8cc935f6941decf6ef62574be2a2a1d88f01e3ddab76"
+    },
+    "limits": "law reconfirmation only; no kernel, parity, performance, effects or platform acceptance; original failed cold guard unwaived"
+  },
+  "upstreamReconciliationVerification": {
+    "at": "2026-10-08T14:09:42.393274+00:00",
+    "upstreamRevision": "c1fb071c3286c1ba0de5ee95fa8ec741c57b2cc2",
+    "nativeReducerUnchanged": true,
+    "nativeSourceSha256": "d4eb3e697d1bd143268d176f2d54210d06fad5a73f29443b463411e072ab896e",
+    "approvedCoreLawsProofUnchanged": true,
+    "scope": "byte verification, not a new Astra approval or performance acceptance"
+  }
+}

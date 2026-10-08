@@ -5,7 +5,7 @@ import {
   runDirectCredentialInput,
   type DirectLoginTransition
 } from "@hapsland/administration/credentials/direct-input"
-import { MaskedInputError } from "@hapsland/administration/credentials/masked-input"
+import { MaskedInputError } from "@hapsland/administration/credentials/masked-input-error"
 import { initialLogin, reduceLogin } from "@hapsland/administration/credentials/direct-login-model"
 import { makeInitialCredentialState } from "@hapsland/runtime-inputs/credentials/state"
 import type { CredentialLifecycleResult } from "@hapsland/credential-storage/credentials/owner"
@@ -81,13 +81,13 @@ it.effect.each(["locked", "interaction-required", "unavailable"] as const)(
     })
 )
 
-it.effect("hidden cancellation preserves the previous credential by never calling its mutation owner", () =>
+it.effect.each([
+  new Terminal.QuitError({}),
+  new MaskedInputError({ message: "credential input cancelled", reason: "cancelled" })
+])("hidden cancellation preserves the previous credential by never calling its mutation owner", (failure) =>
   Effect.gen(function* () {
     let saves = 0
-    const result = yield* runDirectCredentialInput({
-      input: Effect.fail(new Terminal.QuitError({})),
-      inputKind: "stdin"
-    }).pipe(
+    const result = yield* runDirectCredentialInput({ input: Effect.fail(failure), inputKind: "stdin" }).pipe(
       Effect.provideService(DirectLoginOwnerService, {
         probe: Effect.succeed("available" as const),
         save: () =>
