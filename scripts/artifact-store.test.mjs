@@ -307,3 +307,35 @@ test("linked authored source and package selection controls remain strong archiv
     assert.notEqual(await packageSourceIdentity(f.root), before)
   }
 })
+
+test("release archive audit consumes fresh outputs under the same live build lease", async (t) => {
+  const f = await fixture(t)
+  let audited = false
+  const artifact = await preparePackageArchive({
+    ...f,
+    validateArchive: async ({ archivePath, archiveDigest }) => {
+      assert.equal(await readFile(archivePath, "utf8"), "archive")
+      assert.match(archiveDigest, /^[a-f0-9]{64}$/)
+      assert.equal(await readFile(join(f.root, "dist/main"), "utf8"), "compiled")
+      const lease = JSON.parse(await readFile(join(f.root, ".test-runs/product-build/lease.json")))
+      assert.equal(lease.state, "open")
+      audited = true
+    }
+  })
+  assert.equal(audited, true)
+  assert.equal(await readFile(artifact.archivePath, "utf8"), "archive")
+})
+
+test("failed release archive audit rejects preparation and releases its lease", async (t) => {
+  const f = await fixture(t)
+  await assert.rejects(
+    preparePackageArchive({
+      ...f,
+      validateArchive: async () => {
+        throw new Error("audit failed")
+      }
+    }),
+    /audit failed/
+  )
+  await assert.rejects(readFile(join(f.root, ".test-runs/product-build/lease.json")), /ENOENT/)
+})

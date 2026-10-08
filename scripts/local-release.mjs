@@ -1,9 +1,7 @@
-import { BUN_VERSION } from "./pinned-bun.mjs"
 import { spawnSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import { readFileSync } from "node:fs"
-import { basename } from "node:path"
-import { prepareReleaseArchive } from "./release-archive.mjs"
+import { readPreparedRelease } from "./prepared-release.mjs"
 import { validateReleaseCoordinates } from "./release-coordinates.mjs"
 
 if (process.argv.length > 2)
@@ -33,46 +31,29 @@ const head = output("git", ["rev-parse", "HEAD"])
 if (
   output("git", ["branch", "--show-current"]) !== "master" ||
   head !== output("git", ["rev-parse", "origin/master"]) ||
-  !clean() ||
-  run("git", ["merge-base", "--is-ancestor", releasePin.sourceCommit, head]).status !== 0
+  !clean()
 ) {
-  throw new Error("release requires clean master equal to origin/master and containing the pinned release commit")
+  throw new Error("release requires clean master equal to origin/master")
 }
 if (!(["linux", "darwin"].includes(process.platform) && process.arch === "arm64") || process.version !== "v24.20.0") {
   throw new Error(
     [
-      "release assembly requires Linux/macOS arm64 and Node 24.20.0.",
+      "release publication requires Linux/macOS arm64 and Node 24.20.0.",
       `Rerun with: mise exec node@24.20.0 -- npm run local-release (current: ${process.platform}/${process.arch}, Node ${process.version}).`
     ].join("\n")
   )
 }
 const manifest = JSON.parse(readFileSync("package.json", "utf8"))
-if (
-  manifest.name !== packageName ||
-  manifest.version !== version ||
-  manifest.private === true ||
-  manifest.packageManager !== `bun@${BUN_VERSION}`
-) {
+if (manifest.name !== packageName || manifest.version !== version || manifest.private === true) {
   throw new Error(`release manifest does not match ${packageName}@${version}`)
 }
-const identity = output("npm", ["whoami", `--registry=${registry}`])
-process.stdout.write(`npm identity: ${identity}\n`)
-checked("mise", ["exec", manifest.packageManager, "--", "bun", "install", "--frozen-lockfile", "--ignore-scripts"], {
-  stdio: "inherit",
-  env: { ...process.env, CI: "true" }
-})
-if (!clean()) throw new Error("frozen dependency installation changed tracked or untracked files")
-const artifact = await prepareReleaseArchive({ root: process.cwd() })
-if (!clean()) throw new Error("release build changed tracked or untracked files")
+// This admission never installs dependencies or starts a compiler. Missing,
+// stale or corrupt candidates fail before npm authentication or publication.
+const artifact = await readPreparedRelease(process.cwd(), releasePin)
 const archive = artifact.archivePath
-if (basename(archive) !== releasePin.archiveFilename)
-  throw new Error("packaging did not produce the pinned archive filename")
-const digest = sha256(readFileSync(archive))
-if (digest !== releasePin.archiveSha256) {
-  throw new Error(`archive checksum differs from the reviewed release pin: ${digest}`)
-}
-checked(process.execPath, ["scripts/audit-release-tarball.mjs", archive, head], { stdio: "inherit" })
-process.stdout.write(`Release artifact: ${archive}\nSHA-256: ${digest}\n`)
+const digest = artifact.archiveDigest
+const identity = output("npm", ["whoami", `--registry=${registry}`])
+process.stdout.write(`npm identity: ${identity}\nRelease artifact: ${archive}\nSHA-256: ${digest}\n`)
 
 const tarballUrl = () => {
   const result = run("npm", ["view", `${packageName}@${version}`, "dist.tarball", "--json", `--registry=${registry}`])
@@ -84,6 +65,9 @@ const tarballUrl = () => {
 }
 let publishedUrl = tarballUrl()
 if (publishedUrl === undefined) {
+  if (!clean() || output("git", ["rev-parse", "HEAD"]) !== head)
+    throw new Error("Release inputs changed before publication")
+  await readPreparedRelease(process.cwd(), releasePin)
   checked(
     "npm",
     [

@@ -437,7 +437,7 @@ workflow and is not offered by the current installer.
 
 ## Publishing
 
-Use the [publishing runbook](npm-publishing.md). `scripts/npm-release-pin.json` owns the reviewed package version, source commit, archive SHA-256, and tag. Stable versions use `latest`; prereleases use `next`. `local-release` rejects mismatches, audits the archive, publishes that exact archive, and verifies the registry download and selected tag. The registry conformance runners select the exact version in the release checkout's manifest.
+Use the [publishing runbook](npm-publishing.md). `release:prepare` builds and audits one archive, retains it locally, and writes the reviewed version-one pin with source-tree, archive and audit identities. Commit and push that pin before publishing. Stable versions use `latest`; prereleases use `next`. `local-release` rejects stale or missing candidates before npm authentication, publishes the retained archive without rebuilding, and verifies the registry download and selected tag. The registry conformance runners select the exact version in the release checkout's manifest.
 
 Changes to packaged code, metadata, or docs require a newly reviewed archive and pin. The retained 0.1.0 pin is historical input and will not match this changed checkout. No publication was performed as part of this implementation. Stable platform advertising still requires exact registry-artifact and authenticated host evidence; passing offline tests alone is insufficient.
 

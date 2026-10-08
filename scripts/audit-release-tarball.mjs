@@ -4,12 +4,15 @@ import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { pathToFileURL } from "node:url"
 import { archiveInventory } from "./archive-inventory.mjs"
-import { validateReleaseCoordinates } from "./release-coordinates.mjs"
+import { validateReleaseTarget } from "./release-coordinates.mjs"
 import { checkHostModuleReceipt } from "./assemble-host-modules.mjs"
 import { fileEvidence } from "./compiler-evidence.mjs"
 import { releaseAssetMappings } from "./release-assets.mjs"
 import { assemblyPrerequisitePath } from "./assembly-prerequisites.mjs"
-import { nativeTaskPlans } from "./native-task-inputs.mjs"
+import { nativeTaskPlans, nativeTaskArtifacts } from "./native-task-inputs.mjs"
+import { validateAssemblyArtifact } from "./assemble-entry.mjs"
+import { assertReleaseSource } from "./release-inputs.mjs"
+import { BUN_VERSION } from "./pinned-bun.mjs"
 import { readPackageGraph, resolveDeclaredDependencyVersion } from "./package-graph.mjs"
 
 export const validateReleasePublication = (root, output, archiveRecord) => {
@@ -20,17 +23,26 @@ export const validateReleasePublication = (root, output, archiveRecord) => {
       throw new Error(`Published release asset differs from owned evidence: ${output.publicPath}`)
 }
 
-export async function auditReleaseTarball(archiveArgument, commit) {
+export async function auditReleaseTarball(
+  archiveArgument,
+  commit,
+  { root = process.cwd(), coordinates, print = true, deadline = Date.now() + 300000 } = {}
+) {
   if (!archiveArgument || !/^[0-9a-f]{40}$/.test(commit ?? "")) {
     throw new Error("usage: node scripts/audit-release-tarball.mjs ARCHIVE.tgz RELEASE_COMMIT_SHA")
   }
+  const requireTime = () => {
+    if (!Number.isFinite(deadline) || Date.now() >= deadline) throw new Error("Release audit deadline exceeded")
+  }
+  requireTime()
   const archive = resolve(archiveArgument)
-  const command = (tool, args) => execFileSync(tool, args, { maxBuffer: 32 * 1024 * 1024 })
+  const command = (tool, args) => execFileSync(tool, args, { cwd: root, timeout: 5000, maxBuffer: 32 * 1024 * 1024 })
+  const pin = coordinates ?? JSON.parse(readFileSync(resolve(root, "scripts/npm-release-pin.json"), "utf8"))
   const head = command("git", ["rev-parse", "HEAD"]).toString().trim()
-  if (head !== commit || command("git", ["status", "--porcelain", "--untracked-files=normal"]).toString().trim()) {
+  if (head !== commit || assertReleaseSource(root, pin, { allowGenerated: true }) !== commit) {
     throw new Error("release audit requires the exact pinned commit in a clean worktree")
   }
-  const inventory = await archiveInventory(archive)
+  const inventory = await archiveInventory(archive, { timeoutMs: deadline - Date.now() })
   const archiveRecord = (path) => {
     const record = inventory.get(`package/${path}`)
     if (!record || record.directory) throw new Error(`release tarball is missing ${path}`)
@@ -53,7 +65,6 @@ export async function auditReleaseTarball(archiveArgument, commit) {
       }
       return name.slice("package/".length)
     })
-  const root = process.cwd()
   const graph = readPackageGraph(root)
   const hostSnapshot = JSON.parse(readFileSync(assemblyPrerequisitePath(root, "pi-extension", "host"), "utf8"))
   const hostReceipt = await checkHostModuleReceipt(root, hostSnapshot)
@@ -105,7 +116,7 @@ export async function auditReleaseTarball(archiveArgument, commit) {
   for (const name of names) {
     if (!allowed(name)) throw new Error(`unexpected registry tarball file: ${name}`)
   }
-  const releasePin = validateReleaseCoordinates(JSON.parse(gitFile("scripts/npm-release-pin.json")))
+  const releasePin = validateReleaseTarget(pin)
   const manifest = JSON.parse(archiveFile("package.json"))
   if (JSON.stringify(manifest) !== JSON.stringify(JSON.parse(gitFile("package.json")))) {
     throw new Error("tarball manifest differs from the pinned release commit")
@@ -138,10 +149,35 @@ export async function auditReleaseTarball(archiveArgument, commit) {
     for (const command of ["hapsland", "hapsland-doctor", "hapsland-parser", "hapsland-resident", "hapsland-hook"])
       required.push(`dist/bin/${profile}/${command}`)
   }
-  for (const path of nativeFiles) {
-    required.push(path)
-    if (archiveContentDigest(path) !== sha256(gitFile(path)))
-      throw new Error(`native artifact differs from pinned release commit: ${path}`)
+  for (const profile of ["linux-arm64", "darwin-arm64"]) {
+    requireTime()
+    const native = await nativeTaskArtifacts(root, graph, profile)
+    for (const asset of native.assets) {
+      required.push(asset.installedPath)
+      const owned = fileEvidence(root, asset.physicalPath)
+      validateReleasePublication(
+        root,
+        { ...owned, publicPath: asset.installedPath },
+        archiveRecord(asset.installedPath)
+      )
+      const plan = nativeTaskPlans(root, graph, profile)
+        .flatMap((plan) => plan.assets)
+        .find((item) => item.installedPath === asset.installedPath)
+      if (
+        !(profile === pin.buildPlatform && plan.asset.producer.kind === "c") &&
+        archiveContentDigest(asset.installedPath) !== sha256(gitFile(asset.installedPath))
+      )
+        throw new Error(`copied native artifact differs from pinned release commit: ${asset.installedPath}`)
+    }
+    for (const node of graph.packages.values()) {
+      if (!node.manifest.hapsland?.role) continue
+      requireTime()
+      const snapshot = JSON.parse(
+        readFileSync(assemblyPrerequisitePath(root, node.manifest.hapsland.role, profile), "utf8")
+      )
+      for (const output of (await validateAssemblyArtifact(root, node, profile, snapshot)).outputs)
+        validateReleasePublication(root, output, archiveRecord(output.publicPath))
+    }
   }
   for (const name of required) if (!names.includes(name)) throw new Error(`release tarball is missing ${name}`)
   for (const name of defaultRuleFiles)
@@ -171,23 +207,25 @@ export async function auditReleaseTarball(archiveArgument, commit) {
   const archiveHash = sha256(readFileSync(archive))
   if (
     command("git", ["rev-parse", "HEAD"]).toString().trim() !== commit ||
-    command("git", ["status", "--porcelain", "--untracked-files=normal"]).toString().trim()
+    assertReleaseSource(root, pin, { allowGenerated: true }) !== commit
   )
     throw new Error("release source identity changed during archive audit")
-  process.stdout.write(
-    JSON.stringify(
-      {
-        package: `${manifest.name}@${manifest.version}`,
-        commit,
-        archiveSha256: archiveHash,
-        files: names.length,
-        nativeArtifacts: required.filter((name) => name.startsWith("native/")).length,
-        status: "audited"
-      },
-      null,
-      2
-    ) + "\n"
-  )
+  requireTime()
+  const record = {
+    format: 1,
+    package: `${manifest.name}@${manifest.version}`,
+    repositoryUrl: releasePin.repositoryUrl,
+    commit,
+    sourceTreeSha256: pin.sourceTreeSha256,
+    buildPlatform: pin.buildPlatform,
+    toolchain: { node: process.version, bun: BUN_VERSION },
+    archiveSha256: archiveHash,
+    files: names.length,
+    nativeArtifacts: nativeFiles.length,
+    status: "audited"
+  }
+  if (print) process.stdout.write(`${JSON.stringify(record, null, 2)}\n`)
+  return record
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href)
   await auditReleaseTarball(...process.argv.slice(2))
