@@ -27,7 +27,7 @@ for (const prefix of ["", "#!/usr/bin/env node\n", "#!/usr/bin/env bun\n"])
     assert.deepEqual(JSON.parse(result.stdout), { mode: null, arg: "space argument" })
   })
 
-test("shared launcher does not depend on Bun or Node on PATH and preserves argv", (t) => {
+test("shared launcher works with an empty PATH and preserves argv", (t) => {
   const directory = realpathSync(mkdtempSync(join(tmpdir(), "hapsland-shared-launcher-")))
   t.after(() => rmSync(directory, { recursive: true, force: true }))
   writeFileSync(join(directory, "hapsland"), '#!/bin/sh\nprintf "%s\\n" "$BUN_BE_BUN" "$@"\n', { mode: 0o755 })
@@ -36,7 +36,7 @@ test("shared launcher does not depend on Bun or Node on PATH and preserves argv"
   const result = spawnSync(launcher, ["space argument", "--flag"], {
     encoding: "utf8",
     timeout: 5000,
-    env: { PATH: "/usr/bin:/bin" }
+    env: { PATH: join(directory, "missing-path") }
   })
   assert.equal(result.status, 0, result.stderr)
   assert.deepEqual(result.stdout.trim().split("\n"), [
