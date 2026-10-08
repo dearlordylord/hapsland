@@ -1,0 +1,16 @@
+{
+  "recordedAt": "2026-10-08T05:29:42.631717+00:00",
+  "approver": "gpt-6-astra",
+  "authorization": "User: any laws - approve with Astra",
+  "decision": {
+    "lookup_exact": "approved without changes",
+    "save_exact": "approved without changes"
+  },
+  "scope": "source ordering/inclusion and save-target availability; no host, ABI, execution or platform qualification",
+  "lawSha256": "8b4b8282e298a2230792be904d4f9f67cf7b7ca26653eb48721071f43f1e7c02",
+  "hostObligations": [
+    "preserve definedness and current paths/targets/descriptor metadata",
+    "stop lookup on explicit empty environment values",
+    "retain file safety and saving consent"
+  ]
+}

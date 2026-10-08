@@ -1,0 +1,43 @@
+{
+  "at": "2026-10-08T05:29:42.631717+00:00",
+  "branch": "migration/bend-strangler",
+  "baseRevision": "a071b9b58",
+  "frontier": "credential lookup ordering/inclusion and save eligibility",
+  "sliceStatus": "integrated and locally qualified",
+  "lawStatus": "approved by delegated Astra review",
+  "productionRouting": "runtime-inputs host mapping calls checked canonical-policy adapter and emitted Bend decisions",
+  "nextPerformanceCheckpointUtc": "2026-10-08T05:52:55.310000+00:00",
+  "checks": {
+    "proofs": "Bend and mathematical kernel pass for both approved laws",
+    "mutationSensitivity": "12 executable mutants detected and rejected by unchanged approved proofs",
+    "producerFixtures": "29 tests pass",
+    "currentFocusedCredentialConsumers": "35 tests in 5 files pass on final optimized code",
+    "earlierSetupAndCredentialConsumers": "59 tests in 6 files passed before host optimization; setup was not repeated after equivalent planning optimization",
+    "checkFast": "complete sequential command passes on final optimized code",
+    "productionAuthority": "shared adapter boundary check passes",
+    "executionParity": {
+      "medianRatio": 0.7976493898289391,
+      "scope": "current compiled production credential planning versus frozen master a071b9b58; full output field consumption; warm finite caches; no credential IO or startup timing"
+    },
+    "buildParity": {
+      "meanRatio": 0.9476581791419652,
+      "scope": "paired repeated workspace builds after separate preparation; first pair mostly rebuilt and second pair cached; native release assembly excluded"
+    }
+  },
+  "invalidAttempts": [
+    "initial baseline build changed inputs during execution",
+    "overlapping qualification runners removed outputs during typecheck; sequential reproduction and full rerun passed"
+  ],
+  "remaining": [
+    "continue migration at the next reasonable frontier",
+    "retain periodic paired build and execution checks",
+    "full TypeScript-to-Bend objective remains incomplete"
+  ],
+  "sha256": {
+    "packages/agent-flow-bend/credential-policy/core.bend": "4737d511e4588a1bc8594bfac55270888ddac2d0aeea70fc551730552095f930",
+    "packages/agent-flow-bend/credential-policy/LAWS.bend": "8b4b8282e298a2230792be904d4f9f67cf7b7ca26653eb48721071f43f1e7c02",
+    "packages/agent-flow-bend/credential-policy/PROOF.bend": "c6c6170dde59880e24dcf8424e23c6563e457d2d0f03b53bb33a670e1b645ae4",
+    "packages/canonical-policy/src/canonical/credential-adapter.ts": "dc154a1ceec3807ae092dbcf582ba8a87e9558c5058d21e9c2e77e55f0385f04",
+    "packages/runtime-inputs/src/credentials/policy.ts": "1357164c1b49d14784241fb91b8c8963ed7a3325723254cd665e8d5bb6a412c1"
+  }
+}

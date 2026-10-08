@@ -40,6 +40,15 @@ later edges pending. Missing, ambiguous, and unsupported targets also emit
 skip occur, the final graph reason is `TreeLimit`; otherwise a denied path finishes
 `Excluded`. Other omitted imports finish `Omitted`.
 
+`credential-policy/core.bend` owns source-free credential lookup ordering and
+save-target availability. Its approved laws and kernel-checked proofs pin every
+Boolean planning input and every source constructor. The emitted artifact is
+consumed through the canonical-policy credential adapter; host code retains
+paths, target strings, descriptor text, file safety, empty-environment handling
+and save consent. The generator checks the proofs before emitting the artifact,
+and the producer receipt binds the laws, proofs, implementation and authored ABI.
+Finite caches retain only source kinds and Boolean decisions.
+
 `Canonical.bend` is the production transition model and drives the main
 visualization through the checked TypeScript adapter.
 The maintained [TypeScript decision boundary ledger](../../docs/typescript-decision-boundary-ledger.md)

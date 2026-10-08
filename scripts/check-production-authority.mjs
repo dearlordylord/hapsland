@@ -75,6 +75,13 @@ const scan = (directory) => {
     )
       obsoleteImports.push(path)
     if (
+      path !== "packages/canonical-policy/src/canonical/credential-adapter.ts" &&
+      /from ["'](?:[^"']*credential-policy\.generated(?:\.js)?|@hapsland\/agent-flow-bend\/credential-policy)["']/.test(
+        source
+      )
+    )
+      obsoleteImports.push(path)
+    if (
       path !== "packages/canonical-policy/src/canonical/graph-adapter.ts" &&
       /from ["']@hapsland\/agent-flow-bend\/import-graph["']/.test(source)
     )

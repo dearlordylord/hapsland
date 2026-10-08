@@ -47,6 +47,10 @@
     "./canonical/simulation-codec": {
       "types": "./dist/canonical/simulation-codec.d.ts",
       "default": "./dist/canonical/simulation-codec.js"
+    },
+    "./canonical/credential-adapter": {
+      "types": "./dist/canonical/credential-adapter.d.ts",
+      "default": "./dist/canonical/credential-adapter.js"
     }
   },
   "dependencies": {

@@ -1,8 +1,5 @@
+// Frozen execution baseline from master a071b9b58; evidence only, never a production import.
 import { Schema } from "effect"
-import {
-  credentialLookupSources,
-  credentialSaveAvailable
-} from "@hapsland/canonical-policy/canonical/credential-adapter"
 
 export const ReadableSource = Schema.Literals(["environment", "project-local", "project", "user", "native"])
 export type ReadableSource = typeof ReadableSource.Type
@@ -107,29 +104,16 @@ export const CredentialSaveResult = Schema.Struct({
 })
 export type CredentialSaveResult = typeof CredentialSaveResult.Type
 
-export const deriveLookupPlan = (context: CredentialContext): LookupStep[] => {
-  const result: LookupStep[] = []
-  const sources = credentialLookupSources(
-    context.referenceExplicit,
-    context.captured,
-    context.root !== undefined,
-    context.projectLocalFile !== undefined,
-    context.projectFile !== undefined
-  )
-  for (let index = 0; index < sources.length; index++) {
-    const kind = sources[index]!
-    if (kind === "environment") result.push({ kind, envVar: context.envVar })
-    else if (kind === "native") result.push({ kind, target: context.nativeTarget })
-    else {
-      const file =
-        kind === "user" ? context.userFile : kind === "project" ? context.projectFile : context.projectLocalFile
-      result.push({ kind, file: file! })
-    }
-  }
-  return result
-}
+export const deriveLookupPlan = (context: CredentialContext): LookupStep[] =>
+  credentialPolicy.sources.flatMap((kind): LookupStep[] => {
+    if (kind === "environment") return [{ kind, envVar: context.envVar }]
+    if (kind === "native") return context.referenceExplicit ? [] : [{ kind, target: context.nativeTarget }]
+    if (context.captured || context.root === undefined) return []
+    const file =
+      kind === "user" ? context.userFile : kind === "project" ? context.projectFile : context.projectLocalFile
+    return file === undefined ? [] : [{ kind, file }]
+  })
 export const deriveSavePlan = (context: CredentialContext, destination: SaveDestination): SavePlan | undefined => {
-  if (!credentialSaveAvailable(destination, context.projectLocalFile !== undefined)) return undefined
   const descriptor = credentialPolicy.destinations.find((item) => item.kind === destination)
   const target =
     destination === "user"
@@ -137,9 +121,9 @@ export const deriveSavePlan = (context: CredentialContext, destination: SaveDest
       : destination === "native"
         ? context.nativeTarget
         : context.projectLocalFile
-  return descriptor === undefined
+  return descriptor === undefined || target === undefined
     ? undefined
-    : { destination, target: target!, scope: descriptor.scope, storage: descriptor.storage }
+    : { destination, target, scope: descriptor.scope, storage: descriptor.storage }
 }
 export const nativeEligible = (context: CredentialContext): boolean =>
   deriveLookupPlan(context).some((step) => step.kind === "native")

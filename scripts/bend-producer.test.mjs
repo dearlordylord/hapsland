@@ -65,17 +65,35 @@ async function fixture(t) {
     })
   )
   mkdirSync(resolve(directory, "request-content"), { recursive: true })
+  mkdirSync(resolve(directory, "credential-policy"), { recursive: true })
+  writeFileSync(resolve(directory, "credential-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
+  writeFileSync(resolve(directory, "credential-policy/core.bend"), "// Credential policy fixture\n")
   for (const name of ["CanonicalRuntime.bend", "ImportGraphRuntime.bend", "request-content/Runtime.bend"])
     writeFileSync(resolve(directory, name), "import Base\n")
   writeFileSync(resolve(directory, "request-content/Runtime.bend"), "import Base\nimport ./core.bend as Core\n")
   writeFileSync(resolve(directory, "request-content/core.bend"), "// Actual projector input fixture\n")
-  for (const name of ["build-canonical.mjs", "build-import-graph.mjs", "build-request-content.mjs"])
+  for (const name of [
+    "build-canonical.mjs",
+    "build-import-graph.mjs",
+    "build-request-content.mjs",
+    "build-credential-policy.mjs"
+  ])
     writeFileSync(resolve(directory, "scripts", name), "// Generator fixture identity\n")
-  for (const name of ["canonical.generated.d.ts", "import-graph.generated.d.ts", "request-content.generated.d.ts"]) {
+  for (const name of [
+    "canonical.generated.d.ts",
+    "import-graph.generated.d.ts",
+    "request-content.generated.d.ts",
+    "credential-policy.generated.d.ts"
+  ]) {
     writeFileSync(resolve(directory, "abi", name), "export declare const fixture: number;\n")
     writeFileSync(resolve(directory, "dist", name), "export declare const fixture: number;\n")
   }
-  for (const name of ["canonical.generated.js", "import-graph.generated.js", "request-content.generated.js"])
+  for (const name of [
+    "canonical.generated.js",
+    "import-graph.generated.js",
+    "request-content.generated.js",
+    "credential-policy.generated.js"
+  ])
     writeFileSync(resolve(directory, "dist", name), "export const fixture=1;\n")
   const node = { path: directory },
     context = await bendProducerContext(root, node)
@@ -130,13 +148,13 @@ for (const text of [
 ])
   test(`rejects unsupported generated loader ${text}`, () =>
     assert.throws(() => bendGeneratedLoaderEvidence(text, "generated.js"), /Unsupported generated Bend loader/))
-test("valid receipt binds actual compiler/support/input bytes and exact six outputs", async (t) => {
+test("valid receipt binds actual compiler/support/input bytes and exact eight outputs", async (t) => {
   const f = await fixture(t)
   assert.equal(f.verify().format, 1)
   assert.equal(f.context.toolchain.version, "bend 2.0.36")
   assert.ok(f.context.toolchain.support.inventory.length)
   assert.ok(f.context.toolchain.toolLibraries.length)
-  assert.equal(f.receipt.outputs.length, 6)
+  assert.equal(f.receipt.outputs.length, 8)
 })
 test("Bend-only scheduling replaces a stale PATH task stamp before the scheduler reads it", async (t) => {
   const f = await fixture(t)
@@ -291,6 +309,7 @@ test("Bend producer rejects unconsumed authored input drift and clears owned out
   writeFileSync(resolve(f.directory, "scripts/build-canonical.mjs"), generator("canonical"))
   writeFileSync(resolve(f.directory, "scripts/build-import-graph.mjs"), generator("import-graph"))
   writeFileSync(resolve(f.directory, "scripts/build-request-content.mjs"), generator("request-content"))
+  writeFileSync(resolve(f.directory, "scripts/build-credential-policy.mjs"), generator("credential-policy"))
   let toolchain = await bendProducerToolchain(f.root)
   prepareAuthoredTaskInputs(f.root, { packages: new Map([[manifest.name, owner]]) }, { bendToolchain: toolchain })
   await buildBendProducer(f.root, owner)
@@ -311,8 +330,13 @@ test("request-content core and authored ABI remain producer receipt authority", 
   writeFileSync(resolve(f.directory, "request-content/core.bend"), "// Changed projection policy\n")
   assert.throws(f.verify, /Stale Bend producer receipt context|caller context is stale/)
 })
-for (const file of ["request-content.generated.js", "request-content.generated.d.ts"])
-  test(`omitted third producer output ${file} cannot pass a receipt`, async (t) => {
+for (const file of [
+  "request-content.generated.js",
+  "request-content.generated.d.ts",
+  "credential-policy.generated.js",
+  "credential-policy.generated.d.ts"
+])
+  test(`omitted declared producer output ${file} cannot pass a receipt`, async (t) => {
     const f = await fixture(t)
     rmSync(resolve(f.directory, "dist", file))
     assert.throws(f.verify, /Incomplete or changed Bend producer output inventory/)
@@ -338,4 +362,11 @@ test("Darwin loaded-library evidence records resolved and transitive paths witho
     () => bendDarwinLoadedLibraries("dyld[12]: <AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE> /other/node", "/tools/node"),
     /Missing Darwin executable/
   )
+})
+
+test("credential proof edits invalidate producer receipt authority", async (t) => {
+  const f = await fixture(t)
+  f.verify()
+  writeFileSync(resolve(f.directory, "credential-policy/PROOF.bend"), "import Base\n// Changed proof input\n")
+  assert.throws(f.verify, /Stale Bend producer receipt context|caller context is stale/)
 })

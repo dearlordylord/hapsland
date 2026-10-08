@@ -1,0 +1,70 @@
+{
+  "at": "2026-10-08T04:52:38.280Z",
+  "runtime": {
+    "node": "24.3.0",
+    "bun": "1.3.14",
+    "boringssl": "0c5fce43b7ed5eb6001487ee48ac65766f5ddcd1",
+    "openssl": "1.1.0",
+    "llhttp": "9.3.0",
+    "libarchive": "ded82291ab41d5e355831b96b0e1ff49e24d8939",
+    "mimalloc": "f15aecb94fc8096008bf87b90c53ed682026914a",
+    "picohttpparser": "066d2b1e9ab820703db0837a7255d92d30f0c9f5",
+    "uwebsockets": "0d9b296af33f2b851fcbf4df3e9ec89751734ba4",
+    "webkit": "5488984d20e0dbfe4be2c3ba8fb18eb81a5e0e8b",
+    "zig": "04e7f6ac1e009525bc00934f20199c68f04e0a24",
+    "zlib": "12731092979c6d07f42da27da673a9f6c7b13586",
+    "tinycc": "12882eee073cfe5c7621bcfadf679e1372d4537b",
+    "lolhtml": "77127cd2b8545998756e8d64e36ee2313c4bb312",
+    "ares": "3ac47ee46edd8ea40370222f91613fc16c434853",
+    "libdeflate": "c8c56a20f8f621e6a966b716b31f1dedab6a41e3",
+    "usockets": "0d9b296af33f2b851fcbf4df3e9ec89751734ba4",
+    "lshpack": "8905c024b6d052f083a3d11d0a169b3c2735c8a1",
+    "zstd": "f8745da6ff1ad1e7bab384bd1f9d742439278e99",
+    "v8": "13.6.233.10-node.18",
+    "uv": "1.48.0",
+    "napi": "10",
+    "icu": "75.1",
+    "unicode": "15.1",
+    "modules": "137"
+  },
+  "compileMs": 659.304443,
+  "loops": 10000,
+  "contexts": 32,
+  "checksum": 1440000,
+  "cacheEntries": {
+    "lookup": 32,
+    "save": 6
+  },
+  "samplesMs": {
+    "typescript": [
+      546.3343810000001,
+      231.67708500000026,
+      214.66983099999925,
+      87.10399199999938,
+      89.45917699999973,
+      117.71526500000073,
+      97.13548399999945
+    ],
+    "bendWithHostConversion": [
+      357.3177019999994,
+      372.29969000000074,
+      268.86574199999995,
+      131.04711599999973,
+      133.48113400000057,
+      129.72235600000022,
+      129.29360300000008
+    ],
+    "bendWithBoundedCache": [
+      50.15304599999945,
+      162.522062,
+      75.06548399999974,
+      69.08252200000061,
+      52.23376999999982,
+      52.39681300000029,
+      57.26534900000024
+    ]
+  },
+  "medianRatio": 0.4864734323114329,
+  "executionParity": true,
+  "scope": "candidate emitted Bend with full host plan conversion versus current TypeScript; interleaved lanes; no IO or production integration"
+}

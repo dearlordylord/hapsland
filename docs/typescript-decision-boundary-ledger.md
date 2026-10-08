@@ -28,6 +28,15 @@ validation evidence. The [adapter benchmark](../scripts/benchmark-canonical-adap
 compares fixed traces across checkouts; it does not declare a new timing budget or
 establish native platform support.
 
+Credential source ordering/inclusion and save-target availability now use the
+[credential Bend core](../packages/agent-flow-bend/credential-policy/core.bend)
+through the [checked credential adapter](../packages/canonical-policy/src/canonical/credential-adapter.ts).
+The host maps each selected source to its current path or target and retains
+filesystem validation, empty-environment authority, storage effects and consent.
+The [credential policy tests](../src/credentials/policy.test.ts) compare all
+planning facts and changed host targets with the frozen pre-migration baseline.
+These checks do not establish native credential-store or platform support.
+
 ## Decision-family coverage
 
 The authority consolidation uses `Canonical.step` for resident transitions and
@@ -244,8 +253,8 @@ Compiler and host names below are manifest declarations, not measured execution 
 
 | Workspace | Compiler / host | Authored export sources |
 | --- | --- | --- |
-| @hapsland/canonical-policy | typescript / bun | [./canonical/adapter](../packages/canonical-policy/src/canonical/adapter.ts); [./canonical/boundary-schema](../packages/canonical-policy/src/canonical/boundary-schema.ts); [./canonical/canonical-boundary](../packages/canonical-policy/src/canonical/canonical-boundary.ts); [./canonical/constructors](../packages/canonical-policy/src/canonical/constructors.ts); [./canonical/event-reader](../packages/canonical-policy/src/canonical/event-reader.ts); [./canonical/graph-adapter](../packages/canonical-policy/src/canonical/graph-adapter.ts); [./canonical/graph-limits](../packages/canonical-policy/src/canonical/graph-limits.ts); [./canonical/graph-schema](../packages/canonical-policy/src/canonical/graph-schema.ts); [./canonical/immutable](../packages/canonical-policy/src/canonical/immutable.ts); [./canonical/models](../packages/canonical-policy/src/canonical/models.ts); [./canonical/simulation-codec](../packages/canonical-policy/src/canonical/simulation-codec.ts) |
-| @hapsland/agent-flow-bend | bend / bun | [./canonical](../packages/agent-flow-bend/abi/canonical.generated.d.ts); [./import-graph](../packages/agent-flow-bend/abi/import-graph.generated.d.ts); [./request-content](../packages/agent-flow-bend/abi/request-content.generated.d.ts) |
+| @hapsland/canonical-policy | typescript / bun | [./canonical/adapter](../packages/canonical-policy/src/canonical/adapter.ts); [./canonical/boundary-schema](../packages/canonical-policy/src/canonical/boundary-schema.ts); [./canonical/canonical-boundary](../packages/canonical-policy/src/canonical/canonical-boundary.ts); [./canonical/constructors](../packages/canonical-policy/src/canonical/constructors.ts); [./canonical/event-reader](../packages/canonical-policy/src/canonical/event-reader.ts); [./canonical/graph-adapter](../packages/canonical-policy/src/canonical/graph-adapter.ts); [./canonical/graph-limits](../packages/canonical-policy/src/canonical/graph-limits.ts); [./canonical/graph-schema](../packages/canonical-policy/src/canonical/graph-schema.ts); [./canonical/immutable](../packages/canonical-policy/src/canonical/immutable.ts); [./canonical/models](../packages/canonical-policy/src/canonical/models.ts); [./canonical/simulation-codec](../packages/canonical-policy/src/canonical/simulation-codec.ts); [./canonical/credential-adapter](../packages/canonical-policy/src/canonical/credential-adapter.ts) |
+| @hapsland/agent-flow-bend | bend / bun | [./canonical](../packages/agent-flow-bend/abi/canonical.generated.d.ts); [./import-graph](../packages/agent-flow-bend/abi/import-graph.generated.d.ts); [./request-content](../packages/agent-flow-bend/abi/request-content.generated.d.ts); [./credential-policy](../packages/agent-flow-bend/abi/credential-policy.generated.d.ts) |
 
 ### Canonical events
 
