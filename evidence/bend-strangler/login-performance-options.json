@@ -1,0 +1,85 @@
+{
+  "at": "2026-10-08T05:46:09.009Z",
+  "cases": 2048,
+  "samples": {
+    "typescript": [
+      {
+        "milliseconds": 77.77261899999996,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 73.24249999999995,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 74.025173,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 76.65215200000011,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 74.50513500000011,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 72.8192469999999,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 75.12872300000004,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 73.76925400000005,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 74.51621799999975,
+        "checksum": 47256000
+      }
+    ],
+    "integratedBend": [
+      {
+        "milliseconds": 102.330647,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 98.92678799999999,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 99.02528799999993,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 101.40559900000017,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 99.03282999999988,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 99.35858299999995,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 100.183673,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 100.23367299999995,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 100.8488440000001,
+        "checksum": 47256000
+      }
+    ]
+  },
+  "medianRatio": 1.3446546066925433,
+  "executionParity": false,
+  "scope": "warm compiled login reducer and command mapping; exhaustive typed native payload materialization; IO, startup, secret lifetime and platform support excluded"
+}

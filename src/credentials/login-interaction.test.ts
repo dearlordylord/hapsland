@@ -192,3 +192,44 @@ it.effect("interruption after mutation starts retains the known completed storag
     })
   )
 )
+
+it("native callback fences preserve identity and reset drops every prior payload", () => {
+  const model = {
+    phase: "EnteringKey" as const,
+    revision: 7,
+    destination: "user" as const,
+    proposal,
+    storage: stored,
+    active: { status: "present" as const, source: "user" as const, generation: 1 }
+  }
+  expect(reduceLogin(model, { revision: 7, action: { kind: "entered", commandId: 6, proposalId: proposal.id } })).toBe(
+    model
+  )
+  expect(reduceLogin(model, { revision: 7, action: { kind: "back" } })).toEqual({
+    phase: "SelectingDestination",
+    revision: 8
+  })
+  const missing = { phase: "ConfirmingSave" as const, revision: 7 }
+  expect(reduceLogin(missing, { revision: 7, action: { kind: "approved", proposalId: proposal.id, yes: true } })).toBe(
+    missing
+  )
+})
+
+it("stale saving preserves prior payloads while active completion patches only its observation", () => {
+  const saving = { phase: "SavingKey" as const, revision: 7, destination: "user" as const, proposal, storage: stored }
+  expect(reduceLogin(saving, { revision: 7, action: { kind: "exit" } })).toBe(saving)
+  const stale = reduceLogin(saving, {
+    revision: 7,
+    action: { kind: "observed", commandId: 7, storage: { ...stored, status: "stale" } }
+  })
+  expect(stale).toEqual({ ...saving, phase: "PreparingTarget", revision: 8 })
+  expect(stale.proposal).toBe(proposal)
+  expect(stale.storage).toBe(stored)
+  const checking = { ...saving, phase: "CheckingActive" as const }
+  expect(reduceLogin(checking, { revision: 7, action: { kind: "exit" } })).toBe(checking)
+  const active = { status: "present" as const, source: "user" as const, generation: 1 }
+  const done = reduceLogin(checking, { revision: 7, action: { kind: "active", commandId: 7, active } })
+  expect(done).toEqual({ ...checking, phase: "Done", revision: 8, active })
+  expect(done.active).toBe(active)
+  expect(reduceLogin(done, { revision: 8, action: { kind: "back" } })).toBe(done)
+})

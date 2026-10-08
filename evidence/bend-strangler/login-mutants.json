@@ -1,0 +1,66 @@
+{
+  "at": "2026-10-08T05:56:05.660Z",
+  "results": [
+    {
+      "name": "ignore revision fence",
+      "behavioralResult": "detected",
+      "proofResult": "rejected by unchanged approved proofs"
+    },
+    {
+      "name": "ignore proposal correlation",
+      "behavioralResult": "detected",
+      "proofResult": "rejected by unchanged approved proofs"
+    },
+    {
+      "name": "ignore declined consent",
+      "behavioralResult": "detected",
+      "proofResult": "rejected by unchanged approved proofs"
+    },
+    {
+      "name": "exit during saving",
+      "behavioralResult": "detected",
+      "proofResult": "rejected by unchanged approved proofs"
+    },
+    {
+      "name": "exit during active read",
+      "behavioralResult": "detected",
+      "proofResult": "rejected by unchanged approved proofs"
+    },
+    {
+      "name": "reopen completed flow",
+      "behavioralResult": "detected",
+      "proofResult": "rejected by unchanged approved proofs"
+    },
+    {
+      "name": "reopen cancelled flow",
+      "behavioralResult": "detected",
+      "proofResult": "rejected by unchanged approved proofs"
+    },
+    {
+      "name": "accept blocked proposal",
+      "behavioralResult": "detected",
+      "proofResult": "rejected by unchanged approved proofs"
+    },
+    {
+      "name": "accept stale storage",
+      "behavioralResult": "detected",
+      "proofResult": "rejected by unchanged approved proofs"
+    },
+    {
+      "name": "back retains payloads",
+      "behavioralResult": "detected",
+      "proofResult": "rejected by unchanged approved proofs"
+    },
+    {
+      "name": "wrong payload patch",
+      "behavioralResult": "detected",
+      "proofResult": "rejected by unchanged approved proofs"
+    },
+    {
+      "name": "wrong terminal command",
+      "behavioralResult": "detected",
+      "proofResult": "rejected by unchanged approved proofs"
+    }
+  ],
+  "scope": "finite navigation policy; host payload and consent mechanisms checked separately"
+}

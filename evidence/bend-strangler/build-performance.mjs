@@ -13,7 +13,8 @@ for (let round = 0; round < 2; round++) {
     if (timeout <= 0) throw new Error("Build comparison deadline exhausted")
     const start = performance.now()
     const result = spawnSync(process.execPath, ["scripts/build-workspaces.mjs"], { cwd: root, timeout, encoding: "utf8", maxBuffer: 8 * 1024 * 1024 })
-    const sample = { seconds: (performance.now() - start) / 1000, exitCode: result.status, signal: result.signal, error: result.error?.message ?? null }
+    const cached = [...(result.stdout + result.stderr).matchAll(/Cached:\s+(\d+) cached, (\d+) total/g)].at(-1)
+    const sample = { cachedTasks: cached ? Number(cached[1]) : null, totalTasks: cached ? Number(cached[2]) : null, seconds: (performance.now() - start) / 1000, exitCode: result.status, signal: result.signal, error: result.error?.message ?? null }
     samples[name].push(sample)
     writeFileSync(`/tmp/hapsland-bend-build-${name}-${round}.log`, result.stdout + result.stderr)
     writeFileSync(new URL("./build-performance.json", import.meta.url), JSON.stringify({ startedAt, at: new Date().toISOString(), samples, scope: "paired warm workspace builds; baseline master a071b9b58 and current candidate; both separately prepared; native release assembly excluded" }, null, 2) + "\n")

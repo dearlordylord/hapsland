@@ -1,0 +1,17 @@
+{
+  "at": "2026-10-08",
+  "reviewer": "delegated Astra",
+  "laws": [
+    "command_exact",
+    "step_exact"
+  ],
+  "decision": "approved as written",
+  "scope": "source-free navigation and exact payload patch selection",
+  "hostObligations": [
+    "Compute current from revision and optional callback commandId equality",
+    "Compute matched from present current proposal id",
+    "Hold preserves identity; reset clears payloads; advance preserves unpatched payloads and increments revision once",
+    "Keep secret lifetime, native consent and owner revalidation in existing Effect owners"
+  ],
+  "permits": "falsification, proofs, mutation testing and integration"
+}

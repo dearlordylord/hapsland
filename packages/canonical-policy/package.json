@@ -51,6 +51,10 @@
     "./canonical/credential-adapter": {
       "types": "./dist/canonical/credential-adapter.d.ts",
       "default": "./dist/canonical/credential-adapter.js"
+    },
+    "./canonical/login-adapter": {
+      "types": "./dist/canonical/login-adapter.d.ts",
+      "default": "./dist/canonical/login-adapter.js"
     }
   },
   "dependencies": {

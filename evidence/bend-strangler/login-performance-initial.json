@@ -1,0 +1,85 @@
+{
+  "at": "2026-10-08T05:44:34.351Z",
+  "cases": 2048,
+  "samples": {
+    "typescript": [
+      {
+        "milliseconds": 119.68183599999998,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 120.13033899999982,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 120.05412999999999,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 118.26657499999965,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 119.84487900000022,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 127.80115100000012,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 132.92194199999994,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 117.87744600000042,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 122.05243799999971,
+        "checksum": 47256000
+      }
+    ],
+    "integratedBend": [
+      {
+        "milliseconds": 255.12642299999993,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 251.95581500000003,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 253.95416399999976,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 254.462626,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 274.440869,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 263.12315400000034,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 275.8810900000003,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 249.52458699999988,
+        "checksum": 47256000
+      },
+      {
+        "milliseconds": 251.94439800000055,
+        "checksum": 47256000
+      }
+    ]
+  },
+  "medianRatio": 2.1195657825349286,
+  "executionParity": false,
+  "scope": "warm compiled login reducer and command mapping; exhaustive typed native payload materialization; IO, startup, secret lifetime and platform support excluded"
+}

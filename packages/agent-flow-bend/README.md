@@ -49,6 +49,16 @@ and save consent. The generator checks the proofs before emitting the artifact,
 and the producer receipt binds the laws, proofs, implementation and authored ABI.
 Finite caches retain only source kinds and Boolean decisions.
 
+`login-policy/core.bend` owns login command selection, navigation and payload
+patch selection through the canonical-policy login adapter. Astra-approved laws
+characterize all phases, actions and Boolean facts; the kernel checks their
+proofs before generation. Native code compares revision and callback tokens,
+compares the current proposal identity, applies exactly the selected patch and
+retains Effect owners for input capture, consent and storage. The finite adapter
+tables contain immutable navigation plans only. Replay-derived diagrams remain
+behavioral evidence; these proofs do not establish secret lifetime, owner
+revalidation, IO or platform support.
+
 `Canonical.bend` is the production transition model and drives the main
 visualization through the checked TypeScript adapter.
 The maintained [TypeScript decision boundary ledger](../../docs/typescript-decision-boundary-ledger.md)

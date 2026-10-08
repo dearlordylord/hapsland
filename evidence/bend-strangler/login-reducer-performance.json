@@ -1,0 +1,85 @@
+{
+  "at": "2026-10-08T05:49:08.974Z",
+  "cases": 2048,
+  "samples": {
+    "typescript": [
+      {
+        "milliseconds": 38.693939,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 39.988699,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 39.45777799999996,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 40.40045299999997,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 40.86183100000005,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 47.82697099999996,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 50.203115000000025,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 43.16997500000002,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 43.597353999999996,
+        "checksum": 38784000
+      }
+    ],
+    "integratedBend": [
+      {
+        "milliseconds": 63.33713899999998,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 60.94728599999996,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 59.62098400000002,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 61.52666499999998,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 78.92901500000005,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 78.35709399999996,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 72.24854400000004,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 72.17445999999995,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 65.05881899999986,
+        "checksum": 38784000
+      }
+    ]
+  },
+  "medianRatio": 1.5921660240824689,
+  "executionParity": false,
+  "scope": "warm compiled login reducer and command mapping; exhaustive typed native payload materialization; IO, startup, secret lifetime and platform support excluded"
+}
