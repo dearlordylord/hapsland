@@ -148,6 +148,7 @@ export const generateVerificationDiagram = Effect.gen(function* () {
   return `# Credential verification and replacement interaction
 
 **Purpose:** Show production paid-check consent, source-specific correction and replacement outcomes.
+**Audience:** Contributors, including coding agents; Product and specification owners reviewing CLI journeys.
 **Status:** Maintained generated diagram.
 **Authority:** Implementation and controlled validation evidence for #244; accepted credential and installation contracts retain authority.
 **Expected use:** Understand paid-check consent and recovery; run \`npm run interaction:diagrams:check\` for non-writing freshness.

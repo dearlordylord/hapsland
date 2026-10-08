@@ -1,6 +1,7 @@
 # Adding a source-language adapter
 
 **Purpose:** Describe the current adapter architecture and the repeatable workflow for adding a source language to Hapsland.
+**Audience:** Contributors, including coding agents implementing source-language adapters.
 **Status:** Maintained contributor guidance.
 **Authority:** Implementation guidance and links to validation evidence. The [accepted type/function review contract](type-function-review-proposal.md), [rule evaluation model](../PRODUCT-RULE-EVALUATION-MODEL.md), and runtime contracts own product requirements; this guide does not amend them.
 **Expected use:** Implement, test, and review a source-language adapter.

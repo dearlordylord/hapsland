@@ -1,6 +1,7 @@
 # Login interaction
 
 **Purpose:** Show production credential destination selection and approved saving.
+**Audience:** Contributors, including coding agents; Product and specification owners reviewing CLI journeys.
 **Status:** Maintained generated diagram.
 **Authority:** Implementation and controlled validation evidence for #248; the issue and accepted credential contracts own requirements.
 **Expected use:** Understand destination selection, save approval and recovery and run `npm run interaction:diagrams:check` for freshness.

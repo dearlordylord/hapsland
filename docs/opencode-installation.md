@@ -1,6 +1,7 @@
 # OpenCode integration status
 
 **Purpose:** Explain the current OpenCode adapter boundary and how to remove an existing Hapsland-owned plugin.
+**Audience:** End users of the named agent runtime; contributors maintaining its integration.
 **Status:** Candidate integration unavailable for review.
 **Authority:** Maintained runtime guidance; the [advice contract](advicing-target-contract.md) owns admission requirements.
 **Expected use:** Check whether OpenCode can currently deliver Hapsland review and remove an existing owned installation.

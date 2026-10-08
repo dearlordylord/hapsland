@@ -5,6 +5,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { execFile, spawn } from "node:child_process"
 import { promisify } from "node:util"
+import { runBuildProcess } from "./build-process.mjs"
 import { withBuildLock } from "./build-lock.mjs"
 const execute = promisify(execFile)
 const fixture = async (work) => {
@@ -243,4 +244,41 @@ test("inherited admission uses caller budget and refuses late mutation", () =>
         await rm(admission, { recursive: true })
       }
     })
+  }))
+
+// Exercise the real inherited lease and failed subprocess, rather than an
+// exception thrown directly by the owner's callback.
+test("failed registered build child releases custody before the next build", () =>
+  fixture(async (root) => {
+    const script = `import {withBuildLock} from ${JSON.stringify(new URL("./build-lock.mjs", import.meta.url).href)};
+      await withBuildLock(${JSON.stringify(root)},async()=>{throw new Error('real child failed')});`
+    await assert.rejects(
+      withBuildLock(root, (env) =>
+        runBuildProcess(process.execPath, ["--input-type=module", "-e", script], { env, timeout: 5000, stdio: "pipe" })
+      ),
+      /Build process failed/
+    )
+    for (const name of ["lock", "lease.json", "groups"])
+      await assert.rejects(access(join(root, ".test-runs/product-build", name)), { code: "ENOENT" })
+    await withBuildLock(root, async () => {})
+  }))
+
+test("cleanup failure preserves the initiating build failure and retained custody", () =>
+  fixture(async (root) => {
+    await assert.rejects(
+      withBuildLock(root, async () => {
+        const directory = join(root, ".test-runs/product-build")
+        await mkdir(join(directory, "groups"))
+        await writeFile(join(directory, "groups/broken.json"), "{")
+        throw new Error("source compilation failed")
+      }),
+      (error) => {
+        assert(error instanceof AggregateError)
+        assert.match(error.message, /source compilation failed; build custody cleanup failed/)
+        assert.equal(error.errors[0].message, "source compilation failed")
+        assert.equal(error.groupUnresolved, true)
+        return true
+      }
+    )
+    await access(join(root, ".test-runs/product-build/lock/owner.json"))
   }))

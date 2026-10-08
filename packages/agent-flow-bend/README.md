@@ -1,6 +1,7 @@
 # Hapsland agent flow in Bend
 
 **Purpose:** Explain the Bend package, production boundary, generated artifacts, and executable checks.
+**Audience:** Contributors, including coding agents maintaining this package and its consumers.
 **Status:** Active package documentation.
 **Authority:** Maintained guidance; linked specifications own accepted product behavior.
 **Expected use:** Build, inspect, and change Bend models and their checked production adapters.

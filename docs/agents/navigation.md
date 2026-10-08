@@ -1,6 +1,7 @@
 # Repository map
 
 **Purpose:** Route contributors and coding agents to current contracts, implementation owners, checks, and public assets.
+**Audience:** Contributors, including coding agents.
 **Status:** Active repository navigation.
 **Authority:** Maintained guidance; the linked accepted contracts own product behavior, and tests and reports establish only their stated evidence.
 **Expected use:** Choose the task below before searching or reading historical material.
@@ -22,6 +23,7 @@ Paths in the implementation column are entry points, not a complete module inven
 | Task | Contract or guidance | Implementation entry points | Focused checks |
 | --- | --- | --- | --- |
 | Understand the product and vocabulary | [Product context](../../CONTEXT.md), [architecture](../architecture.md) | [CLI](../../packages/cli-entry/src/cli.ts) | [Testing matrix](../testing-matrix.md) |
+| Change source-build ownership or recover retained build custody | [Build workflow contract](../build-workflow-contract.md) | [Build lease](../../scripts/build-lock.mjs), [reconciliation](../../scripts/reconcile-build-custody.mjs) | [Recovery procedure and evidence boundaries](../testing-matrix.md#recovering-retained-build-custody) |
 | Change the optional teaching game or balance experiments | [Game guide](../../prototypes/canonical-defense/README.md), [laboratory guide and #203](../../prototypes/canonical-defense/lab/README.md) | [Actual Host](../../prototypes/canonical-defense/DefenseHost.bend), [headless game seam](../../prototypes/canonical-defense/DefenseLab.bend), [experiment API](../../prototypes/canonical-defense/lab/game.ts) | [Optional-game and laboratory gates](../testing-matrix.md), [focused laboratory tests](../../scripts/game-balance-lab.test.mts) |
 | Change feedback, collection, or finish behavior | [Advice and handoff contract](../advicing-target-contract.md), [Claude blocking decision](../adr/0003-claude-direct-edit-blocking-authority.md) | [Shared feedback text](../../packages/delivery-output/src/feedback/message.ts), [Collection and formatting](../../packages/resident-runtime/src/resident/collection.ts), [Claude output](../../packages/delivery-output/src/direct-event/claude-output.ts), [composed delivery](../../packages/resident-runtime/src/resident/composed-delivery.ts) | [Collection](../../src/resident/collection.test.ts), [Claude delivery](../../src/resident/claude-delivery.test.ts), [terminal collection](../../src/resident/terminal-collection.test.ts) |
 | Change resident work, RPC, reuse, or lifetime | [Advice contract](../advicing-target-contract.md), [TypeScript decision ledger](../typescript-decision-boundary-ledger.md) | [Server](../../packages/resident-runtime/src/resident/server.ts), [IPC contract](../../packages/resident-transport/src/resident/protocol.ts), [reuse](../../packages/resident-runtime/src/resident/evaluation-reuse.ts) | [Server](../../src/resident/server.test.ts), [protocol](../../src/resident/protocol.test.ts), [reuse](../../src/resident/evaluation-reuse.test.ts) |

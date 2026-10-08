@@ -1,5 +1,7 @@
 # Rule-meaning milestone evidence
 
+**Audience:** Evaluation contributors and reviewers; Product and specification owners.
+
 **Historical milestone record, 2026-09-20.** Deterministic offline validation and
 the explicit live milestone were complete at this recording.
 No paid provider call was made by ordinary tests or while landing/correcting the

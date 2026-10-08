@@ -1,5 +1,7 @@
 # Direct-event v1 acceptance narrative
 
+**Audience:** Contributors, including coding agents validating runtime behavior; Build and release maintainers; Product and specification owners.
+
 **Historical acceptance record.** Extracted from the direct-event v1 profile.
 The observations below describe the retained acceptance runs and do not establish
 current checkout or installed-release status. The [profile](../../docs/direct-event-v1-supported-profile.md)

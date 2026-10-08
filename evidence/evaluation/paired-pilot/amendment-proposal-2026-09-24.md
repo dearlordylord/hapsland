@@ -1,5 +1,7 @@
 # Proposed amendment after the Stage 2 token stop
 
+**Audience:** Evaluation contributors and reviewers; Product and specification owners.
+
 **Status:** proposal for owner review; not in force. No further host session or Jev call has begun. The [original registration](protocol.md) and [Arm A result](./arm-a-pilot-report.md) remain intact.
 
 ## Trigger and accounting clarification

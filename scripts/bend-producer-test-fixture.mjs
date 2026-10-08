@@ -19,10 +19,13 @@ export async function createBendReceiptFixture(root, repositoryRoot) {
     "native-toolchain-inputs.mjs",
     "build-process.mjs",
     "build-lock.mjs",
+    "build-custody-gate.mjs",
     "build-groups.mjs",
     "owned-lock.mjs"
   ])
     copyFileSync(resolve(repositoryRoot, "scripts", name), resolve(root, "scripts", name))
+  mkdirSync(resolve(root, "native/src"), { recursive: true })
+  copyFileSync(resolve(repositoryRoot, "native/src/inspection-lock.c"), resolve(root, "native/src/inspection-lock.c"))
   const manifestPath = resolve(directory, "package.json")
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"))
   const authority = JSON.parse(readFileSync(resolve(repositoryRoot, "packages/agent-flow-bend/package.json"), "utf8"))

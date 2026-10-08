@@ -1,5 +1,7 @@
 # Fresh pilot stop after B1 postprocessing failure — 2026-09-24
 
+**Audience:** Evaluation contributors and reviewers; Product and specification owners.
+
 ## Decision and protocol status
 
 The preregistered fresh order was A1, B1, B2, A2. A1 has a complete sanitized record and source tree. B1 produced a final source tree, but the harness exited with code 139 before writing its sanitized record. B2 and A2 are stopped. B1 cannot satisfy the protocol's completed-session definition for pairing: its host exit status, reported token use, time, and visibility record are missing, so the stop-before-next-session token gate cannot be checked. Do not retry B1 or substitute a new tree under the frozen protocol. The two-pair confirmatory pilot is incomplete; no pair difference, variance, or Hapsland effect estimate is reported.

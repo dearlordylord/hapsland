@@ -1,6 +1,7 @@
 # Checks policy
 
 **Purpose:** Select sufficient checks and keep verification cost proportional to product risk.
+**Audience:** Contributors, including coding agents; Build and release maintainers.
 **Status:** Active repository guidance.
 **Authority:** Maintained workflow policy; accepted product contracts own required behavior.
 **Expected use:** Read before selecting or changing checks, or running a full gate.

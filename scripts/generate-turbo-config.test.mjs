@@ -128,7 +128,7 @@ test("uncached compiler cleanup has static inputs and remains a build prerequisi
   assert.deepEqual(cleanup.outputs, [])
   assert.ok(cleanup.inputs.includes("package.json"))
   assert.ok(cleanup.inputs.includes("$TURBO_ROOT$/scripts/clean-compiler-output.mjs"))
-  assert.ok(!JSON.stringify(cleanup).includes("src/"))
+  assert.ok(!cleanup.inputs.some((input) => input.startsWith("src/")))
   assert.deepEqual(result.tasks["@probe/hook#build"].dependsOn, ["@probe/hook#clean:compiler", "@probe/input#build"])
   const missing = graph()
   delete missing.packages.get("@probe/hook").manifest.scripts["clean:compiler"]

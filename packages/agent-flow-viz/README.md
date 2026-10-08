@@ -1,6 +1,7 @@
 # Hapsland production decision visualization
 
 **Purpose:** Explain the production decision visualization and how to build and inspect it.
+**Audience:** Contributors, including coding agents maintaining this package and its consumers.
 **Status:** Active visualization documentation.
 **Authority:** Maintained guidance.
 **Expected use:** Run the dashboard and understand the scope of guided/manual replay and its evidence.

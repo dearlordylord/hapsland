@@ -1,6 +1,7 @@
 # CLI user journeys
 
 **Purpose:** Index administration user journeys by the CLI commands that start them and link their generated diagrams.
+**Audience:** Contributors, including coding agents; Product and specification owners reviewing CLI journeys.
 **Status:** Maintained flow documentation and inventory.
 **Authority:** Maintained implementation documentation. [#244](https://github.com/dearlordylord/hapsland/issues/244) and the linked domain contracts own required behavior; test results establish only their executed scope.
 **Expected use:** Locate command journeys and their diagrams; use the source preflight and replay freshness checks before accepting UI changes.
