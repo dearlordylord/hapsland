@@ -1,8 +1,8 @@
 {
   "library": "bend/Base",
-  "compilerVersion": "2.0.35",
-  "compilerSource": "79df8d9",
-  "moduleHash": "c742fae9c49b14f0cc9128429a2c6109364c8a933a142f2c90b9f2e5fd976661",
+  "compilerVersion": "2.0.36",
+  "compilerSource": "ae1101c",
+  "moduleHash": "99ac43f2b2bb3e3f39acdcedcecbbd3cb44749ce13969c827d6973fa66f7facf",
   "namespacePrefixes": [
     "ALeaf",
     "ANode",
@@ -52,8 +52,10 @@
     "Or",
     "Pair",
     "Pix",
+    "Poll",
     "Process",
     "Qua",
+    "Ready",
     "Result",
     "SCon",
     "SNil",
@@ -72,6 +74,7 @@
     "Unit",
     "WCon",
     "WNil",
+    "Wait",
     "Window",
     "Word",
     "Zero"

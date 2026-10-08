@@ -128,7 +128,7 @@ independent proof suite passed, nor that a native runtime or installed release
 passed its behavioral gates. Issue #243's final build/cache/publication and
 quality acceptance remain separate from this ownership description.
 
-Artifact generation requires exact **Bend 2.0.35**. The pinned Linux release
+Artifact generation requires exact **Bend 2.0.36**. The pinned Linux release
 archives and SHA-256 digests live in `../../scripts/install-bend-toolchain.mjs`;
 its proof kernel uses Lean 4.34.0. Build scripts reject another compiler version
 before writing an artifact. A compiler update must update the pin and generated
@@ -185,7 +185,7 @@ JSON parsing resolves duplicate keys before the bridge, following native JSON se
 There is no private-envelope, request-history, retry, recovery or scheduler model in
 this proof. The earlier disconnected content model has been deleted.
 
-Run `npm run test:content-isolation`. Use Bend 2.0.35 on PATH or set
+Run `npm run test:content-isolation`. Use Bend 2.0.36 on PATH or set
 `HAPSLAND_CONTENT_BEND` to its executable. The gate checks 448 literal instances and
 all equality premises, rejects seven compiling mutants at their own law proofs,
 requires the BendTT kernel verdict, and verifies that disabling the kernel fails.
