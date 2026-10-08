@@ -58,8 +58,17 @@ export const CanonicalConstructors = {
   "Canonical.AdmissionForgotten": Schema.suspend(() =>
     Schema.Struct({ $: Schema.Literal("Canonical.AdmissionForgotten") })
   ),
+  "Canonical.ActionRequested": Schema.suspend(() =>
+    Schema.Struct({ $: Schema.Literal("Canonical.ActionRequested"), request: Schema.Unknown })
+  ),
+  "Canonical.EventEstablished": Schema.suspend(() =>
+    Schema.Struct({ $: Schema.Literal("Canonical.EventEstablished"), event: Schema.Unknown })
+  ),
+  "Canonical.PolicyDecided": Schema.suspend(() =>
+    Schema.Struct({ $: Schema.Literal("Canonical.PolicyDecided"), decision: Schema.Unknown })
+  ),
   "Canonical.Advanced": Schema.suspend(() =>
-    Schema.Struct({ $: Schema.Literal("Canonical.Advanced"), state: Schema.Unknown, commands: Schema.Unknown })
+    Schema.Struct({ $: Schema.Literal("Canonical.Advanced"), state: Schema.Unknown, outputs: Schema.Unknown })
   ),
   "Canonical.CacheAlready": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.CacheAlready") })),
   "Canonical.CacheCommitted": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.CacheCommitted") })),
@@ -381,17 +390,15 @@ export const CanonicalConstructors = {
   ),
   "Canonical.NeverSent": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.NeverSent") })),
   "Canonical.NoticeCommitted": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.NoticeCommitted") })),
-  "Canonical.NoticeCreateKey": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.NoticeCreateKey") })),
-  "Canonical.NoticeCreatePending": Schema.suspend(() =>
-    Schema.Struct({ $: Schema.Literal("Canonical.NoticeCreatePending"), count: Nat })
+  "Canonical.CreateNoticeKey": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.CreateNoticeKey") })),
+  "Canonical.NoticePendingCreated": Schema.suspend(() =>
+    Schema.Struct({ $: Schema.Literal("Canonical.NoticePendingCreated"), count: Nat })
   ),
   "Canonical.NoticeDropped": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.NoticeDropped") })),
-  "Canonical.NoticeKeepLeased": Schema.suspend(() =>
-    Schema.Struct({ $: Schema.Literal("Canonical.NoticeKeepLeased") })
-  ),
+  "Canonical.NoticeLeaseKept": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.NoticeLeaseKept") })),
   "Canonical.NoticeLeased": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.NoticeLeased") })),
-  "Canonical.NoticeMergePending": Schema.suspend(() =>
-    Schema.Struct({ $: Schema.Literal("Canonical.NoticeMergePending"), count: Nat })
+  "Canonical.NoticePendingMerged": Schema.suspend(() =>
+    Schema.Struct({ $: Schema.Literal("Canonical.NoticePendingMerged"), count: Nat })
   ),
   "Canonical.NoticePendingCleared": Schema.suspend(() =>
     Schema.Struct({ $: Schema.Literal("Canonical.NoticePendingCleared") })
@@ -493,23 +500,25 @@ export const CanonicalConstructors = {
     Schema.Struct({ $: Schema.Literal("Canonical.ReservationReleased"), id: Nat })
   ),
   "Canonical.RetainCandidate": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.RetainCandidate") })),
-  "Canonical.RetainFinding": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.RetainFinding") })),
+  "Canonical.FindingRetained": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.FindingRetained") })),
   "Canonical.RetireCandidate": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.RetireCandidate") })),
-  "Canonical.RetireStaleFinding": Schema.suspend(() =>
-    Schema.Struct({ $: Schema.Literal("Canonical.RetireStaleFinding") })
+  "Canonical.StaleFindingRetired": Schema.suspend(() =>
+    Schema.Struct({ $: Schema.Literal("Canonical.StaleFindingRetired") })
   ),
   "Canonical.ReuseAttached": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.ReuseAttached") })),
-  "Canonical.ReuseCached": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.ReuseCached") })),
+  "Canonical.ReuseCacheHit": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.ReuseCacheHit") })),
   "Canonical.ReuseClaimed": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.ReuseClaimed") })),
-  "Canonical.ReuseJoinAdvice": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.ReuseJoinAdvice") })),
-  "Canonical.ReuseJoinClaimed": Schema.suspend(() =>
-    Schema.Struct({ $: Schema.Literal("Canonical.ReuseJoinClaimed") })
+  "Canonical.ReuseAdviceJoined": Schema.suspend(() =>
+    Schema.Struct({ $: Schema.Literal("Canonical.ReuseAdviceJoined") })
   ),
-  "Canonical.ReuseJoinPending": Schema.suspend(() =>
-    Schema.Struct({ $: Schema.Literal("Canonical.ReuseJoinPending") })
+  "Canonical.ReuseClaimedJoined": Schema.suspend(() =>
+    Schema.Struct({ $: Schema.Literal("Canonical.ReuseClaimedJoined") })
+  ),
+  "Canonical.ReusePendingJoined": Schema.suspend(() =>
+    Schema.Struct({ $: Schema.Literal("Canonical.ReusePendingJoined") })
   ),
   "Canonical.ReuseKeepMember": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.ReuseKeepMember") })),
-  "Canonical.ReuseOwn": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.ReuseOwn") })),
+  "Canonical.ReuseOwned": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.ReuseOwned") })),
   "Canonical.ReuseRefused": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.ReuseRefused") })),
   "Canonical.ReuseReleased": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.ReuseReleased") })),
   "Canonical.ReuseSetMemberClear": Schema.suspend(() =>
@@ -611,9 +620,9 @@ export const CanonicalConstructors = {
   "Canonical.RuleOrder": Schema.suspend(() =>
     Schema.Struct({ $: Schema.Literal("Canonical.RuleOrder"), order: Schema.Unknown })
   ),
-  "Canonical.SettleClear": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.SettleClear") })),
-  "Canonical.SettleStaleClear": Schema.suspend(() =>
-    Schema.Struct({ $: Schema.Literal("Canonical.SettleStaleClear") })
+  "Canonical.ClearSettled": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.ClearSettled") })),
+  "Canonical.StaleClearSettled": Schema.suspend(() =>
+    Schema.Struct({ $: Schema.Literal("Canonical.StaleClearSettled") })
   ),
   "Canonical.State": Schema.suspend(() =>
     Schema.Struct({

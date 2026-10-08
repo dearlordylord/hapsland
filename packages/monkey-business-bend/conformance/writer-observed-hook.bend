@@ -8,38 +8,65 @@ import ./writer-observed-transport.bend as Originals
 import ../Engine.bend as Engine
 import ../Driver.bend as Driver
 import ../Types.bend as Types
+import ../FreshnessScenario.bend as Freshness
 import ../OutputScenario.bend as OutputFacts
 import ../../agent-flow-bend/Canonical.bend as C
 
 # The hook is a finite continuation over the actual command tail. It carries
 # original factual captures only. Engine handlers own eligibility/reservation.
 type Facts is Data:
-  Facts{sharing: Sharing.Facts, bindings: List<&2,Originals.Binding>,
-    original: Maybe<&2,Originals.Capsule>, issued: Nat, environment: Edge.Environment, payload: Maybe<&2,Context.Payload>}
+  Facts{
+    sharing: Sharing.Facts,
+    bindings: List<&2, Originals.Binding>,
+    original: Maybe<&2, Originals.Capsule>,
+    issued: Nat,
+    environment: Edge.Environment,
+    payload: Maybe<&2, Context.Payload>
+  }
 type Captured is Data:
-  Captured{runtime: List<&2,Edge.Runtime>, bindings: List<&2,Originals.Binding>, valid: Bool}
+  Captured{runtime: List<&2, Edge.Runtime>, bindings: List<&2, Originals.Binding>, valid: Bool}
 
 # Original response custody passes only to newly queued non-physical actions.
 # No target is derived from current participant state after its departure.
-def bind(original: Maybe<&2,Originals.Capsule>, action: Driver.Action, order: Nat,
-    bindings: List<&2,Originals.Binding>) -> List<&2,Originals.Binding>:
+def bind(original: Maybe<&2, Originals.Capsule>, action: Driver.Action, order: Nat,
+    bindings: List<&2, Originals.Binding>) -> List<&2, Originals.Binding>:
   match original:
-    case Some{Originals.Response{identity}}: Originals.bind_response(action,order,identity,bindings)
+    case Some{Originals.Response{identity}}: Originals.bind_response(
+      action,
+      order,
+      identity,
+      bindings
+    )
     case _: bindings
 
-def sharing_runtime(value: Capture.Captured) -> List<&2,Edge.Runtime>:
+def sharing_runtime(value: Capture.Captured) -> List<&2, Edge.Runtime>:
   match value:
-    case Capture.Captured{runtime,_,_,_}: runtime
+    case Capture.Captured{runtime, _, _, _}: runtime
 
-def physical_capture(allowed: Bool, event: C.CanonicalEvent, now: Nat, environment: Edge.Environment) -> Maybe<&2,OutputFacts.Capture>:
+def physical_capture(
+  allowed: Bool,
+  event: C.CanonicalEvent,
+  now: Nat,
+  environment: Edge.Environment
+) -> Maybe<&2, OutputFacts.Capture>:
   match environment:
-    case Edge.Environment{_,_,_,_,delay,lease,_,_}: Output.authorized_capture(allowed,event,now,delay,lease)
+    case Edge.Environment{_, _, _, _, delay, lease, _, _}: Output.authorized_capture(
+      allowed,
+      event,
+      now,
+      delay,
+      lease
+    )
 
-def issued(value: Output.Issued, runtime: List<&2,Edge.Runtime>, bindings: List<&2,Originals.Binding>) -> Captured:
+def issued(
+  value: Output.Issued,
+  runtime: List<&2, Edge.Runtime>,
+  bindings: List<&2, Originals.Binding>
+) -> Captured:
   match value runtime:
-    case Output.Issued{state,_} Edge.Runtime{_,queue,jobs,delay} <> Nil{}:
-      Captured{[Edge.Runtime{state,queue,jobs,delay}],bindings,True{}}
-    case _ runtime: Captured{runtime,bindings,False{}}
+    case Output.Issued{state, _} Edge.Runtime{_, queue, jobs, delay} <> Nil{}:
+      Captured{[Edge.Runtime{state, queue, jobs, delay}], bindings, True{}}
+    case _ runtime: Captured{runtime, bindings, False{}}
 
 def job_partition(job: Edge.Job) -> Nat:
   Edge.job_partition(job)
@@ -47,121 +74,314 @@ def job_partition(job: Edge.Job) -> Nat:
 def payload_of(+state: Types.State, +action: Driver.Action, available: Bool,
     job: Edge.Job) -> Context.Payload:
   match action:
-    case Driver.Action{_,_,_,requested,_}:
-      Context.captured(state,action,job_partition(job),Bool.and(available,requested))
+    case Driver.Action{_, _, _, requested, _}:
+      Context.captured(state, action, job_partition(job), Bool.and(available, requested))
 
 def replaced(equal: Bool, item: Edge.Item, payload: Context.Payload) -> Edge.Item:
   match equal item:
-    case True{} Edge.Item{at,order,Edge.Event{action,job,source,issuance}}:
-      Edge.Item{at,order,Edge.Event{action,Context.queued(payload,job),source,issuance}}
+    case True{} Edge.Item{at, order, Edge.Event{action, job, source, issuance}}:
+      Edge.Item{at, order, Edge.Event{action, Context.queued(payload, job), source, issuance}}
     case _ item: item
 
-def queued_context(items: List<&2,Edge.Item>, +order: Nat, +payload: Context.Payload) -> List<&2,Edge.Item>:
+def queued_context(
+  items: List<&2, Edge.Item>,
+  +order: Nat,
+  +payload: Context.Payload
+) -> List<&2, Edge.Item>:
   match items:
     case Nil{}: []
     case +item <> tail:
       match item:
-        case Edge.Item{_,candidate,_}:
-          replaced(Nat.is_eq(order,candidate),item,payload) <> queued_context(tail,order,payload)
+        case Edge.Item{_, candidate, _}:
+          replaced(Nat.is_eq(order, candidate), item, payload) <> queued_context(
+            tail,
+            order,
+            payload
+          )
 
 def contextual_queue(queue: Edge.Queue, order: Nat, payload: Context.Payload) -> Edge.Queue:
   match queue:
-    case Edge.Queue{items,sequence,synced}: Edge.Queue{queued_context(items,order,payload),sequence,synced}
+    case Edge.Queue{items, sequence, synced}: Edge.Queue{
+      queued_context(items, order, payload),
+      sequence,
+      synced
+    }
 
 # Reuse the existing exact physical issuer, without an intervention/control.
 # The factual authorized-command marker is the same output hook's predicate;
 # callbacks retain the original emitted action and scheduler sequence.
 # Keep the full runtime closed while the physical issuer executes.
-def fresh_issue(+runtime: List<&2,Edge.Runtime>, +action: Driver.Action, at: Nat,
-    order: Nat, bindings: List<&2,Originals.Binding>, allowed: Bool,
+def fresh_issue(+runtime: List<&2, Edge.Runtime>, +action: Driver.Action, at: Nat,
+    order: Nat, bindings: List<&2, Originals.Binding>, allowed: Bool,
     environment: Edge.Environment) -> Captured:
   match runtime action:
-    case Edge.Runtime{+state,_,_,_} <> Nil{} Driver.Action{+event,d,c,j,e}:
-      issued(Output.issue_captured(physical_capture(allowed,event,Engine.clock(state),environment),state,order,at,
-        Driver.Action{event,d,c,j,e}),runtime,bindings)
-    case runtime _: Captured{runtime,bindings,False{}}
+    case Edge.Runtime{+state, _, _, _} <> Nil{} Driver.Action{+event, d, c, j, e}:
+      issued(
+        Output.issue_captured(
+          physical_capture(allowed, event, Engine.clock(state), environment),
+          state,
+          order,
+          at,
+          Driver.Action{event, d, c, j, e}
+        ),
+        runtime,
+        bindings
+      )
+    case runtime _: Captured{runtime, bindings, False{}}
 
-def fresh_action(fresh: Bool, +action: Driver.Action, +runtime: List<&2,Edge.Runtime>,
-    at: Nat, +order: Nat, +job: Edge.Job, +bindings: List<&2,Originals.Binding>,
-    original: Maybe<&2,Originals.Capsule>, allowed: Bool, available: Bool, environment: Edge.Environment) -> Captured:
+def fresh_action(
+  fresh: Bool,
+  +action: Driver.Action,
+  +runtime: List<&2, Edge.Runtime>,
+  at: Nat,
+  +order: Nat,
+  +job: Edge.Job,
+  +bindings: List<&2, Originals.Binding>,
+  original: Maybe<&2, Originals.Capsule>,
+  allowed: Bool,
+  available: Bool,
+  environment: Edge.Environment
+) -> Captured:
   match fresh action runtime:
-    case True{} Driver.Action{+event,+d,+c,+j,+e} Edge.Runtime{+state,queue,jobs,delay} <> Nil{}:
-      +payload=payload_of(state,Driver.Action{event,d,c,j,e},available,job)
-      fresh_issue([Edge.Runtime{state,contextual_queue(queue,order,payload),jobs,delay}],
-        Driver.Action{event,d,c,j,e},at,order,
-        Originals.bind_context(bind(original,Driver.Action{event,d,c,j,e},order,bindings),order,payload),allowed,environment)
-    case _ _ runtime: Captured{runtime,bindings,True{}}
+    case True{} Driver.Action{+event, +d, +c, +j, +e} Edge.Runtime{+state, queue, jobs, delay} <> Nil{}:
+      +payload=payload_of(state, Driver.Action{event, d, c, j, e}, available, job)
+      fresh_issue(
+        [Edge.Runtime{state, contextual_queue(queue, order, payload), jobs, delay}],
+        Driver.Action{event, d, c, j, e},
+        at,
+        order,
+        Originals.bind_context(
+          bind(original, Driver.Action{event, d, c, j, e}, order, bindings),
+          order,
+          payload
+        ),
+        allowed,
+        environment
+      )
+    case _ _ runtime: Captured{runtime, bindings, True{}}
 
-def fresh(item: Edge.Item, runtime: List<&2,Edge.Runtime>, +cutoff: Nat,
-    bindings: List<&2,Originals.Binding>, original: Maybe<&2,Originals.Capsule>, allowed: Bool, available: Bool, environment: Edge.Environment) -> Captured:
+def fresh(
+  item: Edge.Item,
+  runtime: List<&2, Edge.Runtime>,
+  +cutoff: Nat,
+  bindings: List<&2, Originals.Binding>,
+  original: Maybe<&2, Originals.Capsule>,
+  allowed: Bool,
+  available: Bool,
+  environment: Edge.Environment
+) -> Captured:
   match item:
-    case Edge.Item{at,+order,Edge.Event{action,job,_,issuance}}:
-      fresh_action(Nat.is_le(cutoff,order),action,runtime,at,order,job,bindings,original,allowed,available,environment)
-    case _: Captured{runtime,bindings,True{}}
+    case Edge.Item{at, +order, Edge.Event{action, job, _, issuance}}:
+      fresh_action(
+        Nat.is_le(cutoff, order),
+        action,
+        runtime,
+        at,
+        order,
+        job,
+        bindings,
+        original,
+        allowed,
+        available,
+        environment
+      )
+    case _: Captured{runtime, bindings, True{}}
 
 def continue_capture(value: Captured,
-    ih: List<&2,Edge.Runtime> -> List<&2,Originals.Binding> -> Captured) -> Captured:
+    ih: List<&2, Edge.Runtime> -> List<&2, Originals.Binding> -> Captured) -> Captured:
   match value:
-    case Captured{runtime,bindings,True{}}: ih(runtime,bindings)
+    case Captured{runtime, bindings, True{}}: ih(runtime, bindings)
     case value: value
 
-def capture(items: List<&2,Edge.Item>, runtime: List<&2,Edge.Runtime>, +cutoff: Nat,
-    bindings: List<&2,Originals.Binding>, +original: Maybe<&2,Originals.Capsule>, +allowed: Bool, +available: Bool, +environment: Edge.Environment) -> Captured:
+def capture(
+  items: List<&2, Edge.Item>,
+  runtime: List<&2, Edge.Runtime>,
+  +cutoff: Nat,
+  bindings: List<&2, Originals.Binding>,
+  +original: Maybe<&2, Originals.Capsule>,
+  +allowed: Bool,
+  +available: Bool,
+  +environment: Edge.Environment
+) -> Captured:
   match items:
-    case Nil{}: Captured{runtime,bindings,True{}}
+    case Nil{}: Captured{runtime, bindings, True{}}
     case item <> tail:
-      continue_capture(fresh(item,runtime,cutoff,bindings,original,allowed,available,environment),
-        next => retained => capture(tail,next,cutoff,retained,original,allowed,available,environment))
+      continuation: List<&2, Edge.Runtime> -> List<&2, Originals.Binding> -> Captured = next => retained => capture(
+        tail,
+        next,
+        cutoff,
+        retained,
+        original,
+        allowed,
+        available,
+        environment
+      )
+      continue_capture(
+        fresh(item, runtime, cutoff, bindings, original, allowed, available, environment),
+        continuation
+      )
 
-def finished(value: Captured, sharing: Sharing.Facts, original: Maybe<&2,Originals.Capsule>,
-    previous: Facts, +environment: Edge.Environment, +payload: Maybe<&2,Context.Payload>, ih: Facts -> Edge.CommandHook<Facts>) -> List<&2,Edge.Runtime> & Edge.CommandHook<Facts>:
+def finished(
+  value: Captured,
+  sharing: Sharing.Facts,
+  original: Maybe<&2, Originals.Capsule>,
+  previous: Facts,
+  +environment: Edge.Environment,
+  +payload: Maybe<&2, Context.Payload>,
+  ih: Facts -> Edge.CommandHook<Facts>
+) -> List<&2, Edge.Runtime> & Edge.CommandHook<Facts>:
   match value:
-    case Captured{+runtime,bindings,True{}}:
-      (runtime,ih(Facts{sharing,bindings,original,Edge.runtime_sequence(runtime),environment,payload}))
-    case Captured{runtime,_,False{}}: (runtime,Edge.HookFault{previous})
+    case Captured{+runtime, bindings, True{}}:
+      (
+        runtime,
+        ih(Facts{sharing, bindings, original, Edge.runtime_sequence(runtime), environment, payload})
+      )
+    case Captured{runtime, _, False{}}: (runtime, Edge.HookFault{previous})
 
-def shared_updated(updated: Maybe<&2,Sharing.Facts>, +runtime: List<&2,Edge.Runtime>,
-    bindings: List<&2,Originals.Binding>, +original: Maybe<&2,Originals.Capsule>, cutoff: Nat,
-    allowed: Bool, available: Bool, previous: Facts, +environment: Edge.Environment, +payload: Maybe<&2,Context.Payload>, ih: Facts -> Edge.CommandHook<Facts>) -> List<&2,Edge.Runtime> & Edge.CommandHook<Facts>:
+def shared_updated(
+  updated: Maybe<&2, Sharing.Facts>,
+  +runtime: List<&2, Edge.Runtime>,
+  bindings: List<&2, Originals.Binding>,
+  +original: Maybe<&2, Originals.Capsule>,
+  cutoff: Nat,
+  allowed: Bool,
+  available: Bool,
+  previous: Facts,
+  +environment: Edge.Environment,
+  +payload: Maybe<&2, Context.Payload>,
+  ih: Facts -> Edge.CommandHook<Facts>
+) -> List<&2, Edge.Runtime> & Edge.CommandHook<Facts>:
   match updated:
     case Some{sharing}:
-      finished(capture(Edge.runtime_items(runtime),runtime,cutoff,bindings,original,allowed,available,environment),sharing,original,previous,environment,payload,ih)
-    case None{}: (runtime,Edge.HookFault{previous})
+      finished(
+        capture(
+          Edge.runtime_items(runtime),
+          runtime,
+          cutoff,
+          bindings,
+          original,
+          allowed,
+          available,
+          environment
+        ),
+        sharing,
+        original,
+        previous,
+        environment,
+        payload,
+        ih
+      )
+    case None{}: (runtime, Edge.HookFault{previous})
 
 def shared(value: Capture.Captured, +facts: Facts, allowed: Bool, available: Bool,
-    ih: Facts -> Edge.CommandHook<Facts>) -> List<&2,Edge.Runtime> & Edge.CommandHook<Facts>:
+    ih: Facts -> Edge.CommandHook<Facts>) -> List<&2, Edge.Runtime> & Edge.CommandHook<Facts>:
   match value facts:
-    case +value Facts{+sharing,bindings,original,cutoff,environment,payload}:
-      shared_updated(Sharing.updated(value,sharing),sharing_runtime(value),bindings,original,cutoff,allowed,available,facts,environment,payload,ih)
+    case +value Facts{+sharing, bindings, original, cutoff, environment, payload}:
+      shared_updated(
+        Sharing.updated(value, sharing),
+        sharing_runtime(value),
+        bindings,
+        original,
+        cutoff,
+        allowed,
+        available,
+        facts,
+        environment,
+        payload,
+        ih
+      )
 
-def sharing_command(+facts: Sharing.Facts, actual: C.Command, runtime: List<&2,Edge.Runtime>) -> Capture.Captured:
+def sharing_command(
+  +facts: Sharing.Facts,
+  actual: C.Output,
+  runtime: List<&2, Edge.Runtime>
+) -> Capture.Captured:
   match facts:
-    case Sharing.Facts{_,Nil{},None{},_,_,_}: Sharing.unchanged(runtime,facts)
-    case facts: Sharing.command(facts,actual,runtime)
+    case Sharing.Facts{_, Nil{}, None{}, _, _, _}: Sharing.unchanged(runtime, facts)
+    case facts: Sharing.command(facts, actual, runtime)
 
-def job_available(found: Maybe<&2,Context.Payload>, command: C.Command) -> Bool:
+def job_available(found: Maybe<&2, Context.Payload>, command: C.Output) -> Bool:
   match found:
-    case Some{Context.Payload{_,has_job}}: Bool.or(has_job,Context.operation_job(command))
+    case Some{Context.Payload{_, has_job}}: Bool.or(has_job, Context.operation_job(command))
     case None{}: True{}
 
-def command(+facts: Facts, +actual: C.Command, runtime: List<&2,Edge.Runtime>,
-    ih: Facts -> Edge.CommandHook<Facts>) -> List<&2,Edge.Runtime> & Edge.CommandHook<Facts>:
+def command(+facts: Facts, +actual: C.Output, runtime: List<&2, Edge.Runtime>,
+    ih: Facts -> Edge.CommandHook<Facts>) -> List<&2, Edge.Runtime> & Edge.CommandHook<Facts>:
   match facts:
-    case Facts{sharing,_,_,_,_,payload}:
-      shared(sharing_command(sharing,actual,runtime),facts,Output.authorized(actual),job_available(payload,actual),ih)
+    case Facts{sharing, _, _, _, _, payload}:
+      shared(
+        sharing_command(sharing, actual, runtime),
+        facts,
+        Output.authorized(actual),
+        job_available(payload, actual),
+        ih
+      )
 
-def original_handle(original: Maybe<&2,Originals.Capsule>, payload: Maybe<&2,Context.Payload>,
-    +state: Types.State, +event: C.CanonicalEvent, +command: C.Command,
+# Original shared requests retain the same current-source check emitted by the
+# public request handler, at the original settlement delay and before settlement.
+def delayed_freshness(actions: List<&2, Driver.Action>, +delay: Nat) -> List<&2, Driver.Action>:
+  match actions:
+    case Nil{}: []
+    case Driver.Action{event, _, candidate, job, expiry} <> tail:
+      Driver.Action{event, delay, candidate, job, expiry} <> delayed_freshness(tail, delay)
+
+def freshness_before_settlement(
+  actions: List<&2, Driver.Action>,
+  +checks: List<&2, Driver.Action>
+) -> List<&2, Driver.Action>:
+  match actions:
+    case Nil{}: []
+    case +action <> tail:
+      match action:
+        case Driver.Action{C.JevRequestSettled{_, _, _, _, _, _, _}, +delay, _, _, _}:
+          List.append(&2, Driver.Action, delayed_freshness(checks, delay), action <> tail)
+        case _: action <> freshness_before_settlement(tail, checks)
+
+def freshness_handled(
+  state: Types.State,
+  command: C.Output,
+  result: Driver.Handled
+) -> Driver.Handled:
+  match command result:
+    case C.EventEstablished{C.JevRequestIssued{p, l, r, operation, _}} Driver.Handled{
+      handled,
+      actions
+    }:
+      Driver.Handled{handled, freshness_before_settlement(actions,
+        Engine.freshness_checks(state, Freshness.Scope{p, l, r, operation}))}
+    case _ result: result
+
+def original_handle(original: Maybe<&2, Originals.Capsule>, payload: Maybe<&2, Context.Payload>,
+    +state: Types.State, +event: C.CanonicalEvent, +command: C.Output,
     context: Driver.Context) -> Driver.Handled:
-  Originals.handle(original,state,event,command,Context.adjust(payload,state,event,command,context))
+  freshness_handled(state, command, Originals.handle(
+    original,
+    state,
+    event,
+    command,
+    Context.adjust(payload, state, event, command, context)
+  ))
 
-def factory(list: List<&2,C.Command>, +facts: Facts) -> Edge.CommandHook<Facts>:
+def factory(list: List<&2, C.Output>, +facts: Facts) -> Edge.CommandHook<Facts>:
   match list facts:
     case Nil{} facts: Edge.HookEnd{facts}
-    case _ <> tail Facts{sharing,bindings,+original,issued,environment,+payload}:
-      Edge.HookNext{Facts{sharing,bindings,original,issued,environment,payload},
-        state => event => command => context => original_handle(original,payload,state,event,command,context),
-        current => actual => runtime => command(current,actual,runtime,next => factory(tail,next))}
+    case _ <> tail Facts{sharing, bindings, +original, issued, environment, +payload}:
+      handle: Types.State -> C.CanonicalEvent -> C.Output -> Driver.Context -> Driver.Handled = state => event => command => context => original_handle(
+        original,
+        payload,
+        state,
+        event,
+        command,
+        context
+      )
+      continuation: Facts -> Edge.CommandHook<Facts> = next => factory(tail, next)
+      apply: Facts -> C.Output -> List<&2, Edge.Runtime> -> (List<&2, Edge.Runtime> & Edge.CommandHook<Facts>) = current => actual => runtime => command(
+        current,
+        actual,
+        runtime,
+        continuation
+      )
+      Edge.HookNext{Facts{sharing, bindings, original, issued, environment, payload}, handle, apply}
 
 # Plain original edits retain their existing path. Only original source
 # capture data enables the shared capture hook; no prepared key is fabricated.

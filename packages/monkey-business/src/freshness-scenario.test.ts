@@ -55,18 +55,18 @@ it.each([
   expect(run.observations.filter((frame) => frame.event.kind === "revisionRegister")).toHaveLength(2)
   expect(
     run.observations
-      .flatMap((frame) => frame.commands)
+      .flatMap((frame) => frame.outputs)
       .flatMap((command) => (command.kind === "revisionReplaced" ? [command.generation] : []))
   ).toEqual([1, 2])
   expect(run.projection.global).toEqual({ items: 2, bytes: preparationDelay === 5 ? 24 : 19 })
   expect(run.projection.dispatch.running).toHaveLength(2)
   expect(
-    run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "retainFinding")
+    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "findingRetained")
   ).toEqual([])
   replay(run)
   advance(run, 30)
   const issues = run.observations
-    .flatMap((frame) => frame.commands)
+    .flatMap((frame) => frame.outputs)
     .filter((command) => command.kind === "jevRequestIssued")
   // Production server.ts:1986–2000,2098–2101 checks current work before
   // backend issuance. A stale preparation still completes its original facts,
@@ -93,17 +93,17 @@ it.each([
     })
     // Canonical.review_observed_choice retires an owned stale finding; the
     // canceled/absent-work JevObservationIgnored path has different premises.
-    expect(oldCallback.commands).toEqual([
-      { kind: "reservationReleased", id: 2 },
-      { kind: "reviewRecorded", outcome: "finding" },
-      { kind: "retireStaleFinding" },
-      { kind: "jevRequestOutcomeRecorded", outcome: "finding" }
+    expect(oldCallback.outputs).toEqual([
+      { category: "event", kind: "reservationReleased", id: 2 },
+      { category: "event", kind: "reviewRecorded", outcome: "finding" },
+      { category: "event", kind: "staleFindingRetired" },
+      { category: "event", kind: "jevRequestOutcomeRecorded", outcome: "finding" }
     ])
     expect(oldCallback.after.dispatch.requests.some((request) => request.request === old.request)).toBe(false)
   }
   expect(
-    run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "retainFinding")
-  ).toEqual([{ kind: "retainFinding" }])
+    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "findingRetained")
+  ).toEqual([{ category: "event", kind: "findingRetained" }])
   expect(
     run.observations.filter((frame) => frame.event.kind === "submissionTerminal").map((frame) => frame.time)
   ).toEqual([next + preparationDelay + 20])
@@ -118,21 +118,21 @@ it("same input preserves both captured generation members during overlapping pre
   advance(run, 1)
   expect(
     run.observations
-      .flatMap((frame) => frame.commands)
+      .flatMap((frame) => frame.outputs)
       .flatMap((command) => (command.kind === "revisionReplaced" ? [command.generation] : []))
   ).toEqual([1])
   expect(
     run.observations
-      .flatMap((frame) => frame.commands)
+      .flatMap((frame) => frame.outputs)
       .flatMap((command) => (command.kind === "revisionReused" ? [command.generation] : []))
   ).toEqual([1])
   expect(run.projection.global).toEqual({ items: 2, bytes: 24 })
   advance(run, 30)
   expect(
-    run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "revisionStale")
+    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "revisionStale")
   ).toEqual([])
   expect(
-    run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "retainFinding")
+    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "findingRetained")
   ).toHaveLength(2)
   expect(
     run.observations.filter((frame) => frame.event.kind === "submissionTerminal").map((frame) => frame.time)
@@ -263,9 +263,9 @@ it.each([false, true])("preserves independent stale-delivery milestones and repl
   const old = run.observations.find((frame) => frame.event.kind === "jevRequestSettled" && frame.event.operation === 3)!
   if (changed) {
     // The captured request remains known, but its obsolete finding is retired.
-    expect(old.commands).toContainEqual({ kind: "retireStaleFinding" })
-    expect(old.commands).not.toContainEqual({ kind: "retainFinding" })
-  } else expect(old.commands).toContainEqual({ kind: "retainFinding" })
+    expect(old.outputs).toContainEqual({ category: "event", kind: "staleFindingRetired" })
+    expect(old.outputs).not.toContainEqual({ category: "event", kind: "findingRetained" })
+  } else expect(old.outputs).toContainEqual({ category: "event", kind: "findingRetained" })
   expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe())
   // These original source-selection milestones complement the physical custody
   // assertions in freshness-captured-callback.test.ts.

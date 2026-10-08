@@ -31,17 +31,17 @@ const standaloneLimits = {
   partitionBytes: PARTITION_BYTE_LIMIT
 }
 
-const canonicalCollectionCommand = (event: CanonicalEvent): string => {
+const canonicalCollectionDecision = (event: CanonicalEvent): string => {
   const result = stepCanonical(initialCanonical(standaloneLimits), event)
-  if (result.rejection !== undefined || result.commands.length !== 1) {
+  if (result.rejection !== undefined || result.outputs.length !== 1) {
     throw new Error("canonical collection decision refused")
   }
-  return result.commands[0]!.kind
+  return result.outputs[0]!.kind
 }
 
 export const collectionOrder = <A extends Pick<CollectionCandidate, "sequence">>(left: A, right: A): number => {
   return collectionOrdering(
-    canonicalCollectionCommand({
+    canonicalCollectionDecision({
       kind: "collectionOrderCheck",
       leftSequence: left.sequence,
       rightSequence: right.sequence
@@ -55,7 +55,7 @@ const elapsedForBend = (now: number, started: number, limit: number): number => 
 }
 
 export const isPendingAdviceExpired = (candidate: Pick<CollectionCandidate, "pendingAt">, now: number): boolean =>
-  canonicalCollectionCommand({
+  canonicalCollectionDecision({
     kind: "collectionExpiryCheck",
     elapsed: elapsedForBend(now, candidate.pendingAt, PENDING_ADVICE_EXPIRY_MS),
     lifetime: PENDING_ADVICE_EXPIRY_MS
@@ -120,7 +120,7 @@ export const encodedClaudeStopOutputBytes = (
 
 const fitsBendBatch = (items: number, bytes: number): boolean => {
   try {
-    return canonicalCollectionCommand({ kind: "collectionFitCheck", items, bytes }) === "collectionFits"
+    return canonicalCollectionDecision({ kind: "collectionFitCheck", items, bytes }) === "collectionFits"
   } catch {
     return false
   }
@@ -164,7 +164,7 @@ export type CanonicalNoticeOffer = (items: number, bytes: number, skipUnfitting:
 
 const standaloneFindingOffer: CanonicalFindingOffer = Effect.fn("Collection.standaloneFindingOffer")(function* (input) {
   const facts = input.facts
-  const command = canonicalCollectionCommand({
+  const command = canonicalCollectionDecision({
     kind: "collectionFindingCheck",
     selectionPartition: input.selectionPartition,
     selectionRound: input.selectionRound,
@@ -185,7 +185,7 @@ const standaloneFindingOffer: CanonicalFindingOffer = Effect.fn("Collection.stan
 })
 
 const standaloneNoticeOffer: CanonicalNoticeOffer = (items, bytes, skipUnfitting) => {
-  const command = canonicalCollectionCommand({ kind: "collectionNoticeCheck", items, bytes, skipUnfitting })
+  const command = canonicalCollectionDecision({ kind: "collectionNoticeCheck", items, bytes, skipUnfitting })
   switch (command) {
     case "collectionNoticeIncluded":
       return "include"

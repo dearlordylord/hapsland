@@ -69,6 +69,7 @@ export const precheckStages = [
     "--test",
     "--test-concurrency=1",
     "scripts/package-graph.test.mjs",
+    "scripts/package-impact.test.mjs",
     "scripts/check-development-imports.test.mjs",
     "scripts/check-compiler-receipts.test.mjs",
     "scripts/compiler-evidence.test.mjs",

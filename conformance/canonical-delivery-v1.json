@@ -82,7 +82,7 @@
           "operation": 3,
           "outcome": "finding",
           "currentWork": true,
-          "expect": "reviewRecorded,retainFinding"
+          "expect": "reviewRecorded,findingRetained"
         },
         {
           "kind": "findingCountUpdated",
@@ -473,7 +473,7 @@
           "operation": 3,
           "outcome": "finding",
           "currentWork": true,
-          "expect": "reviewRecorded,retainFinding"
+          "expect": "reviewRecorded,findingRetained"
         },
         {
           "kind": "dispatchSettled",
@@ -499,7 +499,7 @@
           "operation": 4,
           "outcome": "finding",
           "currentWork": true,
-          "expect": "reviewRecorded,retainFinding"
+          "expect": "reviewRecorded,findingRetained"
         },
         {
           "kind": "stopGroupPolled",

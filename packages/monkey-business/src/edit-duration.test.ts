@@ -24,13 +24,13 @@ it("captures per-agent PRE-to-POST timing without changing in-flight edits and r
   run.applyControl({ kind: "editDuration", agent: "agent-1", durationMs: 20 })
   run.applyControl({ kind: "burst", agent: "agent-1", count: 1 })
   run.advance({ untilTime: 50, maxEvents: 500 })
-  const early = run.observations.filter((o) => o.commands.some((c) => c.kind === "permitConsumed"))
+  const early = run.observations.filter((o) => o.outputs.some((c) => c.kind === "permitConsumed"))
   expect(early).toHaveLength(1)
   expect(early[0]?.partition).toBe(1)
   expect(run.projection.admissions.flatMap((a) => a.permits)).toHaveLength(2)
   for (const agent of ["agent-1", "agent-2"]) run.applyControl({ kind: "suspendArrivals", agent, suspended: true })
   expect(run.advance({ untilTime: 900, maxEvents: 2000 }).reason).toBe("idle")
-  const consumed = run.observations.filter((o) => o.commands.some((c) => c.kind === "permitConsumed"))
+  const consumed = run.observations.filter((o) => o.outputs.some((c) => c.kind === "permitConsumed"))
   expect(consumed).toHaveLength(3)
   for (const first of issued)
     expect(consumed.some((o) => o.partition === first.partition && o.time === first.time + 300)).toBe(true)
@@ -50,7 +50,7 @@ it.each([0, 10, 11])(
     run.applyControl({ kind: "editDuration", agent: "agent-1", durationMs: 0 })
     run.applyControl({ kind: "suspendArrivals", suspended: true })
     run.advance({ untilTime: 100, maxEvents: 500 })
-    expect(run.observations.filter((o) => o.commands.some((c) => c.kind === "permitConsumed"))).toHaveLength(
+    expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "permitConsumed"))).toHaveLength(
       duration <= 10 ? 1 : 0
     )
     expect(run.projection.admissions.flatMap((a) => a.permits)).toEqual([])

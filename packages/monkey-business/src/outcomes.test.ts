@@ -47,7 +47,7 @@ describe("public weighted request profile", () => {
       jevDelay: 100,
       outcomeWeights: weights({ clear: 100 })
     })
-    while (!run.observations.some((frame) => frame.commands.some((command) => command.kind === "jevRequestIssued")))
+    while (!run.observations.some((frame) => frame.outputs.some((command) => command.kind === "jevRequestIssued")))
       run.step()
     run.applyControl({ kind: "jevProfile", delayMs: 100, outcomeWeights: weights({ backendFailure: 100 }) })
     run.advance({ maxEvents: 1000 })
@@ -143,7 +143,7 @@ describe("public weighted request profile", () => {
     const run = createRun({ inputs: inputs.slice(0, 2), outcomeWeights: profile })
     profile.clear = 0
     profile.finding = 100
-    while (!run.observations.some((frame) => frame.commands.some((command) => command.kind === "jevRequestIssued")))
+    while (!run.observations.some((frame) => frame.outputs.some((command) => command.kind === "jevRequestIssued")))
       run.step()
     const live = { ...weights({ interrupted: 100 }) }
     run.applyControl({ kind: "jevProfile", delayMs: 5, outcomeWeights: live })

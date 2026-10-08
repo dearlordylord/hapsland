@@ -26,7 +26,7 @@ limit for a replay using a changed profile.
   against the compiled Bend adapter. Interactive replay reads Bend's state and
   command at every step; the dashboard does not calculate the next state.
 - Independently authored expected trace fixtures. Tests must check the
-  displayed path's phases and commands step by step, plus relevant terminal
+  displayed path's phases and outputs step by step, plus relevant terminal
   facts. A claim that a trace covers every state or transition needs a test
   for that coverage.
 - Static mappings from a Bend constructor, command, or state to a label, color,
@@ -78,12 +78,12 @@ source-free events through `packages/canonical-policy/src/canonical/adapter.ts`.
 of inputs, and each rewind or redo starts from the checked initial state.
 `capacity-inventory.generated.ts` comes from compiled Bend admission output
 at build time. The renderer uses checked projection totals and ordered Bend
-command snapshots for capacity, including within-transition frames.
+categorized output snapshots for capacity, including within-transition frames.
 
 [`import-graph-view.ts`](src/import-graph-view.ts) replays source-free events
 through the checked `stepImportGraph` adapter.
 [`import-graph-diagram.ts`](src/import-graph-diagram.ts) builds the displayed
-file graph from those native example facts, emitted Bend commands, and Bend
+file graph from those native example facts, emitted Bend outputs, and Bend
 state. Target names are display metadata; capture, exclusion, budget, cycle,
 and terminal labels follow Bend output. Its static state-machine boxes explain
 possible transitions and highlight the phase returned by Bend.
@@ -91,7 +91,7 @@ The import graph view stops at graph traversal; it does not simulate the later
 per-rule evidence check or a Jev request.
 The independent
 [`conformance/import-graph-v1.json`](../../conformance/import-graph-v1.json)
-fixture checks phases and commands at every step and final states. Projection and browser checks
+fixture checks phases and outputs at every step and final states. Projection and browser checks
 verify that the visible graph follows replay, including excluded C receiving
 no `ReadSource` command and no unrelated root appearing. The branching tree
 also shows denied X without a read, followed by E/G tree-budget skips and a

@@ -39,12 +39,12 @@ export const revisionOperations = (state: RevisionDraft, owner: CapacityLedger) 
     for (const [key, id] of state.identities) if (!active.has(id)) state.identities.delete(key)
   }
   const count = (): number => {
-    const command = owner.transition({ kind: "revisionCountCheck" }).commands[0]
+    const command = owner.transition({ kind: "revisionCountCheck" }).outputs[0]
     if (command?.kind !== "revisionCount") throw new Error("canonical revision count refused")
     return command.count
   }
   const generation = (subject: string): number => {
-    const command = owner.transition({ kind: "revisionGenerationCheck", subject: subjectId(subject) }).commands[0]
+    const command = owner.transition({ kind: "revisionGenerationCheck", subject: subjectId(subject) }).outputs[0]
     if (command?.kind !== "revisionGeneration") throw new Error("canonical revision generation refused")
     return command.generation
   }
@@ -61,7 +61,7 @@ export const revisionOperations = (state: RevisionDraft, owner: CapacityLedger) 
       subject: subjectId(subject, true),
       input: inputIdentity,
       addMember
-    }).commands[0]
+    }).outputs[0]
     prune()
     if (command?.kind === "revisionReused") {
       const retained = state.current.get(subject)
@@ -83,7 +83,7 @@ export const revisionOperations = (state: RevisionDraft, owner: CapacityLedger) 
       subject: subjectId(subject),
       candidateSubject: subjectId(revision.subject),
       generation: revision.generation
-    }).commands[0]
+    }).outputs[0]
     if (command?.kind !== "revisionSuperseded" && command?.kind !== "revisionNotSuperseded") {
       throw new Error("canonical supersession check refused")
     }
@@ -95,7 +95,7 @@ export const revisionOperations = (state: RevisionDraft, owner: CapacityLedger) 
       subject: subjectId(revision.subject),
       input: inputId(prepared),
       generation: revision.generation
-    }).commands[0]
+    }).outputs[0]
     if (command?.kind !== "revisionCurrent" && command?.kind !== "revisionStale") {
       throw new Error("canonical current revision check refused")
     }
@@ -108,7 +108,7 @@ export const revisionOperations = (state: RevisionDraft, owner: CapacityLedger) 
       kind: "revisionRelease",
       subject: subjectId(revision.subject),
       generation: revision.generation
-    }).commands[0]
+    }).outputs[0]
     if (command?.kind !== "revisionReleased") throw new Error("canonical revision release refused")
     if (generation(revision.subject) === 0) state.current.delete(revision.subject)
     prune()

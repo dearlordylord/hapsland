@@ -1,4 +1,4 @@
-/** Decode checked Bend commands; TypeScript never makes the collection decision. */
+/** Decode checked Bend outputs; TypeScript never makes the collection decision. */
 const findingOutcomes = new Map<string, "selected" | "retained" | "limited" | "expired">([
   ["collectionFindingSelected", "selected"],
   ["collectionFindingRetained", "retained"],
@@ -27,11 +27,11 @@ export const collectionOrdering = (command: string | undefined): number => {
 
 export const finalCollectionFits = (result: {
   readonly rejection?: unknown
-  readonly commands: ReadonlyArray<{ readonly kind: string }>
+  readonly outputs: ReadonlyArray<{ readonly category: "request" | "event" | "decision"; readonly kind: string }>
 }): boolean => {
-  if (result.rejection !== undefined || result.commands.length !== 1)
+  if (result.rejection !== undefined || result.outputs.length !== 1 || result.outputs[0]?.category !== "decision")
     throw new Error("canonical final response fit refused")
-  switch (result.commands[0]?.kind) {
+  switch (result.outputs[0]?.kind) {
     case "collectionLimited":
       return false
     case "collectionFits":

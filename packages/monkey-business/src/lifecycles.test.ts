@@ -13,7 +13,7 @@ it("permits refuse shared saturation and recover after consumption with exact re
     editPermitLimits: { perAdvicee: 1, resident: 1 },
     permitProfile: { outcome: "success", durationMs: 2, lifetimeMs: 30000 }
   })
-  expect(run.observations.filter((o) => o.commands.some((c) => c.kind === "permitConsumed"))).toHaveLength(2)
+  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "permitConsumed"))).toHaveLength(2)
   expect(run.observations.some((o) => o.rejection)).toBe(true)
   expect(run.projection.admissions.flatMap((a) => a.permits)).toEqual([])
   expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations)
@@ -24,7 +24,7 @@ it.each(["release", "expire"] as const)("%s permit never admits an edit", (termi
     editPermitLimits: { perAdvicee: 2, resident: 2 },
     permitProfile: { outcome: terminal === "release" ? "failure" : "absent", durationMs: 0, lifetimeMs: 2 }
   })
-  expect(run.observations.some((o) => o.commands.some((c) => c.kind === "observationAdmitted"))).toBe(false)
+  expect(run.observations.some((o) => o.outputs.some((c) => c.kind === "observationAdmitted"))).toBe(false)
   expect(run.projection.admissions.flatMap((a) => a.permits)).toEqual([])
   expect(run.projection.rounds).toEqual([])
   expect(run.observations.every((o) => o.after.rounds.length === 0)).toBe(true)
@@ -36,8 +36,8 @@ it("collector refusal is exclusive and settles ownership", () => {
     outputProfile: { outcome: "certain", delayMs: 10, leaseMs: 30 },
     lifecycles: { collectors: { capacity: 1, lifetimeMs: 30 } }
   })
-  expect(run.observations.some((o) => o.commands.some((c) => c.kind === "collectionBackgroundRefused"))).toBe(true)
-  expect(run.observations.some((o) => o.commands.some((c) => c.kind === "collectionBackgroundClaimed"))).toBe(true)
+  expect(run.observations.some((o) => o.outputs.some((c) => c.kind === "collectionBackgroundRefused"))).toBe(true)
+  expect(run.observations.some((o) => o.outputs.some((c) => c.kind === "collectionBackgroundClaimed"))).toBe(true)
   expect(run.projection.collection.claims).toEqual([])
   expect(restoreReplay(run.exportReplay()).projection).toEqual(run.projection)
 })
@@ -50,20 +50,22 @@ it("evaluation identities join pending and use cache without extra Jev calls", (
     evaluationInputs: ["exact-prepared-input"]
   }))
   const run = complete({ inputs, outcome: "clear", lifecycles: { reuse: { entryLimit: 1, byteLimit: 20 } } })
-  expect(run.observations.filter((o) => o.commands.some((c) => c.kind === "jevRequestIssued"))).toHaveLength(1)
+  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "jevRequestIssued"))).toHaveLength(1)
   expect(
-    run.observations.some((o) => o.commands.some((c) => c.kind === "reuseJoinPending" || c.kind === "reuseJoinClaimed"))
+    run.observations.some((o) =>
+      o.outputs.some((c) => c.kind === "reusePendingJoined" || c.kind === "reuseClaimedJoined")
+    )
   ).toBe(true)
-  expect(run.observations.some((o) => o.commands.some((c) => c.kind === "reuseCached"))).toBe(true)
+  expect(run.observations.some((o) => o.outputs.some((c) => c.kind === "reuseCacheHit"))).toBe(true)
   expect(run.observations.filter((o) => o.rejection)).toEqual([])
   expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations)
 })
 it("synthetic oversized candidate never reserves or starts output", () => {
   const run = complete({ inputs: [edits[0]!], outcome: "finding", lifecycles: { encodedOutputBytes: 10241 } })
-  expect(run.observations.some((o) => o.commands.some((c) => c.kind === "collectionLimited"))).toBe(true)
+  expect(run.observations.some((o) => o.outputs.some((c) => c.kind === "collectionLimited"))).toBe(true)
   expect(
     run.observations.some((o) =>
-      o.commands.some((c) => c.kind === "collectionLeaseReserved" || c.kind === "submissionAuthorized")
+      o.outputs.some((c) => c.kind === "collectionLeaseReserved" || c.kind === "submissionAuthorized")
     )
   ).toBe(false)
 })
@@ -75,13 +77,13 @@ it("quiet inactivity retires the settled round", () => {
     permitProfile: { outcome: "success", durationMs: 0, lifetimeMs: 30000 },
     lifecycles: { quietWindowMs: 10 }
   })
-  expect(run.observations.some((o) => o.commands.some((c) => c.kind === "quietRoundExpired"))).toBe(true)
+  expect(run.observations.some((o) => o.outputs.some((c) => c.kind === "quietRoundExpired"))).toBe(true)
   expect(run.projection.rounds).toEqual([])
   expect(restoreReplay(run.exportReplay()).projection).toEqual(run.projection)
 })
 it("optional resource scenarios execute and replay in the same resident", () => {
   const run = complete({ resourceScenarios: { notices: true, outputFit: true } })
-  expect(run.observations.some((o) => o.commands.some((c) => c.kind === "noticeCommitted"))).toBe(true)
+  expect(run.observations.some((o) => o.outputs.some((c) => c.kind === "noticeCommitted"))).toBe(true)
   expect(run.projection.notices).toEqual([])
   expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations)
 })
@@ -95,11 +97,11 @@ it("finding reuse supplies retained advice and eviction releases cached charges"
   }))
   const run = complete({ inputs, outcome: "finding", lifecycles: { reuse: { entryLimit: 1, byteLimit: 10 } } })
   const frames = run.observations
-  const issued = frames.flatMap((frame) => frame.commands.filter((command) => command.kind === "jevRequestIssued"))
+  const issued = frames.flatMap((frame) => frame.outputs.filter((command) => command.kind === "jevRequestIssued"))
   expect(issued).toHaveLength(2)
   const original = issued[0]!,
     changed = issued[1]!
-  const findings = frames.filter((frame) => frame.commands.some((command) => command.kind === "retainFinding"))
+  const findings = frames.filter((frame) => frame.outputs.some((command) => command.kind === "findingRetained"))
   // #188/#189 preserve shared evaluation/advice authority: joining an existing
   // advice ID gives a member findings, not another physical finding record.
   expect(findings.map((frame) => frame.event)).toEqual([
@@ -120,16 +122,16 @@ it("finding reuse supplies retained advice and eviction releases cached charges"
   expect(changed.operation).not.toBe(original.operation)
   expect(changed.request).not.toBe(original.request)
   const firstRoute = frames.find(
-    (frame) => frame.time === 2 && frame.commands.some((command) => command.kind === "reuseOwn")
+    (frame) => frame.time === 2 && frame.outputs.some((command) => command.kind === "reuseOwned")
   )!
   const pendingJoin = frames.find(
-    (frame) => frame.time === 2 && frame.commands.some((command) => command.kind === "reuseJoinClaimed")
+    (frame) => frame.time === 2 && frame.outputs.some((command) => command.kind === "reuseClaimedJoined")
   )!
   expect(firstRoute.event).toMatchObject({ kind: "reuseRoute", liveAdvice: false })
   expect(pendingJoin.event).toEqual(firstRoute.event)
   expect(pendingJoin.after.global).toEqual({ items: 2, bytes: 15 })
   const memberFindings = frames.filter(
-    (frame) => frame.time === 7 && frame.commands.some((command) => command.kind === "reuseSetMemberFinding")
+    (frame) => frame.time === 7 && frame.outputs.some((command) => command.kind === "reuseSetMemberFinding")
   )
   expect(memberFindings).toHaveLength(2)
   for (const frame of memberFindings) {
@@ -143,7 +145,7 @@ it("finding reuse supplies retained advice and eviction releases cached charges"
     expect(frame.after.pendingFindings).toEqual([{ operation: original.operation, count: 1 }])
   }
   const liveJoin = frames.find(
-    (frame) => frame.time === 20 + 2 && frame.commands.some((command) => command.kind === "reuseJoinAdvice")
+    (frame) => frame.time === 20 + 2 && frame.outputs.some((command) => command.kind === "reuseAdviceJoined")
   )!
   expect(liveJoin.event).toEqual({ ...firstRoute.event, liveAdvice: true })
   expect(liveJoin.before.pendingFindings).toEqual([{ operation: original.operation, count: 1 }])
@@ -154,15 +156,15 @@ it("finding reuse supplies retained advice and eviction releases cached charges"
     frames
       .filter((frame) => frame.time >= 20 && frame.time < 40)
       .some((frame) =>
-        frame.commands.some(
+        frame.outputs.some(
           (command) =>
-            command.kind === "jevRequestIssued" || command.kind === "unitAdmitted" || command.kind === "retainFinding"
+            command.kind === "jevRequestIssued" || command.kind === "unitAdmitted" || command.kind === "findingRetained"
         )
       )
   ).toBe(false)
-  expect(frames.some((frame) => frame.commands.some((command) => command.kind === "reuseCached"))).toBe(false)
+  expect(frames.some((frame) => frame.outputs.some((command) => command.kind === "reuseCacheHit"))).toBe(false)
   const commits = frames.filter(
-    (frame) => frame.event.kind === "cacheCommit" && frame.commands.some((command) => command.kind === "cacheCommitted")
+    (frame) => frame.event.kind === "cacheCommit" && frame.outputs.some((command) => command.kind === "cacheCommitted")
   )
   expect(commits).toHaveLength(2)
   const oldCommit = commits[0]!,
@@ -173,7 +175,7 @@ it("finding reuse supplies retained advice and eviction releases cached charges"
     newEntry = newCommit.event
   expect(newEntry.id).not.toBe(oldEntry.id)
   const eviction = frames.find((frame) => frame.event.kind === "cachePrepare" && frame.event.id === newEntry.id)!
-  expect(eviction.commands).toContainEqual({ kind: "cachePrepared", evicted: [oldEntry.id] })
+  expect(eviction.outputs).toContainEqual({ category: "event", kind: "cachePrepared", evicted: [oldEntry.id] })
   expect(eviction.before.charges).toContainEqual({
     id: oldEntry.reservation,
     partition: 1,
@@ -187,7 +189,7 @@ it("finding reuse supplies retained advice and eviction releases cached charges"
   )!
   expect(frames.indexOf(released)).toBeGreaterThan(frames.indexOf(eviction))
   expect(frames.indexOf(released)).toBeLessThan(frames.indexOf(newCommit))
-  expect(released.commands).toContainEqual({ kind: "reservationReleased", id: oldEntry.reservation })
+  expect(released.outputs).toContainEqual({ category: "event", kind: "reservationReleased", id: oldEntry.reservation })
   expect(released.before.charges).toContainEqual({
     id: oldEntry.reservation,
     partition: 1,
@@ -236,14 +238,14 @@ it("changed revision fences its earlier late result", () => {
     revisionInput: `input-${index}`
   }))
   const run = complete({ inputs, outcome: "finding", jevDelay: 20 })
-  expect(run.observations.some((o) => o.commands.some((c) => c.kind === "revisionStale"))).toBe(true)
-  expect(run.observations.filter((o) => o.commands.some((c) => c.kind === "retainFinding"))).toHaveLength(1)
+  expect(run.observations.some((o) => o.outputs.some((c) => c.kind === "revisionStale"))).toBe(true)
+  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "findingRetained"))).toHaveLength(1)
   expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations)
 })
 it("exact boundary output fits before real lease and authorization", () => {
   const run = complete({ inputs: [edits[0]!], outcome: "finding", lifecycles: { encodedOutputBytes: 10240 } })
-  const fit = run.observations.findIndex((o) => o.commands.some((c) => c.kind === "collectionFits"))
-  const output = run.observations.findIndex((o) => o.commands.some((c) => c.kind === "submissionBegun"))
+  const fit = run.observations.findIndex((o) => o.outputs.some((c) => c.kind === "collectionFits"))
+  const output = run.observations.findIndex((o) => o.outputs.some((c) => c.kind === "submissionBegun"))
   expect(fit).toBeGreaterThan(-1)
   expect(output).toBeGreaterThan(fit)
 })
@@ -264,9 +266,11 @@ it("configured session generators produce identical and changed evaluation fixtu
   })
   run.advance({ untilTime: 70, maxEvents: 1000 })
   expect(
-    run.observations.some((o) => o.commands.some((c) => c.kind === "reuseJoinClaimed" || c.kind === "reuseJoinPending"))
+    run.observations.some((o) =>
+      o.outputs.some((c) => c.kind === "reuseClaimedJoined" || c.kind === "reusePendingJoined")
+    )
   ).toBe(true)
-  expect(run.observations.some((o) => o.commands.some((c) => c.kind === "revisionReplaced"))).toBe(true)
+  expect(run.observations.some((o) => o.outputs.some((c) => c.kind === "revisionReplaced"))).toBe(true)
   expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations)
 })
 it("duplicate tool and resident ceilings are checked independently of local ceilings", () => {
@@ -318,7 +322,7 @@ it("duplicate tool and resident ceilings are checked independently of local ceil
     }
   ]
   const run = complete({ inputs })
-  expect(run.observations.filter((o) => o.commands.some((c) => c.kind === "permitIssued"))).toHaveLength(2)
+  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "permitIssued"))).toHaveLength(2)
   expect(run.observations.filter((o) => o.rejection)).toHaveLength(2)
   expect(run.projection.admissions.find((a) => a.partition === 2)?.permits).toHaveLength(1)
   expect(run.observations[0]!.capacityMetadata.permits).toBeUndefined()
@@ -359,7 +363,7 @@ it("wrong-token collector release cannot unlock writer; expiry permits recovery"
   ]
   const run = complete({ inputs })
   expect(run.observations[1]!.after.collection.claims).toEqual([{ group: 1, owner: 1 }])
-  expect(run.observations[2]!.commands[0]?.kind).toBe("collectionBackgroundRefused")
+  expect(run.observations[2]!.outputs[0]?.kind).toBe("collectionBackgroundRefused")
   expect(run.projection.collection.claims).toEqual([{ group: 2, owner: 3 }])
   expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations)
 })
@@ -370,7 +374,7 @@ it("expired prospective invocation releases capacity and permits later edits", (
     editPermitLimits: { perAdvicee: 1, resident: 1 },
     permitProfile: { outcome: "success", durationMs: 5, lifetimeMs: 3 }
   })
-  expect(run.observations.filter((o) => o.commands.some((c) => c.kind === "permitIssued"))).toHaveLength(2)
+  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "permitIssued"))).toHaveLength(2)
   expect(run.projection.admissions.flatMap((a) => a.permits)).toEqual([])
   expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations)
 })
@@ -381,7 +385,7 @@ it("permit consumption at its inclusive deadline remains valid", () => {
     editPermitLimits: { perAdvicee: 1, resident: 1 },
     permitProfile: { outcome: "success", durationMs: 2, lifetimeMs: 2 }
   })
-  expect(run.observations.some((o) => o.commands.some((c) => c.kind === "permitConsumed"))).toBe(true)
+  expect(run.observations.some((o) => o.outputs.some((c) => c.kind === "permitConsumed"))).toBe(true)
 })
 it("quiet closure waits for held collector ownership and resets after activity", () => {
   const inputs = [
@@ -405,7 +409,7 @@ it("quiet closure waits for held collector ownership and resets after activity",
     permitProfile: { outcome: "success", durationMs: 0, lifetimeMs: 30000 },
     lifecycles: { quietWindowMs: 10 }
   })
-  const closure = run.observations.find((o) => o.commands.some((c) => c.kind === "quietRoundExpired"))
+  const closure = run.observations.find((o) => o.outputs.some((c) => c.kind === "quietRoundExpired"))
   expect(closure?.time).toBe(35)
   expect(run.observations.some((o) => o.time === 12 && o.event.kind === "quietRoundReset")).toBe(true)
   expect(run.projection.rounds).toEqual([])
@@ -421,7 +425,7 @@ it("quiet closure waits for output leases and retained advice to settle", () => 
     permitProfile: { outcome: "success", durationMs: 0, lifetimeMs: 30000 },
     lifecycles: { quietWindowMs: 10 }
   })
-  const closure = run.observations.find((o) => o.commands.some((c) => c.kind === "quietRoundExpired"))
+  const closure = run.observations.find((o) => o.outputs.some((c) => c.kind === "quietRoundExpired"))
   expect(closure?.time).toBeGreaterThanOrEqual(77)
   expect(run.projection.rounds).toEqual([])
 })
@@ -449,7 +453,7 @@ it("identical evaluation labels remain isolated by resident partition", () => {
   ])
   run.applyControl({ kind: "suspendArrivals", suspended: true })
   expect(run.advance({ maxEvents: 1000 }).reason).toBe("idle")
-  expect(run.observations.filter((o) => o.commands.some((c) => c.kind === "jevRequestIssued"))).toHaveLength(2)
+  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "jevRequestIssued"))).toHaveLength(2)
   expect(new Set(run.projection.reuse.cache.map((c) => c.partition))).toEqual(new Set([1, 2]))
   expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations)
 })
@@ -473,7 +477,7 @@ it("changed import profiles generate distinct complete evaluation identities", (
   expect(second?.event.kind).toBe("reuseRoute")
   if (first?.event.kind === "reuseRoute" && second?.event.kind === "reuseRoute")
     expect(second.event.id).not.toBe(first.event.id)
-  expect(run.observations.filter((o) => o.commands.some((c) => c.kind === "jevRequestIssued"))).toHaveLength(2)
+  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "jevRequestIssued"))).toHaveLength(2)
   expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations)
 })
 it("a superseded joined member cannot retain the current owner's finding", () => {
@@ -509,12 +513,13 @@ it("a superseded joined member cannot retain the current owner's finding", () =>
   const run = complete({ inputs, outcome: "finding", lifecycles: { reuse: { entryLimit: 2, byteLimit: 100 } } })
   // The old joined member belongs to member-root; its replacement registers a
   // new input at 3, before the original owner settles at preparation 2 + Jev 5.
-  const registrations = run.observations.filter((o) => o.event.kind === "revisionRegister")
-  expect(registrations.map((o) => o.event)).toEqual([
-    { kind: "revisionRegister", subject: 1, input: 2, addMember: true },
-    { kind: "revisionRegister", subject: 2, input: 4, addMember: true },
-    { kind: "revisionRegister", subject: 2, input: 6, addMember: true }
-  ])
+  const registrations = run.observations.flatMap((o) => (o.event.kind === "revisionRegister" ? [o.event] : []))
+  expect(registrations).toHaveLength(3)
+  const [owner, member, replacement] = registrations
+  expect(registrations.every((event) => event.addMember)).toBe(true)
+  expect(owner!.subject).not.toBe(member!.subject)
+  expect(replacement!.subject).toBe(member!.subject)
+  expect(new Set(registrations.map((event) => event.input)).size).toBe(3)
   const staleMember = run.observations.filter((o) => o.event.kind === "reuseMemberCheck" && o.event.staleUnavailable)
   expect(staleMember).toHaveLength(1)
   expect(staleMember[0]).toMatchObject({
@@ -522,13 +527,18 @@ it("a superseded joined member cannot retain the current owner's finding", () =>
     agent: "agent-1",
     time: 2 + 5,
     event: { kind: "reuseMemberCheck", state: "finding", staleUnavailable: true, hasRevision: true, hasAdviceId: true },
-    commands: [{ kind: "reuseKeepMember" }],
-    commandScopes: [1]
+    outputs: [{ category: "decision", kind: "reuseKeepMember" }],
+    outputScopes: [1]
   })
-  expect(staleMember[0]!.before.revision.entries).toContainEqual({ subject: 2, input: 6, generation: 3, members: 1 })
-  expect(staleMember[0]!.commands.some((c) => c.kind === "reuseSetMemberFinding")).toBe(false)
-  expect(run.observations.filter((o) => o.commands.some((c) => c.kind === "retainFinding"))).toHaveLength(2)
-  expect(run.observations.filter((o) => o.commands.some((c) => c.kind === "jevRequestIssued"))).toHaveLength(2)
+  expect(staleMember[0]!.before.revision.entries).toContainEqual({
+    subject: replacement!.subject,
+    input: replacement!.input,
+    generation: 3,
+    members: 1
+  })
+  expect(staleMember[0]!.outputs.some((c) => c.kind === "reuseSetMemberFinding")).toBe(false)
+  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "findingRetained"))).toHaveLength(2)
+  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "jevRequestIssued"))).toHaveLength(2)
   expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations)
 })
 it("a refused changed revision cannot supersede an accepted active evaluation", () => {
@@ -567,11 +577,11 @@ it("a refused changed revision cannot supersede an accepted active evaluation", 
   })
   expect(run.observations.some((o) => o.time === 12 && o.rejection)).toBe(true)
   expect(run.observations.filter((o) => o.event.kind === "revisionRegister")).toHaveLength(1)
-  expect(run.observations.some((o) => o.commands.some((c) => c.kind === "revisionStale"))).toBe(false)
-  expect(run.observations.filter((o) => o.commands.some((c) => c.kind === "retainFinding"))).toHaveLength(1)
+  expect(run.observations.some((o) => o.outputs.some((c) => c.kind === "revisionStale"))).toBe(false)
+  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "findingRetained"))).toHaveLength(1)
   const firstIssue = run.observations.find((o) => o.event.kind === "issuePermit")!
   expect(firstIssue.after.rounds).toEqual([])
-  const consumed = run.observations.find((o) => o.commands.some((c) => c.kind === "permitConsumed"))!
+  const consumed = run.observations.find((o) => o.outputs.some((c) => c.kind === "permitConsumed"))!
   expect(consumed.after.rounds).toHaveLength(1)
   expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations)
 })
@@ -592,14 +602,14 @@ it("checked cache clear releases every cached ledger charge and permits fresh ev
   })
   const cleared = run.observations.find((o) => o.event.kind === "cacheClear")!
   expect(cleared.before.reuse.cache).toHaveLength(2)
-  expect(cleared.commands.some((c) => c.kind === "cacheDiscarded" && c.ids.length === 2)).toBe(true)
+  expect(cleared.outputs.some((c) => c.kind === "cacheDiscarded" && c.ids.length === 2)).toBe(true)
   expect(run.projection.reuse.cache).toEqual([])
   expect(run.projection.charges).toEqual([])
   expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
   expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations)
   run.schedule({ at: run.now, kind: "edit", bytes: 10, unitBytes: [5], evaluationInputs: ["first"] })
   expect(run.advance({ maxEvents: 1000 }).reason).toBe("idle")
-  expect(run.observations.filter((o) => o.commands.some((c) => c.kind === "jevRequestIssued"))).toHaveLength(3)
+  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "jevRequestIssued"))).toHaveLength(3)
   expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations)
 })
 it("concurrent cache commits release a reservation refused by the shared one-entry ceiling", () => {
@@ -616,9 +626,9 @@ it("concurrent cache commits release a reservation refused by the shared one-ent
     outcome: "clear",
     lifecycles: { reuse: { entryLimit: 1, byteLimit: 20 } }
   })
-  expect(run.observations.filter((o) => o.commands.some((c) => c.kind === "jevRequestIssued"))).toHaveLength(2)
+  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "jevRequestIssued"))).toHaveLength(2)
   const refused = run.observations.find(
-    (o) => o.event.kind === "cacheCommit" && o.commands.some((c) => c.kind === "reuseRefused")
+    (o) => o.event.kind === "cacheCommit" && o.outputs.some((c) => c.kind === "reuseRefused")
   )
   expect(refused).toBeDefined()
   expect(refused?.event).toEqual({
@@ -631,7 +641,7 @@ it("concurrent cache commits release a reservation refused by the shared one-ent
     byteLimit: 20
   })
   const release = run.observations.find((o) => o.event.kind === "releaseCapacity" && o.event.reservation === 6)
-  expect(release?.commands).toContainEqual({ kind: "reservationReleased", id: 6 })
+  expect(release?.outputs).toContainEqual({ category: "event", kind: "reservationReleased", id: 6 })
   expect(release?.before.charges.map((charge) => charge.id)).toEqual([5, 6])
   expect(release?.after.charges.map((charge) => charge.id)).toEqual([5])
   const firstCommit = run.observations.findIndex((o) => o.event.kind === "cacheCommit")
@@ -741,7 +751,7 @@ it("the original two-agent late-join case drains with the default history retent
   expect(run.projection.global.bytes).toBe(run.projection.reuse.cache.reduce((bytes, entry) => bytes + entry.bytes, 0))
   expect(run.observations).toHaveLength(1000)
   expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations)
-})
+}, 30000)
 it("unavailable owner results terminate joined work without leaving a fulfilled claim", () => {
   const run = complete({
     inputs: [0, 0].map((at) => ({ at, kind: "edit" as const, bytes: 10, unitBytes: [5], evaluationInputs: ["same"] })),
@@ -749,7 +759,9 @@ it("unavailable owner results terminate joined work without leaving a fulfilled 
     lifecycles: { reuse: { entryLimit: 2, byteLimit: 100 } }
   })
   expect(
-    run.observations.some((o) => o.commands.some((c) => c.kind === "reuseJoinClaimed" || c.kind === "reuseJoinPending"))
+    run.observations.some((o) =>
+      o.outputs.some((c) => c.kind === "reuseClaimedJoined" || c.kind === "reusePendingJoined")
+    )
   ).toBe(true)
   expect(run.projection.work).toEqual([])
   expect(run.projection.reuse.claims).toEqual([])

@@ -90,11 +90,11 @@ describe("checked size capacity through the public run", () => {
       jevDelay: 100
     })
     run.advance({ maxEvents: 200 })
-    const commands = run.observations.flatMap((frame) => frame.commands)
-    expect(commands.filter((command) => command.kind === "unitAdmitted").map((command) => command.bytes)).toEqual([
+    const outputs = run.observations.flatMap((frame) => frame.outputs)
+    expect(outputs.filter((command) => command.kind === "unitAdmitted").map((command) => command.bytes)).toEqual([
       60, 20
     ])
-    expect(commands.filter((command) => command.kind === "unitRefused").map((command) => command.bytes)).toEqual([60])
+    expect(outputs.filter((command) => command.kind === "unitRefused").map((command) => command.bytes)).toEqual([60])
   })
   it("checks explicit encoded output facts independently of reservation bytes", () => {
     const run = createRun({
@@ -104,9 +104,9 @@ describe("checked size capacity through the public run", () => {
       ]
     })
     run.advance({ maxEvents: 10 })
-    expect(run.observations.flatMap((frame) => frame.commands)).toEqual([
-      { kind: "collectionFits" },
-      { kind: "collectionLimited" }
+    expect(run.observations.flatMap((frame) => frame.outputs)).toEqual([
+      { category: "decision", kind: "collectionFits" },
+      { category: "decision", kind: "collectionLimited" }
     ])
   })
 })

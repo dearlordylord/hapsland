@@ -815,7 +815,7 @@ describe("canonical Jev request boundary", () => {
         Effect.runSync(
           ledger.settleJevRequest(partition, unit.operation, ready.request, unit.reservation, "clear", true)
         )
-      ).toBe("settleClear")
+      ).toBe("clearSettled")
       return ready.round
     }
     const firstRound = issue(first)

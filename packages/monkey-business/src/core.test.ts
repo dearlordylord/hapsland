@@ -4,11 +4,11 @@ describe("scripted public run", () => {
   it("follows a synthetic edit through checked Jev finding and advice submission", () => {
     const run = createRun({ outcome: "finding" })
     run.advance({ maxEvents: 100 })
-    const commands = run.observations.flatMap((x) => x.commands.map((c) => c.kind))
-    expect(commands).toContain("prepare")
-    expect(commands).toContain("jevRequestIssued")
-    expect(commands).toContain("retainFinding")
-    expect(commands).toContain("submissionRecorded")
+    const outputs = run.observations.flatMap((x) => x.outputs.map((c) => c.kind))
+    expect(outputs).toContain("prepare")
+    expect(outputs).toContain("jevRequestIssued")
+    expect(outputs).toContain("findingRetained")
+    expect(outputs).toContain("submissionRecorded")
     expect(run.observations.some((x) => x.event.kind === "stopPolled")).toBe(true)
     expect(run.observations.filter((x) => x.rejection)).toEqual([])
   })
@@ -31,7 +31,7 @@ describe("deterministic driver and replay", () => {
       ]
     }
     const run = createRun(config)
-    while (!run.observations.some((frame) => frame.commands.some((command) => command.kind === "jevRequestIssued")))
+    while (!run.observations.some((frame) => frame.outputs.some((command) => command.kind === "jevRequestIssued")))
       run.step()
     run.applyControl({ kind: "jevProfile", delayMs: 12, outcome: "clear" })
     run.advance()
@@ -106,7 +106,7 @@ it("ordinary capacity refusals remain observable successful transitions", () => 
     inputs: [{ at: 0, kind: "edit", bytes: 11, unitBytes: [1] }]
   })
   expect(run.advance().reason).toBe("idle")
-  expect(run.observations.flatMap((x) => x.commands.map((c) => c.kind))).toContain("preparationRefused")
+  expect(run.observations.flatMap((x) => x.outputs.map((c) => c.kind))).toContain("preparationRefused")
   expect(run.observations.filter((x) => x.rejection)).toEqual([])
 })
 
@@ -118,15 +118,15 @@ it("waits for checked finish allowance before generating a later task", () => {
     finishDeadline: 500
   })
   run.advance({ untilTime: 50, maxEvents: 100 })
-  expect(run.observations.flatMap((x) => x.commands.map((c) => c.kind))).toContain("waitForWork")
+  expect(run.observations.flatMap((x) => x.outputs.map((c) => c.kind))).toContain("waitForWork")
   expect(run.observations.filter((x) => x.event.kind === "beginObservedPreparation")).toHaveLength(1)
   run.advance({ untilTime: 140, maxEvents: 100 })
-  const commands = run.observations.flatMap((x) => x.commands.map((c) => c.kind))
-  expect(commands).toContain("finishReserved")
-  expect(commands).toContain("finishAuthorized")
-  expect(commands).toContain("finishRecorded")
-  expect(commands).toContain("roundContinuationAvailable")
-  expect(commands).toContain("finishEnded")
+  const outputs = run.observations.flatMap((x) => x.outputs.map((c) => c.kind))
+  expect(outputs).toContain("finishReserved")
+  expect(outputs).toContain("finishAuthorized")
+  expect(outputs).toContain("finishRecorded")
+  expect(outputs).toContain("roundContinuationAvailable")
+  expect(outputs).toContain("finishEnded")
   expect(run.observations.filter((x) => x.rejection)).toEqual([])
   expect(run.observations.filter((x) => x.event.kind === "beginObservedPreparation").length).toBeGreaterThan(1)
 })
@@ -136,8 +136,8 @@ it("ends an allowed finish and opens a fresh round for later generated work", ()
     outcome: "clear"
   })
   run.advance({ untilTime: 45, maxEvents: 100 })
-  const commands = run.observations.flatMap((x) => x.commands.map((c) => c.kind))
-  expect(commands).toContain("finishAllowedNoAdvice")
+  const outputs = run.observations.flatMap((x) => x.outputs.map((c) => c.kind))
+  expect(outputs).toContain("finishAllowedNoAdvice")
   expect(run.observations.filter((x) => x.event.kind === "openRound")).toHaveLength(2)
   expect(run.observations.filter((x) => x.rejection)).toEqual([])
 })
@@ -157,9 +157,9 @@ it("a virtual finish deadline cancels unfinished requests and permits later work
     finishDeadline: 5
   })
   run.advance({ untilTime: 60, maxEvents: 100 })
-  const commands = run.observations.flatMap((x) => x.commands.map((c) => c.kind))
-  expect(commands).toContain("cancelWork")
-  expect(commands).toContain("finishAllowedDeadline")
+  const outputs = run.observations.flatMap((x) => x.outputs.map((c) => c.kind))
+  expect(outputs).toContain("cancelWork")
+  expect(outputs).toContain("finishAllowedDeadline")
   expect(run.observations.filter((x) => x.event.kind === "openRound")).toHaveLength(2)
   expect(run.observations.filter((x) => x.rejection)).toEqual([])
 })
@@ -171,10 +171,10 @@ it("uses checked continuation exhaustion to allow finish instead of inventing an
     finishDeadline: 100
   })
   run.advance({ untilTime: 300, maxEvents: 1000 })
-  expect(run.observations.flatMap((frame) => frame.commands.map((command) => command.kind))).toContain(
+  expect(run.observations.flatMap((frame) => frame.outputs.map((command) => command.kind))).toContain(
     "roundContinuationExhausted"
   )
-  expect(run.observations.flatMap((frame) => frame.commands.map((command) => command.kind))).not.toContain(
+  expect(run.observations.flatMap((frame) => frame.outputs.map((command) => command.kind))).not.toContain(
     "continuationRefused"
   )
   expect(run.observations.filter((frame) => frame.event.kind === "openRound").length).toBeGreaterThan(1)

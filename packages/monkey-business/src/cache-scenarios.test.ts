@@ -24,7 +24,7 @@ const start = (
     ...extra
   })
 const issued = (run: ReturnType<typeof createRun>) =>
-  run.observations.filter((frame) => frame.commands.some((command) => command.kind === "jevRequestIssued"))
+  run.observations.filter((frame) => frame.outputs.some((command) => command.kind === "jevRequestIssued"))
 const replay = (run: ReturnType<typeof createRun>) =>
   expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe())
 const owners = (run: ReturnType<typeof createRun>) => {
@@ -44,7 +44,7 @@ it("observes intermediate actual hit, identity miss, eviction and a renewed miss
   expect(run.projection.global).toEqual({ items: 1, bytes: 5 })
   run.advance({ untilTime: 19, maxEvents: 1000 })
   expect(issued(run)).toHaveLength(1)
-  expect(run.observations.some((f) => f.commands.some((c) => c.kind === "reuseCached"))).toBe(true)
+  expect(run.observations.some((f) => f.outputs.some((c) => c.kind === "reuseCacheHit"))).toBe(true)
   expect(run.projection.reuse.cache[0]!.reservation).toBe(original.reservation)
   owners(run)
   run.advance({ untilTime: 29, maxEvents: 1000 })
@@ -175,7 +175,7 @@ it("applies an authentic cached finding as a fresh logical review without anothe
   run.advance({ untilTime: 20, maxEvents: 1000 })
   expect(issued(run)).toHaveLength(1)
   expect(
-    run.observations.filter((frame) => frame.commands.some((command) => command.kind === "reuseCached"))
+    run.observations.filter((frame) => frame.outputs.some((command) => command.kind === "reuseCacheHit"))
   ).toHaveLength(1)
   const logical = run.observations.find(
     (frame) => frame.event.kind === "reviewObserved" && frame.event.operation !== advice.operation
@@ -214,14 +214,14 @@ const untilCacheStage = (run: ReturnType<typeof createRun>, stage: "prepare" | "
     if (
       stage === "prepare" &&
       frame?.event.kind === "cachePrepare" &&
-      frame.commands.some((command) => command.kind === "cachePrepared")
+      frame.outputs.some((command) => command.kind === "cachePrepared")
     )
       return frame
     if (
       stage === "reserve" &&
       frame?.event.kind === "reserveCapacity" &&
       frame.event.purpose === "storedResult" &&
-      frame.commands.some((command) => command.kind === "capacityGranted")
+      frame.outputs.some((command) => command.kind === "capacityGranted")
     )
       return frame
   }
@@ -234,7 +234,7 @@ it.each(["prepare", "reserve"] as const)(
       sessions: [{ agent: "a", seed: 11, editIntervalMs: 1000, variationMs: 0, editsPerTask: 100, taskPauseMs: 1000 }]
     })
     const frame = untilCacheStage(run, stage)
-    const reserved = frame.commands.find((command) => command.kind === "capacityGranted")
+    const reserved = frame.outputs.find((command) => command.kind === "capacityGranted")
     run.applyControl({ kind: "adviceeLifecycle", agent: "a", action: "remove" })
     run.advance({ untilTime: 20, maxEvents: 1000 })
     expect(run.projection.reuse.cache).toEqual([])
@@ -276,7 +276,7 @@ it("releases a completed clear claim after actual stored-capacity refusal while 
       (frame) =>
         frame.event.kind === "reserveCapacity" &&
         frame.event.purpose === "storedResult" &&
-        frame.commands.some((command) => command.kind === "capacityRefused")
+        frame.outputs.some((command) => command.kind === "capacityRefused")
     )
   ).toBe(true)
   expect(run.projection.reuse.claims).toEqual([])

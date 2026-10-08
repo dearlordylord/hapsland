@@ -30,7 +30,7 @@ it.each(["neverSent", "backendFailure", "timeout", "interrupted"] as const)(
         expect(run.projection.dispatch.requests).toEqual([])
         expect(run.projection.dispatch.running).toEqual([])
         expect(
-          frames.flatMap((frame) => frame.commands).filter((command) => command.kind === "submissionRecorded")
+          frames.flatMap((frame) => frame.outputs).filter((command) => command.kind === "submissionRecorded")
         ).toHaveLength(selected === "finding" ? 1 : 0)
         if (selected === "finding") expect(frames.some((frame) => frame.after.collection.ready.length > 0)).toBe(true)
       }
@@ -75,7 +75,7 @@ const commandCodes: Record<string, number> = {
   prepare: 4,
   unitAdmitted: 5,
   jevRequestIssued: 6,
-  retainFinding: 7,
+  findingRetained: 7,
   collectionEligible: 8,
   retainCandidate: 9,
   submissionUnsuppressed: 10,
@@ -91,7 +91,7 @@ const commandCodes: Record<string, number> = {
   reservationReleased: 20,
   collectionLeaseKept: 21,
   collectionLeaseReleased: 22,
-  settleClear: 23,
+  clearSettled: 23,
   reviewRecorded: 24,
   retireCandidate: 25,
   releaseCandidate: 26,
@@ -189,7 +189,7 @@ const row = (frame: Observation): number[] => {
     ...facts,
     ...counts,
     Number(!!frame.rejection),
-    ...frame.commands.map((command) => code(commandCodes, command.kind))
+    ...frame.outputs.map((command) => code(commandCodes, command.kind))
   ]
 }
 
@@ -246,7 +246,7 @@ it("compares four original twelve-cycle recovery scripts with the stateful nativ
     }
     expect(run.observations.filter((frame) => frame.rejection)).toEqual([])
     expect(
-      run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "submissionRecorded")
+      run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "submissionRecorded")
     ).toHaveLength(12)
     expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe())
     return run.observations.map(row)
@@ -296,7 +296,7 @@ it(
       })
       const reached = () =>
         scenario.trigger === "issued"
-          ? run.observations.some((frame) => frame.commands.some((command) => command.kind === "jevRequestIssued"))
+          ? run.observations.some((frame) => frame.outputs.some((command) => command.kind === "jevRequestIssued"))
           : run.observations.some(
               (frame) =>
                 frame.event.kind === (scenario.trigger === "started" ? "jevRequestStarted" : "jevRequestSettled")
@@ -384,9 +384,7 @@ it.each([0, 1, 2] as const)(
         run.observations.some((frame) => frame.event.kind === "dispatchSettled" && frame.event.operation === 3)
       )
       expect(
-        run.observations
-          .flatMap((frame) => frame.commands)
-          .filter((command) => command.kind === "jevRequestUnavailable")
+        run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "jevRequestUnavailable")
       ).toHaveLength(1)
       expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
       expect(run.projection.dispatch.running).toEqual([])

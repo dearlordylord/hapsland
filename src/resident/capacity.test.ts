@@ -122,7 +122,7 @@ describe("resident logical capacity ledger", () => {
           active: true,
           capacity: 1
         })
-      ).commands[0]?.kind
+      ).outputs[0]?.kind
     ).toBe("collectionBackgroundClaimed")
     for (let index = 0; index < 1000; index++) Effect.runSync(ledger.collectionTokenId(`finished-${index}`))
     Effect.runSync(ledger.pruneCollectionTokenIds(new Set()))
@@ -130,7 +130,7 @@ describe("resident logical capacity ledger", () => {
     expect(Effect.runSync(ledger.collectionTokenId("live"))).toBe(live)
     expect(
       Effect.runSync(ledger.transition({ kind: "collectionReleaseBackground", group: partition, token: live }))
-        .commands[0]?.kind
+        .outputs[0]?.kind
     ).toBe("collectionBackgroundReleased")
     Effect.runSync(ledger.pruneCollectionTokenIds(new Set()))
     expect(Effect.runSync(ledger.collectionTokenIdentityCount())).toBe(0)
@@ -161,7 +161,7 @@ describe("resident logical capacity ledger", () => {
             residentPermitLimit: 4096
           }
         })
-      ).commands[0]
+      ).outputs[0]
       if (issued?.kind !== "permitIssued") throw new Error("fixture permit refused")
       const pending = Effect.runSync(ledger.canonicalProjection())
       Effect.runSync(ledger.discardUnusedPartition("permit-agent"))
@@ -176,7 +176,7 @@ describe("resident logical capacity ledger", () => {
         expect(
           Effect.runSync(
             ledger.transition({ kind: "consumePermit", partition, lifetime: 1, token: issued.token, tool: 7, now: 120 })
-          ).commands[0]?.kind
+          ).outputs[0]?.kind
         ).toBe("permitConsumed")
         const admitted = Effect.runSync(ledger.canonicalProjection())
         Effect.runSync(ledger.discardUnusedPartition("permit-agent"))
@@ -193,7 +193,7 @@ describe("resident logical capacity ledger", () => {
         expect(
           Effect.runSync(
             ledger.transition({ kind: "retirePartition", partition, lifetime: 1, round: issued.round })
-          ).commands.at(-1)?.kind
+          ).outputs.at(-1)?.kind
         ).toBe("partitionRetired")
       }
       Effect.runSync(ledger.discardUnusedPartition("permit-agent"))
@@ -210,14 +210,14 @@ describe("resident logical capacity ledger", () => {
     expect(
       Effect.runSync(
         ledger.transition({ kind: "collectionClaimBackground", group: partition, token, active: true, capacity: 1 })
-      ).commands[0]?.kind
+      ).outputs[0]?.kind
     ).toBe("collectionBackgroundClaimed")
     const owned = Effect.runSync(ledger.canonicalProjection())
     Effect.runSync(ledger.discardUnusedPartition("collector"))
     expect(Effect.runSync(ledger.knownPartitionId("collector"))).toBe(partition)
     expect(Effect.runSync(ledger.canonicalProjection())).toEqual(owned)
     expect(
-      Effect.runSync(ledger.transition({ kind: "collectionReleaseBackground", group: partition, token })).commands[0]
+      Effect.runSync(ledger.transition({ kind: "collectionReleaseBackground", group: partition, token })).outputs[0]
         ?.kind
     ).toBe("collectionBackgroundReleased")
     Effect.runSync(ledger.discardUnusedPartition("collector"))
@@ -249,7 +249,7 @@ describe("resident logical capacity ledger", () => {
       const partition = `agent-${index}`
       const group = Effect.runSync(ledger.partitionId(partition))
       const round = Effect.runSync(ledger.roundId(partition))
-      expect(Effect.runSync(ledger.transition({ kind: "continuationConsume", group, round })).commands[0]?.kind).toBe(
+      expect(Effect.runSync(ledger.transition({ kind: "continuationConsume", group, round })).outputs[0]?.kind).toBe(
         "continuationConsumed"
       )
       Effect.runSync(ledger.retireRound(partition, round))
@@ -272,7 +272,7 @@ describe("resident logical capacity ledger", () => {
       [{ kind: "deliveryFindingDispositionCheck", composed: false, remaining: 1 }, "deliveryKeepRemaining"],
       [{ kind: "deliveryFindingDispositionCheck", composed: false, remaining: 0 }, "deliveryRetireAdvice"]
     ] as const) {
-      expect(Effect.runSync(ledger.transition(event)).commands).toEqual([{ kind }])
+      expect(Effect.runSync(ledger.transition(event)).outputs).toEqual([{ category: "decision", kind }])
     }
   })
 
@@ -289,19 +289,19 @@ describe("resident logical capacity ledger", () => {
       credentialAuthorized: true
     }
     expect(
-      Effect.runSync(ledger.transition({ kind: "deliverySubmissionCandidateCheck", facts: valid })).commands
-    ).toEqual([{ kind: "deliverySubmissionCandidate" }])
+      Effect.runSync(ledger.transition({ kind: "deliverySubmissionCandidateCheck", facts: valid })).outputs
+    ).toEqual([{ category: "decision", kind: "deliverySubmissionCandidate" }])
     expect(
       Effect.runSync(
         ledger.transition({ kind: "deliverySubmissionCandidateCheck", facts: { ...valid, currentWork: false } })
-      ).commands
-    ).toEqual([{ kind: "deliverySubmissionRefused" }])
+      ).outputs
+    ).toEqual([{ category: "decision", kind: "deliverySubmissionRefused" }])
     expect(
-      Effect.runSync(ledger.transition({ kind: "deliverySubmissionBatchCheck", count: 0, allValid: true })).commands
-    ).toEqual([{ kind: "deliveryBatchRelease" }])
+      Effect.runSync(ledger.transition({ kind: "deliverySubmissionBatchCheck", count: 0, allValid: true })).outputs
+    ).toEqual([{ category: "decision", kind: "deliveryBatchRelease" }])
     expect(
-      Effect.runSync(ledger.transition({ kind: "deliverySubmissionBatchCheck", count: 1, allValid: true })).commands
-    ).toEqual([{ kind: "deliveryBatchProceed" }])
+      Effect.runSync(ledger.transition({ kind: "deliverySubmissionBatchCheck", count: 1, allValid: true })).outputs
+    ).toEqual([{ category: "decision", kind: "deliveryBatchProceed" }])
     expect(
       Effect.runSync(
         ledger.transition({
@@ -310,8 +310,8 @@ describe("resident logical capacity ledger", () => {
           generationValid: true,
           authorized: true
         })
-      ).commands
-    ).toEqual([{ kind: "deliveryCredentialValid" }])
+      ).outputs
+    ).toEqual([{ category: "decision", kind: "deliveryCredentialValid" }])
     expect(
       Effect.runSync(
         ledger.transition({
@@ -320,43 +320,42 @@ describe("resident logical capacity ledger", () => {
           generationValid: false,
           authorized: false
         })
-      ).commands
-    ).toEqual([{ kind: "deliveryCredentialInvalid" }])
+      ).outputs
+    ).toEqual([{ category: "decision", kind: "deliveryCredentialInvalid" }])
     expect(
       Effect.runSync(
         ledger.transition({ kind: "deliveryFinalCredentialCheck", sharedCollect: true, invalidSeen: true })
-      ).commands
-    ).toEqual([{ kind: "deliveryBatchRelease" }])
+      ).outputs
+    ).toEqual([{ category: "decision", kind: "deliveryBatchRelease" }])
     expect(
       Effect.runSync(
         ledger.transition({ kind: "deliveryFinalCredentialCheck", sharedCollect: false, invalidSeen: true })
-      ).commands
-    ).toEqual([{ kind: "deliveryBatchProceed" }])
+      ).outputs
+    ).toEqual([{ category: "decision", kind: "deliveryBatchProceed" }])
   })
 
   it("routes revalidation and final handoff candidates through canonical Bend", () => {
     const ledger = Effect.runSync(makeResidentState())
     expect(
       Effect.runSync(ledger.transition({ kind: "validationRouteCheck", ownerCurrent: false, status: "current" }))
-        .commands
-    ).toEqual([{ kind: "ignoreCandidate" }])
+        .outputs
+    ).toEqual([{ category: "decision", kind: "ignoreCandidate" }])
     expect(
-      Effect.runSync(ledger.transition({ kind: "validationRouteCheck", ownerCurrent: true, status: "stale" })).commands
-    ).toEqual([{ kind: "retireCandidate" }])
+      Effect.runSync(ledger.transition({ kind: "validationRouteCheck", ownerCurrent: true, status: "stale" })).outputs
+    ).toEqual([{ category: "decision", kind: "retireCandidate" }])
     expect(
-      Effect.runSync(ledger.transition({ kind: "validationRouteCheck", ownerCurrent: true, status: "current" }))
-        .commands
-    ).toEqual([{ kind: "continueCandidate" }])
+      Effect.runSync(ledger.transition({ kind: "validationRouteCheck", ownerCurrent: true, status: "current" })).outputs
+    ).toEqual([{ category: "decision", kind: "continueCandidate" }])
     expect(
       Effect.runSync(
         ledger.transition({ kind: "postValidationCheck", workAccepted: true, expired: false, hasFitting: false })
-      ).commands
-    ).toEqual([{ kind: "releaseCandidate" }])
+      ).outputs
+    ).toEqual([{ category: "decision", kind: "releaseCandidate" }])
     expect(
       Effect.runSync(
         ledger.transition({ kind: "postValidationCheck", workAccepted: true, expired: false, hasFitting: true })
-      ).commands
-    ).toEqual([{ kind: "retainCandidate" }])
+      ).outputs
+    ).toEqual([{ category: "decision", kind: "retainCandidate" }])
     expect(
       Effect.runSync(
         ledger.transition({
@@ -368,19 +367,18 @@ describe("resident logical capacity ledger", () => {
           workCurrent: true,
           hasFindings: true
         })
-      ).commands
-    ).toEqual([{ kind: "retireCandidate" }])
+      ).outputs
+    ).toEqual([{ category: "decision", kind: "retireCandidate" }])
   })
 
   it("routes Stop ownership, expiry, and submission through canonical Bend", () => {
     const ledger = Effect.runSync(makeResidentState())
     expect(
-      Effect.runSync(ledger.transition({ kind: "roundBeginStopCheck", active: true, hasStop: false, token: 1 }))
-        .commands
-    ).toEqual([{ kind: "roundStopBegun" }])
+      Effect.runSync(ledger.transition({ kind: "roundBeginStopCheck", active: true, hasStop: false, token: 1 })).outputs
+    ).toEqual([{ category: "decision", kind: "roundStopBegun" }])
     expect(
-      Effect.runSync(ledger.transition({ kind: "roundBeginStopCheck", active: true, hasStop: true, token: 2 })).commands
-    ).toEqual([{ kind: "roundStopRefused" }])
+      Effect.runSync(ledger.transition({ kind: "roundBeginStopCheck", active: true, hasStop: true, token: 2 })).outputs
+    ).toEqual([{ category: "decision", kind: "roundStopRefused" }])
     expect(
       Effect.runSync(
         ledger.transition({
@@ -392,8 +390,8 @@ describe("resident logical capacity ledger", () => {
           closedAt: 0,
           expectedGeneration: 1
         })
-      ).commands
-    ).toEqual([{ kind: "roundInactive" }])
+      ).outputs
+    ).toEqual([{ category: "decision", kind: "roundInactive" }])
     expect(
       Effect.runSync(
         ledger.transition({
@@ -405,33 +403,33 @@ describe("resident logical capacity ledger", () => {
           closedAt: 100,
           expectedGeneration: 1
         })
-      ).commands
-    ).toEqual([{ kind: "roundInactive" }])
+      ).outputs
+    ).toEqual([{ category: "decision", kind: "roundInactive" }])
     expect(
       Effect.runSync(ledger.transition({ kind: "roundBarrierCheck", hasStop: true, usedAtStart: 1, usedNow: 2 }))
-        .commands
-    ).toEqual([{ kind: "roundBarrierRaised" }])
+        .outputs
+    ).toEqual([{ category: "decision", kind: "roundBarrierRaised" }])
     expect(
       Effect.runSync(ledger.transition({ kind: "roundBarrierCheck", hasStop: false, usedAtStart: 1, usedNow: 2 }))
-        .commands
-    ).toEqual([{ kind: "roundBarrierClear" }])
+        .outputs
+    ).toEqual([{ category: "decision", kind: "roundBarrierClear" }])
     expect(
       Effect.runSync(
         ledger.transition({ kind: "roundOwnsStopCheck", active: true, tokenMatches: true, deciding: true })
-      ).commands
-    ).toEqual([{ kind: "roundStopNotOwned" }])
+      ).outputs
+    ).toEqual([{ category: "decision", kind: "roundStopNotOwned" }])
     expect(
       Effect.runSync(
         ledger.transition({ kind: "roundStopTerminalCheck", hasOutput: true, authorized: false, requestedClose: false })
-      ).commands
-    ).toEqual([{ kind: "roundStopTerminal", revokeProvisional: true, close: true }])
+      ).outputs
+    ).toEqual([{ category: "decision", kind: "roundStopTerminal", revokeProvisional: true, close: true }])
     expect(
       Effect.runSync(ledger.transition({ kind: "roundExpireCloseCheck", barrier: false, authorizedOutput: true }))
-        .commands
-    ).toEqual([{ kind: "roundExpireKeeps" }])
+        .outputs
+    ).toEqual([{ category: "decision", kind: "roundExpireKeeps" }])
     expect(
-      Effect.runSync(ledger.transition({ kind: "roundContinuationBudgetCheck", active: true, count: 4 })).commands
-    ).toEqual([{ kind: "roundContinuationExhausted" }])
+      Effect.runSync(ledger.transition({ kind: "roundContinuationBudgetCheck", active: true, count: 4 })).outputs
+    ).toEqual([{ category: "decision", kind: "roundContinuationExhausted" }])
     expect(
       Effect.runSync(
         ledger.transition({
@@ -443,8 +441,8 @@ describe("resident logical capacity ledger", () => {
           existingToken: false,
           finishPermit: false
         })
-      ).commands
-    ).toEqual([{ kind: "deliverySubmissionDenied" }])
+      ).outputs
+    ).toEqual([{ category: "decision", kind: "deliverySubmissionDenied" }])
     expect(
       Effect.runSync(
         ledger.transition({
@@ -453,11 +451,11 @@ describe("resident logical capacity ledger", () => {
           existingToken: true,
           finishPermit: false
         })
-      ).commands
-    ).toEqual([{ kind: "deliveryExistingTokenDenied" }])
+      ).outputs
+    ).toEqual([{ category: "decision", kind: "deliveryExistingTokenDenied" }])
     expect(
-      Effect.runSync(ledger.transition({ kind: "deliveryUnreservedStopCheck", active: true, deciding: true })).commands
-    ).toEqual([{ kind: "deliveryUnreservedStopDenied" }])
+      Effect.runSync(ledger.transition({ kind: "deliveryUnreservedStopCheck", active: true, deciding: true })).outputs
+    ).toEqual([{ category: "decision", kind: "deliveryUnreservedStopDenied" }])
   })
 
   it("keeps permit and capacity transitions in one canonical resident state", () => {
@@ -483,7 +481,7 @@ describe("resident logical capacity ledger", () => {
         }
       })
     )
-    expect(issued.commands[0]).toEqual({ kind: "permitIssued", token: 1, round: 1 })
+    expect(issued.outputs[0]).toEqual({ category: "event", kind: "permitIssued", token: 1, round: 1 })
     const charge = Effect.runSync(ledger.reserve("agent", 10, "observationDispatch"))
     expect(charge).toBeDefined()
     expect(Effect.runSync(ledger.canonicalProjection())).toMatchObject({
@@ -492,8 +490,8 @@ describe("resident logical capacity ledger", () => {
     })
     expect(
       Effect.runSync(ledger.transition({ kind: "consumePermit", partition, lifetime: 1, token: 1, tool: 7, now: 120 }))
-        .commands[0]
-    ).toEqual({ kind: "permitConsumed", round: 1 })
+        .outputs[0]
+    ).toEqual({ category: "event", kind: "permitConsumed", round: 1 })
     if (charge !== undefined) expect(Effect.runSync(ledger.release(charge))).toBe(true)
     expect(Effect.runSync(ledger.canonicalProjection())).toMatchObject({
       global: { items: 0, bytes: 0 },

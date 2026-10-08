@@ -57,6 +57,7 @@
           "physicalAvailable": true,
           "expect": "jevRequestIssued",
           "issuedRequest": {
+            "category": "event",
             "kind": "jevRequestIssued",
             "partition": 1,
             "lifetime": 1,
@@ -141,6 +142,7 @@
           "physicalAvailable": true,
           "expect": "jevRequestIssued",
           "issuedRequest": {
+            "category": "event",
             "kind": "jevRequestIssued",
             "partition": 1,
             "lifetime": 1,
@@ -168,7 +170,7 @@
           "outcome": "clear",
           "currentWork": true,
           "requestCount": 0,
-          "expect": "reservationReleased,reviewRecorded,settleClear,jevRequestOutcomeRecorded"
+          "expect": "reservationReleased,reviewRecorded,clearSettled,jevRequestOutcomeRecorded"
         },
         {
           "kind": "jevRequestSettled",
@@ -234,6 +236,7 @@
           "physicalAvailable": true,
           "expect": "jevRequestIssued",
           "issuedRequest": {
+            "category": "event",
             "kind": "jevRequestIssued",
             "partition": 1,
             "lifetime": 1,
@@ -261,7 +264,7 @@
           "outcome": "finding",
           "currentWork": true,
           "requestCount": 0,
-          "expect": "reservationReleased,reviewRecorded,retainFinding,jevRequestOutcomeRecorded"
+          "expect": "reservationReleased,reviewRecorded,findingRetained,jevRequestOutcomeRecorded"
         },
         {
           "kind": "jevRequestSettled",
@@ -327,6 +330,7 @@
           "physicalAvailable": true,
           "expect": "jevRequestIssued",
           "issuedRequest": {
+            "category": "event",
             "kind": "jevRequestIssued",
             "partition": 1,
             "lifetime": 1,
@@ -420,6 +424,7 @@
           "physicalAvailable": true,
           "expect": "jevRequestIssued",
           "issuedRequest": {
+            "category": "event",
             "kind": "jevRequestIssued",
             "partition": 1,
             "lifetime": 1,
@@ -513,6 +518,7 @@
           "physicalAvailable": true,
           "expect": "jevRequestIssued",
           "issuedRequest": {
+            "category": "event",
             "kind": "jevRequestIssued",
             "partition": 1,
             "lifetime": 1,
@@ -624,6 +630,7 @@
           "requestCount": 1,
           "expect": "jevRequestIssued",
           "issuedRequest": {
+            "category": "event",
             "kind": "jevRequestIssued",
             "partition": 1,
             "lifetime": 1,
@@ -664,6 +671,7 @@
           "requestCount": 2,
           "expect": "jevRequestIssued",
           "issuedRequest": {
+            "category": "event",
             "kind": "jevRequestIssued",
             "partition": 1,
             "lifetime": 1,
@@ -704,6 +712,7 @@
           "requestCount": 3,
           "expect": "jevRequestIssued",
           "issuedRequest": {
+            "category": "event",
             "kind": "jevRequestIssued",
             "partition": 1,
             "lifetime": 1,
@@ -744,6 +753,7 @@
           "requestCount": 4,
           "expect": "jevRequestIssued",
           "issuedRequest": {
+            "category": "event",
             "kind": "jevRequestIssued",
             "partition": 1,
             "lifetime": 1,
@@ -784,6 +794,7 @@
           "requestCount": 5,
           "expect": "jevRequestIssued",
           "issuedRequest": {
+            "category": "event",
             "kind": "jevRequestIssued",
             "partition": 1,
             "lifetime": 1,
@@ -824,6 +835,7 @@
           "requestCount": 6,
           "expect": "jevRequestIssued",
           "issuedRequest": {
+            "category": "event",
             "kind": "jevRequestIssued",
             "partition": 1,
             "lifetime": 1,
@@ -864,6 +876,7 @@
           "requestCount": 7,
           "expect": "jevRequestIssued",
           "issuedRequest": {
+            "category": "event",
             "kind": "jevRequestIssued",
             "partition": 1,
             "lifetime": 1,
@@ -904,6 +917,7 @@
           "requestCount": 8,
           "expect": "jevRequestIssued",
           "issuedRequest": {
+            "category": "event",
             "kind": "jevRequestIssued",
             "partition": 1,
             "lifetime": 1,
@@ -954,7 +968,7 @@
           "outcome": "clear",
           "currentWork": true,
           "requestCount": 7,
-          "expect": "reservationReleased,reviewRecorded,settleClear,jevRequestOutcomeRecorded"
+          "expect": "reservationReleased,reviewRecorded,clearSettled,jevRequestOutcomeRecorded"
         },
         {
           "kind": "beginPreparation",
@@ -998,6 +1012,7 @@
           "requestCount": 8,
           "expect": "jevRequestIssued",
           "issuedRequest": {
+            "category": "event",
             "kind": "jevRequestIssued",
             "partition": 1,
             "lifetime": 1,
@@ -1063,6 +1078,7 @@
           "currentWork": true,
           "physicalAvailable": true,
           "issuedRequest": {
+            "category": "event",
             "kind": "jevRequestIssued",
             "partition": 7,
             "lifetime": 11,

@@ -294,7 +294,7 @@ describe("expanded preparation through production decisions", () => {
     expect(graphs.every((frame) => frame.before.global.items === frame.after.global.items)).toBe(true)
     expect(
       run.observations
-        .flatMap((frame) => frame.commands)
+        .flatMap((frame) => frame.outputs)
         .filter((cmd) => cmd.kind === "unitAdmitted")
         .map((cmd) => cmd.bytes)
     ).toEqual([5, 7])

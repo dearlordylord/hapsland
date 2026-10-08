@@ -39,7 +39,7 @@ Object.assign(events, {
   stopGroupEnded: 47,
   retirePartition: 48
 })
-const commands = Object.fromEntries(
+const outputs = Object.fromEntries(
   [
     "roundStarted",
     "observationAdmitted",
@@ -47,7 +47,7 @@ const commands = Object.fromEntries(
     "prepare",
     "unitAdmitted",
     "jevRequestIssued",
-    "retainFinding",
+    "findingRetained",
     "collectionEligible",
     "retainCandidate",
     "submissionUnsuppressed",
@@ -63,7 +63,7 @@ const commands = Object.fromEntries(
     "reservationReleased",
     "collectionLeaseKept",
     "collectionLeaseReleased",
-    "settleClear",
+    "clearSettled",
     "reviewRecorded",
     "retireCandidate",
     "releaseCandidate",
@@ -71,7 +71,7 @@ const commands = Object.fromEntries(
     "submissionForgotten"
   ].map((kind, index) => [kind, index + 1])
 )
-Object.assign(commands, {
+Object.assign(outputs, {
   jevInterruptionRecorded: 29,
   jevRequestUnavailable: 30,
   waitForWork: 40,
@@ -254,7 +254,7 @@ export function publicRows(observations) {
       ...facts(frame.event),
       ...counts,
       frame.rejection ? 1 : 0,
-      ...frame.commands.map((command) => commands[command.kind] ?? 99),
+      ...frame.outputs.map((command) => outputs[command.kind] ?? 99),
       100,
       frame.before.global.items,
       frame.before.global.bytes,

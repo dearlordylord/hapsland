@@ -87,7 +87,7 @@ it.each([7, 91001, 4294967313])("seed %i preserves held canceled identity while 
     advance(candidate, candidate.now, 64)
     const late = candidate.observations.filter((frame) => frame.event.kind === "jevRequestSettled").at(-1)!
     expect(late.event).toMatchObject({ ...original.owner, request: original.effect.request })
-    expect(late.commands.map((command) => command.kind)).toEqual(["jevObservationIgnored"])
+    expect(late.outputs.map((command) => command.kind)).toEqual(["jevObservationIgnored"])
     expect(candidate.projection.dispatch.requests).toEqual([])
     expect(candidate.projection.global).toEqual({ items: 0, bytes: 0 })
     const released = candidate.projection
@@ -95,7 +95,7 @@ it.each([7, 91001, 4294967313])("seed %i preserves held canceled identity while 
     advance(candidate, candidate.now, 64)
     const duplicate = candidate.observations.filter((frame) => frame.event.kind === "jevRequestSettled").at(-1)!
     expect(duplicate.rejection).toBe("StaleOperation")
-    expect(duplicate.commands).toEqual([])
+    expect(duplicate.outputs).toEqual([])
     expect(candidate.projection).toEqual(released)
   }
   expect(restored.observe()).toEqual(run.observe())

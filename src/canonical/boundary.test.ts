@@ -67,7 +67,7 @@ it("rejects malformed canonical events, positive identities, bytes and excess fi
     expect(() => canonical({ ...valid, partition })).toThrow(TypeError)
   for (const bytes of [0, -1, 1.5, CANONICAL_MAX_BYTES + 1, 1n, NaN, Infinity])
     expect(() => canonical({ ...valid, bytes })).toThrow(TypeError)
-  expect(canonical({ ...valid, partition: 2 ** 48 - 1, bytes: CANONICAL_MAX_BYTES }).commands[0]?.kind).toBe(
+  expect(canonical({ ...valid, partition: 2 ** 48 - 1, bytes: CANONICAL_MAX_BYTES }).outputs[0]?.kind).toBe(
     "capacityGranted"
   )
   const full = canonical({ ...valid, bytes: CANONICAL_MAX_BYTES })
@@ -77,7 +77,7 @@ it("rejects malformed canonical events, positive identities, bytes and excess fi
     purpose: "preparation",
     bytes: CANONICAL_MAX_BYTES
   })
-  expect(refused.commands[0]?.kind).toBe("capacityRefused")
+  expect(refused.outputs[0]?.kind).toBe("capacityRefused")
   expect(projectCanonical(refused.state).global.bytes).toBe(CANONICAL_MAX_BYTES)
 })
 
@@ -126,8 +126,8 @@ it("preserves strict probability threshold decisions across generated finite val
             kind: "ruleFindingCheck",
             probability: probabilityWords(value),
             threshold: probabilityWords(threshold)
-          }).commands
-        ).toEqual([{ kind: "ruleGate", gate: value > threshold ? "admit" : "omit" }])
+          }).outputs
+        ).toEqual([{ category: "decision", kind: "ruleGate", gate: value > threshold ? "admit" : "omit" }])
       }
     ),
     { numRuns: 80, seed: 174 }
@@ -140,7 +140,7 @@ it("reserve followed by release restores accounting while preserving old snapsho
       const before = initialCanonical(limits)
       const snapshot = projectCanonical(before)
       const reserved = stepCanonical(before, { kind: "reserveCapacity", partition: 1, bytes, purpose: "preparation" })
-      const command = reserved.commands[0]
+      const command = reserved.outputs[0]
       if (command?.kind !== "capacityGranted") throw new Error("expected grant")
       expect(projectCanonical(reserved.state).global).toEqual({ items: 1, bytes })
       const released = stepCanonical(reserved.state, { kind: "releaseCapacity", reservation: command.id })
@@ -152,14 +152,50 @@ it("reserve followed by release restores accounting while preserving old snapsho
   )
 })
 
-it("strictly validates generated canonical command lists at 2048 cells without recursion", () => {
+it("preserves mixed output order and rejects payloads in the wrong semantic category", () => {
   const state = initialCanonical(limits)
-  const command = { $: "Canonical.CompletedEditAbsent" }
-  const evaluate = (commands: unknown) => {
-    injected.canonical = (state) => ({ $: "Canonical.Advanced", state, commands })
+  const facts = [
+    { $: "Canonical.EventEstablished", event: { $: "Canonical.RoundStarted", id: 1 } },
+    { $: "Canonical.ActionRequested", request: { $: "Canonical.Prepare", operation: 1, reservation: 1 } },
+    { $: "Canonical.PolicyDecided", decision: { $: "Canonical.CompletedEditAbsent" } }
+  ]
+  const evaluate = (values: readonly unknown[]) => {
+    injected.canonical = (state) => ({
+      $: "Canonical.Advanced",
+      state,
+      outputs: values.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })
+    })
+    return stepCanonical(state, { kind: "checkCompletedEdit", tool: 1 }).outputs
+  }
+  expect(evaluate(facts)).toEqual([
+    { category: "event", kind: "roundStarted", id: 1 },
+    { category: "request", kind: "prepare", operation: 1, reservation: 1 },
+    { category: "decision", kind: "completedEditAbsent" }
+  ])
+  const wrappers = [
+    { tag: "Canonical.EventEstablished", field: "event" },
+    { tag: "Canonical.ActionRequested", field: "request" },
+    { tag: "Canonical.PolicyDecided", field: "decision" }
+  ]
+  for (const [index, original] of facts.entries()) {
+    const payload = Object.values(original).find((value) => typeof value === "object")
+    expect(() => evaluate([payload])).toThrow(TypeError)
+    for (const [category, wrapper] of wrappers.entries()) {
+      if (category !== index) {
+        expect(() => evaluate([{ $: wrapper.tag, [wrapper.field]: payload }])).toThrow()
+      }
+    }
+  }
+})
+
+it("strictly validates generated canonical output lists at 2048 cells without recursion", () => {
+  const state = initialCanonical(limits)
+  const command = { $: "Canonical.PolicyDecided", decision: { $: "Canonical.CompletedEditAbsent" } }
+  const evaluate = (outputs: unknown) => {
+    injected.canonical = (state) => ({ $: "Canonical.Advanced", state, outputs })
     return stepCanonical(state, { kind: "checkCompletedEdit", tool: 1 })
   }
-  expect(evaluate(linked(2048, command)).commands).toHaveLength(2048)
+  expect(evaluate(linked(2048, command)).outputs).toHaveLength(2048)
   let excessHeadReads = 0
   const excessCell = { $: "Con", tail: { $: "Nil" } }
   Object.defineProperty(excessCell, "head", {
@@ -173,7 +209,7 @@ it("strictly validates generated canonical command lists at 2048 cells without r
   expect(excessHeadReads).toBe(0)
   const cyclic: { $: string; head: unknown; tail?: unknown } = { $: "Con", head: command }
   cyclic.tail = cyclic
-  for (const commands of [
+  for (const outputs of [
     linked(2049, command),
     cyclic,
     { $: "Con", head: command },
@@ -184,12 +220,12 @@ it("strictly validates generated canonical command lists at 2048 cells without r
     linked(1, { $: "toString" }),
     linked(1, { $: "constructor" }),
     linked(1, { $: "__proto__" }),
-    linked(1, { $: "Canonical.QuietRoundWaiting" }),
-    linked(1, { $: "Canonical.QuietRoundWaiting", since: 1n })
+    linked(1, { $: "Canonical.EventEstablished", event: { $: "Canonical.QuietRoundWaiting" } }),
+    linked(1, { $: "Canonical.EventEstablished", event: { $: "Canonical.QuietRoundWaiting", since: 1n } })
   ]) {
-    expect(() => evaluate(commands)).toThrow(TypeError)
+    expect(() => evaluate(outputs)).toThrow(TypeError)
   }
-  injected.canonical = (state) => ({ $: "Canonical.Advanced", state, commands: { $: "Nil" }, extra: true })
+  injected.canonical = (state) => ({ $: "Canonical.Advanced", state, outputs: { $: "Nil" }, extra: true })
   expect(() => stepCanonical(state, { kind: "checkCompletedEdit", tool: 1 })).toThrow(TypeError)
 })
 
@@ -339,7 +375,7 @@ it("validates stop-group scopes and rejects oversized lists before reading cells
   expect(reads).toBe(0)
 })
 
-it("decodes generated graph steps with safe bigint commands and exact nested alternatives", () => {
+it("decodes generated graph steps with safe bigint outputs and exact nested alternatives", () => {
   const state = initialImportGraph()
   const evaluate = (command: unknown, extra = false) => {
     injected.graph = (state) => ({ $: "ImportGraph.BoundedStep", state, command, ...(extra ? { extra: true } : {}) })
@@ -378,7 +414,7 @@ it("keeps failed generated transitions outside canonical provenance", () => {
   injected.canonical = () => ({
     $: "Canonical.Advanced",
     state: advancedWithBadCommands,
-    commands: linked(1, { $: "Canonical.Unknown" })
+    outputs: linked(1, { $: "Canonical.Unknown" })
   })
   expect(() => stepCanonical(original, { kind: "checkCompletedEdit", tool: 1 })).toThrow(TypeError)
   expect(() => projectCanonical(advancedWithBadCommands)).toThrow("foreign canonical state")
@@ -394,7 +430,7 @@ it("keeps failed generated transitions outside canonical provenance", () => {
 
   const malformed = structuredClone(original) as { ledger: Record<string, unknown> }
   malformed.ledger.extra = true
-  injected.canonical = () => ({ $: "Canonical.Advanced", state: malformed, commands: { $: "Nil" } })
+  injected.canonical = () => ({ $: "Canonical.Advanced", state: malformed, outputs: { $: "Nil" } })
   expect(() => stepCanonical(original, { kind: "checkCompletedEdit", tool: 1 })).toThrow(TypeError)
   expect(() => projectCanonical(malformed)).toThrow("foreign canonical state")
   expect(projectCanonical(original)).toBe(previous)
@@ -409,7 +445,7 @@ it("rejects excess fields on leaf work kinds and known rejection reasons before 
   const prepared = stepCanonical(opened.state, { kind: "beginPreparation", partition: 1, lifetime: 1, round, bytes: 1 })
   const malformedWork = structuredClone(prepared.state) as { work: { head: { kind: Record<string, unknown> } } }
   malformedWork.work.head.kind = { ...malformedWork.work.head.kind, extra: true }
-  injected.canonical = () => ({ $: "Canonical.Advanced", state: malformedWork, commands: { $: "Nil" } })
+  injected.canonical = () => ({ $: "Canonical.Advanced", state: malformedWork, outputs: { $: "Nil" } })
   expect(() => stepCanonical(original, { kind: "checkCompletedEdit", tool: 1 })).toThrow(TypeError)
   expect(() => projectCanonical(malformedWork)).toThrow("foreign canonical state")
 
@@ -443,7 +479,7 @@ it("rejects capacity snapshots exceeding each declared ledger limit", () => {
   ] as const) {
     const malformed = structuredClone(opened.state) as { ledger: { limits: Record<string, unknown> } }
     malformed.ledger.limits[field] = value
-    injected.canonical = () => ({ $: "Canonical.Advanced", state: malformed, commands: { $: "Nil" } })
+    injected.canonical = () => ({ $: "Canonical.Advanced", state: malformed, outputs: { $: "Nil" } })
     expect(() => stepCanonical(original, { kind: "checkCompletedEdit", tool: 1 })).toThrow(
       "inconsistent canonical state"
     )
@@ -472,7 +508,7 @@ it("rejects duplicate request identities and interrupted requests that never sta
   for (const requests of lists) {
     const malformed = structuredClone(original) as { dispatch: { requests: unknown } }
     malformed.dispatch.requests = requests
-    injected.canonical = () => ({ $: "Canonical.Advanced", state: malformed, commands: { $: "Nil" } })
+    injected.canonical = () => ({ $: "Canonical.Advanced", state: malformed, outputs: { $: "Nil" } })
     expect(() => stepCanonical(original, { kind: "checkCompletedEdit", tool: 1 })).toThrow(
       "inconsistent canonical dispatch state"
     )

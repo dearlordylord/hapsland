@@ -228,8 +228,10 @@ pending advice that does not fit the batch can remain eligible for a later
 finish attempt while a `block` keeps the same virtual round active. Fresh
 repair edits after a `block` create new work in that round. A late result from
 cancelled work cannot create advice for that repair or a later round. The pure reducer can
-emit the decision, response command, and cancellation IDs; the runtime side
-performs output and cancellation. No output command proves agent reception.
+emit policy decisions, established canonical events, and action requests in one
+ordered output stream, including output authorization and cancellation IDs. The
+runtime side performs output and cancellation. No output authorization or action
+request proves agent reception.
 
 Cancellation is the current simplification at this decision boundary. It is
 not the purpose of Stop: Hapsland first waits as far as the safe deadline and

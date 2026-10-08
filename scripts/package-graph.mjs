@@ -22,8 +22,8 @@ export const resolveDeclaredDependencyVersion = (release, name, declaration) => 
 }
 
 /** Workspace manifests own dependency edges; generated configurations are projections. */
-export const readPackageGraph = (root) => {
-  const release = readJson(resolve(root, "package.json"))
+export const readPackageGraph = (root, { loadJson = readJson, checkSources = true } = {}) => {
+  const release = loadJson(resolve(root, "package.json"))
   if (!Array.isArray(release.workspaces) || release.workspaces.length === 0)
     throw new Error("Release manifest must list explicit build workspaces")
   if (release.catalog !== undefined) {
@@ -45,7 +45,7 @@ export const readPackageGraph = (root) => {
     directories.add(directory)
     const path = resolve(root, directory)
     if (!inside(root, path)) throw new Error(`Workspace escapes release: ${directory}`)
-    const manifest = readJson(resolve(path, "package.json"))
+    const manifest = loadJson(resolve(path, "package.json"))
     if (!manifest.private || manifest.type !== "module" || typeof manifest.name !== "string")
       throw new Error(`Build workspace must be a named private ES module: ${directory}`)
     const role = manifest.hapsland?.workspaceRole ?? "production"
@@ -88,7 +88,10 @@ export const readPackageGraph = (root) => {
         )
           throw new Error(`Unsupported workspace export targets: ${manifest.name}: ${key}`)
         const source = resolve(path, target)
-        if (!existsSync(source) || !statSync(source).isFile() || !inside(realpathSync(path), realpathSync(source)))
+        if (
+          checkSources &&
+          (!existsSync(source) || !statSync(source).isFile() || !inside(realpathSync(path), realpathSync(source)))
+        )
           throw new Error(`Missing or escaped workspace source export: ${manifest.name}: ${key}`)
         continue
       }
@@ -121,7 +124,10 @@ export const readPackageGraph = (root) => {
         if (typeof target !== "string" || !/^\.\/abi\/[a-zA-Z0-9_.-]+\.d\.ts$/.test(target) || target.includes(".."))
           throw new Error(`Unsupported Bend ABI target: ${manifest.name}: ${key}`)
         const source = resolve(path, target)
-        if (!existsSync(source) || !statSync(source).isFile() || !inside(realpathSync(path), realpathSync(source)))
+        if (
+          checkSources &&
+          (!existsSync(source) || !statSync(source).isFile() || !inside(realpathSync(path), realpathSync(source)))
+        )
           throw new Error(`Missing or escaped Bend ABI: ${manifest.name}: ${key}`)
       }
     }

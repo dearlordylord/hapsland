@@ -193,7 +193,7 @@ it("known pre-output preparation failure releases the original lease without aut
     run.observations.some((frame) => frame.event.kind === "submissionBegin" && frame.event.authorizeNow === false)
   ).toBe(true)
   expect(
-    run.observations.some((frame) => frame.commands.some((command) => command.kind === "submissionAuthorized"))
+    run.observations.some((frame) => frame.outputs.some((command) => command.kind === "submissionAuthorized"))
   ).toBe(false)
   expect(run.observations.some((frame) => frame.event.kind === "submissionRelease")).toBe(true)
   expect(run.observations.filter((frame) => frame.event.kind === "submissionTerminal")).toEqual([])

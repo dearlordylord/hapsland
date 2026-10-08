@@ -32,6 +32,10 @@
       "types": "./session.mjs",
       "default": "./session.mjs"
     },
+    "./run": {
+      "types": "./run.mjs",
+      "default": "./run.mjs"
+    },
     "./compiler": {
       "types": "./compiler.mjs",
       "default": "./compiler.mjs"

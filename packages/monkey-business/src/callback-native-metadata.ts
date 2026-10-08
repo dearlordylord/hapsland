@@ -536,6 +536,20 @@ export const callbackNativeDescriptors = {
       }
     ]
   },
+  canonical_actionrequest: {
+    kind: "adt",
+    constructors: [
+      {
+        tag: "Canonical.Prepare",
+        fields: [
+          ["operation", "nat"],
+          ["reservation", "nat"]
+        ]
+      },
+      { tag: "Canonical.CancelWork", fields: [["operation", "nat"]] },
+      { tag: "Canonical.CreateNoticeKey", fields: [] }
+    ]
+  },
   ledger_usage: {
     kind: "adt",
     constructors: [
@@ -559,16 +573,6 @@ export const callbackNativeDescriptors = {
           ["charges", "list_ledger_charge"]
         ]
       }
-    ]
-  },
-  ledger_fitdecision: {
-    kind: "adt",
-    constructors: [
-      { tag: "Ledger.Fits", fields: [] },
-      { tag: "Ledger.GlobalItemLimit", fields: [] },
-      { tag: "Ledger.GlobalByteLimit", fields: [] },
-      { tag: "Ledger.PartitionItemLimit", fields: [] },
-      { tag: "Ledger.PartitionByteLimit", fields: [] }
     ]
   },
   canonical_requestoutcome: {
@@ -598,6 +602,180 @@ export const callbackNativeDescriptors = {
       { tag: "Canonical.Acknowledged", fields: [] },
       { tag: "Canonical.Failed", fields: [] },
       { tag: "Canonical.Unknown", fields: [] }
+    ]
+  },
+  canonical_domainevent: {
+    kind: "adt",
+    constructors: [
+      {
+        tag: "Canonical.CapacityGranted",
+        fields: [
+          ["id", "nat"],
+          ["after", "canonical_capacityview"]
+        ]
+      },
+      {
+        tag: "Canonical.CapacityResized",
+        fields: [
+          ["id", "nat"],
+          ["after", "canonical_capacityview"]
+        ]
+      },
+      {
+        tag: "Canonical.CapacityUnitAdmitted",
+        fields: [
+          ["reservation", "nat"],
+          ["position", "nat"],
+          ["bytes", "nat"],
+          ["after", "canonical_capacityview"]
+        ]
+      },
+      {
+        tag: "Canonical.PermitIssued",
+        fields: [
+          ["token", "nat"],
+          ["round", "nat"]
+        ]
+      },
+      {
+        tag: "Canonical.CompletedEditSeen",
+        fields: [
+          ["reason", "edithistory_reason"],
+          ["report", "bool"]
+        ]
+      },
+      { tag: "Canonical.CompletedEditRemembered", fields: [["evicted", "maybe_nat"]] },
+      { tag: "Canonical.QuietRoundBusy", fields: [] },
+      { tag: "Canonical.QuietRoundWaiting", fields: [["since", "nat"]] },
+      { tag: "Canonical.QuietRoundResetRecorded", fields: [] },
+      { tag: "Canonical.PermitConsumed", fields: [["round", "nat"]] },
+      { tag: "Canonical.PermitReleased", fields: [] },
+      { tag: "Canonical.PermitExpired", fields: [] },
+      { tag: "Canonical.PermitRoundClosed", fields: [["round", "nat"]] },
+      { tag: "Canonical.RoundStarted", fields: [["id", "nat"]] },
+      { tag: "Canonical.ObservationAdmitted", fields: [["id", "nat"]] },
+      { tag: "Canonical.ObservationStarted", fields: [] },
+      { tag: "Canonical.ObservationCompleted", fields: [] },
+      { tag: "Canonical.ObservationInterrupted", fields: [] },
+      {
+        tag: "Canonical.UnitAdmitted",
+        fields: [
+          ["operation", "nat"],
+          ["reservation", "nat"],
+          ["position", "nat"],
+          ["bytes", "nat"],
+          ["after", "canonical_capacityview"]
+        ]
+      },
+      {
+        tag: "Canonical.PreparationReleased",
+        fields: [
+          ["id", "nat"],
+          ["after", "canonical_capacityview"]
+        ]
+      },
+      { tag: "Canonical.ReviewStarted", fields: [] },
+      {
+        tag: "Canonical.JevRequestIssued",
+        fields: [
+          ["partition", "nat"],
+          ["lifetime", "nat"],
+          ["round", "nat"],
+          ["operation", "nat"],
+          ["request", "nat"]
+        ]
+      },
+      { tag: "Canonical.JevRequestStartRecorded", fields: [] },
+      { tag: "Canonical.JevInterruptionRecorded", fields: [] },
+      { tag: "Canonical.JevRequestOutcomeRecorded", fields: [["outcome", "canonical_requestoutcome"]] },
+      { tag: "Canonical.ReservationReleased", fields: [["id", "nat"]] },
+      { tag: "Canonical.ReviewRecorded", fields: [["outcome", "canonical_outcome"]] },
+      { tag: "Canonical.FindingRetained", fields: [] },
+      { tag: "Canonical.FindingCountRecorded", fields: [] },
+      { tag: "Canonical.ClearSettled", fields: [] },
+      { tag: "Canonical.StaleClearSettled", fields: [] },
+      { tag: "Canonical.StaleFindingRetired", fields: [] },
+      {
+        tag: "Canonical.DispatchStarted",
+        fields: [
+          ["operation", "nat"],
+          ["sequence", "nat"]
+        ]
+      },
+      {
+        tag: "Canonical.DispatchDiscarded",
+        fields: [
+          ["operation", "nat"],
+          ["running", "bool"]
+        ]
+      },
+      { tag: "Canonical.WaitForWork", fields: [] },
+      { tag: "Canonical.FinishReady", fields: [] },
+      { tag: "Canonical.FinishLimit", fields: [] },
+      { tag: "Canonical.StopEnded", fields: [] },
+      { tag: "Canonical.CollectionEligible", fields: [] },
+      { tag: "Canonical.CollectionLeaseReserved", fields: [] },
+      { tag: "Canonical.CollectionLeaseReleased", fields: [] },
+      { tag: "Canonical.CollectionAdviceRetired", fields: [] },
+      { tag: "Canonical.CollectionBackgroundClaimed", fields: [] },
+      { tag: "Canonical.CollectionBackgroundReleased", fields: [] },
+      { tag: "Canonical.FinishReserved", fields: [] },
+      { tag: "Canonical.FinishReleased", fields: [] },
+      { tag: "Canonical.FinishAuthorized", fields: [] },
+      { tag: "Canonical.FinishRecorded", fields: [["outcome", "canonical_writeoutcome"]] },
+      { tag: "Canonical.FinishEnded", fields: [] },
+      { tag: "Canonical.ContinuationConsumed", fields: [] },
+      { tag: "Canonical.SubmissionBegun", fields: [] },
+      { tag: "Canonical.SubmissionAuthorized", fields: [] },
+      { tag: "Canonical.SubmissionRecorded", fields: [] },
+      { tag: "Canonical.SubmissionReleased", fields: [] },
+      { tag: "Canonical.SubmissionForgotten", fields: [] },
+      { tag: "Canonical.RevisionReused", fields: [["generation", "nat"]] },
+      { tag: "Canonical.RevisionReplaced", fields: [["generation", "nat"]] },
+      { tag: "Canonical.RevisionReleased", fields: [] },
+      { tag: "Canonical.CleanupCommitted", fields: [] },
+      { tag: "Canonical.ReuseAdviceJoined", fields: [] },
+      { tag: "Canonical.ReusePendingJoined", fields: [] },
+      { tag: "Canonical.ReuseClaimedJoined", fields: [] },
+      { tag: "Canonical.ReuseCacheHit", fields: [] },
+      { tag: "Canonical.ReuseOwned", fields: [] },
+      { tag: "Canonical.ReuseClaimed", fields: [] },
+      { tag: "Canonical.ReuseAttached", fields: [] },
+      { tag: "Canonical.ReuseReleased", fields: [] },
+      { tag: "Canonical.CachePrepared", fields: [["evicted", "list_nat"]] },
+      { tag: "Canonical.CacheCommitted", fields: [] },
+      { tag: "Canonical.CacheDiscarded", fields: [["ids", "list_nat"]] },
+      { tag: "Canonical.NoticeSuppressed", fields: [["count", "nat"]] },
+      { tag: "Canonical.NoticePendingCreated", fields: [["count", "nat"]] },
+      { tag: "Canonical.NoticePendingMerged", fields: [["count", "nat"]] },
+      { tag: "Canonical.NoticeLeaseKept", fields: [] },
+      { tag: "Canonical.NoticeCommitted", fields: [] },
+      {
+        tag: "Canonical.NoticePruned",
+        fields: [
+          ["drop_lease", "bool"],
+          ["drop_pending", "bool"],
+          ["drop_key", "bool"]
+        ]
+      },
+      { tag: "Canonical.NoticeDropped", fields: [] },
+      { tag: "Canonical.NoticeLeased", fields: [] },
+      { tag: "Canonical.NoticePendingCleared", fields: [] },
+      { tag: "Canonical.WriteAuthorized", fields: [["operation", "nat"]] },
+      { tag: "Canonical.WriteRecorded", fields: [["outcome", "canonical_writeoutcome"]] },
+      { tag: "Canonical.ReofferAtStop", fields: [] },
+      { tag: "Canonical.PartitionRetired", fields: [["round", "nat"]] },
+      { tag: "Canonical.AdmissionForgotten", fields: [] }
+    ]
+  },
+  ledger_fitdecision: {
+    kind: "adt",
+    constructors: [
+      { tag: "Ledger.Fits", fields: [] },
+      { tag: "Ledger.GlobalItemLimit", fields: [] },
+      { tag: "Ledger.GlobalByteLimit", fields: [] },
+      { tag: "Ledger.PartitionItemLimit", fields: [] },
+      { tag: "Ledger.PartitionByteLimit", fields: [] }
     ]
   },
   collectorauthority_reason: {
@@ -672,36 +850,13 @@ export const callbackNativeDescriptors = {
       { tag: "RulePolicy.After", fields: [] }
     ]
   },
-  canonical_command: {
+  canonical_policydecision: {
     kind: "adt",
     constructors: [
-      {
-        tag: "Canonical.CapacityGranted",
-        fields: [
-          ["id", "nat"],
-          ["after", "canonical_capacityview"]
-        ]
-      },
       {
         tag: "Canonical.CapacityRefused",
         fields: [
           ["reason", "ledger_fitdecision"],
-          ["after", "canonical_capacityview"]
-        ]
-      },
-      {
-        tag: "Canonical.CapacityResized",
-        fields: [
-          ["id", "nat"],
-          ["after", "canonical_capacityview"]
-        ]
-      },
-      {
-        tag: "Canonical.CapacityUnitAdmitted",
-        fields: [
-          ["reservation", "nat"],
-          ["position", "nat"],
-          ["bytes", "nat"],
           ["after", "canonical_capacityview"]
         ]
       },
@@ -714,54 +869,10 @@ export const callbackNativeDescriptors = {
           ["after", "canonical_capacityview"]
         ]
       },
-      {
-        tag: "Canonical.PermitIssued",
-        fields: [
-          ["token", "nat"],
-          ["round", "nat"]
-        ]
-      },
       { tag: "Canonical.CompletedEditAbsent", fields: [] },
-      {
-        tag: "Canonical.CompletedEditSeen",
-        fields: [
-          ["reason", "edithistory_reason"],
-          ["report", "bool"]
-        ]
-      },
-      { tag: "Canonical.CompletedEditRemembered", fields: [["evicted", "maybe_nat"]] },
-      { tag: "Canonical.QuietRoundBusy", fields: [] },
-      { tag: "Canonical.QuietRoundWaiting", fields: [["since", "nat"]] },
       { tag: "Canonical.QuietRoundExpired", fields: [["since", "nat"]] },
-      { tag: "Canonical.QuietRoundResetRecorded", fields: [] },
-      { tag: "Canonical.PermitConsumed", fields: [["round", "nat"]] },
-      { tag: "Canonical.PermitReleased", fields: [] },
-      { tag: "Canonical.PermitExpired", fields: [] },
       { tag: "Canonical.PermitKept", fields: [] },
-      { tag: "Canonical.PermitRoundClosed", fields: [["round", "nat"]] },
-      { tag: "Canonical.RoundStarted", fields: [["id", "nat"]] },
-      { tag: "Canonical.ObservationAdmitted", fields: [["id", "nat"]] },
-      { tag: "Canonical.ObservationStarted", fields: [] },
-      { tag: "Canonical.ObservationCompleted", fields: [] },
-      { tag: "Canonical.ObservationInterrupted", fields: [] },
-      {
-        tag: "Canonical.Prepare",
-        fields: [
-          ["operation", "nat"],
-          ["reservation", "nat"]
-        ]
-      },
       { tag: "Canonical.PreparationRefused", fields: [] },
-      {
-        tag: "Canonical.UnitAdmitted",
-        fields: [
-          ["operation", "nat"],
-          ["reservation", "nat"],
-          ["position", "nat"],
-          ["bytes", "nat"],
-          ["after", "canonical_capacityview"]
-        ]
-      },
       {
         tag: "Canonical.UnitRefused",
         fields: [
@@ -771,36 +882,8 @@ export const callbackNativeDescriptors = {
           ["after", "canonical_capacityview"]
         ]
       },
-      {
-        tag: "Canonical.PreparationReleased",
-        fields: [
-          ["id", "nat"],
-          ["after", "canonical_capacityview"]
-        ]
-      },
-      { tag: "Canonical.ReviewStarted", fields: [] },
-      {
-        tag: "Canonical.JevRequestIssued",
-        fields: [
-          ["partition", "nat"],
-          ["lifetime", "nat"],
-          ["round", "nat"],
-          ["operation", "nat"],
-          ["request", "nat"]
-        ]
-      },
       { tag: "Canonical.JevRequestUnavailable", fields: [] },
-      { tag: "Canonical.JevRequestStartRecorded", fields: [] },
-      { tag: "Canonical.JevInterruptionRecorded", fields: [] },
-      { tag: "Canonical.JevRequestOutcomeRecorded", fields: [["outcome", "canonical_requestoutcome"]] },
       { tag: "Canonical.JevObservationIgnored", fields: [] },
-      { tag: "Canonical.ReservationReleased", fields: [["id", "nat"]] },
-      { tag: "Canonical.ReviewRecorded", fields: [["outcome", "canonical_outcome"]] },
-      { tag: "Canonical.RetainFinding", fields: [] },
-      { tag: "Canonical.FindingCountRecorded", fields: [] },
-      { tag: "Canonical.SettleClear", fields: [] },
-      { tag: "Canonical.SettleStaleClear", fields: [] },
-      { tag: "Canonical.RetireStaleFinding", fields: [] },
       { tag: "Canonical.PreparedSkipped", fields: [] },
       { tag: "Canonical.PreparedAdmitted", fields: [] },
       { tag: "Canonical.PreparedCapacityRefused", fields: [] },
@@ -810,28 +893,8 @@ export const callbackNativeDescriptors = {
       { tag: "Canonical.FailureCredential", fields: [] },
       { tag: "Canonical.FailureLost", fields: [] },
       { tag: "Canonical.FailureNone", fields: [] },
-      {
-        tag: "Canonical.DispatchStarted",
-        fields: [
-          ["operation", "nat"],
-          ["sequence", "nat"]
-        ]
-      },
-      {
-        tag: "Canonical.DispatchDiscarded",
-        fields: [
-          ["operation", "nat"],
-          ["running", "bool"]
-        ]
-      },
       { tag: "Canonical.DiscardNamedOnly", fields: [] },
       { tag: "Canonical.DiscardAllUnfinished", fields: [] },
-      { tag: "Canonical.WaitForWork", fields: [] },
-      { tag: "Canonical.CancelWork", fields: [["operation", "nat"]] },
-      { tag: "Canonical.FinishReady", fields: [] },
-      { tag: "Canonical.FinishLimit", fields: [] },
-      { tag: "Canonical.StopEnded", fields: [] },
-      { tag: "Canonical.CollectionEligible", fields: [] },
       { tag: "Canonical.CollectionWaiting", fields: [] },
       { tag: "Canonical.CollectionRetireCredential", fields: [] },
       { tag: "Canonical.CollectionRetainCredential", fields: [] },
@@ -851,42 +914,23 @@ export const callbackNativeDescriptors = {
       { tag: "Canonical.CollectionNoticeIncluded", fields: [] },
       { tag: "Canonical.CollectionNoticeSkipped", fields: [] },
       { tag: "Canonical.CollectionNoticeStopped", fields: [] },
-      { tag: "Canonical.CollectionLeaseReserved", fields: [] },
       { tag: "Canonical.CollectionLeaseRefused", fields: [] },
-      { tag: "Canonical.CollectionLeaseReleased", fields: [] },
       { tag: "Canonical.CollectionLeaseKept", fields: [] },
-      { tag: "Canonical.CollectionAdviceRetired", fields: [] },
-      { tag: "Canonical.CollectionBackgroundClaimed", fields: [] },
       { tag: "Canonical.CollectionBackgroundRefused", fields: [] },
-      { tag: "Canonical.CollectionBackgroundReleased", fields: [] },
       { tag: "Canonical.CollectionBackgroundKept", fields: [] },
-      { tag: "Canonical.FinishReserved", fields: [] },
       { tag: "Canonical.FinishNotices", fields: [] },
       { tag: "Canonical.FinishAllowedNoAdvice", fields: [] },
       { tag: "Canonical.FinishAllowedDeadline", fields: [] },
       { tag: "Canonical.FinishAllowedUnavailable", fields: [] },
       { tag: "Canonical.FinishRefused", fields: [] },
-      { tag: "Canonical.FinishReleased", fields: [] },
-      { tag: "Canonical.FinishAuthorized", fields: [] },
-      { tag: "Canonical.FinishRecorded", fields: [["outcome", "canonical_writeoutcome"]] },
-      { tag: "Canonical.FinishEnded", fields: [] },
-      { tag: "Canonical.ContinuationConsumed", fields: [] },
       { tag: "Canonical.ContinuationRefused", fields: [] },
-      { tag: "Canonical.SubmissionBegun", fields: [] },
-      { tag: "Canonical.SubmissionAuthorized", fields: [] },
-      { tag: "Canonical.SubmissionRecorded", fields: [] },
-      { tag: "Canonical.SubmissionReleased", fields: [] },
       { tag: "Canonical.SubmissionRefused", fields: [] },
-      { tag: "Canonical.SubmissionForgotten", fields: [] },
       { tag: "Canonical.SubmissionSuppresses", fields: [] },
       { tag: "Canonical.SubmissionUnsuppressed", fields: [] },
       { tag: "Canonical.SubmissionReofferable", fields: [] },
       { tag: "Canonical.SubmissionNotReofferable", fields: [] },
       { tag: "Canonical.SubmissionExpired", fields: [] },
       { tag: "Canonical.SubmissionCurrent", fields: [] },
-      { tag: "Canonical.RevisionReused", fields: [["generation", "nat"]] },
-      { tag: "Canonical.RevisionReplaced", fields: [["generation", "nat"]] },
-      { tag: "Canonical.RevisionReleased", fields: [] },
       { tag: "Canonical.RevisionCurrent", fields: [] },
       { tag: "Canonical.RevisionStale", fields: [] },
       { tag: "Canonical.RevisionSuperseded", fields: [] },
@@ -904,7 +948,6 @@ export const callbackNativeDescriptors = {
       { tag: "Canonical.ReuseSetMemberLost", fields: [] },
       { tag: "Canonical.CleanupReady", fields: [] },
       { tag: "Canonical.CleanupBusy", fields: [] },
-      { tag: "Canonical.CleanupCommitted", fields: [] },
       { tag: "Canonical.DeliveryReleaseUnacknowledged", fields: [] },
       { tag: "Canonical.DeliveryKeepAcknowledged", fields: [] },
       { tag: "Canonical.DeliveryAckReady", fields: [] },
@@ -952,39 +995,11 @@ export const callbackNativeDescriptors = {
       { tag: "Canonical.DeliveryExistingTokenDenied", fields: [] },
       { tag: "Canonical.DeliveryUnreservedStopAllowed", fields: [] },
       { tag: "Canonical.DeliveryUnreservedStopDenied", fields: [] },
-      { tag: "Canonical.ReuseJoinAdvice", fields: [] },
-      { tag: "Canonical.ReuseJoinPending", fields: [] },
-      { tag: "Canonical.ReuseJoinClaimed", fields: [] },
-      { tag: "Canonical.ReuseCached", fields: [] },
-      { tag: "Canonical.ReuseOwn", fields: [] },
-      { tag: "Canonical.ReuseClaimed", fields: [] },
-      { tag: "Canonical.ReuseAttached", fields: [] },
-      { tag: "Canonical.ReuseReleased", fields: [] },
       { tag: "Canonical.ReuseRefused", fields: [] },
       { tag: "Canonical.CacheAlready", fields: [] },
       { tag: "Canonical.CacheRejected", fields: [] },
-      { tag: "Canonical.CachePrepared", fields: [["evicted", "list_nat"]] },
-      { tag: "Canonical.CacheCommitted", fields: [] },
-      { tag: "Canonical.CacheDiscarded", fields: [["ids", "list_nat"]] },
-      { tag: "Canonical.NoticeSuppressed", fields: [["count", "nat"]] },
       { tag: "Canonical.NoticeRejectedFull", fields: [] },
-      { tag: "Canonical.NoticeCreateKey", fields: [] },
-      { tag: "Canonical.NoticeCreatePending", fields: [["count", "nat"]] },
-      { tag: "Canonical.NoticeMergePending", fields: [["count", "nat"]] },
-      { tag: "Canonical.NoticeKeepLeased", fields: [] },
       { tag: "Canonical.NoticeRefused", fields: [] },
-      { tag: "Canonical.NoticeCommitted", fields: [] },
-      {
-        tag: "Canonical.NoticePruned",
-        fields: [
-          ["drop_lease", "bool"],
-          ["drop_pending", "bool"],
-          ["drop_key", "bool"]
-        ]
-      },
-      { tag: "Canonical.NoticeDropped", fields: [] },
-      { tag: "Canonical.NoticeLeased", fields: [] },
-      { tag: "Canonical.NoticePendingCleared", fields: [] },
       { tag: "Canonical.NoticeSelected", fields: [["ids", "list_nat"]] },
       { tag: "Canonical.IncludeChoice", fields: [["choice", "configuration_includechoice"]] },
       { tag: "Canonical.FileSelection", fields: [["selection", "configuration_selection"]] },
@@ -993,15 +1008,18 @@ export const callbackNativeDescriptors = {
       { tag: "Canonical.ReviewAdmission", fields: [["admission", "configuration_admission"]] },
       { tag: "Canonical.RuleGate", fields: [["gate", "rulepolicy_gate"]] },
       { tag: "Canonical.RuleOrder", fields: [["order", "rulepolicy_order"]] },
-      { tag: "Canonical.WriteAuthorized", fields: [["operation", "nat"]] },
-      { tag: "Canonical.WriteRecorded", fields: [["outcome", "canonical_writeoutcome"]] },
-      { tag: "Canonical.WaitForOutput", fields: [] },
-      { tag: "Canonical.ReofferAtStop", fields: [] },
-      { tag: "Canonical.PartitionRetired", fields: [["round", "nat"]] },
-      { tag: "Canonical.AdmissionForgotten", fields: [] }
+      { tag: "Canonical.WaitForOutput", fields: [] }
     ]
   },
-  list_canonical_command: { kind: "list", element: "canonical_command", representation: "bend" },
+  canonical_output: {
+    kind: "adt",
+    constructors: [
+      { tag: "Canonical.ActionRequested", fields: [["request", "canonical_actionrequest"]] },
+      { tag: "Canonical.EventEstablished", fields: [["event", "canonical_domainevent"]] },
+      { tag: "Canonical.PolicyDecided", fields: [["decision", "canonical_policydecision"]] }
+    ]
+  },
+  list_canonical_output: { kind: "list", element: "canonical_output", representation: "bend" },
   admission_admissionrejection: {
     kind: "adt",
     constructors: [
@@ -1040,7 +1058,7 @@ export const callbackNativeDescriptors = {
         tag: "Canonical.Advanced",
         fields: [
           ["state", "canonical_state"],
-          ["commands", "list_canonical_command"]
+          ["outputs", "list_canonical_output"]
         ]
       },
       {
@@ -3006,7 +3024,7 @@ export const callbackNativeDescriptors = {
   expiry_observed_wire_outcome: {
     kind: "adt",
     constructors: [
-      { tag: "expiry_observed_wire.Advanced", fields: [["commands", "list_canonical_command"]] },
+      { tag: "expiry_observed_wire.Advanced", fields: [["outputs", "list_canonical_output"]] },
       { tag: "expiry_observed_wire.Rejected", fields: [["reason", "canonical_reason"]] }
     ]
   },
@@ -3060,7 +3078,7 @@ export const callbackNativeDescriptors = {
           ["event", "canonical_canonicalevent"],
           ["result", "list_expiry_observed_wire_outcome"],
           ["provided", "maybe_nat"],
-          ["command_scopes", "list_maybe_nat"],
+          ["output_scopes", "list_maybe_nat"],
           ["receipt", "maybe_callbacks_fact"],
           ["physical", "list_expiry_observed_wire_physical"]
         ]
@@ -3437,7 +3455,7 @@ export const callbackNativeDescriptors = {
   stop_observed_wire_outcome: {
     kind: "adt",
     constructors: [
-      { tag: "stop_observed_wire.Advanced", fields: [["commands", "list_canonical_command"]] },
+      { tag: "stop_observed_wire.Advanced", fields: [["outputs", "list_canonical_output"]] },
       { tag: "stop_observed_wire.Rejected", fields: [["reason", "canonical_reason"]] }
     ]
   },
@@ -3556,7 +3574,7 @@ export const callbackNativeDescriptors = {
           ["event", "canonical_canonicalevent"],
           ["result", "list_stop_observed_wire_outcome"],
           ["provided", "maybe_nat"],
-          ["command_scopes", "list_maybe_nat"]
+          ["output_scopes", "list_maybe_nat"]
         ]
       },
       {
@@ -3570,7 +3588,7 @@ export const callbackNativeDescriptors = {
           ["event", "canonical_canonicalevent"],
           ["result", "list_stop_observed_wire_outcome"],
           ["provided", "maybe_nat"],
-          ["command_scopes", "list_maybe_nat"]
+          ["output_scopes", "list_maybe_nat"]
         ]
       },
       {
@@ -3585,7 +3603,7 @@ export const callbackNativeDescriptors = {
           ["event", "importgraph_graphevent"],
           ["result", "list_stop_observed_wire_graphresult"],
           ["provided", "maybe_nat"],
-          ["command_scopes", "list_maybe_nat"]
+          ["output_scopes", "list_maybe_nat"]
         ]
       },
       {
@@ -3599,7 +3617,7 @@ export const callbackNativeDescriptors = {
           ["finish", "maybe_stopscenario_finish"],
           ["created", "bool"],
           ["provided", "maybe_nat"],
-          ["command_scopes", "list_maybe_nat"]
+          ["output_scopes", "list_maybe_nat"]
         ]
       }
     ]
@@ -4903,7 +4921,7 @@ export const callbackNativeDescriptors = {
           ["runtime_before", "list_advicee_lifecycle_driver_runtime"],
           ["runtime_after", "list_advicee_lifecycle_driver_runtime"],
           ["provided", "maybe_nat"],
-          ["command_scopes", "list_maybe_nat"],
+          ["output_scopes", "list_maybe_nat"],
           ["receipt", "maybe_callbacks_fact"],
           ["physical", "list_advicee_lifecycle_driver_physicaldelivery"]
         ]
@@ -4922,7 +4940,7 @@ export const callbackNativeDescriptors = {
           ["runtime_before", "list_advicee_lifecycle_driver_runtime"],
           ["runtime_after", "list_advicee_lifecycle_driver_runtime"],
           ["provided", "maybe_nat"],
-          ["command_scopes", "list_maybe_nat"],
+          ["output_scopes", "list_maybe_nat"],
           ["receipt", "maybe_callbacks_fact"],
           ["physical", "list_advicee_lifecycle_driver_physicaldelivery"]
         ]
@@ -4940,7 +4958,7 @@ export const callbackNativeDescriptors = {
           ["runtime_before", "list_advicee_lifecycle_driver_runtime"],
           ["runtime_after", "list_advicee_lifecycle_driver_runtime"],
           ["provided", "maybe_nat"],
-          ["command_scopes", "list_maybe_nat"],
+          ["output_scopes", "list_maybe_nat"],
           ["receipt", "maybe_callbacks_fact"],
           ["physical", "list_advicee_lifecycle_driver_physicaldelivery"]
         ]
@@ -4958,7 +4976,7 @@ export const callbackNativeDescriptors = {
           ["runtime_before", "list_advicee_lifecycle_driver_runtime"],
           ["runtime_after", "list_advicee_lifecycle_driver_runtime"],
           ["provided", "maybe_nat"],
-          ["command_scopes", "list_maybe_nat"],
+          ["output_scopes", "list_maybe_nat"],
           ["receipt", "maybe_callbacks_fact"],
           ["physical", "list_advicee_lifecycle_driver_physicaldelivery"]
         ]
@@ -5061,7 +5079,7 @@ export const callbackNativeDescriptors = {
         fields: [
           ["frame", "advicee_lifecycle_driver_observedframe"],
           ["receipt", "maybe_callbacks_fact"],
-          ["command_scopes", "list_maybe_nat"]
+          ["output_scopes", "list_maybe_nat"]
         ]
       },
       {
@@ -5601,7 +5619,7 @@ export const callbackNativeDescriptors = {
           ["after", "canonical_state"],
           ["event", "canonical_canonicalevent"],
           ["result", "canonical_step"],
-          ["commandScopes", "wire_scopes"],
+          ["outputScopes", "wire_scopes"],
           ["receipt", "wire_receipt"]
         ]
       },
@@ -5673,7 +5691,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/agent-flow-bend/Canonical.bend",
-    sha256: "a744b7aec1d03470368f0f1a1170ce1a1182aa208fa3246887cd8ebc35cafe70"
+    sha256: "05e6e2367d3112c3cd0614acabf71ffa5bc247a4cdd53a2f6916f734e1c3610b"
   },
   {
     path: "packages/agent-flow-bend/CollectionState.bend",
@@ -5765,11 +5783,11 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/CacheRuntime.bend",
-    sha256: "a71ef02c1107c0bcb20ce1e94e7833f734151d0b685a5b29749a4fb28e73b9e9"
+    sha256: "36a6126ecf26bb1e229e28f5c70e21a593a3d23556ccc0a3078054c8ba1d34fb"
   },
   {
     path: "packages/monkey-business-bend/CacheScenario.bend",
-    sha256: "fe1edb1644b5289c76288f728cda9a84e390d14aceecd230728f96dd1c4644d1"
+    sha256: "ff1792e62fd289dcd81938231b070a9b0fb9a40c18732bf1d5550d4638f5f737"
   },
   {
     path: "packages/monkey-business-bend/Callbacks.bend",
@@ -5777,11 +5795,11 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/CollectionScenario.bend",
-    sha256: "99a2ec9990db2ef29d6eedb8bdbb0f55248e84a01d6efb747c0b2a3708bc2661"
+    sha256: "227d85c6070fab18990a41a9fc318ff478a01a87377fa8660e2ca042a650a638"
   },
   {
     path: "packages/monkey-business-bend/CollectorScenario.bend",
-    sha256: "053e118f17cd7a3fb79c1d5ef71354f262c0dbfc4386737ad42627afed04cccf"
+    sha256: "a3c2903e38605e0d304dc9ed8d4bca50d6be356a9830931da78fa0c1951b767c"
   },
   {
     path: "packages/monkey-business-bend/CredentialFacts.bend",
@@ -5789,23 +5807,23 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/Driver.bend",
-    sha256: "290e010ec6f96af3ddc8e75dd80cbef24b0db01eaf27f73581264316864dd179"
+    sha256: "7c5c76130225134e117c467143d7011411be3b1fc1d91244d9ca9b964fae5f36"
   },
   {
     path: "packages/monkey-business-bend/Engine.bend",
-    sha256: "4cd5c8b6a3867d3ba1f58f709616a211f1b480724bb415b70b535a6b0862a5bd"
+    sha256: "1392c9d269bd0284d9e6621189b2ce5c2aa69ab09961bda73150a48609624fd3"
   },
   {
     path: "packages/monkey-business-bend/ExpiryScenario.bend",
-    sha256: "ca2c6aff78eab46d13789684217c6a2169dc17bba4765ba4cfaf2a3c303dca19"
+    sha256: "9d0b4e9987657e470a9216f4abf9bd619939256928a36bae9cfea8a16101d495"
   },
   {
     path: "packages/monkey-business-bend/FreshnessScenario.bend",
-    sha256: "8c8c980d46938f0e27dca70ed03edc258b350b7949dab34b1a5bb7ff8fd7e905"
+    sha256: "28284f350e4225d46d3a7ea457c9c0a8a6b634ab3842b26e58349ad862ee0a89"
   },
   {
     path: "packages/monkey-business-bend/NoticeScenario.bend",
-    sha256: "f8163f073b4e1c11a4d93f7290acddeece3b13ab2c816672b0af0d77d36807d0"
+    sha256: "a088d8d889ba2aed5fa68c8a59fccda331bd034da9c1b046b780d5c48c89d6e4"
   },
   {
     path: "packages/monkey-business-bend/Numeric.bend",
@@ -5821,7 +5839,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/RuntimeScenarios.bend",
-    sha256: "430761c0e5c7cf0595ddc51be473c74f10b5533bce6cd4d3959a37cac5056838"
+    sha256: "68b3831ea67e49fac0d1e3af253ee77a26d782d3dab1609c30a3c55d887e3a80"
   },
   {
     path: "packages/monkey-business-bend/Scheduler.bend",
@@ -5837,15 +5855,15 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/SharingRuntime.bend",
-    sha256: "e2318f9371795ad2cf3ac63492274e0745fbdfe0ae5ceb0d50b9783e8c45faad"
+    sha256: "8fed55f906b8f2f0cc7af97c8d657d2ad4f3134b0692313d911450c176e18503"
   },
   {
     path: "packages/monkey-business-bend/SharingScenario.bend",
-    sha256: "1ff77c9ab3c155c2c244889ec0ca91fe83b9b379d301f0ab412f2c79cf0933fa"
+    sha256: "316a96c614863696710f2bb1b4ba7e3ee85a4d9c01d722e7023a94c0306cbaab"
   },
   {
     path: "packages/monkey-business-bend/StopScenario.bend",
-    sha256: "629df1499806ec73fa30339ed67f79a68a435897d755d959149897ce1bc7475d"
+    sha256: "bd38c6fe0f3743809baba5bd9bc3694e42e6717660299ab430f77cad6685e317"
   },
   {
     path: "packages/monkey-business-bend/TreeFacts.bend",
@@ -5861,27 +5879,27 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/WriterScenario.bend",
-    sha256: "8d9dec3f04ee9cdad8248e93d03b72da4853e81a2d693e1faeee46ae06f2eabe"
+    sha256: "dcf66b08a47a501b47876194d24c150948a5740fb95d040af7821b4bd3fad4cf"
   },
   {
     path: "packages/monkey-business-bend/conformance/advicee-lifecycle-driver.bend",
-    sha256: "e1d1922466a23db15fa57049bf4280a30038ff90e5ddf4152408c0f7d7a68841"
+    sha256: "a2049c407e7d68127191163c11aaab8cc90d2a8dc882d1ceaa2def8e2eae93e7"
   },
   {
     path: "packages/monkey-business-bend/conformance/expiry-observed-driver.bend",
-    sha256: "3a65cb897e49c64f5e81c067c0c4aca72bb0d0deda99454b34ea5a437d96971f"
+    sha256: "2a2c8d4654113a401b0cec043e1b50b6aba34d630f6b877ffea2d13caf211e73"
   },
   {
     path: "packages/monkey-business-bend/conformance/expiry-observed-wire.bend",
-    sha256: "1305e7a2d20b82cf805922a301f825ed4d31a3a4107a0be071096cf01ea51724"
+    sha256: "5c70878ba673d56b3bbc4aba3941e8ded85103c4512362badd3a0faf6f284143"
   },
   {
     path: "packages/monkey-business-bend/conformance/output-scenario-driver.bend",
-    sha256: "67563a56ab628926a1994479c59b2a1c7e1b0f227a110a5888f9737cd6cab887"
+    sha256: "77c0b0b776d3300e1dca79b23dc3db19726e353fa7999a6eabd0a844dad92ac5"
   },
   {
     path: "packages/monkey-business-bend/conformance/sharing-observed-driver.bend",
-    sha256: "d4482eb87fbd6804a038f1934c8335f108df35c74e3f056476bf0b02ed84a9d4"
+    sha256: "355a278c38b32b40a8ec4fe87b685114771f44250ead41db13139c0e01aea119"
   },
   {
     path: "packages/monkey-business-bend/conformance/sharing-observed-initial.bend",
@@ -5901,7 +5919,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/conformance/stop-observed-wire.bend",
-    sha256: "55b7dedecd24013632cdee00f937315fb727ec3faf36ff8ced9c887d0d37ed5d"
+    sha256: "7e64eb5fb89e43e30f77b2f4eb2d2f434cf9efd8b10c810f7f2d4afd8c3a14b6"
   },
   {
     path: "packages/monkey-business-bend/conformance/stop-original-inputs.bend",
@@ -5913,19 +5931,19 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/conformance/writer-observed-context.bend",
-    sha256: "ae0d3f6a3452e8498e94edc9b24bc91512261390464f821612d4bbb2edbb87af"
+    sha256: "7c60e600bf2e79a777ca94599c397943e88c1677a457f394209c437884fda666"
   },
   {
     path: "packages/monkey-business-bend/conformance/writer-observed-driver.bend",
-    sha256: "c3fbcbd0a5a02219f8bc1834fedc20bceb13fe5c7326ca9fd1bd920d112b9139"
+    sha256: "5259e8501e082a981a01984ab7a1c2a75b0bdf964542c30f714b6921fd48e4a9"
   },
   {
     path: "packages/monkey-business-bend/conformance/writer-observed-program.bend",
-    sha256: "eaa938e0e7b58b98626c4755c0bd3ed92a3c59b7a7874a126ca4a32a5a251c6a"
+    sha256: "8bfc2337efa90941719bf921c041d1a2f4b790e09424a53b4dc640e97c311d43"
   },
   {
     path: "packages/monkey-business-bend/conformance/writer-observed-transport.bend",
-    sha256: "16963e75154771160af2608c55e21a987bf662cc2b801db09eec705418957dac"
+    sha256: "c8d39cbd9e976cc8146064e38b1984e4bf40c68b75052d6f2ccea1234651d56b"
   },
   {
     path: "packages/monkey-business-bend/conformance/writer-observed-wire.bend",

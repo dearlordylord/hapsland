@@ -72,7 +72,7 @@ it("observes exact response, ordering and owner refusal decisions through the pu
   for (const { expected } of collectionDecisionCases) {
     const frame = run.step()
     expect(frame?.rejection).toBeUndefined()
-    expect(frame?.commands.map((command) => command.kind)).toEqual([expected])
+    expect(frame?.outputs.map((command) => command.kind)).toEqual([expected])
     expect(frame?.after.delivery.submissions.batches).toEqual([])
   }
   expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe())
@@ -91,7 +91,7 @@ it(
     })
     run.advance({ untilTime: 9, maxEvents: 10 })
     const codes = new Map(collectionDecisionCases.map(({ expected: name }, index) => [name, expected[index]![0]]))
-    expect(run.observations.map((frame) => frame.commands.map((command) => codes.get(command.kind)))).toEqual(expected)
+    expect(run.observations.map((frame) => frame.outputs.map((command) => codes.get(command.kind)))).toEqual(expected)
   },
   WORKLOAD_CONFORMANCE_TIMEOUT_MS
 )
@@ -125,7 +125,7 @@ it.each([
   [{ selectedCount: 1, prospectiveBytes: 10241 }, "collectionFindingRetained"]
 ] as const)("pins independent candidate eligibility %j -> %s", (changed, expected) => {
   const run = createRun({ inputs: [{ at: 0, kind: "canonical", event: { ...eligibleFinding, ...changed } }] })
-  expect(run.step()?.commands.map((command) => command.kind)).toEqual([expected])
+  expect(run.step()?.outputs.map((command) => command.kind)).toEqual([expected])
   expect(run.projection.delivery.submissions.batches).toEqual([])
   expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe())
 })

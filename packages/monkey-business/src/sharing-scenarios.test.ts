@@ -71,7 +71,7 @@ it.each(["owner", "joined"] as const)(
     expect(run.projection.pendingFindings).toHaveLength(1)
     expect(
       run.observations.some(
-        (f) => f.event.kind === "reuseMemberCheck" && f.commands.some((c) => c.kind === "reuseSetMemberFinding")
+        (f) => f.event.kind === "reuseMemberCheck" && f.outputs.some((c) => c.kind === "reuseSetMemberFinding")
       )
     ).toBe(true)
     replay(run)
@@ -92,7 +92,7 @@ it("last-member departure removes logical ownership without fabricating physical
   run.advance({ untilTime: 33, maxEvents: 500 })
   expect(run.projection.dispatch.requests).toEqual([])
   expect(run.projection.pendingFindings).toEqual([])
-  expect(run.observations.some((f) => f.commands.some((c) => c.kind === "jevObservationIgnored"))).toBe(true)
+  expect(run.observations.some((f) => f.outputs.some((c) => c.kind === "jevObservationIgnored"))).toBe(true)
   expect(run.observations.some((f) => f.event.kind === "submissionTerminal")).toBe(false)
   replay(run)
 })
@@ -119,7 +119,7 @@ it("a new matching edit joins actual live advice without a second request or ret
   expect(run.projection.pendingFindings).toHaveLength(1)
   expect(run.projection.global).toEqual({ items: 1, bytes: 5 })
   run.advance({ untilTime: 12, maxEvents: 500 })
-  expect(run.observations.some((f) => f.commands.some((c) => c.kind === "reuseJoinAdvice"))).toBe(true)
+  expect(run.observations.some((f) => f.outputs.some((c) => c.kind === "reuseAdviceJoined"))).toBe(true)
   expect(run.observations.filter((f) => f.event.kind === "jevRequestStarted")).toHaveLength(1)
   expect(run.projection.pendingFindings).toHaveLength(1)
   expect(run.projection.global).toEqual({ items: 1, bytes: 5 })
@@ -139,12 +139,12 @@ it("a superseded joined member cannot consume the current owner's finding", () =
   run.advance({ untilTime: 33, maxEvents: 800 })
   expect(
     run.observations.some(
-      (f) => f.event.kind === "revisionRegister" && f.commands.some((c) => c.kind === "revisionReplaced")
+      (f) => f.event.kind === "revisionRegister" && f.outputs.some((c) => c.kind === "revisionReplaced")
     )
   ).toBe(true)
   expect(
     run.observations.some(
-      (f) => f.event.kind === "reuseMemberCheck" && f.commands.some((c) => c.kind === "reuseKeepMember")
+      (f) => f.event.kind === "reuseMemberCheck" && f.outputs.some((c) => c.kind === "reuseKeepMember")
     )
   ).toBe(true)
   expect(

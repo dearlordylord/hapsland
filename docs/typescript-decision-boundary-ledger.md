@@ -115,7 +115,7 @@ a second resident policy engine.
 | Finding collection, output fit, leases, submission, Stop and continuation | Canonical collection, handoff, delivery, submission and finish transitions | [Collection](../src/resident/collection.test.ts) and [terminal collection](../src/resident/terminal-collection.test.ts) check independently expected output and closure behavior. TS-008 measures the final encoded response; a native write is distinct from its decision and from model visibility. |
 | Notices, expiry, identities with length limits and safe cleanup | Canonical notice, retention, round and cleanup transitions, with reviewed native identity limits in TS-005h | [Operational notices](../src/resident/operational-notices.test.ts) and [resident process cases](../src/resident/subprocess.test.ts) check logical and physical boundaries separately. TS-009a/TS-009b schedule checks and supply facts rather than closing rounds by native timer alone. |
 | State/event representation and compiled ABI | Shared checked adapters and Effect Schema representation validation | [Boundary](../src/canonical/boundary.test.ts), [immutable state](../src/canonical/adapter.test.ts), and [constructor/ABI checks](../scripts/check-canonical-authority.mjs) reject malformed or foreign values. Validation cannot synthesize an admission or delivery decision. |
-| Diagram state and route evidence | Checked reducer replay and read-only [flow projection](../packages/agent-flow-projection/README.md) | [Projection checks](../packages/agent-flow-viz/scripts/check-projection.mjs) verify supplied events, commands and state. Layout and display remain TypeScript; a highlighted command does not establish a completed native effect. |
+| Diagram state and route evidence | Checked reducer replay and read-only [flow projection](../packages/agent-flow-projection/README.md) | [Projection checks](../packages/agent-flow-viz/scripts/check-projection.mjs) verify supplied events, categorized outputs and state. Layout and display remain TypeScript; a highlighted action request does not establish a completed native effect. |
 
 The [production authority check](../scripts/check-production-authority.mjs)
 rejects direct generated-policy consumers in production and the dashboard and
@@ -160,7 +160,7 @@ The [Pi attribution checks](../src/direct-event/pi-adapter.test.ts) and [install
 | Decision | TypeScript owns native and asynchronous effects, while Bend decides their permitted state transitions. TypeScript must report each result with its original advicee and virtual round, including a result that arrives after another round has opened. Multiple edits in one open round share the advicee's capacity account. TypeScript holds the Stop response for the bounded wait, performs requested cancellations, and writes authorized output. |
 | TypeScript owner | [@hapsland/resident-runtime/resident/composed-delivery](../packages/resident-runtime/src/resident/composed-delivery.ts) |
 | Bend boundary | Bend receives opaque advicee, round, observation, work, and request IDs plus bounded measured facts. It decides admission and capacity transitions, work settlement, whether Stop continues waiting or reaches its decision, which work to cancel, and whether the selected advice may be presented. TypeScript must not reassign a late result to the current round or create an independent policy result. |
-| Why outside Bend | Native hooks, pending promises, filesystem reading, Jev requests, clocks, cancellation handles, and output are effects that the pure reducer cannot execute. TypeScript carries their identity and measured facts; Bend determines the permitted state transitions and commands. |
+| Why outside Bend | Native hooks, pending promises, filesystem reading, Jev requests, clocks, cancellation handles, and output are effects that the pure reducer cannot execute. TypeScript carries their identity and measured facts; Bend determines the permitted state transitions and ordered outputs. |
 | Review and limits | On 2026-09-29 the owner approved this division of responsibility, not a particular job structure, timer, or sequence of method calls. The [accepted contract](advicing-target-contract.md) owns the bounded Stop wait: unfinished reviews get time to become advice until settlement or the safe deadline, subject to the continuation limit. Cancellation of work still unfinished at the finish decision is the current simplification, not Stop's purpose. The [Pi transport](../packages/hook-runtime/src/pi/transport.ts) supplies the same shared admission, collection, and four-second finish effects. Its awaited native settlement handler proposes a custom message and continuation; Pi validates the final resulting context after all handlers, so an initial assistant-ending preview is not a final refusal. The native round trigger is recorded in TS-004; this entry does not decide specific measurements (TS-007) or particular output preconditions (TS-008). |
 
 ## TS-004 — Open a virtual round on the first accepted edit
@@ -298,6 +298,8 @@ wire and mutation tests cover native boundaries; input provenance remains unprov
 <!-- decision-boundary-facts:start -->
 
 ## Code-derived boundary inventory
+
+Canonical outputs form one ordered stream. Each output is an action request (`request`), established canonical event (`event`), or policy decision (`decision`); the alphabetical inventory below does not create separate execution streams. Requests ask the host to act, events report committed canonical transitions, and decisions report policy outcomes. Native effects and observations retain their own execution boundary.
 
 This inventory resolves declared private exports through the package graph and reads variant kinds and fields from the production Effect schemas. It establishes representation and ownership facts, not why a decision belongs outside Bend, review acceptance, runtime execution, or passing tests. A `?` marks an optional field. Regenerate with `npm run docs:generate`.
 
@@ -461,227 +463,227 @@ Schema owner: [packages/canonical-policy/src/canonical/models.ts](../packages/ca
 | submissionTerminal | advice, certain, token |
 | validationRouteCheck | ownerCurrent, status |
 
-### Canonical commands
+### Canonical outputs
 
 Schema owner: [packages/canonical-policy/src/canonical/models.ts](../packages/canonical-policy/src/canonical/models.ts).
 
-| Kind | Fields after kind |
-| --- | --- |
-| admissionForgotten | — |
-| cacheAlready | — |
-| cacheCommitted | — |
-| cacheDiscarded | ids |
-| cachePrepared | evicted |
-| cacheRejected | — |
-| cancelWork | operation |
-| candidateFile | candidate |
-| capacityGranted | after, id |
-| capacityRefused | after, reason |
-| capacityResized | after, id |
-| capacityUnitAdmitted | after, bytes, position, reservation |
-| capacityUnitRefused | after, bytes, position, reason |
-| cleanupBusy | — |
-| cleanupCommitted | — |
-| cleanupReady | — |
-| collectionAdviceRetired | — |
-| collectionAfter | — |
-| collectionBackgroundClaimed | — |
-| collectionBackgroundKept | — |
-| collectionBackgroundRefused | — |
-| collectionBackgroundReleased | — |
-| collectionBefore | — |
-| collectionCandidate | — |
-| collectionCurrent | — |
-| collectionEligible | — |
-| collectionEqual | — |
-| collectionExpired | — |
-| collectionFindingExpired | — |
-| collectionFindingLimited | — |
-| collectionFindingRetained | — |
-| collectionFindingSelected | — |
-| collectionFits | — |
-| collectionLeaseKept | — |
-| collectionLeaseRefused | — |
-| collectionLeaseReleased | — |
-| collectionLeaseReserved | — |
-| collectionLimited | — |
-| collectionNoticeIncluded | — |
-| collectionNoticeSkipped | — |
-| collectionNoticeStopped | — |
-| collectionRetainCredential | — |
-| collectionRetireCredential | — |
-| collectionSkip | — |
-| collectionWaiting | — |
-| collectorFinalProceed | — |
-| collectorFinalRelease | — |
-| collectorProceed | — |
-| collectorUnavailable | reason |
-| completedEditAbsent | — |
-| completedEditRemembered | evicted? |
-| completedEditSeen | reason, report |
-| continuationConsumed | — |
-| continuationRefused | — |
-| continueCandidate | — |
-| deliveryAckEmpty | — |
-| deliveryAckExpired | — |
-| deliveryAckReady | — |
-| deliveryBatchProceed | — |
-| deliveryBatchRelease | — |
-| deliveryCredentialInvalid | — |
-| deliveryCredentialValid | — |
-| deliveryExistingTokenAllowed | — |
-| deliveryExistingTokenDenied | — |
-| deliveryFinalEmpty | — |
-| deliveryFinalExpired | — |
-| deliveryFinalReady | — |
-| deliveryKeepAcknowledged | — |
-| deliveryKeepForReoffer | — |
-| deliveryKeepRemaining | — |
-| deliveryReleaseUnacknowledged | — |
-| deliveryRetireAdvice | — |
-| deliverySubmissionAllowed | — |
-| deliverySubmissionCandidate | — |
-| deliverySubmissionDenied | — |
-| deliverySubmissionRefused | — |
-| deliveryUnreservedStopAllowed | — |
-| deliveryUnreservedStopDenied | — |
-| discardAllUnfinished | — |
-| discardNamedOnly | — |
-| dispatchDiscarded | operation, running |
-| dispatchStarted | operation, sequence |
-| emptyAccepted | — |
-| emptyLost | — |
-| failureBackend | — |
-| failureCredential | — |
-| failureLost | — |
-| failureNone | — |
-| fileProtection | protection |
-| fileSelection | selection |
-| findingCountRecorded | — |
-| finishAllowedDeadline | — |
-| finishAllowedNoAdvice | — |
-| finishAllowedUnavailable | — |
-| finishAuthorized | — |
-| finishEnded | — |
-| finishLimit | — |
-| finishNotices | — |
-| finishReady | — |
-| finishRecorded | outcome |
-| finishRefused | — |
-| finishReleased | — |
-| finishReserved | — |
-| ignoreCandidate | — |
-| includeChoice | choice |
-| jevInterruptionRecorded | — |
-| jevObservationIgnored | — |
-| jevRequestIssued | lifetime, operation, partition, request, round |
-| jevRequestOutcomeRecorded | outcome |
-| jevRequestStartRecorded | — |
-| jevRequestUnavailable | — |
-| noticeCommitted | — |
-| noticeCreateKey | — |
-| noticeCreatePending | count |
-| noticeDropped | — |
-| noticeKeepLeased | — |
-| noticeLeased | — |
-| noticeMergePending | count |
-| noticePendingCleared | — |
-| noticePruned | dropKey, dropLease, dropPending |
-| noticeRefused | — |
-| noticeRejectedFull | — |
-| noticeSelected | ids |
-| noticeSuppressed | count |
-| observationAdmitted | id |
-| observationCompleted | — |
-| observationInterrupted | — |
-| observationStarted | — |
-| partitionRetired | round |
-| permitConsumed | round |
-| permitExpired | — |
-| permitIssued | round, token |
-| permitKept | — |
-| permitReleased | — |
-| permitRoundClosed | round |
-| preparationRefused | — |
-| preparationReleased | after, id |
-| prepare | operation, reservation |
-| preparedAdmitted | — |
-| preparedCapacityRefused | — |
-| preparedSkipped | — |
-| quietRoundBusy | — |
-| quietRoundExpired | since |
-| quietRoundResetRecorded | — |
-| quietRoundWaiting | since |
-| releaseCandidate | — |
-| reofferAtStop | — |
-| reservationReleased | id |
-| retainCandidate | — |
-| retainFinding | — |
-| retireCandidate | — |
-| retireStaleFinding | — |
-| reuseAttached | — |
-| reuseCached | — |
-| reuseClaimed | — |
-| reuseJoinAdvice | — |
-| reuseJoinClaimed | — |
-| reuseJoinPending | — |
-| reuseKeepMember | — |
-| reuseOwn | — |
-| reuseRefused | — |
-| reuseReleased | — |
-| reuseSetMemberClear | — |
-| reuseSetMemberFinding | — |
-| reuseSetMemberLost | — |
-| reuseSetMemberUnavailable | — |
-| reviewAdmission | admission |
-| reviewRecorded | outcome |
-| reviewStarted | — |
-| revisionCount | count |
-| revisionCurrent | — |
-| revisionGeneration | generation |
-| revisionNotSuperseded | — |
-| revisionReleased | — |
-| revisionReplaced | generation |
-| revisionReused | generation |
-| revisionStale | — |
-| revisionSuperseded | — |
-| roundActive | — |
-| roundBarrierClear | — |
-| roundBarrierRaised | — |
-| roundContinuationAvailable | — |
-| roundContinuationExhausted | — |
-| roundExpireCloses | — |
-| roundExpireKeeps | — |
-| roundInactive | — |
-| roundStarted | id |
-| roundStopBegun | — |
-| roundStopNotOwned | — |
-| roundStopOwned | — |
-| roundStopRefused | — |
-| roundStopTerminal | close, revokeProvisional |
-| ruleGate | gate |
-| ruleOrder | order |
-| settleClear | — |
-| settleStaleClear | — |
-| stopEnded | — |
-| submissionAuthorized | — |
-| submissionBegun | — |
-| submissionCurrent | — |
-| submissionExpired | — |
-| submissionForgotten | — |
-| submissionNotReofferable | — |
-| submissionRecorded | — |
-| submissionRefused | — |
-| submissionReleased | — |
-| submissionReofferable | — |
-| submissionSuppresses | — |
-| submissionUnsuppressed | — |
-| unitAdmitted | after, bytes, operation, position, reservation |
-| unitRefused | after, bytes, position, reason |
-| waitForOutput | — |
-| waitForWork | — |
-| writeAuthorized | operation |
-| writeRecorded | outcome |
+| Kind | Category | Fields after kind and category |
+| --- | --- | --- |
+| admissionForgotten | event | — |
+| cacheAlready | decision | — |
+| cacheCommitted | event | — |
+| cacheDiscarded | event | ids |
+| cachePrepared | event | evicted |
+| cacheRejected | decision | — |
+| cancelWork | request | operation |
+| candidateFile | decision | candidate |
+| capacityGranted | event | after, id |
+| capacityRefused | decision | after, reason |
+| capacityResized | event | after, id |
+| capacityUnitAdmitted | event | after, bytes, position, reservation |
+| capacityUnitRefused | decision | after, bytes, position, reason |
+| cleanupBusy | decision | — |
+| cleanupCommitted | event | — |
+| cleanupReady | decision | — |
+| clearSettled | event | — |
+| collectionAdviceRetired | event | — |
+| collectionAfter | decision | — |
+| collectionBackgroundClaimed | event | — |
+| collectionBackgroundKept | decision | — |
+| collectionBackgroundRefused | decision | — |
+| collectionBackgroundReleased | event | — |
+| collectionBefore | decision | — |
+| collectionCandidate | decision | — |
+| collectionCurrent | decision | — |
+| collectionEligible | event | — |
+| collectionEqual | decision | — |
+| collectionExpired | decision | — |
+| collectionFindingExpired | decision | — |
+| collectionFindingLimited | decision | — |
+| collectionFindingRetained | decision | — |
+| collectionFindingSelected | decision | — |
+| collectionFits | decision | — |
+| collectionLeaseKept | decision | — |
+| collectionLeaseRefused | decision | — |
+| collectionLeaseReleased | event | — |
+| collectionLeaseReserved | event | — |
+| collectionLimited | decision | — |
+| collectionNoticeIncluded | decision | — |
+| collectionNoticeSkipped | decision | — |
+| collectionNoticeStopped | decision | — |
+| collectionRetainCredential | decision | — |
+| collectionRetireCredential | decision | — |
+| collectionSkip | decision | — |
+| collectionWaiting | decision | — |
+| collectorFinalProceed | decision | — |
+| collectorFinalRelease | decision | — |
+| collectorProceed | decision | — |
+| collectorUnavailable | decision | reason |
+| completedEditAbsent | decision | — |
+| completedEditRemembered | event | evicted? |
+| completedEditSeen | event | reason, report |
+| continuationConsumed | event | — |
+| continuationRefused | decision | — |
+| continueCandidate | decision | — |
+| createNoticeKey | request | — |
+| deliveryAckEmpty | decision | — |
+| deliveryAckExpired | decision | — |
+| deliveryAckReady | decision | — |
+| deliveryBatchProceed | decision | — |
+| deliveryBatchRelease | decision | — |
+| deliveryCredentialInvalid | decision | — |
+| deliveryCredentialValid | decision | — |
+| deliveryExistingTokenAllowed | decision | — |
+| deliveryExistingTokenDenied | decision | — |
+| deliveryFinalEmpty | decision | — |
+| deliveryFinalExpired | decision | — |
+| deliveryFinalReady | decision | — |
+| deliveryKeepAcknowledged | decision | — |
+| deliveryKeepForReoffer | decision | — |
+| deliveryKeepRemaining | decision | — |
+| deliveryReleaseUnacknowledged | decision | — |
+| deliveryRetireAdvice | decision | — |
+| deliverySubmissionAllowed | decision | — |
+| deliverySubmissionCandidate | decision | — |
+| deliverySubmissionDenied | decision | — |
+| deliverySubmissionRefused | decision | — |
+| deliveryUnreservedStopAllowed | decision | — |
+| deliveryUnreservedStopDenied | decision | — |
+| discardAllUnfinished | decision | — |
+| discardNamedOnly | decision | — |
+| dispatchDiscarded | event | operation, running |
+| dispatchStarted | event | operation, sequence |
+| emptyAccepted | decision | — |
+| emptyLost | decision | — |
+| failureBackend | decision | — |
+| failureCredential | decision | — |
+| failureLost | decision | — |
+| failureNone | decision | — |
+| fileProtection | decision | protection |
+| fileSelection | decision | selection |
+| findingCountRecorded | event | — |
+| findingRetained | event | — |
+| finishAllowedDeadline | decision | — |
+| finishAllowedNoAdvice | decision | — |
+| finishAllowedUnavailable | decision | — |
+| finishAuthorized | event | — |
+| finishEnded | event | — |
+| finishLimit | event | — |
+| finishNotices | decision | — |
+| finishReady | event | — |
+| finishRecorded | event | outcome |
+| finishRefused | decision | — |
+| finishReleased | event | — |
+| finishReserved | event | — |
+| ignoreCandidate | decision | — |
+| includeChoice | decision | choice |
+| jevInterruptionRecorded | event | — |
+| jevObservationIgnored | decision | — |
+| jevRequestIssued | event | lifetime, operation, partition, request, round |
+| jevRequestOutcomeRecorded | event | outcome |
+| jevRequestStartRecorded | event | — |
+| jevRequestUnavailable | decision | — |
+| noticeCommitted | event | — |
+| noticeDropped | event | — |
+| noticeLeased | event | — |
+| noticeLeaseKept | event | — |
+| noticePendingCleared | event | — |
+| noticePendingCreated | event | count |
+| noticePendingMerged | event | count |
+| noticePruned | event | dropKey, dropLease, dropPending |
+| noticeRefused | decision | — |
+| noticeRejectedFull | decision | — |
+| noticeSelected | decision | ids |
+| noticeSuppressed | event | count |
+| observationAdmitted | event | id |
+| observationCompleted | event | — |
+| observationInterrupted | event | — |
+| observationStarted | event | — |
+| partitionRetired | event | round |
+| permitConsumed | event | round |
+| permitExpired | event | — |
+| permitIssued | event | round, token |
+| permitKept | decision | — |
+| permitReleased | event | — |
+| permitRoundClosed | event | round |
+| preparationRefused | decision | — |
+| preparationReleased | event | after, id |
+| prepare | request | operation, reservation |
+| preparedAdmitted | decision | — |
+| preparedCapacityRefused | decision | — |
+| preparedSkipped | decision | — |
+| quietRoundBusy | event | — |
+| quietRoundExpired | decision | since |
+| quietRoundResetRecorded | event | — |
+| quietRoundWaiting | event | since |
+| releaseCandidate | decision | — |
+| reofferAtStop | event | — |
+| reservationReleased | event | id |
+| retainCandidate | decision | — |
+| retireCandidate | decision | — |
+| reuseAdviceJoined | event | — |
+| reuseAttached | event | — |
+| reuseCacheHit | event | — |
+| reuseClaimed | event | — |
+| reuseClaimedJoined | event | — |
+| reuseKeepMember | decision | — |
+| reuseOwned | event | — |
+| reusePendingJoined | event | — |
+| reuseRefused | decision | — |
+| reuseReleased | event | — |
+| reuseSetMemberClear | decision | — |
+| reuseSetMemberFinding | decision | — |
+| reuseSetMemberLost | decision | — |
+| reuseSetMemberUnavailable | decision | — |
+| reviewAdmission | decision | admission |
+| reviewRecorded | event | outcome |
+| reviewStarted | event | — |
+| revisionCount | decision | count |
+| revisionCurrent | decision | — |
+| revisionGeneration | decision | generation |
+| revisionNotSuperseded | decision | — |
+| revisionReleased | event | — |
+| revisionReplaced | event | generation |
+| revisionReused | event | generation |
+| revisionStale | decision | — |
+| revisionSuperseded | decision | — |
+| roundActive | decision | — |
+| roundBarrierClear | decision | — |
+| roundBarrierRaised | decision | — |
+| roundContinuationAvailable | decision | — |
+| roundContinuationExhausted | decision | — |
+| roundExpireCloses | decision | — |
+| roundExpireKeeps | decision | — |
+| roundInactive | decision | — |
+| roundStarted | event | id |
+| roundStopBegun | decision | — |
+| roundStopNotOwned | decision | — |
+| roundStopOwned | decision | — |
+| roundStopRefused | decision | — |
+| roundStopTerminal | decision | close, revokeProvisional |
+| ruleGate | decision | gate |
+| ruleOrder | decision | order |
+| staleClearSettled | event | — |
+| staleFindingRetired | event | — |
+| stopEnded | event | — |
+| submissionAuthorized | event | — |
+| submissionBegun | event | — |
+| submissionCurrent | decision | — |
+| submissionExpired | decision | — |
+| submissionForgotten | event | — |
+| submissionNotReofferable | decision | — |
+| submissionRecorded | event | — |
+| submissionRefused | decision | — |
+| submissionReleased | event | — |
+| submissionReofferable | decision | — |
+| submissionSuppresses | decision | — |
+| submissionUnsuppressed | decision | — |
+| unitAdmitted | event | after, bytes, operation, position, reservation |
+| unitRefused | decision | after, bytes, position, reason |
+| waitForOutput | decision | — |
+| waitForWork | event | — |
+| writeAuthorized | event | operation |
+| writeRecorded | event | outcome |
 
 ### ImportGraph events
 

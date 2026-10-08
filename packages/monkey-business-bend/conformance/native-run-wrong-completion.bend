@@ -11,9 +11,21 @@ def rejected_completion(result: Trace.Trace) -> Trace.Trace:
   match result:
     case Trace.Trace{states, rows}:
       +state = Trace.boxed(states)
-      Trace.until(1000n, Run.enqueue(state, Run.clock(state), T.Event{
-        Driver.immediate(Canonical.PreparationCompleted{1n, 1n, 999n, 1n, [5n]}, False{}), None{},None{},None{}}),
-        30n, List.reverse(&2, List<&2, Nat>, rows))
+      Trace.until(
+        1000n,
+        Run.enqueue(
+          state,
+          Run.clock(state),
+          T.Event{
+            Driver.immediate(Canonical.PreparationCompleted{1n, 1n, 999n, 1n, [5n]}, False{}),
+            None{},
+            [None{}],
+            None{}
+          }
+        ),
+        30n,
+        List.reverse(&2, List<&2, Nat>, rows)
+      )
 
 def trace() -> List<&2, List<&2, Nat>>:
   Trace.trace_rows(rejected_completion(Trace.until(1000n,

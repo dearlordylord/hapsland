@@ -9,7 +9,7 @@ import { validateSharingControl, type SharingControl } from "./sharing-controls.
 import { callbackPublicBoundary } from "./callback-native-codec.ts"
 import { decodeNativePrefix } from "./callback-native-prefix.ts"
 import { decodeSharingNativeBoundary } from "./sharing-native-boundary.ts"
-import { readRecord } from "@hapsland/canonical-policy/canonical/boundary-schema"
+import { readRecord, readNat, readBendList } from "@hapsland/canonical-policy/canonical/boundary-schema"
 
 const programs = [
   "baseline",
@@ -306,7 +306,7 @@ function publicCase(mode: number) {
     expect(run.projection.dispatch.requests).toEqual([])
     if (mode === 5)
       expect(
-        run.observations.some((frame) => frame.commands.some((command) => command.kind === "reuseJoinAdvice"))
+        run.observations.some((frame) => frame.outputs.some((command) => command.kind === "reuseAdviceJoined"))
       ).toBe(true)
   } else {
     if (capturedMember?.kind !== "beginObservedPreparation")
@@ -315,14 +315,13 @@ function publicCase(mode: number) {
       run.observations.some(
         (frame) =>
           frame.event.kind === "revisionRegister" &&
-          frame.commands.some((command) => command.kind === "revisionReplaced")
+          frame.outputs.some((command) => command.kind === "revisionReplaced")
       )
     ).toBe(true)
     expect(
       run.observations.some(
         (frame) =>
-          frame.event.kind === "reuseMemberCheck" &&
-          frame.commands.some((command) => command.kind === "reuseKeepMember")
+          frame.event.kind === "reuseMemberCheck" && frame.outputs.some((command) => command.kind === "reuseKeepMember")
       )
     ).toBe(true)
     expect(
@@ -340,6 +339,91 @@ function publicCase(mode: number) {
   return { ...boundary, boundaries, eventCount: run.observe().eventCount }
 }
 
+// Original labels are authoritative; private host/fixture allocation order is not.
+// Validate each complete reference graph before substituting source labels only.
+function sourceLabels(value: { readonly frames: readonly unknown[] }, mode: number) {
+  const edits = inputs(mode)
+  const registrations = value.frames
+    .map((frame) => readRecord(readRecord(frame).event))
+    .filter((event) => event.$ === "Canonical.RevisionRegister")
+  expect(registrations).toHaveLength(edits.length)
+  const subjectLabels = new Map<number, string>(),
+    subjectIds = new Map<string, number>()
+  const inputLabels = new Map<number, string>(),
+    inputIds = new Map<string, number>()
+  const bind = (id: unknown, label: string, labels: Map<number, string>, ids: Map<string, number>) => {
+    const number = readNat(id)
+    if (labels.has(number)) expect(labels.get(number)).toBe(label)
+    if (ids.has(label)) expect(ids.get(label)).toBe(number)
+    labels.set(number, label)
+    ids.set(label, number)
+  }
+  const sessions = readBendList(frozenNativeInput(mode).configuration.sessions, readRecord, 1024)
+  for (const [index, registration] of registrations.entries()) {
+    const edit = edits[index]!
+    const partition = sessions.find((session) => session.agent === edit.agent)?.identity
+    if (partition === undefined) throw new Error("original edit has no declared partition")
+    bind(
+      registration.subject,
+      JSON.stringify(["revision-subject", partition, edit.revisionSubject]),
+      subjectLabels,
+      subjectIds
+    )
+    bind(registration.input, JSON.stringify(["revision-input", edit.revisionInput]), inputLabels, inputIds)
+  }
+  const reference = (id: unknown, labels: Map<number, string>) => {
+    const label = labels.get(readNat(id))
+    if (label === undefined) throw new Error("unknown original revision identity")
+    return label
+  }
+  const normalize = (item: unknown): unknown => {
+    if (Array.isArray(item)) return item.map(normalize)
+    if (item === null || typeof item !== "object") return item
+    const record = item as Record<string, unknown>
+    const revision =
+      (typeof record.$ === "string" && record.$.startsWith("Canonical.Revision")) ||
+      (Object.hasOwn(record, "members") &&
+        Object.hasOwn(record, "generation") &&
+        Object.hasOwn(record, "subject") &&
+        Object.hasOwn(record, "input"))
+    return Object.fromEntries(
+      Object.entries(record).map(([key, child]) => [
+        key,
+        revision && (key === "subject" || key === "candidate_subject")
+          ? reference(child, subjectLabels)
+          : revision && key === "input"
+            ? reference(child, inputLabels)
+            : normalize(child)
+      ])
+    )
+  }
+  return normalize(value)
+}
+
+function compareOriginalCases(output: unknown, expectedCases: readonly ReturnType<typeof publicCase>[]) {
+  if (!Array.isArray(output)) throw new TypeError("sharing aggregate must retain the original vector list")
+  expect(output).toHaveLength(7)
+  for (const [mode, name] of programs.entries()) {
+    const expected = expectedCases[mode]
+    if (!expected) throw new Error(`missing original sharing case ${name}`)
+    const dto = decodeNativePrefix(output[mode], "sharing_scenarios")
+    expect(readRecord(dto).input, name).toEqual(frozenNativeInput(mode))
+    const actual = decodeSharingNativeBoundary(dto)
+    expect(sourceLabels(actual, mode), name).toEqual(sourceLabels(expected, mode))
+    if (mode < 6) {
+      expect(actual.endpoint.projection.global, name).toEqual(expected.endpoint.projection.global)
+      expect(actual.endpoint.projection.partitions, name).toEqual(expected.endpoint.projection.partitions)
+      expect(actual.endpoint.projection.dispatch.requests, name).toEqual([])
+    }
+  }
+}
+
+it("compares all seven original sharing emitted/public/replay boundaries", () => {
+  const expectedCases = programs.map((_, mode) => publicCase(mode))
+  const fixture = new URL("../../monkey-business-bend/conformance/sharing-native.bend", import.meta.url)
+  compareOriginalCases(runWorkloadEmitted(fixture, { emissionTimeoutMs: 30000 }), expectedCases)
+}, 45000)
+
 // Aggregate allowance: C60s + clang90s + native15s + JS30s + run5s,
 // plus15s cleanup. All original cases remain; runner defaults are unchanged.
 it("compares all seven original sharing full native/emitted/public/replay boundaries", () => {
@@ -353,30 +437,7 @@ it("compares all seven original sharing full native/emitted/public/replay bounda
   const emitted = emittedReceipt
     ? readRetainedWorkloadOutput(fixture, emittedReceipt, "emitted-js")
     : runWorkloadEmitted(fixture, { emissionTimeoutMs: 30000 })
-  // Complete equality retains every recursively generated owner field, physical
-  // order, original CacheFact capsule, graph result and pending payload.
   expect(native).toEqual(emitted)
-  if (!Array.isArray(native) || !Array.isArray(emitted))
-    throw new TypeError("sharing aggregate must retain the original vector list")
-  expect(native).toHaveLength(7)
-  expect(emitted).toHaveLength(7)
-  for (const [mode, name] of programs.entries()) {
-    const expected = expectedCases[mode]
-    if (!expected) throw new Error(`missing original sharing case ${name}`)
-    const nativeDTO = decodeNativePrefix(native[mode], "sharing_scenarios"),
-      emittedDTO = decodeNativePrefix(emitted[mode], "sharing_scenarios")
-    expect(nativeDTO, name).toEqual(emittedDTO)
-    expect(readRecord(nativeDTO).input, name).toEqual(frozenNativeInput(mode))
-    expect(readRecord(emittedDTO).input, name).toEqual(frozenNativeInput(mode))
-    const actual = decodeSharingNativeBoundary(nativeDTO)
-    expect(actual, name).toEqual(expected)
-    expect(decodeSharingNativeBoundary(emittedDTO), name).toEqual(expected)
-    // Retain the endpoint oracle from all six original directed native cases.
-    if (mode < 6) {
-      const projection = expected.endpoint.projection
-      expect(actual.endpoint.projection.global, name).toEqual(projection.global)
-      expect(actual.endpoint.projection.partitions, name).toEqual(projection.partitions)
-      expect(actual.endpoint.projection.dispatch.requests, name).toEqual([])
-    }
-  }
+  compareOriginalCases(native, expectedCases)
+  compareOriginalCases(emitted, expectedCases)
 }, 215000)

@@ -7,7 +7,7 @@ export const expiryTicks = (times: readonly number[]): RunInput[] =>
 export const collectNotice = (run: ReturnType<typeof createRun>, partition: number) => {
   run.applyControl({ kind: "noticeCollect", partition, group: 7, composed: false, authorityBound: false, allowed: [] })
   run.advance({ untilTime: run.now, maxEvents: 100 })
-  return run.observations.findLast((frame) => frame.event.kind === "noticeSelect")?.commands
+  return run.observations.findLast((frame) => frame.event.kind === "noticeSelect")?.outputs
 }
 export const reportNotice = (run: ReturnType<typeof createRun>, partition: number, key: number) => {
   run.applyControl({ kind: "noticeFailure", target: { partition, group: 7, key }, diagnostic: "backend" })

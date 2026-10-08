@@ -34,7 +34,7 @@ it("a held captured old result cannot become current delivery after source repla
   expect(target.owner).toEqual({ partition: 1, lifetime: 1, round: 1, operation: 3 })
   expect(target.effect).toEqual({ kind: "jevSettled", request: 4 })
   expect(
-    run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "jevRequestIssued")
+    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "jevRequestIssued")
   ).toMatchObject([{ ...target.owner, request: 4 }])
   expect(Number.isSafeInteger(target.originalOrder)).toBe(true)
   const immutableTarget = JSON.parse(JSON.stringify(target))
@@ -60,11 +60,11 @@ it("a held captured old result cannot become current delivery after source repla
   expect(old.event).toMatchObject({ ...target.owner, request: 4, outcome: "finding", currentWork: false })
   // Canonical.review_observed_choice: physically completed, still-owned stale
   // finding is retired, not the canceled/absent-work Ignored branch.
-  expect(old.commands).toEqual([
-    { kind: "reservationReleased", id: 2 },
-    { kind: "reviewRecorded", outcome: "finding" },
-    { kind: "retireStaleFinding" },
-    { kind: "jevRequestOutcomeRecorded", outcome: "finding" }
+  expect(old.outputs).toEqual([
+    { category: "event", kind: "reservationReleased", id: 2 },
+    { category: "event", kind: "reviewRecorded", outcome: "finding" },
+    { category: "event", kind: "staleFindingRetired" },
+    { category: "event", kind: "jevRequestOutcomeRecorded", outcome: "finding" }
   ])
   expect(run.projection.global).toEqual({ items: 1, bytes: 5 })
   expect(run.projection.dispatch.requests).toEqual([])
@@ -73,7 +73,7 @@ it("a held captured old result cannot become current delivery after source repla
   expect(run.advance({ untilTime: run.now, maxEvents: 120 }).reason).not.toBe("eventLimit")
   const repeated = run.observations.filter((frame) => frame.event.kind === "jevRequestSettled").at(-1)!
   expect(repeated.rejection).toBe("StaleOperation")
-  expect(repeated.commands).toEqual([])
+  expect(repeated.outputs).toEqual([])
   expect(repeated.before).toEqual(repeated.after)
   expect(run.projection).toEqual(settled)
   expect(run.observations.filter((frame) => frame.event.kind === "submissionTerminal")).toHaveLength(1)

@@ -97,8 +97,8 @@ function departAndResume(action: "disconnect" | "remove", seed = 7, delay = 20) 
   ])
   const retirement = run.observations.find((frame) => frame.event.kind === "retirePartition")!
   expect(retirement.event).toEqual({ kind: "retirePartition", partition: 1, lifetime: 1, round: 1 })
-  expect(retirement.commands.filter((command) => command.kind === "cancelWork")).toEqual([
-    { kind: "cancelWork", operation: old.operation }
+  expect(retirement.outputs.filter((command) => command.kind === "cancelWork")).toEqual([
+    { category: "request", kind: "cancelWork", operation: old.operation }
   ])
   expect(run.projection.global).toEqual({ items: 1, bytes: 7 })
   // Cancel intent releases logical authority, not a fabricated physical result.
@@ -140,13 +140,13 @@ function departAndResume(action: "disconnect" | "remove", seed = 7, delay = 20) 
     request: old.request,
     outcome: "finding"
   })
-  expect(oldCallback.commands).toEqual([{ kind: "jevObservationIgnored" }])
+  expect(oldCallback.outputs).toEqual([{ category: "decision", kind: "jevObservationIgnored" }])
   expect(oldCallback.partition).toBe(1)
   expect(oldCallback.time).toBe(delay + 2)
   const newRequest = run.observations
-    .flatMap((frame) => frame.commands)
+    .flatMap((frame) => frame.outputs)
     .find((command) => command.kind === "jevRequestIssued" && command.lifetime === 2)!
-  expect(newRequest).toMatchObject({ kind: "jevRequestIssued", partition: 1, lifetime: 2, round: 3 })
+  expect(newRequest).toMatchObject({ category: "event", kind: "jevRequestIssued", partition: 1, lifetime: 2, round: 3 })
   const outputs = run.observations.filter((frame) => frame.event.kind === "submissionTerminal")
   expect(outputs.map((frame) => [frame.time, frame.partition])).toEqual([
     [delay + 2, 2],
@@ -209,8 +209,8 @@ it("resumes after an accepted explicit lifetime without reparenting prequeued ac
   expect(run.projection.dispatch.requests.find((request) => request.request === old.request)).toEqual(old)
   const retirement = run.observations.find((frame) => frame.event.kind === "retirePartition")!
   expect(retirement.event).toEqual({ kind: "retirePartition", partition: 1, lifetime: 2, round: 1 })
-  expect(retirement.commands.filter((command) => command.kind === "cancelWork")).toEqual([
-    { kind: "cancelWork", operation: old.operation }
+  expect(retirement.outputs.filter((command) => command.kind === "cancelWork")).toEqual([
+    { category: "request", kind: "cancelWork", operation: old.operation }
   ])
   const restored = restoreReplay(JSON.parse(JSON.stringify(run.exportReplay())))
   expect(restored.observe()).toEqual(run.observe())
@@ -242,10 +242,10 @@ it("resumes after an accepted explicit lifetime without reparenting prequeued ac
     request: old.request,
     outcome: "finding"
   })
-  expect(oldCallback.commands).toEqual([{ kind: "jevObservationIgnored" }])
+  expect(oldCallback.outputs).toEqual([{ category: "decision", kind: "jevObservationIgnored" }])
   expect(oldCallback.partition).toBe(1)
   expect(
-    run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "jevRequestIssued")
+    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "jevRequestIssued")
   ).toContainEqual(expect.objectContaining({ partition: 1, lifetime: 3, round: 3 }))
   expect(run.observations.some((frame) => frame.workload?.revision === 90)).toBe(false)
   expect(
@@ -314,7 +314,7 @@ it.each([1, 2] as const)(
     )
     expect(stops.length).toBeGreaterThanOrEqual(2)
     expect(stops.every((frame) => frame.rejection === undefined)).toBe(true)
-    expect(stops.flatMap((frame) => frame.commands).some((command) => command.kind === "finishReady")).toBe(true)
+    expect(stops.flatMap((frame) => frame.outputs).some((command) => command.kind === "finishReady")).toBe(true)
     const rounds = run.observations.filter(
       (frame) =>
         frame.event.kind === "openRound" && frame.event.partition === 1 && frame.event.lifetime === nextLifetime
@@ -460,7 +460,7 @@ const lifecycleCommandCodes: Record<string, number> = {
   prepare: 4,
   unitAdmitted: 5,
   jevRequestIssued: 6,
-  retainFinding: 7,
+  findingRetained: 7,
   collectionEligible: 8,
   retainCandidate: 9,
   submissionUnsuppressed: 10,
@@ -476,7 +476,7 @@ const lifecycleCommandCodes: Record<string, number> = {
   reservationReleased: 20,
   collectionLeaseKept: 21,
   collectionLeaseReleased: 22,
-  settleClear: 23,
+  clearSettled: 23,
   reviewRecorded: 24,
   retireCandidate: 25,
   releaseCandidate: 26,
@@ -600,7 +600,7 @@ function lifecycleRow(frame: Observation): number[] {
                     : event.kind === "preparationCompleted"
                       ? [(event.unitBytes as number[]).length, (event.unitBytes as number[])[0] ?? 0, 0, 0, 0, 0]
                       : [0, 0, 0, 0, 0, 0]
-  const commands = frame.commands.flatMap((command, index) => {
+  const outputs = frame.outputs.flatMap((command, index) => {
     const value = command as unknown as Record<string, unknown>
     const id = ["roundStarted", "observationAdmitted", "preparationReleased", "reservationReleased"].includes(
       command.kind
@@ -615,7 +615,7 @@ function lifecycleRow(frame: Observation): number[] {
             : 0
     if (lifecycleCommandCodes[command.kind] === undefined) throw new Error(`Unmapped resident command ${command.kind}`)
     const commandId = command.kind === "cacheDiscarded" ? ((value.ids as number[])[0] ?? 0) : Number(id ?? 0)
-    return [lifecycleCommandCodes[command.kind]!, frame.commandScopes?.[index] ?? 0, commandId]
+    return [lifecycleCommandCodes[command.kind]!, frame.outputScopes?.[index] ?? 0, commandId]
   })
   return [
     lifecycleEventCodes[frame.event.kind] ?? 99,
@@ -625,7 +625,7 @@ function lifecycleRow(frame: Observation): number[] {
     ...facts,
     ...counts,
     Number(!!frame.rejection),
-    ...commands
+    ...outputs
   ]
 }
 

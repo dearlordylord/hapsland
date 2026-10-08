@@ -23,7 +23,7 @@ it("agrees with native Bend on ordinary, refused and wide-Nat public round bound
     })
     run.advance({ maxEvents: 2 })
     expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe())
-    const command = run.observe().observations.at(-1)?.commands[0]
+    const command = run.observe().observations.at(-1)?.outputs[0]
     return command?.kind === "roundStarted" ? command.id : 0
   })
   expect(observed).toEqual(expected)

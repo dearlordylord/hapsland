@@ -98,14 +98,14 @@ it("uses four actual same-round outputs then permits Stop without a fifth contin
       run.advance({ untilTime: stopAt, maxEvents: 500 })
       const pending = run.observations.findLast((frame) => frame.event.kind === "stopPolled")
       expect(pending?.time).toBe(stopAt)
-      expect(pending?.commands.some((command) => command.kind === "waitForWork")).toBe(true)
+      expect(pending?.outputs.some((command) => command.kind === "waitForWork")).toBe(true)
       expect(run.projection.delivery.counters).toContainEqual({ group: 1, round: 1, used: 4 })
       expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe())
     }
     run.advance({ untilTime: index * 40 + 2 + 5, maxEvents: 500 })
     const check = run.observations.findLast((frame) => frame.event.kind === "roundContinuationBudgetCheck")
     expect(check?.event).toMatchObject({ active: true, count: Math.min(index, 4) })
-    expect(check?.commands.map((command) => command.kind)).toContain(
+    expect(check?.outputs.map((command) => command.kind)).toContain(
       index < 4 ? "roundContinuationAvailable" : "roundContinuationExhausted"
     )
     expect(run.observations.filter((frame) => frame.event.kind === "finishAuthorize")).toHaveLength(
@@ -129,14 +129,13 @@ it("uses four actual same-round outputs then permits Stop without a fifth contin
       // checking exhaustion; retirement removes the live counter.
       // Preserve its historical value at the actual closure transition.
       const retired = run.observations.find((frame) =>
-        frame.commands.some((command) => command.kind === "partitionRetired")
+        frame.outputs.some((command) => command.kind === "partitionRetired")
       )
       const readyAt = index * 40 + 2 + 5
       expect(retired?.time).toBe(readyAt)
       expect(
         run.observations.some(
-          (frame) =>
-            frame.time === readyAt && frame.commands.some((command) => command.kind === "finishAllowedNoAdvice")
+          (frame) => frame.time === readyAt && frame.outputs.some((command) => command.kind === "finishAllowedNoAdvice")
         )
       ).toBe(true)
       expect(retired?.before.delivery.counters).toContainEqual({ group: 1, round: 1, used: 4 })
@@ -158,7 +157,7 @@ it("uses four actual same-round outputs then permits Stop without a fifth contin
   expect(
     run.observations.some(
       (frame) =>
-        frame.commands.some((command) => command.kind === "finishAllowedNoAdvice") && frame.time === 4 * 40 + 2 + 5
+        frame.outputs.some((command) => command.kind === "finishAllowedNoAdvice") && frame.time === 4 * 40 + 2 + 5
     )
   ).toBe(true)
 }, 60000)

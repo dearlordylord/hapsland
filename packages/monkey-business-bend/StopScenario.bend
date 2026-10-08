@@ -891,24 +891,19 @@ def command_candidate(state: State, +finish: Finish, canonical: Canonical.State,
     case _: command_candidate_fit(state, finish, canonical, facts, keep)
 
 def command_finish(+state: State, +finish: Finish, +canonical: Canonical.State,
-    +facts: CommandFacts, +context: Driver.Context, command: Canonical.Command) -> Changed:
+    +facts: CommandFacts, +context: Driver.Context, command: Canonical.Output) -> Changed:
   match command:
-    case Canonical.WaitForWork{}: command_wait(state, finish, True{})
-    case Canonical.WaitForOutput{}: command_wait(state, finish, True{})
-    case Canonical.FinishReady{}: command_ready(state, finish, canonical, facts, context, False{})
-    case Canonical.FinishLimit{}: command_ready(state, finish, canonical, facts, context, True{})
-    case Canonical.RoundContinuationAvailable{}: command_reserve(state, finish, facts, False{})
-    case Canonical.RoundContinuationExhausted{}: command_reserve(state, finish, facts, True{})
-    case Canonical.FinishAllowedNoAdvice{}: command_end(state, finish, canonical, False{})
-    case Canonical.FinishAllowedDeadline{}: command_end(state, finish, canonical, False{})
-    case Canonical.FinishAllowedUnavailable{}: command_end(state, finish, canonical, False{})
-    case Canonical.FinishReserved{}: command_reserved(state, finish, facts)
-    case Canonical.FinishAuthorized{}: command_authorized(state, finish, facts)
-    case Canonical.FinishRecorded{_}: command_recorded(state, finish)
-    case Canonical.FinishReleased{}: command_end(state, finish, canonical, True{})
-    case Canonical.FinishEnded{}: command_end(state, finish, canonical, True{})
-    case Canonical.FinishRefused{}: command_wait(state, finish, False{})
-    case Canonical.SubmissionUnsuppressed{}: command_candidate(
+    case Canonical.EventEstablished{Canonical.WaitForWork{}}: command_wait(state, finish, True{})
+    case Canonical.PolicyDecided{Canonical.WaitForOutput{}}: command_wait(state, finish, True{})
+    case Canonical.EventEstablished{Canonical.FinishReady{}}: command_ready(
+      state,
+      finish,
+      canonical,
+      facts,
+      context,
+      False{}
+    )
+    case Canonical.EventEstablished{Canonical.FinishLimit{}}: command_ready(
       state,
       finish,
       canonical,
@@ -916,7 +911,61 @@ def command_finish(+state: State, +finish: Finish, +canonical: Canonical.State,
       context,
       True{}
     )
-    case Canonical.CollectionFits{}: command_candidate(
+    case Canonical.PolicyDecided{Canonical.RoundContinuationAvailable{}}: command_reserve(
+      state,
+      finish,
+      facts,
+      False{}
+    )
+    case Canonical.PolicyDecided{Canonical.RoundContinuationExhausted{}}: command_reserve(
+      state,
+      finish,
+      facts,
+      True{}
+    )
+    case Canonical.PolicyDecided{Canonical.FinishAllowedNoAdvice{}}: command_end(
+      state,
+      finish,
+      canonical,
+      False{}
+    )
+    case Canonical.PolicyDecided{Canonical.FinishAllowedDeadline{}}: command_end(
+      state,
+      finish,
+      canonical,
+      False{}
+    )
+    case Canonical.PolicyDecided{Canonical.FinishAllowedUnavailable{}}: command_end(
+      state,
+      finish,
+      canonical,
+      False{}
+    )
+    case Canonical.EventEstablished{Canonical.FinishReserved{}}: command_reserved(
+      state,
+      finish,
+      facts
+    )
+    case Canonical.EventEstablished{Canonical.FinishAuthorized{}}: command_authorized(
+      state,
+      finish,
+      facts
+    )
+    case Canonical.EventEstablished{Canonical.FinishRecorded{_}}: command_recorded(state, finish)
+    case Canonical.EventEstablished{Canonical.FinishReleased{}}: command_end(
+      state,
+      finish,
+      canonical,
+      True{}
+    )
+    case Canonical.EventEstablished{Canonical.FinishEnded{}}: command_end(
+      state,
+      finish,
+      canonical,
+      True{}
+    )
+    case Canonical.PolicyDecided{Canonical.FinishRefused{}}: command_wait(state, finish, False{})
+    case Canonical.PolicyDecided{Canonical.SubmissionUnsuppressed{}}: command_candidate(
       state,
       finish,
       canonical,
@@ -924,7 +973,15 @@ def command_finish(+state: State, +finish: Finish, +canonical: Canonical.State,
       context,
       True{}
     )
-    case Canonical.CollectionLimited{}: command_candidate(
+    case Canonical.PolicyDecided{Canonical.CollectionFits{}}: command_candidate(
+      state,
+      finish,
+      canonical,
+      facts,
+      context,
+      True{}
+    )
+    case Canonical.PolicyDecided{Canonical.CollectionLimited{}}: command_candidate(
       state,
       finish,
       canonical,
@@ -932,7 +989,7 @@ def command_finish(+state: State, +finish: Finish, +canonical: Canonical.State,
       context,
       False{}
     )
-    case Canonical.RetireCandidate{}: command_candidate(
+    case Canonical.PolicyDecided{Canonical.RetireCandidate{}}: command_candidate(
       state,
       finish,
       canonical,
@@ -940,7 +997,7 @@ def command_finish(+state: State, +finish: Finish, +canonical: Canonical.State,
       context,
       False{}
     )
-    case Canonical.ReleaseCandidate{}: command_candidate(
+    case Canonical.PolicyDecided{Canonical.ReleaseCandidate{}}: command_candidate(
       state,
       finish,
       canonical,
@@ -948,7 +1005,7 @@ def command_finish(+state: State, +finish: Finish, +canonical: Canonical.State,
       context,
       False{}
     )
-    case Canonical.IgnoreCandidate{}: command_candidate(
+    case Canonical.PolicyDecided{Canonical.IgnoreCandidate{}}: command_candidate(
       state,
       finish,
       canonical,
@@ -956,7 +1013,7 @@ def command_finish(+state: State, +finish: Finish, +canonical: Canonical.State,
       context,
       False{}
     )
-    case Canonical.SubmissionSuppresses{}: command_candidate(
+    case Canonical.PolicyDecided{Canonical.SubmissionSuppresses{}}: command_candidate(
       state,
       finish,
       canonical,
@@ -967,7 +1024,7 @@ def command_finish(+state: State, +finish: Finish, +canonical: Canonical.State,
     case _: command_unhandled(state)
 
 def command_found(+state: State, found: Maybe<&2, Finish>, canonical: Canonical.State,
-    facts: CommandFacts, context: Driver.Context, command: Canonical.Command) -> Changed:
+    facts: CommandFacts, context: Driver.Context, command: Canonical.Output) -> Changed:
   match found:
     case Some{finish}: command_finish(state, finish, canonical, facts, context, command)
     case None{}: command_unhandled(state)
@@ -977,7 +1034,7 @@ def command_partition(context: Driver.Context) -> Nat:
     case Driver.Context{p, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: p
 
 def handle(+state: State, canonical: Canonical.State, facts: CommandFacts, +context: Driver.Context,
-    command: Canonical.Command) -> Changed:
+    command: Canonical.Output) -> Changed:
   command_found(
     state,
     find(entries(state), command_partition(context)),

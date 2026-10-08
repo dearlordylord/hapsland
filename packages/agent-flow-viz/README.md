@@ -124,17 +124,17 @@ or request ID used to connect records. If a simulation's retained history
 starts after the run began, the view shows the canonical ID without guessing
 a presentation number.
 Connections that cannot be established from that comparison use explicit
-event, command, or supplied-fact rules in the projection package, with their evidence type
-shown to the viewer. Dashed paths show commands, which do not prove that a
+event, categorized output, or supplied-fact rules in the projection package, with their evidence type
+shown to the viewer. Dashed paths show action requests, which do not prove that a
 native effect happened or that the destination holds data. Checked relations without a drawn route are disclosed in decision details
 instead of crashing or inventing a connection. A step with no
 cross-square movement explains its changed square or decision instead of
 inventing an arrow. `collectionFindingRetained` stays at the collection
 step because it keeps an existing finding for a later batch. The `finishAllowed`
-commands also stay at collection: they do not authorize host output or change
+decisions also stay at collection: they do not authorize host output or change
 the round in that Bend step. Node contents come from the checked canonical state;
 the Stop fork shows waiting, decision readiness, continuation, allowance,
-and cancellation from their respective checked commands. Waiting gives unfinished
+and cancellation from their respective checked outputs. Waiting gives unfinished
 reviews time to become advice before the safe deadline; cancellation is requested for
 work still unfinished when Hapsland makes its finish decision. The
 [accepted advicee contract](../../docs/advicing-target-contract.md) explains
@@ -177,7 +177,7 @@ from compiled Bend admission output. It lists all six current reservation
 purposes and their shared resident and per-agent item and byte limits. The
 **Review capacity** panel reads its live totals, partitions, and reservations
 from the checked projection. The preparation result strip reads ordered
-commands and intermediate capacity snapshots emitted by one atomic Bend
+outputs and intermediate capacity snapshots emitted by one atomic Bend
 transition; its frames are explanations, not additional resident states.
 
 The default guided showcase and seeded simulation compose checked ImportGraph
@@ -252,7 +252,7 @@ state, stage inference, or possible routes.
 
 In the default guided example, step 27 shows Review item #1's finding. The
 Admission & capacity square displays its unit charge becoming a stored result
-charge. The retain-finding command appears in Review outcomes; the route to
+charge. The `findingRetained` event appears in Review outcomes; the route to
 Ready advice lights at step 28 after Bend checks the finding, edit, remaining
 work, and supplied joined-work status. The Ready advice square names Review
 item #1 as its source. Review item #2's finding at step 30 stays visible with
@@ -279,7 +279,7 @@ causal; preserve useful cases where a finding waits for another review, and
 make the waiting relationship explicit. A command, a native attempt, and an
 observed result remain separate steps even when adjacent.
 
-In the default replay, steps 27–28 distinguish `retainFinding` from advice
+In the default replay, steps 27–28 distinguish `findingRetained` from advice
 readiness; steps 30–38 are the stronger adjacency risk. Review item #2's finding
 is the source of Advice #2. Review item #3's `clear` removes the last unfinished
 review for the same edit; it does not create that advice. At step 38, the
@@ -410,7 +410,7 @@ checked observation, including paused history inspection.
 
 1. Keep seed `7`, edit interval `100`, reservation bytes `100` and Jev delay
    `50`. Click **Start / reset**, then **Single step**. Inspect the event,
-   ordered commands, checked before/after projections and synthetic effects.
+   ordered outputs, checked before/after projections and synthetic effects.
    **Resume** plays the same virtual engine; playback speed changes observation
    pace without choosing random values or product policy. Edit the speed field
    while running, including temporary empty text, dots or decimal values. The
@@ -561,7 +561,7 @@ remain visible. This is a supplied fact through the selected frame, not a measur
 native encoding or claim that its writer is still active. The optional resource
 exercise selector applies on **Start resident** and is persisted in replay;
 notices remain selectable source-free exercises. Fit and oversized
-scenarios also gate generated advice handoff through checked fit commands.
+scenarios also gate generated advice handoff through checked fit decisions.
 
 Expanded preparation shows four per-artifact budget meters: files read, source
 bytes read, accepted tree bytes and traversal work. The existing tree bar explains

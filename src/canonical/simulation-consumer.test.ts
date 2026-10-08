@@ -17,10 +17,10 @@ it("consumes permits once while refusing an edit that arrives during saturation"
   })
   expect(run.advance({ maxEvents: 1000 }).reason).toBe("idle")
   expect(
-    run.observations.filter((frame) => frame.commands.some((command) => command.kind === "permitConsumed"))
+    run.observations.filter((frame) => frame.outputs.some((command) => command.kind === "permitConsumed"))
   ).toHaveLength(2)
   const consumed = run.observations.flatMap((frame) =>
-    frame.event.kind === "consumePermit" && frame.commands.some((command) => command.kind === "permitConsumed")
+    frame.event.kind === "consumePermit" && frame.outputs.some((command) => command.kind === "permitConsumed")
       ? [frame.event.token]
       : []
   )
@@ -45,9 +45,9 @@ it("reuses an identical evaluation without issuing another physical request", ()
   })
   expect(run.advance({ maxEvents: 1000 }).reason).toBe("idle")
   expect(
-    run.observations.filter((frame) => frame.commands.some((command) => command.kind === "jevRequestIssued"))
+    run.observations.filter((frame) => frame.outputs.some((command) => command.kind === "jevRequestIssued"))
   ).toHaveLength(1)
-  expect(run.observations.some((frame) => frame.commands.some((command) => command.kind === "reuseCached"))).toBe(true)
+  expect(run.observations.some((frame) => frame.outputs.some((command) => command.kind === "reuseCacheHit"))).toBe(true)
   expect(run.observations.flatMap((frame) => (frame.rejection ? [frame.rejection] : []))).toEqual([])
   restore(run)
 })
@@ -107,17 +107,17 @@ it.each([8, 10])("settles original work around the Stop deadline with delay %s",
   } satisfies RunConfig
   const run = createRun(config)
   run.advance({ untilTime: 3, maxEvents: 100 })
-  expect(run.observations.some((frame) => frame.commands.some((command) => command.kind === "waitForWork"))).toBe(true)
+  expect(run.observations.some((frame) => frame.outputs.some((command) => command.kind === "waitForWork"))).toBe(true)
   const original = run.observe().callbackTargets.find((target) => target.effect.kind === "jevSettled")!
   const restored = restore(run)
   for (const candidate of [run, restored]) candidate.advance({ untilTime: 20, maxEvents: 100 })
   expect(restored.observe()).toEqual(run.observe())
-  const ready = run.observations.find((frame) => frame.commands.some((command) => command.kind === "finishReady"))!
+  const ready = run.observations.find((frame) => frame.outputs.some((command) => command.kind === "finishReady"))!
   expect(ready.time).toBe(delay === 8 ? 10 : 11)
   const settled = run.observations.find((frame) => frame.event.kind === "jevRequestSettled")!
   expect(settled.time).toBe(2 + delay)
   if (delay === 10) {
-    expect(settled.commands.map((command) => command.kind)).toEqual(["jevObservationIgnored"])
+    expect(settled.outputs.map((command) => command.kind)).toEqual(["jevObservationIgnored"])
     const before = run.projection
     run.applyControl({ kind: "callback", action: "duplicate", target: original })
     run.advance({ untilTime: 20, maxEvents: 100 })
@@ -156,14 +156,14 @@ it("keeps a quiet round open while a collector owns it, then expires after relea
   })
   run.advance({ untilTime: 24, maxEvents: 1000 })
   expect(run.projection.collection.claims).toEqual([{ group: 1, owner: 99 }])
-  expect(run.observations.some((frame) => frame.commands.some((command) => command.kind === "quietRoundExpired"))).toBe(
+  expect(run.observations.some((frame) => frame.outputs.some((command) => command.kind === "quietRoundExpired"))).toBe(
     false
   )
   const restored = restore(run)
   for (const candidate of [run, restored]) expect(candidate.advance({ maxEvents: 1000 }).reason).toBe("idle")
   expect(restored.observe()).toEqual(run.observe())
   expect(
-    run.observations.find((frame) => frame.commands.some((command) => command.kind === "quietRoundExpired"))?.time
+    run.observations.find((frame) => frame.outputs.some((command) => command.kind === "quietRoundExpired"))?.time
   ).toBe(35)
   expect(run.projection.collection.claims).toEqual([])
   expect(run.projection.rounds).toEqual([])

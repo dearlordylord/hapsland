@@ -317,7 +317,7 @@ it.effect("retains committed jobs when the admitting subscriber is interrupted",
   })
 )
 
-it.effect("matches direct Bend commands and projections across saturation and terminal settlement", () =>
+it.effect("matches direct Bend outputs and projections across saturation and terminal settlement", () =>
   Effect.gen(function* () {
     const limits = { globalItems: 512, globalBytes: 268435456, partitionItems: 16, partitionBytes: 33554432 }
     const ledger = yield* makeResidentState<never, string, { operation: number; round: number }>(limits)
@@ -327,7 +327,8 @@ it.effect("matches direct Bend commands and projections across saturation and te
       const result = stepCanonical(direct, event)
       expect(result.rejection).toBeUndefined()
       direct = result.state
-      for (const command of result.commands) {
+      for (const command of result.outputs) {
+        expect(command.category).toBe("event")
         if (command.kind === "dispatchStarted")
           expectedStarts.push({ operation: command.operation, sequence: command.sequence })
       }

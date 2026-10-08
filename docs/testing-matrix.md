@@ -143,6 +143,12 @@ Ordinary `npm test`, coverage/quality checks, and production/release builds excl
 
 ## Which gate to run
 
+Package-impact tooling uses `node --test scripts/package-impact.test.mjs scripts/package-graph.test.mjs`
+plus `node scripts/package-impact.mjs --base BASE --head HEAD --merge-base` against
+the actual review branch. These checks cover endpoint manifests, downstream
+reachability, renames, deleted packages/edges, worktree paths and CLI output.
+Impact output is advisory; it does not select or replace required product checks.
+
 The byte-bound preparation inputs `packages/monkey-business/src/preparation.ts` and
 `file-trees.ts` are excluded from automatic formatting because their exact bytes
 participate in the shared Engine preparation identity. Keep their formatting stable
@@ -416,7 +422,8 @@ must land before its declared final full gate.
 
 Ordinary `npm test` and `npm run quality:check -- --ack-checks-policy` invoke Vitest directly after the
 maintained configuration, artifact, authority, boundary and progress checks,
-including the shared Engine `build.mjs --check`. They do not compile the entire
+including the shared Engine `build.mjs --check` and common runner
+`build-run.mjs --check`. They do not compile the entire
 native fixture registry before an unrelated test can start. Native tests still
 compile their actual fixture freshly when they run without a preflight session;
 a source, emitted-JavaScript or coverage pass does not establish native agreement.
@@ -450,6 +457,18 @@ TypeScript tests. The concurrent-notice comparison uses the shared native runner
 and its C30/clang30/native5 allowances under the same 100-second watchdog;
 it uses the shared compiler subprocess implementation.
 These are fixture compilation budgets, not product latency deadlines.
+
+The public TypeScript API and native consumers execute through
+[`NativeRun.bend`](../packages/monkey-business-bend/NativeRun.bend).
+[`NativeRunHost`](../packages/monkey-business/src/native-run-host.ts) converts
+validated inputs and immutable presentation data; the public wrapper retains
+replay orchestration and synchronous subscription delivery. Runner changes require
+focused controls, captured callback/deadline, metadata progress, listener-control
+and exact replay checks, plus affected dashboard playback and the native game
+consumer (`node scripts/run-game-consumer.mjs`). Check the emitted runner with
+`node packages/monkey-business-bend/build-run.mjs --check`; regenerate it without
+`--check` after changing its sources, declaration, or host boundary. Native/emitted
+comparisons remain separate evidence from public API checks.
 
 Shared-resident contention/cancellation and generated PRE comparisons use
 C90/clang120/native5 with 250-second aggregate watchdogs. Departure emitted-JS
@@ -672,7 +691,7 @@ and remove unsupported internal-shape assertions instead of inventing context.
 
 The agreed Stop fixture projection is the finite-domain `BusinessState` containing
 `Canonical.State` and the relevant `StopScenario.Finish` records. Its
-implementation captures ordered event and command facts from actual transitions,
+implementation captures ordered input event and categorized output facts from actual transitions,
 rather than a second policy simulator. Recursive private Stop-driver `Runtime`,
 full `Types.State`, and `Driver.Context` snapshots are not required just to
 compare execution lanes.

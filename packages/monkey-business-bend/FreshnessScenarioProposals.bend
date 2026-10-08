@@ -18,4 +18,8 @@ law refusal_cannot_capture_generation:
   for state: Freshness.State
   for scope: Freshness.Scope
   for source: Freshness.Source
-  {Freshness.registered(state, scope, source, Canonical.FinishRefused{}) == state : Freshness.State}
+  {
+    Freshness.registered(state, scope, source, Canonical.PolicyDecided{Canonical.FinishRefused{}})
+    == state
+    : Freshness.State
+  }

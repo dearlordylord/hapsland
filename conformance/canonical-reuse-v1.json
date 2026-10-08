@@ -7,13 +7,13 @@
           "kind": "reuseRoute",
           "id": 1,
           "liveAdvice": false,
-          "expect": "reuseOwn"
+          "expect": "reuseOwned"
         },
         {
           "kind": "reuseRoute",
           "id": 1,
           "liveAdvice": false,
-          "expect": "reuseJoinClaimed"
+          "expect": "reuseClaimedJoined"
         },
         {
           "kind": "reuseAttach",
@@ -24,13 +24,13 @@
           "kind": "reuseRoute",
           "id": 1,
           "liveAdvice": false,
-          "expect": "reuseJoinPending"
+          "expect": "reusePendingJoined"
         },
         {
           "kind": "reuseRoute",
           "id": 1,
           "liveAdvice": true,
-          "expect": "reuseJoinAdvice"
+          "expect": "reuseAdviceJoined"
         },
         {
           "kind": "reuseRelease",
@@ -41,7 +41,7 @@
           "kind": "reuseRoute",
           "id": 1,
           "liveAdvice": false,
-          "expect": "reuseOwn"
+          "expect": "reuseOwned"
         },
         {
           "kind": "reuseRelease",
@@ -125,12 +125,12 @@
         {
           "kind": "reuseTouch",
           "id": 1,
-          "expect": "reuseOwn"
+          "expect": "reuseOwned"
         },
         {
           "kind": "reuseTouch",
           "id": 2,
-          "expect": "reuseCached"
+          "expect": "reuseCacheHit"
         },
         {
           "kind": "cachePrepare",
@@ -217,7 +217,7 @@
         {
           "kind": "reuseTouch",
           "id": 1,
-          "expect": "reuseCached"
+          "expect": "reuseCacheHit"
         },
         {
           "kind": "cachePrepare",

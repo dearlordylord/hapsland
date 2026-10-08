@@ -60,8 +60,8 @@
   {
     "law": "admitted_edit_reaches_resolution_and_submission",
     "file": "../Canonical.bend",
-    "from": "Advanced{State{ledger, rounds, remove_work(operation, work),\n        next_round, next_operation, admissions, dispatch, collection, history}, ObservationCompleted{} <> Nil{}}",
-    "to": "Advanced{State{ledger, rounds, work,\n        next_round, next_operation, admissions, dispatch, collection, history}, ObservationCompleted{} <> Nil{}}",
+    "from": "Advanced{\n        State{\n          ledger,\n          rounds,\n          remove_work(operation, work),\n          next_round,\n          next_operation,\n          admissions,\n          dispatch,\n          collection,\n          history\n        },\n        EventEstablished{ObservationCompleted{}} <> Nil{}",
+    "to": "Advanced{\n        State{\n          ledger,\n          rounds,\n          work,\n          next_round,\n          next_operation,\n          admissions,\n          dispatch,\n          collection,\n          history\n        },\n        EventEstablished{ObservationCompleted{}} <> Nil{}",
     "location": "journey_complete_source"
   },
   {
@@ -85,7 +85,7 @@
   {
     "law": "admitted_edit_reaches_resolution_and_submission",
     "file": "../Canonical.bend",
-    "from": "Prepare{next_operation, charge} <> Nil{}",
+    "from": "ActionRequested{Prepare{next_operation, charge}} <> Nil{}",
     "to": "Nil{}",
     "location": "journey_begin"
   }

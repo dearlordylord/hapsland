@@ -119,6 +119,9 @@ selects a new preview without authorizing a write.
 
 `Canonical.bend` is the production transition model and drives the main
 visualization through the checked TypeScript adapter.
+Its ordered `Output` stream distinguishes `ActionRequested`, `EventEstablished`
+and `PolicyDecided`. Consumers execute requested actions and react to established
+facts and policy decisions without reapplying the reducer's state changes.
 The maintained [TypeScript decision boundary ledger](../../docs/typescript-decision-boundary-ledger.md)
 records reviewed product choices intentionally made outside this reducer.
 `Flow.bend` remains only as a shared capacity-type dependency of the existing
@@ -156,7 +159,7 @@ slot, authorization phase, terminal result, and continuation count.
 it grants one same round Stop reoffer for terminal background advice.
 `RevisionState.bend` retains source-free subject/input identities, the current
 generation, and live same-input member counts. The resident uses its canonical
-register, release, and supersession commands to fence older review callbacks
+register, release, and supersession transitions to fence older review callbacks
 and retire their advice without changing another advicee's work.
 `CollectorAuthority.bend` checks expiry, credential validity, and final opt-in
 for an active Claude edit response. The native RPC binds its immutable authority
@@ -221,7 +224,8 @@ contract in `../../docs/advicing-target-contract.md` remains the target for
 the aggregate lifecycle and installed runtime behavior.
 
 `Canonical.bend` and [`packages/canonical-policy/src/canonical/adapter.ts`](../../packages/canonical-policy/src/canonical/adapter.ts)
-define the resident's checked state/event/command interface. It composes a
+define the resident's checked state/event/output interface. Outputs distinguish
+action requests, established events, and policy decisions. It composes a
 global ledger across advicee partitions with round and operation identities,
 Stop waiting and cutoff, and uncertain background output. The resident uses
 this interface for its decision paths; TypeScript owns runtime orchestration

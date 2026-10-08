@@ -33,8 +33,8 @@ function publicRow(frame: Observation): number[] | undefined {
   const permitCode = permitCodes[frame.event.kind as keyof typeof permitCodes]
   const p = frame.after
   if (permitCode !== undefined) {
-    const issued = frame.commands.find((command) => command.kind === "permitIssued")
-    const consumed = frame.commands.find((command) => command.kind === "permitConsumed")
+    const issued = frame.outputs.find((command) => command.kind === "permitIssued")
+    const consumed = frame.outputs.find((command) => command.kind === "permitConsumed")
     return [
       permitCode,
       frame.time,
@@ -140,7 +140,7 @@ it("compares original generated PRE scripts through actual native preparation, J
     const consumed = run.observations.find((frame) => frame.event.kind === "consumePermit")
     if ((scenario.outcome === "success" || scenario.outcome === "duplicate") && scenario.durationMs === 5) {
       expect(consumed?.time).toBe(6)
-      expect(consumed?.commands).toContainEqual({ kind: "permitConsumed", round: 1 })
+      expect(consumed?.outputs).toContainEqual({ category: "event", kind: "permitConsumed", round: 1 })
       expect(consumed?.after.rounds.find((round) => round.partition === 1)?.id).toBe(2)
       const started = run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")
       expect(started).toHaveLength(1)
@@ -150,10 +150,10 @@ it("compares original generated PRE scripts through actual native preparation, J
       )
       expect(run.observations.some((frame) => frame.preparation)).toBe(true)
       expect(
-        run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "preparationReleased")
+        run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "preparationReleased")
       ).toHaveLength(1)
       expect(
-        run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "reservationReleased")
+        run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "reservationReleased")
       ).toHaveLength(scenario.review === "finding" ? 0 : 1)
       expect(run.observations.filter((frame) => frame.event.kind === "consumePermit")).toHaveLength(
         scenario.outcome === "duplicate" ? 2 : 1

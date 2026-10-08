@@ -22,6 +22,9 @@ export type {
   CapacityCharge,
   CapacityView,
   CanonicalProjection,
-  CanonicalCommand,
+  CanonicalActionRequest,
+  CanonicalDomainEvent,
+  CanonicalPolicyDecision,
+  CanonicalOutput,
   CanonicalEvent
 } from "./models.ts"

@@ -143,7 +143,7 @@ try {
       .locator(".wordmark")
       .first()
       .evaluate((el) => getComputedStyle(el).color),
-    "setup commands use dark ink"
+    "setup outputs use dark ink"
   )
   await page.screenshot({ animations: "disabled", path: "docs/assets/site-mobile.png", fullPage: true })
   assert.equal(

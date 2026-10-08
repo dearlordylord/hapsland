@@ -324,7 +324,7 @@ export const importReferenceGraph = <Message>(
       h.ViewBox(`0 0 ${width} ${height}`),
       h.Role("img"),
       h.AriaLabel(
-        "Import graph projected from native example facts and compiled Bend transition results. File colors and outcomes follow Bend commands and state."
+        "Import graph projected from native example facts and compiled Bend transition results. File colors and outcomes follow Bend outputs and state."
       )
     ],
     [

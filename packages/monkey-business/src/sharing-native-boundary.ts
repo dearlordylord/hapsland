@@ -97,13 +97,13 @@ export function decodeObservedFrame(value: unknown, receipts: CallbackTarget[]) 
     const result = decodeTrustedCanonicalStep(rawResult)
     if (!isDeepStrictEqual(projectTrustedCanonical(result.state), after))
       throw new TypeError("result and after state disagree")
-    const commandScopes = list(observed.command_scopes).map((value) => {
+    const outputScopes = list(observed.output_scopes).map((value) => {
       const captured = optional(value)
       return captured === null ? null : readNat(captured)
     })
-    if (!isDeepStrictEqual(commandScopes, scopes(frame.scopes)))
+    if (!isDeepStrictEqual(outputScopes, scopes(frame.scopes)))
       throw new TypeError("outer scopes differ from actual observer capture")
-    if (commandScopes.length !== result.commands.length) throw new TypeError("command scope count differs")
+    if (outputScopes.length !== result.outputs.length) throw new TypeError("command scope count differs")
     const rawReceipt = optional(frame.receipt)
     const receipt = rawReceipt === null ? null : decodeCallbackTarget(rawReceipt)
     const physicalReceipt = optional(observed.receipt)
@@ -123,8 +123,8 @@ export function decodeObservedFrame(value: unknown, receipts: CallbackTarget[]) 
       before,
       after,
       event: decodePrefixCanonicalEvent(observed.event),
-      commands: result.commands,
-      commandScopes,
+      outputs: result.outputs,
+      outputScopes,
       rejection: result.rejection ?? null,
       receipt
     }

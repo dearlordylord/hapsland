@@ -15,6 +15,7 @@
     "**/test/fixtures",
     "**/*.generated.*",
     "packages/monkey-business-bend/engine.mjs",
+    "packages/monkey-business-bend/run.mjs",
     "**/vendor/**",
     "**/fixtures/**"
   ],

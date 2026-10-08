@@ -149,12 +149,12 @@ try {
   })
   cacheHit.advance({ untilTime: 20, maxEvents: 1000 })
   assert.equal(
-    cacheHit.observations.filter((frame) => frame.commands.some((command) => command.kind === "jevRequestIssued"))
+    cacheHit.observations.filter((frame) => frame.outputs.some((command) => command.kind === "jevRequestIssued"))
       .length,
     1
   )
   assert.equal(
-    cacheHit.observations.filter((frame) => frame.commands.some((command) => command.kind === "reuseCached")).length,
+    cacheHit.observations.filter((frame) => frame.outputs.some((command) => command.kind === "reuseCacheHit")).length,
     1
   )
   assert.deepEqual(cacheHit.projection.global, { items: 1, bytes: 5 })
@@ -289,14 +289,14 @@ try {
   for (const at of [14, 24])
     retained.schedule({ at, kind: "edit", bytes: 10, unitBytes: [5], evaluationInputs: [`cache-replacement-${at}`] })
   retained.advance({ untilTime: 40, maxEvents: 1000 })
-  assert.equal(retained.observations.filter((f) => f.commands.some((c) => c.kind === "jevRequestIssued")).length, 3)
+  assert.equal(retained.observations.filter((f) => f.outputs.some((c) => c.kind === "jevRequestIssued")).length, 3)
   assert.equal(retained.projection.reuse.cache.length, 2)
   assert.ok(
-    retained.observations.some((f) => f.commands.some((c) => c.kind === "cachePrepared" && c.evicted.length > 0))
+    retained.observations.some((f) => f.outputs.some((c) => c.kind === "cachePrepared" && c.evicted.length > 0))
   )
   assert.ok(
     retained.observations.some((f) =>
-      f.commands.some((c) => c.kind === "cachePrepared" && c.evicted.includes(originalCacheEntry.id))
+      f.outputs.some((c) => c.kind === "cachePrepared" && c.evicted.includes(originalCacheEntry.id))
     )
   )
   assert.equal(
@@ -341,7 +341,7 @@ try {
   })
   caps.advance({ untilTime: 2, maxEvents: 100 })
   assert.ok(
-    caps.observations.some((f) => f.commands.some((c) => c.kind === "capacityRefused" && c.reason === "partitionItems"))
+    caps.observations.some((f) => f.outputs.some((c) => c.kind === "capacityRefused" && c.reason === "partitionItems"))
   )
   await load(caps)
   await focus("admission")
@@ -361,7 +361,7 @@ try {
   })
   caps.advance({ untilTime: 5, maxEvents: 100 })
   assert.ok(
-    caps.observations.some((f) => f.commands.some((c) => c.kind === "capacityRefused" && c.reason === "globalItems"))
+    caps.observations.some((f) => f.outputs.some((c) => c.kind === "capacityRefused" && c.reason === "globalItems"))
   )
   await load(caps)
   assert.equal(await page.locator(".resident-capacity-items .resident-capacity-total").first().textContent(), "4 / 4")

@@ -632,8 +632,8 @@ def ready_positive(
     Canonical.collection_decision(
       state,
       CollectionState.mark_ready(collection, (1n + advice : Nat), True{}),
-      Canonical.CollectionEligible{},
-      Canonical.CollectionWaiting{}
+      Canonical.EventEstablished{Canonical.CollectionEligible{}},
+      Canonical.PolicyDecided{Canonical.CollectionWaiting{}}
     )
   )
   == True{}
@@ -685,8 +685,8 @@ def Laws.completed_edit_becomes_collectible(
                 )
               )
             ),
-            Canonical.CollectionEligible{},
-            Canonical.CollectionWaiting{}
+            Canonical.EventEstablished{Canonical.CollectionEligible{}},
+            Canonical.PolicyDecided{Canonical.CollectionWaiting{}}
           )
         )
         == True{}
@@ -709,8 +709,8 @@ def Laws.completed_edit_becomes_collectible(
                 Bool.not(_)
               )
             ),
-            Canonical.CollectionEligible{},
-            Canonical.CollectionWaiting{}
+            Canonical.EventEstablished{Canonical.CollectionEligible{}},
+            Canonical.PolicyDecided{Canonical.CollectionWaiting{}}
           )
         )
         == True{}
@@ -728,8 +728,8 @@ def Laws.completed_edit_becomes_collectible(
           Canonical.collection_decision(
             state,
             CollectionState.mark_ready(collection, (1n + advice : Nat), _),
-            Canonical.CollectionEligible{},
-            Canonical.CollectionWaiting{}
+            Canonical.EventEstablished{Canonical.CollectionEligible{}},
+            Canonical.PolicyDecided{Canonical.CollectionWaiting{}}
           )
         )
         == True{}
@@ -1522,7 +1522,7 @@ def journey_admit(
           Bool.and(Bool.and(_, True{}), True{}),
           Canonical.Advanced{
             Fixtures.admitted(partition, size, fingerprint, limits),
-            [Canonical.ObservationAdmitted{1n}]
+            [Canonical.EventEstablished{Canonical.ObservationAdmitted{1n}}]
           },
           Canonical.Rejected{
             Fixtures.accepted(partition, size, fingerprint, limits),
@@ -2601,7 +2601,7 @@ def journey_request_started(
               None{}
             )
           ),
-          Canonical.JevRequestStartRecorded{}
+          Canonical.EventEstablished{Canonical.JevRequestStartRecorded{}}
         )
       )
     )
@@ -2697,7 +2697,7 @@ def journey_request_interrupted(
               None{}
             )
           ),
-          Canonical.JevInterruptionRecorded{}
+          Canonical.EventEstablished{Canonical.JevInterruptionRecorded{}}
         )
       )
     )
@@ -2982,7 +2982,7 @@ def journey_result_NeverSent(
               None{}
             )
           ),
-          Canonical.JevRequestOutcomeRecorded{Canonical.NeverSent{}}
+          Canonical.EventEstablished{Canonical.JevRequestOutcomeRecorded{Canonical.NeverSent{}}}
         )
       )
     )
@@ -3232,9 +3232,11 @@ def journey_result_RequestFinding(
                 None{}
               )
             ),
-            Canonical.RetainFinding{}
+            Canonical.EventEstablished{Canonical.FindingRetained{}}
           ),
-          Canonical.JevRequestOutcomeRecorded{Canonical.RequestFinding{}}
+          Canonical.EventEstablished{
+            Canonical.JevRequestOutcomeRecorded{Canonical.RequestFinding{}}
+          }
         )
       )
     )
@@ -3298,9 +3300,11 @@ def journey_result_RequestFinding(
                 _
               )
             ),
-            Canonical.RetainFinding{}
+            Canonical.EventEstablished{Canonical.FindingRetained{}}
           ),
-          Canonical.JevRequestOutcomeRecorded{Canonical.RequestFinding{}}
+          Canonical.EventEstablished{
+            Canonical.JevRequestOutcomeRecorded{Canonical.RequestFinding{}}
+          }
         )
       )
     )
@@ -3550,9 +3554,9 @@ def journey_result_RequestClear(
                 None{}
               )
             ),
-            Canonical.SettleClear{}
+            Canonical.EventEstablished{Canonical.ClearSettled{}}
           ),
-          Canonical.JevRequestOutcomeRecorded{Canonical.RequestClear{}}
+          Canonical.EventEstablished{Canonical.JevRequestOutcomeRecorded{Canonical.RequestClear{}}}
         )
       )
     )
@@ -3801,7 +3805,9 @@ def journey_result_RequestBackendFailure(
               None{}
             )
           ),
-          Canonical.JevRequestOutcomeRecorded{Canonical.RequestBackendFailure{}}
+          Canonical.EventEstablished{
+            Canonical.JevRequestOutcomeRecorded{Canonical.RequestBackendFailure{}}
+          }
         )
       )
     )
@@ -4050,7 +4056,9 @@ def journey_result_RequestTimeout(
               None{}
             )
           ),
-          Canonical.JevRequestOutcomeRecorded{Canonical.RequestTimeout{}}
+          Canonical.EventEstablished{
+            Canonical.JevRequestOutcomeRecorded{Canonical.RequestTimeout{}}
+          }
         )
       )
     )
@@ -4299,7 +4307,9 @@ def journey_result_RequestInterrupted(
               None{}
             )
           ),
-          Canonical.JevRequestOutcomeRecorded{Canonical.RequestInterrupted{}}
+          Canonical.EventEstablished{
+            Canonical.JevRequestOutcomeRecorded{Canonical.RequestInterrupted{}}
+          }
         )
       )
     )
@@ -4520,8 +4530,8 @@ def journey_ready(
               }
             }
           ),
-          Canonical.CollectionEligible{},
-          Canonical.CollectionWaiting{}
+          Canonical.EventEstablished{Canonical.CollectionEligible{}},
+          Canonical.PolicyDecided{Canonical.CollectionWaiting{}}
         )
       )
     )
@@ -4647,7 +4657,7 @@ def journey_offer(
           ),
           Canonical.Advanced{
             Fixtures.offered(partition, size, fingerprint, limits),
-            [Canonical.SubmissionBegun{}]
+            [Canonical.EventEstablished{Canonical.SubmissionBegun{}}]
           },
           Canonical.Advanced{
             Canonical.State{
@@ -4673,7 +4683,7 @@ def journey_offer(
               },
               EditHistory.State{[]}
             },
-            [Canonical.SubmissionRefused{}]
+            [Canonical.PolicyDecided{Canonical.SubmissionRefused{}}]
           }
         )
       )
@@ -4722,7 +4732,7 @@ def journey_offer(
           Bool.and(Bool.and(_, True{}), True{}),
           Canonical.Advanced{
             Fixtures.offered(partition, size, fingerprint, limits),
-            [Canonical.SubmissionBegun{}]
+            [Canonical.EventEstablished{Canonical.SubmissionBegun{}}]
           },
           Canonical.Advanced{
             Canonical.State{
@@ -4748,7 +4758,7 @@ def journey_offer(
               },
               EditHistory.State{[]}
             },
-            [Canonical.SubmissionRefused{}]
+            [Canonical.PolicyDecided{Canonical.SubmissionRefused{}}]
           }
         )
       )
@@ -4957,8 +4967,8 @@ def journey_authorize(
               )
             )
           ),
-          Canonical.SubmissionAuthorized{},
-          Canonical.SubmissionRefused{}
+          Canonical.EventEstablished{Canonical.SubmissionAuthorized{}},
+          Canonical.PolicyDecided{Canonical.SubmissionRefused{}}
         )
       )
     )
@@ -5239,8 +5249,8 @@ def journey_submit(
               )
             )
           ),
-          Canonical.SubmissionRecorded{},
-          Canonical.SubmissionRefused{}
+          Canonical.EventEstablished{Canonical.SubmissionRecorded{}},
+          Canonical.PolicyDecided{Canonical.SubmissionRefused{}}
         )
       )
     )
