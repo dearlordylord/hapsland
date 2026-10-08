@@ -1,6 +1,16 @@
+import {
+  verificationCheckLimit,
+  verificationCommandKind,
+  verificationNavigationIndex,
+  getVerificationNavigationRoutes,
+  verificationAttemptBucket,
+  verificationSourceId,
+  verificationResultId,
+  type VerificationPlan
+} from "@hapsland/canonical-policy/canonical/verification-adapter"
 import type { CredentialLifecycleResult } from "@hapsland/credential-storage/credentials/owner"
 
-export const MAX_KEY_CHECKS = 3
+export const MAX_KEY_CHECKS = verificationCheckLimit
 export type KeyVerification = "accepted" | "rejected" | "forbidden" | "rate-limited" | "unconfirmed"
 export type VerificationSource = "saved" | "file" | "environment"
 export type VerificationModel = {
@@ -50,90 +60,89 @@ export const initialVerification = (): VerificationModel => ({
   observations: []
 })
 export const verificationCommand = (model: VerificationModel): VerificationCommand | undefined => {
-  switch (model.phase) {
-    case "Loading":
-      return { kind: "load", id: model.revision }
-    case "Checking":
-      return { kind: "check", id: model.revision, keyRevision: model.keyRevision }
-    case "EnteringKey":
-      return { kind: "input", id: model.revision }
-    case "SavingKey":
-      return { kind: "save", id: model.revision }
-    default:
-      return undefined
-  }
+  const kind = verificationCommandKind(model.phase)
+  if (kind === undefined) return undefined
+  return kind === "check" ? { kind, id: model.revision, keyRevision: model.keyRevision } : { kind, id: model.revision }
 }
+
 const move = (
   model: VerificationModel,
   phase: VerificationModel["phase"],
   patch: Partial<VerificationModel> = {}
 ): VerificationModel => ({ ...model, ...patch, phase, revision: model.revision + 1 })
-const loaded = (model: VerificationModel, action: VerificationAction) =>
-  action.kind === "loaded"
-    ? move(model, action.eligibility === "ready" && model.attempts < MAX_KEY_CHECKS ? "Approval" : "Done", {
-        source: action.source,
-        eligibility: action.eligibility,
-        keyRevision: model.keyRevision + 1
-      })
-    : model
-const approved = (model: VerificationModel, action: VerificationAction) => {
-  if (action.kind !== "approve" || model.attempts >= MAX_KEY_CHECKS) return model
-  return action.yes ? move(model, "Checking", { attempts: model.attempts + 1 }) : move(model, "Done")
+type Materialize = (model: VerificationModel, action: VerificationAction) => VerificationModel
+const materialize = (plan: VerificationPlan): Materialize => {
+  if (plan.kind === "hold") return (model) => model
+  const phase = plan.phase
+  switch (plan.patch) {
+    case "none":
+      return (model) => move(model, phase)
+    case "unavailable":
+      return (model) => move(model, phase, { eligibility: "unavailable" })
+    case "loaded":
+      return (model, action) => {
+        if (action.kind !== "loaded") throw new TypeError("Verification loaded patch requires a load observation")
+        return move(model, phase, {
+          source: action.source,
+          eligibility: action.eligibility,
+          keyRevision: model.keyRevision + 1
+        })
+      }
+    case "attempt":
+      return (model, action) => {
+        if (action.kind !== "approve") throw new TypeError("Verification attempt patch requires approval")
+        return move(model, phase, { attempts: model.attempts + 1 })
+      }
+    case "observation":
+      return (model, action) => {
+        if (action.kind !== "observed" || model.source === undefined)
+          throw new TypeError("Verification observation patch requires a current source")
+        return move(model, phase, {
+          observations: [
+            ...model.observations,
+            { attempt: model.attempts, source: model.source, result: action.result }
+          ]
+        })
+      }
+    case "storage":
+      return (model, action) => {
+        if (action.kind !== "stored") throw new TypeError("Verification storage patch requires a save observation")
+        return move(model, phase, { storage: action.storage })
+      }
+  }
 }
-const observed = (model: VerificationModel, action: VerificationAction) => {
-  if (action.kind !== "observed" || model.source === undefined) return model
-  const recoverable =
-    ["rejected", "forbidden"].includes(action.result) &&
-    model.source !== "environment" &&
-    model.attempts < MAX_KEY_CHECKS
-  return move(model, recoverable ? "Recovery" : "Done", {
-    observations: [...model.observations, { attempt: model.attempts, source: model.source, result: action.result }]
+// Map native values to source-free facts. Bucketing selects a plan; actual counts stay native.
+const facts = {
+  attempts: (model: VerificationModel) => verificationAttemptBucket(model.attempts),
+  source: (model: VerificationModel) => verificationSourceId(model.source),
+  ready: (_: VerificationModel, action: VerificationAction) =>
+    Number(action.kind === "loaded" && action.eligibility === "ready"),
+  result: (_: VerificationModel, action: VerificationAction) =>
+    verificationResultId(action.kind === "observed" ? action.result : "accepted"),
+  yes: (_: VerificationModel, action: VerificationAction) => Number("yes" in action && action.yes),
+  stored: (_: VerificationModel, action: VerificationAction) =>
+    Number(action.kind === "stored" && action.storage.status === "stored")
+}
+const prepareReducers = () =>
+  getVerificationNavigationRoutes().map((route) => {
+    const applications = route.plans.map(materialize)
+    const axes = route.axes.map((axis) => ({ read: facts[axis.name], radix: axis.radix }))
+    if (axes.length === 0) return applications[0]!
+    return (model: VerificationModel, action: VerificationAction) => {
+      let index = 0
+      for (const axis of axes) index = index * axis.radix + axis.read(model, action)
+      return applications[index]!(model, action)
+    }
   })
-}
-const recover = (model: VerificationModel, action: VerificationAction) => {
-  if (action.kind === "recheck") return move(model, "Loading")
-  return action.kind === "replace" && model.source === "saved" ? move(model, "ReplacementApproval") : model
-}
-const terminal = (model: VerificationModel) => model
-const transitions: Record<
-  VerificationModel["phase"],
-  (model: VerificationModel, action: VerificationAction) => VerificationModel
-> = {
-  Loading: (model, action) =>
-    action.kind === "loadFailed" ? move(model, "Done", { eligibility: "unavailable" }) : loaded(model, action),
-  Approval: approved,
-  Checking: observed,
-  Recovery: recover,
-  ReplacementApproval: (model, action) =>
-    action.kind === "approveReplacement" ? move(model, action.yes ? "EnteringKey" : "Recovery") : model,
-  EnteringKey: (model, action) =>
-    action.kind === "entered"
-      ? move(model, "SavingKey")
-      : action.kind === "inputEnded"
-        ? move(model, "Cancelled")
-        : model,
-  SavingKey: (model, action) =>
-    action.kind === "stored"
-      ? move(model, action.storage.status === "stored" ? "Loading" : "Done", { storage: action.storage })
-      : model,
-  Done: terminal,
-  Cancelled: terminal
-}
-const navigate = (model: VerificationModel, action: VerificationAction) => {
-  if (action.kind === "back")
-    return model.phase === "ReplacementApproval" || (model.phase === "Approval" && model.attempts > 0)
-      ? move(model, "Recovery")
-      : model
-  return ["Approval", "Recovery", "ReplacementApproval"].includes(model.phase) ? move(model, "Cancelled") : model
-}
-const matches = (model: VerificationModel, event: VerificationEvent) => {
-  if (event.revision !== model.revision) return false
-  const action = event.action
-  if ("commandId" in action && action.commandId !== model.revision) return false
-  return !("keyRevision" in action) || action.keyRevision === model.keyRevision
-}
+let reducers: ReturnType<typeof prepareReducers> | undefined
 export const reduceVerification = (model: VerificationModel, event: VerificationEvent): VerificationModel => {
-  if (!matches(model, event)) return model
-  if (event.action.kind === "back" || event.action.kind === "exit") return navigate(model, event.action)
-  return transitions[model.phase](model, event.action)
+  const action = event.action
+  if (
+    event.revision !== model.revision ||
+    ("commandId" in action && action.commandId !== model.revision) ||
+    ("keyRevision" in action && action.keyRevision !== model.keyRevision)
+  )
+    return model
+  reducers ??= prepareReducers()
+  return reducers[verificationNavigationIndex(model.phase, action.kind)]!(model, action)
 }

@@ -1,0 +1,24 @@
+{
+  "at": "2026-10-08",
+  "reviewer": "delegated Astra",
+  "decision": "approved as written",
+  "laws": [
+    "command_exact",
+    "maximum_exact",
+    "step_exact",
+    "exhausted_cannot_check",
+    "attempt_bucket_exact",
+    "saturated_step_exact"
+  ],
+  "hostObligations": [
+    "Exact event revision, optional command ID and optional key revision equality",
+    "Exact source/result/eligibility/storage mapping and natural counts without truncation, wrapping or resetting",
+    "Hold identity; advance increments revision once and preserves every unpatched field",
+    "Loaded patch increments key revision; attempt patch increments count; observation patch appends current count/source; storage patch preserves native supplied observation",
+    "Each approved command executes once with fresh consent, no retry, existing timeout/sample request and secret lifetime",
+    "Credential-owner storage and administration import ownership unchanged"
+  ],
+  "scope": "conditional source-free decision laws; not end-to-end external request-count or host/compiler/platform proof",
+  "permits": "proofs, falsification, mutation testing and integration",
+  "specializationApproval": "approved in follow-up Astra review; bucket 0..3 indexes plans only; preserve actual native counts and observation values"
+}

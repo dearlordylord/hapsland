@@ -78,10 +78,7 @@ try {
   }
   dispatch += 'default: throw new TypeError("Unknown login phase"); }};\n'
 
-  const generated =
-    raw.replace("export default {", "const loginPolicy = {") +
-    "\nexport const loginCommand = loginPolicy.command;\nexport const loginStep = loginPolicy.step;\n" +
-    dispatch
+  const generated = dispatch
   const specializedOutput = join(temporary, "specialized.mjs")
   writeFileSync(specializedOutput, generated)
   const specialized = await import(pathToFileURL(specializedOutput))

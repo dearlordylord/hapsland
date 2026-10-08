@@ -5,94 +5,94 @@
     "packages/agent-flow-bend/login-policy/core.bend": "ee1ae070a5e8b2485138bca3e5e0bb3d859febdb48ccba912ce9ba2ba5fe59e1",
     "packages/agent-flow-bend/login-policy/LAWS.bend": "befbcdee0932e9b69fadc649d62d763ae3d616bba98a831635b7176368b32ea8",
     "packages/agent-flow-bend/login-policy/PROOF.bend": "4ca8bd1c0f9f776a390d6f445eb16cff0d3cda40d87c44660fc6ee6a44d7813b",
-    "packages/agent-flow-bend/scripts/build-login-policy.mjs": "1c26786280929df87f8e54c1c346081205ce586f62ed19e3b8be05b133dd0525",
+    "packages/agent-flow-bend/scripts/build-login-policy.mjs": "b8ec8668ae3eae153313994cd99719437cbe5a301ff9da21f556734dcf92c506",
     "packages/canonical-policy/src/canonical/login-adapter.ts": "b080a1c13c8e8ccfde312de43868139f37eb2ce31655f2603f71dd8f3347e513",
     "packages/administration/src/credentials/login-model.ts": "5e80ef3e82b162829cbc0364bce1c5253043406739f0f6af84d9211d155cdb29",
-    "packages/agent-flow-bend/dist/login-policy.generated.js": "494e53953701f7a7b9491b64942e06a6c33b5f2ec0edcbe72ecc6703cdfbe0d1",
+    "packages/agent-flow-bend/dist/login-policy.generated.js": "05a66743d1fd564efebf6b1c5c72f0726b8efbde3dac18a678f7d38a400618d8",
     "packages/canonical-policy/dist/canonical/login-adapter.js": "0e213a8567537ddef7324b9675112cb3b2ec639b5dddf094129f217f6045c060",
     "packages/administration/dist/credentials/login-model.js": "de2d27d9e52c00f553329305ff916057e03df6fcce60395821c09d90ac4155ea"
   },
-  "at": "2026-10-08T05:59:05.768Z",
+  "at": "2026-10-08T06:49:12.173Z",
   "cases": 2048,
   "samples": {
     "typescript": [
       {
-        "milliseconds": 73.64493000000004,
+        "milliseconds": 40.48217099999994,
         "checksum": 47256000
       },
       {
-        "milliseconds": 73.66743099999997,
+        "milliseconds": 41.56576299999995,
         "checksum": 47256000
       },
       {
-        "milliseconds": 74.933899,
+        "milliseconds": 40.485878999999954,
         "checksum": 47256000
       },
       {
-        "milliseconds": 75.62161300000002,
+        "milliseconds": 39.75583100000006,
         "checksum": 47256000
       },
       {
-        "milliseconds": 81.03849000000014,
+        "milliseconds": 41.234511,
         "checksum": 47256000
       },
       {
-        "milliseconds": 72.62183900000014,
+        "milliseconds": 41.10288400000002,
         "checksum": 47256000
       },
       {
-        "milliseconds": 73.27959400000009,
+        "milliseconds": 42.88189900000009,
         "checksum": 47256000
       },
       {
-        "milliseconds": 72.37425400000006,
+        "milliseconds": 52.43818699999997,
         "checksum": 47256000
       },
       {
-        "milliseconds": 72.60412999999994,
+        "milliseconds": 39.9235819999999,
         "checksum": 47256000
       }
     ],
     "integratedBend": [
       {
-        "milliseconds": 67.55050600000004,
+        "milliseconds": 39.13524199999995,
         "checksum": 47256000
       },
       {
-        "milliseconds": 71.53057999999999,
+        "milliseconds": 39.97091599999999,
         "checksum": 47256000
       },
       {
-        "milliseconds": 67.20587799999998,
+        "milliseconds": 39.51345500000002,
         "checksum": 47256000
       },
       {
-        "milliseconds": 68.12801100000013,
+        "milliseconds": 38.49011299999995,
         "checksum": 47256000
       },
       {
-        "milliseconds": 68.0547180000001,
+        "milliseconds": 39.857082000000105,
         "checksum": 47256000
       },
       {
-        "milliseconds": 66.78654200000005,
+        "milliseconds": 39.38311999999996,
         "checksum": 47256000
       },
       {
-        "milliseconds": 66.37112100000013,
+        "milliseconds": 42.11097500000005,
         "checksum": 47256000
       },
       {
-        "milliseconds": 67.11416899999995,
+        "milliseconds": 45.88113300000009,
         "checksum": 47256000
       },
       {
-        "milliseconds": 68.28438699999992,
+        "milliseconds": 39.427869999999984,
         "checksum": 47256000
       }
     ]
   },
-  "medianRatio": 0.9172458443507245,
+  "medianRatio": 0.9613304750099775,
   "executionParity": true,
   "scope": "warm compiled login reducer and command mapping; exhaustive typed native payload materialization; IO, startup, secret lifetime and platform support excluded"
 }

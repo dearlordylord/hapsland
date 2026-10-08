@@ -12,7 +12,7 @@ for (let round = 0; round < 2; round++) {
     const timeout = Math.min(150000, stop - performance.now())
     if (timeout <= 0) throw new Error("Build comparison deadline exhausted")
     const start = performance.now()
-    const result = spawnSync(process.execPath, ["scripts/build-workspaces.mjs"], { cwd: root, timeout, encoding: "utf8", maxBuffer: 8 * 1024 * 1024 })
+    const result = spawnSync("taskset", ["-c", "11", process.execPath, "scripts/build-workspaces.mjs"], { cwd: root, timeout, encoding: "utf8", maxBuffer: 8 * 1024 * 1024 })
     const cached = [...(result.stdout + result.stderr).matchAll(/Cached:\s+(\d+) cached, (\d+) total/g)].at(-1)
     const sample = { cachedTasks: cached ? Number(cached[1]) : null, totalTasks: cached ? Number(cached[2]) : null, seconds: (performance.now() - start) / 1000, exitCode: result.status, signal: result.signal, error: result.error?.message ?? null }
     samples[name].push(sample)
@@ -24,7 +24,7 @@ for (let round = 0; round < 2; round++) {
 }
 const mean = values => values.reduce((total, sample) => total + sample.seconds, 0) / values.length
 const ratio = mean(samples.integratedBend) / mean(samples.typescript)
-const record = { startedAt, at: new Date().toISOString(), roots, command: [process.execPath, "scripts/build-workspaces.mjs"], samples, meanRatio: ratio,
+const record = { startedAt, at: new Date().toISOString(), roots, command: ["taskset", "-c", "11", process.execPath, "scripts/build-workspaces.mjs"], affinity: "CPU 11 for both lanes; not exclusive", samples, meanRatio: ratio,
   buildParity: ratio <= 1, scope: "paired warm workspace builds; baseline master a071b9b58 and current candidate; both separately prepared; native release assembly excluded" }
 writeFileSync(new URL("./build-performance.json", import.meta.url), JSON.stringify(record, null, 2) + "\n")
 console.log(JSON.stringify({ meanRatio: ratio, buildParity: record.buildParity }))

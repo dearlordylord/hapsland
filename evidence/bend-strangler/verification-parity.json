@@ -1,0 +1,7 @@
+{
+  "at": "2026-10-08T06:45:13.302Z",
+  "cases": 241920,
+  "commands": 9,
+  "result": "pass",
+  "scope": "complete enum/Boolean domain at attempt counts 0,1,2,3,4,31,65536; original native reducer comparison; separately kernel-checked laws cover unbounded Nat decisions, not host execution"
+}

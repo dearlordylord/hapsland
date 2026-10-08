@@ -1,24 +1,20 @@
 {
-  "startedAt": "2026-10-08T06:50:17.203Z",
-  "at": "2026-10-08T06:51:01.049Z",
+  "startedAt": "2026-10-08T06:49:14.370Z",
+  "at": "2026-10-08T06:50:06.614Z",
   "roots": {
     "typescript": "/workspace/typescript/hapsland-bend-baseline",
     "integratedBend": "/workspace/typescript/hapsland-bend-strangler"
   },
   "command": [
-    "taskset",
-    "-c",
-    "11",
     "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
     "scripts/build-workspaces.mjs"
   ],
-  "affinity": "CPU 11 for both lanes; not exclusive",
   "samples": {
     "typescript": [
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 6.2490712209999995,
+        "seconds": 9.56639699,
         "exitCode": 0,
         "signal": null,
         "error": null
@@ -26,7 +22,7 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 15.771075949999998,
+        "seconds": 12.740262043000003,
         "exitCode": 0,
         "signal": null,
         "error": null
@@ -36,7 +32,7 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 15.919606158000002,
+        "seconds": 16.460575843999997,
         "exitCode": 0,
         "signal": null,
         "error": null
@@ -44,14 +40,14 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 5.894231049999998,
+        "seconds": 13.461951393,
         "exitCode": 0,
         "signal": null,
         "error": null
       }
     ]
   },
-  "meanRatio": 0.990630854489851,
-  "buildParity": true,
+  "meanRatio": 1.3414168026118676,
+  "buildParity": false,
   "scope": "paired warm workspace builds; baseline master a071b9b58 and current candidate; both separately prepared; native release assembly excluded"
 }

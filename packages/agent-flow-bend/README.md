@@ -59,6 +59,22 @@ tables contain immutable navigation plans only. Replay-derived diagrams remain
 behavioral evidence; these proofs do not establish secret lifetime, owner
 revalidation, IO or platform support.
 
+`verification-policy/core.bend` owns guided credential verification commands,
+request-budget decisions, recovery/replacement navigation and native patch
+selection. Six Astra-approved laws pin the three-check limit, exact transitions,
+exhaustion and safe attempt-bucket specialization for every natural count. The
+generator derives compact fact axes and plans from the compiled core, compares
+the complete finite enum/Boolean domain and representative saturated counts,
+and binds those outputs through a checked canonical-policy adapter. Native code
+keeps exact model/observation counts, callback and key-revision identities,
+secret input, fresh consent, timeout, one-request execution and owner storage.
+The laws do not prove external request count or those host mechanisms.
+Production login and verification artifacts omit unused raw compiler wrappers.
+Verification retains exact compiled functions for the natural-count bucket and
+limit through a source-bound function dependency closure; the generator still
+compares plans against the full compiled core. Its checked host tables and
+materializers are prepared once on first verification use.
+
 `Canonical.bend` is the production transition model and drives the main
 visualization through the checked TypeScript adapter.
 The maintained [TypeScript decision boundary ledger](../../docs/typescript-decision-boundary-ledger.md)

@@ -45,6 +45,16 @@ selected patches without retaining secret input. Revision fencing, reset payload
 clearing, identity preservation and real consent/storage conversations are
 checked separately in [login tests](../src/credentials/login-interaction.test.ts).
 
+Guided verification command, paid-attempt budget and transition decisions use the
+[verification Bend core](../packages/agent-flow-bend/verification-policy/core.bend)
+through its [checked adapter](../packages/canonical-policy/src/canonical/verification-adapter.ts).
+A proved attempt bucket selects plans without clamping native model or
+observation counts. Effect retains fresh consent for every request, secret
+lifetime, timeout and storage; native code compares revision/key tokens and
+applies the selected patch. [Verification consumers](../src/onboarding/credential-verification.test.ts)
+and [storage cases](../src/onboarding/credential-verification-storage.test.ts)
+check those boundaries separately from the pure laws.
+
 ## Decision-family coverage
 
 The authority consolidation uses `Canonical.step` for resident transitions and
@@ -261,8 +271,8 @@ Compiler and host names below are manifest declarations, not measured execution 
 
 | Workspace | Compiler / host | Authored export sources |
 | --- | --- | --- |
-| @hapsland/canonical-policy | typescript / bun | [./canonical/adapter](../packages/canonical-policy/src/canonical/adapter.ts); [./canonical/boundary-schema](../packages/canonical-policy/src/canonical/boundary-schema.ts); [./canonical/canonical-boundary](../packages/canonical-policy/src/canonical/canonical-boundary.ts); [./canonical/constructors](../packages/canonical-policy/src/canonical/constructors.ts); [./canonical/event-reader](../packages/canonical-policy/src/canonical/event-reader.ts); [./canonical/graph-adapter](../packages/canonical-policy/src/canonical/graph-adapter.ts); [./canonical/graph-limits](../packages/canonical-policy/src/canonical/graph-limits.ts); [./canonical/graph-schema](../packages/canonical-policy/src/canonical/graph-schema.ts); [./canonical/immutable](../packages/canonical-policy/src/canonical/immutable.ts); [./canonical/models](../packages/canonical-policy/src/canonical/models.ts); [./canonical/simulation-codec](../packages/canonical-policy/src/canonical/simulation-codec.ts); [./canonical/credential-adapter](../packages/canonical-policy/src/canonical/credential-adapter.ts); [./canonical/login-adapter](../packages/canonical-policy/src/canonical/login-adapter.ts) |
-| @hapsland/agent-flow-bend | bend / bun | [./canonical](../packages/agent-flow-bend/abi/canonical.generated.d.ts); [./import-graph](../packages/agent-flow-bend/abi/import-graph.generated.d.ts); [./request-content](../packages/agent-flow-bend/abi/request-content.generated.d.ts); [./credential-policy](../packages/agent-flow-bend/abi/credential-policy.generated.d.ts); [./login-policy](../packages/agent-flow-bend/abi/login-policy.generated.d.ts) |
+| @hapsland/canonical-policy | typescript / bun | [./canonical/adapter](../packages/canonical-policy/src/canonical/adapter.ts); [./canonical/boundary-schema](../packages/canonical-policy/src/canonical/boundary-schema.ts); [./canonical/canonical-boundary](../packages/canonical-policy/src/canonical/canonical-boundary.ts); [./canonical/constructors](../packages/canonical-policy/src/canonical/constructors.ts); [./canonical/event-reader](../packages/canonical-policy/src/canonical/event-reader.ts); [./canonical/graph-adapter](../packages/canonical-policy/src/canonical/graph-adapter.ts); [./canonical/graph-limits](../packages/canonical-policy/src/canonical/graph-limits.ts); [./canonical/graph-schema](../packages/canonical-policy/src/canonical/graph-schema.ts); [./canonical/immutable](../packages/canonical-policy/src/canonical/immutable.ts); [./canonical/models](../packages/canonical-policy/src/canonical/models.ts); [./canonical/simulation-codec](../packages/canonical-policy/src/canonical/simulation-codec.ts); [./canonical/credential-adapter](../packages/canonical-policy/src/canonical/credential-adapter.ts); [./canonical/login-adapter](../packages/canonical-policy/src/canonical/login-adapter.ts); [./canonical/verification-adapter](../packages/canonical-policy/src/canonical/verification-adapter.ts) |
+| @hapsland/agent-flow-bend | bend / bun | [./canonical](../packages/agent-flow-bend/abi/canonical.generated.d.ts); [./import-graph](../packages/agent-flow-bend/abi/import-graph.generated.d.ts); [./request-content](../packages/agent-flow-bend/abi/request-content.generated.d.ts); [./credential-policy](../packages/agent-flow-bend/abi/credential-policy.generated.d.ts); [./login-policy](../packages/agent-flow-bend/abi/login-policy.generated.d.ts); [./verification-policy](../packages/agent-flow-bend/abi/verification-policy.generated.d.ts) |
 
 ### Canonical events
 

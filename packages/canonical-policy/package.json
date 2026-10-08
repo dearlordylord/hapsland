@@ -55,6 +55,10 @@
     "./canonical/login-adapter": {
       "types": "./dist/canonical/login-adapter.d.ts",
       "default": "./dist/canonical/login-adapter.js"
+    },
+    "./canonical/verification-adapter": {
+      "types": "./dist/canonical/verification-adapter.d.ts",
+      "default": "./dist/canonical/verification-adapter.js"
     }
   },
   "dependencies": {

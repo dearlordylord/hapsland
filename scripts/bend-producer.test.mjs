@@ -40,6 +40,7 @@ async function fixture(t) {
   mkdirSync(resolve(root, "packages/agent-flow-bend"), { recursive: true })
   for (const name of [
     "bend-producer.mjs",
+    "pure-bend-artifact.mjs",
     "authored-task-inputs.mjs",
     "package-graph.mjs",
     "bend-toolchain.mjs",
@@ -65,6 +66,9 @@ async function fixture(t) {
     })
   )
   mkdirSync(resolve(directory, "request-content"), { recursive: true })
+  mkdirSync(resolve(directory, "verification-policy"), { recursive: true })
+  writeFileSync(resolve(directory, "verification-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
+  writeFileSync(resolve(directory, "verification-policy/core.bend"), "// Verification fixture\n")
   mkdirSync(resolve(directory, "login-policy"), { recursive: true })
   writeFileSync(resolve(directory, "login-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
   writeFileSync(resolve(directory, "login-policy/core.bend"), "// Login policy fixture\n")
@@ -80,7 +84,8 @@ async function fixture(t) {
     "build-import-graph.mjs",
     "build-request-content.mjs",
     "build-credential-policy.mjs",
-    "build-login-policy.mjs"
+    "build-login-policy.mjs",
+    "build-verification-policy.mjs"
   ])
     writeFileSync(resolve(directory, "scripts", name), "// Generator fixture identity\n")
   for (const name of [
@@ -88,7 +93,8 @@ async function fixture(t) {
     "import-graph.generated.d.ts",
     "request-content.generated.d.ts",
     "credential-policy.generated.d.ts",
-    "login-policy.generated.d.ts"
+    "login-policy.generated.d.ts",
+    "verification-policy.generated.d.ts"
   ]) {
     writeFileSync(resolve(directory, "abi", name), "export declare const fixture: number;\n")
     writeFileSync(resolve(directory, "dist", name), "export declare const fixture: number;\n")
@@ -98,7 +104,8 @@ async function fixture(t) {
     "import-graph.generated.js",
     "request-content.generated.js",
     "credential-policy.generated.js",
-    "login-policy.generated.js"
+    "login-policy.generated.js",
+    "verification-policy.generated.js"
   ])
     writeFileSync(resolve(directory, "dist", name), "export const fixture=1;\n")
   const node = { path: directory },
@@ -154,13 +161,13 @@ for (const text of [
 ])
   test(`rejects unsupported generated loader ${text}`, () =>
     assert.throws(() => bendGeneratedLoaderEvidence(text, "generated.js"), /Unsupported generated Bend loader/))
-test("valid receipt binds actual compiler/support/input bytes and exact ten outputs", async (t) => {
+test("valid receipt binds actual compiler/support/input bytes and exact twelve outputs", async (t) => {
   const f = await fixture(t)
   assert.equal(f.verify().format, 1)
   assert.equal(f.context.toolchain.version, "bend 2.0.36")
   assert.ok(f.context.toolchain.support.inventory.length)
   assert.ok(f.context.toolchain.toolLibraries.length)
-  assert.equal(f.receipt.outputs.length, 10)
+  assert.equal(f.receipt.outputs.length, 12)
 })
 test("Bend-only scheduling replaces a stale PATH task stamp before the scheduler reads it", async (t) => {
   const f = await fixture(t)
@@ -317,6 +324,7 @@ test("Bend producer rejects unconsumed authored input drift and clears owned out
   writeFileSync(resolve(f.directory, "scripts/build-request-content.mjs"), generator("request-content"))
   writeFileSync(resolve(f.directory, "scripts/build-credential-policy.mjs"), generator("credential-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-login-policy.mjs"), generator("login-policy"))
+  writeFileSync(resolve(f.directory, "scripts/build-verification-policy.mjs"), generator("verification-policy"))
   let toolchain = await bendProducerToolchain(f.root)
   prepareAuthoredTaskInputs(f.root, { packages: new Map([[manifest.name, owner]]) }, { bendToolchain: toolchain })
   await buildBendProducer(f.root, owner)
@@ -342,8 +350,10 @@ for (const file of [
   "request-content.generated.d.ts",
   "credential-policy.generated.js",
   "login-policy.generated.js",
+  "verification-policy.generated.js",
   "credential-policy.generated.d.ts",
-  "login-policy.generated.d.ts"
+  "login-policy.generated.d.ts",
+  "verification-policy.generated.d.ts"
 ])
   test(`omitted declared producer output ${file} cannot pass a receipt`, async (t) => {
     const f = await fixture(t)
@@ -384,5 +394,19 @@ test("login proof edits invalidate producer receipt authority", async (t) => {
   const f = await fixture(t)
   f.verify()
   writeFileSync(resolve(f.directory, "login-policy/PROOF.bend"), "import Base\n// Changed proof input\n")
+  assert.throws(f.verify, /Stale Bend producer receipt context|caller context is stale/)
+})
+
+test("verification proof edits invalidate producer receipt authority", async (t) => {
+  const f = await fixture(t)
+  f.verify()
+  writeFileSync(resolve(f.directory, "verification-policy/PROOF.bend"), "import Base\n// Changed proof input\n")
+  assert.throws(f.verify, /Stale Bend producer receipt context|caller context is stale/)
+})
+
+test("pure artifact extraction edits invalidate producer receipt authority", async (t) => {
+  const f = await fixture(t)
+  f.verify()
+  writeFileSync(resolve(f.root, "scripts/pure-bend-artifact.mjs"), "// Changed extraction implementation\n")
   assert.throws(f.verify, /Stale Bend producer receipt context|caller context is stale/)
 })

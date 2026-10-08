@@ -1,0 +1,99 @@
+{
+  "at": "2026-10-08T06:17:40.299Z",
+  "baselineRevision": "a071b9b58",
+  "cases": 241920,
+  "timedCases": 138240,
+  "samples": {
+    "typescript": [
+      {
+        "milliseconds": 66.34543800000006,
+        "checksum": 55022240
+      },
+      {
+        "milliseconds": 65.42405599999995,
+        "checksum": 55022240
+      },
+      {
+        "milliseconds": 65.58043199999997,
+        "checksum": 55022240
+      },
+      {
+        "milliseconds": 64.52033999999992,
+        "checksum": 55022240
+      },
+      {
+        "milliseconds": 66.01372700000002,
+        "checksum": 55022240
+      },
+      {
+        "milliseconds": 65.18959500000005,
+        "checksum": 55022240
+      },
+      {
+        "milliseconds": 68.35916199999997,
+        "checksum": 55022240
+      },
+      {
+        "milliseconds": 68.44045400000005,
+        "checksum": 55022240
+      },
+      {
+        "milliseconds": 66.56414700000005,
+        "checksum": 55022240
+      }
+    ],
+    "integratedBend": [
+      {
+        "milliseconds": 59.64663500000006,
+        "checksum": 55022240
+      },
+      {
+        "milliseconds": 57.92533000000003,
+        "checksum": 55022240
+      },
+      {
+        "milliseconds": 58.13345700000002,
+        "checksum": 55022240
+      },
+      {
+        "milliseconds": 56.32260899999994,
+        "checksum": 55022240
+      },
+      {
+        "milliseconds": 60.36222399999997,
+        "checksum": 55022240
+      },
+      {
+        "milliseconds": 60.502058000000034,
+        "checksum": 55022240
+      },
+      {
+        "milliseconds": 59.77330300000017,
+        "checksum": 55022240
+      },
+      {
+        "milliseconds": 60.088346,
+        "checksum": 55022240
+      },
+      {
+        "milliseconds": 57.93053799999984,
+        "checksum": 55022240
+      }
+    ]
+  },
+  "medianRatio": 0.9035489694438862,
+  "executionParity": true,
+  "sha256": {
+    "evidence/bend-strangler/verification-reference.ts": "be12fa5d8db41f28ad6c1204f512385e00caaaf1d97a54a42101b3d697fcc785",
+    "packages/agent-flow-bend/verification-policy/core.bend": "44747145d49b49e6f5db8b05681469b768ace71af9bb7ccbc8bca53cc1120ff1",
+    "packages/agent-flow-bend/verification-policy/LAWS.bend": "0fb238c7da2ea7582fe5ced75045a0c8999adb714ea76ae18cfbc1fbb109e034",
+    "packages/agent-flow-bend/verification-policy/PROOF.bend": "3b0c7c7c86d86127e652cbf0bbbbad12f190d689c02ffa4894ecfefc1d86b212",
+    "packages/agent-flow-bend/scripts/build-verification-policy.mjs": "e67db4e823944b49b831721cfea48975d65628199010c340495e42a27c18cb1e",
+    "packages/canonical-policy/src/canonical/verification-adapter.ts": "96be7e9797473bc43b3261475ae1b0cd21f5de4e4d4f51e6f85612d59378340f",
+    "packages/administration/src/onboarding/verification-model.ts": "f377d02439ce84d5e89d5a9e18ad4be253005d7153f198d03402cf5f88fd233a",
+    "packages/agent-flow-bend/dist/verification-policy.generated.js": "1f31bb4321f9807ffd11c4b35a84a0e7e4e84982189c93d5ee7f4746127ab36e",
+    "packages/canonical-policy/dist/canonical/verification-adapter.js": "9c9d16f39ac70f668bae78dfaec84c5f509d775adb7252630b4d4b397eaf4072",
+    "packages/administration/dist/onboarding/verification-model.js": "2879b44bed269a1277e471c23db15751eba08ede4e618db91f7cff2dc6beb7a4"
+  },
+  "scope": "warm compiled verification reducer and command mapping; complete typed enum/Boolean cases at counts 0..3 timed; larger counts also checked for exact native payload/count preservation; no request, IO, startup or platform claim"
+}

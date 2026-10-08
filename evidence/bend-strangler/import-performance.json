@@ -1,0 +1,66 @@
+{
+  "at": "2026-10-08T06:32:15.921Z",
+  "results": {
+    "packages/administration/dist/onboarding/verification-model.js": {
+      "typescript": [
+        2.4468120000000013,
+        1.3633029999999993,
+        1.4664700000000002,
+        1.6078460000000003,
+        1.5513880000000002,
+        1.4164699999999995,
+        1.5255960000000002
+      ],
+      "integratedBend": [
+        6.730598,
+        5.5745460000000016,
+        5.574129000000001,
+        5.208626000000001,
+        5.318585000000001,
+        5.323544,
+        5.885757
+      ]
+    },
+    "packages/administration/dist/credentials/login-model.js": {
+      "typescript": [
+        1.5260540000000002,
+        1.0633420000000005,
+        1.0970090000000008,
+        1.21476,
+        1.095301,
+        1.0883000000000003,
+        1.298843999999999
+      ],
+      "integratedBend": [
+        6.484887,
+        4.074242999999999,
+        3.8238649999999996,
+        4.040824999999999,
+        4.524620999999999,
+        4.568746000000003,
+        4.471495
+      ]
+    },
+    "packages/runtime-inputs/dist/credentials/policy.js": {
+      "typescript": [
+        63.157358,
+        66.47926000000001,
+        67.74202100000001,
+        65.034539,
+        70.070498,
+        64.42553500000001,
+        66.00242300000001
+      ],
+      "integratedBend": [
+        60.015789,
+        63.24181599999999,
+        61.860805,
+        95.327416,
+        58.802613,
+        64.251367,
+        64.543828
+      ]
+    }
+  },
+  "scope": "isolated fresh-process dynamic imports; diagnostic only; modules measured separately and shared Effect costs may be paid once in the complete CLI"
+}

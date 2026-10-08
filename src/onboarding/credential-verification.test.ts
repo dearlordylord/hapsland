@@ -330,3 +330,29 @@ it.effect("Back from replacement consent requests no key and preserves the rejec
     expect(f.script.remaining()).toBe(0)
   })
 )
+
+it("verification bucketing preserves exact native observations and callback fences", () => {
+  const model = {
+    phase: "Checking" as const,
+    revision: 7,
+    keyRevision: 11,
+    attempts: 31,
+    source: "saved" as const,
+    eligibility: "ready" as const,
+    observations: [{ attempt: 1, source: "file" as const, result: "rejected" as const }],
+    storage: { status: "stored" as const, generation: 4 }
+  }
+  const action = { kind: "observed" as const, commandId: 7, keyRevision: 11, result: "rejected" as const }
+  expect(reduceVerification(model, { revision: 7, action: { ...action, commandId: 6 } })).toBe(model)
+  expect(reduceVerification(model, { revision: 7, action: { ...action, keyRevision: 10 } })).toBe(model)
+  const done = reduceVerification(model, { revision: 7, action })
+  expect(done).toEqual({
+    ...model,
+    phase: "Done",
+    revision: 8,
+    observations: [...model.observations, { attempt: 31, source: "saved", result: "rejected" }]
+  })
+  expect(done.attempts).toBe(31)
+  expect(done.storage).toBe(model.storage)
+  expect(reduceVerification(done, { revision: 8, action: { kind: "exit" } })).toBe(done)
+})
