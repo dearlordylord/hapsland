@@ -27,25 +27,6 @@ Choose the journey by the command you run. Named-agent variants skip discovery o
 | Uninstall an agent | `hapsland uninstall`<br>`hapsland uninstall <agent>` | [Journey diagram](maintenance.md) |
 | Manage rules | `hapsland rules create --id <id>`<br>`hapsland rules connect --path <file>`<br>`hapsland rules enable --id <id>`<br>`hapsland rules disable --id <id>` | [Journey diagram](rules.md) |
 
-```mermaid
-flowchart LR
-  command_setup["hapsland setup"]
-  command_setup --> journey_setup["Set up selected agents"]
-  command_setup_agent["hapsland setup &lt;agent&gt;"]
-  command_setup_agent --> journey_setup_agent["Set up a named agent"]
-  command_login["hapsland --login"]
-  command_login --> journey_login["Save a credential"]
-  command_update["hapsland update"]
-  command_update --> journey_update["Update installed agents"]
-  command_repair["hapsland repair"]
-  command_repair --> journey_repair["Repair an installation"]
-  command_reinstall["hapsland reinstall"]
-  command_reinstall --> journey_reinstall["Reinstall an agent"]
-  command_uninstall["hapsland uninstall"]
-  command_uninstall --> journey_uninstall["Uninstall an agent"]
-  command_rules["hapsland rules create --id &lt;id&gt;"]
-  command_rules --> journey_rules["Manage rules"]
-```
 
 Credential verification is a step within setup, not a separate CLI journey. Its [detail diagram](verification.md) explains paid-check approval and recovery. Setup includes credential saving; [login](login.md) also documents the standalone saving command.
 

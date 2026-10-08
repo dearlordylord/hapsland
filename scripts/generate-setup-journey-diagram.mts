@@ -26,7 +26,7 @@ const configure: ScriptStep[] = [
 ]
 
 /** Replay the real selection → setup → login → verification composition. */
-export const generateSetupJourneyDiagram = Effect.gen(function* () {
+export const generateSetupJourneyDiagram = Effect.fn("SetupJourney.diagram")(function* (outcomes: ReadonlySet<string>) {
   const output = new Set<string>()
   const cases: {
     steps: ScriptStep[]
@@ -58,6 +58,11 @@ export const generateSetupJourneyDiagram = Effect.gen(function* () {
     },
     {
       steps: [{ kind: "chooseMany", ids: ["codex", "claude"] }, { kind: "exit" }],
+      calls: ["codex"],
+      phase: "Cancelled"
+    },
+    {
+      steps: [{ kind: "chooseMany", ids: ["codex", "claude"] }, ...configure.slice(0, -1), { kind: "exit" }],
       calls: ["codex"],
       phase: "Cancelled"
     },
@@ -272,6 +277,24 @@ export const generateSetupJourneyDiagram = Effect.gen(function* () {
     assert.equal(saves, scenario.steps.filter((step) => step.kind === "hidden").length)
     assert.equal(checks, scenario.paid ? 1 : 0)
     assert(![...output].join("\n").includes("private-journey-key"))
+  }
+  // These outcomes were independently witnessed by the per-agent interpreter
+  // replays. Attach them to that agent's nodes in the same command journey.
+  const outcomeView = userFlowDiagram("setup", outcomes)
+  for (const line of outcomeView.split("\n")) {
+    const contextual = line
+      .replace(/^  (\w+)/, "  setup_codex_$1")
+      .replace(/\| (\w+)$/, "| setup_codex_$1")
+      .replace(/\["([^"\n]+)"\]/, '["Codex: $1"]')
+    // The caller's verified outcome follows the child dialog's exit, rather
+    // than bypassing that dialog with a parallel caller-only shortcut.
+    if (line.startsWith("  Verifying[")) continue
+    if (line.startsWith("  Verifying -->")) {
+      const cancelled = line.endsWith(" Cancelled")
+      const child = `verification_codex_${cancelled ? "Cancelled" : "Done"}`
+      if (cancelled) output.add(`  ${child}["Codex: End credential verification"]`)
+      output.add(contextual.replace("setup_codex_Verifying -->", `${child} -->`))
+    } else output.add(contextual)
   }
   return [...output].join("\n")
 })

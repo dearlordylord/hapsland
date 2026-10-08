@@ -111,48 +111,26 @@ flowchart TD
   setup_codex_Cancelled -->|"Return"| setup_selection_selection_RunningAgents_returned
   setup_selection_selection_Cancelled["Stop before configuring later agents"]
   setup_selection_selection_RunningAgents_returned -->|"Agent setup cancelled"| setup_selection_selection_Cancelled
+  verification_codex_Cancelled["Codex: End credential verification"]
+  verification_codex_Approval -->|"Exit or end of input"| verification_codex_Cancelled
+  verification_codex_Cancelled -->|"Return"| setup_codex_Verifying_returned
+  setup_codex_Verifying_returned -->|"Credential check finished"| setup_codex_Cancelled
   NamedSetup["hapsland setup &lt;agent&gt;"]
   NamedSetup -->|"Begin"| setup_codex_Previewing
   setup_codex_Applying -->|"Installation completed"| setup_codex_Activating
   verification_codex_Checking["Codex: Check the key"]
   verification_codex_Approval -->|"Yes"| verification_codex_Checking
   verification_codex_Checking -->|"Key accepted"| verification_codex_Done
-```
-
-## Setup outcomes
-
-The per-agent view below shows changed proposals, partial installation and activation failures. It supplements the complete command journey above.
-
-```mermaid
-flowchart TD
-  Previewing["Review proposed setup"]
-  HookApproval["Approve hook installation?"]
-  RulesApproval["Approve rule changes?"]
-  Applying["Install approved changes"]
-  Activating["Activate the public command"]
-  Verifying["Offer an optional paid key check"]
-  Diagnosing["Check readiness"]
-  Done["Show setup result"]
-  Back["Return to agent selection"]
-  Cancelled["End setup navigation"]
-  Failed["Show activation failure"]
-  Previewing -->|"Changes require approval"| HookApproval
-  HookApproval -->|"Yes, install hooks"| RulesApproval
-  RulesApproval -->|"Yes, change rules"| Applying
-  Applying -->|"Installation completed"| Activating
-  Activating -->|"Activation finished"| Verifying
-  Verifying -->|"Credential check finished"| Diagnosing
-  Diagnosing -->|"Readiness checks finished"| Done
-  HookApproval -->|"Decline hook installation"| Done
-  RulesApproval -->|"Decline rule changes"| Done
-  HookApproval -->|"Back"| Back
-  HookApproval -->|"Exit or end of input"| Cancelled
-  RulesApproval -->|"Back"| Previewing
-  Applying -->|"Proposal changed; review again"| HookApproval
-  Applying -->|"Installation partly completed"| Activating
-  Activating -->|"Activation finished"| Done
-  Activating -->|"Activation finished"| Cancelled
-  Verifying -->|"Credential check finished"| Cancelled
-  Activating -->|"Activation failed"| Failed
-  Applying -->|"Show installation progress"| Applying
+  setup_codex_Failed["Codex: Show activation failure"]
+  verification_codex_Done -->|"Credential check finished"| setup_codex_Diagnosing
+  setup_codex_HookApproval -->|"Decline hook installation"| setup_codex_Done
+  setup_codex_RulesApproval -->|"Decline rule changes"| setup_codex_Done
+  setup_codex_RulesApproval -->|"Back"| setup_codex_Previewing
+  setup_codex_Applying -->|"Proposal changed; review again"| setup_codex_HookApproval
+  setup_codex_Applying -->|"Installation partly completed"| setup_codex_Activating
+  setup_codex_Activating -->|"Activation finished"| setup_codex_Done
+  setup_codex_Activating -->|"Activation finished"| setup_codex_Cancelled
+  verification_codex_Cancelled -->|"Credential check finished"| setup_codex_Cancelled
+  setup_codex_Activating -->|"Activation failed"| setup_codex_Failed
+  setup_codex_Applying -->|"Show installation progress"| setup_codex_Applying
 ```

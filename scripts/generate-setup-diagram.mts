@@ -1,6 +1,5 @@
 import { complete, preview } from "./test-support/setup-observations.ts"
 import { generateSetupJourneyDiagram } from "./generate-setup-journey-diagram.mts"
-import { userFlowDiagram } from "./interaction-diagram-view.mts"
 import assert from "node:assert/strict"
 import type { Exit } from "effect"
 import { Effect } from "effect"
@@ -205,16 +204,7 @@ Run \`hapsland setup\` to select agents, or \`hapsland setup <agent>\` to config
 
 \`\`\`mermaid
 flowchart TD
-${yield* generateSetupJourneyDiagram}
-\`\`\`
-
-## Setup outcomes
-
-The per-agent view below shows changed proposals, partial installation and activation failures. It supplements the complete command journey above.
-
-\`\`\`mermaid
-flowchart TD
-${userFlowDiagram("setup", edges)}
+${yield* generateSetupJourneyDiagram(edges)}
 \`\`\`
 `
 })
