@@ -136,7 +136,6 @@ export const directUiExceptions = {
 export const uiJourneys = {
   setup: {
     title: "Set up selected agents",
-    commands: ["hapsland setup"],
     owner: "packages/cli-entry/src/cli.ts",
     entry: "chooseSetupClients",
     root: "setup-selection",
@@ -144,7 +143,6 @@ export const uiJourneys = {
   },
   "setup-agent": {
     title: "Set up a named agent",
-    commands: ["hapsland setup <agent>"],
     owner: "packages/cli-entry/src/cli.ts",
     entry: "pilotSetupSession",
     root: "setup",
@@ -152,7 +150,6 @@ export const uiJourneys = {
   },
   login: {
     title: "Save a credential",
-    commands: ["hapsland --login"],
     owner: "packages/cli-entry/src/cli.ts",
     entry: "loginCredential",
     root: "login",
@@ -160,7 +157,6 @@ export const uiJourneys = {
   },
   update: {
     title: "Update installed agents",
-    commands: ["hapsland update", "hapsland update <agent>"],
     owner: "packages/cli-entry/src/cli.ts",
     entry: "updateInteractive",
     root: "update",
@@ -168,7 +164,6 @@ export const uiJourneys = {
   },
   repair: {
     title: "Repair an installation",
-    commands: ["hapsland repair", "hapsland repair <agent>"],
     owner: "packages/cli-entry/src/cli.ts",
     entry: "maintenanceInteractive",
     root: "maintenance",
@@ -176,7 +171,6 @@ export const uiJourneys = {
   },
   reinstall: {
     title: "Reinstall an agent",
-    commands: ["hapsland reinstall", "hapsland reinstall <agent>"],
     owner: "packages/cli-entry/src/cli.ts",
     entry: "maintenanceInteractive",
     root: "maintenance",
@@ -184,7 +178,6 @@ export const uiJourneys = {
   },
   uninstall: {
     title: "Uninstall an agent",
-    commands: ["hapsland uninstall", "hapsland uninstall <agent>"],
     owner: "packages/cli-entry/src/cli.ts",
     entry: "maintenanceInteractive",
     root: "maintenance",
@@ -192,12 +185,6 @@ export const uiJourneys = {
   },
   rules: {
     title: "Manage rules",
-    commands: [
-      "hapsland rules create --id <id>",
-      "hapsland rules connect --path <file>",
-      "hapsland rules enable --id <id>",
-      "hapsland rules disable --id <id>"
-    ],
     owner: "packages/administration/src/rules/command.ts",
     entry: "runRulesCommand",
     root: "rules",
@@ -205,6 +192,6 @@ export const uiJourneys = {
   }
 } as const satisfies Record<
   string,
-  { title: string; commands: readonly string[]; owner: string; entry: string; root: UiFlowId; diagramFlow: UiFlowId }
+  { title: string; owner: string; entry: string; root: UiFlowId; diagramFlow: UiFlowId }
 >
 export type UiJourneyId = keyof typeof uiJourneys

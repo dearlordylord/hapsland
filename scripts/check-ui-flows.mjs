@@ -272,7 +272,7 @@ export function checkUiFlows(
     for (const child of registry.uiFlows[id]?.composes ?? []) reach(child)
   }
   for (const [id, journey] of Object.entries(registry.uiJourneys ?? {})) {
-    if (!journey.commands.length || !registry.uiFlows[journey.root] || !registry.uiFlows[journey.diagramFlow])
+    if (!registry.uiFlows[journey.root] || !registry.uiFlows[journey.diagramFlow])
       errors.push(`Invalid CLI journey: ${id}`)
     if (registry.uiFlows[journey.root]?.diagram !== registry.uiFlows[journey.diagramFlow]?.diagram)
       errors.push(`CLI journey diagram does not match its input flow: ${id}`)

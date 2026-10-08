@@ -14,18 +14,18 @@ The closed registry binds public journeys to actual CLI handlers through typed `
 
 <!-- ui-flow-inventory:start -->
 
-Choose the journey by the command you run. Named-agent variants skip discovery or selection where the command already supplies the agent. This index is generated from the same registered CLI bindings used in production.
+Choose the journey by the command you run. Named-agent variants skip discovery or selection where the command already supplies the agent. This index is generated from the command and parameter declarations used by the CLI parser.
 
 | User journey | CLI command | Diagram |
 | --- | --- | --- |
 | Set up selected agents | `hapsland setup` | [Journey diagram](setup.md) |
-| Set up a named agent | `hapsland setup <agent>` | [Journey diagram](setup.md) |
+| Set up a named agent | `hapsland setup <client>` | [Journey diagram](setup.md) |
 | Save a credential | `hapsland --login` | [Journey diagram](login.md) |
-| Update installed agents | `hapsland update`<br>`hapsland update <agent>` | [Journey diagram](update.md) |
-| Repair an installation | `hapsland repair`<br>`hapsland repair <agent>` | [Journey diagram](maintenance.md) |
-| Reinstall an agent | `hapsland reinstall`<br>`hapsland reinstall <agent>` | [Journey diagram](maintenance.md) |
-| Uninstall an agent | `hapsland uninstall`<br>`hapsland uninstall <agent>` | [Journey diagram](maintenance.md) |
-| Manage rules | `hapsland rules create --id <id>`<br>`hapsland rules connect --path <file>`<br>`hapsland rules enable --id <id>`<br>`hapsland rules disable --id <id>` | [Journey diagram](rules.md) |
+| Update installed agents | `hapsland update`<br>`hapsland update <client>` | [Journey diagram](update.md) |
+| Repair an installation | `hapsland repair`<br>`hapsland repair <client>` | [Journey diagram](maintenance.md) |
+| Reinstall an agent | `hapsland reinstall`<br>`hapsland reinstall <client>` | [Journey diagram](maintenance.md) |
+| Uninstall an agent | `hapsland uninstall`<br>`hapsland uninstall <client>` | [Journey diagram](maintenance.md) |
+| Manage rules | `hapsland rules create --id <id>`<br>`hapsland rules connect --path <path>`<br>`hapsland rules enable --id <id>`<br>`hapsland rules disable --id <id>` | [Journey diagram](rules.md) |
 
 
 Credential verification is a step within setup, not a separate CLI journey. Its [detail diagram](verification.md) explains paid-check approval and recovery. Setup includes credential saving; [login](login.md) also documents the standalone saving command.

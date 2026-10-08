@@ -1,11 +1,13 @@
+import { cliJourneyCommands } from "../packages/administration/src/cli-command.ts"
 import { uiFlows, uiJourneys } from "../packages/administration/src/interaction/flow-registry.ts"
 
 export const flowInventoryDocument = () => {
-  const rows = Object.values(uiJourneys).map(
-    (journey) =>
-      `| ${journey.title} | ${journey.commands.map((command) => `\`${command}\``).join("<br>")} | [Journey diagram](${uiFlows[journey.diagramFlow].diagram.split("/").at(-1)}) |`
+  const commands = cliJourneyCommands()
+  const rows = (Object.keys(uiJourneys) as (keyof typeof uiJourneys)[]).map(
+    (id) =>
+      `| ${uiJourneys[id].title} | ${commands[id].map((command) => `\`${command}\``).join("<br>")} | [Journey diagram](${uiFlows[uiJourneys[id].diagramFlow].diagram.split("/").at(-1)}) |`
   )
-  return `Choose the journey by the command you run. Named-agent variants skip discovery or selection where the command already supplies the agent. This index is generated from the same registered CLI bindings used in production.
+  return `Choose the journey by the command you run. Named-agent variants skip discovery or selection where the command already supplies the agent. This index is generated from the command and parameter declarations used by the CLI parser.
 
 | User journey | CLI command | Diagram |
 | --- | --- | --- |

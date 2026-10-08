@@ -1,3 +1,4 @@
+import { cliJourneyCommands, parseInvocation } from "../../packages/administration/src/cli-command.ts"
 import { Effect } from "effect"
 import { expect, it } from "vitest"
 import { childFlow, cliJourney, flowInteraction } from "../../packages/administration/src/interaction/flow-input.ts"
@@ -36,3 +37,35 @@ const checkInputTypes = (input: Effect.Success<ReturnType<typeof flowInteraction
   childFlow("rules", "login", Effect.void)
 }
 void checkInputTypes
+
+it("every generated journey command is accepted by the real CLI parser", async () => {
+  const commands = cliJourneyCommands()
+  for (const [journey, variants] of Object.entries(commands)) {
+    expect(variants.length, journey).toBeGreaterThan(0)
+    for (const command of variants) {
+      const args = command
+        .split(" ")
+        .slice(1)
+        .map((token) =>
+          token === "<client>"
+            ? "codex"
+            : token === "<id>"
+              ? "example-rule"
+              : token === "<path>"
+                ? "example.jsonc"
+                : token
+        )
+      const invocation = await Effect.runPromise(parseInvocation(args))
+      expect(invocation?.kind, command).toBe(
+        journey === "login" ? "automation" : journey === "rules" ? "rules" : "lifecycle"
+      )
+      if (invocation?.kind === "automation") expect(invocation.options.login).toBe(true)
+      if (invocation?.kind === "lifecycle") {
+        expect(invocation.command).toBe(journey === "setup-agent" ? "setup" : journey)
+        expect(invocation.client.host).toBe(command.includes("<client>") ? "codex" : undefined)
+      }
+      if (invocation?.kind === "rules")
+        expect(["create", "connect", "enable", "disable"]).toContain(invocation.options.action)
+    }
+  }
+})
