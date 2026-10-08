@@ -8,6 +8,14 @@ import { createHash } from "node:crypto"
 import { fileEvidence } from "./compiler-evidence.mjs"
 
 const hash = (text) => createHash("sha256").update(text).digest("hex")
+const mutateFile = (root, file, mutation) => {
+  if (mutation === "write") fs.writeFileSync(file, "BBBB")
+  else {
+    const replacement = resolve(root, "replacement")
+    fs.writeFileSync(replacement, "BBBB")
+    fs.renameSync(replacement, file)
+  }
+}
 const fixture = (t) => {
   const root = fs.realpathSync(fs.mkdtempSync(resolve(tmpdir(), "hapsland-file-evidence-")))
   t.after(() => fs.rmSync(root, { recursive: true, force: true }))
@@ -55,11 +63,7 @@ for (const mutation of ["write", "replace"])
       const observed = stat(...args)
       if (!changed && String(observed.ino) === inode) {
         changed = true
-        if (mutation === "write") fs.writeFileSync(file, "BBBB")
-        else {
-          fs.writeFileSync(resolve(root, "replacement"), "BBBB")
-          fs.renameSync(resolve(root, "replacement"), file)
-        }
+        mutateFile(root, file, mutation)
       }
       return observed
     }
@@ -80,11 +84,7 @@ for (const mutation of ["write", "replace"])
     fs.readFileSync = (...args) => {
       const bytes = read(...args)
       if (typeof args[0] === "number" && fs.fstatSync(args[0]).ino === inode) {
-        if (mutation === "write") fs.writeFileSync(file, "BBBB")
-        else {
-          fs.writeFileSync(resolve(root, "replacement"), "BBBB")
-          fs.renameSync(resolve(root, "replacement"), file)
-        }
+        mutateFile(root, file, mutation)
       }
       return bytes
     }
