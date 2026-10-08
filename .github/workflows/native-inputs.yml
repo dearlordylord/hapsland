@@ -24,6 +24,7 @@ jobs:
         with:
           name: ${{ steps.bundle.outputs.name }}
           path: ${{ steps.bundle.outputs.directory }}
+          include-hidden-files: true
           retention-days: 30
           if-no-files-found: error
   darwin:
@@ -45,5 +46,6 @@ jobs:
         with:
           name: ${{ steps.bundle.outputs.name }}
           path: ${{ steps.bundle.outputs.directory }}
+          include-hidden-files: true
           retention-days: 30
           if-no-files-found: error
