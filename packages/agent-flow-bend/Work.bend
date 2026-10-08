@@ -11,10 +11,10 @@ type EmptyPrepared is Data:
   FailEmptyLost{}
 
 type EvaluatedDisposition is Data:
-  RetainFinding{}
-  SettleClear{}
-  SettleStaleClear{}
-  RetireStaleFinding{}
+  FindingRetained{}
+  ClearSettled{}
+  StaleClearSettled{}
+  StaleFindingRetired{}
 
 type FailureDisposition is Data:
   NoFailure{}
@@ -33,8 +33,8 @@ def empty_prepared(ready_count: Nat, has_non_skipped: Bool,
 
 def evaluated_disposition(has_findings: Bool, +current_work: Bool) -> EvaluatedDisposition:
   Bool.pick(EvaluatedDisposition, has_findings,
-    Bool.pick(EvaluatedDisposition, current_work, RetainFinding{}, RetireStaleFinding{}),
-    Bool.pick(EvaluatedDisposition, current_work, SettleClear{}, SettleStaleClear{}))
+    Bool.pick(EvaluatedDisposition, current_work, FindingRetained{}, StaleFindingRetired{}),
+    Bool.pick(EvaluatedDisposition, current_work, ClearSettled{}, StaleClearSettled{}))
 
 def failure_disposition(backend_or_timeout: Bool, credential: Bool,
     missing: Bool) -> FailureDisposition:

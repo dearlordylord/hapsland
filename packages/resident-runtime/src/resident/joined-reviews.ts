@@ -45,7 +45,7 @@ export const joinedReviewOperations = (
       staleUnavailable: revision !== undefined && revisions.generation(revision.subject) !== revision.generation,
       hasRevision: revision !== undefined,
       hasAdviceId: adviceId !== undefined && hasAdvice(adviceId)
-    }).commands[0]?.kind
+    }).outputs[0]?.kind
     if (!memberKind(disposition)) throw new Error("canonical reuse member disposition refused")
     return memberOutcomes[disposition]
   }

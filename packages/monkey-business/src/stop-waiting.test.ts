@@ -56,12 +56,12 @@ it.each([
   expect(issued).toMatchObject({ partition: 1, lifetime: 1, round: 1 })
   const waiting = run.observations.find((frame) => frame.event.kind === "stopPolled")!
   expect(waiting.time).toBe(3)
-  expect(waiting.commands.some((command) => command.kind === "waitForWork")).toBe(true)
+  expect(waiting.outputs.some((command) => command.kind === "waitForWork")).toBe(true)
   expect(run.observations.some((frame) => frame.event.kind === "finishReserve")).toBe(false)
   const restored = replay(run)
   for (const candidate of [run, restored]) candidate.advance({ untilTime: decision, maxEvents: 100 })
   expect(restored.observe()).toEqual(run.observe())
-  const ready = run.observations.find((frame) => frame.commands.some((command) => command.kind === "finishReady"))!
+  const ready = run.observations.find((frame) => frame.outputs.some((command) => command.kind === "finishReady"))!
   expect(ready.time).toBe(decision)
   expect(ready.event).toMatchObject({
     kind: "stopPolled",
@@ -76,7 +76,7 @@ it.each([
     .observe()
     .callbackTargets.find((target) => target.effect.kind === "jevSettled" && target.effect.request === issued.request)
   if (delay === 10) {
-    expect(ready.commands.some((command) => command.kind === "cancelWork")).toBe(true)
+    expect(ready.outputs.some((command) => command.kind === "cancelWork")).toBe(true)
     expect(run.observations.some((frame) => frame.event.kind === "jevRequestSettled")).toBe(false)
     expect(ready.before.work.some((work) => work.operation === issued.operation)).toBe(true)
     expect(
@@ -107,16 +107,18 @@ it.each([
   })
   if (delay === 10) {
     expect(callback.before.dispatch.requests).toContainEqual(originalRequest)
-    expect(callback.commands.map((command) => command.kind)).toEqual(["jevObservationIgnored"])
+    expect(callback.outputs.map((command) => command.kind)).toEqual(["jevObservationIgnored"])
     expect(callback.rejection).toBeUndefined()
     expect(callback.after.dispatch.requests).toEqual([])
     expect(callback.after.work).toEqual(callback.before.work)
     expect(callback.after.pendingFindings).toEqual([])
     expect(callback.after.global).toEqual({ items: 0, bytes: 0 })
     expect(
-      callback.commands.some(
+      callback.outputs.some(
         (command) =>
-          command.kind === "reviewRecorded" || command.kind === "collectionEligible" || command.kind === "retainFinding"
+          command.kind === "reviewRecorded" ||
+          command.kind === "collectionEligible" ||
+          command.kind === "findingRetained"
       )
     ).toBe(false)
     if (!lateTarget) throw new Error("missing original late callback receipt")
@@ -129,7 +131,7 @@ it.each([
     const duplicate = run.observations.filter((frame) => frame.event.kind === "jevRequestSettled")[1]
     expect(duplicate?.event).toEqual(callback.event)
     expect(duplicate?.rejection).toBe("StaleOperation")
-    expect(duplicate?.commands).toEqual([])
+    expect(duplicate?.outputs).toEqual([])
     expect(duplicate?.after).toEqual(duplicate?.before)
   }
   expect(run.projection.dispatch.requests).toEqual([])
@@ -150,9 +152,9 @@ it("keeps a pending preparation callback in its original scope after a Stop cuto
     ]
   })
   run.advance({ untilTime: 1, maxEvents: 100 })
-  expect(run.observations.some((frame) => frame.commands.some((command) => command.kind === "waitForWork"))).toBe(true)
+  expect(run.observations.some((frame) => frame.outputs.some((command) => command.kind === "waitForWork"))).toBe(true)
   run.advance({ untilTime: 3, maxEvents: 100 })
-  expect(run.observations.some((frame) => frame.commands.some((command) => command.kind === "cancelWork"))).toBe(true)
+  expect(run.observations.some((frame) => frame.outputs.some((command) => command.kind === "cancelWork"))).toBe(true)
   expect(run.observations.some((frame) => frame.event.kind === "preparationCompleted")).toBe(false)
   expect(run.observations.some((frame) => frame.event.kind === "jevRequestStarted")).toBe(false)
   replay(run)
@@ -219,14 +221,14 @@ it.each(["certain", "uncertain"] as const)(
         run.observations.map((frame) => ({
           time: frame.time,
           event: frame.event.kind,
-          commands: frame.commands.map((command) => command.kind)
+          outputs: frame.outputs.map((command) => command.kind)
         }))
       )
     ).toHaveLength(1)
     expect(
       run.observations
         .findLast((frame) => frame.event.kind === "stopPolled")
-        ?.commands.some((command) => command.kind === "waitForOutput")
+        ?.outputs.some((command) => command.kind === "waitForOutput")
     ).toBe(true)
     expect(run.observations.some((frame) => frame.event.kind === "finishAuthorize")).toBe(false)
     const restored = replay(run)

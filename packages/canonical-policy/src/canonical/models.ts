@@ -278,56 +278,69 @@ export const CanonicalProjectionSchema = Schema.suspend(() =>
 )
 export type CanonicalProjection = typeof CanonicalProjectionSchema.Type
 
-export const CanonicalCommandSchema = Schema.suspend(() =>
+export const CanonicalActionRequestSchema = Schema.suspend(() =>
   Schema.Union([
-    Schema.Struct({ kind: Schema.Literal("capacityGranted"), id: Nat, after: CapacityViewSchema }),
     Schema.Struct({
-      kind: Schema.Literal("capacityRefused"),
-      reason: CapacityRefusalSchema,
+      category: Schema.Literal("request"),
+      kind: Schema.Literal("prepare"),
+      operation: Nat,
+      reservation: Nat
+    }),
+    Schema.Struct({ category: Schema.Literal("request"), kind: Schema.Literal("cancelWork"), operation: Nat }),
+    Schema.Struct({ category: Schema.Literal("request"), kind: Schema.Literal("createNoticeKey") })
+  ])
+)
+export type CanonicalActionRequest = typeof CanonicalActionRequestSchema.Type
+
+export const CanonicalDomainEventSchema = Schema.suspend(() =>
+  Schema.Union([
+    Schema.Struct({
+      category: Schema.Literal("event"),
+      kind: Schema.Literal("capacityGranted"),
+      id: Nat,
       after: CapacityViewSchema
     }),
-    Schema.Struct({ kind: Schema.Literal("capacityResized"), id: Nat, after: CapacityViewSchema }),
     Schema.Struct({
+      category: Schema.Literal("event"),
+      kind: Schema.Literal("capacityResized"),
+      id: Nat,
+      after: CapacityViewSchema
+    }),
+    Schema.Struct({
+      category: Schema.Literal("event"),
       kind: Schema.Literal("capacityUnitAdmitted"),
       reservation: Nat,
       position: Nat,
       bytes: Nat,
       after: CapacityViewSchema
     }),
+    Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("permitIssued"), token: Nat, round: Nat }),
     Schema.Struct({
-      kind: Schema.Literal("capacityUnitRefused"),
-      position: Nat,
-      bytes: Nat,
-      reason: CapacityRefusalSchema,
-      after: CapacityViewSchema
-    }),
-    Schema.Struct({ kind: Schema.Literal("permitIssued"), token: Nat, round: Nat }),
-    Schema.Struct({ kind: Schema.Literal("completedEditAbsent") }),
-    Schema.Struct({
+      category: Schema.Literal("event"),
       kind: Schema.Literal("completedEditSeen"),
       reason: CompletedEditReasonSchema,
       report: Schema.Boolean
     }),
-    Schema.Struct({ kind: Schema.Literal("completedEditRemembered"), evicted: Schema.optionalKey(Nat) }),
     Schema.Struct({
+      category: Schema.Literal("event"),
+      kind: Schema.Literal("completedEditRemembered"),
+      evicted: Schema.optionalKey(Nat)
+    }),
+    Schema.Struct({
+      category: Schema.Literal("event"),
       kind: Schema.Union([Schema.Literal("quietRoundBusy"), Schema.Literal("quietRoundResetRecorded")])
     }),
+    Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("quietRoundWaiting"), since: Nat }),
+    Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("permitConsumed"), round: Nat }),
     Schema.Struct({
-      kind: Schema.Union([Schema.Literal("quietRoundWaiting"), Schema.Literal("quietRoundExpired")]),
-      since: Nat
+      category: Schema.Literal("event"),
+      kind: Schema.Union([Schema.Literal("permitReleased"), Schema.Literal("permitExpired")])
     }),
-    Schema.Struct({ kind: Schema.Literal("permitConsumed"), round: Nat }),
+    Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("permitRoundClosed"), round: Nat }),
+    Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("roundStarted"), id: Nat }),
+    Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("observationAdmitted"), id: Nat }),
     Schema.Struct({
-      kind: Schema.Union([
-        Schema.Literal("permitReleased"),
-        Schema.Literal("permitExpired"),
-        Schema.Literal("permitKept")
-      ])
-    }),
-    Schema.Struct({ kind: Schema.Literal("permitRoundClosed"), round: Nat }),
-    Schema.Struct({ kind: Schema.Literal("roundStarted"), id: Nat }),
-    Schema.Struct({ kind: Schema.Literal("observationAdmitted"), id: Nat }),
-    Schema.Struct({
+      category: Schema.Literal("event"),
       kind: Schema.Union([
         Schema.Literal("observationStarted"),
         Schema.Literal("observationCompleted"),
@@ -336,6 +349,7 @@ export const CanonicalCommandSchema = Schema.suspend(() =>
       ])
     }),
     Schema.Struct({
+      category: Schema.Literal("event"),
       kind: Schema.Literal("jevRequestIssued"),
       partition: Nat,
       lifetime: Nat,
@@ -344,17 +358,16 @@ export const CanonicalCommandSchema = Schema.suspend(() =>
       request: Nat
     }),
     Schema.Struct({
-      kind: Schema.Union([
-        Schema.Literal("jevRequestUnavailable"),
-        Schema.Literal("jevRequestStartRecorded"),
-        Schema.Literal("jevInterruptionRecorded"),
-        Schema.Literal("jevObservationIgnored")
-      ])
+      category: Schema.Literal("event"),
+      kind: Schema.Union([Schema.Literal("jevRequestStartRecorded"), Schema.Literal("jevInterruptionRecorded")])
     }),
-    Schema.Struct({ kind: Schema.Literal("jevRequestOutcomeRecorded"), outcome: JevRequestOutcomeSchema }),
-    Schema.Struct({ kind: Schema.Literal("prepare"), operation: Nat, reservation: Nat }),
-    Schema.Struct({ kind: Schema.Literal("preparationRefused") }),
     Schema.Struct({
+      category: Schema.Literal("event"),
+      kind: Schema.Literal("jevRequestOutcomeRecorded"),
+      outcome: JevRequestOutcomeSchema
+    }),
+    Schema.Struct({
+      category: Schema.Literal("event"),
       kind: Schema.Literal("unitAdmitted"),
       operation: Nat,
       reservation: Nat,
@@ -363,15 +376,14 @@ export const CanonicalCommandSchema = Schema.suspend(() =>
       after: CapacityViewSchema
     }),
     Schema.Struct({
-      kind: Schema.Literal("unitRefused"),
-      position: Nat,
-      bytes: Nat,
-      reason: CapacityRefusalSchema,
+      category: Schema.Literal("event"),
+      kind: Schema.Literal("preparationReleased"),
+      id: Nat,
       after: CapacityViewSchema
     }),
-    Schema.Struct({ kind: Schema.Literal("preparationReleased"), id: Nat, after: CapacityViewSchema }),
-    Schema.Struct({ kind: Schema.Literal("reservationReleased"), id: Nat }),
+    Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("reservationReleased"), id: Nat }),
     Schema.Struct({
+      category: Schema.Literal("event"),
       kind: Schema.Literal("reviewRecorded"),
       outcome: Schema.Union([
         Schema.Literal("finding"),
@@ -382,15 +394,171 @@ export const CanonicalCommandSchema = Schema.suspend(() =>
       ])
     }),
     Schema.Struct({
+      category: Schema.Literal("event"),
       kind: Schema.Union([
-        Schema.Literal("retainFinding"),
-        Schema.Literal("settleClear"),
-        Schema.Literal("settleStaleClear"),
-        Schema.Literal("retireStaleFinding"),
+        Schema.Literal("findingRetained"),
+        Schema.Literal("clearSettled"),
+        Schema.Literal("staleClearSettled"),
+        Schema.Literal("staleFindingRetired"),
         Schema.Literal("findingCountRecorded")
       ])
     }),
     Schema.Struct({
+      category: Schema.Literal("event"),
+      kind: Schema.Literal("dispatchStarted"),
+      operation: Nat,
+      sequence: Nat
+    }),
+    Schema.Struct({
+      category: Schema.Literal("event"),
+      kind: Schema.Literal("dispatchDiscarded"),
+      operation: Nat,
+      running: Schema.Boolean
+    }),
+    Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("waitForWork") }),
+    Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("finishReady") }),
+    Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("finishLimit") }),
+    Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("stopEnded") }),
+    Schema.Struct({
+      category: Schema.Literal("event"),
+      kind: Schema.Union([
+        Schema.Literal("collectionEligible"),
+        Schema.Literal("collectionLeaseReserved"),
+        Schema.Literal("collectionLeaseReleased"),
+        Schema.Literal("collectionAdviceRetired"),
+        Schema.Literal("collectionBackgroundClaimed"),
+        Schema.Literal("collectionBackgroundReleased")
+      ])
+    }),
+    Schema.Struct({
+      category: Schema.Literal("event"),
+      kind: Schema.Union([
+        Schema.Literal("finishReserved"),
+        Schema.Literal("finishReleased"),
+        Schema.Literal("finishAuthorized"),
+        Schema.Literal("finishEnded"),
+        Schema.Literal("continuationConsumed")
+      ])
+    }),
+    Schema.Struct({
+      category: Schema.Literal("event"),
+      kind: Schema.Literal("finishRecorded"),
+      outcome: Schema.Union([Schema.Literal("acknowledged"), Schema.Literal("failed"), Schema.Literal("unknown")])
+    }),
+    Schema.Struct({
+      category: Schema.Literal("event"),
+      kind: Schema.Union([
+        Schema.Literal("submissionBegun"),
+        Schema.Literal("submissionAuthorized"),
+        Schema.Literal("submissionRecorded"),
+        Schema.Literal("submissionReleased"),
+        Schema.Literal("submissionForgotten")
+      ])
+    }),
+    Schema.Struct({
+      category: Schema.Literal("event"),
+      kind: Schema.Union([Schema.Literal("revisionReused"), Schema.Literal("revisionReplaced")]),
+      generation: Nat
+    }),
+    Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("revisionReleased") }),
+    Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("cleanupCommitted") }),
+    Schema.Struct({
+      category: Schema.Literal("event"),
+      kind: Schema.Union([
+        Schema.Literal("reuseAdviceJoined"),
+        Schema.Literal("reusePendingJoined"),
+        Schema.Literal("reuseClaimedJoined"),
+        Schema.Literal("reuseCacheHit"),
+        Schema.Literal("reuseOwned"),
+        Schema.Literal("reuseClaimed"),
+        Schema.Literal("reuseAttached"),
+        Schema.Literal("reuseReleased"),
+        Schema.Literal("cacheCommitted")
+      ])
+    }),
+    Schema.Struct({
+      category: Schema.Literal("event"),
+      kind: Schema.Literal("cachePrepared"),
+      evicted: boundedArray(Nat, 2048)
+    }),
+    Schema.Struct({
+      category: Schema.Literal("event"),
+      kind: Schema.Literal("cacheDiscarded"),
+      ids: boundedArray(Nat, 2048)
+    }),
+    Schema.Struct({
+      category: Schema.Literal("event"),
+      kind: Schema.Union([
+        Schema.Literal("noticeSuppressed"),
+        Schema.Literal("noticePendingCreated"),
+        Schema.Literal("noticePendingMerged")
+      ]),
+      count: Nat
+    }),
+    Schema.Struct({
+      category: Schema.Literal("event"),
+      kind: Schema.Literal("noticePruned"),
+      dropLease: Schema.Boolean,
+      dropPending: Schema.Boolean,
+      dropKey: Schema.Boolean
+    }),
+    Schema.Struct({
+      category: Schema.Literal("event"),
+      kind: Schema.Union([
+        Schema.Literal("noticeLeaseKept"),
+        Schema.Literal("noticeCommitted"),
+        Schema.Literal("noticeDropped"),
+        Schema.Literal("noticeLeased"),
+        Schema.Literal("noticePendingCleared")
+      ])
+    }),
+    Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("writeAuthorized"), operation: Nat }),
+    Schema.Struct({
+      category: Schema.Literal("event"),
+      kind: Schema.Literal("writeRecorded"),
+      outcome: Schema.Union([Schema.Literal("acknowledged"), Schema.Literal("failed"), Schema.Literal("unknown")])
+    }),
+    Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("reofferAtStop") }),
+    Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("partitionRetired"), round: Nat }),
+    Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("admissionForgotten") })
+  ])
+)
+export type CanonicalDomainEvent = typeof CanonicalDomainEventSchema.Type
+
+export const CanonicalPolicyDecisionSchema = Schema.suspend(() =>
+  Schema.Union([
+    Schema.Struct({
+      category: Schema.Literal("decision"),
+      kind: Schema.Literal("capacityRefused"),
+      reason: CapacityRefusalSchema,
+      after: CapacityViewSchema
+    }),
+    Schema.Struct({
+      category: Schema.Literal("decision"),
+      kind: Schema.Literal("capacityUnitRefused"),
+      position: Nat,
+      bytes: Nat,
+      reason: CapacityRefusalSchema,
+      after: CapacityViewSchema
+    }),
+    Schema.Struct({ category: Schema.Literal("decision"), kind: Schema.Literal("completedEditAbsent") }),
+    Schema.Struct({ category: Schema.Literal("decision"), kind: Schema.Literal("quietRoundExpired"), since: Nat }),
+    Schema.Struct({ category: Schema.Literal("decision"), kind: Schema.Literal("permitKept") }),
+    Schema.Struct({
+      category: Schema.Literal("decision"),
+      kind: Schema.Union([Schema.Literal("jevRequestUnavailable"), Schema.Literal("jevObservationIgnored")])
+    }),
+    Schema.Struct({ category: Schema.Literal("decision"), kind: Schema.Literal("preparationRefused") }),
+    Schema.Struct({
+      category: Schema.Literal("decision"),
+      kind: Schema.Literal("unitRefused"),
+      position: Nat,
+      bytes: Nat,
+      reason: CapacityRefusalSchema,
+      after: CapacityViewSchema
+    }),
+    Schema.Struct({
+      category: Schema.Literal("decision"),
       kind: Schema.Union([
         Schema.Literal("preparedSkipped"),
         Schema.Literal("preparedAdmitted"),
@@ -403,17 +571,13 @@ export const CanonicalCommandSchema = Schema.suspend(() =>
         Schema.Literal("failureNone")
       ])
     }),
-    Schema.Struct({ kind: Schema.Literal("dispatchStarted"), operation: Nat, sequence: Nat }),
-    Schema.Struct({ kind: Schema.Literal("dispatchDiscarded"), operation: Nat, running: Schema.Boolean }),
-    Schema.Struct({ kind: Schema.Union([Schema.Literal("discardNamedOnly"), Schema.Literal("discardAllUnfinished")]) }),
-    Schema.Struct({ kind: Schema.Literal("waitForWork") }),
-    Schema.Struct({ kind: Schema.Literal("cancelWork"), operation: Nat }),
-    Schema.Struct({ kind: Schema.Literal("finishReady") }),
-    Schema.Struct({ kind: Schema.Literal("finishLimit") }),
-    Schema.Struct({ kind: Schema.Literal("stopEnded") }),
     Schema.Struct({
+      category: Schema.Literal("decision"),
+      kind: Schema.Union([Schema.Literal("discardNamedOnly"), Schema.Literal("discardAllUnfinished")])
+    }),
+    Schema.Struct({
+      category: Schema.Literal("decision"),
       kind: Schema.Union([
-        Schema.Literal("collectionEligible"),
         Schema.Literal("collectionWaiting"),
         Schema.Literal("collectionRetireCredential"),
         Schema.Literal("collectionRetainCredential"),
@@ -433,44 +597,27 @@ export const CanonicalCommandSchema = Schema.suspend(() =>
         Schema.Literal("collectionNoticeIncluded"),
         Schema.Literal("collectionNoticeSkipped"),
         Schema.Literal("collectionNoticeStopped"),
-        Schema.Literal("collectionLeaseReserved"),
         Schema.Literal("collectionLeaseRefused"),
-        Schema.Literal("collectionLeaseReleased"),
         Schema.Literal("collectionLeaseKept"),
-        Schema.Literal("collectionAdviceRetired"),
-        Schema.Literal("collectionBackgroundClaimed"),
         Schema.Literal("collectionBackgroundRefused"),
-        Schema.Literal("collectionBackgroundReleased"),
         Schema.Literal("collectionBackgroundKept")
       ])
     }),
     Schema.Struct({
+      category: Schema.Literal("decision"),
       kind: Schema.Union([
-        Schema.Literal("finishReserved"),
         Schema.Literal("finishNotices"),
         Schema.Literal("finishAllowedNoAdvice"),
         Schema.Literal("finishAllowedDeadline"),
         Schema.Literal("finishAllowedUnavailable"),
         Schema.Literal("finishRefused"),
-        Schema.Literal("finishReleased"),
-        Schema.Literal("finishAuthorized"),
-        Schema.Literal("finishEnded"),
-        Schema.Literal("continuationConsumed"),
         Schema.Literal("continuationRefused")
       ])
     }),
     Schema.Struct({
-      kind: Schema.Literal("finishRecorded"),
-      outcome: Schema.Union([Schema.Literal("acknowledged"), Schema.Literal("failed"), Schema.Literal("unknown")])
-    }),
-    Schema.Struct({
+      category: Schema.Literal("decision"),
       kind: Schema.Union([
-        Schema.Literal("submissionBegun"),
-        Schema.Literal("submissionAuthorized"),
-        Schema.Literal("submissionRecorded"),
-        Schema.Literal("submissionReleased"),
         Schema.Literal("submissionRefused"),
-        Schema.Literal("submissionForgotten"),
         Schema.Literal("submissionSuppresses"),
         Schema.Literal("submissionUnsuppressed"),
         Schema.Literal("submissionReofferable"),
@@ -480,17 +627,14 @@ export const CanonicalCommandSchema = Schema.suspend(() =>
       ])
     }),
     Schema.Struct({
-      kind: Schema.Union([
-        Schema.Literal("revisionReused"),
-        Schema.Literal("revisionReplaced"),
-        Schema.Literal("revisionGeneration")
-      ]),
+      category: Schema.Literal("decision"),
+      kind: Schema.Literal("revisionGeneration"),
       generation: Nat
     }),
-    Schema.Struct({ kind: Schema.Literal("revisionCount"), count: Nat }),
+    Schema.Struct({ category: Schema.Literal("decision"), kind: Schema.Literal("revisionCount"), count: Nat }),
     Schema.Struct({
+      category: Schema.Literal("decision"),
       kind: Schema.Union([
-        Schema.Literal("revisionReleased"),
         Schema.Literal("revisionCurrent"),
         Schema.Literal("revisionStale"),
         Schema.Literal("revisionSuperseded"),
@@ -498,6 +642,7 @@ export const CanonicalCommandSchema = Schema.suspend(() =>
       ])
     }),
     Schema.Struct({
+      category: Schema.Literal("decision"),
       kind: Schema.Union([
         Schema.Literal("collectorProceed"),
         Schema.Literal("collectorFinalProceed"),
@@ -509,17 +654,22 @@ export const CanonicalCommandSchema = Schema.suspend(() =>
         Schema.Literal("reuseSetMemberLost")
       ])
     }),
-    Schema.Struct({ kind: Schema.Literal("collectorUnavailable"), reason: CollectorReasonSchema }),
     Schema.Struct({
+      category: Schema.Literal("decision"),
+      kind: Schema.Literal("collectorUnavailable"),
+      reason: CollectorReasonSchema
+    }),
+    Schema.Struct({
+      category: Schema.Literal("decision"),
       kind: Schema.Union([
         Schema.Literal("cleanupReady"),
         Schema.Literal("cleanupBusy"),
-        Schema.Literal("cleanupCommitted"),
         Schema.Literal("deliveryReleaseUnacknowledged"),
         Schema.Literal("deliveryKeepAcknowledged")
       ])
     }),
     Schema.Struct({
+      category: Schema.Literal("decision"),
       kind: Schema.Union([
         Schema.Literal("deliveryAckReady"),
         Schema.Literal("deliveryAckExpired"),
@@ -533,6 +683,7 @@ export const CanonicalCommandSchema = Schema.suspend(() =>
       ])
     }),
     Schema.Struct({
+      category: Schema.Literal("decision"),
       kind: Schema.Union([
         Schema.Literal("deliverySubmissionCandidate"),
         Schema.Literal("deliverySubmissionRefused"),
@@ -543,6 +694,7 @@ export const CanonicalCommandSchema = Schema.suspend(() =>
       ])
     }),
     Schema.Struct({
+      category: Schema.Literal("decision"),
       kind: Schema.Union([
         Schema.Literal("ignoreCandidate"),
         Schema.Literal("releaseCandidate"),
@@ -552,6 +704,7 @@ export const CanonicalCommandSchema = Schema.suspend(() =>
       ])
     }),
     Schema.Struct({
+      category: Schema.Literal("decision"),
       kind: Schema.Union([
         Schema.Literal("roundStopBegun"),
         Schema.Literal("roundStopRefused"),
@@ -574,48 +727,31 @@ export const CanonicalCommandSchema = Schema.suspend(() =>
       ])
     }),
     Schema.Struct({
+      category: Schema.Literal("decision"),
       kind: Schema.Literal("roundStopTerminal"),
       revokeProvisional: Schema.Boolean,
       close: Schema.Boolean
     }),
     Schema.Struct({
+      category: Schema.Literal("decision"),
       kind: Schema.Union([
-        Schema.Literal("reuseJoinAdvice"),
-        Schema.Literal("reuseJoinPending"),
-        Schema.Literal("reuseJoinClaimed"),
-        Schema.Literal("reuseCached"),
-        Schema.Literal("reuseOwn"),
-        Schema.Literal("reuseClaimed"),
-        Schema.Literal("reuseAttached"),
-        Schema.Literal("reuseReleased"),
         Schema.Literal("reuseRefused"),
         Schema.Literal("cacheAlready"),
-        Schema.Literal("cacheRejected"),
-        Schema.Literal("cacheCommitted")
+        Schema.Literal("cacheRejected")
       ])
     }),
-    Schema.Struct({ kind: Schema.Literal("cachePrepared"), evicted: boundedArray(Nat, 2048) }),
-    Schema.Struct({ kind: Schema.Literal("cacheDiscarded"), ids: boundedArray(Nat, 2048) }),
     Schema.Struct({
-      kind: Schema.Union([
-        Schema.Literal("noticeSuppressed"),
-        Schema.Literal("noticeCreatePending"),
-        Schema.Literal("noticeMergePending")
-      ]),
-      count: Nat
+      category: Schema.Literal("decision"),
+      kind: Schema.Literal("noticeSelected"),
+      ids: boundedArray(Nat, 2048)
     }),
     Schema.Struct({
-      kind: Schema.Literal("noticePruned"),
-      dropLease: Schema.Boolean,
-      dropPending: Schema.Boolean,
-      dropKey: Schema.Boolean
-    }),
-    Schema.Struct({ kind: Schema.Literal("noticeSelected"), ids: boundedArray(Nat, 2048) }),
-    Schema.Struct({
+      category: Schema.Literal("decision"),
       kind: Schema.Literal("includeChoice"),
       choice: Schema.Union([Schema.Literal("replaceIncludes"), Schema.Literal("keepIncludes")])
     }),
     Schema.Struct({
+      category: Schema.Literal("decision"),
       kind: Schema.Literal("fileSelection"),
       selection: Schema.Union([
         Schema.Literal("protected"),
@@ -626,6 +762,7 @@ export const CanonicalCommandSchema = Schema.suspend(() =>
       ])
     }),
     Schema.Struct({
+      category: Schema.Literal("decision"),
       kind: Schema.Literal("fileProtection"),
       protection: Schema.Union([
         Schema.Literal("allowedPath"),
@@ -636,6 +773,7 @@ export const CanonicalCommandSchema = Schema.suspend(() =>
       ])
     }),
     Schema.Struct({
+      category: Schema.Literal("decision"),
       kind: Schema.Literal("candidateFile"),
       candidate: Schema.Union([
         Schema.Literal("candidateAllowed"),
@@ -645,6 +783,7 @@ export const CanonicalCommandSchema = Schema.suspend(() =>
       ])
     }),
     Schema.Struct({
+      category: Schema.Literal("decision"),
       kind: Schema.Literal("reviewAdmission"),
       admission: Schema.Union([
         Schema.Literal("admitReview"),
@@ -655,37 +794,30 @@ export const CanonicalCommandSchema = Schema.suspend(() =>
       ])
     }),
     Schema.Struct({
+      category: Schema.Literal("decision"),
       kind: Schema.Literal("ruleGate"),
       gate: Schema.Union([Schema.Literal("admit"), Schema.Literal("omit")])
     }),
     Schema.Struct({
+      category: Schema.Literal("decision"),
       kind: Schema.Literal("ruleOrder"),
       order: Schema.Union([Schema.Literal("before"), Schema.Literal("equal"), Schema.Literal("after")])
     }),
     Schema.Struct({
-      kind: Schema.Union([
-        Schema.Literal("noticeRejectedFull"),
-        Schema.Literal("noticeCreateKey"),
-        Schema.Literal("noticeKeepLeased"),
-        Schema.Literal("noticeRefused"),
-        Schema.Literal("noticeCommitted"),
-        Schema.Literal("noticeDropped"),
-        Schema.Literal("noticeLeased"),
-        Schema.Literal("noticePendingCleared")
-      ])
+      category: Schema.Literal("decision"),
+      kind: Schema.Union([Schema.Literal("noticeRejectedFull"), Schema.Literal("noticeRefused")])
     }),
-    Schema.Struct({ kind: Schema.Literal("writeAuthorized"), operation: Nat }),
-    Schema.Struct({
-      kind: Schema.Literal("writeRecorded"),
-      outcome: Schema.Union([Schema.Literal("acknowledged"), Schema.Literal("failed"), Schema.Literal("unknown")])
-    }),
-    Schema.Struct({ kind: Schema.Literal("waitForOutput") }),
-    Schema.Struct({ kind: Schema.Literal("reofferAtStop") }),
-    Schema.Struct({ kind: Schema.Literal("partitionRetired"), round: Nat }),
-    Schema.Struct({ kind: Schema.Literal("admissionForgotten") })
+    Schema.Struct({ category: Schema.Literal("decision"), kind: Schema.Literal("waitForOutput") })
   ])
 )
-export type CanonicalCommand = typeof CanonicalCommandSchema.Type
+export type CanonicalPolicyDecision = typeof CanonicalPolicyDecisionSchema.Type
+
+export const CanonicalOutputSchema = Schema.Union([
+  CanonicalActionRequestSchema,
+  CanonicalDomainEventSchema,
+  CanonicalPolicyDecisionSchema
+])
+export type CanonicalOutput = typeof CanonicalOutputSchema.Type
 
 export const CanonicalEventSchema = Schema.Union([
   Schema.Struct({

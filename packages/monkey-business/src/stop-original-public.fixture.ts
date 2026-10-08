@@ -51,7 +51,7 @@ export function originalWaitingStopPublic() {
       const waiting = run.observations.find((frame) => frame.event.kind === "stopPolled")
       assert.equal(waiting?.time, 3, "original Stop starts at the caller boundary")
       assert.equal(
-        waiting?.commands.some((command) => command.kind === "waitForWork"),
+        waiting?.outputs.some((command) => command.kind === "waitForWork"),
         true
       )
       assert.equal(
@@ -59,7 +59,7 @@ export function originalWaitingStopPublic() {
         false
       )
     } else if (endpoint === 10) {
-      const ready = run.observations.find((frame) => frame.commands.some((command) => command.kind === "finishReady"))
+      const ready = run.observations.find((frame) => frame.outputs.some((command) => command.kind === "finishReady"))
       assert.equal(ready?.time, 10, "real settlement wakes Stop before original cutoff11")
       assert.equal(
         run.observations.some((frame) => frame.event.kind === "finishAuthorize"),

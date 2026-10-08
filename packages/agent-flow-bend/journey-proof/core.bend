@@ -39,7 +39,7 @@ def work(state: Canonical.State) -> List<&2, Canonical.Work>:
 
 def collection_eligible(step: Canonical.Step) -> Bool:
   match step:
-    case Canonical.Advanced{_, Canonical.CollectionEligible{} <> Nil{}}: True{}
+    case Canonical.Advanced{_, Canonical.EventEstablished{Canonical.CollectionEligible{}} <> Nil{}}: True{}
     case _: False{}
 
 # Freshness and finding ownership are separate premises at this boundary.
@@ -179,43 +179,53 @@ def required(event: Canonical.CanonicalEvent) -> Required:
     case Canonical.CollectionReleaseLease{_, _}: NeedCollectionReleaseLease{}
     case _: NoCommand{}
 
-def command_matches(required: Required, command: Canonical.Command) -> Bool:
+def command_matches(required: Required, command: Canonical.Output) -> Bool:
   match required command:
-    case NeedIssuePermit{} Canonical.PermitIssued{_, _}: True{}
-    case NeedConsumePermit{} Canonical.PermitConsumed{_}: True{}
-    case NeedAdmitObservation{} Canonical.ObservationAdmitted{_}: True{}
-    case NeedQueueDispatch{} Canonical.DispatchStarted{_, _}: True{}
-    case NeedStartObservation{} Canonical.ObservationStarted{}: True{}
-    case NeedBeginObservedPreparation{} Canonical.Prepare{_, _}: True{}
-    case NeedPreparationCompleted{} Canonical.UnitAdmitted{_, _, _, _, _}: True{}
-    case NeedCompleteObservation{} Canonical.ObservationCompleted{}: True{}
-    case NeedJevRequestReady{} Canonical.JevRequestIssued{_, _, _, _, _}: True{}
-    case NeedJevRequestStarted{} Canonical.JevRequestStartRecorded{}: True{}
-    case NeedJevRequestInterrupted{} Canonical.JevInterruptionRecorded{}: True{}
-    case NeedJevRequestSettled{} Canonical.JevRequestOutcomeRecorded{_}: True{}
-    case NeedCollectionReady{} Canonical.CollectionEligible{}: True{}
-    case NeedCollectionReserveLease{} Canonical.CollectionLeaseReserved{}: True{}
-    case NeedSubmissionBegin{} Canonical.SubmissionBegun{}: True{}
-    case NeedSubmissionAuthorize{} Canonical.SubmissionAuthorized{}: True{}
-    case NeedSubmissionTerminal{} Canonical.SubmissionRecorded{}: True{}
-    case NeedCollectionReleaseLease{} Canonical.CollectionLeaseReleased{}: True{}
+    case NeedIssuePermit{} Canonical.EventEstablished{Canonical.PermitIssued{_, _}}: True{}
+    case NeedConsumePermit{} Canonical.EventEstablished{Canonical.PermitConsumed{_}}: True{}
+    case NeedAdmitObservation{} Canonical.EventEstablished{Canonical.ObservationAdmitted{_}}: True{}
+    case NeedQueueDispatch{} Canonical.EventEstablished{Canonical.DispatchStarted{_, _}}: True{}
+    case NeedStartObservation{} Canonical.EventEstablished{Canonical.ObservationStarted{}}: True{}
+    case NeedBeginObservedPreparation{} Canonical.ActionRequested{Canonical.Prepare{_, _}}: True{}
+    case NeedPreparationCompleted{} Canonical.EventEstablished{
+      Canonical.UnitAdmitted{_, _, _, _, _}
+    }: True{}
+    case NeedCompleteObservation{} Canonical.EventEstablished{Canonical.ObservationCompleted{}}: True{}
+    case NeedJevRequestReady{} Canonical.EventEstablished{
+      Canonical.JevRequestIssued{_, _, _, _, _}
+    }: True{}
+    case NeedJevRequestStarted{} Canonical.EventEstablished{Canonical.JevRequestStartRecorded{}}: True{}
+    case NeedJevRequestInterrupted{} Canonical.EventEstablished{
+      Canonical.JevInterruptionRecorded{}
+    }: True{}
+    case NeedJevRequestSettled{} Canonical.EventEstablished{Canonical.JevRequestOutcomeRecorded{_}}: True{}
+    case NeedCollectionReady{} Canonical.EventEstablished{Canonical.CollectionEligible{}}: True{}
+    case NeedCollectionReserveLease{} Canonical.EventEstablished{
+      Canonical.CollectionLeaseReserved{}
+    }: True{}
+    case NeedSubmissionBegin{} Canonical.EventEstablished{Canonical.SubmissionBegun{}}: True{}
+    case NeedSubmissionAuthorize{} Canonical.EventEstablished{Canonical.SubmissionAuthorized{}}: True{}
+    case NeedSubmissionTerminal{} Canonical.EventEstablished{Canonical.SubmissionRecorded{}}: True{}
+    case NeedCollectionReleaseLease{} Canonical.EventEstablished{
+      Canonical.CollectionLeaseReleased{}
+    }: True{}
     case _ _: False{}
 
-def has_command(+required: Required, commands: List<&2, Canonical.Command>) -> Bool:
-  match commands:
+def has_command(+required: Required, outputs: List<&2, Canonical.Output>) -> Bool:
+  match outputs:
     case Nil{}: False{}
     case command <> rest: Bool.or(command_matches(required, command), has_command(required, rest))
 
-def commands_ready(+required: Required, commands: List<&2, Canonical.Command>) -> Bool:
+def commands_ready(+required: Required, outputs: List<&2, Canonical.Output>) -> Bool:
   match required:
     case NoCommand{}: True{}
-    case _: has_command(required, commands)
+    case _: has_command(required, outputs)
 
 def event_state(+event: Canonical.CanonicalEvent, step: Canonical.Step) -> Maybe<&2,
   Canonical.State>:
   match step:
-    case Canonical.Advanced{state, commands}: Bool.pick(Maybe<&2, Canonical.State>,
-      commands_ready(required(event), commands), Some{state}, None{})
+    case Canonical.Advanced{state, outputs}: Bool.pick(Maybe<&2, Canonical.State>,
+      commands_ready(required(event), outputs), Some{state}, None{})
     case Canonical.Rejected{_, _}: None{}
 
 # A trace fails at the first rejected production transition.

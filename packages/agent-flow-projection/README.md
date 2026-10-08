@@ -4,14 +4,16 @@
 **Status:** Active package documentation.
 **Authority:** Maintained implementation guidance; the canonical reducer and accepted product specifications remain authoritative.
 **Expected use:** Use this package to locate checked records in conceptual flow stages and explain an accepted canonical step.
-**Lifecycle:** Maintain with the projection API and canonical adapter. Review when canonical fields, events, commands, or the displayed flow stages change.
+**Lifecycle:** Maintain with the projection API and canonical adapter. Review when canonical fields, events, outputs, or the displayed flow stages change.
 
 `projectFlowStep` reads the checked projection before and after one canonical event,
-the event, emitted commands, and any rejection. It reports identified stage
+the event, ordered outputs, and any rejection. It reports identified stage
 movements, source boundaries, and which stages changed. `locateFlow` reports the
 current stage of identified work, dispatch entries, Jev requests, advice, output,
-and rounds. An emitted command is evidence of a decision, not evidence that a
-native effect or storage succeeded.
+and rounds. Outputs retain their typed categories: action requests, established canonical
+events, and policy decisions. An action request does not establish that its
+native effect succeeded. An established event describes the canonical transition;
+native effects still require their own supplied observations.
 
 `numberRecords` derives separate source-read, preparation, review-item,
 Jev-request, advice, and per-purpose capacity-charge ordinals from accepted state transitions. These are

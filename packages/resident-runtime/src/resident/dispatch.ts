@@ -46,7 +46,7 @@ export interface DispatchState<K, A> {
   ) => Effect.Effect<B>
 }
 
-/** Scoped execution of Bend commands, with native handles registered at commit. */
+/** Scoped execution of Bend outputs, with native handles registered at commit. */
 export const makeDispatcher = <K, A>(
   ledger: {
     readonly canonicalProjection: () => Effect.Effect<ReturnType<CapacityLedger["canonicalProjection"]>>
@@ -117,9 +117,9 @@ export const makeDispatcher = <K, A>(
       if (entry === undefined) throw new Error("canonical dispatch discarded unknown job")
       return entry
     }
-    const applyDispatchCommand = (
+    const reactToDispatchOutput = (
       draft: DispatchDraft,
-      command: ReturnType<CapacityLedger["transition"]>["commands"][number]
+      command: ReturnType<CapacityLedger["transition"]>["outputs"][number]
     ): void => {
       switch (command.kind) {
         case "dispatchStarted":
@@ -130,7 +130,7 @@ export const makeDispatcher = <K, A>(
           if (!command.running) draft.entries.delete(command.operation)
           return
         default:
-          throw new Error("unexpected canonical dispatch command")
+          throw new Error("unexpected canonical dispatch output")
       }
     }
     const updateIdle = Effect.fn("ResidentDispatch.updateIdle")(function* () {
@@ -159,7 +159,7 @@ export const makeDispatcher = <K, A>(
           admitHandle(draft, admitted)
           settleHandle(draft, settled)
           closeHandleRegistry(draft, event, owner)
-          for (const command of result.commands) applyDispatchCommand(draft, command)
+          for (const command of result.outputs) reactToDispatchOutput(draft, command)
           discarded = draft.discarded
           next = {
             ...current,
@@ -179,7 +179,7 @@ export const makeDispatcher = <K, A>(
       })
     })
     const startCommitted: () => Effect.Effect<void> = Effect.fn("ResidentDispatch.startCommitted")(function* () {
-      // Retained commands and an uninterruptible claim/fork handoff protect jobs
+      // Retained outputs and an uninterruptible claim/fork handoff protect jobs
       // from caller interruption between authorization and resident-owned startup.
       yield* Effect.uninterruptible(
         Effect.gen(function* () {

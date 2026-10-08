@@ -1,5 +1,4 @@
 import { Schema } from "effect"
-import { isDeepStrictEqual } from "node:util"
 import {
   boundedArray,
   decoder,
@@ -27,6 +26,33 @@ import { decodeCallbackTarget, validateCallbackControl } from "./callback-contro
 import { decodeAdviceeLifecycles } from "./advicee-lifecycle.ts"
 import { type RunObservation } from "./index.ts"
 
+// Native event DTOs contain only primitive values, arrays, and plain records.
+function equalPlainData(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return true
+  if (typeof left !== "object" || left === null || typeof right !== "object" || right === null) return false
+  const prototype = Object.getPrototypeOf(left)
+  if (
+    prototype !== Object.getPrototypeOf(right) ||
+    (prototype !== Object.prototype && prototype !== Array.prototype && prototype !== null)
+  )
+    return false
+  const leftKeys = Reflect.ownKeys(left)
+  const rightKeys = Reflect.ownKeys(right)
+  if (leftKeys.length !== rightKeys.length) return false
+  return leftKeys.every((key) => {
+    const leftField = Object.getOwnPropertyDescriptor(left, key)
+    const rightField = Object.getOwnPropertyDescriptor(right, key)
+    return (
+      leftField !== undefined &&
+      rightField !== undefined &&
+      "value" in leftField &&
+      "value" in rightField &&
+      leftField.enumerable === rightField.enumerable &&
+      equalPlainData(leftField.value, rightField.value)
+    )
+  })
+}
+
 const MaybeScope = Schema.Union([Nat, Schema.Null])
 const Scopes = boundedArray(MaybeScope, 2048)
 const StateFields = { before: Schema.Unknown, after: Schema.Unknown }
@@ -36,7 +62,7 @@ const CanonicalFrame = Schema.Struct({
   ...StateFields,
   event: Schema.Unknown,
   result: Schema.Unknown,
-  commandScopes: Scopes,
+  outputScopes: Scopes,
   receipt: Schema.Unknown
 })
 const GraphFrame = Schema.Struct({
@@ -119,7 +145,7 @@ const results = {
  * fields too. No eligibility or request/lifecycle policy is recomputed here. */
 export function decodePrefixCanonicalEvent(value: unknown) {
   const encoded = encodeCanonicalEvent(canonicalEvent(decodeDriverEvent(value)))
-  if (!isDeepStrictEqual(value, encoded)) throw new TypeError("non-exact canonical event representation")
+  if (!equalPlainData(value, encoded)) throw new TypeError("non-exact canonical event representation")
   return encoded
 }
 export function decodePrefixGraphEvent(value: unknown) {
@@ -179,12 +205,12 @@ export function decodePrefixGraphEvent(value: unknown) {
       throw new TypeError("unknown graph event")
   }
   const encoded = encodeImportGraphEvent(decodeGraphEvent(publicEvent))
-  if (!isDeepStrictEqual(value, encoded)) throw new TypeError("non-exact graph event representation")
+  if (!equalPlainData(value, encoded)) throw new TypeError("non-exact graph event representation")
   return encoded
 }
 
 /** The comparison preserves all canonical projection fields, complete events,
- * commands/rejections, graph facts/state/commands, command ownership and original
+ * outputs/rejections, graph facts/state/outputs, command ownership and original
  * callback receipts. Presentation labels, private job maps and display counters
  * are excluded; physical resources and output membership remain in projection. */
 export function callbackPublicBoundary(
@@ -220,8 +246,8 @@ export function callbackPublicBoundary(
         before: frame.before,
         after: frame.after,
         event: encodeCanonicalEvent(canonicalEvent(frame.event)),
-        commands: frame.commands,
-        commandScopes: (frame.commandScopes ?? []).map((scope) => scope ?? null),
+        outputs: frame.outputs,
+        outputScopes: (frame.outputScopes ?? []).map((scope) => scope ?? null),
         rejection: frame.rejection ?? null,
         receipt: frame.callbackReceipt?.target ?? null
       }
@@ -281,8 +307,8 @@ export function decodeCallbackNativeBoundary(value: unknown) {
             before,
             after,
             event: decodePrefixCanonicalEvent(frame.event),
-            commands: result.commands,
-            commandScopes: frame.commandScopes,
+            outputs: result.outputs,
+            outputScopes: frame.outputScopes,
             rejection: result.rejection ?? null,
             receipt: frame.receipt === null ? null : decodeCallbackTarget(frame.receipt)
           })

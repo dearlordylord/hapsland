@@ -124,7 +124,7 @@ it.each(seeds)("seed %i refuses unavailable credentials then recovers without re
   edit(run, agents[0], 0, "finding")
   advance(run, 10, 128)
   expect(
-    run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "jevRequestUnavailable")
+    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "jevRequestUnavailable")
   ).toHaveLength(1)
   expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toEqual([])
   expect(run.observations.filter((frame) => frame.event.kind === "submissionTerminal")).toEqual([])

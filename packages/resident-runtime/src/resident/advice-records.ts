@@ -104,7 +104,7 @@ export const adviceRecordOperations = (draft: ReturnType<typeof draftAdviceRecor
       operation: advice.canonicalOperationId,
       count
     })
-    if (result.rejection !== undefined || result.commands[0]?.kind !== "findingCountRecorded")
+    if (result.rejection !== undefined || result.outputs[0]?.kind !== "findingCountRecorded")
       throw new Error("canonical finding count update refused")
   }
   const updateDelivery = (advice: Advice, token: string, update: Partial<Omit<AdviceDelivery, "token">>): boolean => {
@@ -163,7 +163,7 @@ export const adviceRecordOperations = (draft: ReturnType<typeof draftAdviceRecor
         observation: advice.admissionId,
         joinedPending
       })
-      const command = result.commands[0]?.kind
+      const command = result.outputs[0]?.kind
       if (result.rejection !== undefined || (command !== "collectionEligible" && command !== "collectionWaiting"))
         throw new Error("canonical collection readiness refused")
       if (command === "collectionWaiting") return false
@@ -185,7 +185,7 @@ export const adviceRecordOperations = (draft: ReturnType<typeof draftAdviceRecor
         advice: advice.canonicalOperationId,
         token: owner.collectionTokenId(token)
       })
-      const command = result.commands[0]?.kind
+      const command = result.outputs[0]?.kind
       if (
         result.rejection !== undefined ||
         (command !== "collectionLeaseReserved" && command !== "collectionLeaseRefused")
@@ -208,7 +208,7 @@ export const adviceRecordOperations = (draft: ReturnType<typeof draftAdviceRecor
         advice: advice.canonicalOperationId,
         token: owner.collectionTokenId(delivery.token)
       })
-      if (result.rejection !== undefined || result.commands[0]?.kind !== "collectionLeaseReleased")
+      if (result.rejection !== undefined || result.outputs[0]?.kind !== "collectionLeaseReleased")
         throw new Error("canonical advice lease release refused")
       const { delivery: _, ...content } = retained.content
       write(advice, content)
@@ -234,7 +234,7 @@ export const adviceRecordOperations = (draft: ReturnType<typeof draftAdviceRecor
         reofferable
       })
       if (result.rejection !== undefined) throw new Error("canonical collection lease check refused")
-      const command = result.commands[0]?.kind
+      const command = result.outputs[0]?.kind
       if (command === "collectionLeaseReleased") {
         const { delivery: _, ...content } = retained.content
         write(advice, content)
@@ -245,7 +245,7 @@ export const adviceRecordOperations = (draft: ReturnType<typeof draftAdviceRecor
       const retained = entry(advice)
       if (retained === undefined || (token !== undefined && token !== retained.content.delivery?.token)) return false
       const retired = owner.transition({ kind: "collectionRetireAdvice", advice: advice.canonicalOperationId })
-      if (retired.rejection !== undefined || retired.commands[0]?.kind !== "collectionAdviceRetired")
+      if (retired.rejection !== undefined || retired.outputs[0]?.kind !== "collectionAdviceRetired")
         throw new Error("canonical advice retirement refused")
       draft.entries.delete(advice.id)
       return true

@@ -68,7 +68,7 @@
         { "kind": "beginObservedPreparation", "partition": 1, "lifetime": 1, "round": 1, "observation": 1, "bytes": 10, "expect": "prepare:2:1" },
         { "kind": "preparationCompleted", "partition": 1, "lifetime": 1, "round": 1, "operation": 2, "unitBytes": [8], "expect": "preparationReleased:1,unitAdmitted:3:2" },
         { "kind": "startReview", "partition": 1, "lifetime": 1, "round": 1, "operation": 3, "expect": "reviewStarted" },
-        { "kind": "reviewObserved", "partition": 1, "lifetime": 1, "round": 1, "operation": 3, "outcome": "finding", "currentWork": false, "expect": "reservationReleased:2,reviewRecorded:finding,retireStaleFinding" },
+        { "kind": "reviewObserved", "partition": 1, "lifetime": 1, "round": 1, "operation": 3, "outcome": "finding", "currentWork": false, "expect": "reservationReleased:2,reviewRecorded:finding,staleFindingRetired" },
         { "kind": "reviewObserved", "partition": 1, "lifetime": 1, "round": 1, "operation": 3, "outcome": "finding", "currentWork": false, "expect": "rejected:StaleOperation" },
         { "kind": "completeObservation", "partition": 1, "lifetime": 1, "round": 1, "observation": 1, "expect": "observationCompleted" }
       ],

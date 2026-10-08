@@ -28,8 +28,8 @@ try {
     has(2, "native fact", "observation", "admission"),
     "the accepted edit crosses admission while Bend opens the round"
   )
-  assert.ok(steps[1].commands.some((command) => command.kind === "roundStarted"))
-  assert.ok(steps[2].commands.some((command) => command.kind === "observationAdmitted"))
+  assert.ok(steps[1].outputs.some((command) => command.kind === "roundStarted"))
+  assert.ok(steps[2].outputs.some((command) => command.kind === "observationAdmitted"))
   assert.deepEqual(
     steps[2].after.work.map((work) => [work.operation, work.kind]),
     [[1, "awaitingSourceRead"]]
@@ -89,18 +89,18 @@ try {
     "source completion is derived from checked removal, surviving child review, and source-job state"
   )
   assert.deepEqual(evidenceAt(12), [], "source completion does not invent a destination arrow")
-  assert.ok(has(21, "command", "authorization", "effect"), "Jev request issue is displayed as permission")
+  assert.ok(has(21, "event", "authorization", "effect"), "Jev request issue is displayed as a committed permit")
   assert.ok(!has(21, "native fact", "authorization", "effect"), "request issue does not claim an observed attempt")
   assert.ok(
     has(22, "state", "authorization", "effect", "request:8"),
     "the observed request start moves its stable request ID"
   )
-  assert.ok(!has(27, "command", "outcomes", "advice"), "a retain command does not claim advice is ready")
+  assert.ok(!has(27, "event", "outcomes", "advice"), "a retain command does not claim advice is ready")
   assert.ok(!steps[26].after.collection.ready.includes(4), "retain command does not assert stored advice")
   assert.ok(has(28, "state", "outcomes", "advice", "work:4"), "Bend links the ready advice to checked finding work")
   assert.ok(steps[27].after.collection.ready.includes(4))
   assert.ok(
-    !has(30, "command", "outcomes", "advice"),
+    !has(30, "event", "outcomes", "advice"),
     "the second finding waits for readiness without lighting the ready route"
   )
   assert.deepEqual(
@@ -136,7 +136,7 @@ try {
     !steps[35].after.charges.some((charge) => charge.id === 5),
     "a clear result releases the third item's charge"
   )
-  assert.ok(!has(36, "command", "outcomes", "advice"), "clear does not issue a retain-finding command")
+  assert.ok(!has(36, "event", "outcomes", "advice"), "clear does not issue a retain-finding command")
   assert.ok(
     has(38, "state", "outcomes", "advice", "work:6"),
     "the second finding becomes ready only after its sibling review clears"

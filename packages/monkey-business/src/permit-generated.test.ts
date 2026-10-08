@@ -14,13 +14,13 @@ it.each(["success", "failure", "duplicate", "absent"] as const)(
     const run = createRun(config(outcome))
     run.advance({ untilTime: 30, maxEvents: 100 })
     expect(
-      run.observations.filter((frame) => frame.commands.some((command) => command.kind === "permitIssued"))
+      run.observations.filter((frame) => frame.outputs.some((command) => command.kind === "permitIssued"))
     ).toHaveLength(1)
     expect(
-      run.observations.filter((frame) => frame.commands.some((command) => command.kind === "permitConsumed"))
+      run.observations.filter((frame) => frame.outputs.some((command) => command.kind === "permitConsumed"))
     ).toHaveLength(outcome === "success" || outcome === "duplicate" ? 1 : 0)
     expect(
-      run.observations.filter((frame) => frame.commands.some((command) => command.kind === "jevRequestIssued"))
+      run.observations.filter((frame) => frame.outputs.some((command) => command.kind === "jevRequestIssued"))
     ).toHaveLength(outcome === "success" || outcome === "duplicate" ? 1 : 0)
     expect(run.projection.admissions.flatMap((admission) => admission.permits)).toEqual([])
     expect(run.observations.filter((frame) => frame.rejection)).toHaveLength(outcome === "duplicate" ? 1 : 0)
@@ -38,7 +38,7 @@ it.each([9, 10, 11])("keeps inclusive POST deadline and refuses delayed POST at 
   const run = createRun(config("success", duration))
   run.advance({ untilTime: 30, maxEvents: 100 })
   expect(
-    run.observations.filter((frame) => frame.commands.some((command) => command.kind === "permitConsumed"))
+    run.observations.filter((frame) => frame.outputs.some((command) => command.kind === "permitConsumed"))
   ).toHaveLength(duration <= 10 ? 1 : 0)
   expect(run.projection.admissions.flatMap((admission) => admission.permits)).toEqual([])
   if (duration > 10) {
@@ -61,7 +61,7 @@ it.each(permitScenarioCases)("bounded campaign observes $outcome POST at $durati
   const run = createRun(config(scenario.outcome, scenario.durationMs))
   run.advance({ untilTime: 40, maxEvents: 100 })
   expect(
-    run.observations.filter((frame) => frame.commands.some((command) => command.kind === "permitConsumed"))
+    run.observations.filter((frame) => frame.outputs.some((command) => command.kind === "permitConsumed"))
   ).toHaveLength(scenario.consumed)
   expect(run.observations.filter((frame) => frame.rejection)).toHaveLength(scenario.rejectedPosts)
   expect(run.projection.admissions.flatMap((admission) => admission.permits)).toEqual([])

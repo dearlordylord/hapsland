@@ -12,7 +12,7 @@ const fixture = () => {
     const result = stepCanonical(state, event)
     expect(result.rejection).toBeUndefined()
     state = result.state
-    return result.commands
+    return result.outputs
   }
   apply({ kind: "openRound", partition: 1, lifetime: 1 })
   const round = projectCanonical(state).rounds[0]!.id
@@ -72,14 +72,14 @@ it.each([false, true])(
     for (const field of ["partition", "lifetime", "round", "operation"] as const) {
       const refused = stepCanonical(f.state(), { kind: "cancelReview", ...target, [field]: target[field] + 100 })
       expect(refused.rejection).toBeDefined()
-      expect(refused.commands).toEqual([])
+      expect(refused.outputs).toEqual([])
       expect(projectCanonical(refused.state)).toEqual(before)
     }
-    const commands = f.apply({ kind: "cancelReview", ...target })
-    expect(commands).toEqual([
-      { kind: "reservationReleased", id: charge },
-      { kind: "cancelWork", operation: target.operation },
-      { kind: "dispatchDiscarded", operation: target.operation, running: true }
+    const outputs = f.apply({ kind: "cancelReview", ...target })
+    expect(outputs).toEqual([
+      { category: "event", kind: "reservationReleased", id: charge },
+      { category: "request", kind: "cancelWork", operation: target.operation },
+      { category: "event", kind: "dispatchDiscarded", operation: target.operation, running: true }
     ])
     const after = projectCanonical(f.state())
     expect(after.dispatch.requests).toEqual(before.dispatch.requests)
@@ -96,12 +96,12 @@ it.each([false, true])(
         outcome: "clear",
         currentWork: true
       }
-      expect(f.apply(terminal)).toEqual([{ kind: "jevObservationIgnored" }])
+      expect(f.apply(terminal)).toEqual([{ category: "decision", kind: "jevObservationIgnored" }])
       expect(projectCanonical(f.state()).dispatch.requests).toEqual([])
       expect(projectCanonical(f.state()).pendingFindings).toEqual(finding)
       const duplicate = stepCanonical(f.state(), terminal)
       expect(duplicate.rejection).toBeDefined()
-      expect(duplicate.commands).toEqual([])
+      expect(duplicate.outputs).toEqual([])
       expect(projectCanonical(duplicate.state)).toEqual(projectCanonical(f.state()))
     }
   }
@@ -115,6 +115,6 @@ it("refuses cancellation of observation work without changing any owner", () => 
   const before = projectCanonical(f.state())
   const result = stepCanonical(f.state(), { kind: "cancelReview", ...target })
   expect(result.rejection).toBeDefined()
-  expect(result.commands).toEqual([])
+  expect(result.outputs).toEqual([])
   expect(projectCanonical(result.state)).toEqual(before)
 })

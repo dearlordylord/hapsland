@@ -53,6 +53,7 @@ test("quality selection includes staged, unstaged and untracked code, excludes d
       "quint-specs/input.ts",
       "src/x.generated.js",
       "packages/monkey-business-bend/engine.mjs",
+      "packages/monkey-business-bend/run.mjs",
       "src/fixtures/sample.ts",
       "node_modules/tool.ts"
     ])

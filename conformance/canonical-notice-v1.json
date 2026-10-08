@@ -10,7 +10,7 @@
           "proposed": 1,
           "sequence": 1,
           "maxCount": 10,
-          "expect": "noticeCreateKey"
+          "expect": "createNoticeKey"
         },
         {
           "kind": "reserveCapacity",
@@ -48,7 +48,7 @@
           "proposed": 2,
           "sequence": 2,
           "maxCount": 10,
-          "expect": "noticeMergePending:1"
+          "expect": "noticePendingMerged:1"
         },
         {
           "kind": "noticeSelect",
@@ -102,7 +102,7 @@
           "proposed": 2,
           "sequence": 2,
           "maxCount": 10,
-          "expect": "noticeKeepLeased"
+          "expect": "noticeLeaseKept"
         },
         {
           "kind": "noticeSelect",
@@ -204,7 +204,7 @@
           "proposed": 2,
           "sequence": 2,
           "maxCount": 10,
-          "expect": "noticeCreateKey"
+          "expect": "createNoticeKey"
         }
       ],
       "notices": []

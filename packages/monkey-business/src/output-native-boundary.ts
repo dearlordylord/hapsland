@@ -106,8 +106,8 @@ export function decodeOutputNativeBoundary(words: unknown) {
             after,
             event: frame.event,
             result: singleton(frame.result),
-            commandScopes: readBendList(
-              input.command_scopes,
+            outputScopes: readBendList(
+              input.output_scopes,
               (value) => {
                 const scope = readRecord(value)
                 if (scope.$ === "None") return null

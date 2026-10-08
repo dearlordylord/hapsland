@@ -107,16 +107,18 @@ def Laws.ledger_resize_changes_purpose_without_new_reservation():
 
 # Internal lemmas keep the unchanged limit value abstract during conversion.
 # The accepted closed laws below retain their exact propositions and constants.
-def graph_exclusion_has_no_read_command(+limits: ImportGraph.Limits) ->
-    {ImportGraph.checked(limits, ImportGraph.Edge{2n, 1n}, 2n, False{},
+def graph_exclusion_has_no_read_command(
+  +limits: ImportGraph.Limits
+) -> {ImportGraph.checked(limits, ImportGraph.Edge{2n, 1n}, 2n, False{},
       Nil{}, 1n <> Nil{}, 1n, 100n, 100n, 1n, False{}, False{}, False{}) ==
       ImportGraph.Step{ImportGraph.Graph{ImportGraph.Ready{},
         Nil{}, 2n <> 1n <> Nil{}, 1n, 100n, 100n, 1n, False{}, True{}, False{}, limits},
         ImportGraph.SkipImport{2n, ImportGraph.Excluded{}}} : ImportGraph.Step}:
   {==}
 
-def graph_exclusion_keeps_remaining_edges(+limits: ImportGraph.Limits) ->
-    {ImportGraph.checked(limits, ImportGraph.Edge{2n, 1n}, 2n, False{},
+def graph_exclusion_keeps_remaining_edges(
+  +limits: ImportGraph.Limits
+) -> {ImportGraph.checked(limits, ImportGraph.Edge{2n, 1n}, 2n, False{},
       ImportGraph.Edge{3n, 1n} <> Nil{}, 1n <> Nil{}, 1n, 100n, 100n,
       1n, False{}, False{}, False{}) ==
       ImportGraph.Step{ImportGraph.Graph{ImportGraph.Ready{},
@@ -132,39 +134,74 @@ def Laws.import_graph_exclusion_keeps_remaining_edges():
   graph_exclusion_keeps_remaining_edges(Laws.graph_limits())
 
 # These paths preserve limits without consulting any limit field.
-def graph_excluded_finishes_incomplete(+limits: ImportGraph.Limits) ->
-    {ImportGraph.next(limits, Nil{}, 2n <> 1n <> Nil{}, 1n, 100n, 100n,
+def graph_excluded_finishes_incomplete(
+  +limits: ImportGraph.Limits
+) -> {ImportGraph.next(limits, Nil{}, 2n <> 1n <> Nil{}, 1n, 100n, 100n,
       1n, False{}, True{}, False{}) ==
       ImportGraph.Step{ImportGraph.Graph{ImportGraph.Incomplete{ImportGraph.Excluded{}},
         Nil{}, 2n <> 1n <> Nil{}, 1n, 100n, 100n, 1n, False{}, True{}, False{}, limits},
         ImportGraph.UnitIncomplete{ImportGraph.Excluded{}}} : ImportGraph.Step}:
   {==}
 
-def graph_tree_limit_precedes_exclusion(+limits: ImportGraph.Limits) ->
-    {ImportGraph.next(limits, Nil{}, 2n <> 1n <> Nil{}, 1n, 100n, 20480n,
+def graph_tree_limit_precedes_exclusion(
+  +limits: ImportGraph.Limits
+) -> {ImportGraph.next(limits, Nil{}, 2n <> 1n <> Nil{}, 1n, 100n, 20480n,
       1n, True{}, True{}, False{}) ==
       ImportGraph.Step{ImportGraph.Graph{ImportGraph.Incomplete{ImportGraph.TreeLimit{}},
         Nil{}, 2n <> 1n <> Nil{}, 1n, 100n, 20480n, 1n, True{}, True{}, False{}, limits},
         ImportGraph.UnitIncomplete{ImportGraph.TreeLimit{}}} : ImportGraph.Step}:
   {==}
 
-def graph_cycle_does_not_request_source(+limits: ImportGraph.Limits) ->
-    {ImportGraph.resolved(limits, ImportGraph.Edge{2n, 1n}, 1n, ImportGraph.Found{},
-      Nil{}, 1n <> Nil{}, 1n, 100n, 100n, 1n, False{}, False{}, False{}) ==
-      ImportGraph.Step{ImportGraph.Graph{ImportGraph.Ready{}, Nil{},
-        1n <> Nil{}, 1n, 100n, 100n, 1n, False{}, False{}, False{}, limits}, ImportGraph.NoCommand{}} : ImportGraph.Step}:
+def graph_cycle_does_not_request_source(
+  +limits: ImportGraph.Limits
+) -> {
+  ImportGraph.resolved(
+    limits,
+    ImportGraph.Edge{2n, 1n},
+    1n,
+    ImportGraph.Found{},
+    Nil{},
+    1n <> Nil{},
+    1n,
+    100n,
+    100n,
+    1n,
+    False{},
+    False{},
+    False{}
+  )
+  == ImportGraph.Step{
+    ImportGraph.Graph{
+      ImportGraph.Ready{},
+      Nil{},
+      1n <> Nil{},
+      1n,
+      100n,
+      100n,
+      1n,
+      False{},
+      False{},
+      False{},
+      limits
+    },
+    ImportGraph.NoCommand{}
+  }
+  : ImportGraph.Step
+}:
   {==}
 
-def graph_skipped_tree_finishes_incomplete(+limits: ImportGraph.Limits) ->
-    {ImportGraph.next(limits, Nil{}, 2n <> 1n <> Nil{}, 2n, 200n, 20000n,
+def graph_skipped_tree_finishes_incomplete(
+  +limits: ImportGraph.Limits
+) -> {ImportGraph.next(limits, Nil{}, 2n <> 1n <> Nil{}, 2n, 200n, 20000n,
       1n, True{}, False{}, False{}) ==
       ImportGraph.Step{ImportGraph.Graph{ImportGraph.Incomplete{ImportGraph.TreeLimit{}},
         Nil{}, 2n <> 1n <> Nil{}, 2n, 200n, 20000n, 1n, True{}, False{}, False{}, limits},
         ImportGraph.UnitIncomplete{ImportGraph.TreeLimit{}}} : ImportGraph.Step}:
   {==}
 
-def graph_missing_import_keeps_later_edges(+limits: ImportGraph.Limits) ->
-    {ImportGraph.resolved(limits, ImportGraph.Edge{2n, 1n}, 2n,
+def graph_missing_import_keeps_later_edges(
+  +limits: ImportGraph.Limits
+) -> {ImportGraph.resolved(limits, ImportGraph.Edge{2n, 1n}, 2n,
       ImportGraph.NotFound{}, ImportGraph.Edge{3n, 1n} <> Nil{}, 1n <> Nil{},
       1n, 100n, 100n, 1n, False{}, False{}, False{}) ==
       ImportGraph.Step{ImportGraph.Graph{ImportGraph.Ready{},
@@ -173,8 +210,9 @@ def graph_missing_import_keeps_later_edges(+limits: ImportGraph.Limits) ->
         ImportGraph.SkipImport{2n, ImportGraph.Missing{}}} : ImportGraph.Step}:
   {==}
 
-def graph_omitted_import_finishes_incomplete(+limits: ImportGraph.Limits) ->
-    {ImportGraph.next(limits, Nil{}, 1n <> Nil{},
+def graph_omitted_import_finishes_incomplete(
+  +limits: ImportGraph.Limits
+) -> {ImportGraph.next(limits, Nil{}, 1n <> Nil{},
       1n, 100n, 100n, 1n, False{}, False{}, True{}) ==
       ImportGraph.Step{ImportGraph.Graph{ImportGraph.Incomplete{ImportGraph.Omitted{}},
         Nil{}, 1n <> Nil{}, 1n, 100n, 100n, 1n,
@@ -1057,19 +1095,35 @@ def Laws.closure_allows_fresh_reissue_after_history_eviction():
 
 def Laws.canonical_open_rejects_existing_partition(state, partition, lifetime, existing):
   match state:
-    case Canonical.State{ledger, rounds, work, next_round, next_operation, admissions, dispatch, collection, +history}:
+    case Canonical.State{
+      ledger,
+      rounds,
+      work,
+      next_round,
+      next_operation,
+      admissions,
+      dispatch,
+      collection,
+      +history
+    }:
       {==}
 
-def Laws.canonical_edit_joins_existing_round_without_insertion(original, updated, partition, round, existing_round):
+def Laws.canonical_edit_joins_existing_round_without_insertion(
+  original,
+  updated,
+  partition,
+  round,
+  existing_round
+):
   {==}
 
-def Laws.canonical_round_invariant_failure_rolls_back(original, updated, commands):
+def Laws.canonical_round_invariant_failure_rolls_back(original, updated, outputs):
   {==}
 
 def Laws.canonical_duplicate_partitions_fail_even_across_lifetimes():
   {==}
 
-def Laws.canonical_post_state_duplicates_roll_back(original, commands):
+def Laws.canonical_post_state_duplicates_roll_back(original, outputs):
   {==}
 
 def Laws.canonical_round_guard_preserves_rejections(original, rejected, reason):

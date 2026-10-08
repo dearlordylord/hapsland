@@ -123,7 +123,7 @@ import * as Fiber from "effect/Fiber"
 import * as FiberHandle from "effect/FiberHandle"
 import * as Schedule from "effect/Schedule"
 import type { ComposedDelivery } from "./composed-delivery.ts"
-import type { CanonicalCommand, CanonicalEvent } from "@hapsland/canonical-policy/canonical/adapter"
+import type { CanonicalOutput, CanonicalEvent } from "@hapsland/canonical-policy/canonical/adapter"
 import {
   PENDING_ADVICE_EXPIRY_MS,
   combinedClaudeOutput,
@@ -789,7 +789,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         prospectiveBytes: input.prospectiveBytes
       })
       if (result.rejection !== undefined) throw new Error("canonical finding fit refused")
-      return findingCollectionOutcome(result.commands[0]?.kind)
+      return findingCollectionOutcome(result.outputs[0]?.kind)
     }
   )
 
@@ -1369,7 +1369,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       lifetime: PENDING_ADVICE_EXPIRY_MS
     })
     if (result.rejection !== undefined) throw new Error("canonical advice expiry refused")
-    const command = result.commands[0]?.kind
+    const command = result.outputs[0]?.kind
     if (command !== "collectionExpired" && command !== "collectionCurrent")
       throw new Error("invalid canonical advice expiry")
     return command === "collectionExpired"
@@ -1385,7 +1385,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       rightSequence: right.sequence
     })
     if (result.rejection !== undefined) throw new Error("canonical collection order refused")
-    return collectionOrdering(result.commands[0]?.kind)
+    return collectionOrdering(result.outputs[0]?.kind)
   })
 
   const residentReserveAdviceLease = Effect.fn("ResidentRuntime.reserveAdviceLease")((advice: Advice, token: string) =>
@@ -1542,9 +1542,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       generationValid: advice.credentialGeneration === frame.credentialGeneration
     })
     if (result.rejection !== undefined) throw new Error("canonical credential check refused")
-    if (result.commands[0]?.kind === "collectionRetireCredential")
+    if (result.outputs[0]?.kind === "collectionRetireCredential")
       yield* residentRemoveAdvice(advice.id, undefined, { fate: "discarded", reason: "credential-invalid" })
-    else if (result.commands[0]?.kind !== "collectionRetainCredential")
+    else if (result.outputs[0]?.kind !== "collectionRetainCredential")
       throw new Error("invalid canonical credential decision")
   })
   const residentCollectionPrelude = Effect.fn("ResidentRuntime.collectionPrelude")(function* (
@@ -1566,7 +1566,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     result: Effect.Success<ReturnType<typeof residentLedger.transition>>
   ): boolean => {
     if (result.rejection !== undefined) throw new Error("canonical advice candidate refused")
-    const kind = result.commands[0]?.kind
+    const kind = result.outputs[0]?.kind
     if (kind !== "collectionCandidate" && kind !== "collectionSkip")
       throw new Error("invalid canonical advice candidate")
     return kind === "collectionCandidate"
@@ -2059,8 +2059,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     >
   ) {
     const result = yield* residentLedger.transition(event)
-    const kind = result.commands[0]?.kind
-    if (result.rejection !== undefined || result.commands.length !== 1 || !isCandidateRoute(kind)) {
+    const kind = result.outputs[0]?.kind
+    if (result.rejection !== undefined || result.outputs.length !== 1 || !isCandidateRoute(kind)) {
       throw new Error("invalid canonical candidate route")
     }
     return kind
@@ -2084,9 +2084,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   function residentDeliveryDecision(
     decision: ReturnType<CapacityLedger["transition"]>,
     message: string
-  ): CanonicalCommand | undefined {
-    if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error(message)
-    return decision.commands[0]
+  ): CanonicalOutput | undefined {
+    if (decision.rejection !== undefined || decision.outputs.length !== 1) throw new Error(message)
+    return decision.outputs[0]
   }
   const deliveryExpired = (delivery: { readonly leaseUntil: number } | undefined, now: number): boolean =>
     delivery === undefined || delivery.leaseUntil <= now
@@ -4283,17 +4283,17 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             )
           })
           const settleNonRetainedOutcome = Effect.fn("ResidentRuntime.settleNonRetainedOutcome")(function* () {
-            if (disposition !== "retainFinding") {
+            if (disposition !== "findingRetained") {
               inspectionObserveUnitFate(
                 job,
                 result.findings,
-                disposition === "retireStaleFinding" ? "stale" : "discarded",
-                disposition === "retireStaleFinding" ? "resident-stale" : "settlement-ignored"
+                disposition === "staleFindingRetired" ? "stale" : "discarded",
+                disposition === "staleFindingRetired" ? "resident-stale" : "settlement-ignored"
               )
-              if (disposition === "retireStaleFinding") yield* residentRetireUnitWork(job)
+              if (disposition === "staleFindingRetired") yield* residentRetireUnitWork(job)
               yield* residentSettleJoined(
                 job.evaluationKey,
-                disposition === "settleClear" ? "clear" : "unavailable",
+                disposition === "clearSettled" ? "clear" : "unavailable",
                 "stale"
               )
               job.completed = true
@@ -5274,7 +5274,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       credentialValid:
         authority.credentialGeneration === (dispatch.credential?.generation ?? null) &&
         residentCredentialAuthority(authority)
-    })).commands[0]
+    })).outputs[0]
     if (command?.kind === "collectorProceed") return undefined
     if (command?.kind === "collectorUnavailable") {
       return { requestRoute: "edit", status: "unavailable", reason: command.reason }
@@ -5510,9 +5510,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         generationValid,
         authorized
       })
-      if (observed.rejection !== undefined || observed.commands.length !== 1)
+      if (observed.rejection !== undefined || observed.outputs.length !== 1)
         throw new Error("canonical credential observation refused")
-      return observed.commands[0]?.kind === "deliveryCredentialInvalid"
+      return observed.outputs[0]?.kind === "deliveryCredentialInvalid"
     })
     const validateHandoffCredentials = Effect.fn("ResidentRuntime.validateHandoffCredentials")(
       function* (): Effect.fn.Return<ResidentResponse | undefined> {
@@ -5541,9 +5541,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           sharedCollect,
           invalidSeen: invalidCredential
         })
-        if (credentialGate.rejection !== undefined || credentialGate.commands.length !== 1)
+        if (credentialGate.rejection !== undefined || credentialGate.outputs.length !== 1)
           throw new Error("canonical final credential gate refused")
-        if (credentialGate.commands[0]?.kind !== "deliveryBatchProceed") {
+        if (credentialGate.outputs[0]?.kind !== "deliveryBatchProceed") {
           yield* runtime.releaseComposedSubmission(response.token)
           return request.requestRoute === "edit"
             ? { requestRoute: "edit", status: "unavailable", reason: "credential" }
@@ -5722,7 +5722,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           authority !== undefined &&
           residentEditCollectRequest(request) &&
           (yield* residentLedger.transition({ kind: "collectorFinalAuthorityCheck", admittedBlock, currentBlock }))
-            .commands[0]?.kind !== "collectorFinalProceed"
+            .outputs[0]?.kind !== "collectorFinalProceed"
         ) {
           // Only retained findings whose edit snapshot permits blocking can block.
           yield* runtime.releaseDelivery(response.token)

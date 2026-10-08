@@ -1,3 +1,4 @@
+import { encodeCanonicalEvent } from "@hapsland/canonical-policy/canonical/canonical-boundary"
 import { expect, it } from "vitest"
 import { decodeDriverEvent, decodePreparedDriverContext } from "./driver-codec.ts"
 const member = (state: unknown) => ({
@@ -276,4 +277,34 @@ it("preserves a complete sampled receipt and rejects malformed provenance", () =
   expect(() =>
     decodePreparedDriverContext({ ...context, outcome: { $: "Some", value: { ...selected, extra: 1 } } }, receipt)
   ).toThrow()
+})
+
+it("decodes collection order facts without accepting extra fields", () => {
+  const facts = { $: "Canonical.CollectionOrderCheck", left_sequence: 1, right_sequence: 2 }
+  expect(decodeDriverEvent(facts)).toEqual({ kind: "collectionOrderCheck", leftSequence: 1, rightSequence: 2 })
+  expect(() => decodeDriverEvent({ ...facts, unrelated: 1 })).toThrow()
+})
+
+// Public collection decisions transport every issuance and current-state field exactly.
+it("round-trips collection finding facts without accepting excess event fields", () => {
+  const event = {
+    kind: "collectionFindingCheck" as const,
+    selectionPartition: 1,
+    selectionRound: 3,
+    unit: 2,
+    partition: 1,
+    round: 3,
+    snapshot: 7,
+    currentSnapshot: 8,
+    credential: 2,
+    currentCredential: 3,
+    ageMs: 599999,
+    soloBytes: 100,
+    collectionReady: true,
+    selectedCount: 1,
+    prospectiveBytes: 200
+  }
+  const encoded = encodeCanonicalEvent(event)
+  expect(decodeDriverEvent(encoded)).toEqual(event)
+  expect(() => decodeDriverEvent({ ...(encoded as Record<string, unknown>), unexpected: 1 })).toThrow()
 })

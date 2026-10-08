@@ -63,10 +63,16 @@ def row(state: C.State, key: Nat) -> List<&2, Nat>:
 
 def selected(result: C.Step) -> List<&2, Nat>:
   match result:
-    case C.Advanced{_, C.NoticeSelected{ids} <> _}: ids
+    case C.Advanced{_, C.PolicyDecided{C.NoticeSelected{ids}} <> _}: ids
     case _: [999n]
 
-def select(state: C.State, partition: Nat, composed: Bool, authority: Bool, allowed: List<&2, Nat>) -> List<&2, Nat>:
+def select(
+  state: C.State,
+  partition: Nat,
+  composed: Bool,
+  authority: Bool,
+  allowed: List<&2, Nat>
+) -> List<&2, Nat>:
   selected(C.step(state, Scenario.collect(partition, 7n, composed, authority, allowed)))
 
 def rows() -> List<&2, List<&2, Nat>>:

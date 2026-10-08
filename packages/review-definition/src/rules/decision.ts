@@ -8,14 +8,14 @@ import {
 const initial = initialCanonical({ globalItems: 1, globalBytes: 1, partitionItems: 1, partitionBytes: 1 })
 
 const ruleTransitionAccepted = (result: ReturnType<typeof stepCanonical>): boolean =>
-  result.rejection === undefined && result.commands.length === 1
+  result.rejection === undefined && result.outputs.length === 1
 
 const decide = (event: CanonicalEvent) => {
   const result = stepCanonical(initial, event)
   if (!ruleTransitionAccepted(result)) {
     throw new Error("canonical rule decision refused")
   }
-  return result.commands[0]
+  return result.outputs[0]
 }
 
 const gate = (event: CanonicalEvent): boolean => {

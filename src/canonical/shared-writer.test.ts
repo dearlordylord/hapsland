@@ -63,7 +63,7 @@ it.each(["laterAction", "extraEnvelope"] as const)(
     expect(retried.pending).toBeDefined()
     const event = claimSharedWriter(retried.state, retried.pending!, 0)
     const granted = stepSharedCanonical(retried.state, event)
-    expect(granted.result.commands).toContainEqual({ kind: "collectionBackgroundClaimed" })
+    expect(granted.result.outputs).toContainEqual({ category: "event", kind: "collectionBackgroundClaimed" })
     const issued = afterSharedWriter(granted.state, retried.pending!, 0)
     expect(issued.issued).toEqual({ id: 1, partition: 1, lifetime: 1, round: 1 })
   }

@@ -26,8 +26,8 @@ const stepCanonical = (state, event) => {
 }
 
 const fixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-v1.json"), "utf8"))
-const format = (commands) =>
-  commands
+const format = (outputs) =>
+  outputs
     .map((item) => {
       switch (item.kind) {
         case "prepare":
@@ -53,15 +53,15 @@ const format = (commands) =>
     .join(",")
 for (const trace of fixture.traces) {
   let state = initialCanonical(fixture.limits)
-  const commands = []
+  const outputs = []
   const capacity = []
   for (const event of trace.events) {
     const result = stepCanonical(state, event)
     state = result.state
-    commands.push(result.rejection ? `rejected:${result.rejection}` : format(result.commands))
+    outputs.push(result.rejection ? `rejected:${result.rejection}` : format(result.outputs))
     if (event.kind === "preparationCompleted")
       capacity.push(
-        result.commands
+        result.outputs
           .filter((command) => "after" in command)
           .map((command) => ({
             kind: command.kind,
@@ -73,7 +73,7 @@ for (const trace of fixture.traces) {
           }))
       )
   }
-  assert.deepEqual(commands, trace.commands, trace.name)
+  assert.deepEqual(outputs, trace.outputs, trace.name)
   assert.deepEqual(projectCanonical(state).global, trace.global, `${trace.name}: ledger`)
   assert.deepEqual(projectCanonical(state).partitions, trace.partitions, `${trace.name}: advicee usage`)
   if (trace.charges) assert.deepEqual(projectCanonical(state).charges, trace.charges, `${trace.name}: reservations`)
@@ -95,7 +95,7 @@ const idleFacts = {
   cacheMatchesLedger: true
 }
 const cleanupDecision = (canonical, kind) =>
-  stepCanonical(canonical, kind === "cleanupCheck" ? { kind, facts: idleFacts } : { kind }).commands.map(
+  stepCanonical(canonical, kind === "cleanupCheck" ? { kind, facts: idleFacts } : { kind }).outputs.map(
     (command) => command.kind
   )
 assert.deepEqual(cleanupDecision(state, "cleanupCheck"), ["cleanupReady"])
@@ -210,7 +210,7 @@ const nearLimit = stepCanonical(edge, {
   unitBytes: [2 ** 47 - 1, 2 ** 47 - 1]
 })
 assert.deepEqual(
-  nearLimit.commands.map((command) => command.kind),
+  nearLimit.outputs.map((command) => command.kind),
   ["preparationReleased", "unitAdmitted", "unitRefused"]
 )
 assert.equal(projectCanonical(nearLimit.state).global.bytes, 2 ** 47 - 1)
@@ -239,7 +239,7 @@ for (const [index, event] of fixture.capacityTrace.events.entries()) {
   const result = stepCanonical(capacityState, event)
   capacityState = result.state
   capacityCommands.push(
-    result.rejection ? `rejected:${result.rejection}` : result.commands.map(capacityCommand).join(",")
+    result.rejection ? `rejected:${result.rejection}` : result.outputs.map(capacityCommand).join(",")
   )
   if (index === 7)
     assert.deepEqual(
@@ -248,7 +248,7 @@ for (const [index, event] of fixture.capacityTrace.events.entries()) {
       "purpose change and competing ownership"
     )
 }
-assert.deepEqual(capacityCommands, fixture.capacityTrace.commands, "resident capacity transition contract")
+assert.deepEqual(capacityCommands, fixture.capacityTrace.outputs, "resident capacity transition contract")
 assert.deepEqual(projectCanonical(capacityState).global, fixture.capacityTrace.finalGlobal, "exact capacity release")
 const permitFixture = JSON.parse(
   readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-permits-v1.json"), "utf8")
@@ -290,10 +290,10 @@ for (const trace of permitFixture.traces) {
     else throw new Error(`unknown permit fixture event ${kind}`)
     const result = stepCanonical(current, event)
     current = result.state
-    consumedEdits += result.commands.filter((command) => command.kind === "permitConsumed").length
+    consumedEdits += result.outputs.filter((command) => command.kind === "permitConsumed").length
     const actual = result.rejection
       ? `rejected:${result.rejection}`
-      : result.commands
+      : result.outputs
           .map((command) => {
             if (command.kind === "permitIssued") return `permitIssued:${command.token}:${command.round}`
             if (command.kind === "permitConsumed" || command.kind === "permitRoundClosed")
@@ -341,7 +341,7 @@ const applyUnique = (event, expectedKinds, expectedRejection) => {
   const result = stepCanonical(uniqueRounds, event)
   assert.equal(result.rejection, expectedRejection, `round uniqueness: ${event.kind}`)
   assert.deepEqual(
-    result.commands.map((command) => command.kind),
+    result.outputs.map((command) => command.kind),
     expectedKinds,
     `round uniqueness: ${event.kind}`
   )
@@ -467,7 +467,7 @@ for (const trace of reviewFixture.traces) {
     current = result.state
     const actual = result.rejection
       ? `rejected:${result.rejection}`
-      : result.commands
+      : result.outputs
           .map((command) => {
             if (
               command.kind === "roundStarted" ||
@@ -523,7 +523,7 @@ for (const trace of dispatchFixture.traces) {
     current = result.state
     const actual = result.rejection
       ? `rejected:${result.rejection}`
-      : result.commands
+      : result.outputs
           .map((command) => {
             if (command.kind === "roundStarted" || command.kind === "observationAdmitted")
               return `${command.kind}:${command.id}`
@@ -547,7 +547,7 @@ for (const trace of stopFixture.traces) {
     current = result.state
     const actual = result.rejection
       ? `rejected:${result.rejection}`
-      : result.commands
+      : result.outputs
           .map((command) => {
             if (
               command.kind === "roundStarted" ||
@@ -576,7 +576,7 @@ for (const trace of collectionFixture.traces) {
     current = result.state
     const actual = result.rejection
       ? `rejected:${result.rejection}`
-      : result.commands.map((command) => command.kind).join(",")
+      : result.outputs.map((command) => command.kind).join(",")
     assert.equal(actual, expected, `${trace.name}: ${event.kind}`)
   }
   assert.deepEqual(projectCanonical(current).collection, trace.collection, trace.name)
@@ -591,7 +591,7 @@ for (const trace of deliveryFixture.traces) {
     current = result.state
     const actual = result.rejection
       ? `rejected:${result.rejection}`
-      : result.commands
+      : result.outputs
           .map((command) => (command.kind === "finishRecorded" ? `${command.kind}:${command.outcome}` : command.kind))
           .join(",")
     assert.equal(actual, expected, `${trace.name}: ${event.kind}`)
@@ -608,7 +608,7 @@ for (const trace of submissionFixture.traces) {
   for (const { expect: expected, afterBatches, afterLeases, ...event } of trace.events) {
     const result = stepCanonical(current, event)
     current = result.state
-    assert.equal(result.rejection ?? result.commands[0]?.kind, expected, `${trace.name}: ${event.kind}`)
+    assert.equal(result.rejection ?? result.outputs[0]?.kind, expected, `${trace.name}: ${event.kind}`)
     const submission = projectCanonical(current).delivery.submissions
     if (afterBatches)
       assert.deepEqual(
@@ -635,7 +635,7 @@ for (const trace of revisionFixture.traces) {
     current = result.state
     const actual = result.rejection
       ? `rejected:${result.rejection}`
-      : result.commands
+      : result.outputs
           .map((command) => {
             if ("generation" in command) return `${command.kind}:${command.generation}`
             if (command.kind === "revisionCount") return `${command.kind}:${command.count}`
@@ -656,7 +656,7 @@ for (const trace of authorityFixture.traces) {
     current = result.state
     const actual = result.rejection
       ? `rejected:${result.rejection}`
-      : result.commands
+      : result.outputs
           .map((command) => ("reason" in command ? `${command.kind}:${command.reason}` : command.kind))
           .join(",")
     assert.equal(actual, expected, `${trace.name}: ${event.kind}`)
@@ -673,7 +673,7 @@ for (const trace of reuseFixture.traces) {
     current = result.state
     const actual = result.rejection
       ? `rejected:${result.rejection}`
-      : result.commands
+      : result.outputs
           .map((command) =>
             command.kind === "cachePrepared"
               ? `${command.kind}:${command.evicted.join(",")}`
@@ -698,15 +698,15 @@ for (const trace of noticeFixture.traces) {
     current = result.state
     const actual = result.rejection
       ? `rejected:${result.rejection}`
-      : result.commands
+      : result.outputs
           .map((command) => {
             switch (command.kind) {
               case "capacityGranted":
               case "reservationReleased":
                 return `${command.kind}:${command.id}`
               case "noticeSuppressed":
-              case "noticeCreatePending":
-              case "noticeMergePending":
+              case "noticePendingCreated":
+              case "noticePendingMerged":
                 return `${command.kind}:${command.count}`
               case "noticeSelected":
                 return `${command.kind}:${command.ids.join(",")}`
@@ -731,7 +731,7 @@ for (const trace of retentionFixture.traces) {
     current = result.state
     const actual = result.rejection
       ? `rejected:${result.rejection}`
-      : result.commands
+      : result.outputs
           .map((command) => {
             switch (command.kind) {
               case "capacityGranted":
@@ -766,8 +766,8 @@ for (const trace of configurationFixture.traces) {
     const result = stepCanonical(current, event)
     current = result.state
     assert.equal(result.rejection, undefined, trace.name)
-    assert.equal(result.commands.length, 1, trace.name)
-    const command = result.commands[0]
+    assert.equal(result.outputs.length, 1, trace.name)
+    const command = result.outputs[0]
     const actual =
       command.kind === "includeChoice"
         ? `includeChoice:${command.choice}`
@@ -793,8 +793,8 @@ for (const trace of ruleFixture.traces) {
     const result = stepCanonical(current, event)
     current = result.state
     assert.equal(result.rejection, undefined, trace.name)
-    assert.equal(result.commands.length, 1, trace.name)
-    const command = result.commands[0]
+    assert.equal(result.outputs.length, 1, trace.name)
+    const command = result.outputs[0]
     const actual =
       command.kind === "ruleGate"
         ? `ruleGate:${command.gate}`

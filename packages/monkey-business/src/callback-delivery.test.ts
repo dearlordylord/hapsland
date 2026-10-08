@@ -35,7 +35,7 @@ it("repeats a settled original after the queue drains and reaches the Canonical 
   expect(callbacks(run).callbackReports.at(-1)?.result).toBe("applied")
   const duplicate = run.observations.filter((frame) => frame.event.kind === "jevRequestSettled").at(-1)!
   expect(duplicate.rejection).toBe("StaleOperation")
-  expect(duplicate.commands).toEqual([])
+  expect(duplicate.outputs).toEqual([])
   expect(run.projection).toEqual(settled)
   replay(run)
 })
@@ -65,7 +65,7 @@ it("held physical completion survives cancellation, then releases exactly once a
     run.observations
       .filter((frame) => frame.event.kind === "jevRequestSettled")
       .at(-1)
-      ?.commands.map((command) => command.kind)
+      ?.outputs.map((command) => command.kind)
   ).toEqual(["jevObservationIgnored"])
   expect(run.projection.dispatch.requests).toEqual([])
   const released = run.projection
@@ -103,7 +103,7 @@ it("reorders the original completion ahead of a held start, exposes WrongStage, 
   run.advance({ untilTime: run.now })
   const early = run.observations.filter((frame) => frame.event.kind === "jevRequestSettled").at(-1)!
   expect(early.rejection).toBe("WrongStage")
-  expect(early.commands).toEqual([])
+  expect(early.outputs).toEqual([])
   expect(run.projection.dispatch.requests).toHaveLength(1)
   expect(run.projection.global).toEqual({ items: 1, bytes: 5 })
   apply(run, started, "release")
@@ -114,7 +114,7 @@ it("reorders the original completion ahead of a held start, exposes WrongStage, 
   expect(run.projection.dispatch.requests).toEqual([])
   expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
   expect(
-    run.observations.filter((frame) => frame.commands.some((command) => command.kind === "reservationReleased"))
+    run.observations.filter((frame) => frame.outputs.some((command) => command.kind === "reservationReleased"))
   ).toHaveLength(1)
   replay(run)
 })
@@ -141,7 +141,7 @@ it("retires replaced queued provenance after the actual replacement settles whil
   replay(run)
 })
 
-it("consumes a rejected physical preparation receipt even without commands and evicts only its bounded history", () => {
+it("consumes a rejected physical preparation receipt even without outputs and evicts only its bounded history", () => {
   const run = createRun({
     retention: 2,
     preparationDelay: 2,
@@ -156,7 +156,7 @@ it("consumes a rejected physical preparation receipt even without commands and e
   run.advance({ untilTime: 2, maxEvents: 100 })
   const rejected = run.observations.find((frame) => frame.event.kind === "preparationCompleted")!
   expect(rejected.rejection).toBeDefined()
-  expect(rejected.commands).toEqual([])
+  expect(rejected.outputs).toEqual([])
   expect(rejected.callbackReceipt?.target).toEqual(target)
   expect(run.projection.dispatch.running).toEqual([])
   apply(run, target, "hold")
@@ -207,10 +207,10 @@ it.each([false, true])(
       const late = run.observations.filter((frame) => frame.event.kind === "jevRequestSettled").at(-1)!
       expect(late.event).toMatchObject({ ...original.owner, request: original.effect.request, outcome: "clear" })
       expect(late.rejection).toBe("StaleOperation")
-      expect(late.commands).toEqual([])
+      expect(late.outputs).toEqual([])
     } else expect(run.observe().callbackTargets).not.toContainEqual(original)
     expect(
-      run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "reservationReleased")
+      run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "reservationReleased")
     ).toHaveLength(1)
     expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
     replay(run)

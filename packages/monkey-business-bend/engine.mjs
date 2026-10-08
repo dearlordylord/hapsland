@@ -2924,7 +2924,7 @@ function $$$$047agent$045flow$045bend$047Work$058empty_prepared$(_ready_count_0,
 }
 
 function $$$$047agent$045flow$045bend$047Work$058evaluated_disposition$(_has_findings_0, _current_work_0) {
-  return $Bool$pick$(_has_findings_0, ($Bool$pick$(_current_work_0, {$: "Work.RetainFinding"}, {$: "Work.RetireStaleFinding"})), ($Bool$pick$(_current_work_0, {$: "Work.SettleClear"}, {$: "Work.SettleStaleClear"})));
+  return $Bool$pick$(_has_findings_0, ($Bool$pick$(_current_work_0, {$: "Work.FindingRetained"}, {$: "Work.StaleFindingRetired"})), ($Bool$pick$(_current_work_0, {$: "Work.ClearSettled"}, {$: "Work.StaleClearSettled"})));
 }
 
 function $$$$047agent$045flow$045bend$047Work$058failure_disposition$(_backend_or_timeout_0, _credential_0, _missing_0) {
@@ -7582,11 +7582,11 @@ function $$$$047agent$045flow$045bend$047Canonical$058history_of$(_state_0) {
 
 function $$$$047agent$045flow$045bend$047Canonical$058checked_completed_edit$(_state_0, _tool_0, _result_0) {
   if (_result_0.$ === "EditHistory.Absent") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CompletedEditAbsent"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CompletedEditAbsent"}}, "tail": {$: "Nil"}}};
   } else {
     const _reason_0 = _result_0["reason"];
     const _report_0 = _result_0["report"];
-    return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_history$(_state_0, ($$$$047agent$045flow$045bend$047EditHistory$058mark_reported$(_tool_0, ($$$$047agent$045flow$045bend$047Canonical$058history_of$(_state_0)))))), "commands": {$: "Con", "head": {$: "Canonical.CompletedEditSeen", "reason": _reason_0, "report": _report_0}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_history$(_state_0, ($$$$047agent$045flow$045bend$047EditHistory$058mark_reported$(_tool_0, ($$$$047agent$045flow$045bend$047Canonical$058history_of$(_state_0)))))), "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.CompletedEditSeen", "reason": _reason_0, "report": _report_0}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -7597,14 +7597,14 @@ function $$$$047agent$045flow$045bend$047Canonical$058check_completed_edit$(_sta
 function $$$$047agent$045flow$045bend$047Canonical$058remembered_completed_edit$(_state_0, _result_0) {
   const _replacement_0 = _result_0["state"];
   const _evicted_0 = _result_0["evicted"];
-  return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_history$(_state_0, _replacement_0)), "commands": {$: "Con", "head": {$: "Canonical.CompletedEditRemembered", "evicted": _evicted_0}, "tail": {$: "Nil"}}};
+  return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_history$(_state_0, _replacement_0)), "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.CompletedEditRemembered", "evicted": _evicted_0}}, "tail": {$: "Nil"}}};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058remember_completed_checked$(_state_0, _tool_0, _reason_0, _lookup_0) {
   if (_lookup_0.$ === "EditHistory.Absent") {
     return $$$$047agent$045flow$045bend$047Canonical$058remembered_completed_edit$(_state_0, ($$$$047agent$045flow$045bend$047EditHistory$058record$(_tool_0, _reason_0, ($$$$047agent$045flow$045bend$047Canonical$058history_of$(_state_0)))));
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CompletedEditRemembered", "evicted": {$: "None"}}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.CompletedEditRemembered", "evicted": {$: "None"}}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -7705,14 +7705,14 @@ function $$$$047agent$045flow$045bend$047Canonical$058forget_admission_found$(_s
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
   if (_found_0.$ === "None") {
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.AdmissionForgotten"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.AdmissionForgotten"}}, "tail": {$: "Nil"}}};
   } else {
     const _t_0 = _found_0["value"];
     const _owner_0 = _t_0["partition"];
     const _generation_0 = _t_0["lifetime"];
     const _active_0 = _t_0["active"];
     const _permits_0 = _t_0["permits"];
-    return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($Bool$not$(_active_0)), ($Bool$and$(($List$is_empty$(_permits_0)), ($Bool$and$(($Bool$not$(($$$$047agent$045flow$045bend$047Canonical$058has_partition_work$(_partition_0, _work_0)))), ($$$$047agent$045flow$045bend$047Canonical$058no_round_for_partition$(_partition_0, _rounds_0)))))))))))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": ($$$$047agent$045flow$045bend$047Canonical$058remove_admission$(_partition_0, _admissions_0)), "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.AdmissionForgotten"}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.WrongStage"}});
+    return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($Bool$not$(_active_0)), ($Bool$and$(($List$is_empty$(_permits_0)), ($Bool$and$(($Bool$not$(($$$$047agent$045flow$045bend$047Canonical$058has_partition_work$(_partition_0, _work_0)))), ($$$$047agent$045flow$045bend$047Canonical$058no_round_for_partition$(_partition_0, _rounds_0)))))))))))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": ($$$$047agent$045flow$045bend$047Canonical$058remove_admission$(_partition_0, _admissions_0)), "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.AdmissionForgotten"}}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.WrongStage"}});
   }
 }
 
@@ -7771,7 +7771,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058pending_resident_permits$(
 function $$$$047agent$045flow$045bend$047Canonical$058permit_result$(_state_0, _partition_0, _result_0, _command_0) {
   if (_result_0.$ === "Admission.Accepted") {
     const _admission_0 = _result_0["state"];
-    return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_admission$(_state_0, _partition_0, _admission_0)), "commands": {$: "Con", "head": _command_0, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_admission$(_state_0, _partition_0, _admission_0)), "outputs": {$: "Con", "head": _command_0, "tail": {$: "Nil"}}};
   } else {
     const _reason_0 = _result_0["reason"];
     return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.PermitDenied", "reason": _reason_0}};
@@ -7818,7 +7818,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058issue_result$(_state_0, _p
       const _t_1 = _result_0["round"];
       if (_t_1.$ === "Some") {
         const _round_0 = _t_1["value"];
-        return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_quiet_round$(($$$$047agent$045flow$045bend$047Canonical$058with_admission$(_state_0, _partition_0, _admission_0)), _partition_0, {$: "None"})), "commands": {$: "Con", "head": {$: "Canonical.PermitIssued", "token": _token_0, "round": _round_0}, "tail": {$: "Nil"}}};
+        return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_quiet_round$(($$$$047agent$045flow$045bend$047Canonical$058with_admission$(_state_0, _partition_0, _admission_0)), _partition_0, {$: "None"})), "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.PermitIssued", "token": _token_0, "round": _round_0}}, "tail": {$: "Nil"}}};
       } else {
         return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.InconsistentLedger"}};
       }
@@ -7837,7 +7837,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058close_permit_result$(_stat
     const _t_0 = _result_0["round"];
     if (_t_0.$ === "Some") {
       const _round_0 = _t_0["value"];
-      return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_admission$(_state_0, _partition_0, _admission_0)), "commands": {$: "Con", "head": {$: "Canonical.PermitRoundClosed", "round": _round_0}, "tail": {$: "Nil"}}};
+      return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_admission$(_state_0, _partition_0, _admission_0)), "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.PermitRoundClosed", "round": _round_0}}, "tail": {$: "Nil"}}};
     } else {
       return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.InconsistentLedger"}};
     }
@@ -7897,15 +7897,15 @@ function $$$$047agent$045flow$045bend$047Canonical$058issue_permit$(_state_0, _p
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058release_permit$(_state_0, _partition_0, _lifetime_0, _token_0) {
-  return $$$$047agent$045flow$045bend$047Canonical$058permit_result$(_state_0, _partition_0, ($$$$047agent$045flow$045bend$047Admission$058step$(($$$$047agent$045flow$045bend$047Canonical$058current_admission$(_state_0, _partition_0, _lifetime_0)), _partition_0, _lifetime_0, {$: "Admission.Release", "token": _token_0})), {$: "Canonical.PermitReleased"});
+  return $$$$047agent$045flow$045bend$047Canonical$058permit_result$(_state_0, _partition_0, ($$$$047agent$045flow$045bend$047Admission$058step$(($$$$047agent$045flow$045bend$047Canonical$058current_admission$(_state_0, _partition_0, _lifetime_0)), _partition_0, _lifetime_0, {$: "Admission.Release", "token": _token_0})), {$: "Canonical.EventEstablished", "event": {$: "Canonical.PermitReleased"}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058expire_permit_result$(_state_0, _partition_0, _result_0) {
   if (_result_0.$ === "Admission.KeepPermit") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.PermitKept"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.PermitKept"}}, "tail": {$: "Nil"}}};
   } else {
     const _admission_0 = _result_0["state"];
-    return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_admission$(_state_0, _partition_0, _admission_0)), "commands": {$: "Con", "head": {$: "Canonical.PermitExpired"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_admission$(_state_0, _partition_0, _admission_0)), "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.PermitExpired"}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -8050,13 +8050,13 @@ function $$$$047agent$045flow$045bend$047Canonical$058quiet_admission$(_state_0,
 
 function $$$$047agent$045flow$045bend$047Canonical$058quiet_round_decision$(_state_0, _partition_0, _decision_0) {
   if (_decision_0.$ === "Quiescence.Busy") {
-    return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_quiet_round$(_state_0, _partition_0, {$: "None"})), "commands": {$: "Con", "head": {$: "Canonical.QuietRoundBusy"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_quiet_round$(_state_0, _partition_0, {$: "None"})), "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.QuietRoundBusy"}}, "tail": {$: "Nil"}}};
   } else if (_decision_0.$ === "Quiescence.Waiting") {
     const _since_0 = _decision_0["since"];
-    return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_quiet_round$(_state_0, _partition_0, {$: "Some", "value": _since_0})), "commands": {$: "Con", "head": {$: "Canonical.QuietRoundWaiting", "since": _since_0}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_quiet_round$(_state_0, _partition_0, {$: "Some", "value": _since_0})), "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.QuietRoundWaiting", "since": _since_0}}, "tail": {$: "Nil"}}};
   } else {
     const _since_1 = _decision_0["since"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.QuietRoundExpired", "since": _since_1}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.QuietRoundExpired", "since": _since_1}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -8105,7 +8105,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058quiet_round_reset_found$(_
     return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.StaleRound"}};
   } else {
     const _current_0 = _found_0["value"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Canonical$058same_round$(_partition_0, _lifetime_0, _round_0, _current_0)), {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_quiet_round$(_state_0, _partition_0, {$: "None"})), "commands": {$: "Con", "head": {$: "Canonical.QuietRoundResetRecorded"}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.StaleRound"}});
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Canonical$058same_round$(_partition_0, _lifetime_0, _round_0, _current_0)), {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_quiet_round$(_state_0, _partition_0, {$: "None"})), "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.QuietRoundResetRecorded"}}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.StaleRound"}});
   }
 }
 
@@ -8124,7 +8124,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058quiet_round_reset$(_state_
 
 function $$$$047agent$045flow$045bend$047Canonical$058cancel_pick$(_operation_0, _tail_0, _hit_0) {
   if (_hit_0) {
-    return {$: "Con", "head": {$: "Canonical.CancelWork", "operation": _operation_0}, "tail": _tail_0};
+    return {$: "Con", "head": {$: "Canonical.ActionRequested", "request": {$: "Canonical.CancelWork", "operation": _operation_0}}, "tail": _tail_0};
   } else {
     return _tail_0;
   }
@@ -8147,7 +8147,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058cancel_commands$(_partitio
 
 function $$$$047agent$045flow$045bend$047Canonical$058release_pick$(_charge_0, _tail_0, _hit_0) {
   if (_hit_0) {
-    return {$: "Con", "head": {$: "Canonical.ReservationReleased", "id": _charge_0}, "tail": _tail_0};
+    return {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReservationReleased", "id": _charge_0}}, "tail": _tail_0};
   } else {
     return _tail_0;
   }
@@ -8302,7 +8302,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058open_found$(_state_0, _par
     return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleRound"}};
   } else {
     const _x_0 = ($List$length$(_rounds_0));
-    return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_partition_0, 0)), ($Bool$and$(($Nat$is_gt$(_lifetime_0, 0)), (_x_0 < 64))))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _next_round_0, "waiting": false, "deciding": false, "write": {$: "None"}, "uncertain": false, "quiet_since": {$: "None"}}, "tail": _rounds_0}, "work": _work_0, "next_round": nat_chk(_next_round_0 + 1), "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.RoundStarted", "id": _next_round_0}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": ($Bool$pick$(($Bool$and$(($Nat$is_gt$(_partition_0, 0)), ($Nat$is_gt$(_lifetime_0, 0)))), {$: "Canonical.RoundLimit"}, {$: "Canonical.InvalidIdentity"}))});
+    return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_partition_0, 0)), ($Bool$and$(($Nat$is_gt$(_lifetime_0, 0)), (_x_0 < 64))))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _next_round_0, "waiting": false, "deciding": false, "write": {$: "None"}, "uncertain": false, "quiet_since": {$: "None"}}, "tail": _rounds_0}, "work": _work_0, "next_round": nat_chk(_next_round_0 + 1), "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.RoundStarted", "id": _next_round_0}}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": ($Bool$pick$(($Bool$and$(($Nat$is_gt$(_partition_0, 0)), ($Nat$is_gt$(_lifetime_0, 0)))), {$: "Canonical.RoundLimit"}, {$: "Canonical.InvalidIdentity"}))});
   }
 }
 
@@ -8322,8 +8322,8 @@ function $$$$047agent$045flow$045bend$047Canonical$058open$(_state_0, _partition
 function $$$$047agent$045flow$045bend$047Canonical$058consume_opened$(_original_0, _round_0, _opened_0) {
   if (_opened_0.$ === "Canonical.Advanced") {
     const _state_0 = _opened_0["state"];
-    const _commands_0 = _opened_0["commands"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.PermitConsumed", "round": _round_0}, "tail": _commands_0}};
+    const _outputs_0 = _opened_0["outputs"];
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.PermitConsumed", "round": _round_0}}, "tail": _outputs_0}};
   } else {
     const _reason_0 = _opened_0["reason"];
     return {$: "Canonical.Rejected", "state": _original_0, "reason": _reason_0};
@@ -8336,7 +8336,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058consume_existing$(_origina
   } else {
     const _t_0 = _existing_0["value"];
     const _owner_lifetime_0 = _t_0["lifetime"];
-    return $Bool$pick$(($Nat$is_eq$(_lifetime_0, _owner_lifetime_0)), {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_quiet_round$(_updated_0, _partition_0, {$: "None"})), "commands": {$: "Con", "head": {$: "Canonical.PermitConsumed", "round": _round_0}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": _original_0, "reason": {$: "Canonical.StaleRound"}});
+    return $Bool$pick$(($Nat$is_eq$(_lifetime_0, _owner_lifetime_0)), {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_quiet_round$(_updated_0, _partition_0, {$: "None"})), "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.PermitConsumed", "round": _round_0}}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": _original_0, "reason": {$: "Canonical.StaleRound"}});
   }
 }
 
@@ -8390,7 +8390,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058admit_observation_found$(_
   const _history_0 = _state_0["history"];
   if (_found_0.$ === "Some") {
     const _current_0 = _found_0["value"];
-    return $Bool$pick$(($Bool$and$(($$$$047agent$045flow$045bend$047Canonical$058same_round$(_partition_0, _lifetime_0, _round_0, _current_0)), ($Bool$not$(($$$$047agent$045flow$045bend$047Canonical$058is_deciding$(_current_0)))))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": 0, "kind": {$: "Canonical.AwaitingSourceRead"}, "parent": 0}, "tail": _work_0}, "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.ObservationAdmitted", "id": _next_operation_0}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleRound"}});
+    return $Bool$pick$(($Bool$and$(($$$$047agent$045flow$045bend$047Canonical$058same_round$(_partition_0, _lifetime_0, _round_0, _current_0)), ($Bool$not$(($$$$047agent$045flow$045bend$047Canonical$058is_deciding$(_current_0)))))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": 0, "kind": {$: "Canonical.AwaitingSourceRead"}, "parent": 0}, "tail": _work_0}, "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.ObservationAdmitted", "id": _next_operation_0}}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleRound"}});
   } else {
     return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleRound"}};
   }
@@ -8450,7 +8450,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058observation_started_found$
     if (_t_1 === 0) {
       const _t_2 = _t_0["kind"];
       if (_t_2.$ === "Canonical.AwaitingSourceRead") {
-        return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($$$$047agent$045flow$045bend$047Canonical$058replace_work_kind$(_operation_0, {$: "Canonical.SourceReading"}, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.ObservationStarted"}, "tail": {$: "Nil"}}};
+        return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($$$$047agent$045flow$045bend$047Canonical$058replace_work_kind$(_operation_0, {$: "Canonical.SourceReading"}, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.ObservationStarted"}}, "tail": {$: "Nil"}}};
       } else {
         return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.WrongStage"}};
       }
@@ -8478,7 +8478,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058observation_completed_foun
     if (_t_1 === 0) {
       const _t_2 = _t_0["kind"];
       if (_t_2.$ === "Canonical.SourceReading") {
-        return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($$$$047agent$045flow$045bend$047Canonical$058remove_work$(_operation_0, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.ObservationCompleted"}, "tail": {$: "Nil"}}};
+        return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($$$$047agent$045flow$045bend$047Canonical$058remove_work$(_operation_0, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.ObservationCompleted"}}, "tail": {$: "Nil"}}};
       } else {
         return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.WrongStage"}};
       }
@@ -8532,9 +8532,9 @@ function $$$$047agent$045flow$045bend$047Canonical$058interrupt_observation_foun
     if (_t_1 === 0) {
       const _t_2 = _t_0["kind"];
       if (_t_2.$ === "Canonical.AwaitingSourceRead") {
-        return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($$$$047agent$045flow$045bend$047Canonical$058remove_work$(_operation_0, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.ObservationInterrupted"}, "tail": {$: "Nil"}}};
+        return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($$$$047agent$045flow$045bend$047Canonical$058remove_work$(_operation_0, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.ObservationInterrupted"}}, "tail": {$: "Nil"}}};
       } else if (_t_2.$ === "Canonical.SourceReading") {
-        return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($$$$047agent$045flow$045bend$047Canonical$058remove_work$(_operation_0, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.ObservationInterrupted"}, "tail": {$: "Nil"}}};
+        return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($$$$047agent$045flow$045bend$047Canonical$058remove_work$(_operation_0, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.ObservationInterrupted"}}, "tail": {$: "Nil"}}};
       } else {
         return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.WrongStage"}};
       }
@@ -8572,9 +8572,9 @@ function $$$$047agent$045flow$045bend$047Canonical$058begin_result$(_state_0, _p
   if (_result_0.$ === "Ledger.Granted") {
     const _ledger_0 = _result_0["state"];
     const _charge_0 = _result_0["id"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($List$append$(_work_0, {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": _charge_0, "kind": {$: "Canonical.Preparing"}, "parent": _parent_0}, "tail": {$: "Nil"}})), "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.Prepare", "operation": _next_operation_0, "reservation": _charge_0}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($List$append$(_work_0, {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": _charge_0, "kind": {$: "Canonical.Preparing"}, "parent": _parent_0}, "tail": {$: "Nil"}})), "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.ActionRequested", "request": {$: "Canonical.Prepare", "operation": _next_operation_0, "reservation": _charge_0}}, "tail": {$: "Nil"}}};
   } else {
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.PreparationRefused"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.PreparationRefused"}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -8655,14 +8655,14 @@ function $$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_ledger_0, 
   return {$: "Canonical.CapacityView", "global": ($$$$047agent$045flow$045bend$047Ledger$058total$(_charges_0)), "local": ($$$$047agent$045flow$045bend$047Ledger$058partition_usage$(_charges_0, _partition_0)), "charges": _charges_0};
 }
 
-function $$$$047agent$045flow$045bend$047Canonical$058admit_one$(_result_0, _partition_0, _lifetime_0, _round_0, _operation_0, _position_0, _bytes_0, _parent_0, _work_0, _commands_0) {
+function $$$$047agent$045flow$045bend$047Canonical$058admit_one$(_result_0, _partition_0, _lifetime_0, _round_0, _operation_0, _position_0, _bytes_0, _parent_0, _work_0, _outputs_0) {
   if (_result_0.$ === "Ledger.Granted") {
     const _granted_0 = _result_0["state"];
     const _id_0 = _result_0["id"];
-    return {$: "Canonical.Batch", "ledger": _granted_0, "work": {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "charge": _id_0, "kind": {$: "Canonical.Reviewing"}, "parent": _parent_0}, "tail": _work_0}, "next_operation": nat_chk(_operation_0 + 1), "commands": ($List$append$(_commands_0, {$: "Con", "head": {$: "Canonical.UnitAdmitted", "operation": _operation_0, "reservation": _id_0, "position": _position_0, "bytes": _bytes_0, "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_granted_0, _partition_0))}, "tail": {$: "Nil"}}))};
+    return {$: "Canonical.Batch", "ledger": _granted_0, "work": {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "charge": _id_0, "kind": {$: "Canonical.Reviewing"}, "parent": _parent_0}, "tail": _work_0}, "next_operation": nat_chk(_operation_0 + 1), "outputs": ($List$append$(_outputs_0, {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.UnitAdmitted", "operation": _operation_0, "reservation": _id_0, "position": _position_0, "bytes": _bytes_0, "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_granted_0, _partition_0))}}, "tail": {$: "Nil"}}))};
   } else {
     const _unchanged_0 = _result_0["state"];
-    return {$: "Canonical.Batch", "ledger": _unchanged_0, "work": _work_0, "next_operation": _operation_0, "commands": ($List$append$(_commands_0, {$: "Con", "head": {$: "Canonical.UnitRefused", "position": _position_0, "bytes": _bytes_0, "reason": ($$$$047agent$045flow$045bend$047Ledger$058admission$(_unchanged_0, _partition_0, _bytes_0)), "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_unchanged_0, _partition_0))}, "tail": {$: "Nil"}}))};
+    return {$: "Canonical.Batch", "ledger": _unchanged_0, "work": _work_0, "next_operation": _operation_0, "outputs": ($List$append$(_outputs_0, {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.UnitRefused", "position": _position_0, "bytes": _bytes_0, "reason": ($$$$047agent$045flow$045bend$047Ledger$058admission$(_unchanged_0, _partition_0, _bytes_0)), "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_unchanged_0, _partition_0))}}, "tail": {$: "Nil"}}))};
   }
 }
 
@@ -8684,9 +8684,9 @@ function $$$$047agent$045flow$045bend$047Canonical$058admit_units$($0, $1, $2, $
         const _ledger_0 = _batch_0["ledger"];
         const _work_0 = _batch_0["work"];
         const _operation_0 = _batch_0["next_operation"];
-        const _commands_0 = _batch_0["commands"];
+        const _outputs_0 = _batch_0["outputs"];
         $0 = _rest_0;
-        $1 = ($$$$047agent$045flow$045bend$047Canonical$058admit_one$(($$$$047agent$045flow$045bend$047Ledger$058reserve_for$(_ledger_0, _partition_0, _size_0, {$: "Ledger.ReviewUnit"})), _partition_0, _lifetime_0, _round_0, _operation_0, _position_0, _size_0, _parent_0, _work_0, _commands_0));
+        $1 = ($$$$047agent$045flow$045bend$047Canonical$058admit_one$(($$$$047agent$045flow$045bend$047Ledger$058reserve_for$(_ledger_0, _partition_0, _size_0, {$: "Ledger.ReviewUnit"})), _partition_0, _lifetime_0, _round_0, _operation_0, _position_0, _size_0, _parent_0, _work_0, _outputs_0));
         $2 = _partition_0;
         $3 = _lifetime_0;
         $4 = _round_0;
@@ -8709,8 +8709,8 @@ function $$$$047agent$045flow$045bend$047Canonical$058prepared_batch$(_state_0, 
   const _ledger_0 = _batch_0["ledger"];
   const _units_0 = _batch_0["work"];
   const _next_0 = _batch_0["next_operation"];
-  const _commands_0 = _batch_0["commands"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($List$append$(($$$$047agent$045flow$045bend$047Canonical$058remove_work$(_operation_0, _work_0)), _units_0)), "next_round": _next_round_0, "next_operation": _next_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.PreparationReleased", "id": _charge_0, "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_released_0, _partition_0))}, "tail": _commands_0}};
+  const _outputs_0 = _batch_0["outputs"];
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($List$append$(($$$$047agent$045flow$045bend$047Canonical$058remove_work$(_operation_0, _work_0)), _units_0)), "next_round": _next_round_0, "next_operation": _next_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.PreparationReleased", "id": _charge_0, "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_released_0, _partition_0))}}, "tail": _outputs_0}};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058prepared_released$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _charge_0, _parent_0, _bytes_0, _result_0) {
@@ -8728,7 +8728,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058prepared_released$(_state_
       return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.InconsistentLedger"}};
     } else {
       const _released_0 = _result_0["state"];
-      return $$$$047agent$045flow$045bend$047Canonical$058prepared_batch$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, _operation_0, _charge_0, _partition_0, _released_0, {$: "Canonical.Batch", "ledger": _released_0, "work": {$: "Nil"}, "next_operation": _next_operation_0, "commands": {$: "Nil"}});
+      return $$$$047agent$045flow$045bend$047Canonical$058prepared_batch$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, _operation_0, _charge_0, _partition_0, _released_0, {$: "Canonical.Batch", "ledger": _released_0, "work": {$: "Nil"}, "next_operation": _next_operation_0, "outputs": {$: "Nil"}});
     }
   } else {
     const _size_0 = _bytes_0["head"];
@@ -8737,7 +8737,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058prepared_released$(_state_
       return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.InconsistentLedger"}};
     } else {
       const _released_1 = _result_0["state"];
-      return $$$$047agent$045flow$045bend$047Canonical$058prepared_batch$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, _operation_0, _charge_0, _partition_0, _released_1, ($$$$047agent$045flow$045bend$047Canonical$058admit_units$({$: "Con", "head": _size_0, "tail": _rest_0}, {$: "Canonical.Batch", "ledger": _released_1, "work": {$: "Nil"}, "next_operation": _next_operation_0, "commands": {$: "Nil"}}, _partition_0, _lifetime_0, _round_0, 1, _parent_0)));
+      return $$$$047agent$045flow$045bend$047Canonical$058prepared_batch$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, _operation_0, _charge_0, _partition_0, _released_1, ($$$$047agent$045flow$045bend$047Canonical$058admit_units$({$: "Con", "head": _size_0, "tail": _rest_0}, {$: "Canonical.Batch", "ledger": _released_1, "work": {$: "Nil"}, "next_operation": _next_operation_0, "outputs": {$: "Nil"}}, _partition_0, _lifetime_0, _round_0, 1, _parent_0)));
     }
   }
 }
@@ -8807,7 +8807,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058start_review_found$(_state
     const _t_0 = _found_0["value"];
     const _t_1 = _t_0["kind"];
     if (_t_1.$ === "Canonical.Reviewing") {
-      return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.ReviewStarted"}, "tail": {$: "Nil"}}};
+      return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReviewStarted"}}, "tail": {$: "Nil"}}};
     } else {
       return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.WrongStage"}};
     }
@@ -8841,7 +8841,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058reviewed_released$(_state_
   const _history_0 = _state_0["history"];
   if (_result_0.$ === "Ledger.Granted") {
     const _updated_0 = _result_0["state"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _updated_0, "rounds": _rounds_0, "work": ($$$$047agent$045flow$045bend$047Canonical$058remove_work$(_operation_0, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.ReservationReleased", "id": _charge_0}, "tail": {$: "Con", "head": {$: "Canonical.ReviewRecorded", "outcome": _outcome_0}, "tail": {$: "Nil"}}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _updated_0, "rounds": _rounds_0, "work": ($$$$047agent$045flow$045bend$047Canonical$058remove_work$(_operation_0, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReservationReleased", "id": _charge_0}}, "tail": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReviewRecorded", "outcome": _outcome_0}}, "tail": {$: "Nil"}}}};
   } else {
     return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.InconsistentLedger"}};
   }
@@ -8859,7 +8859,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058reviewed_retained_result$(
   const _history_0 = _state_0["history"];
   if (_result_0.$ === "Ledger.Granted") {
     const _updated_0 = _result_0["state"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _updated_0, "rounds": _rounds_0, "work": ($$$$047agent$045flow$045bend$047Canonical$058replace_work_kind$(_operation_0, {$: "Canonical.PendingFinding", "count": 1}, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.ReviewRecorded", "outcome": {$: "Canonical.Finding"}}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _updated_0, "rounds": _rounds_0, "work": ($$$$047agent$045flow$045bend$047Canonical$058replace_work_kind$(_operation_0, {$: "Canonical.PendingFinding", "count": 1}, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReviewRecorded", "outcome": {$: "Canonical.Finding"}}}, "tail": {$: "Nil"}}};
   } else {
     return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.InconsistentLedger"}};
   }
@@ -8995,7 +8995,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058finding_count_found$(_stat
     const _t_0 = _found_0["value"];
     const _t_1 = _t_0["kind"];
     if (_t_1.$ === "Canonical.PendingFinding") {
-      return $Bool$pick$(($Nat$is_gt$(_count_0, 0)), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($$$$047agent$045flow$045bend$047Canonical$058replace_work_kind$(_operation_0, {$: "Canonical.PendingFinding", "count": _count_0}, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.FindingCountRecorded"}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.WrongStage"}});
+      return $Bool$pick$(($Nat$is_gt$(_count_0, 0)), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($$$$047agent$045flow$045bend$047Canonical$058replace_work_kind$(_operation_0, {$: "Canonical.PendingFinding", "count": _count_0}, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.FindingCountRecorded"}}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.WrongStage"}});
     } else {
       return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.WrongStage"}};
     }
@@ -9020,8 +9020,8 @@ function $$$$047agent$045flow$045bend$047Canonical$058finding_count_update$(_sta
 function $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(_step_0, _command_0) {
   if (_step_0.$ === "Canonical.Advanced") {
     const _state_0 = _step_0["state"];
-    const _commands_0 = _step_0["commands"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": ($List$append$(_commands_0, {$: "Con", "head": _command_0, "tail": {$: "Nil"}}))};
+    const _outputs_0 = _step_0["outputs"];
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": ($List$append$(_outputs_0, {$: "Con", "head": _command_0, "tail": {$: "Nil"}}))};
   } else {
     const _state_1 = _step_0["state"];
     const _reason_0 = _step_0["reason"];
@@ -9069,14 +9069,14 @@ function $$$$047agent$045flow$045bend$047Canonical$058reviewed_stale$(_state_0, 
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058review_observed_choice$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0, _choice_0) {
-  if (_choice_0.$ === "Work.RetainFinding") {
-    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0)), {$: "Canonical.RetainFinding"});
-  } else if (_choice_0.$ === "Work.RetireStaleFinding") {
-    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed_stale$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0)), {$: "Canonical.RetireStaleFinding"});
-  } else if (_choice_0.$ === "Work.SettleClear") {
-    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0)), {$: "Canonical.SettleClear"});
+  if (_choice_0.$ === "Work.FindingRetained") {
+    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.FindingRetained"}});
+  } else if (_choice_0.$ === "Work.StaleFindingRetired") {
+    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed_stale$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.StaleFindingRetired"}});
+  } else if (_choice_0.$ === "Work.ClearSettled") {
+    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.ClearSettled"}});
   } else {
-    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0)), {$: "Canonical.SettleStaleClear"});
+    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.StaleClearSettled"}});
   }
 }
 
@@ -9104,13 +9104,13 @@ function $$$$047agent$045flow$045bend$047Canonical$058request_outcome_valid$(_ou
 
 function $$$$047agent$045flow$045bend$047Canonical$058request_settled_outcome$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0, _current_work_0) {
   if (_outcome_0.$ === "Canonical.RequestFinding") {
-    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058review_observed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Finding"}, _current_work_0)), {$: "Canonical.JevRequestOutcomeRecorded", "outcome": {$: "Canonical.RequestFinding"}});
+    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058review_observed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Finding"}, _current_work_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.JevRequestOutcomeRecorded", "outcome": {$: "Canonical.RequestFinding"}}});
   } else if (_outcome_0.$ === "Canonical.RequestClear") {
-    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058review_observed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Clear"}, _current_work_0)), {$: "Canonical.JevRequestOutcomeRecorded", "outcome": {$: "Canonical.RequestClear"}});
+    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058review_observed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Clear"}, _current_work_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.JevRequestOutcomeRecorded", "outcome": {$: "Canonical.RequestClear"}}});
   } else if (_outcome_0.$ === "Canonical.RequestInterrupted") {
-    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Interrupted"})), {$: "Canonical.JevRequestOutcomeRecorded", "outcome": {$: "Canonical.RequestInterrupted"}});
+    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Interrupted"})), {$: "Canonical.EventEstablished", "event": {$: "Canonical.JevRequestOutcomeRecorded", "outcome": {$: "Canonical.RequestInterrupted"}}});
   } else {
-    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Unavailable"})), {$: "Canonical.JevRequestOutcomeRecorded", "outcome": _outcome_0});
+    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Unavailable"})), {$: "Canonical.EventEstablished", "event": {$: "Canonical.JevRequestOutcomeRecorded", "outcome": _outcome_0}});
   }
 }
 
@@ -9121,10 +9121,10 @@ function $$$$047agent$045flow$045bend$047Canonical$058request_settled_work$(_sta
     if (_t_1.$ === "Canonical.AtJev") {
       return $$$$047agent$045flow$045bend$047Canonical$058request_settled_outcome$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0, _current_work_0);
     } else {
-      return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.JevObservationIgnored"}, "tail": {$: "Nil"}}};
+      return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.JevObservationIgnored"}}, "tail": {$: "Nil"}}};
     }
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.JevObservationIgnored"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.JevObservationIgnored"}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -9200,9 +9200,9 @@ function $$$$047agent$045flow$045bend$047Canonical$058request_ready_reserved$(_s
   const _history_0 = _state_0["history"];
   if (_result_0.$ === "Dispatch.RequestAccepted") {
     const _dispatch_0 = _result_0["state"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($$$$047agent$045flow$045bend$047Canonical$058replace_work_kind$(_operation_0, {$: "Canonical.AtJev"}, _work_0)), "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.JevRequestIssued", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "request": _request_0}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($$$$047agent$045flow$045bend$047Canonical$058replace_work_kind$(_operation_0, {$: "Canonical.AtJev"}, _work_0)), "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.JevRequestIssued", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "request": _request_0}}, "tail": {$: "Nil"}}};
   } else {
-    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$({$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": __0, "collection": _collection_0, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Unavailable"})), {$: "Canonical.JevRequestUnavailable"});
+    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$({$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": __0, "collection": _collection_0, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Unavailable"})), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.JevRequestUnavailable"}});
   }
 }
 
@@ -9220,7 +9220,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058request_ready_found$(_stat
     const _t_0 = _found_0["value"];
     const _t_1 = _t_0["kind"];
     if (_t_1.$ === "Canonical.Reviewing") {
-      return $Bool$pick$(_ready_0, ($$$$047agent$045flow$045bend$047Canonical$058request_ready_reserved$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4, "dispatch": _dispatch_0, "collection": __5, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _next_operation_0, ($$$$047agent$045flow$045bend$047Dispatch$058reserve_request$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _next_operation_0)))), ($$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4, "dispatch": _dispatch_0, "collection": __5, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Unavailable"})), {$: "Canonical.JevRequestUnavailable"})));
+      return $Bool$pick$(_ready_0, ($$$$047agent$045flow$045bend$047Canonical$058request_ready_reserved$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4, "dispatch": _dispatch_0, "collection": __5, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _next_operation_0, ($$$$047agent$045flow$045bend$047Dispatch$058reserve_request$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _next_operation_0)))), ($$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4, "dispatch": _dispatch_0, "collection": __5, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Unavailable"})), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.JevRequestUnavailable"}})));
     } else {
       return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4, "dispatch": _dispatch_0, "collection": __5, "history": _history_0}, "reason": {$: "Canonical.WrongStage"}};
     }
@@ -9254,7 +9254,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058request_update_result$(_st
   const _history_0 = _state_0["history"];
   if (_result_0.$ === "Dispatch.RequestAccepted") {
     const _dispatch_0 = _result_0["state"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": _command_0, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": _command_0, "tail": {$: "Nil"}}};
   } else {
     return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": __0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleOperation"}};
   }
@@ -9270,7 +9270,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058request_started$(_state_0,
   const _dispatch_0 = _state_0["dispatch"];
   const __6 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $$$$047agent$045flow$045bend$047Canonical$058request_update_result$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, ($$$$047agent$045flow$045bend$047Dispatch$058request_update$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, true, false, false)), {$: "Canonical.JevRequestStartRecorded"});
+  return $$$$047agent$045flow$045bend$047Canonical$058request_update_result$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, ($$$$047agent$045flow$045bend$047Dispatch$058request_update$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, true, false, false)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.JevRequestStartRecorded"}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058request_interrupted$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
@@ -9283,16 +9283,16 @@ function $$$$047agent$045flow$045bend$047Canonical$058request_interrupted$(_stat
   const _dispatch_0 = _state_0["dispatch"];
   const __6 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $$$$047agent$045flow$045bend$047Canonical$058request_update_result$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, ($$$$047agent$045flow$045bend$047Dispatch$058request_update$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, false, true, false)), {$: "Canonical.JevInterruptionRecorded"});
+  return $$$$047agent$045flow$045bend$047Canonical$058request_update_result$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, ($$$$047agent$045flow$045bend$047Dispatch$058request_update$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, false, true, false)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.JevInterruptionRecorded"}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058prepared_offer_result$(_state_0, _decision_0) {
   if (_decision_0.$ === "Work.SkipPrepared") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.PreparedSkipped"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.PreparedSkipped"}}, "tail": {$: "Nil"}}};
   } else if (_decision_0.$ === "Work.AdmitPrepared") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.PreparedAdmitted"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.PreparedAdmitted"}}, "tail": {$: "Nil"}}};
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.PreparedCapacityRefused"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.PreparedCapacityRefused"}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -9302,9 +9302,9 @@ function $$$$047agent$045flow$045bend$047Canonical$058prepared_offer_check$(_sta
 
 function $$$$047agent$045flow$045bend$047Canonical$058empty_prepared_result$(_state_0, _decision_0) {
   if (_decision_0.$ === "Work.FailEmptyLost") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.EmptyLost"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.EmptyLost"}}, "tail": {$: "Nil"}}};
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.EmptyAccepted"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.EmptyAccepted"}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -9314,13 +9314,13 @@ function $$$$047agent$045flow$045bend$047Canonical$058empty_prepared_check$(_sta
 
 function $$$$047agent$045flow$045bend$047Canonical$058review_failure_result$(_state_0, _decision_0) {
   if (_decision_0.$ === "Work.BackendUnavailable") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.FailureBackend"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.FailureBackend"}}, "tail": {$: "Nil"}}};
   } else if (_decision_0.$ === "Work.CredentialUnavailable") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.FailureCredential"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.FailureCredential"}}, "tail": {$: "Nil"}}};
   } else if (_decision_0.$ === "Work.LostUnavailable") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.FailureLost"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.FailureLost"}}, "tail": {$: "Nil"}}};
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.FailureNone"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.FailureNone"}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -9638,7 +9638,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058stop_group_wait$(_state_0,
   const _dispatch_0 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": ($$$$047agent$045flow$045bend$047Canonical$058mark_stop_rounds$(_rounds_0, _group_0, _lifetime_0, _round_0, _scopes_0, true, false)), "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.WaitForWork"}, "tail": {$: "Nil"}}};
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": ($$$$047agent$045flow$045bend$047Canonical$058mark_stop_rounds$(_rounds_0, _group_0, _lifetime_0, _round_0, _scopes_0, true, false)), "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.WaitForWork"}}, "tail": {$: "Nil"}}};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058stop_group_ready$(_state_0, _group_0, _lifetime_0, _round_0, _scopes_0, _continuations_0) {
@@ -9651,7 +9651,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058stop_group_ready$(_state_0
   const _dispatch_0 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($$$$047agent$045flow$045bend$047Canonical$058release_scoped_charges$(_work_0, _ledger_0, _lifetime_0, _scopes_0)), "rounds": ($$$$047agent$045flow$045bend$047Canonical$058mark_stop_rounds$(_rounds_0, _group_0, _lifetime_0, _round_0, _scopes_0, false, true)), "work": ($$$$047agent$045flow$045bend$047Canonical$058retain_scoped_work$(_work_0, _lifetime_0, _scopes_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": ($List$append$(($$$$047agent$045flow$045bend$047Canonical$058release_scoped_commands$(_work_0, _lifetime_0, _scopes_0)), ($List$append$(($$$$047agent$045flow$045bend$047Canonical$058cancel_scoped_dispatch$(_dispatch_0, _work_0, _lifetime_0, _scopes_0)), {$: "Con", "head": ($Bool$pick$((_continuations_0 < 4), {$: "Canonical.FinishReady"}, {$: "Canonical.FinishLimit"})), "tail": {$: "Nil"}}))))};
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($$$$047agent$045flow$045bend$047Canonical$058release_scoped_charges$(_work_0, _ledger_0, _lifetime_0, _scopes_0)), "rounds": ($$$$047agent$045flow$045bend$047Canonical$058mark_stop_rounds$(_rounds_0, _group_0, _lifetime_0, _round_0, _scopes_0, false, true)), "work": ($$$$047agent$045flow$045bend$047Canonical$058retain_scoped_work$(_work_0, _lifetime_0, _scopes_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": ($List$append$(($$$$047agent$045flow$045bend$047Canonical$058release_scoped_commands$(_work_0, _lifetime_0, _scopes_0)), ($List$append$(($$$$047agent$045flow$045bend$047Canonical$058cancel_scoped_dispatch$(_dispatch_0, _work_0, _lifetime_0, _scopes_0)), {$: "Con", "head": ($Bool$pick$((_continuations_0 < 4), {$: "Canonical.EventEstablished", "event": {$: "Canonical.FinishReady"}}, {$: "Canonical.EventEstablished", "event": {$: "Canonical.FinishLimit"}})), "tail": {$: "Nil"}}))))};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058stop_group_checked$(_state_0, _group_0, _lifetime_0, _round_0, _scopes_0, _deadline_0, _extra_pending_0, _continuations_0, _found_0) {
@@ -9698,7 +9698,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058stop_group_end_apply$(_sta
   const _dispatch_0 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": ($$$$047agent$045flow$045bend$047Canonical$058mark_stop_rounds$(_rounds_0, _group_0, _lifetime_0, _round_0, _scopes_0, false, false)), "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.StopEnded"}, "tail": {$: "Nil"}}};
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": ($$$$047agent$045flow$045bend$047Canonical$058mark_stop_rounds$(_rounds_0, _group_0, _lifetime_0, _round_0, _scopes_0, false, false)), "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.StopEnded"}}, "tail": {$: "Nil"}}};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058stop_group_end_valid$(_state_0, _group_0, _lifetime_0, _round_0, _scopes_0, _valid_0) {
@@ -9746,12 +9746,12 @@ function $$$$047agent$045flow$045bend$047Canonical$058stop_ready$(_state_0, _par
   const _dispatch_0 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($$$$047agent$045flow$045bend$047Canonical$058release_unfinished_charges$(_work_0, _ledger_0, _partition_0, _lifetime_0, _round_0)), "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": false, "deciding": true, "write": {$: "None"}, "uncertain": _uncertain_0, "quiet_since": {$: "None"}}, "tail": ($$$$047agent$045flow$045bend$047Canonical$058remove_round$(_partition_0, _rounds_0))}, "work": ($$$$047agent$045flow$045bend$047Canonical$058retain_after_stop$(_work_0, _partition_0, _lifetime_0, _round_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": ($List$append$(($$$$047agent$045flow$045bend$047Canonical$058release_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), ($List$append$(($$$$047agent$045flow$045bend$047Canonical$058cancel_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), {$: "Con", "head": ($Bool$pick$(($Bool$and$(_uncertain_0, ($Bool$not$(_deadline_0)))), {$: "Canonical.ReofferAtStop"}, {$: "Canonical.FinishReady"})), "tail": {$: "Nil"}}))))};
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($$$$047agent$045flow$045bend$047Canonical$058release_unfinished_charges$(_work_0, _ledger_0, _partition_0, _lifetime_0, _round_0)), "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": false, "deciding": true, "write": {$: "None"}, "uncertain": _uncertain_0, "quiet_since": {$: "None"}}, "tail": ($$$$047agent$045flow$045bend$047Canonical$058remove_round$(_partition_0, _rounds_0))}, "work": ($$$$047agent$045flow$045bend$047Canonical$058retain_after_stop$(_work_0, _partition_0, _lifetime_0, _round_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": ($List$append$(($$$$047agent$045flow$045bend$047Canonical$058release_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), ($List$append$(($$$$047agent$045flow$045bend$047Canonical$058cancel_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), {$: "Con", "head": ($Bool$pick$(($Bool$and$(_uncertain_0, ($Bool$not$(_deadline_0)))), {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReofferAtStop"}}, {$: "Canonical.EventEstablished", "event": {$: "Canonical.FinishReady"}})), "tail": {$: "Nil"}}))))};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058stop_output_decision$(_wait_0, _state_0, _p_0, _l_0, _r_0, _deadline_0, _uncertain_0) {
   if (_wait_0) {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.WaitForOutput"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.WaitForOutput"}}, "tail": {$: "Nil"}}};
   } else {
     return $$$$047agent$045flow$045bend$047Canonical$058stop_ready$(_state_0, _p_0, _l_0, _r_0, _deadline_0, _uncertain_0);
   }
@@ -9773,7 +9773,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058stop_current$(_state_0, _p
   const _dispatch_0 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $Bool$pick$(($Bool$and$(_has_pending_0, ($Bool$not$(_deadline_0)))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": true, "deciding": false, "write": _write_0, "uncertain": _uncertain_0, "quiet_since": {$: "None"}}, "tail": ($$$$047agent$045flow$045bend$047Canonical$058remove_round$(_partition_0, _rounds_0))}, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.WaitForWork"}, "tail": {$: "Nil"}}}, ($$$$047agent$045flow$045bend$047Canonical$058stop_output$({$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _deadline_0, _write_0, _uncertain_0)));
+  return $Bool$pick$(($Bool$and$(_has_pending_0, ($Bool$not$(_deadline_0)))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": true, "deciding": false, "write": _write_0, "uncertain": _uncertain_0, "quiet_since": {$: "None"}}, "tail": ($$$$047agent$045flow$045bend$047Canonical$058remove_round$(_partition_0, _rounds_0))}, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.WaitForWork"}}, "tail": {$: "Nil"}}}, ($$$$047agent$045flow$045bend$047Canonical$058stop_output$({$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _deadline_0, _write_0, _uncertain_0)));
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058match_pending$(_state_0, _partition_0, _lifetime_0, _round_0, _deadline_0, _current_0) {
@@ -9834,7 +9834,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058output_start_found$(_state
     if (_t_1.$ === "None") {
       const _uncertain_0 = _t_0["uncertain"];
       const _quiet_since_0 = _t_0["quiet_since"];
-      return $Bool$pick$(($Bool$and$(($$$$047agent$045flow$045bend$047Canonical$058same_round$(_partition_0, _lifetime_0, _round_0, {$: "Canonical.Round", "partition": __0, "lifetime": __1, "id": __2, "waiting": _waiting_0, "deciding": _deciding_0, "write": {$: "None"}, "uncertain": _uncertain_0, "quiet_since": _quiet_since_0})), ($Bool$not$(_deciding_0)))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": _waiting_0, "deciding": false, "write": {$: "Some", "value": _next_operation_0}, "uncertain": _uncertain_0, "quiet_since": _quiet_since_0}, "tail": ($$$$047agent$045flow$045bend$047Canonical$058remove_round$(_partition_0, _rounds_0))}, "work": _work_0, "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.WriteAuthorized", "operation": _next_operation_0}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleRound"}});
+      return $Bool$pick$(($Bool$and$(($$$$047agent$045flow$045bend$047Canonical$058same_round$(_partition_0, _lifetime_0, _round_0, {$: "Canonical.Round", "partition": __0, "lifetime": __1, "id": __2, "waiting": _waiting_0, "deciding": _deciding_0, "write": {$: "None"}, "uncertain": _uncertain_0, "quiet_since": _quiet_since_0})), ($Bool$not$(_deciding_0)))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": _waiting_0, "deciding": false, "write": {$: "Some", "value": _next_operation_0}, "uncertain": _uncertain_0, "quiet_since": _quiet_since_0}, "tail": ($$$$047agent$045flow$045bend$047Canonical$058remove_round$(_partition_0, _rounds_0))}, "work": _work_0, "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.WriteAuthorized", "operation": _next_operation_0}}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleRound"}});
     } else {
       return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleOperation"}};
     }
@@ -9884,7 +9884,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058output_terminal_current$(_
     const _token_0 = _t_0["value"];
     const __3 = _current_0["uncertain"];
     const _quiet_since_0 = _current_0["quiet_since"];
-    return $Bool$pick$(($Bool$and$(($$$$047agent$045flow$045bend$047Canonical$058same_round$(_partition_0, _lifetime_0, _round_0, {$: "Canonical.Round", "partition": __0, "lifetime": __1, "id": __2, "waiting": _waiting_0, "deciding": _deciding_0, "write": {$: "Some", "value": _token_0}, "uncertain": __3, "quiet_since": _quiet_since_0})), ($Nat$is_eq$(_token_0, _operation_0)))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": _waiting_0, "deciding": _deciding_0, "write": {$: "None"}, "uncertain": ($$$$047agent$045flow$045bend$047Canonical$058write_is_unknown$(_outcome_0)), "quiet_since": _quiet_since_0}, "tail": ($$$$047agent$045flow$045bend$047Canonical$058remove_round$(_partition_0, _rounds_0))}, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.WriteRecorded", "outcome": _outcome_0}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleOperation"}});
+    return $Bool$pick$(($Bool$and$(($$$$047agent$045flow$045bend$047Canonical$058same_round$(_partition_0, _lifetime_0, _round_0, {$: "Canonical.Round", "partition": __0, "lifetime": __1, "id": __2, "waiting": _waiting_0, "deciding": _deciding_0, "write": {$: "Some", "value": _token_0}, "uncertain": __3, "quiet_since": _quiet_since_0})), ($Nat$is_eq$(_token_0, _operation_0)))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": _waiting_0, "deciding": _deciding_0, "write": {$: "None"}, "uncertain": ($$$$047agent$045flow$045bend$047Canonical$058write_is_unknown$(_outcome_0)), "quiet_since": _quiet_since_0}, "tail": ($$$$047agent$045flow$045bend$047Canonical$058remove_round$(_partition_0, _rounds_0))}, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.WriteRecorded", "outcome": _outcome_0}}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleOperation"}});
   } else {
     return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleOperation"}};
   }
@@ -9922,7 +9922,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058retire_current$(_state_0, 
   const _dispatch_0 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($$$$047agent$045flow$045bend$047Canonical$058release_round_charges$(_work_0, _ledger_0, _partition_0, _lifetime_0, _round_0)), "rounds": ($$$$047agent$045flow$045bend$047Canonical$058remove_round$(_partition_0, _rounds_0)), "work": ($$$$047agent$045flow$045bend$047Canonical$058retain_other_work$(_work_0, _partition_0, _lifetime_0, _round_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": ($$$$047agent$045flow$045bend$047CollectionState$058retire_round$(_collection_0, _partition_0, _round_0)), "history": _history_0}, "commands": ($List$append$(($$$$047agent$045flow$045bend$047Canonical$058release_all_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), ($List$append$(($$$$047agent$045flow$045bend$047Canonical$058cancel_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), {$: "Con", "head": {$: "Canonical.PartitionRetired", "round": _round_0}, "tail": {$: "Nil"}}))))};
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($$$$047agent$045flow$045bend$047Canonical$058release_round_charges$(_work_0, _ledger_0, _partition_0, _lifetime_0, _round_0)), "rounds": ($$$$047agent$045flow$045bend$047Canonical$058remove_round$(_partition_0, _rounds_0)), "work": ($$$$047agent$045flow$045bend$047Canonical$058retain_other_work$(_work_0, _partition_0, _lifetime_0, _round_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": ($$$$047agent$045flow$045bend$047CollectionState$058retire_round$(_collection_0, _partition_0, _round_0)), "history": _history_0}, "outputs": ($List$append$(($$$$047agent$045flow$045bend$047Canonical$058release_all_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), ($List$append$(($$$$047agent$045flow$045bend$047Canonical$058cancel_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.PartitionRetired", "round": _round_0}}, "tail": {$: "Nil"}}))))};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058retire_found$(_state_0, _partition_0, _lifetime_0, _round_0, _found_0) {
@@ -9960,10 +9960,10 @@ function $$$$047agent$045flow$045bend$047Canonical$058capacity_reserve_result$(_
   if (_result_0.$ === "Ledger.Granted") {
     const _ledger_0 = _result_0["state"];
     const _id_0 = _result_0["id"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.CapacityGranted", "id": _id_0, "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_ledger_0, _partition_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.CapacityGranted", "id": _id_0, "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_ledger_0, _partition_0))}}, "tail": {$: "Nil"}}};
   } else {
     const _ledger_1 = _result_0["state"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.CapacityRefused", "reason": ($$$$047agent$045flow$045bend$047Ledger$058admission$(_ledger_1, _partition_0, _bytes_0)), "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_ledger_1, _partition_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CapacityRefused", "reason": ($$$$047agent$045flow$045bend$047Ledger$058admission$(_ledger_1, _partition_0, _bytes_0)), "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_ledger_1, _partition_0))}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -9992,14 +9992,14 @@ function $$$$047agent$045flow$045bend$047Canonical$058capacity_resize_result$(_s
   const _history_0 = _state_0["history"];
   if (_result_0.$ === "Ledger.Granted") {
     const _ledger_0 = _result_0["state"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.CapacityResized", "id": _id_0, "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_ledger_0, _partition_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.CapacityResized", "id": _id_0, "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_ledger_0, _partition_0))}}, "tail": {$: "Nil"}}};
   } else {
     const _t_0 = _result_0["state"];
     const _limits_0 = _t_0["limits"];
     const _next_id_0 = _t_0["next_id"];
     const _charges_0 = _t_0["charges"];
     const _others_0 = {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": ($$$$047agent$045flow$045bend$047Ledger$058remove$(_id_0, _charges_0))};
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.CapacityRefused", "reason": ($$$$047agent$045flow$045bend$047Ledger$058admission$(_others_0, _partition_0, _bytes_0)), "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$({$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}, _partition_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CapacityRefused", "reason": ($$$$047agent$045flow$045bend$047Ledger$058admission$(_others_0, _partition_0, _bytes_0)), "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$({$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}, _partition_0))}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -10050,7 +10050,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058capacity_release_result$(_
   const _history_0 = _state_0["history"];
   if (_result_0.$ === "Ledger.Granted") {
     const _ledger_0 = _result_0["state"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.ReservationReleased", "id": _id_0}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReservationReleased", "id": _id_0}}, "tail": {$: "Nil"}}};
   } else {
     return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleOperation"}};
   }
@@ -10069,14 +10069,14 @@ function $$$$047agent$045flow$045bend$047Canonical$058capacity_release$(_state_0
   return $$$$047agent$045flow$045bend$047Canonical$058capacity_release_result$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, _id_0, ($$$$047agent$045flow$045bend$047Ledger$058release$(_ledger_0, _id_0)));
 }
 
-function $$$$047agent$045flow$045bend$047Canonical$058capacity_replace_one$(_partition_0, _position_0, _bytes_0, _commands_0, _result_0) {
+function $$$$047agent$045flow$045bend$047Canonical$058capacity_replace_one$(_partition_0, _position_0, _bytes_0, _outputs_0, _result_0) {
   if (_result_0.$ === "Ledger.Granted") {
     const _ledger_0 = _result_0["state"];
     const _id_0 = _result_0["id"];
-    return {$: "Canonical.CapacityBatch", "ledger": _ledger_0, "commands": ($List$append$(_commands_0, {$: "Con", "head": {$: "Canonical.CapacityUnitAdmitted", "reservation": _id_0, "position": _position_0, "bytes": _bytes_0, "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_ledger_0, _partition_0))}, "tail": {$: "Nil"}}))};
+    return {$: "Canonical.CapacityBatch", "ledger": _ledger_0, "outputs": ($List$append$(_outputs_0, {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.CapacityUnitAdmitted", "reservation": _id_0, "position": _position_0, "bytes": _bytes_0, "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_ledger_0, _partition_0))}}, "tail": {$: "Nil"}}))};
   } else {
     const _ledger_1 = _result_0["state"];
-    return {$: "Canonical.CapacityBatch", "ledger": _ledger_1, "commands": ($List$append$(_commands_0, {$: "Con", "head": {$: "Canonical.CapacityUnitRefused", "position": _position_0, "bytes": _bytes_0, "reason": ($$$$047agent$045flow$045bend$047Ledger$058admission$(_ledger_1, _partition_0, _bytes_0)), "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_ledger_1, _partition_0))}, "tail": {$: "Nil"}}))};
+    return {$: "Canonical.CapacityBatch", "ledger": _ledger_1, "outputs": ($List$append$(_outputs_0, {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CapacityUnitRefused", "position": _position_0, "bytes": _bytes_0, "reason": ($$$$047agent$045flow$045bend$047Ledger$058admission$(_ledger_1, _partition_0, _bytes_0)), "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_ledger_1, _partition_0))}}, "tail": {$: "Nil"}}))};
   }
 }
 
@@ -10093,9 +10093,9 @@ function $$$$047agent$045flow$045bend$047Canonical$058capacity_replace_units$($0
         const _size_0 = _sizes_0["head"];
         const _rest_0 = _sizes_0["tail"];
         const _ledger_0 = _batch_0["ledger"];
-        const _commands_0 = _batch_0["commands"];
+        const _outputs_0 = _batch_0["outputs"];
         $0 = _rest_0;
-        $1 = ($$$$047agent$045flow$045bend$047Canonical$058capacity_replace_one$(_partition_0, _position_0, _size_0, _commands_0, ($$$$047agent$045flow$045bend$047Ledger$058reserve_for$(_ledger_0, _partition_0, _size_0, {$: "Ledger.ReviewUnit"}))));
+        $1 = ($$$$047agent$045flow$045bend$047Canonical$058capacity_replace_one$(_partition_0, _position_0, _size_0, _outputs_0, ($$$$047agent$045flow$045bend$047Ledger$058reserve_for$(_ledger_0, _partition_0, _size_0, {$: "Ledger.ReviewUnit"}))));
         $2 = _partition_0;
         $3 = nat_chk(_position_0 + 1);
         continue;
@@ -10114,8 +10114,8 @@ function $$$$047agent$045flow$045bend$047Canonical$058capacity_replace_batch$(_s
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
   const _ledger_0 = _batch_0["ledger"];
-  const _commands_0 = _batch_0["commands"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.PreparationReleased", "id": _id_0, "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_released_0, _partition_0))}, "tail": _commands_0}};
+  const _outputs_0 = _batch_0["outputs"];
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.PreparationReleased", "id": _id_0, "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_released_0, _partition_0))}}, "tail": _outputs_0}};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058capacity_replace_released$(_state_0, _id_0, _partition_0, _sizes_0, _result_0) {
@@ -10130,7 +10130,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058capacity_replace_released$
   const _history_0 = _state_0["history"];
   if (_result_0.$ === "Ledger.Granted") {
     const _released_0 = _result_0["state"];
-    return $$$$047agent$045flow$045bend$047Canonical$058capacity_replace_batch$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": __1, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, _id_0, _partition_0, _released_0, ($$$$047agent$045flow$045bend$047Canonical$058capacity_replace_units$(_sizes_0, {$: "Canonical.CapacityBatch", "ledger": _released_0, "commands": {$: "Nil"}}, _partition_0, 1)));
+    return $$$$047agent$045flow$045bend$047Canonical$058capacity_replace_batch$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": __1, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, _id_0, _partition_0, _released_0, ($$$$047agent$045flow$045bend$047Canonical$058capacity_replace_units$(_sizes_0, {$: "Canonical.CapacityBatch", "ledger": _released_0, "outputs": {$: "Nil"}}, _partition_0, 1)));
   } else {
     return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": __1, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleOperation"}};
   }
@@ -10185,12 +10185,12 @@ function $$$$047agent$045flow$045bend$047Canonical$058dispatch_commands$(_items_
       const _operation_0 = _t_0["operation"];
       const _sequence_0 = _t_0["sequence"];
       const _rest_0 = _items_0["tail"];
-      return {$: "Con", "head": {$: "Canonical.DispatchStarted", "operation": _operation_0, "sequence": _sequence_0}, "tail": ($$$$047agent$045flow$045bend$047Canonical$058dispatch_commands$(_rest_0))};
+      return {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.DispatchStarted", "operation": _operation_0, "sequence": _sequence_0}}, "tail": ($$$$047agent$045flow$045bend$047Canonical$058dispatch_commands$(_rest_0))};
     } else {
       const _operation_1 = _t_0["operation"];
       const _running_0 = _t_0["running"];
       const _rest_1 = _items_0["tail"];
-      return {$: "Con", "head": {$: "Canonical.DispatchDiscarded", "operation": _operation_1, "running": _running_0}, "tail": ($$$$047agent$045flow$045bend$047Canonical$058dispatch_commands$(_rest_1))};
+      return {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.DispatchDiscarded", "operation": _operation_1, "running": _running_0}}, "tail": ($$$$047agent$045flow$045bend$047Canonical$058dispatch_commands$(_rest_1))};
     }
   }
 }
@@ -10206,8 +10206,8 @@ function $$$$047agent$045flow$045bend$047Canonical$058cancel_review_dispatched$(
   const _history_0 = _updated_0["history"];
   if (_result_0.$ === "Dispatch.Advanced") {
     const _dispatch_0 = _result_0["state"];
-    const _commands_0 = _result_0["commands"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.ReservationReleased", "id": _charge_0}, "tail": {$: "Con", "head": {$: "Canonical.CancelWork", "operation": _operation_0}, "tail": ($$$$047agent$045flow$045bend$047Canonical$058dispatch_commands$(_commands_0))}}};
+    const _outputs_0 = _result_0["commands"];
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReservationReleased", "id": _charge_0}}, "tail": {$: "Con", "head": {$: "Canonical.ActionRequested", "request": {$: "Canonical.CancelWork", "operation": _operation_0}}, "tail": ($$$$047agent$045flow$045bend$047Canonical$058dispatch_commands$(_outputs_0))}}};
   } else {
     return {$: "Canonical.Rejected", "state": _original_0, "reason": {$: "Canonical.StaleOperation"}};
   }
@@ -10286,8 +10286,8 @@ function $$$$047agent$045flow$045bend$047Canonical$058dispatch_result$(_state_0,
   const _history_0 = _state_0["history"];
   if (_result_0.$ === "Dispatch.Advanced") {
     const _dispatch_0 = _result_0["state"];
-    const _commands_0 = _result_0["commands"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": ($$$$047agent$045flow$045bend$047Canonical$058dispatch_commands$(_commands_0))};
+    const _outputs_0 = _result_0["commands"];
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": ($$$$047agent$045flow$045bend$047Canonical$058dispatch_commands$(_outputs_0))};
   } else {
     return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": __0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleOperation"}};
   }
@@ -10377,9 +10377,9 @@ function $$$$047agent$045flow$045bend$047Canonical$058close_dispatch$(_state_0) 
 
 function $$$$047agent$045flow$045bend$047Canonical$058dispatch_scope_result$(_state_0, _result_0) {
   if (_result_0.$ === "Retention.NamedOnly") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DiscardNamedOnly"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DiscardNamedOnly"}}, "tail": {$: "Nil"}}};
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DiscardAllUnfinished"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DiscardAllUnfinished"}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -10402,9 +10402,9 @@ function $$$$047agent$045flow$045bend$047Canonical$058with_collection$(_state_0,
 function $$$$047agent$045flow$045bend$047Canonical$058collection_decision$(_state_0, _decision_0, _accepted_0, _refused_0) {
   if (_decision_0.$ === "CollectionState.Accepted") {
     const _collection_0 = _decision_0["state"];
-    return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_collection$(_state_0, _collection_0)), "commands": {$: "Con", "head": _accepted_0, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_collection$(_state_0, _collection_0)), "outputs": {$: "Con", "head": _accepted_0, "tail": {$: "Nil"}}};
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": _refused_0, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": _refused_0, "tail": {$: "Nil"}}};
   }
 }
 
@@ -10514,41 +10514,41 @@ function $$$$047agent$045flow$045bend$047Canonical$058collection_ready$(_state_0
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
   const _x_0 = ($$$$047agent$045flow$045bend$047Canonical$058unfinished_for_observation$(_work_0, _partition_0, _lifetime_0, _round_0, _observation_0));
-  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058mark_ready$(_collection_0, _advice_0, ($Bool$and$(($$$$047agent$045flow$045bend$047Canonical$058finding_for_observation$(_work_0, _partition_0, _lifetime_0, _round_0, _observation_0, _advice_0)), ($$$$047agent$045flow$045bend$047Collection$058eligible$(($$$$047agent$045flow$045bend$047Canonical$058deciding_round$(($$$$047agent$045flow$045bend$047Canonical$058find_round$(_partition_0, _rounds_0)), _partition_0, _lifetime_0, _round_0)), ($Bool$not$((_joined_pending_0 || _x_0))))))))), {$: "Canonical.CollectionEligible"}, {$: "Canonical.CollectionWaiting"});
+  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058mark_ready$(_collection_0, _advice_0, ($Bool$and$(($$$$047agent$045flow$045bend$047Canonical$058finding_for_observation$(_work_0, _partition_0, _lifetime_0, _round_0, _observation_0, _advice_0)), ($$$$047agent$045flow$045bend$047Collection$058eligible$(($$$$047agent$045flow$045bend$047Canonical$058deciding_round$(($$$$047agent$045flow$045bend$047Canonical$058find_round$(_partition_0, _rounds_0)), _partition_0, _lifetime_0, _round_0)), ($Bool$not$((_joined_pending_0 || _x_0))))))))), {$: "Canonical.EventEstablished", "event": {$: "Canonical.CollectionEligible"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionWaiting"}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058collection_credential_result$(_state_0, _decision_0) {
   if (_decision_0.$ === "Collection.RetireAdvice") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CollectionRetireCredential"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionRetireCredential"}}, "tail": {$: "Nil"}}};
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CollectionRetainCredential"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionRetainCredential"}}, "tail": {$: "Nil"}}};
   }
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058collection_candidate$(_state_0, _same_partition_0, _unleased_0, _has_unsuppressed_0, _authority_owns_0) {
-  return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Delivery$058advice_candidate$(_same_partition_0, _unleased_0, _has_unsuppressed_0, _authority_owns_0)), {$: "Canonical.CollectionCandidate"}, {$: "Canonical.CollectionSkip"})), "tail": {$: "Nil"}}};
+  return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Delivery$058advice_candidate$(_same_partition_0, _unleased_0, _has_unsuppressed_0, _authority_owns_0)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionCandidate"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionSkip"}})), "tail": {$: "Nil"}}};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058collection_order_result$(_state_0, _order_0) {
   if (_order_0.$ === "Collection.Before") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CollectionBefore"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionBefore"}}, "tail": {$: "Nil"}}};
   } else if (_order_0.$ === "Collection.Equal") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CollectionEqual"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionEqual"}}, "tail": {$: "Nil"}}};
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CollectionAfter"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionAfter"}}, "tail": {$: "Nil"}}};
   }
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058collection_expiry$(_state_0, _elapsed_0, _lifetime_0) {
-  return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Collection$058expired$(_elapsed_0, _lifetime_0)), {$: "Canonical.CollectionExpired"}, {$: "Canonical.CollectionCurrent"})), "tail": {$: "Nil"}}};
+  return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Collection$058expired$(_elapsed_0, _lifetime_0)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionExpired"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionCurrent"}})), "tail": {$: "Nil"}}};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058collection_fit$(_state_0, _items_0, _bytes_0) {
-  return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Handoff$058fits_batch$(_items_0, _bytes_0)), {$: "Canonical.CollectionFits"}, {$: "Canonical.CollectionLimited"})), "tail": {$: "Nil"}}};
+  return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Handoff$058fits_batch$(_items_0, _bytes_0)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionFits"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionLimited"}})), "tail": {$: "Nil"}}};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058collection_finding_result$(_state_0, _current_0, _oversized_0, _fits_0) {
-  return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Bool$not$(_current_0)), {$: "Canonical.CollectionFindingExpired"}, ($Bool$pick$(_oversized_0, {$: "Canonical.CollectionFindingLimited"}, ($Bool$pick$(_fits_0, {$: "Canonical.CollectionFindingSelected"}, {$: "Canonical.CollectionFindingRetained"})))))), "tail": {$: "Nil"}}};
+  return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($Bool$not$(_current_0)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionFindingExpired"}}, ($Bool$pick$(_oversized_0, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionFindingLimited"}}, ($Bool$pick$(_fits_0, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionFindingSelected"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionFindingRetained"}})))))), "tail": {$: "Nil"}}};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058collection_finding$(_state_0, _selection_partition_0, _selection_round_0, _unit_0, _partition_0, _round_0, _snapshot_0, _current_snapshot_0, _credential_0, _current_credential_0, _age_ms_0, _solo_bytes_0, _collection_ready_0, _selected_count_0, _prospective_bytes_0) {
@@ -10557,11 +10557,11 @@ function $$$$047agent$045flow$045bend$047Canonical$058collection_finding$(_state
 
 function $$$$047agent$045flow$045bend$047Canonical$058collection_notice_result$(_state_0, _result_0) {
   if (_result_0.$ === "Handoff.IncludeNotice") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CollectionNoticeIncluded"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionNoticeIncluded"}}, "tail": {$: "Nil"}}};
   } else if (_result_0.$ === "Handoff.SkipNotice") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CollectionNoticeSkipped"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionNoticeSkipped"}}, "tail": {$: "Nil"}}};
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CollectionNoticeStopped"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionNoticeStopped"}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -10575,7 +10575,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058collection_reserve$(_state
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058reserve$(_collection_0, _advice_0, _token_0)), {$: "Canonical.CollectionLeaseReserved"}, {$: "Canonical.CollectionLeaseRefused"});
+  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058reserve$(_collection_0, _advice_0, _token_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.CollectionLeaseReserved"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionLeaseRefused"}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058collection_release$(_state_0, _advice_0, _token_0) {
@@ -10588,7 +10588,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058collection_release$(_state
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058release$(_collection_0, _advice_0, _token_0)), {$: "Canonical.CollectionLeaseReleased"}, {$: "Canonical.CollectionLeaseRefused"});
+  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058release$(_collection_0, _advice_0, _token_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.CollectionLeaseReleased"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionLeaseRefused"}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058collection_lease_keep$(_state_0, _advice_0, _token_0) {
@@ -10601,7 +10601,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058collection_lease_keep$(_st
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047CollectionState$058owns_lease$(_collection_0, _advice_0, _token_0)), {$: "Canonical.CollectionLeaseKept"}, {$: "Canonical.CollectionLeaseRefused"})), "tail": {$: "Nil"}}};
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047CollectionState$058owns_lease$(_collection_0, _advice_0, _token_0)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionLeaseKept"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionLeaseRefused"}})), "tail": {$: "Nil"}}};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058collection_lease_checked$(_state_0, _advice_0, _token_0, _action_0) {
@@ -10626,7 +10626,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058collection_retire$(_state_
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $Bool$pick$(($$$$047agent$045flow$045bend$047CollectionState$058protected_advice$(_collection_0, _advice_0)), {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.WrongStage"}}, {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_collection$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058retire$(_collection_0, _advice_0)))), "commands": {$: "Con", "head": {$: "Canonical.CollectionAdviceRetired"}, "tail": {$: "Nil"}}});
+  return $Bool$pick$(($$$$047agent$045flow$045bend$047CollectionState$058protected_advice$(_collection_0, _advice_0)), {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.WrongStage"}}, {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_collection$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058retire$(_collection_0, _advice_0)))), "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.CollectionAdviceRetired"}}, "tail": {$: "Nil"}}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058collection_claim$(_state_0, _group_0, _token_0, _active_0, _capacity_0) {
@@ -10639,7 +10639,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058collection_claim$(_state_0
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058claim$(_collection_0, _group_0, _token_0, _active_0, _capacity_0)), {$: "Canonical.CollectionBackgroundClaimed"}, {$: "Canonical.CollectionBackgroundRefused"});
+  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058claim$(_collection_0, _group_0, _token_0, _active_0, _capacity_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.CollectionBackgroundClaimed"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionBackgroundRefused"}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058collection_release_background$(_state_0, _group_0, _token_0) {
@@ -10652,7 +10652,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058collection_release_backgro
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058release_claim$(_collection_0, _group_0, _token_0)), {$: "Canonical.CollectionBackgroundReleased"}, {$: "Canonical.CollectionBackgroundRefused"});
+  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058release_claim$(_collection_0, _group_0, _token_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.CollectionBackgroundReleased"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionBackgroundRefused"}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058collection_expire_background$(_state_0, _group_0, _token_0, _elapsed_0, _lifetime_0) {
@@ -10665,7 +10665,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058collection_expire_backgrou
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058expire_claim$(_collection_0, _group_0, _token_0, _elapsed_0, _lifetime_0)), {$: "Canonical.CollectionBackgroundReleased"}, {$: "Canonical.CollectionBackgroundKept"});
+  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058expire_claim$(_collection_0, _group_0, _token_0, _elapsed_0, _lifetime_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.CollectionBackgroundReleased"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectionBackgroundKept"}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058pending_count$($0, $1) {
@@ -10730,7 +10730,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058finish_reserve_decision$(_
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058finish_reserve$(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)), {$: "Canonical.FinishReserved"}, {$: "Canonical.FinishRefused"});
+  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058finish_reserve$(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.FinishReserved"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.FinishRefused"}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058finish_reserve$(_state_0, _group_0, _lifetime_0, _round_0, _attempt_0, _token_0, _selected_0, _has_notice_0, _pass_notices_0, _can_write_0, _binding_valid_0, _deadline_reached_0) {
@@ -10743,7 +10743,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058finish_reserve$(_state_0, 
   const __4 = _state_0["dispatch"];
   const __5 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $Bool$pick$(($Bool$not$(_can_write_0)), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": __5, "history": _history_0}, "commands": {$: "Con", "head": ($Bool$pick$(_deadline_reached_0, {$: "Canonical.FinishAllowedDeadline"}, {$: "Canonical.FinishAllowedNoAdvice"})), "tail": {$: "Nil"}}}, ($Bool$pick$(($Nat$is_eq$(($List$length$(_selected_0)), 0)), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": __5, "history": _history_0}, "commands": {$: "Con", "head": ($Bool$pick$(($Bool$and$(_has_notice_0, _pass_notices_0)), {$: "Canonical.FinishNotices"}, ($Bool$pick$(_deadline_reached_0, {$: "Canonical.FinishAllowedDeadline"}, {$: "Canonical.FinishAllowedNoAdvice"})))), "tail": {$: "Nil"}}}, ($Bool$pick$(($Bool$and$(_binding_valid_0, ($Bool$and$(($$$$047agent$045flow$045bend$047Canonical$058deciding_round$(($$$$047agent$045flow$045bend$047Canonical$058find_round$(_group_0, _rounds_0)), _group_0, _lifetime_0, _round_0)), ($$$$047agent$045flow$045bend$047Canonical$058selected_pending$(_selected_0, _work_0)))))), ($$$$047agent$045flow$045bend$047Canonical$058finish_reserve_decision$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": __5, "history": _history_0}, _group_0, _round_0, _attempt_0, _token_0, _selected_0)), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": __5, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.FinishAllowedUnavailable"}, "tail": {$: "Nil"}}})))));
+  return $Bool$pick$(($Bool$not$(_can_write_0)), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": __5, "history": _history_0}, "outputs": {$: "Con", "head": ($Bool$pick$(_deadline_reached_0, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.FinishAllowedDeadline"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.FinishAllowedNoAdvice"}})), "tail": {$: "Nil"}}}, ($Bool$pick$(($Nat$is_eq$(($List$length$(_selected_0)), 0)), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": __5, "history": _history_0}, "outputs": {$: "Con", "head": ($Bool$pick$(($Bool$and$(_has_notice_0, _pass_notices_0)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.FinishNotices"}}, ($Bool$pick$(_deadline_reached_0, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.FinishAllowedDeadline"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.FinishAllowedNoAdvice"}})))), "tail": {$: "Nil"}}}, ($Bool$pick$(($Bool$and$(_binding_valid_0, ($Bool$and$(($$$$047agent$045flow$045bend$047Canonical$058deciding_round$(($$$$047agent$045flow$045bend$047Canonical$058find_round$(_group_0, _rounds_0)), _group_0, _lifetime_0, _round_0)), ($$$$047agent$045flow$045bend$047Canonical$058selected_pending$(_selected_0, _work_0)))))), ($$$$047agent$045flow$045bend$047Canonical$058finish_reserve_decision$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": __5, "history": _history_0}, _group_0, _round_0, _attempt_0, _token_0, _selected_0)), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": __5, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.FinishAllowedUnavailable"}}, "tail": {$: "Nil"}}})))));
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058finish_release$(_state_0, _group_0, _round_0, _attempt_0, _token_0) {
@@ -10756,7 +10756,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058finish_release$(_state_0, 
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058finish_release$(_collection_0, _group_0, _round_0, _attempt_0, _token_0)), {$: "Canonical.FinishReleased"}, {$: "Canonical.FinishRefused"});
+  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058finish_release$(_collection_0, _group_0, _round_0, _attempt_0, _token_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.FinishReleased"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.FinishRefused"}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058finish_authorize$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0) {
@@ -10769,15 +10769,15 @@ function $$$$047agent$045flow$045bend$047Canonical$058finish_authorize$(_state_0
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $Bool$pick$(($$$$047agent$045flow$045bend$047CollectionState$058submission_ready$(_collection_0, _group_0, _round_0, _token_0, _selected_0)), ($$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058finish_authorize$(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)), {$: "Canonical.FinishAuthorized"}, {$: "Canonical.FinishRefused"})), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.FinishRefused"}, "tail": {$: "Nil"}}});
+  return $Bool$pick$(($$$$047agent$045flow$045bend$047CollectionState$058submission_ready$(_collection_0, _group_0, _round_0, _token_0, _selected_0)), ($$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058finish_authorize$(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.FinishAuthorized"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.FinishRefused"}})), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.FinishRefused"}}, "tail": {$: "Nil"}}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058finish_terminal_result$(_state_0, _outcome_0, _decision_0) {
   if (_decision_0.$ === "CollectionState.Accepted") {
     const _collection_0 = _decision_0["state"];
-    return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_collection$(_state_0, _collection_0)), "commands": {$: "Con", "head": {$: "Canonical.FinishRecorded", "outcome": _outcome_0}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_collection$(_state_0, _collection_0)), "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.FinishRecorded", "outcome": _outcome_0}}, "tail": {$: "Nil"}}};
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.FinishRefused"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.FinishRefused"}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -10810,7 +10810,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058finish_end$(_state_0, _gro
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058finish_end$(_collection_0, _group_0, _round_0, _attempt_0, _token_0)), {$: "Canonical.FinishEnded"}, {$: "Canonical.FinishRefused"});
+  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058finish_end$(_collection_0, _group_0, _round_0, _attempt_0, _token_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.FinishEnded"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.FinishRefused"}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058continuation_consume$(_state_0, _group_0, _round_0) {
@@ -10823,7 +10823,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058continuation_consume$(_sta
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058consume_continuation$(_collection_0, _group_0, _round_0)), {$: "Canonical.ContinuationConsumed"}, {$: "Canonical.ContinuationRefused"});
+  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058consume_continuation$(_collection_0, _group_0, _round_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.ContinuationConsumed"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.ContinuationRefused"}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058submission_round_found$(_group_0, _round_0, _found_0) {
@@ -10855,7 +10855,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058submission_begin$(_state_0
   const __5 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $Bool$pick$(($Bool$and$(($$$$047agent$045flow$045bend$047Canonical$058submission_round_found$(_group_0, _round_0, ($$$$047agent$045flow$045bend$047Canonical$058find_round$(_group_0, _rounds_0)))), ($$$$047agent$045flow$045bend$047Canonical$058submission_stop_reservation$(_surface_0, _authorize_now_0, ($$$$047agent$045flow$045bend$047CollectionState$058submission_reservation$(_collection_0, _group_0, _round_0, _token_0)))))), ($$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": __5, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058submission_begin$(_collection_0, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0)), {$: "Canonical.SubmissionBegun"}, {$: "Canonical.SubmissionRefused"})), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": __5, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.SubmissionRefused"}, "tail": {$: "Nil"}}});
+  return $Bool$pick$(($Bool$and$(($$$$047agent$045flow$045bend$047Canonical$058submission_round_found$(_group_0, _round_0, ($$$$047agent$045flow$045bend$047Canonical$058find_round$(_group_0, _rounds_0)))), ($$$$047agent$045flow$045bend$047Canonical$058submission_stop_reservation$(_surface_0, _authorize_now_0, ($$$$047agent$045flow$045bend$047CollectionState$058submission_reservation$(_collection_0, _group_0, _round_0, _token_0)))))), ($$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": __5, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058submission_begin$(_collection_0, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.SubmissionBegun"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.SubmissionRefused"}})), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": __5, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.SubmissionRefused"}}, "tail": {$: "Nil"}}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058submission_authorize$(_state_0, _advice_0, _token_0) {
@@ -10868,7 +10868,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058submission_authorize$(_sta
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058submission_authorize$(_collection_0, _advice_0, _token_0)), {$: "Canonical.SubmissionAuthorized"}, {$: "Canonical.SubmissionRefused"});
+  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058submission_authorize$(_collection_0, _advice_0, _token_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.SubmissionAuthorized"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.SubmissionRefused"}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058submission_terminal$(_state_0, _advice_0, _token_0, _certain_0) {
@@ -10881,7 +10881,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058submission_terminal$(_stat
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058submission_terminal$(_collection_0, _advice_0, _token_0, _certain_0)), {$: "Canonical.SubmissionRecorded"}, {$: "Canonical.SubmissionRefused"});
+  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058submission_terminal$(_collection_0, _advice_0, _token_0, _certain_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.SubmissionRecorded"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.SubmissionRefused"}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058submission_release$(_state_0, _advice_0, _token_0) {
@@ -10894,7 +10894,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058submission_release$(_state
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058submission_release$(_collection_0, _advice_0, _token_0)), {$: "Canonical.SubmissionReleased"}, {$: "Canonical.SubmissionRefused"});
+  return $$$$047agent$045flow$045bend$047Canonical$058collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058submission_release$(_collection_0, _advice_0, _token_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.SubmissionReleased"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.SubmissionRefused"}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058submission_forget$(_state_0, _advice_0) {
@@ -10907,7 +10907,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058submission_forget$(_state_
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $Bool$pick$(($$$$047agent$045flow$045bend$047CollectionState$058protected_advice$(_collection_0, _advice_0)), {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.WrongStage"}}, {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_collection$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058submission_forget$(_collection_0, _advice_0)))), "commands": {$: "Con", "head": {$: "Canonical.SubmissionForgotten"}, "tail": {$: "Nil"}}});
+  return $Bool$pick$(($$$$047agent$045flow$045bend$047CollectionState$058protected_advice$(_collection_0, _advice_0)), {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.WrongStage"}}, {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_collection$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058submission_forget$(_collection_0, _advice_0)))), "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.SubmissionForgotten"}}, "tail": {$: "Nil"}}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058submission_suppress_check$(_state_0, _advice_0, _fingerprint_0, _round_0, _surface_0) {
@@ -10920,7 +10920,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058submission_suppress_check$
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047CollectionState$058submission_suppresses$(_collection_0, _advice_0, _fingerprint_0, _round_0, _surface_0)), {$: "Canonical.SubmissionSuppresses"}, {$: "Canonical.SubmissionUnsuppressed"})), "tail": {$: "Nil"}}};
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047CollectionState$058submission_suppresses$(_collection_0, _advice_0, _fingerprint_0, _round_0, _surface_0)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.SubmissionSuppresses"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.SubmissionUnsuppressed"}})), "tail": {$: "Nil"}}};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058submission_reoffer_check$(_state_0, _advice_0, _token_0) {
@@ -10933,7 +10933,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058submission_reoffer_check$(
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047CollectionState$058submission_reofferable$(_collection_0, _advice_0, _token_0)), {$: "Canonical.SubmissionReofferable"}, {$: "Canonical.SubmissionNotReofferable"})), "tail": {$: "Nil"}}};
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047CollectionState$058submission_reofferable$(_collection_0, _advice_0, _token_0)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.SubmissionReofferable"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.SubmissionNotReofferable"}})), "tail": {$: "Nil"}}};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058submission_expiry_check$(_state_0, _advice_0, _token_0, _elapsed_0, _lifetime_0) {
@@ -10946,7 +10946,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058submission_expiry_check$(_
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047CollectionState$058submission_expired$(_collection_0, _advice_0, _token_0, _elapsed_0, _lifetime_0)), {$: "Canonical.SubmissionExpired"}, {$: "Canonical.SubmissionCurrent"})), "tail": {$: "Nil"}}};
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047CollectionState$058submission_expired$(_collection_0, _advice_0, _token_0, _elapsed_0, _lifetime_0)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.SubmissionExpired"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.SubmissionCurrent"}})), "tail": {$: "Nil"}}};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058revision_register_result$(_state_0, _result_0) {
@@ -10962,11 +10962,11 @@ function $$$$047agent$045flow$045bend$047Canonical$058revision_register_result$(
   if (_result_0.$ === "RevisionState.Reused") {
     const _replacement_0 = _result_0["state"];
     const _generation_0 = _result_0["generation"];
-    return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_collection$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058revision_replace$(_collection_0, _replacement_0)))), "commands": {$: "Con", "head": {$: "Canonical.RevisionReused", "generation": _generation_0}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_collection$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058revision_replace$(_collection_0, _replacement_0)))), "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.RevisionReused", "generation": _generation_0}}, "tail": {$: "Nil"}}};
   } else {
     const _replacement_1 = _result_0["state"];
     const _generation_1 = _result_0["generation"];
-    return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_collection$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058revision_replace$(_collection_0, _replacement_1)))), "commands": {$: "Con", "head": {$: "Canonical.RevisionReplaced", "generation": _generation_1}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_collection$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058revision_replace$(_collection_0, _replacement_1)))), "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.RevisionReplaced", "generation": _generation_1}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -10993,7 +10993,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058revision_release$(_state_0
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_collection$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058revision_release$(_collection_0, _subject_0, _generation_0)))), "commands": {$: "Con", "head": {$: "Canonical.RevisionReleased"}, "tail": {$: "Nil"}}};
+  return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_collection$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($$$$047agent$045flow$045bend$047CollectionState$058revision_release$(_collection_0, _subject_0, _generation_0)))), "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.RevisionReleased"}}, "tail": {$: "Nil"}}};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058revision_current_check$(_state_0, _subject_0, _input_0, _generation_0) {
@@ -11006,7 +11006,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058revision_current_check$(_s
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047CollectionState$058revision_current$(_collection_0, _subject_0, _input_0, _generation_0)), {$: "Canonical.RevisionCurrent"}, {$: "Canonical.RevisionStale"})), "tail": {$: "Nil"}}};
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047CollectionState$058revision_current$(_collection_0, _subject_0, _input_0, _generation_0)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RevisionCurrent"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RevisionStale"}})), "tail": {$: "Nil"}}};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058revision_superseded_check$(_state_0, _subject_0, _candidate_subject_0, _generation_0) {
@@ -11019,7 +11019,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058revision_superseded_check$
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047CollectionState$058revision_superseded$(_collection_0, _subject_0, _candidate_subject_0, _generation_0)), {$: "Canonical.RevisionSuperseded"}, {$: "Canonical.RevisionNotSuperseded"})), "tail": {$: "Nil"}}};
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047CollectionState$058revision_superseded$(_collection_0, _subject_0, _candidate_subject_0, _generation_0)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RevisionSuperseded"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RevisionNotSuperseded"}})), "tail": {$: "Nil"}}};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058revision_generation_check$(_state_0, _subject_0) {
@@ -11032,7 +11032,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058revision_generation_check$
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.RevisionGeneration", "generation": ($$$$047agent$045flow$045bend$047CollectionState$058revision_generation$(_collection_0, _subject_0))}, "tail": {$: "Nil"}}};
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RevisionGeneration", "generation": ($$$$047agent$045flow$045bend$047CollectionState$058revision_generation$(_collection_0, _subject_0))}}, "tail": {$: "Nil"}}};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058revision_count_check$(_state_0) {
@@ -11045,7 +11045,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058revision_count_check$(_sta
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.RevisionCount", "count": ($$$$047agent$045flow$045bend$047CollectionState$058revision_count$(_collection_0))}, "tail": {$: "Nil"}}};
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RevisionCount", "count": ($$$$047agent$045flow$045bend$047CollectionState$058revision_count$(_collection_0))}}, "tail": {$: "Nil"}}};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0) {
@@ -11055,32 +11055,32 @@ function $$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0) {
 
 function $$$$047agent$045flow$045bend$047Canonical$058collector_gate_result$(_state_0, _result_0) {
   if (_result_0.$ === "CollectorAuthority.CollectProceed") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CollectorProceed"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectorProceed"}}, "tail": {$: "Nil"}}};
   } else {
     const _reason_0 = _result_0["reason"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CollectorUnavailable", "reason": _reason_0}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectorUnavailable", "reason": _reason_0}}, "tail": {$: "Nil"}}};
   }
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058collector_final_authority_result$(_state_0, _result_0) {
   if (_result_0.$ === "CollectorAuthority.FinalProceed") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CollectorFinalProceed"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectorFinalProceed"}}, "tail": {$: "Nil"}}};
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CollectorFinalRelease"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CollectorFinalRelease"}}, "tail": {$: "Nil"}}};
   }
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058reuse_member_result$(_state_0, _result_0) {
   if (_result_0.$ === "Reuse.KeepJoined") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.ReuseKeepMember"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.ReuseKeepMember"}}, "tail": {$: "Nil"}}};
   } else if (_result_0.$ === "Reuse.SetJoinedClear") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.ReuseSetMemberClear"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.ReuseSetMemberClear"}}, "tail": {$: "Nil"}}};
   } else if (_result_0.$ === "Reuse.SetJoinedFinding") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.ReuseSetMemberFinding"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.ReuseSetMemberFinding"}}, "tail": {$: "Nil"}}};
   } else if (_result_0.$ === "Reuse.SetJoinedUnavailable") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.ReuseSetMemberUnavailable"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.ReuseSetMemberUnavailable"}}, "tail": {$: "Nil"}}};
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.ReuseSetMemberLost"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.ReuseSetMemberLost"}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -11173,68 +11173,68 @@ function $$$$047agent$045flow$045bend$047Canonical$058cleanup_state_clean$(_stat
 
 function $$$$047agent$045flow$045bend$047Canonical$058cleanup_check_result$(_state_0, _result_0) {
   if (_result_0.$ === "Retention.CleanupReady") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Canonical$058cleanup_state_clean$(_state_0)), {$: "Canonical.CleanupReady"}, {$: "Canonical.CleanupBusy"})), "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Canonical$058cleanup_state_clean$(_state_0)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CleanupReady"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CleanupBusy"}})), "tail": {$: "Nil"}}};
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CleanupBusy"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CleanupBusy"}}, "tail": {$: "Nil"}}};
   }
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058delivery_ack_result$(_state_0, _decision_0) {
   if (_decision_0.$ === "Delivery.AckReady") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryAckReady"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryAckReady"}}, "tail": {$: "Nil"}}};
   } else if (_decision_0.$ === "Delivery.AckExpired") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryAckExpired"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryAckExpired"}}, "tail": {$: "Nil"}}};
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryAckEmpty"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryAckEmpty"}}, "tail": {$: "Nil"}}};
   }
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058delivery_final_result$(_state_0, _decision_0) {
   if (_decision_0.$ === "Delivery.FinalReady") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryFinalReady"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryFinalReady"}}, "tail": {$: "Nil"}}};
   } else if (_decision_0.$ === "Delivery.FinalExpired") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryFinalExpired"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryFinalExpired"}}, "tail": {$: "Nil"}}};
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryFinalEmpty"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryFinalEmpty"}}, "tail": {$: "Nil"}}};
   }
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058delivery_disposition_result$(_state_0, _decision_0) {
   if (_decision_0.$ === "Delivery.RetireAdvice") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryRetireAdvice"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryRetireAdvice"}}, "tail": {$: "Nil"}}};
   } else if (_decision_0.$ === "Delivery.KeepRemaining") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryKeepRemaining"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryKeepRemaining"}}, "tail": {$: "Nil"}}};
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryKeepForReoffer"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryKeepForReoffer"}}, "tail": {$: "Nil"}}};
   }
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058delivery_batch_result$(_state_0, _decision_0) {
   if (_decision_0.$ === "Delivery.BatchProceed") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryBatchProceed"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryBatchProceed"}}, "tail": {$: "Nil"}}};
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.DeliveryBatchRelease"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryBatchRelease"}}, "tail": {$: "Nil"}}};
   }
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058candidate_route_result$(_state_0, _decision_0) {
   if (_decision_0.$ === "Handoff.IgnoreCandidate") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.IgnoreCandidate"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.IgnoreCandidate"}}, "tail": {$: "Nil"}}};
   } else if (_decision_0.$ === "Handoff.ReleaseCandidate") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.ReleaseCandidate"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.ReleaseCandidate"}}, "tail": {$: "Nil"}}};
   } else if (_decision_0.$ === "Handoff.RetireCandidate") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RetireCandidate"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RetireCandidate"}}, "tail": {$: "Nil"}}};
   } else if (_decision_0.$ === "Handoff.ContinueCandidate") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.ContinueCandidate"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.ContinueCandidate"}}, "tail": {$: "Nil"}}};
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RetainCandidate"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RetainCandidate"}}, "tail": {$: "Nil"}}};
   }
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058stop_terminal_result$(_state_0, _result_0) {
   const _revoke_provisional_0 = _result_0["revoke_provisional"];
   const _close_0 = _result_0["close"];
-  return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RoundStopTerminal", "revoke_provisional": _revoke_provisional_0, "close": _close_0}, "tail": {$: "Nil"}}};
+  return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RoundStopTerminal", "revoke_provisional": _revoke_provisional_0, "close": _close_0}}, "tail": {$: "Nil"}}};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058cleanup_commit_eligible$(_state_0) {
@@ -11284,12 +11284,12 @@ function $$$$047agent$045flow$045bend$047Canonical$058cleanup_closed$(_state_0, 
     const _replacement_0 = _result_0["state"];
     const _t_0 = _result_0["commands"];
     if (_t_0.$ === "Nil") {
-      return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _replacement_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.CleanupCommitted"}, "tail": {$: "Nil"}}};
+      return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _replacement_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.CleanupCommitted"}}, "tail": {$: "Nil"}}};
     } else {
-      return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": __0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.CleanupBusy"}, "tail": {$: "Nil"}}};
+      return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": __0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CleanupBusy"}}, "tail": {$: "Nil"}}};
     }
   } else {
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": __0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.CleanupBusy"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": __0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CleanupBusy"}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -11306,7 +11306,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058cleanup_commit_checked$(_s
   if (_valid_0) {
     return $$$$047agent$045flow$045bend$047Canonical$058cleanup_closed$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, ($$$$047agent$045flow$045bend$047Dispatch$058close$(_dispatch_0)));
   } else {
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.CleanupBusy"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CleanupBusy"}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -11315,25 +11315,25 @@ function $$$$047agent$045flow$045bend$047Canonical$058cleanup_commit$(_state_0) 
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058reuse_step$(_state_0, _replacement_0, _command_0) {
-  return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_collection$(_state_0, ($$$$047agent$045flow$045bend$047CollectionState$058with_reuse$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)), _replacement_0)))), "commands": {$: "Con", "head": _command_0, "tail": {$: "Nil"}}};
+  return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_collection$(_state_0, ($$$$047agent$045flow$045bend$047CollectionState$058with_reuse$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)), _replacement_0)))), "outputs": {$: "Con", "head": _command_0, "tail": {$: "Nil"}}};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058reuse_route_result$(_state_0, _result_0) {
   if (_result_0.$ === "ReuseState.JoinAdvice") {
     const _replacement_0 = _result_0["state"];
-    return $$$$047agent$045flow$045bend$047Canonical$058reuse_step$(_state_0, _replacement_0, {$: "Canonical.ReuseJoinAdvice"});
+    return $$$$047agent$045flow$045bend$047Canonical$058reuse_step$(_state_0, _replacement_0, {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReuseAdviceJoined"}});
   } else if (_result_0.$ === "ReuseState.JoinPending") {
     const _replacement_1 = _result_0["state"];
-    return $$$$047agent$045flow$045bend$047Canonical$058reuse_step$(_state_0, _replacement_1, {$: "Canonical.ReuseJoinPending"});
+    return $$$$047agent$045flow$045bend$047Canonical$058reuse_step$(_state_0, _replacement_1, {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReusePendingJoined"}});
   } else if (_result_0.$ === "ReuseState.JoinClaimed") {
     const _replacement_2 = _result_0["state"];
-    return $$$$047agent$045flow$045bend$047Canonical$058reuse_step$(_state_0, _replacement_2, {$: "Canonical.ReuseJoinClaimed"});
+    return $$$$047agent$045flow$045bend$047Canonical$058reuse_step$(_state_0, _replacement_2, {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReuseClaimedJoined"}});
   } else if (_result_0.$ === "ReuseState.Cached") {
     const _replacement_3 = _result_0["state"];
-    return $$$$047agent$045flow$045bend$047Canonical$058reuse_step$(_state_0, _replacement_3, {$: "Canonical.ReuseCached"});
+    return $$$$047agent$045flow$045bend$047Canonical$058reuse_step$(_state_0, _replacement_3, {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReuseCacheHit"}});
   } else {
     const _replacement_4 = _result_0["state"];
-    return $$$$047agent$045flow$045bend$047Canonical$058reuse_step$(_state_0, _replacement_4, {$: "Canonical.ReuseOwn"});
+    return $$$$047agent$045flow$045bend$047Canonical$058reuse_step$(_state_0, _replacement_4, {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReuseOwned"}});
   }
 }
 
@@ -11342,26 +11342,26 @@ function $$$$047agent$045flow$045bend$047Canonical$058reuse_decision_result$(_st
     const _replacement_0 = _result_0["state"];
     return $$$$047agent$045flow$045bend$047Canonical$058reuse_step$(_state_0, _replacement_0, _granted_0);
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.ReuseRefused"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.ReuseRefused"}}, "tail": {$: "Nil"}}};
   }
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058cache_plan_result$(_state_0, _result_0) {
   if (_result_0.$ === "ReuseState.Already") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CacheAlready"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CacheAlready"}}, "tail": {$: "Nil"}}};
   } else if (_result_0.$ === "ReuseState.Reject") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CacheRejected"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CacheRejected"}}, "tail": {$: "Nil"}}};
   } else {
     const _replacement_0 = _result_0["state"];
     const _ids_0 = _result_0["evicted"];
-    return $$$$047agent$045flow$045bend$047Canonical$058reuse_step$(_state_0, _replacement_0, {$: "Canonical.CachePrepared", "evicted": _ids_0});
+    return $$$$047agent$045flow$045bend$047Canonical$058reuse_step$(_state_0, _replacement_0, {$: "Canonical.EventEstablished", "event": {$: "Canonical.CachePrepared", "evicted": _ids_0}});
   }
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058cache_discard_result$(_state_0, _result_0) {
   const _replacement_0 = _result_0["state"];
   const _ids_0 = _result_0["ids"];
-  return $$$$047agent$045flow$045bend$047Canonical$058reuse_step$(_state_0, _replacement_0, {$: "Canonical.CacheDiscarded", "ids": _ids_0});
+  return $$$$047agent$045flow$045bend$047Canonical$058reuse_step$(_state_0, _replacement_0, {$: "Canonical.EventEstablished", "event": {$: "Canonical.CacheDiscarded", "ids": _ids_0}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058cache_charge_valid$(_found_0, _partition_0, _bytes_0) {
@@ -11382,9 +11382,9 @@ function $$$$047agent$045flow$045bend$047Canonical$058cache_charge_valid$(_found
 
 function $$$$047agent$045flow$045bend$047Canonical$058cache_commit_checked$(_state_0, _id_0, _partition_0, _bytes_0, _reservation_0, _entry_limit_0, _byte_limit_0, _valid_0) {
   if (_valid_0) {
-    return $$$$047agent$045flow$045bend$047Canonical$058reuse_decision_result$(_state_0, ($$$$047agent$045flow$045bend$047ReuseState$058commit$(($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _id_0, _partition_0, _bytes_0, _reservation_0, _entry_limit_0, _byte_limit_0)), {$: "Canonical.CacheCommitted"});
+    return $$$$047agent$045flow$045bend$047Canonical$058reuse_decision_result$(_state_0, ($$$$047agent$045flow$045bend$047ReuseState$058commit$(($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _id_0, _partition_0, _bytes_0, _reservation_0, _entry_limit_0, _byte_limit_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.CacheCommitted"}});
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.ReuseRefused"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.ReuseRefused"}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -11405,31 +11405,31 @@ function $$$$047agent$045flow$045bend$047Canonical$058cache_commit$(_state_0, _i
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058notice_step$(_state_0, _replacement_0, _command_0) {
-  return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_collection$(_state_0, ($$$$047agent$045flow$045bend$047CollectionState$058with_notices$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)), _replacement_0)))), "commands": {$: "Con", "head": _command_0, "tail": {$: "Nil"}}};
+  return {$: "Canonical.Advanced", "state": ($$$$047agent$045flow$045bend$047Canonical$058with_collection$(_state_0, ($$$$047agent$045flow$045bend$047CollectionState$058with_notices$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)), _replacement_0)))), "outputs": {$: "Con", "head": _command_0, "tail": {$: "Nil"}}};
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058notice_advance_result$(_state_0, _result_0) {
   if (_result_0.$ === "NoticeState.Suppressed") {
     const _replacement_0 = _result_0["state"];
     const _count_0 = _result_0["count"];
-    return $$$$047agent$045flow$045bend$047Canonical$058notice_step$(_state_0, _replacement_0, {$: "Canonical.NoticeSuppressed", "count": _count_0});
+    return $$$$047agent$045flow$045bend$047Canonical$058notice_step$(_state_0, _replacement_0, {$: "Canonical.EventEstablished", "event": {$: "Canonical.NoticeSuppressed", "count": _count_0}});
   } else if (_result_0.$ === "NoticeState.RejectedFull") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.NoticeRejectedFull"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.NoticeRejectedFull"}}, "tail": {$: "Nil"}}};
   } else if (_result_0.$ === "NoticeState.CreateKey") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.NoticeCreateKey"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.ActionRequested", "request": {$: "Canonical.CreateNoticeKey"}}, "tail": {$: "Nil"}}};
   } else if (_result_0.$ === "NoticeState.CreatePending") {
     const _replacement_1 = _result_0["state"];
     const _count_1 = _result_0["count"];
-    return $$$$047agent$045flow$045bend$047Canonical$058notice_step$(_state_0, _replacement_1, {$: "Canonical.NoticeCreatePending", "count": _count_1});
+    return $$$$047agent$045flow$045bend$047Canonical$058notice_step$(_state_0, _replacement_1, {$: "Canonical.EventEstablished", "event": {$: "Canonical.NoticePendingCreated", "count": _count_1}});
   } else if (_result_0.$ === "NoticeState.MergePending") {
     const _replacement_2 = _result_0["state"];
     const _count_2 = _result_0["count"];
-    return $$$$047agent$045flow$045bend$047Canonical$058notice_step$(_state_0, _replacement_2, {$: "Canonical.NoticeMergePending", "count": _count_2});
+    return $$$$047agent$045flow$045bend$047Canonical$058notice_step$(_state_0, _replacement_2, {$: "Canonical.EventEstablished", "event": {$: "Canonical.NoticePendingMerged", "count": _count_2}});
   } else if (_result_0.$ === "NoticeState.KeepLeased") {
     const _replacement_3 = _result_0["state"];
-    return $$$$047agent$045flow$045bend$047Canonical$058notice_step$(_state_0, _replacement_3, {$: "Canonical.NoticeKeepLeased"});
+    return $$$$047agent$045flow$045bend$047Canonical$058notice_step$(_state_0, _replacement_3, {$: "Canonical.EventEstablished", "event": {$: "Canonical.NoticeLeaseKept"}});
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.NoticeRefused"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.NoticeRefused"}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -11438,7 +11438,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058notice_decision_result$(_s
     const _replacement_0 = _result_0["state"];
     return $$$$047agent$045flow$045bend$047Canonical$058notice_step$(_state_0, _replacement_0, _granted_0);
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.NoticeRefused"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.NoticeRefused"}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -11448,9 +11448,9 @@ function $$$$047agent$045flow$045bend$047Canonical$058notice_prune_result$(_stat
     const _drop_lease_0 = _result_0["drop_lease"];
     const _drop_pending_0 = _result_0["drop_pending"];
     const _drop_key_0 = _result_0["drop_key"];
-    return $$$$047agent$045flow$045bend$047Canonical$058notice_step$(_state_0, _replacement_0, {$: "Canonical.NoticePruned", "drop_lease": _drop_lease_0, "drop_pending": _drop_pending_0, "drop_key": _drop_key_0});
+    return $$$$047agent$045flow$045bend$047Canonical$058notice_step$(_state_0, _replacement_0, {$: "Canonical.EventEstablished", "event": {$: "Canonical.NoticePruned", "drop_lease": _drop_lease_0, "drop_pending": _drop_pending_0, "drop_key": _drop_key_0}});
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.NoticeRefused"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.NoticeRefused"}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -11471,9 +11471,9 @@ function $$$$047agent$045flow$045bend$047Canonical$058notice_charge_valid$(_foun
 
 function $$$$047agent$045flow$045bend$047Canonical$058notice_commit_checked$(_state_0, _key_0, _partition_0, _group_0, _reservation_0, _pending_0, _sequence_0, _maximum_keys_0, _valid_0) {
   if (_valid_0) {
-    return $$$$047agent$045flow$045bend$047Canonical$058notice_decision_result$(_state_0, ($$$$047agent$045flow$045bend$047NoticeState$058commit$(($$$$047agent$045flow$045bend$047CollectionState$058notice_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _key_0, _partition_0, _group_0, _reservation_0, _pending_0, _sequence_0, _maximum_keys_0)), {$: "Canonical.NoticeCommitted"});
+    return $$$$047agent$045flow$045bend$047Canonical$058notice_decision_result$(_state_0, ($$$$047agent$045flow$045bend$047NoticeState$058commit$(($$$$047agent$045flow$045bend$047CollectionState$058notice_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _key_0, _partition_0, _group_0, _reservation_0, _pending_0, _sequence_0, _maximum_keys_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.NoticeCommitted"}});
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.NoticeRefused"}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.NoticeRefused"}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -11967,7 +11967,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058step_unchecked$(_state_0, 
     return $$$$047agent$045flow$045bend$047Canonical$058cleanup_commit$(_state_0);
   } else if (_event_0.$ === "Canonical.DeliveryReleaseCheck") {
     const _acknowledged_0 = _event_0["acknowledged"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Delivery$058release_unacknowledged$(_acknowledged_0)), {$: "Canonical.DeliveryReleaseUnacknowledged"}, {$: "Canonical.DeliveryKeepAcknowledged"})), "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Delivery$058release_unacknowledged$(_acknowledged_0)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryReleaseUnacknowledged"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryKeepAcknowledged"}})), "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.DeliveryAcknowledgeCheck") {
     const _items_2 = _event_0["items"];
     const _any_expired_0 = _event_0["any_expired"];
@@ -11983,7 +11983,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058step_unchecked$(_state_0, 
     return $$$$047agent$045flow$045bend$047Canonical$058delivery_disposition_result$(_state_0, ($$$$047agent$045flow$045bend$047Delivery$058finding_disposition$(_composed_0, _remaining_0)));
   } else if (_event_0.$ === "Canonical.DeliverySubmissionCandidateCheck") {
     const _facts_3 = _event_0["facts"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Delivery$058submission_candidate$(_facts_3)), {$: "Canonical.DeliverySubmissionCandidate"}, {$: "Canonical.DeliverySubmissionRefused"})), "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Delivery$058submission_candidate$(_facts_3)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliverySubmissionCandidate"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliverySubmissionRefused"}})), "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.DeliverySubmissionBatchCheck") {
     const _count_1 = _event_0["count"];
     const _all_valid_0 = _event_0["all_valid"];
@@ -11992,7 +11992,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058step_unchecked$(_state_0, 
     const _invalid_seen_0 = _event_0["invalid_seen"];
     const _generation_valid_1 = _event_0["generation_valid"];
     const _authorized_0 = _event_0["authorized"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Delivery$058credential_observe$(_invalid_seen_0, _generation_valid_1, _authorized_0)), {$: "Canonical.DeliveryCredentialInvalid"}, {$: "Canonical.DeliveryCredentialValid"})), "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Delivery$058credential_observe$(_invalid_seen_0, _generation_valid_1, _authorized_0)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryCredentialInvalid"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryCredentialValid"}})), "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.DeliveryFinalCredentialCheck") {
     const _shared_collect_0 = _event_0["shared_collect"];
     const _invalid_seen_1 = _event_0["invalid_seen"];
@@ -12018,24 +12018,24 @@ function $$$$047agent$045flow$045bend$047Canonical$058step_unchecked$(_state_0, 
     const _active_1 = _event_0["active"];
     const _has_stop_0 = _event_0["has_stop"];
     const _token_20 = _event_0["token"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Bool$and$(_active_1, ($Bool$and$(($Bool$not$(_has_stop_0)), ($Nat$is_gt$(_token_20, 0)))))), {$: "Canonical.RoundStopBegun"}, {$: "Canonical.RoundStopRefused"})), "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($Bool$and$(_active_1, ($Bool$and$(($Bool$not$(_has_stop_0)), ($Nat$is_gt$(_token_20, 0)))))), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RoundStopBegun"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RoundStopRefused"}})), "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.RoundActivityCheck") {
     const _bound_0 = _event_0["bound"];
     const _has_admission_0 = _event_0["has_admission"];
     const _round_36 = _event_0["round"];
     const _active_2 = _event_0["active"];
     const _expected_generation_0 = _event_0["expected_generation"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Bool$and$(_bound_0, ($Bool$and$(_has_admission_0, ($Bool$and$(($Nat$is_eq$(_expected_generation_0, _round_36)), _active_2)))))), {$: "Canonical.RoundActive"}, {$: "Canonical.RoundInactive"})), "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($Bool$and$(_bound_0, ($Bool$and$(_has_admission_0, ($Bool$and$(($Nat$is_eq$(_expected_generation_0, _round_36)), _active_2)))))), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RoundActive"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RoundInactive"}})), "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.RoundBarrierCheck") {
     const _has_stop_1 = _event_0["has_stop"];
     const _used_at_start_0 = _event_0["used_at_start"];
     const _used_now_0 = _event_0["used_now"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Bool$and$(_has_stop_1, ($Nat$is_gt$(_used_now_0, _used_at_start_0)))), {$: "Canonical.RoundBarrierRaised"}, {$: "Canonical.RoundBarrierClear"})), "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($Bool$and$(_has_stop_1, ($Nat$is_gt$(_used_now_0, _used_at_start_0)))), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RoundBarrierRaised"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RoundBarrierClear"}})), "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.RoundOwnsStopCheck") {
     const _active_3 = _event_0["active"];
     const _token_matches_0 = _event_0["token_matches"];
     const _deciding_0 = _event_0["deciding"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Bool$and$(_active_3, ($Bool$and$(_token_matches_0, ($Bool$not$(_deciding_0)))))), {$: "Canonical.RoundStopOwned"}, {$: "Canonical.RoundStopNotOwned"})), "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($Bool$and$(_active_3, ($Bool$and$(_token_matches_0, ($Bool$not$(_deciding_0)))))), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RoundStopOwned"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RoundStopNotOwned"}})), "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.RoundStopTerminalCheck") {
     const _has_output_0 = _event_0["has_output"];
     const _authorized_1 = _event_0["authorized"];
@@ -12044,12 +12044,12 @@ function $$$$047agent$045flow$045bend$047Canonical$058step_unchecked$(_state_0, 
   } else if (_event_0.$ === "Canonical.RoundExpireCloseCheck") {
     const _barrier_0 = _event_0["barrier"];
     const _authorized_output_0 = _event_0["authorized_output"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Bool$and$(($Bool$not$(_authorized_output_0)), ($$$$047agent$045flow$045bend$047Round$058expire_close$(_barrier_0)))), {$: "Canonical.RoundExpireCloses"}, {$: "Canonical.RoundExpireKeeps"})), "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($Bool$and$(($Bool$not$(_authorized_output_0)), ($$$$047agent$045flow$045bend$047Round$058expire_close$(_barrier_0)))), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RoundExpireCloses"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RoundExpireKeeps"}})), "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.RoundContinuationBudgetCheck") {
     const _active_4 = _event_0["active"];
     const _count_2 = _event_0["count"];
     const _x_0 = ($$$$047agent$045flow$045bend$047Round$058max_continuations$());
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($Bool$and$(_active_4, (_count_2 < _x_0))), {$: "Canonical.RoundContinuationAvailable"}, {$: "Canonical.RoundContinuationExhausted"})), "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($Bool$and$(_active_4, (_count_2 < _x_0))), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RoundContinuationAvailable"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RoundContinuationExhausted"}})), "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.DeliverySubmissionAllowedCheck") {
     const _active_5 = _event_0["active"];
     const _barrier_1 = _event_0["barrier"];
@@ -12057,49 +12057,49 @@ function $$$$047agent$045flow$045bend$047Canonical$058step_unchecked$(_state_0, 
     const _surface_2 = _event_0["surface"];
     const _existing_token_0 = _event_0["existing_token"];
     const _finish_permit_0 = _event_0["finish_permit"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Delivery$058submission_allowed_facts$(_active_5, _barrier_1, _deciding_1, _surface_2, _existing_token_0, _finish_permit_0)), {$: "Canonical.DeliverySubmissionAllowed"}, {$: "Canonical.DeliverySubmissionDenied"})), "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Delivery$058submission_allowed_facts$(_active_5, _barrier_1, _deciding_1, _surface_2, _existing_token_0, _finish_permit_0)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliverySubmissionAllowed"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliverySubmissionDenied"}})), "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.DeliveryExistingTokenCheck") {
     const _surface_3 = _event_0["surface"];
     const _existing_token_1 = _event_0["existing_token"];
     const _finish_permit_1 = _event_0["finish_permit"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Delivery$058existing_token_allowed$(_surface_3, _existing_token_1, _finish_permit_1)), {$: "Canonical.DeliveryExistingTokenAllowed"}, {$: "Canonical.DeliveryExistingTokenDenied"})), "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Delivery$058existing_token_allowed$(_surface_3, _existing_token_1, _finish_permit_1)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryExistingTokenAllowed"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryExistingTokenDenied"}})), "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.DeliveryUnreservedStopCheck") {
     const _active_6 = _event_0["active"];
     const _deciding_2 = _event_0["deciding"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Delivery$058unreserved_stop_allowed_facts$(_active_6, _deciding_2)), {$: "Canonical.DeliveryUnreservedStopAllowed"}, {$: "Canonical.DeliveryUnreservedStopDenied"})), "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Delivery$058unreserved_stop_allowed_facts$(_active_6, _deciding_2)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryUnreservedStopAllowed"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryUnreservedStopDenied"}})), "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.IncludeLayerCheck") {
     const _supplied_0 = _event_0["supplied"];
     const _current_rank_0 = _event_0["current_rank"];
     const _candidate_rank_0 = _event_0["candidate_rank"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.IncludeChoice", "choice": ($$$$047agent$045flow$045bend$047Configuration$058include_choice$(_supplied_0, _current_rank_0, _candidate_rank_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.IncludeChoice", "choice": ($$$$047agent$045flow$045bend$047Configuration$058include_choice$(_supplied_0, _current_rank_0, _candidate_rank_0))}}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.FileSelectionCheck") {
     const _protected_0 = _event_0["protected"];
     const _excluded_0 = _event_0["excluded"];
     const _includes_empty_0 = _event_0["includes_empty"];
     const _included_0 = _event_0["included"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.FileSelection", "selection": ($$$$047agent$045flow$045bend$047Configuration$058select$(_protected_0, _excluded_0, _includes_empty_0, _included_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.FileSelection", "selection": ($$$$047agent$045flow$045bend$047Configuration$058select$(_protected_0, _excluded_0, _includes_empty_0, _included_0))}}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.FileProtectionInvalid") {
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.FileProtection", "protection": {$: "Configuration.RepositoryBoundary"}}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.FileProtection", "protection": {$: "Configuration.RepositoryBoundary"}}}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.FileProtectionCheck") {
     const _sensitive_name_0 = _event_0["sensitive_name"];
     const _generated_or_vendor_0 = _event_0["generated_or_vendor"];
     const _allowed_extension_0 = _event_0["allowed_extension"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.FileProtection", "protection": ($$$$047agent$045flow$045bend$047Configuration$058protection$(_sensitive_name_0, _generated_or_vendor_0, _allowed_extension_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.FileProtection", "protection": ($$$$047agent$045flow$045bend$047Configuration$058protection$(_sensitive_name_0, _generated_or_vendor_0, _allowed_extension_0))}}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.CandidateFileCheck") {
     const _git_admin_0 = _event_0["git_admin"];
     const _physical_safe_0 = _event_0["physical_safe"];
     const _git_allowed_0 = _event_0["git_allowed"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.CandidateFile", "candidate": ($$$$047agent$045flow$045bend$047Configuration$058candidate$(_git_admin_0, _physical_safe_0, _git_allowed_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.CandidateFile", "candidate": ($$$$047agent$045flow$045bend$047Configuration$058candidate$(_git_admin_0, _physical_safe_0, _git_allowed_0))}}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.ReviewAdmissionCheck") {
     const _root_valid_1 = _event_0["root_valid"];
     const _configuration_valid_1 = _event_0["configuration_valid"];
     const _credential_ready_1 = _event_0["credential_ready"];
     const _selected_4 = _event_0["selected"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.ReviewAdmission", "admission": ($$$$047agent$045flow$045bend$047Configuration$058admit$(_root_valid_1, _configuration_valid_1, _credential_ready_1, _selected_4))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.ReviewAdmission", "admission": ($$$$047agent$045flow$045bend$047Configuration$058admit$(_root_valid_1, _configuration_valid_1, _credential_ready_1, _selected_4))}}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.RuleEnableCheck") {
     const _pack_enabled_0 = _event_0["pack_enabled"];
     const _rule_enabled_0 = _event_0["rule_enabled"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleGate", "gate": ($$$$047agent$045flow$045bend$047RulePolicy$058enabled$(_pack_enabled_0, _rule_enabled_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RuleGate", "gate": ($$$$047agent$045flow$045bend$047RulePolicy$058enabled$(_pack_enabled_0, _rule_enabled_0))}}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.RuleApplicabilityCheck") {
     const _consent_0 = _event_0["consent"];
     const _complete_0 = _event_0["complete"];
@@ -12114,40 +12114,40 @@ function $$$$047agent$045flow$045bend$047Canonical$058step_unchecked$(_state_0, 
     const _capabilities_available_0 = _event_0["capabilities_available"];
     const _source_rung_0 = _event_0["source_rung"];
     const _minimum_rung_0 = _event_0["minimum_rung"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleGate", "gate": ($$$$047agent$045flow$045bend$047RulePolicy$058applicable$(_consent_0, _complete_0, _target_0, _global_included_0, _global_excluded_0, _pack_enabled_1, _rule_enabled_1, _rule_included_0, _rule_excluded_0, _target_declared_0, _capabilities_available_0, _source_rung_0, _minimum_rung_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RuleGate", "gate": ($$$$047agent$045flow$045bend$047RulePolicy$058applicable$(_consent_0, _complete_0, _target_0, _global_included_0, _global_excluded_0, _pack_enabled_1, _rule_enabled_1, _rule_included_0, _rule_excluded_0, _target_declared_0, _capabilities_available_0, _source_rung_0, _minimum_rung_0))}}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.RuleFindingCheck") {
     const _probability_0 = _event_0["probability"];
     const _threshold_0 = _event_0["threshold"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleGate", "gate": ($$$$047agent$045flow$045bend$047RulePolicy$058finding$(_probability_0, _threshold_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RuleGate", "gate": ($$$$047agent$045flow$045bend$047RulePolicy$058finding$(_probability_0, _threshold_0))}}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.RuleRankOrderCheck") {
     const _left_0 = _event_0["left"];
     const _right_0 = _event_0["right"];
     const _left_rank_0 = _event_0["left_rank"];
     const _right_rank_0 = _event_0["right_rank"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleOrder", "order": ($$$$047agent$045flow$045bend$047RulePolicy$058rank_order$(_left_0, _right_0, _left_rank_0, _right_rank_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RuleOrder", "order": ($$$$047agent$045flow$045bend$047RulePolicy$058rank_order$(_left_0, _right_0, _left_rank_0, _right_rank_0))}}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.AdviceOrderCheck") {
     const _left_1 = _event_0["left"];
     const _right_1 = _event_0["right"];
     const _path_order_0 = _event_0["path_order"];
     const _id_order_0 = _event_0["id_order"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleOrder", "order": ($$$$047agent$045flow$045bend$047RulePolicy$058advice_order$(_left_1, _right_1, _path_order_0, _id_order_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RuleOrder", "order": ($$$$047agent$045flow$045bend$047RulePolicy$058advice_order$(_left_1, _right_1, _path_order_0, _id_order_0))}}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.RuleBudgetCheck") {
     const _position_0 = _event_0["position"];
     const _limit_0 = _event_0["limit"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleGate", "gate": ($$$$047agent$045flow$045bend$047RulePolicy$058budget$(_position_0, _limit_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.RuleGate", "gate": ($$$$047agent$045flow$045bend$047RulePolicy$058budget$(_position_0, _limit_0))}}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.ReuseRoute") {
     const _id_0 = _event_0["id"];
     const _live_advice_0 = _event_0["live_advice"];
     return $$$$047agent$045flow$045bend$047Canonical$058reuse_route_result$(_state_0, ($$$$047agent$045flow$045bend$047ReuseState$058route$(($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _id_0, _live_advice_0)));
   } else if (_event_0.$ === "Canonical.ReuseClaim") {
     const _id_1 = _event_0["id"];
-    return $$$$047agent$045flow$045bend$047Canonical$058reuse_decision_result$(_state_0, ($$$$047agent$045flow$045bend$047ReuseState$058claim$(($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _id_1)), {$: "Canonical.ReuseClaimed"});
+    return $$$$047agent$045flow$045bend$047Canonical$058reuse_decision_result$(_state_0, ($$$$047agent$045flow$045bend$047ReuseState$058claim$(($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _id_1)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReuseClaimed"}});
   } else if (_event_0.$ === "Canonical.ReuseAttach") {
     const _id_2 = _event_0["id"];
-    return $$$$047agent$045flow$045bend$047Canonical$058reuse_decision_result$(_state_0, ($$$$047agent$045flow$045bend$047ReuseState$058attach$(($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _id_2)), {$: "Canonical.ReuseAttached"});
+    return $$$$047agent$045flow$045bend$047Canonical$058reuse_decision_result$(_state_0, ($$$$047agent$045flow$045bend$047ReuseState$058attach$(($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _id_2)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReuseAttached"}});
   } else if (_event_0.$ === "Canonical.ReuseRelease") {
     const _id_3 = _event_0["id"];
-    return $$$$047agent$045flow$045bend$047Canonical$058reuse_step$(_state_0, ($$$$047agent$045flow$045bend$047ReuseState$058release$(($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _id_3)), {$: "Canonical.ReuseReleased"});
+    return $$$$047agent$045flow$045bend$047Canonical$058reuse_step$(_state_0, ($$$$047agent$045flow$045bend$047ReuseState$058release$(($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _id_3)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReuseReleased"}});
   } else if (_event_0.$ === "Canonical.ReuseTouch") {
     const _id_4 = _event_0["id"];
     return $$$$047agent$045flow$045bend$047Canonical$058reuse_route_result$(_state_0, ($$$$047agent$045flow$045bend$047ReuseState$058touch$(($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _id_4)));
@@ -12196,21 +12196,21 @@ function $$$$047agent$045flow$045bend$047Canonical$058step_unchecked$(_state_0, 
     return $$$$047agent$045flow$045bend$047Canonical$058notice_prune_result$(_state_0, ($$$$047agent$045flow$045bend$047NoticeState$058prune$(($$$$047agent$045flow$045bend$047CollectionState$058notice_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _key_2, _lease_expired_0, _pending_expired_0, _excepted_0, _cooldown_expired_0)));
   } else if (_event_0.$ === "Canonical.NoticeDrop") {
     const _key_3 = _event_0["key"];
-    return $$$$047agent$045flow$045bend$047Canonical$058notice_step$(_state_0, ($$$$047agent$045flow$045bend$047NoticeState$058drop$(($$$$047agent$045flow$045bend$047CollectionState$058notice_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _key_3)), {$: "Canonical.NoticeDropped"});
+    return $$$$047agent$045flow$045bend$047Canonical$058notice_step$(_state_0, ($$$$047agent$045flow$045bend$047NoticeState$058drop$(($$$$047agent$045flow$045bend$047CollectionState$058notice_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _key_3)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.NoticeDropped"}});
   } else if (_event_0.$ === "Canonical.NoticeLease") {
     const _key_4 = _event_0["key"];
     const _leased_0 = _event_0["leased"];
-    return $$$$047agent$045flow$045bend$047Canonical$058notice_decision_result$(_state_0, ($$$$047agent$045flow$045bend$047NoticeState$058lease$(($$$$047agent$045flow$045bend$047CollectionState$058notice_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _key_4, _leased_0)), {$: "Canonical.NoticeLeased"});
+    return $$$$047agent$045flow$045bend$047Canonical$058notice_decision_result$(_state_0, ($$$$047agent$045flow$045bend$047NoticeState$058lease$(($$$$047agent$045flow$045bend$047CollectionState$058notice_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _key_4, _leased_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.NoticeLeased"}});
   } else if (_event_0.$ === "Canonical.NoticeClearPending") {
     const _key_5 = _event_0["key"];
-    return $$$$047agent$045flow$045bend$047Canonical$058notice_decision_result$(_state_0, ($$$$047agent$045flow$045bend$047NoticeState$058clear_pending$(($$$$047agent$045flow$045bend$047CollectionState$058notice_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _key_5)), {$: "Canonical.NoticePendingCleared"});
+    return $$$$047agent$045flow$045bend$047Canonical$058notice_decision_result$(_state_0, ($$$$047agent$045flow$045bend$047NoticeState$058clear_pending$(($$$$047agent$045flow$045bend$047CollectionState$058notice_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _key_5)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.NoticePendingCleared"}});
   } else if (_event_0.$ === "Canonical.NoticeSelect") {
     const _partition_35 = _event_0["partition"];
     const _group_13 = _event_0["group"];
     const _composed_1 = _event_0["composed"];
     const _authority_bound_1 = _event_0["authority_bound"];
     const _allowed_0 = _event_0["allowed"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.NoticeSelected", "ids": ($$$$047agent$045flow$045bend$047NoticeState$058select$(($$$$047agent$045flow$045bend$047CollectionState$058notice_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _partition_35, _group_13, _composed_1, _authority_bound_1, _allowed_0))}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.NoticeSelected", "ids": ($$$$047agent$045flow$045bend$047NoticeState$058select$(($$$$047agent$045flow$045bend$047CollectionState$058notice_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _partition_35, _group_13, _composed_1, _authority_bound_1, _allowed_0))}}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.OutputStarted") {
     const _partition_36 = _event_0["partition"];
     const _lifetime_36 = _event_0["lifetime"];
@@ -12254,9 +12254,9 @@ function $$$$047agent$045flow$045bend$047Canonical$058unique_rounds$(_rounds_0) 
   }
 }
 
-function $$$$047agent$045flow$045bend$047Canonical$058check_round_invariant$(_original_0, _updated_0, _commands_0, _valid_0) {
+function $$$$047agent$045flow$045bend$047Canonical$058check_round_invariant$(_original_0, _updated_0, _outputs_0, _valid_0) {
   if (_valid_0) {
-    return {$: "Canonical.Advanced", "state": _updated_0, "commands": _commands_0};
+    return {$: "Canonical.Advanced", "state": _updated_0, "outputs": _outputs_0};
   } else {
     return {$: "Canonical.Rejected", "state": _original_0, "reason": {$: "Canonical.InconsistentLedger"}};
   }
@@ -12274,8 +12274,8 @@ function $$$$047agent$045flow$045bend$047Canonical$058check_step$(_original_0, _
     const __5 = _t_0["dispatch"];
     const __6 = _t_0["collection"];
     const _history_0 = _t_0["history"];
-    const _commands_0 = _result_0["commands"];
-    return $$$$047agent$045flow$045bend$047Canonical$058check_round_invariant$(_original_0, {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": __5, "collection": __6, "history": _history_0}, _commands_0, ($$$$047agent$045flow$045bend$047Canonical$058unique_rounds$(_rounds_0)));
+    const _outputs_0 = _result_0["outputs"];
+    return $$$$047agent$045flow$045bend$047Canonical$058check_round_invariant$(_original_0, {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": __5, "collection": __6, "history": _history_0}, _outputs_0, ($$$$047agent$045flow$045bend$047Canonical$058unique_rounds$(_rounds_0)));
   } else {
     const _state_0 = _result_0["state"];
     const _reason_0 = _result_0["reason"];
@@ -12983,130 +12983,140 @@ function $Driver$058refused_preparation$(_event_0) {
 }
 
 function $Driver$058handle$(_state_0, _event_0, _command_0, _context_0) {
-  if (_command_0.$ === "Canonical.PreparationRefused") {
-    return $Driver$058refused_preparation$(_event_0);
-  } else if (_command_0.$ === "Canonical.JevRequestUnavailable") {
-    return $Driver$058unavailable$(_state_0, _event_0);
-  } else if (_command_0.$ === "Canonical.ObservationAdmitted") {
-    const _id_0 = _command_0["id"];
-    const _p_0 = _context_0["partition"];
-    const _l_0 = _context_0["lifetime"];
-    const _r_0 = _context_0["round"];
-    const _t_0 = _context_0["job"];
-    if (_t_0) {
-      return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$058immediate$({$: "Canonical.QueueDispatch", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _id_0}, false)), "tail": {$: "Nil"}}};
-    } else {
-      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-    }
-  } else if (_command_0.$ === "Canonical.DispatchStarted") {
-    const _operation_0 = _command_0["operation"];
-    const _p_1 = _context_0["partition"];
-    const _l_1 = _context_0["lifetime"];
-    const _r_1 = _context_0["round"];
-    const __34 = _context_0["bytes"];
-    const _t_1 = _context_0["job"];
-    if (_t_1) {
-      const __35 = _context_0["jev_delay"];
-      const __36 = _context_0["outcome"];
-      const __37 = _context_0["current_work"];
-      const __38 = _context_0["credential_ready"];
-      const __39 = _context_0["credential_generation"];
-      const __40 = _context_0["source_readable"];
-      const __41 = _context_0["advice_lifetime"];
-      const __42 = _context_0["candidate"];
-      const __43 = _context_0["automatic_collection"];
-      const __44 = _context_0["automatic_review"];
-      const __45 = _context_0["automatic_output"];
-      const __46 = _context_0["output_certain"];
-      const __47 = _context_0["output_delay"];
-      const __48 = _context_0["output_lease"];
-      const __49 = _context_0["background"];
-      const __50 = _context_0["automatic_dispatch"];
-      return $Driver$058dispatch_work$(($Driver$058find_operation$(($Driver$058work_list$(_state_0)), _operation_0)), {$: "Driver.Context", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "bytes": __34, "job": true, "jev_delay": __35, "outcome": __36, "current_work": __37, "credential_ready": __38, "credential_generation": __39, "source_readable": __40, "advice_lifetime": __41, "candidate": __42, "automatic_collection": __43, "automatic_review": __44, "automatic_output": __45, "output_certain": __46, "output_delay": __47, "output_lease": __48, "background": __49, "automatic_dispatch": __50});
-    } else {
-      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-    }
-  } else if (_command_0.$ === "Canonical.UnitAdmitted") {
-    const _operation_1 = _command_0["operation"];
-    const _p_2 = _context_0["partition"];
-    const _l_2 = _context_0["lifetime"];
-    const _r_2 = _context_0["round"];
-    const _t_2 = _context_0["automatic_dispatch"];
-    if (_t_2) {
-      return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$058immediate$({$: "Canonical.QueueDispatch", "partition": _p_2, "lifetime": _l_2, "round": _r_2, "operation": _operation_1}, false)), "tail": {$: "Nil"}}};
-    } else {
-      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-    }
-  } else if (_command_0.$ === "Canonical.JevRequestIssued") {
-    const _p_3 = _command_0["partition"];
-    const _l_3 = _command_0["lifetime"];
-    const _r_3 = _command_0["round"];
-    const _o_0 = _command_0["operation"];
-    const _request_0 = _command_0["request"];
-    const _delay_0 = _context_0["jev_delay"];
-    const _t_3 = _context_0["outcome"];
-    if (_t_3.$ === "Some") {
-      const _outcome_0 = _t_3["value"];
-      const _t_4 = _context_0["automatic_review"];
-      if (_t_4) {
-        return $Driver$058issued_outcome$(_outcome_0, _p_3, _l_3, _r_3, _o_0, _request_0, _delay_0);
+  if (_command_0.$ === "Canonical.PolicyDecided") {
+    const _t_0 = _command_0["decision"];
+    if (_t_0.$ === "Canonical.PreparationRefused") {
+      return $Driver$058refused_preparation$(_event_0);
+    } else if (_t_0.$ === "Canonical.JevRequestUnavailable") {
+      return $Driver$058unavailable$(_state_0, _event_0);
+    } else if (_t_0.$ === "Canonical.RetireCandidate") {
+      const _candidate_0 = _context_0["candidate"];
+      return $Driver$058retirement$(_state_0, _candidate_0);
+    } else if (_t_0.$ === "Canonical.RetainCandidate") {
+      const _candidate_1 = _context_0["candidate"];
+      return $Driver$058suppress$(_candidate_1);
+    } else if (_t_0.$ === "Canonical.ContinueCandidate") {
+      const _candidate_2 = _context_0["candidate"];
+      return $Driver$058suppress$(_candidate_2);
+    } else if (_t_0.$ === "Canonical.SubmissionUnsuppressed") {
+      const _candidate_3 = _context_0["candidate"];
+      const _t_1 = _context_0["automatic_output"];
+      if (_t_1) {
+        return $Driver$058reserve$(_candidate_3);
       } else {
         return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
       }
     } else {
       return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
     }
-  } else if (_command_0.$ === "Canonical.RetainFinding") {
-    const _lifetime_0 = _context_0["advice_lifetime"];
-    return $Driver$058retained$(_event_0, _lifetime_0);
-  } else if (_command_0.$ === "Canonical.CollectionEligible") {
-    const _current_0 = _context_0["current_work"];
-    const _credential_0 = _context_0["credential_ready"];
-    const _generation_0 = _context_0["credential_generation"];
-    const _readable_0 = _context_0["source_readable"];
-    const _t_5 = _context_0["automatic_collection"];
-    if (_t_5) {
-      const _background_0 = _context_0["background"];
-      return $Driver$058eligible$(_event_0, _credential_0, _generation_0, _current_0, _readable_0, ($Driver$058collection_surface$(_background_0)));
-    } else {
-      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-    }
-  } else if (_command_0.$ === "Canonical.RetireCandidate") {
-    const _candidate_0 = _context_0["candidate"];
-    return $Driver$058retirement$(_state_0, _candidate_0);
-  } else if (_command_0.$ === "Canonical.RetainCandidate") {
-    const _candidate_1 = _context_0["candidate"];
-    return $Driver$058suppress$(_candidate_1);
-  } else if (_command_0.$ === "Canonical.ContinueCandidate") {
-    const _candidate_2 = _context_0["candidate"];
-    return $Driver$058suppress$(_candidate_2);
-  } else if (_command_0.$ === "Canonical.SubmissionUnsuppressed") {
-    const _candidate_3 = _context_0["candidate"];
-    const _t_6 = _context_0["automatic_output"];
-    if (_t_6) {
-      return $Driver$058reserve$(_candidate_3);
-    } else {
-      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-    }
-  } else if (_command_0.$ === "Canonical.SubmissionAuthorized") {
-    const _p_4 = _context_0["partition"];
-    const _t_7 = _context_0["automatic_output"];
-    if (_t_7) {
-      const _certain_0 = _context_0["output_certain"];
-      const _delay_1 = _context_0["output_delay"];
-      const _lease_0 = _context_0["output_lease"];
-      return $Driver$058submitted$(_event_0, _p_4, _certain_0, _delay_1, _lease_0);
-    } else {
-      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-    }
-  } else if (_command_0.$ === "Canonical.SubmissionBegun") {
-    const _p_5 = _context_0["partition"];
-    const _t_8 = _context_0["automatic_output"];
-    if (_t_8) {
-      const _certain_2 = _context_0["output_certain"];
-      const _delay_3 = _context_0["output_delay"];
-      const _lease_2 = _context_0["output_lease"];
-      return $Driver$058submitted$(_event_0, _p_5, _certain_2, _delay_3, _lease_2);
+  } else if (_command_0.$ === "Canonical.EventEstablished") {
+    const _t_2 = _command_0["event"];
+    if (_t_2.$ === "Canonical.ObservationAdmitted") {
+      const _id_0 = _t_2["id"];
+      const _p_0 = _context_0["partition"];
+      const _l_0 = _context_0["lifetime"];
+      const _r_0 = _context_0["round"];
+      const _t_3 = _context_0["job"];
+      if (_t_3) {
+        return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$058immediate$({$: "Canonical.QueueDispatch", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _id_0}, false)), "tail": {$: "Nil"}}};
+      } else {
+        return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+      }
+    } else if (_t_2.$ === "Canonical.DispatchStarted") {
+      const _operation_0 = _t_2["operation"];
+      const _p_1 = _context_0["partition"];
+      const _l_1 = _context_0["lifetime"];
+      const _r_1 = _context_0["round"];
+      const __118 = _context_0["bytes"];
+      const _t_4 = _context_0["job"];
+      if (_t_4) {
+        const __119 = _context_0["jev_delay"];
+        const __120 = _context_0["outcome"];
+        const __121 = _context_0["current_work"];
+        const __122 = _context_0["credential_ready"];
+        const __123 = _context_0["credential_generation"];
+        const __124 = _context_0["source_readable"];
+        const __125 = _context_0["advice_lifetime"];
+        const __126 = _context_0["candidate"];
+        const __127 = _context_0["automatic_collection"];
+        const __128 = _context_0["automatic_review"];
+        const __129 = _context_0["automatic_output"];
+        const __130 = _context_0["output_certain"];
+        const __131 = _context_0["output_delay"];
+        const __132 = _context_0["output_lease"];
+        const __133 = _context_0["background"];
+        const __134 = _context_0["automatic_dispatch"];
+        return $Driver$058dispatch_work$(($Driver$058find_operation$(($Driver$058work_list$(_state_0)), _operation_0)), {$: "Driver.Context", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "bytes": __118, "job": true, "jev_delay": __119, "outcome": __120, "current_work": __121, "credential_ready": __122, "credential_generation": __123, "source_readable": __124, "advice_lifetime": __125, "candidate": __126, "automatic_collection": __127, "automatic_review": __128, "automatic_output": __129, "output_certain": __130, "output_delay": __131, "output_lease": __132, "background": __133, "automatic_dispatch": __134});
+      } else {
+        return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+      }
+    } else if (_t_2.$ === "Canonical.UnitAdmitted") {
+      const _operation_1 = _t_2["operation"];
+      const _p_2 = _context_0["partition"];
+      const _l_2 = _context_0["lifetime"];
+      const _r_2 = _context_0["round"];
+      const _t_5 = _context_0["automatic_dispatch"];
+      if (_t_5) {
+        return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$058immediate$({$: "Canonical.QueueDispatch", "partition": _p_2, "lifetime": _l_2, "round": _r_2, "operation": _operation_1}, false)), "tail": {$: "Nil"}}};
+      } else {
+        return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+      }
+    } else if (_t_2.$ === "Canonical.JevRequestIssued") {
+      const _p_3 = _t_2["partition"];
+      const _l_3 = _t_2["lifetime"];
+      const _r_3 = _t_2["round"];
+      const _o_0 = _t_2["operation"];
+      const _request_0 = _t_2["request"];
+      const _delay_0 = _context_0["jev_delay"];
+      const _t_6 = _context_0["outcome"];
+      if (_t_6.$ === "Some") {
+        const _outcome_0 = _t_6["value"];
+        const _t_7 = _context_0["automatic_review"];
+        if (_t_7) {
+          return $Driver$058issued_outcome$(_outcome_0, _p_3, _l_3, _r_3, _o_0, _request_0, _delay_0);
+        } else {
+          return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+        }
+      } else {
+        return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+      }
+    } else if (_t_2.$ === "Canonical.FindingRetained") {
+      const _lifetime_0 = _context_0["advice_lifetime"];
+      return $Driver$058retained$(_event_0, _lifetime_0);
+    } else if (_t_2.$ === "Canonical.CollectionEligible") {
+      const _current_0 = _context_0["current_work"];
+      const _credential_0 = _context_0["credential_ready"];
+      const _generation_0 = _context_0["credential_generation"];
+      const _readable_0 = _context_0["source_readable"];
+      const _t_8 = _context_0["automatic_collection"];
+      if (_t_8) {
+        const _background_0 = _context_0["background"];
+        return $Driver$058eligible$(_event_0, _credential_0, _generation_0, _current_0, _readable_0, ($Driver$058collection_surface$(_background_0)));
+      } else {
+        return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+      }
+    } else if (_t_2.$ === "Canonical.SubmissionAuthorized") {
+      const _p_4 = _context_0["partition"];
+      const _t_9 = _context_0["automatic_output"];
+      if (_t_9) {
+        const _certain_0 = _context_0["output_certain"];
+        const _delay_1 = _context_0["output_delay"];
+        const _lease_0 = _context_0["output_lease"];
+        return $Driver$058submitted$(_event_0, _p_4, _certain_0, _delay_1, _lease_0);
+      } else {
+        return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+      }
+    } else if (_t_2.$ === "Canonical.SubmissionBegun") {
+      const _p_5 = _context_0["partition"];
+      const _t_10 = _context_0["automatic_output"];
+      if (_t_10) {
+        const _certain_2 = _context_0["output_certain"];
+        const _delay_3 = _context_0["output_delay"];
+        const _lease_2 = _context_0["output_lease"];
+        return $Driver$058submitted$(_event_0, _p_5, _certain_2, _delay_3, _lease_2);
+      } else {
+        return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+      }
     } else {
       return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
     }
@@ -13471,25 +13481,35 @@ function $QuietScenario$058generated_tick$(_canonical_0, _event_0, _native_idle_
 }
 
 function $QuietScenario$058command_actions$(_command_0, _event_0, _now_0) {
-  if (_command_0.$ === "Canonical.QuietRoundExpired") {
-    if (_event_0.$ === "Canonical.QuietRoundTick") {
-      const _p_0 = _event_0["partition"];
-      const _l_0 = _event_0["lifetime"];
-      const _r_0 = _event_0["round"];
-      return {$: "Con", "head": ($Driver$058immediate$({$: "Canonical.ClosePermitRound", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "at": _now_0}, false)), "tail": {$: "Con", "head": ($Driver$058immediate$({$: "Canonical.RetirePartition", "partition": _p_0, "lifetime": _l_0, "round": _r_0}, false)), "tail": {$: "Nil"}}};
+  if (_command_0.$ === "Canonical.PolicyDecided") {
+    const _t_0 = _command_0["decision"];
+    if (_t_0.$ === "Canonical.QuietRoundExpired") {
+      if (_event_0.$ === "Canonical.QuietRoundTick") {
+        const _p_0 = _event_0["partition"];
+        const _l_0 = _event_0["lifetime"];
+        const _r_0 = _event_0["round"];
+        return {$: "Con", "head": ($Driver$058immediate$({$: "Canonical.ClosePermitRound", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "at": _now_0}, false)), "tail": {$: "Con", "head": ($Driver$058immediate$({$: "Canonical.RetirePartition", "partition": _p_0, "lifetime": _l_0, "round": _r_0}, false)), "tail": {$: "Nil"}}};
+      } else {
+        return {$: "Nil"};
+      }
     } else {
       return {$: "Nil"};
     }
-  } else if (_command_0.$ === "Canonical.QuietRoundWaiting") {
-    const _since_0 = _command_0["since"];
-    if (_event_0.$ === "Canonical.QuietRoundTick") {
-      const _p_1 = _event_0["partition"];
-      const _l_1 = _event_0["lifetime"];
-      const _r_1 = _event_0["round"];
-      const _window_0 = _event_0["window"];
-      const _facts_0 = _event_0["facts"];
-      const _x_0 = nat_chk(_since_0 + _window_0);
-      return {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.QuietRoundTick", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "now": nat_chk(_since_0 + _window_0), "window": _window_0, "facts": _facts_0}, "delay": (_x_0 < _now_0 ? 0 : _x_0 - _now_0), "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}}, "tail": {$: "Nil"}};
+  } else if (_command_0.$ === "Canonical.EventEstablished") {
+    const _t_1 = _command_0["event"];
+    if (_t_1.$ === "Canonical.QuietRoundWaiting") {
+      const _since_0 = _t_1["since"];
+      if (_event_0.$ === "Canonical.QuietRoundTick") {
+        const _p_1 = _event_0["partition"];
+        const _l_1 = _event_0["lifetime"];
+        const _r_1 = _event_0["round"];
+        const _window_0 = _event_0["window"];
+        const _facts_0 = _event_0["facts"];
+        const _x_0 = nat_chk(_since_0 + _window_0);
+        return {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.QuietRoundTick", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "now": nat_chk(_since_0 + _window_0), "window": _window_0, "facts": _facts_0}, "delay": (_x_0 < _now_0 ? 0 : _x_0 - _now_0), "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}}, "tail": {$: "Nil"}};
+      } else {
+        return {$: "Nil"};
+      }
     } else {
       return {$: "Nil"};
     }
@@ -13565,8 +13585,13 @@ function $QuietScenario$058reset_found$(_found_0) {
 
 function $QuietScenario$058command$(_canonical_0, _command_0, _event_0, _partition_0, _now_0) {
   const _rounds_0 = _canonical_0["rounds"];
-  if (_command_0.$ === "Canonical.ObservationAdmitted") {
-    return $QuietScenario$058reset_found$(($$$$047agent$045flow$045bend$047Canonical$058find_round$(_partition_0, _rounds_0)));
+  if (_command_0.$ === "Canonical.EventEstablished") {
+    const _t_0 = _command_0["event"];
+    if (_t_0.$ === "Canonical.ObservationAdmitted") {
+      return $QuietScenario$058reset_found$(($$$$047agent$045flow$045bend$047Canonical$058find_round$(_partition_0, _rounds_0)));
+    } else {
+      return $QuietScenario$058command_actions$({$: "Canonical.EventEstablished", "event": _t_0}, _event_0, _now_0);
+    }
   } else {
     return $QuietScenario$058command_actions$(_command_0, _event_0, _now_0);
   }
@@ -14196,16 +14221,23 @@ function $CollectionScenario$058valid$(_state_0, _target_0, _canonical_0, _now_0
 function $CollectionScenario$058proceed$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.CollectorProceed") {
-          return true;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.PolicyDecided") {
+          const _t_1 = _t_0["decision"];
+          if (_t_1.$ === "Canonical.CollectorProceed") {
+            return true;
+          } else {
+            const __1 = _outputs_0["tail"];
+            $0 = __1;
+            continue;
+          }
         } else {
-          const __1 = _commands_0["tail"];
-          $0 = __1;
+          const __2 = _outputs_0["tail"];
+          $0 = __2;
           continue;
         }
       }
@@ -14216,16 +14248,23 @@ function $CollectionScenario$058proceed$($0) {
 function $CollectionScenario$058final_proceed$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.CollectorFinalProceed") {
-          return true;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.PolicyDecided") {
+          const _t_1 = _t_0["decision"];
+          if (_t_1.$ === "Canonical.CollectorFinalProceed") {
+            return true;
+          } else {
+            const __1 = _outputs_0["tail"];
+            $0 = __1;
+            continue;
+          }
         } else {
-          const __1 = _commands_0["tail"];
-          $0 = __1;
+          const __2 = _outputs_0["tail"];
+          $0 = __2;
           continue;
         }
       }
@@ -14340,16 +14379,23 @@ function $CollectionScenario$058final_selected$(_allowed_0, _context_0, _state_0
 function $CollectionScenario$058lease_reserved$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.CollectionLeaseReserved") {
-          return true;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.EventEstablished") {
+          const _t_1 = _t_0["event"];
+          if (_t_1.$ === "Canonical.CollectionLeaseReserved") {
+            return true;
+          } else {
+            const __1 = _outputs_0["tail"];
+            $0 = __1;
+            continue;
+          }
         } else {
-          const __1 = _commands_0["tail"];
-          $0 = __1;
+          const __2 = _outputs_0["tail"];
+          $0 = __2;
           continue;
         }
       }
@@ -14360,18 +14406,25 @@ function $CollectionScenario$058lease_reserved$($0) {
 function $CollectionScenario$058submission_begun$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.SubmissionBegun") {
-          return true;
-        } else if (_t_0.$ === "Canonical.SubmissionAuthorized") {
-          return true;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.EventEstablished") {
+          const _t_1 = _t_0["event"];
+          if (_t_1.$ === "Canonical.SubmissionBegun") {
+            return true;
+          } else if (_t_1.$ === "Canonical.SubmissionAuthorized") {
+            return true;
+          } else {
+            const __2 = _outputs_0["tail"];
+            $0 = __2;
+            continue;
+          }
         } else {
-          const __2 = _commands_0["tail"];
-          $0 = __2;
+          const __3 = _outputs_0["tail"];
+          $0 = __3;
           continue;
         }
       }
@@ -14425,7 +14478,7 @@ function $CollectionScenario$058selected_authorized$(_accepted_0, _context_0, _s
   }
 }
 
-function $CollectionScenario$058after_context$(_context_0, _state_0, _event_0, _commands_0, _canonical_0) {
+function $CollectionScenario$058after_context$(_context_0, _state_0, _event_0, _outputs_0, _canonical_0) {
   const _identity_0 = _context_0["identity"];
   const _response_0 = _context_0["response"];
   const _credential_0 = _context_0["credential"];
@@ -14434,15 +14487,15 @@ function $CollectionScenario$058after_context$(_context_0, _state_0, _event_0, _
     const _current_block_0 = _t_0["current_block"];
     const _selections_0 = _context_0["selections"];
     if (_event_0.$ === "Canonical.CollectorGateCheck") {
-      return $CollectionScenario$058gated$(($CollectionScenario$058proceed$(_commands_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Gating", "current_block": _current_block_0}, "selections": _selections_0}, _state_0, _current_block_0);
+      return $CollectionScenario$058gated$(($CollectionScenario$058proceed$(_outputs_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Gating", "current_block": _current_block_0}, "selections": _selections_0}, _state_0, _current_block_0);
     } else if (_event_0.$ === "Canonical.CollectionReserveLease") {
       const _advice_0 = _event_0["advice"];
       const _token_0 = _event_0["token"];
-      return $CollectionScenario$058selected_lease$(($CollectionScenario$058lease_reserved$(_commands_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Gating", "current_block": _current_block_0}, "selections": _selections_0}, _state_0, _advice_0, _token_0);
+      return $CollectionScenario$058selected_lease$(($CollectionScenario$058lease_reserved$(_outputs_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Gating", "current_block": _current_block_0}, "selections": _selections_0}, _state_0, _advice_0, _token_0);
     } else if (_event_0.$ === "Canonical.SubmissionBegin") {
       const _advice_1 = _event_0["advice"];
       const _token_1 = _event_0["token"];
-      return $CollectionScenario$058selected_authorized$(($CollectionScenario$058submission_begun$(_commands_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Gating", "current_block": _current_block_0}, "selections": _selections_0}, _state_0, _advice_1, _token_1);
+      return $CollectionScenario$058selected_authorized$(($CollectionScenario$058submission_begun$(_outputs_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Gating", "current_block": _current_block_0}, "selections": _selections_0}, _state_0, _advice_1, _token_1);
     } else if (_event_0.$ === "Canonical.SubmissionTerminal") {
       return {$: "CollectionScenario.Change", "state": ($CollectionScenario$058updated$(_state_0, ($CollectionScenario$058reset$({$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Gating", "current_block": _current_block_0}, "selections": _selections_0})))), "result": {$: "CollectionScenario.Applied"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
     } else {
@@ -14451,15 +14504,15 @@ function $CollectionScenario$058after_context$(_context_0, _state_0, _event_0, _
   } else if (_t_0.$ === "CollectionScenario.Selecting") {
     const _selections_1 = _context_0["selections"];
     if (_event_0.$ === "Canonical.CollectorFinalAuthorityCheck") {
-      return $CollectionScenario$058final_selected$(($CollectionScenario$058final_proceed$(_commands_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Selecting"}, "selections": _selections_1}, _state_0, _canonical_0);
+      return $CollectionScenario$058final_selected$(($CollectionScenario$058final_proceed$(_outputs_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Selecting"}, "selections": _selections_1}, _state_0, _canonical_0);
     } else if (_event_0.$ === "Canonical.CollectionReserveLease") {
       const _advice_2 = _event_0["advice"];
       const _token_2 = _event_0["token"];
-      return $CollectionScenario$058selected_lease$(($CollectionScenario$058lease_reserved$(_commands_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Selecting"}, "selections": _selections_1}, _state_0, _advice_2, _token_2);
+      return $CollectionScenario$058selected_lease$(($CollectionScenario$058lease_reserved$(_outputs_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Selecting"}, "selections": _selections_1}, _state_0, _advice_2, _token_2);
     } else if (_event_0.$ === "Canonical.SubmissionBegin") {
       const _advice_3 = _event_0["advice"];
       const _token_3 = _event_0["token"];
-      return $CollectionScenario$058selected_authorized$(($CollectionScenario$058submission_begun$(_commands_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Selecting"}, "selections": _selections_1}, _state_0, _advice_3, _token_3);
+      return $CollectionScenario$058selected_authorized$(($CollectionScenario$058submission_begun$(_outputs_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Selecting"}, "selections": _selections_1}, _state_0, _advice_3, _token_3);
     } else if (_event_0.$ === "Canonical.SubmissionTerminal") {
       return {$: "CollectionScenario.Change", "state": ($CollectionScenario$058updated$(_state_0, ($CollectionScenario$058reset$({$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Selecting"}, "selections": _selections_1})))), "result": {$: "CollectionScenario.Applied"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
     } else {
@@ -14470,11 +14523,11 @@ function $CollectionScenario$058after_context$(_context_0, _state_0, _event_0, _
     if (_event_0.$ === "Canonical.CollectionReserveLease") {
       const _advice_4 = _event_0["advice"];
       const _token_4 = _event_0["token"];
-      return $CollectionScenario$058selected_lease$(($CollectionScenario$058lease_reserved$(_commands_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": _t_0, "selections": _selections_2}, _state_0, _advice_4, _token_4);
+      return $CollectionScenario$058selected_lease$(($CollectionScenario$058lease_reserved$(_outputs_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": _t_0, "selections": _selections_2}, _state_0, _advice_4, _token_4);
     } else if (_event_0.$ === "Canonical.SubmissionBegin") {
       const _advice_5 = _event_0["advice"];
       const _token_5 = _event_0["token"];
-      return $CollectionScenario$058selected_authorized$(($CollectionScenario$058submission_begun$(_commands_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": _t_0, "selections": _selections_2}, _state_0, _advice_5, _token_5);
+      return $CollectionScenario$058selected_authorized$(($CollectionScenario$058submission_begun$(_outputs_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": _t_0, "selections": _selections_2}, _state_0, _advice_5, _token_5);
     } else if (_event_0.$ === "Canonical.SubmissionTerminal") {
       return {$: "CollectionScenario.Change", "state": ($CollectionScenario$058updated$(_state_0, ($CollectionScenario$058reset$({$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": _t_0, "selections": _selections_2})))), "result": {$: "CollectionScenario.Applied"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
     } else {
@@ -14483,17 +14536,17 @@ function $CollectionScenario$058after_context$(_context_0, _state_0, _event_0, _
   }
 }
 
-function $CollectionScenario$058after_found$(_found_0, _state_0, _event_0, _commands_0, _canonical_0) {
+function $CollectionScenario$058after_found$(_found_0, _state_0, _event_0, _outputs_0, _canonical_0) {
   if (_found_0.$ === "Some") {
     const _context_0 = _found_0["value"];
-    return $CollectionScenario$058after_context$(_context_0, _state_0, _event_0, _commands_0, _canonical_0);
+    return $CollectionScenario$058after_context$(_context_0, _state_0, _event_0, _outputs_0, _canonical_0);
   } else {
     return {$: "CollectionScenario.Change", "state": _state_0, "result": {$: "CollectionScenario.Missing"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
   }
 }
 
-function $CollectionScenario$058after$(_state_0, _target_0, _event_0, _commands_0, _canonical_0) {
-  return $CollectionScenario$058after_found$(($CollectionScenario$058lookup$(($CollectionScenario$058contexts$(_state_0)), _target_0)), _state_0, _event_0, _commands_0, _canonical_0);
+function $CollectionScenario$058after$(_state_0, _target_0, _event_0, _outputs_0, _canonical_0) {
+  return $CollectionScenario$058after_found$(($CollectionScenario$058lookup$(($CollectionScenario$058contexts$(_state_0)), _target_0)), _state_0, _event_0, _outputs_0, _canonical_0);
 }
 
 function $CollectionScenario$058driver_context$(_state_0, _context_0, _response_owned_0) {
@@ -14532,11 +14585,16 @@ function $CollectionScenario$058managed_handled$(_automatic_0, _original_0) {
 }
 
 function $CollectionScenario$058handled$(_state_0, _command_0, _context_0, _original_0) {
-  if (_command_0.$ === "Canonical.CollectionEligible") {
-    const _p_0 = _context_0["partition"];
-    const _t_0 = _context_0["background"];
-    if (!_t_0) {
-      return $CollectionScenario$058managed_handled$(($CollectionScenario$058automatic$(_state_0, _p_0)), _original_0);
+  if (_command_0.$ === "Canonical.EventEstablished") {
+    const _t_0 = _command_0["event"];
+    if (_t_0.$ === "Canonical.CollectionEligible") {
+      const _p_0 = _context_0["partition"];
+      const _t_1 = _context_0["background"];
+      if (!_t_1) {
+        return $CollectionScenario$058managed_handled$(($CollectionScenario$058automatic$(_state_0, _p_0)), _original_0);
+      } else {
+        return _original_0;
+      }
     } else {
       return _original_0;
     }
@@ -14651,19 +14709,31 @@ function $CollectionScenario$058lease_begin$(_event_0, _target_0) {
 }
 
 function $CollectionScenario$058handle_response$(_state_0, _event_0, _command_0, _context_0, _target_0) {
-  if (_command_0.$ === "Canonical.SubmissionUnsuppressed") {
-    const _candidate_0 = _context_0["candidate"];
-    const _id_0 = _target_0["id"];
-    return $CollectionScenario$058reserve_candidate$(_candidate_0, _id_0);
-  } else if (_command_0.$ === "Canonical.CollectionLeaseReserved") {
-    const _id_1 = _target_0["id"];
-    const __23 = _target_0["partition"];
-    const __24 = _target_0["lifetime"];
-    const __25 = _target_0["round"];
-    return $CollectionScenario$058lease_begin$(_event_0, {$: "CollectionScenario.Identity", "id": _id_1, "partition": __23, "lifetime": __24, "round": __25});
+  if (_command_0.$ === "Canonical.PolicyDecided") {
+    const _t_0 = _command_0["decision"];
+    if (_t_0.$ === "Canonical.SubmissionUnsuppressed") {
+      const _candidate_0 = _context_0["candidate"];
+      const _id_0 = _target_0["id"];
+      return $CollectionScenario$058reserve_candidate$(_candidate_0, _id_0);
+    } else {
+      const _id_1 = _target_0["id"];
+      return $CollectionScenario$058response_handled$(($Driver$058handle$(_state_0, _event_0, {$: "Canonical.PolicyDecided", "decision": _t_0}, _context_0)), _id_1);
+    }
+  } else if (_command_0.$ === "Canonical.EventEstablished") {
+    const _t_1 = _command_0["event"];
+    if (_t_1.$ === "Canonical.CollectionLeaseReserved") {
+      const _id_2 = _target_0["id"];
+      const __26 = _target_0["partition"];
+      const __27 = _target_0["lifetime"];
+      const __28 = _target_0["round"];
+      return $CollectionScenario$058lease_begin$(_event_0, {$: "CollectionScenario.Identity", "id": _id_2, "partition": __26, "lifetime": __27, "round": __28});
+    } else {
+      const _id_3 = _target_0["id"];
+      return $CollectionScenario$058response_handled$(($Driver$058handle$(_state_0, _event_0, {$: "Canonical.EventEstablished", "event": _t_1}, _context_0)), _id_3);
+    }
   } else {
-    const _id_2 = _target_0["id"];
-    return $CollectionScenario$058response_handled$(($Driver$058handle$(_state_0, _event_0, _command_0, _context_0)), _id_2);
+    const _id_4 = _target_0["id"];
+    return $CollectionScenario$058response_handled$(($Driver$058handle$(_state_0, _event_0, _command_0, _context_0)), _id_4);
   }
 }
 
@@ -14774,16 +14844,23 @@ function $WriterScenario$058lookup$(_state_0, _identity_0) {
 function $WriterScenario$058granted$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.CollectionBackgroundClaimed") {
-          return true;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.EventEstablished") {
+          const _t_1 = _t_0["event"];
+          if (_t_1.$ === "Canonical.CollectionBackgroundClaimed") {
+            return true;
+          } else {
+            const __1 = _outputs_0["tail"];
+            $0 = __1;
+            continue;
+          }
         } else {
-          const __1 = _commands_0["tail"];
-          $0 = __1;
+          const __2 = _outputs_0["tail"];
+          $0 = __2;
           continue;
         }
       }
@@ -14983,9 +15060,9 @@ function $WriterScenario$058facts_owned$(_canonical_0, _facts_0) {
   return $$$$047agent$045flow$045bend$047CollectionState$058claim_owned$(_p_0, _token_0, ($WriterScenario$058claims$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_canonical_0)))));
 }
 
-function $WriterScenario$058pending_granted$(_pending_0, _event_0, _commands_0, _canonical_0, _now_0) {
+function $WriterScenario$058pending_granted$(_pending_0, _event_0, _outputs_0, _canonical_0, _now_0) {
   const _facts_0 = _pending_0["facts"];
-  return $Bool$and$(($Bool$and$(($Bool$and$(($WriterScenario$058claim_event_same$(_event_0, _facts_0)), ($WriterScenario$058granted$(_commands_0)))), ($WriterScenario$058facts_owned$(_canonical_0, _facts_0)))), ($WriterScenario$058facts_live$(_facts_0, _canonical_0, _now_0)));
+  return $Bool$and$(($Bool$and$(($Bool$and$(($WriterScenario$058claim_event_same$(_event_0, _facts_0)), ($WriterScenario$058granted$(_outputs_0)))), ($WriterScenario$058facts_owned$(_canonical_0, _facts_0)))), ($WriterScenario$058facts_live$(_facts_0, _canonical_0, _now_0)));
 }
 
 function $WriterScenario$058facts_expiry_action$(_facts_0, _now_0) {
@@ -15179,11 +15256,16 @@ function $WriterScenario$058managed_handled$(_managed_0, _original_0) {
 }
 
 function $WriterScenario$058handled$(_state_0, _command_0, _context_0, _original_0) {
-  if (_command_0.$ === "Canonical.CollectionEligible") {
-    const _p_0 = _context_0["partition"];
-    const _l_0 = _context_0["lifetime"];
-    const _r_0 = _context_0["round"];
-    return $WriterScenario$058managed_handled$(($WriterScenario$058route_managed$(_state_0, _p_0, _l_0, _r_0)), _original_0);
+  if (_command_0.$ === "Canonical.EventEstablished") {
+    const _t_0 = _command_0["event"];
+    if (_t_0.$ === "Canonical.CollectionEligible") {
+      const _p_0 = _context_0["partition"];
+      const _l_0 = _context_0["lifetime"];
+      const _r_0 = _context_0["round"];
+      return $WriterScenario$058managed_handled$(($WriterScenario$058route_managed$(_state_0, _p_0, _l_0, _r_0)), _original_0);
+    } else {
+      return _original_0;
+    }
   } else {
     return _original_0;
   }
@@ -15227,8 +15309,13 @@ function $WriterScenario$058background_context$(_context_0) {
 
 function $WriterScenario$058writer_handled$(_found_0, _canonical_0, _event_0, _command_0, _context_0, _identity_0) {
   if (_found_0.$ === "Some") {
-    if (_command_0.$ === "Canonical.CollectionLeaseReserved") {
-      return $WriterScenario$058background_lease_begin$(_event_0, _identity_0);
+    if (_command_0.$ === "Canonical.EventEstablished") {
+      const _t_0 = _command_0["event"];
+      if (_t_0.$ === "Canonical.CollectionLeaseReserved") {
+        return $WriterScenario$058background_lease_begin$(_event_0, _identity_0);
+      } else {
+        return $CollectionScenario$058handle_response$(_canonical_0, _event_0, {$: "Canonical.EventEstablished", "event": _t_0}, ($WriterScenario$058background_context$(_context_0)), _identity_0);
+      }
     } else {
       return $CollectionScenario$058handle_response$(_canonical_0, _event_0, _command_0, ($WriterScenario$058background_context$(_context_0)), _identity_0);
     }
@@ -15506,12 +15593,17 @@ function $FreshnessScenario$058registration$(_source_0) {
 }
 
 function $FreshnessScenario$058registered$(_state_0, _scope_0, _source_0, _command_0) {
-  if (_command_0.$ === "Canonical.RevisionReused") {
-    const _generation_0 = _command_0["generation"];
-    return $FreshnessScenario$058retain$(_state_0, _scope_0, _source_0, _generation_0);
-  } else if (_command_0.$ === "Canonical.RevisionReplaced") {
-    const _generation_1 = _command_0["generation"];
-    return $FreshnessScenario$058retain$(_state_0, _scope_0, _source_0, _generation_1);
+  if (_command_0.$ === "Canonical.EventEstablished") {
+    const _t_0 = _command_0["event"];
+    if (_t_0.$ === "Canonical.RevisionReused") {
+      const _generation_0 = _t_0["generation"];
+      return $FreshnessScenario$058retain$(_state_0, _scope_0, _source_0, _generation_0);
+    } else if (_t_0.$ === "Canonical.RevisionReplaced") {
+      const _generation_1 = _t_0["generation"];
+      return $FreshnessScenario$058retain$(_state_0, _scope_0, _source_0, _generation_1);
+    } else {
+      return _state_0;
+    }
   } else {
     return _state_0;
   }
@@ -15534,9 +15626,14 @@ function $FreshnessScenario$058unit$(_state_0, _parent_0, _command_0) {
   const _l_0 = _parent_0["lifetime"];
   const _r_0 = _parent_0["round"];
   const _operation_0 = _parent_0["operation"];
-  if (_command_0.$ === "Canonical.UnitAdmitted") {
-    const _child_0 = _command_0["operation"];
-    return $FreshnessScenario$058inherit$({$: "FreshnessScenario.State", "bindings": _bindings_0}, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _child_0}, ($FreshnessScenario$058lookup$(_bindings_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _operation_0})));
+  if (_command_0.$ === "Canonical.EventEstablished") {
+    const _t_0 = _command_0["event"];
+    if (_t_0.$ === "Canonical.UnitAdmitted") {
+      const _child_0 = _t_0["operation"];
+      return $FreshnessScenario$058inherit$({$: "FreshnessScenario.State", "bindings": _bindings_0}, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _child_0}, ($FreshnessScenario$058lookup$(_bindings_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _operation_0})));
+    } else {
+      return {$: "FreshnessScenario.State", "bindings": _bindings_0};
+    }
   } else {
     return {$: "FreshnessScenario.State", "bindings": _bindings_0};
   }
@@ -15667,12 +15764,17 @@ function $FreshnessScenario$058registered_bindings$(_bindings_0, _source_0, _gen
 
 function $FreshnessScenario$058registration_feedback$(_state_0, _source_0, _command_0) {
   const _bindings_0 = _state_0["bindings"];
-  if (_command_0.$ === "Canonical.RevisionReused") {
-    const _generation_0 = _command_0["generation"];
-    return {$: "FreshnessScenario.State", "bindings": ($FreshnessScenario$058registered_bindings$(_bindings_0, _source_0, _generation_0))};
-  } else if (_command_0.$ === "Canonical.RevisionReplaced") {
-    const _generation_1 = _command_0["generation"];
-    return {$: "FreshnessScenario.State", "bindings": ($FreshnessScenario$058registered_bindings$(_bindings_0, _source_0, _generation_1))};
+  if (_command_0.$ === "Canonical.EventEstablished") {
+    const _t_0 = _command_0["event"];
+    if (_t_0.$ === "Canonical.RevisionReused") {
+      const _generation_0 = _t_0["generation"];
+      return {$: "FreshnessScenario.State", "bindings": ($FreshnessScenario$058registered_bindings$(_bindings_0, _source_0, _generation_0))};
+    } else if (_t_0.$ === "Canonical.RevisionReplaced") {
+      const _generation_1 = _t_0["generation"];
+      return {$: "FreshnessScenario.State", "bindings": ($FreshnessScenario$058registered_bindings$(_bindings_0, _source_0, _generation_1))};
+    } else {
+      return {$: "FreshnessScenario.State", "bindings": _bindings_0};
+    }
   } else {
     return {$: "FreshnessScenario.State", "bindings": _bindings_0};
   }
@@ -15693,9 +15795,14 @@ function $FreshnessScenario$058command_feedback$(_state_0, _event_0, _command_0)
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
     const _parent_0 = _event_0["observation"];
-    if (_command_0.$ === "Canonical.Prepare") {
-      const _child_0 = _command_0["operation"];
-      return $FreshnessScenario$058preparation_feedback$(_state_0, _p_0, _l_0, _r_0, _parent_0, _child_0);
+    if (_command_0.$ === "Canonical.ActionRequested") {
+      const _t_0 = _command_0["request"];
+      if (_t_0.$ === "Canonical.Prepare") {
+        const _child_0 = _t_0["operation"];
+        return $FreshnessScenario$058preparation_feedback$(_state_0, _p_0, _l_0, _r_0, _parent_0, _child_0);
+      } else {
+        return _state_0;
+      }
     } else {
       return _state_0;
     }
@@ -15713,14 +15820,14 @@ function $FreshnessScenario$058command_feedback$(_state_0, _event_0, _command_0)
 function $FreshnessScenario$058feedback$($0, $1, $2) {
   for (;;) {
     {
-      const _commands_0 = $0;
+      const _outputs_0 = $0;
       const _state_0 = $1;
       const _event_0 = $2;
-      if (_commands_0.$ === "Nil") {
+      if (_outputs_0.$ === "Nil") {
         return _state_0;
       } else {
-        const _command_0 = _commands_0["head"];
-        const _tail_0 = _commands_0["tail"];
+        const _command_0 = _outputs_0["head"];
+        const _tail_0 = _outputs_0["tail"];
         $0 = _tail_0;
         $1 = ($FreshnessScenario$058command_feedback$(_state_0, _event_0, _command_0));
         $2 = _event_0;
@@ -15953,20 +16060,27 @@ function $SharingScenario$058joined$(_state_0, _found_0, _member_0, _accepted_0)
 function $SharingScenario$058join_command$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.ReuseJoinAdvice") {
-          return true;
-        } else if (_t_0.$ === "Canonical.ReuseJoinPending") {
-          return true;
-        } else if (_t_0.$ === "Canonical.ReuseJoinClaimed") {
-          return true;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.EventEstablished") {
+          const _t_1 = _t_0["event"];
+          if (_t_1.$ === "Canonical.ReuseAdviceJoined") {
+            return true;
+          } else if (_t_1.$ === "Canonical.ReusePendingJoined") {
+            return true;
+          } else if (_t_1.$ === "Canonical.ReuseClaimedJoined") {
+            return true;
+          } else {
+            const __3 = _outputs_0["tail"];
+            $0 = __3;
+            continue;
+          }
         } else {
-          const __3 = _commands_0["tail"];
-          $0 = __3;
+          const __4 = _outputs_0["tail"];
+          $0 = __4;
           continue;
         }
       }
@@ -15974,8 +16088,8 @@ function $SharingScenario$058join_command$($0) {
   }
 }
 
-function $SharingScenario$058routed$(_state_0, _evaluation_id_0, _member_0, _commands_0) {
-  return $SharingScenario$058joined$(_state_0, ($SharingScenario$058lookup$(_state_0, _evaluation_id_0)), _member_0, ($SharingScenario$058join_command$(_commands_0)));
+function $SharingScenario$058routed$(_state_0, _evaluation_id_0, _member_0, _outputs_0) {
+  return $SharingScenario$058joined$(_state_0, ($SharingScenario$058lookup$(_state_0, _evaluation_id_0)), _member_0, ($SharingScenario$058join_command$(_outputs_0)));
 }
 
 function $SharingScenario$058pending_advice$($0, $1) {
@@ -16543,16 +16657,23 @@ function $CacheScenario$058entry_matches$(_payload_0, _entry_0) {
 function $CacheScenario$058cached$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.ReuseCached") {
-          return true;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.EventEstablished") {
+          const _t_1 = _t_0["event"];
+          if (_t_1.$ === "Canonical.ReuseCacheHit") {
+            return true;
+          } else {
+            const __1 = _outputs_0["tail"];
+            $0 = __1;
+            continue;
+          }
         } else {
-          const __1 = _commands_0["tail"];
-          $0 = __1;
+          const __2 = _outputs_0["tail"];
+          $0 = __2;
           continue;
         }
       }
@@ -16599,8 +16720,8 @@ function $CacheScenario$058absent$(_found_0) {
   }
 }
 
-function $CacheScenario$058hit$(_state_0, _canonical_0, _id_0, _commands_0) {
-  return $CacheScenario$058hit_checked$(($CacheScenario$058lookup$(_state_0, _id_0)), ($CacheScenario$058cached_lookup$(($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_canonical_0)))), _id_0)), ($CacheScenario$058cached$(_commands_0)));
+function $CacheScenario$058hit$(_state_0, _canonical_0, _id_0, _outputs_0) {
+  return $CacheScenario$058hit_checked$(($CacheScenario$058lookup$(_state_0, _id_0)), ($CacheScenario$058cached_lookup$(($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_canonical_0)))), _id_0)), ($CacheScenario$058cached$(_outputs_0)));
 }
 
 function $CacheScenario$058prepare$(_offer_0, _entry_limit_0, _byte_limit_0) {
@@ -16627,16 +16748,23 @@ function $CacheScenario$058commit$(_offer_0, _reservation_0, _entry_limit_0, _by
 function $CacheScenario$058committed$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.CacheCommitted") {
-          return true;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.EventEstablished") {
+          const _t_1 = _t_0["event"];
+          if (_t_1.$ === "Canonical.CacheCommitted") {
+            return true;
+          } else {
+            const __1 = _outputs_0["tail"];
+            $0 = __1;
+            continue;
+          }
         } else {
-          const __1 = _commands_0["tail"];
-          $0 = __1;
+          const __2 = _outputs_0["tail"];
+          $0 = __2;
           continue;
         }
       }
@@ -16671,8 +16799,8 @@ function $CacheScenario$058retain_checked$(_state_0, _payload_0, _entry_0, _acce
   }
 }
 
-function $CacheScenario$058retain$(_state_0, _canonical_0, _offer_0, _reservation_0, _commands_0) {
-  return $CacheScenario$058retain_checked$(_state_0, {$: "CacheScenario.Payload", "offer": _offer_0, "reservation": _reservation_0}, ($CacheScenario$058cached_lookup$(($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_canonical_0)))), ($CacheScenario$058offer_id$(_offer_0)))), ($CacheScenario$058committed$(_commands_0)));
+function $CacheScenario$058retain$(_state_0, _canonical_0, _offer_0, _reservation_0, _outputs_0) {
+  return $CacheScenario$058retain_checked$(_state_0, {$: "CacheScenario.Payload", "offer": _offer_0, "reservation": _reservation_0}, ($CacheScenario$058cached_lookup$(($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_canonical_0)))), ($CacheScenario$058offer_id$(_offer_0)))), ($CacheScenario$058committed$(_outputs_0)));
 }
 
 function $CacheScenario$058remove_if$(_found_0, _payload_0, _rest_0) {
@@ -16726,22 +16854,31 @@ function $CacheScenario$058feedback$($0, $1, $2) {
     {
       const _state_0 = $0;
       const _before_0 = $1;
-      const _commands_0 = $2;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $2;
+      if (_outputs_0.$ === "Nil") {
         return {$: "CacheScenario.Feedback", "state": _state_0, "releases": {$: "Nil"}};
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.CachePrepared") {
-          const _ids_0 = _t_0["evicted"];
-          return $CacheScenario$058drop_ids$(_ids_0, _state_0, ($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_before_0)))));
-        } else if (_t_0.$ === "Canonical.CacheDiscarded") {
-          const _ids_1 = _t_0["ids"];
-          return $CacheScenario$058drop_ids$(_ids_1, _state_0, ($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_before_0)))));
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.EventEstablished") {
+          const _t_1 = _t_0["event"];
+          if (_t_1.$ === "Canonical.CachePrepared") {
+            const _ids_0 = _t_1["evicted"];
+            return $CacheScenario$058drop_ids$(_ids_0, _state_0, ($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_before_0)))));
+          } else if (_t_1.$ === "Canonical.CacheDiscarded") {
+            const _ids_1 = _t_1["ids"];
+            return $CacheScenario$058drop_ids$(_ids_1, _state_0, ($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_before_0)))));
+          } else {
+            const __2 = _outputs_0["tail"];
+            $0 = _state_0;
+            $1 = _before_0;
+            $2 = __2;
+            continue;
+          }
         } else {
-          const __2 = _commands_0["tail"];
+          const __3 = _outputs_0["tail"];
           $0 = _state_0;
           $1 = _before_0;
-          $2 = __2;
+          $2 = __3;
           continue;
         }
       }
@@ -16752,16 +16889,23 @@ function $CacheScenario$058feedback$($0, $1, $2) {
 function $CacheScenario$058refused$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.ReuseRefused") {
-          return true;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.PolicyDecided") {
+          const _t_1 = _t_0["decision"];
+          if (_t_1.$ === "Canonical.ReuseRefused") {
+            return true;
+          } else {
+            const __1 = _outputs_0["tail"];
+            $0 = __1;
+            continue;
+          }
         } else {
-          const __1 = _commands_0["tail"];
-          $0 = __1;
+          const __2 = _outputs_0["tail"];
+          $0 = __2;
           continue;
         }
       }
@@ -16796,16 +16940,16 @@ function $CacheScenario$058ledger_charges$(_state_0) {
   return _charges_0;
 }
 
-function $CacheScenario$058refused_entries$(_before_0, _partition_0, _bytes_0, _reservation_0, _commands_0, _reuse_0) {
+function $CacheScenario$058refused_entries$(_before_0, _partition_0, _bytes_0, _reservation_0, _outputs_0, _reuse_0) {
   const _entries_0 = _reuse_0["cache"];
-  return $CacheScenario$058refused_release_checked$(($Bool$and$(($Bool$and$(($CacheScenario$058refused$(_commands_0)), ($$$$047agent$045flow$045bend$047Canonical$058cache_charge_valid$(($$$$047agent$045flow$045bend$047Ledger$058find$(_reservation_0, ($CacheScenario$058ledger_charges$(_before_0)))), _partition_0, _bytes_0)))), ($Bool$not$(($CacheScenario$058owns_reservation$(_entries_0, _reservation_0)))))), _reservation_0);
+  return $CacheScenario$058refused_release_checked$(($Bool$and$(($Bool$and$(($CacheScenario$058refused$(_outputs_0)), ($$$$047agent$045flow$045bend$047Canonical$058cache_charge_valid$(($$$$047agent$045flow$045bend$047Ledger$058find$(_reservation_0, ($CacheScenario$058ledger_charges$(_before_0)))), _partition_0, _bytes_0)))), ($Bool$not$(($CacheScenario$058owns_reservation$(_entries_0, _reservation_0)))))), _reservation_0);
 }
 
-function $CacheScenario$058refused_release$(_before_0, _offer_0, _reservation_0, _commands_0) {
+function $CacheScenario$058refused_release$(_before_0, _offer_0, _reservation_0, _outputs_0) {
   const _t_0 = _offer_0["key"];
   const _partition_0 = _t_0["partition"];
   const _bytes_0 = _offer_0["bytes"];
-  return $CacheScenario$058refused_entries$(_before_0, _partition_0, _bytes_0, _reservation_0, _commands_0, ($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_before_0)))));
+  return $CacheScenario$058refused_entries$(_before_0, _partition_0, _bytes_0, _reservation_0, _outputs_0, ($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_before_0)))));
 }
 
 function $CacheScenario$058original$(_offer_0) {
@@ -16826,9 +16970,9 @@ function $CacheRuntime$058key_id$(_state_0, _key_0) {
   return $CacheScenario$058key_id$(($CacheRuntime$058cache$(_state_0)), _key_0);
 }
 
-function $CacheRuntime$058hit$(_state_0, _canonical_0, _id_0, _commands_0) {
+function $CacheRuntime$058hit$(_state_0, _canonical_0, _id_0, _outputs_0) {
   const _cache_0 = _state_0["cache"];
-  return $CacheScenario$058hit$(_cache_0, _canonical_0, _id_0, _commands_0);
+  return $CacheScenario$058hit$(_cache_0, _canonical_0, _id_0, _outputs_0);
 }
 
 function $CacheRuntime$058existing_feedback$(_pending_0, _sources_0, _config_0, _feedback_0) {
@@ -16837,20 +16981,20 @@ function $CacheRuntime$058existing_feedback$(_pending_0, _sources_0, _config_0, 
   return {$: "CacheRuntime.Feedback", "state": {$: "CacheRuntime.State", "cache": _cache_0, "pending": _pending_0, "sources": _sources_0, "config": _config_0}, "events": _releases_0};
 }
 
-function $CacheRuntime$058existing_removed$(_state_0, _before_0, _commands_0) {
+function $CacheRuntime$058existing_removed$(_state_0, _before_0, _outputs_0) {
   const _cache_0 = _state_0["cache"];
   const _pending_0 = _state_0["pending"];
   const _sources_0 = _state_0["sources"];
   const _config_0 = _state_0["config"];
-  return $CacheRuntime$058existing_feedback$(_pending_0, _sources_0, _config_0, ($CacheScenario$058feedback$(_cache_0, _before_0, _commands_0)));
+  return $CacheRuntime$058existing_feedback$(_pending_0, _sources_0, _config_0, ($CacheScenario$058feedback$(_cache_0, _before_0, _outputs_0)));
 }
 
-function $CacheRuntime$058retained$(_state_0, _canonical_0, _offer_0, _reservation_0, _commands_0) {
+function $CacheRuntime$058retained$(_state_0, _canonical_0, _offer_0, _reservation_0, _outputs_0) {
   const _cache_0 = _state_0["cache"];
   const _pending_0 = _state_0["pending"];
   const _sources_0 = _state_0["sources"];
   const _config_0 = _state_0["config"];
-  return {$: "CacheRuntime.State", "cache": ($CacheScenario$058retain$(_cache_0, _canonical_0, _offer_0, _reservation_0, _commands_0)), "pending": _pending_0, "sources": _sources_0, "config": _config_0};
+  return {$: "CacheRuntime.State", "cache": ($CacheScenario$058retain$(_cache_0, _canonical_0, _offer_0, _reservation_0, _outputs_0)), "pending": _pending_0, "sources": _sources_0, "config": _config_0};
 }
 
 function $CacheRuntime$058lookup_payload$(_id_0, _payload_0) {
@@ -16940,16 +17084,23 @@ function $CacheRuntime$058completed_pending$(_state_0, _offer_0) {
 function $CacheRuntime$058prepared$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.CachePrepared") {
-          return true;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.EventEstablished") {
+          const _t_1 = _t_0["event"];
+          if (_t_1.$ === "Canonical.CachePrepared") {
+            return true;
+          } else {
+            const __2 = _outputs_0["tail"];
+            $0 = __2;
+            continue;
+          }
         } else {
-          const __2 = _commands_0["tail"];
-          $0 = __2;
+          const __3 = _outputs_0["tail"];
+          $0 = __3;
           continue;
         }
       }
@@ -16988,17 +17139,24 @@ function $CacheRuntime$058prepare_feedback$(_state_0, _offer_0, _entry_limit_0, 
 function $CacheRuntime$058reservation$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return {$: "None"};
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.CapacityGranted") {
-          const _id_0 = _t_0["id"];
-          return {$: "Some", "value": _id_0};
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.EventEstablished") {
+          const _t_1 = _t_0["event"];
+          if (_t_1.$ === "Canonical.CapacityGranted") {
+            const _id_0 = _t_1["id"];
+            return {$: "Some", "value": _id_0};
+          } else {
+            const __2 = _outputs_0["tail"];
+            $0 = __2;
+            continue;
+          }
         } else {
-          const __2 = _commands_0["tail"];
-          $0 = __2;
+          const __3 = _outputs_0["tail"];
+          $0 = __3;
           continue;
         }
       }
@@ -17019,24 +17177,24 @@ function $CacheRuntime$058commit_released$(_state_0, _offer_0, _events_0) {
   return {$: "CacheRuntime.Published", "state": ($CacheRuntime$058completed_pending$(_state_0, _offer_0)), "facts": {$: "Nil"}, "releases": ($List$append$(_events_0, ($CacheRuntime$058terminal_claim$(_offer_0))))};
 }
 
-function $CacheRuntime$058commit_feedback$(_state_0, _before_0, _after_0, _offer_0, _id_0, _commands_0) {
-  return $CacheRuntime$058commit_released$(($CacheRuntime$058retained$(_state_0, _after_0, _offer_0, _id_0, _commands_0)), _offer_0, ($CacheScenario$058refused_release$(_before_0, _offer_0, _id_0, _commands_0)));
+function $CacheRuntime$058commit_feedback$(_state_0, _before_0, _after_0, _offer_0, _id_0, _outputs_0) {
+  return $CacheRuntime$058commit_released$(($CacheRuntime$058retained$(_state_0, _after_0, _offer_0, _id_0, _outputs_0)), _offer_0, ($CacheScenario$058refused_release$(_before_0, _offer_0, _id_0, _outputs_0)));
 }
 
-function $CacheRuntime$058feedback_unchecked$(_state_0, _before_0, _after_0, _fact_0, _commands_0) {
+function $CacheRuntime$058feedback_unchecked$(_state_0, _before_0, _after_0, _fact_0, _outputs_0) {
   const _offer_0 = _fact_0["offer"];
   const _entry_limit_0 = _fact_0["entry_limit"];
   const _byte_limit_0 = _fact_0["byte_limit"];
   const _t_0 = _fact_0["stage"];
   if (_t_0.$ === "CacheRuntime.PrepareStage") {
-    return $CacheRuntime$058prepare_feedback$(_state_0, _offer_0, _entry_limit_0, _byte_limit_0, ($CacheRuntime$058prepared$(_commands_0)));
+    return $CacheRuntime$058prepare_feedback$(_state_0, _offer_0, _entry_limit_0, _byte_limit_0, ($CacheRuntime$058prepared$(_outputs_0)));
   } else if (_t_0.$ === "CacheRuntime.ReserveStage") {
-    return $CacheRuntime$058reserve_feedback$(_state_0, _offer_0, _entry_limit_0, _byte_limit_0, ($CacheRuntime$058reservation$(_commands_0)));
+    return $CacheRuntime$058reserve_feedback$(_state_0, _offer_0, _entry_limit_0, _byte_limit_0, ($CacheRuntime$058reservation$(_outputs_0)));
   } else {
     const _t_1 = _fact_0["reservation"];
     if (_t_1.$ === "Some") {
       const _id_0 = _t_1["value"];
-      return $CacheRuntime$058commit_feedback$(_state_0, _before_0, _after_0, _offer_0, _id_0, _commands_0);
+      return $CacheRuntime$058commit_feedback$(_state_0, _before_0, _after_0, _offer_0, _id_0, _outputs_0);
     } else {
       return {$: "CacheRuntime.Published", "state": _state_0, "facts": {$: "Nil"}, "releases": {$: "Nil"}};
     }
@@ -17194,16 +17352,16 @@ function $CacheRuntime$058current_found$(_found_0) {
   }
 }
 
-function $CacheRuntime$058feedback_guarded$(_allowed_0, _state_0, _before_0, _after_0, _fact_0, _commands_0) {
+function $CacheRuntime$058feedback_guarded$(_allowed_0, _state_0, _before_0, _after_0, _fact_0, _outputs_0) {
   if (_allowed_0) {
-    return $CacheRuntime$058feedback_unchecked$(_state_0, _before_0, _after_0, _fact_0, _commands_0);
+    return $CacheRuntime$058feedback_unchecked$(_state_0, _before_0, _after_0, _fact_0, _outputs_0);
   } else {
     return {$: "CacheRuntime.Published", "state": _state_0, "facts": {$: "Nil"}, "releases": {$: "Nil"}};
   }
 }
 
-function $CacheRuntime$058feedback_fact$(_state_0, _before_0, _after_0, _fact_0, _commands_0) {
-  return $CacheRuntime$058feedback_guarded$(($CacheRuntime$058valid_fact$(_state_0, _fact_0)), _state_0, _before_0, _after_0, _fact_0, _commands_0);
+function $CacheRuntime$058feedback_fact$(_state_0, _before_0, _after_0, _fact_0, _outputs_0) {
+  return $CacheRuntime$058feedback_guarded$(($CacheRuntime$058valid_fact$(_state_0, _fact_0)), _state_0, _before_0, _after_0, _fact_0, _outputs_0);
 }
 
 function $CacheRuntime$058capture_published$(_published_0, _offer_0, _binding_0) {
@@ -17639,16 +17797,23 @@ function $SharingRuntime$058route_event$(_canonical_0, _freshness_0, _state_0, _
 function $SharingRuntime$058own$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.ReuseOwn") {
-          return true;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.EventEstablished") {
+          const _t_1 = _t_0["event"];
+          if (_t_1.$ === "Canonical.ReuseOwned") {
+            return true;
+          } else {
+            const __1 = _outputs_0["tail"];
+            $0 = __1;
+            continue;
+          }
         } else {
-          const __1 = _commands_0["tail"];
-          $0 = __1;
+          const __2 = _outputs_0["tail"];
+          $0 = __2;
           continue;
         }
       }
@@ -17656,8 +17821,8 @@ function $SharingRuntime$058own$($0) {
   }
 }
 
-function $SharingRuntime$058disposition$(_commands_0) {
-  return $Bool$pick$(($SharingRuntime$058own$(_commands_0)), {$: "SharingRuntime.Owned"}, ($Bool$pick$(($SharingScenario$058join_command$(_commands_0)), {$: "SharingRuntime.Joined"}, {$: "SharingRuntime.Awaiting"})));
+function $SharingRuntime$058disposition$(_outputs_0) {
+  return $Bool$pick$(($SharingRuntime$058own$(_outputs_0)), {$: "SharingRuntime.Owned"}, ($Bool$pick$(($SharingScenario$058join_command$(_outputs_0)), {$: "SharingRuntime.Joined"}, {$: "SharingRuntime.Awaiting"})));
 }
 
 function $SharingRuntime$058unit_route$(_units_0, _position_0, _evaluation_0, _next_0) {
@@ -17675,7 +17840,7 @@ function $SharingRuntime$058unit_route$(_units_0, _position_0, _evaluation_0, _n
   }
 }
 
-function $SharingRuntime$058routed_found$(_state_0, _route_0, _commands_0, _found_0) {
+function $SharingRuntime$058routed_found$(_state_0, _route_0, _outputs_0, _found_0) {
   const _scope_0 = _route_0["preparation"];
   const _member_0 = _route_0["member"];
   const _position_0 = _route_0["position"];
@@ -17684,13 +17849,13 @@ function $SharingRuntime$058routed_found$(_state_0, _route_0, _commands_0, _foun
     const _t_0 = _found_0["value"];
     const _original_0 = _t_0["member"];
     const _units_0 = _t_0["units"];
-    return $Bool$pick$(($Bool$and$(($SharingScenario$058same_member$(_member_0, _original_0)), ($SharingRuntime$058route_unit$(_units_0, _position_0, _evaluation_0)))), ($SharingRuntime$058prepared$(($SharingRuntime$058with_sharing$(_state_0, ($SharingScenario$058routed$(($SharingRuntime$058sharing$(_state_0)), _evaluation_0, _member_0, _commands_0)))), _scope_0, _original_0, ($SharingRuntime$058unit_route$(_units_0, _position_0, _evaluation_0, ($SharingRuntime$058disposition$(_commands_0)))))), _state_0);
+    return $Bool$pick$(($Bool$and$(($SharingScenario$058same_member$(_member_0, _original_0)), ($SharingRuntime$058route_unit$(_units_0, _position_0, _evaluation_0)))), ($SharingRuntime$058prepared$(($SharingRuntime$058with_sharing$(_state_0, ($SharingScenario$058routed$(($SharingRuntime$058sharing$(_state_0)), _evaluation_0, _member_0, _outputs_0)))), _scope_0, _original_0, ($SharingRuntime$058unit_route$(_units_0, _position_0, _evaluation_0, ($SharingRuntime$058disposition$(_outputs_0)))))), _state_0);
   } else {
     return _state_0;
   }
 }
 
-function $SharingRuntime$058routed$(_state_0, _route_0, _commands_0) {
+function $SharingRuntime$058routed$(_state_0, _route_0, _outputs_0) {
   const __0 = _state_0["sharing"];
   const _preparations_0 = _state_0["preparations"];
   const __1 = _state_0["bindings"];
@@ -17699,7 +17864,7 @@ function $SharingRuntime$058routed$(_state_0, _route_0, _commands_0) {
   const __3 = _route_0["member"];
   const __4 = _route_0["position"];
   const __5 = _route_0["evaluation"];
-  return $SharingRuntime$058routed_found$({$: "SharingRuntime.State", "sharing": __0, "preparations": _preparations_0, "bindings": __1, "results": __2}, {$: "SharingRuntime.Route", "preparation": _scope_0, "member": __3, "position": __4, "evaluation": __5}, _commands_0, ($SharingRuntime$058find_preparation$(_preparations_0, _scope_0)));
+  return $SharingRuntime$058routed_found$({$: "SharingRuntime.State", "sharing": __0, "preparations": _preparations_0, "bindings": __1, "results": __2}, {$: "SharingRuntime.Route", "preparation": _scope_0, "member": __3, "position": __4, "evaluation": __5}, _outputs_0, ($SharingRuntime$058find_preparation$(_preparations_0, _scope_0)));
 }
 
 function $SharingRuntime$058ready$($0) {
@@ -17838,14 +18003,19 @@ function $SharingRuntime$058bound_unit$(_state_0, _scope_0, _bytes_0, _unit_0) {
 }
 
 function $SharingRuntime$058unit_found$(_state_0, _p_0, _l_0, _r_0, _command_0, _found_0) {
-  if (_command_0.$ === "Canonical.UnitAdmitted") {
-    const _operation_0 = _command_0["operation"];
-    const _position_0 = _command_0["position"];
-    const _bytes_0 = _command_0["bytes"];
-    if (_found_0.$ === "Some") {
-      const _t_0 = _found_0["value"];
-      const _units_0 = _t_0["units"];
-      return $SharingRuntime$058bound_unit$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _operation_0}, _bytes_0, ($SharingRuntime$058own_at$(_units_0, _position_0)));
+  if (_command_0.$ === "Canonical.EventEstablished") {
+    const _t_0 = _command_0["event"];
+    if (_t_0.$ === "Canonical.UnitAdmitted") {
+      const _operation_0 = _t_0["operation"];
+      const _position_0 = _t_0["position"];
+      const _bytes_0 = _t_0["bytes"];
+      if (_found_0.$ === "Some") {
+        const _t_1 = _found_0["value"];
+        const _units_0 = _t_1["units"];
+        return $SharingRuntime$058bound_unit$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _operation_0}, _bytes_0, ($SharingRuntime$058own_at$(_units_0, _position_0)));
+      } else {
+        return _state_0;
+      }
     } else {
       return _state_0;
     }
@@ -17900,13 +18070,18 @@ function $SharingRuntime$058issued_found$(_state_0, _physical_0, _binding_0) {
 }
 
 function $SharingRuntime$058issued$(_state_0, _command_0) {
-  if (_command_0.$ === "Canonical.JevRequestIssued") {
-    const _p_0 = _command_0["partition"];
-    const _l_0 = _command_0["lifetime"];
-    const _r_0 = _command_0["round"];
-    const _o_0 = _command_0["operation"];
-    const _request_0 = _command_0["request"];
-    return $SharingRuntime$058issued_found$(_state_0, {$: "SharingScenario.Physical", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, ($SharingRuntime$058lookup_binding$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})));
+  if (_command_0.$ === "Canonical.EventEstablished") {
+    const _t_0 = _command_0["event"];
+    if (_t_0.$ === "Canonical.JevRequestIssued") {
+      const _p_0 = _t_0["partition"];
+      const _l_0 = _t_0["lifetime"];
+      const _r_0 = _t_0["round"];
+      const _o_0 = _t_0["operation"];
+      const _request_0 = _t_0["request"];
+      return $SharingRuntime$058issued_found$(_state_0, {$: "SharingScenario.Physical", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, ($SharingRuntime$058lookup_binding$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})));
+    } else {
+      return _state_0;
+    }
   } else {
     return _state_0;
   }
@@ -17915,16 +18090,23 @@ function $SharingRuntime$058issued$(_state_0, _command_0) {
 function $SharingRuntime$058retained_finding$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.RetainFinding") {
-          return true;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.EventEstablished") {
+          const _t_1 = _t_0["event"];
+          if (_t_1.$ === "Canonical.FindingRetained") {
+            return true;
+          } else {
+            const __1 = _outputs_0["tail"];
+            $0 = __1;
+            continue;
+          }
         } else {
-          const __1 = _commands_0["tail"];
-          $0 = __1;
+          const __2 = _outputs_0["tail"];
+          $0 = __2;
           continue;
         }
       }
@@ -17935,18 +18117,32 @@ function $SharingRuntime$058retained_finding$($0) {
 function $SharingRuntime$058original_consumed$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.JevObservationIgnored") {
-          return true;
-        } else if (_t_0.$ === "Canonical.JevRequestOutcomeRecorded") {
-          return true;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.PolicyDecided") {
+          const _t_1 = _t_0["decision"];
+          if (_t_1.$ === "Canonical.JevObservationIgnored") {
+            return true;
+          } else {
+            const __1 = _outputs_0["tail"];
+            $0 = __1;
+            continue;
+          }
+        } else if (_t_0.$ === "Canonical.EventEstablished") {
+          const _t_2 = _t_0["event"];
+          if (_t_2.$ === "Canonical.JevRequestOutcomeRecorded") {
+            return true;
+          } else {
+            const __4 = _outputs_0["tail"];
+            $0 = __4;
+            continue;
+          }
         } else {
-          const __3 = _commands_0["tail"];
-          $0 = __3;
+          const __5 = _outputs_0["tail"];
+          $0 = __5;
           continue;
         }
       }
@@ -17984,30 +18180,37 @@ function $SharingRuntime$058result_record$(_state_0, _evaluation_0, _outcome_0, 
   return {$: "SharingRuntime.State", "sharing": _sharing_0, "preparations": _preparations_0, "bindings": _bindings_0, "results": {$: "Con", "head": {$: "SharingRuntime.SharingResult", "evaluation": _evaluation_0, "outcome": _outcome_0, "original": _original_0, "bytes": _bytes_0}, "tail": ($SharingRuntime$058without_result$(_results_0, _evaluation_0))}};
 }
 
-function $SharingRuntime$058terminal_found$(_state_0, _scope_0, _physical_0, _outcome_0, _commands_0, _binding_0) {
+function $SharingRuntime$058terminal_found$(_state_0, _scope_0, _physical_0, _outcome_0, _outputs_0, _binding_0) {
   if (_binding_0.$ === "None") {
     return _state_0;
   } else {
     const _t_0 = _binding_0["value"];
     const _evaluation_0 = _t_0["evaluation"];
     const _bytes_0 = _t_0["bytes"];
-    return $Bool$pick$(($Bool$and$(($SharingScenario$058callback_original$(($SharingRuntime$058sharing$(_state_0)), _evaluation_0, _physical_0)), ($SharingRuntime$058original_consumed$(_commands_0)))), ($SharingRuntime$058result_record$(($SharingRuntime$058with_sharing$(_state_0, ($SharingScenario$058terminal_feedback$(($Bool$pick$(($SharingRuntime$058retained_finding$(_commands_0)), ($SharingScenario$058retained$(($SharingRuntime$058sharing$(_state_0)), _evaluation_0, _scope_0)), ($SharingRuntime$058sharing$(_state_0)))), _evaluation_0, true)))), _evaluation_0, _outcome_0, _scope_0, _bytes_0)), _state_0);
+    return $Bool$pick$(($Bool$and$(($SharingScenario$058callback_original$(($SharingRuntime$058sharing$(_state_0)), _evaluation_0, _physical_0)), ($SharingRuntime$058original_consumed$(_outputs_0)))), ($SharingRuntime$058result_record$(($SharingRuntime$058with_sharing$(_state_0, ($SharingScenario$058terminal_feedback$(($Bool$pick$(($SharingRuntime$058retained_finding$(_outputs_0)), ($SharingScenario$058retained$(($SharingRuntime$058sharing$(_state_0)), _evaluation_0, _scope_0)), ($SharingRuntime$058sharing$(_state_0)))), _evaluation_0, true)))), _evaluation_0, _outcome_0, _scope_0, _bytes_0)), _state_0);
   }
 }
 
 function $SharingRuntime$058unavailable_command$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.JevRequestUnavailable") {
-          return true;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.PolicyDecided") {
+          const _t_1 = _t_0["decision"];
+          if (_t_1.$ === "Canonical.JevRequestUnavailable") {
+            return true;
+          } else {
+            const __1 = _outputs_0["tail"];
+            $0 = __1;
+            continue;
+          }
         } else {
-          const __1 = _commands_0["tail"];
-          $0 = __1;
+          const __2 = _outputs_0["tail"];
+          $0 = __2;
           continue;
         }
       }
@@ -18015,18 +18218,18 @@ function $SharingRuntime$058unavailable_command$($0) {
   }
 }
 
-function $SharingRuntime$058unavailable_binding$(_state_0, _scope_0, _commands_0, _found_0) {
+function $SharingRuntime$058unavailable_binding$(_state_0, _scope_0, _outputs_0, _found_0) {
   if (_found_0.$ === "None") {
     return _state_0;
   } else {
     const _t_0 = _found_0["value"];
     const _evaluation_0 = _t_0["evaluation"];
     const _bytes_0 = _t_0["bytes"];
-    return $Bool$pick$(($SharingRuntime$058unavailable_command$(_commands_0)), ($SharingRuntime$058result_record$(_state_0, _evaluation_0, {$: "Canonical.NeverSent"}, _scope_0, _bytes_0)), _state_0);
+    return $Bool$pick$(($SharingRuntime$058unavailable_command$(_outputs_0)), ($SharingRuntime$058result_record$(_state_0, _evaluation_0, {$: "Canonical.NeverSent"}, _scope_0, _bytes_0)), _state_0);
   }
 }
 
-function $SharingRuntime$058terminal$(_state_0, _event_0, _commands_0) {
+function $SharingRuntime$058terminal$(_state_0, _event_0, _outputs_0) {
   if (_event_0.$ === "Canonical.JevRequestSettled") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
@@ -18034,13 +18237,13 @@ function $SharingRuntime$058terminal$(_state_0, _event_0, _commands_0) {
     const _o_0 = _event_0["operation"];
     const _request_0 = _event_0["request"];
     const _outcome_0 = _event_0["outcome"];
-    return $SharingRuntime$058terminal_found$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, {$: "SharingScenario.Physical", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, _outcome_0, _commands_0, ($SharingRuntime$058lookup_binding$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})));
+    return $SharingRuntime$058terminal_found$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, {$: "SharingScenario.Physical", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, _outcome_0, _outputs_0, ($SharingRuntime$058lookup_binding$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})));
   } else if (_event_0.$ === "Canonical.JevRequestReady") {
     const _p_1 = _event_0["partition"];
     const _l_1 = _event_0["lifetime"];
     const _r_1 = _event_0["round"];
     const _o_1 = _event_0["operation"];
-    return $SharingRuntime$058unavailable_binding$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1}, _commands_0, ($SharingRuntime$058lookup_binding$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1})));
+    return $SharingRuntime$058unavailable_binding$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1}, _outputs_0, ($SharingRuntime$058lookup_binding$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1})));
   } else {
     return _state_0;
   }
@@ -18049,14 +18252,14 @@ function $SharingRuntime$058terminal$(_state_0, _event_0, _commands_0) {
 function $SharingRuntime$058commands_feedback$($0, $1, $2) {
   for (;;) {
     {
-      const _commands_0 = $0;
+      const _outputs_0 = $0;
       const _state_0 = $1;
       const _event_0 = $2;
-      if (_commands_0.$ === "Nil") {
+      if (_outputs_0.$ === "Nil") {
         return _state_0;
       } else {
-        const _command_0 = _commands_0["head"];
-        const _tail_0 = _commands_0["tail"];
+        const _command_0 = _outputs_0["head"];
+        const _tail_0 = _outputs_0["tail"];
         $0 = _tail_0;
         $1 = ($SharingRuntime$058issued$(($SharingRuntime$058unit$(_state_0, _event_0, _command_0)), _command_0));
         $2 = _event_0;
@@ -18082,8 +18285,8 @@ function $SharingRuntime$058completed$(_state_0, _event_0) {
   }
 }
 
-function $SharingRuntime$058feedback$(_state_0, _event_0, _commands_0) {
-  return $SharingRuntime$058completed$(($SharingRuntime$058terminal$(($SharingRuntime$058commands_feedback$(_commands_0, _state_0, _event_0)), _event_0, _commands_0)), _event_0);
+function $SharingRuntime$058feedback$(_state_0, _event_0, _outputs_0) {
+  return $SharingRuntime$058completed$(($SharingRuntime$058terminal$(($SharingRuntime$058commands_feedback$(_outputs_0, _state_0, _event_0)), _event_0, _outputs_0)), _event_0);
 }
 
 function $SharingRuntime$058result_found$(_results_0, _evaluation_0) {
@@ -18481,13 +18684,13 @@ function $SharingRuntime$058depart$(_state_0, _scope_0) {
   return $SharingRuntime$058departure_found$({$: "SharingRuntime.State", "sharing": {$: "SharingScenario.State", "evaluations": _evaluations_0, "next_id": __0}, "preparations": __1, "bindings": __2, "results": __3}, ($SharingRuntime$058removed_scopes$(_evaluations_0, _scope_0)));
 }
 
-function $SharingRuntime$058attached_route$(_route_0, _valid_0, _commands_0) {
+function $SharingRuntime$058attached_route$(_route_0, _valid_0, _outputs_0) {
   const _evaluation_0 = _route_0["evaluation"];
-  return $Bool$pick$(($Bool$and$(_valid_0, ($SharingRuntime$058own$(_commands_0)))), {$: "Con", "head": {$: "Canonical.ReuseAttach", "id": _evaluation_0}, "tail": {$: "Nil"}}, {$: "Nil"});
+  return $Bool$pick$(($Bool$and$(_valid_0, ($SharingRuntime$058own$(_outputs_0)))), {$: "Con", "head": {$: "Canonical.ReuseAttach", "id": _evaluation_0}, "tail": {$: "Nil"}}, {$: "Nil"});
 }
 
-function $SharingRuntime$058route_followups$(_state_0, _route_0, _commands_0) {
-  return $SharingRuntime$058attached_route$(_route_0, ($SharingRuntime$058route_valid$(_state_0, _route_0)), _commands_0);
+function $SharingRuntime$058route_followups$(_state_0, _route_0, _outputs_0) {
+  return $SharingRuntime$058attached_route$(_route_0, ($SharingRuntime$058route_valid$(_state_0, _route_0)), _outputs_0);
 }
 
 function $SharingRuntime$058unit_routes$($0, $1, $2) {
@@ -18601,14 +18804,14 @@ function $SharingRuntime$058fanout_binding$(_canonical_0, _freshness_0, _state_0
   }
 }
 
-function $SharingRuntime$058fanout$(_before_0, _after_0, _canonical_0, _freshness_0, _event_0, _commands_0) {
+function $SharingRuntime$058fanout$(_before_0, _after_0, _canonical_0, _freshness_0, _event_0, _outputs_0) {
   if (_event_0.$ === "Canonical.JevRequestSettled") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
     const _o_0 = _event_0["operation"];
     const _outcome_0 = _event_0["outcome"];
-    return $Bool$pick$(($SharingRuntime$058original_consumed$(_commands_0)), ($SharingRuntime$058fanout_binding$(_canonical_0, _freshness_0, _after_0, _outcome_0, ($SharingRuntime$058lookup_binding$(_before_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})))), {$: "Nil"});
+    return $Bool$pick$(($SharingRuntime$058original_consumed$(_outputs_0)), ($SharingRuntime$058fanout_binding$(_canonical_0, _freshness_0, _after_0, _outcome_0, ($SharingRuntime$058lookup_binding$(_before_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})))), {$: "Nil"});
   } else {
     return {$: "Nil"};
   }
@@ -18879,9 +19082,10 @@ function $SharingRuntime$058depart_scopes$(_scopes_0, _state_0, _canonical_0) {
   } else {
     const _scope_0 = _scopes_0["head"];
     const _tail_0 = _scopes_0["tail"];
-    return $SharingRuntime$058departed_tail$(($SharingRuntime$058depart_canonical$(_state_0, _canonical_0, _scope_0)), run_clo((_x_0) => {
+    const _continuation_0 = run_clo((_x_0) => {
   return $SharingRuntime$058depart_scopes$(_tail_0, _x_0, _canonical_0);
-}));
+});
+    return $SharingRuntime$058departed_tail$(($SharingRuntime$058depart_canonical$(_state_0, _canonical_0, _scope_0)), _continuation_0);
   }
 }
 
@@ -19064,9 +19268,14 @@ function $SharingRuntime$058cached_operation$($0, $1) {
 }
 
 function $SharingRuntime$058cached_review$(_state_0, _command_0) {
-  if (_command_0.$ === "Canonical.UnitAdmitted") {
-    const _operation_0 = _command_0["operation"];
-    return $SharingRuntime$058cached_operation$(($SharingRuntime$058bindings_of$(_state_0)), _operation_0);
+  if (_command_0.$ === "Canonical.EventEstablished") {
+    const _t_0 = _command_0["event"];
+    if (_t_0.$ === "Canonical.UnitAdmitted") {
+      const _operation_0 = _t_0["operation"];
+      return $SharingRuntime$058cached_operation$(($SharingRuntime$058bindings_of$(_state_0)), _operation_0);
+    } else {
+      return {$: "None"};
+    }
   } else {
     return {$: "None"};
   }
@@ -20735,50 +20944,60 @@ function $StopScenario$058command_candidate$(_state_0, _finish_0, _canonical_0, 
 }
 
 function $StopScenario$058command_finish$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, _command_0) {
-  if (_command_0.$ === "Canonical.WaitForWork") {
-    return $StopScenario$058command_wait$(_state_0, _finish_0, true);
-  } else if (_command_0.$ === "Canonical.WaitForOutput") {
-    return $StopScenario$058command_wait$(_state_0, _finish_0, true);
-  } else if (_command_0.$ === "Canonical.FinishReady") {
-    return $StopScenario$058command_ready$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, false);
-  } else if (_command_0.$ === "Canonical.FinishLimit") {
-    return $StopScenario$058command_ready$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, true);
-  } else if (_command_0.$ === "Canonical.RoundContinuationAvailable") {
-    return $StopScenario$058command_reserve$(_state_0, _finish_0, _facts_0, false);
-  } else if (_command_0.$ === "Canonical.RoundContinuationExhausted") {
-    return $StopScenario$058command_reserve$(_state_0, _finish_0, _facts_0, true);
-  } else if (_command_0.$ === "Canonical.FinishAllowedNoAdvice") {
-    return $StopScenario$058command_end$(_state_0, _finish_0, _canonical_0, false);
-  } else if (_command_0.$ === "Canonical.FinishAllowedDeadline") {
-    return $StopScenario$058command_end$(_state_0, _finish_0, _canonical_0, false);
-  } else if (_command_0.$ === "Canonical.FinishAllowedUnavailable") {
-    return $StopScenario$058command_end$(_state_0, _finish_0, _canonical_0, false);
-  } else if (_command_0.$ === "Canonical.FinishReserved") {
-    return $StopScenario$058command_reserved$(_state_0, _finish_0, _facts_0);
-  } else if (_command_0.$ === "Canonical.FinishAuthorized") {
-    return $StopScenario$058command_authorized$(_state_0, _finish_0, _facts_0);
-  } else if (_command_0.$ === "Canonical.FinishRecorded") {
-    return $StopScenario$058command_recorded$(_state_0, _finish_0);
-  } else if (_command_0.$ === "Canonical.FinishReleased") {
-    return $StopScenario$058command_end$(_state_0, _finish_0, _canonical_0, true);
-  } else if (_command_0.$ === "Canonical.FinishEnded") {
-    return $StopScenario$058command_end$(_state_0, _finish_0, _canonical_0, true);
-  } else if (_command_0.$ === "Canonical.FinishRefused") {
-    return $StopScenario$058command_wait$(_state_0, _finish_0, false);
-  } else if (_command_0.$ === "Canonical.SubmissionUnsuppressed") {
-    return $StopScenario$058command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, true);
-  } else if (_command_0.$ === "Canonical.CollectionFits") {
-    return $StopScenario$058command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, true);
-  } else if (_command_0.$ === "Canonical.CollectionLimited") {
-    return $StopScenario$058command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, false);
-  } else if (_command_0.$ === "Canonical.RetireCandidate") {
-    return $StopScenario$058command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, false);
-  } else if (_command_0.$ === "Canonical.ReleaseCandidate") {
-    return $StopScenario$058command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, false);
-  } else if (_command_0.$ === "Canonical.IgnoreCandidate") {
-    return $StopScenario$058command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, false);
-  } else if (_command_0.$ === "Canonical.SubmissionSuppresses") {
-    return $StopScenario$058command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, false);
+  if (_command_0.$ === "Canonical.EventEstablished") {
+    const _t_0 = _command_0["event"];
+    if (_t_0.$ === "Canonical.WaitForWork") {
+      return $StopScenario$058command_wait$(_state_0, _finish_0, true);
+    } else if (_t_0.$ === "Canonical.FinishReady") {
+      return $StopScenario$058command_ready$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, false);
+    } else if (_t_0.$ === "Canonical.FinishLimit") {
+      return $StopScenario$058command_ready$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, true);
+    } else if (_t_0.$ === "Canonical.FinishReserved") {
+      return $StopScenario$058command_reserved$(_state_0, _finish_0, _facts_0);
+    } else if (_t_0.$ === "Canonical.FinishAuthorized") {
+      return $StopScenario$058command_authorized$(_state_0, _finish_0, _facts_0);
+    } else if (_t_0.$ === "Canonical.FinishRecorded") {
+      return $StopScenario$058command_recorded$(_state_0, _finish_0);
+    } else if (_t_0.$ === "Canonical.FinishReleased") {
+      return $StopScenario$058command_end$(_state_0, _finish_0, _canonical_0, true);
+    } else if (_t_0.$ === "Canonical.FinishEnded") {
+      return $StopScenario$058command_end$(_state_0, _finish_0, _canonical_0, true);
+    } else {
+      return $StopScenario$058command_unhandled$(_state_0);
+    }
+  } else if (_command_0.$ === "Canonical.PolicyDecided") {
+    const _t_1 = _command_0["decision"];
+    if (_t_1.$ === "Canonical.WaitForOutput") {
+      return $StopScenario$058command_wait$(_state_0, _finish_0, true);
+    } else if (_t_1.$ === "Canonical.RoundContinuationAvailable") {
+      return $StopScenario$058command_reserve$(_state_0, _finish_0, _facts_0, false);
+    } else if (_t_1.$ === "Canonical.RoundContinuationExhausted") {
+      return $StopScenario$058command_reserve$(_state_0, _finish_0, _facts_0, true);
+    } else if (_t_1.$ === "Canonical.FinishAllowedNoAdvice") {
+      return $StopScenario$058command_end$(_state_0, _finish_0, _canonical_0, false);
+    } else if (_t_1.$ === "Canonical.FinishAllowedDeadline") {
+      return $StopScenario$058command_end$(_state_0, _finish_0, _canonical_0, false);
+    } else if (_t_1.$ === "Canonical.FinishAllowedUnavailable") {
+      return $StopScenario$058command_end$(_state_0, _finish_0, _canonical_0, false);
+    } else if (_t_1.$ === "Canonical.FinishRefused") {
+      return $StopScenario$058command_wait$(_state_0, _finish_0, false);
+    } else if (_t_1.$ === "Canonical.SubmissionUnsuppressed") {
+      return $StopScenario$058command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, true);
+    } else if (_t_1.$ === "Canonical.CollectionFits") {
+      return $StopScenario$058command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, true);
+    } else if (_t_1.$ === "Canonical.CollectionLimited") {
+      return $StopScenario$058command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, false);
+    } else if (_t_1.$ === "Canonical.RetireCandidate") {
+      return $StopScenario$058command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, false);
+    } else if (_t_1.$ === "Canonical.ReleaseCandidate") {
+      return $StopScenario$058command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, false);
+    } else if (_t_1.$ === "Canonical.IgnoreCandidate") {
+      return $StopScenario$058command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, false);
+    } else if (_t_1.$ === "Canonical.SubmissionSuppresses") {
+      return $StopScenario$058command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, false);
+    } else {
+      return $StopScenario$058command_unhandled$(_state_0);
+    }
   } else {
     return $StopScenario$058command_unhandled$(_state_0);
   }
@@ -21090,14 +21309,24 @@ function $CollectorScenario$058limited$(_state_0, _canonical_0, _context_0) {
 }
 
 function $CollectorScenario$058handle$(_state_0, _event_0, _command_0, _canonical_0, _context_0, _stop_0) {
-  if (_command_0.$ === "Canonical.CollectionLimited") {
-    return $CollectorScenario$058limited$(_state_0, _canonical_0, _context_0);
-  } else if (_command_0.$ === "Canonical.CollectionEligible") {
-    return $CollectorScenario$058eligible$(_event_0, _state_0, _stop_0);
-  } else if (_command_0.$ === "Canonical.CollectionBackgroundClaimed") {
-    return $CollectorScenario$058claimed$(_event_0, _state_0, _context_0);
-  } else if (_command_0.$ === "Canonical.CollectionBackgroundReleased") {
-    return $CollectorScenario$058released$(_state_0, _canonical_0);
+  if (_command_0.$ === "Canonical.PolicyDecided") {
+    const _t_0 = _command_0["decision"];
+    if (_t_0.$ === "Canonical.CollectionLimited") {
+      return $CollectorScenario$058limited$(_state_0, _canonical_0, _context_0);
+    } else {
+      return {$: "CollectorScenario.Changed", "state": _state_0, "handled": {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}}};
+    }
+  } else if (_command_0.$ === "Canonical.EventEstablished") {
+    const _t_1 = _command_0["event"];
+    if (_t_1.$ === "Canonical.CollectionEligible") {
+      return $CollectorScenario$058eligible$(_event_0, _state_0, _stop_0);
+    } else if (_t_1.$ === "Canonical.CollectionBackgroundClaimed") {
+      return $CollectorScenario$058claimed$(_event_0, _state_0, _context_0);
+    } else if (_t_1.$ === "Canonical.CollectionBackgroundReleased") {
+      return $CollectorScenario$058released$(_state_0, _canonical_0);
+    } else {
+      return {$: "CollectorScenario.Changed", "state": _state_0, "handled": {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}}};
+    }
   } else {
     return {$: "CollectorScenario.Changed", "state": _state_0, "handled": {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}}};
   }
@@ -21278,11 +21507,16 @@ function $Scheduler$058clock$(_state_0) {
 }
 
 function $OutputCompletion$058feedback$(_command_0, _event_0) {
-  if (_command_0.$ === "Canonical.SubmissionExpired") {
-    if (_event_0.$ === "Canonical.SubmissionExpiryCheck") {
-      const _advice_0 = _event_0["advice"];
-      const _token_0 = _event_0["token"];
-      return {$: "Con", "head": ($Driver$058output_action$(($OutputScenario$058action$({$: "Canonical.SubmissionTerminal", "advice": _advice_0, "token": _token_0, "certain": false}, 0)))), "tail": {$: "Nil"}};
+  if (_command_0.$ === "Canonical.PolicyDecided") {
+    const _t_0 = _command_0["decision"];
+    if (_t_0.$ === "Canonical.SubmissionExpired") {
+      if (_event_0.$ === "Canonical.SubmissionExpiryCheck") {
+        const _advice_0 = _event_0["advice"];
+        const _token_0 = _event_0["token"];
+        return {$: "Con", "head": ($Driver$058output_action$(($OutputScenario$058action$({$: "Canonical.SubmissionTerminal", "advice": _advice_0, "token": _token_0, "certain": false}, 0)))), "tail": {$: "Nil"}};
+      } else {
+        return {$: "Nil"};
+      }
     } else {
       return {$: "Nil"};
     }
@@ -21657,25 +21891,32 @@ function $ExpiryScenario$058notice_check$(_clock_0, _now_0, _excepted_0) {
 function $ExpiryScenario$058key_dropped$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.NoticePruned") {
-          const _t_1 = _t_0["drop_key"];
-          if (_t_1) {
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.EventEstablished") {
+          const _t_1 = _t_0["event"];
+          if (_t_1.$ === "Canonical.NoticePruned") {
+            const _t_2 = _t_1["drop_key"];
+            if (_t_2) {
+              return true;
+            } else {
+              const __3 = _outputs_0["tail"];
+              $0 = __3;
+              continue;
+            }
+          } else if (_t_1.$ === "Canonical.NoticeDropped") {
             return true;
           } else {
-            const __3 = _commands_0["tail"];
-            $0 = __3;
+            const __5 = _outputs_0["tail"];
+            $0 = __5;
             continue;
           }
-        } else if (_t_0.$ === "Canonical.NoticeDropped") {
-          return true;
         } else {
-          const __5 = _commands_0["tail"];
-          $0 = __5;
+          const __6 = _outputs_0["tail"];
+          $0 = __6;
           continue;
         }
       }
@@ -21699,11 +21940,11 @@ function $ExpiryScenario$058notice_release$(_record_0, _partition_0, _group_0, _
   }
 }
 
-function $ExpiryScenario$058notice_feedback$(_before_0, _clock_0, _commands_0) {
+function $ExpiryScenario$058notice_feedback$(_before_0, _clock_0, _outputs_0) {
   const _partition_0 = _clock_0["partition"];
   const _group_0 = _clock_0["group"];
   const _key_0 = _clock_0["key"];
-  return $ExpiryScenario$058notice_release$(($$$$047agent$045flow$045bend$047NoticeState$058find_record$(_key_0, ($$$$047agent$045flow$045bend$047NoticeState$058records_of$(($$$$047agent$045flow$045bend$047CollectionState$058notice_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_before_0)))))))), _partition_0, _group_0, ($ExpiryScenario$058key_dropped$(_commands_0)));
+  return $ExpiryScenario$058notice_release$(($$$$047agent$045flow$045bend$047NoticeState$058find_record$(_key_0, ($$$$047agent$045flow$045bend$047NoticeState$058records_of$(($$$$047agent$045flow$045bend$047CollectionState$058notice_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_before_0)))))))), _partition_0, _group_0, ($ExpiryScenario$058key_dropped$(_outputs_0)));
 }
 
 function $ExpiryScenario$058notice_owned$(_record_0, _partition_0, _group_0) {
@@ -21833,16 +22074,23 @@ function $NoticeScenario$058exercise$(_scope_0) {
 function $NoticeScenario$058create_key$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.NoticeCreateKey") {
-          return true;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.ActionRequested") {
+          const _t_1 = _t_0["request"];
+          if (_t_1.$ === "Canonical.CreateNoticeKey") {
+            return true;
+          } else {
+            const __1 = _outputs_0["tail"];
+            $0 = __1;
+            continue;
+          }
         } else {
-          const __1 = _commands_0["tail"];
-          $0 = __1;
+          const __2 = _outputs_0["tail"];
+          $0 = __2;
           continue;
         }
       }
@@ -21853,17 +22101,24 @@ function $NoticeScenario$058create_key$($0) {
 function $NoticeScenario$058granted$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return {$: "None"};
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.CapacityGranted") {
-          const _id_0 = _t_0["id"];
-          return {$: "Some", "value": _id_0};
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.EventEstablished") {
+          const _t_1 = _t_0["event"];
+          if (_t_1.$ === "Canonical.CapacityGranted") {
+            const _id_0 = _t_1["id"];
+            return {$: "Some", "value": _id_0};
+          } else {
+            const __2 = _outputs_0["tail"];
+            $0 = __2;
+            continue;
+          }
         } else {
-          const __2 = _commands_0["tail"];
-          $0 = __2;
+          const __3 = _outputs_0["tail"];
+          $0 = __3;
           continue;
         }
       }
@@ -21887,8 +22142,8 @@ function $NoticeScenario$058requested$(_state_0, _scope_0, _key_0, _sequence_0, 
   }
 }
 
-function $NoticeScenario$058request$(_state_0, _scope_0, _key_0, _sequence_0, _commands_0) {
-  return $NoticeScenario$058requested$(_state_0, _scope_0, _key_0, _sequence_0, ($NoticeScenario$058create_key$(_commands_0)));
+function $NoticeScenario$058request$(_state_0, _scope_0, _key_0, _sequence_0, _outputs_0) {
+  return $NoticeScenario$058requested$(_state_0, _scope_0, _key_0, _sequence_0, ($NoticeScenario$058create_key$(_outputs_0)));
 }
 
 function $NoticeScenario$058committed$(_pending_0, _remaining_0, _reservation_0) {
@@ -21913,9 +22168,9 @@ function $NoticeScenario$058prepend$(_pending_0, _result_0) {
   return {$: "NoticeScenario.Followup", "state": {$: "NoticeScenario.State", "pending": {$: "Con", "head": _pending_0, "tail": _tail_0}}, "events": _events_0};
 }
 
-function $NoticeScenario$058reserved_match$(_hit_0, _pending_0, _tail_0, _commands_0, _rest_0) {
+function $NoticeScenario$058reserved_match$(_hit_0, _pending_0, _tail_0, _outputs_0, _rest_0) {
   if (_hit_0) {
-    return $NoticeScenario$058committed$(_pending_0, _tail_0, ($NoticeScenario$058granted$(_commands_0)));
+    return $NoticeScenario$058committed$(_pending_0, _tail_0, ($NoticeScenario$058granted$(_outputs_0)));
   } else {
     return $NoticeScenario$058prepend$(_pending_0, _rest_0);
   }
@@ -21927,29 +22182,36 @@ function $NoticeScenario$058owner$(_pending_0) {
   return _partition_0;
 }
 
-function $NoticeScenario$058reserved$(_pending_0, _partition_0, _commands_0) {
+function $NoticeScenario$058reserved$(_pending_0, _partition_0, _outputs_0) {
   if (_pending_0.$ === "Nil") {
     return {$: "NoticeScenario.Followup", "state": ($NoticeScenario$058initial$()), "events": {$: "Nil"}};
   } else {
     const _head_0 = _pending_0["head"];
     const _tail_0 = _pending_0["tail"];
-    return $NoticeScenario$058reserved_match$(($Nat$is_eq$(($NoticeScenario$058owner$(_head_0)), _partition_0)), _head_0, _tail_0, _commands_0, ($NoticeScenario$058reserved$(_tail_0, _partition_0, _commands_0)));
+    return $NoticeScenario$058reserved_match$(($Nat$is_eq$(($NoticeScenario$058owner$(_head_0)), _partition_0)), _head_0, _tail_0, _outputs_0, ($NoticeScenario$058reserved$(_tail_0, _partition_0, _outputs_0)));
   }
 }
 
 function $NoticeScenario$058refused$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.NoticeRefused") {
-          return true;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.PolicyDecided") {
+          const _t_1 = _t_0["decision"];
+          if (_t_1.$ === "Canonical.NoticeRefused") {
+            return true;
+          } else {
+            const __1 = _outputs_0["tail"];
+            $0 = __1;
+            continue;
+          }
         } else {
-          const __1 = _commands_0["tail"];
-          $0 = __1;
+          const __2 = _outputs_0["tail"];
+          $0 = __2;
           continue;
         }
       }
@@ -21965,8 +22227,8 @@ function $NoticeScenario$058release_commit$(_reservation_0, _declined_0) {
   }
 }
 
-function $NoticeScenario$058commit_feedback$(_reservation_0, _commands_0) {
-  return $NoticeScenario$058release_commit$(_reservation_0, ($NoticeScenario$058refused$(_commands_0)));
+function $NoticeScenario$058commit_feedback$(_reservation_0, _outputs_0) {
+  return $NoticeScenario$058release_commit$(_reservation_0, ($NoticeScenario$058refused$(_outputs_0)));
 }
 
 function $NoticeScenario$058collect$(_partition_0, _group_0, _composed_0, _authority_bound_0, _allowed_0) {
@@ -22035,22 +22297,29 @@ function $NoticeScenario$058supplied_failure$(_scope_0, _clocks_0, _now_0, _key_
 function $NoticeScenario$058refresh_commands$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.NoticeCommitted") {
-          return true;
-        } else if (_t_0.$ === "Canonical.NoticeCreatePending") {
-          return true;
-        } else if (_t_0.$ === "Canonical.NoticeMergePending") {
-          return true;
-        } else if (_t_0.$ === "Canonical.NoticeKeepLeased") {
-          return true;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.EventEstablished") {
+          const _t_1 = _t_0["event"];
+          if (_t_1.$ === "Canonical.NoticeCommitted") {
+            return true;
+          } else if (_t_1.$ === "Canonical.NoticePendingCreated") {
+            return true;
+          } else if (_t_1.$ === "Canonical.NoticePendingMerged") {
+            return true;
+          } else if (_t_1.$ === "Canonical.NoticeLeaseKept") {
+            return true;
+          } else {
+            const __6 = _outputs_0["tail"];
+            $0 = __6;
+            continue;
+          }
         } else {
-          const __6 = _commands_0["tail"];
-          $0 = __6;
+          const __7 = _outputs_0["tail"];
+          $0 = __7;
           continue;
         }
       }
@@ -22101,8 +22370,8 @@ function $NoticeScenario$058clock_refreshed$(_clocks_0, _scope_0, _key_0, _now_0
   }
 }
 
-function $NoticeScenario$058clock_feedback$(_clocks_0, _scope_0, _key_0, _now_0, _commands_0) {
-  return $NoticeScenario$058clock_refreshed$(_clocks_0, _scope_0, _key_0, _now_0, ($NoticeScenario$058refresh_commands$(_commands_0)));
+function $NoticeScenario$058clock_feedback$(_clocks_0, _scope_0, _key_0, _now_0, _outputs_0) {
+  return $NoticeScenario$058clock_refreshed$(_clocks_0, _scope_0, _key_0, _now_0, ($NoticeScenario$058refresh_commands$(_outputs_0)));
 }
 
 function $NoticeScenario$058existing_owned$(_found_0, _partition_0, _group_0) {
@@ -22133,25 +22402,32 @@ function $NoticeScenario$058scoped_acknowledge$(_clocks_0, _partition_0, _group_
 function $NoticeScenario$058dropped_key$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.NoticePruned") {
-          const _t_1 = _t_0["drop_key"];
-          if (_t_1) {
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.EventEstablished") {
+          const _t_1 = _t_0["event"];
+          if (_t_1.$ === "Canonical.NoticePruned") {
+            const _t_2 = _t_1["drop_key"];
+            if (_t_2) {
+              return true;
+            } else {
+              const __3 = _outputs_0["tail"];
+              $0 = __3;
+              continue;
+            }
+          } else if (_t_1.$ === "Canonical.NoticeDropped") {
             return true;
           } else {
-            const __3 = _commands_0["tail"];
-            $0 = __3;
+            const __5 = _outputs_0["tail"];
+            $0 = __5;
             continue;
           }
-        } else if (_t_0.$ === "Canonical.NoticeDropped") {
-          return true;
         } else {
-          const __5 = _commands_0["tail"];
-          $0 = __5;
+          const __6 = _outputs_0["tail"];
+          $0 = __6;
           continue;
         }
       }
@@ -22173,8 +22449,8 @@ function $NoticeScenario$058release_record$(_found_0, _dropped_0) {
   }
 }
 
-function $NoticeScenario$058prune_feedback$(_before_0, _key_0, _commands_0) {
-  return $NoticeScenario$058release_record$(($$$$047agent$045flow$045bend$047NoticeState$058find_record$(_key_0, ($$$$047agent$045flow$045bend$047NoticeState$058records_of$(($$$$047agent$045flow$045bend$047CollectionState$058notice_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_before_0)))))))), ($NoticeScenario$058dropped_key$(_commands_0)));
+function $NoticeScenario$058prune_feedback$(_before_0, _key_0, _outputs_0) {
+  return $NoticeScenario$058release_record$(($$$$047agent$045flow$045bend$047NoticeState$058find_record$(_key_0, ($$$$047agent$045flow$045bend$047NoticeState$058records_of$(($$$$047agent$045flow$045bend$047CollectionState$058notice_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_before_0)))))))), ($NoticeScenario$058dropped_key$(_outputs_0)));
 }
 
 function $NoticeScenario$058clocks_pruned$(_clocks_0, _key_0, _dropped_0) {
@@ -22185,25 +22461,32 @@ function $NoticeScenario$058clocks_pruned$(_clocks_0, _key_0, _dropped_0) {
   }
 }
 
-function $NoticeScenario$058prune_clocks$(_clocks_0, _key_0, _commands_0) {
-  return $NoticeScenario$058clocks_pruned$(_clocks_0, _key_0, ($NoticeScenario$058dropped_key$(_commands_0)));
+function $NoticeScenario$058prune_clocks$(_clocks_0, _key_0, _outputs_0) {
+  return $NoticeScenario$058clocks_pruned$(_clocks_0, _key_0, ($NoticeScenario$058dropped_key$(_outputs_0)));
 }
 
 function $NoticeScenario$058new_pending$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.NoticeCommitted") {
-          return true;
-        } else if (_t_0.$ === "Canonical.NoticeCreatePending") {
-          return true;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.EventEstablished") {
+          const _t_1 = _t_0["event"];
+          if (_t_1.$ === "Canonical.NoticeCommitted") {
+            return true;
+          } else if (_t_1.$ === "Canonical.NoticePendingCreated") {
+            return true;
+          } else {
+            const __3 = _outputs_0["tail"];
+            $0 = __3;
+            continue;
+          }
         } else {
-          const __3 = _commands_0["tail"];
-          $0 = __3;
+          const __4 = _outputs_0["tail"];
+          $0 = __4;
           continue;
         }
       }
@@ -22231,35 +22514,35 @@ function $NoticeScenario$058refreshed_expiry$(_existing_0, _after_0, _key_0, _no
   }
 }
 
-function $NoticeScenario$058expiry_clock_feedback$(_clock_0, _after_0, _now_0, _profile_0, _commands_0) {
+function $NoticeScenario$058expiry_clock_feedback$(_clock_0, _after_0, _now_0, _profile_0, _outputs_0) {
   const _partition_0 = _clock_0["partition"];
   const _group_0 = _clock_0["group"];
   const _key_0 = _clock_0["key"];
   const _next_allowed_0 = _clock_0["next_allowed"];
   const _expiry_0 = _clock_0["expiry"];
-  return {$: "NoticeScenario.Clock", "partition": _partition_0, "group": _group_0, "key": _key_0, "next_allowed": _next_allowed_0, "expiry": ($NoticeScenario$058refreshed_expiry$(_expiry_0, _after_0, _key_0, _now_0, _profile_0, ($NoticeScenario$058new_pending$(_commands_0))))};
+  return {$: "NoticeScenario.Clock", "partition": _partition_0, "group": _group_0, "key": _key_0, "next_allowed": _next_allowed_0, "expiry": ($NoticeScenario$058refreshed_expiry$(_expiry_0, _after_0, _key_0, _now_0, _profile_0, ($NoticeScenario$058new_pending$(_outputs_0))))};
 }
 
-function $NoticeScenario$058expiry_feedback_entries$(_clocks_0, _key_0, _after_0, _now_0, _profile_0, _commands_0) {
+function $NoticeScenario$058expiry_feedback_entries$(_clocks_0, _key_0, _after_0, _now_0, _profile_0, _outputs_0) {
   if (_clocks_0.$ === "Nil") {
     return {$: "Nil"};
   } else {
     const _clock_0 = _clocks_0["head"];
     const _tail_0 = _clocks_0["tail"];
-    return {$: "Con", "head": ($Bool$pick$(($Nat$is_eq$(($NoticeScenario$058clock_key$(_clock_0)), _key_0)), ($NoticeScenario$058expiry_clock_feedback$(_clock_0, _after_0, _now_0, _profile_0, _commands_0)), _clock_0)), "tail": ($NoticeScenario$058expiry_feedback_entries$(_tail_0, _key_0, _after_0, _now_0, _profile_0, _commands_0))};
+    return {$: "Con", "head": ($Bool$pick$(($Nat$is_eq$(($NoticeScenario$058clock_key$(_clock_0)), _key_0)), ($NoticeScenario$058expiry_clock_feedback$(_clock_0, _after_0, _now_0, _profile_0, _outputs_0)), _clock_0)), "tail": ($NoticeScenario$058expiry_feedback_entries$(_tail_0, _key_0, _after_0, _now_0, _profile_0, _outputs_0))};
   }
 }
 
-function $NoticeScenario$058expiry_refreshed$(_clocks_0, _key_0, _after_0, _now_0, _profile_0, _commands_0, _accepted_0) {
+function $NoticeScenario$058expiry_refreshed$(_clocks_0, _key_0, _after_0, _now_0, _profile_0, _outputs_0, _accepted_0) {
   if (_accepted_0) {
-    return $NoticeScenario$058expiry_feedback_entries$(_clocks_0, _key_0, _after_0, _now_0, _profile_0, _commands_0);
+    return $NoticeScenario$058expiry_feedback_entries$(_clocks_0, _key_0, _after_0, _now_0, _profile_0, _outputs_0);
   } else {
     return _clocks_0;
   }
 }
 
-function $NoticeScenario$058expiry_feedback$(_clocks_0, _key_0, _after_0, _now_0, _profile_0, _commands_0) {
-  return $NoticeScenario$058expiry_refreshed$(_clocks_0, _key_0, _after_0, _now_0, _profile_0, _commands_0, ($NoticeScenario$058refresh_commands$(_commands_0)));
+function $NoticeScenario$058expiry_feedback$(_clocks_0, _key_0, _after_0, _now_0, _profile_0, _outputs_0) {
+  return $NoticeScenario$058expiry_refreshed$(_clocks_0, _key_0, _after_0, _now_0, _profile_0, _outputs_0, ($NoticeScenario$058refresh_commands$(_outputs_0)));
 }
 
 function $NoticeScenario$058collection_check$(_expiry_0, _before_0, _partition_0, _group_0, _now_0) {
@@ -22285,16 +22568,23 @@ function $NoticeScenario$058collection_prune$(_clocks_0, _before_0, _partition_0
 function $NoticeScenario$058lease_accepted$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.NoticeLeased") {
-          return true;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.EventEstablished") {
+          const _t_1 = _t_0["event"];
+          if (_t_1.$ === "Canonical.NoticeLeased") {
+            return true;
+          } else {
+            const __1 = _outputs_0["tail"];
+            $0 = __1;
+            continue;
+          }
         } else {
-          const __1 = _commands_0["tail"];
-          $0 = __1;
+          const __2 = _outputs_0["tail"];
+          $0 = __2;
           continue;
         }
       }
@@ -22312,8 +22602,8 @@ function $NoticeScenario$058was_leased$(_record_0) {
   }
 }
 
-function $NoticeScenario$058new_lease$(_before_0, _key_0, _commands_0) {
-  return $Bool$and$(($NoticeScenario$058lease_accepted$(_commands_0)), ($Bool$not$(($NoticeScenario$058was_leased$(($$$$047agent$045flow$045bend$047NoticeState$058find_record$(_key_0, ($$$$047agent$045flow$045bend$047NoticeState$058records_of$(($$$$047agent$045flow$045bend$047CollectionState$058notice_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_before_0)))))))))))));
+function $NoticeScenario$058new_lease$(_before_0, _key_0, _outputs_0) {
+  return $Bool$and$(($NoticeScenario$058lease_accepted$(_outputs_0)), ($Bool$not$(($NoticeScenario$058was_leased$(($$$$047agent$045flow$045bend$047NoticeState$058find_record$(_key_0, ($$$$047agent$045flow$045bend$047NoticeState$058records_of$(($$$$047agent$045flow$045bend$047CollectionState$058notice_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_before_0)))))))))))));
 }
 
 function $NoticeScenario$058leased_expiry$(_expiry_0, _now_0, _duration_0, _accepted_0) {
@@ -22395,15 +22685,15 @@ function $RuntimeScenarios$058retain$(_state_0, _canonical_0) {
   return $RuntimeScenarios$058retained_sharing$(($Callbacks$058retain$(_callbacks_0, _canonical_0)), _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, ($SharingRuntime$058retain$(_sharing_0, _canonical_0)), ($CacheRuntime$058retain$(_cache_0, _canonical_0)), _collection_0, _writers_0, _background_collection_0, _stop_0);
 }
 
-function $RuntimeScenarios$058notice_requested$(_state_0, _scope_0, _key_0, _sequence_0, _commands_0, _now_0) {
+function $RuntimeScenarios$058notice_requested$(_state_0, _scope_0, _key_0, _sequence_0, _outputs_0, _now_0) {
   const _notices_0 = _state_0["notices"];
-  return $NoticeScenario$058request$(_notices_0, _scope_0, _key_0, _sequence_0, _commands_0);
+  return $NoticeScenario$058request$(_notices_0, _scope_0, _key_0, _sequence_0, _outputs_0);
 }
 
-function $RuntimeScenarios$058notice_reserved$(_state_0, _partition_0, _commands_0) {
+function $RuntimeScenarios$058notice_reserved$(_state_0, _partition_0, _outputs_0) {
   const _t_0 = _state_0["notices"];
   const _pending_0 = _t_0["pending"];
-  return $NoticeScenario$058reserved$(_pending_0, _partition_0, _commands_0);
+  return $NoticeScenario$058reserved$(_pending_0, _partition_0, _outputs_0);
 }
 
 function $RuntimeScenarios$058freshness$(_state_0) {
@@ -22487,12 +22777,12 @@ function $RuntimeScenarios$058cache_feedback_state$(_feedback_0) {
   return _state_0;
 }
 
-function $RuntimeScenarios$058cache_feedback$(_state_0, _before_0, _commands_0) {
-  return $RuntimeScenarios$058cache_feedback_state$(($CacheRuntime$058existing_removed$(_state_0, _before_0, _commands_0)));
+function $RuntimeScenarios$058cache_feedback$(_state_0, _before_0, _outputs_0) {
+  return $RuntimeScenarios$058cache_feedback_state$(($CacheRuntime$058existing_removed$(_state_0, _before_0, _outputs_0)));
 }
 
-function $RuntimeScenarios$058accepted$(_state_0, _before_0, _canonical_0, _event_0, _commands_0) {
-  return $RuntimeScenarios$058retain$(($RuntimeScenarios$058with_cache$(($RuntimeScenarios$058with_sharing$(($RuntimeScenarios$058with_freshness$(_state_0, ($FreshnessScenario$058feedback$(_commands_0, ($RuntimeScenarios$058freshness$(_state_0)), _event_0)))), ($SharingRuntime$058feedback$(($RuntimeScenarios$058sharing$(_state_0)), _event_0, _commands_0)))), ($RuntimeScenarios$058cache_feedback$(($RuntimeScenarios$058cache$(_state_0)), _before_0, _commands_0)))), _canonical_0);
+function $RuntimeScenarios$058accepted$(_state_0, _before_0, _canonical_0, _event_0, _outputs_0) {
+  return $RuntimeScenarios$058retain$(($RuntimeScenarios$058with_cache$(($RuntimeScenarios$058with_sharing$(($RuntimeScenarios$058with_freshness$(_state_0, ($FreshnessScenario$058feedback$(_outputs_0, ($RuntimeScenarios$058freshness$(_state_0)), _event_0)))), ($SharingRuntime$058feedback$(($RuntimeScenarios$058sharing$(_state_0)), _event_0, _outputs_0)))), ($RuntimeScenarios$058cache_feedback$(($RuntimeScenarios$058cache$(_state_0)), _before_0, _outputs_0)))), _canonical_0);
 }
 
 function $RuntimeScenarios$058collection$(_state_0) {
@@ -23204,8 +23494,13 @@ function $PermitScenario$058actual_round$(_state_0, _p_0, _l_0) {
 }
 
 function $PermitScenario$058consumed$(_state_0, _command_0, _p_0, _l_0) {
-  if (_command_0.$ === "Canonical.PermitConsumed") {
-    return $PermitScenario$058admit$(($PermitScenario$058actual_round$(_state_0, _p_0, _l_0)), _p_0, _l_0);
+  if (_command_0.$ === "Canonical.EventEstablished") {
+    const _t_0 = _command_0["event"];
+    if (_t_0.$ === "Canonical.PermitConsumed") {
+      return $PermitScenario$058admit$(($PermitScenario$058actual_round$(_state_0, _p_0, _l_0)), _p_0, _l_0);
+    } else {
+      return {$: "Nil"};
+    }
   } else {
     return {$: "Nil"};
   }
@@ -23961,450 +24256,459 @@ function $AdviceeScope$058event$(_before_0, _after_0, _value_0, _provided_0) {
 }
 
 function $AdviceeScope$058command_reference$(_value_0) {
-  if (_value_0.$ === "Canonical.CapacityGranted") {
-    const _id_0 = _value_0["id"];
-    return {$: "AdviceeScope.Reservation", "reservation": _id_0};
-  } else if (_value_0.$ === "Canonical.CapacityRefused") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CapacityResized") {
-    const _id_1 = _value_0["id"];
-    return {$: "AdviceeScope.Reservation", "reservation": _id_1};
-  } else if (_value_0.$ === "Canonical.CapacityUnitAdmitted") {
-    const _reservation_0 = _value_0["reservation"];
-    return {$: "AdviceeScope.Reservation", "reservation": _reservation_0};
-  } else if (_value_0.$ === "Canonical.CapacityUnitRefused") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.PermitIssued") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CompletedEditAbsent") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CompletedEditSeen") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CompletedEditRemembered") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.QuietRoundBusy") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.QuietRoundWaiting") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.QuietRoundExpired") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.QuietRoundResetRecorded") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.PermitConsumed") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.PermitReleased") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.PermitExpired") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.PermitKept") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.PermitRoundClosed") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RoundStarted") {
-    const _id_2 = _value_0["id"];
-    return {$: "AdviceeScope.Round", "round": _id_2};
-  } else if (_value_0.$ === "Canonical.ObservationAdmitted") {
-    const _id_3 = _value_0["id"];
-    return {$: "AdviceeScope.Operation", "operation": _id_3};
-  } else if (_value_0.$ === "Canonical.ObservationStarted") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ObservationCompleted") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ObservationInterrupted") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.Prepare") {
-    const _operation_0 = _value_0["operation"];
-    return {$: "AdviceeScope.Operation", "operation": _operation_0};
-  } else if (_value_0.$ === "Canonical.PreparationRefused") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.UnitAdmitted") {
-    const _operation_1 = _value_0["operation"];
-    return {$: "AdviceeScope.Operation", "operation": _operation_1};
-  } else if (_value_0.$ === "Canonical.UnitRefused") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.PreparationReleased") {
-    const _id_4 = _value_0["id"];
-    return {$: "AdviceeScope.Reservation", "reservation": _id_4};
-  } else if (_value_0.$ === "Canonical.ReviewStarted") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.JevRequestIssued") {
-    const _partition_0 = _value_0["partition"];
-    return {$: "AdviceeScope.Direct", "partition": _partition_0};
-  } else if (_value_0.$ === "Canonical.JevRequestUnavailable") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.JevRequestStartRecorded") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.JevInterruptionRecorded") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.JevRequestOutcomeRecorded") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.JevObservationIgnored") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ReservationReleased") {
-    const _id_5 = _value_0["id"];
-    return {$: "AdviceeScope.Reservation", "reservation": _id_5};
-  } else if (_value_0.$ === "Canonical.ReviewRecorded") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RetainFinding") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.FindingCountRecorded") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.SettleClear") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.SettleStaleClear") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RetireStaleFinding") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.PreparedSkipped") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.PreparedAdmitted") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.PreparedCapacityRefused") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.EmptyLost") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.EmptyAccepted") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.FailureBackend") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.FailureCredential") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.FailureLost") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.FailureNone") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DispatchStarted") {
-    const _operation_2 = _value_0["operation"];
-    return {$: "AdviceeScope.Operation", "operation": _operation_2};
-  } else if (_value_0.$ === "Canonical.DispatchDiscarded") {
-    const _operation_3 = _value_0["operation"];
-    return {$: "AdviceeScope.Operation", "operation": _operation_3};
-  } else if (_value_0.$ === "Canonical.DiscardNamedOnly") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DiscardAllUnfinished") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.WaitForWork") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CancelWork") {
-    const _operation_4 = _value_0["operation"];
-    return {$: "AdviceeScope.Operation", "operation": _operation_4};
-  } else if (_value_0.$ === "Canonical.FinishReady") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.FinishLimit") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.StopEnded") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionEligible") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionWaiting") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionRetireCredential") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionRetainCredential") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionCandidate") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionSkip") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionBefore") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionEqual") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionAfter") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionExpired") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionCurrent") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionFits") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionLimited") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionFindingSelected") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionFindingRetained") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionFindingLimited") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionFindingExpired") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionNoticeIncluded") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionNoticeSkipped") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionNoticeStopped") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionLeaseReserved") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionLeaseRefused") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionLeaseReleased") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionLeaseKept") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionAdviceRetired") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionBackgroundClaimed") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionBackgroundRefused") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionBackgroundReleased") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectionBackgroundKept") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.FinishReserved") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.FinishNotices") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.FinishAllowedNoAdvice") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.FinishAllowedDeadline") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.FinishAllowedUnavailable") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.FinishRefused") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.FinishReleased") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.FinishAuthorized") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.FinishRecorded") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.FinishEnded") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ContinuationConsumed") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ContinuationRefused") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.SubmissionBegun") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.SubmissionAuthorized") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.SubmissionRecorded") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.SubmissionReleased") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.SubmissionRefused") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.SubmissionForgotten") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.SubmissionSuppresses") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.SubmissionUnsuppressed") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.SubmissionReofferable") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.SubmissionNotReofferable") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.SubmissionExpired") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.SubmissionCurrent") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RevisionReused") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RevisionReplaced") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RevisionReleased") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RevisionCurrent") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RevisionStale") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RevisionSuperseded") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RevisionNotSuperseded") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RevisionGeneration") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RevisionCount") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectorProceed") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectorUnavailable") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectorFinalProceed") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CollectorFinalRelease") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ReuseKeepMember") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ReuseSetMemberClear") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ReuseSetMemberFinding") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ReuseSetMemberUnavailable") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ReuseSetMemberLost") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CleanupReady") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CleanupBusy") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CleanupCommitted") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliveryReleaseUnacknowledged") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliveryKeepAcknowledged") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliveryAckReady") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliveryAckExpired") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliveryAckEmpty") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliveryFinalReady") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliveryFinalExpired") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliveryFinalEmpty") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliveryRetireAdvice") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliveryKeepRemaining") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliveryKeepForReoffer") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliverySubmissionCandidate") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliverySubmissionRefused") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliveryBatchProceed") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliveryBatchRelease") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliveryCredentialInvalid") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliveryCredentialValid") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.IgnoreCandidate") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ReleaseCandidate") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RetireCandidate") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ContinueCandidate") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RetainCandidate") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RoundStopBegun") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RoundStopRefused") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RoundActive") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RoundInactive") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RoundBarrierRaised") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RoundBarrierClear") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RoundStopOwned") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RoundStopNotOwned") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RoundStopTerminal") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RoundExpireCloses") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RoundExpireKeeps") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RoundContinuationAvailable") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RoundContinuationExhausted") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliverySubmissionAllowed") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliverySubmissionDenied") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliveryExistingTokenAllowed") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliveryExistingTokenDenied") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliveryUnreservedStopAllowed") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.DeliveryUnreservedStopDenied") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ReuseJoinAdvice") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ReuseJoinPending") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ReuseJoinClaimed") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ReuseCached") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ReuseOwn") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ReuseClaimed") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ReuseAttached") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ReuseReleased") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ReuseRefused") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CacheAlready") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CacheRejected") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CachePrepared") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CacheCommitted") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CacheDiscarded") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.NoticeSuppressed") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.NoticeRejectedFull") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.NoticeCreateKey") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.NoticeCreatePending") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.NoticeMergePending") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.NoticeKeepLeased") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.NoticeRefused") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.NoticeCommitted") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.NoticePruned") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.NoticeDropped") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.NoticeLeased") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.NoticePendingCleared") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.NoticeSelected") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.IncludeChoice") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.FileSelection") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.FileProtection") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.CandidateFile") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ReviewAdmission") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RuleGate") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.RuleOrder") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.WriteAuthorized") {
-    const _operation_5 = _value_0["operation"];
-    return {$: "AdviceeScope.Operation", "operation": _operation_5};
-  } else if (_value_0.$ === "Canonical.WriteRecorded") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.WaitForOutput") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.ReofferAtStop") {
-    return {$: "AdviceeScope.Context"};
-  } else if (_value_0.$ === "Canonical.PartitionRetired") {
-    return {$: "AdviceeScope.Context"};
+  if (_value_0.$ === "Canonical.EventEstablished") {
+    const _t_0 = _value_0["event"];
+    if (_t_0.$ === "Canonical.CapacityGranted") {
+      const _id_0 = _t_0["id"];
+      return {$: "AdviceeScope.Reservation", "reservation": _id_0};
+    } else if (_t_0.$ === "Canonical.CapacityResized") {
+      const _id_1 = _t_0["id"];
+      return {$: "AdviceeScope.Reservation", "reservation": _id_1};
+    } else if (_t_0.$ === "Canonical.CapacityUnitAdmitted") {
+      const _reservation_0 = _t_0["reservation"];
+      return {$: "AdviceeScope.Reservation", "reservation": _reservation_0};
+    } else if (_t_0.$ === "Canonical.PermitIssued") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.CompletedEditSeen") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.CompletedEditRemembered") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.QuietRoundBusy") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.QuietRoundWaiting") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.QuietRoundResetRecorded") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.PermitConsumed") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.PermitReleased") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.PermitExpired") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.PermitRoundClosed") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.RoundStarted") {
+      const _id_2 = _t_0["id"];
+      return {$: "AdviceeScope.Round", "round": _id_2};
+    } else if (_t_0.$ === "Canonical.ObservationAdmitted") {
+      const _id_3 = _t_0["id"];
+      return {$: "AdviceeScope.Operation", "operation": _id_3};
+    } else if (_t_0.$ === "Canonical.ObservationStarted") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.ObservationCompleted") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.ObservationInterrupted") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.UnitAdmitted") {
+      const _operation_0 = _t_0["operation"];
+      return {$: "AdviceeScope.Operation", "operation": _operation_0};
+    } else if (_t_0.$ === "Canonical.PreparationReleased") {
+      const _id_4 = _t_0["id"];
+      return {$: "AdviceeScope.Reservation", "reservation": _id_4};
+    } else if (_t_0.$ === "Canonical.ReviewStarted") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.JevRequestIssued") {
+      const _partition_0 = _t_0["partition"];
+      return {$: "AdviceeScope.Direct", "partition": _partition_0};
+    } else if (_t_0.$ === "Canonical.JevRequestStartRecorded") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.JevInterruptionRecorded") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.JevRequestOutcomeRecorded") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.ReservationReleased") {
+      const _id_5 = _t_0["id"];
+      return {$: "AdviceeScope.Reservation", "reservation": _id_5};
+    } else if (_t_0.$ === "Canonical.ReviewRecorded") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.FindingRetained") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.FindingCountRecorded") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.ClearSettled") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.StaleClearSettled") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.StaleFindingRetired") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.DispatchStarted") {
+      const _operation_1 = _t_0["operation"];
+      return {$: "AdviceeScope.Operation", "operation": _operation_1};
+    } else if (_t_0.$ === "Canonical.DispatchDiscarded") {
+      const _operation_2 = _t_0["operation"];
+      return {$: "AdviceeScope.Operation", "operation": _operation_2};
+    } else if (_t_0.$ === "Canonical.WaitForWork") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.FinishReady") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.FinishLimit") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.StopEnded") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.CollectionEligible") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.CollectionLeaseReserved") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.CollectionLeaseReleased") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.CollectionAdviceRetired") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.CollectionBackgroundClaimed") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.CollectionBackgroundReleased") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.FinishReserved") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.FinishReleased") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.FinishAuthorized") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.FinishRecorded") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.FinishEnded") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.ContinuationConsumed") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.SubmissionBegun") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.SubmissionAuthorized") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.SubmissionRecorded") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.SubmissionReleased") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.SubmissionForgotten") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.RevisionReused") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.RevisionReplaced") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.RevisionReleased") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.CleanupCommitted") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.ReuseAdviceJoined") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.ReusePendingJoined") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.ReuseClaimedJoined") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.ReuseCacheHit") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.ReuseOwned") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.ReuseClaimed") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.ReuseAttached") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.ReuseReleased") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.CachePrepared") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.CacheCommitted") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.CacheDiscarded") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.NoticeSuppressed") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.NoticePendingCreated") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.NoticePendingMerged") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.NoticeLeaseKept") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.NoticeCommitted") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.NoticePruned") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.NoticeDropped") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.NoticeLeased") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.NoticePendingCleared") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.WriteAuthorized") {
+      const _operation_3 = _t_0["operation"];
+      return {$: "AdviceeScope.Operation", "operation": _operation_3};
+    } else if (_t_0.$ === "Canonical.WriteRecorded") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.ReofferAtStop") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_0.$ === "Canonical.PartitionRetired") {
+      return {$: "AdviceeScope.Context"};
+    } else {
+      return {$: "AdviceeScope.Context"};
+    }
+  } else if (_value_0.$ === "Canonical.PolicyDecided") {
+    const _t_1 = _value_0["decision"];
+    if (_t_1.$ === "Canonical.CapacityRefused") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CapacityUnitRefused") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CompletedEditAbsent") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.QuietRoundExpired") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.PermitKept") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.PreparationRefused") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.UnitRefused") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.JevRequestUnavailable") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.JevObservationIgnored") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.PreparedSkipped") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.PreparedAdmitted") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.PreparedCapacityRefused") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.EmptyLost") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.EmptyAccepted") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.FailureBackend") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.FailureCredential") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.FailureLost") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.FailureNone") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DiscardNamedOnly") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DiscardAllUnfinished") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionWaiting") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionRetireCredential") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionRetainCredential") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionCandidate") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionSkip") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionBefore") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionEqual") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionAfter") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionExpired") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionCurrent") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionFits") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionLimited") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionFindingSelected") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionFindingRetained") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionFindingLimited") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionFindingExpired") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionNoticeIncluded") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionNoticeSkipped") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionNoticeStopped") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionLeaseRefused") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionLeaseKept") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionBackgroundRefused") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectionBackgroundKept") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.FinishNotices") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.FinishAllowedNoAdvice") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.FinishAllowedDeadline") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.FinishAllowedUnavailable") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.FinishRefused") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.ContinuationRefused") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.SubmissionRefused") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.SubmissionSuppresses") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.SubmissionUnsuppressed") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.SubmissionReofferable") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.SubmissionNotReofferable") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.SubmissionExpired") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.SubmissionCurrent") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RevisionCurrent") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RevisionStale") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RevisionSuperseded") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RevisionNotSuperseded") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RevisionGeneration") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RevisionCount") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectorProceed") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectorUnavailable") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectorFinalProceed") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CollectorFinalRelease") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.ReuseKeepMember") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.ReuseSetMemberClear") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.ReuseSetMemberFinding") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.ReuseSetMemberUnavailable") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.ReuseSetMemberLost") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CleanupReady") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CleanupBusy") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliveryReleaseUnacknowledged") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliveryKeepAcknowledged") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliveryAckReady") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliveryAckExpired") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliveryAckEmpty") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliveryFinalReady") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliveryFinalExpired") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliveryFinalEmpty") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliveryRetireAdvice") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliveryKeepRemaining") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliveryKeepForReoffer") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliverySubmissionCandidate") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliverySubmissionRefused") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliveryBatchProceed") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliveryBatchRelease") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliveryCredentialInvalid") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliveryCredentialValid") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.IgnoreCandidate") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.ReleaseCandidate") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RetireCandidate") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.ContinueCandidate") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RetainCandidate") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RoundStopBegun") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RoundStopRefused") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RoundActive") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RoundInactive") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RoundBarrierRaised") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RoundBarrierClear") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RoundStopOwned") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RoundStopNotOwned") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RoundStopTerminal") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RoundExpireCloses") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RoundExpireKeeps") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RoundContinuationAvailable") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RoundContinuationExhausted") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliverySubmissionAllowed") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliverySubmissionDenied") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliveryExistingTokenAllowed") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliveryExistingTokenDenied") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliveryUnreservedStopAllowed") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.DeliveryUnreservedStopDenied") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.ReuseRefused") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CacheAlready") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CacheRejected") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.NoticeRejectedFull") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.NoticeRefused") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.NoticeSelected") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.IncludeChoice") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.FileSelection") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.FileProtection") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.CandidateFile") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.ReviewAdmission") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RuleGate") {
+      return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.RuleOrder") {
+      return {$: "AdviceeScope.Context"};
+    } else {
+      return {$: "AdviceeScope.Context"};
+    }
   } else {
-    return {$: "AdviceeScope.Context"};
+    const _t_2 = _value_0["request"];
+    if (_t_2.$ === "Canonical.Prepare") {
+      const _operation_4 = _t_2["operation"];
+      return {$: "AdviceeScope.Operation", "operation": _operation_4};
+    } else if (_t_2.$ === "Canonical.CancelWork") {
+      const _operation_5 = _t_2["operation"];
+      return {$: "AdviceeScope.Operation", "operation": _operation_5};
+    } else {
+      return {$: "AdviceeScope.Context"};
+    }
   }
 }
 
@@ -26608,21 +26912,29 @@ function $initial$(_limits_0) {
 function $captured_commands$($0, $1) {
   for (;;) {
     {
-      const _commands_0 = $0;
+      const _outputs_0 = $0;
       const _credentials_0 = $1;
-      if (_commands_0.$ === "Nil") {
+      if (_outputs_0.$ === "Nil") {
         return _credentials_0;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.JevRequestIssued") {
-          const _operation_0 = _t_0["operation"];
-          const _tail_0 = _commands_0["tail"];
-          $0 = _tail_0;
-          $1 = ($CredentialFacts$058capture$(_credentials_0, _operation_0));
-          continue;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.EventEstablished") {
+          const _t_1 = _t_0["event"];
+          if (_t_1.$ === "Canonical.JevRequestIssued") {
+            const _operation_0 = _t_1["operation"];
+            const _tail_0 = _outputs_0["tail"];
+            $0 = _tail_0;
+            $1 = ($CredentialFacts$058capture$(_credentials_0, _operation_0));
+            continue;
+          } else {
+            const _tail_1 = _outputs_0["tail"];
+            $0 = _tail_1;
+            $1 = _credentials_0;
+            continue;
+          }
         } else {
-          const _tail_1 = _commands_0["tail"];
-          $0 = _tail_1;
+          const _tail_2 = _outputs_0["tail"];
+          $0 = _tail_2;
           $1 = _credentials_0;
           continue;
         }
@@ -26785,23 +27097,32 @@ function $canceled_preparation$(_found_0, _items_0) {
 function $cancellation_preparations$($0, $1, $2) {
   for (;;) {
     {
-      const _commands_0 = $0;
+      const _outputs_0 = $0;
       const _work_0 = $1;
       const _items_0 = $2;
-      if (_commands_0.$ === "Nil") {
+      if (_outputs_0.$ === "Nil") {
         return _items_0;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.CancelWork") {
-          const _operation_0 = _t_0["operation"];
-          const _tail_0 = _commands_0["tail"];
-          $0 = _tail_0;
-          $1 = _work_0;
-          $2 = ($canceled_preparation$(($Driver$058find_operation$(_work_0, _operation_0)), _items_0));
-          continue;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.ActionRequested") {
+          const _t_1 = _t_0["request"];
+          if (_t_1.$ === "Canonical.CancelWork") {
+            const _operation_0 = _t_1["operation"];
+            const _tail_0 = _outputs_0["tail"];
+            $0 = _tail_0;
+            $1 = _work_0;
+            $2 = ($canceled_preparation$(($Driver$058find_operation$(_work_0, _operation_0)), _items_0));
+            continue;
+          } else {
+            const _tail_1 = _outputs_0["tail"];
+            $0 = _tail_1;
+            $1 = _work_0;
+            $2 = _items_0;
+            continue;
+          }
         } else {
-          const _tail_1 = _commands_0["tail"];
-          $0 = _tail_1;
+          const _tail_2 = _outputs_0["tail"];
+          $0 = _tail_2;
           $1 = _work_0;
           $2 = _items_0;
           continue;
@@ -26814,8 +27135,8 @@ function $cancellation_preparations$($0, $1, $2) {
 function $settle$(_before_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _result_0, _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0, _scenarios_0, _event_0) {
   if (_result_0.$ === "Canonical.Advanced") {
     const _state_0 = _result_0["state"];
-    const _commands_0 = _result_0["commands"];
-    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": ($Preparation$058retained$(_graphs_0, _state_0)), "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($retained_credentials$(($captured_commands$(_commands_0, _credentials_0)), _state_0)), "opening": ($AdmissionAttempts$058consumed$(_opening_0, _event_0)), "retiring": ($retirements$(($PendingEffects$058consumed$(_retiring_0, _event_0)), _state_0)), "lifecycles": ($lifecycle_accepted$(_lifecycles_0, _state_0, _event_0)), "preparations": ($cancellation_preparations$(_commands_0, ($Driver$058work_list$(_before_0)), _preparations_0)), "activity_scopes": _activity_scopes_0, "scenarios": ($RuntimeScenarios$058accepted$(_scenarios_0, _before_0, _state_0, _event_0, _commands_0))}, "result": {$: "Canonical.Advanced", "state": _state_0, "commands": _commands_0}};
+    const _outputs_0 = _result_0["outputs"];
+    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": ($Preparation$058retained$(_graphs_0, _state_0)), "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($retained_credentials$(($captured_commands$(_outputs_0, _credentials_0)), _state_0)), "opening": ($AdmissionAttempts$058consumed$(_opening_0, _event_0)), "retiring": ($retirements$(($PendingEffects$058consumed$(_retiring_0, _event_0)), _state_0)), "lifecycles": ($lifecycle_accepted$(_lifecycles_0, _state_0, _event_0)), "preparations": ($cancellation_preparations$(_outputs_0, ($Driver$058work_list$(_before_0)), _preparations_0)), "activity_scopes": _activity_scopes_0, "scenarios": ($RuntimeScenarios$058accepted$(_scenarios_0, _before_0, _state_0, _event_0, _outputs_0))}, "result": {$: "Canonical.Advanced", "state": _state_0, "outputs": _outputs_0}};
   } else {
     const _state_1 = _result_0["state"];
     const _reason_0 = _result_0["reason"];
@@ -26908,8 +27229,13 @@ function $scenarios$(_state_0) {
 }
 
 function $handle_output$(_state_0, _event_0, _command_0, _context_0) {
-  if (_command_0.$ === "Canonical.SubmissionExpired") {
-    return {$: "Driver.Handled", "handled": true, "actions": ($OutputCompletion$058feedback$({$: "Canonical.SubmissionExpired"}, _event_0))};
+  if (_command_0.$ === "Canonical.PolicyDecided") {
+    const _t_0 = _command_0["decision"];
+    if (_t_0.$ === "Canonical.SubmissionExpired") {
+      return {$: "Driver.Handled", "handled": true, "actions": ($OutputCompletion$058feedback$({$: "Canonical.PolicyDecided", "decision": {$: "Canonical.SubmissionExpired"}}, _event_0))};
+    } else {
+      return $handle_cached$(_state_0, _event_0, {$: "Canonical.PolicyDecided", "decision": _t_0}, _context_0, ($SharingRuntime$058cached_review$(($RuntimeScenarios$058sharing$(($scenarios$(_state_0)))), {$: "Canonical.PolicyDecided", "decision": _t_0})));
+    }
   } else {
     return $handle_cached$(_state_0, _event_0, _command_0, _context_0, ($SharingRuntime$058cached_review$(($RuntimeScenarios$058sharing$(($scenarios$(_state_0)))), _command_0)));
   }
@@ -27171,15 +27497,20 @@ function $source_outcome$(_job_0) {
 }
 
 function $prepared_outcome$(_state_0, _command_0, _job_0, _selected_0, _source_0, _before_0, _after_0, _context_0) {
-  if (_command_0.$ === "Canonical.JevRequestIssued") {
-    const _p_0 = _command_0["partition"];
-    const _l_0 = _command_0["lifetime"];
-    const _r_0 = _command_0["round"];
-    const _o_0 = _command_0["operation"];
-    const _request_0 = _command_0["request"];
-    if (_selected_0.$ === "Some") {
-      const _outcome_0 = _selected_0["value"];
-      return {$: "PreparedCommandContext", "state": _state_0, "context": ($Driver$058with_outcome$(_context_0, {$: "Some", "value": _outcome_0})), "receipt": {$: "Some", "value": {$: "Driver.OutcomeReceipt", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": _outcome_0, "source": _source_0, "job": _job_0, "stream_before": _before_0, "stream_after": _after_0}}};
+  if (_command_0.$ === "Canonical.EventEstablished") {
+    const _t_0 = _command_0["event"];
+    if (_t_0.$ === "Canonical.JevRequestIssued") {
+      const _p_0 = _t_0["partition"];
+      const _l_0 = _t_0["lifetime"];
+      const _r_0 = _t_0["round"];
+      const _o_0 = _t_0["operation"];
+      const _request_0 = _t_0["request"];
+      if (_selected_0.$ === "Some") {
+        const _outcome_0 = _selected_0["value"];
+        return {$: "PreparedCommandContext", "state": _state_0, "context": ($Driver$058with_outcome$(_context_0, {$: "Some", "value": _outcome_0})), "receipt": {$: "Some", "value": {$: "Driver.OutcomeReceipt", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": _outcome_0, "source": _source_0, "job": _job_0, "stream_before": _before_0, "stream_after": _after_0}}};
+      } else {
+        return {$: "PreparedCommandContext", "state": _state_0, "context": ($Driver$058with_outcome$(_context_0, {$: "None"})), "receipt": {$: "None"}};
+      }
     } else {
       return {$: "PreparedCommandContext", "state": _state_0, "context": ($Driver$058with_outcome$(_context_0, {$: "None"})), "receipt": {$: "None"}};
     }
@@ -27215,13 +27546,18 @@ function $prepared_source$(_override_0, _environment_0, _state_0, _command_0, _j
 }
 
 function $prepare_command_context$(_state_0, _command_0, _source_job_0, _environment_0, _context_0) {
-  if (_command_0.$ === "Canonical.JevRequestIssued") {
-    const __0 = _command_0["partition"];
-    const __1 = _command_0["lifetime"];
-    const __2 = _command_0["round"];
-    const __3 = _command_0["operation"];
-    const __4 = _command_0["request"];
-    return $prepared_source$(($source_outcome$(_source_job_0)), _environment_0, _state_0, {$: "Canonical.JevRequestIssued", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "request": __4}, _source_job_0, _context_0);
+  if (_command_0.$ === "Canonical.EventEstablished") {
+    const _t_0 = _command_0["event"];
+    if (_t_0.$ === "Canonical.JevRequestIssued") {
+      const __0 = _t_0["partition"];
+      const __1 = _t_0["lifetime"];
+      const __2 = _t_0["round"];
+      const __3 = _t_0["operation"];
+      const __4 = _t_0["request"];
+      return $prepared_source$(($source_outcome$(_source_job_0)), _environment_0, _state_0, {$: "Canonical.EventEstablished", "event": {$: "Canonical.JevRequestIssued", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "request": __4}}, _source_job_0, _context_0);
+    } else {
+      return {$: "PreparedCommandContext", "state": _state_0, "context": _context_0, "receipt": {$: "None"}};
+    }
   } else {
     return {$: "PreparedCommandContext", "state": _state_0, "context": _context_0, "receipt": {$: "None"}};
   }
@@ -28057,7 +28393,7 @@ function $notice_followed$(_state_0, _followup_0) {
   return {$: "NoticeTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0}}, "events": _events_0};
 }
 
-function $notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _commands_0, _profile_0) {
+function $notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _outputs_0, _profile_0) {
   const _canonical_0 = _state_0["canonical"];
   const _graphs_0 = _state_0["graphs"];
   const _scheduler_0 = _state_0["scheduler"];
@@ -28082,10 +28418,10 @@ function $notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _commands_0, _prof
   const _writers_0 = _t_0["writers"];
   const _background_collection_0 = _t_0["background_collection"];
   const _stop_0 = _t_0["stop"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$058expiry_feedback$(($NoticeScenario$058clock_feedback$(_clocks_0, _scope_0, _key_0, _now_0, _commands_0)), _key_0, _canonical_0, _now_0, _profile_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0}};
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$058expiry_feedback$(($NoticeScenario$058clock_feedback$(_clocks_0, _scope_0, _key_0, _now_0, _outputs_0)), _key_0, _canonical_0, _now_0, _profile_0, _outputs_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0}};
 }
 
-function $notice_pruned$(_state_0, _key_0, _commands_0) {
+function $notice_pruned$(_state_0, _key_0, _outputs_0) {
   const _canonical_0 = _state_0["canonical"];
   const _graphs_0 = _state_0["graphs"];
   const _scheduler_0 = _state_0["scheduler"];
@@ -28110,10 +28446,10 @@ function $notice_pruned$(_state_0, _key_0, _commands_0) {
   const _writers_0 = _t_0["writers"];
   const _background_collection_0 = _t_0["background_collection"];
   const _stop_0 = _t_0["stop"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$058prune_clocks$(_clocks_0, _key_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0}};
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$058prune_clocks$(_clocks_0, _key_0, _outputs_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0}};
 }
 
-function $notice_lease_clocked$(_before_0, _state_0, _key_0, _now_0, _commands_0, _profile_0) {
+function $notice_lease_clocked$(_before_0, _state_0, _key_0, _now_0, _outputs_0, _profile_0) {
   const _core_0 = _state_0["canonical"];
   const _graphs_0 = _state_0["graphs"];
   const _scheduler_0 = _state_0["scheduler"];
@@ -28139,37 +28475,37 @@ function $notice_lease_clocked$(_before_0, _state_0, _key_0, _now_0, _commands_0
   const _background_collection_0 = _t_0["background_collection"];
   const _stop_0 = _t_0["stop"];
   const _duration_0 = _profile_0["lease_duration"];
-  return {$: "Types.State", "canonical": _core_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$058lease_feedback$(_clocks_0, _key_0, _now_0, _duration_0, ($NoticeScenario$058new_lease$(($canonical$(_before_0)), _key_0, _commands_0)))), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0}};
+  return {$: "Types.State", "canonical": _core_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$058lease_feedback$(_clocks_0, _key_0, _now_0, _duration_0, ($NoticeScenario$058new_lease$(($canonical$(_before_0)), _key_0, _outputs_0)))), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0}};
 }
 
-function $notice_after$(_before_0, _state_0, _scope_0, _event_0, _commands_0, _now_0, _profile_0) {
+function $notice_after$(_before_0, _state_0, _scope_0, _event_0, _outputs_0, _now_0, _profile_0) {
   if (_event_0.$ === "Canonical.NoticeAdvance") {
     const _key_0 = _event_0["key"];
     const _sequence_0 = _event_0["sequence"];
-    return $notice_followed$(($notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _commands_0, _profile_0)), ($RuntimeScenarios$058notice_requested$(($scenarios$(_state_0)), _scope_0, _key_0, _sequence_0, _commands_0, _now_0)));
+    return $notice_followed$(($notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _outputs_0, _profile_0)), ($RuntimeScenarios$058notice_requested$(($scenarios$(_state_0)), _scope_0, _key_0, _sequence_0, _outputs_0, _now_0)));
   } else if (_event_0.$ === "Canonical.ReserveCapacity") {
     const _partition_0 = _event_0["partition"];
     const _t_0 = _event_0["purpose"];
     if (_t_0.$ === "Ledger.OperationalNotice") {
-      return $notice_followed$(_state_0, ($RuntimeScenarios$058notice_reserved$(($scenarios$(_state_0)), _partition_0, _commands_0)));
+      return $notice_followed$(_state_0, ($RuntimeScenarios$058notice_reserved$(($scenarios$(_state_0)), _partition_0, _outputs_0)));
     } else {
       return {$: "NoticeTransition", "state": _state_0, "events": {$: "Nil"}};
     }
   } else if (_event_0.$ === "Canonical.NoticeCommit") {
     const _key_1 = _event_0["key"];
     const _reservation_0 = _event_0["reservation"];
-    return {$: "NoticeTransition", "state": ($notice_clocked$(_state_0, _scope_0, _key_1, _now_0, _commands_0, _profile_0)), "events": ($NoticeScenario$058commit_feedback$(_reservation_0, _commands_0))};
+    return {$: "NoticeTransition", "state": ($notice_clocked$(_state_0, _scope_0, _key_1, _now_0, _outputs_0, _profile_0)), "events": ($NoticeScenario$058commit_feedback$(_reservation_0, _outputs_0))};
   } else if (_event_0.$ === "Canonical.NoticeLease") {
     const _key_2 = _event_0["key"];
     const _t_1 = _event_0["leased"];
     if (_t_1) {
-      return {$: "NoticeTransition", "state": ($notice_lease_clocked$(_before_0, _state_0, _key_2, _now_0, _commands_0, _profile_0)), "events": {$: "Nil"}};
+      return {$: "NoticeTransition", "state": ($notice_lease_clocked$(_before_0, _state_0, _key_2, _now_0, _outputs_0, _profile_0)), "events": {$: "Nil"}};
     } else {
       return {$: "NoticeTransition", "state": _state_0, "events": {$: "Nil"}};
     }
   } else if (_event_0.$ === "Canonical.NoticePrune") {
     const _key_3 = _event_0["key"];
-    return {$: "NoticeTransition", "state": ($notice_pruned$(_state_0, _key_3, _commands_0)), "events": ($NoticeScenario$058prune_feedback$(($canonical$(_before_0)), _key_3, _commands_0))};
+    return {$: "NoticeTransition", "state": ($notice_pruned$(_state_0, _key_3, _outputs_0)), "events": ($NoticeScenario$058prune_feedback$(($canonical$(_before_0)), _key_3, _outputs_0))};
   } else {
     return {$: "NoticeTransition", "state": _state_0, "events": {$: "Nil"}};
   }
@@ -28225,9 +28561,14 @@ function $freshness_admitted$(_state_0, _scope_0, _source_0, _command_0) {
   const _l_0 = _scope_0["lifetime"];
   const _r_0 = _scope_0["round"];
   const _o_0 = _scope_0["operation"];
-  if (_command_0.$ === "Canonical.ObservationAdmitted") {
-    const _id_0 = _command_0["id"];
-    return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_o_0, _id_0)), ($FreshnessScenario$058live$(($canonical$(_state_0)), {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})))), ($freshness_resolved$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, ($ScopedRevision$058resolve$(($RuntimeScenarios$058sources$(($scenarios$(_state_0)))), ($canonical$(_state_0)), _p_0, _source_0)))), {$: "FreshnessAdmission", "state": _state_0, "source": {$: "None"}, "actions": {$: "Nil"}});
+  if (_command_0.$ === "Canonical.EventEstablished") {
+    const _t_0 = _command_0["event"];
+    if (_t_0.$ === "Canonical.ObservationAdmitted") {
+      const _id_0 = _t_0["id"];
+      return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_o_0, _id_0)), ($FreshnessScenario$058live$(($canonical$(_state_0)), {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})))), ($freshness_resolved$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, ($ScopedRevision$058resolve$(($RuntimeScenarios$058sources$(($scenarios$(_state_0)))), ($canonical$(_state_0)), _p_0, _source_0)))), {$: "FreshnessAdmission", "state": _state_0, "source": {$: "None"}, "actions": {$: "Nil"}});
+    } else {
+      return {$: "FreshnessAdmission", "state": _state_0, "source": {$: "None"}, "actions": {$: "Nil"}};
+    }
   } else {
     return {$: "FreshnessAdmission", "state": _state_0, "source": {$: "None"}, "actions": {$: "Nil"}};
   }
@@ -28305,16 +28646,16 @@ function $sharing_route$(_state_0, _route_0) {
   return $SharingRuntime$058route_event$(($canonical$(_state_0)), ($freshness_state$(_state_0)), ($sharing_runtime$(_state_0)), _route_0);
 }
 
-function $sharing_cached_route$(_state_0, _route_0, _commands_0, _payload_0) {
-  return {$: "SharingRouted", "state": ($with_sharing_runtime$(_state_0, ($SharingRuntime$058cached_routed$(($SharingRuntime$058routed$(($sharing_runtime$(_state_0)), _route_0, _commands_0)), _route_0, _payload_0)))), "events": ($List$append$(($SharingRuntime$058route_followups$(($sharing_runtime$(_state_0)), _route_0, _commands_0)), ($SharingRuntime$058cached_followups$(($canonical$(_state_0)), ($freshness_state$(_state_0)), _route_0, _payload_0))))};
+function $sharing_cached_route$(_state_0, _route_0, _outputs_0, _payload_0) {
+  return {$: "SharingRouted", "state": ($with_sharing_runtime$(_state_0, ($SharingRuntime$058cached_routed$(($SharingRuntime$058routed$(($sharing_runtime$(_state_0)), _route_0, _outputs_0)), _route_0, _payload_0)))), "events": ($List$append$(($SharingRuntime$058route_followups$(($sharing_runtime$(_state_0)), _route_0, _outputs_0)), ($SharingRuntime$058cached_followups$(($canonical$(_state_0)), ($freshness_state$(_state_0)), _route_0, _payload_0))))};
 }
 
-function $sharing_routed$(_state_0, _route_0, _commands_0) {
+function $sharing_routed$(_state_0, _route_0, _outputs_0) {
   const __0 = _route_0["preparation"];
   const __1 = _route_0["member"];
   const __2 = _route_0["position"];
   const _evaluation_0 = _route_0["evaluation"];
-  return $sharing_cached_route$(_state_0, {$: "SharingRuntime.Route", "preparation": __0, "member": __1, "position": __2, "evaluation": _evaluation_0}, _commands_0, ($CacheRuntime$058hit$(($RuntimeScenarios$058cache$(($scenarios$(_state_0)))), ($canonical$(_state_0)), _evaluation_0, _commands_0)));
+  return $sharing_cached_route$(_state_0, {$: "SharingRuntime.Route", "preparation": __0, "member": __1, "position": __2, "evaluation": _evaluation_0}, _outputs_0, ($CacheRuntime$058hit$(($RuntimeScenarios$058cache$(($scenarios$(_state_0)))), ($canonical$(_state_0)), _evaluation_0, _outputs_0)));
 }
 
 function $sharing_completion$(_state_0, _event_0) {
@@ -28333,10 +28674,10 @@ function $sharing_leave$(_state_0, _scope_0) {
   return $sharing_departed$(_state_0, ($SharingRuntime$058depart_canonical$(($sharing_runtime$(_state_0)), ($canonical$(_state_0)), _scope_0)));
 }
 
-function $sharing_route_published$(_before_0, _event_0, _canonical_0, _commands_0, _routed_0) {
+function $sharing_route_published$(_before_0, _event_0, _canonical_0, _outputs_0, _routed_0) {
   const _next_0 = _routed_0["state"];
   const _events_0 = _routed_0["events"];
-  return {$: "SharingNext", "state": _next_0, "frame": {$: "Some", "value": {$: "SharingFrame", "before": _before_0, "after": _next_0, "event": _event_0, "result": {$: "Canonical.Advanced", "state": _canonical_0, "commands": _commands_0}}}, "events": _events_0};
+  return {$: "SharingNext", "state": _next_0, "frame": {$: "Some", "value": {$: "SharingFrame", "before": _before_0, "after": _next_0, "event": _event_0, "result": {$: "Canonical.Advanced", "state": _canonical_0, "outputs": _outputs_0}}}, "events": _events_0};
 }
 
 function $sharing_route_result$(_before_0, _route_0, _event_0, _transition_0) {
@@ -28344,8 +28685,8 @@ function $sharing_route_result$(_before_0, _route_0, _event_0, _transition_0) {
   const _t_0 = _transition_0["result"];
   if (_t_0.$ === "Canonical.Advanced") {
     const _canonical_0 = _t_0["state"];
-    const _commands_0 = _t_0["commands"];
-    return $sharing_route_published$(_before_0, _event_0, _canonical_0, _commands_0, ($sharing_routed$(_state_0, _route_0, _commands_0)));
+    const _outputs_0 = _t_0["outputs"];
+    return $sharing_route_published$(_before_0, _event_0, _canonical_0, _outputs_0, ($sharing_routed$(_state_0, _route_0, _outputs_0)));
   } else {
     return {$: "SharingNext", "state": _state_0, "frame": {$: "Some", "value": {$: "SharingFrame", "before": _before_0, "after": _state_0, "event": _event_0, "result": _t_0}}, "events": {$: "Nil"}};
   }
@@ -28459,8 +28800,8 @@ function $sharing_preprocess$(_state_0, _event_0, _order_0, _horizon_0) {
   return $sharing_at_head$({$: "Types.State", "canonical": __0, "graphs": __1, "scheduler": _scheduler_0, "workloads": __2, "random": __3, "advicees": __4, "credentials": __5, "opening": __6, "retiring": __7, "lifecycles": __8, "preparations": __9, "activity_scopes": __10, "scenarios": __11}, _event_0, _order_0, _horizon_0, ($Scheduler$058peek$(_scheduler_0)));
 }
 
-function $sharing_after$(_before_0, _after_0, _event_0, _commands_0) {
-  return $SharingRuntime$058fanout$(($sharing_runtime$(_before_0)), ($sharing_runtime$(_after_0)), ($canonical$(_after_0)), ($freshness_state$(_after_0)), _event_0, _commands_0);
+function $sharing_after$(_before_0, _after_0, _event_0, _outputs_0) {
+  return $SharingRuntime$058fanout$(($sharing_runtime$(_before_0)), ($sharing_runtime$(_after_0)), ($canonical$(_after_0)), ($freshness_state$(_after_0)), _event_0, _outputs_0);
 }
 
 function $cache_published$(_state_0, _published_0) {
@@ -28473,16 +28814,23 @@ function $cache_published$(_state_0, _published_0) {
 function $recorded_cache_result$($0) {
   for (;;) {
     {
-      const _commands_0 = $0;
-      if (_commands_0.$ === "Nil") {
+      const _outputs_0 = $0;
+      if (_outputs_0.$ === "Nil") {
         return false;
       } else {
-        const _t_0 = _commands_0["head"];
-        if (_t_0.$ === "Canonical.JevRequestOutcomeRecorded") {
-          return true;
+        const _t_0 = _outputs_0["head"];
+        if (_t_0.$ === "Canonical.EventEstablished") {
+          const _t_1 = _t_0["event"];
+          if (_t_1.$ === "Canonical.JevRequestOutcomeRecorded") {
+            return true;
+          } else {
+            const __2 = _outputs_0["tail"];
+            $0 = __2;
+            continue;
+          }
         } else {
-          const __2 = _commands_0["tail"];
-          $0 = __2;
+          const __3 = _outputs_0["tail"];
+          $0 = __3;
           continue;
         }
       }
@@ -28553,8 +28901,8 @@ function $cache_original_request$(_state_0, _event_0) {
   }
 }
 
-function $cache_begin$(_before_0, _state_0, _event_0, _commands_0) {
-  return $cache_begin_checked$(_before_0, _state_0, _event_0, ($Bool$and$(($SharingRuntime$058original_consumed$(_commands_0)), ($cache_original_request$(($canonical$(_before_0)), _event_0)))), ($recorded_cache_result$(_commands_0)));
+function $cache_begin$(_before_0, _state_0, _event_0, _outputs_0) {
+  return $cache_begin_checked$(_before_0, _state_0, _event_0, ($Bool$and$(($SharingRuntime$058original_consumed$(_outputs_0)), ($cache_original_request$(($canonical$(_before_0)), _event_0)))), ($recorded_cache_result$(_outputs_0)));
 }
 
 function $cache_removed_result$(_feedback_0) {
@@ -28562,8 +28910,8 @@ function $cache_removed_result$(_feedback_0) {
   return _events_0;
 }
 
-function $cache_removed$(_before_0, _commands_0) {
-  return $cache_removed_result$(($CacheRuntime$058existing_removed$(($cache_runtime$(_before_0)), ($canonical$(_before_0)), _commands_0)));
+function $cache_removed$(_before_0, _outputs_0) {
+  return $cache_removed_result$(($CacheRuntime$058existing_removed$(($cache_runtime$(_before_0)), ($canonical$(_before_0)), _outputs_0)));
 }
 
 function $cache_applied_published$(_state_0, _event_0, _result_0, _published_0) {
@@ -28582,8 +28930,8 @@ function $cache_applied_feedback$(_before_0, _state_0, _event_0, _fact_0, _trans
   const _t_0 = _transition_0["result"];
   if (_t_0.$ === "Canonical.Advanced") {
     const _canonical_0 = _t_0["state"];
-    const _commands_0 = _t_0["commands"];
-    return $cache_applied_published$(_after_0, _event_0, {$: "Canonical.Advanced", "state": _canonical_0, "commands": _commands_0}, ($CacheRuntime$058feedback_fact$(($cache_runtime$(_after_0)), ($canonical_state$(_before_0)), _canonical_0, _fact_0, _commands_0)));
+    const _outputs_0 = _t_0["outputs"];
+    return $cache_applied_published$(_after_0, _event_0, {$: "Canonical.Advanced", "state": _canonical_0, "outputs": _outputs_0}, ($CacheRuntime$058feedback_fact$(($cache_runtime$(_after_0)), ($canonical_state$(_before_0)), _canonical_0, _fact_0, _outputs_0)));
   } else {
     return {$: "CacheApplied", "state": _after_0, "event": _event_0, "result": _t_0, "facts": {$: "Nil"}, "releases": {$: "Nil"}, "valid": true};
   }
@@ -28659,8 +29007,8 @@ function $collection_response_attempt$(_state_0, _id_0, _p_0, _l_0, _r_0, _now_0
   return $collection_changed$(_state_0, ($CollectionScenario$058attempt$(($RuntimeScenarios$058collection$(($scenarios$(_state_0)))), {$: "CollectionScenario.Identity", "id": _id_0, "partition": _p_0, "lifetime": _l_0, "round": _r_0}, ($canonical$(_state_0)), _now_0, _current_block_0, ($credential_state$(_state_0)))));
 }
 
-function $collection_response_after$(_state_0, _target_0, _event_0, _commands_0) {
-  return $collection_changed$(_state_0, ($CollectionScenario$058after$(($RuntimeScenarios$058collection$(($scenarios$(_state_0)))), _target_0, _event_0, _commands_0, ($canonical$(_state_0)))));
+function $collection_response_after$(_state_0, _target_0, _event_0, _outputs_0) {
+  return $collection_changed$(_state_0, ($CollectionScenario$058after$(($RuntimeScenarios$058collection$(($scenarios$(_state_0)))), _target_0, _event_0, _outputs_0, ($canonical$(_state_0)))));
 }
 
 function $collection_response_valid$(_state_0, _target_0, _now_0) {
@@ -28766,8 +29114,8 @@ function $writer_granted$(_valid_0, _state_0, _pending_0, _now_0) {
   }
 }
 
-function $writer_feedback$(_state_0, _pending_0, _event_0, _commands_0, _now_0) {
-  return $writer_granted$(($WriterScenario$058pending_granted$(_pending_0, _event_0, _commands_0, ($canonical$(_state_0)), _now_0)), _state_0, _pending_0, _now_0);
+function $writer_feedback$(_state_0, _pending_0, _event_0, _outputs_0, _now_0) {
+  return $writer_granted$(($WriterScenario$058pending_granted$(_pending_0, _event_0, _outputs_0, ($canonical$(_state_0)), _now_0)), _state_0, _pending_0, _now_0);
 }
 
 function $writer_release$(_state_0, _target_0) {
@@ -29286,7 +29634,7 @@ function $0m3(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:8022fbe93b376ee49953e059d5c6663d3b2ec8fa4b3dcaf0e9ff645c075c654b";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:30e1239a93d174160673d0265c8c44262fb0d07e527216384e568f78dc2b68ba";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:95cd2d6fd2a624fff623f4c7af049fbfc8022a71bb5faa98523283b7cef34a58";
 
 const facts = value => {
@@ -29320,37 +29668,37 @@ export default {
  writer_attempt: (state,target,now,block) => run_loop($writer_attempt$(state,facts(target),facts(now),facts(block))),
  writer_prepare: (state,fact) => run_loop($writer_prepare$(state,facts(fact))),
  writer_claim_event: (state,pending,now) => run_loop($writer_claim_event$(state,facts(pending),facts(now))),
- writer_feedback: (state,pending,event,commands,now) => run_loop($writer_feedback$(state,facts(pending),facts(event),facts(commands),facts(now))),
+ writer_feedback: (state,pending,event,outputs,now) => run_loop($writer_feedback$(state,facts(pending),facts(event),facts(outputs),facts(now))),
  writer_release: (state,target) => run_loop($writer_release$(state,facts(target))),
  writer_expire: (state,target,now) => run_loop($writer_expire$(state,facts(target),facts(now))),
  collection_response_delivery_valid: (state,target,now,event) => run_loop($collection_response_delivery_valid$(state,facts(target),facts(now),facts(event))),
  collection_response_open: (state,response) => run_loop($collection_response_open$(state,facts(response))),
  collection_response_close: (state,id,p,l,r) => run_loop($collection_response_close$(state,facts(id),facts(p),facts(l),facts(r))),
  collection_response_attempt: (state,id,p,l,r,now,block) => run_loop($collection_response_attempt$(state,facts(id),facts(p),facts(l),facts(r),facts(now),facts(block))),
- collection_response_after: (state,target,event,commands) => run_loop($collection_response_after$(state,facts(target),facts(event),facts(commands))),
+ collection_response_after: (state,target,event,outputs) => run_loop($collection_response_after$(state,facts(target),facts(event),facts(outputs))),
  collection_response_valid: (state,target,now) => run_loop($collection_response_valid$(state,facts(target),facts(now))),
  collection_response_handle: (state,event,command,context,target) => run_loop($collection_response_handle$(state,facts(event),facts(command),facts(context),facts(target))),
  collection_response_expire: (state,now) => run_loop($collection_response_expire$(state,facts(now))),
  collection_responses: state => run_loop($collection_responses$(state)),
- cache_begin: (before,state,event,commands) => run_loop($cache_begin$(before,state,facts(event),facts(commands))),
+ cache_begin: (before,state,event,outputs) => run_loop($cache_begin$(before,state,facts(event),facts(outputs))),
  cache_apply: (state,fact) => run_loop($cache_apply$(state,facts(fact))),
- cache_removed: (before,commands) => run_loop($cache_removed$(before,facts(commands))),
+ cache_removed: (before,outputs) => run_loop($cache_removed$(before,facts(outputs))),
  configure_cache: (state,enabled,entries,bytes) => run_loop($configure_cache$(state,facts(enabled),facts(entries),facts(bytes))),
  sharing_prepare: (state,scope,keys,sizes) => run_loop($sharing_prepare$(state,facts(scope),facts(keys),facts(sizes))),
- sharing_after: (before,after,event,commands) => run_loop($sharing_after$(before,after,facts(event),facts(commands))),
+ sharing_after: (before,after,event,outputs) => run_loop($sharing_after$(before,after,facts(event),facts(outputs))),
  sharing_admitted: (state,scope,source,command) => run_loop($sharing_admitted$(state,facts(scope),facts(source),facts(command))),
  sharing_preprocess: (state,event,order,horizon) => run_loop($sharing_preprocess$(state,facts(event),facts(order),facts(horizon))),
  sharing_leave_all: (state,p,l) => run_loop($sharing_leave_all$(state,facts(p),facts(l))),
  sharing_leave: (state,scope) => run_loop($sharing_leave$(state,facts(scope))),
  sharing_route: (state,route) => run_loop($sharing_route$(state,facts(route))),
- sharing_routed: (state,route,commands) => run_loop($sharing_routed$(state,facts(route),facts(commands))),
+ sharing_routed: (state,route,outputs) => run_loop($sharing_routed$(state,facts(route),facts(outputs))),
  sharing_completion: (state,event) => run_loop($sharing_completion$(state,facts(event))),
  sharing_binding: (state,scope) => run_loop($sharing_binding$(state,facts(scope))),
  sharing_result: (state,evaluation) => run_loop($sharing_result$(state,facts(evaluation))),
  freshness_admitted: (state,scope,source,command) => run_loop($freshness_admitted$(state,facts(scope),facts(source),facts(command))),
  freshness_current: (state,scope) => run_loop($freshness_current$(state,facts(scope))),
  freshness_checks: (state,scope) => run_loop($freshness_checks$(state,facts(scope))),
- notice_after: (before,state,scope,event,commands,now,profile) => run_loop($notice_after$(before,state,facts(scope),facts(event),facts(commands),facts(now),facts(profile))),
+ notice_after: (before,state,scope,event,outputs,now,profile) => run_loop($notice_after$(before,state,facts(scope),facts(event),facts(outputs),facts(now),facts(profile))),
  notice_collection_prune: (state,partition,group,now) => run_loop($notice_collection_prune$(state,facts(partition),facts(group),facts(now))),
  notice_exercise: (scope) => run_loop($notice_exercise$(facts(scope))),
  notice_failure: (state,scope,now,key,sequence) => run_loop($notice_failure$(state,facts(scope),facts(now),facts(key),facts(sequence))),

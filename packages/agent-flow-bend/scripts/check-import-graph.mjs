@@ -13,20 +13,20 @@ const fixture = JSON.parse(
 )
 for (const trace of fixture.traces) {
   let state = initialImportGraph(trace.limits)
-  const commands = []
+  const outputs = []
   const phases = []
   for (const event of trace.events) {
     const result = stepImportGraph(state, event)
     state = result.state
     phases.push(projectImportGraph(state).phase)
     const command = result.command
-    commands.push(
+    outputs.push(
       command.kind +
         ("edge" in command ? `:${command.edge}` : "target" in command ? `:${command.target}` : "") +
         ("reason" in command ? `:${command.reason}` : "")
     )
   }
-  assert.deepEqual(commands, trace.commands, `${trace.name}: command sequence`)
+  assert.deepEqual(outputs, trace.outputs, `${trace.name}: command sequence`)
   assert.deepEqual(phases, trace.phases, `${trace.name}: phase sequence`)
   const projected = projectImportGraph(state)
   assert.deepEqual(
@@ -39,7 +39,7 @@ for (const trace of fixture.traces) {
   }
   if (trace.name === "A to B to excluded C") {
     assert.equal(
-      commands.some((item) => item === "readSource:3"),
+      outputs.some((item) => item === "readSource:3"),
       false,
       `${trace.name}: excluded C read`
     )

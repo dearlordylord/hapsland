@@ -40,7 +40,7 @@ import {
 import { productionFlowView } from "./production-flow-view"
 import { numberRecords, recordLabel, type RecordNumbers } from "@hapsland/agent-flow-projection"
 import { PLACE_ORDER, SQUARES } from "./production-flow-presentation"
-import type { CapacityPurpose, CanonicalCommand } from "@hapsland/canonical-policy/canonical/adapter"
+import type { CapacityPurpose, CanonicalOutput } from "@hapsland/canonical-policy/canonical/adapter"
 
 export const Model = Schema.Struct({
   simulation: SimulationModel,
@@ -360,8 +360,8 @@ const coverageFamilies = [
   }
 ] as const
 const guidedKinds = new Set(CANONICAL_SCENARIOS.flatMap((scenario) => scenario.events.map((event) => event.kind)))
-type CapacityFrameCommand = Extract<
-  CanonicalCommand,
+type CapacityFrameOutput = Extract<
+  CanonicalOutput,
   {
     readonly kind:
       | "preparationReleased"
@@ -371,13 +371,13 @@ type CapacityFrameCommand = Extract<
       | "capacityUnitRefused"
   }
 >
-const isCapacityFrame = (command: CanonicalCommand): command is CapacityFrameCommand =>
+const isCapacityFrame = (command: CanonicalOutput): command is CapacityFrameOutput =>
   command.kind === "preparationReleased" ||
   command.kind === "unitAdmitted" ||
   command.kind === "unitRefused" ||
   command.kind === "capacityUnitAdmitted" ||
   command.kind === "capacityUnitRefused"
-const frameLabel = (command: CapacityFrameCommand, numbers: RecordNumbers): string => {
+const frameLabel = (command: CapacityFrameOutput, numbers: RecordNumbers): string => {
   switch (command.kind) {
     case "preparationReleased":
       return `Preparation space released · ${recordLabel("charge:preparation", command.id, numbers)}`
@@ -391,7 +391,7 @@ const frameLabel = (command: CapacityFrameCommand, numbers: RecordNumbers): stri
       return `Unit ${command.position}: no capacity · ${command.bytes} B · ${command.reason}`
   }
 }
-const commandLabel = (command: CanonicalCommand, numbers: RecordNumbers): string => {
+const commandLabel = (command: CanonicalOutput, numbers: RecordNumbers): string => {
   if (isCapacityFrame(command)) return frameLabel(command, numbers)
   const details = Object.entries(command)
     .filter(([key]) => key !== "kind" && key !== "after")
@@ -432,7 +432,7 @@ const examplesView = (
   const projection = replay.projection
   const numbers = numberRecords(replay.steps)
   const last = replay.steps.at(-1)
-  const frames = last?.commands.filter(isCapacityFrame) ?? []
+  const frames = last?.outputs.filter(isCapacityFrame) ?? []
   const frame = frames[Math.min(Math.max(model.frame, 0), Math.max(0, frames.length - 1))]
   const eventBefore = last?.before.global ?? projection.global
   const eventAfter = last?.after.global ?? projection.global
@@ -452,7 +452,7 @@ const examplesView = (
     )
   const groupedStep =
     completeGroup && last !== undefined
-      ? { ...last, before: actionSteps[0].before, commands: actionSteps.flatMap((step) => step.commands) }
+      ? { ...last, before: actionSteps[0].before, outputs: actionSteps.flatMap((step) => step.outputs) }
       : last
   const timelineLength = historyTimelineLength(history, model.scenario)
   const flowStage = PLACE_ORDER.find((stage) => stage === model.flowStage)

@@ -5,7 +5,7 @@ it("observes one isolated resident boundary and restores that boundary through r
   const run = createRun({
     inputs: [{ at: 2 ** 32 + 17, kind: "canonical", event: { kind: "openRound", partition: 1, lifetime: 1 } }]
   })
-  expect(run.step()?.commands).toEqual([{ kind: "roundStarted", id: 1 }])
+  expect(run.step()?.outputs).toEqual([{ category: "event", kind: "roundStarted", id: 1 }])
   const view = run.observe()
   expect(view.now).toBe(2 ** 32 + 17)
   expect(view.eventCount).toBe(1)
@@ -43,7 +43,7 @@ it("keeps independently expected finding and NeverSent lifecycle observations", 
     })
     run.advance({ untilTime: 6 })
     expect(
-      run.observe().observations.some((frame) => frame.commands.some((command) => command.kind === "retainFinding"))
+      run.observe().observations.some((frame) => frame.outputs.some((command) => command.kind === "findingRetained"))
     ).toBe(false)
     run.advance({ untilTime: 7 })
     const frames = run.observe().observations
@@ -52,7 +52,7 @@ it("keeps independently expected finding and NeverSent lifecycle observations", 
       outcome === "neverSent" ? 0 : 1
     )
     expect(
-      frames.flatMap((frame) => frame.commands).filter((command) => command.kind === "retainFinding")
+      frames.flatMap((frame) => frame.outputs).filter((command) => command.kind === "findingRetained")
     ).toHaveLength(outcome === "finding" ? 1 : 0)
     expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe())
   }

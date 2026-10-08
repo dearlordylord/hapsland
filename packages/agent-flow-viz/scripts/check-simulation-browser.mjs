@@ -612,12 +612,12 @@ try {
         return restored.observations.flatMap((frame) => {
           if (
             frame.event.kind === "submissionTerminal" &&
-            frame.commands.some((command) => command.kind === "submissionRecorded")
+            frame.outputs.some((command) => command.kind === "submissionRecorded")
           )
             return [frame.event.certain]
           if (
             frame.event.kind === "finishTerminal" &&
-            frame.commands.some((command) => command.kind === "finishRecorded") &&
+            frame.outputs.some((command) => command.kind === "finishRecorded") &&
             frame.event.outcome !== "failed"
           )
             return [frame.event.outcome === "acknowledged"]
@@ -633,14 +633,29 @@ try {
     assert.equal(await panel.locator(".simulation-outcomes").innerText(), recoveryOutcomes)
     await panel.screenshot({ path: "/tmp/astra-ux-lifecycle-controls.png" })
     const suspension = await page.evaluate(async (view) => {
-      const { initialSimulation, actSimulation, tickSimulation } = await import(view)
+      const {
+        initialSimulation,
+        actSimulation,
+        tickSimulation,
+        simulationContinuation,
+        runSimulationContinuation,
+        continueSimulation
+      } = await import(view)
+      const tick = async (model) => {
+        model = tickSimulation(model, 100)
+        const generation = simulationContinuation()
+        if (generation !== undefined) {
+          await runSimulationContinuation(generation)
+          model = continueSimulation(model, generation)
+        }
+        return model
+      }
       let model = actSimulation({ ...initialSimulation, speed: "1000", appliedSpeed: 1000 }, "start")
       model = actSimulation(model, "play")
-      model = tickSimulation(model, 100)
+      model = await tick(model)
       model = actSimulation(model, "suspend")
       let drainTicks = 0
-      while (!model.feedback.includes("waiting for edit generation") && drainTicks++ < 100)
-        model = tickSimulation(model, 100)
+      while (!model.feedback.includes("waiting for edit generation") && drainTicks++ < 100) model = await tick(model)
       const waiting = {
         playing: model.playing,
         suspended: model.suspended,
@@ -648,7 +663,7 @@ try {
         events: JSON.parse(actSimulation(model, "export").replay).endpoint.eventCount
       }
       model = actSimulation(model, "suspend")
-      model = tickSimulation(model, 100)
+      model = await tick(model)
       const resumed = {
         playing: model.playing,
         suspended: model.suspended,
@@ -718,7 +733,7 @@ try {
     assert.match(await treeDetails.locator("h4").innerText(), /Generated import tree/)
     assert.match(
       await treeDetails.locator(".preparation-generated-counts").innerText(),
-      /7 generated files.*depth 6.*0 permission denials/
+      /7 generated files.*depth 6.*0 path exclusions observed/
     )
     assert.match(await treeDetails.locator(".preparation-reference-command").innerText(), /DepthLimit/)
     assert.match(await treeDetails.locator("svg").textContent(), /File entry.ts/)

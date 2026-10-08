@@ -75,7 +75,7 @@ it("attributes contention, interruption, refusal and recovery to opaque advicees
     [2, 4, 28]
   ])
   const refused = run.observations.filter((frame) =>
-    frame.commands.some((command) => command.kind === "jevRequestUnavailable")
+    frame.outputs.some((command) => command.kind === "jevRequestUnavailable")
   )
   expect(refused).toHaveLength(1)
   expect(refused[0]).toMatchObject({ partition: 1, agent: opaqueAdvicees[0], time: 4 })
@@ -146,7 +146,7 @@ const residentCommandCodes: Record<string, number> = {
   prepare: 4,
   unitAdmitted: 5,
   jevRequestIssued: 6,
-  retainFinding: 7,
+  findingRetained: 7,
   collectionEligible: 8,
   retainCandidate: 9,
   submissionUnsuppressed: 10,
@@ -162,7 +162,7 @@ const residentCommandCodes: Record<string, number> = {
   reservationReleased: 20,
   collectionLeaseKept: 21,
   collectionLeaseReleased: 22,
-  settleClear: 23,
+  clearSettled: 23,
   reviewRecorded: 24,
   retireCandidate: 25,
   releaseCandidate: 26,
@@ -280,7 +280,7 @@ function residentRow(frame: Observation): number[] {
                     : event.kind === "preparationCompleted"
                       ? [(event.unitBytes as number[]).length, (event.unitBytes as number[])[0] ?? 0, 0, 0, 0, 0]
                       : [0, 0, 0, 0, 0, 0]
-  const commands = frame.commands.flatMap((command, index) => {
+  const outputs = frame.outputs.flatMap((command, index) => {
     const value = command as unknown as Record<string, unknown>
     const id = ["roundStarted", "observationAdmitted", "preparationReleased", "reservationReleased"].includes(
       command.kind
@@ -292,7 +292,7 @@ function residentRow(frame: Observation): number[] {
           ? value.request
           : 0
     if (residentCommandCodes[command.kind] === undefined) throw new Error(`Unmapped resident command ${command.kind}`)
-    return [residentCommandCodes[command.kind]!, frame.commandScopes?.[index] ?? 0, Number(id ?? 0)]
+    return [residentCommandCodes[command.kind]!, frame.outputScopes?.[index] ?? 0, Number(id ?? 0)]
   })
   return [
     residentEventCodes[frame.event.kind] ?? 99,
@@ -302,7 +302,7 @@ function residentRow(frame: Observation): number[] {
     ...facts,
     ...counts,
     Number(!!frame.rejection),
-    ...commands
+    ...outputs
   ]
 }
 
@@ -409,13 +409,13 @@ function originalCancellation(): Run {
   expect(deadline.partition).toBe(1)
   expect(deadline.agent).toBe(opaqueAdvicees[0])
   const firstRequest = deadline.before.dispatch.requests.find((request) => request.partition === 1)!
-  expect(deadline.commands.filter((command) => command.kind === "cancelWork")).toEqual([
-    { kind: "cancelWork", operation: firstRequest.operation }
+  expect(deadline.outputs.filter((command) => command.kind === "cancelWork")).toEqual([
+    { category: "request", kind: "cancelWork", operation: firstRequest.operation }
   ])
   expect(deadline.after.global).toEqual({ items: 1, bytes: 7 })
   expect(deadline.after.partitions.find((owner) => owner.partition === 1)?.items ?? 0).toBe(0)
   expect(deadline.after.partitions.find((owner) => owner.partition === 2)).toMatchObject({ items: 1, bytes: 7 })
-  for (let index = 0; index < deadline.commands.length; index++) expect(deadline.commandScopes?.[index]).toBe(1)
+  for (let index = 0; index < deadline.outputs.length; index++) expect(deadline.outputScopes?.[index]).toBe(1)
   residentCheckpoint("cancellation restore start")
   const cancellationReplay = restoreReplay(JSON.parse(JSON.stringify(cancellation.exportReplay())))
   residentCheckpoint("cancellation restore complete")
@@ -424,7 +424,7 @@ function originalCancellation(): Run {
   advanceResident(cancellationReplay, 40, 64, "cancellation restored settle")
   expect(cancellationReplay.observe()).toEqual(cancellation.observe())
   const ignored = cancellation.observations.filter((frame) =>
-    frame.commands.some((command) => command.kind === "jevObservationIgnored")
+    frame.outputs.some((command) => command.kind === "jevObservationIgnored")
   )
   expect(ignored).toHaveLength(1)
   expect(ignored[0]!.event).toMatchObject({
@@ -537,7 +537,7 @@ describe("one resident with independent agent generators", () => {
     run.advance({ untilTime: 100, maxEvents: 10000 })
     expect(
       run.observations.some((frame) =>
-        frame.commands.some((command) => command.kind === "preparationRefused" || command.kind === "unitRefused")
+        frame.outputs.some((command) => command.kind === "preparationRefused" || command.kind === "unitRefused")
       )
     ).toBe(true)
     expect(Math.max(...run.observations.map((frame) => frame.after.global.items))).toBeLessThanOrEqual(4)

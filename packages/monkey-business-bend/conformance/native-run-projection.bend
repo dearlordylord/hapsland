@@ -83,54 +83,100 @@ def outcome_code(outcome: Canonical.RequestOutcome) -> Nat:
 def event_facts(event: Canonical.CanonicalEvent) -> List<&2, Nat>:
   match event:
     case Canonical.FinalCandidateCheck{owner, generation, credential, expired, current, findings}:
-      [boolean(owner), boolean(generation), boolean(credential), boolean(expired), boolean(current), boolean(findings)]
-    case Canonical.JevRequestReady{_, _, _, _, root, configuration, credential, selected, current, physical}:
-      [boolean(root), boolean(configuration), boolean(credential), boolean(selected), boolean(current), boolean(physical)]
-    case Canonical.JevRequestSettled{_, _, _, _, _, outcome, current}: [boolean(current), outcome_code(outcome), 0n, 0n, 0n, 0n]
+      [
+        boolean(owner),
+        boolean(generation),
+        boolean(credential),
+        boolean(expired),
+        boolean(current),
+        boolean(findings)
+      ]
+    case Canonical.JevRequestReady{
+      _,
+      _,
+      _,
+      _,
+      root,
+      configuration,
+      credential,
+      selected,
+      current,
+      physical
+    }:
+      [
+        boolean(root),
+        boolean(configuration),
+        boolean(credential),
+        boolean(selected),
+        boolean(current),
+        boolean(physical)
+      ]
+    case Canonical.JevRequestSettled{_, _, _, _, _, outcome, current}: [
+      boolean(current),
+      outcome_code(outcome),
+      0n,
+      0n,
+      0n,
+      0n
+    ]
     case Canonical.SubmissionTerminal{_, _, certain}: [boolean(certain), 0n, 0n, 0n, 0n, 0n]
     case Canonical.BeginObservedPreparation{_, _, _, _, bytes}: [bytes, 0n, 0n, 0n, 0n, 0n]
-    case Canonical.PreparationCompleted{_, _, _, _, +units}: [List.length(&2, Nat, units), first(units), 0n, 0n, 0n, 0n]
+    case Canonical.PreparationCompleted{_, _, _, _, +units}: [
+      List.length(&2, Nat, units),
+      first(units),
+      0n,
+      0n,
+      0n,
+      0n
+    ]
     case Canonical.SubmissionBegin{_, _, _, _, _, authorized, +items, +findings}:
-      [boolean(authorized), List.length(&2, Nat, items), first(items), List.length(&2, Nat, findings), first(findings), 0n]
+      [
+        boolean(authorized),
+        List.length(&2, Nat, items),
+        first(items),
+        List.length(&2, Nat, findings),
+        first(findings),
+        0n
+      ]
     case Canonical.CollectionLeaseCheck{_, _, expired, retired, acknowledged, failed}:
       [boolean(expired), boolean(retired), boolean(acknowledged), boolean(failed), 0n, 0n]
     case _: [0n, 0n, 0n, 0n, 0n, 0n]
 
-def command_code(command: Canonical.Command) -> Nat:
+def command_code(command: Canonical.Output) -> Nat:
   match command:
-    case Canonical.RoundStarted{_}: 1n
-    case Canonical.ObservationAdmitted{_}: 2n
-    case Canonical.DispatchStarted{_, _}: 3n
-    case Canonical.Prepare{_, _}: 4n
-    case Canonical.UnitAdmitted{_, _, _, _, _}: 5n
-    case Canonical.JevRequestIssued{_, _, _, _, _}: 6n
-    case Canonical.RetainFinding{}: 7n
-    case Canonical.CollectionEligible{}: 8n
-    case Canonical.RetainCandidate{}: 9n
-    case Canonical.SubmissionUnsuppressed{}: 10n
-    case Canonical.CollectionLeaseReserved{}: 11n
-    case Canonical.SubmissionBegun{}: 12n
-    case Canonical.SubmissionRecorded{}: 13n
-    case Canonical.ObservationStarted{}: 14n
-    case Canonical.PreparationReleased{_, _}: 15n
-    case Canonical.ObservationCompleted{}: 16n
-    case Canonical.ReviewStarted{}: 17n
-    case Canonical.JevInterruptionRecorded{}: 29n
-    case Canonical.JevRequestUnavailable{}: 30n
-    case Canonical.JevRequestStartRecorded{}: 18n
-    case Canonical.JevRequestOutcomeRecorded{_}: 19n
-    case Canonical.ReservationReleased{_}: 20n
-    case Canonical.CollectionLeaseKept{}: 21n
-    case Canonical.CollectionLeaseReleased{}: 22n
-    case Canonical.SettleClear{}: 23n
-    case Canonical.ReviewRecorded{_}: 24n
-    case Canonical.RetireCandidate{}: 25n
-    case Canonical.ReleaseCandidate{}: 26n
-    case Canonical.CollectionAdviceRetired{}: 27n
-    case Canonical.SubmissionForgotten{}: 28n
+    case Canonical.EventEstablished{Canonical.RoundStarted{_}}: 1n
+    case Canonical.EventEstablished{Canonical.ObservationAdmitted{_}}: 2n
+    case Canonical.EventEstablished{Canonical.DispatchStarted{_, _}}: 3n
+    case Canonical.ActionRequested{Canonical.Prepare{_, _}}: 4n
+    case Canonical.EventEstablished{Canonical.UnitAdmitted{_, _, _, _, _}}: 5n
+    case Canonical.EventEstablished{Canonical.JevRequestIssued{_, _, _, _, _}}: 6n
+    case Canonical.EventEstablished{Canonical.FindingRetained{}}: 7n
+    case Canonical.EventEstablished{Canonical.CollectionEligible{}}: 8n
+    case Canonical.PolicyDecided{Canonical.RetainCandidate{}}: 9n
+    case Canonical.PolicyDecided{Canonical.SubmissionUnsuppressed{}}: 10n
+    case Canonical.EventEstablished{Canonical.CollectionLeaseReserved{}}: 11n
+    case Canonical.EventEstablished{Canonical.SubmissionBegun{}}: 12n
+    case Canonical.EventEstablished{Canonical.SubmissionRecorded{}}: 13n
+    case Canonical.EventEstablished{Canonical.ObservationStarted{}}: 14n
+    case Canonical.EventEstablished{Canonical.PreparationReleased{_, _}}: 15n
+    case Canonical.EventEstablished{Canonical.ObservationCompleted{}}: 16n
+    case Canonical.EventEstablished{Canonical.ReviewStarted{}}: 17n
+    case Canonical.EventEstablished{Canonical.JevInterruptionRecorded{}}: 29n
+    case Canonical.PolicyDecided{Canonical.JevRequestUnavailable{}}: 30n
+    case Canonical.EventEstablished{Canonical.JevRequestStartRecorded{}}: 18n
+    case Canonical.EventEstablished{Canonical.JevRequestOutcomeRecorded{_}}: 19n
+    case Canonical.EventEstablished{Canonical.ReservationReleased{_}}: 20n
+    case Canonical.PolicyDecided{Canonical.CollectionLeaseKept{}}: 21n
+    case Canonical.EventEstablished{Canonical.CollectionLeaseReleased{}}: 22n
+    case Canonical.EventEstablished{Canonical.ClearSettled{}}: 23n
+    case Canonical.EventEstablished{Canonical.ReviewRecorded{_}}: 24n
+    case Canonical.PolicyDecided{Canonical.RetireCandidate{}}: 25n
+    case Canonical.PolicyDecided{Canonical.ReleaseCandidate{}}: 26n
+    case Canonical.EventEstablished{Canonical.CollectionAdviceRetired{}}: 27n
+    case Canonical.EventEstablished{Canonical.SubmissionForgotten{}}: 28n
     case _: 99n
 
-def command_codes(items: List<&2, Canonical.Command>) -> List<&2, Nat>:
+def command_codes(items: List<&2, Canonical.Output>) -> List<&2, Nat>:
   match items:
     case Nil{}: Nil{}
     case head <> tail: command_code(head) <> command_codes(tail)
@@ -172,7 +218,12 @@ def lease_count(collection: Collection.State) -> List<&2, Nat>:
 def canonical_counts(state: Canonical.State) -> List<&2, Nat>:
   match state:
     case Canonical.State{ledger, _, _, _, _, _, dispatch, collection, _}:
-      List.append(&2, Nat, ledger_counts(ledger), List.append(&2, Nat, dispatch_counts(dispatch), lease_count(collection)))
+      List.append(
+        &2,
+        Nat,
+        ledger_counts(ledger),
+        List.append(&2, Nat, dispatch_counts(dispatch), lease_count(collection))
+      )
 
 def comma(rest: String) -> String:
   match rest:

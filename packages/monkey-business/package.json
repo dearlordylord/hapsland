@@ -52,6 +52,10 @@
       "types": "./src/jev-interventions.ts",
       "default": "./src/jev-interventions.ts"
     },
+    "./native-run-codec": {
+      "types": "./src/native-run-codec.ts",
+      "default": "./src/native-run-codec.ts"
+    },
     "./notice-controls": {
       "types": "./src/notice-controls.ts",
       "default": "./src/notice-controls.ts"

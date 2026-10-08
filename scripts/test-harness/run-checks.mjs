@@ -175,12 +175,17 @@ export async function createRun({
   const lockPath = join(runsRoot, "full.lock")
   if (inherited) {
     const supplied = JSON.parse(inherited)
-    if (!["test", "artifact"].includes(mode) || supplied.root !== root || !/^[a-zA-Z0-9_-]+$/.test(supplied.id))
+    if (
+      !["test", "artifact", "focused"].includes(mode) ||
+      supplied.root !== root ||
+      !/^[a-zA-Z0-9_-]+$/.test(supplied.id)
+    )
       throw new Error("Invalid nested gate context")
     const recorded = await readJson(join(runsRoot, supplied.id, "manifest.json"))
     const lock = recorded.mode === "focused" ? undefined : await readJson(lockPath)
     if (
       (mode === "test" ? recorded.mode !== "quality" : !["focused", "test", "quality"].includes(recorded.mode)) ||
+      (mode === "focused" && recorded.mode !== "focused") ||
       recorded.token !== supplied.token ||
       (lock !== undefined && lock.token !== supplied.token) ||
       recorded.pid !== supplied.pid ||

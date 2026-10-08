@@ -47,7 +47,7 @@ const canonicalCommand = (command) => {
   }
 }
 const expectedCommand = (step, formatter) =>
-  step.rejection ? `rejected:${step.rejection}` : step.commands.map(formatter).join(",")
+  step.rejection ? `rejected:${step.rejection}` : step.outputs.map(formatter).join(",")
 const capacityFrame = (command) => ({
   kind: command.kind,
   ...("position" in command ? { position: command.position, bytes: command.bytes } : {}),
@@ -96,30 +96,25 @@ try {
   }
   const compiled = canonical.projectCanonical(canonical.initialCanonical(fixture.limits))
   const projection = await server.ssrLoadModule("/../agent-flow-projection/src/index.ts")
-  // Identical snapshots must retain command and supplied outcome evidence.
+  // Identical snapshots must retain committed event and supplied outcome evidence.
   for (const outcome of ["clear", "failed"]) {
     const step = {
       event: { kind: "jevRequestSettled", operation: 1, partition: 1, lifetime: 1, round: 1, outcome },
-      commands: [{ kind: "reviewRecorded", outcome }],
+      outputs: [{ category: "event", kind: "reviewRecorded", outcome }],
       before: compiled,
       after: compiled
     }
     const projected = projection.projectFlowStep(step)
     assert.deepEqual(projected, projection.projectFlowStep({ ...step, after: structuredClone(compiled) }))
     assert.equal(projected.projectionChanged, false)
-    assert.ok(projected.evidence.some((entry) => entry.source === "command"))
+    assert.ok(projected.evidence.some((entry) => entry.source === "event"))
     assert.ok(
       projected.evidence.some((entry) => entry.source === (outcome === "clear" ? "external fact" : "native fact"))
     )
     assert.ok(projected.changedStages.includes("outcomes"))
   }
   assert.deepEqual(
-    projection.projectFlowStep({
-      event: { kind: "preparationGraph" },
-      commands: [],
-      before: compiled,
-      after: compiled
-    }),
+    projection.projectFlowStep({ event: { kind: "preparationGraph" }, outputs: [], before: compiled, after: compiled }),
     { evidence: [], changedStages: [], projectionChanged: false, storedResultConversions: [] }
   )
   const presentation = await server.ssrLoadModule("/src/production-flow-presentation.ts")
@@ -550,7 +545,7 @@ try {
       (node) => node.data.class.active && labels(node).includes("Pending advice")
     ).length,
     0,
-    "retainFinding command alone cannot mark advice as stored"
+    "findingRetained command alone cannot mark advice as stored"
   )
   const refusalView = replayAt(
     "eight active request permits; ninth settles immediately and release permits another",
@@ -580,7 +575,7 @@ try {
   })
   const retainedStep = canonical.replayCanonical(retainedFinding.history, retainedFinding.position).steps.at(-1)
   assert.deepEqual(
-    retainedStep.commands.map((command) => command.kind),
+    retainedStep.outputs.map((command) => command.kind),
     ["collectionFindingRetained"]
   )
   assert.deepEqual(retainedStep.after.collection, retainedStep.before.collection)
@@ -607,7 +602,7 @@ try {
     })
     const step = canonical.replayCanonical(allowed.history, allowed.position).steps.at(-1)
     assert.deepEqual(
-      step.commands.map((command) => command.kind),
+      step.outputs.map((command) => command.kind),
       [deadlineReached ? "finishAllowedDeadline" : "finishAllowedNoAdvice"]
     )
     assert.deepEqual(step.after.rounds, step.before.rounds)
@@ -660,7 +655,7 @@ try {
   const capacityReplay = canonical.replayCanonical(model.history, model.position)
   assert.deepEqual(
     capacityReplay.steps.map((step) => expectedCommand(step, capacityCommand)),
-    fixture.capacityTrace.commands,
+    fixture.capacityTrace.outputs,
     "every capacity command matches the independent trace"
   )
   assert.deepEqual(capacityReplay.steps[7].after.charges, fixture.capacityTrace.afterResizeCharges)
@@ -672,7 +667,7 @@ try {
     const replay = canonical.replayCanonical(alternate.history, alternate.position)
     assert.deepEqual(
       replay.steps.map((step) => expectedCommand(step, canonicalCommand)),
-      trace.commands,
+      trace.outputs,
       `${trace.name}: every displayed command matches the independent trace`
     )
     assert.deepEqual(
@@ -686,7 +681,7 @@ try {
       assert.deepEqual(
         replay.steps
           .filter((step) => step.event.kind === "preparationCompleted")
-          .map((step) => step.commands.filter((command) => "after" in command).map(capacityFrame)),
+          .map((step) => step.outputs.filter((command) => "after" in command).map(capacityFrame)),
         trace.capacity,
         `${trace.name}: preparation order and values match`
       )
@@ -708,11 +703,11 @@ try {
   model = send(model, main.Message.Advanced())
   const third = canonical.replayCanonical(model.history, model.position).steps[2]
   assert.deepEqual(
-    third.commands.map((command) => command.kind),
+    third.outputs.map((command) => command.kind),
     ["preparationReleased", "capacityUnitAdmitted", "capacityUnitRefused", "capacityUnitAdmitted"]
   )
   assert.deepEqual(
-    third.commands.map((command) => command.after.global),
+    third.outputs.map((command) => command.after.global),
     [
       { items: 1, bytes: 40 },
       { items: 2, bytes: 50 },

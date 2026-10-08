@@ -23,7 +23,17 @@ test("canonical authority accepts formatter layout and still rejects a changed c
     }
     const valid = run()
     assert.equal(valid.status, 0, valid.stdout + valid.stderr)
-    assert.match(valid.stdout, /346 exact constructor schemas/u)
+    assert.match(valid.stdout, /349 exact constructor schemas/u)
+    const models = join(root, "packages/canonical-policy/src/canonical/models.ts")
+    const modelsSource = readFileSync(models, "utf8")
+    writeFileSync(
+      models,
+      modelsSource.replace('kind: Schema.Literal("prepare")', 'kind: Schema.Literal("roundStarted")')
+    )
+    const wrongCategory = run()
+    assert.notEqual(wrongCategory.status, 0)
+    assert.match(wrongCategory.stderr, /coverage/u)
+    writeFileSync(models, modelsSource)
     const adapter = join(root, "packages/canonical-policy/src/canonical/canonical-boundary.ts")
     const adapterSource = readFileSync(adapter, "utf8")
     writeFileSync(adapter, adapterSource.replace("encodeVariant(readCanonicalEvent(input))", "encodeVariant(input)"))

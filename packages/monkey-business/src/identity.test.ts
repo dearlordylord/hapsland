@@ -3,11 +3,11 @@ import { readFileSync } from "node:fs"
 import { expect, it } from "vitest"
 import { LOGIC_IDENTITY, PREPARATION_IDENTITY } from "./index.ts"
 
-it("replay names the exact shared engine and its consumed implementation", () => {
+it("replay names the exact common runner and its consumed implementation", () => {
   const manifest = JSON.parse(
-    readFileSync(new URL("../../monkey-business-bend/generated.json", import.meta.url), "utf8")
+    readFileSync(new URL("../../monkey-business-bend/run.generated.json", import.meta.url), "utf8")
   )
-  expect(LOGIC_IDENTITY).toBe(`shared-monkey-business-source-sha256:${manifest.identityHash}`)
+  expect(LOGIC_IDENTITY).toBe(`shared-monkey-business-runner-sha256:${manifest.identityHash}`)
 })
 
 it("replay names the exact import reducer and preparation composition", () => {

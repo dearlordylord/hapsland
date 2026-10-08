@@ -40,17 +40,39 @@ law completed_edit_history_reports_once:
     EditHistory.Seen{EditHistory.Consumed{}, False{}} : EditHistory.Lookup}
 
 law completed_edit_history_records_source_free_id:
-  {EditHistory.record(7n, EditHistory.Released{}, EditHistory.initial()) ==
-    EditHistory.Recorded{EditHistory.State{
-      EditHistory.Completed{7n, EditHistory.Released{}, False{}} <> Nil{}}, None{}} : EditHistory.Record}
+  {
+    EditHistory.record(7n, EditHistory.Released{}, EditHistory.initial())
+    == EditHistory.Recorded{
+      EditHistory.State{EditHistory.Completed{7n, EditHistory.Released{}, False{}} <> Nil{}},
+      None{}
+    }
+    : EditHistory.Record
+  }
 
 law completed_edit_history_threshold_branch_evicts_oldest:
-  {EditHistory.record_entries(9n, EditHistory.Closed{},
-    EditHistory.Completed{1n, EditHistory.Consumed{}, False{}} <>
-      EditHistory.Completed{2n, EditHistory.Released{}, False{}} <> Nil{}, 1000n) ==
-    EditHistory.Recorded{EditHistory.State{
-      EditHistory.Completed{2n, EditHistory.Released{}, False{}} <>
-        EditHistory.Completed{9n, EditHistory.Closed{}, False{}} <> Nil{}}, Some{1n}} : EditHistory.Record}
+  {
+    EditHistory.record_entries(
+      9n,
+      EditHistory.Closed{},
+      EditHistory.Completed{
+        1n,
+        EditHistory.Consumed{},
+        False{}
+      } <> EditHistory.Completed{2n, EditHistory.Released{}, False{}} <> Nil{},
+      1000n
+    )
+    == EditHistory.Recorded{
+      EditHistory.State{
+        EditHistory.Completed{
+          2n,
+          EditHistory.Released{},
+          False{}
+        } <> EditHistory.Completed{9n, EditHistory.Closed{}, False{}} <> Nil{}
+      },
+      Some{1n}
+    }
+    : EditHistory.Record
+  }
 
 law quiet_round_begins_only_when_quiet:
   {Quiescence.decide(None{}, 100n, 300n, False{}) == Quiescence.Busy{} : Quiescence.Decision}
@@ -59,10 +81,18 @@ law quiet_round_starts_at_first_quiet_observation:
   {Quiescence.decide(None{}, 100n, 300n, True{}) == Quiescence.Waiting{100n} : Quiescence.Decision}
 
 law quiet_round_waits_before_deadline:
-  {Quiescence.decide(Some{100n}, 399n, 300n, True{}) == Quiescence.Waiting{100n} : Quiescence.Decision}
+  {
+    Quiescence.decide(Some{100n}, 399n, 300n, True{})
+    == Quiescence.Waiting{100n}
+    : Quiescence.Decision
+  }
 
 law quiet_round_expires_at_deadline:
-  {Quiescence.decide(Some{100n}, 400n, 300n, True{}) == Quiescence.Expired{100n} : Quiescence.Decision}
+  {
+    Quiescence.decide(Some{100n}, 400n, 300n, True{})
+    == Quiescence.Expired{100n}
+    : Quiescence.Decision
+  }
 
 law quiet_round_activity_breaks_interval:
   {Quiescence.decide(Some{100n}, 400n, 300n, False{}) == Quiescence.Busy{} : Quiescence.Decision}
@@ -138,30 +168,105 @@ law canonical_capacity_reason_uses_first_exceeded_limit:
     Ledger.GlobalItemLimit{} : Ledger.FitDecision}
 
 law canonical_capacity_view_uses_bend_ledger_totals:
-  {Canonical.capacity_view(Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n},
-    3n, Ledger.Charge{1n, 1n, 10n, Ledger.ReviewUnit{}} <> Ledger.Charge{2n, 2n, 20n, Ledger.ReviewUnit{}} <> Nil{}}, 1n) ==
-    Canonical.CapacityView{Ledger.Usage{2n, 30n}, Ledger.Usage{1n, 10n},
-      Ledger.Charge{1n, 1n, 10n, Ledger.ReviewUnit{}} <> Ledger.Charge{2n, 2n, 20n, Ledger.ReviewUnit{}} <> Nil{}} :
-    Canonical.CapacityView}
+  {
+    Canonical.capacity_view(
+      Ledger.Ledger{
+        Ledger.Limits{3n, 100n, 2n, 60n},
+        3n,
+        Ledger.Charge{
+          1n,
+          1n,
+          10n,
+          Ledger.ReviewUnit{}
+        } <> Ledger.Charge{2n, 2n, 20n, Ledger.ReviewUnit{}} <> Nil{}
+      },
+      1n
+    )
+    == Canonical.CapacityView{
+      Ledger.Usage{2n, 30n},
+      Ledger.Usage{1n, 10n},
+      Ledger.Charge{
+        1n,
+        1n,
+        10n,
+        Ledger.ReviewUnit{}
+      } <> Ledger.Charge{2n, 2n, 20n, Ledger.ReviewUnit{}} <> Nil{}
+    }
+    : Canonical.CapacityView
+  }
 
 law canonical_released_capacity_rejects_duplicate:
-  {Canonical.capacity_release(Canonical.State{Ledger.Ledger{
-    Ledger.Limits{3n, 100n, 2n, 60n}, 2n, Nil{}},
-    Nil{}, Nil{}, 1n, 1n, Nil{}, Dispatch.initial(), CollectionState.initial(), EditHistory.initial()}, 1n) ==
-    Canonical.Rejected{Canonical.State{Ledger.Ledger{
-      Ledger.Limits{3n, 100n, 2n, 60n}, 2n, Nil{}},
-      Nil{}, Nil{}, 1n, 1n, Nil{}, Dispatch.initial(), CollectionState.initial(), EditHistory.initial()}, Canonical.StaleOperation{}} : Canonical.Step}
+  {
+    Canonical.capacity_release(
+      Canonical.State{
+        Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n}, 2n, Nil{}},
+        Nil{},
+        Nil{},
+        1n,
+        1n,
+        Nil{},
+        Dispatch.initial(),
+        CollectionState.initial(),
+        EditHistory.initial()
+      },
+      1n
+    )
+    == Canonical.Rejected{
+      Canonical.State{
+        Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n}, 2n, Nil{}},
+        Nil{},
+        Nil{},
+        1n,
+        1n,
+        Nil{},
+        Dispatch.initial(),
+        CollectionState.initial(),
+        EditHistory.initial()
+      },
+      Canonical.StaleOperation{}
+    }
+    : Canonical.Step
+  }
 
 law canonical_permit_issue_is_partitioned_and_round_bound:
-  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-    Canonical.IssuePermit{1n, 1n, 11n, 100n, 300n, 110n, 0n,
-      Admission.ProspectiveFacts{True{}, 2500n, 100n, 110n,
-        32n, 4096n}}) ==
-    Canonical.Advanced{Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Nil{}, Nil{}, 1n, 1n,
-      Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n,
-        Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial(), EditHistory.initial()},
-      Canonical.PermitIssued{1n, 1n} <> Nil{}} : Canonical.Step}
+  {
+    Canonical.step(
+      Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.IssuePermit{
+        1n,
+        1n,
+        11n,
+        100n,
+        300n,
+        110n,
+        0n,
+        Admission.ProspectiveFacts{True{}, 2500n, 100n, 110n, 32n, 4096n}
+      }
+    )
+    == Canonical.Advanced{
+      Canonical.State{
+        Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+        Nil{},
+        Nil{},
+        1n,
+        1n,
+        Admission.AdmissionState{
+          1n,
+          1n,
+          0n,
+          False{},
+          0n,
+          2n,
+          Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}
+        } <> Nil{},
+        Dispatch.initial(),
+        CollectionState.initial(),
+        EditHistory.initial()
+      },
+      Canonical.EventEstablished{Canonical.PermitIssued{1n, 1n}} <> Nil{}
+    }
+    : Canonical.Step
+  }
 
 law canonical_forget_inactive_admission_removes_identity:
   {Canonical.forget_admission(Canonical.State{
@@ -169,19 +274,57 @@ law canonical_forget_inactive_admission_removes_identity:
     Admission.AdmissionState{1n, 1n, 1n, False{}, 100n, 2n, Nil{}} <> Nil{},
     Dispatch.initial(), CollectionState.initial(), EditHistory.initial()}, 1n, 1n) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.AdmissionForgotten{} <> Nil{}} : Canonical.Step}
+      Canonical.EventEstablished{Canonical.AdmissionForgotten{}} <> Nil{}} : Canonical.Step}
 
 law canonical_forget_pending_admission_rejects:
-  {Canonical.forget_admission(Canonical.State{
-    Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}), Nil{}, Nil{}, 1n, 1n,
-    Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n,
-      Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}} <> Nil{},
-    Dispatch.initial(), CollectionState.initial(), EditHistory.initial()}, 1n, 1n) ==
-    Canonical.Rejected{Canonical.State{
-      Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}), Nil{}, Nil{}, 1n, 1n,
-      Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n,
-        Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}} <> Nil{},
-      Dispatch.initial(), CollectionState.initial(), EditHistory.initial()}, Canonical.WrongStage{}} : Canonical.Step}
+  {
+    Canonical.forget_admission(
+      Canonical.State{
+        Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+        Nil{},
+        Nil{},
+        1n,
+        1n,
+        Admission.AdmissionState{
+          1n,
+          1n,
+          0n,
+          False{},
+          0n,
+          2n,
+          Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}
+        } <> Nil{},
+        Dispatch.initial(),
+        CollectionState.initial(),
+        EditHistory.initial()
+      },
+      1n,
+      1n
+    )
+    == Canonical.Rejected{
+      Canonical.State{
+        Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+        Nil{},
+        Nil{},
+        1n,
+        1n,
+        Admission.AdmissionState{
+          1n,
+          1n,
+          0n,
+          False{},
+          0n,
+          2n,
+          Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}
+        } <> Nil{},
+        Dispatch.initial(),
+        CollectionState.initial(),
+        EditHistory.initial()
+      },
+      Canonical.WrongStage{}
+    }
+    : Canonical.Step
+  }
 
 law canonical_eviction_floor_rejects_old_edit_without_state_change:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
@@ -202,14 +345,37 @@ law canonical_pending_permit_counts_use_reducer_state:
     Nat.is_eq(Canonical.pending_resident_permits(two_pending_advicees()), 2n)) == True{} : Bool}
 
 law canonical_expired_permit_does_not_create_round:
-  {Canonical.step(Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-    Nil{}, Nil{}, 1n, 1n,
-    Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n, Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial(), EditHistory.initial()},
-    Canonical.ClosePermitRound{1n, 1n, 1n, 200n}) ==
-    Canonical.Rejected{Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Nil{}, Nil{}, 1n, 1n,
-      Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n, Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial(), EditHistory.initial()},
-      Canonical.PermitDenied{Admission.RoundAlreadyClosed{}}} : Canonical.Step}
+  {
+    Canonical.step(
+      Canonical.State{
+        Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+        Nil{},
+        Nil{},
+        1n,
+        1n,
+        Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n, Nil{}} <> Nil{},
+        Dispatch.initial(),
+        CollectionState.initial(),
+        EditHistory.initial()
+      },
+      Canonical.ClosePermitRound{1n, 1n, 1n, 200n}
+    )
+    == Canonical.Rejected{
+      Canonical.State{
+        Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+        Nil{},
+        Nil{},
+        1n,
+        1n,
+        Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n, Nil{}} <> Nil{},
+        Dispatch.initial(),
+        CollectionState.initial(),
+        EditHistory.initial()
+      },
+      Canonical.PermitDenied{Admission.RoundAlreadyClosed{}}
+    }
+    : Canonical.Step
+  }
 
 law ledger_resize_changes_purpose_without_new_reservation:
   {Ledger.resize_for(Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n}, 2n,
@@ -253,10 +419,40 @@ law import_graph_tree_limit_precedes_exclusion:
       ImportGraph.UnitIncomplete{ImportGraph.TreeLimit{}}} : ImportGraph.Step}
 
 law import_graph_cycle_does_not_request_source:
-  {ImportGraph.resolved(graph_limits(), ImportGraph.Edge{2n, 1n}, 1n, ImportGraph.Found{},
-    Nil{}, 1n <> Nil{}, 1n, 100n, 100n, 1n, False{}, False{}, False{}) ==
-    ImportGraph.Step{ImportGraph.Graph{ImportGraph.Ready{}, Nil{},
-      1n <> Nil{}, 1n, 100n, 100n, 1n, False{}, False{}, False{}, graph_limits()}, ImportGraph.NoCommand{}} : ImportGraph.Step}
+  {
+    ImportGraph.resolved(
+      graph_limits(),
+      ImportGraph.Edge{2n, 1n},
+      1n,
+      ImportGraph.Found{},
+      Nil{},
+      1n <> Nil{},
+      1n,
+      100n,
+      100n,
+      1n,
+      False{},
+      False{},
+      False{}
+    )
+    == ImportGraph.Step{
+      ImportGraph.Graph{
+        ImportGraph.Ready{},
+        Nil{},
+        1n <> Nil{},
+        1n,
+        100n,
+        100n,
+        1n,
+        False{},
+        False{},
+        False{},
+        graph_limits()
+      },
+      ImportGraph.NoCommand{}
+    }
+    : ImportGraph.Step
+  }
 
 law import_graph_full_tree_can_inspect_remaining_edges:
   {ImportGraph.next(graph_limits(), ImportGraph.Edge{2n, 1n} <> Nil{}, 1n <> Nil{},
@@ -373,19 +569,19 @@ law empty_expired_notice_key_is_removed:
 
 law current_finding_is_retained:
   {Work.evaluated_disposition(True{}, True{}) ==
-    Work.RetainFinding{} : Work.EvaluatedDisposition}
+    Work.FindingRetained{} : Work.EvaluatedDisposition}
 
 law stale_finding_is_retired:
   {Work.evaluated_disposition(True{}, False{}) ==
-    Work.RetireStaleFinding{} : Work.EvaluatedDisposition}
+    Work.StaleFindingRetired{} : Work.EvaluatedDisposition}
 
 law current_clear_settles_clear:
   {Work.evaluated_disposition(False{}, True{}) ==
-    Work.SettleClear{} : Work.EvaluatedDisposition}
+    Work.ClearSettled{} : Work.EvaluatedDisposition}
 
 law stale_clear_settles_unavailable:
   {Work.evaluated_disposition(False{}, False{}) ==
-    Work.SettleStaleClear{} : Work.EvaluatedDisposition}
+    Work.StaleClearSettled{} : Work.EvaluatedDisposition}
 
 law backend_failure_reports_backend:
   {Work.failure_disposition(True{}, False{}, False{}) ==
@@ -556,135 +752,154 @@ law expired_acknowledged_delivery_releases:
   {Delivery.finalize(1n, True{}, True{}) == Delivery.FinalExpired{} : Delivery.FinalDecision}
 
 law composed_delivery_retains_advice_for_reoffer:
-  {Delivery.finding_disposition(True{}, 0n) == Delivery.KeepForReoffer{} : Delivery.FindingDisposition}
+  {
+    Delivery.finding_disposition(True{}, 0n)
+    == Delivery.KeepForReoffer{}
+    : Delivery.FindingDisposition
+  }
 
 law noncomposed_partial_delivery_retains_remaining:
-  {Delivery.finding_disposition(False{}, 1n) == Delivery.KeepRemaining{} : Delivery.FindingDisposition}
+  {
+    Delivery.finding_disposition(False{}, 1n)
+    == Delivery.KeepRemaining{}
+    : Delivery.FindingDisposition
+  }
 
 law noncomposed_complete_delivery_retires_advice:
-  {Delivery.finding_disposition(False{}, 0n) == Delivery.RetireAdvice{} : Delivery.FindingDisposition}
+  {
+    Delivery.finding_disposition(False{}, 0n)
+    == Delivery.RetireAdvice{}
+    : Delivery.FindingDisposition
+  }
 
 law canonical_delivery_acknowledgement_uses_delivery_rule:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.DeliveryAcknowledgeCheck{1n, False{}}) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.DeliveryAckReady{} <> Nil{}} : Canonical.Step}
+      Canonical.PolicyDecided{Canonical.DeliveryAckReady{}} <> Nil{}} : Canonical.Step}
 
 law canonical_delivery_finalization_uses_delivery_rule:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.DeliveryFinalizeCheck{1n, True{}, True{}}) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.DeliveryFinalExpired{} <> Nil{}} : Canonical.Step}
+      Canonical.PolicyDecided{Canonical.DeliveryFinalExpired{}} <> Nil{}} : Canonical.Step}
 
 law canonical_delivery_disposition_uses_delivery_rule:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.DeliveryFindingDispositionCheck{False{}, 0n}) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.DeliveryRetireAdvice{} <> Nil{}} : Canonical.Step}
+      Canonical.PolicyDecided{Canonical.DeliveryRetireAdvice{}} <> Nil{}} : Canonical.Step}
 
 law canonical_delivery_submission_candidate_uses_delivery_rule:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.DeliverySubmissionCandidateCheck{Delivery.SubmissionFacts{
       True{}, True{}, True{}, True{}, True{}, True{}, True{}, True{}}}) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.DeliverySubmissionCandidate{} <> Nil{}} : Canonical.Step}
+      Canonical.PolicyDecided{Canonical.DeliverySubmissionCandidate{}} <> Nil{}} : Canonical.Step}
 
 law canonical_delivery_submission_batch_uses_delivery_rule:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.DeliverySubmissionBatchCheck{0n, True{}}) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.DeliveryBatchRelease{} <> Nil{}} : Canonical.Step}
+      Canonical.PolicyDecided{Canonical.DeliveryBatchRelease{}} <> Nil{}} : Canonical.Step}
 
 law canonical_delivery_credential_fold_uses_delivery_rule:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.DeliveryCredentialObserveCheck{False{}, False{}, False{}}) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.DeliveryCredentialInvalid{} <> Nil{}} : Canonical.Step}
+      Canonical.PolicyDecided{Canonical.DeliveryCredentialInvalid{}} <> Nil{}} : Canonical.Step}
 
 law canonical_delivery_final_credential_uses_delivery_rule:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.DeliveryFinalCredentialCheck{True{}, True{}}) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.DeliveryBatchRelease{} <> Nil{}} : Canonical.Step}
+      Canonical.PolicyDecided{Canonical.DeliveryBatchRelease{}} <> Nil{}} : Canonical.Step}
 
 law canonical_validation_route_retires_stale_owner:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.ValidationRouteCheck{True{}, Handoff.Stale{}}) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.RetireCandidate{} <> Nil{}} : Canonical.Step}
+      Canonical.PolicyDecided{Canonical.RetireCandidate{}} <> Nil{}} : Canonical.Step}
 
 law canonical_post_validation_releases_unfitting_candidate:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.PostValidationCheck{True{}, False{}, False{}}) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.ReleaseCandidate{} <> Nil{}} : Canonical.Step}
+      Canonical.PolicyDecided{Canonical.ReleaseCandidate{}} <> Nil{}} : Canonical.Step}
 
 law canonical_final_candidate_retires_expired_work:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.FinalCandidateCheck{True{}, True{}, True{}, True{}, True{}, True{}}) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.RetireCandidate{} <> Nil{}} : Canonical.Step}
+      Canonical.PolicyDecided{Canonical.RetireCandidate{}} <> Nil{}} : Canonical.Step}
 
 law canonical_stop_begin_requires_active_unowned_round:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.RoundBeginStopCheck{True{}, False{}, 1n}) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.RoundStopBegun{} <> Nil{}} : Canonical.Step}
+      Canonical.PolicyDecided{Canonical.RoundStopBegun{}} <> Nil{}} : Canonical.Step}
 
 law canonical_permit_only_round_is_inactive:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.RoundActivityCheck{True{}, True{}, 0n, False{}, 0n, 1n}) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.RoundInactive{} <> Nil{}} : Canonical.Step}
+      Canonical.PolicyDecided{Canonical.RoundInactive{}} <> Nil{}} : Canonical.Step}
 
 law canonical_stop_barrier_uses_continuations_since_claim:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.RoundBarrierCheck{True{}, 1n, 2n}) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.RoundBarrierRaised{} <> Nil{}} : Canonical.Step}
+      Canonical.PolicyDecided{Canonical.RoundBarrierRaised{}} <> Nil{}} : Canonical.Step}
 
 law canonical_deciding_stop_is_not_owned_for_new_decision:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.RoundOwnsStopCheck{True{}, True{}, True{}}) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.RoundStopNotOwned{} <> Nil{}} : Canonical.Step}
+      Canonical.PolicyDecided{Canonical.RoundStopNotOwned{}} <> Nil{}} : Canonical.Step}
 
 law canonical_provisional_stop_terminal_revokes_and_closes:
-  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-    Canonical.RoundStopTerminalCheck{True{}, False{}, False{}}) ==
-    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.RoundStopTerminal{True{}, True{}} <> Nil{}} : Canonical.Step}
+  {
+    Canonical.step(
+      Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.RoundStopTerminalCheck{True{}, False{}, False{}}
+    )
+    == Canonical.Advanced{
+      Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.PolicyDecided{Canonical.RoundStopTerminal{True{}, True{}}} <> Nil{}
+    }
+    : Canonical.Step
+  }
 
 law canonical_authorized_stop_expiry_keeps_round:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.RoundExpireCloseCheck{False{}, True{}}) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.RoundExpireKeeps{} <> Nil{}} : Canonical.Step}
+      Canonical.PolicyDecided{Canonical.RoundExpireKeeps{}} <> Nil{}} : Canonical.Step}
 
 law canonical_continuation_budget_exhausts_at_four:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.RoundContinuationBudgetCheck{True{}, 4n}) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.RoundContinuationExhausted{} <> Nil{}} : Canonical.Step}
+      Canonical.PolicyDecided{Canonical.RoundContinuationExhausted{}} <> Nil{}} : Canonical.Step}
 
 law canonical_background_submission_waits_behind_barrier:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.DeliverySubmissionAllowedCheck{True{}, True{}, False{},
       Delivery.Background{}, False{}, False{}}) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.DeliverySubmissionDenied{} <> Nil{}} : Canonical.Step}
+      Canonical.PolicyDecided{Canonical.DeliverySubmissionDenied{}} <> Nil{}} : Canonical.Step}
 
 law canonical_existing_stop_token_requires_finish_permit:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.DeliveryExistingTokenCheck{Delivery.Stop{}, True{}, False{}}) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.DeliveryExistingTokenDenied{} <> Nil{}} : Canonical.Step}
+      Canonical.PolicyDecided{Canonical.DeliveryExistingTokenDenied{}} <> Nil{}} : Canonical.Step}
 
 law canonical_unreserved_stop_output_denied_during_decision:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.DeliveryUnreservedStopCheck{True{}, True{}}) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.DeliveryUnreservedStopDenied{} <> Nil{}} : Canonical.Step}
+      Canonical.PolicyDecided{Canonical.DeliveryUnreservedStopDenied{}} <> Nil{}} : Canonical.Step}
 
 def reserved_output_selection() -> Lifecycle.OutputSelection:
   Lifecycle.OutputSelection{1n <> 2n <> Nil{}, False{}, False{}}
@@ -798,16 +1013,25 @@ law collector_collect_gate_proceeds_with_valid_authority:
     CollectorAuthority.CollectProceed{} : CollectorAuthority.CollectGate}
 
 law collector_collect_gate_blocks_credential_change:
-  {CollectorAuthority.collect_gate(False{}, False{}) ==
-    CollectorAuthority.CollectUnavailable{CollectorAuthority.Credential{}} : CollectorAuthority.CollectGate}
+  {
+    CollectorAuthority.collect_gate(False{}, False{})
+    == CollectorAuthority.CollectUnavailable{CollectorAuthority.Credential{}}
+    : CollectorAuthority.CollectGate
+  }
 
 law collector_collect_gate_blocks_expiry:
-  {CollectorAuthority.collect_gate(True{}, True{}) ==
-    CollectorAuthority.CollectUnavailable{CollectorAuthority.Expired{}} : CollectorAuthority.CollectGate}
+  {
+    CollectorAuthority.collect_gate(True{}, True{})
+    == CollectorAuthority.CollectUnavailable{CollectorAuthority.Expired{}}
+    : CollectorAuthority.CollectGate
+  }
 
 law collector_collect_gate_expiry_precedes_credential:
-  {CollectorAuthority.collect_gate(True{}, False{}) ==
-    CollectorAuthority.CollectUnavailable{CollectorAuthority.Expired{}} : CollectorAuthority.CollectGate}
+  {
+    CollectorAuthority.collect_gate(True{}, False{})
+    == CollectorAuthority.CollectUnavailable{CollectorAuthority.Expired{}}
+    : CollectorAuthority.CollectGate
+  }
 
 def submitted_background_lease() -> Handoff.Lease:
   Handoff.Lease{7n, 1n, False{}, False{}, Handoff.Submitted{Handoff.Background{}}}
@@ -1082,7 +1306,11 @@ law unconsumed_permit_cannot_close_a_round:
 # same item in one transition.
 law finding_enters_pending_advice:
   for item: Nat
-  {Advicing.receive_finding(Advicing.AtJev{item}) == Advicing.AdvicePending{item} : Advicing.PendingAdvice}
+  {
+    Advicing.receive_finding(Advicing.AtJev{item})
+    == Advicing.AdvicePending{item}
+    : Advicing.PendingAdvice
+  }
 
 # A finding for the first value leaves the second Jeview value unchanged.
 # This law allows both values to carry the same item ID.
@@ -1134,14 +1362,42 @@ law expired_permit_does_not_open_round:
     Admission.RemovePermit{permit_retired()} : Admission.ExpiryResult}
 
 law retired_tool_can_receive_new_permit_after_history_eviction:
-  {Admission.issue(permit_retired(), 42n, 21n, 30n, 22n) ==
-    Admission.Accepted{Admission.AdmissionState{7n, 3n, 0n, False{}, 0n, 3n,
-      Admission.Permit{2n, 42n, 1n, 21n, 30n} <> Nil{}}, Some{2n}, Some{1n}} : Admission.AdmissionResult}
+  {
+    Admission.issue(permit_retired(), 42n, 21n, 30n, 22n)
+    == Admission.Accepted{
+      Admission.AdmissionState{
+        7n,
+        3n,
+        0n,
+        False{},
+        0n,
+        3n,
+        Admission.Permit{2n, 42n, 1n, 21n, 30n} <> Nil{}
+      },
+      Some{2n},
+      Some{1n}
+    }
+    : Admission.AdmissionResult
+  }
 
 law retired_permit_does_not_prevent_fresh_tool:
-  {Admission.issue(permit_retired(), 43n, 21n, 30n, 22n) ==
-    Admission.Accepted{Admission.AdmissionState{7n, 3n, 0n, False{}, 0n, 3n,
-      Admission.Permit{2n, 43n, 1n, 21n, 30n} <> Nil{}}, Some{2n}, Some{1n}} : Admission.AdmissionResult}
+  {
+    Admission.issue(permit_retired(), 43n, 21n, 30n, 22n)
+    == Admission.Accepted{
+      Admission.AdmissionState{
+        7n,
+        3n,
+        0n,
+        False{},
+        0n,
+        3n,
+        Admission.Permit{2n, 43n, 1n, 21n, 30n} <> Nil{}
+      },
+      Some{2n},
+      Some{1n}
+    }
+    : Admission.AdmissionResult
+  }
 
 law unknown_permit_cannot_be_released:
   {Admission.step(permit_issued(), 7n, 3n, Admission.Release{2n}) ==
@@ -1152,9 +1408,23 @@ law consumed_permit_cannot_be_released:
     Admission.Rejected{permit_consumed(), Admission.NoPermit{}} : Admission.AdmissionResult}
 
 law consumed_tool_can_receive_new_permit_after_history_eviction:
-  {Admission.step(permit_consumed(), 7n, 3n, Admission.Issue{42n, 13n, 20n, 13n}) ==
-    Admission.Accepted{Admission.AdmissionState{7n, 3n, 1n, True{}, 0n, 3n,
-      Admission.Permit{2n, 42n, 1n, 13n, 20n} <> Nil{}}, Some{2n}, Some{1n}} : Admission.AdmissionResult}
+  {
+    Admission.step(permit_consumed(), 7n, 3n, Admission.Issue{42n, 13n, 20n, 13n})
+    == Admission.Accepted{
+      Admission.AdmissionState{
+        7n,
+        3n,
+        1n,
+        True{},
+        0n,
+        3n,
+        Admission.Permit{2n, 42n, 1n, 13n, 20n} <> Nil{}
+      },
+      Some{2n},
+      Some{1n}
+    }
+    : Admission.AdmissionResult
+  }
 
 law closure_fences_old_invocation:
   {Admission.step(
@@ -1232,10 +1502,31 @@ law unknown_unit_cannot_authorize_findings:
       Work.ReviewUnit{1n, 1n, Work.PendingFinding{}, 2n, 20n} <> Nil{}}, 2n) == 0n : Nat}
 
 law unfinished_unit_cannot_retire:
-  {Work.retire(Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
-      Work.ReviewUnit{1n, 1n, Work.AtJev{}, 0n, 0n} <> Nil{}}, 1n) ==
-    Work.Rejected{Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
-      Work.ReviewUnit{1n, 1n, Work.AtJev{}, 0n, 0n} <> Nil{}}, Work.UnitStillUnfinished{}} : Work.WorkStep}
+  {
+    Work.retire(
+      Work.Work{
+        2n,
+        2n,
+        Flow.Capacity{3n, 0n},
+        Flow.Capacity{3n, 0n},
+        Nil{},
+        Work.ReviewUnit{1n, 1n, Work.AtJev{}, 0n, 0n} <> Nil{}
+      },
+      1n
+    )
+    == Work.Rejected{
+      Work.Work{
+        2n,
+        2n,
+        Flow.Capacity{3n, 0n},
+        Flow.Capacity{3n, 0n},
+        Nil{},
+        Work.ReviewUnit{1n, 1n, Work.AtJev{}, 0n, 0n} <> Nil{}
+      },
+      Work.UnitStillUnfinished{}
+    }
+    : Work.WorkStep
+  }
 
 law terminal_finding_can_retire:
   {Work.retire(Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
@@ -1259,8 +1550,14 @@ law lowering_review_capacity_preserves_active_units:
       Work.ReviewUnit{4n, 1n, Work.ReviewQueued{}, 0n, 0n} <> Nil{}}, Nil{}} : Work.WorkStep}
 
 law zero_units_settle_quietly:
-  {Work.prepare(one_reading(), 1n, 0n) ==
-    Work.Accepted{Work.Work{2n, 1n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{}, Nil{}}, Nil{}} : Work.WorkStep}
+  {
+    Work.prepare(one_reading(), 1n, 0n)
+    == Work.Accepted{
+      Work.Work{2n, 1n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{}, Nil{}},
+      Nil{}
+    }
+    : Work.WorkStep
+  }
 
 law first_result_preserves_other_review_work:
   {Work.unfinished(Work.Work{2n, 3n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
@@ -1287,8 +1584,14 @@ law interrupted_review_is_terminal_before_finish:
       Work.ReviewUnit{1n, 1n, Work.InterruptedResult{}, 0n, 0n} <> Nil{}}, Nil{}} : Work.WorkStep}
 
 law interrupted_source_does_not_leave_unfinished_work:
-  {Work.interrupt_observation(one_reading(), 1n) ==
-    Work.Accepted{Work.Work{2n, 1n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{}, Nil{}}, Nil{}} : Work.WorkStep}
+  {
+    Work.interrupt_observation(one_reading(), 1n)
+    == Work.Accepted{
+      Work.Work{2n, 1n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{}, Nil{}},
+      Nil{}
+    }
+    : Work.WorkStep
+  }
 
 law decision_cancels_all_unfinished_but_keeps_advice:
   {Work.cancel_unfinished(Work.Work{2n, 3n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n},
@@ -1406,8 +1709,11 @@ def current_advice() -> Handoff.Advice:
   Handoff.Advice{7n, 4n, 9n, 1n, 2n, 2n, 3n, 3n, 25n, 300n, True{}}
 
 law handoff_selects_fitting_findings:
-  {Handoff.select(Handoff.initial(9n, 1n), current_advice(), 2048n) ==
-    Handoff.Selected{Handoff.Selection{9n, 1n, 7n <> Nil{}, Nil{}, 1n, 2048n}} : Handoff.SelectResult}
+  {
+    Handoff.select(Handoff.initial(9n, 1n), current_advice(), 2048n)
+    == Handoff.Selected{Handoff.Selection{9n, 1n, 7n <> Nil{}, Nil{}, 1n, 2048n}}
+    : Handoff.SelectResult
+  }
 
 law findings_fit_exact_byte_ceiling:
   {Handoff.fits_batch(5n, 10240n) == True{} : Bool}
@@ -1434,14 +1740,22 @@ law handoff_rejects_stale_credential:
     Handoff.Expired{Handoff.initial(9n, 1n)} : Handoff.SelectResult}
 
 law individually_oversized_finding_has_limitation:
-  {Handoff.select(Handoff.initial(9n, 1n),
-    Handoff.Advice{8n, 4n, 9n, 1n, 2n, 2n, 3n, 3n, 25n, 10241n, True{}}, 10241n) ==
-    Handoff.Limited{Handoff.Selection{9n, 1n, Nil{}, 8n <> Nil{}, 0n, 0n}, 8n} : Handoff.SelectResult}
+  {
+    Handoff.select(
+      Handoff.initial(9n, 1n),
+      Handoff.Advice{8n, 4n, 9n, 1n, 2n, 2n, 3n, 3n, 25n, 10241n, True{}},
+      10241n
+    )
+    == Handoff.Limited{Handoff.Selection{9n, 1n, Nil{}, 8n <> Nil{}, 0n, 0n}, 8n}
+    : Handoff.SelectResult
+  }
 
 law same_finding_cannot_be_selected_twice:
-  {Handoff.select(Handoff.Selection{9n, 1n, 7n <> Nil{}, Nil{}, 1n, 300n},
-    current_advice(), 400n) ==
-    Handoff.Duplicate{Handoff.Selection{9n, 1n, 7n <> Nil{}, Nil{}, 1n, 300n}} : Handoff.SelectResult}
+  {
+    Handoff.select(Handoff.Selection{9n, 1n, 7n <> Nil{}, Nil{}, 1n, 300n}, current_advice(), 400n)
+    == Handoff.Duplicate{Handoff.Selection{9n, 1n, 7n <> Nil{}, Nil{}, 1n, 300n}}
+    : Handoff.SelectResult
+  }
 
 law sixth_finding_from_same_unit_is_selected_when_bytes_fit:
   {Handoff.select(Handoff.Selection{9n, 1n,
@@ -1455,18 +1769,41 @@ law finish_waits_for_review_work:
     Handoff.Wait{Handoff.finish.initial(1n)} : Handoff.FinishResult}
 
 law finish_ignores_notice_without_findings:
-  {Handoff.finish.decide(Handoff.finish.initial(1n), 0n, False{}, 0n) ==
-    Handoff.Allow{Handoff.Finish{1n, False{}, True{}, 0n, False{}, 0n, 0n, 0n}} : Handoff.FinishResult}
+  {
+    Handoff.finish.decide(Handoff.finish.initial(1n), 0n, False{}, 0n)
+    == Handoff.Allow{Handoff.Finish{1n, False{}, True{}, 0n, False{}, 0n, 0n, 0n}}
+    : Handoff.FinishResult
+  }
 
 law finish_four_continuation_limit:
-  {Handoff.finish.decide(Handoff.Finish{1n, True{}, False{}, 4n, False{}, 0n, 0n, 0n}, 0n, False{}, 1n) ==
-    Handoff.Allow{Handoff.Finish{1n, False{}, True{}, 4n, False{}, 0n, 0n, 0n}} : Handoff.FinishResult}
+  {
+    Handoff.finish.decide(
+      Handoff.Finish{1n, True{}, False{}, 4n, False{}, 0n, 0n, 0n},
+      0n,
+      False{},
+      1n
+    )
+    == Handoff.Allow{Handoff.Finish{1n, False{}, True{}, 4n, False{}, 0n, 0n, 0n}}
+    : Handoff.FinishResult
+  }
 
 law completed_first_attempt_allows_second_continuation:
-  {Handoff.finish.decide(
-    Handoff.finish.complete(Handoff.Finish{1n, True{}, False{}, 1n, True{}, 1n, 7n, 10n}, 1n, 1n, 1n, 7n),
-    0n, False{}, 1n) ==
-    Handoff.Continue{Handoff.Finish{1n, True{}, False{}, 2n, True{}, 1n, 7n, 0n}} : Handoff.FinishResult}
+  {
+    Handoff.finish.decide(
+      Handoff.finish.complete(
+        Handoff.Finish{1n, True{}, False{}, 1n, True{}, 1n, 7n, 10n},
+        1n,
+        1n,
+        1n,
+        7n
+      ),
+      0n,
+      False{},
+      1n
+    )
+    == Handoff.Continue{Handoff.Finish{1n, True{}, False{}, 2n, True{}, 1n, 7n, 0n}}
+    : Handoff.FinishResult
+  }
 
 law original_finish_deadline_cannot_be_replaced:
   {Handoff.finish.start(Handoff.Finish{1n, True{}, False{}, 1n, False{}, 1n, 7n, 20n}, 1n) ==
@@ -1478,10 +1815,23 @@ law wrong_writer_cannot_complete_attempt:
     1n, 1n, 1n, 8n) == False{} : Bool}
 
 law next_attempt_gets_its_own_deadline:
-  {Handoff.finish.decide_at(
-    Handoff.finish.complete(Handoff.Finish{1n, True{}, False{}, 1n, True{}, 1n, 7n, 20n},
-      1n, 1n, 1n, 7n), 1n, 30n, 50n, 1n) ==
-    Handoff.Wait{Handoff.Finish{1n, True{}, False{}, 1n, False{}, 1n, 7n, 50n}} : Handoff.FinishResult}
+  {
+    Handoff.finish.decide_at(
+      Handoff.finish.complete(
+        Handoff.Finish{1n, True{}, False{}, 1n, True{}, 1n, 7n, 20n},
+        1n,
+        1n,
+        1n,
+        7n
+      ),
+      1n,
+      30n,
+      50n,
+      1n
+    )
+    == Handoff.Wait{Handoff.Finish{1n, True{}, False{}, 1n, False{}, 1n, 7n, 50n}}
+    : Handoff.FinishResult
+  }
 
 def background_reserved() -> Handoff.Lease:
   Handoff.Lease{7n, 1n, False{}, False{}, Handoff.Reserved{11n, Handoff.Background{}}}
@@ -1500,16 +1850,31 @@ law failed_provisional_lease_releases_item:
     Handoff.Granted{Handoff.lease.initial(7n, 1n)} : Handoff.LeaseResult}
 
 law authorized_writer_cannot_be_revoked:
-  {Handoff.lease.release(
-    Handoff.Lease{7n, 1n, False{}, False{}, Handoff.Authorized{11n, Handoff.Background{}}},
-    1n, 11n) ==
-    Handoff.Denied{Handoff.Lease{7n, 1n, False{}, False{}, Handoff.Authorized{11n, Handoff.Background{}}}} : Handoff.LeaseResult}
+  {
+    Handoff.lease.release(
+      Handoff.Lease{7n, 1n, False{}, False{}, Handoff.Authorized{11n, Handoff.Background{}}},
+      1n,
+      11n
+    )
+    == Handoff.Denied{
+      Handoff.Lease{7n, 1n, False{}, False{}, Handoff.Authorized{11n, Handoff.Background{}}}
+    }
+    : Handoff.LeaseResult
+  }
 
 law uncertain_background_can_reoffer_once:
-  {Handoff.lease.reoffer(
-    Handoff.Lease{7n, 1n, False{}, False{}, Handoff.Uncertain{Handoff.Background{}}},
-    1n, 12n, True{}) ==
-    Handoff.Granted{Handoff.Lease{7n, 1n, False{}, True{}, Handoff.Reserved{12n, Handoff.Stop{}}}} : Handoff.LeaseResult}
+  {
+    Handoff.lease.reoffer(
+      Handoff.Lease{7n, 1n, False{}, False{}, Handoff.Uncertain{Handoff.Background{}}},
+      1n,
+      12n,
+      True{}
+    )
+    == Handoff.Granted{
+      Handoff.Lease{7n, 1n, False{}, True{}, Handoff.Reserved{12n, Handoff.Stop{}}}
+    }
+    : Handoff.LeaseResult
+  }
 
 law closed_round_denies_late_writer:
   {Handoff.lease.authorize(Handoff.lease.close(background_reserved()), 1n, 11n) ==
@@ -1618,10 +1983,18 @@ law invalid_source_rung_is_omitted:
     RulePolicy.Omit{} : RulePolicy.Gate}
 
 law exact_threshold_is_not_a_finding:
-  {RulePolicy.finding(RulePolicy.Words{2n, 3n}, RulePolicy.Words{2n, 3n}) == RulePolicy.Omit{} : RulePolicy.Gate}
+  {
+    RulePolicy.finding(RulePolicy.Words{2n, 3n}, RulePolicy.Words{2n, 3n})
+    == RulePolicy.Omit{}
+    : RulePolicy.Gate
+  }
 
 law next_binary64_probability_is_a_finding:
-  {RulePolicy.finding(RulePolicy.Words{2n, 4n}, RulePolicy.Words{2n, 3n}) == RulePolicy.Admit{} : RulePolicy.Gate}
+  {
+    RulePolicy.finding(RulePolicy.Words{2n, 4n}, RulePolicy.Words{2n, 3n})
+    == RulePolicy.Admit{}
+    : RulePolicy.Gate
+  }
 
 law probability_precedes_rule_rank:
   {RulePolicy.rank_order(RulePolicy.Words{3n, 0n}, RulePolicy.Words{2n, 3n},
@@ -1647,13 +2020,30 @@ def closed_round_with_retired_permit() -> Admission.AdmissionState:
   Admission.AdmissionState{7n, 3n, 1n, False{}, 20n, 3n, Nil{}}
 
 law closure_retires_pending_permits:
-  {Admission.close_round(round_with_pending_permit(), 20n) ==
-    Admission.Accepted{closed_round_with_retired_permit(), None{}, Some{1n}} : Admission.AdmissionResult}
+  {
+    Admission.close_round(round_with_pending_permit(), 20n)
+    == Admission.Accepted{closed_round_with_retired_permit(), None{}, Some{1n}}
+    : Admission.AdmissionResult
+  }
 
 law closure_allows_fresh_reissue_after_history_eviction:
-  {Admission.issue(closed_round_with_retired_permit(), 43n, 21n, 30n, 22n) ==
-    Admission.Accepted{Admission.AdmissionState{7n, 3n, 1n, False{}, 20n, 4n,
-      Admission.Permit{3n, 43n, 2n, 21n, 30n} <> Nil{}}, Some{3n}, Some{2n}} : Admission.AdmissionResult}
+  {
+    Admission.issue(closed_round_with_retired_permit(), 43n, 21n, 30n, 22n)
+    == Admission.Accepted{
+      Admission.AdmissionState{
+        7n,
+        3n,
+        1n,
+        False{},
+        20n,
+        4n,
+        Admission.Permit{3n, 43n, 2n, 21n, 30n} <> Nil{}
+      },
+      Some{3n},
+      Some{2n}
+    }
+    : Admission.AdmissionResult
+  }
 
 # The insertion guard is universal over the existing round and whole state.
 # Trace checks separately exercise lookup and complete lifecycle transitions.
@@ -1671,32 +2061,82 @@ law canonical_edit_joins_existing_round_without_insertion:
   for partition: Nat
   for round: Nat
   for existing_round: Nat
-  {Canonical.consume_existing(original, updated, partition, 1n, round,
-    Some{Canonical.Round{partition, 1n, existing_round, False{}, False{}, None{}, False{}, None{}}}) ==
-    Canonical.Advanced{Canonical.with_quiet_round(updated, partition, None{}),
-      Canonical.PermitConsumed{round} <> Nil{}} : Canonical.Step}
+  {
+    Canonical.consume_existing(
+      original,
+      updated,
+      partition,
+      1n,
+      round,
+      Some{
+        Canonical.Round{partition, 1n, existing_round, False{}, False{}, None{}, False{}, None{}}
+      }
+    )
+    == Canonical.Advanced{
+      Canonical.with_quiet_round(updated, partition, None{}),
+      Canonical.EventEstablished{Canonical.PermitConsumed{round}} <> Nil{}
+    }
+    : Canonical.Step
+  }
 
 law canonical_round_invariant_failure_rolls_back:
   for original: Canonical.State
   for updated: Canonical.State
-  for commands: List<&2, Canonical.Command>
-  {Canonical.check_round_invariant(original, updated, commands, False{}) ==
+  for outputs: List<&2, Canonical.Output>
+  {Canonical.check_round_invariant(original, updated, outputs, False{}) ==
     Canonical.Rejected{original, Canonical.InconsistentLedger{}} : Canonical.Step}
 
 law canonical_duplicate_partitions_fail_even_across_lifetimes:
-  {Canonical.unique_rounds(
-    Canonical.Round{1n, 1n, 1n, False{}, False{}, None{}, False{}, None{}} <>
-    Canonical.Round{1n, 2n, 2n, False{}, False{}, None{}, False{}, None{}} <> Nil{}) == False{} : Bool}
+  {
+    Canonical.unique_rounds(
+      Canonical.Round{
+        1n,
+        1n,
+        1n,
+        False{},
+        False{},
+        None{},
+        False{},
+        None{}
+      } <> Canonical.Round{1n, 2n, 2n, False{}, False{}, None{}, False{}, None{}} <> Nil{}
+    )
+    == False{}
+    : Bool
+  }
 
 law canonical_post_state_duplicates_roll_back:
   for original: Canonical.State
-  for commands: List<&2, Canonical.Command>
-  {Canonical.check_step(original, Canonical.Advanced{
-    Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.Round{1n, 1n, 1n, False{}, False{}, None{}, False{}, None{}} <>
-      Canonical.Round{1n, 2n, 2n, False{}, False{}, None{}, False{}, None{}} <> Nil{},
-      Nil{}, 3n, 1n, Nil{}, Dispatch.initial(), CollectionState.initial(), EditHistory.initial()}, commands}) ==
-    Canonical.Rejected{original, Canonical.InconsistentLedger{}} : Canonical.Step}
+  for outputs: List<&2, Canonical.Output>
+  {
+    Canonical.check_step(
+      original,
+      Canonical.Advanced{
+        Canonical.State{
+          Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+          Canonical.Round{
+            1n,
+            1n,
+            1n,
+            False{},
+            False{},
+            None{},
+            False{},
+            None{}
+          } <> Canonical.Round{1n, 2n, 2n, False{}, False{}, None{}, False{}, None{}} <> Nil{},
+          Nil{},
+          3n,
+          1n,
+          Nil{},
+          Dispatch.initial(),
+          CollectionState.initial(),
+          EditHistory.initial()
+        },
+        outputs
+      }
+    )
+    == Canonical.Rejected{original, Canonical.InconsistentLedger{}}
+    : Canonical.Step
+  }
 
 law canonical_round_guard_preserves_rejections:
   for original: Canonical.State
@@ -1713,17 +2153,111 @@ law stop_bundle_failed_stage_keeps_original:
     SubmissionState.Denied{original} : SubmissionState.Decision}
 
 law stop_bundle_terminal_rejects_partial:
-  {SubmissionState.terminal_stop_token(SubmissionState.State{Nil{},
-    SubmissionState.Batch{1n, 1n, 1n, 8n, Handoff.Stop{}, Delivery.Authorized{}, Nil{}, 1n <> Nil{}} <>
-    SubmissionState.Batch{2n, 1n, 1n, 8n, Handoff.Stop{}, Delivery.Reserved{}, Nil{}, 2n <> Nil{}} <> Nil{}},
-    8n, True{}) == SubmissionState.Denied{SubmissionState.State{Nil{},
-    SubmissionState.Batch{1n, 1n, 1n, 8n, Handoff.Stop{}, Delivery.Authorized{}, Nil{}, 1n <> Nil{}} <>
-    SubmissionState.Batch{2n, 1n, 1n, 8n, Handoff.Stop{}, Delivery.Reserved{}, Nil{}, 2n <> Nil{}} <> Nil{}}} : SubmissionState.Decision}
+  {
+    SubmissionState.terminal_stop_token(
+      SubmissionState.State{
+        Nil{},
+        SubmissionState.Batch{
+          1n,
+          1n,
+          1n,
+          8n,
+          Handoff.Stop{},
+          Delivery.Authorized{},
+          Nil{},
+          1n <> Nil{}
+        } <> SubmissionState.Batch{
+          2n,
+          1n,
+          1n,
+          8n,
+          Handoff.Stop{},
+          Delivery.Reserved{},
+          Nil{},
+          2n <> Nil{}
+        } <> Nil{}
+      },
+      8n,
+      True{}
+    )
+    == SubmissionState.Denied{
+      SubmissionState.State{
+        Nil{},
+        SubmissionState.Batch{
+          1n,
+          1n,
+          1n,
+          8n,
+          Handoff.Stop{},
+          Delivery.Authorized{},
+          Nil{},
+          1n <> Nil{}
+        } <> SubmissionState.Batch{
+          2n,
+          1n,
+          1n,
+          8n,
+          Handoff.Stop{},
+          Delivery.Reserved{},
+          Nil{},
+          2n <> Nil{}
+        } <> Nil{}
+      }
+    }
+    : SubmissionState.Decision
+  }
 
 law stop_bundle_terminal_records_every_member:
-  {SubmissionState.terminal_stop_token(SubmissionState.State{Nil{},
-    SubmissionState.Batch{1n, 1n, 1n, 8n, Handoff.Stop{}, Delivery.Authorized{}, Nil{}, 1n <> Nil{}} <>
-    SubmissionState.Batch{2n, 1n, 1n, 8n, Handoff.Stop{}, Delivery.Authorized{}, Nil{}, 2n <> Nil{}} <> Nil{}},
-    8n, True{}) == SubmissionState.Granted{SubmissionState.State{Nil{},
-    SubmissionState.Batch{1n, 1n, 1n, 8n, Handoff.Stop{}, Delivery.Submitted{}, Nil{}, 1n <> Nil{}} <>
-    SubmissionState.Batch{2n, 1n, 1n, 8n, Handoff.Stop{}, Delivery.Submitted{}, Nil{}, 2n <> Nil{}} <> Nil{}}} : SubmissionState.Decision}
+  {
+    SubmissionState.terminal_stop_token(
+      SubmissionState.State{
+        Nil{},
+        SubmissionState.Batch{
+          1n,
+          1n,
+          1n,
+          8n,
+          Handoff.Stop{},
+          Delivery.Authorized{},
+          Nil{},
+          1n <> Nil{}
+        } <> SubmissionState.Batch{
+          2n,
+          1n,
+          1n,
+          8n,
+          Handoff.Stop{},
+          Delivery.Authorized{},
+          Nil{},
+          2n <> Nil{}
+        } <> Nil{}
+      },
+      8n,
+      True{}
+    )
+    == SubmissionState.Granted{
+      SubmissionState.State{
+        Nil{},
+        SubmissionState.Batch{
+          1n,
+          1n,
+          1n,
+          8n,
+          Handoff.Stop{},
+          Delivery.Submitted{},
+          Nil{},
+          1n <> Nil{}
+        } <> SubmissionState.Batch{
+          2n,
+          1n,
+          1n,
+          8n,
+          Handoff.Stop{},
+          Delivery.Submitted{},
+          Nil{},
+          2n <> Nil{}
+        } <> Nil{}
+      }
+    }
+    : SubmissionState.Decision
+  }

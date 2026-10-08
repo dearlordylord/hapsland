@@ -55,21 +55,32 @@ assert.match(eventReader, /freezeCanonicalData\(decodeEvent\(value\)\)/, "reader
 assert.match(eventReader, /canonicalEvents\.has\(value\)/)
 assert.match(eventReader, /canonicalEvents\.add\(event\)/)
 
-const bendCommands = bendConstructors("Command")
-const decodedCommands = matches(
-  between(adapter, "const commandDecoders:", "const decodeCommand ="),
+const bendOutputs = new Set(
+  ["ActionRequest", "DomainEvent", "PolicyDecision"].flatMap((type) => [...bendConstructors(type)])
+)
+const decodedOutputs = matches(
+  between(adapter, "const outputDecoders:", "const decodeOutput ="),
   /"Canonical\.([A-Z][A-Za-z0-9_]*)":/g
 )
-sameSet(decodedCommands, bendCommands, "Bend Command and runtime decoder coverage")
-const declaredCommandKinds = schemaKinds(
-  between(models, "export const CanonicalCommandSchema =", "export type CanonicalCommand =")
+sameSet(decodedOutputs, bendOutputs, "Bend Output and runtime decoder coverage")
+const declaredOutputKinds = schemaKinds(
+  between(models, "export const CanonicalActionRequestSchema =", "export type CanonicalOutput =")
 )
-const bendCommandKinds = new Set([...bendCommands].map((name) => name[0].toLowerCase() + name.slice(1)))
-sameSet(declaredCommandKinds, bendCommandKinds, "CanonicalCommand type and Bend Command coverage")
-assert.match(adapter, /Object\.hasOwn\(commandDecoders, name\)/)
-assert.match(adapter, /throw new TypeError\("unknown canonical command"\)/)
-for (const command of bendCommands) {
-  assert.ok(generated.includes(`"Canonical.${command}"`), `compiled Bend lacks Command ${command}`)
+const bendOutputKinds = new Set([...bendOutputs].map((name) => name[0].toLowerCase() + name.slice(1)))
+sameSet(declaredOutputKinds, bendOutputKinds, "CanonicalOutput type and Bend Output coverage")
+for (const [type, schema, next] of [
+  ["ActionRequest", "CanonicalActionRequestSchema", "CanonicalActionRequest"],
+  ["DomainEvent", "CanonicalDomainEventSchema", "CanonicalDomainEvent"],
+  ["PolicyDecision", "CanonicalPolicyDecisionSchema", "CanonicalPolicyDecision"]
+]) {
+  const declared = schemaKinds(between(models, `export const ${schema} =`, `export type ${next} =`))
+  const expected = new Set([...bendConstructors(type)].map((name) => name[0].toLowerCase() + name.slice(1)))
+  sameSet(declared, expected, `${type} semantic category coverage`)
+}
+assert.match(adapter, /Object\.hasOwn\(outputDecoders, name\)/)
+assert.match(adapter, /throw new TypeError\("unknown canonical output"\)/)
+for (const output of bendOutputs) {
+  assert.ok(generated.includes(`"Canonical.${output}"`), `compiled Bend lacks Output ${output}`)
 }
 
 const consumedTags = matches(
@@ -133,5 +144,5 @@ assert.match(adapter, /^export const CANONICAL_MAX_BYTES = 2 \*\* 47 - 1;?$/m)
 assert.match(adapter, /^export const CANONICAL_MAX_UNITS = 1024;?$/m)
 assert.match(adapter, /default:\s*throw new TypeError\("unknown canonical step"\)/)
 console.log(
-  `checked ${declaredEventKinds.size} event kinds, ${bendCommands.size} command variants, ${consumedTags.size} consumed tags, ${auditedConstructors} exact constructor schemas, and ${declaredExports.size} compiled exports`
+  `checked ${declaredEventKinds.size} event kinds, ${bendOutputs.size} output variants, ${consumedTags.size} consumed tags, ${auditedConstructors} exact constructor schemas, and ${declaredExports.size} compiled exports`
 )

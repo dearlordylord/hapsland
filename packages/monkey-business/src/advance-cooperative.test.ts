@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { createRun, Run, type AdvanceOptions } from "./index.ts"
+import { createRun, type Run, type AdvanceOptions } from "./index.ts"
 
 const snapshot = (run: Run) => ({
   observations: run.observations,
@@ -130,20 +130,53 @@ describe("cooperative Run advancement", () => {
   })
 
   it("chooses idle after normalization removes the last queued fact", () => {
-    const queue: unknown[] = [{}]
-    let normalizations = 0
-    const run = Object.create(Run.prototype) as Run
-    Object.defineProperties(run, {
-      clock: { value: 0, writable: true },
-      queue: { configurable: true, get: () => queue },
-      normalizeQuietWriterBoundary: {
-        value: () => {
-          normalizations++
-          queue.length = 0
-        }
+    const run = createRun({
+      inputs: [{ at: 0, kind: "edit", bytes: 10, unitBytes: [5], outcome: "finding" }],
+      preparationDelay: 2,
+      jevDelay: 5
+    })
+    run.advance({ untilTime: 0 })
+    const target = { partition: 1, lifetime: 1, round: 1, token: 51 }
+    run.applyControl({
+      kind: "backgroundWriter",
+      action: "claim",
+      agent: "agent-1",
+      capture: {
+        target,
+        claimStarted: 0,
+        claimLifetimeMs: 100,
+        capacity: 2,
+        response: { partition: 1, lifetime: 1, round: 1, started: 0, deadline: 30, admittedBlock: false }
       }
     })
-    expect(run.advance({ maxEvents: 0 })).toEqual({ reason: "idle", events: 0, now: 0 })
-    expect(normalizations).toBe(1)
+    run.advance({ untilTime: 7 })
+    run.applyControl({ kind: "backgroundWriter", action: "attempt", agent: "agent-1", target, currentBlock: false })
+    run.advance()
+    const background = run.observations.find(
+      (frame) => frame.event.kind === "submissionBegin" && frame.event.surface === "background"
+    )
+    expect(background).toBeDefined()
+    const terminal = run.observations.find(
+      (frame) =>
+        frame.event.kind === "submissionTerminal" &&
+        background?.event.kind === "submissionBegin" &&
+        frame.event.advice === background.event.advice &&
+        frame.callbackReceipt
+    )
+    expect(terminal?.callbackReceipt).toBeDefined()
+    expect(run.queuedFacts).toEqual([])
+
+    run.applyControl({ kind: "callback", action: "duplicate", target: terminal!.callbackReceipt!.target })
+    expect(run.queuedFacts).toHaveLength(1)
+    const before = {
+      events: run.eventCount,
+      takes: run.queueTakeCount,
+      normalizations: run.exportReplay().normalizations.length
+    }
+    expect(run.advance({ maxEvents: 0 })).toEqual({ reason: "idle", events: 0, now: run.now })
+    expect(run.queuedFacts).toEqual([])
+    expect(run.eventCount).toBe(before.events)
+    expect(run.queueTakeCount).toBe(before.takes)
+    expect(run.exportReplay().normalizations).toHaveLength(before.normalizations + 1)
   })
 })

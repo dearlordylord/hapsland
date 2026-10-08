@@ -49,7 +49,11 @@ function publicCases() {
     reportNotice(run, 2, 202)
     expect(run.projection.global.bytes).toBe(256)
     run.advance({ untilTime: time, maxEvents: 100 })
-    expect(collectNotice(run, 1)).toContainEqual({ kind: "noticeSelected", ids: time < 10 ? [101] : [] })
+    expect(collectNotice(run, 1)).toContainEqual({
+      category: "decision",
+      kind: "noticeSelected",
+      ids: time < 10 ? [101] : []
+    })
     expect(run.projection.notices.find((notice) => notice.partition === 2)?.pending).toBeDefined()
     expect(run.projection.notices.find((notice) => notice.partition === 1)?.pending !== undefined).toBe(time < 10)
     expect(run.projection.global.bytes).toBe(256)
@@ -68,7 +72,11 @@ function publicCases() {
     run.advance({ untilTime: 2, maxEvents: 100 })
     run.applyControl({ kind: "expiryProfile", profile: { pendingMs: 1000, leaseMs: 20, cooldownMs: 1000 } })
     run.advance({ untilTime: time, maxEvents: 100 })
-    expect(collectNotice(run, 1)).toContainEqual({ kind: "noticeSelected", ids: time < 4 ? [] : [101] })
+    expect(collectNotice(run, 1)).toContainEqual({
+      category: "decision",
+      kind: "noticeSelected",
+      ids: time < 4 ? [] : [101]
+    })
     expect(run.projection.notices.find((notice) => notice.partition === 1)?.pending?.leased).toBe(time < 4)
     expect(run.projection.notices.find((notice) => notice.partition === 2)?.pending?.leased).toBe(false)
     expect(run.projection.global.bytes).toBe(256)
@@ -80,10 +88,10 @@ function publicCases() {
     reportNotice(run, 1, 100 + seed)
     run.advance({ untilTime: deadline - 1, maxEvents: 100 })
     reportNotice(run, 1, 100 + seed)
-    expect(collectNotice(run, 1)).toContainEqual({ kind: "noticeSelected", ids: [100 + seed] })
+    expect(collectNotice(run, 1)).toContainEqual({ category: "decision", kind: "noticeSelected", ids: [100 + seed] })
     run.applyControl({ kind: "expiryProfile", profile: { pendingMs: 1000, leaseMs: 20, cooldownMs: 1000 } })
     run.advance({ untilTime: deadline, maxEvents: 100 })
-    expect(collectNotice(run, 1)).toContainEqual({ kind: "noticeSelected", ids: [] })
+    expect(collectNotice(run, 1)).toContainEqual({ category: "decision", kind: "noticeSelected", ids: [] })
     expect(run.projection.notices[0]?.pending).toBeUndefined()
     expect(run.projection.global.bytes).toBe(128)
     run.advance({ untilTime: deadline + 1, maxEvents: 100 })
@@ -102,9 +110,9 @@ function publicCases() {
   duplicate.advance({ untilTime: 3, maxEvents: 100 })
   duplicate.applyControl(lease)
   duplicate.advance({ untilTime: 3, maxEvents: 100 })
-  expect(collectNotice(duplicate, 1)).toContainEqual({ kind: "noticeSelected", ids: [] })
+  expect(collectNotice(duplicate, 1)).toContainEqual({ category: "decision", kind: "noticeSelected", ids: [] })
   duplicate.advance({ untilTime: 4, maxEvents: 100 })
-  expect(collectNotice(duplicate, 1)).toContainEqual({ kind: "noticeSelected", ids: [101] })
+  expect(collectNotice(duplicate, 1)).toContainEqual({ category: "decision", kind: "noticeSelected", ids: [101] })
   expect(duplicate.projection.notices[0]?.pending?.leased).toBe(false)
   results.push(boundary(duplicate))
   const released = capturedRun({
@@ -129,10 +137,10 @@ function publicCases() {
   released.applyControl(lease)
   released.advance({ untilTime: 3, maxEvents: 100 })
   released.advance({ untilTime: 4, maxEvents: 100 })
-  expect(collectNotice(released, 1)).toContainEqual({ kind: "noticeSelected", ids: [] })
+  expect(collectNotice(released, 1)).toContainEqual({ category: "decision", kind: "noticeSelected", ids: [] })
   expect(released.projection.notices[0]?.pending?.leased).toBe(true)
   released.advance({ untilTime: 23, maxEvents: 100 })
-  expect(collectNotice(released, 1)).toContainEqual({ kind: "noticeSelected", ids: [101] })
+  expect(collectNotice(released, 1)).toContainEqual({ category: "decision", kind: "noticeSelected", ids: [101] })
   expect(released.projection.notices[0]?.pending?.leased).toBe(false)
   results.push(boundary(released))
   return results

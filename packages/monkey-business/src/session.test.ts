@@ -127,7 +127,7 @@ describe("ongoing public sessions", () => {
       run.observations.some(
         (frame) =>
           frame.event.kind === "collectionExpiryCheck" &&
-          frame.commands.some((command) => command.kind === "collectionExpired")
+          frame.outputs.some((command) => command.kind === "collectionExpired")
       )
     ).toBe(true)
     expect(run.observations.some((frame) => frame.event.kind === "collectionRetireAdvice")).toBe(true)

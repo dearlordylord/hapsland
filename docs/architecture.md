@@ -143,7 +143,7 @@ Deterministic simulation adds a separate layer of evidence. [monkey-business](..
 
 An unsupported declaration, insufficient required evidence, unavailable credential, or refused admission can prevent review. Silence does not mean the code passed. [Status and doctor](status.md) explain observed activity and readiness without exposing source in diagnostics.
 
-The [interactive architecture dashboard](../packages/agent-flow-viz/README.md) replays checked decisions and source-free import scenarios. It distinguishes commands, observations, results, and output authorization. Its seeded simulation is an offline exploration tool; it does not monitor a live agent or call Jev, and simulated handoff does not establish that an agent used the advice.
+The [interactive architecture dashboard](../packages/agent-flow-viz/README.md) replays checked decisions and source-free import scenarios. It distinguishes action requests, established canonical events, policy decisions, observations, results, and output authorization. The canonical reducer emits all three output categories in one ordered stream; consumers retain that ordering rather than executing separate category streams. Its seeded simulation is an offline exploration tool; it does not monitor a live agent or call Jev, and simulated handoff does not establish that an agent used the advice.
 
 ## Compiler and executable ownership
 

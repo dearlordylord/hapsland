@@ -12,7 +12,7 @@ it("dispatches review jobs through checked cohorts and new edits reattempt after
   run.advance({ untilTime: 10 })
   expect(run.projection.dispatch.running).toEqual([])
   expect(
-    run.observations.some((frame) => frame.commands.some((command) => command.kind === "jevRequestUnavailable"))
+    run.observations.some((frame) => frame.outputs.some((command) => command.kind === "jevRequestUnavailable"))
   ).toBe(true)
   run.applyControl({ kind: "environment", currentWork: true, credentialReady: true })
   run.schedule({ ...edit, at: 11 })
@@ -150,7 +150,7 @@ it("credential rotation during an in-flight request cannot relabel its eventual 
   run.advance({ untilTime: 2 })
   run.applyControl({ kind: "environment", currentWork: true, credentialReady: true, credentialGeneration: 2 })
   run.advance({ untilTime: 23 })
-  expect(run.observations.some((frame) => frame.commands.some((command) => command.kind === "retainFinding"))).toBe(
+  expect(run.observations.some((frame) => frame.outputs.some((command) => command.kind === "findingRetained"))).toBe(
     true
   )
   expect(run.projection.pendingFindings).toEqual([])

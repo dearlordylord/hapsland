@@ -1,4 +1,4 @@
-import type { CanonicalCommand } from "@hapsland/canonical-policy/canonical/adapter"
+import type { CanonicalOutput } from "@hapsland/canonical-policy/canonical/adapter"
 import type { CapacityLedger, CapacityReservation } from "./capacity.ts"
 import type { OperationalNotice, OperationalNoticeKind } from "./collection.ts"
 import { canonicalValue } from "@hapsland/review-definition/direct-event/model"
@@ -86,17 +86,17 @@ export const noticeRecordOperations = (
       elapsed: Number.isNaN(elapsed) ? 0 : Math.floor(elapsed),
       lifetime: lifetimeMs
     })
-    const command = result.commands[0]?.kind
+    const command = result.outputs[0]?.kind
     if (result.rejection !== undefined || (command !== "collectionExpired" && command !== "collectionCurrent"))
       throw new Error("canonical notice expiry refused")
     return command === "collectionExpired"
   }
   function noticeTransition(
     event: Extract<Parameters<CapacityLedger["transition"]>[0], { readonly kind: `notice${string}` }>,
-    expected: Extract<CanonicalCommand, { readonly kind: `notice${string}` }>["kind"]
+    expected: Extract<CanonicalOutput, { readonly kind: `notice${string}` }>["kind"]
   ) {
     const result = owner.transition(event)
-    const command = result.commands[0]
+    const command = result.outputs[0]
     if (result.rejection !== undefined || command?.kind !== expected) {
       throw new Error(`canonical notice transition refused: ${event.kind}`)
     }
@@ -142,7 +142,7 @@ export const noticeRecordOperations = (
   function applyPendingPrune(
     pending: PendingNotice | undefined,
     cooldown: NoticeCooldown,
-    prune: Extract<CanonicalCommand, { kind: "noticePruned" }>
+    prune: Extract<CanonicalOutput, { category: "event"; kind: "noticePruned" }>
   ): void {
     if (pending !== undefined) {
       if (prune.dropLease) delete pending.delivery
@@ -217,7 +217,7 @@ export const noticeRecordOperations = (
   }
 
   function refreshNotice(
-    action: CanonicalCommand,
+    action: CanonicalOutput,
     retained: NoticeCooldown | undefined,
     kind: OperationalNoticeKind,
     proposed: number,
@@ -225,13 +225,13 @@ export const noticeRecordOperations = (
   ): void {
     const current = requireRetainedNotice(retained, "canonical notice refresh lost native key")
     switch (action.kind) {
-      case "noticeCreatePending":
+      case "noticePendingCreated":
         createPendingNotice(current, kind, action.count, proposed, now)
         break
-      case "noticeMergePending":
+      case "noticePendingMerged":
         mergePendingNotice(current, kind, action.count, now)
         break
-      case "noticeKeepLeased":
+      case "noticeLeaseKept":
         keepLeasedNotice(current, now)
         break
     }
@@ -250,9 +250,9 @@ export const noticeRecordOperations = (
       sequence: proposed,
       maxCount: 2 ** 48 - 1
     })
-    if (advance.rejection !== undefined || advance.commands.length !== 1)
+    if (advance.rejection !== undefined || advance.outputs.length !== 1)
       throw new Error("canonical notice advance refused")
-    const action = advance.commands[0]
+    const action = advance.outputs[0]
     if (action === undefined) throw new Error("canonical notice advance lacks command")
     return { proposed, action }
   }
@@ -272,12 +272,12 @@ export const noticeRecordOperations = (
       case "noticeSuppressed":
         suppressNotice(retained, action.count)
         return
-      case "noticeCreatePending":
-      case "noticeMergePending":
-      case "noticeKeepLeased":
+      case "noticePendingCreated":
+      case "noticePendingMerged":
+      case "noticeLeaseKept":
         refreshNotice(action, retained, kind, proposed, now)
         return
-      case "noticeCreateKey":
+      case "createNoticeKey":
         createNoticeCooldown(key, retained, partition, kind, now)
         return
       default:
@@ -310,7 +310,7 @@ export const noticeRecordOperations = (
       sequence: pendingId,
       maximumKeys
     })
-    if (committed.rejection !== undefined || committed.commands[0]?.kind !== "noticeCommitted") {
+    if (committed.rejection !== undefined || committed.outputs[0]?.kind !== "noticeCommitted") {
       owner.release(reservation)
       throw new Error("canonical notice commit refused")
     }
