@@ -109,6 +109,14 @@ source is not captured. This preserves the bounded
 
 ## Opt-in local inspection
 
+Function preparation distinguishes edited overload groups (`function-overload`),
+unsupported callable forms (`unsupported-callable`), unavailable extraction
+(`function-analysis-unavailable`) and files with no supported function roots
+(`no-supported-function-root`). These are preparation observations, not classifier
+findings or clear results. The [callable profile](type-function-review-proposal.md#named-typescript-callables-254)
+defines supported const-arrow and Effect forms and the retained limits.
+
+
 | Use | Command | Page source |
 | --- | --- | --- |
 | Development | `npm run dev:inspection` from the repository root | Current checkout, with automatic browser reload |

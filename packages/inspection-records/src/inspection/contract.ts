@@ -271,7 +271,11 @@ export const InspectionFact = Schema.Union([
       "missing-evidence",
       "unsupported-reference",
       "reference-limit",
-      "ambiguous-update"
+      "ambiguous-update",
+      "function-analysis-unavailable",
+      "function-overload",
+      "unsupported-callable",
+      "no-supported-function-root"
     ])
   }),
   Schema.Struct({

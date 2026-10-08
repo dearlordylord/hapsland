@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-10-08T22:29:04.505Z",
+  "scenario": "callable-review",
+  "runtime": "codex-cli 0.155.1",
+  "mode": "controlled-offline",
+  "archiveSha256": "d50cf481c3e0e5d6c53ff6e77070f08f438525e698b9631885ac31e3c0bd4c84",
+  "runtimeAssets": {
+    "sha256": "3183c452389540c102444a2870e12098b2a79eb75c1eafb2e23f543d3b14c9a9",
+    "files": 27
+  },
+  "operatingSystem": "linux",
+  "architecture": "arm64",
+  "units": [
+    {
+      "name": "run",
+      "completeness": "complete",
+      "receiptId": "db647813-eb60-4f5d-8573-91b73ac7088c",
+      "evaluationId": "e58665ff-6924-4b9d-85b5-ab42bc437176"
+    },
+    {
+      "name": "wrapped",
+      "completeness": "complete",
+      "receiptId": "1fc9ba3f-92f8-4b93-b2c6-8157b1ff1a06",
+      "evaluationId": "8b69c51c-a453-419c-997f-51c2a0804443"
+    },
+    {
+      "name": "untraced",
+      "completeness": "complete",
+      "receiptId": "300429d1-c2cd-4d1d-b71f-09d34937ead0",
+      "evaluationId": "7f93e268-cc28-4aa8-95f2-4c9ae2e6ceba"
+    }
+  ],
+  "checks": {
+    "nativeUpdate": true,
+    "admission": true,
+    "preparation": true,
+    "classifierOutcomes": true,
+    "overloadIsolation": true,
+    "unsupportedCallable": true,
+    "publicHttp": true,
+    "browser": true,
+    "reload": true,
+    "replay": true
+  }
+}

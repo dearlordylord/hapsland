@@ -77,8 +77,15 @@ describe("function binding safety property", () => {
 
   it("never treats a local shadow or write as a complete edge to a same-named top-level function", () => {
     fc.assert(
-      fc.property(identifier, localForm, (name, form) => {
-        const source = `function ${name}() {} ${shadowOrWrite(name, form)}`
+      fc.property(identifier, localForm, fc.constantFrom("declaration", "arrow", "effect"), (name, form, rootForm) => {
+        const declaration = shadowOrWrite(name, form)
+        const callable =
+          rootForm === "arrow"
+            ? declaration.replace("function run(", "const run = (").replace(") {", ") => {")
+            : rootForm === "effect"
+              ? declaration.replace("function run(", "const run = Effect.fnUntraced(function* (") + ");"
+              : declaration
+        const source = `import { Effect } from "effect"; function ${name}() {} ${callable}`
         const file = analyzeFunctionFile("a.ts", source)
         expect(file).toBeDefined()
         if (file === undefined) return false

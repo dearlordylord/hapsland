@@ -118,15 +118,58 @@ amend the contracts below.
 | `direct-event/type-shape/v1` | One uniquely named TypeScript `interface` or `type` alias in `.ts`, `.tsx`, `.mts`, or `.cts` | Exact root declaration and outbound named-type reference graph within graph limits with marked omissions, following local imports the analyzer resolves across selected files | Declaration merging, ambiguous binding, unsupported graph syntax, unresolved or excluded evidence needed by a selected rule |
 | `direct-event/type-shape/v1` | One uniquely named, explicit top-level Bend `type` in `.bend` | Exact datatype declaration, constructors, and outbound named-type references within the same file or through explicit relative `.bend` alias imports, subject to graph limits | Dependent/computed types, unsupported surface syntax, hub/bare/absolute imports, ambiguous binding, or missing evidence required by a selected rule |
 | `direct-event/type-shape/v1` | One uniquely named, explicit top-level Rust `struct`, `enum`, or `type` alias in `.rs` | Exact root declaration and outbound named-type references within graph limits across verified local Cargo modules | Conditional compilation, macro-dependent declarations, unsupported type syntax, ambiguous binding, unresolved module/external paths, or missing evidence needed by a selected rule |
-| `direct-event/function/v1` | One uniquely named, top-level TypeScript function declaration in those extensions | Exact signature and body and directly referenced type and named-function graph within graph limits with marked omissions, following local imports the analyzer resolves across selected files | Anonymous functions, methods, overload groups without unique implementation, dynamic/computed calls, unresolved or excluded evidence needed by a selected rule |
+| `direct-event/function/v1` | One uniquely named, top-level TypeScript function declaration or supported immutable const callable in those extensions | Exact signature and body and directly referenced type and named-function graph within graph limits with marked omissions, following local imports the analyzer resolves across selected files | Unbound anonymous functions, methods, overload groups, mutable/dynamic callable bindings, dynamic/computed calls, unresolved or excluded evidence needed by a selected rule |
 
 These contract IDs replace the former production
 `direct-event/same-file-named-types/v1` input. A type declaration and function with the
-same spelling remain different artifacts. Function-like values assigned to
-variables, class methods, callbacks, constructors, accessors, schemas, namespaces,
+same spelling remain different artifacts. Mutable or unsupported function-like values,
+class methods, callbacks, constructors, accessors, schemas, namespaces,
 and independently selected cross-file roots are deferred. A referenced declaration
 in another file is supporting evidence, not a new changed root. The function branch must identify its body and
 signature together; signature-only input cannot answer body-dependent rules.
+
+### Named TypeScript callables (#254)
+
+The #254 implementation request expands the existing function contract in place;
+input, rule, IPC and inspection formats remain version 1. A supported const
+callable is a single top-level `const` declarator with an identifier binding and
+an arrow initializer, including async arrows, expression/block bodies, generic
+parameters and an explicit callable type annotation. Its artifact retains the
+exact complete declaration, export marker, signature and body. The declaration's
+half-open location includes its header, so a verified body or header edit selects
+that root; an unrelated sibling does not become a changed root. Ordinary binding,
+type/call reference, graph, confidentiality, source and resident limits apply.
+
+The same representation supports a single inline arrow, anonymous function or
+generator argument to `Effect.fn`, `Effect.fn("literal label")` or
+`Effect.fnUntraced`. `Effect` must be established by a value import of
+`{ Effect }` from `effect`, or a namespace import from `effect/Effect`; import
+aliases are supported. The known wrapper is part of the exact artifact source,
+not a separately expanded external-package dependency. References inside the
+inline callable and its signature remain subject to ordinary evidence gates.
+Type-only imports, shadowed wrapper bindings, computed/dynamic wrapper names or
+labels or wrapper type arguments, additional transform arguments, multiple declarators and mutable
+bindings do not establish supported callable roots. Methods, top-level test
+callbacks, factories and arbitrary wrapper composition remain deferred.
+
+Overload groups are excluded as a group, including their implementation. A
+supported neighboring root may proceed independently; referencing an excluded
+implementation remains incomplete evidence. The inspector reports
+`function-overload` for an edited excluded group and `unsupported-callable` for
+an observed unsupported callable form. Unavailable function analysis and absence
+of supported function roots have function-specific explanations rather than
+borrowing a failed type analyzer's `import` reason. Missing or ambiguous binding
+evidence remains explicit in completeness and omission records. A rule lacking
+required evidence does not run and cannot receive a clear/no-finding result;
+rules whose required evidence is present retain the existing
+`incomplete-irrelevant` path. These facts survive the existing
+version-one inspection validation, rendering and replay boundaries.
+
+Preflight reserves the newly supported roots before materialization. The existing
+64-declaration ceiling is retained, including functions, types and named callable exclusions; a file that
+exceeds it cannot publish a partial function map. Large ordinary files may still
+be refused by declaration or workspace limits. Supporting new callable syntax
+is not a promise to review every declaration in an arbitrarily large file.
 
 Rust uses the active type-shape v1 input, with local cross-file projection. Rust
 functions and external-crate resolution are deferred. Parsing a

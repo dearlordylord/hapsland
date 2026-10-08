@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "authority": "current-source validation evidence, not installed review or historical receipt causality",
+  "observedAt": "2026-10-08T21:34:47.161Z",
+  "path": "packages/orchestrator/src/coordination/run/recovery-activation.ts",
+  "sourceBytes": 232919,
+  "sourceSha256": "20ddd2d4d292fb0923cf5134b26c3ff42e473fc65494ad2a06275bd27ef2e783",
+  "fullFile": {
+    "analysisAvailable": true,
+    "reason": "declaration-limit",
+    "functionsPublished": 0
+  },
+  "actualPattern": {
+    "target": "pendingActiveRefreshG2OperationFor",
+    "recognizedInSyntax": true,
+    "exactDeclarationOnly": true,
+    "completeDependencyEvidence": false
+  },
+  "limitsChanged": false,
+  "sourceEdits": 0,
+  "classifierCalls": 0
+}

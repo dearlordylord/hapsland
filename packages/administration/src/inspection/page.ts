@@ -349,7 +349,11 @@ function omissionLabel(reason) {
     'file-extension': 'Unsupported file extension',
     'git-administrative-path': 'Git administrative path',
     'unsafe-file-kind': 'Symlink or non-regular file',
-    'path-observation-unavailable': 'Filesystem or Git observation unavailable'
+    'path-observation-unavailable': 'Filesystem or Git observation unavailable',
+    'function-analysis-unavailable': 'Function extraction is unavailable under the supported syntax and binding profile',
+    'function-overload': 'Overload group excluded; its implementation is not review evidence',
+    'unsupported-callable': 'Callable form is outside the supported named const-arrow and Effect wrapper profile',
+    'no-supported-function-root': 'No supported top-level named function or const callable was found'
   };
   return labels[reason] || reason;
 }

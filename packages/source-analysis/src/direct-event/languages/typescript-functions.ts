@@ -7,8 +7,10 @@ import type {
   FunctionArtifact,
   FunctionDeclarationFact,
   TypeDeclarationFact,
-  FunctionFileAnalysis
+  FunctionFileAnalysis,
+  FunctionExclusion
 } from "./function-facts.ts"
+import { MAX_TYPE_DECLARATIONS } from "./contracts.ts"
 const extensions = new Set([".ts", ".tsx", ".mts", ".cts"])
 const intrinsicTypes = new Set([
   "Array",
@@ -135,9 +137,13 @@ const inspectFunctionBinding = (child: SyntaxNode, scope: FunctionScope, boundFu
   }
   markUncertainBinding(child, scope)
 }
-const functionScope = (children: readonly SyntaxNode[], boundFunctions: ReadonlySet<string>): FunctionScope => {
+const functionScope = (
+  children: readonly SyntaxNode[],
+  boundFunctions: ReadonlySet<string>,
+  lexicalArguments: boolean
+): FunctionScope => {
   const scope: FunctionScope = {
-    localBindings: new Set(["arguments"]),
+    localBindings: new Set(lexicalArguments ? [] : ["arguments"]),
     unsupportedBindings: [],
     uncertainBinding: false
   }
@@ -186,7 +192,7 @@ const functionValueSites = (
   scope: FunctionScope,
   valueFunctions: ReadonlySet<string>
 ): ReferenceSite[] => {
-  const declarationName = node.namedChildren.find((child) => child.type === "identifier")
+  const declarationName = node.childForFieldName("name") ?? undefined
   const values: ReferenceSite[] = []
   for (const child of children) {
     if (unsupportedValueSyntax.has(child.type)) {
@@ -249,7 +255,9 @@ const functionReferences = (
   valueFunctions: ReadonlySet<string>
 ): FunctionReference[] => {
   const children = descendants(node)
-  const scope = functionScope(children, boundFunctions)
+  const scope = functionScope(children, boundFunctions, node.type === "arrow_function")
+  const parameter = node.childForFieldName("parameter")
+  if (parameter?.type === "identifier") scope.localBindings.add(parameter.text)
   const calls = functionCallSites(children, scope)
   const values = functionValueSites(node, children, scope, valueFunctions)
   // A function can share a type's name: its return annotation must still have
@@ -267,6 +275,7 @@ type FunctionAnalysisState = {
   readonly types: Map<string, TypeDeclarationFact>
   readonly imports: ReadonlyMap<string, ImportBinding>
   readonly signatures: ReadonlySet<string>
+  readonly excludedFunctions: Map<string, FunctionExclusion>
   readonly boundTypes: ReadonlySet<string>
   readonly boundFunctions: ReadonlySet<string>
   readonly valueFunctions: ReadonlySet<string>
@@ -293,6 +302,12 @@ const collectImportSpecifiers = (
   module: string,
   imports: Map<string, ImportBinding>
 ): boolean => {
+  const namespace = clause.namedChildren.find((child) => child.type === "namespace_import")
+  if (namespace !== undefined) {
+    const local = declarationName(namespace, "identifier")
+    if (local === undefined || imports.has(local)) return false
+    imports.set(local, { path: module, name: "*", typeOnly: /^import\s+type\b/u.test(node.text) })
+  }
   for (const specifier of descendants(clause).filter((child) => child.type === "import_specifier")) {
     const names = specifier.namedChildren.filter((child) => child.type === "identifier")
     const imported = names[0]?.text
@@ -329,12 +344,84 @@ const boundTypeNames = (
   }
   return names
 }
+type CallableDeclaration = {
+  readonly name: SyntaxNode
+  readonly callable: SyntaxNode
+  readonly declaration: SyntaxNode
+}
+const effectWrapper = (callee: SyntaxNode, imports: ReadonlyMap<string, ImportBinding>): boolean => {
+  if (callee.namedChildren.some((child) => child.type === "type_arguments")) return false
+  const selected = callee.type === "call_expression" ? callee.childForFieldName("function") : callee
+  if (selected?.type !== "member_expression") return false
+  const object = selected.childForFieldName("object")
+  const method = selected.childForFieldName("property")?.text
+  if (object?.type !== "identifier" || (method !== "fn" && method !== "fnUntraced")) return false
+  const binding = imports.get(object.text)
+  if (binding?.typeOnly || binding === undefined) return false
+  if (
+    !(
+      (binding.path === "effect" && binding.name === "Effect") ||
+      (binding.path === "effect/Effect" && binding.name === "*")
+    )
+  )
+    return false
+  if (callee.type !== "call_expression") return true
+  const labels = callee.childForFieldName("arguments")?.namedChildren
+  return method === "fn" && labels?.length === 1 && labels[0]?.type === "string"
+}
+const callableValue = (value: SyntaxNode, imports: ReadonlyMap<string, ImportBinding>): SyntaxNode | undefined => {
+  if (value.type === "arrow_function") return value
+  if (value.type !== "call_expression" || value.namedChildren.some((child) => child.type === "type_arguments"))
+    return undefined
+  const callee = value.childForFieldName("function")
+  const args = value.childForFieldName("arguments")?.namedChildren
+  if (callee === null || callee === undefined || !effectWrapper(callee, imports) || args?.length !== 1) return undefined
+  const body = args[0]!
+  return ["arrow_function", "function_expression", "generator_function"].includes(body.type) ? body : undefined
+}
+const constCallable = (
+  node: SyntaxNode,
+  imports: ReadonlyMap<string, ImportBinding>
+): CallableDeclaration | undefined => {
+  if (node.type !== "lexical_declaration" || !/^const\b/u.test(node.text)) return undefined
+  const declarators = node.namedChildren.filter((child) => child.type === "variable_declarator")
+  if (declarators.length !== 1) return undefined
+  const name = declarators[0]!.childForFieldName("name")
+  const value = declarators[0]!.childForFieldName("value")
+  const callable = value === null || value === undefined ? undefined : callableValue(value, imports)
+  return name?.type === "identifier" && callable !== undefined ? { name, callable, declaration: node } : undefined
+}
+/** Same callable classification is used by extraction and bounded materialization preflight. */
+export const functionDeclarationNodes = (
+  root: SyntaxNode
+): readonly { readonly node: SyntaxNode; readonly name: string }[] => {
+  const top = root.namedChildren.flatMap((child) =>
+    child.type === "export_statement" ? child.namedChildren.filter((item) => item.type !== "export_clause") : [child]
+  )
+  const imports = collectFunctionImports(top)
+  // Imports unavailable for binding do not imply that an otherwise rootless
+  // valid file needs unknown analyzer workspace.
+  const signatures = signatureNames(top)
+  const result: { node: SyntaxNode; name: string }[] = []
+  for (const node of top) {
+    if (node.type === "function_declaration") {
+      const name = declarationName(node, "identifier")
+      if (name !== undefined && !signatures.has(name)) result.push({ node, name })
+      continue
+    }
+    const callable = constCallable(node, imports ?? new Map())
+    if (callable !== undefined) result.push({ node, name: callable.name.text })
+  }
+  return result
+}
 const boundFunctionNames = (top: readonly SyntaxNode[], imports: ReadonlyMap<string, ImportBinding>) => {
   const boundFunctions = new Set(imports.keys())
   const valueFunctions = new Set([...imports].filter(([, binding]) => !binding.typeOnly).map(([name]) => name))
   for (const node of top) {
-    if (node.type !== "function_declaration") continue
-    const name = declarationName(node, "identifier")
+    const name =
+      node.type === "function_declaration"
+        ? declarationName(node, "identifier")
+        : constCallable(node, imports)?.name.text
     if (name !== undefined) {
       boundFunctions.add(name)
       valueFunctions.add(name)
@@ -361,9 +448,15 @@ const collectOtherBinding = (node: SyntaxNode, names: Set<string>): boolean => {
     return collectVariableNames(node, names)
   return true
 }
-const otherTopLevelNames = (top: readonly SyntaxNode[]): ReadonlySet<string> | undefined => {
+const otherTopLevelNames = (
+  top: readonly SyntaxNode[],
+  imports: ReadonlyMap<string, ImportBinding>
+): ReadonlySet<string> | undefined => {
   const names = new Set<string>()
-  for (const node of top) if (!collectOtherBinding(node, names)) return undefined
+  for (const node of top) {
+    if (constCallable(node, imports) !== undefined) continue
+    if (!collectOtherBinding(node, names)) return undefined
+  }
   return names
 }
 const collectFunctionFact = (node: SyntaxNode, state: FunctionAnalysisState): boolean => {
@@ -372,16 +465,43 @@ const collectFunctionFact = (node: SyntaxNode, state: FunctionAnalysisState): bo
   if (
     identifier === undefined ||
     body === undefined ||
-    state.signatures.has(identifier.text) ||
     state.functions.has(identifier.text) ||
     state.imports.has(identifier.text) ||
     state.otherTopLevelBindings.has(identifier.text)
   )
     return false
   const rendered = exportSource(node)
+  if (state.signatures.has(identifier.text)) {
+    state.excludedFunctions.set(identifier.text, {
+      reason: "function-overload",
+      location: {
+        start: state.excludedFunctions.get(identifier.text)?.location.start ?? rendered.location.start,
+        end: rendered.location.end
+      }
+    })
+    return true
+  }
   state.functions.set(identifier.text, {
     artifact: artifact(state.path, "function", identifier.text, rendered.source),
     references: functionReferences(node, state.boundTypes, state.boundFunctions, state.valueFunctions),
+    exported: rendered.exported,
+    location: rendered.location
+  })
+  return true
+}
+const collectArrowFact = (root: CallableDeclaration, state: FunctionAnalysisState): boolean => {
+  const name = root.name.text
+  if (state.functions.has(name) || state.imports.has(name) || state.otherTopLevelBindings.has(name)) return false
+  const rendered = exportSource(root.declaration)
+  state.functions.set(name, {
+    artifact: artifact(state.path, "function", name, rendered.source),
+    references: [
+      ...root.declaration.namedChildren.flatMap((declarator) => {
+        const annotation = declarator.childForFieldName("type")
+        return annotation === null ? [] : namedTypeReferences(annotation, "", state.boundTypes)
+      }),
+      ...functionReferences(root.callable, state.boundTypes, state.boundFunctions, state.valueFunctions)
+    ],
     exported: rendered.exported,
     location: rendered.location
   })
@@ -409,16 +529,46 @@ const collectTypeFact = (
   })
   return true
 }
+const collectCallableExclusions = (node: SyntaxNode, state: FunctionAnalysisState): void => {
+  if (node.type === "function_signature") {
+    const name = declarationName(node, "identifier")
+    if (name !== undefined)
+      state.excludedFunctions.set(name, {
+        reason: "function-overload",
+        location: {
+          start: state.excludedFunctions.get(name)?.location.start ?? exportSource(node).location.start,
+          end: exportSource(node).location.end
+        }
+      })
+    return
+  }
+  if (node.type !== "lexical_declaration" && node.type !== "variable_declaration") return
+  for (const declarator of node.namedChildren.filter((child) => child.type === "variable_declarator")) {
+    const name = declarator.childForFieldName("name")
+    const value = declarator.childForFieldName("value")
+    if (name?.type !== "identifier" || value === null) continue
+    if (
+      descendants(declarator).some((child) =>
+        ["arrow_function", "function_expression", "generator_function"].includes(child.type)
+      )
+    ) {
+      state.excludedFunctions.set(name.text, { reason: "unsupported-callable", location: exportSource(node).location })
+    }
+  }
+}
 const collectDeclarationFact = (node: SyntaxNode, state: FunctionAnalysisState): boolean => {
   if (node.type === "import_statement") return true
   if (node.type === "function_declaration") return collectFunctionFact(node, state)
+  const arrow = constCallable(node, state.imports)
+  if (arrow !== undefined) return collectArrowFact(arrow, state)
+  collectCallableExclusions(node, state)
   const kind = typeDeclarationKind(node)
   return kind === undefined || collectTypeFact(node, kind, state)
 }
 const collectFunctionFacts = (top: readonly SyntaxNode[], state: FunctionAnalysisState): boolean => {
   for (const node of top) {
     if (!collectDeclarationFact(node, state)) return false
-    if (state.functions.size + state.types.size > 64) return false
+    if (state.functions.size + state.types.size + state.excludedFunctions.size > MAX_TYPE_DECLARATIONS) return false
   }
   return true
 }
@@ -432,9 +582,10 @@ const analyzeFunctionRoot = (path: string, root: SyntaxNode): FunctionFileAnalys
   if (imports === undefined) return undefined
   const boundTypes = boundTypeNames(top, imports)
   const { boundFunctions, valueFunctions } = boundFunctionNames(top, imports)
-  const otherTopLevelBindings = otherTopLevelNames(top)
+  const otherTopLevelBindings = otherTopLevelNames(top, imports)
   if (otherTopLevelBindings === undefined) return undefined
   if ([...otherTopLevelBindings].some((name) => imports.has(name))) return undefined
+  const excludedFunctions = new Map<string, FunctionExclusion>()
   const functions = new Map<string, FunctionDeclarationFact>()
   const types = new Map<string, TypeDeclarationFact>()
   const state: FunctionAnalysisState = {
@@ -443,13 +594,25 @@ const analyzeFunctionRoot = (path: string, root: SyntaxNode): FunctionFileAnalys
     types,
     imports,
     signatures,
+    excludedFunctions,
     boundTypes,
     boundFunctions,
     valueFunctions,
     otherTopLevelBindings
   }
-  if (!collectFunctionFacts(top, state)) return undefined
-  return { path, functions, types, imports }
+  if (!collectFunctionFacts(top, state)) {
+    return functions.size + types.size + excludedFunctions.size > MAX_TYPE_DECLARATIONS
+      ? {
+          path,
+          failure: "declaration-limit",
+          functions: new Map(),
+          types: new Map(),
+          imports,
+          excludedFunctions: new Map()
+        }
+      : undefined
+  }
+  return { path, functions, types, imports, excludedFunctions }
 }
 /** Conservative native facts. Undefined means this file cannot support a complete function unit. */
 export const analyzeFunctionFile = (path: string, source: string): FunctionFileAnalysis | undefined => {

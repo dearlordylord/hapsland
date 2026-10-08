@@ -65,6 +65,10 @@ export type PathObservationOutcome =
                 | "unsupported-reference"
                 | "reference-limit"
                 | "ambiguous-update"
+                | "function-analysis-unavailable"
+                | "function-overload"
+                | "unsupported-callable"
+                | "no-supported-function-root"
             }>
           }
     }

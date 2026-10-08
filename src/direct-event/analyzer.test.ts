@@ -10,7 +10,7 @@ import {
 
 describe("initial direct-event TypeScript analyzer", () => {
   it("measures zero supported roots without treating them as an unknown parse", () => {
-    expect(combinedAnalyzerMaterializationPreflight("a.ts", "const run = () => 1")).toEqual({
+    expect(combinedAnalyzerMaterializationPreflight("a.ts", "const value = 1")).toEqual({
       declarations: 0,
       expandedUnitBytes: 0,
       hasImports: false
@@ -25,6 +25,19 @@ describe("initial direct-event TypeScript analyzer", () => {
       reason: "no-declarations"
     })
     expect(combinedAnalyzerMaterializationPreflight("a.ts", "const run = ( {")).toBeUndefined()
+  })
+
+  it("reserves const-arrow and Effect callable units without coupling capture caps to unknown fallback", () => {
+    for (const source of [
+      "export const run = (value: number) => value;",
+      'import { Effect } from "effect"; export const run = Effect.fn("run")(function* (value: number) { return value });'
+    ]) {
+      const measured = combinedAnalyzerMaterializationPreflight("a.ts", source)
+      expect(measured?.declarations).toBe(1)
+      expect(measured?.expandedUnitBytes).toBeGreaterThan(0)
+    }
+    const many = Array.from({ length: 65 }, (_, i) => `const f${i} = () => ${i};`).join("\n")
+    expect(combinedAnalyzerMaterializationPreflight("a.ts", many)).toBeUndefined()
   })
 
   it("reserves all type and function roots in a mixed file", () => {

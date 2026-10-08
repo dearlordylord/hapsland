@@ -598,6 +598,72 @@ const selectCapturedCandidate = (
     analyses
   )
 }
+const positionBefore = (
+  left: NonNullable<ReviewInput["rootLocation"]>["start"],
+  right: NonNullable<ReviewInput["rootLocation"]>["start"]
+): boolean => left.line < right.line || (left.line === right.line && left.column < right.column)
+const locationsOverlap = (
+  left: NonNullable<ReviewInput["rootLocation"]>,
+  right: NonNullable<ReviewInput["rootLocation"]>
+): boolean => positionBefore(left.start, right.end) && positionBefore(right.start, left.end)
+const functionExclusionSelection = (
+  file: NonNullable<ReturnType<typeof analyzeFunctionFile>>,
+  frame: PreparationFrame,
+  operation: "add" | "update",
+  path: string,
+  captured: import("@hapsland/native-observation/direct-event/capture").StableCapture,
+  frozen: ReadonlySet<string> | undefined
+) => {
+  if (frozen !== undefined) return { names: frozen, ambiguous: false }
+  const declarations = [...file.excludedFunctions].map(([name, value]) => ({
+    path,
+    kind: "function" as const,
+    name,
+    location: value.location
+  }))
+  const line = frame.observation.lineSelection?.line
+  if (line !== undefined)
+    return {
+      names: new Set(
+        declarations
+          .filter(
+            ({ location }) =>
+              line >= location.start.line &&
+              (line < location.end.line || (line === location.end.line && location.end.column > 1))
+          )
+          .map(({ name }) => name)
+      ),
+      ambiguous: false
+    }
+  const hunks = candidatePostEditHunks(frame.observation, { operation }, path, captured)
+  if (hunks === undefined) return { names: new Set<string>(), ambiguous: false }
+  const selection = selectEditedRoots({ path, operation, source: captured.text }, hunks, declarations)
+  return {
+    names: new Set(selection.selected.map(({ name }) => name)),
+    ambiguous: selection.ambiguous.some(({ location }) =>
+      declarations.some((declaration) => locationsOverlap(location, declaration.location))
+    )
+  }
+}
+const functionExtractionFailures = (
+  file: ReturnType<typeof analyzeFunctionFile>,
+  frame: PreparationFrame,
+  operation: "add" | "update",
+  path: string,
+  captured: import("@hapsland/native-observation/direct-event/capture").StableCapture,
+  frozen: ReadonlySet<string> | undefined
+): readonly AnalysisFailure[] => {
+  if (file === undefined) return [{ root: undefined, reason: "function-analysis-unavailable" }]
+  if (file.failure !== undefined) return [{ root: undefined, reason: file.failure }]
+  const { names, ambiguous } = functionExclusionSelection(file, frame, operation, path, captured, frozen)
+  const failures: AnalysisFailure[] = [...file.excludedFunctions].flatMap(([name, value]) =>
+    names.has(name) ? [{ root: name, reason: value.reason }] : []
+  )
+  if (ambiguous && failures.length === 0) failures.push({ root: undefined, reason: "unsupported-callable" })
+  if (file.functions.size === 0 && failures.length === 0)
+    failures.push({ root: undefined, reason: "no-supported-function-root" })
+  return failures
+}
 const resolveCapturedCandidate = Effect.fn("DirectEvent.resolveCapturedCandidate")(function* (
   candidateOperation: "add" | "update",
   path: string,
@@ -622,7 +688,11 @@ const resolveCapturedCandidate = Effect.fn("DirectEvent.resolveCapturedCandidate
   const selected = selection.selected
   const { units, graphFailures } = yield* resolveSelectedUnits(selected, path, captured, analysis, frame)
   const failures = [
-    ...(graphFile === undefined && functionFile === undefined ? extractionFailures(analysis) : []),
+    ...(frame.contract === FUNCTION_INPUT_CONTRACT
+      ? functionExtractionFailures(functionFile, frame, candidateOperation, path, captured, frozen)
+      : graphFile === undefined
+        ? extractionFailures(analysis)
+        : []),
     ...graphFailures,
     ...(selection.ambiguous ? [{ root: undefined, reason: "ambiguous-update" as const }] : [])
   ]
