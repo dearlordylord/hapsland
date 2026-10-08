@@ -26,9 +26,6 @@ ab417e1599f9494e4d72cf2460ea22d209fe8957cd3a7fab9849dd8b935d019f  ../../packages
 653f590288c7dc31f068697cb45569c1f581210ffa3ace521a22df3658ca81a2  ../../packages/monkey-business-bend/session.d.mts
 b22d84036ab92c0d36f77f770e743b9aae32e70ff6a0522259d31be7670901c6  ../../packages/monkey-business-bend/session.mjs
 5c4ad38431249af2fa89a32a8604e14791ca3c084652baa60d914bf1bf18af7e  ../../packages/monkey-business-bend/verify-session-native.mjs
-184c541c24a275807d69055ab54701df3e7a497f950371efc275f9cd80a0dedf  ../bend-architecture-defense-increment-source.tar.gz
-cb20d55a5299d063eb0f84be2cde1e964a8ce70fdf3e6569635b9c1b888e15ea  ../bend-architecture-defense-source.tar.gz
-0cf461ca155102b6c8b1b776384ff7ddf740259c3aeec4dcac6330c03d771692  ../bend-architecture-defense-towers-source.tar.gz
 d917db212ae99fb82c8e99f2f05b6df1d5f1954b32916c561e5fbc6ecfeb7fbe  FlowGame.bend
 d9a8634123885e5849f66aa13ba32ac8f95a042c67b26bb88a11ff22b2a6182b  FlowHeadless.bend
 1f95ee326685298ba26aa1337d1ce48b64beb10fd61ddb9a2eceb0a6d30017dc  FlowMain.bend

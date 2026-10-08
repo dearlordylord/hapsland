@@ -62,7 +62,7 @@ async function preparedFixture(t) {
   const archiveSha256 = createHash("sha256").update(bytes).digest("hex")
   const sourceCommit = git(f.root, "rev-parse", "HEAD")
   const buildPlatform = "darwin-arm64"
-  const sourceTreeSha256 = releaseSourceTree(f.root, sourceCommit, buildPlatform)
+  const sourceTreeSha256 = releaseSourceTree(f.root, sourceCommit)
   const audit = {
     format: 1,
     package: "@hapsland/hapsland@0.1.0",
@@ -98,6 +98,17 @@ test("pin-only commit admits the audited archive without compiler receipts or de
   const f = await preparedFixture(t)
   assert.equal((await readPreparedRelease(f.root, f.pin)).archivePath, f.archivePath)
   assert.equal(existsSync(join(f.root, "node_modules")), false)
+  assert.equal(existsSync(join(f.root, "dist")), false)
+})
+
+test("clean prepared candidate branch warns and reaches npm authentication without rebuilding", async (t) => {
+  const f = await preparedFixture(t)
+  git(f.root, "switch", "-qc", "release-candidate")
+  const result = invokeRelease(f)
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /WARNING: release checkout/u)
+  assert.match(result.stderr, /npm whoami failed/u)
+  assert.equal(existsSync(join(f.root, "invoked")), true)
   assert.equal(existsSync(join(f.root, "dist")), false)
 })
 

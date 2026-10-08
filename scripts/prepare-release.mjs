@@ -1,15 +1,9 @@
-import { readFileSync, writeFileSync, chmodSync, renameSync, rmSync } from "node:fs"
+import { readFileSync, writeFileSync, renameSync, rmSync } from "node:fs"
 import { resolve } from "node:path"
 import { pathToFileURL } from "node:url"
 import { prepareReleaseArchive, auditPreparedArchive } from "./release-archive.mjs"
 import { retainReleaseAudit } from "./prepared-release.mjs"
-import {
-  RELEASE_PIN_PATH,
-  releaseGit,
-  releaseSourceTree,
-  releaseGeneratedPaths,
-  assertReleaseSource
-} from "./release-inputs.mjs"
+import { RELEASE_PIN_PATH, releaseGit, releaseSourceTree, assertReleaseSource } from "./release-inputs.mjs"
 import { validateReleaseTarget } from "./release-coordinates.mjs"
 import { BUN_VERSION, resolveBunRuntime, ensurePinnedBunLauncher } from "./pinned-bun.mjs"
 import { withBuildLock } from "./build-lock.mjs"
@@ -44,7 +38,7 @@ export async function prepareRelease(root) {
     version: target.version,
     tag: target.tag,
     sourceCommit,
-    sourceTreeSha256: releaseSourceTree(root, sourceCommit, buildPlatform),
+    sourceTreeSha256: releaseSourceTree(root, sourceCommit),
     buildPlatform
   }
   const deadline = Date.now() + RELEASE_ARCHIVE_TIMEOUT_MS
@@ -55,43 +49,22 @@ export async function prepareRelease(root) {
   })
   ensurePinnedBunLauncher(root, runtime)
   assertReleaseSource(root, pin)
-  const backups = releaseGeneratedPaths(root, buildPlatform).map((path) => ({
-    path,
-    bytes: readFileSync(resolve(root, path)),
-    mode: Number.parseInt(releaseGit(root, "ls-tree", "HEAD", "--", path).split(" ")[0], 8) & 0o777
-  }))
-  const restoreNative = () => {
-    for (const backup of backups) {
-      writeFileSync(resolve(root, backup.path), backup.bytes)
-      chmodSync(resolve(root, backup.path), backup.mode)
+  const artifact = await prepareReleaseArchive({
+    root,
+    deadline,
+    validateArchive: async (built) => {
+      assertReleaseSource(root, pin)
+      const record = await auditPreparedArchive({
+        root,
+        archivePath: built.archivePath,
+        commit: sourceCommit,
+        coordinates: pin,
+        deadline
+      })
+      pin.archiveSha256 = built.archiveDigest
+      pin.auditSha256 = await retainReleaseAudit(root, record)
     }
-  }
-  let artifact
-  try {
-    artifact = await prepareReleaseArchive({
-      root,
-      deadline,
-      validateArchive: async (built) => {
-        try {
-          assertReleaseSource(root, pin, { allowGenerated: true })
-          const record = await auditPreparedArchive({
-            root,
-            archivePath: built.archivePath,
-            commit: sourceCommit,
-            coordinates: pin,
-            deadline
-          })
-          pin.archiveSha256 = built.archiveDigest
-          pin.auditSha256 = await retainReleaseAudit(root, record)
-        } finally {
-          restoreNative()
-        }
-      }
-    })
-  } catch (error) {
-    if (!error.groupUnresolved) await withBuildLock(root, async () => restoreNative())
-    throw error
-  }
+  })
   assertReleaseSource(root, pin)
   const path = resolve(root, RELEASE_PIN_PATH),
     temporary = `${path}.${process.pid}.tmp`

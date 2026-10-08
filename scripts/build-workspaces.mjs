@@ -24,13 +24,14 @@ await withBuildLock(root, async (buildEnvironment) => {
   generateReleaseIdentity(root, true)
   generateTurboConfig(root, { check: true })
   mkdirSync(resolve(root, ".test-runs"), { recursive: true })
-  const bendToolchain = await prepareBendProducerToolchain(root, graph)
-  generateBendBaseEvidence(root, bendToolchain, true)
   const profiles = process.env.HAPSLAND_BUILD_PROFILE
     ? [process.env.HAPSLAND_BUILD_PROFILE]
     : ["linux-arm64", "darwin-arm64"]
   if (profiles.some((profile) => !["linux-arm64", "darwin-arm64"].includes(profile)))
     throw new Error("Unsupported product build profile")
+  if (withNative) await prepareNativeTaskInputs(root, graph, buildEnvironment, undefined, profiles)
+  const bendToolchain = await prepareBendProducerToolchain(root, graph)
+  generateBendBaseEvidence(root, bendToolchain, true)
   const toolchain = {
     node: fileEvidence(root, realpathSync(process.execPath)),
     bun: fileEvidence(root, realpathSync(resolveBunRuntime().executable)),
@@ -43,7 +44,6 @@ await withBuildLock(root, async (buildEnvironment) => {
   }
   writeFileSync(resolve(root, ".test-runs/build-toolchain.json"), JSON.stringify(toolchain))
   const authored = prepareAuthoredTaskInputs(root, graph, { toolchain, bendToolchain })
-  if (withNative) await prepareNativeTaskInputs(root, graph, buildEnvironment)
   await runBuildProcess(
     resolve(root, "node_modules/.bin/turbo"),
     [

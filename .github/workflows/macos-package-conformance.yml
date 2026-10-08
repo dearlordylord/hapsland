@@ -9,7 +9,10 @@ permissions:
   contents: read
 
 jobs:
+  native-inputs:
+    uses: ./.github/workflows/native-inputs.yml
   packaged-path:
+    needs: native-inputs
     runs-on: macos-14
     timeout-minutes: 20
     steps:
@@ -24,6 +27,14 @@ jobs:
         run: test "$(uname -m)" = arm64
       - name: Install development dependencies
         run: bun install --frozen-lockfile
+      - name: Locate Linux inputs for current sources
+        id: native
+        run: npm run native:inputs -- identity linux-arm64
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ steps.native.outputs.name }}
+          path: .test-runs/downloaded-native
+      - run: npm run native:inputs -- import linux-arm64 .test-runs/downloaded-native
       - name: Verify Node and Bun share the OS monotonic clock
         run: HAPSLAND_BUILD_BUN=bun node scripts/check-runtime-clock.mjs --source-only
       - name: Verify packaged bounded setup journeys
