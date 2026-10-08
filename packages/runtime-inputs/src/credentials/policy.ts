@@ -103,13 +103,14 @@ export const CredentialSaveResult = Schema.Struct({
 })
 export type CredentialSaveResult = typeof CredentialSaveResult.Type
 
+const lookupFile = (context: CredentialContext, kind: "user" | "project" | "project-local") =>
+  kind === "user" ? context.userFile : kind === "project" ? context.projectFile : context.projectLocalFile
 export const deriveLookupPlan = (context: CredentialContext): LookupStep[] =>
   credentialPolicy.sources.flatMap((kind): LookupStep[] => {
     if (kind === "environment") return [{ kind, envVar: context.envVar }]
     if (kind === "native") return context.referenceExplicit ? [] : [{ kind, target: context.nativeTarget }]
     if (context.captured || context.root === undefined) return []
-    const file =
-      kind === "user" ? context.userFile : kind === "project" ? context.projectFile : context.projectLocalFile
+    const file = lookupFile(context, kind)
     return file === undefined ? [] : [{ kind, file }]
   })
 export const deriveSavePlan = (context: CredentialContext, destination: SaveDestination): SavePlan | undefined => {

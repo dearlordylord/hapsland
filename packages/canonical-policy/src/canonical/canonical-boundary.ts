@@ -2254,16 +2254,17 @@ const outputDecoders: Readonly<Record<string, (value: unknown) => DecodedOutputF
   "Canonical.AdmissionForgotten": decodeAdmissionForgotten
 }
 
+const outputCategory = (wrapper: string) =>
+  wrapper === "Canonical.ActionRequested"
+    ? "request"
+    : wrapper === "Canonical.EventEstablished"
+      ? "event"
+      : wrapper === "Canonical.PolicyDecided"
+        ? "decision"
+        : undefined
 const decodeOutput = (value: unknown): CanonicalOutput => {
   const wrapper = tag(value)
-  const category =
-    wrapper === "Canonical.ActionRequested"
-      ? "request"
-      : wrapper === "Canonical.EventEstablished"
-        ? "event"
-        : wrapper === "Canonical.PolicyDecided"
-          ? "decision"
-          : undefined
+  const category = outputCategory(wrapper)
   if (category === undefined) throw new TypeError("unknown canonical output")
   const x = decodeCanonicalConstructor(value, wrapper)
   const payload = category === "request" ? x.request : category === "event" ? x.event : x.decision

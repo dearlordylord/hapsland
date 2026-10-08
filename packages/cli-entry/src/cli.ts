@@ -847,36 +847,44 @@ const loginProbeAction = (status: string): string => {
       ? "approve native credential access from this explicit login command, then retry"
       : "reinstall an archive containing the native helper for this platform if it is missing, or make the native credential store available; then retry"
 }
-const loginCredential = Effect.fn("Cli.loginCredential")(function* () {
-  if (!cliSwitch("credential-stdin")) {
-    const { runCredentialSession } = yield* Effect.promise(
-      () => import("@hapsland/administration/credentials/login-conversation")
-    )
-    const repository = yield* execFileClosedStdin("git", ["rev-parse", "--show-toplevel"], {
-      cwd: process.cwd(),
-      env: process.env,
-      timeout: 1_000,
-      maxBuffer: 1024 * 1024
-    })
-    const root = repository.succeeded ? repository.stdout.trim() : undefined
-    const settings = root === undefined ? undefined : yield* loadReviewSettings(root)
-    const model = yield* runCredentialSession({
-      ...(root === undefined ? {} : { root }),
-      envVar: settings?.credentialEnvVar ?? DEFAULT_CREDENTIAL_ENV_VAR,
-      referenceExplicit:
-        settings !== undefined && settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in"
-    })
-    return {
-      version: 1,
-      operation: "login",
-      status: model.storage?.status ?? "cancelled",
-      ...(model.storage === undefined
-        ? { preservedPreviousCredential: true }
-        : { generation: model.storage.state.generation }),
-      ...(model.proposal === undefined ? {} : { destination: model.proposal.plan }),
-      ...(model.active === undefined ? {} : { activeCredential: model.active })
-    }
+const interactiveLoginOutput = (
+  model: Effect.Success<
+    ReturnType<typeof import("@hapsland/administration/credentials/login-conversation").runCredentialSession>
+  >
+) => {
+  return {
+    version: 1,
+    operation: "login",
+    status: model.storage?.status ?? "cancelled",
+    ...(model.storage === undefined
+      ? { preservedPreviousCredential: true }
+      : { generation: model.storage.state.generation }),
+    ...(model.proposal === undefined ? {} : { destination: model.proposal.plan }),
+    ...(model.active === undefined ? {} : { activeCredential: model.active })
   }
+}
+const interactiveLoginCredential = Effect.fn("Cli.interactiveLoginCredential")(function* () {
+  const { runCredentialSession } = yield* Effect.promise(
+    () => import("@hapsland/administration/credentials/login-conversation")
+  )
+  const repository = yield* execFileClosedStdin("git", ["rev-parse", "--show-toplevel"], {
+    cwd: process.cwd(),
+    env: process.env,
+    timeout: 1_000,
+    maxBuffer: 1024 * 1024
+  })
+  const root = repository.succeeded ? repository.stdout.trim() : undefined
+  const settings = root === undefined ? undefined : yield* loadReviewSettings(root)
+  const model = yield* runCredentialSession({
+    ...(root === undefined ? {} : { root }),
+    envVar: settings?.credentialEnvVar ?? DEFAULT_CREDENTIAL_ENV_VAR,
+    referenceExplicit:
+      settings !== undefined && settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in"
+  })
+  return interactiveLoginOutput(model)
+})
+const loginCredential = Effect.fn("Cli.loginCredential")(function* () {
+  if (!cliSwitch("credential-stdin")) return yield* interactiveLoginCredential()
   const { runDirectCredentialInput, nativeDirectLoginLayer } = yield* Effect.promise(
     () => import("@hapsland/administration/credentials/direct-input")
   )

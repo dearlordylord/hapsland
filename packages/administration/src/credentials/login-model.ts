@@ -48,34 +48,44 @@ const move = (model: LoginModel, phase: LoginModel["phase"], patch: Partial<Logi
   revision: model.revision + 1
 })
 const restart = (model: LoginModel): LoginModel => ({ phase: "SelectingDestination", revision: model.revision + 1 })
-export const reduceLogin = (model: LoginModel, event: LoginEvent): LoginModel => {
-  const action = event.action
-  if (
-    model.phase === "Done" ||
-    model.phase === "Cancelled" ||
-    event.revision !== model.revision ||
-    ("commandId" in action && action.commandId !== model.revision)
-  )
-    return model
+const phaseTransitions: Record<LoginModel["phase"], (model: LoginModel, action: LoginAction) => LoginModel> = {
+  SelectingDestination: (model, action) =>
+    action.kind === "selected" ? move(model, "PreparingTarget", { destination: action.destination }) : model,
+  PreparingTarget: (model, action) =>
+    action.kind === "prepared"
+      ? action.proposal.availability === "blocked"
+        ? restart(model)
+        : move(model, "EnteringKey", { proposal: action.proposal })
+      : model,
+  EnteringKey: (model, action) =>
+    action.kind === "entered" && action.proposalId === model.proposal?.id ? move(model, "ConfirmingSave") : model,
+  ConfirmingSave: (model, action) =>
+    action.kind === "approved" && action.proposalId === model.proposal?.id
+      ? move(model, action.yes ? "SavingKey" : "Cancelled")
+      : model,
+  SavingKey: (model, action) =>
+    action.kind === "observed"
+      ? action.storage.status === "stale"
+        ? move(model, "PreparingTarget")
+        : move(model, "CheckingActive", { storage: action.storage })
+      : model,
+  CheckingActive: (model, action) =>
+    action.kind === "active" ? move(model, "Done", { active: action.active }) : model,
+  Done: (model) => model,
+  Cancelled: (model) => model
+}
+const currentLoginEvent = (model: LoginModel, event: LoginEvent): boolean =>
+  model.phase !== "Done" &&
+  model.phase !== "Cancelled" &&
+  event.revision === model.revision &&
+  (!("commandId" in event.action) || event.action.commandId === model.revision)
+const navigateLogin = (model: LoginModel, action: LoginAction): LoginModel => {
   if (action.kind === "exit")
     return model.phase === "SavingKey" || model.phase === "CheckingActive" ? model : move(model, "Cancelled")
-  if (action.kind === "back")
-    return model.phase === "EnteringKey" || model.phase === "ConfirmingSave" ? restart(model) : model
-  if (model.phase === "SelectingDestination" && action.kind === "selected")
-    return move(model, "PreparingTarget", { destination: action.destination })
-  if (model.phase === "PreparingTarget" && action.kind === "prepared")
-    return action.proposal.availability === "blocked"
-      ? restart(model)
-      : move(model, "EnteringKey", { proposal: action.proposal })
-  if (model.phase === "EnteringKey" && action.kind === "entered" && action.proposalId === model.proposal?.id)
-    return move(model, "ConfirmingSave")
-  if (model.phase === "ConfirmingSave" && action.kind === "approved" && action.proposalId === model.proposal?.id)
-    return move(model, action.yes ? "SavingKey" : "Cancelled")
-  if (model.phase === "SavingKey" && action.kind === "observed")
-    return action.storage.status === "stale"
-      ? move(model, "PreparingTarget")
-      : move(model, "CheckingActive", { storage: action.storage })
-  if (model.phase === "CheckingActive" && action.kind === "active")
-    return move(model, "Done", { active: action.active })
-  return model
+  return model.phase === "EnteringKey" || model.phase === "ConfirmingSave" ? restart(model) : model
+}
+export const reduceLogin = (model: LoginModel, event: LoginEvent): LoginModel => {
+  if (!currentLoginEvent(model, event)) return model
+  if (event.action.kind === "exit" || event.action.kind === "back") return navigateLogin(model, event.action)
+  return phaseTransitions[model.phase](model, event.action)
 }

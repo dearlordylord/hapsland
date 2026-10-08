@@ -184,18 +184,19 @@ const unitHasOmissions = (unit: ReviewUnit): boolean => {
   return false
 }
 
+const addNodeDependency = (unit: ReviewUnit, node: ReviewUnit["root"], paths: Set<string>): boolean => {
+  if (node.artifact.origin !== undefined) return node !== unit.root && isBundledBendArtifact(node.artifact)
+  if (node.artifact.path === undefined) return false
+  paths.add(node.artifact.path)
+  return true
+}
 const unitDependencyPaths = (unit: ReviewUnit): ReadonlySet<string> | undefined => {
   const paths = new Set<string>(unit.sourceDependencies ?? [])
   const pending = [unit.root]
   while (pending.length > 0) {
     const node = pending.pop()
     if (node === undefined) return undefined
-    if (node.artifact.origin !== undefined) {
-      if (node === unit.root || !isBundledBendArtifact(node.artifact)) return undefined
-    } else {
-      if (node.artifact.path === undefined) return undefined
-      paths.add(node.artifact.path)
-    }
+    if (!addNodeDependency(unit, node, paths)) return undefined
     for (const reference of node.references) if (reference.kind === "expanded") pending.push(reference.node)
   }
   return paths
