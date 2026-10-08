@@ -1,10 +1,13 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { mkdtempSync, mkdirSync, writeFileSync, chmodSync, rmSync } from "node:fs"
+import { mkdtempSync, mkdirSync, writeFileSync, chmodSync, rmSync, cpSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { join, resolve } from "node:path"
 import { fileEvidence } from "./compiler-evidence.mjs"
-import { validateReleasePublication } from "./audit-release-tarball.mjs"
+import { validateReleasePublication, nativeReleaseArtifacts } from "./audit-release-tarball.mjs"
+import { readPackageGraph } from "./package-graph.mjs"
+import { prepareNativeTaskInputs, nativeTaskArtifacts } from "./native-task-inputs.mjs"
+import { buildNativeTask } from "./native-task.mjs"
 
 test("release consumer binds physical owner, public path, and shipped byte and mode evidence", () => {
   const root = mkdtempSync(join(tmpdir(), "hapsland-release-consumer-"))
@@ -31,4 +34,70 @@ test("release consumer binds physical owner, public path, and shipped byte and m
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
+})
+
+test("native release audit re-observes the build PATH and still rejects changed native inputs", async (t) => {
+  const root = mkdtempSync(join(tmpdir(), "hapsland-release-native-environment-"))
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+  mkdirSync(join(root, "scripts"))
+  for (const name of [
+    "native-task-inputs",
+    "native-task",
+    "native-task-receipt",
+    "native-artifact",
+    "native-compiler-inputs",
+    "native-linker-inputs",
+    "native-toolchain-inputs",
+    "native-header-search",
+    "build-process",
+    "build-lock",
+    "build-groups",
+    "owned-lock",
+    "compiler-evidence",
+    "package-graph"
+  ])
+    cpSync(resolve(import.meta.dirname, `${name}.mjs`), join(root, "scripts", `${name}.mjs`))
+  mkdirSync(join(root, "packages/native-owner"), { recursive: true })
+  writeFileSync(join(root, "package.json"), JSON.stringify({ workspaces: ["packages/native-owner"] }))
+  const profile = process.platform === "darwin" ? "linux-arm64" : "darwin-arm64"
+  const manifest = {
+    name: "@hapsland/native-owner",
+    private: true,
+    type: "module",
+    hapsland: {
+      domain: "native-owner",
+      nativeAssets: [
+        {
+          source: "src/loader.ts",
+          path: "native/prebuilt/{profile}/helper",
+          producer: {
+            kind: "c",
+            profiles: { [profile]: { source: "native/helper.c", compileFlags: [], linkFlags: [] } }
+          }
+        }
+      ]
+    }
+  }
+  writeFileSync(join(root, "packages/native-owner/package.json"), JSON.stringify(manifest))
+  const supplied = join(root, "native/prebuilt", profile, "helper")
+  mkdirSync(join(supplied, ".."), { recursive: true })
+  const bytes = Buffer.alloc(24)
+  if (profile === "linux-arm64") {
+    bytes.write("7f454c46", 0, "hex")
+    bytes.writeUInt16LE(183, 18)
+  } else {
+    bytes.write("cffaedfe", 0, "hex")
+    bytes.writeUInt32LE(0x0100000c, 4)
+  }
+  writeFileSync(supplied, bytes, { mode: 0o755 })
+  const graph = readPackageGraph(root)
+  const buildEnvironment = { ...process.env, PATH: `/npm-build-path:${process.env.PATH}` }
+  await prepareNativeTaskInputs(root, graph, buildEnvironment)
+  await buildNativeTask(root, manifest.name, profile, buildEnvironment)
+  await assert.rejects(nativeTaskArtifacts(root, graph, profile), /Native task inputs changed/)
+  assert.equal((await nativeReleaseArtifacts(root, graph, profile)).assets.length, 1)
+  const changed = Buffer.from(bytes)
+  changed[23] = 1
+  writeFileSync(supplied, changed)
+  await assert.rejects(nativeReleaseArtifacts(root, graph, profile), /Native task inputs changed/)
 })

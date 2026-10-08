@@ -1,8 +1,8 @@
 {
   "format": 1,
-  "compiler": "Bend 2.0.35: check, run, build and publish Bend programs.",
-  "sourceIdentity": "sha256:a71f135637fca1ae9905a4db7e36b5d3bafad86671ece8a6eaa75ccb5923023f",
-  "moduleIdentity": "sha256:4f8e758a57490a467222711f72f786e66c3e892d0f181bc9b66174ca362890d6",
+  "compiler": "Bend 2.0.36: check, run, build and publish Bend programs.",
+  "sourceIdentity": "sha256:676c4d9cc5c8706c69fbbe6e7450098da617ae64725d8656920b75d056c20c20",
+  "moduleIdentity": "sha256:67188d8271d2496369a7291f2808e6b166e66dfae07e2f41b78bfdd4207eb838",
   "sources": [
     "packages/agent-flow-bend/Admission.bend",
     "packages/agent-flow-bend/Canonical.bend",
@@ -29,6 +29,7 @@
     "packages/agent-flow-bend/RulePolicy.bend",
     "packages/agent-flow-bend/SubmissionState.bend",
     "packages/agent-flow-bend/Work.bend",
+    "packages/agent-flow-bend/package.json",
     "packages/monkey-business-bend/AdmissionAttempts.bend",
     "packages/monkey-business-bend/AdviceeActivity.bend",
     "packages/monkey-business-bend/AdviceeLifecycle.bend",
@@ -74,6 +75,7 @@
     "packages/monkey-business-bend/Types.bend",
     "packages/monkey-business-bend/Workload.bend",
     "packages/monkey-business-bend/WriterScenario.bend",
+    "packages/monkey-business-bend/compiler.mjs",
     "prototypes/canonical-defense/DefenseAuto.bend",
     "prototypes/canonical-defense/DefenseConsumer.bend",
     "prototypes/canonical-defense/DefenseCues.bend",

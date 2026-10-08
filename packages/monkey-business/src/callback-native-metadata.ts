@@ -5863,7 +5863,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/StopScenario.bend",
-    sha256: "a4cd00741a199089e1c510894436a8a96ee466ffd2bf52e0f53dd9a8e6c63047"
+    sha256: "bd38c6fe0f3743809baba5bd9bc3694e42e6717660299ab430f77cad6685e317"
   },
   {
     path: "packages/monkey-business-bend/TreeFacts.bend",

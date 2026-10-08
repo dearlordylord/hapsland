@@ -20,7 +20,8 @@ import type { RunConfig, RunRuntimeSnapshot, RunStructuralFrame } from "./index.
 
 const list = (value: unknown) => readBendList(value, (value) => value, 2048)
 function same(actual: unknown, expected: unknown, field: string): void {
-  if (!isDeepStrictEqual(actual, expected)) throw new Error(`Stop public business layer differs at ${field}`)
+  if (!isDeepStrictEqual(actual, expected))
+    throw new Error(`Stop public business layer differs at ${field}`, { cause: { actual, expected } })
 }
 function tagged(value: unknown, tag: string): Record<string, unknown> {
   const record = readRecord(value)

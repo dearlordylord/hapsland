@@ -28,6 +28,7 @@ export const assemblyProducerFiles = [
   "scripts/external-loader-profile.mjs",
   "scripts/standalone-runtime-profile.mjs",
   "scripts/build-process.mjs",
+  "scripts/build-deadlines.mjs",
   "scripts/build-lock.mjs",
   "scripts/owned-lock.mjs",
   "scripts/build-groups.mjs",

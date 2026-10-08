@@ -113,12 +113,17 @@ def steps(
   match events:
     case Nil{}: []
     case +head <> tail:
-      rest: Graph.Bounded -> List<&2, List<&2, Nat>> = next => steps(
+      continuation: Graph.Bounded -> List<&2, List<&2, Nat>> = next => steps(
         tail,
         next,
         (position + 1n : Nat)
       )
-      step_row(Graph.bounded_step(state, head), position, fact(head), rest)
+      step_row(
+        Graph.bounded_step(state, head),
+        position,
+        fact(head),
+        continuation
+      )
 
 def file_rows(files: List<&2, TreeFacts.TreeFile>) -> List<&2, List<&2, Nat>>:
   match files:
@@ -159,22 +164,32 @@ def exact() -> Graph.Limits:
   Graph.Limits{1n, 4n, 3n, 1n, 4n, 1n, 1n, 5n}
 
 def scenarios() -> List<&2, List<&2, List<&2, Nat>>>:
-  [run(profile(0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n), limits()),
-   run(profile(0n, 100n, 0n, 0n, 0n, 0n, 0n, 0n), limits()),
-   run(profile(100n, 0n, 0n, 0n, 0n, 0n, 0n, 0n), limits()),
-   run(profile(0n, 0n, 100n, 0n, 0n, 0n, 0n, 0n), limits()),
-   run(profile(0n, 0n, 0n, 100n, 0n, 0n, 0n, 0n), limits()),
-   run(profile(0n, 0n, 0n, 0n, 100n, 100n, 0n, 0n), limits()),
-   run(profile(0n, 0n, 0n, 0n, 0n, 0n, 1n, 0n), limits()),
-   run(profile(0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n), Graph.Limits{1n, 4n, 100n, 2n, 32n, 2n, 2n, 128n}),
-   run(profile(0n, 0n, 0n, 0n, 0n, 0n, 0n, 129n), limits()),
-   run(single(4n, 3n), exact()),
-   run(single(5n, 3n), exact()),
-   run(single(4n, 4n), exact()),
-   run(pair(0n), Graph.Limits{1n, 4n, 100n, 8n, 7n, 2n, 2n, 128n}),
-   run(chain(), Graph.Limits{1n, 4n, 100n, 8n, 32n, 2n, 1n, 128n}),
-   run(profile(0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n), Graph.Limits{1n, 4n, 100n, 8n, 32n, 1n, 2n, 128n}),
-   run(pair(4n), limits()), run(pair(5n), limits()), run(pair(6n), limits())]
+  [
+    run(profile(0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n), limits()),
+    run(profile(0n, 100n, 0n, 0n, 0n, 0n, 0n, 0n), limits()),
+    run(profile(100n, 0n, 0n, 0n, 0n, 0n, 0n, 0n), limits()),
+    run(profile(0n, 0n, 100n, 0n, 0n, 0n, 0n, 0n), limits()),
+    run(profile(0n, 0n, 0n, 100n, 0n, 0n, 0n, 0n), limits()),
+    run(profile(0n, 0n, 0n, 0n, 100n, 100n, 0n, 0n), limits()),
+    run(profile(0n, 0n, 0n, 0n, 0n, 0n, 1n, 0n), limits()),
+    run(
+      profile(0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n),
+      Graph.Limits{1n, 4n, 100n, 2n, 32n, 2n, 2n, 128n}
+    ),
+    run(profile(0n, 0n, 0n, 0n, 0n, 0n, 0n, 129n), limits()),
+    run(single(4n, 3n), exact()),
+    run(single(5n, 3n), exact()),
+    run(single(4n, 4n), exact()),
+    run(pair(0n), Graph.Limits{1n, 4n, 100n, 8n, 7n, 2n, 2n, 128n}),
+    run(chain(), Graph.Limits{1n, 4n, 100n, 8n, 32n, 2n, 1n, 128n}),
+    run(
+      profile(0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n),
+      Graph.Limits{1n, 4n, 100n, 8n, 32n, 1n, 2n, 128n}
+    ),
+    run(pair(4n), limits()),
+    run(pair(5n), limits()),
+    run(pair(6n), limits())
+  ]
 
 def main() -> IO(Unit):
   do IO<Unit>:

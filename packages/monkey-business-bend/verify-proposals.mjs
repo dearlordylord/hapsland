@@ -1,11 +1,17 @@
+import { checkBendCompiler } from "./compiler.mjs"
 import { cpSync, mkdtempSync, readFileSync, writeFileSync, rmSync, symlinkSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, dirname } from "node:path"
 import { fileURLToPath } from "node:url"
 import { spawnSync } from "node:child_process"
+checkBendCompiler()
 const root = dirname(fileURLToPath(import.meta.url))
 const run = (file, verdict = false) => {
-  const result = spawnSync("bend", [file, ...(verdict ? ["--verdict"] : [])], { encoding: "utf8", timeout: 5000 })
+  const result = spawnSync("bend", [file, ...(verdict ? ["--verdict"] : [])], {
+    encoding: "utf8",
+    env: { ...process.env, BEND_NO_TELEMETRY: "1" },
+    timeout: 5000
+  })
   if (result.error) throw result.error
   return { status: result.status, text: result.stdout + result.stderr }
 }

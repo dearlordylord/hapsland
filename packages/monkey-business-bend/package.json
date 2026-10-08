@@ -35,6 +35,10 @@
     "./run": {
       "types": "./run.mjs",
       "default": "./run.mjs"
+    },
+    "./compiler": {
+      "types": "./compiler.mjs",
+      "default": "./compiler.mjs"
     }
   },
   "dependencies": {},

@@ -1,3 +1,4 @@
+import { checkBendCompiler } from "../compiler.mjs"
 import { spawnSync } from "node:child_process"
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -40,8 +41,10 @@ export async function runEmittedScenarios() {
   const directory = mkdtempSync(join(tmpdir(), "hapsland-native-run-js-"))
   try {
     const output = join(directory, "fixture.mjs")
+    checkBendCompiler()
     const result = spawnSync("bend", [fileURLToPath(aggregateFixture), "-o", output], {
       encoding: "utf8",
+      env: { ...process.env, BEND_NO_TELEMETRY: "1" },
       timeout: NATIVE_RUN_JS_EMISSION_TIMEOUT_MS
     })
     if (result.error || result.status !== 0) throw result.error ?? new Error(result.stdout + result.stderr)
@@ -54,6 +57,7 @@ export async function runEmittedScenarios() {
     )
     const execution = spawnSync(process.execPath, [output], {
       encoding: "utf8",
+      env: { ...process.env, BEND_NO_TELEMETRY: "1" },
       timeout: NATIVE_RUN_JS_EXECUTION_TIMEOUT_MS
     })
     if (execution.error || execution.status !== 0)

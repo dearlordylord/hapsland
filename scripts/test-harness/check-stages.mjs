@@ -93,6 +93,7 @@ export const precheckStages = [
     "scripts/release-assets.test.mjs",
     "scripts/audit-release-tarball.test.mjs",
     "scripts/release-archive.test.mjs",
+    "scripts/release-process.test.mjs",
     "scripts/native-artifact.test.mjs",
     "scripts/host-module-imports.test.mjs",
     "scripts/external-loader-profile.test.mjs",

@@ -7,80 +7,107 @@
 **Expected use:** Prepare release coordinates, publish from a logged-in host, and verify registry artifacts before advertising support.
 **Lifecycle:** Update with release tooling, package layout, or registry policy; review for each release or change to release host/platform combinations.
 
-The maintainer publishes `@hapsland/hapsland` from a clean, reviewed `master`
-checkout. GitHub Actions is optional supporting evidence. The source repository
-remains private; this flow provides no npm provenance attestation. The canonical
-source URL, release commit, and SHA-256 in `scripts/npm-release-pin.json`
-identify the reviewed archive.
+The maintainer prepares an audited archive from a clean committed checkout and
+publishes that exact archive from clean `master` equal to `origin/master`. GitHub
+Actions is optional supporting evidence. The source repository remains private;
+this flow provides no npm provenance attestation.
 
 ## Prepare stable or candidate coordinates
 
-Set the package version in `package.json` and record matching reviewed coordinates
-in `scripts/npm-release-pin.json`:
+Commit matching package versions in `package.json` and target coordinates in
+`scripts/npm-release-pin.json`:
 
 - Stable: a version such as `0.2.0`, with `"tag": "latest"`.
 - Candidate: a prerelease such as `0.3.0-next.1`, with `"tag": "next"`.
 
-The publisher rejects stable/prerelease tag mismatches and arbitrary tags. `next`
-publication passes `--tag=next` explicitly and never updates `latest`. Each release
-has an immutable version; local development snapshots do not require publication.
-Build, test, audit and review the exact candidate archive, then record its source
-commit and SHA-256. Changing packaged files requires a new reviewed pin. The
-retained 0.1.0 checksum predates the installation workflow changes and cannot be
-used to publish the changed checkout. The script fails on a checksum mismatch.
+The version and channel are inputs to preparation. Each published version is
+immutable. Do not reuse a published version for different bytes or move a
+prerelease to `latest` as a release shortcut.
 
-For candidate-to-stable promotion, prepare a stable package version and reviewed
-archive, then publish it through this flow. Moving a prerelease to `latest` is not
-an allowed release shortcut. Before publishing a candidate, verify that its intended
-registration and recovery paths pass offline; stable support advertising additionally
-requires the registry and authenticated host evidence below.
+Prepare the candidate on Linux/macOS arm64 with Node 24.20.0, mise, and the exact
+Bun 1.3.14 compiler available:
 
-## Host command
+```sh
+mise exec node@24.20.0 -- npm run release:prepare
+```
 
-After the release commit is merged, the canonical source repository URL,
-reviewed commit, and archive checksum are recorded in
-`scripts/npm-release-pin.json`. On the host where you are
-already logged in to npm, use a clean `master` checkout of this repository
-and run:
+This command installs frozen host dependencies with lifecycle scripts disabled,
+initializes the pinned Bun launcher from the verified installed binary without
+running dependency postinstall scripts, builds both platform targets, validates
+native artifacts, packs with npm, and
+runs the archive audit while the same checkout build lease is held. The audit
+checks every standalone and host-module receipt, published bytes and modes,
+default rules against their committed sources, copied native assets against
+committed binaries, and host-compiled native assets against fresh compiler
+receipts. It also checks the archive inventory and private-content markers.
+It does not make authenticated agent or Jev requests.
+
+Host-compiled native files are generated outputs, not required to equal binaries
+from another compiler/SDK. Their sources and declared compiler inputs still
+participate in build validation. Preparation restores the checkout's original
+host-native files after auditing; the verified bytes remain in the retained
+archive. No cross-host or cross-SDK bit-for-bit reproducibility is claimed.
+
+Only after successful build and audit does preparation atomically write the
+version-one pin. It records source commit, source-tree SHA-256, build platform,
+archive SHA-256 and audit SHA-256. The source-tree identity covers all committed
+inputs except the pin itself and native outputs compiled on the preparation
+host. Changing application code, build scripts, lockfiles, documentation or
+copied native inputs invalidates the candidate. A pin-only follow-up commit
+preserves its identity.
+
+The archive is retained under the Git common directory's
+`hapsland-artifacts/archives`, and its content-addressed audit under
+`hapsland-artifacts/release-audits`. These are shared by this repository's local
+worktrees. Keep them until publication and release validation are complete.
+Preparation does not publish or automatically commit the pin. Commit and review
+the resulting pin, merge it to `master`, and push it before publication. A new
+host must receive the exact archive and audit in the same content-addressed
+layout or prepare and review a new candidate; missing artifacts never trigger
+an implicit rebuild.
+
+Archive preparation has a shared thirty-minute deadline. Compilation retains
+its five-minute deadline; standalone assembly has twenty-one minutes for ten
+producers at concurrency two, with each producer limited to four minutes. A
+measured CLI producer on macOS arm64 took 165.6 seconds, exceeding the former
+two-minute producer limit. An inherited process-group deadline prints its cause
+before stopping the group, so the initiating failure remains visible. On
+interruption or timeout, owned process groups stop before their build lease is
+released. Incomplete or failed audits never produce a prepared pin.
+
+## Publish the prepared candidate
+
+On the npm-authenticated host with the retained archive and audit, use clean
+`master` equal to `origin/master`:
 
 ```sh
 git pull --ff-only origin master
 mise exec node@24.20.0 -- npm run local-release
 ```
 
-`local-release` is the repository's npm script for the host publish flow.
-`mise exec` selects the certified Node runtime for npm and the release script,
-as in Huly MCP's local release flow. Use it even if a different Node version is active.
-Node 25 is fine for ordinary work; release
-assembly is pinned to Node 24.20.0 so npm builds the reviewed archive under the
-same toolchain used to calculate its checksum. Hapsland itself is packaged as
-Bun 1.3.14 standalone executables; this Node pin belongs to release assembly.
-The build requires the exact Bun compiler and physical native release assets. It requires Linux arm64 or macOS
-arm64, mise with Node 24.20.0 available, clean `master` equal to `origin/master`
-and containing the pinned release commit, and an
-active npm login. It builds and audits the local archive,
-compares its SHA-256 with the reviewed archive, publishes that archive with
-public access to the declared `latest` or `next` tag, then downloads the registry archive and confirms
-its SHA-256 and dist-tag. If the exact version is already published, it
-verifies the existing artifact instead of trying to publish it again. Stop on
-any error; do not publish a different archive under the same version.
+`local-release` performs source and artifact admission before npm authentication.
+An unprepared/stale pin, missing archive/audit, or corrupt archive/audit fails
+immediately with an instruction to run `release:prepare`. It never installs
+dependencies, compiles, assembles or packs. Source admission allows the pin-only
+commit; it does not require an unchanged Git commit SHA or an arbitrary ancestor
+with different source contents. Publication does not depend on current compiler
+outputs, temporary build receipts, or the installed Bun compiler.
 
-The release script also installs the locked development dependencies for the
-host OS with Bun 1.3.14 through mise and scripts disabled. This repairs a
-`node_modules` tree copied from Linux, including TypeScript's Darwin arm64
-compiler package, before starting the build. The frozen install leaves the
-lockfile unchanged.
+The publisher checks the manifest against the pinned target, confirms the audit
+and archive identities, publishes that exact archive with public access under
+`latest` or `next`, and verifies registry bytes and the selected tag. It rechecks
+source and archive admission immediately before upload. If the exact version is
+already published, it verifies the existing archive instead of publishing again;
+different registry bytes are a failure. The source URL, commit, source-tree hash,
+archive hash and audit hash identify the prepared candidate.
 
-Archive preparation has a shared twenty-minute deadline for the build, native
-validation, source inventories and packing. Compilation retains its five-minute
-deadline; standalone assembly has eleven minutes for ten producers at concurrency
-two, with each producer still limited to two minutes. On interruption or timeout, the release
-runner stops the build process group before releasing its checkout build lease.
-
-The release script prints the npm account name, archive path, and checksums.
-It does not print Jev credentials. npm may ask for an OTP or web login during
-publication. Save the successful terminal output with the release record,
-without any authentication token.
+The script prints the npm account name, archive path and checksums. npm may ask
+for an OTP or web login. Save successful terminal output with the release record
+without authentication tokens. Archive preparation and an audited pin establish
+packaging evidence; they do not establish installed behavior or platform support.
+Before publishing a candidate, verify its intended registration and recovery
+paths offline. Stable platform advertising requires the exact registry and
+native-host evidence below.
 
 ## Published-artifact evidence
 

@@ -13,6 +13,7 @@ import { checkAssemblyReceipt } from "./check-assembly-receipt.mjs"
 import { resolveBunRuntime } from "./pinned-bun.mjs"
 import { runBuildProcess } from "./build-process.mjs"
 import { withBuildLock } from "./build-lock.mjs"
+import { STANDALONE_PRODUCER_TIMEOUT_MS } from "./build-deadlines.mjs"
 
 export const assemblyArtifactPaths = (root, owner, profile) => {
   if (
@@ -71,7 +72,7 @@ export async function assembleEntry(root, owner, profile) {
           snapshotPath,
           paths.receipt
         ],
-        { cwd: root, env: environment, timeout: 120000 }
+        { cwd: root, env: environment, timeout: STANDALONE_PRODUCER_TIMEOUT_MS }
       )
       return await validateAssemblyArtifact(root, owner, profile, snapshot)
     } catch (error) {

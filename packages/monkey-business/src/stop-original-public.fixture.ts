@@ -7,10 +7,23 @@ import {
   type RunStructuralFrame
 } from "./index.ts"
 
+// Original caller limits are independent of later production-default changes.
+const originalGraphLimits: NonNullable<RunConfig["graphLimits"]> = Object.freeze({
+  version: 1,
+  sourceBytes: 262144,
+  treeBytes: 20480,
+  files: 8,
+  readBytes: 1572864,
+  outgoingEdges: 16,
+  depth: 4,
+  work: 128
+})
+
 // Frozen caller inputs match the original delay8 directed case. They contain
 // no allocated scope, operation, request, callback or output capture.
 export const originalWaitingStopConfig = {
   seed: 7,
+  graphLimits: originalGraphLimits,
   retention: 1000,
   preparationDelay: 2,
   jevDelay: 8,
@@ -171,6 +184,7 @@ export const originalStopCases: readonly {
     name: "groupOutput",
     config: {
       seed: 7,
+      graphLimits: originalGraphLimits,
       retention: 1000,
       preparationDelay: 2,
       jevDelay: 5,
@@ -223,6 +237,7 @@ export const originalStopCases: readonly {
     name: "otherAdviceeOutput",
     config: {
       seed: 7,
+      graphLimits: originalGraphLimits,
       retention: 1000,
       preparationDelay: 2,
       jevDelay: 5,
@@ -316,6 +331,7 @@ const outputConfiguration = (
   lease = 20
 ): RunConfig => ({
   seed,
+  graphLimits: originalGraphLimits,
   retention,
   outcome: "finding",
   preparationDelay: preparation,

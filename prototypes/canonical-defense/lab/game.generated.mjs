@@ -64,7 +64,7 @@ function f32_from_bits(u) {
 }
 
 function f32_read(s) {
-  const re = /^\s*[+-]?((\d+\.?\d*|\.\d+)(e[+-]?\d+)?|inf(inity)?|nan)$/i;
+  const re = /^[\t\n\v\f\r ]*[+-]?((\d+\.?\d*|\.\d+)(e[+-]?\d+)?|inf(inity)?|nan)$/i;
   const v = f32_round(s.replace(/inf\w*/i, "Infinity"));
   return re.test(s) ? {$: "Some", value: v} : {$: "None"};
 }
@@ -123,7 +123,7 @@ function array_rmw(a, i, f) {
 // ===
 
 function run_tail(f, x) {
-  return {$: "$JMP", f: f.j?.f === f ? f.j : f, x: [x]};
+  return {$: "$JMP", f: f.j?.f === f ? f.j : f, x};
 }
 
 function run_clo(j) {
@@ -135,7 +135,7 @@ function run_clo(j) {
 
 function run_loop(r) {
   while (r !== null && typeof r === "object" && r.$ === "$JMP") {
-    r = r.f(...r.x);
+    r = r.f(r.x);
   }
   return r;
 }
@@ -150,11 +150,14 @@ function run_lib(f, n) {
 
 const $0eff = Object.create(null);
 
-function io_eff(k, run, need) {
+function io_eff(k, run) {
+  if (arguments.length > 2) {
+    throw new Error("bend: " + k + " takes no need: an effect that waits parks itself");
+  }
   if (k in $0eff) {
     throw new Error("bend: two effects register " + k);
   }
-  $0eff[k] = { run, need };
+  $0eff[k] = run;
 }
 // Program
 // =======
@@ -1461,14 +1464,6 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Admission$058has_tool
   }
 }
 
-function $$$$047$$$047packages$047agent$045flow$045bend$047Admission$058find_permit$pick$(_permit_0, _fallback_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Some", "value": _permit_0};
-  } else {
-    return _fallback_0;
-  }
-}
-
 function $$$$047$$$047packages$047agent$045flow$045bend$047Admission$058find_permit$(_token_0, _permits_0) {
   if (_permits_0.$ === "Nil") {
     return {$: "None"};
@@ -1480,15 +1475,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Admission$058find_per
     const __2 = _t_0["started"];
     const __3 = _t_0["deadline"];
     const _rest_0 = _permits_0["tail"];
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Admission$058find_permit$pick$({$: "../../packages/agent-flow-bend/Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058find_permit$(_token_0, _rest_0)), ($Nat$is_eq$(_current_0, _token_0)));
-  }
-}
-
-function $$$$047$$$047packages$047agent$045flow$045bend$047Admission$058remove_permit$pick$(_permit_0, _tail_0, _hit_0) {
-  if (_hit_0) {
-    return _tail_0;
-  } else {
-    return {$: "Con", "head": _permit_0, "tail": _tail_0};
+    return $List$find$put$({$: "../../packages/agent-flow-bend/Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058find_permit$(_token_0, _rest_0)), ($Nat$is_eq$(_current_0, _token_0)));
   }
 }
 
@@ -1503,7 +1490,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Admission$058remove_p
     const __2 = _t_0["started"];
     const __3 = _t_0["deadline"];
     const _rest_0 = _permits_0["tail"];
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Admission$058remove_permit$pick$({$: "../../packages/agent-flow-bend/Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058remove_permit$(_token_0, _rest_0)), ($Nat$is_eq$(_current_0, _token_0)));
+    return $List$filter$put$({$: "../../packages/agent-flow-bend/Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058remove_permit$(_token_0, _rest_0)), ($Bool$not$(($Nat$is_eq$(_current_0, _token_0)))));
   }
 }
 
@@ -3369,14 +3356,6 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058admit$(_work_
   return {$: "../../packages/agent-flow-bend/Work.Accepted", "state": ($$$$047$$$047packages$047agent$045flow$045bend$047Work$058settle$({$: "../../packages/agent-flow-bend/Work.Work", "next_observation": nat_chk(_next_observation_0 + 1), "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": ($List$append$(_observations_0, {$: "Con", "head": {$: "../../packages/agent-flow-bend/Work.Observation", "id": _next_observation_0, "stage": {$: "../../packages/agent-flow-bend/Work.SourceQueued"}}, "tail": {$: "Nil"}})), "units": _units_0})), "admitted": {$: "Con", "head": _next_observation_0, "tail": {$: "Nil"}}};
 }
 
-function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058find_observation$pick$(_observation_0, _fallback_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Some", "value": _observation_0};
-  } else {
-    return _fallback_0;
-  }
-}
-
 function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058find_observation$(_id_0, _observations_0) {
   if (_observations_0.$ === "Nil") {
     return {$: "None"};
@@ -3385,7 +3364,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058find_observat
     const _current_0 = _t_0["id"];
     const __0 = _t_0["stage"];
     const _rest_0 = _observations_0["tail"];
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Work$058find_observation$pick$({$: "../../packages/agent-flow-bend/Work.Observation", "id": _current_0, "stage": __0}, ($$$$047$$$047packages$047agent$045flow$045bend$047Work$058find_observation$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+    return $List$find$put$({$: "../../packages/agent-flow-bend/Work.Observation", "id": _current_0, "stage": __0}, ($$$$047$$$047packages$047agent$045flow$045bend$047Work$058find_observation$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
   }
 }
 
@@ -3572,14 +3551,6 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058spawn$(_work_
   return $$$$047$$$047packages$047agent$045flow$045bend$047Work$058spawn$found$({$: "../../packages/agent-flow-bend/Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": _observations_0, "units": __4}, _observation_0, _count_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Work$058find_observation$(_observation_0, _observations_0)));
 }
 
-function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058find_unit$pick$(_unit_0, _fallback_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Some", "value": _unit_0};
-  } else {
-    return _fallback_0;
-  }
-}
-
 function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058find_unit$(_id_0, _units_0) {
   if (_units_0.$ === "Nil") {
     return {$: "None"};
@@ -3591,7 +3562,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058find_unit$(_i
     const __2 = _t_0["findings"];
     const __3 = _t_0["bytes"];
     const _rest_0 = _units_0["tail"];
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Work$058find_unit$pick$({$: "../../packages/agent-flow-bend/Work.ReviewUnit", "id": _current_0, "observation": __0, "stage": __1, "findings": __2, "bytes": __3}, ($$$$047$$$047packages$047agent$045flow$045bend$047Work$058find_unit$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+    return $List$find$put$({$: "../../packages/agent-flow-bend/Work.ReviewUnit", "id": _current_0, "observation": __0, "stage": __1, "findings": __2, "bytes": __3}, ($$$$047$$$047packages$047agent$045flow$045bend$047Work$058find_unit$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
   }
 }
 
@@ -4767,15 +4738,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Handoff$058select$cur
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Handoff$058contains$(_id_0, _ids_0) {
-  if (_ids_0.$ === "Nil") {
-    return false;
-  } else {
-    const _item_0 = _ids_0["head"];
-    const _rest_0 = _ids_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_id_0, _item_0));
-    const _x_1 = ($$$$047$$$047packages$047agent$045flow$045bend$047Handoff$058contains$(_id_0, _rest_0));
-    return (_x_0 || _x_1);
-  }
+  return $List$contains$1260$(_ids_0, _id_0);
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Handoff$058select$duplicate$(_state_0, _advice_0, _prospective_bytes_0, _current_0, _duplicate_0) {
@@ -4844,7 +4807,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Handoff$058finish$zer
   if (_zero_0) {
     return $$$$047$$$047packages$047agent$045flow$045bend$047Handoff$058finish$choose$(_state_0, _actionable_findings_0);
   } else {
-    return {$: "../../packages/agent-flow-bend/Handoff.Wait", "state": _state_0};
+    return {$: "../../packages/agent-flow-bend/Handoff.FinishWait", "state": _state_0};
   }
 }
 
@@ -4858,7 +4821,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Handoff$058finish$rea
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Handoff$058finish$pending$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0, _reserved_0) {
   if (_reserved_0) {
-    return {$: "../../packages/agent-flow-bend/Handoff.Wait", "state": _state_0};
+    return {$: "../../packages/agent-flow-bend/Handoff.FinishWait", "state": _state_0};
   } else {
     return $$$$047$$$047packages$047agent$045flow$045bend$047Handoff$058finish$ready$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0);
   }
@@ -6878,15 +6841,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047RevisionState$058find
   } else {
     const _entry_0 = _entries_0["head"];
     const _rest_0 = _entries_0["tail"];
-    return $Bool$pick$(($$$$047$$$047packages$047agent$045flow$045bend$047RevisionState$058same_subject$(_subject_0, _entry_0)), {$: "Some", "value": _entry_0}, ($$$$047$$$047packages$047agent$045flow$045bend$047RevisionState$058find$(_subject_0, _rest_0)));
-  }
-}
-
-function $$$$047$$$047packages$047agent$045flow$045bend$047RevisionState$058keep_entry$(_entry_0, _tail_0, _remove_0) {
-  if (_remove_0) {
-    return _tail_0;
-  } else {
-    return {$: "Con", "head": _entry_0, "tail": _tail_0};
+    return $List$find$put$(_entry_0, ($$$$047$$$047packages$047agent$045flow$045bend$047RevisionState$058find$(_subject_0, _rest_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047RevisionState$058same_subject$(_subject_0, _entry_0)));
   }
 }
 
@@ -6896,7 +6851,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047RevisionState$058with
   } else {
     const _entry_0 = _entries_0["head"];
     const _rest_0 = _entries_0["tail"];
-    return $$$$047$$$047packages$047agent$045flow$045bend$047RevisionState$058keep_entry$(_entry_0, ($$$$047$$$047packages$047agent$045flow$045bend$047RevisionState$058without$(_subject_0, _rest_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047RevisionState$058same_subject$(_subject_0, _entry_0)));
+    return $List$filter$put$(_entry_0, ($$$$047$$$047packages$047agent$045flow$045bend$047RevisionState$058without$(_subject_0, _rest_0)), ($Bool$not$(($$$$047$$$047packages$047agent$045flow$045bend$047RevisionState$058same_subject$(_subject_0, _entry_0)))));
   }
 }
 
@@ -7635,15 +7590,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047NoticeState$058clear_
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047NoticeState$058contains$(_id_0, _items_0) {
-  if (_items_0.$ === "Nil") {
-    return false;
-  } else {
-    const _item_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_id_0, _item_0));
-    const _x_1 = ($$$$047$$$047packages$047agent$045flow$045bend$047NoticeState$058contains$(_id_0, _rest_0));
-    return (_x_0 || _x_1);
-  }
+  return $List$contains$1260$(_items_0, _id_0);
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047NoticeState$058candidate$(_record_0, _partition_0, _group_0, _composed_0, _authority_bound_0, _allowed_0) {
@@ -7709,15 +7656,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047CollectionState$058in
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047CollectionState$058contains$(_id_0, _items_0) {
-  if (_items_0.$ === "Nil") {
-    return false;
-  } else {
-    const _item_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_id_0, _item_0));
-    const _x_1 = ($$$$047$$$047packages$047agent$045flow$045bend$047CollectionState$058contains$(_id_0, _rest_0));
-    return (_x_0 || _x_1);
-  }
+  return $List$contains$1260$(_items_0, _id_0);
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047CollectionState$058lease_exists$(_id_0, _items_0) {
@@ -7746,21 +7685,13 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047CollectionState$058cl
   }
 }
 
-function $$$$047$$$047packages$047agent$045flow$045bend$047CollectionState$058keep_ready$(_item_0, _tail_0, _remove_0) {
-  if (_remove_0) {
-    return _tail_0;
-  } else {
-    return {$: "Con", "head": _item_0, "tail": _tail_0};
-  }
-}
-
 function $$$$047$$$047packages$047agent$045flow$045bend$047CollectionState$058remove_ready$(_id_0, _items_0) {
   if (_items_0.$ === "Nil") {
     return {$: "Nil"};
   } else {
     const _item_0 = _items_0["head"];
     const _rest_0 = _items_0["tail"];
-    return $$$$047$$$047packages$047agent$045flow$045bend$047CollectionState$058keep_ready$(_item_0, ($$$$047$$$047packages$047agent$045flow$045bend$047CollectionState$058remove_ready$(_id_0, _rest_0)), ($Nat$is_eq$(_id_0, _item_0)));
+    return $List$filter$put$(_item_0, ($$$$047$$$047packages$047agent$045flow$045bend$047CollectionState$058remove_ready$(_id_0, _rest_0)), ($Bool$not$(($Nat$is_eq$(_id_0, _item_0)))));
   }
 }
 
@@ -16792,7 +16723,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058
   if (_progress_0.$ === "../../packages/monkey-business-bend/StopScenario.Waiting") {
     const _value_0 = _progress_0["value"];
     return $$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058progress_waiting$(_finish_0, _value_0);
-  } else if (_progress_0.$ === "../../packages/monkey-business-bend/StopScenario.Ready") {
+  } else if (_progress_0.$ === "../../packages/monkey-business-bend/StopScenario.ProgressReady") {
     const _count_0 = _progress_0["count"];
     return $$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058progress_ready$(_finish_0, _count_0);
   } else if (_progress_0.$ === "../../packages/monkey-business-bend/StopScenario.Selected") {
@@ -23104,26 +23035,8 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058initia
   return {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.Idle"}, "pending": {$: "Nil"}, "visited": {$: "Nil"}, "files": 0, "read_bytes": 0, "tree_bytes": 0, "work": 0, "skipped_tree": false, "skipped_excluded": false, "skipped_other": false, "limits": _limits_0};
 }
 
-function $$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058edge_count$(_edges_0) {
-  if (_edges_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _rest_0 = _edges_0["tail"];
-    const _x_0 = ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058edge_count$(_rest_0));
-    return nat_chk(1 + _x_0);
-  }
-}
-
 function $$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058contains$(_target_0, _visited_0) {
-  if (_visited_0.$ === "Nil") {
-    return false;
-  } else {
-    const _head_0 = _visited_0["head"];
-    const _rest_0 = _visited_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_target_0, _head_0));
-    const _x_1 = ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058contains$(_target_0, _rest_0));
-    return (_x_0 || _x_1);
-  }
+  return $List$contains$1260$(_visited_0, _target_0);
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058with_depth$(_edges_0, _depth_0) {
@@ -23147,9 +23060,9 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058fail$(
 function $$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058root$(_limits_0, _target_0, _source_bytes_0, _tree_bytes_0, _local_work_0, _edges_0) {
   const _x_0 = ($Nat$is_gt$(_source_bytes_0, ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058source_cap$(_limits_0))));
   const _x_1 = ($Nat$is_gt$(_source_bytes_0, ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058read_cap$(_limits_0))));
-  const _x_2 = ($Nat$is_gt$(($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058edge_count$(_edges_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058edge_cap$(_limits_0))));
+  const _x_2 = ($Nat$is_gt$(($List$length$(_edges_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058edge_cap$(_limits_0))));
   const _x_3 = ($Nat$is_gt$(_local_work_0, ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058work_cap$(_limits_0))));
-  return $Bool$pick$((_x_0 || _x_1), ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058fail$(_limits_0, {$: "Nil"}, {$: "Nil"}, 0, 0, 0, 0, false, false, false, {$: "../../packages/agent-flow-bend/ImportGraph.ReadLimit"})), ($Bool$pick$(($Nat$is_gt$(_tree_bytes_0, ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058tree_cap$(_limits_0)))), ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058fail$(_limits_0, {$: "Nil"}, {$: "Nil"}, 0, 0, 0, 0, false, false, false, {$: "../../packages/agent-flow-bend/ImportGraph.TreeLimit"})), ($Bool$pick$((_x_2 || _x_3), ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058fail$(_limits_0, {$: "Nil"}, {$: "Nil"}, 0, 0, 0, 0, false, false, false, {$: "../../packages/agent-flow-bend/ImportGraph.WorkLimit"})), {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.Ready"}, "pending": ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058with_depth$(_edges_0, 1)), "visited": {$: "Con", "head": _target_0, "tail": {$: "Nil"}}, "files": 1, "read_bytes": _source_bytes_0, "tree_bytes": _tree_bytes_0, "work": _local_work_0, "skipped_tree": false, "skipped_excluded": false, "skipped_other": false, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.NoCommand"}})))));
+  return $Bool$pick$((_x_0 || _x_1), ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058fail$(_limits_0, {$: "Nil"}, {$: "Nil"}, 0, 0, 0, 0, false, false, false, {$: "../../packages/agent-flow-bend/ImportGraph.ReadLimit"})), ($Bool$pick$(($Nat$is_gt$(_tree_bytes_0, ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058tree_cap$(_limits_0)))), ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058fail$(_limits_0, {$: "Nil"}, {$: "Nil"}, 0, 0, 0, 0, false, false, false, {$: "../../packages/agent-flow-bend/ImportGraph.TreeLimit"})), ($Bool$pick$((_x_2 || _x_3), ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058fail$(_limits_0, {$: "Nil"}, {$: "Nil"}, 0, 0, 0, 0, false, false, false, {$: "../../packages/agent-flow-bend/ImportGraph.WorkLimit"})), {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.GraphReady"}, "pending": ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058with_depth$(_edges_0, 1)), "visited": {$: "Con", "head": _target_0, "tail": {$: "Nil"}}, "files": 1, "read_bytes": _source_bytes_0, "tree_bytes": _tree_bytes_0, "work": _local_work_0, "skipped_tree": false, "skipped_excluded": false, "skipped_other": false, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.NoCommand"}})))));
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058next$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0) {
@@ -23166,22 +23079,22 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058next$(
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058resolved$(_limits_0, _edge_0, _target_0, _result_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0) {
   if (_result_0.$ === "../../packages/agent-flow-bend/ImportGraph.NotFound") {
-    return {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.Ready"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.SkipImport", "target": _target_0, "reason": {$: "../../packages/agent-flow-bend/ImportGraph.Missing"}}};
+    return {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.GraphReady"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.SkipImport", "target": _target_0, "reason": {$: "../../packages/agent-flow-bend/ImportGraph.Missing"}}};
   } else if (_result_0.$ === "../../packages/agent-flow-bend/ImportGraph.Many") {
-    return {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.Ready"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.SkipImport", "target": _target_0, "reason": {$: "../../packages/agent-flow-bend/ImportGraph.Ambiguous"}}};
+    return {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.GraphReady"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.SkipImport", "target": _target_0, "reason": {$: "../../packages/agent-flow-bend/ImportGraph.Ambiguous"}}};
   } else if (_result_0.$ === "../../packages/agent-flow-bend/ImportGraph.Unhandled") {
-    return {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.Ready"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.SkipImport", "target": _target_0, "reason": {$: "../../packages/agent-flow-bend/ImportGraph.Unsupported"}}};
+    return {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.GraphReady"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.SkipImport", "target": _target_0, "reason": {$: "../../packages/agent-flow-bend/ImportGraph.Unsupported"}}};
   } else {
-    return $Bool$pick$(($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058contains$(_target_0, _visited_0)), {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.Ready"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.NoCommand"}}, {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.Checking", "edge": _edge_0, "target": _target_0}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.CheckPath", "target": _target_0}});
+    return $Bool$pick$(($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058contains$(_target_0, _visited_0)), {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.GraphReady"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.NoCommand"}}, {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.Checking", "edge": _edge_0, "target": _target_0}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.CheckPath", "target": _target_0}});
   }
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058checked$(_limits_0, _edge_0, _target_0, _allowed_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0) {
   if (!_allowed_0) {
-    return {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.Ready"}, "pending": _pending_0, "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": true, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.SkipImport", "target": _target_0, "reason": {$: "../../packages/agent-flow-bend/ImportGraph.Excluded"}}};
+    return {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.GraphReady"}, "pending": _pending_0, "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": true, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.SkipImport", "target": _target_0, "reason": {$: "../../packages/agent-flow-bend/ImportGraph.Excluded"}}};
   } else {
     const _x_0 = ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058source_cap$(_limits_0));
-    return $Bool$pick$(($Nat$is_ge$(_files_0, ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058file_cap$(_limits_0)))), {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.Ready"}, "pending": _pending_0, "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.SkipImport", "target": _target_0, "reason": {$: "../../packages/agent-flow-bend/ImportGraph.FileLimit"}}}, ($Bool$pick$(($Nat$is_gt$(nat_chk(_read_bytes_0 + _x_0), ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058read_cap$(_limits_0)))), {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.Ready"}, "pending": _pending_0, "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.SkipImport", "target": _target_0, "reason": {$: "../../packages/agent-flow-bend/ImportGraph.ReadLimit"}}}, {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.Capturing", "edge": _edge_0, "target": _target_0}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.ReadSource", "target": _target_0}})));
+    return $Bool$pick$(($Nat$is_ge$(_files_0, ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058file_cap$(_limits_0)))), {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.GraphReady"}, "pending": _pending_0, "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.SkipImport", "target": _target_0, "reason": {$: "../../packages/agent-flow-bend/ImportGraph.FileLimit"}}}, ($Bool$pick$(($Nat$is_gt$(nat_chk(_read_bytes_0 + _x_0), ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058read_cap$(_limits_0)))), {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.GraphReady"}, "pending": _pending_0, "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.SkipImport", "target": _target_0, "reason": {$: "../../packages/agent-flow-bend/ImportGraph.ReadLimit"}}}, {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.Capturing", "edge": _edge_0, "target": _target_0}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.ReadSource", "target": _target_0}})));
   }
 }
 
@@ -23189,9 +23102,9 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058captur
   const _depth_0 = _edge_0["depth"];
   const _x_0 = ($Nat$is_gt$(_source_bytes_0, ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058source_cap$(_limits_0))));
   const _x_1 = ($Nat$is_gt$(nat_chk(_read_bytes_0 + _source_bytes_0), ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058read_cap$(_limits_0))));
-  const _x_2 = ($Nat$is_gt$(($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058edge_count$(_edges_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058edge_cap$(_limits_0))));
+  const _x_2 = ($Nat$is_gt$(($List$length$(_edges_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058edge_cap$(_limits_0))));
   const _x_3 = ($Nat$is_gt$(nat_chk(_work_0 + _local_work_0), ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058work_cap$(_limits_0))));
-  return $Bool$pick$((_x_0 || _x_1), ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "../../packages/agent-flow-bend/ImportGraph.ReadLimit"})), ($Bool$pick$((_x_2 || _x_3), ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "../../packages/agent-flow-bend/ImportGraph.WorkLimit"})), ($Bool$pick$(($Nat$is_gt$(nat_chk(_tree_bytes_0 + _node_bytes_0), ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058tree_cap$(_limits_0)))), {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.Ready"}, "pending": ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058pending_after$(_pending_0, _edges_0, _depth_0, true)), "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": nat_chk(_files_0 + 1), "read_bytes": ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058read_after$(_read_bytes_0, _source_bytes_0)), "tree_bytes": _tree_bytes_0, "work": nat_chk(_work_0 + _local_work_0), "skipped_tree": true, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.SkipImport", "target": _target_0, "reason": {$: "../../packages/agent-flow-bend/ImportGraph.TreeLimit"}}}, {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.Ready"}, "pending": ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058pending_after$(_pending_0, _edges_0, _depth_0, false)), "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": nat_chk(_files_0 + 1), "read_bytes": ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058read_after$(_read_bytes_0, _source_bytes_0)), "tree_bytes": ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058tree_after$(_tree_bytes_0, _node_bytes_0, ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058tree_cap$(_limits_0)))), "work": nat_chk(_work_0 + _local_work_0), "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.NoCommand"}})))));
+  return $Bool$pick$((_x_0 || _x_1), ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "../../packages/agent-flow-bend/ImportGraph.ReadLimit"})), ($Bool$pick$((_x_2 || _x_3), ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "../../packages/agent-flow-bend/ImportGraph.WorkLimit"})), ($Bool$pick$(($Nat$is_gt$(nat_chk(_tree_bytes_0 + _node_bytes_0), ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058tree_cap$(_limits_0)))), {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.GraphReady"}, "pending": ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058pending_after$(_pending_0, _edges_0, _depth_0, true)), "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": nat_chk(_files_0 + 1), "read_bytes": ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058read_after$(_read_bytes_0, _source_bytes_0)), "tree_bytes": _tree_bytes_0, "work": nat_chk(_work_0 + _local_work_0), "skipped_tree": true, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.SkipImport", "target": _target_0, "reason": {$: "../../packages/agent-flow-bend/ImportGraph.TreeLimit"}}}, {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.GraphReady"}, "pending": ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058pending_after$(_pending_0, _edges_0, _depth_0, false)), "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": nat_chk(_files_0 + 1), "read_bytes": ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058read_after$(_read_bytes_0, _source_bytes_0)), "tree_bytes": ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058tree_after$(_tree_bytes_0, _node_bytes_0, ($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058tree_cap$(_limits_0)))), "work": nat_chk(_work_0 + _local_work_0), "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.NoCommand"}})))));
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058apply$(_state_0, _event_0) {
@@ -23217,7 +23130,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058apply$
     } else {
       return $$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "../../packages/agent-flow-bend/ImportGraph.ProtocolViolation"});
     }
-  } else if (_t_0.$ === "../../packages/agent-flow-bend/ImportGraph.Ready") {
+  } else if (_t_0.$ === "../../packages/agent-flow-bend/ImportGraph.GraphReady") {
     const _pending_1 = _state_0["pending"];
     const _visited_1 = _state_0["visited"];
     const _files_1 = _state_0["files"];
@@ -23291,7 +23204,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058apply$
       const _edges_1 = _event_0["edges"];
       return $$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058captured$(_limits_4, _edge_2, _target_3, _source_bytes_1, _node_bytes_0, _local_work_1, _edges_1, _pending_4, _visited_4, _files_4, _read_bytes_4, _tree_bytes_5, _work_4, _skipped_tree_4, _skipped_excluded_4, _skipped_other_4);
     } else if (_event_0.$ === "../../packages/agent-flow-bend/ImportGraph.CaptureFailed") {
-      return {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.Ready"}, "pending": _pending_4, "visited": {$: "Con", "head": _target_3, "tail": _visited_4}, "files": _files_4, "read_bytes": _read_bytes_4, "tree_bytes": _tree_bytes_5, "work": _work_4, "skipped_tree": _skipped_tree_4, "skipped_excluded": _skipped_excluded_4, "skipped_other": true, "limits": _limits_4}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.SkipImport", "target": _target_3, "reason": {$: "../../packages/agent-flow-bend/ImportGraph.CaptureUnavailable"}}};
+      return {$: "../../packages/agent-flow-bend/ImportGraph.Step", "state": {$: "../../packages/agent-flow-bend/ImportGraph.Graph", "phase": {$: "../../packages/agent-flow-bend/ImportGraph.GraphReady"}, "pending": _pending_4, "visited": {$: "Con", "head": _target_3, "tail": _visited_4}, "files": _files_4, "read_bytes": _read_bytes_4, "tree_bytes": _tree_bytes_5, "work": _work_4, "skipped_tree": _skipped_tree_4, "skipped_excluded": _skipped_excluded_4, "skipped_other": true, "limits": _limits_4}, "command": {$: "../../packages/agent-flow-bend/ImportGraph.SkipImport", "target": _target_3, "reason": {$: "../../packages/agent-flow-bend/ImportGraph.CaptureUnavailable"}}};
     } else {
       return $$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058fail$(_limits_4, _pending_4, _visited_4, _files_4, _read_bytes_4, _tree_bytes_5, _work_4, _skipped_tree_4, _skipped_excluded_4, _skipped_other_4, {$: "../../packages/agent-flow-bend/ImportGraph.ProtocolViolation"});
     }
@@ -41354,11 +41267,39 @@ function $List$length$(_xs_0) {
   }
 }
 
+function $List$find$put$(_h_0, _r_0, _hit_0) {
+  if (!_hit_0) {
+    return _r_0;
+  } else {
+    return {$: "Some", "value": _h_0};
+  }
+}
+
+function $List$filter$put$(_h_0, _r_0, _keep_0) {
+  if (!_keep_0) {
+    return _r_0;
+  } else {
+    return {$: "Con", "head": _h_0, "tail": _r_0};
+  }
+}
+
 function $List$is_empty$(_xs_0) {
   if (_xs_0.$ === "Nil") {
     return true;
   } else {
     return false;
+  }
+}
+
+function $List$contains$1260$(_xs_0, _x_0) {
+  if (_xs_0.$ === "Nil") {
+    return false;
+  } else {
+    const _h_0 = _xs_0["head"];
+    const _t_0 = _xs_0["tail"];
+    const _x_1 = ($Nat$is_eq$(_h_0, _x_0));
+    const _x_2 = ($List$contains$1260$(_t_0, _x_0));
+    return (_x_1 || _x_2);
   }
 }
 
@@ -42035,19 +41976,6 @@ function $0m48(v) {
   for (let at = top, key = 0;;) {
     switch (v.$) {
       case "None": at[key] = v; return top[0];
-      case "Some": at = at[key] = {...v, "value": $0m44(v["value"])}; return top[0];
-      default: throw "bend: Maybe has no tag " + v?.$ + " (its tags: None, Some); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m49(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "None": at[key] = v; return top[0];
       case "Some": at = at[key] = {...v, "value": $0m47(v["value"])}; return top[0];
       default: throw "bend: Maybe has no tag " + v?.$ + " (its tags: None, Some); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
@@ -42056,7 +41984,7 @@ function $0m49(v) {
   }
 }
 
-function $0m51(v) {
+function $0m50(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -42069,13 +41997,26 @@ function $0m51(v) {
   }
 }
 
-function $0m50(v) {
+function $0m49(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/agent-flow-bend/Admission.Accepted": at = at[key] = {...v, "state": $0m45(v["state"]), "token": $0m51(v["token"]), "round": $0m51(v["round"])}; return top[0];
+      case "../../packages/agent-flow-bend/Admission.Accepted": at = at[key] = {...v, "state": $0m45(v["state"]), "token": $0m50(v["token"]), "round": $0m50(v["round"])}; return top[0];
       case "../../packages/agent-flow-bend/Admission.Rejected": at = at[key] = {...v, "state": $0m45(v["state"])}; return top[0];
       default: throw "bend: ../../packages/agent-flow-bend/Admission.AdmissionResult has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Admission.Accepted, ../../packages/agent-flow-bend/Admission.Rejected); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m51(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "None": at[key] = v; return top[0];
+      case "Some": at = at[key] = {...v, "value": $0m44(v["value"])}; return top[0];
+      default: throw "bend: Maybe has no tag " + v?.$ + " (its tags: None, Some); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -42205,7 +42146,7 @@ function $0m61(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/agent-flow-bend/EditHistory.Recorded": at = at[key] = {...v, "state": $0m55(v["state"]), "evicted": $0m51(v["evicted"])}; return top[0];
+      case "../../packages/agent-flow-bend/EditHistory.Recorded": at = at[key] = {...v, "state": $0m55(v["state"]), "evicted": $0m50(v["evicted"])}; return top[0];
       default: throw "bend: ../../packages/agent-flow-bend/EditHistory.Record has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/EditHistory.Recorded); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -42357,7 +42298,7 @@ function $0m68(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/agent-flow-bend/Flow.Flow": at = at[key] = {...v, "packets": $0m69(v["packets"]), "next_id": BigInt(v["next_id"]), "source_capacity": $0m65(v["source_capacity"]), "review_capacity": $0m65(v["review_capacity"]), "round_id": BigInt(v["round_id"]), "continuations": BigInt(v["continuations"]), "leased_id": $0m51(v["leased_id"]), "last_id": $0m51(v["last_id"]), "background_submitted": $0m3(v["background_submitted"])}; return top[0];
+      case "../../packages/agent-flow-bend/Flow.Flow": at = at[key] = {...v, "packets": $0m69(v["packets"]), "next_id": BigInt(v["next_id"]), "source_capacity": $0m65(v["source_capacity"]), "review_capacity": $0m65(v["review_capacity"]), "round_id": BigInt(v["round_id"]), "continuations": BigInt(v["continuations"]), "leased_id": $0m50(v["leased_id"]), "last_id": $0m50(v["last_id"]), "background_submitted": $0m3(v["background_submitted"])}; return top[0];
       default: throw "bend: ../../packages/agent-flow-bend/Flow.Flow has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Flow.Flow); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -42433,7 +42374,7 @@ function $0m76(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/agent-flow-bend/Flow.Transition": at = at[key] = {...v, "event": $0m67(v["event"]), "item": $0m51(v["item"])}; return top[0];
+      case "../../packages/agent-flow-bend/Flow.Transition": at = at[key] = {...v, "event": $0m67(v["event"]), "item": $0m50(v["item"])}; return top[0];
       case "../../packages/agent-flow-bend/Flow.CapacityChanged": at = at[key] = {...v, "before": $0m65(v["before"]), "after": $0m65(v["after"])}; return top[0];
       case "../../packages/agent-flow-bend/Flow.RoundOpened": at = at[key] = {...v, "id": BigInt(v["id"])}; return top[0];
       case "../../packages/agent-flow-bend/Flow.RoundClosed": at = at[key] = {...v, "id": BigInt(v["id"]), "discarded": BigInt(v["discarded"])}; return top[0];
@@ -42658,7 +42599,7 @@ function $0m93(v) {
   for (let at = top, key = 0;;) {
     switch (v.$) {
       case "None": at[key] = v; return top[0];
-      case "Some": at = at[key] = {...v, "value": $0m88(v["value"])}; return top[0];
+      case "Some": at = at[key] = {...v, "value": $0m84(v["value"])}; return top[0];
       default: throw "bend: Maybe has no tag " + v?.$ + " (its tags: None, Some); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -42671,7 +42612,7 @@ function $0m94(v) {
   for (let at = top, key = 0;;) {
     switch (v.$) {
       case "None": at[key] = v; return top[0];
-      case "Some": at = at[key] = {...v, "value": $0m84(v["value"])}; return top[0];
+      case "Some": at = at[key] = {...v, "value": $0m88(v["value"])}; return top[0];
       default: throw "bend: Maybe has no tag " + v?.$ + " (its tags: None, Some); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -42684,7 +42625,7 @@ function $0m95(v) {
   for (let at = top, key = 0;;) {
     switch (v.$) {
       case "None": at[key] = v; return top[0];
-      case "Some": at = at[key] = {...v, "value": $0m90(v["value"])}; return top[0];
+      case "Some": at = at[key] = {...v, "value": $0m86(v["value"])}; return top[0];
       default: throw "bend: Maybe has no tag " + v?.$ + " (its tags: None, Some); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -42697,7 +42638,7 @@ function $0m96(v) {
   for (let at = top, key = 0;;) {
     switch (v.$) {
       case "None": at[key] = v; return top[0];
-      case "Some": at = at[key] = {...v, "value": $0m86(v["value"])}; return top[0];
+      case "Some": at = at[key] = {...v, "value": $0m90(v["value"])}; return top[0];
       default: throw "bend: Maybe has no tag " + v?.$ + " (its tags: None, Some); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -43116,8 +43057,8 @@ function $0m129(v) {
     switch (v.$) {
       case "../../packages/agent-flow-bend/Handoff.Continue": at = at[key] = {...v, "state": $0m127(v["state"])}; return top[0];
       case "../../packages/agent-flow-bend/Handoff.Allow": at = at[key] = {...v, "state": $0m127(v["state"])}; return top[0];
-      case "../../packages/agent-flow-bend/Handoff.Wait": at = at[key] = {...v, "state": $0m127(v["state"])}; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Handoff.FinishResult has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Handoff.Continue, ../../packages/agent-flow-bend/Handoff.Allow, ../../packages/agent-flow-bend/Handoff.Wait); a tag names its constructor as the"
+      case "../../packages/agent-flow-bend/Handoff.FinishWait": at = at[key] = {...v, "state": $0m127(v["state"])}; return top[0];
+      default: throw "bend: ../../packages/agent-flow-bend/Handoff.FinishResult has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Handoff.Continue, ../../packages/agent-flow-bend/Handoff.Allow, ../../packages/agent-flow-bend/Handoff.FinishWait); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -44422,7 +44363,7 @@ function $0m233(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/agent-flow-bend/Canonical.Round": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "id": BigInt(v["id"]), "write": $0m51(v["write"]), "quiet_since": $0m51(v["quiet_since"])}; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.Round": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "id": BigInt(v["id"]), "write": $0m50(v["write"]), "quiet_since": $0m50(v["quiet_since"])}; return top[0];
       default: throw "bend: ../../packages/agent-flow-bend/Canonical.Round has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.Round); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -44626,7 +44567,7 @@ function $0m247(v) {
       case "../../packages/agent-flow-bend/Canonical.PermitIssued": at = at[key] = {...v, "token": BigInt(v["token"]), "round": BigInt(v["round"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.CompletedEditAbsent": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.CompletedEditSeen": at[key] = v; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.CompletedEditRemembered": at = at[key] = {...v, "evicted": $0m51(v["evicted"])}; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.CompletedEditRemembered": at = at[key] = {...v, "evicted": $0m50(v["evicted"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.QuietRoundBusy": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.QuietRoundWaiting": at = at[key] = {...v, "since": BigInt(v["since"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.QuietRoundExpired": at = at[key] = {...v, "since": BigInt(v["since"])}; return top[0];
@@ -45774,7 +45715,7 @@ function $0m282(v) {
       case "../../packages/agent-flow-bend/Canonical.CacheCommit": at = at[key] = {...v, "id": BigInt(v["id"]), "partition": BigInt(v["partition"]), "bytes": BigInt(v["bytes"]), "reservation": BigInt(v["reservation"]), "entry_limit": BigInt(v["entry_limit"]), "byte_limit": BigInt(v["byte_limit"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.CacheDiscardPartition": at = at[key] = {...v, "partition": BigInt(v["partition"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.CacheClear": at[key] = v; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.NoticeAdvance": at = at[key] = {...v, "key": BigInt(v["key"]), "remaining": $0m51(v["remaining"]), "maximum_keys": BigInt(v["maximum_keys"]), "proposed": BigInt(v["proposed"]), "sequence": BigInt(v["sequence"]), "max_count": BigInt(v["max_count"])}; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.NoticeAdvance": at = at[key] = {...v, "key": BigInt(v["key"]), "remaining": $0m50(v["remaining"]), "maximum_keys": BigInt(v["maximum_keys"]), "proposed": BigInt(v["proposed"]), "sequence": BigInt(v["sequence"]), "max_count": BigInt(v["max_count"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.NoticeCommit": at = at[key] = {...v, "key": BigInt(v["key"]), "partition": BigInt(v["partition"]), "group": BigInt(v["group"]), "reservation": BigInt(v["reservation"]), "pending": BigInt(v["pending"]), "sequence": BigInt(v["sequence"]), "maximum_keys": BigInt(v["maximum_keys"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.NoticePrune": at = at[key] = {...v, "key": BigInt(v["key"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.NoticeDrop": at = at[key] = {...v, "key": BigInt(v["key"])}; return top[0];
@@ -46033,7 +45974,7 @@ function $0m302(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/monkey-business-bend/Driver.Action": at = at[key] = {...v, "event": $0m282(v["event"]), "delay": BigInt(v["delay"]), "candidate": $0m300(v["candidate"]), "expiry_advice": $0m51(v["expiry_advice"])}; return top[0];
+      case "../../packages/monkey-business-bend/Driver.Action": at = at[key] = {...v, "event": $0m282(v["event"]), "delay": BigInt(v["delay"]), "candidate": $0m300(v["candidate"]), "expiry_advice": $0m50(v["expiry_advice"])}; return top[0];
       default: throw "bend: ../../packages/monkey-business-bend/Driver.Action has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/Driver.Action); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -47386,12 +47327,12 @@ function $0m411(v) {
   for (let at = top, key = 0;;) {
     switch (v.$) {
       case "../../packages/monkey-business-bend/StopScenario.Waiting": at[key] = v; return top[0];
-      case "../../packages/monkey-business-bend/StopScenario.Ready": at = at[key] = {...v, "count": nat_host(v["count"])}; return top[0];
+      case "../../packages/monkey-business-bend/StopScenario.ProgressReady": at = at[key] = {...v, "count": nat_host(v["count"])}; return top[0];
       case "../../packages/monkey-business-bend/StopScenario.Selected": at = at[key] = {...v, "advice": nat_host(v["advice"])}; return top[0];
       case "../../packages/monkey-business-bend/StopScenario.Clear": at[key] = v; return top[0];
       case "../../packages/monkey-business-bend/StopScenario.Fit": at[key] = v; return top[0];
       case "../../packages/monkey-business-bend/StopScenario.Output": at = at[key] = {...v, "capture": $0m289(v["capture"])}; return top[0];
-      default: throw "bend: ../../packages/monkey-business-bend/StopScenario.Progress has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/StopScenario.Waiting, ../../packages/monkey-business-bend/StopScenario.Ready, ../../packages/monkey-business-bend/StopScenario.Selected, ../../packages/monkey-business-bend/StopScenario.Clear, ../../packages/monkey-business-bend/StopScenario.Fit, ../../packages/monkey-business-bend/StopScenario.Output); a tag names its constructor as the"
+      default: throw "bend: ../../packages/monkey-business-bend/StopScenario.Progress has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/StopScenario.Waiting, ../../packages/monkey-business-bend/StopScenario.ProgressReady, ../../packages/monkey-business-bend/StopScenario.Selected, ../../packages/monkey-business-bend/StopScenario.Clear, ../../packages/monkey-business-bend/StopScenario.Fit, ../../packages/monkey-business-bend/StopScenario.Output); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -47403,12 +47344,12 @@ function $0m412(v) {
   for (let at = top, key = 0;;) {
     switch (v.$) {
       case "../../packages/monkey-business-bend/StopScenario.Waiting": at[key] = v; return top[0];
-      case "../../packages/monkey-business-bend/StopScenario.Ready": at = at[key] = {...v, "count": BigInt(v["count"])}; return top[0];
+      case "../../packages/monkey-business-bend/StopScenario.ProgressReady": at = at[key] = {...v, "count": BigInt(v["count"])}; return top[0];
       case "../../packages/monkey-business-bend/StopScenario.Selected": at = at[key] = {...v, "advice": BigInt(v["advice"])}; return top[0];
       case "../../packages/monkey-business-bend/StopScenario.Clear": at[key] = v; return top[0];
       case "../../packages/monkey-business-bend/StopScenario.Fit": at[key] = v; return top[0];
       case "../../packages/monkey-business-bend/StopScenario.Output": at = at[key] = {...v, "capture": $0m290(v["capture"])}; return top[0];
-      default: throw "bend: ../../packages/monkey-business-bend/StopScenario.Progress has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/StopScenario.Waiting, ../../packages/monkey-business-bend/StopScenario.Ready, ../../packages/monkey-business-bend/StopScenario.Selected, ../../packages/monkey-business-bend/StopScenario.Clear, ../../packages/monkey-business-bend/StopScenario.Fit, ../../packages/monkey-business-bend/StopScenario.Output); a tag names its constructor as the"
+      default: throw "bend: ../../packages/monkey-business-bend/StopScenario.Progress has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/StopScenario.Waiting, ../../packages/monkey-business-bend/StopScenario.ProgressReady, ../../packages/monkey-business-bend/StopScenario.Selected, ../../packages/monkey-business-bend/StopScenario.Clear, ../../packages/monkey-business-bend/StopScenario.Fit, ../../packages/monkey-business-bend/StopScenario.Output); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -47457,7 +47398,7 @@ function $0m413(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/monkey-business-bend/StopScenario.Changed": at = at[key] = {...v, "state": $0m398(v["state"]), "handled": $0m303(v["handled"]), "ended": $0m414(v["ended"]), "fit_attempt": $0m51(v["fit_attempt"]), "output": $0m416(v["output"])}; return top[0];
+      case "../../packages/monkey-business-bend/StopScenario.Changed": at = at[key] = {...v, "state": $0m398(v["state"]), "handled": $0m303(v["handled"]), "ended": $0m414(v["ended"]), "fit_attempt": $0m50(v["fit_attempt"]), "output": $0m416(v["output"])}; return top[0];
       default: throw "bend: ../../packages/monkey-business-bend/StopScenario.Changed has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/StopScenario.Changed); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -47481,7 +47422,7 @@ function $0m418(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/monkey-business-bend/StopScenario.CommandFacts": at = at[key] = {...v, "now": BigInt(v["now"]), "delay": BigInt(v["delay"]), "lease": BigInt(v["lease"]), "bytes": $0m51(v["bytes"]), "fit_attempt": $0m51(v["fit_attempt"])}; return top[0];
+      case "../../packages/monkey-business-bend/StopScenario.CommandFacts": at = at[key] = {...v, "now": BigInt(v["now"]), "delay": BigInt(v["delay"]), "lease": BigInt(v["lease"]), "bytes": $0m50(v["bytes"]), "fit_attempt": $0m50(v["fit_attempt"])}; return top[0];
       default: throw "bend: ../../packages/monkey-business-bend/StopScenario.CommandFacts has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/StopScenario.CommandFacts); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -47917,7 +47858,7 @@ function $0m453(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/monkey-business-bend/SharingScenario.Registration": at = at[key] = {...v, "state": $0m433(v["state"]), "id": $0m51(v["id"])}; return top[0];
+      case "../../packages/monkey-business-bend/SharingScenario.Registration": at = at[key] = {...v, "state": $0m433(v["state"]), "id": $0m50(v["id"])}; return top[0];
       default: throw "bend: ../../packages/monkey-business-bend/SharingScenario.Registration has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/SharingScenario.Registration); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -48090,7 +48031,7 @@ function $0m469(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/monkey-business-bend/CacheRuntime.Pending": at = at[key] = {...v, "offer": $0m457(v["offer"]), "entry_limit": BigInt(v["entry_limit"]), "byte_limit": BigInt(v["byte_limit"]), "reservation": $0m51(v["reservation"])}; return top[0];
+      case "../../packages/monkey-business-bend/CacheRuntime.Pending": at = at[key] = {...v, "offer": $0m457(v["offer"]), "entry_limit": BigInt(v["entry_limit"]), "byte_limit": BigInt(v["byte_limit"]), "reservation": $0m50(v["reservation"])}; return top[0];
       default: throw "bend: ../../packages/monkey-business-bend/CacheRuntime.Pending has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/CacheRuntime.Pending); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -48250,7 +48191,7 @@ function $0m482(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/monkey-business-bend/CacheRuntime.Fact": at = at[key] = {...v, "offer": $0m457(v["offer"]), "entry_limit": BigInt(v["entry_limit"]), "byte_limit": BigInt(v["byte_limit"]), "reservation": $0m51(v["reservation"]), "event": $0m282(v["event"])}; return top[0];
+      case "../../packages/monkey-business-bend/CacheRuntime.Fact": at = at[key] = {...v, "offer": $0m457(v["offer"]), "entry_limit": BigInt(v["entry_limit"]), "byte_limit": BigInt(v["byte_limit"]), "reservation": $0m50(v["reservation"]), "event": $0m282(v["event"])}; return top[0];
       default: throw "bend: ../../packages/monkey-business-bend/CacheRuntime.Fact has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/CacheRuntime.Fact); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -49989,13 +49930,13 @@ function $0m619(v) {
   for (let at = top, key = 0;;) {
     switch (v.$) {
       case "../../packages/agent-flow-bend/ImportGraph.Idle": at[key] = v; return top[0];
-      case "../../packages/agent-flow-bend/ImportGraph.Ready": at[key] = v; return top[0];
+      case "../../packages/agent-flow-bend/ImportGraph.GraphReady": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/ImportGraph.Resolving": at = at[key] = {...v, "edge": $0m620(v["edge"])}; return top[0];
       case "../../packages/agent-flow-bend/ImportGraph.Checking": at = at[key] = {...v, "edge": $0m620(v["edge"]), "target": BigInt(v["target"])}; return top[0];
       case "../../packages/agent-flow-bend/ImportGraph.Capturing": at = at[key] = {...v, "edge": $0m620(v["edge"]), "target": BigInt(v["target"])}; return top[0];
       case "../../packages/agent-flow-bend/ImportGraph.Complete": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/ImportGraph.Incomplete": at[key] = v; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/ImportGraph.Phase has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/ImportGraph.Idle, ../../packages/agent-flow-bend/ImportGraph.Ready, ../../packages/agent-flow-bend/ImportGraph.Resolving, ../../packages/agent-flow-bend/ImportGraph.Checking, ../../packages/agent-flow-bend/ImportGraph.Capturing, ../../packages/agent-flow-bend/ImportGraph.Complete, ../../packages/agent-flow-bend/ImportGraph.Incomplete); a tag names its constructor as the"
+      default: throw "bend: ../../packages/agent-flow-bend/ImportGraph.Phase has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/ImportGraph.Idle, ../../packages/agent-flow-bend/ImportGraph.GraphReady, ../../packages/agent-flow-bend/ImportGraph.Resolving, ../../packages/agent-flow-bend/ImportGraph.Checking, ../../packages/agent-flow-bend/ImportGraph.Capturing, ../../packages/agent-flow-bend/ImportGraph.Complete, ../../packages/agent-flow-bend/ImportGraph.Incomplete); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -50087,13 +50028,13 @@ function $0m627(v) {
   for (let at = top, key = 0;;) {
     switch (v.$) {
       case "../../packages/agent-flow-bend/ImportGraph.Idle": at[key] = v; return top[0];
-      case "../../packages/agent-flow-bend/ImportGraph.Ready": at[key] = v; return top[0];
+      case "../../packages/agent-flow-bend/ImportGraph.GraphReady": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/ImportGraph.Resolving": at = at[key] = {...v, "edge": $0m623(v["edge"])}; return top[0];
       case "../../packages/agent-flow-bend/ImportGraph.Checking": at = at[key] = {...v, "edge": $0m623(v["edge"]), "target": nat_host(v["target"])}; return top[0];
       case "../../packages/agent-flow-bend/ImportGraph.Capturing": at = at[key] = {...v, "edge": $0m623(v["edge"]), "target": nat_host(v["target"])}; return top[0];
       case "../../packages/agent-flow-bend/ImportGraph.Complete": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/ImportGraph.Incomplete": at[key] = v; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/ImportGraph.Phase has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/ImportGraph.Idle, ../../packages/agent-flow-bend/ImportGraph.Ready, ../../packages/agent-flow-bend/ImportGraph.Resolving, ../../packages/agent-flow-bend/ImportGraph.Checking, ../../packages/agent-flow-bend/ImportGraph.Capturing, ../../packages/agent-flow-bend/ImportGraph.Complete, ../../packages/agent-flow-bend/ImportGraph.Incomplete); a tag names its constructor as the"
+      default: throw "bend: ../../packages/agent-flow-bend/ImportGraph.Phase has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/ImportGraph.Idle, ../../packages/agent-flow-bend/ImportGraph.GraphReady, ../../packages/agent-flow-bend/ImportGraph.Resolving, ../../packages/agent-flow-bend/ImportGraph.Checking, ../../packages/agent-flow-bend/ImportGraph.Capturing, ../../packages/agent-flow-bend/ImportGraph.Complete, ../../packages/agent-flow-bend/ImportGraph.Incomplete); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -50367,7 +50308,7 @@ function $0m647(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/monkey-business-bend/Workload.Advicee": at = at[key] = {...v, "partition": BigInt(v["partition"]), "stream": $0m2(v["stream"]), "duration": $0m51(v["duration"])}; return top[0];
+      case "../../packages/monkey-business-bend/Workload.Advicee": at = at[key] = {...v, "partition": BigInt(v["partition"]), "stream": $0m2(v["stream"]), "duration": $0m50(v["duration"])}; return top[0];
       default: throw "bend: ../../packages/monkey-business-bend/Workload.Advicee has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/Workload.Advicee); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -50391,7 +50332,7 @@ function $0m649(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/monkey-business-bend/Workload.Profile": at = at[key] = {...v, "bytes": BigInt(v["bytes"]), "units": $0m3(v["units"]), "duration": $0m51(v["duration"])}; return top[0];
+      case "../../packages/monkey-business-bend/Workload.Profile": at = at[key] = {...v, "bytes": BigInt(v["bytes"]), "units": $0m3(v["units"]), "duration": $0m50(v["duration"])}; return top[0];
       default: throw "bend: ../../packages/monkey-business-bend/Workload.Profile has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/Workload.Profile); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -52071,7 +52012,7 @@ function $0m784(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/monkey-business-bend/Engine.StopHandled": at = at[key] = {...v, "state": $0m716(v["state"]), "handled": $0m303(v["handled"]), "ended": $0m414(v["ended"]), "fit_attempt": $0m51(v["fit_attempt"]), "output": $0m416(v["output"])}; return top[0];
+      case "../../packages/monkey-business-bend/Engine.StopHandled": at = at[key] = {...v, "state": $0m716(v["state"]), "handled": $0m303(v["handled"]), "ended": $0m414(v["ended"]), "fit_attempt": $0m50(v["fit_attempt"]), "output": $0m416(v["output"])}; return top[0];
       default: throw "bend: ../../packages/monkey-business-bend/Engine.StopHandled has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/Engine.StopHandled); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -52501,7 +52442,7 @@ function $0m822(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/monkey-business-bend/NativeRunTypes.Job": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "bytes": BigInt(v["bytes"]), "units": $0m3(v["units"]), "revision": BigInt(v["revision"]), "duration": $0m51(v["duration"]), "source_job": $0m730(v["source_job"])}; return top[0];
+      case "../../packages/monkey-business-bend/NativeRunTypes.Job": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "bytes": BigInt(v["bytes"]), "units": $0m3(v["units"]), "revision": BigInt(v["revision"]), "duration": $0m50(v["duration"]), "source_job": $0m730(v["source_job"])}; return top[0];
       default: throw "bend: ../../packages/monkey-business-bend/NativeRunTypes.Job has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/NativeRunTypes.Job); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -52593,7 +52534,7 @@ function $0m827(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/monkey-business-bend/NativeRunTypes.OutputProfile": at = at[key] = {...v, "candidate_bytes": $0m51(v["candidate_bytes"])}; return top[0];
+      case "../../packages/monkey-business-bend/NativeRunTypes.OutputProfile": at = at[key] = {...v, "candidate_bytes": $0m50(v["candidate_bytes"])}; return top[0];
       default: throw "bend: ../../packages/monkey-business-bend/NativeRunTypes.OutputProfile has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/NativeRunTypes.OutputProfile); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -52768,7 +52709,7 @@ function $0m843(v) {
   for (let at = top, key = 0;;) {
     switch (v.$) {
       case "Nil": at[key] = v; return top[0];
-      case "Con": at = at[key] = {...v, "head": $0m51(v["head"])}; key = "tail"; v = v[key]; continue;
+      case "Con": at = at[key] = {...v, "head": $0m50(v["head"])}; key = "tail"; v = v[key]; continue;
       default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -52780,7 +52721,7 @@ function $0m845(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/monkey-business-bend/NativeRunTypes.ConsumedInput": at = at[key] = {...v, "order": BigInt(v["order"]), "input": $0m821(v["input"]), "action_delay": $0m51(v["action_delay"])}; return top[0];
+      case "../../packages/monkey-business-bend/NativeRunTypes.ConsumedInput": at = at[key] = {...v, "order": BigInt(v["order"]), "input": $0m821(v["input"]), "action_delay": $0m50(v["action_delay"])}; return top[0];
       default: throw "bend: ../../packages/monkey-business-bend/NativeRunTypes.ConsumedInput has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/NativeRunTypes.ConsumedInput); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -52805,7 +52746,7 @@ function $0m831(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/monkey-business-bend/NativeRunTypes.FrameDetails": at = at[key] = {...v, "before": $0m832(v["before"]), "after": $0m832(v["after"]), "prepared": $0m840(v["prepared"]), "source": $0m824(v["source"]), "transition_after": $0m786(v["transition_after"]), "receipt": $0m558(v["receipt"]), "physical": $0m841(v["physical"]), "provided": $0m51(v["provided"]), "command_scopes": $0m843(v["command_scopes"]), "consumed": $0m844(v["consumed"])}; return top[0];
+      case "../../packages/monkey-business-bend/NativeRunTypes.FrameDetails": at = at[key] = {...v, "before": $0m832(v["before"]), "after": $0m832(v["after"]), "prepared": $0m840(v["prepared"]), "source": $0m824(v["source"]), "transition_after": $0m786(v["transition_after"]), "receipt": $0m558(v["receipt"]), "physical": $0m841(v["physical"]), "provided": $0m50(v["provided"]), "command_scopes": $0m843(v["command_scopes"]), "consumed": $0m844(v["consumed"])}; return top[0];
       default: throw "bend: ../../packages/monkey-business-bend/NativeRunTypes.FrameDetails has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/NativeRunTypes.FrameDetails); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -54003,7 +53944,7 @@ function $0m937(v) {
     switch (v.$) {
       case "../../packages/monkey-business-bend/NativeRunTypes.OutputProfileControl": at = at[key] = {...v, "delay": BigInt(v["delay"]), "lease": BigInt(v["lease"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.AdviceeLifecycleControl": at = at[key] = {...v, "identity": BigInt(v["identity"])}; return top[0];
-      case "../../packages/monkey-business-bend/NativeRunTypes.WorkloadControl": at = at[key] = {...v, "identity": $0m51(v["identity"]), "control": $0m657(v["control"])}; return top[0];
+      case "../../packages/monkey-business-bend/NativeRunTypes.WorkloadControl": at = at[key] = {...v, "identity": $0m50(v["identity"]), "control": $0m657(v["control"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.JevProfile": at = at[key] = {...v, "delay": BigInt(v["delay"]), "weights": $0m24(v["weights"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.EnvironmentControl": at = at[key] = {...v, "credential_generation": BigInt(v["credential_generation"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.JevDelay": at = at[key] = {...v, "delay": BigInt(v["delay"])}; return top[0];
@@ -54718,34 +54659,32 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/agent-flow-bend/Admission.pending_count": run_lib((a0) => { const r = BigInt(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058pending_count$($0m42(a0)))); $0m45(a0); return r; }, 1),
   "../../packages/agent-flow-bend/Admission.initial": run_lib((a0, a1) => { const r = $0m45(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058initial$(nat_host(a0), nat_host(a1)))); BigInt(a0); BigInt(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Admission.has_tool": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058has_tool$(nat_host(a0), $0m43(a1)))); BigInt(a0); $0m46(a1); return r; }, 2),
-  "../../packages/agent-flow-bend/Admission.find_permit.pick": run_lib((a0, a1, a2) => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058find_permit$pick$($0m44(a0), $0m48(a1), (a2)))); $0m47(a0); $0m49(a1); (a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Admission.find_permit": run_lib((a0, a1) => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058find_permit$(nat_host(a0), $0m43(a1)))); BigInt(a0); $0m46(a1); return r; }, 2),
-  "../../packages/agent-flow-bend/Admission.remove_permit.pick": run_lib((a0, a1, a2) => { const r = $0m46(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058remove_permit$pick$($0m44(a0), $0m43(a1), (a2)))); $0m47(a0); $0m46(a1); (a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Admission.find_permit": run_lib((a0, a1) => { const r = $0m48(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058find_permit$(nat_host(a0), $0m43(a1)))); BigInt(a0); $0m46(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Admission.remove_permit": run_lib((a0, a1) => { const r = $0m46(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058remove_permit$(nat_host(a0), $0m43(a1)))); BigInt(a0); $0m46(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Admission.candidate_round": run_lib((a0, a1) => { const r = BigInt(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058candidate_round$(nat_host(a0), (a1)))); BigInt(a0); (a1); return r; }, 2),
-  "../../packages/agent-flow-bend/Admission.issue.tool": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058issue$tool$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4), nat_host(a5), nat_host(a6), $0m43(a7), nat_host(a8), nat_host(a9), nat_host(a10), (a11)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); BigInt(a5); BigInt(a6); $0m46(a7); BigInt(a8); BigInt(a9); BigInt(a10); (a11); return r; }, 12),
-  "../../packages/agent-flow-bend/Admission.issue.guard": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058issue$guard$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4), nat_host(a5), nat_host(a6), $0m43(a7), nat_host(a8), nat_host(a9), nat_host(a10), nat_host(a11), (a12)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); BigInt(a5); BigInt(a6); $0m46(a7); BigInt(a8); BigInt(a9); BigInt(a10); BigInt(a11); (a12); return r; }, 13),
-  "../../packages/agent-flow-bend/Admission.issue": run_lib((a0, a1, a2, a3, a4) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058issue$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); return r; }, 5),
-  "../../packages/agent-flow-bend/Admission.consume.round": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058consume$round$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4), nat_host(a5), nat_host(a6), $0m43(a7), nat_host(a8), nat_host(a9), (a10)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); BigInt(a5); BigInt(a6); $0m46(a7); BigInt(a8); BigInt(a9); (a10); return r; }, 11),
-  "../../packages/agent-flow-bend/Admission.consume.time": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058consume$time$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4), nat_host(a5), nat_host(a6), $0m43(a7), nat_host(a8), nat_host(a9), nat_host(a10), (a11)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); BigInt(a5); BigInt(a6); $0m46(a7); BigInt(a8); BigInt(a9); BigInt(a10); (a11); return r; }, 12),
-  "../../packages/agent-flow-bend/Admission.consume.tool": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058consume$tool$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4), nat_host(a5), nat_host(a6), $0m43(a7), nat_host(a8), nat_host(a9), nat_host(a10), nat_host(a11), nat_host(a12), nat_host(a13), (a14)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); BigInt(a5); BigInt(a6); $0m46(a7); BigInt(a8); BigInt(a9); BigInt(a10); BigInt(a11); BigInt(a12); BigInt(a13); (a14); return r; }, 15),
-  "../../packages/agent-flow-bend/Admission.consume.check": run_lib((a0, a1, a2, a3, a4, a5, a6, a7) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058consume$check$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4), nat_host(a5), nat_host(a6), nat_host(a7)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); BigInt(a5); BigInt(a6); BigInt(a7); return r; }, 8),
-  "../../packages/agent-flow-bend/Admission.consume.found": run_lib((a0, a1, a2, a3, a4) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058consume$found$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), $0m48(a4)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); $0m49(a4); return r; }, 5),
-  "../../packages/agent-flow-bend/Admission.consume": run_lib((a0, a1, a2, a3) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058consume$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); return r; }, 4),
-  "../../packages/agent-flow-bend/Admission.release.found": run_lib((a0, a1, a2) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058release$found$($0m42(a0), nat_host(a1), $0m48(a2)))); $0m45(a0); BigInt(a1); $0m49(a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Admission.release": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058release$($0m42(a0), nat_host(a1)))); $0m45(a0); BigInt(a1); return r; }, 2),
+  "../../packages/agent-flow-bend/Admission.issue.tool": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11) => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058issue$tool$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4), nat_host(a5), nat_host(a6), $0m43(a7), nat_host(a8), nat_host(a9), nat_host(a10), (a11)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); BigInt(a5); BigInt(a6); $0m46(a7); BigInt(a8); BigInt(a9); BigInt(a10); (a11); return r; }, 12),
+  "../../packages/agent-flow-bend/Admission.issue.guard": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12) => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058issue$guard$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4), nat_host(a5), nat_host(a6), $0m43(a7), nat_host(a8), nat_host(a9), nat_host(a10), nat_host(a11), (a12)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); BigInt(a5); BigInt(a6); $0m46(a7); BigInt(a8); BigInt(a9); BigInt(a10); BigInt(a11); (a12); return r; }, 13),
+  "../../packages/agent-flow-bend/Admission.issue": run_lib((a0, a1, a2, a3, a4) => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058issue$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); return r; }, 5),
+  "../../packages/agent-flow-bend/Admission.consume.round": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10) => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058consume$round$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4), nat_host(a5), nat_host(a6), $0m43(a7), nat_host(a8), nat_host(a9), (a10)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); BigInt(a5); BigInt(a6); $0m46(a7); BigInt(a8); BigInt(a9); (a10); return r; }, 11),
+  "../../packages/agent-flow-bend/Admission.consume.time": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11) => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058consume$time$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4), nat_host(a5), nat_host(a6), $0m43(a7), nat_host(a8), nat_host(a9), nat_host(a10), (a11)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); BigInt(a5); BigInt(a6); $0m46(a7); BigInt(a8); BigInt(a9); BigInt(a10); (a11); return r; }, 12),
+  "../../packages/agent-flow-bend/Admission.consume.tool": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14) => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058consume$tool$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4), nat_host(a5), nat_host(a6), $0m43(a7), nat_host(a8), nat_host(a9), nat_host(a10), nat_host(a11), nat_host(a12), nat_host(a13), (a14)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); BigInt(a5); BigInt(a6); $0m46(a7); BigInt(a8); BigInt(a9); BigInt(a10); BigInt(a11); BigInt(a12); BigInt(a13); (a14); return r; }, 15),
+  "../../packages/agent-flow-bend/Admission.consume.check": run_lib((a0, a1, a2, a3, a4, a5, a6, a7) => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058consume$check$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4), nat_host(a5), nat_host(a6), nat_host(a7)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); BigInt(a5); BigInt(a6); BigInt(a7); return r; }, 8),
+  "../../packages/agent-flow-bend/Admission.consume.found": run_lib((a0, a1, a2, a3, a4) => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058consume$found$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), $0m51(a4)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); $0m48(a4); return r; }, 5),
+  "../../packages/agent-flow-bend/Admission.consume": run_lib((a0, a1, a2, a3) => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058consume$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); return r; }, 4),
+  "../../packages/agent-flow-bend/Admission.release.found": run_lib((a0, a1, a2) => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058release$found$($0m42(a0), nat_host(a1), $0m51(a2)))); $0m45(a0); BigInt(a1); $0m48(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Admission.release": run_lib((a0, a1) => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058release$($0m42(a0), nat_host(a1)))); $0m45(a0); BigInt(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Admission.expire.due": run_lib((a0, a1) => { const r = $0m52(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058expire$due$($0m42(a0), nat_host(a1)))); $0m45(a0); BigInt(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Admission.expire": run_lib((a0, a1, a2) => { const r = $0m52(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058expire$($0m42(a0), nat_host(a1), (a2)))); $0m45(a0); BigInt(a1); (a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Admission.close_round.time": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058close_round$time$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4), nat_host(a5), (a6)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); BigInt(a5); (a6); return r; }, 7),
-  "../../packages/agent-flow-bend/Admission.close_round.active": run_lib((a0, a1, a2, a3, a4, a5, a6, a7) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058close_round$active$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4), nat_host(a5), nat_host(a6), nat_host(a7)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); BigInt(a5); BigInt(a6); BigInt(a7); return r; }, 8),
-  "../../packages/agent-flow-bend/Admission.close_round": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058close_round$($0m42(a0), nat_host(a1)))); $0m45(a0); BigInt(a1); return r; }, 2),
-  "../../packages/agent-flow-bend/Admission.restart.fresh": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058restart$fresh$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4), nat_host(a5), (a6)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); BigInt(a5); (a6); return r; }, 7),
-  "../../packages/agent-flow-bend/Admission.restart": run_lib((a0, a1, a2) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058restart$($0m42(a0), nat_host(a1), nat_host(a2)))); $0m45(a0); BigInt(a1); BigInt(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Admission.close_round.time": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058close_round$time$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4), nat_host(a5), (a6)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); BigInt(a5); (a6); return r; }, 7),
+  "../../packages/agent-flow-bend/Admission.close_round.active": run_lib((a0, a1, a2, a3, a4, a5, a6, a7) => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058close_round$active$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4), nat_host(a5), nat_host(a6), nat_host(a7)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); BigInt(a5); BigInt(a6); BigInt(a7); return r; }, 8),
+  "../../packages/agent-flow-bend/Admission.close_round": run_lib((a0, a1) => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058close_round$($0m42(a0), nat_host(a1)))); $0m45(a0); BigInt(a1); return r; }, 2),
+  "../../packages/agent-flow-bend/Admission.restart.fresh": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058restart$fresh$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4), nat_host(a5), (a6)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); BigInt(a5); (a6); return r; }, 7),
+  "../../packages/agent-flow-bend/Admission.restart": run_lib((a0, a1, a2) => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058restart$($0m42(a0), nat_host(a1), nat_host(a2)))); $0m45(a0); BigInt(a1); BigInt(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Admission.callback_current": run_lib((a0, a1, a2, a3) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058callback_current$($0m42(a0), nat_host(a1), nat_host(a2), nat_host(a3)))); $0m45(a0); BigInt(a1); BigInt(a2); BigInt(a3); return r; }, 4),
-  "../../packages/agent-flow-bend/Admission.apply_event": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058apply_event$($0m42(a0), $0m53(a1)))); $0m45(a0); $0m54(a1); return r; }, 2),
-  "../../packages/agent-flow-bend/Admission.step.partition": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058step$partition$($0m42(a0), nat_host(a1), nat_host(a2), $0m53(a3), (a4), (a5)))); $0m45(a0); BigInt(a1); BigInt(a2); $0m54(a3); (a4); (a5); return r; }, 6),
-  "../../packages/agent-flow-bend/Admission.step": run_lib((a0, a1, a2, a3) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058step$($0m42(a0), nat_host(a1), nat_host(a2), $0m53(a3)))); $0m45(a0); BigInt(a1); BigInt(a2); $0m54(a3); return r; }, 4),
-  "../../packages/agent-flow-bend/Admission.main": run_lib(() => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058main$()));  return r; }, 0),
+  "../../packages/agent-flow-bend/Admission.apply_event": run_lib((a0, a1) => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058apply_event$($0m42(a0), $0m53(a1)))); $0m45(a0); $0m54(a1); return r; }, 2),
+  "../../packages/agent-flow-bend/Admission.step.partition": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058step$partition$($0m42(a0), nat_host(a1), nat_host(a2), $0m53(a3), (a4), (a5)))); $0m45(a0); BigInt(a1); BigInt(a2); $0m54(a3); (a4); (a5); return r; }, 6),
+  "../../packages/agent-flow-bend/Admission.step": run_lib((a0, a1, a2, a3) => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058step$($0m42(a0), nat_host(a1), nat_host(a2), $0m53(a3)))); $0m45(a0); BigInt(a1); BigInt(a2); $0m54(a3); return r; }, 4),
+  "../../packages/agent-flow-bend/Admission.main": run_lib(() => { const r = $0m49(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Admission$058main$()));  return r; }, 0),
   "../../packages/agent-flow-bend/EditHistory.initial": run_lib(() => { const r = $0m55(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047EditHistory$058initial$()));  return r; }, 0),
   "../../packages/agent-flow-bend/EditHistory.count": run_lib((a0) => { const r = BigInt(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047EditHistory$058count$($0m58(a0)))); $0m55(a0); return r; }, 1),
   "../../packages/agent-flow-bend/EditHistory.lookup_entries": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047EditHistory$058lookup_entries$(nat_host(a0), $0m59(a1)))); BigInt(a0); $0m56(a1); return r; }, 2),
@@ -54756,8 +54695,8 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/agent-flow-bend/EditHistory.record": run_lib((a0, a1, a2) => { const r = $0m61(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047EditHistory$058record$(nat_host(a0), (a1), $0m58(a2)))); BigInt(a0); (a1); $0m55(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Quiescence.facts_quiet": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Quiescence$058facts_quiet$((a0)))); (a0); return r; }, 1),
   "../../packages/agent-flow-bend/Quiescence.decide_started": run_lib((a0, a1, a2) => { const r = $0m62(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Quiescence$058decide_started$(nat_host(a0), nat_host(a1), nat_host(a2)))); BigInt(a0); BigInt(a1); BigInt(a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Quiescence.decide_quiet": run_lib((a0, a1, a2) => { const r = $0m62(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Quiescence$058decide_quiet$($0m63(a0), nat_host(a1), nat_host(a2)))); $0m51(a0); BigInt(a1); BigInt(a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Quiescence.decide": run_lib((a0, a1, a2, a3) => { const r = $0m62(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Quiescence$058decide$($0m63(a0), nat_host(a1), nat_host(a2), (a3)))); $0m51(a0); BigInt(a1); BigInt(a2); (a3); return r; }, 4),
+  "../../packages/agent-flow-bend/Quiescence.decide_quiet": run_lib((a0, a1, a2) => { const r = $0m62(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Quiescence$058decide_quiet$($0m63(a0), nat_host(a1), nat_host(a2)))); $0m50(a0); BigInt(a1); BigInt(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Quiescence.decide": run_lib((a0, a1, a2, a3) => { const r = $0m62(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Quiescence$058decide$($0m63(a0), nat_host(a1), nat_host(a2), (a3)))); $0m50(a0); BigInt(a1); BigInt(a2); (a3); return r; }, 4),
   "../../packages/agent-flow-bend/Flow.capacity_valid": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058capacity_valid$($0m64(a0)))); $0m65(a0); return r; }, 1),
   "../../packages/agent-flow-bend/Flow.has_room": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058has_room$(nat_host(a0), $0m64(a1)))); BigInt(a0); $0m65(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Flow.route_of": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058route_of$($0m66(a0)))); $0m67(a0); return r; }, 1),
@@ -54769,9 +54708,9 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/agent-flow-bend/Flow.ids": run_lib((a0, a1) => { const r = $0m3(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058ids$((a0), $0m72(a1)))); (a0); $0m69(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Flow.contains": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058contains$(nat_host(a0), $0m1(a1)))); BigInt(a0); $0m3(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Flow.unfinished": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058unfinished$($0m72(a0)))); $0m69(a0); return r; }, 1),
-  "../../packages/agent-flow-bend/Flow.find.id_match": run_lib((a0, a1, a2) => { const r = $0m51(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058find$id_match$(nat_host(a0), $0m63(a1), (a2)))); BigInt(a0); $0m51(a1); (a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Flow.find.pick": run_lib((a0, a1, a2, a3) => { const r = $0m51(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058find$pick$(nat_host(a0), $0m63(a1), $0m63(a2), (a3)))); BigInt(a0); $0m51(a1); $0m51(a2); (a3); return r; }, 4),
-  "../../packages/agent-flow-bend/Flow.find": run_lib((a0, a1, a2) => { const r = $0m51(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058find$((a0), $0m63(a1), $0m72(a2)))); (a0); $0m51(a1); $0m69(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Flow.find.id_match": run_lib((a0, a1, a2) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058find$id_match$(nat_host(a0), $0m63(a1), (a2)))); BigInt(a0); $0m50(a1); (a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Flow.find.pick": run_lib((a0, a1, a2, a3) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058find$pick$(nat_host(a0), $0m63(a1), $0m63(a2), (a3)))); BigInt(a0); $0m50(a1); $0m50(a2); (a3); return r; }, 4),
+  "../../packages/agent-flow-bend/Flow.find": run_lib((a0, a1, a2) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058find$((a0), $0m63(a1), $0m72(a2)))); (a0); $0m50(a1); $0m69(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Flow.move_one.pick": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m69(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058move_one$pick$(nat_host(a0), (a1), $0m72(a2), (a3), (a4), (a5)))); BigInt(a0); (a1); $0m69(a2); (a3); (a4); (a5); return r; }, 6),
   "../../packages/agent-flow-bend/Flow.move_one": run_lib((a0, a1, a2, a3, a4) => { const r = $0m69(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058move_one$(nat_host(a0), (a1), (a2), (a3), $0m72(a4)))); BigInt(a0); (a1); (a2); (a3); $0m69(a4); return r; }, 5),
   "../../packages/agent-flow-bend/Flow.remove_one.pick": run_lib((a0, a1, a2, a3) => { const r = $0m69(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058remove_one$pick$(nat_host(a0), (a1), $0m72(a2), (a3)))); BigInt(a0); (a1); $0m69(a2); (a3); return r; }, 4),
@@ -54793,60 +54732,60 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/agent-flow-bend/Flow.accept.after": run_lib((a0, a1) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058accept$after$($0m73(a0), (a1)))); $0m68(a0); (a1); return r; }, 2),
   "../../packages/agent-flow-bend/Flow.accept": run_lib((a0) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058accept$($0m73(a0)))); $0m68(a0); return r; }, 1),
   "../../packages/agent-flow-bend/Flow.reject": run_lib((a0, a1) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058reject$($0m73(a0), (a1)))); $0m68(a0); (a1); return r; }, 2),
-  "../../packages/agent-flow-bend/Flow.edit.open": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058edit$open$($0m72(a0), nat_host(a1), $0m64(a2), $0m64(a3), nat_host(a4), (a5), nat_host(a6), (a7), (a8), $0m63(a9), (a10), $0m63(a11), $0m1(a12)))); $0m69(a0); BigInt(a1); $0m65(a2); $0m65(a3); BigInt(a4); (a5); BigInt(a6); (a7); (a8); $0m51(a9); (a10); $0m51(a11); $0m3(a12); return r; }, 13),
+  "../../packages/agent-flow-bend/Flow.edit.open": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058edit$open$($0m72(a0), nat_host(a1), $0m64(a2), $0m64(a3), nat_host(a4), (a5), nat_host(a6), (a7), (a8), $0m63(a9), (a10), $0m63(a11), $0m1(a12)))); $0m69(a0); BigInt(a1); $0m65(a2); $0m65(a3); BigInt(a4); (a5); BigInt(a6); (a7); (a8); $0m50(a9); (a10); $0m50(a11); $0m3(a12); return r; }, 13),
   "../../packages/agent-flow-bend/Flow.edit": run_lib((a0) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058edit$($0m73(a0)))); $0m68(a0); return r; }, 1),
   "../../packages/agent-flow-bend/Flow.set_capacity.valid": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058set_capacity$valid$($0m73(a0), $0m64(a1), (a2)))); $0m68(a0); $0m65(a1); (a2); return r; }, 3),
   "../../packages/agent-flow-bend/Flow.set_capacity.choose": run_lib((a0, a1, a2, a3) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058set_capacity$choose$($0m73(a0), $0m64(a1), (a2), (a3)))); $0m68(a0); $0m65(a1); (a2); (a3); return r; }, 4),
   "../../packages/agent-flow-bend/Flow.set_capacity": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058set_capacity$($0m73(a0), $0m64(a1), (a2)))); $0m68(a0); $0m65(a1); (a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Flow.stop.budget": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058stop$budget$($0m72(a0), nat_host(a1), $0m64(a2), $0m64(a3), nat_host(a4), (a5), nat_host(a6), (a7), (a8), $0m63(a9), (a10), $0m63(a11), $0m1(a12), (a13)))); $0m69(a0); BigInt(a1); $0m65(a2); $0m65(a3); BigInt(a4); (a5); BigInt(a6); (a7); (a8); $0m51(a9); (a10); $0m51(a11); $0m3(a12); (a13); return r; }, 14),
-  "../../packages/agent-flow-bend/Flow.stop.choose": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058stop$choose$($0m72(a0), nat_host(a1), $0m64(a2), $0m64(a3), nat_host(a4), (a5), nat_host(a6), (a7), (a8), (a9), $0m63(a10), (a11), $0m63(a12), $0m1(a13)))); $0m69(a0); BigInt(a1); $0m65(a2); $0m65(a3); BigInt(a4); (a5); BigInt(a6); (a7); (a8); (a9); $0m51(a10); (a11); $0m51(a12); $0m3(a13); return r; }, 14),
+  "../../packages/agent-flow-bend/Flow.stop.budget": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058stop$budget$($0m72(a0), nat_host(a1), $0m64(a2), $0m64(a3), nat_host(a4), (a5), nat_host(a6), (a7), (a8), $0m63(a9), (a10), $0m63(a11), $0m1(a12), (a13)))); $0m69(a0); BigInt(a1); $0m65(a2); $0m65(a3); BigInt(a4); (a5); BigInt(a6); (a7); (a8); $0m50(a9); (a10); $0m50(a11); $0m3(a12); (a13); return r; }, 14),
+  "../../packages/agent-flow-bend/Flow.stop.choose": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058stop$choose$($0m72(a0), nat_host(a1), $0m64(a2), $0m64(a3), nat_host(a4), (a5), nat_host(a6), (a7), (a8), (a9), $0m63(a10), (a11), $0m63(a12), $0m1(a13)))); $0m69(a0); BigInt(a1); $0m65(a2); $0m65(a3); BigInt(a4); (a5); BigInt(a6); (a7); (a8); (a9); $0m50(a10); (a11); $0m50(a12); $0m3(a13); return r; }, 14),
   "../../packages/agent-flow-bend/Flow.stop": run_lib((a0) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058stop$($0m73(a0)))); $0m68(a0); return r; }, 1),
   "../../packages/agent-flow-bend/Flow.is_active": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058is_active$($0m73(a0)))); $0m68(a0); return r; }, 1),
   "../../packages/agent-flow-bend/Flow.apply_move.do": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058apply_move$do$($0m73(a0), (a1), (a2), (a3), (a4), nat_host(a5)))); $0m68(a0); (a1); (a2); (a3); (a4); BigInt(a5); return r; }, 6),
-  "../../packages/agent-flow-bend/Flow.apply_move.found": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058apply_move$found$($0m73(a0), (a1), (a2), (a3), (a4), $0m63(a5)))); $0m68(a0); (a1); (a2); (a3); (a4); $0m51(a5); return r; }, 6),
-  "../../packages/agent-flow-bend/Flow.apply_move": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058apply_move$($0m73(a0), (a1), (a2), (a3), (a4), $0m63(a5)))); $0m68(a0); (a1); (a2); (a3); (a4); $0m51(a5); return r; }, 6),
+  "../../packages/agent-flow-bend/Flow.apply_move.found": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058apply_move$found$($0m73(a0), (a1), (a2), (a3), (a4), $0m63(a5)))); $0m68(a0); (a1); (a2); (a3); (a4); $0m50(a5); return r; }, 6),
+  "../../packages/agent-flow-bend/Flow.apply_move": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058apply_move$($0m73(a0), (a1), (a2), (a3), (a4), $0m63(a5)))); $0m68(a0); (a1); (a2); (a3); (a4); $0m50(a5); return r; }, 6),
   "../../packages/agent-flow-bend/Flow.deadline.settled": run_lib((a0, a1) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058deadline$settled$($0m73(a0), (a1)))); $0m68(a0); (a1); return r; }, 2),
   "../../packages/agent-flow-bend/Flow.deadline.budget": run_lib((a0, a1) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058deadline$budget$($0m73(a0), (a1)))); $0m68(a0); (a1); return r; }, 2),
   "../../packages/agent-flow-bend/Flow.deadline.kind": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058deadline$kind$($0m73(a0), $0m66(a1), nat_host(a2)))); $0m68(a0); $0m67(a1); BigInt(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Flow.deadline.wait": run_lib((a0, a1, a2, a3) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058deadline$wait$($0m73(a0), $0m66(a1), nat_host(a2), (a3)))); $0m68(a0); $0m67(a1); BigInt(a2); (a3); return r; }, 4),
   "../../packages/agent-flow-bend/Flow.deadline": run_lib((a0, a1) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058deadline$($0m73(a0), $0m66(a1)))); $0m68(a0); $0m67(a1); return r; }, 2),
-  "../../packages/agent-flow-bend/Flow.lease_apply.surface": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_apply$surface$($0m72(a0), nat_host(a1), $0m64(a2), $0m64(a3), nat_host(a4), (a5), nat_host(a6), (a7), (a8), (a9), $0m63(a10), $0m1(a11), (a12), nat_host(a13)))); $0m69(a0); BigInt(a1); $0m65(a2); $0m65(a3); BigInt(a4); (a5); BigInt(a6); (a7); (a8); (a9); $0m51(a10); $0m3(a11); (a12); BigInt(a13); return r; }, 14),
+  "../../packages/agent-flow-bend/Flow.lease_apply.surface": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_apply$surface$($0m72(a0), nat_host(a1), $0m64(a2), $0m64(a3), nat_host(a4), (a5), nat_host(a6), (a7), (a8), (a9), $0m63(a10), $0m1(a11), (a12), nat_host(a13)))); $0m69(a0); BigInt(a1); $0m65(a2); $0m65(a3); BigInt(a4); (a5); BigInt(a6); (a7); (a8); (a9); $0m50(a10); $0m3(a11); (a12); BigInt(a13); return r; }, 14),
   "../../packages/agent-flow-bend/Flow.lease_apply": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_apply$($0m73(a0), (a1), nat_host(a2)))); $0m68(a0); (a1); BigInt(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Flow.lease_check.submitted": run_lib((a0, a1, a2, a3) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_check$submitted$($0m73(a0), (a1), nat_host(a2), (a3)))); $0m68(a0); (a1); BigInt(a2); (a3); return r; }, 4),
   "../../packages/agent-flow-bend/Flow.lease_check": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_check$($0m73(a0), (a1), nat_host(a2)))); $0m68(a0); (a1); BigInt(a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Flow.lease_found": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_found$($0m73(a0), (a1), $0m63(a2)))); $0m68(a0); (a1); $0m51(a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Flow.lease_find": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_find$($0m73(a0), $0m63(a1), (a2)))); $0m68(a0); $0m51(a1); (a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Flow.lease_background.guard": run_lib((a0, a1, a2, a3) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_background$guard$($0m73(a0), $0m63(a1), (a2), (a3)))); $0m68(a0); $0m51(a1); (a2); (a3); return r; }, 4),
-  "../../packages/agent-flow-bend/Flow.lease_background": run_lib((a0, a1) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_background$($0m73(a0), $0m63(a1)))); $0m68(a0); $0m51(a1); return r; }, 2),
+  "../../packages/agent-flow-bend/Flow.lease_found": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_found$($0m73(a0), (a1), $0m63(a2)))); $0m68(a0); (a1); $0m50(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Flow.lease_find": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_find$($0m73(a0), $0m63(a1), (a2)))); $0m68(a0); $0m50(a1); (a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Flow.lease_background.guard": run_lib((a0, a1, a2, a3) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_background$guard$($0m73(a0), $0m63(a1), (a2), (a3)))); $0m68(a0); $0m50(a1); (a2); (a3); return r; }, 4),
+  "../../packages/agent-flow-bend/Flow.lease_background": run_lib((a0, a1) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_background$($0m73(a0), $0m63(a1)))); $0m68(a0); $0m50(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Flow.lease_stop.eligible": run_lib((a0, a1, a2, a3) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_stop$eligible$($0m73(a0), nat_host(a1), (a2), (a3)))); $0m68(a0); BigInt(a1); (a2); (a3); return r; }, 4),
   "../../packages/agent-flow-bend/Flow.lease_stop.check": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_stop$check$($0m73(a0), (a1), nat_host(a2)))); $0m68(a0); (a1); BigInt(a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Flow.lease_stop.found": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_stop$found$($0m73(a0), (a1), $0m63(a2)))); $0m68(a0); (a1); $0m51(a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Flow.lease_stop.find": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_stop$find$($0m73(a0), $0m63(a1), (a2)))); $0m68(a0); $0m51(a1); (a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Flow.lease_stop.budget": run_lib((a0, a1, a2, a3) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_stop$budget$($0m73(a0), $0m63(a1), (a2), (a3)))); $0m68(a0); $0m51(a1); (a2); (a3); return r; }, 4),
-  "../../packages/agent-flow-bend/Flow.lease_stop.guard": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_stop$guard$($0m73(a0), $0m63(a1), (a2), nat_host(a3), (a4), (a5)))); $0m68(a0); $0m51(a1); (a2); BigInt(a3); (a4); (a5); return r; }, 6),
-  "../../packages/agent-flow-bend/Flow.lease_stop": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_stop$($0m73(a0), $0m63(a1), (a2)))); $0m68(a0); $0m51(a1); (a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Flow.lease_stop.found": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_stop$found$($0m73(a0), (a1), $0m63(a2)))); $0m68(a0); (a1); $0m50(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Flow.lease_stop.find": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_stop$find$($0m73(a0), $0m63(a1), (a2)))); $0m68(a0); $0m50(a1); (a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Flow.lease_stop.budget": run_lib((a0, a1, a2, a3) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_stop$budget$($0m73(a0), $0m63(a1), (a2), (a3)))); $0m68(a0); $0m50(a1); (a2); (a3); return r; }, 4),
+  "../../packages/agent-flow-bend/Flow.lease_stop.guard": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_stop$guard$($0m73(a0), $0m63(a1), (a2), nat_host(a3), (a4), (a5)))); $0m68(a0); $0m50(a1); (a2); BigInt(a3); (a4); (a5); return r; }, 6),
+  "../../packages/agent-flow-bend/Flow.lease_stop": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058lease_stop$($0m73(a0), $0m63(a1), (a2)))); $0m68(a0); $0m50(a1); (a2); return r; }, 3),
   "../../packages/agent-flow-bend/Flow.submit.surface": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058submit$surface$($0m72(a0), nat_host(a1), $0m64(a2), $0m64(a3), nat_host(a4), (a5), nat_host(a6), (a7), (a8), $0m1(a9), (a10), nat_host(a11)))); $0m69(a0); BigInt(a1); $0m65(a2); $0m65(a3); BigInt(a4); (a5); BigInt(a6); (a7); (a8); $0m3(a9); (a10); BigInt(a11); return r; }, 12),
   "../../packages/agent-flow-bend/Flow.submit.run": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058submit$run$($0m73(a0), (a1), nat_host(a2)))); $0m68(a0); (a1); BigInt(a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Flow.submit.lease": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058submit$lease$($0m73(a0), (a1), $0m63(a2)))); $0m68(a0); (a1); $0m51(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Flow.submit.lease": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058submit$lease$($0m73(a0), (a1), $0m63(a2)))); $0m68(a0); (a1); $0m50(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Flow.submit": run_lib((a0) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058submit$($0m73(a0)))); $0m68(a0); return r; }, 1),
-  "../../packages/agent-flow-bend/Flow.step.live": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058step$live$($0m73(a0), $0m66(a1), $0m63(a2)))); $0m68(a0); $0m67(a1); $0m51(a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Flow.step.active": run_lib((a0, a1, a2, a3) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058step$active$($0m73(a0), $0m66(a1), $0m63(a2), (a3)))); $0m68(a0); $0m67(a1); $0m51(a2); (a3); return r; }, 4),
-  "../../packages/agent-flow-bend/Flow.step": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058step$($0m73(a0), $0m66(a1), $0m63(a2)))); $0m68(a0); $0m67(a1); $0m51(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Flow.step.live": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058step$live$($0m73(a0), $0m66(a1), $0m63(a2)))); $0m68(a0); $0m67(a1); $0m50(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Flow.step.active": run_lib((a0, a1, a2, a3) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058step$active$($0m73(a0), $0m66(a1), $0m63(a2), (a3)))); $0m68(a0); $0m67(a1); $0m50(a2); (a3); return r; }, 4),
+  "../../packages/agent-flow-bend/Flow.step": run_lib((a0, a1, a2) => { const r = $0m74(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058step$($0m73(a0), $0m66(a1), $0m63(a2)))); $0m68(a0); $0m67(a1); $0m50(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Flow.main": run_lib(() => { const r = $0m68(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058main$()));  return r; }, 0),
-  "../../packages/agent-flow-bend/Flow.some": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058some$($0m63(a0)))); $0m51(a0); return r; }, 1),
-  "../../packages/agent-flow-bend/Flow.event_item.pick": run_lib((a0, a1, a2, a3, a4) => { const r = $0m51(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058event_item$pick$($0m66(a0), $0m63(a1), $0m72(a2), nat_host(a3), $0m63(a4)))); $0m67(a0); $0m51(a1); $0m69(a2); BigInt(a3); $0m51(a4); return r; }, 5),
-  "../../packages/agent-flow-bend/Flow.event_item": run_lib((a0, a1, a2) => { const r = $0m51(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058event_item$($0m66(a0), $0m63(a1), $0m73(a2)))); $0m67(a0); $0m51(a1); $0m68(a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Flow.own_change": run_lib((a0, a1, a2) => { const r = $0m76(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058own_change$($0m66(a0), $0m73(a1), $0m63(a2)))); $0m67(a0); $0m68(a1); $0m51(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Flow.some": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058some$($0m63(a0)))); $0m50(a0); return r; }, 1),
+  "../../packages/agent-flow-bend/Flow.event_item.pick": run_lib((a0, a1, a2, a3, a4) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058event_item$pick$($0m66(a0), $0m63(a1), $0m72(a2), nat_host(a3), $0m63(a4)))); $0m67(a0); $0m50(a1); $0m69(a2); BigInt(a3); $0m50(a4); return r; }, 5),
+  "../../packages/agent-flow-bend/Flow.event_item": run_lib((a0, a1, a2) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058event_item$($0m66(a0), $0m63(a1), $0m73(a2)))); $0m67(a0); $0m50(a1); $0m68(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Flow.own_change": run_lib((a0, a1, a2) => { const r = $0m76(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058own_change$($0m66(a0), $0m73(a1), $0m63(a2)))); $0m67(a0); $0m68(a1); $0m50(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Flow.opened": run_lib((a0, a1, a2) => { const r = $0m77(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058opened$((a0), (a1), nat_host(a2)))); (a0); (a1); BigInt(a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Flow.emission": run_lib((a0, a1) => { const r = $0m77(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058emission$($0m66(a0), $0m63(a1)))); $0m67(a0); $0m51(a1); return r; }, 2),
+  "../../packages/agent-flow-bend/Flow.emission": run_lib((a0, a1) => { const r = $0m77(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058emission$($0m66(a0), $0m63(a1)))); $0m67(a0); $0m50(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Flow.is_edit": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058is_edit$($0m66(a0)))); $0m67(a0); return r; }, 1),
   "../../packages/agent-flow-bend/Flow.is_prepared": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058is_prepared$($0m66(a0)))); $0m67(a0); return r; }, 1),
   "../../packages/agent-flow-bend/Flow.schedule_source.pick": run_lib((a0, a1, a2) => { const r = $0m77(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058schedule_source$pick$(nat_host(a0), $0m78(a1), (a2)))); BigInt(a0); $0m77(a1); (a2); return r; }, 3),
   "../../packages/agent-flow-bend/Flow.schedule_source": run_lib((a0, a1, a2, a3) => { const r = $0m77(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058schedule_source$($0m66(a0), nat_host(a1), $0m1(a2), $0m72(a3)))); $0m67(a0); BigInt(a1); $0m3(a2); $0m69(a3); return r; }, 4),
-  "../../packages/agent-flow-bend/Flow.selected_is": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058selected_is$(nat_host(a0), $0m63(a1)))); BigInt(a0); $0m51(a1); return r; }, 2),
+  "../../packages/agent-flow-bend/Flow.selected_is": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058selected_is$(nat_host(a0), $0m63(a1)))); BigInt(a0); $0m50(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Flow.schedule_review.pick": run_lib((a0, a1, a2) => { const r = $0m77(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058schedule_review$pick$(nat_host(a0), $0m78(a1), (a2)))); BigInt(a0); $0m77(a1); (a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Flow.schedule_review": run_lib((a0, a1, a2, a3) => { const r = $0m77(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058schedule_review$($0m66(a0), $0m63(a1), $0m1(a2), $0m72(a3)))); $0m67(a0); $0m51(a1); $0m3(a2); $0m69(a3); return r; }, 4),
-  "../../packages/agent-flow-bend/Flow.first_id": run_lib((a0) => { const r = $0m51(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058first_id$($0m1(a0)))); $0m3(a0); return r; }, 1),
+  "../../packages/agent-flow-bend/Flow.schedule_review": run_lib((a0, a1, a2, a3) => { const r = $0m77(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058schedule_review$($0m66(a0), $0m63(a1), $0m1(a2), $0m72(a3)))); $0m67(a0); $0m50(a1); $0m3(a2); $0m69(a3); return r; }, 4),
+  "../../packages/agent-flow-bend/Flow.first_id": run_lib((a0) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058first_id$($0m1(a0)))); $0m3(a0); return r; }, 1),
   "../../packages/agent-flow-bend/Flow.finish_trigger.stop": run_lib((a0) => { const r = $0m77(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058finish_trigger$stop$((a0)))); (a0); return r; }, 1),
   "../../packages/agent-flow-bend/Flow.finish_trigger": run_lib((a0, a1) => { const r = $0m77(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058finish_trigger$($0m66(a0), nat_host(a1)))); $0m67(a0); BigInt(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Flow.finish_leases.pick": run_lib((a0, a1, a2) => { const r = $0m77(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058finish_leases$pick$(nat_host(a0), $0m78(a1), (a2)))); BigInt(a0); $0m77(a1); (a2); return r; }, 3),
@@ -54854,9 +54793,9 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/agent-flow-bend/Flow.finish_tail.pick": run_lib((a0, a1, a2, a3) => { const r = $0m77(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058finish_tail$pick$($0m80(a0), $0m72(a1), nat_host(a2), $0m1(a3)))); $0m75(a0); $0m69(a1); BigInt(a2); $0m3(a3); return r; }, 4),
   "../../packages/agent-flow-bend/Flow.finish_tail": run_lib((a0, a1) => { const r = $0m77(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058finish_tail$($0m80(a0), $0m73(a1)))); $0m75(a0); $0m68(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Flow.finish_changes": run_lib((a0, a1, a2, a3) => { const r = $0m77(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058finish_changes$($0m66(a0), nat_host(a1), $0m80(a2), $0m73(a3)))); $0m67(a0); BigInt(a1); $0m75(a2); $0m68(a3); return r; }, 4),
-  "../../packages/agent-flow-bend/Flow.background_start": run_lib((a0, a1, a2) => { const r = $0m77(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058background_start$($0m66(a0), (a1), $0m63(a2)))); $0m67(a0); (a1); $0m51(a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Flow.changes.accepted": run_lib((a0, a1, a2, a3, a4) => { const r = $0m77(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058changes$accepted$($0m73(a0), $0m66(a1), $0m63(a2), $0m80(a3), $0m73(a4)))); $0m68(a0); $0m67(a1); $0m51(a2); $0m75(a3); $0m68(a4); return r; }, 5),
-  "../../packages/agent-flow-bend/Flow.changes": run_lib((a0, a1, a2, a3) => { const r = $0m77(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058changes$($0m73(a0), $0m66(a1), $0m63(a2), $0m81(a3)))); $0m68(a0); $0m67(a1); $0m51(a2); $0m74(a3); return r; }, 4),
+  "../../packages/agent-flow-bend/Flow.background_start": run_lib((a0, a1, a2) => { const r = $0m77(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058background_start$($0m66(a0), (a1), $0m63(a2)))); $0m67(a0); (a1); $0m50(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Flow.changes.accepted": run_lib((a0, a1, a2, a3, a4) => { const r = $0m77(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058changes$accepted$($0m73(a0), $0m66(a1), $0m63(a2), $0m80(a3), $0m73(a4)))); $0m68(a0); $0m67(a1); $0m50(a2); $0m75(a3); $0m68(a4); return r; }, 5),
+  "../../packages/agent-flow-bend/Flow.changes": run_lib((a0, a1, a2, a3) => { const r = $0m77(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058changes$($0m73(a0), $0m66(a1), $0m63(a2), $0m81(a3)))); $0m68(a0); $0m67(a1); $0m50(a2); $0m74(a3); return r; }, 4),
   "../../packages/agent-flow-bend/Work.prepared_offer": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058prepared_offer$((a0), (a1)))); (a0); (a1); return r; }, 2),
   "../../packages/agent-flow-bend/Work.empty_prepared": run_lib((a0, a1, a2) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058empty_prepared$(nat_host(a0), (a1), (a2)))); BigInt(a0); (a1); (a2); return r; }, 3),
   "../../packages/agent-flow-bend/Work.evaluated_disposition": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058evaluated_disposition$((a0), (a1)))); (a0); (a1); return r; }, 2),
@@ -54877,13 +54816,12 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/agent-flow-bend/Work.fill_review": run_lib((a0, a1, a2) => { const r = $0m85(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058fill_review$($0m89(a0), $0m64(a1), nat_host(a2)))); $0m85(a0); $0m65(a1); BigInt(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Work.settle": run_lib((a0) => { const r = $0m82(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058settle$($0m91(a0)))); $0m82(a0); return r; }, 1),
   "../../packages/agent-flow-bend/Work.admit": run_lib((a0) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058admit$($0m91(a0)))); $0m82(a0); return r; }, 1),
-  "../../packages/agent-flow-bend/Work.find_observation.pick": run_lib((a0, a1, a2) => { const r = $0m94(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058find_observation$pick$($0m88(a0), $0m93(a1), (a2)))); $0m84(a0); $0m94(a1); (a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Work.find_observation": run_lib((a0, a1) => { const r = $0m94(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058find_observation$(nat_host(a0), $0m87(a1)))); BigInt(a0); $0m83(a1); return r; }, 2),
+  "../../packages/agent-flow-bend/Work.find_observation": run_lib((a0, a1) => { const r = $0m93(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058find_observation$(nat_host(a0), $0m87(a1)))); BigInt(a0); $0m83(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Work.start_observation.read": run_lib((a0, a1) => { const r = $0m83(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058start_observation$read$($0m88(a0), $0m87(a1)))); $0m84(a0); $0m83(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Work.start_observation.pick": run_lib((a0, a1, a2) => { const r = $0m83(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058start_observation$pick$($0m88(a0), $0m87(a1), (a2)))); $0m84(a0); $0m83(a1); (a2); return r; }, 3),
   "../../packages/agent-flow-bend/Work.start_observation": run_lib((a0, a1) => { const r = $0m83(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058start_observation$(nat_host(a0), $0m87(a1)))); BigInt(a0); $0m83(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Work.start_source.apply": run_lib((a0, a1) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058start_source$apply$($0m91(a0), nat_host(a1)))); $0m82(a0); BigInt(a1); return r; }, 2),
-  "../../packages/agent-flow-bend/Work.start_source.found": run_lib((a0, a1, a2) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058start_source$found$($0m91(a0), nat_host(a1), $0m93(a2)))); $0m82(a0); BigInt(a1); $0m94(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Work.start_source.found": run_lib((a0, a1, a2) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058start_source$found$($0m91(a0), nat_host(a1), $0m94(a2)))); $0m82(a0); BigInt(a1); $0m93(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Work.start_source": run_lib((a0, a1) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058start_source$($0m91(a0), nat_host(a1)))); $0m82(a0); BigInt(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Work.remove_observation.pick": run_lib((a0, a1, a2) => { const r = $0m83(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058remove_observation$pick$($0m88(a0), $0m87(a1), (a2)))); $0m84(a0); $0m83(a1); (a2); return r; }, 3),
   "../../packages/agent-flow-bend/Work.remove_observation": run_lib((a0, a1) => { const r = $0m83(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058remove_observation$(nat_host(a0), $0m87(a1)))); BigInt(a0); $0m83(a1); return r; }, 2),
@@ -54892,48 +54830,47 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/agent-flow-bend/Work.prepare.apply": run_lib((a0, a1, a2) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058prepare$apply$($0m91(a0), nat_host(a1), nat_host(a2)))); $0m82(a0); BigInt(a1); BigInt(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Work.prepare.count": run_lib((a0, a1, a2, a3) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058prepare$count$($0m91(a0), nat_host(a1), nat_host(a2), (a3)))); $0m82(a0); BigInt(a1); BigInt(a2); (a3); return r; }, 4),
   "../../packages/agent-flow-bend/Work.prepare.stage": run_lib((a0, a1, a2, a3) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058prepare$stage$($0m91(a0), nat_host(a1), nat_host(a2), (a3)))); $0m82(a0); BigInt(a1); BigInt(a2); (a3); return r; }, 4),
-  "../../packages/agent-flow-bend/Work.prepare.found": run_lib((a0, a1, a2, a3) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058prepare$found$($0m91(a0), nat_host(a1), nat_host(a2), $0m93(a3)))); $0m82(a0); BigInt(a1); BigInt(a2); $0m94(a3); return r; }, 4),
+  "../../packages/agent-flow-bend/Work.prepare.found": run_lib((a0, a1, a2, a3) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058prepare$found$($0m91(a0), nat_host(a1), nat_host(a2), $0m94(a3)))); $0m82(a0); BigInt(a1); BigInt(a2); $0m93(a3); return r; }, 4),
   "../../packages/agent-flow-bend/Work.prepare": run_lib((a0, a1, a2) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058prepare$($0m91(a0), nat_host(a1), nat_host(a2)))); $0m82(a0); BigInt(a1); BigInt(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Work.spawn.apply": run_lib((a0, a1, a2) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058spawn$apply$($0m91(a0), nat_host(a1), nat_host(a2)))); $0m82(a0); BigInt(a1); BigInt(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Work.spawn.count": run_lib((a0, a1, a2, a3) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058spawn$count$($0m91(a0), nat_host(a1), nat_host(a2), (a3)))); $0m82(a0); BigInt(a1); BigInt(a2); (a3); return r; }, 4),
-  "../../packages/agent-flow-bend/Work.spawn.found": run_lib((a0, a1, a2, a3) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058spawn$found$($0m91(a0), nat_host(a1), nat_host(a2), $0m93(a3)))); $0m82(a0); BigInt(a1); BigInt(a2); $0m94(a3); return r; }, 4),
+  "../../packages/agent-flow-bend/Work.spawn.found": run_lib((a0, a1, a2, a3) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058spawn$found$($0m91(a0), nat_host(a1), nat_host(a2), $0m94(a3)))); $0m82(a0); BigInt(a1); BigInt(a2); $0m93(a3); return r; }, 4),
   "../../packages/agent-flow-bend/Work.spawn": run_lib((a0, a1, a2) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058spawn$($0m91(a0), nat_host(a1), nat_host(a2)))); $0m82(a0); BigInt(a1); BigInt(a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Work.find_unit.pick": run_lib((a0, a1, a2) => { const r = $0m96(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058find_unit$pick$($0m90(a0), $0m95(a1), (a2)))); $0m86(a0); $0m96(a1); (a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Work.find_unit": run_lib((a0, a1) => { const r = $0m96(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058find_unit$(nat_host(a0), $0m89(a1)))); BigInt(a0); $0m85(a1); return r; }, 2),
-  "../../packages/agent-flow-bend/Work.pending_for.found": run_lib((a0) => { const r = BigInt(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058pending_for$found$($0m95(a0)))); $0m96(a0); return r; }, 1),
+  "../../packages/agent-flow-bend/Work.find_unit": run_lib((a0, a1) => { const r = $0m95(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058find_unit$(nat_host(a0), $0m89(a1)))); BigInt(a0); $0m85(a1); return r; }, 2),
+  "../../packages/agent-flow-bend/Work.pending_for.found": run_lib((a0) => { const r = BigInt(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058pending_for$found$($0m96(a0)))); $0m95(a0); return r; }, 1),
   "../../packages/agent-flow-bend/Work.pending_for": run_lib((a0, a1) => { const r = BigInt(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058pending_for$($0m91(a0), nat_host(a1)))); $0m82(a0); BigInt(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Work.replace_unit.pick": run_lib((a0, a1, a2, a3) => { const r = $0m85(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058replace_unit$pick$($0m90(a0), $0m90(a1), $0m89(a2), (a3)))); $0m86(a0); $0m86(a1); $0m85(a2); (a3); return r; }, 4),
   "../../packages/agent-flow-bend/Work.replace_unit": run_lib((a0, a1, a2) => { const r = $0m85(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058replace_unit$(nat_host(a0), $0m90(a1), $0m89(a2)))); BigInt(a0); $0m86(a1); $0m85(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Work.outcome.apply": run_lib((a0, a1) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058outcome$apply$($0m91(a0), $0m90(a1)))); $0m82(a0); $0m86(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Work.start_unit.apply": run_lib((a0, a1, a2) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058start_unit$apply$($0m91(a0), nat_host(a1), nat_host(a2)))); $0m82(a0); BigInt(a1); BigInt(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Work.start_unit.stage": run_lib((a0, a1, a2, a3) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058start_unit$stage$($0m91(a0), nat_host(a1), nat_host(a2), (a3)))); $0m82(a0); BigInt(a1); BigInt(a2); (a3); return r; }, 4),
-  "../../packages/agent-flow-bend/Work.start_unit.found": run_lib((a0, a1, a2) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058start_unit$found$($0m91(a0), nat_host(a1), $0m95(a2)))); $0m82(a0); BigInt(a1); $0m96(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Work.start_unit.found": run_lib((a0, a1, a2) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058start_unit$found$($0m91(a0), nat_host(a1), $0m96(a2)))); $0m82(a0); BigInt(a1); $0m95(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Work.start_unit": run_lib((a0, a1) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058start_unit$($0m91(a0), nat_host(a1)))); $0m82(a0); BigInt(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Work.outcome.finding": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058outcome$finding$($0m91(a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4), (a5)))); $0m82(a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); (a5); return r; }, 6),
   "../../packages/agent-flow-bend/Work.outcome.kind": run_lib((a0, a1, a2, a3) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058outcome$kind$($0m91(a0), nat_host(a1), nat_host(a2), $0m97(a3)))); $0m82(a0); BigInt(a1); BigInt(a2); $0m98(a3); return r; }, 4),
   "../../packages/agent-flow-bend/Work.outcome.stage": run_lib((a0, a1, a2, a3, a4) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058outcome$stage$($0m91(a0), nat_host(a1), nat_host(a2), (a3), $0m97(a4)))); $0m82(a0); BigInt(a1); BigInt(a2); (a3); $0m98(a4); return r; }, 5),
-  "../../packages/agent-flow-bend/Work.outcome.found": run_lib((a0, a1, a2, a3) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058outcome$found$($0m91(a0), nat_host(a1), $0m97(a2), $0m95(a3)))); $0m82(a0); BigInt(a1); $0m98(a2); $0m96(a3); return r; }, 4),
+  "../../packages/agent-flow-bend/Work.outcome.found": run_lib((a0, a1, a2, a3) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058outcome$found$($0m91(a0), nat_host(a1), $0m97(a2), $0m96(a3)))); $0m82(a0); BigInt(a1); $0m98(a2); $0m95(a3); return r; }, 4),
   "../../packages/agent-flow-bend/Work.outcome": run_lib((a0, a1, a2) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058outcome$($0m91(a0), nat_host(a1), $0m97(a2)))); $0m82(a0); BigInt(a1); $0m98(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Work.revise_finding.valid": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058revise_finding$valid$($0m91(a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4), (a5)))); $0m82(a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); (a5); return r; }, 6),
   "../../packages/agent-flow-bend/Work.revise_finding.stage": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058revise_finding$stage$($0m91(a0), nat_host(a1), nat_host(a2), (a3), nat_host(a4), nat_host(a5)))); $0m82(a0); BigInt(a1); BigInt(a2); (a3); BigInt(a4); BigInt(a5); return r; }, 6),
-  "../../packages/agent-flow-bend/Work.revise_finding.found": run_lib((a0, a1, a2, a3, a4) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058revise_finding$found$($0m91(a0), nat_host(a1), nat_host(a2), nat_host(a3), $0m95(a4)))); $0m82(a0); BigInt(a1); BigInt(a2); BigInt(a3); $0m96(a4); return r; }, 5),
+  "../../packages/agent-flow-bend/Work.revise_finding.found": run_lib((a0, a1, a2, a3, a4) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058revise_finding$found$($0m91(a0), nat_host(a1), nat_host(a2), nat_host(a3), $0m96(a4)))); $0m82(a0); BigInt(a1); BigInt(a2); BigInt(a3); $0m95(a4); return r; }, 5),
   "../../packages/agent-flow-bend/Work.revise_finding": run_lib((a0, a1, a2, a3) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058revise_finding$($0m91(a0), nat_host(a1), nat_host(a2), nat_host(a3)))); $0m82(a0); BigInt(a1); BigInt(a2); BigInt(a3); return r; }, 4),
   "../../packages/agent-flow-bend/Work.interrupt_unit.stage": run_lib((a0, a1, a2, a3) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058interrupt_unit$stage$($0m91(a0), nat_host(a1), nat_host(a2), (a3)))); $0m82(a0); BigInt(a1); BigInt(a2); (a3); return r; }, 4),
-  "../../packages/agent-flow-bend/Work.interrupt_unit.found": run_lib((a0, a1, a2) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058interrupt_unit$found$($0m91(a0), nat_host(a1), $0m95(a2)))); $0m82(a0); BigInt(a1); $0m96(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Work.interrupt_unit.found": run_lib((a0, a1, a2) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058interrupt_unit$found$($0m91(a0), nat_host(a1), $0m96(a2)))); $0m82(a0); BigInt(a1); $0m95(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Work.interrupt_unit": run_lib((a0, a1) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058interrupt_unit$($0m91(a0), nat_host(a1)))); $0m82(a0); BigInt(a1); return r; }, 2),
-  "../../packages/agent-flow-bend/Work.interrupt_observation.found": run_lib((a0, a1, a2) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058interrupt_observation$found$($0m91(a0), nat_host(a1), $0m93(a2)))); $0m82(a0); BigInt(a1); $0m94(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Work.interrupt_observation.found": run_lib((a0, a1, a2) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058interrupt_observation$found$($0m91(a0), nat_host(a1), $0m94(a2)))); $0m82(a0); BigInt(a1); $0m93(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Work.interrupt_observation": run_lib((a0, a1) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058interrupt_observation$($0m91(a0), nat_host(a1)))); $0m82(a0); BigInt(a1); return r; }, 2),
-  "../../packages/agent-flow-bend/Work.complete_source.found": run_lib((a0, a1, a2) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058complete_source$found$($0m91(a0), nat_host(a1), $0m93(a2)))); $0m82(a0); BigInt(a1); $0m94(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Work.complete_source.found": run_lib((a0, a1, a2) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058complete_source$found$($0m91(a0), nat_host(a1), $0m94(a2)))); $0m82(a0); BigInt(a1); $0m93(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Work.complete_source": run_lib((a0, a1) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058complete_source$($0m91(a0), nat_host(a1)))); $0m82(a0); BigInt(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Work.cached_finding.apply": run_lib((a0, a1, a2, a3) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058cached_finding$apply$($0m91(a0), nat_host(a1), nat_host(a2), nat_host(a3)))); $0m82(a0); BigInt(a1); BigInt(a2); BigInt(a3); return r; }, 4),
   "../../packages/agent-flow-bend/Work.cached_finding.count": run_lib((a0, a1, a2, a3, a4) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058cached_finding$count$($0m91(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4)))); $0m82(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); return r; }, 5),
-  "../../packages/agent-flow-bend/Work.cached_finding.found": run_lib((a0, a1, a2, a3, a4) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058cached_finding$found$($0m91(a0), nat_host(a1), nat_host(a2), nat_host(a3), $0m93(a4)))); $0m82(a0); BigInt(a1); BigInt(a2); BigInt(a3); $0m94(a4); return r; }, 5),
+  "../../packages/agent-flow-bend/Work.cached_finding.found": run_lib((a0, a1, a2, a3, a4) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058cached_finding$found$($0m91(a0), nat_host(a1), nat_host(a2), nat_host(a3), $0m94(a4)))); $0m82(a0); BigInt(a1); BigInt(a2); BigInt(a3); $0m93(a4); return r; }, 5),
   "../../packages/agent-flow-bend/Work.cached_finding": run_lib((a0, a1, a2, a3) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058cached_finding$($0m91(a0), nat_host(a1), nat_host(a2), nat_host(a3)))); $0m82(a0); BigInt(a1); BigInt(a2); BigInt(a3); return r; }, 4),
   "../../packages/agent-flow-bend/Work.remove_unit.pick": run_lib((a0, a1, a2) => { const r = $0m85(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058remove_unit$pick$($0m90(a0), $0m89(a1), (a2)))); $0m86(a0); $0m85(a1); (a2); return r; }, 3),
   "../../packages/agent-flow-bend/Work.remove_unit": run_lib((a0, a1) => { const r = $0m85(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058remove_unit$(nat_host(a0), $0m89(a1)))); BigInt(a0); $0m85(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Work.retire.apply": run_lib((a0, a1) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058retire$apply$($0m91(a0), nat_host(a1)))); $0m82(a0); BigInt(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Work.retire.stage": run_lib((a0, a1, a2) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058retire$stage$($0m91(a0), nat_host(a1), (a2)))); $0m82(a0); BigInt(a1); (a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Work.retire.found": run_lib((a0, a1, a2) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058retire$found$($0m91(a0), nat_host(a1), $0m95(a2)))); $0m82(a0); BigInt(a1); $0m96(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Work.retire.found": run_lib((a0, a1, a2) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058retire$found$($0m91(a0), nat_host(a1), $0m96(a2)))); $0m82(a0); BigInt(a1); $0m95(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Work.retire": run_lib((a0, a1) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058retire$($0m91(a0), nat_host(a1)))); $0m82(a0); BigInt(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Work.set_source_capacity.apply": run_lib((a0, a1, a2) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058set_source_capacity$apply$($0m91(a0), $0m64(a1), (a2)))); $0m82(a0); $0m65(a1); (a2); return r; }, 3),
   "../../packages/agent-flow-bend/Work.set_source_capacity": run_lib((a0, a1) => { const r = $0m92(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Work$058set_source_capacity$($0m91(a0), $0m64(a1)))); $0m82(a0); $0m65(a1); return r; }, 2),
@@ -55222,7 +55159,6 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/agent-flow-bend/RevisionState.initial": run_lib(() => { const r = $0m170(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047RevisionState$058initial$()));  return r; }, 0),
   "../../packages/agent-flow-bend/RevisionState.same_subject": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047RevisionState$058same_subject$(nat_host(a0), $0m173(a1)))); BigInt(a0); $0m172(a1); return r; }, 2),
   "../../packages/agent-flow-bend/RevisionState.find": run_lib((a0, a1) => { const r = $0m175(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047RevisionState$058find$(nat_host(a0), $0m174(a1)))); BigInt(a0); $0m171(a1); return r; }, 2),
-  "../../packages/agent-flow-bend/RevisionState.keep_entry": run_lib((a0, a1, a2) => { const r = $0m171(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047RevisionState$058keep_entry$($0m173(a0), $0m174(a1), (a2)))); $0m172(a0); $0m171(a1); (a2); return r; }, 3),
   "../../packages/agent-flow-bend/RevisionState.without": run_lib((a0, a1) => { const r = $0m171(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047RevisionState$058without$(nat_host(a0), $0m174(a1)))); BigInt(a0); $0m171(a1); return r; }, 2),
   "../../packages/agent-flow-bend/RevisionState.register_found": run_lib((a0, a1, a2, a3, a4) => { const r = $0m178(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047RevisionState$058register_found$($0m176(a0), nat_host(a1), nat_host(a2), (a3), $0m177(a4)))); $0m170(a0); BigInt(a1); BigInt(a2); (a3); $0m175(a4); return r; }, 5),
   "../../packages/agent-flow-bend/RevisionState.register": run_lib((a0, a1, a2, a3) => { const r = $0m178(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047RevisionState$058register$($0m176(a0), nat_host(a1), nat_host(a2), (a3)))); $0m170(a0); BigInt(a1); BigInt(a2); (a3); return r; }, 4),
@@ -55271,14 +55207,14 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/agent-flow-bend/ReuseState.discard": run_lib((a0, a1) => { const r = $0m195(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047ReuseState$058discard$($0m190(a0), nat_host(a1)))); $0m179(a0); BigInt(a1); return r; }, 2),
   "../../packages/agent-flow-bend/ReuseState.entry_ids": run_lib((a0) => { const r = $0m3(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047ReuseState$058entry_ids$($0m186(a0)))); $0m182(a0); return r; }, 1),
   "../../packages/agent-flow-bend/ReuseState.clear": run_lib((a0) => { const r = $0m195(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047ReuseState$058clear$($0m190(a0)))); $0m179(a0); return r; }, 1),
-  "../../packages/agent-flow-bend/Notice.decide": run_lib((a0, a1, a2) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Notice$058decide$($0m63(a0), nat_host(a1), nat_host(a2)))); $0m51(a0); BigInt(a1); BigInt(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Notice.decide": run_lib((a0, a1, a2) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Notice$058decide$($0m63(a0), nat_host(a1), nat_host(a2)))); $0m50(a0); BigInt(a1); BigInt(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Notice.prune": run_lib((a0, a1, a2, a3, a4, a5) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Notice$058prune$((a0), (a1), (a2), (a3), (a4), (a5)))); (a0); (a1); (a2); (a3); (a4); (a5); return r; }, 6),
   "../../packages/agent-flow-bend/Notice.bounded_add.result": run_lib((a0, a1, a2, a3) => { const r = BigInt(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Notice$058bounded_add$result$(nat_host(a0), nat_host(a1), nat_host(a2), (a3)))); BigInt(a0); BigInt(a1); BigInt(a2); (a3); return r; }, 4),
   "../../packages/agent-flow-bend/Notice.bounded_add": run_lib((a0, a1, a2) => { const r = BigInt(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Notice$058bounded_add$(nat_host(a0), nat_host(a1), nat_host(a2)))); BigInt(a0); BigInt(a1); BigInt(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Notice.refresh.leased": run_lib((a0, a1, a2, a3) => { const r = $0m198(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Notice$058refresh$leased$(nat_host(a0), nat_host(a1), nat_host(a2), (a3)))); BigInt(a0); BigInt(a1); BigInt(a2); (a3); return r; }, 4),
-  "../../packages/agent-flow-bend/Notice.refresh": run_lib((a0, a1, a2, a3) => { const r = $0m198(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Notice$058refresh$($0m63(a0), (a1), nat_host(a2), nat_host(a3)))); $0m51(a0); (a1); BigInt(a2); BigInt(a3); return r; }, 4),
-  "../../packages/agent-flow-bend/Notice.advance.action": run_lib((a0, a1, a2, a3, a4) => { const r = $0m198(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Notice$058advance$action$((a0), nat_host(a1), $0m63(a2), (a3), nat_host(a4)))); (a0); BigInt(a1); $0m51(a2); (a3); BigInt(a4); return r; }, 5),
-  "../../packages/agent-flow-bend/Notice.advance": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m198(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Notice$058advance$($0m63(a0), nat_host(a1), nat_host(a2), nat_host(a3), $0m63(a4), (a5), nat_host(a6)))); $0m51(a0); BigInt(a1); BigInt(a2); BigInt(a3); $0m51(a4); (a5); BigInt(a6); return r; }, 7),
+  "../../packages/agent-flow-bend/Notice.refresh": run_lib((a0, a1, a2, a3) => { const r = $0m198(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Notice$058refresh$($0m63(a0), (a1), nat_host(a2), nat_host(a3)))); $0m50(a0); (a1); BigInt(a2); BigInt(a3); return r; }, 4),
+  "../../packages/agent-flow-bend/Notice.advance.action": run_lib((a0, a1, a2, a3, a4) => { const r = $0m198(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Notice$058advance$action$((a0), nat_host(a1), $0m63(a2), (a3), nat_host(a4)))); (a0); BigInt(a1); $0m50(a2); (a3); BigInt(a4); return r; }, 5),
+  "../../packages/agent-flow-bend/Notice.advance": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m198(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Notice$058advance$($0m63(a0), nat_host(a1), nat_host(a2), nat_host(a3), $0m63(a4), (a5), nat_host(a6)))); $0m50(a0); BigInt(a1); BigInt(a2); BigInt(a3); $0m50(a4); (a5); BigInt(a6); return r; }, 7),
   "../../packages/agent-flow-bend/Notice.main": run_lib(() => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Notice$058main$()));  return r; }, 0),
   "../../packages/agent-flow-bend/NoticeState.initial": run_lib(() => { const r = $0m199(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047NoticeState$058initial$()));  return r; }, 0),
   "../../packages/agent-flow-bend/NoticeState.record_id": run_lib((a0) => { const r = BigInt(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047NoticeState$058record_id$($0m204(a0)))); $0m201(a0); return r; }, 1),
@@ -55287,12 +55223,12 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/agent-flow-bend/NoticeState.find_record": run_lib((a0, a1) => { const r = $0m208(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047NoticeState$058find_record$(nat_host(a0), $0m207(a1)))); BigInt(a0); $0m200(a1); return r; }, 2),
   "../../packages/agent-flow-bend/NoticeState.without_choice": run_lib((a0, a1, a2) => { const r = $0m200(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047NoticeState$058without_choice$($0m204(a0), $0m207(a1), (a2)))); $0m201(a0); $0m200(a1); (a2); return r; }, 3),
   "../../packages/agent-flow-bend/NoticeState.without": run_lib((a0, a1) => { const r = $0m200(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047NoticeState$058without$(nat_host(a0), $0m207(a1)))); BigInt(a0); $0m200(a1); return r; }, 2),
-  "../../packages/agent-flow-bend/NoticeState.pending_count": run_lib((a0) => { const r = $0m51(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047NoticeState$058pending_count$($0m205(a0)))); $0m202(a0); return r; }, 1),
+  "../../packages/agent-flow-bend/NoticeState.pending_count": run_lib((a0) => { const r = $0m50(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047NoticeState$058pending_count$($0m205(a0)))); $0m202(a0); return r; }, 1),
   "../../packages/agent-flow-bend/NoticeState.pending_leased": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047NoticeState$058pending_leased$($0m205(a0)))); $0m202(a0); return r; }, 1),
   "../../packages/agent-flow-bend/NoticeState.replace": run_lib((a0, a1) => { const r = $0m199(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047NoticeState$058replace$($0m209(a0), $0m204(a1)))); $0m199(a0); $0m201(a1); return r; }, 2),
   "../../packages/agent-flow-bend/NoticeState.advance_applied": run_lib((a0, a1, a2, a3, a4) => { const r = $0m211(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047NoticeState$058advance_applied$($0m209(a0), $0m204(a1), $0m210(a2), nat_host(a3), nat_host(a4)))); $0m199(a0); $0m201(a1); $0m198(a2); BigInt(a3); BigInt(a4); return r; }, 5),
-  "../../packages/agent-flow-bend/NoticeState.advance_found": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m211(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047NoticeState$058advance_found$($0m209(a0), $0m212(a1), $0m63(a2), nat_host(a3), nat_host(a4), nat_host(a5), nat_host(a6)))); $0m199(a0); $0m208(a1); $0m51(a2); BigInt(a3); BigInt(a4); BigInt(a5); BigInt(a6); return r; }, 7),
-  "../../packages/agent-flow-bend/NoticeState.advance": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m211(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047NoticeState$058advance$($0m209(a0), nat_host(a1), $0m63(a2), nat_host(a3), nat_host(a4), nat_host(a5), nat_host(a6)))); $0m199(a0); BigInt(a1); $0m51(a2); BigInt(a3); BigInt(a4); BigInt(a5); BigInt(a6); return r; }, 7),
+  "../../packages/agent-flow-bend/NoticeState.advance_found": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m211(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047NoticeState$058advance_found$($0m209(a0), $0m212(a1), $0m63(a2), nat_host(a3), nat_host(a4), nat_host(a5), nat_host(a6)))); $0m199(a0); $0m208(a1); $0m50(a2); BigInt(a3); BigInt(a4); BigInt(a5); BigInt(a6); return r; }, 7),
+  "../../packages/agent-flow-bend/NoticeState.advance": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m211(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047NoticeState$058advance$($0m209(a0), nat_host(a1), $0m63(a2), nat_host(a3), nat_host(a4), nat_host(a5), nat_host(a6)))); $0m199(a0); BigInt(a1); $0m50(a2); BigInt(a3); BigInt(a4); BigInt(a5); BigInt(a6); return r; }, 7),
   "../../packages/agent-flow-bend/NoticeState.commit": run_lib((a0, a1, a2, a3, a4, a5, a6, a7) => { const r = $0m213(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047NoticeState$058commit$($0m209(a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4), nat_host(a5), nat_host(a6), nat_host(a7)))); $0m199(a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); BigInt(a5); BigInt(a6); BigInt(a7); return r; }, 8),
   "../../packages/agent-flow-bend/NoticeState.records_of": run_lib((a0) => { const r = $0m200(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047NoticeState$058records_of$($0m209(a0)))); $0m199(a0); return r; }, 1),
   "../../packages/agent-flow-bend/NoticeState.prune_pending": run_lib((a0, a1, a2) => { const r = $0m202(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047NoticeState$058prune_pending$($0m205(a0), (a1), (a2)))); $0m202(a0); (a1); (a2); return r; }, 3),
@@ -55316,7 +55252,6 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/agent-flow-bend/CollectionState.contains": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047CollectionState$058contains$(nat_host(a0), $0m1(a1)))); BigInt(a0); $0m3(a1); return r; }, 2),
   "../../packages/agent-flow-bend/CollectionState.lease_exists": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047CollectionState$058lease_exists$(nat_host(a0), $0m222(a1)))); BigInt(a0); $0m218(a1); return r; }, 2),
   "../../packages/agent-flow-bend/CollectionState.claim_exists": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047CollectionState$058claim_exists$(nat_host(a0), $0m224(a1)))); BigInt(a0); $0m220(a1); return r; }, 2),
-  "../../packages/agent-flow-bend/CollectionState.keep_ready": run_lib((a0, a1, a2) => { const r = $0m3(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047CollectionState$058keep_ready$(nat_host(a0), $0m1(a1), (a2)))); BigInt(a0); $0m3(a1); (a2); return r; }, 3),
   "../../packages/agent-flow-bend/CollectionState.remove_ready": run_lib((a0, a1) => { const r = $0m3(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047CollectionState$058remove_ready$(nat_host(a0), $0m1(a1)))); BigInt(a0); $0m3(a1); return r; }, 2),
   "../../packages/agent-flow-bend/CollectionState.keep_lease": run_lib((a0, a1, a2) => { const r = $0m218(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047CollectionState$058keep_lease$($0m223(a0), $0m222(a1), (a2)))); $0m219(a0); $0m218(a1); (a2); return r; }, 3),
   "../../packages/agent-flow-bend/CollectionState.remove_lease": run_lib((a0, a1, a2) => { const r = $0m218(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047CollectionState$058remove_lease$(nat_host(a0), nat_host(a1), $0m222(a2)))); BigInt(a0); BigInt(a1); $0m218(a2); return r; }, 3),
@@ -55414,11 +55349,11 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/agent-flow-bend/Canonical.pending_advicee_permits_found": run_lib((a0) => { const r = BigInt(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058pending_advicee_permits_found$($0m251(a0)))); $0m250(a0); return r; }, 1),
   "../../packages/agent-flow-bend/Canonical.pending_advicee_permits": run_lib((a0, a1) => { const r = BigInt(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058pending_advicee_permits$(nat_host(a0), $0m244(a1)))); BigInt(a0); $0m237(a1); return r; }, 2),
   "../../packages/agent-flow-bend/Canonical.pending_resident_permits": run_lib((a0) => { const r = BigInt(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058pending_resident_permits$($0m244(a0)))); $0m237(a0); return r; }, 1),
-  "../../packages/agent-flow-bend/Canonical.permit_result": run_lib((a0, a1, a2, a3) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058permit_result$($0m238(a0), nat_host(a1), $0m252(a2), $0m253(a3)))); $0m231(a0); BigInt(a1); $0m50(a2); $0m247(a3); return r; }, 4),
-  "../../packages/agent-flow-bend/Canonical.replace_quiet_round": run_lib((a0, a1, a2) => { const r = $0m232(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058replace_quiet_round$(nat_host(a0), $0m63(a1), $0m239(a2)))); BigInt(a0); $0m51(a1); $0m232(a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Canonical.with_quiet_round": run_lib((a0, a1, a2) => { const r = $0m231(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058with_quiet_round$($0m238(a0), nat_host(a1), $0m63(a2)))); $0m231(a0); BigInt(a1); $0m51(a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Canonical.issue_result": run_lib((a0, a1, a2) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058issue_result$($0m238(a0), nat_host(a1), $0m252(a2)))); $0m231(a0); BigInt(a1); $0m50(a2); return r; }, 3),
-  "../../packages/agent-flow-bend/Canonical.close_permit_result": run_lib((a0, a1, a2) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058close_permit_result$($0m238(a0), nat_host(a1), $0m252(a2)))); $0m231(a0); BigInt(a1); $0m50(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Canonical.permit_result": run_lib((a0, a1, a2, a3) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058permit_result$($0m238(a0), nat_host(a1), $0m252(a2), $0m253(a3)))); $0m231(a0); BigInt(a1); $0m49(a2); $0m247(a3); return r; }, 4),
+  "../../packages/agent-flow-bend/Canonical.replace_quiet_round": run_lib((a0, a1, a2) => { const r = $0m232(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058replace_quiet_round$(nat_host(a0), $0m63(a1), $0m239(a2)))); BigInt(a0); $0m50(a1); $0m232(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Canonical.with_quiet_round": run_lib((a0, a1, a2) => { const r = $0m231(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058with_quiet_round$($0m238(a0), nat_host(a1), $0m63(a2)))); $0m231(a0); BigInt(a1); $0m50(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Canonical.issue_result": run_lib((a0, a1, a2) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058issue_result$($0m238(a0), nat_host(a1), $0m252(a2)))); $0m231(a0); BigInt(a1); $0m49(a2); return r; }, 3),
+  "../../packages/agent-flow-bend/Canonical.close_permit_result": run_lib((a0, a1, a2) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058close_permit_result$($0m238(a0), nat_host(a1), $0m252(a2)))); $0m231(a0); BigInt(a1); $0m49(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Canonical.issue_permit_capacity_checked": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058issue_permit_capacity_checked$($0m238(a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4), nat_host(a5), nat_host(a6), (a7), (a8)))); $0m231(a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); BigInt(a5); BigInt(a6); (a7); (a8); return r; }, 9),
   "../../packages/agent-flow-bend/Canonical.issue_permit_capacity": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058issue_permit_capacity$($0m238(a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4), nat_host(a5), nat_host(a6), nat_host(a7), nat_host(a8)))); $0m231(a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); BigInt(a5); BigInt(a6); BigInt(a7); BigInt(a8); return r; }, 9),
   "../../packages/agent-flow-bend/Canonical.issue_permit_gate": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058issue_permit_gate$($0m238(a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4), nat_host(a5), nat_host(a6), nat_host(a7), nat_host(a8), (a9)))); $0m231(a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); BigInt(a5); BigInt(a6); BigInt(a7); BigInt(a8); (a9); return r; }, 10),
@@ -55463,7 +55398,7 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/agent-flow-bend/Canonical.consume_opened": run_lib((a0, a1, a2) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058consume_opened$($0m238(a0), nat_host(a1), $0m261(a2)))); $0m231(a0); BigInt(a1); $0m245(a2); return r; }, 3),
   "../../packages/agent-flow-bend/Canonical.consume_existing": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058consume_existing$($0m238(a0), $0m238(a1), nat_host(a2), nat_host(a3), nat_host(a4), $0m259(a5)))); $0m231(a0); $0m231(a1); BigInt(a2); BigInt(a3); BigInt(a4); $0m256(a5); return r; }, 6),
   "../../packages/agent-flow-bend/Canonical.consume_admitted": run_lib((a0, a1, a2, a3, a4) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058consume_admitted$($0m238(a0), nat_host(a1), nat_host(a2), $0m42(a3), nat_host(a4)))); $0m231(a0); BigInt(a1); BigInt(a2); $0m45(a3); BigInt(a4); return r; }, 5),
-  "../../packages/agent-flow-bend/Canonical.consume_result": run_lib((a0, a1, a2, a3) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058consume_result$($0m238(a0), nat_host(a1), nat_host(a2), $0m252(a3)))); $0m231(a0); BigInt(a1); BigInt(a2); $0m50(a3); return r; }, 4),
+  "../../packages/agent-flow-bend/Canonical.consume_result": run_lib((a0, a1, a2, a3) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058consume_result$($0m238(a0), nat_host(a1), nat_host(a2), $0m252(a3)))); $0m231(a0); BigInt(a1); BigInt(a2); $0m49(a3); return r; }, 4),
   "../../packages/agent-flow-bend/Canonical.consume_permit": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058consume_permit$($0m238(a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4), nat_host(a5)))); $0m231(a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); BigInt(a5); return r; }, 6),
   "../../packages/agent-flow-bend/Canonical.is_deciding": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058is_deciding$($0m240(a0)))); $0m233(a0); return r; }, 1),
   "../../packages/agent-flow-bend/Canonical.admit_observation_found": run_lib((a0, a1, a2, a3, a4) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058admit_observation_found$($0m238(a0), nat_host(a1), nat_host(a2), nat_host(a3), $0m259(a4)))); $0m231(a0); BigInt(a1); BigInt(a2); BigInt(a3); $0m256(a4); return r; }, 5),
@@ -55560,8 +55495,8 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/agent-flow-bend/Canonical.stop_group_end": run_lib((a0, a1, a2, a3, a4) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058stop_group_end$($0m238(a0), nat_host(a1), nat_host(a2), nat_host(a3), $0m269(a4)))); $0m231(a0); BigInt(a1); BigInt(a2); BigInt(a3); $0m270(a4); return r; }, 5),
   "../../packages/agent-flow-bend/Canonical.stop_ready": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058stop_ready$($0m238(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4), (a5)))); $0m231(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); (a5); return r; }, 6),
   "../../packages/agent-flow-bend/Canonical.stop_output_decision": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058stop_output_decision$((a0), $0m238(a1), nat_host(a2), nat_host(a3), nat_host(a4), (a5), (a6)))); (a0); $0m231(a1); BigInt(a2); BigInt(a3); BigInt(a4); (a5); (a6); return r; }, 7),
-  "../../packages/agent-flow-bend/Canonical.stop_output": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058stop_output$($0m238(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4), $0m63(a5), (a6)))); $0m231(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); $0m51(a5); (a6); return r; }, 7),
-  "../../packages/agent-flow-bend/Canonical.stop_current": run_lib((a0, a1, a2, a3, a4, a5, a6, a7) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058stop_current$($0m238(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4), (a5), $0m63(a6), (a7)))); $0m231(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); (a5); $0m51(a6); (a7); return r; }, 8),
+  "../../packages/agent-flow-bend/Canonical.stop_output": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058stop_output$($0m238(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4), $0m63(a5), (a6)))); $0m231(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); $0m50(a5); (a6); return r; }, 7),
+  "../../packages/agent-flow-bend/Canonical.stop_current": run_lib((a0, a1, a2, a3, a4, a5, a6, a7) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058stop_current$($0m238(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4), (a5), $0m63(a6), (a7)))); $0m231(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); (a5); $0m50(a6); (a7); return r; }, 8),
   "../../packages/agent-flow-bend/Canonical.match_pending": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058match_pending$($0m238(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4), $0m240(a5)))); $0m231(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); $0m233(a5); return r; }, 6),
   "../../packages/agent-flow-bend/Canonical.stop_found": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058stop_found$($0m238(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4), $0m259(a5)))); $0m231(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); $0m256(a5); return r; }, 6),
   "../../packages/agent-flow-bend/Canonical.stop": run_lib((a0, a1, a2, a3, a4) => { const r = $0m245(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058stop$($0m238(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4)))); $0m231(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); return r; }, 5),
@@ -55762,11 +55697,11 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/CredentialFacts.rotate": run_lib((a0) => { const r = $0m311(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CredentialFacts$058rotate$($0m314(a0)))); $0m311(a0); return r; }, 1),
   "../../packages/monkey-business-bend/CredentialFacts.authorized": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CredentialFacts$058authorized$($0m314(a0), nat_host(a1)))); $0m311(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/CredentialFacts.configure": run_lib((a0, a1, a2) => { const r = $0m311(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CredentialFacts$058configure$($0m314(a0), (a1), nat_host(a2)))); $0m311(a0); (a1); BigInt(a2); return r; }, 3),
-  "../../packages/monkey-business-bend/CredentialFacts.lookup": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CredentialFacts$058lookup$($0m315(a0), nat_host(a1)))); $0m312(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/CredentialFacts.capture_found": run_lib((a0, a1, a2) => { const r = $0m311(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CredentialFacts$058capture_found$($0m63(a0), $0m314(a1), nat_host(a2)))); $0m51(a0); $0m311(a1); BigInt(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/CredentialFacts.lookup": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CredentialFacts$058lookup$($0m315(a0), nat_host(a1)))); $0m312(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/CredentialFacts.capture_found": run_lib((a0, a1, a2) => { const r = $0m311(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CredentialFacts$058capture_found$($0m63(a0), $0m314(a1), nat_host(a2)))); $0m50(a0); $0m311(a1); BigInt(a2); return r; }, 3),
   "../../packages/monkey-business-bend/CredentialFacts.capture": run_lib((a0, a1) => { const r = $0m311(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CredentialFacts$058capture$($0m314(a0), nat_host(a1)))); $0m311(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/CredentialFacts.captured": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CredentialFacts$058captured$($0m314(a0), nat_host(a1)))); $0m311(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/CredentialFacts.generation_found": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CredentialFacts$058generation_found$(nat_host(a0), $0m63(a1)))); BigInt(a0); $0m51(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/CredentialFacts.captured": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CredentialFacts$058captured$($0m314(a0), nat_host(a1)))); $0m311(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/CredentialFacts.generation_found": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CredentialFacts$058generation_found$(nat_host(a0), $0m63(a1)))); BigInt(a0); $0m50(a1); return r; }, 2),
   "../../packages/monkey-business-bend/CredentialFacts.matches": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CredentialFacts$058matches$($0m314(a0), nat_host(a1)))); $0m311(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/Advicees.initial": run_lib(() => { const r = $0m317(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Advicees$058initial$()));  return r; }, 0),
   "../../packages/monkey-business-bend/Advicees.maximum": run_lib(() => { const r = BigInt(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Advicees$058maximum$()));  return r; }, 0),
@@ -55782,7 +55717,7 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/Advicees.declaration": run_lib((a0, a1, a2, a3) => { const r = $0m325(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Advicees$058declaration$((a0), $0m324(a1), nat_host(a2), nat_host(a3)))); (a0); $0m317(a1); BigInt(a2); BigInt(a3); return r; }, 4),
   "../../packages/monkey-business-bend/Advicees.declare": run_lib((a0, a1, a2) => { const r = $0m325(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Advicees$058declare$($0m324(a0), nat_host(a1), nat_host(a2)))); $0m317(a0); BigInt(a1); BigInt(a2); return r; }, 3),
   "../../packages/monkey-business-bend/Advicees.targeted": run_lib((a0) => { const r = $0m326(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Advicees$058targeted$($0m321(a0)))); $0m322(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/Advicees.targets": run_lib((a0, a1) => { const r = $0m326(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Advicees$058targets$($0m324(a0), $0m63(a1)))); $0m317(a0); $0m51(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/Advicees.targets": run_lib((a0, a1) => { const r = $0m326(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Advicees$058targets$($0m324(a0), $0m63(a1)))); $0m317(a0); $0m50(a1); return r; }, 2),
   "../../packages/monkey-business-bend/CollectionScenario.gate": run_lib((a0, a1, a2) => { const r = $0m282(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CollectionScenario$058gate$($0m327(a0), nat_host(a1), (a2)))); $0m328(a0); BigInt(a1); (a2); return r; }, 3),
   "../../packages/monkey-business-bend/CollectionScenario.final_authority": run_lib((a0, a1) => { const r = $0m282(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CollectionScenario$058final_authority$($0m327(a0), (a1)))); $0m328(a0); (a1); return r; }, 2),
   "../../packages/monkey-business-bend/CollectionScenario.finding": run_lib((a0, a1) => { const r = $0m282(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CollectionScenario$058finding$($0m327(a0), $0m329(a1)))); $0m328(a0); $0m330(a1); return r; }, 2),
@@ -55999,14 +55934,14 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/StopScenario.reserved_permission": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m304(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058reserved_permission$((a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4), $0m1(a5), nat_host(a6)))); (a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); $0m3(a5); BigInt(a6); return r; }, 7),
   "../../packages/monkey-business-bend/StopScenario.reserved_fields": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m304(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058reserved_fields$(nat_host(a0), nat_host(a1), nat_host(a2), nat_host(a3), $0m1(a4), (a5), nat_host(a6)))); BigInt(a0); BigInt(a1); BigInt(a2); BigInt(a3); $0m3(a4); (a5); BigInt(a6); return r; }, 7),
   "../../packages/monkey-business-bend/StopScenario.reserved": run_lib((a0, a1, a2, a3) => { const r = $0m304(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058reserved$($0m394(a0), $0m1(a1), (a2), nat_host(a3)))); $0m395(a0); $0m3(a1); (a2); BigInt(a3); return r; }, 4),
-  "../../packages/monkey-business-bend/StopScenario.candidate_owned": run_lib((a0, a1, a2, a3) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058candidate_owned$($0m242(a0), nat_host(a1), nat_host(a2), nat_host(a3)))); $0m235(a0); BigInt(a1); BigInt(a2); BigInt(a3); return r; }, 4),
-  "../../packages/monkey-business-bend/StopScenario.candidate_cons": run_lib((a0, a1) => { const r = $0m3(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058candidate_cons$($0m63(a0), $0m1(a1)))); $0m51(a0); $0m3(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/StopScenario.candidate_owned": run_lib((a0, a1, a2, a3) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058candidate_owned$($0m242(a0), nat_host(a1), nat_host(a2), nat_host(a3)))); $0m235(a0); BigInt(a1); BigInt(a2); BigInt(a3); return r; }, 4),
+  "../../packages/monkey-business-bend/StopScenario.candidate_cons": run_lib((a0, a1) => { const r = $0m3(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058candidate_cons$($0m63(a0), $0m1(a1)))); $0m50(a0); $0m3(a1); return r; }, 2),
   "../../packages/monkey-business-bend/StopScenario.candidates": run_lib((a0, a1, a2, a3) => { const r = $0m3(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058candidates$($0m241(a0), nat_host(a1), nat_host(a2), nat_host(a3)))); $0m234(a0); BigInt(a1); BigInt(a2); BigInt(a3); return r; }, 4),
   "../../packages/monkey-business-bend/StopScenario.continuation_count": run_lib((a0, a1, a2) => { const r = BigInt(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058continuation_count$($0m238(a0), nat_host(a1), nat_host(a2)))); $0m231(a0); BigInt(a1); BigInt(a2); return r; }, 3),
   "../../packages/monkey-business-bend/StopScenario.budget_fields": run_lib((a0, a1, a2) => { const r = $0m302(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058budget_fields$($0m238(a0), nat_host(a1), nat_host(a2)))); $0m231(a0); BigInt(a1); BigInt(a2); return r; }, 3),
   "../../packages/monkey-business-bend/StopScenario.budget": run_lib((a0, a1) => { const r = $0m302(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058budget$($0m238(a0), $0m394(a1)))); $0m231(a0); $0m395(a1); return r; }, 2),
   "../../packages/monkey-business-bend/StopScenario.retired_actions": run_lib((a0) => { const r = $0m304(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058retired_actions$($0m308(a0)))); $0m303(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/StopScenario.retire_candidate": run_lib((a0, a1) => { const r = $0m304(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058retire_candidate$($0m63(a0), $0m242(a1)))); $0m51(a0); $0m235(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/StopScenario.retire_candidate": run_lib((a0, a1) => { const r = $0m304(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058retire_candidate$($0m63(a0), $0m242(a1)))); $0m50(a0); $0m235(a1); return r; }, 2),
   "../../packages/monkey-business-bend/StopScenario.retire_pending": run_lib((a0, a1, a2, a3) => { const r = $0m304(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058retire_pending$($0m241(a0), nat_host(a1), nat_host(a2), nat_host(a3)))); $0m234(a0); BigInt(a1); BigInt(a2); BigInt(a3); return r; }, 4),
   "../../packages/monkey-business-bend/StopScenario.cleanup": run_lib((a0, a1, a2, a3, a4) => { const r = $0m304(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058cleanup$((a0), $0m241(a1), nat_host(a2), nat_host(a3), nat_host(a4)))); (a0); $0m234(a1); BigInt(a2); BigInt(a3); BigInt(a4); return r; }, 5),
   "../../packages/monkey-business-bend/StopScenario.end_fields": run_lib((a0, a1, a2, a3, a4) => { const r = $0m304(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058end_fields$($0m238(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4)))); $0m231(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); return r; }, 5),
@@ -56051,7 +55986,7 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/StopScenario.command_unhandled": run_lib((a0) => { const r = $0m413(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058command_unhandled$($0m407(a0)))); $0m398(a0); return r; }, 1),
   "../../packages/monkey-business-bend/StopScenario.command_wait": run_lib((a0, a1, a2) => { const r = $0m413(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058command_wait$($0m407(a0), $0m402(a1), (a2)))); $0m398(a0); $0m400(a1); (a2); return r; }, 3),
   "../../packages/monkey-business-bend/StopScenario.command_budget_fit": run_lib((a0, a1, a2, a3, a4) => { const r = $0m413(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058command_budget_fit$((a0), $0m407(a1), $0m402(a2), $0m238(a3), nat_host(a4)))); (a0); $0m398(a1); $0m400(a2); $0m231(a3); BigInt(a4); return r; }, 5),
-  "../../packages/monkey-business-bend/StopScenario.command_budget_bytes": run_lib((a0, a1, a2, a3, a4) => { const r = $0m413(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058command_budget_bytes$($0m63(a0), $0m407(a1), $0m402(a2), $0m238(a3), (a4)))); $0m51(a0); $0m398(a1); $0m400(a2); $0m231(a3); (a4); return r; }, 5),
+  "../../packages/monkey-business-bend/StopScenario.command_budget_bytes": run_lib((a0, a1, a2, a3, a4) => { const r = $0m413(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058command_budget_bytes$($0m63(a0), $0m407(a1), $0m402(a2), $0m238(a3), (a4)))); $0m50(a0); $0m398(a1); $0m400(a2); $0m231(a3); (a4); return r; }, 5),
   "../../packages/monkey-business-bend/StopScenario.command_budget": run_lib((a0, a1, a2, a3, a4) => { const r = $0m413(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058command_budget$($0m407(a0), $0m402(a1), $0m238(a2), $0m417(a3), (a4)))); $0m398(a0); $0m400(a1); $0m231(a2); $0m418(a3); (a4); return r; }, 5),
   "../../packages/monkey-business-bend/StopScenario.command_validations": run_lib((a0, a1, a2, a3, a4, a5, a6, a7) => { const r = $0m304(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058command_validations$($0m1(a0), nat_host(a1), nat_host(a2), nat_host(a3), (a4), (a5), (a6), (a7)))); $0m3(a0); BigInt(a1); BigInt(a2); BigInt(a3); (a4); (a5); (a6); (a7); return r; }, 8),
   "../../packages/monkey-business-bend/StopScenario.command_ready_nonempty": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m413(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058command_ready_nonempty$((a0), $0m407(a1), $0m402(a2), $0m238(a3), $0m417(a4), $0m1(a5), $0m295(a6)))); (a0); $0m398(a1); $0m400(a2); $0m231(a3); $0m418(a4); $0m3(a5); $0m299(a6); return r; }, 7),
@@ -56069,7 +56004,7 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/StopScenario.finish_validating": run_lib((a0) => { const r = BigInt(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058finish_validating$($0m402(a0)))); $0m400(a0); return r; }, 1),
   "../../packages/monkey-business-bend/StopScenario.command_selected_complete": run_lib((a0, a1, a2, a3, a4) => { const r = $0m413(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058command_selected_complete$((a0), $0m407(a1), $0m402(a2), $0m238(a3), $0m417(a4)))); (a0); $0m398(a1); $0m400(a2); $0m231(a3); $0m418(a4); return r; }, 5),
   "../../packages/monkey-business-bend/StopScenario.command_selected": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m413(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058command_selected$($0m407(a0), $0m402(a1), $0m238(a2), $0m417(a3), nat_host(a4), (a5)))); $0m398(a0); $0m400(a1); $0m231(a2); $0m418(a3); BigInt(a4); (a5); return r; }, 6),
-  "../../packages/monkey-business-bend/StopScenario.command_fit_matches": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058command_fit_matches$($0m402(a0), $0m63(a1)))); $0m400(a0); $0m51(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/StopScenario.command_fit_matches": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058command_fit_matches$($0m402(a0), $0m63(a1)))); $0m400(a0); $0m50(a1); return r; }, 2),
   "../../packages/monkey-business-bend/StopScenario.command_fit_result": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m413(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058command_fit_result$((a0), $0m407(a1), $0m402(a2), $0m238(a3), $0m417(a4), (a5)))); (a0); $0m398(a1); $0m400(a2); $0m231(a3); $0m418(a4); (a5); return r; }, 6),
   "../../packages/monkey-business-bend/StopScenario.command_candidate_owned": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058command_candidate_owned$($0m297(a0), $0m402(a1)))); $0m301(a0); $0m400(a1); return r; }, 2),
   "../../packages/monkey-business-bend/StopScenario.command_candidate_valid": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m413(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047StopScenario$058command_candidate_valid$((a0), $0m407(a1), $0m402(a2), $0m238(a3), $0m417(a4), $0m297(a5), (a6)))); (a0); $0m398(a1); $0m400(a2); $0m231(a3); $0m418(a4); $0m301(a5); (a6); return r; }, 7),
@@ -56175,7 +56110,7 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/SharingScenario.evaluation_id": run_lib((a0) => { const r = BigInt(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047SharingScenario$058evaluation_id$($0m444(a0)))); $0m435(a0); return r; }, 1),
   "../../packages/monkey-business-bend/SharingScenario.cached_existing": run_lib((a0, a1, a2, a3, a4) => { const r = $0m453(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047SharingScenario$058cached_existing$($0m452(a0), $0m442(a1), $0m443(a2), nat_host(a3), $0m449(a4)))); $0m433(a0); $0m436(a1); $0m438(a2); BigInt(a3); $0m450(a4); return r; }, 5),
   "../../packages/monkey-business-bend/SharingScenario.cached_scoped": run_lib((a0, a1, a2, a3, a4) => { const r = $0m453(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047SharingScenario$058cached_scoped$($0m452(a0), $0m442(a1), $0m443(a2), nat_host(a3), (a4)))); $0m433(a0); $0m436(a1); $0m438(a2); BigInt(a3); (a4); return r; }, 5),
-  "../../packages/monkey-business-bend/SharingScenario.register_cached": run_lib((a0, a1, a2, a3) => { const r = $0m453(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047SharingScenario$058register_cached$($0m452(a0), $0m442(a1), $0m443(a2), $0m63(a3)))); $0m433(a0); $0m436(a1); $0m438(a2); $0m51(a3); return r; }, 4),
+  "../../packages/monkey-business-bend/SharingScenario.register_cached": run_lib((a0, a1, a2, a3) => { const r = $0m453(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047SharingScenario$058register_cached$($0m452(a0), $0m442(a1), $0m443(a2), $0m63(a3)))); $0m433(a0); $0m436(a1); $0m438(a2); $0m50(a3); return r; }, 4),
   "../../packages/monkey-business-bend/CacheScenario.initial": run_lib(() => { const r = $0m454(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheScenario$058initial$()));  return r; }, 0),
   "../../packages/monkey-business-bend/CacheScenario.offer_id": run_lib((a0) => { const r = BigInt(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheScenario$058offer_id$($0m458(a0)))); $0m457(a0); return r; }, 1),
   "../../packages/monkey-business-bend/CacheScenario.offer_partition": run_lib((a0) => { const r = BigInt(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheScenario$058offer_partition$($0m458(a0)))); $0m457(a0); return r; }, 1),
@@ -56188,8 +56123,8 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/CacheScenario.find": run_lib((a0, a1) => { const r = $0m461(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheScenario$058find$($0m462(a0), nat_host(a1)))); $0m455(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/CacheScenario.lookup": run_lib((a0, a1) => { const r = $0m461(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheScenario$058lookup$($0m463(a0), nat_host(a1)))); $0m454(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/CacheScenario.key_lookup": run_lib((a0, a1) => { const r = $0m461(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheScenario$058key_lookup$($0m462(a0), $0m442(a1)))); $0m455(a0); $0m436(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/CacheScenario.found_id": run_lib((a0) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheScenario$058found_id$($0m460(a0)))); $0m461(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/CacheScenario.key_id": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheScenario$058key_id$($0m463(a0), $0m442(a1)))); $0m454(a0); $0m436(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/CacheScenario.found_id": run_lib((a0) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheScenario$058found_id$($0m460(a0)))); $0m461(a0); return r; }, 1),
+  "../../packages/monkey-business-bend/CacheScenario.key_id": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheScenario$058key_id$($0m463(a0), $0m442(a1)))); $0m454(a0); $0m436(a1); return r; }, 2),
   "../../packages/monkey-business-bend/CacheScenario.entry_matches": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheScenario$058entry_matches$($0m459(a0), $0m185(a1)))); $0m456(a0); $0m183(a1); return r; }, 2),
   "../../packages/monkey-business-bend/CacheScenario.cached": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheScenario$058cached$($0m260(a0)))); $0m246(a0); return r; }, 1),
   "../../packages/monkey-business-bend/CacheScenario.hit_matching": run_lib((a0, a1) => { const r = $0m461(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheScenario$058hit_matching$($0m459(a0), (a1)))); $0m456(a0); (a1); return r; }, 2),
@@ -56220,14 +56155,14 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/CacheScenario.original": run_lib((a0) => { const r = $0m422(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheScenario$058original$($0m458(a0)))); $0m457(a0); return r; }, 1),
   "../../packages/monkey-business-bend/CacheRuntime.initial": run_lib(() => { const r = $0m467(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058initial$()));  return r; }, 0),
   "../../packages/monkey-business-bend/CacheRuntime.cache": run_lib((a0) => { const r = $0m454(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058cache$($0m473(a0)))); $0m467(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/CacheRuntime.key_id": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058key_id$($0m473(a0), $0m442(a1)))); $0m467(a0); $0m436(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/CacheRuntime.key_id": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058key_id$($0m473(a0), $0m442(a1)))); $0m467(a0); $0m436(a1); return r; }, 2),
   "../../packages/monkey-business-bend/CacheRuntime.hit": run_lib((a0, a1, a2, a3) => { const r = $0m461(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058hit$($0m473(a0), $0m238(a1), nat_host(a2), $0m260(a3)))); $0m467(a0); $0m231(a1); BigInt(a2); $0m246(a3); return r; }, 4),
   "../../packages/monkey-business-bend/CacheRuntime.existing_feedback": run_lib((a0, a1, a2, a3) => { const r = $0m479(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058existing_feedback$($0m474(a0), $0m476(a1), $0m478(a2), $0m464(a3)))); $0m468(a0); $0m470(a1); $0m472(a2); $0m466(a3); return r; }, 4),
   "../../packages/monkey-business-bend/CacheRuntime.existing_removed": run_lib((a0, a1, a2) => { const r = $0m479(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058existing_removed$($0m473(a0), $0m238(a1), $0m260(a2)))); $0m467(a0); $0m231(a1); $0m246(a2); return r; }, 3),
   "../../packages/monkey-business-bend/CacheRuntime.retained": run_lib((a0, a1, a2, a3, a4) => { const r = $0m467(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058retained$($0m473(a0), $0m238(a1), $0m458(a2), nat_host(a3), $0m260(a4)))); $0m467(a0); $0m231(a1); $0m457(a2); BigInt(a3); $0m246(a4); return r; }, 5),
-  "../../packages/monkey-business-bend/CacheRuntime.lookup_payload": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058lookup_payload$(nat_host(a0), $0m460(a1)))); BigInt(a0); $0m461(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/CacheRuntime.lookup_live": run_lib((a0, a1, a2) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058lookup_live$($0m463(a0), $0m238(a1), $0m63(a2)))); $0m454(a0); $0m231(a1); $0m51(a2); return r; }, 3),
-  "../../packages/monkey-business-bend/CacheRuntime.lookup_key": run_lib((a0, a1, a2) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058lookup_key$($0m473(a0), $0m238(a1), $0m442(a2)))); $0m467(a0); $0m231(a1); $0m436(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/CacheRuntime.lookup_payload": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058lookup_payload$(nat_host(a0), $0m460(a1)))); BigInt(a0); $0m461(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/CacheRuntime.lookup_live": run_lib((a0, a1, a2) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058lookup_live$($0m463(a0), $0m238(a1), $0m63(a2)))); $0m454(a0); $0m231(a1); $0m50(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/CacheRuntime.lookup_key": run_lib((a0, a1, a2) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058lookup_key$($0m473(a0), $0m238(a1), $0m442(a2)))); $0m467(a0); $0m231(a1); $0m436(a2); return r; }, 3),
   "../../packages/monkey-business-bend/CacheRuntime.pending_offer": run_lib((a0) => { const r = $0m457(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058pending_offer$($0m475(a0)))); $0m469(a0); return r; }, 1),
   "../../packages/monkey-business-bend/CacheRuntime.pending_known": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058pending_known$($0m474(a0), $0m458(a1)))); $0m468(a0); $0m457(a1); return r; }, 2),
   "../../packages/monkey-business-bend/CacheRuntime.begun": run_lib((a0, a1, a2, a3, a4) => { const r = $0m480(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058begun$($0m473(a0), $0m458(a1), nat_host(a2), nat_host(a3), (a4)))); $0m467(a0); $0m457(a1); BigInt(a2); BigInt(a3); (a4); return r; }, 5),
@@ -56236,16 +56171,16 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/CacheRuntime.remove_offer": run_lib((a0, a1) => { const r = $0m468(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058remove_offer$($0m474(a0), $0m458(a1)))); $0m468(a0); $0m457(a1); return r; }, 2),
   "../../packages/monkey-business-bend/CacheRuntime.completed_pending": run_lib((a0, a1) => { const r = $0m467(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058completed_pending$($0m473(a0), $0m458(a1)))); $0m467(a0); $0m457(a1); return r; }, 2),
   "../../packages/monkey-business-bend/CacheRuntime.prepared": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058prepared$($0m260(a0)))); $0m246(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/CacheRuntime.advanced_pending": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m467(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058advanced_pending$($0m473(a0), $0m458(a1), nat_host(a2), nat_host(a3), $0m63(a4), (a5)))); $0m467(a0); $0m457(a1); BigInt(a2); BigInt(a3); $0m51(a4); (a5); return r; }, 6),
+  "../../packages/monkey-business-bend/CacheRuntime.advanced_pending": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m467(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058advanced_pending$($0m473(a0), $0m458(a1), nat_host(a2), nat_host(a3), $0m63(a4), (a5)))); $0m467(a0); $0m457(a1); BigInt(a2); BigInt(a3); $0m50(a4); (a5); return r; }, 6),
   "../../packages/monkey-business-bend/CacheRuntime.terminal_claim": run_lib((a0) => { const r = $0m367(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058terminal_claim$($0m458(a0)))); $0m457(a0); return r; }, 1),
   "../../packages/monkey-business-bend/CacheRuntime.prepare_feedback": run_lib((a0, a1, a2, a3, a4) => { const r = $0m480(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058prepare_feedback$($0m473(a0), $0m458(a1), nat_host(a2), nat_host(a3), (a4)))); $0m467(a0); $0m457(a1); BigInt(a2); BigInt(a3); (a4); return r; }, 5),
-  "../../packages/monkey-business-bend/CacheRuntime.reservation": run_lib((a0) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058reservation$($0m260(a0)))); $0m246(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/CacheRuntime.reserve_feedback": run_lib((a0, a1, a2, a3, a4) => { const r = $0m480(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058reserve_feedback$($0m473(a0), $0m458(a1), nat_host(a2), nat_host(a3), $0m63(a4)))); $0m467(a0); $0m457(a1); BigInt(a2); BigInt(a3); $0m51(a4); return r; }, 5),
+  "../../packages/monkey-business-bend/CacheRuntime.reservation": run_lib((a0) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058reservation$($0m260(a0)))); $0m246(a0); return r; }, 1),
+  "../../packages/monkey-business-bend/CacheRuntime.reserve_feedback": run_lib((a0, a1, a2, a3, a4) => { const r = $0m480(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058reserve_feedback$($0m473(a0), $0m458(a1), nat_host(a2), nat_host(a3), $0m63(a4)))); $0m467(a0); $0m457(a1); BigInt(a2); BigInt(a3); $0m50(a4); return r; }, 5),
   "../../packages/monkey-business-bend/CacheRuntime.commit_released": run_lib((a0, a1, a2) => { const r = $0m480(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058commit_released$($0m473(a0), $0m458(a1), $0m465(a2)))); $0m467(a0); $0m457(a1); $0m367(a2); return r; }, 3),
   "../../packages/monkey-business-bend/CacheRuntime.commit_feedback": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m480(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058commit_feedback$($0m473(a0), $0m238(a1), $0m238(a2), $0m458(a3), nat_host(a4), $0m260(a5)))); $0m467(a0); $0m231(a1); $0m231(a2); $0m457(a3); BigInt(a4); $0m246(a5); return r; }, 6),
   "../../packages/monkey-business-bend/CacheRuntime.feedback_unchecked": run_lib((a0, a1, a2, a3, a4) => { const r = $0m480(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058feedback_unchecked$($0m473(a0), $0m238(a1), $0m238(a2), $0m483(a3), $0m260(a4)))); $0m467(a0); $0m231(a1); $0m231(a2); $0m482(a3); $0m246(a4); return r; }, 5),
   "../../packages/monkey-business-bend/CacheRuntime.same_stage": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058same_stage$((a0), (a1)))); (a0); (a1); return r; }, 2),
-  "../../packages/monkey-business-bend/CacheRuntime.same_reservation": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058same_reservation$($0m63(a0), $0m63(a1)))); $0m51(a0); $0m51(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/CacheRuntime.same_reservation": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058same_reservation$($0m63(a0), $0m63(a1)))); $0m50(a0); $0m50(a1); return r; }, 2),
   "../../packages/monkey-business-bend/CacheRuntime.fact_known": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058fact_known$($0m474(a0), $0m483(a1)))); $0m468(a0); $0m482(a1); return r; }, 2),
   "../../packages/monkey-business-bend/CacheRuntime.fact_event_valid": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058fact_event_valid$($0m483(a0)))); $0m482(a0); return r; }, 1),
   "../../packages/monkey-business-bend/CacheRuntime.valid_fact": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058valid_fact$($0m473(a0), $0m483(a1)))); $0m467(a0); $0m482(a1); return r; }, 2),
@@ -56273,9 +56208,9 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/CacheRuntime.configure": run_lib((a0, a1, a2, a3) => { const r = $0m467(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058configure$($0m473(a0), (a1), nat_host(a2), nat_host(a3)))); $0m467(a0); (a1); BigInt(a2); BigInt(a3); return r; }, 4),
   "../../packages/monkey-business-bend/CacheRuntime.begin_configured": run_lib((a0, a1, a2) => { const r = $0m480(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058begin_configured$($0m473(a0), $0m458(a1), $0m425(a2)))); $0m467(a0); $0m457(a1); $0m421(a2); return r; }, 3),
   "../../packages/monkey-business-bend/CacheRuntime.cache_entries": run_lib((a0) => { const r = $0m182(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058cache_entries$($0m190(a0)))); $0m179(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/CacheRuntime.departed_release": run_lib((a0, a1, a2) => { const r = $0m367(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058departed_release$($0m238(a0), $0m458(a1), $0m63(a2)))); $0m231(a0); $0m457(a1); $0m51(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/CacheRuntime.departed_release": run_lib((a0, a1, a2) => { const r = $0m367(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058departed_release$($0m238(a0), $0m458(a1), $0m63(a2)))); $0m231(a0); $0m457(a1); $0m50(a2); return r; }, 3),
   "../../packages/monkey-business-bend/CacheRuntime.departure_matches": run_lib((a0, a1, a2) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058departure_matches$($0m424(a0), nat_host(a1), nat_host(a2)))); $0m422(a0); BigInt(a1); BigInt(a2); return r; }, 3),
-  "../../packages/monkey-business-bend/CacheRuntime.departed_selected": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m486(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058departed_selected$($0m475(a0), $0m458(a1), $0m63(a2), $0m238(a3), $0m474(a4), $0m465(a5), (a6)))); $0m469(a0); $0m457(a1); $0m51(a2); $0m231(a3); $0m468(a4); $0m367(a5); (a6); return r; }, 7),
+  "../../packages/monkey-business-bend/CacheRuntime.departed_selected": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m486(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058departed_selected$($0m475(a0), $0m458(a1), $0m63(a2), $0m238(a3), $0m474(a4), $0m465(a5), (a6)))); $0m469(a0); $0m457(a1); $0m50(a2); $0m231(a3); $0m468(a4); $0m367(a5); (a6); return r; }, 7),
   "../../packages/monkey-business-bend/CacheRuntime.departed_item": run_lib((a0, a1, a2, a3, a4) => { const r = $0m486(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058departed_item$($0m475(a0), $0m238(a1), nat_host(a2), nat_host(a3), $0m487(a4)))); $0m469(a0); $0m231(a1); BigInt(a2); BigInt(a3); $0m486(a4); return r; }, 5),
   "../../packages/monkey-business-bend/CacheRuntime.departed_pending": run_lib((a0, a1, a2, a3) => { const r = $0m486(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058departed_pending$($0m474(a0), $0m238(a1), nat_host(a2), nat_host(a3)))); $0m468(a0); $0m231(a1); BigInt(a2); BigInt(a3); return r; }, 4),
   "../../packages/monkey-business-bend/CacheRuntime.departure_state": run_lib((a0, a1) => { const r = $0m479(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CacheRuntime$058departure_state$($0m473(a0), $0m487(a1)))); $0m467(a0); $0m486(a1); return r; }, 2),
@@ -56422,12 +56357,12 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/ScopedRevision.limit": run_lib(() => { const r = BigInt(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047ScopedRevision$058limit$()));  return r; }, 0),
   "../../packages/monkey-business-bend/ScopedRevision.maximum": run_lib((a0, a1) => { const r = BigInt(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047ScopedRevision$058maximum$(nat_host(a0), nat_host(a1)))); BigInt(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/ScopedRevision.initial": run_lib(() => { const r = $0m537(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047ScopedRevision$058initial$()));  return r; }, 0),
-  "../../packages/monkey-business-bend/ScopedRevision.lookup": run_lib((a0, a1, a2) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047ScopedRevision$058lookup$($0m540(a0), nat_host(a1), nat_host(a2)))); $0m538(a0); BigInt(a1); BigInt(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/ScopedRevision.lookup": run_lib((a0, a1, a2) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047ScopedRevision$058lookup$($0m540(a0), nat_host(a1), nat_host(a2)))); $0m538(a0); BigInt(a1); BigInt(a2); return r; }, 3),
   "../../packages/monkey-business-bend/ScopedRevision.upper": run_lib((a0) => { const r = BigInt(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047ScopedRevision$058upper$($0m174(a0)))); $0m171(a0); return r; }, 1),
   "../../packages/monkey-business-bend/ScopedRevision.canonical_upper": run_lib((a0) => { const r = BigInt(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047ScopedRevision$058canonical_upper$($0m238(a0)))); $0m231(a0); return r; }, 1),
   "../../packages/monkey-business-bend/ScopedRevision.allocated": run_lib((a0, a1, a2, a3, a4) => { const r = $0m543(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047ScopedRevision$058allocated$($0m542(a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4)))); $0m537(a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); return r; }, 5),
   "../../packages/monkey-business-bend/ScopedRevision.allocate_unseen": run_lib((a0, a1, a2, a3, a4) => { const r = $0m543(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047ScopedRevision$058allocate_unseen$($0m542(a0), $0m238(a1), nat_host(a2), nat_host(a3), nat_host(a4)))); $0m537(a0); $0m231(a1); BigInt(a2); BigInt(a3); BigInt(a4); return r; }, 5),
-  "../../packages/monkey-business-bend/ScopedRevision.resolved": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m543(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047ScopedRevision$058resolved$($0m542(a0), $0m238(a1), nat_host(a2), nat_host(a3), nat_host(a4), $0m63(a5)))); $0m537(a0); $0m231(a1); BigInt(a2); BigInt(a3); BigInt(a4); $0m51(a5); return r; }, 6),
+  "../../packages/monkey-business-bend/ScopedRevision.resolved": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m543(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047ScopedRevision$058resolved$($0m542(a0), $0m238(a1), nat_host(a2), nat_host(a3), nat_host(a4), $0m63(a5)))); $0m537(a0); $0m231(a1); BigInt(a2); BigInt(a3); BigInt(a4); $0m50(a5); return r; }, 6),
   "../../packages/monkey-business-bend/ScopedRevision.resolve": run_lib((a0, a1, a2, a3) => { const r = $0m543(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047ScopedRevision$058resolve$($0m542(a0), $0m238(a1), nat_host(a2), $0m426(a3)))); $0m537(a0); $0m231(a1); BigInt(a2); $0m423(a3); return r; }, 4),
   "../../packages/monkey-business-bend/ScopedRevision.captured_subject": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047ScopedRevision$058captured_subject$($0m429(a0), nat_host(a1)))); $0m420(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/ScopedRevision.present_found": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047ScopedRevision$058present_found$($0m177(a0)))); $0m175(a0); return r; }, 1),
@@ -56500,13 +56435,13 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/ExpiryScenario.scoped_notice_check": run_lib((a0, a1, a2, a3, a4) => { const r = $0m367(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047ExpiryScenario$058scoped_notice_check$($0m238(a0), $0m570(a1), nat_host(a2), nat_host(a3), nat_host(a4)))); $0m231(a0); $0m571(a1); BigInt(a2); BigInt(a3); BigInt(a4); return r; }, 5),
   "../../packages/monkey-business-bend/ExpiryScenario.scoped_notice_checks": run_lib((a0, a1, a2, a3, a4) => { const r = $0m367(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047ExpiryScenario$058scoped_notice_checks$($0m575(a0), $0m238(a1), nat_host(a2), nat_host(a3), nat_host(a4)))); $0m576(a0); $0m231(a1); BigInt(a2); BigInt(a3); BigInt(a4); return r; }, 5),
   "../../packages/monkey-business-bend/NoticeScenario.initial": run_lib(() => { const r = $0m577(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058initial$()));  return r; }, 0),
-  "../../packages/monkey-business-bend/NoticeScenario.failure": run_lib((a0, a1, a2, a3) => { const r = $0m282(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058failure$($0m581(a0), $0m63(a1), nat_host(a2), nat_host(a3)))); $0m580(a0); $0m51(a1); BigInt(a2); BigInt(a3); return r; }, 4),
+  "../../packages/monkey-business-bend/NoticeScenario.failure": run_lib((a0, a1, a2, a3) => { const r = $0m282(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058failure$($0m581(a0), $0m63(a1), nat_host(a2), nat_host(a3)))); $0m580(a0); $0m50(a1); BigInt(a2); BigInt(a3); return r; }, 4),
   "../../packages/monkey-business-bend/NoticeScenario.exercise": run_lib((a0) => { const r = $0m582(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058exercise$($0m581(a0)))); $0m580(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NoticeScenario.create_key": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058create_key$($0m260(a0)))); $0m246(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/NoticeScenario.granted": run_lib((a0) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058granted$($0m260(a0)))); $0m246(a0); return r; }, 1),
+  "../../packages/monkey-business-bend/NoticeScenario.granted": run_lib((a0) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058granted$($0m260(a0)))); $0m246(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NoticeScenario.requested": run_lib((a0, a1, a2, a3, a4) => { const r = $0m587(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058requested$($0m584(a0), $0m581(a1), nat_host(a2), nat_host(a3), (a4)))); $0m577(a0); $0m580(a1); BigInt(a2); BigInt(a3); (a4); return r; }, 5),
   "../../packages/monkey-business-bend/NoticeScenario.request": run_lib((a0, a1, a2, a3, a4) => { const r = $0m587(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058request$($0m584(a0), $0m581(a1), nat_host(a2), nat_host(a3), $0m260(a4)))); $0m577(a0); $0m580(a1); BigInt(a2); BigInt(a3); $0m246(a4); return r; }, 5),
-  "../../packages/monkey-business-bend/NoticeScenario.committed": run_lib((a0, a1, a2) => { const r = $0m587(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058committed$($0m586(a0), $0m585(a1), $0m63(a2)))); $0m579(a0); $0m578(a1); $0m51(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/NoticeScenario.committed": run_lib((a0, a1, a2) => { const r = $0m587(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058committed$($0m586(a0), $0m585(a1), $0m63(a2)))); $0m579(a0); $0m578(a1); $0m50(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NoticeScenario.prepend": run_lib((a0, a1) => { const r = $0m587(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058prepend$($0m586(a0), $0m588(a1)))); $0m579(a0); $0m587(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NoticeScenario.reserved_match": run_lib((a0, a1, a2, a3, a4) => { const r = $0m587(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058reserved_match$((a0), $0m586(a1), $0m585(a2), $0m260(a3), $0m588(a4)))); (a0); $0m579(a1); $0m578(a2); $0m246(a3); $0m587(a4); return r; }, 5),
   "../../packages/monkey-business-bend/NoticeScenario.owner": run_lib((a0) => { const r = BigInt(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058owner$($0m586(a0)))); $0m579(a0); return r; }, 1),
@@ -56517,7 +56452,7 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/NoticeScenario.collect": run_lib((a0, a1, a2, a3, a4) => { const r = $0m282(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058collect$(nat_host(a0), nat_host(a1), (a2), (a3), $0m1(a4)))); BigInt(a0); BigInt(a1); (a2); (a3); $0m3(a4); return r; }, 5),
   "../../packages/monkey-business-bend/NoticeScenario.lease": run_lib((a0) => { const r = $0m282(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058lease$(nat_host(a0)))); BigInt(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NoticeScenario.acknowledge": run_lib((a0) => { const r = $0m282(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058acknowledge$(nat_host(a0)))); BigInt(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/NoticeScenario.remaining": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058remaining$($0m589(a0), nat_host(a1)))); $0m592(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/NoticeScenario.remaining": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058remaining$($0m589(a0), nat_host(a1)))); $0m592(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NoticeScenario.clock_key": run_lib((a0) => { const r = BigInt(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058clock_key$($0m590(a0)))); $0m593(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NoticeScenario.clock_owned": run_lib((a0, a1, a2) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058clock_owned$($0m590(a0), nat_host(a1), nat_host(a2)))); $0m593(a0); BigInt(a1); BigInt(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NoticeScenario.find_clock": run_lib((a0, a1) => { const r = $0m592(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$058find_clock$($0m594(a0), nat_host(a1)))); $0m595(a0); BigInt(a1); return r; }, 2),
@@ -56622,12 +56557,12 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/AdviceeLifecycleCleanup.remaining_preparations": run_lib((a0, a1) => { const r = $0m609(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeLifecycleCleanup$058remaining_preparations$($0m607(a0), $0m281(a1)))); $0m609(a0); $0m282(a1); return r; }, 2),
   "../../packages/monkey-business-bend/AdviceeLifecycleCleanup.preparation_hit": run_lib((a0, a1, a2, a3) => { const r = $0m304(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeLifecycleCleanup$058preparation_hit$((a0), $0m606(a1), $0m106(a2), $0m309(a3)))); (a0); $0m608(a1); $0m102(a2); $0m304(a3); return r; }, 4),
   "../../packages/monkey-business-bend/AdviceeLifecycleCleanup.preparation_actions": run_lib((a0, a1, a2) => { const r = $0m304(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeLifecycleCleanup$058preparation_actions$($0m607(a0), $0m106(a1), $0m281(a2)))); $0m609(a0); $0m102(a1); $0m282(a2); return r; }, 3),
-  "../../packages/monkey-business-bend/AdviceeActivity.lookup_found": run_lib((a0, a1, a2) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeActivity$058lookup_found$((a0), nat_host(a1), $0m63(a2)))); (a0); BigInt(a1); $0m51(a2); return r; }, 3),
-  "../../packages/monkey-business-bend/AdviceeActivity.lookup": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeActivity$058lookup$($0m612(a0), nat_host(a1)))); $0m614(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/AdviceeActivity.register_found": run_lib((a0, a1, a2) => { const r = $0m614(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeActivity$058register_found$($0m63(a0), $0m612(a1), nat_host(a2)))); $0m51(a0); $0m614(a1); BigInt(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/AdviceeActivity.lookup_found": run_lib((a0, a1, a2) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeActivity$058lookup_found$((a0), nat_host(a1), $0m63(a2)))); (a0); BigInt(a1); $0m50(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/AdviceeActivity.lookup": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeActivity$058lookup$($0m612(a0), nat_host(a1)))); $0m614(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/AdviceeActivity.register_found": run_lib((a0, a1, a2) => { const r = $0m614(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeActivity$058register_found$($0m63(a0), $0m612(a1), nat_host(a2)))); $0m50(a0); $0m614(a1); BigInt(a2); return r; }, 3),
   "../../packages/monkey-business-bend/AdviceeActivity.register": run_lib((a0, a1) => { const r = $0m614(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeActivity$058register$($0m612(a0), nat_host(a1)))); $0m614(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/AdviceeActivity.captured_valid": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeActivity$058captured_valid$($0m63(a0), nat_host(a1)))); $0m51(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/AdviceeActivity.resumable": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeActivity$058resumable$($0m63(a0)))); $0m51(a0); return r; }, 1),
+  "../../packages/monkey-business-bend/AdviceeActivity.captured_valid": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeActivity$058captured_valid$($0m63(a0), nat_host(a1)))); $0m50(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/AdviceeActivity.resumable": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeActivity$058resumable$($0m63(a0)))); $0m50(a0); return r; }, 1),
   "../../packages/monkey-business-bend/AdviceeActivity.active": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeActivity$058active$($0m601(a0)))); $0m602(a0); return r; }, 1),
   "../../packages/monkey-business-bend/AdviceeActivity.valid": run_lib((a0, a1, a2, a3) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeActivity$058valid$($0m612(a0), $0m603(a1), nat_host(a2), nat_host(a3)))); $0m614(a0); $0m604(a1); BigInt(a2); BigInt(a3); return r; }, 4),
   "../../packages/monkey-business-bend/AdviceeActivity.resumed_head": run_lib((a0, a1, a2) => { const r = $0m615(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeActivity$058resumed_head$((a0), nat_host(a1), nat_host(a2)))); (a0); BigInt(a1); BigInt(a2); return r; }, 3),
@@ -56647,7 +56582,6 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/agent-flow-bend/ImportGraph.tree_after": run_lib((a0, a1, a2) => { const r = BigInt(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058tree_after$(nat_host(a0), nat_host(a1), nat_host(a2)))); BigInt(a0); BigInt(a1); BigInt(a2); return r; }, 3),
   "../../packages/agent-flow-bend/ImportGraph.read_after": run_lib((a0, a1) => { const r = BigInt(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058read_after$(nat_host(a0), nat_host(a1)))); BigInt(a0); BigInt(a1); return r; }, 2),
   "../../packages/agent-flow-bend/ImportGraph.initial": run_lib((a0) => { const r = $0m618(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058initial$($0m616(a0)))); $0m617(a0); return r; }, 1),
-  "../../packages/agent-flow-bend/ImportGraph.edge_count": run_lib((a0) => { const r = BigInt(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058edge_count$($0m1(a0)))); $0m3(a0); return r; }, 1),
   "../../packages/agent-flow-bend/ImportGraph.contains": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058contains$(nat_host(a0), $0m1(a1)))); BigInt(a0); $0m3(a1); return r; }, 2),
   "../../packages/agent-flow-bend/ImportGraph.with_depth": run_lib((a0, a1) => { const r = $0m621(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058with_depth$($0m1(a0), nat_host(a1)))); $0m3(a0); BigInt(a1); return r; }, 2),
   "../../packages/agent-flow-bend/ImportGraph.pending_after": run_lib((a0, a1, a2, a3) => { const r = $0m621(run_loop($$$$047$$$047packages$047agent$045flow$045bend$047ImportGraph$058pending_after$($0m622(a0), $0m1(a1), nat_host(a2), (a3)))); $0m621(a0); $0m3(a1); BigInt(a2); (a3); return r; }, 4),
@@ -56697,11 +56631,11 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/Workload.date": run_lib((a0, a1, a2) => { const r = $0m654(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Workload$058date$($0m5(a0), nat_host(a1), nat_host(a2)))); $0m8(a0); BigInt(a1); BigInt(a2); return r; }, 3),
   "../../packages/monkey-business-bend/Workload.valid_event": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Workload$058valid_event$($0m6(a0), nat_host(a1)))); $0m9(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/Workload.valid_events": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Workload$058valid_events$($0m5(a0), nat_host(a1)))); $0m8(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/Workload.update": run_lib((a0, a1, a2, a3) => { const r = $0m655(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Workload$058update$(nat_host(a0), (a1), $0m63(a2), $0m4(a3)))); BigInt(a0); (a1); $0m51(a2); $0m7(a3); return r; }, 4),
+  "../../packages/monkey-business-bend/Workload.update": run_lib((a0, a1, a2, a3) => { const r = $0m655(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Workload$058update$(nat_host(a0), (a1), $0m63(a2), $0m4(a3)))); BigInt(a0); (a1); $0m50(a2); $0m7(a3); return r; }, 4),
   "../../packages/monkey-business-bend/Workload.next": run_lib((a0) => { const r = $0m655(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Workload$058next$($0m646(a0)))); $0m647(a0); return r; }, 1),
   "../../packages/monkey-business-bend/Workload.finish": run_lib((a0, a1) => { const r = $0m655(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Workload$058finish$($0m646(a0), (a1)))); $0m647(a0); (a1); return r; }, 2),
   "../../packages/monkey-business-bend/Workload.advice": run_lib((a0) => { const r = $0m655(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Workload$058advice$($0m646(a0)))); $0m647(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/Workload.paced": run_lib((a0, a1, a2, a3, a4) => { const r = $0m655(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Workload$058paced$(nat_host(a0), (a1), $0m0(a2), $0m63(a3), (a4)))); BigInt(a0); (a1); $0m2(a2); $0m51(a3); (a4); return r; }, 5),
+  "../../packages/monkey-business-bend/Workload.paced": run_lib((a0, a1, a2, a3, a4) => { const r = $0m655(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Workload$058paced$(nat_host(a0), (a1), $0m0(a2), $0m63(a3), (a4)))); BigInt(a0); (a1); $0m2(a2); $0m50(a3); (a4); return r; }, 5),
   "../../packages/monkey-business-bend/Workload.control": run_lib((a0, a1) => { const r = $0m655(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Workload$058control$($0m646(a0), $0m656(a1)))); $0m647(a0); $0m657(a1); return r; }, 2),
   "../../packages/monkey-business-bend/Workload.valid_found": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Workload$058valid_found$($0m658(a0), nat_host(a1)))); $0m652(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/Workload.valid": run_lib((a0, a1, a2, a3) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Workload$058valid$($0m650(a0), nat_host(a1), nat_host(a2), (a3)))); $0m651(a0); BigInt(a1); BigInt(a2); (a3); return r; }, 4),
@@ -56712,9 +56646,9 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/Workload.acted": run_lib((a0, a1) => { const r = $0m655(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Workload$058acted$($0m646(a0), $0m661(a1)))); $0m647(a0); $0m662(a1); return r; }, 2),
   "../../packages/monkey-business-bend/Workload.found_action": run_lib((a0, a1, a2, a3) => { const r = $0m659(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Workload$058found_action$($0m658(a0), $0m650(a1), nat_host(a2), $0m661(a3)))); $0m652(a0); $0m651(a1); BigInt(a2); $0m662(a3); return r; }, 4),
   "../../packages/monkey-business-bend/Workload.run": run_lib((a0, a1, a2, a3) => { const r = $0m659(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Workload$058run$($0m650(a0), nat_host(a1), nat_host(a2), $0m661(a3)))); $0m651(a0); BigInt(a1); BigInt(a2); $0m662(a3); return r; }, 4),
-  "../../packages/monkey-business-bend/Workload.pre_duration": run_lib((a0, a1, a2, a3) => { const r = BigInt(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Workload$058pre_duration$($0m63(a0), $0m650(a1), nat_host(a2), nat_host(a3)))); $0m51(a0); $0m651(a1); BigInt(a2); BigInt(a3); return r; }, 4),
+  "../../packages/monkey-business-bend/Workload.pre_duration": run_lib((a0, a1, a2, a3) => { const r = BigInt(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Workload$058pre_duration$($0m63(a0), $0m650(a1), nat_host(a2), nat_host(a3)))); $0m50(a0); $0m651(a1); BigInt(a2); BigInt(a3); return r; }, 4),
   "../../packages/monkey-business-bend/Workload.pre_captured": run_lib((a0, a1, a2) => { const r = $0m663(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Workload$058pre_captured$(nat_host(a0), nat_host(a1), nat_host(a2)))); BigInt(a0); BigInt(a1); BigInt(a2); return r; }, 3),
-  "../../packages/monkey-business-bend/Workload.pre_timing": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m663(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Workload$058pre_timing$($0m650(a0), nat_host(a1), nat_host(a2), $0m63(a3), nat_host(a4), nat_host(a5)))); $0m651(a0); BigInt(a1); BigInt(a2); $0m51(a3); BigInt(a4); BigInt(a5); return r; }, 6),
+  "../../packages/monkey-business-bend/Workload.pre_timing": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m663(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Workload$058pre_timing$($0m650(a0), nat_host(a1), nat_host(a2), $0m63(a3), nat_host(a4), nat_host(a5)))); $0m651(a0); BigInt(a1); BigInt(a2); $0m50(a3); BigInt(a4); BigInt(a5); return r; }, 6),
   "../../packages/monkey-business-bend/Random.word_bits": run_lib((a0, a1, a2, a3) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Random$058word_bits$(nat_host(a0), nat_host(a1), (a2), (a3)))); BigInt(a0); BigInt(a1); (a2); (a3); return r; }, 4),
   "../../packages/monkey-business-bend/Random.word": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Random$058word$(nat_host(a0)))); BigInt(a0); return r; }, 1),
   "../../packages/monkey-business-bend/Random.folded": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Random$058folded$(nat_host(a0)))); BigInt(a0); return r; }, 1),
@@ -56831,7 +56765,7 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/OutputCompletion.expiry_event": run_lib((a0, a1, a2, a3, a4) => { const r = $0m376(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047OutputCompletion$058expiry_event$((a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4)))); (a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); return r; }, 5),
   "../../packages/monkey-business-bend/OutputCompletion.finish_event": run_lib((a0, a1, a2, a3, a4, a5, a6, a7) => { const r = $0m376(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047OutputCompletion$058finish_event$((a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4), $0m1(a5), (a6), (a7)))); (a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); $0m3(a5); (a6); (a7); return r; }, 8),
   "../../packages/monkey-business-bend/OutputCompletion.rewrite_event": run_lib((a0, a1, a2, a3) => { const r = $0m376(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047OutputCompletion$058rewrite_event$($0m289(a0), $0m281(a1), (a2), nat_host(a3)))); $0m290(a0); $0m282(a1); (a2); BigInt(a3); return r; }, 4),
-  "../../packages/monkey-business-bend/OutputCompletion.action_result": run_lib((a0, a1, a2, a3, a4) => { const r = $0m682(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047OutputCompletion$058action_result$($0m681(a0), nat_host(a1), $0m296(a2), (a3), $0m63(a4)))); $0m376(a0); BigInt(a1); $0m300(a2); (a3); $0m51(a4); return r; }, 5),
+  "../../packages/monkey-business-bend/OutputCompletion.action_result": run_lib((a0, a1, a2, a3, a4) => { const r = $0m682(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047OutputCompletion$058action_result$($0m681(a0), nat_host(a1), $0m296(a2), (a3), $0m63(a4)))); $0m376(a0); BigInt(a1); $0m300(a2); (a3); $0m50(a4); return r; }, 5),
   "../../packages/monkey-business-bend/OutputCompletion.rewrite_environment": run_lib((a0, a1, a2, a3) => { const r = $0m682(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047OutputCompletion$058rewrite_environment$($0m289(a0), $0m310(a1), (a2), nat_host(a3)))); $0m290(a0); $0m302(a1); (a2); BigInt(a3); return r; }, 4),
   "../../packages/monkey-business-bend/OutputCompletion.rewrite": run_lib((a0, a1, a2, a3, a4) => { const r = $0m682(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047OutputCompletion$058rewrite$($0m289(a0), $0m310(a1), (a2), nat_host(a3), (a4)))); $0m290(a0); $0m302(a1); (a2); BigInt(a3); (a4); return r; }, 5),
   "../../packages/monkey-business-bend/OutputCompletion.deliver": run_lib((a0, a1, a2, a3, a4) => { const r = $0m682(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047OutputCompletion$058deliver$($0m289(a0), $0m310(a1), (a2), nat_host(a3), (a4)))); $0m290(a0); $0m302(a1); (a2); BigInt(a3); (a4); return r; }, 5),
@@ -56840,9 +56774,9 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/OutputCompletion.replace": run_lib((a0, a1, a2, a3, a4) => { const r = $0m558(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047OutputCompletion$058replace$($0m552(a0), $0m289(a1), $0m549(a2), (a3), (a4)))); $0m555(a0); $0m290(a1); $0m550(a2); (a3); (a4); return r; }, 5),
   "../../packages/monkey-business-bend/OutputCompletion.refused": run_lib((a0, a1) => { const r = $0m684(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047OutputCompletion$058refused$($0m560(a0), (a1)))); $0m562(a0); (a1); return r; }, 2),
   "../../packages/monkey-business-bend/OutputCompletion.replaced_fact": run_lib((a0, a1, a2, a3, a4) => { const r = $0m684(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047OutputCompletion$058replaced_fact$($0m569(a0), $0m551(a1), $0m560(a2), nat_host(a3), nat_host(a4)))); $0m558(a0); $0m554(a1); $0m562(a2); BigInt(a3); BigInt(a4); return r; }, 5),
-  "../../packages/monkey-business-bend/OutputCompletion.scheduled_match": run_lib((a0, a1, a2, a3) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047OutputCompletion$058scheduled_match$((a0), nat_host(a1), nat_host(a2), $0m63(a3)))); (a0); BigInt(a1); BigInt(a2); $0m51(a3); return r; }, 4),
-  "../../packages/monkey-business-bend/OutputCompletion.scheduled_at": run_lib((a0, a1, a2) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047OutputCompletion$058scheduled_at$($0m640(a0), nat_host(a1), nat_host(a2)))); $0m641(a0); BigInt(a1); BigInt(a2); return r; }, 3),
-  "../../packages/monkey-business-bend/OutputCompletion.queued_replacement": run_lib((a0, a1, a2, a3) => { const r = $0m684(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047OutputCompletion$058queued_replacement$($0m551(a0), $0m560(a1), (a2), $0m63(a3)))); $0m554(a0); $0m562(a1); (a2); $0m51(a3); return r; }, 4),
+  "../../packages/monkey-business-bend/OutputCompletion.scheduled_match": run_lib((a0, a1, a2, a3) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047OutputCompletion$058scheduled_match$((a0), nat_host(a1), nat_host(a2), $0m63(a3)))); (a0); BigInt(a1); BigInt(a2); $0m50(a3); return r; }, 4),
+  "../../packages/monkey-business-bend/OutputCompletion.scheduled_at": run_lib((a0, a1, a2) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047OutputCompletion$058scheduled_at$($0m640(a0), nat_host(a1), nat_host(a2)))); $0m641(a0); BigInt(a1); BigInt(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/OutputCompletion.queued_replacement": run_lib((a0, a1, a2, a3) => { const r = $0m684(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047OutputCompletion$058queued_replacement$($0m551(a0), $0m560(a1), (a2), $0m63(a3)))); $0m554(a0); $0m562(a1); (a2); $0m50(a3); return r; }, 4),
   "../../packages/monkey-business-bend/OutputCompletion.queued_original": run_lib((a0, a1, a2, a3, a4) => { const r = $0m684(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047OutputCompletion$058queued_original$($0m551(a0), $0m560(a1), (a2), $0m640(a3), nat_host(a4)))); $0m554(a0); $0m562(a1); (a2); $0m641(a3); BigInt(a4); return r; }, 5),
   "../../packages/monkey-business-bend/OutputCompletion.prepend_original": run_lib((a0, a1) => { const r = $0m684(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047OutputCompletion$058prepend_original$($0m551(a0), $0m685(a1)))); $0m554(a0); $0m684(a1); return r; }, 2),
   "../../packages/monkey-business-bend/OutputCompletion.selected_original": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m684(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047OutputCompletion$058selected_original$((a0), $0m551(a1), $0m560(a2), (a3), $0m685(a4), $0m640(a5), nat_host(a6)))); (a0); $0m554(a1); $0m562(a2); (a3); $0m684(a4); $0m641(a5); BigInt(a6); return r; }, 7),
@@ -56861,12 +56795,12 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/PermitScenario.earlier_expiry": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m689(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PermitScenario$058earlier_expiry$((a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4), $0m690(a5)))); (a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); $0m689(a5); return r; }, 6),
   "../../packages/monkey-business-bend/PermitScenario.schedule_outcome": run_lib((a0, a1, a2, a3, a4, a5, a6, a7) => { const r = $0m689(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PermitScenario$058schedule_outcome$((a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4), nat_host(a5), nat_host(a6), nat_host(a7)))); (a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); BigInt(a5); BigInt(a6); BigInt(a7); return r; }, 8),
   "../../packages/monkey-business-bend/PermitScenario.issued": run_lib((a0, a1) => { const r = $0m689(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PermitScenario$058issued$($0m686(a0), nat_host(a1)))); $0m687(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/PermitScenario.owned_round": run_lib((a0, a1, a2) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PermitScenario$058owned_round$($0m239(a0), nat_host(a1), nat_host(a2)))); $0m232(a0); BigInt(a1); BigInt(a2); return r; }, 3),
-  "../../packages/monkey-business-bend/PermitScenario.admit": run_lib((a0, a1, a2) => { const r = $0m689(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PermitScenario$058admit$($0m63(a0), nat_host(a1), nat_host(a2)))); $0m51(a0); BigInt(a1); BigInt(a2); return r; }, 3),
-  "../../packages/monkey-business-bend/PermitScenario.actual_round": run_lib((a0, a1, a2) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PermitScenario$058actual_round$($0m238(a0), nat_host(a1), nat_host(a2)))); $0m231(a0); BigInt(a1); BigInt(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/PermitScenario.owned_round": run_lib((a0, a1, a2) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PermitScenario$058owned_round$($0m239(a0), nat_host(a1), nat_host(a2)))); $0m232(a0); BigInt(a1); BigInt(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/PermitScenario.admit": run_lib((a0, a1, a2) => { const r = $0m689(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PermitScenario$058admit$($0m63(a0), nat_host(a1), nat_host(a2)))); $0m50(a0); BigInt(a1); BigInt(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/PermitScenario.actual_round": run_lib((a0, a1, a2) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PermitScenario$058actual_round$($0m238(a0), nat_host(a1), nat_host(a2)))); $0m231(a0); BigInt(a1); BigInt(a2); return r; }, 3),
   "../../packages/monkey-business-bend/PermitScenario.consumed": run_lib((a0, a1, a2, a3) => { const r = $0m689(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PermitScenario$058consumed$($0m238(a0), $0m253(a1), nat_host(a2), nat_host(a3)))); $0m231(a0); $0m247(a1); BigInt(a2); BigInt(a3); return r; }, 4),
   "../../packages/monkey-business-bend/PermitScenario.absent_post_expires": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PermitScenario$058absent_post_expires$(nat_host(a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4), nat_host(a5), nat_host(a6), nat_host(a7), nat_host(a8)))); BigInt(a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); BigInt(a5); BigInt(a6); BigInt(a7); BigInt(a8); return r; }, 9),
-  "../../packages/monkey-business-bend/CredentialContext.captured_match": run_lib((a0, a1, a2) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CredentialContext$058captured_match$($0m63(a0), nat_host(a1), (a2)))); $0m51(a0); BigInt(a1); (a2); return r; }, 3),
+  "../../packages/monkey-business-bend/CredentialContext.captured_match": run_lib((a0, a1, a2) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CredentialContext$058captured_match$($0m63(a0), nat_host(a1), (a2)))); $0m50(a0); BigInt(a1); (a2); return r; }, 3),
   "../../packages/monkey-business-bend/CredentialContext.operation_generation": run_lib((a0, a1, a2) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CredentialContext$058operation_generation$($0m314(a0), nat_host(a1), (a2)))); $0m311(a0); BigInt(a1); (a2); return r; }, 3),
   "../../packages/monkey-business-bend/CredentialContext.candidate_generation": run_lib((a0, a1, a2) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CredentialContext$058candidate_generation$($0m314(a0), $0m296(a1), (a2)))); $0m311(a0); $0m300(a1); (a2); return r; }, 3),
   "../../packages/monkey-business-bend/CredentialContext.event_generation": run_lib((a0, a1, a2) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047CredentialContext$058event_generation$($0m314(a0), $0m281(a1), (a2)))); $0m311(a0); $0m282(a1); (a2); return r; }, 3),
@@ -56878,36 +56812,36 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/AdmissionAttempts.pending_plan": run_lib((a0, a1, a2, a3) => { const r = $0m692(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdmissionAttempts$058pending_plan$((a0), $0m1(a1), nat_host(a2), $0m309(a3)))); (a0); $0m3(a1); BigInt(a2); $0m304(a3); return r; }, 4),
   "../../packages/monkey-business-bend/AdmissionAttempts.planned": run_lib((a0, a1, a2) => { const r = $0m692(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdmissionAttempts$058planned$($0m1(a0), nat_host(a1), $0m693(a2)))); $0m3(a0); BigInt(a1); $0m307(a2); return r; }, 3),
   "../../packages/monkey-business-bend/AdmissionAttempts.edit": run_lib((a0, a1, a2, a3) => { const r = $0m692(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdmissionAttempts$058edit$($0m238(a0), $0m1(a1), nat_host(a2), nat_host(a3)))); $0m231(a0); $0m3(a1); BigInt(a2); BigInt(a3); return r; }, 4),
-  "../../packages/monkey-business-bend/PendingEffects.retiring": run_lib((a0) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PendingEffects$058retiring$($0m309(a0)))); $0m304(a0); return r; }, 1),
+  "../../packages/monkey-business-bend/PendingEffects.retiring": run_lib((a0) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PendingEffects$058retiring$($0m309(a0)))); $0m304(a0); return r; }, 1),
   "../../packages/monkey-business-bend/PendingEffects.known": run_lib((a0, a1, a2, a3) => { const r = $0m694(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PendingEffects$058known$((a0), $0m1(a1), nat_host(a2), $0m309(a3)))); (a0); $0m3(a1); BigInt(a2); $0m304(a3); return r; }, 4),
-  "../../packages/monkey-business-bend/PendingEffects.found": run_lib((a0, a1, a2) => { const r = $0m694(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PendingEffects$058found$($0m63(a0), $0m1(a1), $0m309(a2)))); $0m51(a0); $0m3(a1); $0m304(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/PendingEffects.found": run_lib((a0, a1, a2) => { const r = $0m694(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PendingEffects$058found$($0m63(a0), $0m1(a1), $0m309(a2)))); $0m50(a0); $0m3(a1); $0m304(a2); return r; }, 3),
   "../../packages/monkey-business-bend/PendingEffects.issue": run_lib((a0, a1) => { const r = $0m694(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PendingEffects$058issue$($0m1(a0), $0m309(a1)))); $0m3(a0); $0m304(a1); return r; }, 2),
   "../../packages/monkey-business-bend/PendingEffects.consumed": run_lib((a0, a1) => { const r = $0m3(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PendingEffects$058consumed$($0m1(a0), $0m281(a1)))); $0m3(a0); $0m282(a1); return r; }, 2),
   "../../packages/monkey-business-bend/PendingEffects.already_issued_batch_coalesces": run_lib((a0, a1, a2) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PendingEffects$058already_issued_batch_coalesces$($0m1(a0), nat_host(a1), $0m309(a2)))); $0m3(a0); BigInt(a1); $0m304(a2); return r; }, 3),
   "../../packages/monkey-business-bend/AdviceeScope.select_if": run_lib((a0, a1, a2) => { const r = $0m3(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058select_if$((a0), nat_host(a1), $0m1(a2)))); (a0); BigInt(a1); $0m3(a2); return r; }, 3),
   "../../packages/monkey-business-bend/AdviceeScope.select": run_lib((a0, a1) => { const r = $0m3(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058select$($0m695(a0), nat_host(a1)))); $0m697(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/AdviceeScope.first": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058first$($0m63(a0), $0m63(a1)))); $0m51(a0); $0m51(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/AdviceeScope.owner_if": run_lib((a0, a1, a2) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058owner_if$((a0), nat_host(a1), $0m63(a2)))); (a0); BigInt(a1); $0m51(a2); return r; }, 3),
-  "../../packages/monkey-business-bend/AdviceeScope.work_owner": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058work_owner$($0m241(a0), nat_host(a1)))); $0m234(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/AdviceeScope.entry_owner": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058entry_owner$($0m106(a0), nat_host(a1)))); $0m102(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/AdviceeScope.request_owner": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058request_owner$($0m109(a0), nat_host(a1)))); $0m104(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/AdviceeScope.dispatch_owner": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058dispatch_owner$($0m108(a0), nat_host(a1)))); $0m101(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/AdviceeScope.charge_owner": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058charge_owner$($0m34(a0), nat_host(a1)))); $0m30(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/AdviceeScope.round_owner": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058round_owner$($0m239(a0), nat_host(a1)))); $0m232(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/AdviceeScope.batch_owner": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058batch_owner$($0m149(a0), nat_host(a1)))); $0m142(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/AdviceeScope.notice_owner": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058notice_owner$($0m207(a0), nat_host(a1)))); $0m200(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/AdviceeScope.submission_owner": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058submission_owner$($0m152(a0), nat_host(a1)))); $0m138(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/AdviceeScope.delivery_owner": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058delivery_owner$($0m168(a0), nat_host(a1)))); $0m159(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/AdviceeScope.collection_advice_owner": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058collection_advice_owner$($0m226(a0), nat_host(a1)))); $0m217(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/AdviceeScope.collection_notice_owner": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058collection_notice_owner$($0m226(a0), nat_host(a1)))); $0m217(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/AdviceeScope.ledger_owner": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058ledger_owner$($0m36(a0), nat_host(a1)))); $0m29(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/AdviceeScope.intrinsic": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058intrinsic$($0m238(a0), $0m699(a1)))); $0m231(a0); $0m700(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/AdviceeScope.context_owner": run_lib((a0) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058context_owner$($0m63(a0)))); $0m51(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/AdviceeScope.resolve": run_lib((a0, a1, a2, a3) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058resolve$($0m238(a0), $0m238(a1), $0m699(a2), $0m63(a3)))); $0m231(a0); $0m231(a1); $0m700(a2); $0m51(a3); return r; }, 4),
+  "../../packages/monkey-business-bend/AdviceeScope.first": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058first$($0m63(a0), $0m63(a1)))); $0m50(a0); $0m50(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/AdviceeScope.owner_if": run_lib((a0, a1, a2) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058owner_if$((a0), nat_host(a1), $0m63(a2)))); (a0); BigInt(a1); $0m50(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/AdviceeScope.work_owner": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058work_owner$($0m241(a0), nat_host(a1)))); $0m234(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/AdviceeScope.entry_owner": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058entry_owner$($0m106(a0), nat_host(a1)))); $0m102(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/AdviceeScope.request_owner": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058request_owner$($0m109(a0), nat_host(a1)))); $0m104(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/AdviceeScope.dispatch_owner": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058dispatch_owner$($0m108(a0), nat_host(a1)))); $0m101(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/AdviceeScope.charge_owner": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058charge_owner$($0m34(a0), nat_host(a1)))); $0m30(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/AdviceeScope.round_owner": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058round_owner$($0m239(a0), nat_host(a1)))); $0m232(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/AdviceeScope.batch_owner": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058batch_owner$($0m149(a0), nat_host(a1)))); $0m142(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/AdviceeScope.notice_owner": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058notice_owner$($0m207(a0), nat_host(a1)))); $0m200(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/AdviceeScope.submission_owner": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058submission_owner$($0m152(a0), nat_host(a1)))); $0m138(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/AdviceeScope.delivery_owner": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058delivery_owner$($0m168(a0), nat_host(a1)))); $0m159(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/AdviceeScope.collection_advice_owner": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058collection_advice_owner$($0m226(a0), nat_host(a1)))); $0m217(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/AdviceeScope.collection_notice_owner": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058collection_notice_owner$($0m226(a0), nat_host(a1)))); $0m217(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/AdviceeScope.ledger_owner": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058ledger_owner$($0m36(a0), nat_host(a1)))); $0m29(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/AdviceeScope.intrinsic": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058intrinsic$($0m238(a0), $0m699(a1)))); $0m231(a0); $0m700(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/AdviceeScope.context_owner": run_lib((a0) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058context_owner$($0m63(a0)))); $0m50(a0); return r; }, 1),
+  "../../packages/monkey-business-bend/AdviceeScope.resolve": run_lib((a0, a1, a2, a3) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058resolve$($0m238(a0), $0m238(a1), $0m699(a2), $0m63(a3)))); $0m231(a0); $0m231(a1); $0m700(a2); $0m50(a3); return r; }, 4),
   "../../packages/monkey-business-bend/AdviceeScope.event_reference": run_lib((a0) => { const r = $0m700(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058event_reference$($0m281(a0)))); $0m282(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/AdviceeScope.event": run_lib((a0, a1, a2, a3) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058event$($0m238(a0), $0m238(a1), $0m281(a2), $0m63(a3)))); $0m231(a0); $0m231(a1); $0m282(a2); $0m51(a3); return r; }, 4),
+  "../../packages/monkey-business-bend/AdviceeScope.event": run_lib((a0, a1, a2, a3) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058event$($0m238(a0), $0m238(a1), $0m281(a2), $0m63(a3)))); $0m231(a0); $0m231(a1); $0m282(a2); $0m50(a3); return r; }, 4),
   "../../packages/monkey-business-bend/AdviceeScope.command_reference": run_lib((a0) => { const r = $0m700(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058command_reference$($0m253(a0)))); $0m247(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/AdviceeScope.command": run_lib((a0, a1, a2, a3) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058command$($0m238(a0), $0m238(a1), $0m253(a2), $0m63(a3)))); $0m231(a0); $0m231(a1); $0m247(a2); $0m51(a3); return r; }, 4),
+  "../../packages/monkey-business-bend/AdviceeScope.command": run_lib((a0, a1, a2, a3) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058command$($0m238(a0), $0m238(a1), $0m253(a2), $0m63(a3)))); $0m231(a0); $0m231(a1); $0m247(a2); $0m50(a3); return r; }, 4),
   "../../packages/monkey-business-bend/PreparationScenario.resolution": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PreparationScenario$058resolution$($0m668(a0)))); $0m669(a0); return r; }, 1),
   "../../packages/monkey-business-bend/PreparationScenario.captured": run_lib((a0, a1) => { const r = $0m629(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PreparationScenario$058captured$($0m668(a0), nat_host(a1)))); $0m669(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/PreparationScenario.next_fact": run_lib((a0, a1, a2) => { const r = $0m629(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047PreparationScenario$058next_fact$($0m632(a0), $0m673(a1), nat_host(a2)))); $0m625(a0); $0m674(a1); BigInt(a2); return r; }, 3),
@@ -57028,7 +56962,7 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/Engine.session_suspend": run_lib((a0, a1, a2) => { const r = $0m7(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058session_suspend$((a0), $0m0(a1), (a2)))); (a0); $0m2(a1); (a2); return r; }, 3),
   "../../packages/monkey-business-bend/Engine.session_finish": run_lib((a0, a1) => { const r = $0m2(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058session_finish$($0m0(a0), (a1)))); $0m2(a0); (a1); return r; }, 2),
   "../../packages/monkey-business-bend/Engine.session_advice": run_lib((a0, a1) => { const r = $0m7(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058session_advice$((a0), $0m0(a1)))); (a0); $0m2(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/Engine.pre_timing": run_lib((a0, a1, a2, a3, a4) => { const r = $0m663(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058pre_timing$($0m715(a0), nat_host(a1), $0m63(a2), nat_host(a3), nat_host(a4)))); $0m716(a0); BigInt(a1); $0m51(a2); BigInt(a3); BigInt(a4); return r; }, 5),
+  "../../packages/monkey-business-bend/Engine.pre_timing": run_lib((a0, a1, a2, a3, a4) => { const r = $0m663(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058pre_timing$($0m715(a0), nat_host(a1), $0m63(a2), nat_host(a3), nat_host(a4)))); $0m716(a0); BigInt(a1); $0m50(a2); BigInt(a3); BigInt(a4); return r; }, 5),
   "../../packages/monkey-business-bend/Engine.session_delay": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058session_delay$((a0), (a1)))); (a0); (a1); return r; }, 2),
   "../../packages/monkey-business-bend/Engine.intervene_request": run_lib((a0, a1, a2, a3) => { const r = $0m293(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058intervene_request$($0m715(a0), $0m705(a1), (a2), nat_host(a3)))); $0m716(a0); $0m706(a1); (a2); BigInt(a3); return r; }, 4),
   "../../packages/monkey-business-bend/Engine.credential_initial": run_lib(() => { const r = $0m311(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058credential_initial$()));  return r; }, 0),
@@ -57041,27 +56975,27 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/Engine.declare_advicee": run_lib((a0, a1, a2) => { const r = $0m739(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058declare_advicee$($0m715(a0), nat_host(a1), nat_host(a2)))); $0m716(a0); BigInt(a1); BigInt(a2); return r; }, 3),
   "../../packages/monkey-business-bend/Engine.advicee_identity": run_lib((a0, a1) => { const r = $0m322(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058advicee_identity$($0m715(a0), nat_host(a1)))); $0m716(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/Engine.advicee_partition": run_lib((a0, a1) => { const r = $0m322(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058advicee_partition$($0m715(a0), nat_host(a1)))); $0m716(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/Engine.advicee_targets": run_lib((a0, a1) => { const r = $0m326(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058advicee_targets$($0m715(a0), $0m63(a1)))); $0m716(a0); $0m51(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/Engine.advicee_targets": run_lib((a0, a1) => { const r = $0m326(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058advicee_targets$($0m715(a0), $0m63(a1)))); $0m716(a0); $0m50(a1); return r; }, 2),
   "../../packages/monkey-business-bend/Engine.credentials": run_lib((a0) => { const r = $0m311(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058credentials$($0m715(a0)))); $0m716(a0); return r; }, 1),
   "../../packages/monkey-business-bend/Engine.configure_credentials": run_lib((a0, a1, a2) => { const r = $0m716(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058configure_credentials$($0m715(a0), (a1), nat_host(a2)))); $0m716(a0); (a1); BigInt(a2); return r; }, 3),
   "../../packages/monkey-business-bend/Engine.changed_credentials": run_lib((a0, a1, a2) => { const r = $0m311(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058changed_credentials$($0m314(a0), (a1), (a2)))); $0m311(a0); (a1); (a2); return r; }, 3),
   "../../packages/monkey-business-bend/Engine.credential_action": run_lib((a0, a1, a2) => { const r = $0m716(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058credential_action$($0m715(a0), (a1), (a2)))); $0m716(a0); (a1); (a2); return r; }, 3),
   "../../packages/monkey-business-bend/Engine.generate_tree": run_lib((a0, a1, a2, a3, a4) => { const r = $0m704(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058generate_tree$(nat_host(a0), nat_host(a1), nat_host(a2), $0m666(a3), $0m616(a4)))); BigInt(a0); BigInt(a1); BigInt(a2); $0m667(a3); $0m617(a4); return r; }, 5),
-  "../../packages/monkey-business-bend/Engine.scope_event": run_lib((a0, a1, a2, a3) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058scope_event$($0m715(a0), $0m715(a1), $0m281(a2), $0m63(a3)))); $0m716(a0); $0m716(a1); $0m282(a2); $0m51(a3); return r; }, 4),
-  "../../packages/monkey-business-bend/Engine.scope_command": run_lib((a0, a1, a2, a3) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058scope_command$($0m715(a0), $0m715(a1), $0m253(a2), $0m63(a3)))); $0m716(a0); $0m716(a1); $0m247(a2); $0m51(a3); return r; }, 4),
+  "../../packages/monkey-business-bend/Engine.scope_event": run_lib((a0, a1, a2, a3) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058scope_event$($0m715(a0), $0m715(a1), $0m281(a2), $0m63(a3)))); $0m716(a0); $0m716(a1); $0m282(a2); $0m50(a3); return r; }, 4),
+  "../../packages/monkey-business-bend/Engine.scope_command": run_lib((a0, a1, a2, a3) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058scope_command$($0m715(a0), $0m715(a1), $0m253(a2), $0m63(a3)))); $0m716(a0); $0m716(a1); $0m247(a2); $0m50(a3); return r; }, 4),
   "../../packages/monkey-business-bend/Engine.scope_select": run_lib((a0, a1) => { const r = $0m3(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058scope_select$($0m695(a0), nat_host(a1)))); $0m697(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/Engine.attempted_edit": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12) => { const r = $0m741(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058attempted_edit$($0m238(a0), $0m713(a1), $0m643(a2), $0m650(a3), (a4), $0m324(a5), $0m314(a6), $0m740(a7), $0m1(a8), $0m603(a9), $0m607(a10), $0m612(a11), $0m597(a12)))); $0m231(a0); $0m714(a1); $0m642(a2); $0m651(a3); (a4); $0m317(a5); $0m311(a6); $0m692(a7); $0m3(a8); $0m604(a9); $0m609(a10); $0m614(a11); $0m596(a12); return r; }, 13),
   "../../packages/monkey-business-bend/Engine.edit_attempt": run_lib((a0, a1, a2) => { const r = $0m741(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058edit_attempt$($0m715(a0), nat_host(a1), nat_host(a2)))); $0m716(a0); BigInt(a1); BigInt(a2); return r; }, 3),
   "../../packages/monkey-business-bend/Engine.issued_effects": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12) => { const r = $0m743(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058issued_effects$($0m238(a0), $0m713(a1), $0m643(a2), $0m650(a3), (a4), $0m324(a5), $0m314(a6), $0m1(a7), $0m742(a8), $0m603(a9), $0m607(a10), $0m612(a11), $0m597(a12)))); $0m231(a0); $0m714(a1); $0m642(a2); $0m651(a3); (a4); $0m317(a5); $0m311(a6); $0m3(a7); $0m694(a8); $0m604(a9); $0m609(a10); $0m614(a11); $0m596(a12); return r; }, 13),
   "../../packages/monkey-business-bend/Engine.issue_actions": run_lib((a0, a1) => { const r = $0m743(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058issue_actions$($0m715(a0), $0m309(a1)))); $0m716(a0); $0m304(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/Engine.credential_captured": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058credential_captured$($0m715(a0), nat_host(a1)))); $0m716(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/Engine.credential_captured": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058credential_captured$($0m715(a0), nat_host(a1)))); $0m716(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/Engine.credential_matches": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058credential_matches$($0m715(a0), nat_host(a1)))); $0m716(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/Engine.callback_matches": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058callback_matches$($0m281(a0), $0m705(a1)))); $0m282(a0); $0m706(a1); return r; }, 2),
   "../../packages/monkey-business-bend/Engine.context_credentials": run_lib((a0, a1, a2) => { const r = $0m299(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058context_credentials$($0m715(a0), $0m281(a1), $0m295(a2)))); $0m716(a0); $0m282(a1); $0m299(a2); return r; }, 3),
   "../../packages/monkey-business-bend/Engine.preparation_active": run_lib((a0, a1, a2, a3, a4) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058preparation_active$($0m715(a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4)))); $0m716(a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); return r; }, 5),
   "../../packages/monkey-business-bend/Engine.lifecycle_entries": run_lib((a0) => { const r = $0m604(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058lifecycle_entries$($0m715(a0)))); $0m716(a0); return r; }, 1),
   "../../packages/monkey-business-bend/Engine.lifecycle_entry": run_lib((a0, a1) => { const r = $0m602(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058lifecycle_entry$($0m715(a0), nat_host(a1)))); $0m716(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/Engine.activity_scope": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058activity_scope$($0m715(a0), nat_host(a1)))); $0m716(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/Engine.activity_scope": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058activity_scope$($0m715(a0), nat_host(a1)))); $0m716(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/Engine.activity_valid": run_lib((a0, a1, a2) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058activity_valid$($0m715(a0), nat_host(a1), nat_host(a2)))); $0m716(a0); BigInt(a1); BigInt(a2); return r; }, 3),
   "../../packages/monkey-business-bend/Engine.activity_lifetime": run_lib((a0, a1) => { const r = BigInt(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058activity_lifetime$($0m715(a0), nat_host(a1)))); $0m716(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/Engine.inactive_edit": run_lib((a0) => { const r = $0m741(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058inactive_edit$($0m715(a0)))); $0m716(a0); return r; }, 1),
@@ -57077,7 +57011,7 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/Engine.lifecycle_installed": run_lib((a0, a1, a2, a3) => { const r = $0m746(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058lifecycle_installed$($0m744(a0), $0m611(a1), $0m745(a2), nat_host(a3)))); $0m725(a0); $0m605(a1); $0m610(a2); BigInt(a3); return r; }, 4),
   "../../packages/monkey-business-bend/Engine.lifecycle_changed": run_lib((a0, a1, a2) => { const r = $0m746(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058lifecycle_changed$($0m715(a0), nat_host(a1), $0m611(a2)))); $0m716(a0); BigInt(a1); $0m605(a2); return r; }, 3),
   "../../packages/monkey-business-bend/Engine.lifecycle_resume": run_lib((a0, a1, a2) => { const r = $0m605(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058lifecycle_resume$((a0), $0m603(a1), nat_host(a2)))); (a0); $0m604(a1); BigInt(a2); return r; }, 3),
-  "../../packages/monkey-business-bend/Engine.lifecycle_requested": run_lib((a0, a1, a2, a3) => { const r = $0m605(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058lifecycle_requested$($0m603(a0), nat_host(a1), (a2), $0m63(a3)))); $0m604(a0); BigInt(a1); (a2); $0m51(a3); return r; }, 4),
+  "../../packages/monkey-business-bend/Engine.lifecycle_requested": run_lib((a0, a1, a2, a3) => { const r = $0m605(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058lifecycle_requested$($0m603(a0), nat_host(a1), (a2), $0m63(a3)))); $0m604(a0); BigInt(a1); (a2); $0m50(a3); return r; }, 4),
   "../../packages/monkey-business-bend/Engine.departed_cache_scope": run_lib((a0, a1, a2) => { const r = $0m441(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058departed_cache_scope$($0m601(a0), $0m601(a1), (a2)))); $0m602(a0); $0m602(a1); (a2); return r; }, 3),
   "../../packages/monkey-business-bend/Engine.cache_release_actions": run_lib((a0) => { const r = $0m304(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058cache_release_actions$($0m465(a0)))); $0m367(a0); return r; }, 1),
   "../../packages/monkey-business-bend/Engine.with_scenarios": run_lib((a0, a1) => { const r = $0m716(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058with_scenarios$($0m715(a0), $0m597(a1)))); $0m716(a0); $0m596(a1); return r; }, 2),
@@ -57148,12 +57082,12 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/Engine.sharing_route_events": run_lib((a0, a1, a2) => { const r = $0m763(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058sharing_route_events$($0m715(a0), $0m515(a1), $0m465(a2)))); $0m716(a0); $0m512(a1); $0m367(a2); return r; }, 3),
   "../../packages/monkey-business-bend/Engine.sharing_first": run_lib((a0, a1) => { const r = $0m763(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058sharing_first$($0m715(a0), $0m517(a1)))); $0m716(a0); $0m519(a1); return r; }, 2),
   "../../packages/monkey-business-bend/Engine.sharing_metadata_clock": run_lib((a0, a1) => { const r = $0m716(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058sharing_metadata_clock$($0m715(a0), nat_host(a1)))); $0m716(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/Engine.sharing_within": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058sharing_within$(nat_host(a0), $0m63(a1)))); BigInt(a0); $0m51(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/Engine.sharing_within": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058sharing_within$(nat_host(a0), $0m63(a1)))); BigInt(a0); $0m50(a1); return r; }, 2),
   "../../packages/monkey-business-bend/Engine.sharing_preparation_live": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058sharing_preparation_live$($0m715(a0), $0m281(a1)))); $0m716(a0); $0m282(a1); return r; }, 2),
   "../../packages/monkey-business-bend/Engine.sharing_head_pending": run_lib((a0, a1, a2) => { const r = $0m763(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058sharing_head_pending$($0m715(a0), nat_host(a1), $0m517(a2)))); $0m716(a0); BigInt(a1); $0m519(a2); return r; }, 3),
   "../../packages/monkey-business-bend/Engine.sharing_head_checked": run_lib((a0, a1, a2, a3) => { const r = $0m763(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058sharing_head_checked$($0m715(a0), $0m281(a1), nat_host(a2), (a3)))); $0m716(a0); $0m282(a1); BigInt(a2); (a3); return r; }, 4),
-  "../../packages/monkey-business-bend/Engine.sharing_at_head": run_lib((a0, a1, a2, a3, a4) => { const r = $0m763(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058sharing_at_head$($0m715(a0), $0m281(a1), nat_host(a2), $0m63(a3), $0m720(a4)))); $0m716(a0); $0m282(a1); BigInt(a2); $0m51(a3); $0m645(a4); return r; }, 5),
-  "../../packages/monkey-business-bend/Engine.sharing_preprocess": run_lib((a0, a1, a2, a3) => { const r = $0m763(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058sharing_preprocess$($0m715(a0), $0m281(a1), nat_host(a2), $0m63(a3)))); $0m716(a0); $0m282(a1); BigInt(a2); $0m51(a3); return r; }, 4),
+  "../../packages/monkey-business-bend/Engine.sharing_at_head": run_lib((a0, a1, a2, a3, a4) => { const r = $0m763(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058sharing_at_head$($0m715(a0), $0m281(a1), nat_host(a2), $0m63(a3), $0m720(a4)))); $0m716(a0); $0m282(a1); BigInt(a2); $0m50(a3); $0m645(a4); return r; }, 5),
+  "../../packages/monkey-business-bend/Engine.sharing_preprocess": run_lib((a0, a1, a2, a3) => { const r = $0m763(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058sharing_preprocess$($0m715(a0), $0m281(a1), nat_host(a2), $0m63(a3)))); $0m716(a0); $0m282(a1); BigInt(a2); $0m50(a3); return r; }, 4),
   "../../packages/monkey-business-bend/Engine.sharing_after": run_lib((a0, a1, a2, a3) => { const r = $0m367(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058sharing_after$($0m715(a0), $0m715(a1), $0m281(a2), $0m260(a3)))); $0m716(a0); $0m716(a1); $0m282(a2); $0m246(a3); return r; }, 4),
   "../../packages/monkey-business-bend/Engine.cache_published": run_lib((a0, a1) => { const r = $0m767(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058cache_published$($0m715(a0), $0m484(a1)))); $0m716(a0); $0m480(a1); return r; }, 2),
   "../../packages/monkey-business-bend/Engine.recorded_cache_result": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058recorded_cache_result$($0m260(a0)))); $0m246(a0); return r; }, 1),
@@ -57260,7 +57194,7 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/NativeRun.enqueued": run_lib((a0, a1, a2, a3) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058enqueued$((a0), $0m787(a1), nat_host(a2), $0m790(a3)))); (a0); $0m818(a1); BigInt(a2); $0m821(a3); return r; }, 4),
   "../../packages/monkey-business-bend/NativeRun.enqueue": run_lib((a0, a1, a2) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058enqueue$($0m787(a0), nat_host(a1), $0m790(a2)))); $0m818(a0); BigInt(a1); $0m821(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NativeRun.arrival_time": run_lib((a0) => { const r = BigInt(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058arrival_time$($0m724(a0)))); $0m653(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/NativeRun.activity_incarnation": run_lib((a0) => { const r = BigInt(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058activity_incarnation$($0m63(a0)))); $0m51(a0); return r; }, 1),
+  "../../packages/monkey-business-bend/NativeRun.activity_incarnation": run_lib((a0) => { const r = BigInt(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058activity_incarnation$($0m63(a0)))); $0m50(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NativeRun.arrival_activity": run_lib((a0, a1) => { const r = BigInt(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058arrival_activity$($0m787(a0), $0m724(a1)))); $0m818(a0); $0m653(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.arrivals": run_lib((a0, a1) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058arrivals$($0m723(a0), $0m787(a1)))); $0m654(a0); $0m818(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.workload_changed": run_lib((a0, a1) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058workload_changed$($0m787(a0), $0m744(a1)))); $0m818(a0); $0m725(a1); return r; }, 2),
@@ -57276,7 +57210,7 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/NativeRun.weight_valid": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058weight_valid$($0m14(a0)))); $0m15(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NativeRun.weights_valid": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058weights_valid$($0m664(a0)))); $0m24(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NativeRun.weights_enabled": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058weights_enabled$($0m664(a0)))); $0m24(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/NativeRun.candidate_bytes_valid": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058candidate_bytes_valid$($0m63(a0)))); $0m51(a0); return r; }, 1),
+  "../../packages/monkey-business-bend/NativeRun.candidate_bytes_valid": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058candidate_bytes_valid$($0m63(a0)))); $0m50(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NativeRun.output_profile_valid": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058output_profile_valid$($0m798(a0)))); $0m827(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NativeRun.output_certain": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058output_certain$($0m798(a0)))); $0m827(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NativeRun.output_automatic": run_lib((a0, a1, a2) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058output_automatic$($0m798(a0), nat_host(a1), nat_host(a2)))); $0m827(a0); BigInt(a1); BigInt(a2); return r; }, 3),
@@ -57307,12 +57241,12 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/NativeRun.remove_job": run_lib((a0, a1) => { const r = $0m833(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058remove_job$($0m804(a0), nat_host(a1)))); $0m833(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.stored_found": run_lib((a0, a1, a2) => { const r = $0m823(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058stored_found$((a0), $0m791(a1), $0m792(a2)))); (a0); $0m822(a1); $0m823(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NativeRun.find_stored": run_lib((a0, a1) => { const r = $0m823(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058find_stored$($0m804(a0), nat_host(a1)))); $0m833(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/NativeRun.command_operation": run_lib((a0) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058command_operation$($0m253(a0)))); $0m247(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/NativeRun.lookup_operation": run_lib((a0, a1) => { const r = $0m823(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058lookup_operation$($0m804(a0), $0m63(a1)))); $0m833(a0); $0m51(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/NativeRun.command_operation": run_lib((a0) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058command_operation$($0m253(a0)))); $0m247(a0); return r; }, 1),
+  "../../packages/monkey-business-bend/NativeRun.lookup_operation": run_lib((a0, a1) => { const r = $0m823(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058lookup_operation$($0m804(a0), $0m63(a1)))); $0m833(a0); $0m50(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.lookup_command_job": run_lib((a0, a1) => { const r = $0m823(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058lookup_command_job$($0m787(a0), $0m253(a1)))); $0m818(a0); $0m247(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/NativeRun.scoped_fallback": run_lib((a0, a1) => { const r = $0m823(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scoped_fallback$($0m792(a0), $0m63(a1)))); $0m823(a0); $0m51(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/NativeRun.scoped_fallback": run_lib((a0, a1) => { const r = $0m823(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scoped_fallback$($0m792(a0), $0m63(a1)))); $0m823(a0); $0m50(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.source_partition": run_lib((a0) => { const r = BigInt(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058source_partition$($0m729(a0)))); $0m731(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/NativeRun.scoped_source": run_lib((a0, a1) => { const r = $0m730(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scoped_source$($0m728(a0), $0m63(a1)))); $0m730(a0); $0m51(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/NativeRun.scoped_source": run_lib((a0, a1) => { const r = $0m730(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scoped_source$($0m728(a0), $0m63(a1)))); $0m730(a0); $0m50(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.put_job_selected": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m833(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058put_job_selected$((a0), $0m805(a1), $0m804(a2), nat_host(a3), $0m791(a4), $0m804(a5)))); (a0); $0m834(a1); $0m833(a2); BigInt(a3); $0m822(a4); $0m833(a5); return r; }, 6),
   "../../packages/monkey-business-bend/NativeRun.put_job": run_lib((a0, a1, a2) => { const r = $0m833(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058put_job$($0m804(a0), nat_host(a1), $0m791(a2)))); $0m833(a0); BigInt(a1); $0m822(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NativeRun.remember_job": run_lib((a0, a1, a2) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058remember_job$($0m787(a0), nat_host(a1), $0m792(a2)))); $0m818(a0); BigInt(a1); $0m823(a2); return r; }, 3),
@@ -57321,8 +57255,8 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/NativeRun.pending_job": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058pending_job$($0m241(a0), nat_host(a1)))); $0m234(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.settled_job_selected": run_lib((a0, a1, a2) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058settled_job_selected$((a0), $0m787(a1), nat_host(a2)))); (a0); $0m818(a1); BigInt(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NativeRun.settled_job": run_lib((a0, a1) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058settled_job$($0m787(a0), nat_host(a1)))); $0m818(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/NativeRun.preparation_parent": run_lib((a0) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058preparation_parent$($0m262(a0)))); $0m257(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/NativeRun.drop_parent": run_lib((a0, a1) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058drop_parent$($0m787(a0), $0m63(a1)))); $0m818(a0); $0m51(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/NativeRun.preparation_parent": run_lib((a0) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058preparation_parent$($0m262(a0)))); $0m257(a0); return r; }, 1),
+  "../../packages/monkey-business-bend/NativeRun.drop_parent": run_lib((a0, a1) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058drop_parent$($0m787(a0), $0m63(a1)))); $0m818(a0); $0m50(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.running_operation": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058running_operation$($0m106(a0), nat_host(a1)))); $0m102(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.running_before": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058running_before$($0m238(a0), nat_host(a1)))); $0m231(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.refused_job": run_lib((a0, a1, a2) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058refused_job$((a0), $0m787(a1), nat_host(a2)))); (a0); $0m818(a1); BigInt(a2); return r; }, 3),
@@ -57366,23 +57300,23 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/NativeRun.recorded_latest": run_lib((a0, a1) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058recorded_latest$($0m787(a0), $0m800(a1)))); $0m818(a0); $0m829(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.recorded": run_lib((a0, a1) => { const r = $0m866(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058recorded$($0m787(a0), $0m800(a1)))); $0m818(a0); $0m829(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.after_snapshot": run_lib((a0) => { const r = $0m832(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058after_snapshot$($0m787(a0)))); $0m818(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/NativeRun.provided_job": run_lib((a0) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058provided_job$($0m792(a0)))); $0m823(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/NativeRun.scope_commands": run_lib((a0, a1, a2, a3) => { const r = $0m843(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scope_commands$($0m260(a0), $0m715(a1), $0m715(a2), $0m63(a3)))); $0m246(a0); $0m716(a1); $0m716(a2); $0m51(a3); return r; }, 4),
+  "../../packages/monkey-business-bend/NativeRun.provided_job": run_lib((a0) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058provided_job$($0m792(a0)))); $0m823(a0); return r; }, 1),
+  "../../packages/monkey-business-bend/NativeRun.scope_commands": run_lib((a0, a1, a2, a3) => { const r = $0m843(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scope_commands$($0m260(a0), $0m715(a1), $0m715(a2), $0m63(a3)))); $0m246(a0); $0m716(a1); $0m716(a2); $0m50(a3); return r; }, 4),
   "../../packages/monkey-business-bend/NativeRun.snapshot_core": run_lib((a0) => { const r = $0m716(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058snapshot_core$($0m803(a0)))); $0m832(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/NativeRun.scope_snapshot_commands": run_lib((a0, a1, a2, a3) => { const r = $0m843(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scope_snapshot_commands$($0m803(a0), $0m785(a1), $0m260(a2), $0m63(a3)))); $0m832(a0); $0m786(a1); $0m246(a2); $0m51(a3); return r; }, 4),
-  "../../packages/monkey-business-bend/NativeRun.scoped_details": run_lib((a0, a1, a2) => { const r = $0m831(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scoped_details$($0m802(a0), $0m63(a1), $0m814(a2)))); $0m831(a0); $0m51(a1); $0m843(a2); return r; }, 3),
-  "../../packages/monkey-business-bend/NativeRun.detail_scopes": run_lib((a0, a1, a2) => { const r = $0m843(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058detail_scopes$($0m802(a0), $0m260(a1), $0m63(a2)))); $0m831(a0); $0m246(a1); $0m51(a2); return r; }, 3),
-  "../../packages/monkey-business-bend/NativeRun.detail_scopes_box": run_lib((a0, a1, a2) => { const r = $0m843(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058detail_scopes_box$($0m867(a0), $0m260(a1), $0m63(a2)))); $0m868(a0); $0m246(a1); $0m51(a2); return r; }, 3),
-  "../../packages/monkey-business-bend/NativeRun.scoped_details_box": run_lib((a0, a1, a2) => { const r = $0m868(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scoped_details_box$($0m867(a0), $0m63(a1), $0m814(a2)))); $0m868(a0); $0m51(a1); $0m843(a2); return r; }, 3),
-  "../../packages/monkey-business-bend/NativeRun.scope_details_box": run_lib((a0, a1, a2) => { const r = $0m868(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scope_details_box$($0m867(a0), $0m260(a1), $0m63(a2)))); $0m868(a0); $0m246(a1); $0m51(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/NativeRun.scope_snapshot_commands": run_lib((a0, a1, a2, a3) => { const r = $0m843(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scope_snapshot_commands$($0m803(a0), $0m785(a1), $0m260(a2), $0m63(a3)))); $0m832(a0); $0m786(a1); $0m246(a2); $0m50(a3); return r; }, 4),
+  "../../packages/monkey-business-bend/NativeRun.scoped_details": run_lib((a0, a1, a2) => { const r = $0m831(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scoped_details$($0m802(a0), $0m63(a1), $0m814(a2)))); $0m831(a0); $0m50(a1); $0m843(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/NativeRun.detail_scopes": run_lib((a0, a1, a2) => { const r = $0m843(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058detail_scopes$($0m802(a0), $0m260(a1), $0m63(a2)))); $0m831(a0); $0m246(a1); $0m50(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/NativeRun.detail_scopes_box": run_lib((a0, a1, a2) => { const r = $0m843(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058detail_scopes_box$($0m867(a0), $0m260(a1), $0m63(a2)))); $0m868(a0); $0m246(a1); $0m50(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/NativeRun.scoped_details_box": run_lib((a0, a1, a2) => { const r = $0m868(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scoped_details_box$($0m867(a0), $0m63(a1), $0m814(a2)))); $0m868(a0); $0m50(a1); $0m843(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/NativeRun.scope_details_box": run_lib((a0, a1, a2) => { const r = $0m868(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scope_details_box$($0m867(a0), $0m260(a1), $0m63(a2)))); $0m868(a0); $0m246(a1); $0m50(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NativeRun.scoped_details_value": run_lib((a0, a1) => { const r = $0m831(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scoped_details_value$($0m802(a0), $0m867(a1)))); $0m831(a0); $0m868(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/NativeRun.scope_details": run_lib((a0, a1, a2) => { const r = $0m831(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scope_details$($0m802(a0), $0m260(a1), $0m63(a2)))); $0m831(a0); $0m246(a1); $0m51(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/NativeRun.scope_details": run_lib((a0, a1, a2) => { const r = $0m831(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scope_details$($0m802(a0), $0m260(a1), $0m63(a2)))); $0m831(a0); $0m246(a1); $0m50(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NativeRun.frame_details": run_lib((a0, a1, a2, a3) => { const r = $0m831(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058frame_details$($0m803(a0), $0m787(a1), $0m793(a2), $0m785(a3)))); $0m832(a0); $0m818(a1); $0m824(a2); $0m786(a3); return r; }, 4),
-  "../../packages/monkey-business-bend/NativeRun.input_action_delay": run_lib((a0) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058input_action_delay$($0m790(a0)))); $0m821(a0); return r; }, 1),
+  "../../packages/monkey-business-bend/NativeRun.input_action_delay": run_lib((a0) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058input_action_delay$($0m790(a0)))); $0m821(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NativeRun.consumed_details": run_lib((a0, a1, a2) => { const r = $0m831(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058consumed_details$($0m802(a0), nat_host(a1), $0m790(a2)))); $0m831(a0); BigInt(a1); $0m821(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NativeRun.consumed_frame": run_lib((a0, a1, a2) => { const r = $0m829(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058consumed_frame$($0m800(a0), nat_host(a1), $0m790(a2)))); $0m829(a0); BigInt(a1); $0m821(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NativeRun.consumed_step": run_lib((a0, a1, a2) => { const r = $0m866(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058consumed_step$($0m869(a0), nat_host(a1), $0m790(a2)))); $0m866(a0); BigInt(a1); $0m821(a2); return r; }, 3),
-  "../../packages/monkey-business-bend/NativeRun.product_frame": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9) => { const r = $0m866(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058product_frame$($0m787(a0), $0m281(a1), $0m238(a2), $0m238(a3), $0m260(a4), (a5), $0m803(a6), $0m793(a7), $0m785(a8), $0m63(a9)))); $0m818(a0); $0m282(a1); $0m231(a2); $0m231(a3); $0m246(a4); (a5); $0m832(a6); $0m824(a7); $0m786(a8); $0m51(a9); return r; }, 10),
+  "../../packages/monkey-business-bend/NativeRun.product_frame": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9) => { const r = $0m866(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058product_frame$($0m787(a0), $0m281(a1), $0m238(a2), $0m238(a3), $0m260(a4), (a5), $0m803(a6), $0m793(a7), $0m785(a8), $0m63(a9)))); $0m818(a0); $0m282(a1); $0m231(a2); $0m231(a3); $0m246(a4); (a5); $0m832(a6); $0m824(a7); $0m786(a8); $0m50(a9); return r; }, 10),
   "../../packages/monkey-business-bend/NativeRun.graph_partition": run_lib((a0) => { const r = BigInt(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058graph_partition$($0m707(a0)))); $0m709(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NativeRun.graph_frame": run_lib((a0, a1, a2, a3, a4, a5, a6, a7) => { const r = $0m866(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058graph_frame$($0m787(a0), $0m707(a1), nat_host(a2), $0m628(a3), $0m634(a4), $0m634(a5), $0m632(a6), $0m803(a7)))); $0m818(a0); $0m709(a1); BigInt(a2); $0m629(a3); $0m630(a4); $0m630(a5); $0m625(a6); $0m832(a7); return r; }, 8),
   "../../packages/monkey-business-bend/NativeRun.graph_transition": run_lib((a0, a1, a2, a3, a4) => { const r = $0m866(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058graph_transition$($0m787(a0), $0m707(a1), nat_host(a2), $0m628(a3), $0m871(a4)))); $0m818(a0); $0m709(a1); BigInt(a2); $0m629(a3); $0m717(a4); return r; }, 5),
@@ -57420,8 +57354,8 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/NativeRun.finish_actions_context": run_lib((a0, a1, a2, a3) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058finish_actions_context$($0m309(a0), $0m787(a1), $0m402(a2), $0m793(a3)))); $0m304(a0); $0m818(a1); $0m400(a2); $0m824(a3); return r; }, 4),
   "../../packages/monkey-business-bend/NativeRun.finish_actions": run_lib((a0, a1, a2) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058finish_actions$($0m309(a0), $0m787(a1), $0m402(a2)))); $0m304(a0); $0m818(a1); $0m400(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NativeRun.finish_found": run_lib((a0, a1) => { const r = $0m405(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058finish_found$($0m787(a0), $0m792(a1)))); $0m818(a0); $0m823(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/NativeRun.input_finish": run_lib((a0) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058input_finish$($0m790(a0)))); $0m821(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/NativeRun.finish_equal": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058finish_equal$($0m63(a0), nat_host(a1)))); $0m51(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/NativeRun.input_finish": run_lib((a0) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058input_finish$($0m790(a0)))); $0m821(a0); return r; }, 1),
+  "../../packages/monkey-business-bend/NativeRun.finish_equal": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058finish_equal$($0m63(a0), nat_host(a1)))); $0m50(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.cancel_finish_items": run_lib((a0, a1, a2, a3) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058cancel_finish_items$($0m788(a0), $0m787(a1), nat_host(a2), $0m788(a3)))); $0m819(a0); $0m818(a1); BigInt(a2); $0m819(a3); return r; }, 4),
   "../../packages/monkey-business-bend/NativeRun.cancel_finish": run_lib((a0, a1) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058cancel_finish$($0m787(a0), nat_host(a1)))); $0m818(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.finish_feedback": run_lib((a0, a1, a2) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058finish_feedback$($0m787(a0), $0m402(a1), (a2)))); $0m818(a0); $0m400(a1); (a2); return r; }, 3),
@@ -57429,7 +57363,7 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/NativeRun.cancel_expiry_items": run_lib((a0, a1, a2, a3) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058cancel_expiry_items$($0m788(a0), $0m787(a1), nat_host(a2), $0m788(a3)))); $0m819(a0); $0m818(a1); BigInt(a2); $0m819(a3); return r; }, 4),
   "../../packages/monkey-business-bend/NativeRun.cancel_expiry": run_lib((a0, a1) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058cancel_expiry$($0m787(a0), nat_host(a1)))); $0m818(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.cancel_retired": run_lib((a0, a1) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058cancel_retired$($0m787(a0), $0m310(a1)))); $0m818(a0); $0m302(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/NativeRun.expired": run_lib((a0, a1, a2) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058expired$($0m787(a0), $0m792(a1), $0m63(a2)))); $0m818(a0); $0m823(a1); $0m51(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/NativeRun.expired": run_lib((a0, a1, a2) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058expired$($0m787(a0), $0m792(a1), $0m63(a2)))); $0m818(a0); $0m823(a1); $0m50(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NativeRun.expired_action": run_lib((a0, a1, a2) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058expired_action$($0m787(a0), $0m310(a1), $0m792(a2)))); $0m818(a0); $0m302(a1); $0m823(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NativeRun.retired_candidate": run_lib((a0, a1) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058retired_candidate$($0m787(a0), $0m310(a1)))); $0m818(a0); $0m302(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.ordinary_fallback": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058ordinary_fallback$($0m787(a0), $0m310(a1), $0m792(a2), $0m253(a3), $0m295(a4), $0m795(a5), $0m863(a6)))); $0m818(a0); $0m302(a1); $0m823(a2); $0m247(a3); $0m299(a4); $0m733(a5); $0m864(a6); return r; }, 7),
@@ -57444,26 +57378,26 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/NativeRun.prepared_value": run_lib((a0, a1) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058prepared_value$($0m787(a0), $0m884(a1)))); $0m818(a0); $0m883(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.prepared_command": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058prepared_command$($0m787(a0), $0m310(a1), $0m792(a2), $0m253(a3), $0m885(a4), $0m863(a5)))); $0m818(a0); $0m302(a1); $0m823(a2); $0m247(a3); $0m732(a4); $0m864(a5); return r; }, 6),
   "../../packages/monkey-business-bend/NativeRun.command_context": run_lib((a0, a1, a2, a3) => { const r = $0m299(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058command_context$($0m787(a0), $0m310(a1), $0m792(a2), $0m793(a3)))); $0m818(a0); $0m302(a1); $0m823(a2); $0m824(a3); return r; }, 4),
-  "../../packages/monkey-business-bend/NativeRun.command_partition": run_lib((a0, a1, a2) => { const r = $0m299(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058command_partition$($0m787(a0), $0m295(a1), $0m63(a2)))); $0m818(a0); $0m299(a1); $0m51(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/NativeRun.command_partition": run_lib((a0, a1, a2) => { const r = $0m299(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058command_partition$($0m787(a0), $0m295(a1), $0m63(a2)))); $0m818(a0); $0m299(a1); $0m50(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NativeRun.request_put_selected": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m836(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058request_put_selected$((a0), $0m808(a1), $0m807(a2), nat_host(a3), $0m253(a4), $0m807(a5)))); (a0); $0m837(a1); $0m836(a2); BigInt(a3); $0m247(a4); $0m836(a5); return r; }, 6),
   "../../packages/monkey-business-bend/NativeRun.put_request": run_lib((a0, a1, a2) => { const r = $0m836(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058put_request$($0m807(a0), nat_host(a1), $0m253(a2)))); $0m836(a0); BigInt(a1); $0m247(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NativeRun.request_issued": run_lib((a0, a1, a2) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058request_issued$($0m787(a0), nat_host(a1), $0m253(a2)))); $0m818(a0); BigInt(a1); $0m247(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NativeRun.issued_command": run_lib((a0, a1) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058issued_command$($0m787(a0), $0m253(a1)))); $0m818(a0); $0m247(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/NativeRun.command_selected": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058command_selected$($0m787(a0), $0m310(a1), $0m792(a2), $0m253(a3), $0m793(a4), $0m63(a5), $0m728(a6)))); $0m818(a0); $0m302(a1); $0m823(a2); $0m247(a3); $0m824(a4); $0m51(a5); $0m730(a6); return r; }, 7),
-  "../../packages/monkey-business-bend/NativeRun.command_bound": run_lib((a0, a1, a2, a3, a4, a5, a6, a7) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058command_bound$($0m787(a0), $0m310(a1), $0m253(a2), $0m793(a3), $0m63(a4), $0m792(a5), $0m728(a6), $0m792(a7)))); $0m818(a0); $0m302(a1); $0m247(a2); $0m824(a3); $0m51(a4); $0m823(a5); $0m730(a6); $0m823(a7); return r; }, 8),
-  "../../packages/monkey-business-bend/NativeRun.ordinary_command": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058ordinary_command$($0m787(a0), $0m310(a1), $0m792(a2), $0m253(a3), $0m793(a4), $0m63(a5), $0m728(a6)))); $0m818(a0); $0m302(a1); $0m823(a2); $0m247(a3); $0m824(a4); $0m51(a5); $0m730(a6); return r; }, 7),
-  "../../packages/monkey-business-bend/NativeRun.provided_source": run_lib((a0) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058provided_source$($0m793(a0)))); $0m824(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/NativeRun.provided_input": run_lib((a0, a1, a2) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058provided_input$($0m792(a0), $0m728(a1), $0m793(a2)))); $0m823(a0); $0m730(a1); $0m824(a2); return r; }, 3),
-  "../../packages/monkey-business-bend/NativeRun.ordinary_scope": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058ordinary_scope$($0m886(a0), $0m253(a1)))); $0m888(a0); $0m247(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/NativeRun.ordinary_apply": run_lib((a0, a1, a2, a3) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058ordinary_apply$($0m787(a0), $0m886(a1), $0m253(a2), $0m63(a3)))); $0m818(a0); $0m888(a1); $0m247(a2); $0m51(a3); return r; }, 4),
+  "../../packages/monkey-business-bend/NativeRun.command_selected": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058command_selected$($0m787(a0), $0m310(a1), $0m792(a2), $0m253(a3), $0m793(a4), $0m63(a5), $0m728(a6)))); $0m818(a0); $0m302(a1); $0m823(a2); $0m247(a3); $0m824(a4); $0m50(a5); $0m730(a6); return r; }, 7),
+  "../../packages/monkey-business-bend/NativeRun.command_bound": run_lib((a0, a1, a2, a3, a4, a5, a6, a7) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058command_bound$($0m787(a0), $0m310(a1), $0m253(a2), $0m793(a3), $0m63(a4), $0m792(a5), $0m728(a6), $0m792(a7)))); $0m818(a0); $0m302(a1); $0m247(a2); $0m824(a3); $0m50(a4); $0m823(a5); $0m730(a6); $0m823(a7); return r; }, 8),
+  "../../packages/monkey-business-bend/NativeRun.ordinary_command": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058ordinary_command$($0m787(a0), $0m310(a1), $0m792(a2), $0m253(a3), $0m793(a4), $0m63(a5), $0m728(a6)))); $0m818(a0); $0m302(a1); $0m823(a2); $0m247(a3); $0m824(a4); $0m50(a5); $0m730(a6); return r; }, 7),
+  "../../packages/monkey-business-bend/NativeRun.provided_source": run_lib((a0) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058provided_source$($0m793(a0)))); $0m824(a0); return r; }, 1),
+  "../../packages/monkey-business-bend/NativeRun.provided_input": run_lib((a0, a1, a2) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058provided_input$($0m792(a0), $0m728(a1), $0m793(a2)))); $0m823(a0); $0m730(a1); $0m824(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/NativeRun.ordinary_scope": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058ordinary_scope$($0m886(a0), $0m253(a1)))); $0m888(a0); $0m247(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/NativeRun.ordinary_apply": run_lib((a0, a1, a2, a3) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058ordinary_apply$($0m787(a0), $0m886(a1), $0m253(a2), $0m63(a3)))); $0m818(a0); $0m888(a1); $0m247(a2); $0m50(a3); return r; }, 4),
   "../../packages/monkey-business-bend/NativeRun.ordinary_box": run_lib((a0, a1, a2) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058ordinary_box$($0m260(a0), $0m787(a1), $0m886(a2)))); $0m246(a0); $0m818(a1); $0m888(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NativeRun.ordinary_commands": run_lib((a0, a1, a2, a3, a4, a5, a6, a7) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058ordinary_commands$($0m260(a0), $0m787(a1), $0m310(a2), $0m792(a3), $0m793(a4), $0m715(a5), $0m715(a6), $0m728(a7)))); $0m246(a0); $0m818(a1); $0m302(a2); $0m823(a3); $0m824(a4); $0m716(a5); $0m716(a6); $0m730(a7); return r; }, 8),
   "../../packages/monkey-business-bend/NativeRun.scoped_round": run_lib((a0, a1) => { const r = $0m822(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scoped_round$($0m791(a0), $0m259(a1)))); $0m822(a0); $0m256(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.scoped_job": run_lib((a0, a1) => { const r = $0m823(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scoped_job$($0m787(a0), $0m792(a1)))); $0m818(a0); $0m823(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.scheduler_entries": run_lib((a0) => { const r = $0m641(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scheduler_entries$($0m715(a0)))); $0m716(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/NativeRun.scheduled_found": run_lib((a0, a1, a2) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scheduled_found$((a0), nat_host(a1), $0m63(a2)))); (a0); BigInt(a1); $0m51(a2); return r; }, 3),
-  "../../packages/monkey-business-bend/NativeRun.scheduled_at": run_lib((a0, a1) => { const r = $0m51(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scheduled_at$($0m640(a0), nat_host(a1)))); $0m641(a0); BigInt(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/NativeRun.time_equal": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058time_equal$($0m63(a0), nat_host(a1)))); $0m51(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/NativeRun.scheduled_found": run_lib((a0, a1, a2) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scheduled_found$((a0), nat_host(a1), $0m63(a2)))); (a0); BigInt(a1); $0m50(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/NativeRun.scheduled_at": run_lib((a0, a1) => { const r = $0m50(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058scheduled_at$($0m640(a0), nat_host(a1)))); $0m641(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/NativeRun.time_equal": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058time_equal$($0m63(a0), nat_host(a1)))); $0m50(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.input_poll": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058input_poll$($0m790(a0), nat_host(a1)))); $0m821(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.queued_poll": run_lib((a0, a1, a2, a3) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058queued_poll$($0m788(a0), $0m640(a1), nat_host(a2), nat_host(a3)))); $0m819(a0); $0m641(a1); BigInt(a2); BigInt(a3); return r; }, 4),
   "../../packages/monkey-business-bend/NativeRun.has_poll": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058has_poll$($0m787(a0), nat_host(a1)))); $0m818(a0); BigInt(a1); return r; }, 2),
@@ -57473,7 +57407,7 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/NativeRun.submission_recorded": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058submission_recorded$($0m260(a0)))); $0m246(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NativeRun.finish_recorded": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058finish_recorded$($0m260(a0)))); $0m246(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NativeRun.advice_recorded": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058advice_recorded$($0m281(a0), $0m260(a1)))); $0m282(a0); $0m246(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/NativeRun.advice_scope": run_lib((a0, a1) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058advice_scope$($0m787(a0), $0m63(a1)))); $0m818(a0); $0m51(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/NativeRun.advice_scope": run_lib((a0, a1) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058advice_scope$($0m787(a0), $0m63(a1)))); $0m818(a0); $0m50(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.advice_job": run_lib((a0, a1, a2) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058advice_job$($0m787(a0), $0m281(a1), $0m792(a2)))); $0m818(a0); $0m282(a1); $0m823(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NativeRun.advice_feedback": run_lib((a0, a1, a2, a3) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058advice_feedback$((a0), $0m787(a1), $0m281(a2), $0m792(a3)))); (a0); $0m818(a1); $0m282(a2); $0m823(a3); return r; }, 4),
   "../../packages/monkey-business-bend/NativeRun.collector_completed": run_lib((a0, a1, a2, a3) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058collector_completed$($0m787(a0), $0m792(a1), $0m875(a2), $0m793(a3)))); $0m818(a0); $0m823(a1); $0m778(a2); $0m824(a3); return r; }, 4),
@@ -57606,7 +57540,7 @@ const TAB_1 = [4, 5, 1];export default {
   "../../packages/monkey-business-bend/NativeRun.jev_supported": run_lib((a0, a1, a2, a3) => { const r = $0m934(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058jev_supported$((a0), $0m787(a1), nat_host(a2), $0m664(a3)))); (a0); $0m818(a1); BigInt(a2); $0m24(a3); return r; }, 4),
   "../../packages/monkey-business-bend/NativeRun.unit_sizes": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058unit_sizes$($0m1(a0)))); $0m3(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NativeRun.workload_supported": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058workload_supported$($0m656(a0)))); $0m657(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/NativeRun.controlled_workload": run_lib((a0, a1, a2, a3) => { const r = $0m934(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058controlled_workload$((a0), $0m787(a1), $0m63(a2), $0m656(a3)))); (a0); $0m818(a1); $0m51(a2); $0m657(a3); return r; }, 4),
+  "../../packages/monkey-business-bend/NativeRun.controlled_workload": run_lib((a0, a1, a2, a3) => { const r = $0m934(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058controlled_workload$((a0), $0m787(a1), $0m63(a2), $0m656(a3)))); (a0); $0m818(a1); $0m50(a2); $0m657(a3); return r; }, 4),
   "../../packages/monkey-business-bend/NativeRun.controlled_environment": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m934(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058controlled_environment$((a0), $0m787(a1), (a2), (a3), nat_host(a4), (a5)))); (a0); $0m818(a1); (a2); (a3); BigInt(a4); (a5); return r; }, 6),
   "../../packages/monkey-business-bend/NativeRun.drop_operations": run_lib((a0, a1) => { const r = $0m818(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058drop_operations$($0m1(a0), $0m787(a1)))); $0m3(a0); $0m818(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.retained_finish_item": run_lib((a0, a1, a2) => { const r = $0m819(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058retained_finish_item$((a0), $0m789(a1), $0m788(a2)))); (a0); $0m820(a1); $0m819(a2); return r; }, 3),

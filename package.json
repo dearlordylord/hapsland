@@ -60,6 +60,7 @@
     "verify:release-native": "node scripts/verify-native-release.mjs",
     "pack:release": "npm run build && npm run verify:release-native && npm pack --ignore-scripts=true",
     "audit:release": "node scripts/audit-release-tarball.mjs",
+    "release:prepare": "node scripts/prepare-release.mjs",
     "local-release": "node scripts/local-release.mjs",
     "dev-install": "node --experimental-strip-types scripts/dev-install.mjs",
     "dev:inspection": "node --experimental-strip-types scripts/dev-inspection.mjs",

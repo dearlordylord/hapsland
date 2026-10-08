@@ -1,7 +1,8 @@
+import { assertBendCompilerVersion } from "../../packages/monkey-business-bend/compiler.mjs"
 import { createHash } from "node:crypto"
 import { spawnSync } from "node:child_process"
 import { accessSync, constants, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs"
-import { arch, homedir, platform, release } from "node:os"
+import { arch, platform, release } from "node:os"
 import { dirname, isAbsolute, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -83,20 +84,23 @@ function sourceIdentity(prototypeDir, bendDirectory) {
   }
   visit(join(prototypeDir, "DefenseMain.bend"))
   for (const name of ["run.sh", "cached-build.mjs", "clang-no-stack-check.sh", "recording-launch.mjs"]) visit(join(prototypeDir, name))
+  visit(resolve(prototypeDir, "../../packages/monkey-business-bend/compiler.mjs"))
+  visit(resolve(prototypeDir, "../../packages/agent-flow-bend/package.json"))
   runtime(bendDirectory)
   return [...files].sort(([a], [b]) => a.localeCompare(b))
 }
 
-export function cachedBinary({ prototypeDir, cacheDir, environment = process.env, bendDirectory = join(homedir(), ".bend", "bend2"), host = { platform: platform(), arch: arch(), release: release() }, notice = message => console.error(message) }) {
+export function cachedBinary({ prototypeDir, cacheDir, environment = process.env, bendDirectory, host = { platform: platform(), arch: arch(), release: release() }, notice = message => console.error(message) }) {
   const buildEnv = { ...environment, BEND_NO_TELEMETRY: "1" }
   function identity() {
     const bend = tool("bend", ["version"], buildEnv)
+    assertBendCompilerVersion(bend.version)
     const clang = compiler(buildEnv)
     return {
       host, bend, clang,
       wrapper: environment.BEND_CANONICAL_DEFENSE_CC ? realpathSync(environment.CC) : null,
       environment: Object.fromEntries(buildEnvironment.map(name => [name, environment[name] ?? null])),
-      sources: sourceIdentity(prototypeDir, bendDirectory)
+      sources: sourceIdentity(prototypeDir, bendDirectory ?? join(dirname(dirname(bend.path)), "bend2"))
     }
   }
   const inputs = identity()

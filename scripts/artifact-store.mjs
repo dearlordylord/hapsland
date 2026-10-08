@@ -178,6 +178,7 @@ export async function preparePackageArchive({
   runStage,
   store,
   recipe = "development",
+  validateArchive,
   environment = process.env,
   deadline = Date.now() + 300000
 }) {
@@ -263,7 +264,12 @@ export async function preparePackageArchive({
           },
           requireTime(deadline)
         )
-        return { archivePath, archiveDigest }
+        const artifact = { archivePath, archiveDigest }
+        // Release audit consumes the same fresh receipts under this build lease.
+        requireTime(deadline)
+        if (validateArchive) await validateArchive(artifact)
+        requireTime(deadline)
+        return artifact
       } catch (error) {
         preserveStaging = error.groupUnresolved === true
         throw error

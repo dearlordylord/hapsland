@@ -1,3 +1,4 @@
+import { assertBendCompilerVersion } from "../compiler.mjs"
 import { spawnSync } from "node:child_process"
 import { createHash, randomUUID } from "node:crypto"
 import {
@@ -72,7 +73,9 @@ function tool(command, arguments_) {
 }
 
 function provenance(bend, clang) {
-  const tools = { bend: tool(bend, ["version"]), clang: tool(clang, ["--version"]) }
+  const bendTool = tool(bend, ["version"])
+  assertBendCompilerVersion(bendTool.version)
+  const tools = { bend: bendTool, clang: tool(clang, ["--version"]) }
   return {
     tools,
     host: host(),
