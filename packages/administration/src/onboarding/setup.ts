@@ -410,18 +410,13 @@ const maskedCredentialReader = (
   resolution: CredentialResolution,
   installed: boolean
 ) => {
-  if (request.credential === "saved" && request.interactive === true && resolution.status === "missing" && installed) {
+  if (request.credential === "saved" && request.interactive === true && resolution.status !== "present" && installed) {
     return options.credentialConversation
   }
   return undefined
 }
 
-const newCredentialReader = (
-  request: SetupRequest,
-  options: SetupOptions,
-  environmentOnly: boolean,
-  installed: boolean
-) => {
+const newCredentialReader = (request: SetupRequest, options: SetupOptions, installed: boolean) => {
   if (request.credential !== "saved" || !installed || request.interactive !== true) return undefined
   return options.credentialConversation
 }
@@ -452,7 +447,7 @@ const setupNewCredential = Effect.fn("Setup.newCredential")(function* (
   environmentOnly: boolean,
   progress: SetupProgress
 ) {
-  const reader = newCredentialReader(request, options, environmentOnly, installed)
+  const reader = newCredentialReader(request, options, installed)
   if (reader === undefined) {
     reportNewCredentialPending(settings, environmentOnly, progress)
     return
@@ -461,7 +456,7 @@ const setupNewCredential = Effect.fn("Setup.newCredential")(function* (
   if (result.saved !== undefined) reportStoredCredential(result.saved, progress)
   if (result.interactiveOutcome !== undefined) reportInteractiveCredential(result.interactiveOutcome, progress)
   else if (result.resolution !== undefined)
-    reportCredentialResolution(request, settings, false, result.resolution, progress)
+    reportCredentialResolution(request, settings, environmentOnly, result.resolution, progress)
 })
 
 const setupCredential = Effect.fn("Setup.credential")(function* (

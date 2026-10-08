@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto"
+import { zstdDecompressSync } from "node:zlib"
 import { terminalModesEquivalent } from "@hapsland/administration/credentials/terminal"
 import { commandHooks } from "@hapsland/runtime-environment/runtime/hook-catalog"
 import { isDeepStrictEqual } from "node:util"
@@ -16,6 +17,9 @@ const suppliedArchive =
   (archiveArgumentIndex < 0 ? undefined : process.argv[archiveArgumentIndex + 1])
 if (archiveArgumentIndex >= 0 && (!suppliedArchive || suppliedArchive.startsWith("--")))
   throw new Error("--archive requires a local archive path")
+const developmentCheckout = process.argv
+  .find((argument) => argument.startsWith("--development-checkout="))
+  ?.slice("--development-checkout=".length)
 const selectedProfile = process.argv.find((argument) => argument.startsWith("--profile="))?.slice("--profile=".length)
 if (selectedProfile !== undefined && !["linux-arm64", "darwin-arm64"].includes(selectedProfile))
   throw new Error("--profile requires linux-arm64 or darwin-arm64")
@@ -153,7 +157,17 @@ const runMaskedSetup = (cli, cwd, env, requestPath, marker) =>
     })
   })
 
-const runGuidedPilot = (cli, cwd, env, codexHome, codexExecutable, answers, commandOverride, expectedExit = 0) =>
+const runGuidedPilot = (
+  cli,
+  cwd,
+  env,
+  codexHome,
+  codexExecutable,
+  answers,
+  commandOverride,
+  expectedExit = 0,
+  timeoutMs = 20_000
+) =>
   new Promise((resolveRun, rejectRun) => {
     const command = observeTerminalModes(
       commandOverride ??
@@ -163,13 +177,28 @@ const runGuidedPilot = (cli, cwd, env, codexHome, codexExecutable, answers, comm
       process.platform === "darwin"
         ? ["python3", [join(projectRoot, "scripts/pty-bridge.py"), "/bin/sh", "-c", command]]
         : ["script", ["-qefc", command, "/dev/null"]]
-    const child = spawn(terminal[0], terminal[1], { cwd, env, stdio: ["pipe", "pipe", "pipe"] })
+    const child = spawn(terminal[0], terminal[1], {
+      cwd,
+      env,
+      detached: timeoutMs > 20_000,
+      stdio: ["pipe", "pipe", "pipe"]
+    })
     let output = ""
     let answered = 0
+    let timedOut = false
+    let escalation
     const timer = setTimeout(() => {
-      child.kill("SIGKILL")
-      rejectRun(new Error("guided pilot timed out"))
-    }, 20_000)
+      timedOut = true
+      if (timeoutMs > 20_000) {
+        // The macOS PTY bridge forwards SIGTERM to its controlling session.
+        process.kill(-child.pid, "SIGTERM")
+        escalation = setTimeout(() => {
+          try {
+            process.kill(-child.pid, "SIGKILL")
+          } catch {}
+        }, 5_000)
+      } else child.kill("SIGKILL")
+    }, timeoutMs)
     const observe = (chunk) => {
       output += chunk
       while (answered < answers.length && output.includes(answers[answered].prompt)) {
@@ -183,11 +212,14 @@ const runGuidedPilot = (cli, cwd, env, codexHome, codexExecutable, answers, comm
     child.stderr.on("data", observe)
     child.once("error", (cause) => {
       clearTimeout(timer)
+      clearTimeout(escalation)
       rejectRun(cause)
     })
     child.once("close", (code) => {
       clearTimeout(timer)
+      clearTimeout(escalation)
       try {
+        expect(!timedOut, "guided pilot timed out")
         expect(code === expectedExit, `terminal command exited ${code} instead of ${expectedExit}`)
         expectRestoredTerminal(output, expectedExit)
         expect(answered === answers.length, `guided pilot answered ${answered} of ${answers.length} prompts`)
@@ -778,6 +810,184 @@ else if (operation === "probe") console.log('{"status":"available"}');
   expect(nativeLogin.includes("Effective credential: project-local"), "native saving changed file lookup precedence")
   expect(!nativeLogin.includes(nativeMarker), "native login disclosed the key")
 
+  // Opt-in because this drives three real dev-install builds. The caller supplies
+  // a separate candidate worktree with the pinned dependencies/toolchain ready.
+  if (developmentCheckout !== undefined) {
+    const developmentRoot = await realpath(resolve(developmentCheckout))
+    expect(developmentRoot !== projectRoot, "development acceptance requires a separate candidate checkout")
+    const rootProbe = await run("git", ["rev-parse", "--show-toplevel"], { cwd: developmentRoot })
+    expect(
+      rootProbe.code === 0 && (await realpath(rootProbe.stdout.trim())) === developmentRoot,
+      "development checkout is not a repository root"
+    )
+    for (const name of [".env", ".env.local"])
+      expect(
+        (await readOptional(join(developmentRoot, name))) === undefined,
+        "candidate checkout copied an ignored credential"
+      )
+    const devHome = join(temporary, "development-home")
+    const devConfig = join(temporary, "development-config")
+    const devCodexHome = join(temporary, "development-codex")
+    await mkdir(devHome)
+    await mkdir(devCodexHome)
+    const devEnvironment = {
+      ...interactiveEnvironment,
+      PATH: process.env.PATH,
+      HOME: devHome,
+      XDG_CONFIG_HOME: devConfig,
+      XDG_STATE_HOME: join(devHome, "state"),
+      REVIEW_USER_CONFIG_PATH: join(devConfig, "hapsland", "config.jsonc"),
+      REVIEW_STATE_PATH: join(devHome, "consent"),
+      REVIEW_CREDENTIAL_STATE_PATH: join(devHome, "credential-state.json")
+    }
+    const entry = `${quote(process.execPath)} ${quote(join(developmentRoot, "scripts", "dev-install.mjs"))}`
+    const flags = `--host=codex --codex-home=${quote(devCodexHome)} --codex-executable=${quote(pilotCodexExecutable)}`
+    const markers = ["development-user-", "development-project-before-", "development-project-after-"].map(
+      (prefix) => prefix + createHash("sha256").update(temporary).digest("hex")
+    )
+    const launch = (mode, answers) =>
+      runGuidedPilot(
+        cli,
+        developmentRoot,
+        devEnvironment,
+        devCodexHome,
+        pilotCodexExecutable,
+        answers,
+        `${entry} ${flags} ${mode}`,
+        0,
+        300_000
+      )
+    const keyAnswers = (marker, project = false) => [
+      { prompt: "Where should Hapsland save your Jev key?", raw: project ? "\x1b[B\r" : "\r" },
+      { prompt: "Jev API key:", value: marker },
+      { prompt: "Save this key? [y/N]", value: "y" },
+      { prompt: "Verify this key with one request", value: "n" }
+    ]
+    const activePath = join(devHome, ".local", "share", "hapsland", "active.json")
+    const userPath = join(devConfig, "hapsland", ".env")
+    const mutationPath = join(developmentRoot, "packages", "administration", "src", "cli-help.ts")
+    const original = await readFile(mutationPath, "utf8")
+    const outputs = []
+    try {
+      outputs.push(
+        await launch("", [
+          { prompt: "Apply these setup changes for Codex CLI? [y/N]", value: "y" },
+          { prompt: "Apply these default rule changes? [y/N]", value: "y" },
+          ...keyAnswers(markers[0])
+        ])
+      )
+      const before = JSON.parse(await readFile(activePath, "utf8"))
+      const saved = await readFile(userPath, "utf8")
+      expect(saved.includes(markers[0]), "dev-install did not save the approved user credential")
+      outputs.push(
+        await runGuidedPilot(
+          before.executable,
+          developmentRoot,
+          devEnvironment,
+          devCodexHome,
+          pilotCodexExecutable,
+          keyAnswers(markers[1], true).slice(0, 3),
+          `${quote(before.executable)} --login`
+        )
+      )
+      const projectPath = join(developmentRoot, ".env.local")
+      const projectBefore = await readFile(projectPath, "utf8")
+      expect(projectBefore.includes(markers[1]), "development project login wrote outside the source repository")
+      // Change actual packaged behavior, rather than only snapshot metadata.
+      expect(original.includes("no Jev call"), "development mutation anchor is absent")
+      await writeFile(mutationPath, original.replace("no Jev call", "no Jev call (development acceptance fixture)"))
+      outputs.push(
+        await launch("--update", [
+          { prompt: "Review all update previews", value: "" },
+          { prompt: "Apply these changes to codex profiles? [y/N]", value: "y" }
+        ])
+      )
+      const after = JSON.parse(await readFile(activePath, "utf8"))
+      expect(after.executable !== before.executable, "changed development inputs did not activate a new snapshot")
+      expect((await readFile(userPath, "utf8")) === saved, "development update changed credential bytes")
+      expect(!outputs.at(-1).includes("Jev API key:"), "development update requested credential replacement")
+      expect(
+        (await readFile(projectPath, "utf8")) === projectBefore,
+        "development update changed project credential bytes"
+      )
+      outputs.push(await launch("--new-key", keyAnswers(markers[2], true)))
+      expect(
+        (await readFile(projectPath, "utf8")).includes(markers[2]),
+        "development project credential escaped the source repository"
+      )
+      expect((await readFile(userPath, "utf8")) === saved, "project replacement changed the user credential")
+      const active = JSON.parse(await readFile(activePath, "utf8"))
+      const observation = await run(active.executable, ["--credentials"], {
+        cwd: developmentRoot,
+        env: devEnvironment,
+        input: JSON.stringify({ version: 1, operation: "credentials", cwd: developmentRoot })
+      })
+      expect(observation.code === 0, "development credential inspection failed")
+      const inspected = JSON.parse(observation.stdout)
+      expect(inspected.status === "present" && inspected.present === true, "development credential is unavailable")
+      expect(inspected.file === projectPath, "rebuilt installed command changed project lookup coordinates")
+      for (const output of [...outputs, observation.stdout, observation.stderr])
+        expect(
+          markers.every((marker) => !output.includes(marker)),
+          "development workflow disclosed a credential"
+        )
+      const inspectTree = async (directory) => {
+        for (const item of await readdir(directory, { withFileTypes: true })) {
+          const path = join(directory, item.name)
+          expect(item.name !== ".env" && item.name !== ".env.local", "credential file entered a build or snapshot")
+          if (item.isDirectory()) await inspectTree(path)
+          else if (item.isFile()) {
+            const bytes = await readFile(path)
+            expect(
+              markers.every((marker) => !bytes.includes(Buffer.from(marker))),
+              "credential entered build or snapshot bytes"
+            )
+            if (item.name.endsWith(".tar.zst")) {
+              const unpacked = zstdDecompressSync(bytes)
+              expect(
+                markers.every((marker) => !unpacked.includes(Buffer.from(marker))),
+                "credential entered cached task bytes"
+              )
+            }
+            if (item.name.endsWith(".tgz")) {
+              const entries = await run("tar", ["-tzf", path])
+              expect(
+                entries.code === 0 &&
+                  !entries.stdout.split("\n").some((name) => /(?:^|\/)\.env(?:\.local)?$/.test(name)),
+                "credential entered an archive"
+              )
+              const unpacked = await run("tar", ["-xOf", path])
+              expect(
+                unpacked.code === 0 && markers.every((marker) => !unpacked.stdout.includes(marker)),
+                "credential entered archived bytes"
+              )
+            }
+          }
+        }
+      }
+      await inspectTree(join(devHome, ".local", "share", "hapsland", "candidates"))
+      await inspectTree(join(developmentRoot, "dist"))
+      for (const item of await readdir(join(developmentRoot, "packages"), { withFileTypes: true })) {
+        if (!item.isDirectory()) continue
+        const output = join(developmentRoot, "packages", item.name, "dist")
+        try {
+          await access(output)
+        } catch (error) {
+          if (error.code === "ENOENT") continue
+          throw error
+        }
+        await inspectTree(output)
+      }
+      await inspectTree(join(developmentRoot, ".test-runs", "turbo-cache"))
+      const common = await run("git", ["rev-parse", "--git-common-dir"], { cwd: developmentRoot })
+      await inspectTree(resolve(developmentRoot, common.stdout.trim(), "hapsland-artifacts"))
+      await assertNoProviderCall(capturePath)
+    } finally {
+      await writeFile(mutationPath, original)
+      await rm(join(developmentRoot, ".env.local"), { force: true })
+    }
+  }
+
   await assertNoProviderCall(capturePath)
   const fixtureActive = JSON.parse(
     await readFile(join(publicHome, ".local", "share", "hapsland", "active.json"), "utf8")
@@ -816,7 +1026,8 @@ else if (operation === "probe") console.log('{"status":"available"}');
         "interactive-masked-terminal",
         "guided-pilot",
         "installed-hidden-input-terminal-restoration",
-        "installed-hidden-input-cancellation-preserves-credential"
+        "installed-hidden-input-cancellation-preserves-credential",
+        ...(developmentCheckout === undefined ? [] : ["development-install-rebuild-update-new-key-artifact-exclusion"])
       ]
     })}\n`
   )

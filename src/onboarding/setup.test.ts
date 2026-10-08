@@ -178,11 +178,21 @@ const invokeMaskedSetup = async (
   })
   let output = ""
   let supplied = false
+  let selected = false
+  let approved = false
   child.stdout.on("data", (chunk: Buffer) => {
     output += chunk.toString("utf8")
+    if (!selected && output.includes("Where should Hapsland save your Jev key?")) {
+      selected = true
+      child.stdin.write("\x1b[B\x1b[B\r")
+    }
     if (!supplied && output.includes("Jev API key:")) {
       supplied = true
       child.stdin.write(`${credential}\n`)
+    }
+    if (!approved && output.includes("Save this key? [y/N]")) {
+      approved = true
+      child.stdin.write("y\n")
     }
   })
   child.stderr.on("data", (chunk: Buffer) => {
@@ -416,7 +426,8 @@ describe("public resumable setup operation", () => {
     const test = fixture()
     const helper = join(test.root, "unavailable-helper")
     writeFileSync(helper, `#!/bin/sh\nprintf '{"status":"unavailable"}\\n'\n`, { mode: 0o700 })
-    const environment = { ...test.environment, TYPESAFE_API_KEY: "", REVIEW_CREDENTIAL_HELPER: helper }
+    const environment: NodeJS.ProcessEnv = { ...test.environment, REVIEW_CREDENTIAL_HELPER: helper }
+    delete environment.TYPESAFE_API_KEY
     const result = invoke(test, { credential: "saved" }, environment)
     expect(result.stages).toEqual(
       expect.arrayContaining([
@@ -446,12 +457,14 @@ describe("public resumable setup operation", () => {
   })
 
   it.skipIf(!terminalAvailable).each([
-    { newKey: false, fileOverride: false },
-    { newKey: true, fileOverride: false },
-    { newKey: true, fileOverride: true }
+    { newKey: false, fileOverride: false, nativeStatus: "missing" },
+    { newKey: false, fileOverride: false, nativeStatus: "unavailable" },
+    { newKey: false, fileOverride: false, nativeStatus: "locked" },
+    { newKey: true, fileOverride: false, nativeStatus: "missing" },
+    { newKey: true, fileOverride: true, nativeStatus: "missing" }
   ])(
-    "uses masked terminal entry with forced replacement=$newKey and file override=$fileOverride",
-    async ({ newKey, fileOverride }) => {
+    "uses masked terminal entry with forced replacement=$newKey, file override=$fileOverride and native=$nativeStatus",
+    async ({ newKey, fileOverride, nativeStatus }) => {
       const test = fixture()
       const preview = invoke(test, {})
       const approvals = authorization(preview)
@@ -466,7 +479,7 @@ describe("public resumable setup operation", () => {
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 const operation = process.argv[2]; const vault = process.env.TEST_SECRET_VAULT;
 appendFileSync(vault + ".operations", operation + "\\n");
-if (operation === "get") process.stdout.write(existsSync(vault) ? '{"status":"present"}\\n' + readFileSync(vault) : '{"status":"missing"}\\n');
+if (operation === "get") process.stdout.write(existsSync(vault) ? '{"status":"present"}\\n' + readFileSync(vault) : ${JSON.stringify(JSON.stringify({ status: nativeStatus }) + "\n")});
 else if (operation === "set") { const chunks=[]; for await (const chunk of process.stdin) chunks.push(chunk); writeFileSync(vault, Buffer.concat(chunks), {mode:0o600}); console.log('{"status":"stored"}'); }
 else if (operation === "probe") console.log('{"status":"available"}');
 `
@@ -506,11 +519,21 @@ else if (operation === "probe") console.log('{"status":"available"}');
       const marker = "interactive-setup-secret"
       let output = ""
       let supplied = false
+      let selected = false
+      let approved = false
       child.stdout.on("data", (chunk: Buffer) => {
         output += chunk.toString("utf8")
+        if (!selected && output.includes("Where should Hapsland save your Jev key?")) {
+          selected = true
+          child.stdin.write("\r")
+        }
         if (!supplied && output.includes("Jev API key:")) {
           supplied = true
           child.stdin.write(`${marker}\n`)
+        }
+        if (!approved && output.includes("Save this key? [y/N]")) {
+          approved = true
+          child.stdin.write("y\n")
         }
       })
       child.stderr.on("data", (chunk: Buffer) => {
@@ -530,11 +553,9 @@ else if (operation === "probe") console.log('{"status":"available"}');
       expect(exit, output).toBe(6)
       expect(supplied).toBe(true)
       expect(output).not.toContain(marker)
-      expect(readFileSync(vault, "utf8")).toBe(marker)
-      const operations = readFileSync(vault + ".operations", "utf8")
-        .trim()
-        .split("\n")
-      if (newKey) expect(operations).toEqual(fileOverride ? ["set"] : ["set", "get"])
+      expect(readFileSync(join(test.root, "config", "hapsland", ".env"), "utf8")).toContain(marker)
+      const operations = existsSync(vault + ".operations") ? readFileSync(vault + ".operations", "utf8") : ""
+      expect(operations).not.toContain("set")
       const encoded = output.split(/\r?\n/).find((line) => line.startsWith('{"version":1,"operation":"setup"'))
       if (encoded === undefined) throw new Error(`setup JSON was not emitted: ${output}`)
       const result = JSON.parse(encoded) as SetupOutput

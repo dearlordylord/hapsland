@@ -4,7 +4,12 @@ import { chmodSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, wr
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, beforeEach, expect, it } from "vitest"
-import { credentialPolicy, CredentialPolicy } from "@hapsland/runtime-inputs/credentials/policy"
+import {
+  credentialPolicy,
+  CredentialPolicy,
+  ActiveCredentialObservation,
+  CredentialSaveResult
+} from "@hapsland/runtime-inputs/credentials/policy"
 import { makeCredentialOwner } from "@hapsland/credential-storage/credentials/owner"
 
 let root: string
@@ -51,6 +56,7 @@ it("saves a user key privately, preserves other entries and reports the effectiv
   expect(proposal.plan.target).toBe(join(root, "user", ".env"))
   expect(JSON.stringify(proposal)).not.toContain("private-fixture-key")
   const result = await run(service.save(proposal.id, "private-fixture-key"))
+  expect(Schema.decodeUnknownSync(CredentialSaveResult)(JSON.parse(JSON.stringify(result)))).toEqual(result)
   expect(result.status).toBe("stored")
   expect(statSync(proposal.plan.target).mode & 0o777).toBe(0o600)
   expect(statSync(join(root, "user")).mode & 0o777).toBe(0o700)
@@ -59,6 +65,7 @@ it("saves a user key privately, preserves other entries and reports the effectiv
   expect((await run(service.save(replacement.id, 'new\nquoted"key'))).status).toBe("stored")
   expect(readFileSync(proposal.plan.target, "utf8")).toContain('OTHER="keep # this"')
   const selected = await run(service.active())
+  expect(Schema.decodeUnknownSync(ActiveCredentialObservation)(JSON.parse(JSON.stringify(selected)))).toEqual(selected)
   expect(selected).toMatchObject({ status: "present", source: "user", file: proposal.plan.target })
   expect(JSON.stringify(selected)).not.toContain("quoted")
 })
@@ -116,4 +123,13 @@ it("a file destination preview never accesses the native store", async () => {
       .pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({ REVIEW_CREDENTIAL_HELPER: helper }))))
   )
   expect(() => readFileSync(marker)).toThrow()
+})
+
+it("keeps the approved destination private when a caller mutates its preview", async () => {
+  const service = owner()
+  const proposal = await run(service.prepare("user"))
+  const approvedTarget = proposal.plan.target
+  Object.assign(proposal.plan, { target: join(root, "redirected.env") })
+  expect((await run(service.save(proposal.id, "private-fixture-key"))).status).toBe("stored")
+  expect(readFileSync(approvedTarget, "utf8")).toContain("private-fixture-key")
 })

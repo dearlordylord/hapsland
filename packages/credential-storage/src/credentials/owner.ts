@@ -3,10 +3,11 @@ import {
   deriveLookupPlan,
   deriveSavePlan,
   nativeEligible,
-  type ReadableSource,
   type SaveDestination,
   type CredentialContext,
-  type CredentialProposal
+  type CredentialProposal,
+  type ActiveCredentialObservation,
+  type CredentialSaveResult
 } from "@hapsland/runtime-inputs/credentials/policy"
 import { observeFileTarget, commitFileCredential, type FileObservation } from "./files.ts"
 import * as Redacted from "effect/Redacted"
@@ -535,15 +536,7 @@ export const logoutCredential = Effect.fn("Credentials.logout")((path?: string) 
   )
 )
 
-export type ActiveCredentialObservation = {
-  status: CredentialResolution["status"]
-  source: ReadableSource
-  file?: string
-  generation: number
-}
-export type CredentialSaveResult = Omit<CredentialLifecycleResult, "status"> & {
-  status: CredentialLifecycleResult["status"] | "stale"
-}
+export type { ActiveCredentialObservation, CredentialSaveResult } from "@hapsland/runtime-inputs/credentials/policy"
 export interface CredentialOwner {
   prepare: (destination: SaveDestination) => Effect.Effect<CredentialProposal, Config.ConfigError>
   save: (proposalId: string, value: string) => Effect.Effect<CredentialSaveResult>
@@ -639,7 +632,7 @@ export const makeCredentialOwner = (options: {
         const statePath = yield* resolveStatePath(options.statePath)
         if (reason === undefined)
           proposals.set(id, {
-            proposal,
+            proposal: { ...proposal, plan: { ...proposal.plan } },
             ...(observed === undefined ? {} : { observed }),
             generation: readCredentialState(statePath).generation
           })

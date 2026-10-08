@@ -1,3 +1,4 @@
+import { CredentialState } from "./policy.ts"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import { readFileSync } from "node:fs"
@@ -6,12 +7,7 @@ import { HAPSLAND_STATE_DIRECTORY } from "@hapsland/runtime-environment/runtime/
 
 export const DEFAULT_CREDENTIAL_STATE_PATH = join(HAPSLAND_STATE_DIRECTORY, "credential-state.json")
 
-export const CredentialState = Schema.Struct({
-  version: Schema.Literal(1),
-  generation: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
-  savedUseSuspended: Schema.Boolean
-})
-export interface CredentialState extends Schema.Schema.Type<typeof CredentialState> {}
+export { CredentialState } from "./policy.ts"
 
 export const makeInitialCredentialState = (): CredentialState => ({
   version: 1,

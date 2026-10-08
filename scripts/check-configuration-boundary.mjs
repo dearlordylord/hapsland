@@ -211,7 +211,7 @@ if (
   !maskedInput.includes("Effect.acquireUseRelease(") ||
   !maskedInput.includes("interaction.hidden(") ||
   !maskedInput.includes("Redacted.wipeUnsafe(") ||
-  !maskedInput.includes("withInteractionSession(")
+  !read("packages/administration/src/credentials/login-conversation.ts").includes("withInteractionSession(")
 ) {
   throw new Error("credential input must use the shared hidden interaction, scoped lifetime and redacted cleanup")
 }

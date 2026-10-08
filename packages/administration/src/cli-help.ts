@@ -83,7 +83,7 @@ export const ROOT_OPERATIONS = {
   },
   [LOGIN_OPTION]: {
     description:
-      "Save a Jev key in native storage using a masked terminal prompt; --json selects structured output; no Jev call"
+      "Choose and approve user-file, project-file or native Jev key saving with hidden entry; --json selects structured output; no Jev call"
   },
   [LOGOUT_OPTION]: {
     description:

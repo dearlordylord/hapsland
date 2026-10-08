@@ -59,6 +59,50 @@ export const CredentialProposal = Schema.Struct({
 })
 export type CredentialProposal = typeof CredentialProposal.Type
 
+export const CredentialState = Schema.Struct({
+  version: Schema.Literal(1),
+  generation: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+  savedUseSuspended: Schema.Boolean
+})
+export type CredentialState = typeof CredentialState.Type
+export const ActiveCredentialObservation = Schema.Struct({
+  status: Schema.Literals([
+    "present",
+    "missing",
+    "invalid",
+    "locked",
+    "interaction-required",
+    "unavailable",
+    "timed-out",
+    "suspended"
+  ]),
+  source: ReadableSource,
+  file: Schema.optionalKey(Schema.String),
+  generation: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))
+})
+export type ActiveCredentialObservation = typeof ActiveCredentialObservation.Type
+export const CredentialSaveResult = Schema.Struct({
+  status: Schema.Literals([
+    "available",
+    "stored",
+    "deleted",
+    "present",
+    "missing",
+    "locked",
+    "interaction-required",
+    "invalid",
+    "unavailable",
+    "indeterminate",
+    "timed-out",
+    "cancelled",
+    "busy",
+    "stale"
+  ]),
+  state: CredentialState,
+  stateLock: Schema.Literals(["acquired", "recovered", "busy", "unavailable"])
+})
+export type CredentialSaveResult = typeof CredentialSaveResult.Type
+
 export const deriveLookupPlan = (context: CredentialContext): LookupStep[] =>
   credentialPolicy.sources.flatMap((kind): LookupStep[] => {
     if (kind === "environment") return [{ kind, envVar: context.envVar }]

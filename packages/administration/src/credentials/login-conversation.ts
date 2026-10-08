@@ -120,9 +120,11 @@ export const runCredentialSession = Effect.fn("Login.session")(function* (
 ) {
   const owner = makeCredentialOwner(options)
   let latest = initialLogin()
+  let opened = false
   yield* withInteractionSession(
-    (interaction) =>
-      runLoginConversation({
+    (interaction) => {
+      opened = true
+      return runLoginConversation({
         observe: (transition) =>
           Effect.sync(() => {
             latest = transition.after
@@ -131,10 +133,19 @@ export const runCredentialSession = Effect.fn("Login.session")(function* (
         Effect.provideService(InteractionService, interaction),
         Effect.provideService(LoginOwnerService, owner),
         Effect.asVoid
-      ),
+      )
+    },
     Effect.void,
     source
-  ).pipe(Effect.catchTag("QuitError", () => Effect.void))
+  ).pipe(
+    Effect.catchTag("QuitError", () => Effect.void),
+    // Prompt cleanup restores terminal modes without ending its rendered line.
+    Effect.ensuring(
+      Effect.sync(() => {
+        if (opened) process.stderr.write("\n")
+      })
+    )
+  )
   return latest.phase === "SelectingDestination"
     ? reduceLogin(latest, { revision: latest.revision, action: { kind: "exit" } })
     : latest
