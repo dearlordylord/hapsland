@@ -1,3 +1,4 @@
+import { checkUiFlows } from "./check-ui-flows.mjs"
 import { mkdirSync, writeFileSync, realpathSync } from "node:fs"
 import { dependencyIdentity } from "./artifact-store.mjs"
 import { fileEvidence } from "./compiler-evidence.mjs"
@@ -14,6 +15,7 @@ import { prepareAuthoredTaskInputs, verifyAuthoredTaskInputs } from "./authored-
 import { prepareNativeTaskInputs } from "./native-task-inputs.mjs"
 import { generateTurboConfig } from "./generate-turbo-config.mjs"
 const root = resolve(import.meta.dirname, "..")
+checkUiFlows(root)
 const args = process.argv.slice(2)
 if (args.length > 1 || args.some((arg) => arg !== "--with-native"))
   throw new Error("Workspace build accepts only --with-native")

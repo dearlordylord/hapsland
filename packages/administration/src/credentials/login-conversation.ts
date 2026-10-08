@@ -1,3 +1,4 @@
+import { flowInteraction } from "../interaction/flow-input.ts"
 import { Context, Effect, Layer, Terminal } from "effect"
 import { makeCredentialOwner, type CredentialOwner } from "@hapsland/credential-storage/credentials/owner"
 import { credentialPolicy } from "@hapsland/runtime-inputs/credentials/policy"
@@ -20,7 +21,7 @@ export const credentialPreview = (model: LoginModel): string => {
 export const runLoginConversation = Effect.fn("Login.run")(function* (
   options: { observe?: (transition: LoginTransition) => Effect.Effect<void> } = {}
 ) {
-  const interaction = yield* InteractionService
+  const interaction = yield* flowInteraction("login")
   const owner = yield* LoginOwnerService
   let model = initialLogin()
   let value: string | undefined

@@ -221,7 +221,7 @@ if (!interactionInput.includes("Prompt.Hidden(") || /Prompt.Custom/u.test(masked
 const clientSelection = read("packages/administration/src/onboarding/client-selection.ts")
 if (
   /new Promise|\basync\b|Effect\.run(?:Sync|Promise|Fork)\(/u.test(clientSelection) ||
-  !clientSelection.includes("InteractionService") ||
+  !clientSelection.includes('flowInteraction("agent-selection")') ||
   !/interaction\s*\.chooseMany\(/u.test(clientSelection)
 ) {
   throw new Error("interactive client selection must use caller Effect runtime and scoped terminal ownership")
@@ -256,11 +256,4 @@ for (const workflow of [
   if (!new RegExp(`const ${workflow} = Effect\\.fn\\(`, "u").test(interactiveCli)) {
     throw new Error(`${workflow} must be a named Effect workflow`)
   }
-}
-const confirmation = read("packages/administration/src/onboarding/confirmation.ts")
-if (
-  /new Promise|\basync\b|Effect\.run(?:Sync|Promise|Fork)\(/u.test(confirmation) ||
-  !confirmation.includes("Effect.acquireUseRelease(")
-) {
-  throw new Error("confirmation must own readline acquisition and closure in caller Effect runtime")
 }

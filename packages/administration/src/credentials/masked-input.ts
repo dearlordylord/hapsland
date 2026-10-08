@@ -1,5 +1,5 @@
 import { Effect, Redacted, Schema } from "effect"
-import { InteractionService } from "../interaction/interaction.ts"
+import { flowInteraction } from "../interaction/flow-input.ts"
 import { JEV_KEY_ENTRY_GUIDANCE } from "../onboarding/credential-guidance.ts"
 import { JEV_PROVIDER } from "@hapsland/runtime-environment/runtime/backend"
 
@@ -11,7 +11,7 @@ export class MaskedInputError extends Schema.TaggedError<MaskedInputError>()("Ma
 // The secret lives only at the credential-owner boundary, never in a workflow model.
 // Prompt.Hidden owns editing and masking; this adapter owns the returned wrapper.
 export const captureCredential = Effect.gen(function* () {
-  const interaction = yield* InteractionService
+  const interaction = yield* flowInteraction("credential-entry")
   yield* interaction.present(JEV_KEY_ENTRY_GUIDANCE)
   return yield* Effect.acquireUseRelease(
     interaction.hidden(`${JEV_PROVIDER.name} API key:`).pipe(Effect.interruptible),

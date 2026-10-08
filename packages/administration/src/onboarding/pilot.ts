@@ -1,10 +1,10 @@
+import { childFlow, flowInteraction } from "../interaction/flow-input.ts"
 import { Context, Effect, Exit, Schema, Terminal } from "effect"
 import { CLIENT_NAMES } from "@hapsland/runtime-environment/runtime/agent-clients"
 import { ConfigurationError } from "@hapsland/runtime-inputs/configuration/errors"
 import { JEV_PROVIDER } from "@hapsland/runtime-environment/runtime/backend"
 import { setupCommand as setupInvocation } from "@hapsland/runtime-environment/runtime/cli-names"
 import type { HostProcessResult } from "@hapsland/runtime-environment/process/closed-stdin"
-import { InteractionService } from "../interaction/interaction.ts"
 import { formatOutcome, formatStatusOutcome } from "./human-output.ts"
 import type { profileFields } from "./client-command.ts"
 import { formatInstallationRequirements, formatProposal } from "./client-lifecycle.ts"
@@ -141,7 +141,7 @@ export const runPilotSetup = Effect.fn("SetupConversation.run")(function* (
   hooks: { observe?: (transition: SetupTransition) => Effect.Effect<void> } = {}
 ) {
   const owner = yield* SetupOwnerService
-  const interaction = yield* InteractionService
+  const interaction = yield* flowInteraction("setup")
   let model = initialSetup()
   let current: SetupResult | undefined
   let credentialEntered = false
@@ -324,7 +324,11 @@ export const runPilotSetup = Effect.fn("SetupConversation.run")(function* (
           yield* activate(command.id)
           break
         case "verify":
-          yield* dispatch({ kind: "verified", commandId: command.id, outcome: yield* owner.verifyCredential })
+          yield* dispatch({
+            kind: "verified",
+            commandId: command.id,
+            outcome: yield* childFlow("setup", "verification", owner.verifyCredential)
+          })
           break
         case "diagnose":
           yield* diagnose(command.id)

@@ -1,5 +1,6 @@
+import { flowInteraction } from "../interaction/flow-input.ts"
 import { Effect, Exit, Terminal } from "effect"
-import { InteractionService, type Interaction } from "../interaction/interaction.ts"
+import type { Interaction } from "../interaction/interaction.ts"
 import {
   initialRules,
   reduceRules,
@@ -17,7 +18,7 @@ export interface RuleConversationOwner<A> {
   readonly apply: (plan: RulePlan) => Effect.Effect<{ kind: "applied"; result: A } | { kind: "stale" }, unknown>
 }
 const chooseScope = Effect.fn("Rules.scope")(function* (
-  interaction: Interaction,
+  interaction: Pick<Interaction, "present" | "choose" | "confirm">,
   action: RuleAction
 ): Effect.fn.Return<RulesEvent["action"], Terminal.QuitError> {
   const answer = yield* interaction.choose({
@@ -31,7 +32,7 @@ const chooseScope = Effect.fn("Rules.scope")(function* (
   return answer.kind === "selected" ? { kind: "scope", scope: answer.value } : { kind: answer.kind }
 })
 const reviewPlan = Effect.fn("Rules.review")(function* (
-  interaction: Interaction,
+  interaction: Pick<Interaction, "present" | "choose" | "confirm">,
   plan: RulePlan,
   stale: boolean,
   back: boolean
@@ -47,7 +48,7 @@ const reviewPlan = Effect.fn("Rules.review")(function* (
   return answer.kind === "selected" ? { kind: "continue" } : { kind: answer.kind }
 })
 const approvePlan = Effect.fn("Rules.approval")(function* (
-  interaction: Interaction,
+  interaction: Pick<Interaction, "present" | "choose" | "confirm">,
   plan: RulePlan
 ): Effect.fn.Return<RulesEvent["action"], Terminal.QuitError> {
   const answer = yield* interaction.confirm({
@@ -58,7 +59,7 @@ const approvePlan = Effect.fn("Rules.approval")(function* (
   return answer.kind === "confirmed" ? { kind: "approve", yes: answer.yes, digest: plan.digest } : { kind: answer.kind }
 })
 const readDialog = (
-  interaction: Interaction,
+  interaction: Pick<Interaction, "present" | "choose" | "confirm">,
   model: RulesModel,
   fixedScope: boolean
 ): Effect.Effect<RulesEvent["action"], Terminal.QuitError> => {
@@ -74,7 +75,7 @@ export const runRuleConversation = Effect.fn("Rules.conversation")(function* <A>
   owner: RuleConversationOwner<A>,
   options: { scope?: RuleScope; observe?: (transition: RulesTransition) => Effect.Effect<void> } = {}
 ) {
-  const interaction = yield* InteractionService
+  const interaction = yield* flowInteraction("rules")
   let model = initialRules(action)
   let result: A | undefined
   const dispatch = (event: RulesEvent["action"]) =>

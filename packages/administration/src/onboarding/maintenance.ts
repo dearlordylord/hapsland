@@ -1,3 +1,4 @@
+import { flowInteraction } from "../interaction/flow-input.ts"
 import { Context, Effect, Exit, Layer, Schema } from "effect"
 import { formatOutcome, formatStatusOutcome } from "./human-output.ts"
 import { profileFields } from "./client-command.ts"
@@ -9,7 +10,6 @@ import {
   registeredClients
 } from "./client-lifecycle.ts"
 import type { SetupClient } from "./client-selection.ts"
-import { InteractionService } from "../interaction/interaction.ts"
 import {
   initialMaintenance,
   maintenanceEffectCommand,
@@ -144,7 +144,7 @@ export const maintainClients = Effect.fn("Maintenance.clients")(function* (
 ) {
   if (!options.terminal) return yield* Effect.fail(new Error(maintenanceTerminalRequired(commandName)))
   const owner = yield* MaintenanceOwnerService
-  const interaction = yield* InteractionService
+  const interaction = yield* flowInteraction("maintenance")
   let model = initialMaintenance(commandName)
   const previews = new Map<SetupClient, string>()
   const dispatch = (action: MaintenanceEvent["action"]) =>

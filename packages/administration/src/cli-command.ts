@@ -9,6 +9,7 @@ import {
 } from "./inspection/options.ts"
 import { SETUP_REVIEW_CHOICES, SETUP_CREDENTIAL_CHOICES } from "./onboarding/setup-request.ts"
 import * as Argument from "effect/cli/Argument"
+import type { UiJourneyId } from "./interaction/flow-registry.ts"
 import * as Command from "effect/cli/Command"
 import * as Flag from "effect/cli/Flag"
 import * as Effect from "effect/Effect"
@@ -22,7 +23,7 @@ import * as NodeServices from "@effect/platform-node/NodeServices"
 import { clientCommandDefinitions, type ClientCommand } from "./onboarding/client-command.ts"
 import type { SetupClient } from "./onboarding/client-selection.ts"
 import { JEV_PROVIDER } from "@hapsland/runtime-environment/runtime/backend"
-import { makeRulesCommand, type RulesOptions } from "./rules/cli-definition.ts"
+import { makeRulesCommand, interactiveRuleCommands, type RulesOptions } from "./rules/cli-definition.ts"
 import { ROOT_OPERATIONS, operationHelp, rootOperationExample } from "./cli-help.ts"
 import { PACKAGE_VERSION, VERSION_FLAG } from "@hapsland/runtime-environment/runtime/cli-information"
 import {
@@ -209,6 +210,29 @@ const validateAutomation = (values: ParentOptions): void => {
   validateClientProfile(values)
 }
 
+const lifecycleClientName = "client"
+const lifecycleClient = Argument.Literals(lifecycleClientName, SUPPORTED_CLIENTS).pipe(Argument.optional)
+
+/** Project parser declarations into the public journey index; no duplicate command spellings. */
+export const cliJourneyCommands = (): Record<UiJourneyId, readonly string[]> => {
+  const root = makeCliCommand(() => {})
+  const lifecycle = (name: ClientCommand): readonly [string, string] => {
+    const definition = clientCommandDefinitions.find((command) => command.name === name)!
+    const command = `${root.name} ${definition.name}`
+    return [command, `${command} <${lifecycleClientName}>`]
+  }
+  return {
+    setup: [lifecycle(SETUP_COMMAND)[0]],
+    "setup-agent": [lifecycle(SETUP_COMMAND)[1]],
+    login: [`${root.name} --${operationHelp("login").flag ?? "login"}`],
+    update: lifecycle("update"),
+    repair: lifecycle("repair"),
+    reinstall: lifecycle("reinstall"),
+    uninstall: lifecycle("uninstall"),
+    rules: interactiveRuleCommands().map((command) => `${root.name} ${command}`)
+  }
+}
+
 /** One command tree supplies parsing, terminal help and generated references. */
 export const makeCliCommand = (invoke: (invocation: Invocation) => void) => {
   const parent = Command.make(CLI_NAME, parentOptions, (values) =>
@@ -276,8 +300,7 @@ export const makeCliCommand = (invoke: (invocation: Invocation) => void) => {
             ...(definition.options === "setup"
               ? { [NEW_KEY_OPTION]: automationFlags[NEW_KEY_OPTION], ...unattendedSetupOptions }
               : {}),
-            client: Argument.Literals("client", SUPPORTED_CLIENTS).pipe(
-              Argument.optional,
+            client: lifecycleClient.pipe(
               Argument.withDescription(`${SUPPORTED_CLIENTS.join(" | ")}. ${definition.clientDescription}`)
             ),
             ...(definition.options !== "profile"

@@ -1,3 +1,4 @@
+import { checkUiFlows } from "./check-ui-flows.mjs"
 import { resolveDeclaredDependencyVersion } from "./package-graph.mjs"
 import { createHash } from "node:crypto"
 import { spawnSync } from "node:child_process"
@@ -98,6 +99,7 @@ export async function resolvePinnedTypeScript(owner = resolve(import.meta.dirnam
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  checkUiFlows(resolve(import.meta.dirname, ".."))
   const selection = await resolvePinnedTypeScript(process.cwd())
   const result = spawnSync(selection.executable, process.argv.slice(2), { stdio: "inherit", timeout: 180000 })
   if (result.error) throw result.error
