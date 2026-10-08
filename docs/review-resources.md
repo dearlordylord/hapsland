@@ -86,10 +86,10 @@ The configured graph profile bounds the evidence for one review unit. Projects m
 
 | Field | Ceiling |
 | --- | --- |
-| `sourceBytes` | 262,144 bytes |
+| `sourceBytes` | 2,097,152 bytes |
 | `treeBytes` | 20,480 bytes |
 | `files` | 8 |
-| `readBytes` | 1,572,864 bytes |
+| `readBytes` | 12,582,912 bytes |
 | `outgoingEdges` | 16 |
 | `depth` | 4 |
 | `work` | 128 |

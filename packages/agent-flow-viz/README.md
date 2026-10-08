@@ -23,7 +23,7 @@ workspace uses shared workspace packages and has no independent npm lockfile.
 `npm run docs:generate` from the repository root updates generated documentation,
 including the dashboard's possible flow connections in the marked Mermaid block
 in `docs/architecture.md`.
-The pure serializer is `src/production-flow-mermaid.ts`; it uses the same stage
+The pure serializer is `../agent-flow-projection/src/production-flow-mermaid.ts`; it uses the same stage
 titles and connections as the SVG view. `npm run docs:generated:check` rejects a stale
 block in fast checks, pre-commit and the deterministic runner precheck.
 `npm run architecture:generate` updates only this diagram.
@@ -88,7 +88,7 @@ clipboard contents on secure and HTTP/IP origins. The linked captures below show
 the current circular composition.
 
 The setup section offers a copyable agent instruction first, with short manual
-installation and setup commands in a disclosure. Text is owned by `src/setup-copy.ts`.
+installation and setup commands in a disclosure. Text is owned by `../agent-flow-projection/src/setup-copy.ts`.
 The agent instruction also generates marked sections in the root README and
 installation guide through `npm run docs:generate`; `docs:generated:check` rejects drift.
 FoldKit commands call `src/site-clipboard.ts`. Secure origins use Clipboard API,

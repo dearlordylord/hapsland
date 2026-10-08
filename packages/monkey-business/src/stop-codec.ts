@@ -148,7 +148,7 @@ export const encodeStopProgress = (progress: StopProgress): unknown => {
     case "waiting":
       return { $: "StopScenario.Waiting", value: decodeBoolean(progress.value) }
     case "ready":
-      return { $: "StopScenario.Ready", count: decodeNat(progress.count) }
+      return { $: "StopScenario.StopReady", count: decodeNat(progress.count) }
     case "selected":
       return {
         $: "StopScenario.Selected",

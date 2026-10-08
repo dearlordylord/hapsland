@@ -22,11 +22,14 @@ stable keys for record links and events; callers may show both. A consumer
 with incomplete history must omit an ordinal it cannot establish.
 
 The stages describe the process. They are not Bend states and do not add a
-second reducer. The package has no FoldKit dependency, square titles or
-coordinates, route geometry, SVG, or visual style. A consumer can draw the
-reported movements as arrows, a timeline, or another presentation. The
-production dashboard maps stages to squares and keeps possible routes, text
-formatting, and arrow placement in `agent-flow-viz`.
+second reducer. The package has no FoldKit dependency, SVG, or visual style. A consumer can draw
+the reported movements as arrows, a timeline, or another presentation. Shared
+square titles, coordinates, possible routes and text formatting live in
+`production-flow-presentation.ts`; `production-flow-mermaid.ts` serializes those
+facts for repository documentation. The dashboard owns rendering and arrow
+placement in `agent-flow-viz`. `setup-copy.ts` supplies shared website and
+installation-documentation copy. Keeping these pure modules here lets tooling
+and the dashboard consume them without depending on each other.
 
 Run `npm run typecheck` here; the dashboard build also runs this check and
 exercises replay evidence through its offline fixture.

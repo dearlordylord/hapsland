@@ -1,13 +1,17 @@
 import { describe, expect, test } from "vitest"
 import { fileURLToPath } from "node:url"
-import { execFileSync } from "../../../scripts/test-harness/process.mjs"
-import { SessionGenerator, type SessionConfig, type SessionControl } from "./session.ts"
-import { SessionGenerator as Reference } from "./session-reference.fixture.ts"
+import { execFileSync } from "../../scripts/test-harness/process.mjs"
+import {
+  SessionGenerator,
+  type SessionConfig,
+  type SessionControl
+} from "../../packages/monkey-business/src/session.ts"
+import { SessionGenerator as Reference } from "../../packages/monkey-business/src/session-reference.fixture.ts"
 
 describe("shared Bend session port", () => {
   test("generated module matches its source and generator", () => {
     execFileSync(process.execPath, [
-      fileURLToPath(new URL("../../monkey-business-bend/build-session.mjs", import.meta.url)),
+      fileURLToPath(new URL("../../packages/monkey-business-bend/build-session.mjs", import.meta.url)),
       "--check"
     ])
   })

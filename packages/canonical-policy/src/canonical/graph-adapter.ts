@@ -90,7 +90,7 @@ const command = (value: NativeGraphCommand): ImportGraphCommand => {
 }
 const phases = {
   Idle: "idle",
-  Ready: "ready",
+  GraphReady: "ready",
   Resolving: "resolving",
   Checking: "checking",
   Capturing: "capturing",

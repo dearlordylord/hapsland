@@ -7,7 +7,6 @@ import { join } from "node:path"
 import {
   artifactStoreDirectory,
   preparePackageArchive,
-  dependencyIdentity,
   packageSourceIdentity,
   ensureExecutionArtifact
 } from "./artifact-store.mjs"
@@ -224,14 +223,6 @@ test("release packaging uses ordinary build and both-platform native validation 
   assert.ok(stages[2].args.includes("--ignore-scripts=true"))
   assert.ok(stages[2].args.includes("--pack-destination"))
 })
-test("linked dependency bytes and cycles remain observed without whole-build cache identities", async (t) => {
-  const f = await fixture(t)
-  await symlink(".", join(f.dependencies, "cycle"))
-  const before = await dependencyIdentity(f.root)
-  assert.equal(await dependencyIdentity(f.linked), before)
-  await writeFile(join(f.dependencies, "dependency.js"), "new dependency")
-  assert.notEqual(await dependencyIdentity(f.root), before)
-})
 test("archive preparation observes a finite deadline before invoking stages", async (t) => {
   const f = await fixture(t)
   await assert.rejects(preparePackageArchive({ ...f, deadline: Date.now() - 1 }), /deadline exceeded/)
@@ -251,20 +242,17 @@ test("source changes during packing prevent immutable archive publication", asyn
     /inputs changed during packing/
   )
 })
-test("external dependency changes during build reject packaging despite unchanged source and outputs", async (t) => {
+test("archive preparation leaves installed dependency observation to the build toolkit", async (t) => {
   const f = await fixture(t)
-  await assert.rejects(
-    preparePackageArchive({
-      ...f,
-      runStage: async (stage) => {
-        await f.runStage(stage)
-        if (stage.name === "package-build") await writeFile(join(f.dependencies, "dependency.js"), "changed dependency")
-        return { exitCode: 0 }
-      }
-    }),
-    /inputs changed during compilation/
-  )
-  assert.deepEqual(f.calls, ["package-build"])
+  await preparePackageArchive({
+    ...f,
+    runStage: async (stage) => {
+      await f.runStage(stage)
+      if (stage.name === "package-build") await writeFile(join(f.dependencies, "dependency.js"), "changed dependency")
+      return { exitCode: 0 }
+    }
+  })
+  assert.deepEqual(f.calls, ["package-build", "package-validation", "package-pack"])
 })
 test("explicitly shipped ignored files participate in fresh package-source drift checks", async (t) => {
   const f = await fixture(t)

@@ -128,15 +128,19 @@ test("merge-base mode compares branch changes instead of differences from advanc
   assert.deepEqual(names(branch.direct), ["@hapsland/app"])
 })
 
-test("verification cycles terminate and root-only package membership changes are visible", (t) => {
+test("verification cycles are rejected by the maintained package graph", (t) => {
   const { root } = fixture(t)
   for (const name of ["core", "app", "top", "independent"]) manifest(root, name, [], "verification")
   manifest(root, "app", ["core", "independent"], "verification")
   manifest(root, "independent", ["app"], "verification")
   const base = save(root)
   write(root, "packages/core/index.ts", "// cycle input changed\n")
-  const result = analyzePackageImpact(root, { base, head: save(root) })
-  assert.deepEqual(names(result.downstream), ["@hapsland/app", "@hapsland/independent"])
+  const head = save(root)
+  assert.throws(() => analyzePackageImpact(root, { base, head }), /Package dependency cycle/)
+})
+
+test("root-only package membership changes are visible", (t) => {
+  const { root } = fixture(t)
   const release = JSON.parse(readFileSync(join(root, "package.json"), "utf8"))
   release.workspaces = release.workspaces.filter((directory) => directory !== "packages/top")
   write(root, "package.json", JSON.stringify(release))

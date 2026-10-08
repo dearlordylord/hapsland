@@ -5,7 +5,7 @@ import { defineMessageUnion } from "foldkit/message"
 import { SITE_EXAMPLE } from "./site-example"
 import { drawReviewLoop } from "./review-loop-renderer"
 
-import { SETUP_COPY, type SetupCopyTarget } from "./setup-copy"
+import { SETUP_COPY, type SetupCopyTarget } from "../../agent-flow-projection/src/setup-copy"
 import { copyText } from "./site-clipboard"
 import productIcon from "./brand/product-icon.svg?url"
 import githubIcon from "./github.svg?url"

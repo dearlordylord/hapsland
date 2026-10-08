@@ -7,7 +7,6 @@ import { checkCompilerReceipts } from "./check-compiler-receipts.mjs"
 import { checkWorkspaceImports } from "./check-workspace-imports.mjs"
 import { checkCompilerContributions } from "./build-contributions.mjs"
 import { sourceAnalysisContext, sourceAnalysisReceipt } from "./source-analysis-receipt.mjs"
-import { dependencyIdentity } from "./artifact-store.mjs"
 import { nativeTaskArtifacts } from "./native-task-inputs.mjs"
 import { createAssemblyPrerequisites, writeAssemblyPrerequisites } from "./assembly-prerequisites.mjs"
 import { validateAssemblyArtifact } from "./assemble-entry.mjs"
@@ -15,6 +14,7 @@ import { checkHostModuleReceipt } from "./assemble-host-modules.mjs"
 import { releaseAssetMappings } from "./release-assets.mjs"
 import { publishProduct, revokePublishedProduct } from "./publish-product.mjs"
 import { fileEvidence } from "./compiler-evidence.mjs"
+import { PRODUCT_COMPILATION_TIMEOUT_MS, PRODUCT_ASSEMBLY_TIMEOUT_MS } from "./build-deadlines.mjs"
 const root = resolve(import.meta.dirname, "..")
 await withBuildLock(root, async (environment) => {
   revokePublishedProduct(root)
@@ -32,6 +32,7 @@ await withBuildLock(root, async (environment) => {
       "packages/administration/src/interaction/flow-registry.ts",
       ...[
         "build-product",
+        "build-deadlines",
         "build-workspaces",
         "publish-product",
         "release-assets",
@@ -44,7 +45,7 @@ await withBuildLock(root, async (environment) => {
       cwd: root,
       env: environment,
       stdio: "inherit",
-      timeout: 300000
+      timeout: PRODUCT_COMPILATION_TIMEOUT_MS
     })
     await runBuildProcess(process.execPath, [resolve(root, "scripts/generate-interaction-diagrams.mts"), "--check"], {
       cwd: root,
@@ -88,7 +89,7 @@ await withBuildLock(root, async (environment) => {
       {
         cwd: root,
         stdio: "inherit",
-        timeout: 300000,
+        timeout: PRODUCT_ASSEMBLY_TIMEOUT_MS,
         env: {
           ...environment,
           TURBO_TELEMETRY_DISABLED: "1",
@@ -114,8 +115,6 @@ await withBuildLock(root, async (environment) => {
           throw new Error(`Product composition input changed: ${recorded.path}`)
       sourceAnalysisReceipt(root, analysis, before)
       if (boundary !== "publish") return
-      if ((await dependencyIdentity(root)) !== before.toolchain.dependencies)
-        throw new Error("Dependencies changed during product assembly")
       checkCompilerReceipts(root)
       for (const profile of profiles) await nativeTaskArtifacts(root, graph, profile, { environment })
       sourceAnalysisReceipt(root, analysis, before)

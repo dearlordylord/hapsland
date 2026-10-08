@@ -131,7 +131,7 @@ export const readPackageGraph = (root, { loadJson = readJson, checkSources = tru
           throw new Error(`Missing or escaped Bend ABI: ${manifest.name}: ${key}`)
       }
     }
-    const node = { directory, path, manifest, role, compiler, dependencies: [] }
+    const node = { directory, path, manifest, role, compiler, dependencies: [], cycleDependencies: [] }
     workspaces.set(manifest.name, node)
     ;(role === "production" ? packages : auxiliaryWorkspaces).set(manifest.name, node)
   }
@@ -149,6 +149,7 @@ export const readPackageGraph = (root, { loadJson = readJson, checkSources = tru
               `Production workspace cannot depend on ${workspaces.get(name).role}: ${node.manifest.name} -> ${name}`
             )
           if (field === "dependencies" && !node.dependencies.includes(name)) node.dependencies.push(name)
+          if (!node.cycleDependencies.includes(name)) node.cycleDependencies.push(name)
         } else if (String(version).startsWith("workspace:")) {
           throw new Error(`Unknown workspace dependency: ${name}`)
         }
@@ -156,7 +157,6 @@ export const readPackageGraph = (root, { loadJson = readJson, checkSources = tru
     }
     node.dependencies.sort()
   }
-  const auxiliarySccs = []
   const indices = new Map(),
     lowLinks = new Map(),
     stack = [],
@@ -167,7 +167,7 @@ export const readPackageGraph = (root, { loadJson = readJson, checkSources = tru
     lowLinks.set(name, nextIndex++)
     stack.push(name)
     stacked.add(name)
-    for (const dependency of workspaces.get(name).dependencies) {
+    for (const dependency of workspaces.get(name).cycleDependencies) {
       if (!indices.has(dependency)) {
         component(dependency)
         lowLinks.set(name, Math.min(lowLinks.get(name), lowLinks.get(dependency)))
@@ -181,15 +181,12 @@ export const readPackageGraph = (root, { loadJson = readJson, checkSources = tru
         stacked.delete(member)
         members.push(member)
       } while (member !== name)
-      if (members.length > 1 || workspaces.get(name).dependencies.includes(name)) {
-        if (members.some((member) => workspaces.get(member).role === "production"))
-          throw new Error(`Package dependency cycle: ${members.sort().join(" -> ")}`)
-        auxiliarySccs.push(members.sort())
+      if (members.length > 1 || workspaces.get(name).cycleDependencies.includes(name)) {
+        throw new Error(`Package dependency cycle: ${members.sort().join(", ")}`)
       }
     }
   }
   for (const name of [...workspaces.keys()].sort()) if (!indices.has(name)) component(name)
-  auxiliarySccs.sort((left, right) => left[0].localeCompare(right[0]))
   const order = []
   const active = []
   const visited = new Set()
@@ -209,8 +206,7 @@ export const readPackageGraph = (root, { loadJson = readJson, checkSources = tru
     order,
     typeScriptOrder: order.filter((name) => packages.get(name).compiler === "typescript"),
     workspaces,
-    auxiliaryWorkspaces,
-    auxiliarySccs
+    auxiliaryWorkspaces
   }
 }
 

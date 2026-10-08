@@ -1,4 +1,4 @@
-/** Bend 2.0.35 ABI; all fields cross the bridge, selection belongs to Bend. */
+/** Bend 2.0.36 ABI; all fields cross the bridge, selection belongs to Bend. */
 export type RequestFields =
   | { readonly $: "Nil" }
   | {

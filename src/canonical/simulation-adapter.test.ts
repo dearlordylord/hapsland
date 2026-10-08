@@ -14,7 +14,7 @@ import {
   interveneSharedOutput,
   routedSharedSharing,
   afterSharedNotice
-} from "./simulation-adapter.ts"
+} from "../../packages/monkey-business/src/simulation-adapter.ts"
 import SharedEngine from "../../packages/monkey-business-bend/engine.mjs"
 import { encodeCanonicalEvent } from "@hapsland/canonical-policy/canonical/canonical-boundary"
 import {

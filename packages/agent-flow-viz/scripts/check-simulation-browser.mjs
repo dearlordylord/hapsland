@@ -770,7 +770,7 @@ try {
     const hostOutputSquare = panel.locator(".topology-node").filter({ hasText: "Host output" })
     assert.equal(await hostOutputSquare.locator(".topology-facet").count(), 3)
     assert.match(await hostOutputSquare.textContent(), /Stop slot · select group in inspector/)
-    const presentationModule = `/@fs${fileURLToPath(new URL("../src/production-flow-presentation.ts", import.meta.url))}`
+    const presentationModule = `/@fs${fileURLToPath(new URL("../../agent-flow-projection/src/production-flow-presentation.ts", import.meta.url))}`
     const metrics = await page.evaluate(
       async ({ core, presentation }) => {
         const { createRun } = await import(core)

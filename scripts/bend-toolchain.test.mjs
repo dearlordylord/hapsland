@@ -9,12 +9,12 @@ const authoritative = readBendToolchain(repository)
 test("reads the producer-owned compiler and proof kernel cohort unchanged", () => {
   const manifest = JSON.parse(readFileSync(resolve(repository, "packages/agent-flow-bend/package.json"), "utf8"))
   assert.deepEqual(authoritative, manifest.hapsland.toolchain)
-  assert.equal(authoritative.bend.version, "2.0.35")
+  assert.equal(authoritative.bend.version, "2.0.36")
   assert.equal(authoritative.lean.version, "4.34.0")
 })
 for (const [name, change] of [
   ["missing cohort", (manifest) => delete manifest.hapsland.toolchain],
-  ["compiler range", (manifest) => (manifest.hapsland.toolchain.bend.version = "^2.0.35")],
+  ["compiler range", (manifest) => (manifest.hapsland.toolchain.bend.version = "^2.0.36")],
   ["unknown source", (manifest) => (manifest.hapsland.toolchain.bend.source = "latest")],
   ["proof kernel range", (manifest) => (manifest.hapsland.toolchain.lean.version = "4.x")],
   ["empty archive inventory", (manifest) => (manifest.hapsland.toolchain.platforms = {})],

@@ -391,7 +391,7 @@ def graph_limits() -> ImportGraph.Limits:
 law import_graph_exclusion_has_no_read_command:
   {ImportGraph.checked(graph_limits(), ImportGraph.Edge{2n, 1n}, 2n, False{},
     Nil{}, 1n <> Nil{}, 1n, 100n, 100n, 1n, False{}, False{}, False{}) ==
-    ImportGraph.Step{ImportGraph.Graph{ImportGraph.Ready{},
+    ImportGraph.Step{ImportGraph.Graph{ImportGraph.GraphReady{},
       Nil{}, 2n <> 1n <> Nil{}, 1n, 100n, 100n, 1n, False{}, True{}, False{}, graph_limits()},
       ImportGraph.SkipImport{2n, ImportGraph.Excluded{}}} : ImportGraph.Step}
 
@@ -399,7 +399,7 @@ law import_graph_exclusion_keeps_remaining_edges:
   {ImportGraph.checked(graph_limits(), ImportGraph.Edge{2n, 1n}, 2n, False{},
     ImportGraph.Edge{3n, 1n} <> Nil{}, 1n <> Nil{}, 1n, 100n, 100n,
     1n, False{}, False{}, False{}) ==
-    ImportGraph.Step{ImportGraph.Graph{ImportGraph.Ready{},
+    ImportGraph.Step{ImportGraph.Graph{ImportGraph.GraphReady{},
       ImportGraph.Edge{3n, 1n} <> Nil{}, 2n <> 1n <> Nil{},
       1n, 100n, 100n, 1n, False{}, True{}, False{}, graph_limits()},
       ImportGraph.SkipImport{2n, ImportGraph.Excluded{}}} : ImportGraph.Step}
@@ -437,7 +437,7 @@ law import_graph_cycle_does_not_request_source:
     )
     == ImportGraph.Step{
       ImportGraph.Graph{
-        ImportGraph.Ready{},
+        ImportGraph.GraphReady{},
         Nil{},
         1n <> Nil{},
         1n,
@@ -465,7 +465,7 @@ law import_graph_no_fit_support_skips_and_keeps_pending:
   {ImportGraph.captured(graph_limits(), ImportGraph.Edge{2n, 1n}, 2n, 100n, 1000n, 0n, Nil{},
     ImportGraph.Edge{3n, 1n} <> Nil{}, 1n <> Nil{}, 1n, 100n, 20000n,
     1n, False{}, False{}, False{}) ==
-    ImportGraph.Step{ImportGraph.Graph{ImportGraph.Ready{},
+    ImportGraph.Step{ImportGraph.Graph{ImportGraph.GraphReady{},
       ImportGraph.Edge{3n, 1n} <> Nil{}, 2n <> 1n <> Nil{},
       2n, 200n, 20000n, 1n, True{}, False{}, False{}, graph_limits()},
       ImportGraph.SkipImport{2n, ImportGraph.TreeLimit{}}} : ImportGraph.Step}
@@ -481,7 +481,7 @@ law import_graph_missing_import_keeps_later_edges:
   {ImportGraph.resolved(graph_limits(), ImportGraph.Edge{2n, 1n}, 2n,
     ImportGraph.NotFound{}, ImportGraph.Edge{3n, 1n} <> Nil{}, 1n <> Nil{},
     1n, 100n, 100n, 1n, False{}, False{}, False{}) ==
-    ImportGraph.Step{ImportGraph.Graph{ImportGraph.Ready{},
+    ImportGraph.Step{ImportGraph.Graph{ImportGraph.GraphReady{},
       ImportGraph.Edge{3n, 1n} <> Nil{}, 1n <> Nil{},
       1n, 100n, 100n, 1n, False{}, False{}, True{}, graph_limits()},
       ImportGraph.SkipImport{2n, ImportGraph.Missing{}}} : ImportGraph.Step}
@@ -1766,7 +1766,7 @@ law sixth_finding_from_same_unit_is_selected_when_bytes_fit:
 
 law finish_waits_for_review_work:
   {Handoff.finish.decide(Handoff.finish.initial(1n), 1n, False{}, 1n) ==
-    Handoff.Wait{Handoff.finish.initial(1n)} : Handoff.FinishResult}
+    Handoff.FinishWait{Handoff.finish.initial(1n)} : Handoff.FinishResult}
 
 law finish_ignores_notice_without_findings:
   {
@@ -1829,7 +1829,7 @@ law next_attempt_gets_its_own_deadline:
       50n,
       1n
     )
-    == Handoff.Wait{Handoff.Finish{1n, True{}, False{}, 1n, False{}, 1n, 7n, 50n}}
+    == Handoff.FinishWait{Handoff.Finish{1n, True{}, False{}, 1n, False{}, 1n, 7n, 50n}}
     : Handoff.FinishResult
   }
 

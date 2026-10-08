@@ -72,15 +72,11 @@ preparation always invokes the ordinary build, fresh native-profile validation a
 packing; it never restores a whole build or skips those stages from a source-keyed
 archive cache. Completed archives are retained by their SHA-256 under
 `.git/hapsland-artifacts/archives` so installed candidates and one test run can use
-immutable bytes. Preparation rejects source, dependency or runtime-output drift
+immutable bytes. Preparation rejects source or runtime-output drift
 and corrupt retained archive bytes.
-Dependency hashing retains a filesystem-local digest memo. Every check still
-walks names and links and checks nanosecond file metadata; changed files are
-hashed through an open descriptor and checked again before publication. The
-memo assumes ordinary local filesystem metadata semantics and is not copied
-between filesystem namespaces. Invalid memo data causes fresh hashing.
-Atomic checkpoints retain completed file digests after interruption; they do
-not publish or validate an incomplete dependency fingerprint or build artifact.
+Dependency installation uses the frozen lockfile. Turbo owns dependency inputs
+for its task cache; build, archive and source-runtime preparation do not hash the
+installed `node_modules` tree separately.
 Prepared source roles share one immutable `.test-runs/source-runtime/<identity>` bundle set
 through the same artifact store; production task outputs are owned by Turbo.
 The materialized runtime is kept outside `dist` so production builds cannot remove entrypoints used by a running CLI or resident.
@@ -485,8 +481,8 @@ Shared external versions are declared once in the root manifest's standard Bun
 `catalog`; workspace manifests consume them through `catalog:` and private
 workspace dependencies through `workspace:*`. The manifest graph validates these
 values and derives production references. Seven auxiliary owners remain outside
-the 23-owner production schedule; their six-member test/simulation dependency
-component does not create a production cycle.
+the 23-owner production schedule; all dependency fields must form an acyclic graph, including tooling and
+verification owners. Cycles fail graph validation before build or test preparation.
 
 Compiler callers use [the explicit TypeScript selector](../scripts/pinned-typescript.mjs),
 not the shared `.bin/tsc` link. Its catalog-driven version, selected native
@@ -499,7 +495,7 @@ the selected identity through [the compiler context](../scripts/compiler-context
 ## Pull request checks
 
 [Offline CI](../.github/workflows/check.yml) runs on pull requests and pushes to
-`master`. It installs the frozen Bun lockfile and the checksum-pinned Bend 2.0.35
+`master`. It installs the frozen Bun lockfile and the checksum-pinned Bend 2.0.36
 and Lean 4.34.0 proof toolchain through its existing `npm run docs:install`
 tooling step, then runs documentation links,
 typecheck, `npm run quality:check -- --ack-checks-policy`, and build. It does not invoke live Jev or native agent
@@ -508,8 +504,8 @@ milestones; those remain separate declared checks above.
 The [proof toolchain installer](../scripts/install-bend-toolchain.mjs) downloads
 first-party Linux x64/arm64 archives with pinned SHA256 digests and checks the
 progress proof with Bend’s bundled kernel before the harness starts.
-Bend 2.0.35 is pinned to the upstream release source revision
-`79df8d9`; its kernel requires Lean 4.34.0.
+Bend 2.0.36 is pinned to the upstream release source revision
+`ae1101c`; its kernel requires Lean 4.34.0.
 Run the installer once and add its printed bin directories to `PATH` for local
 `npm test`. The explicit `--github-actions` mode in `docs:install` installs this
 proof prerequisite only when `GITHUB_ACTIONS=true`; ordinary local documentation

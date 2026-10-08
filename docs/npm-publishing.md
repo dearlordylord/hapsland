@@ -57,7 +57,7 @@ same toolchain used to calculate its checksum. Hapsland itself is packaged as
 Bun 1.3.14 standalone executables; this Node pin belongs to release assembly.
 The build requires the exact Bun compiler and physical native release assets. It requires Linux arm64 or macOS
 arm64, mise with Node 24.20.0 available, clean `master` equal to `origin/master`
-and containing the pinned release commit, the expected GitHub origin, and an
+and containing the pinned release commit, and an
 active npm login. It builds and audits the local archive,
 compares its SHA-256 with the reviewed archive, publishes that archive with
 public access to the declared `latest` or `next` tag, then downloads the registry archive and confirms
@@ -70,6 +70,12 @@ host OS with Bun 1.3.14 through mise and scripts disabled. This repairs a
 `node_modules` tree copied from Linux, including TypeScript's Darwin arm64
 compiler package, before starting the build. The frozen install leaves the
 lockfile unchanged.
+
+Archive preparation has a shared twenty-minute deadline for the build, native
+validation, source inventories and packing. Compilation retains its five-minute
+deadline; standalone assembly has eleven minutes for ten producers at concurrency
+two, with each producer still limited to two minutes. On interruption or timeout, the release
+runner stops the build process group before releasing its checkout build lease.
 
 The release script prints the npm account name, archive path, and checksums.
 It does not print Jev credentials. npm may ask for an OTP or web login during

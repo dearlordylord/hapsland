@@ -510,7 +510,7 @@ def progress_output(finish: Finish, output: Output.Capture) -> Finish:
 
 type Progress is Data:
   Waiting{value: Bool}
-  Ready{count: Nat}
+  StopReady{count: Nat}
   Selected{advice: Nat, keep: Bool}
   Clear{}
   Fit{value: Bool}
@@ -519,7 +519,7 @@ type Progress is Data:
 def progressed(finish: Finish, progress: Progress) -> Finish:
   match progress:
     case Waiting{value}: progress_waiting(finish, value)
-    case Ready{count}: progress_ready(finish, count)
+    case StopReady{count}: progress_ready(finish, count)
     case Selected{advice, keep}: progress_selected(finish, advice, keep)
     case Clear{}: progress_clear(finish)
     case Fit{value}: progress_fit(finish, value)

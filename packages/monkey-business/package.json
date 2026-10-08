@@ -91,6 +91,18 @@
     "./writer-controls": {
       "types": "./src/writer-controls.ts",
       "default": "./src/writer-controls.ts"
+    },
+    "./simulation-adapter": {
+      "types": "./src/simulation-adapter.ts",
+      "default": "./src/simulation-adapter.ts"
+    },
+    "./session": {
+      "types": "./src/session.ts",
+      "default": "./src/session.ts"
+    },
+    "./session-reference.fixture": {
+      "types": "./src/session-reference.fixture.ts",
+      "default": "./src/session-reference.fixture.ts"
     }
   },
   "scripts": {
@@ -99,13 +111,10 @@
   },
   "dependencies": {
     "@hapsland/agent-flow-bend": "workspace:*",
-    "@hapsland/agent-flow-viz": "workspace:*",
-    "@hapsland/build-tooling": "workspace:*",
     "@hapsland/canonical-policy": "workspace:*",
     "@hapsland/monkey-business-bend": "workspace:*",
     "@hapsland/review-definition": "workspace:*",
     "@hapsland/runtime-inputs": "workspace:*",
-    "@hapsland/verification": "workspace:*",
     "effect": "catalog:",
     "fast-check": "catalog:",
     "vitest": "catalog:"

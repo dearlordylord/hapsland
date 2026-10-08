@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto"
 import { join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import { ensureExecutionArtifact, dependencyIdentity } from "./artifact-store.mjs"
+import { ensureExecutionArtifact } from "./artifact-store.mjs"
 import { sourceIdentity } from "./test-harness/source-identity.mjs"
 import { resolveBunRuntime } from "./pinned-bun.mjs"
 import {
@@ -21,7 +21,6 @@ export async function ensureSourceRuntime({
   if (!["none", "istanbul"].includes(coverage)) throw new Error("Unknown source runtime coverage mode")
   root = resolve(root)
   const runtime = resolveBunRuntime()
-  const dependencyMeasurements = []
   const identify = async ({ deadline }) => {
     const sourceDigest = await sourceIdentity(
       root,
@@ -36,20 +35,7 @@ export async function ensureSourceRuntime({
         !path.endsWith(".md"),
       { deadline }
     )
-    const metrics = {},
-      started = performance.now()
-    let dependencies
-    try {
-      dependencies = await dependencyIdentity(root, { deadline, metrics })
-    } catch (error) {
-      error.message = `Dependency identity failed after ${Math.round(performance.now() - started)}ms (${metrics.bytesRead ?? 0} bytes, ${metrics.misses ?? 0} files): ${error.message}`
-      throw error
-    }
-    dependencyMeasurements.push({ elapsedMs: Math.round(performance.now() - started), ...metrics })
-    return {
-      identity: hash({ sourceDigest, dependencies, bun: runtime.version, coverage, recipe: "source-runtime" }),
-      sourceDigest
-    }
+    return { identity: hash({ sourceDigest, bun: runtime.version, coverage, recipe: "source-runtime" }), sourceDigest }
   }
   const artifact = await ensureExecutionArtifact({
     root,
@@ -75,7 +61,6 @@ export async function ensureSourceRuntime({
       coverage === "istanbul"
         ? { HAPSLAND_BUN_COVERAGE_MANIFEST: join(artifact.directory, "source-manifest.json") }
         : {},
-    dependencyMeasurements,
     commands: Object.fromEntries(
       Object.keys(sourceRuntimeEntries).map((role) => [role, sourceRuntimeCommand(layout, runtime.executable, role)])
     )

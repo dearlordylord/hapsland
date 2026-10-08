@@ -275,7 +275,11 @@ const rootPreflight = (
 ): import("./contracts.ts").AnalyzerMaterializationPreflight | undefined => {
   if (root.hasError) return undefined
   const declarations = preflightDeclarations(root)
-  if (declarations.length === 0 || declarations.length > MAX_TYPE_DECLARATIONS) return undefined
+  if (declarations.length > MAX_TYPE_DECLARATIONS) return undefined
+  // A valid file without supported roots materializes no review units. Keep
+  // this measured empty result distinct from an unknown or invalid parse.
+  if (declarations.length === 0)
+    return { declarations: 0, expandedUnitBytes: 0, hasImports: preflightHasImports(root, typeBound) }
   const functions = declarations.filter((node) => node.type === "function_declaration")
   // Files containing types need a valid type bound; function-only files start at zero.
   if (declarations.length !== functions.length && typeBound === undefined) return undefined

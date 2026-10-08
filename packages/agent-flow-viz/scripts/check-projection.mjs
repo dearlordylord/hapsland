@@ -117,7 +117,7 @@ try {
     projection.projectFlowStep({ event: { kind: "preparationGraph" }, outputs: [], before: compiled, after: compiled }),
     { evidence: [], changedStages: [], projectionChanged: false, storedResultConversions: [] }
   )
-  const presentation = await server.ssrLoadModule("/src/production-flow-presentation.ts")
+  const presentation = await server.ssrLoadModule("@hapsland/agent-flow-projection/production-flow-presentation")
   const flowView = await server.ssrLoadModule("/src/production-flow-view.ts")
   const numbering = await server.ssrLoadModule(
     `/@fs${resolve(import.meta.dirname, "../../agent-flow-projection/src/index.ts")}`
@@ -623,7 +623,7 @@ try {
   )
   const directPreparationView = replayAt("many units admit in order and Stop waits", 2)
   const directRoutes = elements(directPreparationView, "topology-route").filter((node) => node.data.class.active)
-  assert.ok(directRoutes.some((node) => labels(node).includes("prepare command emitted")))
+  assert.ok(directRoutes.some((node) => labels(node).includes("preparation action requested")))
   assert.ok(
     !directRoutes.some((node) => labels(node).includes("entered pending")),
     "beginPreparation did not add a dispatch queue entry"

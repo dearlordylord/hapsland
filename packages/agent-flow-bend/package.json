@@ -44,20 +44,20 @@
     },
     "toolchain": {
       "bend": {
-        "version": "2.0.35",
-        "source": "79df8d9"
+        "version": "2.0.36",
+        "source": "ae1101c"
       },
       "lean": {
         "version": "4.34.0"
       },
       "platforms": {
         "linux-x64": {
-          "bend": "63039d1a119f716767ac5a7d8fe0717cfacf219c6c253c35192148e0dade722f",
+          "bend": "02089dc0eed0fd5fd6d73c74cc9cffcb2c6638dd3b02ae83f7b8cc57fbe381ba",
           "leanName": "linux",
           "lean": "caaa98356098c85dc0fcbbd28e1ec66f39eb6551829972b752ff20e1286b646b"
         },
         "linux-arm64": {
-          "bend": "09b813073241628f590f2c2fe420299ec25e4dddd6cf3fdc49c9486339989564",
+          "bend": "a14a311e39bad45f9669d4eab39d156b578c945f13a2b7bae20d9c23567a4664",
           "leanName": "linux_aarch64",
           "lean": "40b04fdb7fb849d3c80e10c3bbeebc7b7354b6d3f07450b9168c2149b40d2a82"
         }

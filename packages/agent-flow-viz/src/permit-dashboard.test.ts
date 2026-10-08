@@ -1,5 +1,5 @@
 import { expect, it } from "vitest"
-import { permitAction } from "../../agent-flow-viz/src/permit-controls.ts"
+import { permitAction } from "./permit-controls.ts"
 it("decodes only existing permit limits and future POST controls", () => {
   expect(permitAction("permit-limits:16:64")).toEqual({
     kind: "editPermitLimits",

@@ -1847,7 +1847,7 @@ def importgraph_reason(
 def importgraph_phase(values: List<&2, ImportGraph.Phase>, suffix: List<&2, Nat>) -> List<&2, Nat>:
   match values:
     case ImportGraph.Idle{} <> Nil{}: 0n <> suffix
-    case ImportGraph.Ready{} <> Nil{}: 1n <> suffix
+    case ImportGraph.GraphReady{} <> Nil{}: 1n <> suffix
     case ImportGraph.Resolving{v0} <> Nil{}: 2n <> importgraph_edge([v0], suffix)
     case ImportGraph.Checking{v0, v1} <> Nil{}: 3n <> importgraph_edge([v0], v1 <> suffix)
     case ImportGraph.Capturing{v0, v1} <> Nil{}: 4n <> importgraph_edge([v0], v1 <> suffix)

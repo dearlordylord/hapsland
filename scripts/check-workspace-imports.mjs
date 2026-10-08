@@ -369,6 +369,7 @@ export const checkWorkspaceImports = (root) => {
         if (
           value.computed &&
           !evaluated?.confident &&
+          !policy.computedCallable(value, paths) &&
           (callableObject(value.object, paths.get(value).scope) ||
             (!(parent?.type === "CallExpression" && parent.callee === value) &&
               callableUse(paths.get(value)) &&

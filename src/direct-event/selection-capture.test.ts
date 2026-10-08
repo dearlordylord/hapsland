@@ -157,6 +157,15 @@ describe("direct-event named-path selection", () => {
 })
 
 describe("stable bounded source capture", () => {
+  it("captures a ten-thousand-line source above the former byte ceiling", async () => {
+    const root = await makeGitFixture()
+    const source = "export type Example = { value: string };\n".repeat(10_000)
+    expect(Buffer.byteLength(source)).toBeGreaterThan(262_144)
+    await put(root, "large-source.ts", source)
+    const path = required(await Effect.runPromise(eligibleNamedPath(root, "large-source.ts")))
+    expect((await Effect.runPromise(captureStable(root, path)))?.text).toBe(source)
+  })
+
   it("accepts matching reads, BOM, and the exact byte limit", async () => {
     const root = await makeGitFixture()
     await put(root, "bom.ts", Buffer.from("\ufefftype A = number", "utf8"))

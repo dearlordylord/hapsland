@@ -11,7 +11,13 @@ import { precheckStages } from "./check-stages.mjs"
 test("ordinary test and release plans leave development modules optional", () => {
   assert.deepEqual(testDiscovery(undefined), {
     include: ["src/**/*.test.ts", "scripts/**/*.test.mts"],
-    exclude: ["vendor/**", "node_modules/**", "scripts/game-*.test.mts", "packages/monkey-business/**"]
+    exclude: [
+      "vendor/**",
+      "node_modules/**",
+      "scripts/game-*.test.mts",
+      "packages/monkey-business/**",
+      "src/canonical/session-port.test.ts"
+    ]
   })
   assert.equal(
     precheckStages.some((stage) => stage.includes("packages/monkey-business-bend/build.mjs")),
@@ -74,7 +80,11 @@ registerHooks({ load(url, context, nextLoad) {
         files.every((file) =>
           scope === "game"
             ? file === "scripts/game-balance-lab.test.mts"
-            : file.startsWith("packages/monkey-business/src/") && file.endsWith(".test.ts")
+            : (file.startsWith("packages/monkey-business/src/") ||
+                ["src/canonical/session-port.test.ts", "packages/agent-flow-viz/src/permit-dashboard.test.ts"].includes(
+                  file
+                )) &&
+              file.endsWith(".test.ts")
         )
       )
       assert.deepEqual(captured.stages.at(-1).args, [

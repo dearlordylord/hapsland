@@ -55,7 +55,7 @@ const hostPaths = [
 ]
   .map((name) => `../monkey-business/src/${name}`)
   .concat([
-    "../../src/canonical/simulation-adapter.ts",
+    "../monkey-business/src/simulation-adapter.ts",
     "../../packages/canonical-policy/src/canonical/simulation-codec.ts",
     "../../packages/canonical-policy/src/canonical/canonical-boundary.ts",
     "../../packages/canonical-policy/src/canonical/constructors.ts",

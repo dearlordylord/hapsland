@@ -9,6 +9,24 @@ import {
 } from "@hapsland/source-analysis/direct-event/analyzer"
 
 describe("initial direct-event TypeScript analyzer", () => {
+  it("measures zero supported roots without treating them as an unknown parse", () => {
+    expect(combinedAnalyzerMaterializationPreflight("a.ts", "const run = () => 1")).toEqual({
+      declarations: 0,
+      expandedUnitBytes: 0,
+      hasImports: false
+    })
+    expect(combinedAnalyzerMaterializationPreflight("a.ts", "import './other'; const value = 1")).toEqual({
+      declarations: 0,
+      expandedUnitBytes: 0,
+      hasImports: true
+    })
+    expect(analyzeTypeFile("a.ts", "const run = () => 1")).toMatchObject({
+      status: "unsupported",
+      reason: "no-declarations"
+    })
+    expect(combinedAnalyzerMaterializationPreflight("a.ts", "const run = ( {")).toBeUndefined()
+  })
+
   it("reserves all type and function roots in a mixed file", () => {
     const oneType = "interface Account { id: string }"
     const functions = Array.from({ length: 63 }, (_, index) => `function f${index}() { return ${index} }`)

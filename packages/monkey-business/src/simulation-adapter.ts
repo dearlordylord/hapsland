@@ -5,7 +5,7 @@ import {
   decodeWriterIssuedCapture,
   type WriterCapture,
   type WriterTarget
-} from "../../packages/monkey-business/src/writer-controls.ts"
+} from "./writer-controls.ts"
 import {
   encodeStopInput,
   encodeStopProgress,
@@ -15,8 +15,8 @@ import {
   decodeStopCommand,
   type StopCommandFacts,
   type StopProgress
-} from "../../packages/monkey-business/src/stop-codec.ts"
-import { encodeCollectorProfile } from "../../packages/monkey-business/src/collector-codec.ts"
+} from "./stop-codec.ts"
+import { encodeCollectorProfile } from "./collector-codec.ts"
 import {
   validateCollectionResponseControl,
   encodeCollectionResponse,
@@ -24,21 +24,17 @@ import {
   decodeCollectionResponseIdentity,
   type CollectionResponseIdentity,
   type CollectionResponseControl
-} from "../../packages/monkey-business/src/collection-scenario.ts"
-import {
-  validateOutputCapture,
-  encodeOutputCapture,
-  validateOutputAttemptControl
-} from "../../packages/monkey-business/src/output-controls.ts"
-import { encodeCallbackTarget } from "../../packages/monkey-business/src/callback-controls.ts"
+} from "./collection-scenario.ts"
+import { validateOutputCapture, encodeOutputCapture, validateOutputAttemptControl } from "./output-controls.ts"
+import { encodeCallbackTarget } from "./callback-controls.ts"
 import {
   decodeDriver,
   decodeDriverEvent,
   encodeDriverAction,
   decodePreparedDriverContext,
   type DriverAction
-} from "../../packages/monkey-business/src/driver-codec.ts"
-import SharedEngine, { type EngineState } from "../../packages/monkey-business-bend/engine.mjs"
+} from "./driver-codec.ts"
+import SharedEngine, { type EngineState } from "../../monkey-business-bend/engine.mjs"
 import { Schema } from "effect"
 import {
   decoder,

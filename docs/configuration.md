@@ -209,10 +209,10 @@ resolved selection before expecting a review result.
 | `virtualRoundQuietMs` | integer (10000–3600000) | Optional | 300000 | Continuous fully quiet time before an open virtual round closes without Stop, in milliseconds. User configuration only; captured when the round opens. |
 | `graphLimits` | object | Optional | — | Import graph limits; omitted values inherit. |
 | `graphLimits.version` | fixed value 1 | Required | — | Import graph limits profile version. |
-| `graphLimits.sourceBytes` | integer (1–262144) | Optional | 262144 | Maximum source bytes in each graph file. |
+| `graphLimits.sourceBytes` | integer (1–2097152) | Optional | 2097152 | Maximum source bytes in each graph file. |
 | `graphLimits.treeBytes` | integer (1–20480) | Optional | 20480 | Maximum accepted encoded evidence-tree bytes. |
 | `graphLimits.files` | integer (1–8) | Optional | 8 | Maximum files read, including the root. |
-| `graphLimits.readBytes` | integer (1–1572864) | Optional | 1572864 | Maximum total source bytes read; must be at least sourceBytes. |
+| `graphLimits.readBytes` | integer (1–12582912) | Optional | 12582912 | Maximum total source bytes read; must be at least sourceBytes. |
 | `graphLimits.outgoingEdges` | integer (1–16) | Optional | 16 | Maximum outgoing edges per accepted file. |
 | `graphLimits.depth` | integer (1–4) | Optional | 4 | Maximum supporting-reference depth. |
 | `graphLimits.work` | integer (1–128) | Optional | 128 | Maximum graph edge work steps. |

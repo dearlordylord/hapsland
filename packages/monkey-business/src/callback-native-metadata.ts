@@ -2281,7 +2281,7 @@ export const callbackNativeDescriptors = {
     kind: "adt",
     constructors: [
       { tag: "ImportGraph.Idle", fields: [] },
-      { tag: "ImportGraph.Ready", fields: [] },
+      { tag: "ImportGraph.GraphReady", fields: [] },
       { tag: "ImportGraph.Resolving", fields: [["edge", "importgraph_edge"]] },
       {
         tag: "ImportGraph.Checking",
@@ -5723,11 +5723,11 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/agent-flow-bend/Handoff.bend",
-    sha256: "0d86849cd3c2abe741d3e4d763767ad66e65c7fe74eda46d0680b255a5f3c46c"
+    sha256: "d1bd58f4de5346e47aa8cefa6daa86808a9aaf7312f3bbe28188dc48721d9696"
   },
   {
     path: "packages/agent-flow-bend/ImportGraph.bend",
-    sha256: "6bb0985b921293bebf20814fcded30ee7174bc07ac441188f3f85198f5acee6c"
+    sha256: "ff45b8e5663bd0d5bb3e52e86cd766545cd61550b2b5ad1c01d17c8dc46a5346"
   },
   {
     path: "packages/agent-flow-bend/Ledger.bend",
@@ -5863,7 +5863,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/StopScenario.bend",
-    sha256: "06b72514ac99605415a3d77013dedee28fdf65657764e0be08bd35724da7946d"
+    sha256: "a4cd00741a199089e1c510894436a8a96ee466ffd2bf52e0f53dd9a8e6c63047"
   },
   {
     path: "packages/monkey-business-bend/TreeFacts.bend",

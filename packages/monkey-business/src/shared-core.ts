@@ -99,7 +99,7 @@ import {
   issueSharedPermit,
   issuedSharedPermit,
   consumedSharedPermit
-} from "../../../src/canonical/simulation-adapter.ts"
+} from "./simulation-adapter.ts"
 import { type WriterCapture, type WriterTarget } from "./writer-controls.ts"
 import { freezeCanonicalData } from "@hapsland/canonical-policy/canonical/immutable"
 import { type StopProgress, type StopInputSchema } from "./stop-codec.ts"

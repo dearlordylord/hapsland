@@ -8,6 +8,8 @@ const shape = (value) =>
       : child
   )
 const demo = shape(expression('pathToFileURL(join(root, "session.ts")).href'))
+const bendEffectRead = shape(expression("$0eff[op.$]"))
+const bendEffectRegistry = shape(expression("Object.create(null)"))
 const native = shape(
   expression(
     'createRequire(packageAssetPath("package.json"))(packageAssetPath("native", "prebuilt", `${process.platform}-${process.arch}`, "inspection-lock.node"))'
@@ -76,6 +78,16 @@ export const loaderPolicy = (policy) => {
     },
     nativeSymbol: (node) =>
       policy === "bend-system-ffi" && literals(node).every((value) => ["__error", "__errno_location"].includes(value)),
+    computedCallable: (node, paths) => {
+      if (policy !== "bend-system-ffi" || shape(node) !== bendEffectRead) return false
+      const binding = paths.get(node).scope.getBinding("$0eff")
+      return (
+        binding?.constant === true &&
+        binding.path.parentPath.parentPath.isProgram() &&
+        shape(binding.path.node.init) === bendEffectRegistry &&
+        !binding.path.scope.getBinding("Object")
+      )
+    },
     computedImport: (node, paths) =>
       policy === "demo-session" &&
       shape(node) === demo &&

@@ -47,7 +47,6 @@ const fixture = (t) => {
   put("native/prebuilt/darwin-arm64/helper", "foreign supplier")
   put(".test-runs/runtime", "runtime identity")
   const observe = createBuildWatchObserver(root, {
-    observeDependencies: async () => "dependencies",
     observeRuntime: async () => fileEvidence(root, resolve(root, ".test-runs/runtime")),
     observeNative: async () => fileEvidence(root, resolve(root, "native/prebuilt/darwin-arm64/helper"))
   })
