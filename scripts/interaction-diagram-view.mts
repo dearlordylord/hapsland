@@ -78,6 +78,9 @@ const states: Record<UiFlowId, Record<string, string>> = {
 }
 const actions: Record<string, string> = {
   selected: "Select",
+  "selected user": "User plaintext file",
+  "selected project-local": "Project-local plaintext file",
+  "selected native": "Native credential store",
   prepared: "Destination checked",
   entered: "Key entered",
   approved: "Save approved or declined",

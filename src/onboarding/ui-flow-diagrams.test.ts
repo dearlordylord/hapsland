@@ -1,6 +1,6 @@
 import { Effect } from "effect"
 import { expect, it } from "vitest"
-import { childFlow, flowInteraction } from "../../packages/administration/src/interaction/flow-input.ts"
+import { childFlow, cliJourney, flowInteraction } from "../../packages/administration/src/interaction/flow-input.ts"
 import { uiFlows } from "../../packages/administration/src/interaction/flow-registry.ts"
 import { diagramGenerators } from "../../scripts/interaction-diagram-generators.mts"
 import { readFile } from "node:fs/promises"
@@ -24,6 +24,8 @@ const checkInputTypes = (input: Effect.Success<ReturnType<typeof flowInteraction
   input.hidden("key")
   // @ts-expect-error Unknown workflows cannot dispatch production input.
   flowInteraction("unregistered")
+  // @ts-expect-error Unknown CLI journeys cannot dispatch handlers.
+  cliJourney("unregistered", () => Effect.void)
   // @ts-expect-error Rules cannot compose login without updating the registry.
   childFlow("rules", "login", Effect.void)
 }

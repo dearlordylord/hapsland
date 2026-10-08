@@ -1,3 +1,5 @@
+import { complete, preview } from "./test-support/setup-observations.ts"
+import { generateSetupJourneyDiagram } from "./generate-setup-journey-diagram.mts"
 import { userFlowDiagram } from "./interaction-diagram-view.mts"
 import assert from "node:assert/strict"
 import type { Exit } from "effect"
@@ -15,46 +17,6 @@ import type { runSetup } from "@hapsland/administration/onboarding/setup"
 import { scriptedInteraction, type ScriptStep } from "./test-support/scripted-interaction.ts"
 
 type Result = Effect.Success<ReturnType<typeof runSetup>>
-const complete: Result = {
-  version: 1,
-  operation: "setup",
-  status: "completed",
-  host: { adapter: "codex" },
-  scope: { repository: "/controlled", review: "enabled" },
-  providerCalls: 0,
-  paidVerificationPerformed: false,
-  stages: ["compatibility", "installation", "credential", "repository"].map((stage) => ({
-    stage,
-    status: "complete",
-    summary: `${stage} complete`
-  })) as Result["stages"],
-  completed: [],
-  pending: [],
-  actions: []
-}
-const preview = (digest = "hooks-current"): Result => ({
-  ...complete,
-  status: "needs-user-action",
-  stages: complete.stages.map((stage) =>
-    stage.stage === "installation"
-      ? { ...stage, status: "pending", observed: { proposal: { changes: ["owned hook"] } } }
-      : stage
-  ),
-  actions: [
-    {
-      stage: "installation",
-      code: "approve-installation",
-      action: "install owned hooks",
-      authorization: { installProposalDigest: digest }
-    },
-    {
-      stage: "rules",
-      code: "approve-default-rules",
-      action: "connect default rules",
-      authorization: { rulesProposalDigest: "rules-current" }
-    }
-  ]
-})
 export const generateSetupDiagram = Effect.gen(function* () {
   const edges = new Set<string>()
   const scenarios = [
@@ -233,13 +195,22 @@ export const generateSetupDiagram = Effect.gen(function* () {
   }
   return `# Setup interaction
 
-**Purpose:** Show production setup approval, observed mutation and readiness transitions.
+**Purpose:** Show the CLI setup journey from agent selection through per-agent approval, credential saving, verification and readiness.
 **Status:** Maintained generated diagram.
 **Authority:** Implementation and controlled validation evidence for #244; accepted installation and credential contracts retain authority.
 **Expected use:** Understand setup choices and outcomes and run \`npm run interaction:diagrams:check\` for non-writing freshness.
 **Lifecycle:** Regenerate with \`npm run interaction:diagrams:write\` when the reducer, interpreter or diagram generation changes; review when setup authorization or credential behavior changes.
 
-Review the proposed setup, then approve hooks and rules separately. Back returns to the previous choice; a changed proposal requires another review and approval. Completed or partial installation remains visible if later activation or input fails. Optional paid credential verification has its own consent; readiness checks follow separately. Exiting does not undo completed changes.
+Run \`hapsland setup\` to select agents, or \`hapsland setup <agent>\` to configure a named agent directly. Selected agents are configured in order. Review the proposed setup, then approve hooks and rules separately. Back returns to the previous choice; a changed proposal requires another review and approval. Completed or partial installation remains visible if later activation or input fails. Optional paid credential verification has its own consent; readiness checks follow separately. Exiting does not undo completed changes.
+
+\`\`\`mermaid
+flowchart TD
+${yield* generateSetupJourneyDiagram}
+\`\`\`
+
+## Setup outcomes
+
+The per-agent view below shows changed proposals, partial installation and activation failures. It supplements the complete command journey above.
 
 \`\`\`mermaid
 flowchart TD

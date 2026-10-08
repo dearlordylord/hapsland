@@ -1,6 +1,5 @@
 import type { Effect } from "effect"
 import type { UiFlowId } from "../packages/administration/src/interaction/flow-registry.ts"
-import { generateSetupSelectionDiagram } from "./generate-setup-selection-diagram.mts"
 import { generateSetupDiagram } from "./generate-setup-diagram.mts"
 import { generateLoginDiagram } from "./generate-login-diagram.mts"
 import { generateVerificationDiagram } from "./generate-verification-diagram.mts"
@@ -10,7 +9,7 @@ import { generateMaintenanceDiagram } from "./generate-maintenance-diagram.mts"
 
 // Adding a production workflow without its replay generator is a type error.
 export const diagramGenerators = {
-  "setup-selection": generateSetupSelectionDiagram,
+  "setup-selection": generateSetupDiagram,
   setup: generateSetupDiagram,
   login: generateLoginDiagram,
   verification: generateVerificationDiagram,

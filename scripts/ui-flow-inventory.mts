@@ -1,54 +1,29 @@
-import {
-  uiFlows,
-  inputFragments,
-  directUiExceptions
-} from "../packages/administration/src/interaction/flow-registry.ts"
+import { uiFlows, uiJourneys } from "../packages/administration/src/interaction/flow-registry.ts"
 
 export const flowInventoryDocument = () => {
-  const safe = (id: string) => id.replaceAll("-", "_")
-  const edges: string[] = []
-  for (const [id, flow] of Object.entries(uiFlows)) {
-    edges.push(`  ${safe(id)}["${id}"]`)
-    for (const child of flow.composes) edges.push(`  ${safe(id)} -->|"subflow"| ${safe(child)}`)
-  }
-  for (const [id, fragment] of Object.entries(inputFragments)) {
-    edges.push(`  fragment_${safe(id)}["${id} shared input"]`)
-    for (const parent of fragment.parents) edges.push(`  ${safe(parent)} -.-> fragment_${safe(id)}`)
-  }
-  for (const [id, exception] of Object.entries(directUiExceptions))
-    for (const child of exception.composes)
-      edges.push(`  direct_${safe(id)}["${id}"] -->|"authorized terminal subflow"| ${safe(child)}`)
-  const workflows = Object.entries(uiFlows).map(
-    ([id, flow]) =>
-      `| ${id} | [${flow.entry}](../../${flow.owner}) | ${flow.inputs.join(", ")} | [Flow diagram](${flow.diagram.split("/").at(-1)}) |`
+  const rows = Object.values(uiJourneys).map(
+    (journey) =>
+      `| ${journey.title} | ${journey.commands.map((command) => `\`${command}\``).join("<br>")} | [Journey diagram](${uiFlows[journey.diagramFlow].diagram.split("/").at(-1)}) |`
   )
-  const fragments = Object.entries(inputFragments).map(
-    ([id, fragment]) =>
-      `| ${id} | [${fragment.entry}](../../${fragment.owner}) | ${fragment.parents.map((parent) => `[${parent}](${uiFlows[parent].diagram.split("/").at(-1)})`).join(", ")} |`
-  )
-  const exceptions = Object.entries(directUiExceptions).map(
-    ([id, exception]) => `| ${id} | [${exception.entry}](../../${exception.owner}) | ${exception.reason} |`
-  )
-  return `This inventory and connection graph derive from the closed [production registry](../../packages/administration/src/interaction/flow-registry.ts). Connections declare interpreter composition; workflow diagrams below show user-visible choices and outcomes from production transitions. Neither graph establishes exhaustive transition coverage or physical terminal support.
+  const nodes = Object.entries(uiJourneys).flatMap(([id, journey]) => {
+    const node = id.replaceAll("-", "_")
+    return [
+      `  command_${node}["${journey.commands[0].replaceAll("<", "&lt;").replaceAll(">", "&gt;")}"]`,
+      `  command_${node} --> journey_${node}["${journey.title}"]`
+    ]
+  })
+  return `Choose the journey by the command you run. Named-agent variants skip discovery or selection where the command already supplies the agent. This index is generated from the same registered CLI bindings used in production.
+
+| User journey | CLI command | Diagram |
+| --- | --- | --- |
+${rows.join("\n")}
 
 \`\`\`mermaid
-flowchart TD
-${edges.join("\n")}
+flowchart LR
+${nodes.join("\n")}
 \`\`\`
 
-| Workflow | Production entry | Registered prompt kinds | Generated documentation |
-| --- | --- | --- | --- |
-${workflows.join("\n")}
+Credential verification is a step within setup, not a separate CLI journey. Its [detail diagram](verification.md) explains paid-check approval and recovery. Setup includes credential saving; [login](login.md) also documents the standalone saving command.
 
-Shared input fragments belong to registered parent workflows; they cannot introduce a standalone conversation without their own workflow registration and replay generator.
-
-| Shared fragment | Production entry | Parent diagrams |
-| --- | --- | --- |
-${fragments.join("\n")}
-
-Direct input/output exceptions have no invented dialog states. Any human prompt they add must use a registered workflow; interactive JSON setup delegates to login explicitly.
-
-| Direct exception | Production entry | Reason and boundary |
-| --- | --- | --- |
-${exceptions.join("\n")}`
+Explicit automation and observation commands keep their existing contracts: [unattended setup and lifecycle JSON](../installation-workflows.md), [credential stdin input](../configuration.md), [doctor and dashboard](../status.md), and [rule inspection](../configuration.md#declarative-rules). They do not introduce implicit terminal dialogs.`
 }

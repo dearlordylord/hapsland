@@ -1,6 +1,13 @@
 import { Effect } from "effect"
 import { InteractionService, type Interaction } from "./interaction.ts"
-import { inputOwners, type InputOwnerId, uiFlows, type UiFlowId } from "./flow-registry.ts"
+import {
+  inputOwners,
+  type InputOwnerId,
+  uiFlows,
+  uiJourneys,
+  type UiJourneyId,
+  type UiFlowId
+} from "./flow-registry.ts"
 
 type FlowInteraction<K extends InputOwnerId> = Pick<Interaction, "present" | (typeof inputOwners)[K]["inputs"][number]>
 
@@ -26,4 +33,13 @@ export const childFlow = <P extends UiFlowId, C extends (typeof uiFlows)[P]["com
   if (!(uiFlows[parent].composes as readonly string[]).includes(child))
     throw new Error(`Undeclared UI composition: ${parent} -> ${child}`)
   return effect
+}
+
+/** Command routing and the public journey index share a closed set of IDs. */
+export const cliJourney = <J extends UiJourneyId, A, E, R>(
+  journey: J,
+  run: () => Effect.Effect<A, E, R>
+): Effect.Effect<A, E, R> => {
+  if (!uiJourneys[journey]) throw new Error(`Unregistered CLI journey: ${journey}`)
+  return Effect.suspend(run)
 }

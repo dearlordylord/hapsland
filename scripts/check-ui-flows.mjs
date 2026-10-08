@@ -4,6 +4,7 @@ import { resolve, relative } from "node:path"
 import { fileURLToPath } from "node:url"
 import {
   uiFlows,
+  uiJourneys,
   inputFragments,
   interactionInfrastructure,
   interactionCompositionRoots,
@@ -46,11 +47,18 @@ const declarations = (tree) => {
 /** Source-only preflight: no compiled package, dependency build or replay execution. */
 export function checkUiFlows(
   candidateRoot = root,
-  registry = { uiFlows, inputFragments, interactionInfrastructure, interactionCompositionRoots, directUiExceptions }
+  registry = {
+    uiFlows,
+    uiJourneys,
+    inputFragments,
+    interactionInfrastructure,
+    interactionCompositionRoots,
+    directUiExceptions
+  }
 ) {
   const errors = []
   const owners = new Map()
-  const diagrams = new Set()
+  const diagrams = new Map()
   const infrastructure = new Set(registry.interactionInfrastructure)
   const compositions = new Set(registry.interactionCompositionRoots)
   const entries = { ...registry.uiFlows, ...registry.inputFragments }
@@ -58,8 +66,11 @@ export function checkUiFlows(
     if (owners.has(definition.owner)) errors.push(`UI owners must be unique: ${definition.owner}`)
     owners.set(definition.owner, { id, definition })
     if (definition.diagram) {
-      if (diagrams.has(definition.diagram)) errors.push(`Duplicate UI diagram: ${definition.diagram}`)
-      diagrams.add(definition.diagram)
+      if (definition.diagramOwner && registry.uiFlows[definition.diagramOwner]?.diagram !== definition.diagram)
+        errors.push(`Invalid shared UI diagram owner: ${id}`)
+      if (diagrams.has(definition.diagram) && diagrams.get(definition.diagram) !== (definition.diagramOwner ?? id))
+        errors.push(`Duplicate UI diagram: ${definition.diagram}`)
+      diagrams.set(definition.diagram, definition.diagramOwner ?? id)
       if (!existsSync(resolve(candidateRoot, definition.diagram)))
         errors.push(`Missing UI diagram: ${id}: ${definition.diagram}`)
       else if (!readFileSync(resolve(candidateRoot, definition.diagram), "utf8").includes("```mermaid"))
@@ -73,6 +84,7 @@ export function checkUiFlows(
     for (const child of definition.composes)
       if (!Object.hasOwn(registry.uiFlows, child)) errors.push(`Unknown UI exception composition: ${id} -> ${child}`)
   }
+  const observedJourneys = new Set()
   const observedCompositions = new Set()
   const trees = new Map()
   const files = readdirSync(resolve(candidateRoot, "packages"), { withFileTypes: true })
@@ -91,6 +103,7 @@ export function checkUiFlows(
     const serviceNames = new Set(["InteractionService"])
     const dispatchNames = new Set(["flowInteraction"])
     const childNames = new Set(["childFlow"])
+    const journeyNames = new Set(["cliJourney"])
     const childEntries = new Map(Object.entries(entries).map(([id, definition]) => [definition.entry, id]))
     walk(tree, (node) => {
       if (node.type === "ImportDeclaration") {
@@ -104,6 +117,7 @@ export function checkUiFlows(
           if (specifier.imported?.name === "InteractionService") serviceNames.add(specifier.local.name)
           if (specifier.imported?.name === "flowInteraction") dispatchNames.add(specifier.local.name)
           if (specifier.imported?.name === "childFlow") childNames.add(specifier.local.name)
+          if (specifier.imported?.name === "cliJourney") journeyNames.add(specifier.local.name)
           if (childEntries.has(specifier.imported?.name))
             childEntries.set(specifier.local.name, childEntries.get(specifier.imported.name))
           if (
@@ -134,6 +148,20 @@ export function checkUiFlows(
       }
     })
     walk(tree, (node, parent) => {
+      if (node.type === "CallExpression" && journeyNames.has(node.callee?.name)) {
+        const id = node.arguments[0]?.type === "StringLiteral" ? node.arguments[0].value : undefined
+        const definition = registry.uiJourneys?.[id]
+        const callback = node.arguments[1]
+        const call = callback?.type === "ArrowFunctionExpression" ? callback.body : undefined
+        if (
+          !definition ||
+          !compositions.has(path) ||
+          call?.type !== "CallExpression" ||
+          call.callee?.name !== definition.entry
+        )
+          errors.push(`CLI journey binding does not match its registered entry: ${path}: ${id ?? "nonliteral"}`)
+        else observedJourneys.add(id)
+      }
       if (
         node.type === "ObjectProperty" &&
         parents.get(node)?.type === "ObjectPattern" &&
@@ -237,6 +265,44 @@ export function checkUiFlows(
     })
     if (owner && !registered) errors.push(`UI owner has no registered dispatch: ${path}`)
   }
+  const reachable = new Set()
+  const reach = (id) => {
+    if (reachable.has(id)) return
+    reachable.add(id)
+    for (const child of registry.uiFlows[id]?.composes ?? []) reach(child)
+  }
+  for (const [id, journey] of Object.entries(registry.uiJourneys ?? {})) {
+    if (!journey.commands.length || !registry.uiFlows[journey.root] || !registry.uiFlows[journey.diagramFlow])
+      errors.push(`Invalid CLI journey: ${id}`)
+    if (registry.uiFlows[journey.root]?.diagram !== registry.uiFlows[journey.diagramFlow]?.diagram)
+      errors.push(`CLI journey diagram does not match its input flow: ${id}`)
+    if (!observedJourneys.has(id)) errors.push(`CLI journey has no production binding: ${id}`)
+    const tree = trees.get(journey.owner)
+    if (!tree || !declarations(tree).has(journey.entry)) errors.push(`Missing CLI journey entry: ${id}`)
+    const functions = new Map()
+    if (tree)
+      walk(tree, (node) => {
+        if ((node.type === "VariableDeclarator" || node.type === "FunctionDeclaration") && node.id?.name)
+          functions.set(node.id.name, node)
+      })
+    const called = new Set()
+    const visitCall = (name) => {
+      if (called.has(name)) return
+      called.add(name)
+      const fn = functions.get(name)
+      if (fn)
+        walk(fn, (node) => {
+          if (node.type === "CallExpression" && node.callee?.type === "Identifier") visitCall(node.callee.name)
+        })
+    }
+    visitCall(journey.entry)
+    const rootEntry = registry.uiFlows[journey.root]
+    if (rootEntry && ![rootEntry.entry, ...(rootEntry.aliases ?? [])].some((entry) => called.has(entry)))
+      errors.push(`CLI journey does not reach its registered input flow: ${id} -> ${journey.root}`)
+    reach(journey.root)
+  }
+  for (const id of Object.keys(registry.uiFlows))
+    if (!reachable.has(id)) errors.push(`UI flow has no CLI journey: ${id}`)
   for (const [id, definition] of Object.entries(registry.uiFlows))
     for (const child of definition.composes)
       if (!observedCompositions.has(`${id}:${child}`))
@@ -248,18 +314,25 @@ export function checkUiFlows(
   }
   const generator = ast(readFileSync(resolve(candidateRoot, "scripts/interaction-diagram-generators.mts"), "utf8"))
   let generatorIds = []
+  const generatorBindings = new Map()
   walk(generator, (node) => {
     if (node.type === "VariableDeclarator" && node.id?.name === "diagramGenerators") {
       const object = node.init.type === "TSSatisfiesExpression" ? node.init.expression : node.init
       generatorIds = object.properties.map((property) => property.key?.name ?? property.key?.value)
+      for (const property of object.properties)
+        generatorBindings.set(property.key?.name ?? property.key?.value, property.value?.name)
     }
   })
   for (const id of Object.keys(registry.uiFlows))
     if (!generatorIds.includes(id)) errors.push(`Missing UI replay generator: ${id}`)
   for (const id of generatorIds)
     if (!Object.hasOwn(registry.uiFlows, id)) errors.push(`Unregistered UI replay generator: ${id}`)
+  for (const [id, definition] of Object.entries(registry.uiFlows))
+    if (definition.diagramOwner && generatorBindings.get(id) !== generatorBindings.get(definition.diagramOwner))
+      errors.push(`Shared UI diagram must use its owner replay: ${id}`)
   if (errors.length) throw new Error([...new Set(errors)].join("\n"))
   return {
+    journeys: Object.keys(registry.uiJourneys ?? {}).length,
     workflows: Object.keys(registry.uiFlows).length,
     fragments: Object.keys(registry.inputFragments).length,
     exceptions: Object.keys(registry.directUiExceptions).length

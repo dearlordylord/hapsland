@@ -18,12 +18,14 @@ flowchart TD
   CheckingActive["Show the credential currently in use"]
   Done["Show the result"]
   Cancelled["Exit without saving"]
-  SelectingDestination -->|"Select"| PreparingTarget
+  SelectingDestination -->|"User plaintext file"| PreparingTarget
   PreparingTarget -->|"Destination checked"| EnteringKey
   EnteringKey -->|"Key entered"| ConfirmingSave
   ConfirmingSave -->|"Yes, save the key"| SavingKey
   SavingKey -->|"Key saved"| CheckingActive
   CheckingActive -->|"Active source identified"| Done
+  SelectingDestination -->|"Project-local plaintext file"| PreparingTarget
+  SelectingDestination -->|"Native credential store"| PreparingTarget
   ConfirmingSave -->|"Decline saving"| Cancelled
   ConfirmingSave -->|"Back"| SelectingDestination
   SelectingDestination -->|"Exit or end of input"| Cancelled

@@ -21,7 +21,7 @@ const fixture = (t) => {
 }
 
 test("the production registry covers its owners and replay generators", () => {
-  assert.deepEqual(checkUiFlows(), { workflows: 7, fragments: 2, exceptions: 5 })
+  assert.deepEqual(checkUiFlows(), { journeys: 8, workflows: 7, fragments: 2, exceptions: 5 })
 })
 
 test("a new unregistered prompt fails the real compiler entry before compilation", (t) => {
@@ -130,4 +130,27 @@ test("production child dispatch and the generated composition graph must agree",
     source.replace('childFlow("setup", "verification", owner.verifyCredential)', "owner.verifyCredential")
   )
   assert.throws(() => checkUiFlows(root), /UI composition has no production dispatch: setup -> verification/)
+})
+
+test("CLI journeys must retain their actual handler and input-flow bindings", (t) => {
+  const root = fixture(t)
+  const cli = join(root, "packages/cli-entry/src/cli.ts")
+  const source = readFileSync(cli, "utf8")
+  writeFileSync(
+    cli,
+    source.replace('cliJourney("setup", () => chooseSetupClients())', 'cliJourney("setup", () => updateInteractive())')
+  )
+  assert.throws(() => checkUiFlows(root), /CLI journey binding does not match its registered entry/)
+  writeFileSync(cli, source.replace('cliJourney("setup", () => chooseSetupClients())', "chooseSetupClients()"))
+  assert.throws(() => checkUiFlows(root), /CLI journey has no production binding: setup/)
+  writeFileSync(cli, source)
+  const registry = join(root, "packages/administration/src/interaction/flow-registry.ts")
+  writeFileSync(registry, readFileSync(registry, "utf8").replace('root: "setup-selection"', 'root: "rules"'))
+  const result = spawnSync(process.execPath, [join(root, "scripts/check-ui-flows.mjs")], {
+    cwd: root,
+    encoding: "utf8",
+    timeout: 10_000
+  })
+  assert.notEqual(result.status, 0)
+  assert.match(result.stderr, /CLI journey does not reach its registered input flow: setup -> rules/)
 })

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { childFlow } from "@hapsland/administration/interaction/flow-input"
+import { childFlow, cliJourney } from "@hapsland/administration/interaction/flow-input"
 import { InteractionService } from "@hapsland/administration/interaction/interaction"
 import { controlledOptions } from "@hapsland/resident-transport/resident/controlled-options"
 import {
@@ -960,7 +960,7 @@ const logoutSavedCredential = Effect.fn("Cli.logoutSavedCredential")(function* (
   }
 })
 const runCredentialCommand = Effect.fn("Cli.credentialCommand")(function* () {
-  return cliSwitch("login") ? yield* loginCredential() : yield* logoutSavedCredential()
+  return cliSwitch("login") ? yield* cliJourney("login", () => loginCredential()) : yield* logoutSavedCredential()
 })
 
 const isCredentialCommand = () => cliSwitch("login") || cliSwitch("logout")
@@ -1428,12 +1428,13 @@ const unattendedRequested = (args: ClientArguments) =>
 
 const runLocalLifecycle = Effect.fn("Cli.localLifecycle")(function* (command: ClientCommand, args: ClientArguments) {
   if (command === "doctor") return yield* runHumanDoctor(args)
-  if (command === "update") return yield* updateInteractive()
-  if (command === "repair" || command === "reinstall" || command === "uninstall")
-    return yield* maintenanceInteractive(command)
+  if (command === "update") return yield* cliJourney("update", () => updateInteractive())
+  if (command === "repair") return yield* cliJourney("repair", () => maintenanceInteractive(command))
+  if (command === "reinstall") return yield* cliJourney("reinstall", () => maintenanceInteractive(command))
+  if (command === "uninstall") return yield* cliJourney("uninstall", () => maintenanceInteractive(command))
   if (unattendedRequested(args)) return yield* runUnattended(args)
-  if (args.host === undefined) return yield* chooseSetupClients()
-  return yield* pilotSetupSession(args.host)
+  if (args.host === undefined) return yield* cliJourney("setup", () => chooseSetupClients())
+  return yield* cliJourney("setup-agent", () => pilotSetupSession(args.host!))
 })
 
 const runLifecycle = Effect.fn("Cli.lifecycle")(function* (
@@ -1493,7 +1494,7 @@ const dispatchInvocation = Effect.fn("Cli.dispatch")(function* (invocation: Invo
   if (writeIdentityOutput()) return
   if (invocation.kind === "rules") {
     const { runRulesCommand } = yield* Effect.promise(() => import("@hapsland/administration/rules/command"))
-    return yield* runRulesCommand(invocation.options)
+    return yield* cliJourney("rules", () => runRulesCommand(invocation.options))
   }
   if (invocation.kind === "lifecycle" || cliSwitch("pilot")) return yield* runLifecycle(invocation)
   return yield* runAutomation()

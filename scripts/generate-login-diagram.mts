@@ -13,13 +13,24 @@ import { scriptedInteraction, type ScriptStep } from "./test-support/scripted-in
 export const generateLoginDiagram = Effect.gen(function* () {
   const key = "controlled-private-replay-key"
   const edges = new Set<string>()
-  const scenarios = ["stored", "declined", "back", "cancelled", "blocked", "stale", "busy", "indeterminate"] as const
+  const scenarios = [
+    "stored",
+    "project-stored",
+    "native-stored",
+    "declined",
+    "back",
+    "cancelled",
+    "blocked",
+    "stale",
+    "busy",
+    "indeterminate"
+  ] as const
   for (const name of scenarios) {
     const steps: ScriptStep[] =
       name === "blocked"
         ? [{ kind: "choose", index: 1 }, { kind: "exit" }]
         : [
-            { kind: "choose", index: 0 },
+            { kind: "choose", index: name === "native-stored" ? 2 : name === "project-stored" ? 1 : 0 },
             ...(name === "cancelled"
               ? [{ kind: "eof" } as const]
               : [
@@ -51,7 +62,7 @@ export const generateLoginDiagram = Effect.gen(function* () {
               destination,
               target: destination === "user" ? "/fixture/user/.env" : "/fixture/repo/.env.local",
               scope: "fixture",
-              storage: "Local plaintext file"
+              storage: destination === "native" ? "Native credential store" : "Local plaintext file"
             },
             availability: name === "blocked" ? ("blocked" as const) : ("available" as const),
             reason: name === "blocked" ? "Project target is not Git-ignored" : undefined,
@@ -90,7 +101,12 @@ export const generateLoginDiagram = Effect.gen(function* () {
     assert.equal(script.remaining(), 0)
     assert(!JSON.stringify({ transitions, result, transcript: script.transcript }).includes(key))
     for (const { before, event, after } of transitions) {
-      const label = event.action.kind === "observed" ? `observed ${event.action.storage.status}` : event.action.kind
+      const label =
+        event.action.kind === "observed"
+          ? `observed ${event.action.storage.status}`
+          : event.action.kind === "selected"
+            ? `selected ${event.action.destination}`
+            : event.action.kind
       edges.add(`  ${before.phase} -->|"${label}"| ${after.phase}`)
     }
   }
