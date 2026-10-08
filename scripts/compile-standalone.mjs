@@ -16,6 +16,7 @@ import { readPackageGraph } from "./package-graph.mjs"
 import { createHash } from "node:crypto"
 import { externalRuntimeEvidence } from "./external-runtime-evidence.mjs"
 import { standaloneNativeRootExpression } from "./external-loader-profile.mjs"
+import { sharedRuntimeBundle, sharedRuntimeLauncher } from "./shared-runtime-bundle.mjs"
 const [entrypoint, target, outfile, sourceReceiptPath, receiptPath] = process.argv.slice(2)
 const root = resolve(import.meta.dirname, "..")
 await withBuildLock(root, async () => {
@@ -102,14 +103,8 @@ await withBuildLock(root, async () => {
       }
       if (compile && sharedRuntime) {
         if (result.outputs.length !== 1) throw new Error("Command bundle must produce exactly one JavaScript file")
-        writeFileSync(stagedBundle, `delete process.env.BUN_BE_BUN;\n${await result.outputs[0].text()}`, {
-          mode: 0o644
-        })
-        writeFileSync(
-          stagedOutput,
-          `#!/bin/sh\nset -eu\ndirectory=$(CDPATH= cd "$(dirname "$0")" && pwd -P)\nBUN_BE_BUN=1 exec "$directory/hapsland" --no-install --no-env-file --config=/dev/null "$directory/${basename(outfile)}.js" "$@"\n`,
-          { mode: 0o755 }
-        )
+        writeFileSync(stagedBundle, sharedRuntimeBundle(await result.outputs[0].text()), { mode: 0o644 })
+        writeFileSync(stagedOutput, sharedRuntimeLauncher(basename(outfile)), { mode: 0o755 })
       }
       if (compile) chmodSync(stagedOutput, 0o755)
       const inputs = checkAssemblyContributions(
