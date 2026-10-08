@@ -1,6 +1,7 @@
 # Hapsland setup interaction model advisory
 
 **Purpose:** Compare explicit models for Hapsland's interactive setup conversation and record evidence for a later design decision.
+**Audience:** Contributors, including coding agents researching runtime and CLI design; Product and specification owners.
 **Status:** Temporary product-specification advisory; no product behavior or dependency is adopted.
 **Authority:** Advisory research, source inspection, and design inference. Existing setup, installation, credential, and consent contracts remain authoritative; this report is neither an accepted product contract nor implementation validation.
 **Expected use:** Use the candidate comparison, proposed typed model, and traceable questions to choose a prototype and later amend the owning setup and configuration contracts.

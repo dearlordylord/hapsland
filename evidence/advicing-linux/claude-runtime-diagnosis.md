@@ -1,5 +1,7 @@
 # Claude runtime failure diagnosis
 
+**Audience:** Contributors, including coding agents validating runtime behavior; Build and release maintainers; Product and specification owners.
+
 This follow-up made two bounded minimal invocations of pinned Claude Code
 2.1.218 on Linux, with no fixture source or custom Hapsland hooks installed.
 Both exited 1 with a structured `is_error: true` result and empty stderr.

@@ -1,5 +1,7 @@
 # Claude Linux rerun after runtime recovery
 
+**Audience:** Contributors, including coding agents validating runtime behavior; Build and release maintainers; Product and specification owners.
+
 Pinned Claude Code 2.1.218; production candidate
 `2b2a70c3eafb6e0b9f8071a1ee317340b3a1989e`; controlled Effect reviewer.
 No production code changed. Raw responses, fixture source and credentials

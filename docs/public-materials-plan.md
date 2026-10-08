@@ -1,6 +1,7 @@
 # Hapsland public materials handoff
 
 **Purpose:** Draft the README and site story, with a reusable bank of editorial ideas.
+**Audience:** Public documentation and website contributors; product and specification owners.
 **Status:** Temporary design proposal following the owner's 2026-10-01 scope agreement; copy and visual execution remain drafts.
 **Authority:** Communication proposal, not an accepted product contract or new verification evidence. Linked maintained owners define behavior.
 **Expected use:** Write public explanations and brief later visual implementation without expanding product promises.

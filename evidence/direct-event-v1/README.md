@@ -1,5 +1,7 @@
 # Direct-event v1 conformance evidence
 
+**Audience:** Contributors, including coding agents validating runtime behavior; Build and release maintainers; Product and specification owners.
+
 The [acceptance narrative](acceptance-record.md) retains the historical outcome narrative extracted from the support declaration.
 
 This directory retains sanitized release evidence for the initial supported profile:

@@ -1,6 +1,7 @@
 # Configuration and rules
 
 **Purpose:** Explain rule authoring, explicit activation, and source-selection settings.
+**Audience:** End users; Rule authors; Contributors, including coding agents.
 **Status:** Active maintained guidance for the 2026-10-05 owner-approved rule design.
 **Authority:** Maintained guidance for the accepted [rule and configuration contract](review-contract-compatibility.md) and [direct-review contract](type-function-review-proposal.md); generated field tables describe the current schema.
 **Expected use:** Author a rule, choose where it applies, and explain effective review settings.

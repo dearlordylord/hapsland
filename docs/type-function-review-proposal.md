@@ -1,6 +1,7 @@
 # Issue #93: diff-selected type and function review target specification
 
 **Purpose:** Define the direct-edit type and function review behavior.
+**Audience:** Contributors, including coding agents; Rule authors; Product and specification owners.
 **Status:** Accepted target.
 **Authority:** Accepted product contract. Implementation and tests are separate evidence.
 **Expected use:** Build and review the direct-edit path.

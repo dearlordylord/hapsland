@@ -1,6 +1,7 @@
 # Hapsland and Abide: readable rule examples and measured outcomes
 
 **Purpose:** Show concrete examples for the nine Hapsland rules evaluated at execution time and explain their comparative validation.
+**Audience:** Prospective users; rule authors; evaluation contributors and reviewers.
 **Status:** Draft for publication review; current resource-rule batch completed on 2026-10-03 (UTC).
 **Authority:** Comparative research advisory and validation evidence; not an accepted product contract or release certification.
 **Expected use:** Read the code, inspect measured differences and limitations, and assess relevance to your workflow.

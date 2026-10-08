@@ -1,5 +1,7 @@
 # Declaration-extraction deferred work
 
+**Audience:** Contributors, including coding agents working on declaration extraction; Product and specification owners.
+
 ## Re-reviewing unchanged dependents
 
 Discussion decision: 2026-09-20.

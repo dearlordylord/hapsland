@@ -1,6 +1,7 @@
 # Review contract compatibility
 
 **Purpose:** Record how direct-edit type and function review fits configuration, rules, identity, and delivery.
+**Audience:** Contributors, including coding agents; Rule authors; Product and specification owners.
 **Status:** Maintained.
 **Authority:** Accepted product contract for the named compatibility decisions. Tests and conformance records supply implementation evidence.
 **Expected use:** Check changes to configuration, rule definitions, review input, and review result reuse.

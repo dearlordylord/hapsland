@@ -1,6 +1,7 @@
 # Readiness doctor and session activity
 
 **Purpose:** Explain offline readiness, session activity, optional analytics, and local inspection observations.
+**Audience:** End users; contributors maintaining diagnostics and inspection.
 **Status:** Active user guidance.
 **Authority:** Maintained guidance describing implementation; accepted review contracts remain in their specification owners.
 **Expected use:** Diagnose readiness and inspect recorded session work.

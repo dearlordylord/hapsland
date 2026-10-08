@@ -3,19 +3,22 @@ import { dirname, relative, resolve } from "node:path"
 import { fileEvidence } from "./compiler-evidence.mjs"
 import { readPackageGraph, resolveDeclaredDependencyVersion } from "./package-graph.mjs"
 
-export const authoredTaskToolingFiles = (node) =>
-  [
+export const authoredTaskToolingFiles = (node) => [
+  ...[
     "authored-task-inputs",
     "compiler-evidence",
     "package-graph",
     "build-lock",
+    "build-custody-gate",
     "owned-lock",
     "build-process",
     "build-groups",
     ...(node.compiler === "bend"
       ? ["bend-producer", "bend-toolchain"]
       : ["compile-package", "compiler-context", "pinned-typescript"])
-  ].map((name) => `scripts/${name}.mjs`)
+  ].map((name) => `scripts/${name}.mjs`),
+  "native/src/inspection-lock.c"
+]
 
 const identity = (node) => {
   const domain = node.manifest.hapsland?.domain

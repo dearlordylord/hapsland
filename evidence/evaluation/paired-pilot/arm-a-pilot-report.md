@@ -1,5 +1,7 @@
 # Issue #95 Stage 2: stopped after pair 1, Arm A
 
+**Audience:** Evaluation contributors and reviewers; Product and specification owners.
+
 **Recorded:** 2026-09-24. **Meter correction:** 2026-09-24, after supplemental review. This is an incomplete paired evaluation. No Arm B or pair 2 session was started. The [preregistered protocol](protocol.md) remains unchanged.
 
 ## Observed session

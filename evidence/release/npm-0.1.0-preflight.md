@@ -1,5 +1,7 @@
 # Local npm archive preflight evidence — 2026-09-24
 
+**Audience:** Build and release maintainers; contributors investigating installed-package behavior.
+
 This is a historical local observation, not a release plan or a claim about a
 published package. The future publication procedure is in the
 [publishing guide](../../docs/npm-publishing.md); [issue #87](https://github.com/dearlordylord/hapsland/issues/87)

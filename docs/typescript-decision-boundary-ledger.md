@@ -1,6 +1,7 @@
 # TypeScript decisions outside Bend
 
 **Purpose:** Account for reviewed product decisions that Hapsland deliberately makes in TypeScript before or around the canonical Bend reducer.
+**Audience:** Contributors, including coding agents reviewing decision ownership; Product and specification owners.
 **Status:** Active maintained boundary ledger.
 **Authority:** Maintained architecture guidance and a record of owner review. Accepted product contracts remain in their named specification owners; this ledger does not grant new runtime support.
 **Expected use:** Use reviewed entries and source links to check the current implementation and Bend boundary. New unresolved candidates may be tracked separately until reviewed.

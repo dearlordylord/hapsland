@@ -1,6 +1,7 @@
 # Direct-event v1 production profile
 
 **Purpose:** Preserve the measured direct-event v1 conformance record.
+**Audience:** Contributors, including coding agents maintaining runtime adapters; Build and release maintainers.
 **Status:** Historical validation evidence; superseded as the active input by the 2026-09-29 owner decision.
 **Authority:** Implementation and validation evidence, not the current product contract.
 **Expected use:** Compare prior measured behavior with the active #93 type/function contract.

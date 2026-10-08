@@ -16,7 +16,8 @@ import { fileEvidence } from "./compiler-evidence.mjs"
 const fixture = (t, compiler = "typescript") => {
   const root = mkdtempSync(resolve(tmpdir(), "haps-authored-inputs-"))
   t.after(() => rmSync(root, { recursive: true, force: true }))
-  for (const directory of ["scripts", "packages/owner/src"]) mkdirSync(resolve(root, directory), { recursive: true })
+  for (const directory of ["scripts", "native/src", "packages/owner/src"])
+    mkdirSync(resolve(root, directory), { recursive: true })
   const put = (path, value) =>
     writeFileSync(resolve(root, path), typeof value === "string" ? value : JSON.stringify(value))
   put("package.json", { catalog: { effect: "4.0.0" } })

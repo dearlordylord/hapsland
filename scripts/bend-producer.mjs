@@ -356,6 +356,8 @@ function toolchainCore(root, env) {
       "scripts/native-toolchain-inputs.mjs",
       "scripts/build-process.mjs",
       "scripts/build-lock.mjs",
+      "scripts/build-custody-gate.mjs",
+      "native/src/inspection-lock.c",
       "scripts/build-groups.mjs",
       "scripts/owned-lock.mjs"
     ].map((path) => evidence(root, resolve(root, path)))

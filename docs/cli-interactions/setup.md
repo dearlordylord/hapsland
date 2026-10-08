@@ -1,6 +1,7 @@
 # Setup interaction
 
 **Purpose:** Show the CLI setup journey from agent selection through per-agent approval, credential saving, verification and readiness.
+**Audience:** Contributors, including coding agents; Product and specification owners reviewing CLI journeys.
 **Status:** Maintained generated diagram.
 **Authority:** Implementation and controlled validation evidence for #244; accepted installation and credential contracts retain authority.
 **Expected use:** Understand setup choices and outcomes and run `npm run interaction:diagrams:check` for non-writing freshness.
