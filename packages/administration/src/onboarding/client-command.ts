@@ -16,8 +16,8 @@ export const clientCommandDefinitions = [
   {
     name: "update",
     summary: "Preview and confirm updates to registered integrations",
-    description: `Without CLIENT, updates registered profiles. Requires a terminal and confirmation. The registry channel defaults to ${DEFAULT_UPDATE_CHANNEL}; --version selects a release within a channel. --target and --tarball cannot be combined with other release selectors. For automation, use version-one --update-preview / --update JSON requests instead of this interactive command.`,
-    clientDescription: "Optional; omitted means all registered profiles",
+    description: `Without CLIENT, updates the shared resident and registered runtime profiles. --resident-only updates the shared resident alone. A CLIENT argument updates only its hooks. Requires a terminal and confirmation. The registry channel defaults to ${DEFAULT_UPDATE_CHANNEL}; --version selects a release within a channel. --target and --tarball cannot be combined with other release selectors. For automation, use version-one --update-preview / --update JSON requests instead of this interactive command.`,
+    clientDescription: "Optional; omitted means the shared resident and all registered profiles",
     options: "update",
     examples: ["", ...SUPPORTED_CLIENTS.map((client) => `${client} --channel ${DEFAULT_UPDATE_CHANNEL}`)]
   },

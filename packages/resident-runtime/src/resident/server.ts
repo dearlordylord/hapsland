@@ -4,6 +4,7 @@ import {
   type DirectObservation,
   type DirectAdvicee
 } from "@hapsland/native-observation/direct-event/observation"
+import { packageBuildIdentity } from "@hapsland/runtime-environment/runtime/package-runtime"
 import { providerEnvironmentOnly } from "@hapsland/runtime-environment/runtime/backend"
 import { InspectionTransportObservation } from "@hapsland/inspection-records/inspection/transport"
 import {
@@ -111,6 +112,13 @@ import {
   type ResidentPaths
 } from "@hapsland/resident-transport/resident/paths"
 import {
+  decodeCurrentResidentFrame,
+  residentUpdateRecipient,
+  residentUpdateOpportunity,
+  type UpdateRecipient,
+  CURRENT_HOOK_CONTRACT,
+  UPDATE_NOTICE_COOLDOWN_MS,
+  MAX_UPDATE_NOTICE_KEYS,
   DELIVERY_LEASE_MS,
   EDIT_REQUEST_DEADLINE_MS,
   MAX_IPC_CONNECTIONS,
@@ -662,6 +670,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const reviewSettings = yield* makeReviewSettings()
   const residentLedger = yield* makeResidentState<UnitJob, string, Job>()
   const admissionLock = yield* Semaphore.make(1)
+  const updateNoticeBudgets = yield* Ref.make<ReadonlyMap<string, number>>(new Map())
   const lifetime = residentLedger.residentLifetime
   // Optional provenance is bounded independently of review authority and contains no source.
   const inspectionOrigins = new Map<string, string>()
@@ -5246,7 +5255,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (request.operation === "hello") {
       return residentResponse(
         (yield* residentLedger.runtime.snapshot()).lifecycle === "active"
-          ? { status: "ready", lifetime: runtime.lifetime, pid: process.pid }
+          ? { status: "ready", lifetime: runtime.lifetime, pid: process.pid, build: packageBuildIdentity }
           : { status: "obsolete-lifetime" }
       )
     }
@@ -5365,6 +5374,19 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         ...inspection.currentRecording()
       })
     if (request.operation === "stats") return residentResponse(yield* runtime.operations.stats())
+    if (request.operation === "replace") {
+      // Replacement may abandon transient work. Fence authority before acknowledging;
+      // the existing disposer cancels work and releases only this owner's endpoints.
+      yield* Effect.uninterruptible(
+        Effect.gen(function* () {
+          yield* residentLedger.runtime.close()
+          // Like ordinary retirement, allow a brief reply window. Disposal remains
+          // owned by the resident scope even if the requester disconnects.
+          yield* Effect.forkIn(Effect.sleep("10 millis").pipe(Effect.andThen(runtime.close)), residentRuntimeScope)
+        })
+      )
+      return residentResponse({ status: "replacing" })
+    }
     if (request.operation === "cleanup") return yield* residentHandleCleanup(request)
     return undefined
   })
@@ -5376,10 +5398,37 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (request.operation === "admit" || request.operation === "admit-and-collect")
       inspectionRefuse(request.observation, request.dispatch, reason)
   }
+  const incompatibleCallerResponse = Effect.fn("ResidentRuntime.incompatibleCallerResponse")(function* (
+    recipient: UpdateRecipient | undefined,
+    eligible: boolean
+  ) {
+    if ((yield* residentLedger.runtime.snapshot()).lifecycle !== "active")
+      return residentResponse({ status: "obsolete-lifetime" })
+    let warn = false
+    if (recipient !== undefined && eligible) {
+      const key = JSON.stringify([recipient.host, recipient.sessionId, recipient.subagentId])
+      const now = residentNow()
+      warn = yield* Ref.modify(updateNoticeBudgets, (current) => {
+        const next = new Map([...current].filter(([, expiry]) => expiry > now))
+        if (next.has(key) || next.size >= MAX_UPDATE_NOTICE_KEYS) return [false, next] as const
+        next.set(key, now + UPDATE_NOTICE_COOLDOWN_MS)
+        return [true, next] as const
+      })
+    }
+    return residentResponse({ status: "update-required", warn })
+  })
+  const incompatibleCaller = (request: ResidentRequest) =>
+    request.operation === "hello" ||
+    request.hookContract === undefined ||
+    request.hookContract === CURRENT_HOOK_CONTRACT
+      ? Effect.succeed(undefined)
+      : incompatibleCallerResponse(residentUpdateRecipient(request), residentUpdateOpportunity(request))
   const residentHandle = Effect.fn("ResidentRuntime.handle")(function* (
     request: ResidentRequest,
     responseContext?: Ref.Ref<ResponseContext>
   ) {
+    const incompatible = yield* incompatibleCaller(request)
+    if (incompatible !== undefined) return incompatible
     const context = yield* residentResponseContext(responseContext)
     const lifetime = yield* residentRequestLifetime(request)
     if (lifetime !== undefined) {
@@ -5983,7 +6032,15 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentServe = Effect.fn("ResidentIpc.serve")(function* (port: SocketFramePort) {
     const frame = yield* port.read
     if (frame._tag === "Closed") return
-    const decoded = frame._tag === "Frame" ? decodeCurrentResidentRequest(frame.encoded) : undefined
+    const message = frame._tag === "Frame" ? decodeCurrentResidentFrame(frame.encoded) : undefined
+    if (message?.kind === "incompatible") {
+      yield* port.write(
+        encodeCurrentResidentResponse(yield* incompatibleCallerResponse(message.recipient, message.eligible))
+      )
+      yield* port.closed
+      return
+    }
+    const decoded = message?.kind === "request" ? message.request : undefined
     if (decoded === undefined) {
       yield* port.write(
         encodeCurrentResidentResponse({ status: frame._tag === "Oversized" ? "rejected-capacity" : "unsupported" })

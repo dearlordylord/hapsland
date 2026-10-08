@@ -1,3 +1,4 @@
+import { standaloneHookBinding, bindingDigest, sameStandaloneImplementation } from "./hook-binding.ts"
 import { sourceRuntimeFromEntrypoint } from "@hapsland/runtime-environment/runtime/source-runtime-layout"
 import { commandHookGroup, commandHooks } from "@hapsland/runtime-environment/runtime/hook-catalog"
 import {
@@ -157,23 +158,45 @@ const parseJsonObject = (file: FileSnapshot): JsonObject => {
 
 const quoteShell = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
 
-const codexHookOptions = (runtime: string, entrypoint: string, hostVersion: string, controlledReviewer: boolean) => ({
-  command: commandTokens(runtime, entrypoint).map(quoteShell).join(" "),
+const codexHookOptions = (
+  runtime: string,
+  entrypoint: string,
+  hostVersion: string,
+  controlledReviewer: boolean,
+  bindingCommand?: string
+) => ({
+  command: bindingCommand ?? commandTokens(runtime, entrypoint).map(quoteShell).join(" "),
   editMarker: OWNED_MARKER,
   composedMarker: COMPOSED_MARKER,
   ...(hostVersion === "0.155.1" ? {} : { versionFlag: `--codex-version=${hostVersion}` }),
   controlledReviewer
 })
-const composedGroups = (runtime: string, entrypoint: string, hostVersion: string, controlledReviewer = false) => {
-  const options = codexHookOptions(runtime, entrypoint, hostVersion, controlledReviewer)
+const composedGroups = (
+  runtime: string,
+  entrypoint: string,
+  hostVersion: string,
+  controlledReviewer = false,
+  bindingCommand?: string
+) => {
+  const options = codexHookOptions(runtime, entrypoint, hostVersion, controlledReviewer, bindingCommand)
   return {
     PreToolUse: commandHookGroup("codex", "PreToolUse", options),
     Stop: commandHookGroup("codex", "Stop", options),
     SubagentStop: commandHookGroup("codex", "SubagentStop", options)
   }
 }
-const ownedGroup = (runtime: string, entrypoint: string, hostVersion = "0.155.1", controlledReviewer = false) =>
-  commandHookGroup("codex", "PostToolUse", codexHookOptions(runtime, entrypoint, hostVersion, controlledReviewer))
+const ownedGroup = (
+  runtime: string,
+  entrypoint: string,
+  hostVersion = "0.155.1",
+  controlledReviewer = false,
+  bindingCommand?: string
+) =>
+  commandHookGroup(
+    "codex",
+    "PostToolUse",
+    codexHookOptions(runtime, entrypoint, hostVersion, controlledReviewer, bindingCommand)
+  )
 
 const hookFingerprint = (value: unknown) => sha256(`installation-v1:hook\0${stableJson(value)}`)
 
@@ -543,6 +566,7 @@ const reinstallDigest = (baseDigest: string, replacedJournalDigest?: string) =>
     : sha256(stableJson({ version: 1, baseDigest, replacedJournalDigest }))
 
 const pathsFor = (home: string) => ({
+  binding: join(home, PRODUCT_DIRECTORY, "codex-hook-launcher.sh"),
   config: join(home, "config.toml"),
   hooks: join(home, "hooks.json"),
   product: join(home, PRODUCT_DIRECTORY),
@@ -860,6 +884,7 @@ const buildInputs = (
     codex: codexCompatibility(configured.hostObserved, codexVersions, configured.hooksAvailable),
     runtimeProbe: configured.runtimeProbe,
     ...metadata,
+    binding: standaloneHookBinding(executable, entrypoint, home, "codex"),
     paths: pathsFor(home)
   }
 }
@@ -929,21 +954,54 @@ const makeOwnershipRecord = (
   marker: OWNED_MARKER,
   hookFingerprint: fingerprint,
   hookGroups: {
-    PostToolUse: ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer),
-    ...composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer)
+    PostToolUse: ownedGroup(
+      inputs.executable,
+      inputs.entrypoint,
+      inputs.codex.version,
+      inputs.controlledReviewer,
+      inputs.binding?.command
+    ),
+    ...composedGroups(
+      inputs.executable,
+      inputs.entrypoint,
+      inputs.codex.version,
+      inputs.controlledReviewer,
+      inputs.binding?.command
+    )
   },
   composedFingerprints: {
     preToolUse: hookFingerprint(
-      composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer).PreToolUse
+      composedGroups(
+        inputs.executable,
+        inputs.entrypoint,
+        inputs.codex.version,
+        inputs.controlledReviewer,
+        inputs.binding?.command
+      ).PreToolUse
     ),
     stop: hookFingerprint(
-      composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer).Stop
+      composedGroups(
+        inputs.executable,
+        inputs.entrypoint,
+        inputs.codex.version,
+        inputs.controlledReviewer,
+        inputs.binding?.command
+      ).Stop
     ),
     subagentStop: hookFingerprint(
-      composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer).SubagentStop
+      composedGroups(
+        inputs.executable,
+        inputs.entrypoint,
+        inputs.codex.version,
+        inputs.controlledReviewer,
+        inputs.binding?.command
+      ).SubagentStop
     )
   },
   owned: [
+    ...(inputs.binding === undefined
+      ? []
+      : [{ file: inputs.binding.path, kind: "hook" as const, fingerprint: inputs.binding.fingerprint }]),
     ...(featureOwned
       ? [{ file: inputs.paths.config, kind: "feature" as const, fingerprint: HOOKS_FEATURE_FINGERPRINT }]
       : []),
@@ -1017,13 +1075,38 @@ const installMutations = (
     : [mutation(ownership, nextOwnership, "write the versioned ownership record")])
 ]
 
+const bindingMutation = (
+  inputs: ReturnType<typeof buildInputs>,
+  record: OwnershipRecord | undefined,
+  reinstall = false
+) => {
+  const binding = inputs.binding
+  if (binding === undefined) return []
+  const before = snapshot(binding.path)
+  const owned = record?.owned.find((entry) => entry.file === binding.path && entry.kind === "hook")
+  if (before.exists && !reinstall && (owned === undefined || bindingDigest(before.content) !== owned.fingerprint))
+    throw new Error("owned hook launcher was locally modified or unrecorded; preview reinstall")
+  return before.content === binding.content
+    ? []
+    : [mutation(before, binding.content, "select the scoped hook implementation")]
+}
+
+const preserveHookFormatting = (before: ReturnType<typeof snapshot>, next: Record<string, unknown>): string =>
+  before.exists && stableJson(parseJsonObject(before)) === stableJson(next) ? before.content : encodeJson(next)
+
 const makeInstallPlan = (request: InstallationRequest, inputs: ReturnType<typeof buildInputs>) => {
   const config = snapshot(inputs.paths.config)
   const hooks = snapshot(inputs.paths.hooks)
   const ownership = snapshot(inputs.paths.ownership)
   const resetJournal = request.reinstall ? snapshot(inputs.paths.journal) : undefined
   const existingRecord = existingInstallOwnership(inputs.paths.ownership, request.reinstall)
-  const group = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer)
+  const group = ownedGroup(
+    inputs.executable,
+    inputs.entrypoint,
+    inputs.codex.version,
+    inputs.controlledReviewer,
+    inputs.binding?.command
+  )
   const fingerprint = hookFingerprint(group)
   const originalRoot = parseJsonObject(hooks)
   const hookRoot = request.reinstall
@@ -1033,10 +1116,17 @@ const makeInstallPlan = (request: InstallationRequest, inputs: ReturnType<typeof
   const nextConfig = enableHooksFeature(config)
 
   const nextHooksRoot = existingRecord === undefined ? addOwnedHook(hookRoot, group) : replaceOwnedHook(hookRoot, group)
-  const nextHooks = encodeJson(
+  const nextHooks = preserveHookFormatting(
+    hooks,
     withComposedGroups(
       nextHooksRoot,
-      composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer),
+      composedGroups(
+        inputs.executable,
+        inputs.entrypoint,
+        inputs.codex.version,
+        inputs.controlledReviewer,
+        inputs.binding?.command
+      ),
       request.reinstall ? undefined : existingRecord?.composedFingerprints,
       true,
       existingRecord?.hookGroups
@@ -1045,7 +1135,10 @@ const makeInstallPlan = (request: InstallationRequest, inputs: ReturnType<typeof
   const featureOwned = installFeatureOwned(existingRecord, config, nextConfig)
   const record = makeOwnershipRecord(inputs, fingerprint, featureOwned)
   const nextOwnership = encodeJson(record)
-  const mutations = installMutations(config, hooks, ownership, nextConfig, nextHooks, nextOwnership, resetJournal)
+  const mutations = [
+    ...bindingMutation(inputs, existingRecord, request.reinstall),
+    ...installMutations(config, hooks, ownership, nextConfig, nextHooks, nextOwnership, resetJournal)
+  ]
   return {
     inputs,
     mutations,
@@ -1095,27 +1188,54 @@ const makeUpdatePlan = (request: InstallationRequest, inputs: ReturnType<typeof 
   const hooks = snapshot(inputs.paths.hooks)
   const hookRoot = parseJsonObject(hooks)
   validateUpdateHook(hookRoot, record)
-  const targetGroup = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer)
+  const targetGroup = ownedGroup(
+    inputs.executable,
+    inputs.entrypoint,
+    inputs.codex.version,
+    inputs.controlledReviewer,
+    inputs.binding?.command
+  )
   const targetFingerprint = hookFingerprint(targetGroup)
-  const nextHooks = encodeJson(
+  const nextHooks = preserveHookFormatting(
+    hooks,
     withComposedGroups(
       replaceOwnedHook(hookRoot, targetGroup),
-      composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer),
+      composedGroups(
+        inputs.executable,
+        inputs.entrypoint,
+        inputs.codex.version,
+        inputs.controlledReviewer,
+        inputs.binding?.command
+      ),
       record.composedFingerprints,
       true,
       record.hookGroups
     )
   )
   const ownership = snapshot(inputs.paths.ownership)
-  const nextOwnership = encodeJson(
-    makeOwnershipRecord(inputs, targetFingerprint, ownedFeature !== undefined || nextConfig !== config.content)
-  )
+  const bindingChanges = bindingMutation(inputs, record)
+  const equivalent =
+    inputs.binding !== undefined &&
+    snapshot(inputs.paths.binding).exists &&
+    record.owned.some((entry) => entry.file === inputs.binding?.path) &&
+    sameStandaloneImplementation(record, commandFromEntrypoint(inputs.executable, inputs.entrypoint)) &&
+    nextHooks === hooks.content &&
+    nextConfig === config.content
+  const nextOwnership = equivalent
+    ? ownership.content
+    : encodeJson(
+        makeOwnershipRecord(inputs, targetFingerprint, ownedFeature !== undefined || nextConfig !== config.content)
+      )
   const mutations = [
     // Recording the target first retains the previous working hook if a later
     // per-file write fails. The journal reports and safely resumes this exact state.
-    ...(nextOwnership === ownership.content && nextHooks === hooks.content && nextConfig === config.content
+    ...(nextOwnership === ownership.content &&
+    nextHooks === hooks.content &&
+    nextConfig === config.content &&
+    (equivalent || bindingChanges.length === 0)
       ? []
       : [mutation(ownership, nextOwnership, "record the target packaged runtime")]),
+    ...(equivalent ? [] : bindingChanges),
     ...(nextConfig === config.content ? [] : [mutation(config, nextConfig, "enable Codex's native hooks feature")]),
     ...(nextHooks === hooks.content
       ? []
@@ -1193,6 +1313,14 @@ const makeUninstallPlan = (request: InstallationRequest, inputs: ReturnType<type
     ...(nextHooks === hooks.content
       ? []
       : [mutation(hooks, nextHooks, "remove only the owned PostToolUse adapter hook")]),
+    ...(() => {
+      const binding = record.owned.find((entry) => entry.file === inputs.paths.binding && entry.kind === "hook")
+      if (binding === undefined) return []
+      const before = snapshot(inputs.paths.binding)
+      if (before.exists && bindingDigest(before.content) !== binding.fingerprint)
+        throw new Error("owned hook launcher was locally modified")
+      return before.exists ? [mutation(before, null, "remove the owned hook launcher")] : []
+    })(),
     mutation(ownership, null, "remove the versioned ownership record")
   ]
   return { inputs, mutations, digest: installationDigest("uninstall", inputs.home, mutations), alreadyRemoved: false }
@@ -1390,7 +1518,13 @@ const recoveryPlan = (journal: Journal, inputs: ReturnType<typeof buildInputs>) 
   const configChange = byPath.get(inputs.paths.config)
   const hooksChange = byPath.get(inputs.paths.hooks)
   const ownershipChange = byPath.get(inputs.paths.ownership)
-  const targetGroup = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer)
+  const targetGroup = ownedGroup(
+    inputs.executable,
+    inputs.entrypoint,
+    inputs.codex.version,
+    inputs.controlledReviewer,
+    inputs.binding?.command
+  )
   const targetFingerprint = hookFingerprint(targetGroup)
   const priorOwnership = decodedOwnershipContent(ownershipChange?.beforeContent ?? null)
   const priorComposed = recoveryComposedFingerprints(priorOwnership)
@@ -1398,7 +1532,8 @@ const recoveryPlan = (journal: Journal, inputs: ReturnType<typeof buildInputs>) 
     inputs.executable,
     inputs.entrypoint,
     inputs.codex.version,
-    inputs.controlledReviewer
+    inputs.controlledReviewer,
+    inputs.binding?.command
   )
   const priorFeatureOwned = recoveryFeatureOwned(priorOwnership, inputs.paths.config)
   return {
@@ -1622,7 +1757,36 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof bu
     throw new Error("recovery journal proposal digest does not match its declared changes")
   }
 
-  recoveryValidators[journal.operation](journal, inputs, recoveryPlan(journal, inputs))
+  const plan = recoveryPlan(journal, inputs)
+  const bindingChange = journal.mutations.find((change) => change.path === inputs.paths.binding)
+  if (bindingChange !== undefined && journal.operation === "uninstall") {
+    const owned = Array.isArray(plan.priorOwnership?.owned) ? plan.priorOwnership.owned : []
+    if (
+      bindingChange.afterContent !== null ||
+      bindingChange.description !== "remove the owned hook launcher" ||
+      !owned.some(
+        (entry: unknown) =>
+          isObject(entry) &&
+          entry.file === inputs.paths.binding &&
+          entry.kind === "hook" &&
+          entry.fingerprint === bindingDigest(bindingChange.beforeContent ?? "")
+      )
+    )
+      throw new Error("recovery journal does not remove an owned hook launcher")
+  } else if (
+    bindingChange !== undefined &&
+    (inputs.binding === undefined || bindingChange.afterContent !== inputs.binding.content)
+  ) {
+    throw new Error("recovery journal does not select the target hook launcher")
+  } else if (
+    inputs.binding !== undefined &&
+    journal.operation !== "uninstall" &&
+    bindingChange === undefined &&
+    snapshot(inputs.paths.binding).content !== inputs.binding.content
+  ) {
+    throw new Error("target hook launcher changed during recovery")
+  }
+  recoveryValidators[journal.operation](journal, inputs, plan)
 }
 
 const validateUnchangedRecoveryFeature = (journal: Journal, inputs: ReturnType<typeof buildInputs>) => {
@@ -1689,7 +1853,14 @@ const validateRecoveryMutation = (
   inputs: ReturnType<typeof buildInputs>
 ) => {
   if (change.afterContent === null) return
-  if (change.path === inputs.paths.config) {
+  if (change.path === inputs.paths.binding) {
+    if (
+      inputs.binding === undefined ||
+      change.afterContent !== inputs.binding.content ||
+      change.description !== "select the scoped hook implementation"
+    )
+      throw new Error("recovery journal hook launcher does not match the selected package")
+  } else if (change.path === inputs.paths.config) {
     assertHooksSemanticState(change.afterContent, operation === "uninstall" ? "absent" : true)
   } else if (change.path === inputs.paths.hooks) {
     validateRecoveryHookContent(change.afterContent, operation)
@@ -1698,7 +1869,7 @@ const validateRecoveryMutation = (
   }
 }
 const validateJournalScope = (journal: Journal, inputs: ReturnType<typeof buildInputs>) => {
-  const allowed = new Set([inputs.paths.config, inputs.paths.hooks, inputs.paths.ownership])
+  const allowed = new Set([inputs.paths.config, inputs.paths.hooks, inputs.paths.ownership, inputs.paths.binding])
   if (
     journal.mutations.some((change) => !allowed.has(change.path)) ||
     new Set(journal.mutations.map((change) => change.path)).size !== journal.mutations.length
@@ -1772,10 +1943,28 @@ const ownedChanges = (inputs: ReturnType<typeof buildInputs>) => ({
     file: inputs.paths.hooks,
     event: "PostToolUse",
     matcher: commandHooks.codex.afterEdit.matcher,
-    handlers: ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer).hooks,
+    handlers: ownedGroup(
+      inputs.executable,
+      inputs.entrypoint,
+      inputs.codex.version,
+      inputs.controlledReviewer,
+      inputs.binding?.command
+    ).hooks,
     groups: {
-      PostToolUse: ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer),
-      ...composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer)
+      PostToolUse: ownedGroup(
+        inputs.executable,
+        inputs.entrypoint,
+        inputs.codex.version,
+        inputs.controlledReviewer,
+        inputs.binding?.command
+      ),
+      ...composedGroups(
+        inputs.executable,
+        inputs.entrypoint,
+        inputs.codex.version,
+        inputs.controlledReviewer,
+        inputs.binding?.command
+      )
     }
   },
   ownership: { file: inputs.paths.ownership, version: OWNERSHIP_VERSION, adapter: "codex" }
@@ -1960,6 +2149,9 @@ const updateRecoveryCommand = (inputs: ReturnType<typeof buildInputs>, proposalD
   request: { version: 1, operation: "update", codexHome: inputs.home, proposalDigest }
 })
 
+const updateChangesNativeHooks = (plan: ReturnType<typeof makeUpdatePlan>, inputs: ReturnType<typeof buildInputs>) =>
+  plan.mutations.some((change) => change.path === inputs.paths.hooks || change.path === inputs.paths.config)
+
 const updatePreviewResult = (
   plan: ReturnType<typeof makeUpdatePlan>,
   host: ReturnType<typeof compatibility>,
@@ -1990,19 +2182,22 @@ const updatePreviewResult = (
     },
     alreadyCurrent: plan.alreadyCurrent,
     automaticUpdate: false,
-    preserved: ["old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
+    preserved: ["old grant files", "credentials", "user rules", "independent hooks"],
     trust: {
       modified: false,
-      status: plan.alreadyCurrent ? "unchanged" : "renewal-required",
-      guidance: plan.alreadyCurrent
-        ? "The exact owned hook definition is already current."
+      status: !updateChangesNativeHooks(plan, inputs) ? "unchanged" : "renewal-required",
+      guidance: !updateChangesNativeHooks(plan, inputs)
+        ? "The native hook definitions are unchanged; renewed hook trust is not required."
         : "After current work completes, restart Codex normally and approve renewed native hook trust if prompted. No trust record or bypass flag was changed."
     },
-    restart: { required: !plan.alreadyCurrent, processesStopped: false },
+    restart: { required: updateChangesNativeHooks(plan, inputs), processesStopped: false },
     completed: [],
     pending: plan.alreadyCurrent
       ? []
-      : ["update using this proposal digest", "restart Codex after current work completes"]
+      : [
+          "update using this proposal digest",
+          ...(updateChangesNativeHooks(plan, inputs) ? ["restart Codex after current work completes"] : [])
+        ]
   }
 }
 
@@ -2034,7 +2229,7 @@ export const previewCodexUpdate = Effect.fn("CodexInstallation.previewUpdate")(f
           totalFiles: pendingJournal.mutations.length,
           command: updateRecoveryCommand(inputs, pendingJournal.proposalDigest)
         },
-        preserved: ["old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
+        preserved: ["old grant files", "credentials", "user rules", "independent hooks"],
         completed: pendingJournal.completed
           .map((index) => pendingJournal.mutations[index]?.description)
           .filter((value) => value !== undefined),
@@ -2106,11 +2301,28 @@ const resumeUpdateJournal = (
     status: "updated",
     host: { adapter: "codex", home: inputs.home },
     resumed: true,
-    preserved: ["old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
-    trust: { modified: false, status: "renewal-required", bypassUsed: false },
-    restart: { required: true, processesStopped: false },
+    preserved: ["old grant files", "credentials", "user rules", "independent hooks"],
+    trust: {
+      modified: false,
+      status: existingJournal.mutations.some(
+        (change) => change.path === inputs.paths.hooks || change.path === inputs.paths.config
+      )
+        ? "renewal-required"
+        : "unchanged",
+      bypassUsed: false
+    },
+    restart: {
+      required: existingJournal.mutations.some(
+        (change) => change.path === inputs.paths.hooks || change.path === inputs.paths.config
+      ),
+      processesStopped: false
+    },
     completed: existingJournal.mutations.map((change) => change.description),
-    pending: ["restart Codex after current work completes and approve renewed hook trust if prompted"]
+    pending: existingJournal.mutations.some(
+      (change) => change.path === inputs.paths.hooks || change.path === inputs.paths.config
+    )
+      ? ["restart Codex after current work completes and approve renewed hook trust if prompted"]
+      : []
   }
 }
 
@@ -2135,7 +2347,7 @@ const partialUpdateResult = (
       totalFiles: plan.mutations.length,
       command: updateRecoveryCommand(inputs, plan.digest)
     },
-    preserved: ["old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
+    preserved: ["old grant files", "credentials", "user rules", "independent hooks"],
     completed: (current?.completed ?? [])
       .map((index) => plan.mutations[index]?.description)
       .filter((value) => value !== undefined),
@@ -2165,11 +2377,17 @@ const applyUpdatePlan = (
     operation: "update",
     status: "updated",
     host: { adapter: "codex", home: inputs.home },
-    preserved: ["old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
-    trust: { modified: false, status: "renewal-required", bypassUsed: false },
-    restart: { required: true, processesStopped: false },
+    preserved: ["old grant files", "credentials", "user rules", "independent hooks"],
+    trust: {
+      modified: false,
+      status: updateChangesNativeHooks(plan, inputs) ? "renewal-required" : "unchanged",
+      bypassUsed: false
+    },
+    restart: { required: updateChangesNativeHooks(plan, inputs), processesStopped: false },
     completed: plan.mutations.map((change) => change.description),
-    pending: ["restart Codex after current work completes and approve renewed hook trust if prompted"]
+    pending: updateChangesNativeHooks(plan, inputs)
+      ? ["restart Codex after current work completes and approve renewed hook trust if prompted"]
+      : []
   }
 }
 
@@ -2216,7 +2434,7 @@ export const updateCodexIntegration = Effect.fn("CodexInstallation.update")(func
                 operation: "update",
                 status: "already-current",
                 host: { adapter: "codex", home: inputs.home },
-                preserved: ["old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
+                preserved: ["old grant files", "credentials", "user rules", "independent hooks"],
                 trust: { modified: false, status: "unchanged", bypassUsed: false },
                 restart: { required: false, processesStopped: false },
                 completed: [],

@@ -291,6 +291,14 @@
     "./onboarding/setup-selection": {
       "types": "./dist/onboarding/setup-selection.d.ts",
       "default": "./dist/onboarding/setup-selection.js"
+    },
+    "./onboarding/resident-update": {
+      "types": "./dist/onboarding/resident-update.d.ts",
+      "default": "./dist/onboarding/resident-update.js"
+    },
+    "./onboarding/hook-binding": {
+      "types": "./dist/onboarding/hook-binding.d.ts",
+      "default": "./dist/onboarding/hook-binding.js"
     }
   },
   "dependencies": {

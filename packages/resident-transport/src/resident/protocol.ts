@@ -72,9 +72,13 @@ export type ResidentDispatchContext = {
 
 /** The sole on-socket CLI/resident message version. Internal response shapes remain operation-specific. */
 export const CURRENT_IPC_VERSION = 1 as const
+/** Change only when the hook-facing call contract actually becomes incompatible. */
+export const CURRENT_HOOK_CONTRACT = 1 as const
+export const UPDATE_NOTICE_COOLDOWN_MS = 600_000
+export const MAX_UPDATE_NOTICE_KEYS = 1_024
 export type ResidentRequestRoute = "shared" | "edit"
 export type ResidentUnavailableReason = "backend" | "credential" | "capacity" | "stale" | "lost" | "expired"
-export type ResidentRequest =
+export type ResidentRequest = (
   | {
       readonly requestRoute: "shared"
       readonly operation: "record-native"
@@ -188,8 +192,12 @@ export type ResidentRequest =
     }
   | { readonly requestRoute: "shared"; readonly operation: "stats" | "inspection-status"; readonly lifetime: string }
   | { readonly requestRoute: "shared"; readonly operation: "cleanup"; readonly lifetime: string }
+  | { readonly requestRoute: "shared"; readonly operation: "replace"; readonly lifetime: string }
+) & { readonly hookContract?: number; readonly updateNotice?: boolean }
 
 export type ResidentResponse =
+  | { readonly status: "update-required"; readonly warn: boolean }
+  | { readonly status: "replacing" }
   | { readonly status: "edit-policy"; readonly policy: ResidentEditPolicy }
   | { readonly status: "recipient-root"; readonly root: string | null }
   | {
@@ -210,7 +218,7 @@ export type ResidentResponse =
       readonly findingCount: number
       readonly output: ClaudeHostOutput
     }
-  | { readonly status: "ready"; readonly lifetime: string; readonly pid: number }
+  | { readonly status: "ready"; readonly lifetime: string; readonly pid: number; readonly build: string }
   | {
       readonly status: "inspection-status"
       readonly sourceId: string
@@ -566,7 +574,7 @@ const ResidentRequestSchema = Schema.Union([
     mode: Schema.Literal("turn-end"),
     finish: Schema.Struct({ token: BoundedString, deadlineReached: Schema.Boolean })
   }),
-  Schema.Struct({ ...lifetime, operation: Schema.Literals(["stats", "cleanup", "inspection-status"]) })
+  Schema.Struct({ ...lifetime, operation: Schema.Literals(["stats", "cleanup", "inspection-status", "replace"]) })
 ])
 const decodeRequest = Schema.decodeUnknownOption(ResidentRequestSchema, { onExcessProperty: "error" })
 
@@ -602,6 +610,8 @@ const FilePolicy = Schema.Struct({
   contextExcludes: Schema.optionalKey(Schema.Array(Schema.String).check(Schema.isMaxLength(1024)))
 })
 const ResidentResponseSchema = Schema.Union([
+  Schema.Struct({ status: Schema.Literal("update-required"), warn: Schema.Boolean }),
+  Schema.Struct({ status: Schema.Literal("replacing") }),
   Schema.Struct({
     status: Schema.Literal("edit-policy"),
     policy: Schema.Struct({ filePolicy: FilePolicy, credentialEnvVar: BoundedString, sessionAnalytics: Schema.Boolean })
@@ -639,7 +649,12 @@ const ResidentResponseSchema = Schema.Union([
 
     output: ClaudeBlockHostOutput
   }),
-  Schema.Struct({ status: Schema.Literal("ready"), lifetime: Schema.NonEmptyString, pid: Schema.Int }),
+  Schema.Struct({
+    status: Schema.Literal("ready"),
+    lifetime: Schema.NonEmptyString,
+    pid: Schema.Int,
+    build: BoundedString
+  }),
   Schema.Struct({
     status: Schema.Literal("inspection-status"),
     sourceId: Digest,
@@ -696,34 +711,93 @@ export const decodeResidentResponse = (value: unknown): ResidentResponse | undef
   return Option.isSome(decoded) ? decoded.value : undefined
 }
 
+export type UpdateRecipient = Pick<DirectAdvicee, "host" | "sessionId" | "subagentId">
+export const residentUpdateRecipient = (request: ResidentRequest): UpdateRecipient | undefined => {
+  const recipient =
+    "advicee" in request ? request.advicee : "observation" in request ? request.observation.advicee : undefined
+  return recipient === undefined
+    ? undefined
+    : { host: recipient.host, sessionId: recipient.sessionId, subagentId: recipient.subagentId }
+}
+export const residentUpdateOpportunity = (request: ResidentRequest): boolean => {
+  const recipient = residentUpdateRecipient(request)
+  return (
+    request.updateNotice ??
+    (["admit", "admit-and-collect", "edit-policy", "prompt-marker"].includes(request.operation) ||
+      (request.operation === "register-edit" && recipient?.host !== "pi") ||
+      (request.operation === "collect" && request.mode === "ordinary"))
+  )
+}
 /** Encode the current wire contract; the request route remains internal. */
 export const encodeCurrentResidentRequest = (request: ResidentRequest): string => {
-  const { requestRoute: _requestRoute, ...fields } = request
-  return JSON.stringify({ ...fields, version: CURRENT_IPC_VERSION })
+  const { requestRoute: _requestRoute, updateNotice: _updateNotice, ...fields } = request
+  const recipient = residentUpdateRecipient(request)
+  return JSON.stringify({
+    ...fields,
+    hookContract: request.hookContract ?? CURRENT_HOOK_CONTRACT,
+    ...(recipient === undefined ? {} : { updateRecipient: recipient }),
+    ...(residentUpdateOpportunity(request) ? { updateNotice: true } : {}),
+    version: CURRENT_IPC_VERSION
+  })
 }
 
 // Preserve operation-specific fields until the strict request alternative decodes
 // them; forbidden internal route keys are rejected before route adaptation.
 const CurrentRequestEnvelope = Schema.StructWithRest(
-  Schema.Struct({ version: Schema.Literal(CURRENT_IPC_VERSION), operation: Schema.String }),
+  Schema.Struct({
+    version: Schema.Literal(CURRENT_IPC_VERSION),
+    operation: Schema.String,
+    hookContract: Schema.optionalKey(Schema.Int.check(Schema.isGreaterThan(0))),
+    updateNotice: Schema.optionalKey(Schema.Boolean),
+    updateRecipient: Schema.optionalKey(
+      Schema.Struct({
+        host: Schema.Literals(["codex-cli", "claude-code", "pi", "opencode"]),
+        sessionId: BoundedString,
+        subagentId: Schema.NullOr(BoundedString)
+      })
+    )
+  }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).check(Schema.makeFilter((value) => !("requestRoute" in value)))
 
-export const decodeCurrentResidentRequest = (encoded: string): ResidentRequest | undefined => {
-  let parsed: unknown
+const decodeEnvelope = (encoded: string) => {
   try {
-    parsed = JSON.parse(encoded)
+    return Schema.decodeUnknownOption(CurrentRequestEnvelope)(JSON.parse(encoded))
   } catch {
-    return undefined
+    return Option.none()
   }
-  const envelope = Schema.decodeUnknownOption(CurrentRequestEnvelope)(parsed)
-  if (Option.isNone(envelope)) return undefined
-  const { version: _version, ...fields } = envelope.value
+}
+const requestFromEnvelope = (envelope: typeof CurrentRequestEnvelope.Type): ResidentRequest | undefined => {
+  const {
+    version: _version,
+    hookContract,
+    updateNotice: _updateNotice,
+    updateRecipient: _updateRecipient,
+    ...fields
+  } = envelope
   const decoded = decodeRequest({
     ...fields,
     requestRoute: fields.operation === "admit-and-collect" ? "edit" : "shared"
   })
-  return Option.isSome(decoded) ? decoded.value : undefined
+  return Option.isNone(decoded)
+    ? undefined
+    : hookContract === undefined || hookContract === CURRENT_HOOK_CONTRACT
+      ? decoded.value
+      : { ...decoded.value, hookContract }
+}
+export const decodeCurrentResidentRequest = (encoded: string): ResidentRequest | undefined => {
+  const envelope = decodeEnvelope(encoded)
+  return Option.isNone(envelope) ? undefined : requestFromEnvelope(envelope.value)
+}
+/** Decode once; incompatible callers need only the stable source-free header. */
+export const decodeCurrentResidentFrame = (encoded: string) => {
+  const envelope = decodeEnvelope(encoded)
+  if (Option.isNone(envelope)) return undefined
+  const value = envelope.value
+  if (value.operation !== "hello" && value.hookContract !== undefined && value.hookContract !== CURRENT_HOOK_CONTRACT)
+    return { kind: "incompatible" as const, recipient: value.updateRecipient, eligible: value.updateNotice === true }
+  const request = requestFromEnvelope(value)
+  return request === undefined ? undefined : { kind: "request" as const, request }
 }
 
 export const encodeCurrentResidentResponse = (response: ResidentResponse): string => {
@@ -739,5 +813,7 @@ export const decodeCurrentResidentResponse = (
   const fields = record(value)
   if (fields?.version !== CURRENT_IPC_VERSION || fields.requestRoute !== undefined) return undefined
   const { version: _version, ...body } = fields
-  return decodeResidentResponse(request.requestRoute === "edit" ? { ...body, requestRoute: "edit" } : body)
+  return decodeResidentResponse(
+    request.requestRoute === "edit" && body.status !== "update-required" ? { ...body, requestRoute: "edit" } : body
+  )
 }

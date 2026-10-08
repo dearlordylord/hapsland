@@ -14,6 +14,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
   ResidentIpcError,
+  ResidentUpdateNotice,
   releaseComposedBackgroundEffect,
   admitAndCollectEffect,
   makeResidentDispatchContextEffect,
@@ -69,7 +70,7 @@ describe("resident client trust boundary", () => {
         requests.push(request)
         const response =
           request.operation === "hello"
-            ? { version: 1, status: "ready", lifetime: "owned", pid: process.pid }
+            ? { version: 1, status: "ready", lifetime: "owned", pid: process.pid, build: "/fixture" }
             : { version: 1, status }
         socket.end(`${JSON.stringify(response)}\n`)
       })
@@ -88,8 +89,17 @@ describe("resident client trust boundary", () => {
     )
     expect(result).toBe(status === "released")
     expect(requests).toEqual([
-      { version: 1, operation: "hello" },
-      { version: 1, operation: "release-background", lifetime: "owned", root: "/repo", advicee, token: "claim" }
+      { version: 1, hookContract: 1, operation: "hello" },
+      {
+        version: 1,
+        hookContract: 1,
+        operation: "release-background",
+        lifetime: "owned",
+        root: "/repo",
+        advicee,
+        token: "claim",
+        updateRecipient: { host: advicee.host, sessionId: advicee.sessionId, subagentId: advicee.subagentId }
+      }
     ])
   })
 
@@ -105,9 +115,11 @@ describe("resident client trust boundary", () => {
       socket.on("data", (chunk) => {
         frame += chunk.toString("utf8")
         if (!frame.includes("\n")) return
-        expect(JSON.parse(frame)).toEqual({ version: 1, operation: "hello" })
+        expect(JSON.parse(frame)).toEqual({ version: 1, hookContract: 1, operation: "hello" })
         received += 1
-        socket.end(`${JSON.stringify({ version: 1, status: "ready", lifetime: "fixture", pid: process.pid })}\n`)
+        socket.end(
+          `${JSON.stringify({ version: 1, status: "ready", lifetime: "fixture", pid: process.pid, build: "/fixture" })}\n`
+        )
       })
     })
     servers.push(server)
@@ -122,7 +134,7 @@ describe("resident client trust boundary", () => {
           Effect.provideService(Scheduler.MaxOpsBeforeYield, 3)
         )
       )
-      expect(response).toEqual({ status: "ready", lifetime: "fixture", pid: process.pid })
+      expect(response).toEqual({ status: "ready", lifetime: "fixture", pid: process.pid, build: "/fixture" })
     }
     expect(received).toBe(3)
   })
@@ -193,7 +205,8 @@ describe("resident client trust boundary", () => {
             try: () => {
               calls.push({ operation: "probe", at: clock, budget: timeoutMs })
               clock += Math.min(100, timeoutMs)
-              if (endpointReady) return { status: "ready", lifetime: "second-owner", pid: 42 } as const
+              if (endpointReady)
+                return { status: "ready", lifetime: "second-owner", pid: 42, build: "/fixture" } as const
               throw new ResidentIpcError({ message: "not ready" })
             },
             catch: () => new ResidentIpcError({ message: "not ready" })
@@ -214,7 +227,7 @@ describe("resident client trust boundary", () => {
 
       expect(
         yield* ensureResidentEffect(paths, 10_000).pipe(Effect.provide(Layer.succeed(ResidentStartup, dependencies)))
-      ).toEqual({ status: "ready", lifetime: "second-owner", pid: 42 })
+      ).toEqual({ status: "ready", lifetime: "second-owner", pid: 42, build: "/fixture" })
       expect(launchCount).toBe(2)
       expect(clock).toBeGreaterThanOrEqual(350)
       expect(calls.every(({ at, budget }) => at < 10_000 && budget > 0 && budget <= 10_000 - at)).toBe(true)
@@ -349,7 +362,7 @@ describe("resident client trust boundary", () => {
       const startup = ResidentStartup.of({
         now: Effect.sync(() => performance.now()),
         prepare: () => Effect.void,
-        probe: () => Effect.succeed({ status: "ready", lifetime: "owner", pid: 1 }),
+        probe: () => Effect.succeed({ status: "ready", lifetime: "owner", pid: 1, build: "/fixture" }),
         launch: () => Effect.die("an available owner must not launch"),
         wait: (milliseconds) => Effect.sleep(milliseconds),
         clearDiagnostic: () => Effect.void,
@@ -599,7 +612,7 @@ it("preserves edit polling and rejection outcomes through bounded IPC", async ()
     ResidentStartup.of({
       now: Effect.sync(() => performance.now()),
       prepare: () => Effect.void,
-      probe: () => Effect.succeed({ status: "ready", lifetime: "owner", pid: 1 }),
+      probe: () => Effect.succeed({ status: "ready", lifetime: "owner", pid: 1, build: "/fixture" }),
       launch: () => Effect.die("ready owner must not launch"),
       wait: (milliseconds) => Effect.sleep(milliseconds),
       clearDiagnostic: () => Effect.void,
@@ -668,3 +681,49 @@ afterAll(() => {
   else process.env.XDG_CONFIG_HOME = privateConfiguration.previous
   rmSync(privateConfiguration.directory, { recursive: true, force: true })
 })
+
+it.each([true, false])(
+  "incompatible IPC remains unsuccessful and only records an eligible granted notice: %s",
+  async (eligible) => {
+    const directory = await mkdtemp(join(tmpdir(), "haps-incompatible-"))
+    directories.push(directory)
+    await chmod(directory, 0o700)
+    const paths = residentPaths(directory)
+    const frames: Record<string, unknown>[] = []
+    const server = createServer((socket) => {
+      sockets.push(socket)
+      let frame = ""
+      socket.on("data", (chunk) => {
+        frame += chunk.toString()
+        if (!frame.includes("\n")) return
+        frames.push(JSON.parse(frame))
+        socket.end(JSON.stringify({ version: 1, status: "update-required", warn: true }) + "\n")
+      })
+    })
+    servers.push(server)
+    await new Promise<void>((resolve) => server.listen(paths.socket, resolve))
+    await chmod(paths.socket, 0o600)
+    let warnings = 0
+    const result = await runClient(
+      residentRequest(paths, {
+        requestRoute: "shared",
+        operation: "register-edit",
+        lifetime: "owned",
+        root: "/fixture",
+        advicee: fixtureAdvicee(),
+        startedAt: 1
+      }).pipe(
+        Effect.provideService(ResidentUpdateNotice, {
+          eligible,
+          record: Effect.sync(() => {
+            warnings += 1
+          })
+        }),
+        Effect.result
+      )
+    )
+    expect(result).toMatchObject({ _tag: "Failure", failure: { message: expect.stringContaining("incompatible") } })
+    expect(warnings).toBe(eligible ? 1 : 0)
+    expect(frames[0]?.updateNotice).toBe(eligible ? true : undefined)
+  }
+)

@@ -1,15 +1,18 @@
 import { Deferred, Effect, Fiber } from "effect"
 import { expect, it, vi } from "vitest"
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import {
   updateClients,
+  updateOwnerLayer,
   UpdateOwnerService,
   type UpdateOwner,
   type UpdateTransition
 } from "@hapsland/administration/onboarding/update"
-import { initialUpdate, reduceUpdate } from "@hapsland/administration/onboarding/update-model"
+import { initialUpdate, reduceUpdate, type UpdateScope } from "@hapsland/administration/onboarding/update-model"
 import { InteractionService } from "@hapsland/administration/interaction/interaction"
 import { scriptedInteraction, type ScriptStep } from "@hapsland/build-tooling/test-support/scripted-interaction"
-import type { SetupClient } from "@hapsland/administration/onboarding/client-selection"
 
 type Result = Effect.Success<ReturnType<UpdateOwner["preview"]>>
 const digest = "a".repeat(64)
@@ -17,10 +20,10 @@ const otherDigest = "b".repeat(64)
 const preview: Result = { status: "preview", proposal: { digest, changes: ["owned hook"] } }
 const fixture = (
   settings: {
-    hosts?: SetupClient[]
+    hosts?: UpdateScope[]
     discoveryFailure?: boolean
-    previews?: Partial<Record<SetupClient, Effect.Effect<Result, unknown>>>
-    applies?: Partial<Record<SetupClient, Effect.Effect<Result, unknown>>>
+    previews?: Partial<Record<UpdateScope, Effect.Effect<Result, unknown>>>
+    applies?: Partial<Record<UpdateScope, Effect.Effect<Result, unknown>>>
     steps?: ScriptStep[]
     activation?: Effect.Effect<void, unknown>
     target?: Effect.Effect<string, unknown>
@@ -33,7 +36,7 @@ const fixture = (
     ]
   )
   const calls: string[] = []
-  const failures: { host: SetupClient; cause: unknown }[] = []
+  const failures: { host: UpdateScope; cause: unknown }[] = []
   const transitions: UpdateTransition[] = []
   const owner: UpdateOwner = {
     discover: Effect.sync(() => {
@@ -48,7 +51,7 @@ const fixture = (
     target: Effect.sync(() => {
       calls.push("target")
     }).pipe(Effect.andThen(settings.target ?? Effect.succeed("/verified/hapsland"))),
-    preview: vi.fn((_, host: SetupClient) =>
+    preview: vi.fn((_, host: UpdateScope) =>
       Effect.sync(() => {
         calls.push(`preview:${host}`)
       }).pipe(
@@ -60,7 +63,7 @@ const fixture = (
         )
       )
     ),
-    apply: vi.fn((_, host: SetupClient, approved: string) =>
+    apply: vi.fn((_, host: UpdateScope, approved: string) =>
       Effect.sync(() => {
         calls.push(`apply:${host}:${approved}`)
       }).pipe(Effect.andThen(settings.applies?.[host] ?? Effect.succeed({ status: "updated" })))
@@ -70,7 +73,7 @@ const fixture = (
         calls.push("activate")
       }).pipe(Effect.andThen(settings.activation ?? Effect.void))
   }
-  const conversation = (options: { terminal?: boolean; host?: SetupClient } = {}) =>
+  const conversation = (options: { terminal?: boolean; host?: UpdateScope } = {}) =>
     updateClients({
       terminal: options.terminal ?? true,
       host: options.host,
@@ -86,7 +89,7 @@ const fixture = (
       Effect.provideService(UpdateOwnerService, owner),
       Effect.provideService(InteractionService, script.interaction)
     )
-  const run = (options: { terminal?: boolean; host?: SetupClient } = {}) => Effect.runPromise(conversation(options))
+  const run = (options: { terminal?: boolean; host?: UpdateScope } = {}) => Effect.runPromise(conversation(options))
   return { owner, run, conversation, calls, failures, transitions, script, output: () => script.transcript.join("") }
 }
 it("previews every client before grouped approval and forwards each actual digest once", async () => {
@@ -282,4 +285,51 @@ it("interruption while activating retains the already observed mutation and repo
       })
     )
   )
+})
+
+it("resident-only updates use the grouped preview approval without applying runtime hooks", async () => {
+  const f = fixture({ hosts: ["resident"] })
+  const model = await f.run()
+  expect(model.agents).toMatchObject([{ host: "resident", outcome: "updated" }])
+  expect(f.owner.apply).toHaveBeenCalledWith("/verified/hapsland", "resident", digest)
+  expect(f.calls).not.toContain("apply:codex:" + digest)
+})
+
+it("resident updates use the selected package's public transport and captured environment", async () => {
+  const temporary = mkdtempSync(join(tmpdir(), "hapsland-update-transport-"))
+  const executable = join(temporary, "hapsland")
+  const requests = join(temporary, "requests")
+  writeFileSync(
+    executable,
+    `#!/bin/sh\ncat >> "$UPDATE_FIXTURE_REQUESTS"\nprintf '\\n' >> "$UPDATE_FIXTURE_REQUESTS"\ncase "$1" in\n--update-preview) printf '%s' '{"status":"preview","proposal":{"digest":"${digest}"}}';;\n--update) printf '%s' '{"status":"updated"}';;\n*) exit 23;;\nesac\n`,
+    { mode: 0o700 }
+  )
+  try {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const owner = yield* UpdateOwnerService
+        expect((yield* owner.preview(executable, "resident")).status).toBe("preview")
+        expect((yield* owner.apply(executable, "resident", digest)).status).toBe("updated")
+      }).pipe(
+        Effect.provide(
+          updateOwnerLayer({
+            flags: new Map(),
+            environment: { ...process.env, UPDATE_FIXTURE_REQUESTS: requests },
+            target: Effect.succeed(executable)
+          })
+        )
+      )
+    )
+    expect(
+      readFileSync(requests, "utf8")
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line))
+    ).toEqual([
+      { version: 1, operation: "update-preview", host: "resident" },
+      { version: 1, operation: "update", host: "resident", proposalDigest: digest }
+    ])
+  } finally {
+    rmSync(temporary, { recursive: true, force: true })
+  }
 })

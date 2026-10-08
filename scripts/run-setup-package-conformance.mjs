@@ -1,3 +1,4 @@
+import { installedResidentUpdateJourney } from "./test-support/installed-resident-update.mjs"
 import { createHash } from "node:crypto"
 import { zstdDecompressSync } from "node:zlib"
 import { terminalModesEquivalent } from "@hapsland/administration/credentials/terminal"
@@ -169,6 +170,7 @@ const runGuidedPilot = (
   timeoutMs = 20_000
 ) =>
   new Promise((resolveRun, rejectRun) => {
+    const callSite = new Error("terminal fixture invocation").stack
     const command = observeTerminalModes(
       commandOverride ??
         `${quote(cli)} setup codex --codex-home=${quote(codexHome)} --codex-executable=${quote(codexExecutable)}`
@@ -220,7 +222,17 @@ const runGuidedPilot = (
       clearTimeout(escalation)
       try {
         expect(!timedOut, "guided pilot timed out")
-        expect(code === expectedExit, `terminal command exited ${code} instead of ${expectedExit}`)
+        const diagnostic = answers.reduce(
+          (text, answer) =>
+            typeof answer.value === "string" && answer.value.length > 3
+              ? text.replaceAll(answer.value, "[fixture input]")
+              : text,
+          output.slice(-6000)
+        )
+        expect(
+          code === expectedExit,
+          `terminal command exited ${code} instead of ${expectedExit}; answered ${answered}/${answers.length}; ${callSite}: ${diagnostic}`
+        )
         expectRestoredTerminal(output, expectedExit)
         expect(answered === answers.length, `guided pilot answered ${answered} of ${answers.length} prompts`)
         resolveRun(output)
@@ -231,6 +243,8 @@ const runGuidedPilot = (
   })
 
 // Observe the real profile without changing it; every journey must use fixture HOME.
+// Exercise update selection through installed public commands and actual IPC.
+
 const outsideActivePath = join(homedir(), ".local", "share", "hapsland", "active.json")
 const readOptional = async (path) => {
   try {
@@ -322,6 +336,7 @@ try {
     XDG_CONFIG_HOME: join(publicHome, ".config"),
     XDG_STATE_HOME: join(publicHome, ".local", "state"),
     REVIEW_STATE_PATH: join(stateRoot, "consent"),
+    REVIEW_RESIDENT_DIR: join(temporary, "resident"),
     REVIEW_USER_CONFIG_PATH: join(stateRoot, "user.jsonc"),
     REVIEW_CREDENTIAL_STATE_PATH: join(stateRoot, "credential-state.json"),
     REVIEW_CONTROL_JSON: JSON.stringify({ capturePath })
@@ -462,6 +477,10 @@ try {
   )
   const hooks = JSON.parse(await readFile(join(codexHome, "hooks.json"), "utf8"))
   expect(hooks.hooks.PostToolUse.length === 1, "repeat setup duplicated the owned hook")
+  expect(
+    (await readFile(join(codexHome, ".hapsland/codex-hook-launcher.sh"), "utf8")).includes("/hapsland-hook"),
+    "scoped launcher did not select the dedicated hook executable"
+  )
   const definitions = Object.values(commandHooks.codex)
   for (const event of new Set(definitions.map((definition) => definition.event))) {
     const handlers = hooks.hooks[event]?.flatMap((group) => group.hooks ?? []) ?? []
@@ -473,10 +492,10 @@ try {
       handlers.every(
         (handler) =>
           typeof handler.command === "string" &&
-          handler.command.includes("/hapsland-hook'") &&
+          handler.command.includes("/codex-hook-launcher.sh'") &&
           !handler.command.includes("/hapsland'")
       ),
-      `installed Codex ${event} did not target the dedicated hook executable`
+      `installed Codex ${event} did not target the scoped hook launcher`
     )
     for (const definition of definitions.filter((definition) => definition.event === event)) {
       const matches = handlers.filter((handler) =>
@@ -630,7 +649,12 @@ else if (operation === "probe") console.log('{"status":"available"}');
   await chmod(helper, 0o700)
   const requestPath = join(temporary, "interactive-setup.json")
   await writeFile(requestPath, JSON.stringify({ ...baseRequest, credential: "saved", interactive: true }))
-  const interactiveEnvironment = { ...baseEnvironment, REVIEW_CREDENTIAL_HELPER: helper, TEST_SECRET_VAULT: vault }
+  const interactiveEnvironment = {
+    ...baseEnvironment,
+    TERM: "xterm-256color",
+    REVIEW_CREDENTIAL_HELPER: helper,
+    TEST_SECRET_VAULT: vault
+  }
   const marker = "package-interactive-setup-secret"
   const interactive = await runMaskedSetup(cli, repository, interactiveEnvironment, requestPath, marker)
   expect(
@@ -676,7 +700,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
     { prompt: "Save this key? [y/N]", value: "y" },
     { prompt: "Verify this key with one request", value: "n" }
   ])
-  expect(declinedPilot.includes("credential is available from"), "guided login did not confirm credential storage")
+  expect(declinedPilot.includes("key saved"), "guided login did not confirm credential storage")
   expect(declinedPilot.includes("No real verification or review was sent"), "guided login overstated verification")
   expect(
     declinedPilot.includes("Key validity: not checked for this request."),
@@ -988,6 +1012,19 @@ else if (operation === "probe") console.log('{"status":"available"}');
     }
   }
 
+  await installedResidentUpdateJourney(
+    {
+      cli,
+      archive: join(artifacts, artifact),
+      temporary,
+      repository,
+      codexHome,
+      codexExecutable,
+      environment: baseEnvironment
+    },
+    { run, parse, expect, quote }
+  )
+
   await assertNoProviderCall(capturePath)
   const fixtureActive = JSON.parse(
     await readFile(join(publicHome, ".local", "share", "hapsland", "active.json"), "utf8")
@@ -1018,6 +1055,10 @@ else if (operation === "probe") console.log('{"status":"available"}');
       architecture: process.arch,
       providerCalls: 0,
       journeys: [
+        "installed-resident-idle-busy-replacement-and-retained-hook-resolution",
+        "failed-resident-launch-retains-selection",
+        "resident-only-preserves-native-hook-files",
+        "compatible-codex-hook-update-preserves-claude-and-resident-selection",
         "noninteractive-handoff",
         "interruption-resume",
         "idempotent-repeat",

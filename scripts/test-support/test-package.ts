@@ -6,6 +6,7 @@ import { standaloneEnvironment } from "../../scripts/test-harness/standalone-env
 import { standaloneCommand, type RuntimeCommand } from "@hapsland/runtime-environment/runtime/package-runtime"
 
 export interface TestPackage {
+  readonly archivePath: string
   readonly packageRoot: string
   readonly hook: RuntimeCommand
   readonly cli: RuntimeCommand
@@ -61,11 +62,12 @@ export const prepareTestPackage = (): TestPackage => {
       accessSync(standaloneCommand(packageRoot, role).executable, constants.X_OK)
     }
     return {
+      archivePath: artifact,
       packageRoot,
       cli: standaloneCommand(packageRoot, "cli"),
       hook: standaloneCommand(packageRoot, "hook"),
       resident: standaloneCommand(packageRoot, "resident"),
-      environment: standaloneEnvironment(join(temporaryRoot, "standalone-path")),
+      environment: { ...standaloneEnvironment(join(temporaryRoot, "standalone-path")), HOME: temporaryRoot },
       command: [join(installation, "node_modules/.bin/hapsland")],
       cleanup
     }

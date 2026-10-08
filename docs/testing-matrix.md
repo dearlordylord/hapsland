@@ -148,8 +148,8 @@ through the same artifact store; production task outputs are owned by Turbo.
 The materialized runtime is kept outside `dist` so production builds cannot remove entrypoints used by a running CLI or resident.
 
 Run `npm run hooks:install` once per repository. The shared Git dispatcher invokes
-the current worktree's maintained `.husky/pre-commit`, including lint-staged,
-typechecking, and `docs:generated:check`, for existing and newly created worktrees.
+the current worktree's maintained `.husky/pre-commit`, including lint-staged and
+source typechecking, for existing and newly created worktrees.
 Run `npm run docs:generate` after changing schemas, documented runtime constants,
 workspace manifests, boundary schemas, hook definitions, interaction models or
 the dashboard flow model. One generator inventory prepares private packages
@@ -157,13 +157,15 @@ through the existing Turbo build, then updates configuration schemas/references,
 the hook table, architecture views, decision-boundary inventories, interaction
 diagrams and comparison pages from frozen evidence. It makes no provider requests
 or new measurements.
-`docs:generated:check` verifies those artifacts without rewriting them; fast checks,
-pre-commit and the deterministic runner precheck invoke it. A stale artifact blocks
-the workflow with its generator's diagnostic. The focused owner commands assume their compiled prerequisites already exist.
-Use the common commands on a fresh checkout. `check:fast` and pre-commit run
-package preparation once through the common drift check, then `typecheck:source`
-runs the remaining compiler/import checks; ordinary `typecheck` still prepares
-packages itself.
+`docs:generated:check` verifies those artifacts without rewriting them. These are
+manual documentation operations, kept in the dedicated generator script; fast/full
+gates, pre-commit, product builds and CI do not invoke them automatically.
+Run `npm run docs:check` explicitly for the documentation tools and links.
+The focused owner commands assume their compiled prerequisites already exist.
+On a fresh checkout, `npm run typecheck` prepares packages and checks types.
+`check:fast` and pre-commit use `typecheck:source` and do not prepare packages or
+replay documentation. After package changes, prepare current exports with the
+ordinary build, typecheck or focused test runner before source checks.
 [Fact renderers](../scripts/documentation-facts.ts)
 import limits and names from their implementation owners. Edit those owners and
 renderers, rather than generated sections.
@@ -251,7 +253,7 @@ evidence before regenerating the scenario pages.
 | Focused implementation checks | `npm run test:focused -- <test files>`; `npm run check:fast` | Explicit test files, source unit tests and typing/configuration checks; no full suite or proof chain | Changed owners and affected consumers; does not qualify full source coverage |
 | Development archive preparation and packing | `node --test scripts/artifact-store.test.mjs scripts/dev-pack.test.mjs scripts/test-harness/prepare-archive.test.mjs` | Every ordinary build/validation/pack invocation, inherited build leases, input and output drift, archive integrity, npm file selection and executable bins | Local dev archives use gzip level 1; npm release packing is unchanged. Turbo owns build reuse. Identical completed archive bytes share immutable retention; fresh preparation stages still execute. Corruption and in-flight input or output changes are rejected. |
 | Release candidate preparation and publication admission | `node --test scripts/release-process.test.mjs scripts/release-archive.test.mjs scripts/artifact-store.test.mjs scripts/audit-release-tarball.test.mjs`; `mise exec node@24.20.0 -- npm run release:prepare` on a clean acceptance checkout | Stale/missing/corrupt candidate rejection before npm or build, pin-only source identity, retained audit/archive integrity, exact-byte publication through an offline registry fixture, fresh receipt audit under the build lease | CLI fixtures make zero registry uploads. Real preparation builds both targets, audits and retains a candidate; it never publishes or establishes installed/platform support. Actual npm publication remains separately authorized. |
-| Mandatory administration UI diagrams | `node --test scripts/check-ui-flows.test.mjs scripts/cli-journey-commands.test.mts`; `npm run test:focused -- src/onboarding/ui-flow-diagrams.test.ts src/onboarding/client-selection.test.ts src/onboarding/pilot.test.ts src/onboarding/interactive.test.ts`; `npm run interaction:diagrams:check` | Closed typed prompt owners and input kinds; CLI journey-to-handler and root-flow bindings, parser-derived command syntax and rename propagation, input-flow reachability and shared diagram ownership; missing-owner/document/generator rejection through actual compiler entries; stale Markdown rejected by actual replay entry; composed selection/setup/login/verification and registered interpreter replays | Source-only preflight runs before compilation. Product build checks replay freshness before release assembly. The generated index lists CLI user journeys and their diagrams, with separate automation-boundary links; finite replay scenarios do not establish exhaustive transitions, physical terminal readability or platform support. |
+| Mandatory administration UI diagrams | `node --test scripts/check-ui-flows.test.mjs scripts/cli-journey-commands.test.mts`; `npm run test:focused -- src/onboarding/ui-flow-diagrams.test.ts src/onboarding/client-selection.test.ts src/onboarding/pilot.test.ts src/onboarding/interactive.test.ts`; `npm run interaction:diagrams:check` | Closed typed prompt owners and input kinds; CLI journey-to-handler and root-flow bindings, parser-derived command syntax and rename propagation, input-flow reachability and shared diagram ownership; missing-owner/document/generator rejection through actual compiler entries; stale Markdown rejected by actual replay entry; composed selection/setup/login/verification and registered interpreter replays | Source-only preflight runs before compilation. Replay freshness is a manual documentation operation; product builds do not run it. The generated index lists CLI user journeys and their diagrams, with separate automation-boundary links; finite replay scenarios do not establish exhaustive transitions, physical terminal readability or platform support. |
 | Credential policy and approved saving | `npm run test:focused -- src/credentials/input.test.ts src/credentials/file-saving.test.ts src/credentials/login-interaction.test.ts src/credentials/direct-input.test.ts src/onboarding/setup.test.ts`; `npm run conformance:setup-package -- --archive=PATH --profile=HOST --development-checkout=ISOLATED_CANDIDATE` | Lookup precedence, empty-environment authority, owner-bound file approval, stale targets, private atomic saving, direct native automation; installed setup and optional real development rebuild/update/new-key with artifact exclusion | Source fixtures are deterministic and offline. Installed/development execution must run separately on macOS arm64 and Linux arm64. The optional development candidate must be a separate repository checkout of the acceptance candidate with pinned dependencies and build tools ready, containing no copied ignored credentials. The runner temporarily changes its login help and creates a fixture project credential, then restores/removes both. Each dev-install invocation is bounded to 300 seconds; these are heavy checks. No provider requests or native-agent support claim. |
 | Routine deterministic gate | `npm test` | Bend artifact and authority checks, boundary scripts, Vitest tests for the reducer, adapters, resident, and CLI | Logic and controlled fixtures; no native agent or Jev call |
 | Process harness contention | `npm run test:contention`; `npm run test:harness:inventory` | Full deterministic gate under the declared Linux CPU-pressure profile; transitive process/scenario inventory; hung-child cleanup probes | Declared scheduling profile and finite harness failure; no product deadline, latency, or arbitrary-starvation claim |
@@ -565,9 +567,10 @@ the selected identity through [the compiler context](../scripts/compiler-context
 
 [Offline CI](../.github/workflows/check.yml) runs on pull requests and pushes to
 `master`. It installs the frozen Bun lockfile and the checksum-pinned Bend 2.0.36
-and Lean 4.34.0 proof toolchain through its existing `npm run docs:install`
-tooling step, then runs documentation links,
-typecheck, `npm run quality:check -- --ack-checks-policy`, and build. It does not invoke live Jev or native agent
+and Lean 4.34.0 proof toolchain through its dedicated installer,
+then runs typecheck,
+`npm run quality:check -- --ack-checks-policy`, and build. Documentation generation
+and drift checks are explicit manual operations. It does not invoke live Jev or native agent
 milestones; those remain separate declared checks above.
 
 The [proof toolchain installer](../scripts/install-bend-toolchain.mjs) downloads

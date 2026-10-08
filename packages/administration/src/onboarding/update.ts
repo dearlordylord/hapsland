@@ -9,7 +9,6 @@ import {
   invokeLifecycle,
   registeredClients
 } from "./client-lifecycle.ts"
-import type { SetupClient } from "./client-selection.ts"
 import {
   initialUpdate,
   reduceUpdate,
@@ -18,6 +17,7 @@ import {
   type UpdateCommand,
   type UpdateEvent,
   type UpdateModel,
+  type UpdateScope,
   type UpdateOutcome
 } from "./update-model.ts"
 
@@ -26,10 +26,10 @@ export const UPDATE_TERMINAL_REQUIRED =
 
 type LifecycleResult = Effect.Success<ReturnType<typeof invokeLifecycle>>
 export interface UpdateOwner {
-  discover: Effect.Effect<{ hosts: SetupClient[]; failures: { host: SetupClient; cause: unknown }[] }, unknown>
+  discover: Effect.Effect<{ hosts: UpdateScope[]; failures: { host: UpdateScope; cause: unknown }[] }, unknown>
   target: Effect.Effect<string, unknown>
-  preview: (executable: string, host: SetupClient) => Effect.Effect<LifecycleResult, unknown>
-  apply: (executable: string, host: SetupClient, digest: string) => Effect.Effect<LifecycleResult, unknown>
+  preview: (executable: string, host: UpdateScope) => Effect.Effect<LifecycleResult, unknown>
+  apply: (executable: string, host: UpdateScope, digest: string) => Effect.Effect<LifecycleResult, unknown>
   activate: (executable: string) => Effect.Effect<void, unknown>
 }
 export class UpdateOwnerService extends Context.Service<UpdateOwnerService, UpdateOwner>()(
@@ -44,7 +44,7 @@ export const updateOwnerLayer = (options: {
   const environment = { ...options.environment }
   delete environment.REVIEW_INSTALL_RUNTIME
   delete environment.REVIEW_INSTALL_ENTRYPOINT
-  const invoke = (executable: string, host: SetupClient, operation: "update-preview" | "update", digest?: string) =>
+  const invoke = (executable: string, host: UpdateScope, operation: "update-preview" | "update", digest?: string) =>
     invokeLifecycle(
       executable,
       [`--${operation}`],
@@ -52,15 +52,21 @@ export const updateOwnerLayer = (options: {
       {
         version: 1,
         operation,
-        ...profileFields(host, options.flags),
+        ...(host === "resident" ? { host } : profileFields(host, options.flags)),
         ...(digest === undefined ? {} : { proposalDigest: digest })
       },
       environment
     )
   return Layer.succeed(UpdateOwnerService, {
     discover: Effect.sync(() => {
-      const failures: { host: SetupClient; cause: unknown }[] = []
-      return { hosts: registeredClients(options.flags, (host, cause) => failures.push({ host, cause })), failures }
+      const failures: { host: UpdateScope; cause: unknown }[] = []
+      return {
+        hosts: [
+          ...registeredClients(options.flags, (host, cause) => failures.push({ host, cause })),
+          "resident" as const
+        ],
+        failures
+      }
     }),
     target: options.target,
     preview: (executable, host) => invoke(executable, host, "update-preview"),
@@ -71,8 +77,8 @@ export const updateOwnerLayer = (options: {
 export type UpdateTransition = { before: UpdateModel; event: UpdateEvent; after: UpdateModel }
 export interface UpdateOptions {
   terminal: boolean
-  host: SetupClient | undefined
-  reportFailure: (host: SetupClient, cause: unknown) => Effect.Effect<void>
+  host: UpdateScope | undefined
+  reportFailure: (host: UpdateScope, cause: unknown) => Effect.Effect<void>
   observe?: (transition: UpdateTransition) => Effect.Effect<void>
 }
 const applyOutcome = (status: string): Exclude<UpdateOutcome, "skipped"> => {
@@ -96,7 +102,8 @@ export const updateClients = Effect.fn("Update.clients")(function* (options: Upd
   const interaction = yield* flowInteraction("update")
   let model = initialUpdate()
   let executable: string | undefined
-  const previews = new Map<SetupClient, string>()
+  const previews = new Map<UpdateScope, string>()
+  const restartRequired = new Set<UpdateScope>()
   const dispatch = (action: UpdateEvent["action"]) =>
     Effect.gen(function* () {
       const before = model
@@ -114,7 +121,7 @@ export const updateClients = Effect.fn("Update.clients")(function* (options: Upd
           yield* interaction.present(
             `${formatOutcome("error", `${agent.host}: package activation failed; the observed profile result above is retained. Keep the selected package and retry update.`)}\n`
           )
-        if (agent.outcome === "updated")
+        if (agent.outcome === "updated" && restartRequired.has(agent.host))
           yield* interaction.present(
             `${formatOutcome("info", `Next: finish current work, restart ${agent.host}, and review native trust prompts. A real review was not verified by update.`)}\n`
           )
@@ -158,7 +165,14 @@ export const updateClients = Effect.fn("Update.clients")(function* (options: Upd
     yield* interaction.present(text + "\n")
     yield* dispatch({ kind: "previewed", commandId: command.id, host: command.host, result: observation })
     if (["failed", "busy", "indeterminate"].includes(observation.kind))
-      yield* options.reportFailure(command.host, new Error(formatFailure(result.success, command.host)))
+      yield* options.reportFailure(
+        command.host,
+        new Error(
+          command.host === "resident"
+            ? "Resident update failed; selected target retained."
+            : formatFailure(result.success, command.host)
+        )
+      )
   })
   const apply = Effect.fn("Update.apply")(function* (
     command: Extract<UpdateCommand, { kind: "apply" }>,
@@ -166,17 +180,29 @@ export const updateClients = Effect.fn("Update.clients")(function* (options: Upd
   ) {
     const result = yield* owner.apply(target, command.host, command.digest).pipe(Effect.result)
     const outcome = result._tag === "Failure" ? "failed" : applyOutcome(result.success.status)
+    if (command.host !== "resident" && result._tag === "Success" && result.success.restart?.required !== false)
+      restartRequired.add(command.host)
     // Retain observation before reporting or activation can fail/interruption arrive.
     yield* dispatch({ kind: "observed", commandId: command.id, host: command.host, outcome })
     if (outcome === "partial")
       yield* options.reportFailure(
         command.host,
-        new Error(`Next: hapsland repair ${command.host}. The selected package is retained for recovery.`)
+        new Error(
+          command.host === "resident"
+            ? "Selected resident unavailable; retry hapsland update --resident-only. The target is retained."
+            : `Next: hapsland repair ${command.host}. The selected package is retained for recovery.`
+        )
       )
     else if (["failed", "busy", "indeterminate"].includes(outcome))
       yield* options.reportFailure(
         command.host,
-        result._tag === "Failure" ? result.failure : new Error(formatFailure(result.success, command.host))
+        result._tag === "Failure"
+          ? result.failure
+          : new Error(
+              command.host === "resident"
+                ? "Resident update failed; selected target retained."
+                : formatFailure(result.success, command.host)
+            )
       )
   })
   const activate = Effect.fn("Update.activate")(function* (
