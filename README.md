@@ -205,7 +205,11 @@ establish that size caused the difference or general review superiority.
 
 Ask your coding agent to install it:
 
+<!-- agent-setup-instruction:start -->
+
 > Install Hapsland for my coding agent using https://github.com/dearlordylord/hapsland/blob/master/docs/installation-workflows.md. Let me review and approve the setup changes interactively. Ask me to enter any Jev key in the masked setup prompt, not in chat.
+
+<!-- agent-setup-instruction:end -->
 
 The public npm package returned **404 on 2026-10-06**. Until a release is
 published, use the [local checkout installation](./docs/installation-workflows.md#install-before-publication)

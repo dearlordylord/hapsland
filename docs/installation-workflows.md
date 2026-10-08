@@ -105,7 +105,11 @@ credential and update details.
 
 You can ask your coding agent to handle installation:
 
+<!-- agent-setup-instruction:start -->
+
 > Install Hapsland for my coding agent using https://github.com/dearlordylord/hapsland/blob/master/docs/installation-workflows.md. Let me review and approve the setup changes interactively. Ask me to enter any Jev key in the masked setup prompt, not in chat.
+
+<!-- agent-setup-instruction:end -->
 
 For manual installation after a stable release is published and verified:
 
