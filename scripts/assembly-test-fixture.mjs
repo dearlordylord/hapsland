@@ -1,11 +1,11 @@
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs"
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, realpathSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, resolve } from "node:path"
 import { readPackageGraph } from "./package-graph.mjs"
 import { assemblyProducerFiles, createAssemblyPrerequisites } from "./assembly-prerequisites.mjs"
 import { fileEvidence } from "./compiler-evidence.mjs"
 export function assemblyFixture(t) {
-  const root = mkdtempSync(resolve(tmpdir(), "hapsland-component-"))
+  const root = realpathSync(mkdtempSync(resolve(tmpdir(), "hapsland-component-")))
   t.after(() => rmSync(root, { recursive: true, force: true }))
   const write = (path, text) => {
     mkdirSync(dirname(resolve(root, path)), { recursive: true })

@@ -7,7 +7,7 @@ import {
 import { withBuildLock } from "./build-lock.mjs"
 import { assemblyContext } from "./assembly-context.mjs"
 import { checkAssemblyReceipt, assemblyReceiptDigest } from "./check-assembly-receipt.mjs"
-import { readFileSync, rmSync, writeFileSync, mkdirSync, renameSync } from "node:fs"
+import { readFileSync, rmSync, writeFileSync, mkdirSync, renameSync, chmodSync } from "node:fs"
 import { dirname, resolve, basename, relative } from "node:path"
 import { physicalNativeBindings } from "../packages/source-analysis/src/direct-event/languages/native-bindings.ts"
 import { fileEvidence } from "./compiler-evidence.mjs"
@@ -47,6 +47,8 @@ await withBuildLock(root, async () => {
     rmSync(staging, { recursive: true, force: true })
     mkdirSync(staging, { recursive: true })
     const stagedOutput = resolve(staging, basename(outfile))
+    const sharedRuntime = snapshot.role !== "cli"
+    const stagedBundle = `${stagedOutput}.js`
     let transformations = []
     let transformedText = new Map()
     const digest = (contents) => createHash("sha256").update(contents).digest("hex")
@@ -81,9 +83,8 @@ await withBuildLock(root, async () => {
       transformedText = new Map()
       const result = await Bun.build({
         ...options,
-        ...(compile
+        ...(compile && !sharedRuntime
           ? {
-              bytecode: true,
               compile: {
                 target,
                 outfile: stagedOutput,
@@ -99,6 +100,18 @@ await withBuildLock(root, async () => {
         for (const log of result.logs) console.error(log)
         throw new Error("Standalone assembly failed")
       }
+      if (compile && sharedRuntime) {
+        if (result.outputs.length !== 1) throw new Error("Command bundle must produce exactly one JavaScript file")
+        writeFileSync(stagedBundle, `delete process.env.BUN_BE_BUN;\n${await result.outputs[0].text()}`, {
+          mode: 0o644
+        })
+        writeFileSync(
+          stagedOutput,
+          `#!/bin/sh\nset -eu\ndirectory=$(CDPATH= cd "$(dirname "$0")" && pwd -P)\nBUN_BE_BUN=1 exec "$directory/hapsland" --no-install --no-env-file --config=/dev/null "$directory/${basename(outfile)}.js" "$@"\n`,
+          { mode: 0o755 }
+        )
+      }
+      if (compile) chmodSync(stagedOutput, 0o755)
       const inputs = checkAssemblyContributions(
         root,
         entrypoint,
@@ -158,7 +171,8 @@ await withBuildLock(root, async () => {
       transformations: compiled.transformations,
       externalRuntime: compiled.externalRuntime,
       nativeAssets: assetsBefore,
-      output: fileEvidence(root, stagedOutput)
+      output: fileEvidence(root, stagedOutput),
+      ...(sharedRuntime ? { bundle: fileEvidence(root, stagedBundle) } : {})
     }
     const stagedReceipt = { ...receipt, digest: assemblyReceiptDigest(receipt) }
     checkAssemblyReceipt(
@@ -170,6 +184,7 @@ await withBuildLock(root, async () => {
       assemblyNativeArtifacts(root, snapshot)
     )
     receipt.output.path = relative(root, outfile).replaceAll("\\", "/")
+    if (receipt.bundle) receipt.bundle.path = `${receipt.output.path}.js`
     writeFileSync(
       resolve(staging, basename(receiptPath)),
       JSON.stringify({ ...receipt, digest: assemblyReceiptDigest(receipt) }, null, 2) + "\n"

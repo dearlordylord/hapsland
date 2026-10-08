@@ -5,6 +5,7 @@ import { artifactStoreDirectory, fileDigest } from "./artifact-store.mjs"
 import { assertReleaseSource } from "./release-inputs.mjs"
 import { validateReleaseCoordinates } from "./release-coordinates.mjs"
 import { BUN_VERSION } from "./pinned-bun.mjs"
+import { checkReleaseSize } from "./release-size.mjs"
 
 export async function retainReleaseAudit(root, record) {
   const bytes = `${JSON.stringify(record, null, 2)}\n`
@@ -28,6 +29,7 @@ export async function readPreparedRelease(root, coordinates) {
   let auditBytes, digest
   try {
     auditBytes = await readFile(join(store, "release-audits", `${pin.auditSha256}.json`))
+    checkReleaseSize(archivePath)
     digest = await fileDigest(archivePath)
   } catch (error) {
     if (error.code === "ENOENT")
