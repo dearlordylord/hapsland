@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { analyzeFunctionFile } from "@hapsland/source-analysis/direct-event/languages/typescript-functions"
+import { MAX_TYPE_DECLARATIONS } from "@hapsland/source-analysis/direct-event/languages/contracts"
 import { resolveFunctionUnit } from "@hapsland/source-analysis/direct-event/function-resolver"
 
 describe("named TypeScript callable roots", () => {
@@ -116,14 +117,17 @@ describe("named TypeScript callable roots", () => {
       "unsupported"
     ])
   })
-  it("refuses files above the existing declaration ceiling without publishing partial functions", () => {
-    const source = Array.from({ length: 65 }, (_, i) => `const f${i} = () => ${i};`).join("\n")
+  it("accepts 1024 callables and refuses the next declaration without publishing partial functions", () => {
+    expect(MAX_TYPE_DECLARATIONS).toBe(1024)
+    const atLimit = Array.from({ length: MAX_TYPE_DECLARATIONS }, (_, i) => `const f${i} = () => ${i};`).join("\n")
+    expect(analyzeFunctionFile("a.ts", atLimit)?.functions.size).toBe(MAX_TYPE_DECLARATIONS)
+    const source = Array.from({ length: MAX_TYPE_DECLARATIONS + 1 }, (_, i) => `const f${i} = () => ${i};`).join("\n")
     const file = analyzeFunctionFile("a.ts", source)
     expect(file?.failure).toBe("declaration-limit")
     expect(file?.functions.size).toBe(0)
     const excluded = analyzeFunctionFile(
       "a.ts",
-      Array.from({ length: 65 }, (_, i) => `let f${i} = () => ${i};`).join("\n")
+      Array.from({ length: MAX_TYPE_DECLARATIONS + 1 }, (_, i) => `let f${i} = () => ${i};`).join("\n")
     )
     expect(excluded?.failure).toBe("declaration-limit")
     expect(excluded?.excludedFunctions.size).toBe(0)

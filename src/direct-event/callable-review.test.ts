@@ -43,7 +43,7 @@ describe("bounded const callable review", () => {
       }
     })
   )
-  it.effect("attributes a native arrow body update and reviews its imported helper without selecting its sibling", () =>
+  it.effect("attributes an arrow update among 128 siblings and reviews only its imported helper", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
       try {
@@ -64,7 +64,7 @@ describe("bounded const callable review", () => {
               "export const run = (item: Item): Item => {",
               changed,
               "};",
-              "export const sibling = (value: number) => value;"
+              ...Array.from({ length: 128 }, (_, index) => `export const sibling${index} = (value: number) => value;`)
             ].join("\n")
           )
         )

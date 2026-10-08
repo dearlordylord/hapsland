@@ -36,16 +36,19 @@ describe("initial direct-event TypeScript analyzer", () => {
       expect(measured?.declarations).toBe(1)
       expect(measured?.expandedUnitBytes).toBeGreaterThan(0)
     }
-    const many = Array.from({ length: 65 }, (_, i) => `const f${i} = () => ${i};`).join("\n")
+    const many = Array.from({ length: MAX_TYPE_DECLARATIONS + 1 }, (_, i) => `const f${i} = () => ${i};`).join("\n")
     expect(combinedAnalyzerMaterializationPreflight("a.ts", many)).toBeUndefined()
   })
 
   it("reserves all type and function roots in a mixed file", () => {
     const oneType = "interface Account { id: string }"
-    const functions = Array.from({ length: 63 }, (_, index) => `function f${index}() { return ${index} }`)
+    const functions = Array.from(
+      { length: MAX_TYPE_DECLARATIONS - 1 },
+      (_, index) => `function f${index}() { return ${index} }`
+    )
     const mixed = combinedAnalyzerMaterializationPreflight("a.ts", [oneType, ...functions].join("\n"))
     const typeOnly = combinedAnalyzerMaterializationPreflight("a.ts", oneType)
-    expect(mixed?.declarations).toBe(64)
+    expect(mixed?.declarations).toBe(MAX_TYPE_DECLARATIONS)
     expect(mixed?.expandedUnitBytes).toBeGreaterThan(typeOnly?.expandedUnitBytes ?? 0)
     expect(
       combinedAnalyzerMaterializationPreflight("a.ts", [oneType, ...functions, "function extra() {}"].join("\n"))
@@ -139,7 +142,7 @@ describe("initial direct-event TypeScript analyzer", () => {
     }
   })
 
-  it("accepts exactly 64 declarations and rejects the 65th", () => {
+  it("accepts exactly the declaration limit and rejects the next declaration", () => {
     const declarations = Array.from(
       { length: MAX_TYPE_DECLARATIONS },
       (_, index) => `interface T${index} { value: string }`

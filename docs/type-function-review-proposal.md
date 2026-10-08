@@ -165,8 +165,9 @@ rules whose required evidence is present retain the existing
 `incomplete-irrelevant` path. These facts survive the existing
 version-one inspection validation, rendering and replay boundaries.
 
-Preflight reserves the newly supported roots before materialization. The existing
-64-declaration ceiling is retained, including functions, types and named callable exclusions; a file that
+Preflight reserves the newly supported roots before materialization. The
+user-authorized ceiling is 1,024 declarations per file, including functions,
+types and named callable exclusions; a file that
 exceeds it cannot publish a partial function map. Large ordinary files may still
 be refused by declaration or workspace limits. Supporting new callable syntax
 is not a promise to review every declaration in an arbitrarily large file.
@@ -345,7 +346,7 @@ and continue inspecting later pending edges within the finite file, read, work,
 depth, and deadline budgets. Keep the accepted tree at or below 20 KiB. A
 candidate with any skipped import retains an omission after its pending edges
 are examined; only rules that do not need that evidence may reach Jev. Keep at most
-64 parsed declarations per file, 16 distinct outbound targets per root, and four
+1,024 parsed declarations per file, 16 distinct outbound targets per root, and four
 reference edges in a path as initial ceilings; enforce finite total-file,
 total-read, analysis-work, and deadline ceilings. There is no separate
 total-request byte ceiling. Rule questions, criteria, and provider overhead are
