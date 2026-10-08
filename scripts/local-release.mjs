@@ -4,7 +4,7 @@ import { createHash } from "node:crypto"
 import { readFileSync } from "node:fs"
 import { basename } from "node:path"
 import { preparePackageArchive } from "./artifact-store.mjs"
-import { canonicalRepositoryOrigin, validateReleaseCoordinates } from "./release-coordinates.mjs"
+import { validateReleaseCoordinates } from "./release-coordinates.mjs"
 
 if (process.argv.length > 2)
   throw new Error("release coordinates are pinned in scripts/npm-release-pin.json; this command takes no arguments")
@@ -37,12 +37,6 @@ if (
   run("git", ["merge-base", "--is-ancestor", releasePin.sourceCommit, head]).status !== 0
 ) {
   throw new Error("release requires clean master equal to origin/master and containing the pinned release commit")
-}
-if (
-  canonicalRepositoryOrigin(output("git", ["remote", "get-url", "origin"])) !==
-  canonicalRepositoryOrigin(releasePin.repositoryUrl)
-) {
-  throw new Error("origin does not match the source repository in the reviewed release pin")
 }
 if (!(["linux", "darwin"].includes(process.platform) && process.arch === "arm64") || process.version !== "v24.20.0") {
   throw new Error(

@@ -57,7 +57,7 @@ same toolchain used to calculate its checksum. Hapsland itself is packaged as
 Bun 1.3.14 standalone executables; this Node pin belongs to release assembly.
 The build requires the exact Bun compiler and physical native release assets. It requires Linux arm64 or macOS
 arm64, mise with Node 24.20.0 available, clean `master` equal to `origin/master`
-and containing the pinned release commit, the expected GitHub origin, and an
+and containing the pinned release commit, and an
 active npm login. It builds and audits the local archive,
 compares its SHA-256 with the reviewed archive, publishes that archive with
 public access to the declared `latest` or `next` tag, then downloads the registry archive and confirms

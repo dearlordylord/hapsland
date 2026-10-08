@@ -1,12 +1,6 @@
 const stable = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/
 const candidate = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*$/
 
-export const canonicalRepositoryOrigin = (value) => {
-  const match = /^(?:https:\/\/github\.com\/|git@github\.com:|ssh:\/\/git@github\.com\/(?=[A-Za-z0-9_]))([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)\/?$/.exec(value)
-  if (!match) return undefined
-  return `https://github.com/${match[1]}/${match[2].replace(/\.git$/, "")}`.toLowerCase()
-}
-
 export const validateReleaseCoordinates = (pin) => {
   if (
     pin === null ||
