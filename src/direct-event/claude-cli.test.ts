@@ -475,7 +475,13 @@ describe.each([
         versions.push(request.version)
         const response =
           request.operation === "hello"
-            ? JSON.stringify({ version: 1, status: "ready", lifetime: "fake-lifetime", pid: process.pid })
+            ? JSON.stringify({
+                version: 1,
+                status: "ready",
+                lifetime: "fake-lifetime",
+                pid: process.pid,
+                build: "/fixture"
+              })
             : request.operation === "edit-policy"
               ? JSON.stringify({
                   version: 1,

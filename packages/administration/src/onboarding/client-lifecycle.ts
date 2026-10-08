@@ -314,10 +314,11 @@ export const formatDoctor = (value: unknown, host: SetupClient): string[] => {
     )
   ]
 }
-export const formatFailure = (value: unknown, host: SetupClient): string => {
+export const formatFailure = (value: unknown, host: SetupClient | "resident"): string => {
   const result = record(value)
   const error = record(result.error)
   const message = String(error.message ?? result.status ?? "operation failed")
+  if (host === "resident") return `resident: ${message}. Retry hapsland update --resident-only.`
   if (message.includes("explicitly disabled"))
     return `${host}: ${message}. Enable features.hooks in the selected Codex config only if your policy permits Hapsland hooks, then rerun setup.`
   return `${host}: ${String(error.message ?? result.status ?? "operation failed")}. Files were preserved where ownership could not be established. Run hapsland doctor ${host}; use hapsland reinstall ${host} to replace marked Hapsland hooks. Malformed configuration must be corrected first.`
@@ -326,6 +327,7 @@ export const formatFailure = (value: unknown, host: SetupClient): string => {
 const LifecycleResult = Schema.Struct({
   status: Schema.String,
   alreadyCurrent: Schema.optionalKey(Schema.Boolean),
+  restart: Schema.optionalKey(Schema.Struct({ required: Schema.Boolean })),
   error: Schema.optionalKey(Schema.Unknown),
   host: Schema.optionalKey(Schema.Unknown),
   recovery: Schema.optionalKey(Schema.Unknown),
@@ -348,7 +350,7 @@ export class LifecycleInvocationError extends Schema.TaggedError<LifecycleInvoca
 export const invokeLifecycle = Effect.fn("ClientLifecycle.invoke")(function* (
   command: string,
   args: ReadonlyArray<string>,
-  host: SetupClient,
+  host: SetupClient | "resident",
   request: unknown,
   environment: NodeJS.ProcessEnv = process.env
 ) {
@@ -372,7 +374,10 @@ export const invokeLifecycle = Effect.fn("ClientLifecycle.invoke")(function* (
     )
   const unreadable = () =>
     new LifecycleInvocationError({
-      message: `${host}: package returned an unreadable lifecycle result. Run hapsland doctor ${host}.`
+      message:
+        host === "resident"
+          ? "Resident package returned an unreadable lifecycle result. Activation is uncertain; retry hapsland update --resident-only."
+          : `${host}: package returned an unreadable lifecycle result. Run hapsland doctor ${host}.`
     })
   const parsed = yield* Effect.try({ try: () => JSON.parse(result.stdout), catch: unreadable })
   const output = yield* Schema.decodeUnknownEffect(LifecycleResult)(parsed).pipe(Effect.mapError(unreadable))

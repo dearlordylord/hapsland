@@ -1,3 +1,4 @@
+import { resolveTurboExecutable } from "./pinned-turbo.mjs"
 import { mkdirSync, writeFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -26,7 +27,7 @@ export const buildBendProducers = async (root, environment, graph = readPackageG
     { bendToolchain: toolchain }
   )
   await runBuildProcess(
-    resolve(root, "node_modules/.bin/turbo"),
+    resolveTurboExecutable(root),
     [
       "run",
       "build",

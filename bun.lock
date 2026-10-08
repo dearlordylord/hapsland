@@ -48,6 +48,7 @@
         "@effect/ai-typesafe": "catalog:",
         "@effect/platform-node": "catalog:",
         "@hapsland/activity-observation": "workspace:*",
+        "@hapsland/canonical-policy": "workspace:*",
         "@hapsland/credential-storage": "workspace:*",
         "@hapsland/delivery-output": "workspace:*",
         "@hapsland/inspection-records": "workspace:*",

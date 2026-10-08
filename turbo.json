@@ -80,6 +80,7 @@
       "dependsOn": [
         "@hapsland/activity-observation#build",
         "@hapsland/administration#clean:compiler",
+        "@hapsland/canonical-policy#build",
         "@hapsland/credential-storage#build",
         "@hapsland/delivery-output#build",
         "@hapsland/inspection-records#build",

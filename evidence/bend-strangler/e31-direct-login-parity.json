@@ -1,0 +1,8 @@
+{
+  "at": "2026-10-08T21:27:35.351Z",
+  "cases": 464100,
+  "commandCases": 975,
+  "productionCompared": true,
+  "result": "pass",
+  "scope": "finite direct stdin login native phase/action/status/storage/correlation cases, including large and nonfinite native tokens; exact fields, Hold identity and storage-object identity; no IO or universal native claim"
+}

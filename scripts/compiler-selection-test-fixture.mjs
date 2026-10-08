@@ -6,6 +6,7 @@ import { pathToFileURL } from "node:url"
 import { spawnSync } from "node:child_process"
 import { resolvePinnedTypeScript } from "./pinned-typescript.mjs"
 import { fileEvidence } from "./compiler-evidence.mjs"
+import { authoredTaskToolingFiles } from "./authored-task-inputs.mjs"
 
 // The nested compiler has distinct package/helper/executable bytes but delegates
 // compilation to the real pinned executable. Markers identify actual discovery
@@ -65,21 +66,23 @@ export async function compilerSelectionFixture(t, { stampOwner = "root", mutatio
   writeFileSync(resolve(subject, "src/main.ts"), "export const value: number = 243\n")
   for (const name of ["tsconfig.json", "tsconfig.package.json"]) writeFileSync(resolve(root, name), "{}\n")
   writeFileSync(resolve(root, "bun.lock"), "fixture lock\n")
-  for (const name of [
-    "compile-package",
-    "build-lock",
-    "build-groups",
-    "owned-lock",
-    "build-process",
-    "build-workspaces",
-    "build-bend-producers",
-    "compiler-evidence",
-    "compiler-context",
-    "pinned-typescript",
-    "package-graph",
-    "authored-task-inputs"
-  ])
-    copyFileSync(resolve(repository, `scripts/${name}.mjs`), resolve(scripts, `${name}.mjs`))
+  for (const path of new Set([...authoredTaskToolingFiles({ compiler: "typescript" }), "scripts/check-ui-flows.mjs"])) {
+    mkdirSync(dirname(resolve(root, path)), { recursive: true })
+    copyFileSync(resolve(repository, path), resolve(root, path))
+  }
+  const registry = resolve(root, "packages/administration/src/interaction/flow-registry.ts")
+  mkdirSync(dirname(registry), { recursive: true })
+  writeFileSync(
+    registry,
+    `
+export const uiFlows = {}, uiJourneys = {}, inputFragments = {}, directUiExceptions = {};
+export const interactionInfrastructure = [], interactionCompositionRoots = [];
+`
+  )
+  writeFileSync(resolve(scripts, "interaction-diagram-generators.ts"), "export const diagramGenerators = {}\n")
+  const parser = createRequire(import.meta.url).resolve("@babel/parser/package.json")
+  mkdirSync(resolve(root, "node_modules/@babel"))
+  symlinkSync(dirname(parser), resolve(root, "node_modules/@babel/parser"), "dir")
   const actualPackage = createRequire(import.meta.url).resolve("typescript/package.json")
   symlinkSync(dirname(actualPackage), resolve(root, "node_modules/typescript"), "dir")
   const nestedModules = resolve(scripts, "node_modules"),

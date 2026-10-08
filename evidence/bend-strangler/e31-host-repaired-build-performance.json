@@ -1,0 +1,60 @@
+{
+  "warmPreparationCriterion": "all 23 package build tasks cached and 23 uncached clean tasks per lane; identical total task counts across all four samples",
+  "warmPreparationMatched": true,
+  "baselineRevision": "e31dac837d5ccb2e83fe4096b177400d94fd7792",
+  "startedAt": "2026-10-08T21:50:48.555Z",
+  "at": "2026-10-08T21:51:27.053Z",
+  "roots": {
+    "typescript": "/workspace/typescript/hapsland-bend-baseline-master-e31dac83",
+    "integratedBend": "/workspace/typescript/hapsland-bend-selection-ui"
+  },
+  "command": [
+    "taskset",
+    "-c",
+    "11",
+    "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+    "scripts/build-workspaces.mjs"
+  ],
+  "affinity": "CPU 11 for both lanes; not exclusive",
+  "samples": {
+    "typescript": [
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 11.00205508,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 10.775773110000001,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      }
+    ],
+    "integratedBend": [
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 8.932323379999998,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 7.773641605999997,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      }
+    ]
+  },
+  "meanRatio": 0.7671088613726451,
+  "buildParity": true,
+  "scope": "paired warm workspace builds; declared frozen baseline and current candidate; both separately prepared; native release assembly excluded"
+}

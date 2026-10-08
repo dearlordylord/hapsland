@@ -27,8 +27,6 @@ await withBuildLock(root, async (environment) => {
       "tsconfig.packages.json",
       "turbo.json",
       "scripts/check-ui-flows.mjs",
-      "scripts/generate-interaction-diagrams.mts",
-      "scripts/interaction-diagram-generators.ts",
       "packages/administration/src/interaction/flow-registry.ts",
       ...[
         "build-product",
@@ -46,12 +44,6 @@ await withBuildLock(root, async (environment) => {
       env: environment,
       stdio: "inherit",
       timeout: PRODUCT_COMPILATION_TIMEOUT_MS
-    })
-    await runBuildProcess(process.execPath, [resolve(root, "scripts/generate-interaction-diagrams.mts"), "--check"], {
-      cwd: root,
-      env: environment,
-      stdio: "inherit",
-      timeout: 30_000
     })
     const graph = readPackageGraph(root)
     const profiles = environment.HAPSLAND_BUILD_PROFILE

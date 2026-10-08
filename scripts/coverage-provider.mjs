@@ -8,13 +8,15 @@ import { join, resolve, relative } from "node:path"
 import { mergeScriptCovs } from "@bcoe/v8-coverage"
 import v8 from "@vitest/coverage-v8"
 import { V8CoverageProvider } from "@vitest/coverage-v8/dist/provider.js"
-import { configureNativeBindings } from "../packages/source-analysis/src/direct-event/languages/native-bindings.ts"
-import { packageAssetPath } from "@hapsland/runtime-environment/runtime/package-runtime"
+import {
+  configureNativeBindings,
+  sourceNativeParserRoot
+} from "../packages/source-analysis/src/direct-event/languages/native-bindings.ts"
 import { prepareBunCoveragePreload } from "./test-harness/bun-coverage-preload-build.mjs"
 
 export { compiledCoverageSource } from "./test-harness/coverage-source.mjs"
 
-configureNativeBindings(packageAssetPath("native", "prebuilt", `${process.platform}-${process.arch}`))
+configureNativeBindings(sourceNativeParserRoot(resolve(import.meta.dirname, "..")))
 const { default: Parser } = await import("tree-sitter")
 const { default: TypeScript } = await import("tree-sitter-typescript")
 

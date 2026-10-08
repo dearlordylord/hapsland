@@ -14,6 +14,7 @@ import {
   CURRENT_IPC_VERSION,
   encodeCurrentResidentRequest,
   decodeCurrentResidentRequest,
+  decodeCurrentResidentFrame,
   encodeCurrentResidentResponse,
   decodeCurrentResidentResponse,
   decodeResidentRequest,
@@ -437,4 +438,30 @@ it("bounds source-free native recording independently of review admission", () =
     { metadata: [{ ...projection, diagnostic: { stage: "capture", code: "error", args: { message: "PRIVATE" } } }] }
   ])
     expect(decodeResidentRequest(JSON.stringify({ ...request, ...change }))).toBeUndefined()
+})
+
+it("identifies incompatible removed operations through the bounded caller header without accepting their payload", () => {
+  const caller = { host: "codex-cli", sessionId: "agent", subagentId: "child" }
+  const wire = {
+    version: 1,
+    hookContract: 2,
+    operation: "removed-operation",
+    updateNotice: true,
+    updateRecipient: caller,
+    obsoletePayload: "unused"
+  }
+  expect(decodeCurrentResidentFrame(JSON.stringify(wire))).toEqual({
+    kind: "incompatible",
+    recipient: caller,
+    eligible: true
+  })
+  expect(decodeCurrentResidentRequest(JSON.stringify(wire))).toBeUndefined()
+  expect(decodeCurrentResidentFrame(JSON.stringify({ ...wire, hookContract: 1 }))).toBeUndefined()
+  expect(
+    decodeCurrentResidentFrame(JSON.stringify({ ...wire, updateRecipient: { ...caller, sessionId: 7 } }))
+  ).toBeUndefined()
+  expect(decodeCurrentResidentFrame("invalid")).toBeUndefined()
+  const hello = { requestRoute: "shared", operation: "hello" } as const
+  expect(decodeCurrentResidentFrame(encodeCurrentResidentRequest(hello))).toEqual({ kind: "request", request: hello })
+  expect(decodeCurrentResidentResponse({ version: 1, status: "unknown" }, hello)).toBeUndefined()
 })

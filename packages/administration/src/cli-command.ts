@@ -159,7 +159,8 @@ const clientArguments = (values: ClientArgumentValues): ClientArguments => {
   const flags = new Map<string, string>()
   for (const [name, value] of Object.entries(values)) if (typeof value === "string") flags.set(`--${name}`, value)
   if (values[NEW_KEY_OPTION] === true) flags.set(NEW_KEY_FLAG, "true")
-  for (const name of ["no-input", "apply", "json"]) if (values[name] === true) flags.set(`--${name}`, "true")
+  for (const name of ["no-input", "apply", "json", "resident-only"])
+    if (values[name] === true) flags.set(`--${name}`, "true")
   return { host, flags }
 }
 
@@ -314,6 +315,9 @@ export const makeCliCommand = (invoke: (invocation: Invocation) => void) => {
               : {}),
             ...(definition.options === "update"
               ? {
+                  "resident-only": switchFlag("resident-only", [], false).pipe(
+                    Flag.withDescription("Update only the shared resident; preserve all runtime hooks")
+                  ),
                   tarball: valueFlag("tarball").pipe(
                     Flag.withDescription("Local package archive; cannot combine with --target, --channel or --version")
                   ),
@@ -337,6 +341,8 @@ export const makeCliCommand = (invoke: (invocation: Invocation) => void) => {
               yield* validate(() => {
                 const client = clientArguments(values)
                 if (command === "update") {
+                  if (client.flags.has("--resident-only") && client.host !== undefined)
+                    throw new Error("--resident-only cannot be combined with a client selection.")
                   const releases = ["--target", "--tarball", "--channel", "--version"].filter((name) =>
                     client.flags.has(name)
                   )

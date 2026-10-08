@@ -5,9 +5,11 @@ import {
 } from "@hapsland/canonical-policy/canonical/update-adapter"
 import type { SetupClient } from "./client-selection.ts"
 
+export type UpdateScope = SetupClient | "resident"
+
 export type UpdateOutcome = "updated" | "already current" | "skipped" | "partial" | "busy" | "indeterminate" | "failed"
 export type UpdateAgent = {
-  host: SetupClient
+  host: UpdateScope
   digest?: string
   outcome?: UpdateOutcome
   activation?: "complete" | "failed"
@@ -25,30 +27,30 @@ export type UpdateModel = {
     | "Cancelled"
   revision: number
   agents: readonly UpdateAgent[]
-  discoveryFailures: readonly SetupClient[]
+  discoveryFailures: readonly UpdateScope[]
   cursor: number
   activationReturn?: "Previewing" | "Applying"
 }
 export type UpdateAction =
-  | { kind: "discovered"; commandId: number; hosts: readonly SetupClient[]; failures: readonly SetupClient[] }
+  | { kind: "discovered"; commandId: number; hosts: readonly UpdateScope[]; failures: readonly UpdateScope[] }
   | { kind: "targeted"; commandId: number }
   | {
       kind: "previewed"
       commandId: number
-      host: SetupClient
+      host: UpdateScope
       result: { kind: "proposal"; digest: string } | { kind: "current" | "failed" | "busy" | "indeterminate" }
     }
   | { kind: "continue" | "back" | "exit" }
-  | { kind: "approve"; yes: boolean; proposals: readonly { host: SetupClient; digest: string }[] }
-  | { kind: "observed"; commandId: number; host: SetupClient; outcome: Exclude<UpdateOutcome, "skipped"> }
-  | { kind: "activated"; commandId: number; host: SetupClient; result: "complete" | "failed" }
+  | { kind: "approve"; yes: boolean; proposals: readonly { host: UpdateScope; digest: string }[] }
+  | { kind: "observed"; commandId: number; host: UpdateScope; outcome: Exclude<UpdateOutcome, "skipped"> }
+  | { kind: "activated"; commandId: number; host: UpdateScope; result: "complete" | "failed" }
 export type UpdateEvent = { revision: number; action: UpdateAction }
 export type UpdateCommand =
   | { kind: "discover"; id: number }
   | { kind: "target"; id: number }
-  | { kind: "preview"; id: number; host: SetupClient }
-  | { kind: "activate"; id: number; host: SetupClient }
-  | { kind: "apply"; id: number; host: SetupClient; digest: string }
+  | { kind: "preview"; id: number; host: UpdateScope }
+  | { kind: "activate"; id: number; host: UpdateScope }
+  | { kind: "apply"; id: number; host: UpdateScope; digest: string }
 export const initialUpdate = (): UpdateModel => ({
   phase: "Discovering",
   revision: 0,
@@ -75,7 +77,7 @@ const skipProposals = (model: UpdateModel) =>
   model.agents.map((item) =>
     item.digest && item.outcome === undefined ? { ...item, outcome: "skipped" as const } : item
   )
-const sameProposals = (model: UpdateModel, approvals: readonly { host: SetupClient; digest: string }[]) => {
+const sameProposals = (model: UpdateModel, approvals: readonly { host: UpdateScope; digest: string }[]) => {
   const proposals = updateProposals(model)
   return (
     proposals.length === approvals.length &&
@@ -158,7 +160,7 @@ const facts = {
   nonempty: (_: UpdateModel, action: UpdateAction) =>
     Number((action as Extract<UpdateAction, { kind: "discovered" }>).hosts.length > 0),
   matched: (model: UpdateModel, action: UpdateAction) =>
-    Number((action as { host: SetupClient }).host === model.agents[model.cursor]?.host),
+    Number((action as { host: UpdateScope }).host === model.agents[model.cursor]?.host),
   validDigest: (_: UpdateModel, action: UpdateAction) =>
     Number(/^[a-f0-9]{64}$/.test((action as { result: { digest: string } }).result.digest)),
   more: (model: UpdateModel) => Number(model.cursor + 1 < model.agents.length),

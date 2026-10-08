@@ -292,6 +292,14 @@
       "types": "./dist/onboarding/setup-selection.d.ts",
       "default": "./dist/onboarding/setup-selection.js"
     },
+    "./onboarding/resident-update": {
+      "types": "./dist/onboarding/resident-update.d.ts",
+      "default": "./dist/onboarding/resident-update.js"
+    },
+    "./onboarding/hook-binding": {
+      "types": "./dist/onboarding/hook-binding.d.ts",
+      "default": "./dist/onboarding/hook-binding.js"
+    },
     "./credentials/masked-input-error": {
       "types": "./dist/credentials/masked-input-error.d.ts",
       "default": "./dist/credentials/masked-input-error.js"
@@ -314,7 +322,8 @@
     "@effect/platform-node": "catalog:",
     "effect": "catalog:",
     "smol-toml": "catalog:",
-    "@hapsland/credential-storage": "workspace:*"
+    "@hapsland/credential-storage": "workspace:*",
+    "@hapsland/canonical-policy": "workspace:*"
   },
   "scripts": {
     "build": "node ../../scripts/compile-package.mjs",

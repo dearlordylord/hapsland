@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-08T21:00:42.067320+00:00",
+  "at": "2026-10-08T22:00:37.414246+00:00",
   "branch": "migration/bend-direct-login-resumed",
   "masterRevision": "56d1f39074276f96a65431ee9a2f5f1b8cea40bf",
   "mergedRevision": "0420829352101bbd1728d6947242b58b87e4c6e9",
@@ -3360,5 +3360,13 @@
       "scope": "actual compiled keyboard reducer; independent identical consumers of all fixture result fields, identity, IDs and order; both reducers through both identical caller sites per sample; alternating paired samples, CPU11 nonexclusive; no cold terminal/IO/platform claim"
     }
   },
-  "directLoginPreparation": "direct-login-resumed-preparation.json"
+  "directLoginPreparation": "direct-login-resumed-preparation.json",
+  "currentMerge": {
+    "masterRevision": "e31dac837d5ccb2e83fe4096b177400d94fd7792",
+    "candidateParent": "57662e358acceb614737cd09f4804c1e9ff5c66e",
+    "evidence": "e31-merge-preparation.json",
+    "scope": "bounded source and merge consumers, warm build and hot execution; retained failures and scope exclusions in evidence",
+    "nextPerformanceDue": "2026-10-08T22:21:55Z",
+    "goalComplete": false
+  }
 }

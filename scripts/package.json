@@ -144,6 +144,10 @@
     "./test-harness/inspection-browser-controls": {
       "types": "./test-harness/inspection-browser-controls.mjs",
       "default": "./test-harness/inspection-browser-controls.mjs"
+    },
+    "./test-support/installed-resident-update": {
+      "types": "./test-support/installed-resident-update.mjs",
+      "default": "./test-support/installed-resident-update.mjs"
     }
   }
 }

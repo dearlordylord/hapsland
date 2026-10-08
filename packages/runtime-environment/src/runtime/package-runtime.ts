@@ -1,6 +1,9 @@
 import { EMITTED_ENTRIES, SOURCE_ENTRIES, RELEASE_NAME } from "./release-identity.generated.ts"
 import { BUN_VERSION, bunExecutable } from "./bun-runtime.ts"
-import { realpathSync, readFileSync } from "node:fs"
+import * as Schema from "effect/Schema"
+import { randomUUID } from "node:crypto"
+import { homedir } from "node:os"
+import { realpathSync, readFileSync, mkdirSync, writeFileSync, linkSync, unlinkSync } from "node:fs"
 import { dirname, extname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { sourceRuntimeFromEntrypoint, sourceRuntimeCommand } from "./source-runtime-layout.ts"
@@ -43,6 +46,8 @@ const sourcePackageRoot = (): string => {
 export const packageRoot = standalone
   ? resolve(dirname(executablePath()), "../../..")
   : (sourceRuntime?.root ?? sourcePackageRoot())
+/** Immutable installed package or prepared source runtime identity; independent of semver. */
+export const packageBuildIdentity = sourceRuntime?.directory ?? packageRoot
 export const packageAssetPath = (...segments: ReadonlyArray<string>): string => join(packageRoot, ...segments)
 export const standaloneCommand = (root: string, role: PackageRole): RuntimeCommand => ({
   executable: join(root, "dist", "bin", `${process.platform}-${process.arch}`, roleNames[role]),
@@ -100,3 +105,48 @@ export const versionProbeArguments = (runtime: string, entrypoint: string): Read
   commandFromEntrypoint(runtime, entrypoint).args.length === 0
     ? ["--runtime-identity"]
     : ["-e", 'process.stdout.write(globalThis.Bun?.version??"unavailable")']
+
+/** Resident selection is independent of administrative CLI and per-runtime hook selection. */
+export const residentTargetPath = (): string => join(homedir(), ".local/share/hapsland/resident-target.json")
+export const ResidentTarget = Schema.Struct({
+  version: Schema.Literal(1),
+  build: Schema.NonEmptyString.check(Schema.isMaxLength(16_384)),
+  command: Schema.Struct({
+    executable: Schema.NonEmptyString.check(Schema.isPattern(/^\//)),
+    args: Schema.Array(Schema.String).check(Schema.isMaxLength(8))
+  })
+})
+export interface ResidentTarget extends Schema.Schema.Type<typeof ResidentTarget> {}
+export const readResidentTarget = (path = residentTargetPath()): ResidentTarget | undefined => {
+  try {
+    return Schema.decodeUnknownSync(ResidentTarget, { onExcessProperty: "error" })(
+      JSON.parse(readFileSync(path, "utf8"))
+    )
+  } catch (cause) {
+    if (typeof cause === "object" && cause !== null && "code" in cause && cause.code === "ENOENT") return undefined
+    throw new Error("Selected resident is unavailable; retry the resident update.")
+  }
+}
+export const selectedResidentCommand = (): RuntimeCommand => {
+  const selected = readResidentTarget()
+  if (selected !== undefined) return selected.command
+  const command = packageCommand("resident")
+  // First published launch fixes the shared selection independently of later hook updates.
+  // Source entrypoints retain their existing optional development behavior.
+  if (command.args.length !== 0) return command
+  const path = residentTargetPath()
+  mkdirSync(dirname(path), { recursive: true, mode: 0o700 })
+  const temporary = `${path}.${process.pid}.${randomUUID()}`
+  writeFileSync(temporary, JSON.stringify({ version: 1, build: packageBuildIdentity, command }) + "\n", {
+    mode: 0o600,
+    flag: "wx"
+  })
+  try {
+    linkSync(temporary, path)
+  } catch (cause) {
+    if (!(cause instanceof Error && "code" in cause && cause.code === "EEXIST")) throw cause
+  } finally {
+    unlinkSync(temporary)
+  }
+  return readResidentTarget()?.command ?? command
+}

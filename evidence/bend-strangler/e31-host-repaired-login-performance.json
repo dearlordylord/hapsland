@@ -1,0 +1,90 @@
+{
+  "runtime": {
+    "kind": "Bun",
+    "version": "1.3.14"
+  },
+  "actualCompiledBaseline": "/workspace/typescript/hapsland-bend-baseline-master-e31dac83/packages/administration/dist/credentials/login-model.js",
+  "at": "2026-10-08T21:52:47.511Z",
+  "cases": 2048,
+  "samples": {
+    "typescript": [
+      {
+        "milliseconds": 46.44279000000006,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 69.10201499999994,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 51.96983499999999,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 46.45516499999985,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 47.598007999999936,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 53.808933000000025,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 51.35457999999994,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 74.74418499999979,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 108.86812499999996,
+        "checksum": 38784000
+      }
+    ],
+    "integratedBend": [
+      {
+        "milliseconds": 53.46313800000007,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 49.017561,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 53.48588900000004,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 51.245911999999976,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 49.79227500000002,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 48.85910100000001,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 73.92867799999999,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 132.98215299999993,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 54.90627500000005,
+        "checksum": 38784000
+      }
+    ]
+  },
+  "medianRatio": 1.0287340338871593,
+  "executionParity": false,
+  "scope": "warm compiled login reducer and command mapping; exhaustive typed native payload materialization; IO, startup, secret lifetime and platform support excluded"
+}

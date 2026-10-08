@@ -131,7 +131,7 @@ const prepareReducers = () =>
     return (model: VerificationModel, action: VerificationAction) => {
       let index = 0
       for (const axis of axes) index = index * axis.radix + axis.read(model, action)
-      return applications[index]!(model, action)
+      return applications.at(index)!(model, action)
     }
   })
 let reducers: ReturnType<typeof prepareReducers> | undefined
@@ -144,5 +144,5 @@ export const reduceVerification = (model: VerificationModel, event: Verification
   )
     return model
   reducers ??= prepareReducers()
-  return reducers[verificationNavigationIndex(model.phase, action.kind)]!(model, action)
+  return reducers.at(verificationNavigationIndex(model.phase, action.kind))!(model, action)
 }

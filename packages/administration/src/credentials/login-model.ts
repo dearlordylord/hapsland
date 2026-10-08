@@ -47,8 +47,8 @@ const move = (model: LoginModel, phase: LoginModel["phase"], patch: Partial<Logi
 })
 const restart = (model: LoginModel): LoginModel => ({ phase: "SelectingDestination", revision: model.revision + 1 })
 type Materialize = (model: LoginModel, action: LoginAction) => LoginModel
-const materialize = (plan: LoginPlan): Materialize => {
-  if (plan.kind === "hold") return (model) => model
+const materialize = (plan: LoginPlan): Materialize | undefined => {
+  if (plan.kind === "hold") return undefined
   if (plan.kind === "reset") return (model) => restart(model)
   if (plan.kind !== "advance") throw new TypeError("Unknown login navigation plan")
   const phase = plan.phase
@@ -78,7 +78,7 @@ const materialize = (plan: LoginPlan): Materialize => {
   }
 }
 // Bind native patch application once to the checked source-free Bend plans.
-const reducers = loginNavigationPlans.map((plans) => plans.map(materialize))
+const reducers = loginNavigationPlans.map((plans) => plans.map((plan) => ({ apply: materialize(plan) })))
 export const reduceLogin = (model: LoginModel, event: LoginEvent): LoginModel => {
   const action = event.action
   if (event.revision !== model.revision || ("commandId" in action && action.commandId !== model.revision)) return model
@@ -101,6 +101,6 @@ export const reduceLogin = (model: LoginModel, event: LoginEvent): LoginModel =>
         break
     }
   }
-  const apply = options[index]!
-  return apply(model, action)
+  const apply = options[index]!.apply
+  return apply === undefined ? model : apply(model, action)
 }

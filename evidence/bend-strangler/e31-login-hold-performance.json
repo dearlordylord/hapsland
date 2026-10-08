@@ -1,0 +1,90 @@
+{
+  "runtime": {
+    "kind": "Bun",
+    "version": "1.3.14"
+  },
+  "actualCompiledBaseline": "/workspace/typescript/hapsland-bend-baseline-master-e31dac83/packages/administration/dist/credentials/login-model.js",
+  "at": "2026-10-08T21:57:42.422Z",
+  "cases": 2048,
+  "samples": {
+    "typescript": [
+      {
+        "milliseconds": 46.526954000000046,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 52.05995699999994,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 55.280899999999974,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 50.42681900000002,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 53.964221999999836,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 51.58732800000007,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 111.6301820000001,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 46.55049600000007,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 43.300387,
+        "checksum": 38784000
+      }
+    ],
+    "integratedBend": [
+      {
+        "milliseconds": 47.34875299999999,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 89.12454400000001,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 51.063491,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 46.79604000000006,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 43.35717900000009,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 49.24814300000003,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 70.205019,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 44.682773,
+        "checksum": 38784000
+      },
+      {
+        "milliseconds": 54.07088900000008,
+        "checksum": 38784000
+      }
+    ]
+  },
+  "medianRatio": 0.954655821677757,
+  "executionParity": true,
+  "scope": "warm compiled login reducer and command mapping; exhaustive typed native payload materialization; IO, startup, secret lifetime and platform support excluded"
+}

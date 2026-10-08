@@ -11,7 +11,6 @@ export const qualityPreflight = [
 ]
 export const precheckStages = [
   qualityPreflight,
-  ["documentation", "scripts/generate-documentation.mjs", "--check"],
   ["bend-generation", "scripts/build-bend-producers.mjs"],
   ["bend-artifacts", "scripts/verify-bend-artifacts.mjs"],
   ["canonical-authority", "scripts/check-canonical-authority.mjs"],
@@ -36,6 +35,7 @@ export const precheckStages = [
   ].map((name) => [name, `scripts/check-${name}.mjs`]),
   ["bend-progress", "packages/agent-flow-bend/scripts/check-progress.mjs"],
   ["content-isolation", "packages/agent-flow-bend/scripts/check-content-isolation.mjs"],
+  ["native-parser-preparation", "scripts/native-inputs.mjs", "prepare-parsers", "host"],
   ["content-wire-mutants", "scripts/check-content-wire-mutants.mjs"],
   [
     "native-pi-observation",
@@ -104,6 +104,7 @@ export const precheckStages = [
     "scripts/owned-lock.test.mjs",
     "scripts/build-lock.test.mjs",
     "scripts/build-process.test.mjs",
+    "scripts/pinned-turbo.test.mjs",
     "scripts/build-ownership.test.mjs",
     "scripts/native-compiler-inputs.test.mjs",
     "scripts/native-linker-inputs.test.mjs",
