@@ -149,19 +149,12 @@ try {
   await page.locator("#hide-unreviewed").uncheck()
   await page.waitForFunction(() => document.querySelectorAll("#edits li").length === 4)
   historyUnavailable = true
-  await page.waitForFunction(() =>
-    document.querySelector("#history-status").textContent.includes("temporarily unavailable")
-  )
+  await page.waitForFunction(() => document.querySelector("#status").textContent.includes("temporarily unavailable"))
   assert.equal(await page.locator("#edits li").count(), 4, "Temporary read failure preserves pre-existing edits")
   historyUnavailable = false
-  await page.waitForFunction(
-    () => !document.querySelector("#history-status").textContent.includes("temporarily unavailable")
-  )
-  const totals = {
-    modelInvocations: { live: 1, controlled: 1, unknown: 0 },
-    httpAttempts: { live: 1, controlled: 0, unknown: 0 }
-  }
-  assert.deepEqual(JSON.parse(await page.locator("#request-totals").textContent()), totals)
+  await page.waitForFunction(() => !document.querySelector("#status").textContent.includes("temporarily unavailable"))
+  const totals = "Model invocations: 1 live, 1 controlled · HTTP attempts: 1 live"
+  assert.deepEqual(await page.locator("#call-summary").textContent(), totals)
   for (const [index, route] of [
     [2, "joined-pending"],
     [1, "cached"]
@@ -197,33 +190,27 @@ try {
       await page.setViewportSize({ width: 375, height: 812 })
     }
 
-    assert.deepEqual(JSON.parse(await page.locator("#request-totals").textContent()), totals)
+    assert.deepEqual(await page.locator("#call-summary").textContent(), totals)
   }
   await page.locator("#filter").fill("controlled.ts")
-  assert.deepEqual(JSON.parse(await page.locator("#request-totals").textContent()), {
-    modelInvocations: { live: 0, controlled: 1, unknown: 0 },
-    httpAttempts: { live: 0, controlled: 0, unknown: 0 }
-  })
+  assert.deepEqual(
+    await page.locator("#call-summary").textContent(),
+    "Model invocations: 1 controlled · HTTP attempts: 0 captured"
+  )
   await page.locator("#filter").fill("")
   for (const repeat of [1, 2]) {
-    // Observe the public DOM update from the new feed, rather than accepting
-    // the previous connection's already-recovered label as readiness.
     await page.evaluate(() => {
       window.inspectionRecoveryObserved = false
-      const label = document.querySelector("#history-status")
-      const observer = new MutationObserver(() => {
-        if (label.textContent.includes("Recovered retained history")) {
-          window.inspectionRecoveryObserved = true
-          observer.disconnect()
-        }
-      })
-      observer.observe(label, { childList: true, characterData: true, subtree: true })
+      connect()
+      const observed = () => {
+        window.inspectionRecoveryObserved = true
+      }
+      feed.addEventListener("snapshot", observed, { once: true })
+      feed.addEventListener("increment", observed, { once: true })
     })
-    await page.getByRole("button", { name: "Reconnect", exact: true }).focus()
-    await page.keyboard.press("Enter")
     await page.waitForFunction(() => window.inspectionRecoveryObserved)
     assert.deepEqual(
-      JSON.parse(await page.locator("#request-totals").textContent()),
+      await page.locator("#call-summary").textContent(),
       totals,
       `Replay ${repeat} keeps observed totals idempotent`
     )
@@ -235,12 +222,10 @@ try {
   )
   assert.ok(livePolicy)
   await rm(join(root, "inspection", `${livePolicy.source.id}-${String(livePolicy.sequence).padStart(16, "0")}.json`))
-  await page.waitForFunction(
-    () => JSON.parse(document.querySelector("#request-totals").textContent).modelInvocations.unknown === 1
-  )
+  await page.waitForFunction(() => document.querySelector("#call-summary").textContent.includes("1 unknown"))
   assert.deepEqual(
-    JSON.parse(await page.locator("#request-totals").textContent()),
-    { modelInvocations: { live: 0, controlled: 1, unknown: 1 }, httpAttempts: { live: 0, controlled: 0, unknown: 1 } },
+    await page.locator("#call-summary").textContent(),
+    "Model invocations: 1 controlled, 1 unknown · HTTP attempts: 1 unknown",
     "Missing policy does not invent live or controlled activity"
   )
   assert.deepEqual(errors, [])

@@ -1,3 +1,4 @@
+import { readActivity } from "@hapsland/activity-observation/activity/status"
 import { makeDirectHookDispatch } from "../../packages/hook-runtime/src/hooks/direct.ts"
 import { monotonicNow, hookMonotonicMillis } from "@hapsland/resident-transport/resident/hook-clock"
 import {
@@ -625,154 +626,187 @@ it("reads fresh history after each completed dashboard request", async () => {
   }
 })
 
-it.each(["mjs", "ts", "mixed"])(
-  "exposes native %s ingress without review authority or source disclosure",
-  async (extension) => {
-    const mixed = extension === "mixed"
-    const path = extension === "ts" ? "excluded.ts" : "excluded.mjs"
-    const root = await makeGitFixture()
-    await mkdir(join(root, ".env.local"))
-    const secret = "EXCLUDED_SOURCE_MUST_NOT_ENTER_INSPECTION"
-    await put(root, path, `const value = '${secret}';\n`)
-    const rules = mixed ? connectDefaultRuleFixture(root).slice(0, 1) : []
-    await put(root, ".hapsland.jsonc", JSON.stringify({ version: 1, sessionInspection: true, rules }))
-    if (mixed) await put(root, "supported.ts", "export type OrderCount = number;\n")
-    const paths = residentPaths(join(root, "runtime"))
-    const history = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
-    const published = nativeDeferred<void>()
-    let requests = 0
-    const captures: string[] = []
-    const resident = await acquireResidentFixture(paths, undefined, {
-      captureSource: (...args) => {
-        captures.push(args[1].relativePath)
-        if (!mixed || args[1].relativePath === path) return Effect.die("excluded native edit entered source capture")
-        return captureStable(...args)
-      },
-      inspectionPersistence: {
-        write: (record, encoded, publication) =>
-          history.write(record, encoded, publication).pipe(
-            Effect.tap(() =>
-              Effect.sync(() => {
-                if (
-                  record.fact.kind ===
-                  (mixed ? "evaluation-outcome" : extension === "ts" ? "diagnostic" : "edit-received")
-                )
-                  published.resolve()
-              })
-            )
-          )
-      },
-      offlineHttpClient: HttpClient.make(() => {
-        requests += 1
-        return Effect.die("excluded edit requested review")
-      })
+it.each([
+  { label: "mjs", path: "excluded.mjs", code: "file-extension" },
+  { label: "ts", path: "excluded.ts" },
+  { label: "mixed", path: "excluded.mjs", code: "file-extension" },
+  { label: "disabled-language", path: "excluded.ts", code: "language-not-enabled", configuration: { languages: [] } },
+  { label: "empty-includes", path: "excluded.ts", code: "empty-includes", configuration: { includes: [] } },
+  { label: "not-included", path: "excluded.ts", code: "not-included", configuration: { includes: ["src/**"] } },
+  { label: "excluded", path: "excluded.ts", code: "excluded", configuration: { excludes: ["excluded.ts"] } },
+  { label: "sensitive", path: ".env.secret", code: "sensitive" },
+  { label: "generated", path: "generated/excluded.ts", code: "generated-or-vendor" },
+  { label: "ignored", path: "excluded.ts", code: "git-ignored" }
+] as const)("exposes native $label ingress without review authority or source disclosure", async (scenario) => {
+  const extension = scenario.label
+  const mixed = extension === "mixed"
+  const path = scenario.path
+  const code = "code" in scenario ? scenario.code : undefined
+  const root = await makeGitFixture()
+  await mkdir(join(root, ".env.local"))
+  const secret = "EXCLUDED_SOURCE_MUST_NOT_ENTER_INSPECTION"
+  await put(root, path, `const value = '${secret}';\n`)
+  const rules = mixed ? connectDefaultRuleFixture(root).slice(0, 1) : []
+  await put(
+    root,
+    ".hapsland.jsonc",
+    JSON.stringify({
+      version: 1,
+      sessionInspection: true,
+      rules,
+      ...("configuration" in scenario ? scenario.configuration : {})
     })
-    await Effect.runPromise(resident.listen())
-    const event = addEvent(root, mixed ? ["supported.ts", path] : [path], {
-      tool_input: {
-        command: `*** Begin Patch\n${mixed ? "*** Add File: supported.ts\n+export type OrderCount = number;\n" : ""}*** Add File: ${path}\n+const value = '${secret}';\n*** End Patch`
-      }
-    })
-    expect(
-      await Effect.runPromise(
-        residentRequestEffect(paths, {
-          requestRoute: "shared",
-          operation: "register-edit",
-          lifetime: resident.lifetime,
-          root,
-          advicee: advicee({ hostVersion: "0.160.1" }),
-          startedAt: monotonicNow(),
-          userConfigPath: join(root, "absent-user")
-        })
-      )
-    ).toMatchObject({ status: "advanced" })
-    const dispatch = makeDirectHookDispatch({
-      deadline: (await Effect.runPromise(hookMonotonicMillis)) + 3900,
-      controlledWriter: true,
-      composedEdit: true
-    })
-    expect(
-      await runClient(
-        dispatch
-          .runDirectCodexHook(
-            event,
-            "0.160.1",
-            mixed
-              ? {
-                  answers: Object.fromEntries(
-                    configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0 }])
-                  )
-                }
-              : undefined,
-            join(root, "consent"),
-            join(root, "activity"),
-            join(root, "absent-user")
-          )
-          .pipe(
-            Effect.provide(
-              ConfigProvider.layer(
-                ConfigProvider.fromUnknown({ REVIEW_RESIDENT_DIR: paths.directory, REVIEW_CREDENTIAL_STATE_PATH: root })
+  )
+  if (extension === "ignored") await put(root, ".gitignore", "excluded.ts\n")
+  if (mixed) await put(root, "supported.ts", "export type OrderCount = number;\n")
+  const paths = residentPaths(join(root, "runtime"))
+  const history = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
+  const published = nativeDeferred<void>()
+  let requests = 0
+  const captures: string[] = []
+  const resident = await acquireResidentFixture(paths, undefined, {
+    captureSource: (...args) => {
+      captures.push(args[1].relativePath)
+      if (!mixed || args[1].relativePath === path) return Effect.die("excluded native edit entered source capture")
+      return captureStable(...args)
+    },
+    inspectionPersistence: {
+      write: (record, encoded, publication) =>
+        history.write(record, encoded, publication).pipe(
+          Effect.tap(() =>
+            Effect.sync(() => {
+              if (
+                record.fact.kind ===
+                (mixed ? "evaluation-outcome" : extension === "ts" ? "diagnostic" : "edit-received")
               )
-            )
+                published.resolve()
+            })
           )
-      )
-    ).toEqual({ handled: true, output: {} })
-    await published.promise
+        )
+    },
+    offlineHttpClient: HttpClient.make(() => {
+      requests += 1
+      return Effect.die("excluded edit requested review")
+    })
+  })
+  await Effect.runPromise(resident.listen())
+  const event = addEvent(root, mixed ? ["supported.ts", path] : [path], {
+    tool_input: {
+      command: `*** Begin Patch\n${mixed ? "*** Add File: supported.ts\n+export type OrderCount = number;\n" : ""}*** Add File: ${path}\n+const value = '${secret}';\n*** End Patch`
+    }
+  })
+  expect(
     await Effect.runPromise(
-      Effect.scoped(
-        Effect.gen(function* () {
-          const server = yield* makeInspectionHttpServer(history)
-          yield* Effect.promise(async () => {
-            const snapshot: unknown = await (await fetch(`${server.url}snapshot`)).json()
-            if (
-              typeof snapshot !== "object" ||
-              snapshot === null ||
-              !("records" in snapshot) ||
-              !Array.isArray(snapshot.records)
-            )
-              throw new Error("missing public records")
-            const records = snapshot.records.map(decodeInspectionRecord)
-            const received = records.find((record) => record.fact.kind === "edit-received")
-            if (received === undefined || received.fact.kind !== "edit-received")
-              throw new Error("missing native receipt")
-            expect(received.fact.candidates).toEqual([
-              ...(mixed
-                ? [{ position: 0, operation: "add", path: "supported.ts", selection: { status: "selected" } }]
-                : []),
-              {
-                position: mixed ? 1 : 0,
-                operation: "add",
-                path,
-                selection:
-                  extension !== "ts"
-                    ? {
-                        status: "excluded",
-                        diagnostic: { stage: "selection", code: "file-extension", args: { extension: ".mjs" } }
-                      }
-                    : { status: "selected" }
-              }
-            ])
-            expect(received.scope.root).toBe(root)
-            if (extension === "ts")
-              expect(records.find((record) => record.fact.kind === "diagnostic")?.fact).toEqual({
-                kind: "diagnostic",
-                diagnostic: { stage: "admission", code: "dispatch-unavailable", args: {} }
-              })
-            expect(
-              records.some((record) =>
-                ["preparation-read", "model-input", "transport-invoked"].includes(record.fact.kind)
-              )
-            ).toBe(mixed)
-            expect(JSON.stringify(snapshot)).not.toContain(secret)
-          })
-        })
-      )
+      residentRequestEffect(paths, {
+        requestRoute: "shared",
+        operation: "register-edit",
+        lifetime: resident.lifetime,
+        root,
+        advicee: advicee({ hostVersion: "0.160.1" }),
+        startedAt: monotonicNow(),
+        userConfigPath: join(root, "absent-user")
+      })
     )
-    if (mixed) {
-      expect(captures).toContain("supported.ts")
-      expect(captures).not.toContain(path)
-    } else expect(captures).toEqual([])
-    expect(requests).toBe(0)
-    expect(await Effect.runPromise(resident.stats())).toMatchObject({ pendingAdvice: 0 })
-  }
-)
+  ).toMatchObject({ status: "advanced" })
+  const dispatch = makeDirectHookDispatch({
+    deadline: (await Effect.runPromise(hookMonotonicMillis)) + 3900,
+    controlledWriter: true,
+    composedEdit: true
+  })
+  expect(
+    await runClient(
+      dispatch
+        .runDirectCodexHook(
+          event,
+          "0.160.1",
+          mixed
+            ? {
+                answers: Object.fromEntries(
+                  configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0 }])
+                )
+              }
+            : undefined,
+          join(root, "consent"),
+          join(root, "activity"),
+          join(root, "absent-user")
+        )
+        .pipe(
+          Effect.provide(
+            ConfigProvider.layer(
+              ConfigProvider.fromUnknown({ REVIEW_RESIDENT_DIR: paths.directory, REVIEW_CREDENTIAL_STATE_PATH: root })
+            )
+          )
+        )
+    )
+  ).toEqual({ handled: true, output: {} })
+  await published.promise
+  await Effect.runPromise(
+    Effect.scoped(
+      Effect.gen(function* () {
+        const server = yield* makeInspectionHttpServer(history)
+        yield* Effect.promise(async () => {
+          const snapshot: unknown = await (await fetch(`${server.url}snapshot`)).json()
+          if (
+            typeof snapshot !== "object" ||
+            snapshot === null ||
+            !("records" in snapshot) ||
+            !Array.isArray(snapshot.records)
+          )
+            throw new Error("missing public records")
+          const records = snapshot.records.map(decodeInspectionRecord)
+          const received = records.find((record) => record.fact.kind === "edit-received")
+          if (received === undefined || received.fact.kind !== "edit-received")
+            throw new Error("missing native receipt")
+          expect(received.fact.candidates).toEqual([
+            ...(mixed
+              ? [{ position: 0, operation: "add", path: "supported.ts", selection: { status: "selected" } }]
+              : []),
+            {
+              position: mixed ? 1 : 0,
+              operation: "add",
+              path,
+              selection:
+                code !== undefined
+                  ? {
+                      status: "excluded",
+                      diagnostic: {
+                        stage: "selection",
+                        code,
+                        args: code === "file-extension" ? { extension: ".mjs" } : {}
+                      }
+                    }
+                  : { status: "selected" }
+            }
+          ])
+          expect(received.scope.root).toBe(root)
+          if (!mixed && code !== undefined)
+            expect(
+              readActivity({
+                statePath: join(root, "activity"),
+                root,
+                sessionId: received.scope.sessionId ?? "",
+                resident: { available: true, lifetime: resident.lifetime }
+              })
+            ).toMatchObject({ kind: "skipped", counts: { skipped: 1 } })
+          if (extension === "ts")
+            expect(records.find((record) => record.fact.kind === "diagnostic")?.fact).toEqual({
+              kind: "diagnostic",
+              diagnostic: { stage: "admission", code: "dispatch-unavailable", args: {} }
+            })
+          expect(
+            records.some((record) =>
+              ["preparation-read", "model-input", "transport-invoked"].includes(record.fact.kind)
+            )
+          ).toBe(mixed)
+          expect(JSON.stringify(snapshot)).not.toContain(secret)
+        })
+      })
+    )
+  )
+  if (mixed) {
+    expect(captures).toContain("supported.ts")
+    expect(captures).not.toContain(path)
+  } else expect(captures).toEqual([])
+  expect(requests).toBe(0)
+  expect(await Effect.runPromise(resident.stats())).toMatchObject({ pendingAdvice: 0 })
+})

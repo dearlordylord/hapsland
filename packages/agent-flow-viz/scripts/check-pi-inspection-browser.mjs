@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { revealInspection } from "@hapsland/build-tooling/test-harness/inspection-browser-controls"
-import { existsSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdtempSync, realpathSync, rmSync, writeFileSync, readFileSync, readdirSync } from "node:fs"
 import { unlink } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -8,6 +8,9 @@ import { fileURLToPath } from "node:url"
 import { chromium } from "playwright"
 import { Effect, Scope, Exit } from "effect"
 import { connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
+import { residentRequestEffect } from "@hapsland/resident-transport/resident/client"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
+import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
 import { makeInspectionStorage } from "@hapsland/inspection-records/inspection/storage"
 import { makeInspectionHttpServer } from "@hapsland/administration/inspection/http"
 import {
@@ -84,6 +87,29 @@ try {
           storageBytes: 134217728
         })
         const retained = await Effect.runPromise(journal.snapshot()).catch(() => undefined)
+        const paths = residentPaths(join(f.root, "runtime"))
+        const owner = JSON.parse(readFileSync(paths.owner, "utf8"))
+        const stats = await runClient(
+          residentRequestEffect(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime })
+        )
+        const journalEntries = existsSync(join(stateHome, "hapsland", "inspection"))
+          ? readdirSync(join(stateHome, "hapsland", "inspection")).length
+          : 0
+        console.error(
+          "Pi edit offer state",
+          JSON.stringify({
+            journalEntries,
+            status: stats.status,
+            ...(stats.status === "stats"
+              ? {
+                  queued: stats.queued,
+                  running: stats.running,
+                  pendingEvaluations: stats.pendingEvaluations,
+                  pendingFindingBatches: stats.pendingFindingBatches
+                }
+              : {})
+          })
+        )
         const observations = (retained?.records ?? [])
           .slice(-64)
           .map(({ capturedAt, fact }) => ({
@@ -133,25 +159,23 @@ try {
   )
   if (expired) throw new Error("Pi inspection browser deadline expired")
   browser = await chromium.launch({ headless: true })
-  const context = await browser.newContext({
-    viewport: { width: 375, height: 812 },
-    permissions: ["clipboard-read", "clipboard-write"]
-  })
+  const context = await browser.newContext({ viewport: { width: 375, height: 812 } })
   const page = await context.newPage()
   page.setDefaultTimeout(5000)
   page.on("pageerror", (error) => errors.push(error.message))
   await page.goto(server.url)
+  await page.locator("#hide-unreviewed").uncheck()
   await page.waitForFunction(() => document.querySelectorAll("#handoffs button").length === 4)
   const expectedEdits = outputs.reduce((sum, output) => sum + output.editCount, 0)
   await page.waitForFunction((count) => document.querySelectorAll("#edits button").length === count, expectedEdits)
-  assert.equal(await page.locator("#current-recording").count(), 1)
-  const recording = JSON.parse(await page.locator("#current-recording").textContent())
+  assert.equal(await page.locator("#recording-summary").textContent(), "Recording: On")
+  const recording = await page.evaluate(() => current.recording)
   for (const output of outputs) {
     const state = recording.sources.find((entry) => entry.roots.some((root) => root.root === output.root))
     assert.equal(state?.status, "observed")
     assert.ok(state.roots.some((root) => root.root === output.root && root.state === "enabled"))
   }
-  const sources = JSON.parse(await page.locator("#sources").textContent())
+  const sources = await page.evaluate(() => current.sources)
   for (const output of outputs) {
     const entry = sources.find((entry) => entry.source.endpoint === output.root + "/runtime/resident.sock")
     assert.ok(entry)
@@ -162,6 +186,8 @@ try {
   const clear = async () => {
     await page.locator("#clear-filters").focus()
     await page.keyboard.press("Enter")
+    assert.equal(await page.locator("#hide-unreviewed").isChecked(), true)
+    await page.locator("#hide-unreviewed").uncheck()
     assert.equal(await page.locator("#edits button").count(), expectedEdits)
   }
   await revealInspection(page, "#root-filter")
@@ -172,13 +198,14 @@ try {
     "session-filter",
     "child-filter",
     "resident-filter",
+    "hide-unreviewed",
     "clear-filters"
   ]) {
     if (id !== "root-filter") await page.keyboard.press("Tab")
     assert.equal(await page.evaluate(() => document.activeElement.id), id)
     assert.equal(await page.locator("#" + id).isEnabled(), true)
   }
-  const rootFilter = page.getByRole("combobox", { name: "Project", exact: true })
+  const rootFilter = page.locator("#root-filter")
   await rootFilter.selectOption({ index: 1 })
   const filteredRoot = JSON.parse(await rootFilter.inputValue())
   assert.equal(
@@ -187,10 +214,10 @@ try {
   )
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
   await clear()
-  const residentFilter = page.getByRole("combobox", { name: "Resident", exact: true })
+  const residentFilter = page.locator("#resident-filter")
   await residentFilter.selectOption({ index: 1 })
   const filteredSource = JSON.parse(await residentFilter.inputValue())
-  const endpoint = sources.find((entry) => entry.source.id === filteredSource).source.endpoint
+  const endpoint = filteredSource
   const owned = outputs.find((output) => endpoint === output.root + "/runtime/resident.sock")
   assert.equal(await page.locator("#edits button").count(), owned ? owned.editCount : 0)
   await clear()
@@ -199,11 +226,11 @@ try {
     assert.equal(await page.locator("#edits button").count(), expectedEdits)
     await clear()
   }
-  await page.locator("#edits button").first().click()
-  await revealInspection(page, "#handoffs")
-  await page.locator("#all-handoffs").click()
-  for (const [index, output] of outputs.entries()) {
-    const button = page.locator("#handoffs button").nth(index)
+  for (const output of outputs) {
+    await rootFilter.selectOption(JSON.stringify(output.root))
+    await page.locator("#edits button").filter({ hasText: "type.ts" }).first().click()
+    await revealInspection(page, "#handoffs")
+    const button = page.locator("#handoffs button").first()
     await button.focus()
     await page.keyboard.press("Enter")
     const metadata = JSON.parse(await page.locator("#handoff-summary").textContent())
@@ -219,7 +246,8 @@ try {
     output.message = text
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
   }
-  const edit = page.locator("#handoff-edits button")
+  await clear()
+  const edit = page.locator("#handoff-edits button").first()
   await edit.focus()
   await page.keyboard.press("Enter")
   await page.waitForFunction(() => document.querySelector("#files").textContent.includes("type.ts"))
@@ -228,7 +256,7 @@ try {
   await cleanupPiFixtures()
   await page.waitForFunction(
     (roots) => {
-      const entries = JSON.parse(document.querySelector("#sources").textContent)
+      const entries = current.sources
       return roots.every(
         (root) =>
           entries.find((entry) => entry.source.endpoint === root + "/runtime/resident.sock")?.health === "disconnected"
@@ -239,7 +267,7 @@ try {
   assert.equal(await page.locator("#edits button").count(), expectedEdits)
   assert.equal(await page.locator("#handoff-message").textContent(), outputs.at(-1).message)
   assert.deepEqual(errors, [])
-  const disconnectedRecording = JSON.parse(await page.locator("#current-recording").textContent())
+  const disconnectedRecording = await page.evaluate(() => current.recording)
   assert.equal(disconnectedRecording.sources.filter((entry) => entry.status === "disconnected").length, 4)
   assert.ok(disconnectedRecording.sources.every((entry) => entry.roots.length === 0))
   console.log(
