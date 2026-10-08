@@ -1,6 +1,7 @@
 # Reservation window: make the clock explicit
 
 **Purpose:** Explain this measured scenario, show its code and route readers to its specific checks.
+**Audience:** Prospective users; rule authors; evaluation contributors and reviewers.
 **Status:** Completed exploratory scenario; generated from the current frozen comparison.
 **Authority:** Comparative research advisory and validation evidence, not a product contract or release certification.
 **Expected use:** Understand the problem, compare final agent code and inspect the predefined correctness checks.

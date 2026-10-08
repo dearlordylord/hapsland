@@ -1,6 +1,7 @@
 # Hapsland console-rendering advisory
 
 **Purpose:** Compare terminal interaction/rendering candidates for Hapsland's explicit setup model, including the named Foldkit candidate.
+**Audience:** Contributors, including coding agents researching runtime and CLI design; Product and specification owners.
 **Status:** Temporary product-specification advisory; it adopts no product behavior or dependency.
 **Authority:** Primary-source research, local source inspection, and design inference. Existing setup, credential, terminal, and consent contracts remain authoritative; this report is not an accepted product contract or runtime validation.
 **Expected use:** Use the scoped recommendations and prototype gates during setup-interaction design acceptance; decide explicitly which findings become requirements.

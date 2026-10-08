@@ -1,6 +1,7 @@
 # Project instructions
 
 **Purpose:** Define repository-wide instructions for contributors and coding agents.
+**Audience:** Contributors, including coding agents.
 **Status:** Active repository guidance.
 **Authority:** Maintained guidance; accepted product contracts remain in their named specification owners.
 **Expected use:** Apply these instructions when creating or changing repository artifacts.
@@ -109,11 +110,22 @@ runtime behavior.
 
 ## Markdown lifecycle
 
-Every new Markdown document must state near its top **Purpose**, **Status**,
+Every new Markdown document must state near its top **Purpose**, **Audience**, **Status**,
 **Authority**, **Expected use**, and **Lifecycle**. Authority must distinguish
 accepted product contract, maintained guidance, design proposal, and
 implementation or validation evidence; a report does not become a product
 contract merely by describing implemented behavior.
+
+**Audience** names the intended readers: end users, rule authors, contributors
+(including coding agents), build and release maintainers, or product and
+specification owners. Use specific additional roles when needed, such as
+evaluation reviewers. Distinguish contributors building from source from end
+users installing ready-made executables. For mixed documents, label sections
+whose readers or prerequisites differ. Audience identifies readers; Authority
+determines whether the text defines requirements, guidance, proposals or evidence.
+Keep audience metadata current when a document's scope changes, including in
+generator templates. For frozen prompts and captured source-tree documents,
+preserve artifact bytes and list each artifact's audience in its owning index.
 
 A temporary document must name a concrete cleanup trigger (an issue, milestone,
 or replacement artifact), the required action (**delete** or **consolidate**),

@@ -1,5 +1,7 @@
 # Installed release acceptance record
 
+**Audience:** Build and release maintainers; contributors investigating installed-package behavior.
+
 **Historical pinned acceptance.** The local compatibility gate passed at integration
 commit `f2f47e94cd2d90cf73062f07c5e61416218e2f13`, with its checksum-bound records
 and the exact pre-rename profiles in the [support declaration](../../docs/installed-release-compatibility.md).

@@ -1,6 +1,7 @@
 # Hapsland testing matrix
 
 **Purpose:** Give contributors one entry point for choosing a test, understanding what it proves, and finding its runner and retained evidence.
+**Audience:** Contributors, including coding agents; Build and release maintainers.
 **Status:** Maintained testing guidance.
 **Authority:** Maintained guidance and implementation or validation evidence; product behavior remains defined by its named contracts.
 **Expected use:** Select the smallest relevant gate before a change, locate the current manual native integration runner, and distinguish source-checkout observations from package or platform support.
@@ -15,6 +16,10 @@ and independent repositories are distinct physical sources. These checks prove
 local behavior; they do not extend declared native-host/platform support.
 
 ## Recovering retained build custody
+
+**Audience:** Contributors building from source; build and release maintainers.
+The [build workflow contract](build-workflow-contract.md) owns the required
+behavior. This section owns the current recovery procedure and check selection.
 
 A failed or interrupted producer retains `.test-runs/product-build` when its
 writer shutdown cannot be established. Ordinary acquisition refuses abandoned
@@ -44,9 +49,11 @@ again after a completed archive reports no retained custody. The next build
 receives a fresh lease without stale registrations.
 
 The gate reuses `native/src/inspection-lock.c`, compiled into a private tooling
-cache independently of product outputs. Its first use requires `cc` and Node-API
+cache independently of product outputs. Its first use in a source checkout requires `cc` and Node-API
 headers; subsequent uses select the source/runtime-specific cached binding. Keep
 the gate directory in place while any build or recovery process is running.
+This tooling is not shipped in the installed package and adds no compiler or
+headers prerequisite for end users of ready-made executables.
 
 Live or reused identities, permission errors, missing required ownership,
 malformed or incomplete registrations, symlinks and changing records refuse

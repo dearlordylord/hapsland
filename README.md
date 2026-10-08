@@ -1,5 +1,7 @@
 # Hapsland
 
+**Audience:** Prospective users; end users; contributors, including coding agents.
+
 <p align="center"><img src="./assets/brand/readme-splash.svg" alt="Hapsland: a human hand correcting a skeletal robot hand" width="900"></p>
 
 Catch design mistakes before your agent builds on them. Immediately slap its hand.

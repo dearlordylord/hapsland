@@ -1,6 +1,7 @@
 # Canonical architecture defense
 
 **Purpose:** Present the shared continuous Monkey Business engine through an optional native tower game.
+**Audience:** Prototype contributors and evaluators; Product and specification owners.
 **Status:** Gameplay prototype under issue #199; the process-teaching redesign has focused local qualification on Linux ARM64. Earlier receipts cover their identified source only.
 **Authority:** Design proposal and implementation evidence; the product contracts and shared engine own business behavior.
 **Expected use:** Build spatial towers and inspect continuous review activity in a separate engine instance.

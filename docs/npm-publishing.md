@@ -2,6 +2,7 @@
 
 
 **Purpose:** Publish and verify an exact reviewed Hapsland archive through stable or candidate npm channels.
+**Audience:** Build and release maintainers.
 **Status:** Maintained publishing guidance; no release is declared by this document.
 **Authority:** Maintained operational guidance for the user-approved stable/next lanes. Platform acceptance is governed by exact release evidence.
 **Expected use:** Prepare release coordinates, publish from a logged-in host, and verify registry artifacts before advertising support.

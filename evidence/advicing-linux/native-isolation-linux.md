@@ -1,5 +1,7 @@
 # Native Linux advice isolation probe
 
+**Audience:** Contributors, including coding agents validating runtime behavior; Build and release maintainers; Product and specification owners.
+
 Run `node evidence/advicing-linux/run-native-isolation-linux.mjs` from this worktree.
 Optional case arguments are `codex-worktrees`, `claude-worktrees`,
 `claude-children`, and `codex-children`. Each native process has a 100-second

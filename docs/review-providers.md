@@ -1,6 +1,7 @@
 # Review providers and request limits
 
 **Purpose:** Explain the review-provider boundary, its limit catalog, configuration, and validation gaps.
+**Audience:** End users configuring review backends; contributors, including coding agents.
 **Status:** Active implementation guidance; token-budget enforcement remains incomplete.
 **Authority:** Maintained architectural guidance and implementation evidence. Vendor documentation establishes declared limits, not observed behavior or review quality; accepted review-input and advice contracts retain their authority.
 **Expected use:** Add a review backend without coupling source collection or advice delivery to its transport, and choose the checks needed to validate it.
