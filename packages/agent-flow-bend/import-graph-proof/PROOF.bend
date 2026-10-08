@@ -84,7 +84,7 @@ def Laws.import_graph_zero_event_fuel_is_terminal(graph, event):
       match phase:
         case ImportGraph.Idle{}:
           {==}
-        case ImportGraph.Ready{}:
+        case ImportGraph.GraphReady{}:
           {==}
         case ImportGraph.Resolving{edge}:
           {==}

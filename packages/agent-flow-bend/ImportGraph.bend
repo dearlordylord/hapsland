@@ -36,7 +36,7 @@ type Resolution is Data:
 
 type Phase is Data:
   Idle{}
-  Ready{}
+  GraphReady{}
   Resolving{edge: Edge}
   Checking{edge: Edge, target: Nat}
   Capturing{edge: Edge, target: Nat}
@@ -197,7 +197,7 @@ def root(+limits: Limits, +target: Nat, +source_bytes: Nat, +tree_bytes: Nat,
         fail(limits, Nil{}, Nil{}, 0n, 0n, 0n, 0n, False{}, False{}, False{}, WorkLimit{}),
         Step{
           Graph{
-            Ready{},
+            GraphReady{},
             with_depth(edges, 1n),
             target <> Nil{},
             1n,
@@ -376,13 +376,13 @@ def resolved(
 ) -> Step:
   match result:
     case NotFound{}:
-      Step{Graph{Ready{}, pending, visited, files, read_bytes, tree_bytes, work,
+      Step{Graph{GraphReady{}, pending, visited, files, read_bytes, tree_bytes, work,
         skipped_tree, skipped_excluded, True{}, limits}, SkipImport{target, Missing{}}}
     case Many{}:
-      Step{Graph{Ready{}, pending, visited, files, read_bytes, tree_bytes, work,
+      Step{Graph{GraphReady{}, pending, visited, files, read_bytes, tree_bytes, work,
         skipped_tree, skipped_excluded, True{}, limits}, SkipImport{target, Ambiguous{}}}
     case Unhandled{}:
-      Step{Graph{Ready{}, pending, visited, files, read_bytes, tree_bytes, work,
+      Step{Graph{GraphReady{}, pending, visited, files, read_bytes, tree_bytes, work,
         skipped_tree, skipped_excluded, True{}, limits}, SkipImport{target, Unsupported{}}}
     case Found{}:
       Bool.pick(
@@ -390,7 +390,7 @@ def resolved(
         contains(target, visited),
         Step{
           Graph{
-            Ready{},
+            GraphReady{},
             pending,
             visited,
             files,
@@ -441,7 +441,7 @@ def checked(
     case False{}:
       Step{
         Graph{
-          Ready{},
+          GraphReady{},
           pending,
           target <> visited,
           files,
@@ -461,7 +461,7 @@ def checked(
         Nat.is_ge(files, file_cap(limits)),
         Step{
           Graph{
-            Ready{},
+            GraphReady{},
             pending,
             target <> visited,
             files,
@@ -480,7 +480,7 @@ def checked(
           Nat.is_gt((read_bytes + source_cap(limits) : Nat), read_cap(limits)),
           Step{
             Graph{
-              Ready{},
+              GraphReady{},
               pending,
               target <> visited,
               files,
@@ -562,7 +562,7 @@ def captured(+limits: Limits, +edge: Edge, +target: Nat, +source_bytes: Nat, +no
             Nat.is_gt((tree_bytes + node_bytes : Nat), tree_cap(limits)),
             Step{
               Graph{
-                Ready{},
+                GraphReady{},
                 pending_after(pending, edges, depth, True{}),
                 target <> visited,
                 (files + 1n : Nat),
@@ -578,7 +578,7 @@ def captured(+limits: Limits, +edge: Edge, +target: Nat, +source_bytes: Nat, +no
             },
             Step{
               Graph{
-                Ready{},
+                GraphReady{},
                 pending_after(pending, edges, depth, False{}),
                 target <> visited,
                 (files + 1n : Nat),
@@ -630,7 +630,7 @@ def apply(+state: Graph, +event: GraphEvent) -> Step:
                 skipped_other,
                 ProtocolViolation{}
               )
-        case Ready{}:
+        case GraphReady{}:
           match event:
             case Next{}:
               next(
@@ -747,7 +747,7 @@ def apply(+state: Graph, +event: GraphEvent) -> Step:
             case CaptureFailed{}:
               Step{
                 Graph{
-                  Ready{},
+                  GraphReady{},
                   pending,
                   target <> visited,
                   files,

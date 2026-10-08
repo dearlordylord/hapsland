@@ -65,7 +65,7 @@ export const GraphCommandSchema = Schema.Union([
 export const GraphEdgeConstructor = ctor("Edge", { id: NativeNatural, depth: NativeNatural })
 export const GraphPhaseSchema = Schema.Union([
   ctor("Idle", {}),
-  ctor("Ready", {}),
+  ctor("GraphReady", {}),
   ctor("Resolving", { edge: GraphEdgeConstructor }),
   ctor("Checking", { edge: GraphEdgeConstructor, target: NativeNatural }),
   ctor("Capturing", { edge: GraphEdgeConstructor, target: NativeNatural }),

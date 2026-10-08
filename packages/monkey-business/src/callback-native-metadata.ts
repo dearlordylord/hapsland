@@ -2263,7 +2263,7 @@ export const callbackNativeDescriptors = {
     kind: "adt",
     constructors: [
       { tag: "ImportGraph.Idle", fields: [] },
-      { tag: "ImportGraph.Ready", fields: [] },
+      { tag: "ImportGraph.GraphReady", fields: [] },
       { tag: "ImportGraph.Resolving", fields: [["edge", "importgraph_edge"]] },
       {
         tag: "ImportGraph.Checking",
