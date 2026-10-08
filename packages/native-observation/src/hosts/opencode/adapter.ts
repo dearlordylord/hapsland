@@ -135,8 +135,9 @@ export const adaptOpenCodeDirectEvent = Effect.fn("DirectEvent.adaptOpenCodeDire
   if (event === undefined) return undefined
   const path = yield* openCodePath(event.cwd, event.path)
   if (path === undefined) return undefined
-  const current = yield* captureStable(path.root.root, path.eligible, captureHooks, path.root.rootIdentity)
-  if (current === undefined) return undefined
+  const captured = yield* captureStable(path.root.root, path.eligible, captureHooks, path.root.rootIdentity)
+  if (captured.status !== "captured") return undefined
+  const current = captured.capture
   const candidate = openCodeCandidate(event.input, event.output, current.text, path.relativePath)
   return candidate === undefined
     ? undefined

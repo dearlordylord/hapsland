@@ -1,12 +1,12 @@
 import test from "node:test"
 import assert from "node:assert/strict"
-import { mkdtempSync, writeFileSync, rmSync, chmodSync, mkdirSync } from "node:fs"
+import { mkdtempSync, writeFileSync, rmSync, chmodSync, mkdirSync, realpathSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { resolve } from "node:path"
 import { fileEvidence } from "./compiler-evidence.mjs"
 import { checkAssemblyReceipt, assemblyReceiptDigest } from "./check-assembly-receipt.mjs"
 const fixture = (t) => {
-  const root = mkdtempSync(resolve(tmpdir(), "hapsland-assembly-receipt-"))
+  const root = realpathSync(mkdtempSync(resolve(tmpdir(), "hapsland-assembly-receipt-")))
   mkdirSync(resolve(root, "packages/fixture/src"), { recursive: true })
   mkdirSync(resolve(root, "node_modules"))
   writeFileSync(
@@ -53,6 +53,16 @@ const fixture = (t) => {
 const verify = (f) => checkAssemblyReceipt(f.root, f.receipt, f.context, f.entry, f.output)
 test("validates current input, discarded target, native asset and executable evidence", (t) => {
   assert.ok(verify(fixture(t)))
+})
+test("shared command bundle bytes are validated as well as its launcher", (t) => {
+  const f = fixture(t)
+  const path = `${f.output}.js`
+  writeFileSync(path, "export const command = 1", { mode: 0o644 })
+  f.receipt.bundle = fileEvidence(f.root, path)
+  f.receipt.digest = assemblyReceiptDigest(f.receipt)
+  assert.ok(verify(f))
+  writeFileSync(path, "modified command")
+  assert.throws(() => verify(f), /Changed assembly evidence/u)
 })
 test("repeated references must agree and each receipt check observes current bytes", (t) => {
   const f = fixture(t)

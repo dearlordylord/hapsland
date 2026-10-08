@@ -47,6 +47,14 @@ npm dependencies, foreign C assets against source-bound input bundles, and
 host-compiled native assets against fresh compiler receipts. It also checks the archive inventory and private-content markers.
 It does not make authenticated agent or Jev requests.
 
+Each platform ships one embedded Bun runtime in the CLI executable. The other
+commands have separately checked JavaScript bundles and launchers using that
+runtime, with no runtime download or dependency on Node/Bun on PATH. Command
+source and native-loader boundaries remain independently checked.
+Preparation and publication reject archives above the local 64 MiB size budget
+before npm authentication. This leaves room for npm's base64 JSON attachment;
+the budget is a repository policy, not a documented npm registry limit.
+
 Host-compiled native files are generated outputs, not required to equal binaries
 from another compiler/SDK. Their sources and declared compiler inputs still
 participate in build validation. Generated files remain ignored after auditing;

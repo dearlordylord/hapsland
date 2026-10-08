@@ -81,40 +81,46 @@ test("unresolved owned descendants preserve both lock and lease for audit", () =
     assert.equal(typeof lease.token, "string")
   }))
 
-test("registered detached task cannot outlive release of its build lease", () =>
+test("registered detached task retains custody until explicit recovery", () =>
   fixture(async (root) => {
     let child, closed
-    await assert.rejects(
-      withBuildLock(root, async (env) => {
-        const script = `import {withBuildLock} from ${JSON.stringify(new URL("./build-lock.mjs", import.meta.url).href)};
+    try {
+      await assert.rejects(
+        withBuildLock(root, async (env) => {
+          const script = `import {withBuildLock} from ${JSON.stringify(new URL("./build-lock.mjs", import.meta.url).href)};
       await withBuildLock(${JSON.stringify(root)}, async()=>{
         process.on('SIGTERM',()=>process.exit(0));
         console.log('registered');setInterval(()=>{},1000);
         await new Promise(()=>{});
       });`
-        child = spawn(process.execPath, ["--input-type=module", "-e", script], {
-          env,
-          detached: true,
-          stdio: ["ignore", "pipe", "pipe"]
-        })
-        closed = new Promise((resolve) => child.once("close", resolve))
-        await new Promise((resolve, reject) => {
-          const timer = setTimeout(() => reject(new Error("registration deadline")), 5000)
-          child.stdout.once("data", () => {
-            clearTimeout(timer)
-            resolve()
+          child = spawn(process.execPath, ["--input-type=module", "-e", script], {
+            env,
+            detached: true,
+            stdio: ["ignore", "pipe", "pipe"]
           })
-          child.once("error", (error) => {
-            clearTimeout(timer)
-            reject(error)
+          closed = new Promise((resolve) => child.once("close", resolve))
+          await new Promise((resolve, reject) => {
+            const timer = setTimeout(() => reject(new Error("registration deadline")), 5000)
+            child.stdout.once("data", () => {
+              clearTimeout(timer)
+              resolve()
+            })
+            child.once("error", (error) => {
+              clearTimeout(timer)
+              reject(error)
+            })
           })
-        })
-      }),
-      /Registered build task group outlived/
-    )
-    await closed
+        }),
+        /Registered build task group outlived/
+      )
+      await access(join(root, ".test-runs/product-build/lock"))
+      await access(join(root, ".test-runs/product-build/lease.json"))
+    } finally {
+      child?.kill("SIGTERM")
+      await closed
+    }
     assert.throws(() => process.kill(-child.pid, 0), { code: "ESRCH" })
-    await assert.rejects(access(join(root, ".test-runs/product-build/lock")), { code: "ENOENT" })
+    await access(join(root, ".test-runs/product-build/lock"))
   }))
 
 test("unreadable group evidence keeps checkout ownership for audit", () =>

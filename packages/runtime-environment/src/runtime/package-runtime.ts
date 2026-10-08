@@ -16,7 +16,9 @@ export interface RuntimeCommand {
 export type PackageRole = "cli" | "doctor" | "hook" | "parser" | "resident"
 const roleNames: Readonly<Record<PackageRole, string>> = PACKAGE_COMMAND_NAMES
 const moduleUrl = import.meta.url
-export const standalone = moduleUrl.includes("/$bunfs/")
+export const standalone =
+  moduleUrl.includes("/$bunfs/") ||
+  /\/dist\/bin\/(?:linux|darwin)-arm64\/hapsland-(?:doctor|hook|parser|resident)\.js$/.test(moduleUrl)
 const sourceRuntime = standalone ? undefined : sourceRuntimeFromEntrypoint(fileURLToPath(moduleUrl))
 const executablePath = (): string => {
   try {

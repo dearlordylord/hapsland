@@ -38,7 +38,7 @@ export const generateInteractionDiagrams = (mode: "--check" | "--write") =>
       if (mode === "--write") await writeFile(destination, updated)
       else assert.equal(current, updated, "UI flow inventory is stale; regenerate it")
     })
-    checkUiFlows()
+    if (mode === "--write") checkUiFlows()
     console.log(
       `UI flow diagrams: ${generatedDestinations.size} documents for ${Object.keys(uiFlows).length} registered input flows; journey index current`
     )

@@ -1,0 +1,804 @@
+{
+  "at": "2026-10-08T20:13:56.299091+00:00",
+  "baselineRevision": "56d1f39074276f96a65431ee9a2f5f1b8cea40bf",
+  "candidateParent": "0ddd20e7",
+  "mergeResolution": "retained existing Bend-backed owners for three pure decision conflicts; upstream effect/storage/runtime changes merged",
+  "ownerSha256": {
+    "credential": "1357164c1b49d14784241fb91b8c8963ed7a3325723254cd665e8d5bb6a412c1",
+    "login": "5e80ef3e82b162829cbc0364bce1c5253043406739f0f6af84d9211d155cdb29",
+    "setup": "a5f369ba1efc539141803aee0a5dd0798eccebb5ca65a16a4889daebb0c33676"
+  },
+  "astra": {
+    "reviewer": "/root/astra_selection_law_review",
+    "decision": "approved static reconfirmation; no law amendments",
+    "scope": "credential lookup/save, login command/transition and setup-selection behavior against master 56d1f390; supported string proposal IDs; no runtime/performance/platform acceptance",
+    "laws": {
+      "credential": "8b4b8282e298a2230792be904d4f9f67cf7b7ca26653eb48721071f43f1e7c02",
+      "login": "befbcdee0932e9b69fadc649d62d763ae3d616bba98a831635b7176368b32ea8",
+      "setup": "6f57603ef2cf2a3135d8ed03a24ce5bed0bb17bc387b84258de0a56f2b9567c4"
+    }
+  },
+  "checks": {
+    "focusedRun": "20261008200812265-3064728-959494",
+    "focusedPassed": true,
+    "fastPassed": true,
+    "sourceUnits": {
+      "files": 1,
+      "tests": 2,
+      "passed": true
+    },
+    "uiPreflightPassed": true,
+    "baselinePreparation": "46 successful tasks, 0 cached; 39.452 seconds"
+  },
+  "localEnvironmentRepair": {
+    "dependencyChanges": false,
+    "nativeBindings": [
+      "tree-sitter",
+      "tree-sitter-typescript"
+    ],
+    "method": "local ignored build/Release using cached Node 24.20.0 headers and bundled node-gyp",
+    "causes": [
+      "tree-sitter prebuilt requires newer system GLIBCXX",
+      "tree-sitter-typescript linux-arm64 prebuilt is ELF x86-64"
+    ],
+    "scope": "local validation only; package versions/cache prebuilds unchanged; no release/platform qualification"
+  },
+  "compiledOwnerComparisons": {
+    "credential": {
+      "result": {
+        "at": "2026-10-08T20:13:18.595Z",
+        "passed": true,
+        "cases": 32,
+        "lookupComparisons": 32,
+        "saveComparisons": 96,
+        "scope": "actual compiled master 56d1f390 and candidate; supported Boolean context domain and complete ordered plans; no IO claim"
+      },
+      "capturedScript": "import assert from 'node:assert/strict'\nimport {writeFileSync} from 'node:fs'\nimport * as baseline from '/workspace/typescript/hapsland-bend-baseline-master-56d1f390/packages/runtime-inputs/dist/credentials/policy.js'\nimport * as candidate from '/workspace/typescript/hapsland-bend-selection-ui/packages/runtime-inputs/dist/credentials/policy.js'\nlet cases=0\nfor(let bits=0;bits<32;bits++){\n const context={envVar:'KEY',referenceExplicit:Boolean(bits&1),captured:Boolean(bits&2),root:bits&4?'/root':undefined,projectLocalFile:bits&8?'/local':undefined,projectFile:bits&16?'/project':undefined,userFile:'/user',nativeTarget:'hapsland'}\n assert.deepEqual(candidate.deriveLookupPlan(context),baseline.deriveLookupPlan(context))\n for(const destination of ['user','project-local','native'])assert.deepEqual(candidate.deriveSavePlan(context,destination),baseline.deriveSavePlan(context,destination))\n cases++\n}\nconst result={at:new Date().toISOString(),passed:true,cases,lookupComparisons:cases,saveComparisons:cases*3,scope:'actual compiled master 56d1f390 and candidate; supported Boolean context domain and complete ordered plans; no IO claim'}\nwriteFileSync('/tmp/hapsland-master-56d-credential-parity.json',JSON.stringify(result,null,2)+'\\n');console.log(JSON.stringify(result))\n",
+      "scriptSha256": "a44079f5298fe43273d3e65b5c4dbac6d89640cd164743a4a4a83e65972467e6"
+    },
+    "login": {
+      "result": {
+        "at": "2026-10-08T20:13:09.632Z",
+        "cases": 2048,
+        "commands": 8,
+        "result": "pass",
+        "scope": "all source-free fact combinations against compiled master 56d1f390 and actual compiled candidate; native fact computation and secret lifetime remain separate"
+      },
+      "capturedScript": "import assert from \"node:assert/strict\"\nimport { execFileSync } from \"node:child_process\"\nimport { readFileSync, writeFileSync, mkdtempSync, rmSync } from \"node:fs\"\nimport { tmpdir } from \"node:os\"\nimport { join } from \"node:path\"\nimport { pathToFileURL } from \"node:url\"\nimport { reduceLogin, loginCommand } from '/workspace/typescript/hapsland-bend-baseline-master-56d1f390/packages/administration/dist/credentials/login-model.js'\nimport * as production from '/workspace/typescript/hapsland-bend-selection-ui/packages/administration/dist/credentials/login-model.js'\nconst phases = [\"SelectingDestination\", \"PreparingTarget\", \"EnteringKey\", \"ConfirmingSave\", \"SavingKey\", \"CheckingActive\", \"Done\", \"Cancelled\"]\nconst actions = [\"selected\", \"prepared\", \"entered\", \"approved\", \"observed\", \"active\", \"back\", \"exit\"]\nconst constructors = [\"Select\", \"Prepared\", \"Entered\", \"Approved\", \"Observed\", \"ActiveObserved\", \"Back\", \"Exit\"]\nconst commandNames = { LoginChoose: \"choose\", LoginPrepare: \"prepare\", LoginInput: \"input\", LoginConfirm: \"confirm\", LoginSave: \"save\", LoginReadActive: \"active\" }\nconst patchNames = { LoginDestinationPatch: \"destination\", LoginProposalPatch: \"proposal\", LoginStoragePatch: \"storage\", LoginActivePatch: \"active\" }\nconst proposal = { id: \"proposal\", availability: \"available\", plan: { destination: \"native\", target: \"/fixture\", scope: \"user\", storage: \"native\" }, reason: undefined, activeSource: \"environment\", activeFile: undefined }\nconst storage = { status: \"stored\", state: { version: 1, generation: 3, savedUseSuspended: false }, stateLock: \"acquired\" }\nconst active = { status: \"present\", source: \"native\", generation: 3 }\nconst directory = mkdtempSync(join(tmpdir(), \"hapsland-login-\"))\ntry {\n  const source = process.argv[2] ?? \"packages/agent-flow-bend/login-policy/core.bend\"\n  const output = join(directory, \"core.mjs\")\n  execFileSync(\"bend\", [source, \"-o\", output], { timeout: 5000, stdio: \"pipe\" })\n  const { default: core } = await import(pathToFileURL(output))\n  let cases = 0\n  for (const phase of phases) {\n    const model = { phase, revision: 7, destination: \"native\", proposal, storage, active }\n    assert.deepEqual(production.loginCommand(model), loginCommand(model))\n    const command = core.command({ $: \"Login\" + phase })\n    assert.deepEqual(command.$ === \"LoginNoCommand\" ? undefined : { kind: commandNames[command.$], id: model.revision }, loginCommand(model))\n    for (let actionIndex = 0; actionIndex < actions.length; actionIndex++) for (let bits = 0; bits < 32; bits++) {\n      const current = Boolean(bits & 1), matched = Boolean(bits & 2), blocked = Boolean(bits & 4), yes = Boolean(bits & 8), stale = Boolean(bits & 16)\n      const kind = actions[actionIndex]\n      const action = {\n        selected: { kind, destination: \"user\" },\n        prepared: { kind, commandId: 7, proposal: { ...proposal, id: \"new-proposal\", availability: blocked ? \"blocked\" : \"available\" } },\n        entered: { kind, commandId: 7, proposalId: matched ? \"proposal\" : \"other-proposal\" },\n        approved: { kind, proposalId: matched ? \"proposal\" : \"other-proposal\", yes },\n        observed: { kind, commandId: 7, storage: { ...storage, status: stale ? \"stale\" : \"stored\", state: { ...storage.state, generation: 4 } } },\n        active: { kind, commandId: 7, active: { status: \"missing\", source: \"environment\", generation: 4 } },\n        back: { kind }, exit: { kind }\n      }[kind]\n      const expected = reduceLogin(model, { revision: current ? 7 : 6, action })\n      const emitted = production.reduceLogin(model, {revision: current ? 7 : 6, action})\n      assert.deepEqual(emitted, expected)\n      if(expected === model) assert.equal(emitted, model)\n      const plan = core.step({ $: \"Login\" + phase }, { $: \"Login\" + constructors[actionIndex] }, current, matched, blocked, yes, stale)\n      let actual\n      if (plan.$ === \"LoginHold\") actual = model\n      else if (plan.$ === \"LoginReset\") actual = { phase: \"SelectingDestination\", revision: 8 }\n      else {\n        assert.equal(plan.$, \"LoginAdvance\")\n        const property = patchNames[plan.patch.$]\n        actual = { ...model, ...(property === undefined ? {} : { [property]: action[property] }), phase: plan.phase.$.slice(5), revision: 8 }\n      }\n      assert.deepEqual(actual, expected, `phase=${phase} action=${kind} bits=${bits}`)\n      if (expected === model) assert.equal(actual, model, \"Hold must preserve object identity\")\n      cases++\n    }\n  }\n  const result = { at: new Date().toISOString(), cases, commands: phases.length, result: \"pass\", scope: \"all source-free fact combinations against compiled master 56d1f390 and actual compiled candidate; native fact computation and secret lifetime remain separate\" }\n  if (!process.argv[2]) writeFileSync(\"/tmp/hapsland-master-56d-login-parity.json\", JSON.stringify(result, null, 2) + \"\\n\")\n  console.log(JSON.stringify(result))\n} finally { rmSync(directory, { recursive: true, force: true }) }\n",
+      "scriptSha256": "d3aee8a05eb1194c41871489a602375d039d36985f2bb05a642c88b1c77d8c1f"
+    },
+    "setup": {
+      "result": {
+        "at": "2026-10-08T20:13:18.834Z",
+        "passed": true,
+        "productionCompared": true,
+        "lawCases": 144,
+        "nativeTransitionCases": 2352,
+        "holds": 1848,
+        "sha256": {
+          "packages/agent-flow-bend/setup-selection-policy/core.bend": "fa3a4b2e0945719c5fc5debb0e04e97b47c92eff96b9ee7b56aa9d57aa55afe0",
+          "packages/agent-flow-bend/setup-selection-policy/LAWS.bend": "6f57603ef2cf2a3135d8ed03a24ce5bed0bb17bc387b84258de0a56f2b9567c4",
+          "evidence/bend-strangler/setup-selection-reference.ts": "6a76fbfe130b97bfc8431662b04f06412288e18f61d4a53426dcd48228f3035f",
+          "evidence/bend-strangler/setup-selection-draft-parity.mjs": "664dd4b8f3c8958e4ac63330f78c51c56b3811ad7ae44f99539e099e439f9329",
+          "packages/administration/src/onboarding/setup-selection.ts": "a5f369ba1efc539141803aee0a5dd0798eccebb5ca65a16a4889daebb0c33676",
+          "packages/administration/dist/onboarding/setup-selection.js": "7f6f63534efab569ae12b7fb7c84cd9ecf96d6f7c0345e85b5dcd583d37f7c69",
+          "packages/canonical-policy/src/canonical/setup-selection-adapter.ts": "10798984a18f0e797252d273ed75bdcb8b7d96b3a197b4620261b936a814cb3f",
+          "packages/canonical-policy/dist/canonical/setup-selection-adapter.js": "c874a6c755c479d9e6d795bb98cd6a74c60787e746f4d4567f4639eba0002a7e",
+          "packages/agent-flow-bend/scripts/build-setup-selection-policy.mjs": "3528098498e87bc4956237122ba46d01720077d2884cf359cff70bfb8ca58e40",
+          "packages/agent-flow-bend/dist/setup-selection-policy.generated.js": "6ed03dba84858d88ce58493174f4dc6b7e76e55e2cc2dbcfe0568224b7336ba7"
+        },
+        "scope": "draft finite closed phase/action/outcome/Bool law domain and native revision/index/payload identity parity; production compared only when productionCompared is true; no proof or effect claim",
+        "hashInventoryNote": "Historical reference and harness hashes are inventory only; executed baseline import is capturedScript pointing to compiled 56d1f390."
+      },
+      "capturedScript": "import assert from 'node:assert/strict'\nimport {execFileSync} from 'node:child_process'\nimport {mkdtempSync,readFileSync,writeFileSync,symlinkSync,rmSync} from 'node:fs'\nimport {tmpdir} from 'node:os'\nimport {join,resolve} from 'node:path'\nimport {pathToFileURL} from 'node:url'\nimport {createHash} from 'node:crypto'\nimport {reduceSelection} from '/workspace/typescript/hapsland-bend-baseline-master-56d1f390/packages/administration/dist/onboarding/setup-selection.js'\nexport const nativeCases=[]\nconst production=process.env.HAPSLAND_SELECTION_PRODUCTION==='1'?await import('/workspace/typescript/hapsland-bend-selection-ui/packages/administration/dist/onboarding/setup-selection.js'):undefined\nconst root='packages/agent-flow-bend/setup-selection-policy'\nconst directory=mkdtempSync(join(tmpdir(),'hapsland-selection-draft-'))\nconst phases=['SelectingAgents','RunningAgents','Done','Cancelled']\nconst phaseTag=p=>({$:p==='Done'?'SelectionDone':p==='Cancelled'?'SelectionCancelled':p})\nconst actionTag=k=>({$:({selected:'HostsSelected',ended:'SelectionEnded',observed:'HostObserved'})[k]})\nconst outcomeTag=o=>({$:({completed:'HostCompleted',back:'HostBack',cancelled:'HostCancelled'})[o??'completed']})\ntry {\n let path=root+'/core.bend'\n if(process.env.HAPSLAND_SELECTION_MUTANT){\n  const source=readFileSync(path,'utf8')\n  const [before,after]=process.env.HAPSLAND_SELECTION_MUTANT==='back'?['case HostBack{}: SelectingAgents{}','case HostBack{}: SelectionDone{}']:['nonempty,','True{},']\n  assert.ok(source.includes(before));path=join(directory,'mutant.bend');writeFileSync(path,source.replace(before,after))\n }\n execFileSync('bend',[path,'-o',join(directory,'core.mjs')],{timeout:5000})\n const core=(await import(pathToFileURL(join(directory,'core.mjs')))).default\n const laws=readFileSync(root+'/LAWS.bend','utf8')\n symlinkSync(resolve(root+'/core.bend'),join(directory,'core.bend'))\n writeFileSync(join(directory,'spec.bend'),laws.slice(0,laws.indexOf('law step_exact:')))\n execFileSync('bend',[join(directory,'spec.bend'),'-o',join(directory,'spec.mjs')],{timeout:5000})\n const spec=(await import(pathToFileURL(join(directory,'spec.mjs')))).default\n const prefix=spec.step_spec({$:'invalid'},{$:'invalid'},{$:'invalid'},false,false).$.replace(/SelectionHold$/,'')\n const st=x=>({$:prefix+x.$})\n const normalize=x=>x&&typeof x==='object'?Object.fromEntries(Object.entries(x).map(([k,v])=>[k,k==='$'&&v.startsWith(prefix)?v.slice(prefix.length):normalize(v)])):x\n let lawCases=0,transitions=0,holds=0\n for(const p of phases)for(const k of ['selected','ended','observed'])for(const o of ['completed','back','cancelled'])for(const n of [false,true])for(const h of [false,true]){\n  assert.deepEqual(core.step(phaseTag(p),actionTag(k),outcomeTag(o),n,h),normalize(spec.step_spec(st(phaseTag(p)),st(actionTag(k)),st(outcomeTag(o)),n,h)));lawCases++\n }\n const events=[{kind:'ended'},...([[],['claude'],['codex','claude']].map(hosts=>({kind:'selected',hosts}))),...(['completed','back','cancelled'].map(outcome=>({kind:'observed',outcome})))]\n for(const phase of phases)for(const revision of [0,7,Infinity,NaN])for(const index of [-1,0,1,2,7,Infinity,NaN])for(const selected of [[],['claude'],['claude','codex']])for(const event of events){\n  const model={phase,revision,index,selected}\n  const plan=core.step(phaseTag(phase),actionTag(event.kind),outcomeTag(event.outcome),event.kind==='selected'&&event.hosts.length>0,index+1<selected.length)\n  const actual=plan.$==='SelectionHold'?model:plan.$==='SelectionStart'?{phase:'RunningAgents',selected:[...event.hosts],index:0,revision:revision+1}:plan.$==='SelectionEnd'?{...model,phase:'Done',revision:revision+1}:{...model,phase:plan.phase.$.replace(/^Selection/,''),index:index+1,revision:revision+1}\n  const expected=reduceSelection(model,event);assert.deepEqual(actual,expected)\n  if(production){const emitted=production.reduceSelection(model,event);assert.deepEqual(emitted,expected);if(expected===model)assert.equal(emitted,model);else if(event.kind==='selected')assert.notEqual(emitted.selected,event.hosts);else assert.equal(emitted.selected,selected)}\n  nativeCases.push([model,event])\n  if(expected===model){assert.equal(actual,model);holds++}else if(event.kind==='selected'){assert.notEqual(actual.selected,event.hosts)}else assert.equal(actual.selected,selected)\n  transitions++\n }\n const paths=[root+'/core.bend',root+'/LAWS.bend','evidence/bend-strangler/setup-selection-reference.ts', 'evidence/bend-strangler/setup-selection-draft-parity.mjs',...(production?['packages/administration/src/onboarding/setup-selection.ts','packages/administration/dist/onboarding/setup-selection.js','packages/canonical-policy/src/canonical/setup-selection-adapter.ts','packages/canonical-policy/dist/canonical/setup-selection-adapter.js','packages/agent-flow-bend/scripts/build-setup-selection-policy.mjs','packages/agent-flow-bend/dist/setup-selection-policy.generated.js']:[])]\n const result={at:new Date().toISOString(),passed:true,productionCompared:Boolean(production),lawCases,nativeTransitionCases:transitions,holds,sha256:Object.fromEntries(paths.map(p=>[p,createHash('sha256').update(readFileSync(p)).digest('hex')])),scope:'draft finite closed phase/action/outcome/Bool law domain and native revision/index/payload identity parity; production compared only when productionCompared is true; no proof or effect claim'}\n if(!process.env.HAPSLAND_SELECTION_MUTANT)writeFileSync('/tmp/hapsland-master-56d-setup-parity.json',JSON.stringify(result,null,2)+'\\n')\n console.log(JSON.stringify(result))\n}finally{rmSync(directory,{recursive:true,force:true})}\n",
+      "scriptSha256": "8ad1f007a7f6b01ccf90f95477c5a1f8468bcac6f255f38df26aa5efedebc41e"
+    }
+  },
+  "build": {
+    "warmPreparationCriterion": "all 23 package build tasks cached and 23 uncached clean tasks per lane; identical total task counts across all four samples",
+    "warmPreparationMatched": true,
+    "baselineRevision": "56d1f39074276f96a65431ee9a2f5f1b8cea40bf",
+    "startedAt": "2026-10-08T20:11:44.399Z",
+    "at": "2026-10-08T20:12:07.306Z",
+    "roots": {
+      "typescript": "/workspace/typescript/hapsland-bend-baseline-master-56d1f390",
+      "integratedBend": "/workspace/typescript/hapsland-bend-selection-ui"
+    },
+    "command": [
+      "taskset",
+      "-c",
+      "11",
+      "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "scripts/build-workspaces.mjs"
+    ],
+    "affinity": "CPU 11 for both lanes; not exclusive",
+    "samples": {
+      "typescript": [
+        {
+          "cachedTasks": 23,
+          "totalTasks": 46,
+          "seconds": 6.4032638440000005,
+          "exitCode": 0,
+          "signal": null,
+          "error": null
+        },
+        {
+          "cachedTasks": 23,
+          "totalTasks": 46,
+          "seconds": 5.573139360000001,
+          "exitCode": 0,
+          "signal": null,
+          "error": null
+        }
+      ],
+      "integratedBend": [
+        {
+          "cachedTasks": 23,
+          "totalTasks": 46,
+          "seconds": 5.725983805000001,
+          "exitCode": 0,
+          "signal": null,
+          "error": null
+        },
+        {
+          "cachedTasks": 23,
+          "totalTasks": 46,
+          "seconds": 5.197445885,
+          "exitCode": 0,
+          "signal": null,
+          "error": null
+        }
+      ]
+    },
+    "meanRatio": 0.9120793199707641,
+    "buildParity": true,
+    "scope": "paired warm workspace builds; declared frozen baseline and current candidate; both separately prepared; native release assembly excluded"
+  },
+  "execution": {
+    "at": "2026-10-08T20:13:01.760Z",
+    "runtime": "Bun 1.3.14",
+    "baselineRevision": "56d1f39074276f96a65431ee9a2f5f1b8cea40bf",
+    "timedCases": 72000,
+    "roundsPerSample": 8,
+    "warmupRounds": 20,
+    "samplePairs": 31,
+    "callerDirectionsPerSample": 2,
+    "method": "balanced caller crossover",
+    "medianRatio": 0.9727398141071169,
+    "diagnosticControl": false,
+    "productionCompared": true,
+    "executionParity": true,
+    "sha256": {
+      "selection-ui-performance.mjs": "1d096c58d5242af1c85be91f62de546956e8066e854692dd224ea4fc2a9ee0ee",
+      "selection-ui-parity.mjs": "9bb9aea9e4d210b46c054d50622ac36bde65d43c8d6cf7aec07c61a308841d78"
+    },
+    "samples": [
+      {
+        "typescriptMilliseconds": 445.14998999999807,
+        "integratedBendMilliseconds": 429.8948820000005,
+        "ratio": 0.9657304092043276,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 217.79057999999714,
+            "integratedBendMilliseconds": 208.49027299999943,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 227.35941000000093,
+            "integratedBendMilliseconds": 221.40460900000107,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 443.9006069999996,
+        "integratedBendMilliseconds": 428.6176469999991,
+        "ratio": 0.965571211755517,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 236.56786099999954,
+            "integratedBendMilliseconds": 225.3286850000004,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 207.33274600000004,
+            "integratedBendMilliseconds": 203.28896199999872,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 432.89947400000165,
+        "integratedBendMilliseconds": 437.4540530000013,
+        "ratio": 1.0105211007948687,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 205.62181500000224,
+            "integratedBendMilliseconds": 218.53233700000055,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 227.2776589999994,
+            "integratedBendMilliseconds": 218.92171600000074,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 429.3826110000009,
+        "integratedBendMilliseconds": 430.88191500000175,
+        "ratio": 1.0034917669267256,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 224.83293100000083,
+            "integratedBendMilliseconds": 213.37341899999956,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 204.54968000000008,
+            "integratedBendMilliseconds": 217.5084960000022,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 472.9182179999989,
+        "integratedBendMilliseconds": 467.35709000000134,
+        "ratio": 0.9882408251821723,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 204.88476599999922,
+            "integratedBendMilliseconds": 205.01893500000006,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 268.03345199999967,
+            "integratedBendMilliseconds": 262.3381550000013,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 522.2017070000002,
+        "integratedBendMilliseconds": 549.4931400000023,
+        "ratio": 1.0522622439455223,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 303.2964920000013,
+            "integratedBendMilliseconds": 259.0302950000005,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 218.90521499999886,
+            "integratedBendMilliseconds": 290.46284500000183,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 443.08484899999894,
+        "integratedBendMilliseconds": 464.2926480000024,
+        "ratio": 1.0478639679236774,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 214.735181,
+            "integratedBendMilliseconds": 216.59498800000074,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 228.34966799999893,
+            "integratedBendMilliseconds": 247.69766000000163,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 437.46384499999476,
+        "integratedBendMilliseconds": 437.4674279999999,
+        "ratio": 1.0000081903911515,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 226.19673399999738,
+            "integratedBendMilliseconds": 215.8058149999997,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 211.26711099999739,
+            "integratedBendMilliseconds": 221.66161300000022,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 435.66620500000136,
+        "integratedBendMilliseconds": 421.114418000001,
+        "ratio": 0.9665987702672502,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 202.46687200000088,
+            "integratedBendMilliseconds": 201.57173899999907,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 233.19933300000048,
+            "integratedBendMilliseconds": 219.54267900000195,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 439.41248599999744,
+        "integratedBendMilliseconds": 416.5412150000011,
+        "ratio": 0.9479503388531466,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 229.5934699999998,
+            "integratedBendMilliseconds": 212.79733200000192,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 209.81901599999765,
+            "integratedBendMilliseconds": 203.7438829999992,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 455.8647039999996,
+        "integratedBendMilliseconds": 438.605478999998,
+        "ratio": 0.9621395891180871,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 221.8611149999997,
+            "integratedBendMilliseconds": 217.77878899999996,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 234.00358899999992,
+            "integratedBendMilliseconds": 220.82668999999805,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 443.51993600000424,
+        "integratedBendMilliseconds": 435.155659,
+        "ratio": 0.9811411476213684,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 232.84912100000292,
+            "integratedBendMilliseconds": 231.9006139999983,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 210.6708150000013,
+            "integratedBendMilliseconds": 203.2550450000017,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 436.0526659999996,
+        "integratedBendMilliseconds": 438.33472600000096,
+        "ratio": 1.0052334504016114,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 206.17344400000002,
+            "integratedBendMilliseconds": 216.23023499999908,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 229.87922199999957,
+            "integratedBendMilliseconds": 222.10449100000187,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 455.0994049999972,
+        "integratedBendMilliseconds": 432.94188999999824,
+        "ratio": 0.9513128016504457,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 232.96232999999847,
+            "integratedBendMilliseconds": 220.65752099999736,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 222.13707499999873,
+            "integratedBendMilliseconds": 212.28436900000088,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 556.0124850000029,
+        "integratedBendMilliseconds": 432.3806360000017,
+        "ratio": 0.7776455523296377,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 331.57918300000165,
+            "integratedBendMilliseconds": 204.3246790000012,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 224.43330200000128,
+            "integratedBendMilliseconds": 228.0559570000005,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 437.60567999999694,
+        "integratedBendMilliseconds": 428.3774360000061,
+        "ratio": 0.9789119647624527,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 225.98452400000315,
+            "integratedBendMilliseconds": 215.32997800000157,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 211.6211559999938,
+            "integratedBendMilliseconds": 213.04745800000455,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 498.5048869999955,
+        "integratedBendMilliseconds": 431.48233600000094,
+        "ratio": 0.8655528706983465,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 210.76964800000133,
+            "integratedBendMilliseconds": 206.2901950000014,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 287.7352389999942,
+            "integratedBendMilliseconds": 225.19214099999954,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 456.75629499999195,
+        "integratedBendMilliseconds": 411.4076720000012,
+        "ratio": 0.9007159321143202,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 224.50159499999427,
+            "integratedBendMilliseconds": 211.6150720000005,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 232.25469999999768,
+            "integratedBendMilliseconds": 199.79260000000068,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 439.5999449999945,
+        "integratedBendMilliseconds": 426.08779199999844,
+        "ratio": 0.9692626144436933,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 212.43716199999471,
+            "integratedBendMilliseconds": 202.38145400000212,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 227.16278299999976,
+            "integratedBendMilliseconds": 223.70633799999632,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 464.69640100000106,
+        "integratedBendMilliseconds": 429.61348899999575,
+        "ratio": 0.9245035857292873,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 252.01652900000045,
+            "integratedBendMilliseconds": 223.83579800000007,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 212.6798720000006,
+            "integratedBendMilliseconds": 205.77769099999568,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 477.7295509999967,
+        "integratedBendMilliseconds": 466.7696270000015,
+        "ratio": 0.9770583084570473,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 228.21183399999427,
+            "integratedBendMilliseconds": 243.95675499999925,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 249.51771700000245,
+            "integratedBendMilliseconds": 222.81287200000224,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 486.57662300000084,
+        "integratedBendMilliseconds": 448.3894350000046,
+        "ratio": 0.921518654627195,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 280.76080699999875,
+            "integratedBendMilliseconds": 238.02383100000588,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 205.8158160000021,
+            "integratedBendMilliseconds": 210.3656039999987,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 458.6823930000028,
+        "integratedBendMilliseconds": 454.2142739999981,
+        "ratio": 0.9902587954798504,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 206.40286200000264,
+            "integratedBendMilliseconds": 227.7214959999983,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 252.27953100000013,
+            "integratedBendMilliseconds": 226.49277799999982,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 436.20812500000466,
+        "integratedBendMilliseconds": 435.0332000000053,
+        "ratio": 0.9973065036328718,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 232.20124100000248,
+            "integratedBendMilliseconds": 229.78063800000382,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 204.00688400000217,
+            "integratedBendMilliseconds": 205.2525620000015,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 435.1742000000013,
+        "integratedBendMilliseconds": 444.6099439999962,
+        "ratio": 1.0216826824751901,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 209.15901000000304,
+            "integratedBendMilliseconds": 200.80964899999526,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 226.01518999999826,
+            "integratedBendMilliseconds": 243.80029500000092,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 434.4809449999957,
+        "integratedBendMilliseconds": 423.7601070000019,
+        "ratio": 0.975324952398099,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 226.6786129999964,
+            "integratedBendMilliseconds": 216.33098600000085,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 207.8023319999993,
+            "integratedBendMilliseconds": 207.42912100000103,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 443.7907720000003,
+        "integratedBendMilliseconds": 426.693131,
+        "ratio": 0.9614736446119698,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 205.49235500000214,
+            "integratedBendMilliseconds": 206.76315700000123,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 238.29841699999815,
+            "integratedBendMilliseconds": 219.92997399999877,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 442.07880000000296,
+        "integratedBendMilliseconds": 422.7730569999985,
+        "ratio": 0.956329633992844,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 231.62273700000515,
+            "integratedBendMilliseconds": 220.00989100000152,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 210.4560629999978,
+            "integratedBendMilliseconds": 202.763165999997,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 458.5525589999961,
+        "integratedBendMilliseconds": 446.05233099999896,
+        "ratio": 0.9727398141071169,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 218.8923399999985,
+            "integratedBendMilliseconds": 213.02037500000006,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 239.6602189999976,
+            "integratedBendMilliseconds": 233.0319559999989,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 454.1801489999998,
+        "integratedBendMilliseconds": 420.6333719999966,
+        "ratio": 0.9261377295466007,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 244.4766759999984,
+            "integratedBendMilliseconds": 219.07538299999578,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 209.7034730000014,
+            "integratedBendMilliseconds": 201.55798900000082,
+            "checksum": -355615488
+          }
+        ]
+      },
+      {
+        "typescriptMilliseconds": 458.1978070000041,
+        "integratedBendMilliseconds": 458.13222200000746,
+        "ratio": 0.9998568631298651,
+        "checksum": -355615488,
+        "callerDirections": [
+          {
+            "mirrored": false,
+            "typescriptMilliseconds": 210.44622900000104,
+            "integratedBendMilliseconds": 231.131315000006,
+            "checksum": -355615488
+          },
+          {
+            "mirrored": true,
+            "typescriptMilliseconds": 247.75157800000306,
+            "integratedBendMilliseconds": 227.00090700000146,
+            "checksum": -355615488
+          }
+        ]
+      }
+    ],
+    "scope": "actual compiled keyboard reducer; independent identical consumers of all fixture result fields, identity, IDs and order; both reducers through both identical caller sites per sample; alternating paired samples, CPU11 nonexclusive; no cold terminal/IO/platform claim"
+  },
+  "limits": [
+    "warm workspace build and hot keyboard reducer only",
+    "no cold terminal/native release/platform claim",
+    "direct-login pending slice not included"
+  ]
+}

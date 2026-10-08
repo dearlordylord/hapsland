@@ -453,8 +453,9 @@ describe("Rust direct review integration", () => {
         observation.rootIdentity
       )
       if (selected === undefined) throw new Error("root path not eligible")
-      const capture = yield* captureStable(root, selected, {}, observation.rootIdentity)
-      if (capture === undefined) throw new Error("capture failed")
+      const captureResult = yield* captureStable(root, selected, {}, observation.rootIdentity)
+      if (captureResult.status !== "captured") throw new Error("capture failed")
+      const capture = captureResult.capture
       const context = { root, rootIdentity: observation.rootIdentity, policy: DEFAULT_DIRECT_FILE_POLICY }
       const denied = yield* resolveRustModuleContext(
         "src/model/item.rs",
@@ -491,8 +492,9 @@ describe("Rust direct review integration", () => {
         observation.rootIdentity
       )
       if (selected === undefined) throw new Error("root path not eligible")
-      const capture = yield* captureStable(root, selected, {}, observation.rootIdentity)
-      if (capture === undefined) throw new Error("capture failed")
+      const captureResult = yield* captureStable(root, selected, {}, observation.rootIdentity)
+      if (captureResult.status !== "captured") throw new Error("capture failed")
+      const capture = captureResult.capture
       for (const denied of ["exclusion", "budget"] as const) {
         const reads: string[] = []
         const resolved = yield* resolveRustModuleContext(

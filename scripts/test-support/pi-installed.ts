@@ -1,5 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process"
 import { execFileSync } from "../../scripts/test-harness/process.mjs"
+import { observeOwnedResidentProcess } from "../../scripts/test-harness/cleanup-owned-resident.mjs"
 import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, isAbsolute, join } from "node:path"
@@ -97,22 +98,9 @@ export const fixtureCommandMatches = (
     return false
   }
 }
-const linuxFixtureProcess = (pid: number, command: RuntimeCommand, directory: string) => {
-  if (!fixtureCommandMatches(readFileSync(`/proc/${pid}/cmdline`, "utf8").split("\0"), command, directory)) return false
-  return realpathSync(`/proc/${pid}/exe`) === realpathSync(command.executable)
-}
 const fixtureProcessRunning = (pid: number, expected: RuntimeCommand, directory: string): boolean => {
   try {
-    if (process.platform === "linux") return linuxFixtureProcess(pid, expected, directory)
-    const command = execFileSync("ps", ["-ww", "-p", String(pid), "-o", "command="], {
-      encoding: "utf8",
-      timeout: 1_000,
-      stdio: ["ignore", "pipe", "ignore"]
-    }).trim()
-    return [
-      [expected.executable, ...expected.args, directory],
-      [expected.executable, ...expected.args, directory].map((token) => realpathSync(token))
-    ].some((tokens) => command === tokens.join(" "))
+    return observeOwnedResidentProcess(pid, directory, [expected])?.owned ?? false
   } catch {
     return false
   }

@@ -17,7 +17,11 @@ import {
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import { inspectGraphFile } from "@hapsland/source-analysis/direct-event/analyzer"
-import { captureStable } from "@hapsland/native-observation/direct-event/capture"
+import {
+  captureStable,
+  type CaptureDiagnostic,
+  type StableCapture
+} from "@hapsland/native-observation/direct-event/capture"
 import { resolveGraphUnit } from "@hapsland/source-analysis/direct-event/graph-resolver"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { compileRule } from "@hapsland/review-definition/rules/compiler"
@@ -64,6 +68,123 @@ const rootOnlyRules = [
 ]
 
 describe("cross-file graph preparation", () => {
+  it.effect("reports supporting capture refusal against its owning candidate and preserves partial preparation", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      const source = `//${"x".repeat(100)}\nexport interface B { value: string }`
+      yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; export interface A { b: B }"))
+      yield* Effect.promise(() => put(root, "b.ts", source))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
+      if (observation === undefined) throw new Error("fixture adaptation failed")
+      const configuration = {
+        policy: resolveConfiguration(
+          [
+            {
+              name: "user",
+              source: "fixture:supporting-cap",
+              document: { version: 1, graphLimits: { version: 1, sourceBytes: 80, readBytes: 1024 } }
+            }
+          ],
+          root
+        )
+      }
+      const diagnostics: { candidatePath: string; sourcePath: string; diagnostic: CaptureDiagnostic }[] = []
+      const context = {
+        controlledWriter: true,
+        advicee: observation.advicee,
+        settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION, configuration },
+        inputContract: TYPE_INPUT_CONTRACT,
+        rules: rootOnlyRules
+      } as const
+      const prepared = yield* prepareObservation(observation, {
+        ...context,
+        observeCaptureDiagnostic: (candidatePath, sourcePath, diagnostic) =>
+          diagnostics.push({ candidatePath, sourcePath, diagnostic })
+      })
+      expect(diagnostics).toEqual([
+        {
+          candidatePath: "a.ts",
+          sourcePath: "b.ts",
+          diagnostic: {
+            stage: "capture",
+            code: "capture-size-limit",
+            args: { observedBytes: Buffer.byteLength(source), limitBytes: 80 }
+          }
+        }
+      ])
+      const ready = prepared.outcomes.filter((outcome) => outcome.status === "ready")
+      expect(ready).toHaveLength(1)
+      expect(ready[0]?.prepared.input.completeness).toBe("incomplete-irrelevant")
+      const failedObserver = yield* prepareObservation(observation, {
+        ...context,
+        observeCaptureDiagnostic: () => {
+          throw new Error("optional observer unavailable")
+        }
+      })
+      expect(failedObserver.outcomes).toEqual(prepared.outcomes)
+    })
+  )
+
+  for (const resource of ["files", "bytes"] as const) {
+    it.effect(
+      `reports aggregate supporting capture ${resource} refusal before reading without rejecting the root`,
+      () =>
+        Effect.gen(function* () {
+          const root = yield* Effect.promise(makeGitFixture)
+          const declaration = "import type { B } from './b'; export interface A { b: B }"
+          const sourceBytes = resource === "bytes" ? 2_097_152 : Buffer.byteLength(declaration)
+          const source =
+            resource === "bytes"
+              ? `${declaration}\n//${"x".repeat(sourceBytes - Buffer.byteLength(declaration) - 3)}`
+              : declaration
+          const count = resource === "bytes" ? 8 : 64
+          const paths = ["a.ts", ...Array.from({ length: count - 1 }, (_, index) => `prior-${index}.ts`)]
+          yield* Effect.promise(() => put(root, "a.ts", source))
+          const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]))
+          if (observation === undefined) throw new Error("fixture adaptation failed")
+          const captures = new Map<string, StableCapture>()
+          for (const path of paths) {
+            if (path !== "a.ts") yield* Effect.promise(() => put(root, path, source))
+            const selected = yield* eligibleNamedPath(root, path)
+            if (selected === undefined) throw new Error("fixture path selection failed")
+            const result = yield* captureStable(root, selected, {}, observation.rootIdentity)
+            if (result.status !== "captured") throw new Error("fixture source capture failed")
+            captures.set(path, result.capture)
+          }
+          yield* Effect.promise(() => put(root, "b.ts", "export interface B { value: string }"))
+          const captured = captures.get("a.ts")
+          if (captured === undefined) throw new Error("fixture root capture missing")
+          const reads: string[] = []
+          const diagnostics: { sourcePath: string; diagnostic: CaptureDiagnostic }[] = []
+          const unit = yield* resolveGraphUnit("a.ts", captured, "A", {
+            root,
+            rootIdentity: observation.rootIdentity,
+            policy: DEFAULT_DIRECT_FILE_POLICY,
+            captureCache: captures,
+            captureHooks: { sourceRead: (path) => reads.push(path) },
+            observeCaptureDiagnostic: (sourcePath, diagnostic) => diagnostics.push({ sourcePath, diagnostic })
+          })
+          expect(reads).toEqual([])
+          expect(diagnostics).toEqual([
+            {
+              sourcePath: "b.ts",
+              diagnostic: {
+                stage: "capture",
+                code: "capture-budget-limit",
+                args:
+                  resource === "files"
+                    ? { resource, used: 64, requested: 1, limit: 64 }
+                    : { resource, used: 16_777_216, requested: 2_097_152, limit: 16_777_216 }
+              }
+            }
+          ])
+          expect(unit?.root.artifact.name).toBe("A")
+          if (unit === undefined) throw new Error("supporting refusal rejected the root")
+          expect(hasOmitted(unit.root)).toBe(true)
+        })
+    )
+  }
+
   it.effect(
     "expands explicit supporting scope without reviewing its changed roots and vetoes privacy before reads",
     () =>
@@ -157,8 +278,9 @@ describe("cross-file graph preparation", () => {
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root path was not eligible")
-      const capture = yield* captureStable(root, selected, {}, observation.rootIdentity)
-      if (capture === undefined) throw new Error("root capture failed")
+      const captureResult = yield* captureStable(root, selected, {}, observation.rootIdentity)
+      if (captureResult.status !== "captured") throw new Error("root capture failed")
+      const capture = captureResult.capture
       const reads: string[] = []
       const unit = yield* resolveGraphUnit("a.ts", capture, "A", {
         root,
@@ -188,8 +310,9 @@ describe("cross-file graph preparation", () => {
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root path was not eligible")
-      const capture = yield* captureStable(root, selected, {}, observation.rootIdentity)
-      if (capture === undefined) throw new Error("root capture failed")
+      const captureResult = yield* captureStable(root, selected, {}, observation.rootIdentity)
+      if (captureResult.status !== "captured") throw new Error("root capture failed")
+      const capture = captureResult.capture
       const reads: string[] = []
       const unit = yield* resolveGraphUnit("a.ts", capture, "A", {
         root,
@@ -224,8 +347,9 @@ describe("cross-file graph preparation", () => {
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root path was not eligible")
-      const capture = yield* captureStable(root, selected, {}, observation.rootIdentity)
-      if (capture === undefined) throw new Error("root capture failed")
+      const captureResult = yield* captureStable(root, selected, {}, observation.rootIdentity)
+      if (captureResult.status !== "captured") throw new Error("root capture failed")
+      const capture = captureResult.capture
       const reads: string[] = []
       const base = {
         root,
@@ -264,8 +388,9 @@ describe("cross-file graph preparation", () => {
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root path was not eligible")
-      const capture = yield* captureStable(root, selected, {}, observation.rootIdentity)
-      if (capture === undefined) throw new Error("root capture failed")
+      const captureResult = yield* captureStable(root, selected, {}, observation.rootIdentity)
+      if (captureResult.status !== "captured") throw new Error("root capture failed")
+      const capture = captureResult.capture
       const reads: string[] = []
       const base = {
         root,
@@ -300,8 +425,9 @@ describe("cross-file graph preparation", () => {
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root path was not eligible")
-      const capture = yield* captureStable(root, selected, {}, observation.rootIdentity)
-      if (capture === undefined) throw new Error("root capture failed")
+      const captureResult = yield* captureStable(root, selected, {}, observation.rootIdentity)
+      if (captureResult.status !== "captured") throw new Error("root capture failed")
+      const capture = captureResult.capture
       const complete = yield* resolveGraphUnit("a.ts", capture, "A", {
         root,
         rootIdentity: observation.rootIdentity,
@@ -325,8 +451,9 @@ describe("cross-file graph preparation", () => {
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root path was not eligible")
-      const capture = yield* captureStable(root, selected, {}, observation.rootIdentity)
-      if (capture === undefined) throw new Error("root capture failed")
+      const captureResult = yield* captureStable(root, selected, {}, observation.rootIdentity)
+      if (captureResult.status !== "captured") throw new Error("root capture failed")
+      const capture = captureResult.capture
       const unit = yield* resolveGraphUnit("a.ts", capture, "A", {
         root,
         rootIdentity: observation.rootIdentity,
@@ -369,8 +496,9 @@ describe("cross-file graph preparation", () => {
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root path was not eligible")
-      const capture = yield* captureStable(root, selected, {}, observation.rootIdentity)
-      if (capture === undefined) throw new Error("root capture failed")
+      const captureResult = yield* captureStable(root, selected, {}, observation.rootIdentity)
+      if (captureResult.status !== "captured") throw new Error("root capture failed")
+      const capture = captureResult.capture
       const reads: string[] = []
       const unit = yield* resolveGraphUnit("a.ts", capture, "A", {
         root,

@@ -4,6 +4,7 @@ import {
   deriveSavePlan,
   nativeEligible,
   type SaveDestination,
+  type SavePlan,
   type CredentialContext,
   type CredentialProposal,
   type ActiveCredentialObservation,
@@ -567,6 +568,31 @@ export const makeCredentialOwner = (options: {
       ...(result.file === undefined ? {} : { file: result.file })
     } satisfies ActiveCredentialObservation
   })
+  const nativeReferenceNotice = (destination: SaveDestination) =>
+    context.referenceExplicit && destination === "native"
+      ? {
+          notice:
+            "This configured credential reference excludes native storage. Saving here cannot activate this key for the reference."
+        }
+      : {}
+  const observeDestination = Effect.fn("Credentials.observeDestination")(function* (
+    destination: SaveDestination,
+    plan: SavePlan
+  ) {
+    let observed: FileObservation | undefined
+    let reason: string | undefined
+    if (destination === "native") {
+      const native = yield* runSecretService("probe", { deadlineMs: 2_000, allowInteraction: true })
+      if (native.status !== "available") reason = `Native store: ${native.status}`
+    } else {
+      try {
+        observed = observeFileTarget(plan, options.root)
+      } catch (error) {
+        reason = error instanceof Error ? error.message : "Credential target is unavailable"
+      }
+    }
+    return { observed, reason }
+  })
   return {
     active,
     discard: (id) =>
@@ -603,18 +629,7 @@ export const makeCredentialOwner = (options: {
                   file
                 }
               })
-        let observed: FileObservation | undefined
-        let reason: string | undefined
-        if (destination === "native") {
-          const native = yield* runSecretService("probe", { deadlineMs: 2_000, allowInteraction: true })
-          if (native.status !== "available") reason = `Native store: ${native.status}`
-        } else {
-          try {
-            observed = observeFileTarget(plan, options.root)
-          } catch (error) {
-            reason = error instanceof Error ? error.message : "Credential target is unavailable"
-          }
-        }
+        const { observed, reason } = yield* observeDestination(destination, plan)
         const proposal: CredentialProposal = {
           id,
           plan,
@@ -622,12 +637,7 @@ export const makeCredentialOwner = (options: {
           reason,
           activeSource: current.status === "present" ? current.source : undefined,
           activeFile: current.file,
-          ...(context.referenceExplicit && destination === "native"
-            ? {
-                notice:
-                  "This configured credential reference excludes native storage. Saving here cannot activate this key for the reference."
-              }
-            : {})
+          ...nativeReferenceNotice(destination)
         }
         const statePath = yield* resolveStatePath(options.statePath)
         if (reason === undefined)

@@ -1,10 +1,14 @@
-import { captureOptionsForTarget, type DirectCaptureOptions } from "./capture-policy.ts"
+import {
+  captureOptionsForTarget,
+  captureFilePolicy,
+  captureNativeTarget,
+  type DirectCaptureOptions
+} from "./capture-policy.ts"
 import { relative, resolve, sep } from "node:path"
 import * as Effect from "effect/Effect"
 import { discoverPhysicalWorkingTreeRoot, discoverToolTargetRoot } from "../repository/root.ts"
-import { loadConfiguration } from "@hapsland/runtime-inputs/configuration/load"
-import { captureStable, MAX_SOURCE_BYTES } from "./capture.ts"
-import { nativeSelection, resolvedDirectFilePolicy } from "./selection.ts"
+import { MAX_SOURCE_BYTES } from "./capture.ts"
+import { nativeSelection } from "./selection.ts"
 import type { NativeEditMetadata, DirectAdvicee, DirectObservation } from "./observation.ts"
 import { verifyPiPostEditHunks } from "./pi-patch-hunks.ts"
 
@@ -79,14 +83,19 @@ const payload = (event: Record<string, unknown>) => {
   if (!boundedAscii(input.path, 16_384) || !boundedAscii(details.patch, MAX_SOURCE_BYTES)) return undefined
   return validNativeEdits(input.edits) ? { path: input.path, patch: details.patch } : undefined
 }
+const identifiedPiPayload = (value: unknown) => {
+  const identified = identity(value)
+  if (identified === undefined) return undefined
+  const input = payload(identified.event)
+  return input === undefined ? undefined : { ...identified, input }
+}
 export const adaptPiDirectEvent = Effect.fn("DirectEvent.adaptPiDirectEvent")(function* (
   value: unknown,
   options: DirectCaptureOptions = {}
 ) {
-  const identified = identity(value)
+  const identified = identifiedPiPayload(value)
   if (identified === undefined) return undefined
-  const input = payload(identified.event)
-  if (input === undefined) return undefined
+  const input = identified.input
   const cwd = identified.event.cwd as string
   const root = yield* discoverToolTargetRoot(cwd, input.path).pipe(Effect.option)
   if (root._tag === "None") return undefined
@@ -97,16 +106,7 @@ export const adaptPiDirectEvent = Effect.fn("DirectEvent.adaptPiDirectEvent")(fu
     root.value.absolutePath
   )
   const relativePath = relative(root.value.root, root.value.absolutePath).replaceAll(sep, "/")
-  const filePolicy =
-    selectedOptions === undefined
-      ? undefined
-      : (selectedOptions.filePolicy ??
-        resolvedDirectFilePolicy(
-          (yield* loadConfiguration(
-            root.value.root,
-            options.userConfigPath === undefined ? {} : { userConfigPath: options.userConfigPath }
-          )).policy
-        ))
+  const filePolicy = yield* captureFilePolicy(root.value.root, selectedOptions, options.userConfigPath)
   const selection = yield* nativeSelection(
     root.value.root,
     { operation: "update", path: relativePath },
@@ -121,32 +121,9 @@ export const adaptPiDirectEvent = Effect.fn("DirectEvent.adaptPiDirectEvent")(fu
   }
   options.observeNative?.(metadata)
   if (selection.status !== "selected" || selectedOptions === undefined) return undefined
-  let capturePanicked = false
-  const source = yield* captureStable(
-    root.value.root,
-    { relativePath, absolutePath: root.value.absolutePath },
-    selectedOptions.captureHooks,
-    root.value.rootIdentity
-  ).pipe(
-    Effect.catchDefect(() =>
-      Effect.sync(() => {
-        capturePanicked = true
-        options.observeNative?.({
-          ...metadata,
-          diagnostic: { stage: "capture", code: "panic", args: { boundary: "stable-capture" } }
-        })
-        return undefined
-      })
-    )
-  )
-  if (source === undefined) {
-    if (!capturePanicked)
-      options.observeNative?.({
-        ...metadata,
-        diagnostic: { stage: "capture", code: "capture-unavailable", args: { reason: "unknown" } }
-      })
-    return undefined
-  }
+  const source = yield* captureNativeTarget(metadata, relativePath, root.value.absolutePath, selectedOptions, options)
+  if (source === undefined) return undefined
+
   const evidence = ascii(source.text)
     ? verifyPiPostEditHunks(input.patch, input.path, source.text, relativePath)
     : undefined

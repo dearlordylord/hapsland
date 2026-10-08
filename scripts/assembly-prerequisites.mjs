@@ -20,6 +20,7 @@ export const assemblyProducerFiles = [
   "scripts/native-binding-source.mjs",
   "scripts/assemble-entry.mjs",
   "scripts/compile-standalone.mjs",
+  "scripts/shared-runtime-bundle.mjs",
   "scripts/assembly-context.mjs",
   "scripts/check-assembly-receipt.mjs",
   "scripts/build-contributions.mjs",

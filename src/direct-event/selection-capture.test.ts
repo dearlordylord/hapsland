@@ -1,10 +1,17 @@
 import { execFileAsync } from "../../scripts/test-harness/process.mjs"
-import { mkdir, rename, rm, symlink, writeFile } from "node:fs/promises"
-import { readdirSync, readlinkSync } from "node:fs"
+import { chmod, mkdir, rename, rm, symlink, writeFile } from "node:fs/promises"
+import { closeSync, readdirSync, readlinkSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
-import { captureStable, MAX_SOURCE_BYTES } from "@hapsland/native-observation/direct-event/capture"
+import * as Cause from "effect/Cause"
+import * as Exit from "effect/Exit"
+import {
+  captureStable,
+  decodeNativeCaptureFrame,
+  MAX_SOURCE_BYTES,
+  type CaptureResult
+} from "@hapsland/native-observation/direct-event/capture"
 import { eligibleNamedPath, inspectNamedPath } from "@hapsland/native-observation/direct-event/selection"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
@@ -156,6 +163,82 @@ describe("direct-event named-path selection", () => {
   })
 })
 
+const capturedSource = (result: CaptureResult) => {
+  expect(result.status).toBe("captured")
+  if (result.status !== "captured") throw new Error("fixture source capture failed")
+  return result.capture
+}
+
+describe("native capture helper wire boundary", () => {
+  const frame = (body: string, declaredBytes = Buffer.byteLength(body)) => ({
+    succeeded: true,
+    stdout: Buffer.from(`1:2:33188:${declaredBytes}:1:0:1:0\n${body}`),
+    stderr: Buffer.alloc(0)
+  })
+  it("admits exact bounded frames and refuses malformed or over-limit source without partial bytes", () => {
+    const accepted = decodeNativeCaptureFrame(frame("12345678"), 8)
+    expect(accepted.status).toBe("captured")
+    if (accepted.status !== "captured") throw new Error("native fixture decode failed")
+    expect(accepted.read.bytes.toString()).toBe("12345678")
+    for (const rejected of [frame("123456789"), frame("x", 2), { ...frame("x"), stdout: Buffer.from("invalid\nx") }]) {
+      expect(decodeNativeCaptureFrame(rejected, 8)).toEqual({
+        status: "unavailable",
+        diagnostic: { stage: "capture", code: "panic", args: { boundary: "stable-capture" } }
+      })
+      expect(rejected.stdout.every((byte) => byte === 0)).toBe(true)
+    }
+  })
+  it("decodes only closed source-free refusal facts with trustworthy size metadata", () => {
+    const unavailable = (text: string | Buffer) => ({
+      succeeded: false,
+      stdout: Buffer.from("rejected partial source"),
+      stderr: Buffer.from(text)
+    })
+    expect(decodeNativeCaptureFrame(unavailable("size-limit 9 8\n"), 8)).toEqual({
+      status: "unavailable",
+      diagnostic: { stage: "capture", code: "capture-size-limit", args: { observedBytes: 9, limitBytes: 8 } }
+    })
+    for (const reason of ["missing", "access", "io"] as const)
+      expect(decodeNativeCaptureFrame(unavailable(`${reason}\n`), 8)).toEqual({
+        status: "unavailable",
+        diagnostic: { stage: "capture", code: "capture-unavailable", args: { reason } }
+      })
+    for (const reason of ["root-identity", "git-identity", "path-binding", "file-kind", "budget-argument"] as const)
+      expect(decodeNativeCaptureFrame(unavailable(`${reason}\n`), 8)).toEqual({
+        status: "unavailable",
+        diagnostic: { stage: "capture", code: "capture-validation-failed", args: { reason } }
+      })
+    expect(decodeNativeCaptureFrame(unavailable("unstable\n"), 8)).toEqual({
+      status: "unavailable",
+      diagnostic: { stage: "capture", code: "capture-unstable", args: { checkpoint: "descriptor" } }
+    })
+    expect(decodeNativeCaptureFrame(unavailable(""), 8)).toEqual({
+      status: "unavailable",
+      diagnostic: { stage: "capture", code: "capture-unavailable", args: { reason: "unknown" } }
+    })
+    for (const text of [
+      "size-limit 8 8\n",
+      "size-limit 9 7\n",
+      "size-limit 9007199254740992 8\n",
+      "arbitrary exception",
+      "x".repeat(129),
+      Buffer.from([0xed, 0x69, 0x73, 0x73, 0x69, 0x6e, 0x67])
+    ]) {
+      const rejected = unavailable(text)
+      expect(decodeNativeCaptureFrame(rejected, 8)).toEqual({
+        status: "unavailable",
+        diagnostic: { stage: "capture", code: "panic", args: { boundary: "stable-capture" } }
+      })
+      expect(rejected.stdout.every((byte) => byte === 0)).toBe(true)
+      expect(rejected.stderr.every((byte) => byte === 0)).toBe(true)
+    }
+    expect(decodeNativeCaptureFrame(frame("x"), 0)).toEqual({
+      status: "unavailable",
+      diagnostic: { stage: "capture", code: "capture-validation-failed", args: { reason: "budget-argument" } }
+    })
+  })
+})
+
 describe("stable bounded source capture", () => {
   it("captures a ten-thousand-line source above the former byte ceiling", async () => {
     const root = await makeGitFixture()
@@ -163,7 +246,7 @@ describe("stable bounded source capture", () => {
     expect(Buffer.byteLength(source)).toBeGreaterThan(262_144)
     await put(root, "large-source.ts", source)
     const path = required(await Effect.runPromise(eligibleNamedPath(root, "large-source.ts")))
-    expect((await Effect.runPromise(captureStable(root, path)))?.text).toBe(source)
+    expect(capturedSource(await Effect.runPromise(captureStable(root, path))).text).toBe(source)
   })
 
   it("accepts matching reads, BOM, and the exact byte limit", async () => {
@@ -171,10 +254,12 @@ describe("stable bounded source capture", () => {
     await put(root, "bom.ts", Buffer.from("\ufefftype A = number", "utf8"))
     const bom = await Effect.runPromise(eligibleNamedPath(root, "bom.ts"))
     expect(bom).toBeDefined()
-    expect((await Effect.runPromise(captureStable(root, required(bom))))?.text).toContain("type A")
+    expect(capturedSource(await Effect.runPromise(captureStable(root, required(bom)))).text).toContain("type A")
     await put(root, "limit.ts", "x".repeat(MAX_SOURCE_BYTES))
     const limit = await Effect.runPromise(eligibleNamedPath(root, "limit.ts"))
-    expect((await Effect.runPromise(captureStable(root, required(limit))))?.byteLength).toBe(MAX_SOURCE_BYTES)
+    expect(capturedSource(await Effect.runPromise(captureStable(root, required(limit)))).byteLength).toBe(
+      MAX_SOURCE_BYTES
+    )
   })
 
   it("bounds each stable source read by a configured lower cap", async () => {
@@ -197,7 +282,7 @@ describe("stable bounded source capture", () => {
         80
       )
     )
-    expect(captured?.byteLength).toBe(80)
+    expect(capturedSource(captured).byteLength).toBe(80)
     expect(
       await Effect.runPromise(
         captureStable(
@@ -212,7 +297,10 @@ describe("stable bounded source capture", () => {
           80
         )
       )
-    ).toBeUndefined()
+    ).toEqual({
+      status: "unavailable",
+      diagnostic: { stage: "capture", code: "capture-size-limit", args: { observedBytes: 81, limitBytes: 80 } }
+    })
     expect(reads).toEqual(["exact.ts", "exact.ts"])
   })
 
@@ -227,7 +315,22 @@ describe("stable bounded source capture", () => {
       await put(root, path, bytes)
       const eligible = await Effect.runPromise(eligibleNamedPath(root, path))
       expect(eligible).toBeDefined()
-      expect(await Effect.runPromise(captureStable(root, required(eligible)))).toBeUndefined()
+      const result = await Effect.runPromise(captureStable(root, required(eligible)))
+      expect(result).toEqual({
+        status: "unavailable",
+        diagnostic:
+          path === "large.ts"
+            ? {
+                stage: "capture",
+                code: "capture-size-limit",
+                args: { observedBytes: MAX_SOURCE_BYTES + 1, limitBytes: MAX_SOURCE_BYTES }
+              }
+            : {
+                stage: "capture",
+                code: "capture-validation-failed",
+                args: { reason: path === "bad.ts" ? "text-encoding" : "source-null-byte" }
+              }
+      })
     }
   })
 
@@ -241,7 +344,10 @@ describe("stable bounded source capture", () => {
           betweenReads: () => Effect.promise(() => writeFile(join(root, "race.ts"), "type B = string"))
         })
       )
-    ).toBeUndefined()
+    ).toEqual({
+      status: "unavailable",
+      diagnostic: { stage: "capture", code: "capture-unstable", args: { checkpoint: "double-read" } }
+    })
     await put(root, "race.ts", "type A = number")
     expect(
       await Effect.runPromise(
@@ -253,7 +359,10 @@ describe("stable bounded source capture", () => {
             })
         })
       )
-    ).toBeUndefined()
+    ).toEqual({
+      status: "unavailable",
+      diagnostic: { stage: "capture", code: "capture-unstable", args: { checkpoint: "double-read" } }
+    })
   })
 
   it("contains disappearance and a change to nonregular after selection", async () => {
@@ -261,12 +370,60 @@ describe("stable bounded source capture", () => {
     await put(root, "gone.ts", "type A = number")
     const gone = required(await Effect.runPromise(eligibleNamedPath(root, "gone.ts")))
     await rm(join(root, "gone.ts"))
-    expect(await Effect.runPromise(captureStable(root, gone))).toBeUndefined()
+    expect(await Effect.runPromise(captureStable(root, gone))).toEqual({
+      status: "unavailable",
+      diagnostic: { stage: "capture", code: "capture-unavailable", args: { reason: "missing" } }
+    })
     await put(root, "directory.ts", "type A = number")
     const directory = required(await Effect.runPromise(eligibleNamedPath(root, "directory.ts")))
     await rm(join(root, "directory.ts"))
     await mkdir(join(root, "directory.ts"))
-    expect(await Effect.runPromise(captureStable(root, directory))).toBeUndefined()
+    expect(await Effect.runPromise(captureStable(root, directory))).toEqual({
+      status: "unavailable",
+      diagnostic: { stage: "capture", code: "capture-validation-failed", args: { reason: "file-kind" } }
+    })
+  })
+
+  it("distinguishes access, root validation and unexpected failure without source/error text", async () => {
+    const root = await makeGitFixture()
+    await put(root, "private.ts", "type Private = string")
+    const observation = required(await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["private.ts"]))))
+    const eligible = required(await Effect.runPromise(eligibleNamedPath(root, "private.ts")))
+    if (process.getuid?.() !== 0) {
+      await chmod(join(root, "private.ts"), 0)
+      try {
+        expect(await Effect.runPromise(captureStable(root, eligible))).toEqual({
+          status: "unavailable",
+          diagnostic: { stage: "capture", code: "capture-unavailable", args: { reason: "access" } }
+        })
+      } finally {
+        await chmod(join(root, "private.ts"), 0o600)
+      }
+    }
+    expect(
+      await Effect.runPromise(captureStable(root, eligible, {}, { ...observation.rootIdentity, rootInode: "0" }))
+    ).toEqual({
+      status: "unavailable",
+      diagnostic: { stage: "capture", code: "capture-validation-failed", args: { reason: "root-identity" } }
+    })
+    const panic = await Effect.runPromise(
+      captureStable(root, eligible, { betweenReads: () => Effect.fail(new Error("secret exception and source")) })
+    )
+    expect(panic).toEqual({
+      status: "unavailable",
+      diagnostic: { stage: "capture", code: "panic", args: { boundary: "stable-capture" } }
+    })
+    expect(JSON.stringify(panic)).not.toContain("secret")
+    expect(
+      await Effect.runPromise(
+        captureStable(root, eligible, {
+          betweenReads: () =>
+            Effect.sync(() => {
+              throw new Error("secret unexpected defect")
+            })
+        })
+      )
+    ).toEqual(panic)
   })
 
   it("is interruptible without returning capture evidence", async () => {
@@ -305,4 +462,53 @@ describe("stable bounded source capture", () => {
     await expect(running).rejects.toBeDefined()
     if (process.platform === "linux") expect(descriptorCount()).toBe(0)
   })
+
+  it("preserves interruption combined with failure or a cleanup defect", async () => {
+    const root = await makeGitFixture()
+    await put(root, "cancel.ts", "type A = number")
+    const eligible = required(await Effect.runPromise(eligibleNamedPath(root, "cancel.ts")))
+    for (const failure of [Cause.fail(new Error("secret operational failure")), Cause.die("secret cleanup defect")]) {
+      const exit = await Effect.runPromiseExit(
+        captureStable(root, eligible, {
+          betweenReads: () => Effect.failCause(Cause.combine(Cause.interrupt(123), failure))
+        })
+      )
+      expect(Exit.isFailure(exit)).toBe(true)
+      if (!Exit.isFailure(exit)) throw new Error("interruption returned capture evidence")
+      expect(Cause.hasInterrupts(exit.cause)).toBe(true)
+    }
+  })
+
+  it.skipIf(process.platform !== "linux")(
+    "preserves the primary capture failure when descriptor closure also fails",
+    async () => {
+      const root = await makeGitFixture()
+      const path = join(root, "close.ts")
+      await put(root, "close.ts", "type A = number")
+      const eligible = required(await Effect.runPromise(eligibleNamedPath(root, "close.ts")))
+      let closed = false
+      const result = await Effect.runPromise(
+        captureStable(root, eligible, {
+          sourceRead: () => {
+            const fd = readdirSync("/proc/self/fd").find((descriptor) => {
+              try {
+                return readlinkSync(`/proc/self/fd/${descriptor}`) === path
+              } catch {
+                return false
+              }
+            })
+            if (fd === undefined) throw new Error("fixture capture descriptor missing")
+            closeSync(Number(fd))
+            closed = true
+            throw new Error("secret primary capture failure")
+          }
+        })
+      )
+      expect(closed).toBe(true)
+      expect(result).toEqual({
+        status: "unavailable",
+        diagnostic: { stage: "capture", code: "panic", args: { boundary: "stable-capture" } }
+      })
+    }
+  )
 })

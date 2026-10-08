@@ -79,7 +79,7 @@ describe("configured root source cap", () => {
           beforeAnalyze: () =>
             Effect.sync(() => {
               preflightCalls += 1
-              return true
+              return { status: "admitted" as const }
             })
         } as const
         const prepared = yield* prepareObservation(observation, context)
@@ -87,7 +87,15 @@ describe("configured root source cap", () => {
         expect(preflightCalls).toBe(0)
         expect(prepared.outcomes).toEqual([{ status: "skipped", path: "a.ts" }])
         expect(prepared.observation.outcomes).toMatchObject([
-          { status: "incomplete", path: "a.ts", reason: "capture-unavailable" }
+          {
+            status: "incomplete",
+            path: "a.ts",
+            diagnostic: {
+              stage: "capture",
+              code: "capture-size-limit",
+              args: { observedBytes: measuredBytes, limitBytes: 80 }
+            }
+          }
         ])
         let providerCalls = 0
         const reviewed = yield* reviewObservation(observation, context).pipe(

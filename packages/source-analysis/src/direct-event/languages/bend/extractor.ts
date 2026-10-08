@@ -189,6 +189,8 @@ const boundKind = (type: BendType, text: string): boolean => {
   const match = /^Kind\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)$/.exec(text.trim())
   return match !== null && type.quantities.has(match[1]!)
 }
+const parameterKindSupported = (type: BendType, kind: string): boolean =>
+  kind === "Data" || kind === "Type" || kind === "Quant" || boundKind(type, kind)
 const collectParameter = (type: BendType, field: string): void => {
   const bare = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*$/.exec(field)
   const dependent = /^\s*-?([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(Kind\([^()]*\))\s*$/.exec(field)
@@ -198,7 +200,7 @@ const collectParameter = (type: BendType, field: string): void => {
     parameter === null ||
     type.parameters.has(parameter[1]!) ||
     type.quantities.has(parameter[1]!) ||
-    (parameter[2] !== "Data" && parameter[2] !== "Type" && parameter[2] !== "Quant" && !boundKind(type, parameter[2]!))
+    !parameterKindSupported(type, parameter[2]!)
   ) {
     omitTypeReference(type)
     return
@@ -222,6 +224,8 @@ const collectImportedReference = (type: BendType, target: string, prefix: string
 }
 const assumedBaseLeaf = (scope: BendScope, target: string): boolean =>
   !scope.bindings.has(target) && !scope.aliases.has(target) && scope.base && baseLeaves.has(target)
+const bundledListReference = (scope: BendScope, target: string): boolean =>
+  target === "List" && scope.base && !scope.uncertainScope && !scope.bindings.has(target) && !scope.aliases.has(target)
 const collectTypeName = (type: BendType, target: string): void => {
   const prefix = target.split(".")[0]!
   if (target.includes(".") && type.parameters.has(prefix)) {
@@ -234,13 +238,7 @@ const collectTypeName = (type: BendType, target: string): void => {
   type.references.push({
     kind: "named",
     name: target,
-    ...(target === "List" &&
-    type.scope.base &&
-    !type.scope.uncertainScope &&
-    !type.scope.bindings.has(target) &&
-    !type.scope.aliases.has(target)
-      ? { library: "bend/Base" as const }
-      : {})
+    ...(bundledListReference(type.scope, target) ? { library: "bend/Base" as const } : {})
   })
 }
 const collectTypeNames = (type: BendType, names: ReadonlyArray<string> | undefined): void => {

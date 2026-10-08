@@ -99,6 +99,7 @@ it.skipIf(!terminalAvailable)("declining guided setup leaves Claude settings abs
   const result = await terminal(test, ["setup", "claude", `--claude-home=${home}`, `--claude-executable=${host}`], "n")
   expect(result.code, result.output).toBe(0)
   expect(existsSync(join(home, "settings.json"))).toBe(false)
+  expect(result.output).not.toContain("✅ Setup complete.")
 })
 const updaterFixture = (
   test: ReturnType<typeof fixture>,
@@ -167,6 +168,9 @@ it.skipIf(!terminalAvailable)("guided Codex setup installs through the named cli
   expect(result.answered).toBe(true)
   expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain("--composed-host=codex-cli")
   expect(result.output).toContain("restart Codex")
+  expect(result.output.match(/✅ Setup complete\./g)).toHaveLength(1)
+  expect(result.output.indexOf("✅ Setup complete.")).toBeGreaterThan(result.output.indexOf("Edit the rule JSON files"))
+  expect(result.output).toContain("Next: restart Codex CLI, complete any native trust prompts")
 })
 const bothClients = (test: ReturnType<typeof fixture>) => {
   const claudeHome = join(test.root, "claude-home")

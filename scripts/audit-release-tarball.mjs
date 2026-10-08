@@ -14,6 +14,7 @@ import { validateAssemblyArtifact } from "./assemble-entry.mjs"
 import { assertReleaseSource } from "./release-inputs.mjs"
 import { BUN_VERSION } from "./pinned-bun.mjs"
 import { readPackageGraph, resolveDeclaredDependencyVersion } from "./package-graph.mjs"
+import { checkReleaseSize } from "./release-size.mjs"
 
 export const validateReleasePublication = (root, output, archiveRecord) => {
   const owned = fileEvidence(root, resolve(root, output.path))
@@ -59,6 +60,7 @@ export async function auditReleaseTarball(
   }
   requireTime()
   const archive = resolve(archiveArgument)
+  checkReleaseSize(archive)
   const command = (tool, args) => execFileSync(tool, args, { cwd: root, timeout: 5000, maxBuffer: 32 * 1024 * 1024 })
   const pin = coordinates ?? JSON.parse(readFileSync(resolve(root, "scripts/npm-release-pin.json"), "utf8"))
   const head = command("git", ["rev-parse", "HEAD"]).toString().trim()
@@ -134,7 +136,7 @@ export async function auditReleaseTarball(
       "docs/npm-publishing.md"
     ].includes(name) ||
     hostFiles.includes(name) ||
-    /^dist\/bin\/(?:linux|darwin)-arm64\/hapsland(?:-doctor|-parser|-resident|-hook)?$/.test(name) ||
+    /^dist\/bin\/(?:linux|darwin)-arm64\/hapsland(?:-(?:doctor|parser|resident|hook)(?:\.js)?)?$/.test(name) ||
     nativeFiles.includes(name)
   for (const name of names) {
     if (!allowed(name)) throw new Error(`unexpected registry tarball file: ${name}`)

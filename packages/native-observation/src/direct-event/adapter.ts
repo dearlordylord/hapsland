@@ -1,4 +1,9 @@
-import { captureOptionsForTarget, type DirectCaptureOptions } from "./capture-policy.ts"
+import {
+  captureOptionsForTarget,
+  captureFilePolicy,
+  captureNativeTarget,
+  type DirectCaptureOptions
+} from "./capture-policy.ts"
 import {
   discoverPhysicalWorkingTreeRoot,
   discoverToolTargetRoot,
@@ -7,7 +12,6 @@ import {
 } from "../repository/root.ts"
 import { isAbsolute, relative, resolve, sep } from "node:path"
 import * as Effect from "effect/Effect"
-import { loadConfiguration } from "@hapsland/runtime-inputs/configuration/load"
 import type {
   NativeEditMetadata,
   DirectCandidate,
@@ -16,8 +20,8 @@ import type {
   CodexHostVersion
 } from "./observation.ts"
 import type { PostEditLocation, VerifiedPatchHunk } from "./edit-attribution.ts"
-import { MAX_SOURCE_BYTES, captureStable } from "./capture.ts"
-import { nativeSelection, resolvedDirectFilePolicy } from "./selection.ts"
+import { MAX_SOURCE_BYTES } from "./capture.ts"
+import { nativeSelection } from "./selection.ts"
 
 export const MAX_CODEX_COMMAND_BYTES = 65_536
 export const MAX_CODEX_CANDIDATES = 16
@@ -561,6 +565,8 @@ const claudePayload = (event: ClaudeEvent) => {
   if (Buffer.byteLength(input.file_path) > 16_384 || !boundedClaudeSource(event, input, response)) return undefined
   return { input, response, path: input.file_path }
 }
+const claudeEditOperation = (event: ClaudeEvent, response: NonNullable<ReturnType<typeof record>>) =>
+  event.tool_name === "Write" && response.originalFile === null ? "add" : "update"
 /** Claude has no observed turn ID; preserve supplied child identity. */
 export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEvent")(function* (
   value: unknown,
@@ -580,16 +586,7 @@ export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEv
     claudeAdvicee(event),
     root.value.absolutePath
   )
-  const filePolicy =
-    selectedOptions === undefined
-      ? undefined
-      : (selectedOptions.filePolicy ??
-        resolvedDirectFilePolicy(
-          (yield* loadConfiguration(
-            root.value.root,
-            options.userConfigPath === undefined ? {} : { userConfigPath: options.userConfigPath }
-          )).policy
-        ))
+  const filePolicy = yield* captureFilePolicy(root.value.root, selectedOptions, options.userConfigPath)
   const selection = yield* nativeSelection(
     root.value.root,
     { operation: "update", path: relativePath },
@@ -600,43 +597,13 @@ export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEv
     root: root.value.root,
     rootIdentity: root.value.rootIdentity,
     advicee: claudeAdvicee(event),
-    candidates: [
-      {
-        position: 0,
-        operation: event.tool_name === "Write" && response.originalFile === null ? "add" : "update",
-        path: relativePath,
-        selection
-      }
-    ]
+    candidates: [{ position: 0, operation: claudeEditOperation(event, response), path: relativePath, selection }]
   }
   options.observeNative?.(metadata)
   if (selection.status !== "selected" || selectedOptions === undefined) return undefined
-  let capturePanicked = false
-  const content = yield* captureStable(
-    root.value.root,
-    { relativePath, absolutePath: root.value.absolutePath },
-    selectedOptions.captureHooks,
-    root.value.rootIdentity
-  ).pipe(
-    Effect.catchDefect(() =>
-      Effect.sync(() => {
-        capturePanicked = true
-        options.observeNative?.({
-          ...metadata,
-          diagnostic: { stage: "capture", code: "panic", args: { boundary: "stable-capture" } }
-        })
-        return undefined
-      })
-    )
-  )
-  if (content === undefined) {
-    if (!capturePanicked)
-      options.observeNative?.({
-        ...metadata,
-        diagnostic: { stage: "capture", code: "capture-unavailable", args: { reason: "unknown" } }
-      })
-    return undefined
-  }
+  const content = yield* captureNativeTarget(metadata, relativePath, root.value.absolutePath, selectedOptions, options)
+  if (content === undefined) return undefined
+
   const change = verifiedClaudeChange(event, input, response, path, relativePath, content.text)
   if (change === undefined) {
     options.observeNative?.({

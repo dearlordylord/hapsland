@@ -99,6 +99,43 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
     readonly userConfigPath: string | undefined
     readonly controlled: ResidentControlledOptions | undefined
   }
+  const resolveCodexDispatch = Effect.fn("CodexHook.resolveDispatch")(function* (
+    projections: Map<string, NativeEditMetadata>,
+    policies: Map<string, import("@hapsland/resident-transport/resident/protocol").ResidentEditPolicy | undefined>,
+    options: CodexDispatchOptions
+  ) {
+    let dispatch: import("@hapsland/resident-transport/resident/protocol").ResidentDispatchContext | undefined
+    const sourceContexts: import("@hapsland/resident-transport/resident/protocol").ResidentSourceDispatchContext[] = []
+    // Resolve review authority only after the source-free selection facts exist.
+    for (const [root, metadata] of projections) {
+      if (!metadata.candidates.some((candidate) => candidate.selection.status === "selected")) continue
+      const selected = yield* makeResidentDispatchContextEffect(
+        root,
+        options.statePath,
+        options.activityPath,
+        options.userConfigPath,
+        options.controlled,
+        policies.get(root)
+      ).pipe(Effect.catch(() => Effect.succeed(undefined)))
+      if (selected === undefined) {
+        projections.set(root, {
+          ...metadata,
+          diagnostic: { stage: "admission", code: "dispatch-unavailable", args: {} }
+        })
+        continue
+      }
+      dispatch ??= selected
+      sourceContexts.push({
+        root,
+        credential: selected.credential,
+        sessionAnalytics: selected.sessionAnalytics === true
+      })
+    }
+    return {
+      metadata: [...projections.values()],
+      dispatch: dispatch === undefined ? undefined : { ...dispatch, sourceContexts }
+    }
+  })
   const codexSourceDispatch = Effect.fn("CodexHook.sourceDispatch")(function* (
     observation: DirectObservation,
     options: CodexDispatchOptions
@@ -108,8 +145,6 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
       string,
       import("@hapsland/resident-transport/resident/protocol").ResidentEditPolicy | undefined
     >()
-    let dispatch: import("@hapsland/resident-transport/resident/protocol").ResidentDispatchContext | undefined
-    const sourceContexts: import("@hapsland/resident-transport/resident/protocol").ResidentSourceDispatchContext[] = []
     for (let index = 0; index < observation.candidates.length; index += 1) {
       const single = candidateRootObservation(observation, index)
       if (single === undefined) continue
@@ -157,36 +192,22 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
         ]
       })
     }
-    // Resolve review authority only after the source-free selection facts exist.
-    for (const [root, metadata] of projections) {
-      if (!metadata.candidates.some((candidate) => candidate.selection.status === "selected")) continue
-      const selected = yield* makeResidentDispatchContextEffect(
-        root,
-        options.statePath,
-        options.activityPath,
-        options.userConfigPath,
-        options.controlled,
-        policies.get(root)
-      ).pipe(Effect.catch(() => Effect.succeed(undefined)))
-      if (selected === undefined) {
-        projections.set(root, {
-          ...metadata,
-          diagnostic: { stage: "admission", code: "dispatch-unavailable", args: {} }
-        })
-        continue
-      }
-      dispatch ??= selected
-      sourceContexts.push({
-        root,
-        credential: selected.credential,
-        sessionAnalytics: selected.sessionAnalytics === true
-      })
-    }
-    return {
-      metadata: [...projections.values()],
-      dispatch: dispatch === undefined ? undefined : { ...dispatch, sourceContexts }
-    }
+    return yield* resolveCodexDispatch(projections, policies, options)
   })
+  const codexObservationStage = (
+    observation: DirectObservation | undefined,
+    prepared: Effect.Success<ReturnType<typeof codexSourceDispatch>> | undefined
+  ) =>
+    observation === undefined
+      ? "incomplete"
+      : prepared?.metadata.length &&
+          prepared.metadata.every(
+            (metadata) =>
+              metadata.admission === "skipped-other-root" ||
+              metadata.candidates.every((candidate) => candidate.selection.status === "excluded")
+          )
+        ? "skipped"
+        : "unavailable"
   const runDirectCodexHook = (
     nativeEvent: unknown,
     hostVersion: CodexHostVersion,
@@ -220,21 +241,7 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
             Effect.catch(() => Effect.void)
           )
         yield* retireNativeEditPermits(nativeEvent, "codex-cli", hostVersion)
-        recordCodexHookActivity(
-          reply,
-          activityPath,
-          owner.value.lifetime,
-          observation === undefined
-            ? "incomplete"
-            : prepared?.metadata.length &&
-                prepared.metadata.every(
-                  (metadata) =>
-                    metadata.admission === "skipped-other-root" ||
-                    metadata.candidates.every((candidate) => candidate.selection.status === "excluded")
-                )
-              ? "skipped"
-              : "unavailable"
-        )
+        recordCodexHookActivity(reply, activityPath, owner.value.lifetime, codexObservationStage(observation, prepared))
         return { handled: true, output: {} } as const
       }
       // Matching reads are not attribution. The hook command must explicitly be

@@ -20,6 +20,12 @@ import type {
   ReviewUnit
 } from "@hapsland/source-artifacts/direct-event/artifact-model"
 import { contextDirectFilePolicy, eligibleNamedPath } from "@hapsland/native-observation/direct-event/selection"
+import { observationCaptureBudgetRefusal, observeCaptureDiagnostic } from "./capture-budget.ts"
+export {
+  MAX_OBSERVATION_GRAPH_FILES,
+  MAX_OBSERVATION_GRAPH_READ_BYTES,
+  observationCaptureBudgetRefusal
+} from "./capture-budget.ts"
 
 type MutableNode = { artifact: ReviewNode["artifact"]; references: ArtifactReference[] }
 type Pending = {
@@ -52,16 +58,8 @@ const declarationFor = (file: FactFile, name: string, expected: "type" | "functi
 const correctKind = (artifact: ReviewArtifact, expected: "type" | "function" | undefined): boolean =>
   expected === undefined || (expected === "function" ? artifact.kind === "function" : artifact.kind !== "function")
 export const GRAPH_ANALYSIS_DEADLINE_MS = 5_000
-export const MAX_OBSERVATION_GRAPH_FILES = 64
-export const MAX_OBSERVATION_GRAPH_READ_BYTES = 16 * 1024 * 1024
 export const MAX_OBSERVATION_GRAPH_UNITS = 64
 const bytes = (value: unknown): number => Buffer.byteLength(JSON.stringify(value), "utf8")
-const mayCaptureForObservation = (captures: ReadonlyMap<string, StableCapture>, path: string): boolean =>
-  captures.has(path) ||
-  (captures.size < MAX_OBSERVATION_GRAPH_FILES &&
-    [...captures.values()].reduce((sum, source) => sum + source.byteLength, 0) + GRAPH_LIMIT_CEILINGS.sourceBytes <=
-      MAX_OBSERVATION_GRAPH_READ_BYTES)
-
 type FactDeclaration = NonNullable<ReturnType<FactFile["declarations"]["get"]>>
 type FactImport = NonNullable<ReturnType<FactFile["imports"]["get"]>>
 type FactReference = FactDeclaration["references"][number]
@@ -151,6 +149,46 @@ const queueImportedReference = (
     ...(reference.expectedKind === undefined ? {} : { expectedKind: reference.expectedKind })
   })
 }
+const validBundledDeclaration = (
+  declaration: FactDeclaration | undefined,
+  reference: FactReference
+): declaration is FactDeclaration =>
+  declaration !== undefined &&
+  declaration.artifact.origin?.kind === "bundled" &&
+  declaration.artifact.id === reference.targetId &&
+  correctKind(declaration.artifact, reference.expectedKind)
+const materializeBundledReference = (frame: LocalFrame, reference: FactReference, targetId: string): void => {
+  const { budget, fileTargets } = frame
+  const declaration = frame.file.supportingDeclarations?.get(targetId)
+  if (!validBundledDeclaration(declaration, reference)) {
+    frame.node.references.push(omittedReference(reference.name, "unsupported"))
+    return
+  }
+  fileTargets.add(declaration.artifact.id)
+  budget.maxTargetsInFile = Math.max(budget.maxTargetsInFile, fileTargets.size)
+  if (frame.visited.has(declaration.artifact.id)) budget.work += 1
+  if (!permitLocalGraphFacts(budget.limits, budget.work, budget.maxDepth, fileTargets.size, budget.graphWork)) {
+    frame.node.references.push(omittedReference(reference.name, "reference-limit"))
+    return
+  }
+  if (frame.visited.has(declaration.artifact.id)) {
+    frame.node.references.push({ kind: "included", site: { symbol: reference.name }, target: declaration.artifact.id })
+  } else {
+    const index = frame.node.references.length
+    frame.node.references.push(omittedReference(reference.name, "unavailable"))
+    frame.pending.push({
+      owner: frame.node,
+      index,
+      from: frame.path,
+      symbol: reference.name,
+      importPath: "",
+      name: reference.name,
+      depth: frame.depth,
+      bundled: { declaration, file: frame.file },
+      ...(reference.expectedKind === undefined ? {} : { expectedKind: reference.expectedKind })
+    })
+  }
+}
 const materializeLocalReference = (frame: LocalFrame, reference: FactReference): void => {
   const { budget, fileTargets } = frame
   budget.maxDepth = Math.max(budget.maxDepth, frame.depth + 1)
@@ -159,44 +197,7 @@ const materializeLocalReference = (frame: LocalFrame, reference: FactReference):
     return
   }
   if (reference.targetId !== undefined) {
-    const declaration = frame.file.supportingDeclarations?.get(reference.targetId)
-    if (
-      declaration === undefined ||
-      declaration.artifact.origin?.kind !== "bundled" ||
-      declaration.artifact.id !== reference.targetId ||
-      !correctKind(declaration.artifact, reference.expectedKind)
-    ) {
-      frame.node.references.push(omittedReference(reference.name, "unsupported"))
-      return
-    }
-    fileTargets.add(declaration.artifact.id)
-    budget.maxTargetsInFile = Math.max(budget.maxTargetsInFile, fileTargets.size)
-    if (frame.visited.has(declaration.artifact.id)) budget.work += 1
-    if (!permitLocalGraphFacts(budget.limits, budget.work, budget.maxDepth, fileTargets.size, budget.graphWork)) {
-      frame.node.references.push(omittedReference(reference.name, "reference-limit"))
-      return
-    }
-    if (frame.visited.has(declaration.artifact.id)) {
-      frame.node.references.push({
-        kind: "included",
-        site: { symbol: reference.name },
-        target: declaration.artifact.id
-      })
-    } else {
-      const index = frame.node.references.length
-      frame.node.references.push(omittedReference(reference.name, "unavailable"))
-      frame.pending.push({
-        owner: frame.node,
-        index,
-        from: frame.path,
-        symbol: reference.name,
-        importPath: "",
-        name: reference.name,
-        depth: frame.depth,
-        bundled: { declaration, file: frame.file },
-        ...(reference.expectedKind === undefined ? {} : { expectedKind: reference.expectedKind })
-      })
-    }
+    materializeBundledReference(frame, reference, reference.targetId)
     return
   }
   const local = declarationFor(frame.file, reference.name, reference.expectedKind)
@@ -482,22 +483,25 @@ const checkGraphPath = Effect.fn("DirectEvent.checkGraphPath")(function* (
   advanceGraph(frame, { kind: "pathChecked", allowed: selected !== undefined })
   return "next"
 })
-const captureBudgetAvailable = (context: GraphResolveContext, path: string): boolean =>
-  context.captureCache === undefined || mayCaptureForObservation(context.captureCache, path)
 const captureGraphSource = Effect.fn("DirectEvent.captureGraphSource")(function* (
   frame: GraphFrame,
   selected: NonNullable<Effect.Success<ReturnType<typeof eligibleNamedPath>>>
 ) {
   let source = frame.context.captureCache?.get(selected.relativePath)
   if (source === undefined) {
-    source = yield* (frame.context.captureSource ?? captureStable)(
+    const result = yield* (frame.context.captureSource ?? captureStable)(
       frame.context.root,
       selected,
       frame.context.captureHooks,
       frame.context.rootIdentity,
       frame.limits.sourceBytes
     )
-    if (source !== undefined) frame.context.captureCache?.set(selected.relativePath, source)
+    if (result.status === "unavailable") {
+      observeCaptureDiagnostic(frame.context, selected.relativePath, result.diagnostic)
+      return undefined
+    }
+    source = result.capture
+    frame.context.captureCache?.set(selected.relativePath, source)
   }
   return source
 })
@@ -661,7 +665,16 @@ const readGraphSource = Effect.fn("DirectEvent.readGraphSource")(function* (
     contextDirectFilePolicy(frame.context.policy),
     frame.context.rootIdentity
   )
-  if (selected === undefined || !captureBudgetAvailable(frame.context, selected.relativePath)) {
+  if (selected === undefined) {
+    advanceGraph(frame, { kind: "captureFailed" })
+    return "next"
+  }
+  const refusal =
+    frame.context.captureCache === undefined
+      ? undefined
+      : observationCaptureBudgetRefusal(frame.context.captureCache, selected.relativePath)
+  if (refusal !== undefined) {
+    observeCaptureDiagnostic(frame.context, selected.relativePath, refusal)
     advanceGraph(frame, { kind: "captureFailed" })
     return "next"
   }

@@ -1,14 +1,14 @@
 {
-  "at": "2026-10-08T19:49:29.948Z",
+  "at": "2026-10-08T20:13:01.760Z",
   "runtime": "Bun 1.3.14",
-  "baselineRevision": "bc37e318df95bfff969e6e07f8f45742725e9789",
+  "baselineRevision": "56d1f39074276f96a65431ee9a2f5f1b8cea40bf",
   "timedCases": 72000,
   "roundsPerSample": 8,
   "warmupRounds": 20,
   "samplePairs": 31,
   "callerDirectionsPerSample": 2,
   "method": "balanced caller crossover",
-  "medianRatio": 0.9704208565342902,
+  "medianRatio": 0.9727398141071169,
   "diagnosticControl": false,
   "productionCompared": true,
   "executionParity": true,
@@ -18,621 +18,621 @@
   },
   "samples": [
     {
-      "typescriptMilliseconds": 450.444273000001,
-      "integratedBendMilliseconds": 506.8530260000007,
-      "ratio": 1.1252291490450352,
+      "typescriptMilliseconds": 445.14998999999807,
+      "integratedBendMilliseconds": 429.8948820000005,
+      "ratio": 0.9657304092043276,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": false,
-          "typescriptMilliseconds": 211.6049000000021,
-          "integratedBendMilliseconds": 238.00040699999954,
+          "typescriptMilliseconds": 217.79057999999714,
+          "integratedBendMilliseconds": 208.49027299999943,
           "checksum": -355615488
         },
         {
           "mirrored": true,
-          "typescriptMilliseconds": 238.8393729999989,
-          "integratedBendMilliseconds": 268.85261900000114,
+          "typescriptMilliseconds": 227.35941000000093,
+          "integratedBendMilliseconds": 221.40460900000107,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 456.0574030000025,
-      "integratedBendMilliseconds": 494.59146800000235,
-      "ratio": 1.0844938920989287,
+      "typescriptMilliseconds": 443.9006069999996,
+      "integratedBendMilliseconds": 428.6176469999991,
+      "ratio": 0.965571211755517,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": true,
-          "typescriptMilliseconds": 241.20655900000202,
-          "integratedBendMilliseconds": 256.7060190000011,
+          "typescriptMilliseconds": 236.56786099999954,
+          "integratedBendMilliseconds": 225.3286850000004,
           "checksum": -355615488
         },
         {
           "mirrored": false,
-          "typescriptMilliseconds": 214.8508440000005,
-          "integratedBendMilliseconds": 237.88544900000124,
+          "typescriptMilliseconds": 207.33274600000004,
+          "integratedBendMilliseconds": 203.28896199999872,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 454.6402649999982,
-      "integratedBendMilliseconds": 480.4749359999987,
-      "ratio": 1.0568244235912554,
+      "typescriptMilliseconds": 432.89947400000165,
+      "integratedBendMilliseconds": 437.4540530000013,
+      "ratio": 1.0105211007948687,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": false,
-          "typescriptMilliseconds": 216.98265199999878,
-          "integratedBendMilliseconds": 216.2765220000001,
+          "typescriptMilliseconds": 205.62181500000224,
+          "integratedBendMilliseconds": 218.53233700000055,
           "checksum": -355615488
         },
         {
           "mirrored": true,
-          "typescriptMilliseconds": 237.6576129999994,
-          "integratedBendMilliseconds": 264.1984139999986,
+          "typescriptMilliseconds": 227.2776589999994,
+          "integratedBendMilliseconds": 218.92171600000074,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 468.2497519999961,
-      "integratedBendMilliseconds": 510.0695110000015,
-      "ratio": 1.0893107979692123,
+      "typescriptMilliseconds": 429.3826110000009,
+      "integratedBendMilliseconds": 430.88191500000175,
+      "ratio": 1.0034917669267256,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": true,
-          "typescriptMilliseconds": 252.19331599999714,
-          "integratedBendMilliseconds": 233.439620000001,
+          "typescriptMilliseconds": 224.83293100000083,
+          "integratedBendMilliseconds": 213.37341899999956,
           "checksum": -355615488
         },
         {
           "mirrored": false,
-          "typescriptMilliseconds": 216.05643599999894,
-          "integratedBendMilliseconds": 276.6298910000005,
+          "typescriptMilliseconds": 204.54968000000008,
+          "integratedBendMilliseconds": 217.5084960000022,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 550.020714000002,
-      "integratedBendMilliseconds": 660.4004520000017,
-      "ratio": 1.2006828746453342,
+      "typescriptMilliseconds": 472.9182179999989,
+      "integratedBendMilliseconds": 467.35709000000134,
+      "ratio": 0.9882408251821723,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": false,
-          "typescriptMilliseconds": 277.5434400000013,
-          "integratedBendMilliseconds": 253.36811800000214,
+          "typescriptMilliseconds": 204.88476599999922,
+          "integratedBendMilliseconds": 205.01893500000006,
           "checksum": -355615488
         },
         {
           "mirrored": true,
-          "typescriptMilliseconds": 272.47727400000076,
-          "integratedBendMilliseconds": 407.03233399999954,
+          "typescriptMilliseconds": 268.03345199999967,
+          "integratedBendMilliseconds": 262.3381550000013,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 484.130591000001,
-      "integratedBendMilliseconds": 472.0922839999985,
-      "ratio": 0.9751341740765923,
+      "typescriptMilliseconds": 522.2017070000002,
+      "integratedBendMilliseconds": 549.4931400000023,
+      "ratio": 1.0522622439455223,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": true,
-          "typescriptMilliseconds": 273.8419939999985,
-          "integratedBendMilliseconds": 256.94735500000024,
+          "typescriptMilliseconds": 303.2964920000013,
+          "integratedBendMilliseconds": 259.0302950000005,
           "checksum": -355615488
         },
         {
           "mirrored": false,
-          "typescriptMilliseconds": 210.28859700000248,
-          "integratedBendMilliseconds": 215.14492899999823,
+          "typescriptMilliseconds": 218.90521499999886,
+          "integratedBendMilliseconds": 290.46284500000183,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 449.99451899999985,
-      "integratedBendMilliseconds": 506.51052399999753,
-      "ratio": 1.1255926519407178,
+      "typescriptMilliseconds": 443.08484899999894,
+      "integratedBendMilliseconds": 464.2926480000024,
+      "ratio": 1.0478639679236774,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": false,
-          "typescriptMilliseconds": 211.18431299999793,
-          "integratedBendMilliseconds": 231.89206600000034,
+          "typescriptMilliseconds": 214.735181,
+          "integratedBendMilliseconds": 216.59498800000074,
           "checksum": -355615488
         },
         {
           "mirrored": true,
-          "typescriptMilliseconds": 238.81020600000193,
-          "integratedBendMilliseconds": 274.6184579999972,
+          "typescriptMilliseconds": 228.34966799999893,
+          "integratedBendMilliseconds": 247.69766000000163,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 482.16253199999846,
-      "integratedBendMilliseconds": 464.75426499999594,
-      "ratio": 0.9638954380636059,
+      "typescriptMilliseconds": 437.46384499999476,
+      "integratedBendMilliseconds": 437.4674279999999,
+      "ratio": 1.0000081903911515,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": true,
-          "typescriptMilliseconds": 267.9302359999965,
-          "integratedBendMilliseconds": 242.85911399999895,
+          "typescriptMilliseconds": 226.19673399999738,
+          "integratedBendMilliseconds": 215.8058149999997,
           "checksum": -355615488
         },
         {
           "mirrored": false,
-          "typescriptMilliseconds": 214.23229600000195,
-          "integratedBendMilliseconds": 221.89515099999699,
+          "typescriptMilliseconds": 211.26711099999739,
+          "integratedBendMilliseconds": 221.66161300000022,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 463.81596600000194,
-      "integratedBendMilliseconds": 450.0966870000011,
-      "ratio": 0.9704208565342902,
+      "typescriptMilliseconds": 435.66620500000136,
+      "integratedBendMilliseconds": 421.114418000001,
+      "ratio": 0.9665987702672502,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": false,
-          "typescriptMilliseconds": 225.235095,
-          "integratedBendMilliseconds": 214.30125500000213,
+          "typescriptMilliseconds": 202.46687200000088,
+          "integratedBendMilliseconds": 201.57173899999907,
           "checksum": -355615488
         },
         {
           "mirrored": true,
-          "typescriptMilliseconds": 238.58087100000193,
-          "integratedBendMilliseconds": 235.79543199999898,
+          "typescriptMilliseconds": 233.19933300000048,
+          "integratedBendMilliseconds": 219.54267900000195,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 453.823758999999,
-      "integratedBendMilliseconds": 458.7070489999969,
-      "ratio": 1.010760322488973,
+      "typescriptMilliseconds": 439.41248599999744,
+      "integratedBendMilliseconds": 416.5412150000011,
+      "ratio": 0.9479503388531466,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": true,
-          "typescriptMilliseconds": 243.7084959999993,
-          "integratedBendMilliseconds": 226.96660899999915,
+          "typescriptMilliseconds": 229.5934699999998,
+          "integratedBendMilliseconds": 212.79733200000192,
           "checksum": -355615488
         },
         {
           "mirrored": false,
-          "typescriptMilliseconds": 210.1152629999997,
-          "integratedBendMilliseconds": 231.74043999999776,
+          "typescriptMilliseconds": 209.81901599999765,
+          "integratedBendMilliseconds": 203.7438829999992,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 487.36803399999917,
-      "integratedBendMilliseconds": 450.9757360000003,
-      "ratio": 0.9253289188843294,
+      "typescriptMilliseconds": 455.8647039999996,
+      "integratedBendMilliseconds": 438.605478999998,
+      "ratio": 0.9621395891180871,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": false,
-          "typescriptMilliseconds": 209.96576099999947,
-          "integratedBendMilliseconds": 217.59757399999944,
+          "typescriptMilliseconds": 221.8611149999997,
+          "integratedBendMilliseconds": 217.77878899999996,
           "checksum": -355615488
         },
         {
           "mirrored": true,
-          "typescriptMilliseconds": 277.4022729999997,
-          "integratedBendMilliseconds": 233.37816200000088,
+          "typescriptMilliseconds": 234.00358899999992,
+          "integratedBendMilliseconds": 220.82668999999805,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 450.7204009999987,
-      "integratedBendMilliseconds": 440.19198099999994,
-      "ratio": 0.9766409064762995,
+      "typescriptMilliseconds": 443.51993600000424,
+      "integratedBendMilliseconds": 435.155659,
+      "ratio": 0.9811411476213684,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": true,
-          "typescriptMilliseconds": 235.81368199999997,
-          "integratedBendMilliseconds": 225.46068000000014,
+          "typescriptMilliseconds": 232.84912100000292,
+          "integratedBendMilliseconds": 231.9006139999983,
           "checksum": -355615488
         },
         {
           "mirrored": false,
-          "typescriptMilliseconds": 214.9067189999987,
-          "integratedBendMilliseconds": 214.7313009999998,
+          "typescriptMilliseconds": 210.6708150000013,
+          "integratedBendMilliseconds": 203.2550450000017,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 464.8054749999974,
-      "integratedBendMilliseconds": 446.82682600000044,
-      "ratio": 0.9613200576004466,
+      "typescriptMilliseconds": 436.0526659999996,
+      "integratedBendMilliseconds": 438.33472600000096,
+      "ratio": 1.0052334504016114,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": false,
-          "typescriptMilliseconds": 205.68543499999942,
-          "integratedBendMilliseconds": 214.78463399999964,
+          "typescriptMilliseconds": 206.17344400000002,
+          "integratedBendMilliseconds": 216.23023499999908,
           "checksum": -355615488
         },
         {
           "mirrored": true,
-          "typescriptMilliseconds": 259.12003999999797,
-          "integratedBendMilliseconds": 232.0421920000008,
+          "typescriptMilliseconds": 229.87922199999957,
+          "integratedBendMilliseconds": 222.10449100000187,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 466.6474469999994,
-      "integratedBendMilliseconds": 449.87231000000247,
-      "ratio": 0.9640517973304225,
+      "typescriptMilliseconds": 455.0994049999972,
+      "integratedBendMilliseconds": 432.94188999999824,
+      "ratio": 0.9513128016504457,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": true,
-          "typescriptMilliseconds": 251.74897899999996,
-          "integratedBendMilliseconds": 229.599089000003,
+          "typescriptMilliseconds": 232.96232999999847,
+          "integratedBendMilliseconds": 220.65752099999736,
           "checksum": -355615488
         },
         {
           "mirrored": false,
-          "typescriptMilliseconds": 214.8984679999994,
-          "integratedBendMilliseconds": 220.27322099999947,
+          "typescriptMilliseconds": 222.13707499999873,
+          "integratedBendMilliseconds": 212.28436900000088,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 465.09897700000147,
-      "integratedBendMilliseconds": 439.3868070000026,
-      "ratio": 0.9447167779945498,
+      "typescriptMilliseconds": 556.0124850000029,
+      "integratedBendMilliseconds": 432.3806360000017,
+      "ratio": 0.7776455523296377,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": false,
-          "typescriptMilliseconds": 229.3097540000017,
-          "integratedBendMilliseconds": 209.93576100000064,
+          "typescriptMilliseconds": 331.57918300000165,
+          "integratedBendMilliseconds": 204.3246790000012,
           "checksum": -355615488
         },
         {
           "mirrored": true,
-          "typescriptMilliseconds": 235.78922299999977,
-          "integratedBendMilliseconds": 229.45104600000195,
+          "typescriptMilliseconds": 224.43330200000128,
+          "integratedBendMilliseconds": 228.0559570000005,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 461.3255710000085,
-      "integratedBendMilliseconds": 435.3100249999916,
-      "ratio": 0.9436069716585981,
+      "typescriptMilliseconds": 437.60567999999694,
+      "integratedBendMilliseconds": 428.3774360000061,
+      "ratio": 0.9789119647624527,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": true,
-          "typescriptMilliseconds": 246.82577200000378,
-          "integratedBendMilliseconds": 222.85078399999475,
+          "typescriptMilliseconds": 225.98452400000315,
+          "integratedBendMilliseconds": 215.32997800000157,
           "checksum": -355615488
         },
         {
           "mirrored": false,
-          "typescriptMilliseconds": 214.4997990000047,
-          "integratedBendMilliseconds": 212.45924099999684,
+          "typescriptMilliseconds": 211.6211559999938,
+          "integratedBendMilliseconds": 213.04745800000455,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 457.8580010000005,
-      "integratedBendMilliseconds": 463.080418000005,
-      "ratio": 1.0114061935984482,
+      "typescriptMilliseconds": 498.5048869999955,
+      "integratedBendMilliseconds": 431.48233600000094,
+      "ratio": 0.8655528706983465,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": false,
-          "typescriptMilliseconds": 215.39930599999934,
-          "integratedBendMilliseconds": 236.50481199999922,
+          "typescriptMilliseconds": 210.76964800000133,
+          "integratedBendMilliseconds": 206.2901950000014,
           "checksum": -355615488
         },
         {
           "mirrored": true,
-          "typescriptMilliseconds": 242.45869500000117,
-          "integratedBendMilliseconds": 226.5756060000058,
+          "typescriptMilliseconds": 287.7352389999942,
+          "integratedBendMilliseconds": 225.19214099999954,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 464.8155160000024,
-      "integratedBendMilliseconds": 460.9549840000036,
-      "ratio": 0.9916944855171341,
+      "typescriptMilliseconds": 456.75629499999195,
+      "integratedBendMilliseconds": 411.4076720000012,
+      "ratio": 0.9007159321143202,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": true,
-          "typescriptMilliseconds": 242.03177400000277,
-          "integratedBendMilliseconds": 237.65307100000064,
+          "typescriptMilliseconds": 224.50159499999427,
+          "integratedBendMilliseconds": 211.6150720000005,
           "checksum": -355615488
         },
         {
           "mirrored": false,
-          "typescriptMilliseconds": 222.78374199999962,
-          "integratedBendMilliseconds": 223.30191300000297,
+          "typescriptMilliseconds": 232.25469999999768,
+          "integratedBendMilliseconds": 199.79260000000068,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 454.12630199999694,
-      "integratedBendMilliseconds": 509.00504500000534,
-      "ratio": 1.1208446697720864,
+      "typescriptMilliseconds": 439.5999449999945,
+      "integratedBendMilliseconds": 426.08779199999844,
+      "ratio": 0.9692626144436933,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": false,
-          "typescriptMilliseconds": 218.14032800000132,
-          "integratedBendMilliseconds": 253.22207500000513,
+          "typescriptMilliseconds": 212.43716199999471,
+          "integratedBendMilliseconds": 202.38145400000212,
           "checksum": -355615488
         },
         {
           "mirrored": true,
-          "typescriptMilliseconds": 235.98597399999562,
-          "integratedBendMilliseconds": 255.7829700000002,
+          "typescriptMilliseconds": 227.16278299999976,
+          "integratedBendMilliseconds": 223.70633799999632,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 449.03355299999384,
-      "integratedBendMilliseconds": 468.19587599999795,
-      "ratio": 1.0426745905110668,
+      "typescriptMilliseconds": 464.69640100000106,
+      "integratedBendMilliseconds": 429.61348899999575,
+      "ratio": 0.9245035857292873,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": true,
-          "typescriptMilliseconds": 235.04129999999714,
-          "integratedBendMilliseconds": 223.73637400000007,
+          "typescriptMilliseconds": 252.01652900000045,
+          "integratedBendMilliseconds": 223.83579800000007,
           "checksum": -355615488
         },
         {
           "mirrored": false,
-          "typescriptMilliseconds": 213.9922529999967,
-          "integratedBendMilliseconds": 244.45950199999788,
+          "typescriptMilliseconds": 212.6798720000006,
+          "integratedBendMilliseconds": 205.77769099999568,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 459.4657209999932,
-      "integratedBendMilliseconds": 452.7810830000017,
-      "ratio": 0.9854512802708265,
+      "typescriptMilliseconds": 477.7295509999967,
+      "integratedBendMilliseconds": 466.7696270000015,
+      "ratio": 0.9770583084570473,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": false,
-          "typescriptMilliseconds": 207.4461569999985,
-          "integratedBendMilliseconds": 215.32538800000475,
+          "typescriptMilliseconds": 228.21183399999427,
+          "integratedBendMilliseconds": 243.95675499999925,
           "checksum": -355615488
         },
         {
           "mirrored": true,
-          "typescriptMilliseconds": 252.01956399999472,
-          "integratedBendMilliseconds": 237.45569499999692,
+          "typescriptMilliseconds": 249.51771700000245,
+          "integratedBendMilliseconds": 222.81287200000224,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 461.7847830000028,
-      "integratedBendMilliseconds": 462.39232900000206,
-      "ratio": 1.0013156475101936,
+      "typescriptMilliseconds": 486.57662300000084,
+      "integratedBendMilliseconds": 448.3894350000046,
+      "ratio": 0.921518654627195,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": true,
-          "typescriptMilliseconds": 246.17151600000216,
-          "integratedBendMilliseconds": 225.70101599999907,
+          "typescriptMilliseconds": 280.76080699999875,
+          "integratedBendMilliseconds": 238.02383100000588,
           "checksum": -355615488
         },
         {
           "mirrored": false,
-          "typescriptMilliseconds": 215.61326700000063,
-          "integratedBendMilliseconds": 236.691313000003,
+          "typescriptMilliseconds": 205.8158160000021,
+          "integratedBendMilliseconds": 210.3656039999987,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 468.30129500000476,
-      "integratedBendMilliseconds": 438.64076000000205,
-      "ratio": 0.9366635639988943,
+      "typescriptMilliseconds": 458.6823930000028,
+      "integratedBendMilliseconds": 454.2142739999981,
+      "ratio": 0.9902587954798504,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": false,
-          "typescriptMilliseconds": 215.36647300000186,
-          "integratedBendMilliseconds": 208.81921000000148,
+          "typescriptMilliseconds": 206.40286200000264,
+          "integratedBendMilliseconds": 227.7214959999983,
           "checksum": -355615488
         },
         {
           "mirrored": true,
-          "typescriptMilliseconds": 252.9348220000029,
-          "integratedBendMilliseconds": 229.82155000000057,
+          "typescriptMilliseconds": 252.27953100000013,
+          "integratedBendMilliseconds": 226.49277799999982,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 523.9101660000015,
-      "integratedBendMilliseconds": 454.52055599999585,
-      "ratio": 0.8675543738160534,
+      "typescriptMilliseconds": 436.20812500000466,
+      "integratedBendMilliseconds": 435.0332000000053,
+      "ratio": 0.9973065036328718,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": true,
-          "typescriptMilliseconds": 236.3516860000018,
-          "integratedBendMilliseconds": 226.98935899999924,
+          "typescriptMilliseconds": 232.20124100000248,
+          "integratedBendMilliseconds": 229.78063800000382,
           "checksum": -355615488
         },
         {
           "mirrored": false,
-          "typescriptMilliseconds": 287.5584799999997,
-          "integratedBendMilliseconds": 227.5311969999966,
+          "typescriptMilliseconds": 204.00688400000217,
+          "integratedBendMilliseconds": 205.2525620000015,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 493.19862300000386,
-      "integratedBendMilliseconds": 448.05992000000697,
-      "ratio": 0.9084776378217979,
+      "typescriptMilliseconds": 435.1742000000013,
+      "integratedBendMilliseconds": 444.6099439999962,
+      "ratio": 1.0216826824751901,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": false,
-          "typescriptMilliseconds": 219.37888000000385,
-          "integratedBendMilliseconds": 221.74865000000136,
+          "typescriptMilliseconds": 209.15901000000304,
+          "integratedBendMilliseconds": 200.80964899999526,
           "checksum": -355615488
         },
         {
           "mirrored": true,
-          "typescriptMilliseconds": 273.819743,
-          "integratedBendMilliseconds": 226.3112700000056,
+          "typescriptMilliseconds": 226.01518999999826,
+          "integratedBendMilliseconds": 243.80029500000092,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 502.01065400000516,
-      "integratedBendMilliseconds": 484.565677999999,
-      "ratio": 0.9652497893002766,
+      "typescriptMilliseconds": 434.4809449999957,
+      "integratedBendMilliseconds": 423.7601070000019,
+      "ratio": 0.975324952398099,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": true,
-          "typescriptMilliseconds": 259.4202920000025,
-          "integratedBendMilliseconds": 257.95998800000234,
+          "typescriptMilliseconds": 226.6786129999964,
+          "integratedBendMilliseconds": 216.33098600000085,
           "checksum": -355615488
         },
         {
           "mirrored": false,
-          "typescriptMilliseconds": 242.59036200000264,
-          "integratedBendMilliseconds": 226.60568999999668,
+          "typescriptMilliseconds": 207.8023319999993,
+          "integratedBendMilliseconds": 207.42912100000103,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 491.7293189999982,
-      "integratedBendMilliseconds": 448.80192699999316,
-      "ratio": 0.9127011745256434,
+      "typescriptMilliseconds": 443.7907720000003,
+      "integratedBendMilliseconds": 426.693131,
+      "ratio": 0.9614736446119698,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": false,
-          "typescriptMilliseconds": 226.6152729999958,
-          "integratedBendMilliseconds": 221.62494099999458,
+          "typescriptMilliseconds": 205.49235500000214,
+          "integratedBendMilliseconds": 206.76315700000123,
           "checksum": -355615488
         },
         {
           "mirrored": true,
-          "typescriptMilliseconds": 265.1140460000024,
-          "integratedBendMilliseconds": 227.17698599999858,
+          "typescriptMilliseconds": 238.29841699999815,
+          "integratedBendMilliseconds": 219.92997399999877,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 509.422421999996,
-      "integratedBendMilliseconds": 438.6257609999957,
-      "ratio": 0.8610256283536714,
+      "typescriptMilliseconds": 442.07880000000296,
+      "integratedBendMilliseconds": 422.7730569999985,
+      "ratio": 0.956329633992844,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": true,
-          "typescriptMilliseconds": 271.87376799999765,
-          "integratedBendMilliseconds": 227.37602999999945,
+          "typescriptMilliseconds": 231.62273700000515,
+          "integratedBendMilliseconds": 220.00989100000152,
           "checksum": -355615488
         },
         {
           "mirrored": false,
-          "typescriptMilliseconds": 237.54865399999835,
-          "integratedBendMilliseconds": 211.24973099999625,
+          "typescriptMilliseconds": 210.4560629999978,
+          "integratedBendMilliseconds": 202.763165999997,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 534.2440840000054,
-      "integratedBendMilliseconds": 449.7383090000003,
-      "ratio": 0.8418217860883149,
+      "typescriptMilliseconds": 458.5525589999961,
+      "integratedBendMilliseconds": 446.05233099999896,
+      "ratio": 0.9727398141071169,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": false,
-          "typescriptMilliseconds": 223.31253700000525,
-          "integratedBendMilliseconds": 209.80380200000218,
+          "typescriptMilliseconds": 218.8923399999985,
+          "integratedBendMilliseconds": 213.02037500000006,
           "checksum": -355615488
         },
         {
           "mirrored": true,
-          "typescriptMilliseconds": 310.93154700000014,
-          "integratedBendMilliseconds": 239.93450699999812,
+          "typescriptMilliseconds": 239.6602189999976,
+          "integratedBendMilliseconds": 233.0319559999989,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 520.5160560000004,
-      "integratedBendMilliseconds": 442.2885810000007,
-      "ratio": 0.8497116965014435,
+      "typescriptMilliseconds": 454.1801489999998,
+      "integratedBendMilliseconds": 420.6333719999966,
+      "ratio": 0.9261377295466007,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": true,
-          "typescriptMilliseconds": 309.820037999998,
-          "integratedBendMilliseconds": 234.92959100000007,
+          "typescriptMilliseconds": 244.4766759999984,
+          "integratedBendMilliseconds": 219.07538299999578,
           "checksum": -355615488
         },
         {
           "mirrored": false,
-          "typescriptMilliseconds": 210.69601800000237,
-          "integratedBendMilliseconds": 207.35899000000063,
+          "typescriptMilliseconds": 209.7034730000014,
+          "integratedBendMilliseconds": 201.55798900000082,
           "checksum": -355615488
         }
       ]
     },
     {
-      "typescriptMilliseconds": 459.2589280000029,
-      "integratedBendMilliseconds": 434.29705800000374,
-      "ratio": 0.9456475019251035,
+      "typescriptMilliseconds": 458.1978070000041,
+      "integratedBendMilliseconds": 458.13222200000746,
+      "ratio": 0.9998568631298651,
       "checksum": -355615488,
       "callerDirections": [
         {
           "mirrored": false,
-          "typescriptMilliseconds": 222.41407199999958,
-          "integratedBendMilliseconds": 212.9470780000047,
+          "typescriptMilliseconds": 210.44622900000104,
+          "integratedBendMilliseconds": 231.131315000006,
           "checksum": -355615488
         },
         {
           "mirrored": true,
-          "typescriptMilliseconds": 236.84485600000335,
-          "integratedBendMilliseconds": 221.34997999999905,
+          "typescriptMilliseconds": 247.75157800000306,
+          "integratedBendMilliseconds": 227.00090700000146,
           "checksum": -355615488
         }
       ]

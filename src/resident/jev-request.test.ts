@@ -666,7 +666,7 @@ describe("canonical Jev request boundary", () => {
       const preparation = Effect.runSync(
         ledger.beginObservedPreparation(owner, observation, 100, Effect.runSync(ledger.roundId(owner)))
       )
-      if (preparation === undefined) throw new Error("preparation refused")
+      if (preparation.status !== "admitted") throw new Error("preparation refused")
       expect(
         Effect.runSync(
           ledger.observation(owner, observation, "completeObservation", Effect.runSync(ledger.roundId(owner)))
@@ -781,7 +781,7 @@ describe("canonical Jev request boundary", () => {
       const preparation = Effect.runSync(
         ledger.beginObservedPreparation(partition, observation, 100, Effect.runSync(ledger.roundId(partition)))
       )
-      if (preparation === undefined) throw new Error("preparation refused")
+      if (preparation.status !== "admitted") throw new Error("preparation refused")
       expect(
         Effect.runSync(
           ledger.observation(partition, observation, "completeObservation", Effect.runSync(ledger.roundId(partition)))

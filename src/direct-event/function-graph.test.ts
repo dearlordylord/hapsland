@@ -21,8 +21,9 @@ describe("bounded function graph candidate", () => {
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root selection failed")
-      const capture = yield* captureStable(root, selected, undefined, observation.rootIdentity)
-      if (capture === undefined) throw new Error("capture failed")
+      const captureResult = yield* captureStable(root, selected, undefined, observation.rootIdentity)
+      if (captureResult.status !== "captured") throw new Error("capture failed")
+      const capture = captureResult.capture
       const unit = yield* resolveGraphUnit("a.ts", capture, "run", {
         root,
         rootIdentity: observation.rootIdentity,
@@ -51,8 +52,9 @@ describe("bounded function graph candidate", () => {
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root selection failed")
-      const capture = yield* captureStable(root, selected, undefined, observation.rootIdentity)
-      if (capture === undefined) throw new Error("capture failed")
+      const captureResult = yield* captureStable(root, selected, undefined, observation.rootIdentity)
+      if (captureResult.status !== "captured") throw new Error("capture failed")
+      const capture = captureResult.capture
       const unit = yield* resolveGraphUnit("a.ts", capture, "run", {
         root,
         rootIdentity: observation.rootIdentity,
@@ -78,8 +80,9 @@ describe("bounded function graph candidate", () => {
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root selection failed")
-      const capture = yield* captureStable(root, selected, undefined, observation.rootIdentity)
-      if (capture === undefined) throw new Error("capture failed")
+      const captureResult = yield* captureStable(root, selected, undefined, observation.rootIdentity)
+      if (captureResult.status !== "captured") throw new Error("capture failed")
+      const capture = captureResult.capture
       const reads: string[] = []
       const unit = yield* resolveGraphUnit("a.ts", capture, "run", {
         root,
