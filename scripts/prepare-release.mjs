@@ -1,8 +1,7 @@
 import { readFileSync, writeFileSync, chmodSync, renameSync, rmSync } from "node:fs"
 import { resolve } from "node:path"
 import { pathToFileURL } from "node:url"
-import { prepareReleaseArchive } from "./release-archive.mjs"
-import { auditReleaseTarball } from "./audit-release-tarball.mjs"
+import { prepareReleaseArchive, auditPreparedArchive } from "./release-archive.mjs"
 import { retainReleaseAudit } from "./prepared-release.mjs"
 import {
   RELEASE_PIN_PATH,
@@ -75,10 +74,11 @@ export async function prepareRelease(root) {
       validateArchive: async (built) => {
         try {
           assertReleaseSource(root, pin, { allowGenerated: true })
-          const record = await auditReleaseTarball(built.archivePath, sourceCommit, {
+          const record = await auditPreparedArchive({
             root,
+            archivePath: built.archivePath,
+            commit: sourceCommit,
             coordinates: pin,
-            print: false,
             deadline
           })
           pin.archiveSha256 = built.archiveDigest

@@ -251,4 +251,4 @@ export async function auditReleaseTarball(
   return record
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href)
-  await auditReleaseTarball(...process.argv.slice(2))
+  await auditReleaseTarball(process.argv[2], process.argv[3], process.argv[4] ? JSON.parse(process.argv[4]) : undefined)
