@@ -26,6 +26,8 @@ export function gameBusinessConfig(settings: BusinessReplaySettings, seed: numbe
       variationMs: 200, editsPerTask: 4, taskPauseMs: 3000, adviceResponse: "ignore",
       repairDelayMs: 300, bytes: 100, unitBytes: [10, 20]
     },
+    graphLimits: { version: 1, sourceBytes: 262144, treeBytes: 20480, files: 8,
+      readBytes: 1572864, outgoingEdges: 16, depth: 4, work: 128 },
     preparationDelay: settings.sourceDelayMs ?? 800,
     jevDelay: settings.jevDelayMs ?? 3200,
     adviceLifetime: 20000,

@@ -1,3 +1,4 @@
+import { checkBendCompiler } from "../packages/monkey-business-bend/compiler.mjs"
 import { createHash } from "node:crypto"
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -10,10 +11,17 @@ const source = "prototypes/canonical-defense/DefenseLab.bend"
 const target = "prototypes/canonical-defense/lab/game.generated.mjs"
 const manifest = "prototypes/canonical-defense/lab/game.generated.json"
 const checked = (args) => {
-  const result = spawnSync("bend", args, { cwd: root, encoding: "utf8", timeout: 55000, maxBuffer: 4 * 1024 * 1024 })
+  const result = spawnSync("bend", args, {
+    cwd: root,
+    env: { ...process.env, BEND_NO_TELEMETRY: "1" },
+    encoding: "utf8",
+    timeout: 55000,
+    maxBuffer: 4 * 1024 * 1024
+  })
   if (result.error || result.status !== 0) throw result.error ?? new Error(result.stdout + result.stderr)
   return result.stdout
 }
+checkBendCompiler()
 const compiler = checked(["--help"]).split("\n")[0]
 const dependencies = new Map()
 function collect(path) {
@@ -24,7 +32,12 @@ function collect(path) {
     collect(relative(root, resolve(root, dirname(path), match[1])))
 }
 collect(source)
-for (const path of ["scripts/build-game-lab.mjs", "prototypes/canonical-defense/lab/game.generated.d.mts"])
+for (const path of [
+  "scripts/build-game-lab.mjs",
+  "packages/monkey-business-bend/compiler.mjs",
+  "packages/agent-flow-bend/package.json",
+  "prototypes/canonical-defense/lab/game.generated.d.mts"
+])
   dependencies.set(path, readFileSync(resolve(root, path)))
 const hash = createHash("sha256").update(compiler)
 for (const [path, content] of [...dependencies].sort(([a], [b]) => a.localeCompare(b)))

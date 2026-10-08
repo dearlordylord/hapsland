@@ -1,15 +1,21 @@
+import { checkBendCompiler } from "../compiler.mjs"
 import { mkdtempSync, copyFileSync, symlinkSync, readFileSync, writeFileSync, rmSync, mkdirSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { tmpdir } from "node:os"
 import { fileURLToPath } from "node:url"
 import { spawnSync } from "node:child_process"
 
+checkBendCompiler()
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const directory = mkdtempSync(join(tmpdir(), "hapsland-lifecycle-laws-"))
 const copy = join(directory, "core")
 mkdirSync(copy)
 const check = (file, verdict = false) => {
-  const result = spawnSync("bend", [file, verdict ? "--verdict" : "--check-only"], { encoding: "utf8", timeout: 5000 })
+  const result = spawnSync("bend", [file, verdict ? "--verdict" : "--check-only"], {
+    encoding: "utf8",
+    env: { ...process.env, BEND_NO_TELEMETRY: "1" },
+    timeout: 5000
+  })
   if (result.error) throw result.error
   return { status: result.status, text: result.stdout + result.stderr }
 }

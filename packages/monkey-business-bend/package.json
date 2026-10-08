@@ -31,6 +31,10 @@
     "./session": {
       "types": "./session.mjs",
       "default": "./session.mjs"
+    },
+    "./compiler": {
+      "types": "./compiler.mjs",
+      "default": "./compiler.mjs"
     }
   },
   "dependencies": {},

@@ -41,6 +41,8 @@ const config = {
   session: { agent: "agent-1", seed: 152, editIntervalMs: 30000, variationMs: 200,
     editsPerTask: 4, taskPauseMs: 3000, adviceResponse: "ignore", repairDelayMs: 300,
     bytes: 100, unitBytes: [10, 20] },
+  graphLimits: { version: 1, sourceBytes: 262144, treeBytes: 20480, files: 8,
+    readBytes: 1572864, outgoingEdges: 16, depth: 4, work: 128 },
   preparationDelay: 800, jevDelay: 3200, adviceLifetime: 20000,
   outputProfile: { outcome: "certain", delayMs: 800, leaseMs: 5000 },
   outcomeWeights: { neverSent: 0, finding: 1, clear: 0, backendFailure: 0, timeout: 0, interrupted: 0 },
