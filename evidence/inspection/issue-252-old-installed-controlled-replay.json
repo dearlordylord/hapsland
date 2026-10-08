@@ -99,6 +99,9 @@
     "Synthetic no-op hook payload; no ordinary Codex tool execution or physical edit performed.",
     "This new isolated replay reproduces accepted admission, two source reads, generic omission and an operational rejection counter increment. It does not recover the original receipt failure branch.",
     "The old Boolean ledger results do not preserve an authoritative refusal constraint; no exact limiting pool is claimed.",
-    "Earlier probes omitted the controlled-reviewer switch and cannot establish provider-request counts from an absent capture file."
-  ]
+    "Earlier probes omitted the controlled-reviewer switch and cannot establish provider-request counts from an absent capture file.",
+    "Two preparation-read facts do not independently establish successful stable capture. The old operational rejection counter does not by itself establish capacity exhaustion, materialization refusal, or an authoritative limiting constraint.",
+    "Matching binaries and source do not establish matching historical settings, dependencies, or resident state."
+  ],
+  "receiptId": "9762fd26-b456-41a3-9ca6-309ec0c7cbd8"
 }
