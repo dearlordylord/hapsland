@@ -1,3 +1,9 @@
+import {
+  type NativeEditMetadata,
+  isCodexHostVersion,
+  type DirectObservation,
+  type DirectAdvicee
+} from "@hapsland/native-observation/direct-event/observation"
 import { providerEnvironmentOnly } from "@hapsland/runtime-environment/runtime/backend"
 import { InspectionTransportObservation } from "@hapsland/inspection-records/inspection/transport"
 import {
@@ -63,11 +69,6 @@ import { access, appendFile, chmod, rm, writeFile } from "node:fs/promises"
 import { createServer, type Server, type Socket } from "node:net"
 import { join, resolve } from "node:path"
 import { canonicalValue, type PreparedUnit } from "@hapsland/review-definition/direct-event/model"
-import {
-  isCodexHostVersion,
-  type DirectObservation,
-  type DirectAdvicee
-} from "@hapsland/native-observation/direct-event/observation"
 import {
   evaluatePrepared,
   encodedPreparedProviderInputBytes,
@@ -686,7 +687,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       captureInspectionFate(findings, fate, reason, advice.id)
     )
   }
-  const refreshInspectionConsent = (root: string, dispatch: ResidentDispatchContext): void => {
+  const refreshInspectionConsent = (root: string, dispatch: Pick<ResidentDispatchContext, "userConfigPath">): void => {
     const settings = readInspectionSettings(root, dispatch.userConfigPath ?? undefined)
     if (settings && (inspectionLimits.has(root) || inspectionLimits.size < 128)) inspectionLimits.set(root, settings)
     inspection.observeRecording(root, inspectionLimits.has(root) ? settings?.enabled : undefined)
@@ -703,30 +704,69 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         inspectionRegistrations.set(scope.root, { epoch, at: registrationTime })
     }
   }
-  const inspectionReceive = (observation: DirectObservation, dispatch: ResidentDispatchContext) => {
-    refreshInspectionConsent(observation.root, dispatch)
+  const inspectionReceiveMetadata = (
+    metadata: NativeEditMetadata,
+    dispatch: Pick<ResidentDispatchContext, "userConfigPath">
+  ) => {
+    refreshInspectionConsent(metadata.root, dispatch)
     const scope = {
-      root: observation.root,
-      runtime: observation.advicee.host,
-      runtimeVersion: observation.advicee.hostVersion,
-      sessionId: observation.advicee.sessionId,
-      subagentId: observation.advicee.subagentId
+      root: metadata.root,
+      runtime: metadata.advicee.host,
+      runtimeVersion: metadata.advicee.hostVersion,
+      sessionId: metadata.advicee.sessionId,
+      subagentId: metadata.advicee.subagentId
     }
     const correlation = { receiptId: randomUUID() }
     registerInspectionSource(scope)
-    inspection.offer(scope, correlation, {
-      kind: "edit-received",
-      candidates: observation.candidates.map(({ operation, path }) => ({ operation, path }))
-    })
+    inspection.offer(scope, correlation, { kind: "edit-received", candidates: metadata.candidates })
+    if (metadata.admission !== undefined)
+      inspection.offer(scope, correlation, { kind: "edit-admission", outcome: metadata.admission })
+    if (metadata.diagnostic !== undefined)
+      inspection.offer(scope, correlation, { kind: "diagnostic", diagnostic: metadata.diagnostic })
     return { scope, correlation }
+  }
+  const inspectionIngress = (observation: DirectObservation, dispatch: ResidentDispatchContext) => {
+    const metadata =
+      observation.nativeMetadata ??
+      (observation.candidateRoots === undefined
+        ? [
+            {
+              ...observation,
+              candidates: observation.candidates.map(({ operation, path, ...candidate }, position) => ({
+                operation,
+                path,
+                ...("moveTo" in candidate && candidate.moveTo !== undefined ? { moveTo: candidate.moveTo } : {}),
+                position,
+                selection: { status: "not-evaluated" as const }
+              }))
+            }
+          ]
+        : [...new Set(observation.candidateRoots.flatMap((target) => (target === null ? [] : [target.root])))].map(
+            (root) => {
+              const { indices } = candidatesForSourceRoot(observation, root)
+              const target = observation.candidateRoots!.find((target) => target?.root === root)!
+              const local = observationForTargetRoot(observation, root, target.rootIdentity, indices)
+              return {
+                ...local,
+                candidates: local.candidates.map(({ operation, path, ...candidate }, index) => ({
+                  operation,
+                  path,
+                  ...("moveTo" in candidate && candidate.moveTo !== undefined ? { moveTo: candidate.moveTo } : {}),
+                  position: indices[index]!,
+                  selection: { status: "not-evaluated" as const }
+                }))
+              }
+            }
+          ))
+    return new Map(metadata.map((projection) => [projection.root, inspectionReceiveMetadata(projection, dispatch)]))
   }
   const inspectionRefuse = (
     observation: DirectObservation,
     dispatch: ResidentDispatchContext,
     outcome: "unsupported" | "obsolete-lifetime"
   ) => {
-    const receipt = inspectionReceive(observation, dispatch)
-    inspection.offer(receipt.scope, receipt.correlation, { kind: "edit-admission", outcome })
+    for (const receipt of inspectionIngress(observation, dispatch).values())
+      inspection.offer(receipt.scope, receipt.correlation, { kind: "edit-admission", outcome })
   }
   const residentJoined = residentLedger.joinedReviews(logicalBytes)
   const residentRuntimeScope = yield* Scope.Scope
@@ -1222,30 +1262,23 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   }
   const residentSkippedAdmission = Effect.fn("ResidentRuntime.skippedAdmission")(function* (
     observation: DirectObservation,
-    dispatch: ResidentDispatchContext,
+    receipts: ReadonlyMap<string, InspectionReceipt>,
     skipped: ReadonlyArray<string>
   ) {
     const active = yield* residentLedger.rounds.get(recipientPartition(observation.advicee))
     const pin = active === undefined ? undefined : yield* residentLedger.rounds.activity(active)
-    if (pin !== undefined && active !== undefined) {
-      const receipt = inspectionReceive(
-        {
-          ...observation,
-          root: pin.root,
-          candidates: observation.candidates.map((candidate) => ({
-            ...candidate,
-            path: resolve(observation.root, candidate.path)
-          }))
-        },
-        dispatch
-      )
-      inspection.offer(receipt.scope, receipt.correlation, { kind: "edit-admission", outcome: "skipped-other-root" })
+    for (const receipt of receipts.values()) {
       inspection.offer(receipt.scope, receipt.correlation, {
-        kind: "round-membership",
-        roundId: `${lifetime}:${active.canonicalRound}`,
-        pinnedRoot: pin.root,
-        skippedPaths: skipped
+        kind: "edit-admission",
+        outcome: active === undefined ? "rejected-stale" : "skipped-other-root"
       })
+      if (pin !== undefined && active !== undefined)
+        inspection.offer(receipt.scope, receipt.correlation, {
+          kind: "round-membership",
+          roundId: `${lifetime}:${active.canonicalRound}`,
+          pinnedRoot: pin.root,
+          skippedPaths: skipped
+        })
     }
     return {
       response: { status: active === undefined ? ("rejected-stale" as const) : ("skipped-other-root" as const) }
@@ -1305,22 +1338,18 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       composed = false,
       requirePermit = false
     ): Effect.fn.Return<{ readonly response: ResidentResponse; readonly settings?: ReviewSettingsSnapshot }> {
-      let remaining = observation
+      const receipts = inspectionIngress(observation, dispatch)
+      // Metadata is consumed at ingress; review jobs retain only review observations.
+      const { nativeMetadata: _nativeMetadata, ...native } = observation
+      let remaining = native
       while (true) {
         const routed = yield* residentRouteObservation(remaining, dispatch, composed, requirePermit)
         if (routed === undefined) return { response: { status: "rejected-stale" as const } }
-        if (routed.observation === undefined)
-          return yield* residentSkippedAdmission(observation, dispatch, routed.skipped)
+        if (routed.observation === undefined) return yield* residentSkippedAdmission(native, receipts, routed.skipped)
         const selected = routed.observation
-        const receipt = inspectionReceive(selected, dispatch)
+        const receipt = receipts.get(selected.root)!
         const admission = yield* residentAdmitSource(selected, dispatch, composed, requirePermit, receipt)
-        const retry = yield* residentRetryCandidates(
-          observation,
-          remaining,
-          selected,
-          admission.response.status,
-          composed
-        )
+        const retry = yield* residentRetryCandidates(native, remaining, selected, admission.response.status, composed)
         if (retry !== undefined) {
           remaining = retry
           residentRecordAdmission(receipt, admission.response.status)
@@ -1328,13 +1357,20 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         }
         yield* residentAcceptedMembership(
           selected,
-          observation,
+          native,
           receipt,
           routed.skipped,
           admission.response.status,
           composed
         )
         residentRecordAdmission(receipt, admission.response.status)
+        if (admission.response.status === "accepted")
+          for (const [root, otherReceipt] of receipts)
+            if (root !== selected.root)
+              inspection.offer(otherReceipt.scope, otherReceipt.correlation, {
+                kind: "edit-admission",
+                outcome: "skipped-other-root"
+              })
         return admission
       }
     },
@@ -5116,33 +5152,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }
     return undefined
   })
-  const residentRecordSkippedPolicy = (
-    request: Extract<ResidentRequest, { operation: "recipient-root" | "edit-policy" }>,
-    active: RoundWork | undefined,
-    pinnedRoot: string
-  ) => {
-    if (active === undefined || request.targetPaths === undefined) return
-    const scope = {
-      root: pinnedRoot,
-      runtime: request.advicee.host,
-      runtimeVersion: request.advicee.hostVersion,
-      sessionId: request.advicee.sessionId,
-      subagentId: request.advicee.subagentId
-    }
-    const roundId = `${lifetime}:${active.canonicalRound}`
-    const correlation = { receiptId: randomUUID(), roundId }
-    inspection.offer(scope, correlation, {
-      kind: "edit-received",
-      candidates: request.targetPaths.map((path) => ({ operation: "update", path }))
-    })
-    inspection.offer(scope, correlation, { kind: "edit-admission", outcome: "skipped-other-root" })
-    inspection.offer(scope, correlation, {
-      kind: "round-membership",
-      roundId,
-      pinnedRoot,
-      skippedPaths: request.targetPaths
-    })
-  }
   const residentHandleEditPolicy = Effect.fn("ResidentRuntime.handle.edit-policy")(function* (
     request: Extract<ResidentRequest, { operation: "recipient-root" | "edit-policy" }>
   ) {
@@ -5151,7 +5160,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const pin = active === undefined ? undefined : yield* residentLedger.rounds.activity(active)
     if (pin !== undefined && pin.root !== request.root) {
       yield* residentComposedDelivery.retireEdit(group, editPermitIdentity(request.root, request.advicee))
-      residentRecordSkippedPolicy(request, active, pin.root)
       return residentResponse({ status: "skipped-other-root" })
     }
     const settings = yield* residentComposedDelivery.registeredEditSettings(
@@ -5205,12 +5213,42 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (request.operation === "acknowledge") return residentResponse(yield* runtime.acknowledge(request.token))
     return residentResponse(yield* runtime.finalize(request.token))
   })
+  const residentRecordNative = Effect.fn("ResidentRuntime.recordNative")(function* (
+    request: Extract<ResidentRequest, { operation: "record-native" }>
+  ) {
+    for (const metadata of request.metadata) {
+      const discovered = yield* discoverPhysicalWorkingTreeRoot(metadata.root).pipe(Effect.option)
+      if (
+        Option.isNone(discovered) ||
+        discovered.value.root !== metadata.root ||
+        !residentRootIdentityMatches(metadata.rootIdentity, discovered.value.rootIdentity)
+      )
+        continue
+      inspectionReceiveMetadata(metadata, { userConfigPath: request.userConfigPath })
+      if (request.activityPath !== undefined)
+        recordActivity({
+          statePath: request.activityPath,
+          root: metadata.root,
+          advicee: metadata.advicee,
+          lifetime,
+          stage:
+            metadata.admission === "skipped-other-root" ||
+            metadata.candidates.every((candidate) => candidate.selection.status === "excluded")
+              ? "skipped"
+              : metadata.diagnostic?.stage === "admission"
+                ? "unavailable"
+                : "incomplete"
+        })
+    }
+    return residentResponse({ status: "empty" })
+  })
   const residentRouteAdministration = Effect.fn("ResidentRuntime.routeAdministration")(function* (
     request: ResidentRequest,
     _context: Ref.Ref<ResponseContext>
   ) {
     if (request.operation === "acknowledge" || request.operation === "finalize")
       return yield* residentTokenAdministration(request)
+    if (request.operation === "record-native") return yield* residentRecordNative(request)
     if (request.operation === "inspection-status")
       return residentResponse({
         status: "inspection-status",

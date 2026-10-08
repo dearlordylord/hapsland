@@ -43,7 +43,157 @@ export const InspectionCorrelation = Schema.Struct({
 })
 export type InspectionCorrelation = typeof InspectionCorrelation.Type
 
+/** Persist factual codes and arguments; wording belongs to the dashboard. */
+export const InspectionSelectionExclusion = Schema.Union([
+  Schema.Struct({
+    stage: Schema.Literal("selection"),
+    code: Schema.Literal("file-extension"),
+    args: Schema.Struct({ extension: Schema.String.check(Schema.isMaxLength(256)) })
+  }),
+  Schema.Struct({
+    stage: Schema.Literal("selection"),
+    code: Schema.Literals([
+      "repository-boundary",
+      "sensitive",
+      "generated-or-vendor",
+      "excluded",
+      "empty-includes",
+      "not-included",
+      "language-not-enabled",
+      "git-administrative-path",
+      "unsafe-file-kind",
+      "git-ignored",
+      "unsupported-operation"
+    ]),
+    args: Schema.Struct({})
+  })
+])
+export const InspectionSelectionUnavailable = Schema.Struct({
+  stage: Schema.Literal("selection"),
+  code: Schema.Literals(["path-observation-unavailable", "edit-policy-unavailable"]),
+  args: Schema.Struct({})
+})
+// Accepted #252 interface; producers remain independent of the inspector.
+export const InspectionCaptureDiagnostic = Schema.Union([
+  Schema.Struct({
+    stage: Schema.Literal("capture"),
+    code: Schema.Literal("capture-size-limit"),
+    args: Schema.Struct({ observedBytes: Count, limitBytes: Count })
+  }),
+  Schema.Struct({
+    stage: Schema.Literal("capture"),
+    code: Schema.Literal("capture-budget-limit"),
+    args: Schema.Struct({ resource: Schema.Literals(["files", "bytes"]), used: Count, requested: Count, limit: Count })
+  }),
+  Schema.Struct({
+    stage: Schema.Literal("capture"),
+    code: Schema.Literal("capture-unavailable"),
+    args: Schema.Struct({ reason: Schema.Literals(["missing", "access", "io", "mechanism", "unknown"]) })
+  }),
+  Schema.Struct({
+    stage: Schema.Literal("capture"),
+    code: Schema.Literal("capture-unstable"),
+    args: Schema.Struct({ checkpoint: Schema.Literals(["descriptor", "double-read"]) })
+  }),
+  Schema.Struct({
+    stage: Schema.Literal("capture"),
+    code: Schema.Literal("capture-validation-failed"),
+    args: Schema.Struct({
+      reason: Schema.Literals([
+        "root-identity",
+        "git-identity",
+        "path-binding",
+        "file-kind",
+        "text-encoding",
+        "source-null-byte",
+        "budget-argument"
+      ])
+    })
+  })
+])
+export const InspectionPreparationDiagnostic = Schema.Union([
+  Schema.Struct({
+    stage: Schema.Literal("preparation"),
+    code: Schema.Literal("preparation-resource-refused"),
+    args: Schema.Struct({
+      phase: Schema.Literals(["capture-workspace", "materialization"]),
+      requestedBytes: Count,
+      constraint: Schema.optionalKey(
+        Schema.Literals(["globalItems", "globalBytes", "partitionItems", "partitionBytes"])
+      )
+    })
+  }),
+  Schema.Struct({
+    stage: Schema.Literal("preparation"),
+    code: Schema.Literal("preparation-unavailable"),
+    args: Schema.Struct({ reason: Schema.Literals(["stale-round", "wrong-stage"]) })
+  })
+])
+export const InspectionDiagnostic = Schema.Union([
+  Schema.Struct({
+    stage: Schema.Literal("observation"),
+    code: Schema.Literal("attribution-unavailable"),
+    args: Schema.Struct({})
+  }),
+  Schema.Struct({
+    stage: Schema.Literal("admission"),
+    code: Schema.Literal("dispatch-unavailable"),
+    args: Schema.Struct({})
+  }),
+  InspectionSelectionExclusion,
+  InspectionSelectionUnavailable,
+  InspectionCaptureDiagnostic,
+  InspectionPreparationDiagnostic,
+  Schema.Struct({
+    stage: Schema.Literals(["observation", "selection", "capture", "admission", "preparation"]),
+    code: Schema.Literal("panic"),
+    args: Schema.Struct({
+      boundary: Schema.Literals([
+        "native-adaptation",
+        "file-selection",
+        "stable-capture",
+        "review-admission",
+        "review-preparation"
+      ])
+    })
+  }).check(
+    Schema.makeFilter(
+      (value) =>
+        ({
+          observation: "native-adaptation",
+          selection: "file-selection",
+          capture: "stable-capture",
+          admission: "review-admission",
+          preparation: "review-preparation"
+        })[value.stage] === value.args.boundary
+    )
+  )
+])
+export type InspectionDiagnostic = typeof InspectionDiagnostic.Type
+export const InspectionSelection = Schema.Union([
+  Schema.Struct({ status: Schema.Literal("selected") }),
+  Schema.Struct({ status: Schema.Literal("excluded"), diagnostic: InspectionSelectionExclusion }),
+  Schema.Struct({ status: Schema.Literal("unavailable"), diagnostic: InspectionSelectionUnavailable }),
+  Schema.Struct({ status: Schema.Literal("not-evaluated") })
+])
+export type InspectionSelection = typeof InspectionSelection.Type
+export const InspectionNativeCandidate = Schema.Struct({
+  position: Count.check(Schema.isLessThan(64)),
+  operation: Schema.Literals(["add", "update", "delete", "move"]),
+  path: Path,
+  moveTo: Schema.optionalKey(Path),
+  selection: InspectionSelection
+}).check(Schema.makeFilter((value) => value.moveTo === undefined || value.operation === "move"))
+export type InspectionNativeCandidate = typeof InspectionNativeCandidate.Type
+
 export const InspectionFact = Schema.Union([
+  Schema.Struct({
+    kind: Schema.Literal("diagnostic"),
+    path: Schema.optionalKey(Path),
+    declaration: Schema.optionalKey(Id),
+    candidatePosition: Schema.optionalKey(Count.check(Schema.isLessThan(64))),
+    diagnostic: InspectionDiagnostic
+  }),
   Schema.Struct({
     kind: Schema.Literal("round-membership"),
     roundId: Id,
@@ -223,9 +373,13 @@ export const InspectionFact = Schema.Union([
   }),
   Schema.Struct({
     kind: Schema.Literal("edit-received"),
-    candidates: Schema.Array(
-      Schema.Struct({ operation: Schema.Literals(["add", "update", "delete", "move"]), path: Path })
-    ).check(Schema.isMaxLength(64))
+    candidates: Schema.Array(InspectionNativeCandidate).check(
+      Schema.isMinLength(1),
+      Schema.isMaxLength(64),
+      Schema.makeFilter((value) =>
+        value.every((candidate, index) => index === 0 || candidate.position > value[index - 1]!.position)
+      )
+    )
   }),
   Schema.Struct({
     kind: Schema.Literal("edit-admission"),

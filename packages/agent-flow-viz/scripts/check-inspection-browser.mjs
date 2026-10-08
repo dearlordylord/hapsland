@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { revealInspection } from "./inspection-browser-controls.mjs"
+import { revealInspection } from "@hapsland/build-tooling/test-harness/inspection-browser-controls"
 import { writeFile, rm } from "node:fs/promises"
 import { join } from "node:path"
 import { chromium } from "playwright"
@@ -14,7 +14,7 @@ import { makeInspectionHttpServer } from "@hapsland/administration/inspection/ht
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import { configuredRules, connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
-import { readCredentialState } from "@hapsland/credential-storage/credentials/owner"
+import { readCredentialState } from "@hapsland/runtime-inputs/credentials/state"
 import { nativeDeferred } from "@hapsland/build-tooling/test-support/native-deferred"
 
 const root = await makeGitFixture()
@@ -64,7 +64,7 @@ try {
                 answers: Object.fromEntries(
                   configuredRules.map((rule) => [
                     rule.id,
-                    { type: "noul", noul: rule.id === "r1_inferred_case" ? 0.7 : 0 }
+                    { type: "noul", noul: rule.id === "meaningless_combinations" ? 0.7 : 0 }
                   ])
                 ),
                 usage: { input_tokens: 1, output_tokens: 1 }
@@ -106,12 +106,15 @@ try {
     controlled: null
   }
   const edit = async (path, toolUseId, waitForCapture = true) => {
+    phase = `adapt ${toolUseId}`
     const observation = await Effect.runPromise(
       adaptCodexDirectEvent(addEvent(root, Array.isArray(path) ? path : [path], { tool_use_id: toolUseId }))
     )
     assert.ok(observation)
     published = nativeDeferred()
+    phase = `admit ${toolUseId}`
     assert.equal((await Effect.runPromise(resident.admit(observation, dispatch, true))).status, "accepted")
+    phase = `persist ${toolUseId}`
     if (waitForCapture) await published.promise
     await Effect.runPromise(resident.whenIdle())
   }
@@ -125,6 +128,29 @@ try {
   const errors = []
   page.on("pageerror", (error) => errors.push(error.message))
   await page.goto(server.url)
+  // Rendering-only inputs test original position identity; runtime evidence below uses the real journal.
+  const ownershipLabels = await page.evaluate(() => {
+    const receipt = {
+      fact: {
+        candidates: [
+          { position: 0, path: "excluded.mjs" },
+          { position: 5, path: "main.ts" }
+        ]
+      }
+    }
+    return [
+      diagnosticContext({ path: "large.ts", candidatePosition: 5 }, receipt),
+      diagnosticContext({ path: "main.ts", candidatePosition: 5 }, receipt),
+      diagnosticContext({ path: "large.ts", candidatePosition: 4 }, receipt),
+      diagnosticContext({ path: "large.ts", candidatePosition: 5 }, undefined)
+    ]
+  })
+  assert.deepEqual(ownershipLabels, [
+    "Edited: main.ts · Capture source: large.ts",
+    "main.ts",
+    "large.ts · Original candidate unavailable",
+    "large.ts · Original candidate unavailable"
+  ])
   const row = page.getByRole("button", { name: /type\.ts/ })
   await row.waitFor()
   const originalKey = await row.getAttribute("data-key")
@@ -241,6 +267,10 @@ try {
   await originalRow.click()
   await page.waitForFunction(() => document.querySelector("#input").textContent.includes("No retained model input"))
   assert.equal(await page.locator("#requests button").count(), 2, "Transport evidence survives model-input loss")
+  await page.locator("#hide-unreviewed").check()
+  await originalRow.waitFor()
+  assert.equal(await originalRow.count(), 1, "Retained transport stays visible without model input")
+  await page.locator("#hide-unreviewed").uncheck()
   await edit("type.ts", "reuse-existing-advice")
   await page.waitForFunction(() => document.querySelectorAll("#edits li").length === 4)
   assert.equal(dispatched.length, 4, "existing advice must not create another classifier invocation")
@@ -257,7 +287,10 @@ try {
     .getByRole("button", { name: "Inspect original evaluation", exact: true })
   await original.focus()
   await page.keyboard.press("Enter")
-  await page.waitForFunction(() => document.querySelector("#routes").textContent.includes("fresh"))
+  await page.waitForFunction(
+    (key) => document.querySelector('#edits button[data-key="' + key + '"]')?.getAttribute("aria-pressed") === "true",
+    originalKey
+  )
   assert.equal(await page.locator("#exact").textContent(), dispatched[0].toString("utf8"))
   await reused.focus()
   await page.keyboard.press("Enter")
@@ -315,7 +348,9 @@ try {
   assert.match(await page.locator("#files").textContent(), /Omitted:[\s\S]*bad\.ts[\s\S]*import/)
   assert.equal(dispatched.length, 5, "failed preparation must not create a classifier request")
   await put(root, "type.ts", "type OrderCount = string;\n")
+  phase = "collection listener"
   await Effect.runPromise(resident.listen())
+  phase = "collection IPC"
   const response = await Effect.runPromise(
     residentRequestEffect(
       resident.paths,
@@ -403,6 +438,9 @@ try {
   console.log(
     "inspection browser: real review history, per-unit request selection and JSON preview, resident-owned messages, batch edit links, keyboard controls, live reading stability, live updates and recovery gaps, live payload expiry and narrow layout passed"
   )
+} catch (error) {
+  console.error("inspection browser failed at", phase)
+  throw error
 } finally {
   clearTimeout(deadline)
   await browser?.close()

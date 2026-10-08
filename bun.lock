@@ -93,6 +93,7 @@
         "@hapsland/native-observation": "workspace:*",
         "@hapsland/resident-runtime": "workspace:*",
         "@hapsland/resident-transport": "workspace:*",
+        "@hapsland/runtime-inputs": "workspace:*",
         "effect": "catalog:",
         "foldkit": "0.165.0",
         "vitest": "catalog:",
