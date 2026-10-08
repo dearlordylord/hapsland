@@ -122,7 +122,8 @@ describe("direct-event named-path selection", () => {
     await writeFile(join(root, ".git"), "gitdir: git-admin\n")
     await put(root, "git-admin/evidence.ts", "type Secret = string")
     await put(root, "git-admin-sibling/source.ts", "type Safe = string")
-    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["git-admin/evidence.ts"])))
+    expect(await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["git-admin/evidence.ts"])))).toBeUndefined()
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["git-admin-sibling/source.ts"])))
     expect(observation?.rootIdentity.gitDirectory).toBe(gitDirectory)
     expect(
       await Effect.runPromise(eligibleNamedPath(root, "git-admin/evidence.ts", undefined, observation?.rootIdentity))

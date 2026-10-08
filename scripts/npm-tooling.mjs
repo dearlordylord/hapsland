@@ -1,6 +1,6 @@
 import { createRequire } from "node:module"
 import { accessSync, constants, realpathSync } from "node:fs"
-import { delimiter, dirname, join, resolve } from "node:path"
+import { basename, delimiter, dirname, join, resolve } from "node:path"
 
 const checkedRequire = (entrypoint) => {
   const require = createRequire(realpathSync(entrypoint))
@@ -8,8 +8,11 @@ const checkedRequire = (entrypoint) => {
   return require
 }
 /** Resolve npm's own dependencies without launching another npm process. */
-export function npmToolingRequire(entrypoint = process.env.npm_execpath) {
+export function npmToolingRequire(entrypoint) {
   if (entrypoint !== undefined) return checkedRequire(entrypoint)
+  const scriptRunner = process.env.npm_execpath
+  // Bun sets npm_execpath to its own executable, not an npm package entrypoint.
+  if (scriptRunner !== undefined && basename(realpathSync(scriptRunner)) !== "bun") return checkedRequire(scriptRunner)
   const candidates = []
   for (const directory of (process.env.PATH ?? "").split(delimiter)) {
     const path = join(directory, "npm")
@@ -33,7 +36,7 @@ export function npmToolingRequire(entrypoint = process.env.npm_execpath) {
   throw new Error("Cannot resolve npm tooling; run through npm run or supply its CLI entrypoint")
 }
 
-export async function npmPackageFiles(root, entrypoint = process.env.npm_execpath) {
+export async function npmPackageFiles(root, entrypoint) {
   const require = npmToolingRequire(entrypoint)
   const Arborist = require("@npmcli/arborist")
   const tree = await new Arborist({ path: root }).loadActual()

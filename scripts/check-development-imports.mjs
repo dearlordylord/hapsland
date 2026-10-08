@@ -15,7 +15,7 @@ const inside = (root, path) => {
 const packageName = (specifier) =>
   specifier.startsWith("@") ? specifier.split("/").slice(0, 2).join("/") : specifier.split("/")[0]
 const viteBrowserProfileSha256 = "d29ea8c6b12d1d09b057ad822cfe9406c382729516356f1f7beb7e18dc5112bd"
-const npmLoaderProfileSha256 = "3456dc1f69f31bebd277001b336ddf1b9f42ecdaf5266c527cd5cd2b110e14b4"
+const npmLoaderProfileSha256 = "9e94276e613a799daef430e79855777559908ad1d63dc48b2759517ee6a4125f"
 const extensions = new Set([".ts", ".tsx", ".mts", ".mjs", ".js", ".cjs", ".cts"])
 
 /** Development owners use declared dependencies and exact exported source APIs. */
