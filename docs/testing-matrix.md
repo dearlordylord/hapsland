@@ -147,6 +147,12 @@ Ordinary `npm test`, coverage/quality checks, and production/release builds excl
 
 ## Which gate to run
 
+Package-impact tooling uses `node --test scripts/package-impact.test.mjs scripts/package-graph.test.mjs`
+plus `node scripts/package-impact.mjs --base BASE --head HEAD --merge-base` against
+the actual review branch. These checks cover endpoint manifests, downstream
+reachability, renames, deleted packages/edges, worktree paths and CLI output.
+Impact output is advisory; it does not select or replace required product checks.
+
 The byte-bound preparation inputs `packages/monkey-business/src/preparation.ts` and
 `file-trees.ts` are excluded from automatic formatting because their exact bytes
 participate in the shared Engine preparation identity. Keep their formatting stable
