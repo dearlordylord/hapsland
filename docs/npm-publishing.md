@@ -151,8 +151,13 @@ capture the reason and recovery instructions in the release record.
 
 Generated native files under `native/prebuilt/` are ignored by Git and are still
 included in the npm archive through the explicit `package.json` files list.
-Parser bindings come from the exact installed npm dependency versions. Our C
-helpers compile on their target host; the foreign profile uses a source-bound
+Parser bindings come from the exact installed npm dependency versions. Linux arm64
+parser bindings are built from those sources on Debian bookworm: the TypeScript
+0.23.2 upstream arm64 prebuild contains x86-64 code, and the runtime prebuild
+requires a newer libstdc++ than that baseline. The source-bound bundle includes
+the three rebuilt bindings; its recipe binds the lockfile, package sources and
+Node addon headers. Our C
+helpers compile on their target host; externally produced files use a source-bound
 bundle in ignored `.test-runs/native-inputs/`, checked against current C sources,
 producer declarations, Node version, tooling, file modes and SHA-256 digests.
 A missing or stale bundle fails native preparation before compilation starts.
@@ -164,7 +169,7 @@ the bundle directory. Transfer that directory, then run
 Alternatively, run `npm run native:inputs -- fetch <profile>` to download a
 matching master artifact produced by the Native inputs GitHub workflow (`gh`
 authentication is required). CI produces both profiles on their own hosts before
-importing the foreign profile. These commands do not publish npm packages.
+importing the needed profiles. These commands do not publish npm packages.
 
 Source snapshot archives are excluded from the current Git tree; historical
 snapshots remain in Git history. Images remain tracked product and documentation

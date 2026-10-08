@@ -1,3 +1,4 @@
+import { buildDeclaredParserSources } from "./native-binding-source.mjs"
 import { resolve } from "node:path"
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { pathToFileURL } from "node:url"
@@ -24,9 +25,14 @@ export async function provisionNativeInputs(root, operation, profile, supplied) 
     if (profile !== `${process.platform}-${process.arch}` || process.version !== "v24.20.0")
       throw new Error("Native input production requires the target host and Node 24.20.0")
     const owners = plans
-      .filter((plan) => plan.assets.some(({ asset }) => asset.producer.kind === "c"))
+      .filter((plan) =>
+        plan.assets.some(
+          ({ asset }) => asset.producer.kind === "c" || asset.producer.profiles[profile].sourceBuild === true
+        )
+      )
       .map((plan) => plan.node.manifest.name)
     directory = await withBuildLock(root, async (environment) => {
+      await buildDeclaredParserSources(root, plans, profile, environment)
       await prepareNativeTaskInputs(root, graph, environment, owners, [profile])
       for (const owner of owners)
         await runBuildProcess(process.execPath, [resolve(root, "scripts/native-task.mjs"), profile], {
@@ -40,7 +46,9 @@ export async function provisionNativeInputs(root, operation, profile, supplied) 
         root,
         recipe,
         plans.flatMap((plan) =>
-          plan.assets.filter(({ asset }) => asset.producer.kind === "c").map(({ output }) => output)
+          plan.assets
+            .filter(({ asset }) => asset.producer.kind === "c" || asset.producer.profiles[profile].sourceBuild === true)
+            .map(({ output }) => output)
         )
       )
     })

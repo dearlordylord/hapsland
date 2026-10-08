@@ -43,6 +43,7 @@ test("native release audit re-observes the build PATH and still rejects changed 
   mkdirSync(join(root, "scripts"))
   for (const name of [
     "native-input-bundle",
+    "native-binding-source",
     "native-task-inputs",
     "native-task",
     "native-task-receipt",

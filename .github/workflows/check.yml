@@ -32,7 +32,9 @@ jobs:
       - name: Install native build prerequisites
         run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config libsecret-1-dev
       - name: Install locked dependencies
-        run: bun install --frozen-lockfile
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Initialize the verified pinned Bun launcher
+        run: node --input-type=module -e 'import {resolveBunRuntime,ensurePinnedBunLauncher} from "./scripts/pinned-bun.mjs"; ensurePinnedBunLauncher(process.cwd(),resolveBunRuntime())'
       - name: Locate Darwin inputs for current sources
         id: native
         run: npm run native:inputs -- identity darwin-arm64
@@ -42,6 +44,14 @@ jobs:
           path: .test-runs/downloaded-native
       - name: Import verified Darwin inputs
         run: npm run native:inputs -- import darwin-arm64 .test-runs/downloaded-native
+      - name: Locate Linux parser inputs for current sources
+        id: native-linux
+        run: npm run native:inputs -- identity linux-arm64
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ steps.native-linux.outputs.name }}
+          path: .test-runs/downloaded-native-linux
+      - run: npm run native:inputs -- import linux-arm64 .test-runs/downloaded-native-linux
       - name: Install checksum-pinned link checker
         run: npm run docs:install
       - name: Check repository links and headings offline

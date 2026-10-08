@@ -1,3 +1,4 @@
+import { nativeInputRecipe, retainNativeInputBundle } from "./native-input-bundle.mjs"
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync, chmodSync, copyFileSync, realpathSync } from "node:fs"
@@ -120,6 +121,7 @@ test("parser selection preserves incompatible candidates and invalidates when an
   mkdirSync(resolve(f.root, "scripts"))
   for (const name of [
     "native-input-bundle",
+    "native-binding-source",
     "native-task-inputs",
     "native-task",
     "native-task-receipt",
@@ -175,4 +177,25 @@ test("parser selection preserves incompatible candidates and invalidates when an
   const foreignInput = (await observeNativeTaskInputs(f.root, f.graph, foreignPlan)).assets[0].input
   assert.equal(foreignInput.selected.requested, realpathSync(foreignRetained))
   assert.equal(foreignInput.candidates.length, 1, "Foreign target must not inspect the host local build")
+  // A malformed upstream prebuild must use a source-bound target-host build.
+  asset.producer.profiles[foreign].sourceBuild = true
+  writeFileSync(resolve(f.node.path, "package.json"), JSON.stringify(f.node.manifest))
+  writeFileSync(foreignRetained, binary(host))
+  const addonRoot = resolve(f.root, "node_modules/node-addon-api")
+  mkdirSync(addonRoot)
+  writeFileSync(resolve(addonRoot, "package.json"), JSON.stringify({ name: "node-addon-api", version: "8.5.0" }))
+  writeFileSync(resolve(addonRoot, "napi.h"), "pinned addon headers")
+  writeFileSync(resolve(f.root, "bun.lock"), "pinned dependency lock")
+  const produced = resolve(f.root, "produced.node")
+  writeFileSync(produced, binary(foreign))
+  const recipe = nativeInputRecipe(f.root, [foreignPlan], foreign)
+  mkdirSync(resolve(packageRoot, "node-addon-api"))
+  writeFileSync(resolve(packageRoot, "node-addon-api/node_addon_api.Makefile"), "generated gyp output")
+  assert.deepEqual(nativeInputRecipe(f.root, [foreignPlan], foreign), recipe)
+  const directory = retainNativeInputBundle(f.root, recipe, [produced])
+  const supplied = (await observeNativeTaskInputs(f.root, f.graph, foreignPlan)).assets[0].input
+  assert.equal(supplied.selected.requested, resolve(directory, recipe.assets[0].path))
+  assert.equal(supplied.recipe.digest, recipe.digest)
+  writeFileSync(resolve(addonRoot, "napi.h"), "changed addon headers")
+  await assert.rejects(observeNativeTaskInputs(f.root, f.graph, foreignPlan), /Missing, stale or corrupt/)
 })

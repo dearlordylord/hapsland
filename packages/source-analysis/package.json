@@ -118,7 +118,7 @@
           "localBuild": "build/Release/tree_sitter_runtime_binding.node",
           "publishedPrebuild": "prebuilds/{profile}/tree-sitter.node",
           "profiles": {
-            "linux-arm64": {},
+            "linux-arm64": { "sourceBuild": true },
             "darwin-arm64": {}
           }
         }
@@ -132,7 +132,7 @@
           "localBuild": "build/Release/tree_sitter_typescript_binding.node",
           "publishedPrebuild": "prebuilds/{profile}/tree-sitter-typescript.node",
           "profiles": {
-            "linux-arm64": {},
+            "linux-arm64": { "sourceBuild": true },
             "darwin-arm64": {}
           }
         }
@@ -146,7 +146,7 @@
           "localBuild": "build/Release/tree_sitter_rust_binding.node",
           "publishedPrebuild": "prebuilds/{profile}/tree-sitter-rust.node",
           "profiles": {
-            "linux-arm64": {},
+            "linux-arm64": { "sourceBuild": true },
             "darwin-arm64": {}
           }
         }

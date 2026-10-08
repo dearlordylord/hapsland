@@ -335,7 +335,7 @@ Use the [repository map](./docs/agents/navigation.md) to locate contracts,
 implementation entry points, tests, the website, and research assets.
 
 Native build outputs are generated and ignored by Git. Before a build for both
-platforms, obtain the foreign C-helper bundle using the
+platforms, obtain the foreign native bundle using the
 [native input workflow](./docs/npm-publishing.md#native-build-inputs); parser
 bindings come from pinned npm dependencies.
 

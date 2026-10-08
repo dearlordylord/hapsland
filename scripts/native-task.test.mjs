@@ -1,4 +1,4 @@
-import { nativeInputRecipe, retainNativeInputBundle } from "./native-input-bundle.mjs"
+import { nativeInputRecipe, retainNativeInputBundle, foreignNativeInput } from "./native-input-bundle.mjs"
 import { nativeTaskPlans, prepareNativeTaskInputs, nativeTaskArtifacts } from "./native-task-inputs.mjs"
 import { test } from "node:test"
 import assert from "node:assert/strict"
@@ -14,6 +14,7 @@ const fixture = (t) => {
   mkdirSync(resolve(root, "scripts"))
   for (const name of [
     "native-input-bundle",
+    "native-binding-source",
     "native-task-inputs",
     "native-task",
     "native-task-receipt",
@@ -105,19 +106,13 @@ test("Node parser probe accepts actual staged binding files using package-direct
   const directory = mkdtempSync(resolve(tmpdir(), "hapsland-parser-probe-"))
   t.after(() => rmSync(directory, { recursive: true, force: true }))
   const files = {}
+  const plans = nativeTaskPlans(root, graph, "linux-arm64")
   for (const asset of node.manifest.hapsland.nativeAssets) {
     const relative = asset.path.replace("native/prebuilt/{profile}/", "")
     const destination = resolve(directory, relative)
     mkdirSync(resolve(destination, ".."), { recursive: true })
-    cpSync(
-      resolve(
-        root,
-        "node_modules",
-        asset.producer.package,
-        asset.producer.publishedPrebuild.replace("{profile}", "linux-arm64")
-      ),
-      destination
-    )
+    const produced = foreignNativeInput(root, plans, "linux-arm64", asset.path.replace("{profile}", "linux-arm64"))
+    cpSync(produced.path, destination)
     files[asset.producer.package] = destination
   }
   const { probeNativeParserBindings } = await import("./native-task.mjs")

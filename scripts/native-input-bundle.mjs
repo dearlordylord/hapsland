@@ -8,14 +8,17 @@ import {
   renameSync,
   rmSync,
   mkdtempSync,
-  lstatSync
+  lstatSync,
+  readdirSync
 } from "node:fs"
-import { resolve, dirname } from "node:path"
+import { resolve, dirname, relative } from "node:path"
+import { createRequire } from "node:module"
 import { validateNativeBinary } from "./native-task-receipt.mjs"
 
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex")
 const producers = [
   "native-input-bundle",
+  "native-binding-source",
   "native-task",
   "native-task-inputs",
   "native-task-receipt",
@@ -28,14 +31,44 @@ const producers = [
   "build-process"
 ]
 export function nativeInputRecipe(root, plans, profile) {
+  const sourceInventory = (directory) => {
+    const files = []
+    const walk = (path) => {
+      for (const entry of readdirSync(path, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+        // node-gyp writes addon Makefiles beside build/; the actual addon headers are inventoried separately.
+        if (["build", "prebuilds", "node_modules", "node-addon-api"].includes(entry.name)) continue
+        const file = resolve(path, entry.name)
+        if (entry.isDirectory()) walk(file)
+        else if (entry.isFile()) files.push({ path: relative(directory, file), sha256: sha256(readFileSync(file)) })
+        else throw new Error(`Unsupported parser source file: ${file}`)
+      }
+    }
+    walk(directory)
+    return files
+  }
   const assets = plans.flatMap((plan) =>
     plan.assets
-      .filter(({ asset }) => asset.producer.kind === "c")
-      .map(({ asset, installedPath }) => ({
-        path: installedPath,
-        producer: asset.producer.profiles[profile],
-        sourceSha256: sha256(readFileSync(resolve(root, asset.producer.profiles[profile].source)))
-      }))
+      .filter(({ asset }) => asset.producer.kind === "c" || asset.producer.profiles[profile].sourceBuild === true)
+      .map(({ asset, installedPath }) => {
+        if (asset.producer.kind === "c")
+          return {
+            path: installedPath,
+            producer: asset.producer.profiles[profile],
+            sourceSha256: sha256(readFileSync(resolve(root, asset.producer.profiles[profile].source)))
+          }
+        const require = createRequire(resolve(plan.node.path, "package.json"))
+        const packageRoot = dirname(require.resolve(`${asset.producer.package}/package.json`))
+        const addonRoot = dirname(
+          createRequire(resolve(packageRoot, "package.json")).resolve("node-addon-api/package.json")
+        )
+        return {
+          path: installedPath,
+          producer: asset.producer,
+          lockSha256: sha256(readFileSync(resolve(root, "bun.lock"))),
+          sources: sourceInventory(packageRoot),
+          headers: sourceInventory(addonRoot)
+        }
+      })
   )
   const tooling = producers.map((name) => ({
     path: `scripts/${name}.mjs`,

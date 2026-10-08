@@ -1,4 +1,4 @@
-import { foreignNativeInput } from "./native-input-bundle.mjs"
+import { foreignNativeInput, nativeInputRecipe } from "./native-input-bundle.mjs"
 import { createHash } from "node:crypto"
 import { existsSync, lstatSync, readFileSync, realpathSync, mkdirSync, writeFileSync, renameSync } from "node:fs"
 import { createRequire } from "node:module"
@@ -117,6 +117,7 @@ export function validateNativeEvidence(root, evidence) {
 const tooling = (root) =>
   [
     "native-input-bundle",
+    "native-binding-source",
     "native-task-inputs",
     "native-task",
     "native-task-receipt",
@@ -280,7 +281,9 @@ function bindingInputs(root, graph, node, plan, profile) {
     host = `${process.platform}-${process.arch}`
   const candidates = [
     ...(profile === host ? [resolve(packageRoot, producer.localBuild)] : []),
-    resolve(packageRoot, producer.publishedPrebuild.replace("{profile}", profile))
+    ...(producer.profiles[profile].sourceBuild === true
+      ? []
+      : [resolve(packageRoot, producer.publishedPrebuild.replace("{profile}", profile))])
   ]
   const observed = []
   let selected
@@ -303,11 +306,21 @@ function bindingInputs(root, graph, node, plan, profile) {
     selected = evidence
     break
   }
+  let recipe =
+    producer.profiles[profile].sourceBuild === true
+      ? nativeInputRecipe(root, nativeTaskPlans(root, graph, profile), profile)
+      : undefined
+  if (!selected && producer.profiles[profile].sourceBuild === true) {
+    const supplied = foreignNativeInput(root, nativeTaskPlans(root, graph, profile), profile, plan.installedPath)
+    selected = record(root, supplied.path)
+    recipe = supplied.recipe
+  }
   if (!selected) throw new Error(`Missing declared parser binding: ${producer.package}/${profile}`)
   return {
     mode: profile === host ? "selected-host-binding" : "retained-foreign-binding",
     package: record(root, packagePath),
     candidates: observed,
+    ...(recipe ? { recipe } : {}),
     selected
   }
 }
