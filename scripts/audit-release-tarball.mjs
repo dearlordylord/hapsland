@@ -9,7 +9,7 @@ import { checkHostModuleReceipt } from "./assemble-host-modules.mjs"
 import { fileEvidence } from "./compiler-evidence.mjs"
 import { releaseAssetMappings } from "./release-assets.mjs"
 import { assemblyPrerequisitePath } from "./assembly-prerequisites.mjs"
-import { nativeTaskPlans, nativeTaskArtifacts } from "./native-task-inputs.mjs"
+import { nativeTaskPlans, nativeTaskArtifacts, readNativeTaskInputs, nativeEnvironment } from "./native-task-inputs.mjs"
 import { validateAssemblyArtifact } from "./assemble-entry.mjs"
 import { assertReleaseSource } from "./release-inputs.mjs"
 import { BUN_VERSION } from "./pinned-bun.mjs"
@@ -21,6 +21,29 @@ export const validateReleasePublication = (root, output, archiveRecord) => {
   for (const evidence of [owned, actual, ...(archiveRecord ? [archiveRecord] : [])])
     if (evidence.sha256 !== output.sha256 || evidence.mode !== output.mode)
       throw new Error(`Published release asset differs from owned evidence: ${output.publicPath}`)
+}
+
+// npm augments PATH for its build child. Re-observe the declared build
+// environment and physical tools, rather than substituting the audit caller's
+// ambient environment. Every owner in one target must agree on that declaration.
+export async function nativeReleaseArtifacts(root, graph, profile, inherited = process.env) {
+  const declarations = nativeTaskPlans(root, graph, profile).map(
+    (plan) => readNativeTaskInputs(root, plan.node, profile).environment
+  )
+  if (!declarations.length) throw new Error(`Missing native release inputs: ${profile}`)
+  const declared = declarations[0]
+  if (
+    Object.keys(declared).sort().join("\0") !== Object.keys(nativeEnvironment(inherited)).sort().join("\0") ||
+    Object.values(declared).some((value) => value !== null && typeof value !== "string") ||
+    declarations.some((value) => JSON.stringify(value) !== JSON.stringify(declared))
+  )
+    throw new Error("Native release environment declaration differs between owners")
+  const environment = { ...inherited }
+  for (const [key, value] of Object.entries(declared)) {
+    if (value === null) delete environment[key]
+    else environment[key] = value
+  }
+  return nativeTaskArtifacts(root, graph, profile, { environment })
 }
 
 export async function auditReleaseTarball(
@@ -151,7 +174,7 @@ export async function auditReleaseTarball(
   }
   for (const profile of ["linux-arm64", "darwin-arm64"]) {
     requireTime()
-    const native = await nativeTaskArtifacts(root, graph, profile)
+    const native = await nativeReleaseArtifacts(root, graph, profile)
     for (const asset of native.assets) {
       required.push(asset.installedPath)
       const owned = fileEvidence(root, asset.physicalPath)
