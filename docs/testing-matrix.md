@@ -14,6 +14,65 @@ recipient-wide closure fences, and delivery across cwd changes. Linked worktrees
 and independent repositories are distinct physical sources. These checks prove
 local behavior; they do not extend declared native-host/platform support.
 
+## Recovering retained build custody
+
+A failed or interrupted producer retains `.test-runs/product-build` when its
+writer shutdown cannot be established. Ordinary acquisition refuses abandoned
+ownership rather than assuming that an exited supervisor stopped its children.
+Removing only `lock` leaves the lease and group registrations behind; acquisition
+now refuses those leftovers before writing a replacement lease.
+
+From the affected checkout, run:
+
+```sh
+node scripts/reconcile-build-custody.mjs
+```
+
+Every build and inherited admission holds a shared kernel lock on the persistent
+private `.test-runs/build-custody-gate` directory. Reconciliation takes that lock
+exclusively, then validates the lock owner, lease, admission owner and every
+registered group. It requires every recorded PID, group leader and process group
+to be absent, including registrations carrying older lease tokens.
+
+The command writes its stopped-writer audit under `.test-runs/build-custody-audits/`
+and atomically renames the entire product-build directory into that audit's
+`custody/` subdirectory. Original records are preserved together. A failed rename
+leaves custody intact for retry; interruption after rename leaves it archived.
+Process exit releases the kernel lock, including after SIGKILL, so recovery has
+no removable ownership marker that can strand the next attempt. Running recovery
+again after a completed archive reports no retained custody. The next build
+receives a fresh lease without stale registrations.
+
+The gate reuses `native/src/inspection-lock.c`, compiled into a private tooling
+cache independently of product outputs. Its first use requires `cc` and Node-API
+headers; subsequent uses select the source/runtime-specific cached binding. Keep
+the gate directory in place while any build or recovery process is running.
+
+Live or reused identities, permission errors, missing required ownership,
+malformed or incomplete registrations, symlinks and changing records refuse
+reconciliation. Stop the identified writers and retry; preserve ambiguous records
+for investigation. Do not delete the lock alone or remove records merely because
+the original installation exited. A shared process group that is still live also
+blocks recovery. The command does not repair the source failure that triggered
+the installation failure.
+
+Automatic ownership evidence: `node --test scripts/build-lock.test.mjs
+scripts/build-ownership.test.mjs scripts/build-process.test.mjs`.
+
+The extended recovery regression is **manual only**, because repeated real child
+and fault-injection cases take longer than the short automatic ownership checks:
+
+```sh
+node --test --test-timeout=30000 scripts/manual-build-custody-recovery.mjs
+```
+
+It covers failed children, abrupt supervisor exit, stopped-writer reconciliation,
+lock-only removal, old tokens, live admission exclusion, killed recovery holders,
+failed archive/retry, kills before and after archive, and refusal of live or
+ambiguous writers. Detached child execution and cleanup use the bounded build
+process supervisor. These checks do not qualify a full installation or native
+platform release.
+
 ## Verification profiles
 
 Use `npm run verify -- --profile=PROFILE [explicit test files]`. Every run records

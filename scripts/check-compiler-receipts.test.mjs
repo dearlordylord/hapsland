@@ -29,6 +29,8 @@ test("receipts reject corruption, stale inputs, extra output and missing evidenc
     "tsconfig.package.json",
     "scripts/compile-package.mjs",
     "scripts/build-lock.mjs",
+    "scripts/build-custody-gate.mjs",
+    "native/src/inspection-lock.c",
     "scripts/build-groups.mjs",
     "scripts/owned-lock.mjs",
     "scripts/build-process.mjs",

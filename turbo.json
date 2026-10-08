@@ -8,8 +8,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -32,12 +35,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -59,8 +64,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -95,12 +103,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -122,8 +132,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -144,11 +157,13 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/bend-producer.mjs",
         "$TURBO_ROOT$/scripts/bend-toolchain.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -171,8 +186,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -195,12 +213,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -222,8 +242,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -254,12 +277,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -435,8 +460,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -460,12 +488,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -517,8 +547,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -540,12 +573,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -567,8 +602,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -592,12 +630,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -773,8 +813,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -799,12 +842,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -948,8 +993,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -977,12 +1025,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -1004,8 +1054,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -1029,12 +1082,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -1086,8 +1141,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -1111,12 +1169,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -1153,8 +1213,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -1178,12 +1241,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -1315,8 +1380,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -1339,12 +1407,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -1405,8 +1475,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -1430,12 +1503,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -1607,8 +1682,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -1642,12 +1720,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -1669,8 +1749,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -1698,12 +1781,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -1725,8 +1810,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -1753,12 +1841,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -1780,8 +1870,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -1813,12 +1906,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -1840,8 +1935,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -1863,12 +1961,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -1890,8 +1990,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -1915,12 +2018,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -1942,8 +2047,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -1969,12 +2077,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
@@ -2026,8 +2136,11 @@
         "$TURBO_ROOT$/scripts/clean-compiler-output.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
+        "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
-        "$TURBO_ROOT$/scripts/owned-lock.mjs"
+        "$TURBO_ROOT$/scripts/owned-lock.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c"
       ],
       "outputs": [],
       "passThroughEnv": [
@@ -2049,12 +2162,14 @@
         "$TURBO_ROOT$/scripts/compiler-evidence.mjs",
         "$TURBO_ROOT$/scripts/package-graph.mjs",
         "$TURBO_ROOT$/scripts/build-lock.mjs",
+        "$TURBO_ROOT$/scripts/build-custody-gate.mjs",
         "$TURBO_ROOT$/scripts/owned-lock.mjs",
         "$TURBO_ROOT$/scripts/build-process.mjs",
         "$TURBO_ROOT$/scripts/build-groups.mjs",
         "$TURBO_ROOT$/scripts/compile-package.mjs",
         "$TURBO_ROOT$/scripts/compiler-context.mjs",
         "$TURBO_ROOT$/scripts/pinned-typescript.mjs",
+        "$TURBO_ROOT$/native/src/inspection-lock.c",
         "$TURBO_ROOT$/scripts/generate-turbo-config.mjs"
       ],
       "outputs": [
