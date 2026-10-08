@@ -41,6 +41,8 @@ export const bendProducerOutputs = Object.freeze([
   "request-content.generated.js",
   "rules-policy.generated.d.ts",
   "rules-policy.generated.js",
+  "selection-ui-policy.generated.d.ts",
+  "selection-ui-policy.generated.js",
   "setup-policy.generated.d.ts",
   "setup-policy.generated.js",
   "setup-selection-policy.generated.d.ts",
@@ -100,9 +102,7 @@ export function bendProducerEnvironment(root, inherited = process.env) {
     }
   }
   if (typeof env.PATH !== "string") throw new Error("Missing Bend producer PATH")
-  env.PATH = env.PATH.split(delimiter)
-    .map((directory) => resolve(root, directory))
-    .join(delimiter)
+  env.PATH = [...new Set(env.PATH.split(delimiter).map((directory) => resolve(root, directory)))].join(delimiter)
   env.BEND_NO_TELEMETRY = "1"
   if (
     env.NODE_OPTIONS &&
@@ -263,6 +263,7 @@ function contextInputs(root, node, toolchain) {
     "build-import-graph.mjs",
     "build-request-content.mjs",
     "build-credential-policy.mjs",
+    "build-selection-ui-policy.mjs",
     "build-login-policy.mjs",
     "build-verification-policy.mjs",
     "build-update-policy.mjs",
@@ -276,6 +277,7 @@ function contextInputs(root, node, toolchain) {
     "import-graph.generated.d.ts",
     "request-content.generated.d.ts",
     "credential-policy.generated.d.ts",
+    "selection-ui-policy.generated.d.ts",
     "login-policy.generated.d.ts",
     "verification-policy.generated.d.ts",
     "update-policy.generated.d.ts",
@@ -291,6 +293,7 @@ function contextInputs(root, node, toolchain) {
       resolve(directory, "ImportGraphRuntime.bend"),
       resolve(directory, "request-content/Runtime.bend"),
       resolve(directory, "credential-policy/PROOF.bend"),
+      resolve(directory, "selection-ui-policy/PROOF.bend"),
       resolve(directory, "login-policy/PROOF.bend"),
       resolve(directory, "verification-policy/PROOF.bend"),
       resolve(directory, "update-policy/PROOF.bend"),
@@ -513,6 +516,7 @@ export function checkBendProducerReceipt(root, node, currentContext) {
     "import-graph.generated.d.ts",
     "request-content.generated.d.ts",
     "credential-policy.generated.d.ts",
+    "selection-ui-policy.generated.d.ts",
     "login-policy.generated.d.ts",
     "verification-policy.generated.d.ts",
     "update-policy.generated.d.ts",
@@ -553,6 +557,7 @@ export async function buildBendProducer(root, node) {
         "build-import-graph.mjs",
         "build-request-content.mjs",
         "build-credential-policy.mjs",
+        "build-selection-ui-policy.mjs",
         "build-login-policy.mjs",
         "build-verification-policy.mjs",
         "build-update-policy.mjs",
@@ -579,6 +584,7 @@ export async function buildBendProducer(root, node) {
         "import-graph.generated.d.ts",
         "request-content.generated.d.ts",
         "credential-policy.generated.d.ts",
+        "selection-ui-policy.generated.d.ts",
         "login-policy.generated.d.ts",
         "verification-policy.generated.d.ts",
         "update-policy.generated.d.ts",

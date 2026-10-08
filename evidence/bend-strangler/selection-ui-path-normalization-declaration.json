@@ -1,0 +1,23 @@
+{
+  "declaredAt": "2026-10-08T16:34:22.326398+00:00",
+  "goal": "build parity and methodical Bend migration without npm-layer cache misses",
+  "observedCause": {
+    "fastPathEntries": 46,
+    "focusedPathEntries": 41,
+    "uniqueOrderedEntriesInBoth": 30,
+    "uniqueOrderedPathsEqual": true,
+    "focusedEnvironmentPreparationSeconds": 128.575,
+    "warmedFocusedPreparationSeconds": 9.84
+  },
+  "change": "remove duplicate normalized absolute PATH directories; preserve first occurrence order, all distinct search locations and existing tool/library byte evidence",
+  "requiredEvidence": [
+    "ordered-path and npm-layer regression test",
+    "existing producer and receipt consumers",
+    "actual canonical toolchain inputs equal under recorded fast/focused environments",
+    "real workspace build, fast and focused consumers",
+    "same-master build and execution measurements"
+  ],
+  "originalWarmBuildRatio": 1.001435287682136,
+  "criterionUnchanged": "all 23 build tasks cached in every sample and mean ratio <=1; no parity waiver",
+  "scope": "declaration before validation of environment normalization; approved Bend core/laws unchanged"
+}

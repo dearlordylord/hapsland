@@ -1,0 +1,9 @@
+{
+  "at": "2026-10-08T15:34:30.044638+00:00",
+  "baselineRevision": "886c16f6",
+  "candidateRevision": "72761c4a49c153b69eb68bb04501fb01008ed99f",
+  "anchor": "function wrap(",
+  "byteIdentical": true,
+  "sha256": "c03cf3a48523aa90aa3c64de12a0e3075e440b9ec9874b427964321105b86cb5",
+  "scope": "renderer, labels, hints, rows and Prompt initialization tail; not reducer proof or native terminal execution"
+}

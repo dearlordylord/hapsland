@@ -25,7 +25,9 @@ for (let round = 0; round < 2; round++) {
 }
 const mean = values => values.reduce((total, sample) => total + sample.seconds, 0) / values.length
 const ratio = mean(samples.integratedBend) / mean(samples.typescript)
-const record = { baselineRevision, startedAt, at: new Date().toISOString(), roots, command: ["taskset", "-c", "11", process.execPath, "scripts/build-workspaces.mjs"], affinity: "CPU 11 for both lanes; not exclusive", samples, meanRatio: ratio,
-  buildParity: ratio <= 1, scope: "paired warm workspace builds; declared frozen baseline and current candidate; both separately prepared; native release assembly excluded" }
+const allSamples = Object.values(samples).flat()
+const warmPreparationMatched = allSamples.every(sample => sample.cachedTasks !== null && sample.cachedTasks > 0 && sample.cachedTasks * 2 === sample.totalTasks) && new Set(allSamples.map(sample => sample.totalTasks)).size === 1
+const record = { warmPreparationCriterion: "all 23 package build tasks cached and 23 uncached clean tasks per lane; identical total task counts across all four samples", warmPreparationMatched, baselineRevision, startedAt, at: new Date().toISOString(), roots, command: ["taskset", "-c", "11", process.execPath, "scripts/build-workspaces.mjs"], affinity: "CPU 11 for both lanes; not exclusive", samples, meanRatio: ratio,
+  buildParity: warmPreparationMatched && ratio <= 1, scope: "paired warm workspace builds; declared frozen baseline and current candidate; both separately prepared; native release assembly excluded" }
 writeFileSync(new URL("./build-performance.json", import.meta.url), JSON.stringify(record, null, 2) + "\n")
 console.log(JSON.stringify({ meanRatio: ratio, buildParity: record.buildParity }))

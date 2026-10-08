@@ -1,0 +1,8 @@
+{
+  "at": "2026-10-08T15:59:49.122Z",
+  "stage": "Bend producer toolchain preparation",
+  "passed": true,
+  "milliseconds": 2353.1316229999998,
+  "affinity": "CPU11 nonexclusive",
+  "scope": "isolated exact failed preparation stage; no workspace-build qualification"
+}
