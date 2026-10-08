@@ -31,6 +31,13 @@ related definitions, including those in other files. Each rule reviews the
 changed declaration with the related code it needs. If the necessary code is
 unavailable, Hapsland skips that rule.
 
+> [!WARNING]
+> Hapsland focuses automatic review on agent edits made through supported native
+> editing tools, such as [`apply_patch`](https://developers.openai.com/codex/hooks#tool-coverage),
+> Codex’s standard file-editing tool. Changes made through other paths—including
+> Python or shell scripts and linter autofixes—are outside that scope and are not
+> automatically reviewed.
+
 ## What leaves my repository?
 
 Sending source to a review service is a data-sharing decision.
