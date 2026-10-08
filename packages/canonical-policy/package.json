@@ -79,6 +79,10 @@
     "./canonical/setup-selection-adapter": {
       "types": "./dist/canonical/setup-selection-adapter.d.ts",
       "default": "./dist/canonical/setup-selection-adapter.js"
+    },
+    "./canonical/selection-ui-adapter": {
+      "types": "./dist/canonical/selection-ui-adapter.d.ts",
+      "default": "./dist/canonical/selection-ui-adapter.js"
     }
   },
   "dependencies": {

@@ -1,0 +1,23 @@
+{
+  "at": "2026-10-08T17:59:26.334589+00:00",
+  "reviewer": "Astra /root/approve_credential_laws",
+  "approved": true,
+  "head": "ab1ee8dbb28cbda12595d7d2ccd68ca0f3d3f4ab",
+  "laws": [
+    "submit_exact",
+    "toggle_exact",
+    "step_exact"
+  ],
+  "sha256": {
+    "packages/agent-flow-bend/selection-ui-policy/core.bend": "3606ba50f9f170a849177cc94b68b0e7715262fb0c5ab72adfbdc719c396aea8",
+    "packages/agent-flow-bend/selection-ui-policy/LAWS.bend": "3de19022ff040d3ba418d66ff90c83af01cf303a643454631e7c2b9ed2920e52",
+    "packages/agent-flow-bend/abi/selection-ui-policy.generated.d.ts": "590b21654a64044aee85972c3a4f0f7d36bf3f9ccdec2e1245e6baf93b1b6a4a",
+    "packages/agent-flow-bend/scripts/build-selection-ui-policy.mjs": "d6c1958fa23bbb625d09c1ddde57d1a1aa05429bd423fd9d8fd9883885352bf3",
+    "packages/canonical-policy/src/canonical/selection-ui-adapter.ts": "b3c841f374de9bbb56d7dcc357c5d87f7742c030fdf54a4b9cef5b6299a2d51c",
+    "packages/administration/src/interaction/selection.ts": "131e62921c8f28d5a3402ead5dc0ab6217a275f2a995bfa3646c283dab954f73"
+  },
+  "previousApproval": "selection-ui-law-reconfirmation-552f2cb3.json",
+  "amendmentRequired": false,
+  "scope": "fresh static reconfirmation only; existing host obligations remain; no kernel, runtime, parity, performance, IO or platform acceptance",
+  "review": "Focused ID projection matches original toggle: map once for Space; Select All bypasses focused lookup; otherwise evaluate choices[state.focus-2] once and forward unchanged through presence, membership and materialization. No semantic mismatch; existing host obligations remain."
+}

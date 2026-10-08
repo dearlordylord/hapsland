@@ -1,0 +1,57 @@
+{
+  "at": "2026-10-08T17:54:47.481Z",
+  "diagnosticOnly": true,
+  "lane": "typescript",
+  "iterationsPerSample": 8,
+  "samples": [
+    {
+      "milliseconds": 2107.7182519999988,
+      "checksum": -355615488
+    },
+    {
+      "milliseconds": 1054.8085030000002,
+      "checksum": -355615488
+    },
+    {
+      "milliseconds": 1003.3165029999982,
+      "checksum": -355615488
+    },
+    {
+      "milliseconds": 1767.2234919999973,
+      "checksum": -355615488
+    },
+    {
+      "milliseconds": 874.2419599999994,
+      "checksum": -355615488
+    },
+    {
+      "milliseconds": 967.454694,
+      "checksum": -355615488
+    },
+    {
+      "milliseconds": 1552.6362689999987,
+      "checksum": -355615488
+    },
+    {
+      "milliseconds": 1230.5064550000025,
+      "checksum": -355615488
+    },
+    {
+      "milliseconds": 983.0043450000012,
+      "checksum": -355615488
+    },
+    {
+      "milliseconds": 814.7303629999988,
+      "checksum": -355615488
+    },
+    {
+      "milliseconds": 1657.7293979999995,
+      "checksum": -355615488
+    },
+    {
+      "milliseconds": 800.2510059999986,
+      "checksum": -355615488
+    }
+  ],
+  "scope": "CPU profile of actual compiled reducer through identical consumer body; separate processes, not paired acceptance timing"
+}

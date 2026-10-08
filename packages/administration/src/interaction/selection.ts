@@ -1,6 +1,7 @@
 // Administration: first-dialog UI state only; it owns no setup or credential operations.
 import { Effect, Terminal } from "effect"
 import * as Prompt from "effect/cli/Prompt"
+import { bindSelectionUiUpdate } from "@hapsland/canonical-policy/canonical/selection-ui-adapter"
 type SelectionAnswer = { kind: "select"; ids: string[] } | { kind: "back" | "cancel" }
 export type SelectionState = { focus: number; selected: string[]; warning: boolean }
 export type SelectionOptions = {
@@ -14,54 +15,57 @@ const nextFrame = (state: SelectionState): Prompt.Action<SelectionState, Selecti
   state
 })
 const lastRow = (options: SelectionOptions) => options.choices.length + 2 + Number(options.back)
-const leave = (options: SelectionOptions): Prompt.Action<SelectionState, SelectionAnswer> => ({
-  _tag: "Submit",
-  value: { kind: options.back ? "back" : "cancel" }
-})
-const submit = (state: SelectionState, options: SelectionOptions): Prompt.Action<SelectionState, SelectionAnswer> => {
-  if (options.back && state.focus === lastRow(options) - 1) return { _tag: "Submit", value: { kind: "back" } }
-  if (state.focus === lastRow(options)) return { _tag: "Submit", value: { kind: "cancel" } }
-  return state.selected.length
-    ? { _tag: "Submit", value: { kind: "select", ids: [...state.selected] } }
-    : nextFrame({ ...state, warning: true })
-}
-const toggle = (state: SelectionState, options: SelectionOptions): Prompt.Action<SelectionState, SelectionAnswer> => {
-  const choiceIds = options.choices.map((choice) => choice.id)
-  if (state.focus === 1)
-    return nextFrame({
-      ...state,
-      selected: state.selected.length === choiceIds.length ? [] : [...choiceIds],
-      warning: false
-    })
-  const choiceId = choiceIds[state.focus - 2]
-  if (!choiceId) return nextFrame(state)
-  const selected = state.selected.includes(choiceId)
-    ? state.selected.filter((item) => item !== choiceId)
-    : choiceIds.filter((item) => item === choiceId || state.selected.includes(item))
-  return nextFrame({ ...state, selected, warning: false })
-}
-const edgeFocus = (key: string, options: SelectionOptions) => (key === "home" ? 0 : lastRow(options))
-const movements = new Map([
-  ["up", -1],
-  ["down", 1],
-  ["tab", 1]
-])
+const updateSelection = bindSelectionUiUpdate<
+  SelectionState,
+  SelectionOptions,
+  Prompt.Action<SelectionState, SelectionAnswer>
+>(
+  {
+    back: (_state, options) => options.back,
+    backRow: (state, options) => options.back && state.focus === lastRow(options) - 1,
+    exitRow: (state, options) => state.focus === lastRow(options),
+    nonempty: (state) => state.selected.length > 0,
+    selectAll: (state) => state.focus === 1,
+    choiceIds: (_state, options) => options.choices.map((choice) => choice.id),
+    choiceId: (state, _options, choices) => choices[state.focus - 2],
+    allSelected: (state, _options, choices) => state.selected.length === choices.length,
+    choicePresent: (_state, _options, _choices, choiceId) => Boolean(choiceId),
+    choiceSelected: (state, _options, _choices, choiceId) => state.selected.includes(choiceId!)
+  },
+  {
+    hold: (state) => nextFrame(state),
+    back: () => ({ _tag: "Submit", value: { kind: "back" } }),
+    cancel: () => ({ _tag: "Submit", value: { kind: "cancel" } }),
+    move: (state, options, movement) =>
+      nextFrame({
+        ...state,
+        focus: (state.focus + movement + lastRow(options) + 1) % (lastRow(options) + 1),
+        warning: false
+      }),
+    first: (state) => nextFrame({ ...state, focus: 0, warning: false }),
+    last: (state, options) => nextFrame({ ...state, focus: lastRow(options), warning: false }),
+    select: (state) => ({ _tag: "Submit", value: { kind: "select", ids: [...state.selected] } }),
+    warn: (state) => nextFrame({ ...state, warning: true }),
+    clearAll: (state) => nextFrame({ ...state, selected: [], warning: false }),
+    chooseAll: (state, _options, choices) => nextFrame({ ...state, selected: [...choices], warning: false }),
+    removeChoice: (state, _options, _choices, choiceId) => {
+      return nextFrame({ ...state, selected: state.selected.filter((item) => item !== choiceId), warning: false })
+    },
+    addChoice: (state, _options, choices, choiceId) => {
+      return nextFrame({
+        ...state,
+        selected: choices.filter((item) => item === choiceId || state.selected.includes(item)),
+        warning: false
+      })
+    }
+  }
+)
 export function selectionUpdate(
   state: SelectionState,
   key: string,
   options: SelectionOptions
 ): Prompt.Action<SelectionState, SelectionAnswer> {
-  if (key === "escape") return leave(options)
-  const movement = movements.get(key)
-  if (movement !== undefined)
-    return nextFrame({
-      ...state,
-      focus: (state.focus + movement + lastRow(options) + 1) % (lastRow(options) + 1),
-      warning: false
-    })
-  if (key === "home" || key === "end") return nextFrame({ ...state, focus: edgeFocus(key, options), warning: false })
-  if (key === "return" || key === "enter") return submit(state, options)
-  return key === "space" ? toggle(state, options) : nextFrame(state)
+  return updateSelection(state, key, options)
 }
 function wrap(line: string, columns: number): string[] {
   const lines: string[] = []

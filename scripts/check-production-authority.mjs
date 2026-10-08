@@ -118,6 +118,13 @@ const scan = (directory) => {
     )
       obsoleteImports.push(path)
     if (
+      path !== "packages/canonical-policy/src/canonical/selection-ui-adapter.ts" &&
+      /from ["'](?:[^"']*selection-ui-policy\.generated(?:\.js)?|@hapsland\/agent-flow-bend\/selection-ui-policy)["']/.test(
+        source
+      )
+    )
+      obsoleteImports.push(path)
+    if (
       path !== "packages/canonical-policy/src/canonical/rules-adapter.ts" &&
       /from ["'](?:[^"']*rules-policy\.generated(?:\.js)?|@hapsland\/agent-flow-bend\/rules-policy)["']/.test(source)
     )

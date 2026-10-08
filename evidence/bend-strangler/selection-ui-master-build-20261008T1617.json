@@ -1,11 +1,11 @@
 {
   "warmPreparationCriterion": "all 23 package build tasks cached and 23 uncached clean tasks per lane; identical total task counts across all four samples",
   "warmPreparationMatched": true,
-  "baselineRevision": "552f2cb34727f5b021391e88c69bf71eee9bcd31",
-  "startedAt": "2026-10-08T17:49:36.927Z",
-  "at": "2026-10-08T17:50:32.534Z",
+  "baselineRevision": "3fd2726422e7cfef0804e57acc004d0c4100daba",
+  "startedAt": "2026-10-08T16:18:10.689Z",
+  "at": "2026-10-08T16:18:29.873Z",
   "roots": {
-    "typescript": "/workspace/typescript/hapsland-bend-baseline-master-552f2cb3",
+    "typescript": "/workspace/typescript/hapsland-bend-baseline-master-3fd27264",
     "integratedBend": "/workspace/typescript/hapsland-bend-selection-ui"
   },
   "command": [
@@ -21,7 +21,7 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 12.909811827,
+        "seconds": 5.109663019000001,
         "exitCode": 0,
         "signal": null,
         "error": null
@@ -29,7 +29,7 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 11.081908797999997,
+        "seconds": 4.470836535999999,
         "exitCode": 0,
         "signal": null,
         "error": null
@@ -39,7 +39,7 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 15.132231378,
+        "seconds": 4.905565037,
         "exitCode": 0,
         "signal": null,
         "error": null
@@ -47,14 +47,14 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 16.464372449,
+        "seconds": 4.688685291,
         "exitCode": 0,
         "signal": null,
         "error": null
       }
     ]
   },
-  "meanRatio": 1.3169794830836565,
+  "meanRatio": 1.001435287682136,
   "buildParity": false,
   "scope": "paired warm workspace builds; declared frozen baseline and current candidate; both separately prepared; native release assembly excluded"
 }
