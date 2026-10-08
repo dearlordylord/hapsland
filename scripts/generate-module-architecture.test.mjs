@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { spawnSync } from "node:child_process"
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { copyFileSync, mkdirSync, mkdtempSync, realpathSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { resolve } from "node:path"
 import { test } from "node:test"
@@ -58,7 +58,7 @@ test("generated block repair preserves prose and rejects ambiguous markers", () 
 })
 
 test("ordinary CLI checks stale output without writing and repairs it on generation", () => {
-  const fixture = mkdtempSync(resolve(tmpdir(), "hapsland-module-docs-"))
+  const fixture = realpathSync(mkdtempSync(resolve(tmpdir(), "hapsland-module-docs-")))
   try {
     mkdirSync(resolve(fixture, "scripts"))
     mkdirSync(resolve(fixture, "docs"))

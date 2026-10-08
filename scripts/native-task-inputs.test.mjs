@@ -1,6 +1,7 @@
+import { nativeInputRecipe, retainNativeInputBundle } from "./native-input-bundle.mjs"
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, chmodSync, copyFileSync } from "node:fs"
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync, chmodSync, copyFileSync, realpathSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { resolve } from "node:path"
 import {
@@ -38,12 +39,13 @@ test("native task paths remain separate from TypeScript outputs and derive insta
   assert.equal(plan.assets[0].output, resolve(f.node.path, "artifacts/native/linux-arm64/helper"))
   assert.equal(plan.assets[0].installedPath, "native/prebuilt/linux-arm64/helper")
   assert.equal(nativeTaskDirectory(f.node, "darwin-arm64"), resolve(f.node.path, "artifacts/native/darwin-arm64"))
-  assert.deepEqual(generatedNativePaths(f.root, f.graph, "linux-arm64"), [
-    resolve(f.root, "native/prebuilt/linux-arm64/helper")
-  ])
+  const outputs = [
+    resolve(f.root, "native/prebuilt/linux-arm64/helper"),
+    resolve(f.root, "native/prebuilt/darwin-arm64/helper")
+  ]
+  assert.deepEqual(generatedNativePaths(f.root, f.graph), outputs)
   f.node.manifest.hapsland.nativeAssets[0].producer.kind = "package-binding"
-  assert.deepEqual(generatedNativePaths(f.root, f.graph, "linux-arm64"), [])
-  assert.deepEqual(generatedNativePaths(f.root, f.graph, "linux-x64"), [])
+  assert.deepEqual(generatedNativePaths(f.root, f.graph), outputs)
 })
 test("native plans reject unsupported profiles and path traversal", (t) => {
   const f = fixture(t)
@@ -118,6 +120,8 @@ test("parser selection preserves incompatible candidates and invalidates when an
   f.graph.release = {}
   mkdirSync(resolve(f.root, "scripts"))
   for (const name of [
+    "native-input-bundle",
+    "native-binding-source",
     "native-task-inputs",
     "native-task",
     "native-task-receipt",
@@ -140,9 +144,12 @@ test("parser selection preserves incompatible candidates and invalidates when an
   const retained = resolve(f.root, plan.assets[0].installedPath)
   mkdirSync(resolve(retained, ".."), { recursive: true })
   writeFileSync(retained, binary(host))
+  const published = resolve(packageRoot, host, "published.node")
+  mkdirSync(resolve(published, ".."), { recursive: true })
+  writeFileSync(published, binary(host))
   const observe = async () => (await observeNativeTaskInputs(f.root, f.graph, plan)).assets[0].input
   const before = await observe()
-  assert.equal(before.selected.requested, retained)
+  assert.equal(before.selected.requested, realpathSync(published))
   assert.equal(before.candidates.length, 2)
   assert(before.candidates[0].evidence.sha256)
   writeFileSync(
@@ -151,14 +158,11 @@ test("parser selection preserves incompatible candidates and invalidates when an
   )
   assert.notDeepEqual(await observe(), before)
   writeFileSync(local, binary(host))
-  assert.equal((await observe()).selected.requested, local)
+  assert.equal((await observe()).selected.requested, realpathSync(local))
   rmSync(local)
   writeFileSync(retained, "corrupt")
-  const published = resolve(packageRoot, host, "published.node")
-  mkdirSync(resolve(published, ".."), { recursive: true })
-  writeFileSync(published, binary(host))
   const fallback = await observe()
-  assert.equal(fallback.selected.requested, published)
+  assert.equal(fallback.selected.requested, realpathSync(published))
   assert.equal(fallback.candidates[0].evidence, null)
   writeFileSync(published, "wrong too")
   await assert.rejects(observe(), /Missing declared parser binding/)
@@ -167,10 +171,31 @@ test("parser selection preserves incompatible candidates and invalidates when an
   await assert.rejects(observe(), /regular file/)
   const foreign = host === "linux-arm64" ? "darwin-arm64" : "linux-arm64"
   const foreignPlan = nativeTaskPlans(f.root, f.graph, foreign)[0]
-  const foreignRetained = resolve(f.root, foreignPlan.assets[0].installedPath)
+  const foreignRetained = resolve(packageRoot, foreign, "published.node")
   mkdirSync(resolve(foreignRetained, ".."), { recursive: true })
   writeFileSync(foreignRetained, binary(foreign))
   const foreignInput = (await observeNativeTaskInputs(f.root, f.graph, foreignPlan)).assets[0].input
-  assert.equal(foreignInput.selected.requested, foreignRetained)
+  assert.equal(foreignInput.selected.requested, realpathSync(foreignRetained))
   assert.equal(foreignInput.candidates.length, 1, "Foreign target must not inspect the host local build")
+  // A malformed upstream prebuild must use a source-bound target-host build.
+  asset.producer.profiles[foreign].sourceBuild = true
+  writeFileSync(resolve(f.node.path, "package.json"), JSON.stringify(f.node.manifest))
+  writeFileSync(foreignRetained, binary(host))
+  const addonRoot = resolve(f.root, "node_modules/node-addon-api")
+  mkdirSync(addonRoot)
+  writeFileSync(resolve(addonRoot, "package.json"), JSON.stringify({ name: "node-addon-api", version: "8.5.0" }))
+  writeFileSync(resolve(addonRoot, "napi.h"), "pinned addon headers")
+  writeFileSync(resolve(f.root, "bun.lock"), "pinned dependency lock")
+  const produced = resolve(f.root, "produced.node")
+  writeFileSync(produced, binary(foreign))
+  const recipe = nativeInputRecipe(f.root, [foreignPlan], foreign)
+  mkdirSync(resolve(packageRoot, "node-addon-api"))
+  writeFileSync(resolve(packageRoot, "node-addon-api/node_addon_api.Makefile"), "generated gyp output")
+  assert.deepEqual(nativeInputRecipe(f.root, [foreignPlan], foreign), recipe)
+  const directory = retainNativeInputBundle(f.root, recipe, [produced])
+  const supplied = (await observeNativeTaskInputs(f.root, f.graph, foreignPlan)).assets[0].input
+  assert.equal(supplied.selected.requested, resolve(directory, recipe.assets[0].path))
+  assert.equal(supplied.recipe.digest, recipe.digest)
+  writeFileSync(resolve(addonRoot, "napi.h"), "changed addon headers")
+  await assert.rejects(observeNativeTaskInputs(f.root, f.graph, foreignPlan), /Missing, stale or corrupt/)
 })

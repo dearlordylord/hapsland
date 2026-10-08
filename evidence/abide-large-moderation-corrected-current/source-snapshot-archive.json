@@ -3,7 +3,7 @@
   "sourceClass": "SRC",
   "verificationState": "SOURCE-INSPECTED",
   "purpose": "Exact protected implementation evidence, archived to distinguish it from active production code.",
-  "archive": "source-snapshot.tar.gz",
+  "archive": "https://github.com/dearlordylord/hapsland/blob/886c16f60/evidence/abide-large-moderation-corrected-current/source-snapshot.tar.gz",
   "sha256": "2a476f18a89332415d640004ee2d8ca3978ce67579842eb8f95196cce0f59d5a",
   "fileDigests": {
     "scripts/run-abide-large-declarations.mjs": "60d8ab3907cba9354f5a4f0c0077fb4d02a1eed2d11a1642b2937d5b8fa0644e",
