@@ -24,7 +24,7 @@ for (const [name, artifact] of [
     try {
       writeFileSync(
         join(directory, "bend"),
-        '#!/bin/sh\nif [ "$1" = "version" ]; then\n  echo "bend 2.0.36"\n  exit 0\nfi\necho "unexpected compilation" >&2\nexit 99\n',
+        '#!/bin/sh\nif [ "$1" = "version" ]; then\n  echo "bend 2.0.35"\n  exit 0\nfi\necho "unexpected compilation" >&2\nexit 99\n',
         { mode: 0o700 }
       )
       const result = spawnSync(
@@ -43,11 +43,48 @@ for (const [name, artifact] of [
       )
       assert.equal(result.error, undefined)
       assert.equal(result.status, 1)
-      assert.match(result.stderr, /requires exact Bend 2\.0\.35; observed bend 2\.0\.36/)
+      assert.match(result.stderr, /requires exact Bend 2\.0\.36; observed bend 2\.0\.35/)
       assert.doesNotMatch(result.stderr, /unexpected compilation/)
       assert.deepEqual(readFileSync(artifactPath), before)
     } finally {
       rmSync(directory, { recursive: true, force: true })
+    }
+  })
+}
+
+for (const [name, generator, artifacts] of [
+  [
+    "shared Engine",
+    "packages/monkey-business-bend/build.mjs",
+    ["packages/monkey-business-bend/engine.mjs", "packages/monkey-business-bend/generated.json"]
+  ],
+  [
+    "headless game",
+    "scripts/build-game-lab.mjs",
+    ["prototypes/canonical-defense/lab/game.generated.mjs", "prototypes/canonical-defense/lab/game.generated.json"]
+  ]
+]) {
+  test(`${name} rejects an older compiler before compilation or artifact writes`, (t) => {
+    const directory = mkdtempSync(join(tmpdir(), "hapsland-optional-bend-version-"))
+    t.after(() => rmSync(directory, { recursive: true, force: true }))
+    const before = artifacts.map((file) => readFileSync(join(root, file)))
+    writeFileSync(
+      join(directory, "bend"),
+      '#!/bin/sh\nif [ "$1" = "version" ]; then echo "bend 2.0.35"; exit 0; fi\necho "unexpected compilation" >&2\nexit 99\n',
+      { mode: 0o700 }
+    )
+    for (const args of [[], ["--check"]]) {
+      const result = spawnSync(process.execPath, [join(root, generator), ...args], {
+        cwd: root,
+        env: { ...process.env, PATH: `${directory}:${process.env.PATH}` },
+        encoding: "utf8",
+        timeout: 5000
+      })
+      assert.ifError(result.error)
+      assert.equal(result.status, 1)
+      assert.match(result.stderr, /requires exact bend 2\.0\.36; observed bend 2\.0\.35/)
+      assert.doesNotMatch(result.stderr, /unexpected compilation/)
+      artifacts.forEach((file, index) => assert.deepEqual(readFileSync(join(root, file)), before[index]))
     }
   })
 }

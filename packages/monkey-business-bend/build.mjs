@@ -1,3 +1,4 @@
+import { checkBendCompiler } from "./compiler.mjs"
 import { createHash } from "node:crypto"
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -9,6 +10,7 @@ const compilationTimeoutMs = Number(process.env.BEND_COMPILATION_TIMEOUT_MS ?? 1
 if (!Number.isSafeInteger(compilationTimeoutMs) || compilationTimeoutMs <= 0) {
   throw new RangeError("BEND_COMPILATION_TIMEOUT_MS must be a positive finite integer")
 }
+const compiler = checkBendCompiler()
 const hash = (value) => createHash("sha256").update(value).digest("hex")
 const consumed = new Map()
 const collect = (path) => {
@@ -25,7 +27,9 @@ const sourceHash = hash(
     .join("")
 )
 const declarationHash = hash(readFileSync(join(root, "engine.d.mts")))
-const buildHash = hash(readFileSync(fileURLToPath(import.meta.url)))
+const buildHash = hash(
+  Buffer.concat([readFileSync(fileURLToPath(import.meta.url)), readFileSync(join(root, "compiler.mjs"))])
+)
 const hostPaths = [
   "index.ts",
   "shared-core.ts",
@@ -65,7 +69,7 @@ const hostPaths = [
     "../../packages/canonical-policy/src/canonical/graph-adapter.ts"
   ])
 const hostHash = hash(hostPaths.map((path) => `${path}\0${readFileSync(join(root, path))}\0`).join(""))
-const identityHash = hash(`${sourceHash}\0${hostHash}\0${buildHash}\0${declarationHash}`)
+const identityHash = hash(`${compiler}\0${sourceHash}\0${hostHash}\0${buildHash}\0${declarationHash}`)
 const preparationHash = hash(
   [
     "../../packages/agent-flow-bend/dist/import-graph.generated.js",
@@ -405,6 +409,7 @@ function writeArtifact(module, reuse) {
     join(root, "generated.json"),
     JSON.stringify(
       {
+        compiler,
         sourceHash,
         hostHash,
         identityHash,
@@ -424,6 +429,7 @@ function reusedModule() {
   const original = readFileSync(join(root, "engine.mjs"), "utf8")
   if (hash(original) !== previous.moduleHash) throw new Error("Cannot reuse corrupt shared Engine module")
   if (
+    previous.compiler !== compiler ||
     previous.sourceHash !== sourceHash ||
     previous.declarationHash !== declarationHash ||
     previous.preparationHash !== preparationHash
@@ -443,7 +449,9 @@ function reusedModule() {
     throw new Error("Cannot reuse changed shared Engine wrapper or embedded identity")
   if (
     previous.identityHash !==
-    hash(`${previous.sourceHash}\0${previous.hostHash}\0${previous.buildHash}\0${previous.declarationHash}`)
+    hash(
+      `${previous.compiler}\0${previous.sourceHash}\0${previous.hostHash}\0${previous.buildHash}\0${previous.declarationHash}`
+    )
   )
     throw new Error("Cannot reuse inconsistent shared Engine identity")
   return {
@@ -462,6 +470,7 @@ function reusedModule() {
 if (process.argv.includes("--check")) {
   const manifest = JSON.parse(readFileSync(join(root, "generated.json"), "utf8"))
   if (
+    manifest.compiler !== compiler ||
     manifest.identityHash !== identityHash ||
     manifest.hostHash !== hostHash ||
     manifest.preparationHash !== preparationHash ||
@@ -496,6 +505,7 @@ if (process.argv.includes("--check")) {
   try {
     const run = spawnSync("bend", [join(root, "Engine.bend"), "-o", join(temp, "engine.mjs")], {
       encoding: "utf8",
+      env: { ...process.env, BEND_NO_TELEMETRY: "1" },
       timeout: compilationTimeoutMs
     })
     if (run.error || run.status !== 0) throw run.error ?? new Error(run.stdout + run.stderr)

@@ -64,7 +64,7 @@ function f32_from_bits(u) {
 }
 
 function f32_read(s) {
-  const re = /^\s*[+-]?((\d+\.?\d*|\.\d+)(e[+-]?\d+)?|inf(inity)?|nan)$/i;
+  const re = /^[\t\n\v\f\r ]*[+-]?((\d+\.?\d*|\.\d+)(e[+-]?\d+)?|inf(inity)?|nan)$/i;
   const v = f32_round(s.replace(/inf\w*/i, "Infinity"));
   return re.test(s) ? {$: "Some", value: v} : {$: "None"};
 }
@@ -123,7 +123,7 @@ function array_rmw(a, i, f) {
 // ===
 
 function run_tail(f, x) {
-  return {$: "$JMP", f: f.j?.f === f ? f.j : f, x: [x]};
+  return {$: "$JMP", f: f.j?.f === f ? f.j : f, x};
 }
 
 function run_clo(j) {
@@ -135,7 +135,7 @@ function run_clo(j) {
 
 function run_loop(r) {
   while (r !== null && typeof r === "object" && r.$ === "$JMP") {
-    r = r.f(...r.x);
+    r = r.f(r.x);
   }
   return r;
 }
@@ -150,11 +150,14 @@ function run_lib(f, n) {
 
 const $0eff = Object.create(null);
 
-function io_eff(k, run, need) {
+function io_eff(k, run) {
+  if (arguments.length > 2) {
+    throw new Error("bend: " + k + " takes no need: an effect that waits parks itself");
+  }
   if (k in $0eff) {
     throw new Error("bend: two effects register " + k);
   }
-  $0eff[k] = { run, need };
+  $0eff[k] = run;
 }
 // Program
 // =======
@@ -20414,7 +20417,7 @@ function $StopScenario$058progressed$(_finish_0, _progress_0) {
   if (_progress_0.$ === "StopScenario.Waiting") {
     const _value_0 = _progress_0["value"];
     return $StopScenario$058progress_waiting$(_finish_0, _value_0);
-  } else if (_progress_0.$ === "StopScenario.Ready") {
+  } else if (_progress_0.$ === "StopScenario.ProgressReady") {
     const _count_0 = _progress_0["count"];
     return $StopScenario$058progress_ready$(_finish_0, _count_0);
   } else if (_progress_0.$ === "StopScenario.Selected") {
@@ -29286,7 +29289,7 @@ function $0m3(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:eefacbca439cc74ff54f6e260600224d6e45b46827236ea5418dfad904ceddbb";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:410d6e31c46ea1d67e85df9bb52836236ecf8527531ce4b89cb679349ca7a294";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4bf47dcf9e6197c160cbd1ba42515da47172af78f80d50cddb56bc90cece88f5";
 
 const facts = value => {

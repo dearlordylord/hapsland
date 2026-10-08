@@ -2,6 +2,10 @@ import { strict as assert } from "node:assert"
 import { it as test } from "vitest"
 import { validateReleaseCoordinates } from "./release-coordinates.mjs"
 const pin = {
+  format: 1,
+  sourceTreeSha256: "c".repeat(64),
+  auditSha256: "d".repeat(64),
+  buildPlatform: "darwin-arm64",
   packageName: "@hapsland/hapsland",
   version: "0.2.0",
   tag: "latest",
@@ -23,7 +27,11 @@ test("reject channel/version mismatch and missing reviewed identity", () => {
     { tag: "other" },
     { version: "../../archive" },
     { archiveSha256: "" },
-    { sourceCommit: "" }
+    { sourceCommit: "" },
+    { sourceTreeSha256: "" },
+    { auditSha256: "" },
+    { buildPlatform: "darwin-x64" },
+    { format: 2 }
   ]) {
     assert.throws(() => validateReleaseCoordinates({ ...pin, ...change }))
   }

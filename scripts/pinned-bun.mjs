@@ -1,5 +1,7 @@
 import { execFileSync } from "node:child_process"
-import { resolve } from "node:path"
+import { resolve, dirname } from "node:path"
+import { createRequire } from "node:module"
+import { readFileSync, copyFileSync, chmodSync } from "node:fs"
 import { BUN_VERSION } from "../packages/runtime-environment/src/runtime/bun-runtime.ts"
 export { BUN_VERSION }
 
@@ -25,4 +27,23 @@ export function resolveBunRuntime(env = process.env) {
   } catch {
     throw new Error(`Install Bun ${BUN_VERSION} or select it with HAPSLAND_BUILD_BUN.`)
   }
+}
+
+// Frozen installs deliberately skip dependency lifecycle scripts. Turbo still
+// invokes the package-manager launcher, so initialize only this pinned binary
+// from the already-verified runtime rather than running arbitrary postinstalls.
+export function ensurePinnedBunLauncher(root, runtime = resolveBunRuntime()) {
+  if (
+    runtime.version !== BUN_VERSION ||
+    execFileSync(runtime.executable, ["--version"], { encoding: "utf8", timeout: 5000 }).trim() !== BUN_VERSION
+  )
+    throw new Error(`Package-manager launcher requires exact Bun ${BUN_VERSION}`)
+  const manifestPath = createRequire(resolve(root, "package.json")).resolve("bun/package.json")
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"))
+  if (manifest.name !== "bun" || manifest.version !== BUN_VERSION || manifest.bin?.bun !== "bin/bun.exe")
+    throw new Error("Installed Bun launcher differs from the pinned package contract")
+  const output = resolve(dirname(manifestPath), manifest.bin.bun)
+  if (resolve(runtime.executable) !== output) copyFileSync(runtime.executable, output)
+  chmodSync(output, 0o755)
+  return output
 }

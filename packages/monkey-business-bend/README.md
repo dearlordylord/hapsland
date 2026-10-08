@@ -6,6 +6,14 @@
 **Expected use:** Extend the common scenario driver or validate its JavaScript/native boundary.
 **Lifecycle:** Update with state, driver, ABI or check changes; review when a dependent scenario replaces remaining host orchestration or a candidate law receives an owner decision.
 
+Generation and optional native/proof checks require the same exact **Bend 2.0.36**
+compiler declared by `packages/agent-flow-bend/package.json`. Install it with
+`node scripts/install-bend-toolchain.mjs` and add the printed Bend/Lean directories
+to `PATH`. The Engine receipt records the compiler version; older artifacts cannot
+be reused across compiler versions. For native checks, put the system C compiler directory before the Lean directory
+in `PATH` (for example, Bend/bin, the working clang directory, then Lean/bin). The Lean
+installation also contains a clang executable intended for its own toolchain.
+
 `Engine.bend` composes the actual Canonical and bounded ImportGraph reducers.
 `Types.bend` owns their state and the scheduler. `Scheduler.bend` selects finite
 virtual-time work by exact Nat time and insertion order. The host keeps validated

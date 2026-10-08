@@ -4,6 +4,21 @@ import { mkdtemp, readFile, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { runBuildProcess } from "./build-process.mjs"
+import { spawnSync } from "node:child_process"
+
+test("inherited group deadline remains visible before the caller is interrupted", () => {
+  const script = `import {runBuildProcess} from ${JSON.stringify(new URL("./build-process.mjs", import.meta.url).href)};
+    await runBuildProcess(process.execPath,['-e','setInterval(()=>{},1000)'],{timeout:200,stdio:'ignore'});`
+  const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+    detached: true,
+    encoding: "utf8",
+    timeout: 10000,
+    env: { ...process.env, HAPSLAND_BUILD_PROCESS_GROUP: "leader" }
+  })
+  assert.equal(result.error, undefined)
+  assert.ok(result.signal === "SIGTERM" || result.status === 1)
+  assert.match(result.stderr, /Build process deadline exceeded/)
+})
 const run = (script, options = {}) =>
   runBuildProcess(process.execPath, ["-e", script], { timeout: 5000, stdio: "ignore", ...options })
 test("successful build process stops before returning", async () => {

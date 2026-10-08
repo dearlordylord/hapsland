@@ -1,6 +1,6 @@
 # Mechanical source generator; does not run Bend or validate business policy.
 from pathlib import Path
-import re,json,hashlib,sys,os,argparse,subprocess
+import re,json,hashlib,sys,os,argparse,subprocess,tempfile,importlib.util
 root=Path(__file__).resolve().parents[3]
 parser=argparse.ArgumentParser(description='Generate the ONE lossless owner prefix transport')
 parser.add_argument('--check',action='store_true')
@@ -225,6 +225,25 @@ if profile is None:
  metadata_text = subprocess.run([str(root/'node_modules/.bin/dprint'),'fmt','--stdin','ts'],
   input=metadata_text,text=True,capture_output=True,cwd=root,timeout=5,check=True).stdout
 native_text = '\n'.join(lines)
+if profile is not None:
+ # Optional codecs share the repository's pinned formatter with the commit gate.
+ sys.dont_write_bytecode=True
+ spec=importlib.util.spec_from_file_location('bend_format',root/'scripts/bend-format.py')
+ formatter=importlib.util.module_from_spec(spec);spec.loader.exec_module(formatter)
+ jar=os.environ.get('BEND_FORMAT_JAR')
+ command=([os.environ.get('BEND_FORMAT_JAVA','java'),'-jar',jar]
+  if jar else [os.environ.get('BEND_FORMAT_BIN','bend-format')])
+ version=subprocess.run(command+['--version'],text=True,capture_output=True,timeout=10,check=True)
+ if version.stdout.strip()!=formatter.VERSION:
+  raise SystemExit('Optional codec generation requires '+formatter.VERSION)
+ with tempfile.NamedTemporaryFile(mode='w',suffix='.bend',dir=out.parent,delete=False) as staged:
+  staged.write(native_text);temporary=Path(staged.name)
+ try:
+  subprocess.run(command+['fix',str(temporary)],capture_output=True,text=True,timeout=60,check=True)
+  native_text=temporary.read_text()
+ finally:
+  temporary.unlink()
+
 if arguments.check:
  if out.read_text() != native_text or p.read_text() != metadata_text:
   raise SystemExit('callback numeric transport differs from actual owner generation')

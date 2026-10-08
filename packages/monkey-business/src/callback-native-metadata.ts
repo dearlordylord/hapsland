@@ -5669,7 +5669,7 @@ export const callbackNativeDescriptors = {
 export const callbackNativeOwnerSources = [
   {
     path: "packages/agent-flow-bend/Admission.bend",
-    sha256: "5eec31d0d3d9e81030a510beaae5019bbfd5e0afb46df2857b508c4ade14e9de"
+    sha256: "ea0b408bc8f96d5df0e73cbfea666d2af0ec96e34bb6e7e730bf5b7a62cf1697"
   },
   {
     path: "packages/agent-flow-bend/Canonical.bend",
@@ -5677,7 +5677,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/agent-flow-bend/CollectionState.bend",
-    sha256: "aff63f55072bd8cc62762457e123800d61dfdc8e45286bcd3aacc5e82205f2f6"
+    sha256: "9e61f14523b15d1f98b0f89ff0c324788b5304be2560f0b2eb02e45a365758dc"
   },
   {
     path: "packages/agent-flow-bend/CollectorAuthority.bend",
@@ -5705,11 +5705,11 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/agent-flow-bend/Handoff.bend",
-    sha256: "c5f2be72867198b58e8dfb329eaf44e4e109a216929b15a76d2d43bc9c666fed"
+    sha256: "d1bd58f4de5346e47aa8cefa6daa86808a9aaf7312f3bbe28188dc48721d9696"
   },
   {
     path: "packages/agent-flow-bend/ImportGraph.bend",
-    sha256: "3a8e842097c23d0987dfb1d4428f524aefd0715a56a97cba13746ad88cda2781"
+    sha256: "ff45b8e5663bd0d5bb3e52e86cd766545cd61550b2b5ad1c01d17c8dc46a5346"
   },
   {
     path: "packages/agent-flow-bend/Ledger.bend",
@@ -5717,7 +5717,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/agent-flow-bend/NoticeState.bend",
-    sha256: "ad690c80b7b888c9a066e6ae6c53fb06ce2ba676a3ea905f3882b84eb4f9df40"
+    sha256: "4354186ba0d3c2000ff4a763fc69e8487f0cf3052fc069d20f8c1ac2814ca89c"
   },
   {
     path: "packages/agent-flow-bend/Quiescence.bend",
@@ -5737,7 +5737,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/agent-flow-bend/RevisionState.bend",
-    sha256: "44b1319be1d28d13b3ada995ab082be9ebbb536eac5dd2449543a1fdd8013732"
+    sha256: "fb53b4ccc36c3153b39691560b0f905d1f72a13204c3889136207bf2e3b89d7b"
   },
   {
     path: "packages/agent-flow-bend/RulePolicy.bend",
@@ -5845,7 +5845,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/StopScenario.bend",
-    sha256: "0d81594e221da324fdff23cbe7cf90657013398b0f13bf925eea60dbb854d252"
+    sha256: "629df1499806ec73fa30339ed67f79a68a435897d755d959149897ce1bc7475d"
   },
   {
     path: "packages/monkey-business-bend/TreeFacts.bend",

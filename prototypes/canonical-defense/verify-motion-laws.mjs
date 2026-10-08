@@ -1,14 +1,17 @@
+import { bendCompilerPath, checkBendCompiler } from "../../packages/monkey-business-bend/compiler.mjs"
 // Optional source-bound motion proof gate. Every subprocess has a five-second
 // limit; failure, timeout and a missing terminal exit never count as a proof.
 import assert from "node:assert/strict"
 import { spawnSync } from "node:child_process"
 import { createHash } from "node:crypto"
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { homedir, tmpdir } from "node:os"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { stateSlice } from "./motion-state-slice.mjs"
 import { combinedArithmeticProof, arithmeticProofs, readArithmeticSources } from "./motion-arithmetic.mjs"
 
+const bend = bendCompilerPath()
+checkBendCompiler(bend)
 const root = import.meta.dirname
 const receipt = { bend: [], arithmetic: [], mutants: [], sources: {}, trust: {
   bend: "Bend checker and mathematical kernel on selected game definitions; observation proofs generalize only the appended-path field to every typed suffix",
@@ -17,15 +20,23 @@ const receipt = { bend: [], arithmetic: [], mutants: [], sources: {}, trust: {
 } }
 const files = ["DefenseMotion.bend", "DefenseMap.bend", "DefenseMotionTypes.bend", "DefensePresentation.bend", "MotionStateLAWS.bend", "MotionStatePROOF.bend", "MotionArithmeticLAWS.bend", "motion-arithmetic.mjs", "verify-motion-laws.mjs", "motion-state-slice.mjs", "MotionArithmeticFacts.lean", "MotionArithmeticPROOF.lean", "../../packages/agent-flow-bend/Canonical.bend"]
 for (const file of files) receipt.sources[file] = createHash("sha256").update(readFileSync(join(root, file))).digest("hex")
-const baseDirectory = process.env.BEND_DIR ?? join(homedir(), ".bend/bend2")
+const baseDirectory = process.env.BEND_DIR ?? join(dirname(dirname(bend)), "bend2")
 const kernelSource = join(baseDirectory, "bendtt.lean")
 const kernelHash = createHash("sha256").update(readFileSync(kernelSource)).digest("hex")
-const kernel = join(homedir(), ".bend/bendtt", kernelHash.slice(0, 16), "bendtt")
+// Bend 2.0.36 includes its Lean toolchain in the cache key. Locate the
+// prepared kernel by its exact bundled source rather than guessing that key.
+const kernelCache = join(homedir(), ".bend/bendtt")
+const matchingKernels = readdirSync(kernelCache).map((entry) => join(kernelCache, entry)).filter((entry) => {
+  const source = join(entry, "bendtt.lean")
+  return existsSync(source) && existsSync(join(entry, "bendtt")) && createHash("sha256").update(readFileSync(source)).digest("hex") === kernelHash
+})
+assert.equal(matchingKernels.length, 1, "Install one kernel matching the selected Bend compiler source")
+const kernel = join(matchingKernels[0], "bendtt")
 receipt.kernel = { sourceSha256: kernelHash, binarySha256: createHash("sha256").update(readFileSync(kernel)).digest("hex") }
 receipt.baseSha256 = createHash("sha256").update(readFileSync(join(baseDirectory, "base.bend"))).digest("hex")
 const start = Date.now()
 function run(tool, args, expected = 0, options = {}) {
-  const result = spawnSync(tool, args, { encoding: "utf8", timeout: 5000, maxBuffer: 4 * 1024 * 1024, ...options })
+  const result = spawnSync(tool, args, { encoding: "utf8", env: { ...process.env, BEND_NO_TELEMETRY: "1" }, timeout: 5000, maxBuffer: 4 * 1024 * 1024, ...options })
   assert.ifError(result.error)
   assert.equal(result.status, expected, result.stdout + result.stderr)
   return result.stdout + result.stderr
@@ -42,7 +53,7 @@ try {
   function stateProof(law) {
     const selected = stateSlice(temp, { law })
     const artifact = join(temp, "proof.bendtt")
-    const emission = run("bend", [join(temp, "MotionStatePROOF.bend"), "-o", artifact])
+    const emission = run(bend, [join(temp, "MotionStatePROOF.bend"), "-o", artifact])
     assert.equal(emission.trim(), "", `Out-of-scope kernel elaboration: ${emission}`)
     assert.equal(run(kernel, [artifact]).trim(), "ALL PROOFS CHECK")
     return { law, ...selected, bendttSha256: createHash("sha256").update(readFileSync(artifact)).digest("hex") }
@@ -117,7 +128,7 @@ try {
   for (const [law, before, after] of bendMutants) {
     stateProof(law)
     stateSlice(temp, { law, mutate: [before, after] })
-    const rejected = run("bend", [join(temp, "MotionStatePROOF.bend")], 1)
+    const rejected = run(bend, [join(temp, "MotionStatePROOF.bend")], 1)
     assert.match(rejected, /SOME PROOFS FAIL/)
     assert.ok(rejected.includes(law), `Mutation failed outside law ${law}: ${rejected}`)
     receipt.mutants.push({ law, boundary: "Bend", result: "rejected" })

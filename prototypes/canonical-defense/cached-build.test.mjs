@@ -12,8 +12,10 @@ function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), "defense-cache-test-"))
   t.after(() => rmSync(root, { recursive: true, force: true }))
   const prototypeDir = join(root, "prototypes/canonical-defense")
-  const bendDirectory = join(root, ".bend/bend2")
+  const bendDirectory = join(root, "bend2")
   const bin = join(root, "bin")
+  for (const directory of ["packages/monkey-business-bend", "packages/agent-flow-bend"]) mkdirSync(join(root, directory), { recursive: true })
+  for (const file of ["packages/monkey-business-bend/compiler.mjs", "packages/agent-flow-bend/package.json"]) copyFileSync(join(owner, "../..", file), join(root, file))
   for (const directory of [prototypeDir, bendDirectory, bin]) mkdirSync(directory, { recursive: true })
   for (const name of ["run.sh", "cached-build.mjs", "clang-no-stack-check.sh", "recording-launch.mjs"]) copyFileSync(join(owner, name), join(prototypeDir, name))
   writeFileSync(join(prototypeDir, "DefenseMain.bend"), 'import Base\nimport ./Dependency.bend\n')
@@ -22,7 +24,7 @@ function fixture(t) {
   writeFileSync(join(prototypeDir, "header.h"), "// native header\n")
   writeFileSync(join(bendDirectory, "base.bend"), "// base runtime\n")
   writeFileSync(join(bin, "bend"), `#!/bin/sh
-if [ "$1" = version ]; then printf '%s\\n' "bend \${CACHE_TEST_VERSION:-2.0.34}"; exit; fi
+if [ "$1" = version ]; then printf '%s\\n' "bend \${CACHE_TEST_VERSION:-2.0.36}"; exit; fi
 printf 'build\\n' >> "$CACHE_TEST_COUNT"
 if [ -n "$CACHE_TEST_MUTATE" ]; then printf '// changed\\n' >> "$CACHE_TEST_MUTATE"; fi
 cat > "$3" <<'GAME'
@@ -59,14 +61,16 @@ test("tool versions, compiler contents, flags and wrapper code invalidate reuse"
   const f = fixture(t)
   const first = f.run()
   f.environment.CACHE_TEST_VERSION = "2.0.35"
-  assert.notEqual(f.run().key, first.key)
+  assert.throws(f.run, /requires exact bend 2\.0\.36; observed bend 2\.0\.35/)
+  assert.equal(f.count(), 1)
+  delete f.environment.CACHE_TEST_VERSION
   writeFileSync(join(f.bin, "clang"), '#!/bin/sh\nprintf "Apple clang version 21.0.1\\n"\n')
   assert.equal(f.run().reused, false)
   f.environment.CPATH = "/other/includes"
   assert.equal(f.run().reused, false)
   writeFileSync(join(f.prototypeDir, "clang-no-stack-check.sh"), "#!/bin/sh\n# changed wrapper\n")
   assert.equal(f.run().reused, false)
-  assert.equal(f.count(), 5)
+  assert.equal(f.count(), 4)
 })
 
 test("missing receipts and damaged executables are rebuilt", t => {

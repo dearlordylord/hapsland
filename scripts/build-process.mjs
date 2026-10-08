@@ -46,6 +46,9 @@ export async function runBuildProcess(command, args, { cwd, env, timeout = 30000
   const stop = (message) => {
     if (failure) return
     failure = message instanceof Error ? message : new Error(message)
+    // An inherited group stop also signals this caller. Preserve the initiating
+    // deadline diagnostic before that signal can replace it with interruption.
+    if (!ownsGroup) process.stderr.write(`${failure.message}: ${command}\n`)
     signal("SIGTERM")
     escalation ??= setTimeout(() => signal("SIGKILL"), 1000)
   }
