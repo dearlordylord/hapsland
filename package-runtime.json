@@ -3,7 +3,7 @@
   "runtime": {
     "name": "bun",
     "version": "1.3.14",
-    "distribution": "standalone-executables"
+    "distribution": "shared-embedded-runtime"
   },
   "codex": {
     "testedVersions": [

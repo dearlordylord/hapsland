@@ -7,7 +7,7 @@ import {
 import { withBuildLock } from "./build-lock.mjs"
 import { assemblyContext } from "./assembly-context.mjs"
 import { checkAssemblyReceipt, assemblyReceiptDigest } from "./check-assembly-receipt.mjs"
-import { readFileSync, rmSync, writeFileSync, mkdirSync, renameSync } from "node:fs"
+import { readFileSync, rmSync, writeFileSync, mkdirSync, renameSync, chmodSync } from "node:fs"
 import { dirname, resolve, basename, relative } from "node:path"
 import { physicalNativeBindings } from "../packages/source-analysis/src/direct-event/languages/native-bindings.ts"
 import { fileEvidence } from "./compiler-evidence.mjs"
@@ -16,6 +16,7 @@ import { readPackageGraph } from "./package-graph.mjs"
 import { createHash } from "node:crypto"
 import { externalRuntimeEvidence } from "./external-runtime-evidence.mjs"
 import { standaloneNativeRootExpression } from "./external-loader-profile.mjs"
+import { sharedRuntimeBundle, sharedRuntimeLauncher } from "./shared-runtime-bundle.mjs"
 const [entrypoint, target, outfile, sourceReceiptPath, receiptPath] = process.argv.slice(2)
 const root = resolve(import.meta.dirname, "..")
 await withBuildLock(root, async () => {
@@ -47,6 +48,8 @@ await withBuildLock(root, async () => {
     rmSync(staging, { recursive: true, force: true })
     mkdirSync(staging, { recursive: true })
     const stagedOutput = resolve(staging, basename(outfile))
+    const sharedRuntime = snapshot.role !== "cli"
+    const stagedBundle = `${stagedOutput}.js`
     let transformations = []
     let transformedText = new Map()
     const digest = (contents) => createHash("sha256").update(contents).digest("hex")
@@ -76,14 +79,14 @@ await withBuildLock(root, async () => {
         )
       ]
     }
-    const assemble = async (compile) => {
+    const assemble = async (compile, previous) => {
+      const started = performance.now()
       transformations = []
       transformedText = new Map()
       const result = await Bun.build({
         ...options,
-        ...(compile
+        ...(compile && !sharedRuntime
           ? {
-              bytecode: true,
               compile: {
                 target,
                 outfile: stagedOutput,
@@ -99,6 +102,12 @@ await withBuildLock(root, async () => {
         for (const log of result.logs) console.error(log)
         throw new Error("Standalone assembly failed")
       }
+      if (compile && sharedRuntime) {
+        if (result.outputs.length !== 1) throw new Error("Command bundle must produce exactly one JavaScript file")
+        writeFileSync(stagedBundle, sharedRuntimeBundle(await result.outputs[0].text()), { mode: 0o644 })
+        writeFileSync(stagedOutput, sharedRuntimeLauncher(basename(outfile)), { mode: 0o755 })
+      }
+      if (compile) chmodSync(stagedOutput, 0o755)
       const inputs = checkAssemblyContributions(
         root,
         entrypoint,
@@ -107,22 +116,30 @@ await withBuildLock(root, async () => {
         undefined,
         (specifier, importer) => Bun.resolveSync(specifier, dirname(importer))
       )
-      return {
-        metafile: result.metafile,
-        transformations: transformations.sort((left, right) => left.path.localeCompare(right.path)),
-        inputs,
-        externalRuntime: externalRuntimeEvidence(
-          root,
-          inputs,
-          transformations,
-          transformedText,
-          target,
-          (specifier, directory) => Bun.resolveSync(specifier, directory),
-          entrypoint,
-          analysis,
-          native.assets
-        )
-      }
+      const observedTransformations = transformations.sort((left, right) => left.path.localeCompare(right.path))
+      // Source/manifest/import hashes and native transformations pin this proof.
+      // A second identical bundle does not need another full AST loader walk.
+      const unchanged =
+        previous &&
+        JSON.stringify(previous.inputs) === JSON.stringify(inputs) &&
+        JSON.stringify(previous.transformations) === JSON.stringify(observedTransformations)
+      const externalRuntime = unchanged
+        ? previous.externalRuntime
+        : externalRuntimeEvidence(
+            root,
+            inputs,
+            transformations,
+            transformedText,
+            target,
+            (specifier, directory) => Bun.resolveSync(specifier, directory),
+            entrypoint,
+            analysis,
+            native.assets
+          )
+      console.log(
+        `Assembly ${snapshot.role}/${target}: ${compile ? "produce" : "preview"} ${(performance.now() - started).toFixed(0)}ms`
+      )
+      return { metafile: result.metafile, transformations: observedTransformations, inputs, externalRuntime }
     }
     const preview = await assemble(false)
     const nativeAssets = (inputs) => {
@@ -134,7 +151,7 @@ await withBuildLock(root, async () => {
       })
     }
     const assetsBefore = nativeAssets(preview.inputs)
-    const compiled = await assemble(true)
+    const compiled = await assemble(true, preview)
     if (JSON.stringify(preview.inputs) !== JSON.stringify(compiled.inputs)) {
       const evidence = resolve(root, ".test-runs/assembly-failures", target + "-" + outfile.split("/").at(-1) + ".json")
       mkdirSync(dirname(evidence), { recursive: true })
@@ -158,9 +175,11 @@ await withBuildLock(root, async () => {
       transformations: compiled.transformations,
       externalRuntime: compiled.externalRuntime,
       nativeAssets: assetsBefore,
-      output: fileEvidence(root, stagedOutput)
+      output: fileEvidence(root, stagedOutput),
+      ...(sharedRuntime ? { bundle: fileEvidence(root, stagedBundle) } : {})
     }
     const stagedReceipt = { ...receipt, digest: assemblyReceiptDigest(receipt) }
+    const validationStarted = performance.now()
     checkAssemblyReceipt(
       root,
       stagedReceipt,
@@ -169,21 +188,22 @@ await withBuildLock(root, async () => {
       stagedOutput,
       assemblyNativeArtifacts(root, snapshot)
     )
+    console.log(
+      `Assembly ${snapshot.role}/${target}: receipt validation ${(performance.now() - validationStarted).toFixed(0)}ms`
+    )
     receipt.output.path = relative(root, outfile).replaceAll("\\", "/")
+    if (receipt.bundle) receipt.bundle.path = `${receipt.output.path}.js`
     writeFileSync(
       resolve(staging, basename(receiptPath)),
       JSON.stringify({ ...receipt, digest: assemblyReceiptDigest(receipt) }, null, 2) + "\n"
     )
     rmSync(dirname(outfile), { recursive: true, force: true })
     renameSync(staging, dirname(outfile))
-    checkAssemblyReceipt(
-      root,
-      JSON.parse(readFileSync(receiptPath, "utf8")),
-      await context(),
-      entrypoint,
-      outfile,
-      assemblyNativeArtifacts(root, snapshot)
-    )
+    // The parent revalidates the published owner artifact after this process
+    // exits. Here the atomic rename only needs to preserve the validated bytes.
+    for (const evidence of [receipt.output, ...(receipt.bundle ? [receipt.bundle] : [])])
+      if (JSON.stringify(fileEvidence(root, resolve(root, evidence.path))) !== JSON.stringify(evidence))
+        throw new Error("Assembly output changed during publication")
   } catch (error) {
     clean()
     rmSync(dirname(outfile) + `.stage-${process.pid}`, { recursive: true, force: true })

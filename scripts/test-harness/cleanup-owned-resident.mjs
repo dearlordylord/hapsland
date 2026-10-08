@@ -1,9 +1,21 @@
 import { execFileSync } from "node:child_process"
-import { readFileSync, readdirSync, realpathSync } from "node:fs"
-import { join } from "node:path"
+import { readFileSync, readdirSync, realpathSync, statSync } from "node:fs"
+import { basename, dirname, join } from "node:path"
+import { sharedRuntimeLauncher } from "../shared-runtime-bundle.mjs"
 
 const absent = (error) => error.code === "ENOENT" || error.code === "ESRCH"
 const canonical = (path) => realpathSync(path)
+const canonicalArgument = (argument) => (argument.startsWith("--") ? argument : canonical(argument))
+const processCommand = (command) => {
+  if (command.args.length !== 0 || basename(command.executable) !== "hapsland-resident") return command
+  if (statSync(command.executable).size > 1024) return command
+  if (readFileSync(command.executable, "utf8") !== sharedRuntimeLauncher("hapsland-resident")) return command
+  const directory = dirname(canonical(command.executable))
+  return {
+    executable: join(directory, "hapsland"),
+    args: ["--no-install", "--no-env-file", "--config=/dev/null", join(directory, "hapsland-resident.js")]
+  }
+}
 const pause = () => new Promise((resolve) => setTimeout(resolve, 20))
 export const observeOwnedResidentProcess = (pid, directory, commands, options = {}) => {
   const platform = options.platform ?? process.platform
@@ -16,12 +28,13 @@ export const observeOwnedResidentProcess = (pid, directory, commands, options = 
         timeout: 1000
       }))
   try {
+    commands = commands.map(processCommand)
     if (platform !== "linux") {
       const output = inspectPs().trim()
       if (!output) return undefined
       const owned = commands.some((command) =>
         output.endsWith(
-          `${canonical(command.executable)} ${[...command.args.map(canonical), canonical(directory)].join(" ")}`
+          `${canonical(command.executable)} ${[...command.args.map(canonicalArgument), canonical(directory)].join(" ")}`
         )
       )
       return { pid, start: output.slice(0, 24), owned }
@@ -37,7 +50,7 @@ export const observeOwnedResidentProcess = (pid, directory, commands, options = 
         return (
           executable === canonical(command.executable) &&
           args.length === expected.length &&
-          args.every((argument, index) => canonical(argument) === canonical(expected[index]))
+          args.every((argument, index) => canonicalArgument(argument) === canonicalArgument(expected[index]))
         )
       } catch {
         return false

@@ -25,6 +25,10 @@ import { basename, dirname, join, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..")
+const residentProcessCommand = (profileDirectory) => ({
+  executable: join(profileDirectory, "hapsland"),
+  args: ["--no-install", "--no-env-file", "--config=/dev/null", join(profileDirectory, "hapsland-resident.js")]
+})
 const runtimeDeclaration = JSON.parse(await readFile(join(root, "package-runtime.json"), "utf8"))
 const executeRealCodex = process.argv.includes("--real-codex")
 const writeEvidence = process.argv.includes("--write-evidence")
@@ -798,7 +802,7 @@ try {
       },
       tool_response: {}
     }
-    const residentCommand = { executable: join(profileDirectory, "hapsland-resident"), args: [] }
+    const residentCommand = residentProcessCommand(profileDirectory)
     ownedResidents.set(isolatedRuntime, [residentCommand])
     try {
       await mustRun(hook, ["--composed-before-edit-hook", "--composed-host=codex-cli", "--controlled-reviewer"], {
@@ -858,16 +862,10 @@ try {
     residentProtocol: 1
   })
   ownedResidents.set(runtime, [
-    { executable: join(profileDirectory, "hapsland-resident"), args: [] },
-    {
-      executable: join(
-        dirname(await realpath(targetPackage.cli)),
-        "../dist/bin",
-        `${process.platform}-${process.arch}`,
-        "hapsland-resident"
-      ),
-      args: []
-    }
+    residentProcessCommand(profileDirectory),
+    residentProcessCommand(
+      join(dirname(await realpath(targetPackage.cli)), "../dist/bin", `${process.platform}-${process.arch}`)
+    )
   ])
   const answers = Object.fromEntries(
     [
