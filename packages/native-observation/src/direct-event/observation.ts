@@ -1,3 +1,4 @@
+import type { CaptureDiagnostic } from "./capture.ts"
 import type { PathEligibilityReason } from "./selection.ts"
 import type { VerifiedPatchHunk } from "./edit-attribution.ts"
 
@@ -121,46 +122,7 @@ export type NativeCandidateMetadata = {
   readonly selection: NativeSelection
 }
 export type NativeBoundaryDiagnostic =
-  | {
-      readonly stage: "capture"
-      readonly code: "capture-size-limit"
-      readonly args: { readonly observedBytes: number; readonly limitBytes: number }
-    }
-  | {
-      readonly stage: "capture"
-      readonly code: "capture-budget-limit"
-      readonly args: {
-        readonly resource: "files" | "bytes"
-        readonly used: number
-        readonly requested: number
-        readonly limit: number
-      }
-    }
-  | {
-      readonly stage: "capture"
-      readonly code: "capture-unavailable"
-      readonly args: { readonly reason: "missing" | "access" | "io" | "mechanism" | "unknown" }
-    }
-  | {
-      readonly stage: "capture"
-      readonly code: "capture-unstable"
-      readonly args: { readonly checkpoint: "descriptor" | "double-read" }
-    }
-  | {
-      readonly stage: "capture"
-      readonly code: "capture-validation-failed"
-      readonly args: {
-        readonly reason:
-          | "root-identity"
-          | "git-identity"
-          | "path-binding"
-          | "file-kind"
-          | "text-encoding"
-          | "source-null-byte"
-          | "budget-argument"
-      }
-    }
-  | { readonly stage: "capture"; readonly code: "panic"; readonly args: { readonly boundary: "stable-capture" } }
+  | CaptureDiagnostic
   | { readonly stage: "observation"; readonly code: "attribution-unavailable"; readonly args: {} }
   | { readonly stage: "admission"; readonly code: "dispatch-unavailable"; readonly args: {} }
 export type NativeEditMetadata = {

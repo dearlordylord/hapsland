@@ -43,11 +43,17 @@ export async function validateAssemblyArtifact(root, owner, profile, snapshot) {
     assemblyNativeArtifacts(root, snapshot)
   )
   const inventory = fileInventory(root, paths.directory).filter((file) => resolve(root, file.path) !== paths.receipt)
-  if (JSON.stringify(inventory) !== JSON.stringify([receipt.output]))
+  const outputs = [receipt.output, ...(receipt.bundle ? [receipt.bundle] : [])].sort((a, b) =>
+    a.path.localeCompare(b.path)
+  )
+  if (JSON.stringify(inventory) !== JSON.stringify(outputs))
     throw new Error("Incomplete or changed standalone artifact inventory")
   return {
     receipt,
-    outputs: [{ ...receipt.output, publicPath: `dist/bin/${profile}/${owner.manifest.hapsland.executable}` }]
+    outputs: outputs.map((output) => ({
+      ...output,
+      publicPath: `dist/bin/${profile}/${owner.manifest.hapsland.executable}${output === receipt.bundle ? ".js" : ""}`
+    }))
   }
 }
 export async function assembleEntry(root, owner, profile) {

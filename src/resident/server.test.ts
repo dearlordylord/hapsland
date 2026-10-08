@@ -184,11 +184,14 @@ describe("canonical resident capacity", () => {
           captured.push(path.relativePath)
           const bytes = new TextEncoder().encode(text)
           return {
-            text,
-            bytes,
-            byteLength: bytes.byteLength,
-            contentHash: createHash("sha256").update(bytes).digest("hex"),
-            metadata: "rule-fixture"
+            status: "captured" as const,
+            capture: {
+              text,
+              bytes,
+              byteLength: bytes.byteLength,
+              contentHash: createHash("sha256").update(bytes).digest("hex"),
+              metadata: "rule-fixture"
+            }
           }
         }),
       reviewControls: reviewControlsLayer({
@@ -263,11 +266,14 @@ describe("canonical resident capacity", () => {
           const text = "type SafeCount = number\n"
           const bytes = new TextEncoder().encode(text)
           return {
-            text,
-            bytes,
-            byteLength: bytes.byteLength,
-            contentHash: createHash("sha256").update(bytes).digest("hex"),
-            metadata: "fixture"
+            status: "captured" as const,
+            capture: {
+              text,
+              bytes,
+              byteLength: bytes.byteLength,
+              contentHash: createHash("sha256").update(bytes).digest("hex"),
+              metadata: "fixture"
+            }
           }
         }),
       reviewControls: reviewControlsLayer({
@@ -3754,7 +3760,8 @@ describe("resident delivery lease", () => {
     const workspaceReserved = deferred()
     const releaseRevalidation = deferred()
     let held = false
-    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 100, {
+    let clock = 100
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock, {
       reviewControls: reviewControlsLayer({
         afterRevalidationWorkspaceReserved: () =>
           Effect.gen(function* () {
@@ -3772,31 +3779,44 @@ describe("resident delivery lease", () => {
     const collecting = Effect.runPromise(
       server.collect(root, advicee({ turnId: "collecting", toolUseId: "collecting" }), dispatch)
     )
-    await workspaceReserved.promise
-    expect(Effect.runSync(server.stats()).retainedBytes).toBeGreaterThan(baseBytes)
+    try {
+      await workspaceReserved.promise
+      expect(Effect.runSync(server.stats()).retainedBytes).toBeGreaterThan(baseBytes)
+      clock += PENDING_ADVICE_EXPIRY_MS
+      await Effect.runPromise(server.sweepQuietRounds())
+      expect(await Effect.runPromise(server.pendingAdviceMetadata())).toHaveLength(0)
+      const cacheBytes = (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes
+      expect(Effect.runSync(server.stats()).retainedBytes).toBeGreaterThan(cacheBytes)
 
-    await put(root, "type.ts", "type OrderCount = string\n")
-    const replacement = await Effect.runPromise(
-      adaptCodexDirectEvent(addEvent(root, ["type.ts"], { tool_use_id: "replacement-during-active-revalidation" }))
-    )
-    expect(replacement).toBeDefined()
-    if (replacement === undefined) return
-    expect((await Effect.runPromise(server.admit(replacement, dispatch))).status).toBe("accepted")
-    await Effect.runPromise(server.whenIdle())
-    const replacementAdvice = await Effect.runPromise(server.pendingAdviceMetadata())
-    expect(replacementAdvice).toHaveLength(1)
-    expect(replacementAdvice[0]?.generation).toBe(2)
-    expect(Effect.runSync(server.stats()).currentWork).toBe(1)
-    const replacementBytes = replacementAdvice[0]?.retainedBytes ?? 0
-    expect(Effect.runSync(server.stats()).retainedBytes).toBeGreaterThan(replacementBytes)
-
-    releaseRevalidation.resolve()
+      // Two maximum-size capture workspaces cannot fit the recipient budget.
+      await put(root, "type.ts", "type OrderCount = string\n")
+      const replacement = await Effect.runPromise(
+        adaptCodexDirectEvent(addEvent(root, ["type.ts"], { tool_use_id: "replacement-during-active-revalidation" }))
+      )
+      if (replacement === undefined) throw new Error("fixture replacement adaptation failed")
+      const rejectedBefore = Effect.runSync(server.stats()).rejectedCapacity
+      expect((await Effect.runPromise(server.admit(replacement, dispatch))).status).toBe("accepted")
+      await Effect.runPromise(server.whenIdle())
+      expect(await Effect.runPromise(server.pendingAdviceMetadata())).toHaveLength(0)
+      expect(Effect.runSync(server.stats()).rejectedCapacity).toBe(rejectedBefore + 1)
+      expect(Effect.runSync(server.stats()).retainedBytes).toBeGreaterThan(cacheBytes)
+    } finally {
+      releaseRevalidation.resolve()
+      await collecting
+    }
     await expect(collecting).resolves.toMatchObject({ status: "empty" })
     expect(Effect.runSync(server.stats())).toMatchObject({
-      pendingAdvice: 1,
-      currentWork: 1,
-      retainedBytes: replacementBytes + (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes
+      pendingAdvice: 0,
+      currentWork: 0,
+      retainedBytes: (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes
     })
+    const retry = await Effect.runPromise(
+      adaptCodexDirectEvent(addEvent(root, ["type.ts"], { tool_use_id: "replacement-after-workspace-release" }))
+    )
+    if (retry === undefined) throw new Error("fixture retry adaptation failed")
+    expect((await Effect.runPromise(server.admit(retry, dispatch))).status).toBe("accepted")
+    await Effect.runPromise(server.whenIdle())
+    expect(await Effect.runPromise(server.pendingAdviceMetadata())).toHaveLength(1)
     const delivered = await Effect.runPromise(
       server.collect(root, advicee({ turnId: "later", toolUseId: "replacement" }), dispatch)
     )

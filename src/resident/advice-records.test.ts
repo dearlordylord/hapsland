@@ -78,7 +78,7 @@ const fixture = (existing?: Owner) =>
     const admissionId = yield* owner.admitObservation("agent")
     yield* owner.observation("agent", admissionId, "startObservation", round.canonicalRound)
     const preparation = yield* owner.beginObservedPreparation("agent", admissionId, 100, round.canonicalRound)
-    if (preparation === undefined) throw new Error("fixture preparation refused")
+    if (preparation.status !== "admitted") throw new Error("fixture preparation refused")
     const [unit] = yield* owner.completePreparation(
       "agent",
       preparation.operation,

@@ -1010,6 +1010,9 @@ const writeSetupRuleInventory = Effect.fn("InteractiveSetup.ruleInventory")(func
       )
   }
 })
+const setupActivationCompleted = (
+  result: Effect.Success<ReturnType<typeof import("@hapsland/administration/onboarding/pilot").runPilotSetup>>
+): boolean => result.kind === "completed" && result.exitCode === 0 && result.model.activation === "completed"
 const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClient) {
   const interaction = yield* InteractionService
   const { runSetup } = yield* Effect.promise(() => import("@hapsland/administration/onboarding/setup"))
@@ -1075,6 +1078,11 @@ const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClien
   )
   if (result.exitCode !== 0) process.exitCode = result.exitCode
   if (result.kind === "completed") yield* writeSetupRuleInventory(terminal, cwd, configuration)
+  if (setupActivationCompleted(result)) {
+    yield* interaction.present(
+      `\n✅ Setup complete.\nNext: restart ${CLIENT_NAMES[host]}, complete any native trust prompts, then make an edit and check the inspection dashboard.\n`
+    )
+  }
   return result
 })
 

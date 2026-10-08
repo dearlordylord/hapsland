@@ -25,6 +25,11 @@ export const checkAssemblyReceipt = (root, receipt, context, entry, output, nati
     throw new Error("Missing, mismatched or stale assembly receipt")
   if (context.prerequisite) {
     checkAssemblyPrerequisite(root, context.prerequisite)
+    if (
+      (context.prerequisite.role !== "cli") !== Boolean(receipt.bundle) ||
+      (receipt.bundle && (receipt.bundle.path !== `${receipt.output.path}.js` || receipt.bundle.mode !== 0o644))
+    )
+      throw new Error("Missing or mismatched shared-runtime command bundle")
     const required = requiredAssemblyNativePaths(readPackageGraph(root), context.target.slice(4), receipt.inputs)
     if (JSON.stringify(required) !== JSON.stringify(receipt.nativeAssets.map((asset) => asset.publicPath).sort()))
       throw new Error("Missing or additional owned native artifact")
@@ -35,7 +40,7 @@ export const checkAssemblyReceipt = (root, receipt, context, entry, output, nati
         throw new Error("Unaccounted owned native artifact")
     }
   }
-  const evidence = [receipt.entry, receipt.output, ...receipt.nativeAssets]
+  const evidence = [receipt.entry, receipt.output, ...(receipt.bundle ? [receipt.bundle] : []), ...receipt.nativeAssets]
   const transformed = new Set()
   for (const transformation of receipt.transformations) {
     if (

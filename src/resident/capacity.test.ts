@@ -9,6 +9,34 @@ import {
 } from "@hapsland/resident-runtime/resident/capacity"
 
 describe("resident logical capacity ledger", () => {
+  it("distinguishes preparation capacity refusal from invalid measurement and wrong stage", () => {
+    const ledger = Effect.runSync(
+      makeResidentState({ globalItems: 4, globalBytes: 100, partitionItems: 3, partitionBytes: 80 })
+    )
+    const round = Effect.runSync(ledger.roundId("agent"))
+    const observation = Effect.runSync(ledger.admitObservation("agent", round))
+    expect(Effect.runSync(ledger.beginObservedPreparation("agent", observation, NaN, round))).toEqual({
+      status: "invalid-measurement"
+    })
+    expect(Effect.runSync(ledger.beginObservedPreparation("agent", observation, 10, round))).toEqual({
+      status: "unavailable",
+      reason: "wrong-stage"
+    })
+    expect(Effect.runSync(ledger.observation("agent", observation, "startObservation", round))).toBe(true)
+    expect(Effect.runSync(ledger.beginObservedPreparation("agent", observation, 81, round))).toEqual({
+      status: "capacity-refused"
+    })
+    expect(Effect.runSync(ledger.snapshot()).bytes).toBe(0)
+    const preparation = Effect.runSync(ledger.beginObservedPreparation("agent", observation, 80, round))
+    if (preparation.status !== "admitted") throw new Error("fixture preparation refused")
+    expect(Effect.runSync(ledger.resize(preparation.reservation, Infinity))).toEqual({ status: "invalid-measurement" })
+    expect(Effect.runSync(ledger.resize(preparation.reservation, 81))).toEqual({
+      status: "capacity-refused",
+      constraint: "partitionBytes"
+    })
+    expect(Effect.runSync(ledger.reservationSnapshot(preparation.reservation))?.bytes).toBe(80)
+  })
+
   it("keeps reservation metadata private and fences a reused numeric ID", () => {
     const ledger = Effect.runSync(makeResidentState())
     const issued = Effect.runSync(ledger.reserve("agent", 20, "preparation"))
@@ -17,7 +45,7 @@ describe("resident logical capacity ledger", () => {
     expect(Object.keys(issued)).toEqual(["id", "partition"])
     expect(Reflect.set(issued, "bytes", 999)).toBe(false)
     expect(Reflect.set(issued, "purpose", "storedResult")).toBe(false)
-    expect(Effect.runSync(ledger.resize(issued, 30, "storedResult"))).toBe(true)
+    expect(Effect.runSync(ledger.resize(issued, 30, "storedResult"))).toEqual({ status: "resized" })
     expect(Effect.runSync(ledger.reservationSnapshot(issued))?.bytes).toBe(30)
     expect(Effect.runSync(ledger.reservationSnapshot(issued))?.purpose).toBe("storedResult")
     expect(Effect.runSync(ledger.snapshot()).bytes).toBe(30)
@@ -27,7 +55,7 @@ describe("resident logical capacity ledger", () => {
     expect(replacement?.id).toBe(issued.id)
     expect(Effect.runSync(ledger.reservationSnapshot(issued))).toBeUndefined()
     expect(Effect.runSync(ledger.release(issued))).toBe(false)
-    expect(Effect.runSync(ledger.resize(issued, 1))).toBe(false)
+    expect(Effect.runSync(ledger.resize(issued, 1))).toEqual({ status: "invalid-reservation" })
     expect(replacement === undefined ? undefined : Effect.runSync(ledger.reservationSnapshot(replacement))?.bytes).toBe(
       90
     )
@@ -505,16 +533,16 @@ describe("resident logical capacity ledger", () => {
     const observation = Effect.runSync(ledger.admitObservation("agent"))
     expect(Effect.runSync(ledger.observation("agent", observation, "startObservation", round))).toBe(true)
     const preparation = Effect.runSync(ledger.beginObservedPreparation("agent", observation, 10, round))
-    expect(preparation).toBeDefined()
+    expect(preparation.status).toBe("admitted")
     const completion = ledger.observation("agent", observation, "completeObservation", round)
     const latePreparation = ledger.beginObservedPreparation("agent", observation, 10, round)
     const split =
-      preparation === undefined
+      preparation.status !== "admitted"
         ? undefined
         : ledger.completePreparation("agent", preparation.operation, preparation.reservation, [5], round)
     Effect.runSync(ledger.retireRound("agent", round))
     expect(Effect.runSync(completion)).toBe(false)
-    expect(Effect.runSync(latePreparation)).toBeUndefined()
+    expect(Effect.runSync(latePreparation)).toEqual({ status: "unavailable", reason: "wrong-stage" })
     if (split !== undefined) expect(() => Effect.runSync(split)).toThrow("invalid canonical preparation completion")
     expect(Effect.runSync(ledger.canonicalProjection()).rounds).toEqual([])
     expect(Effect.runSync(ledger.canonicalProjection()).work).toEqual([])
@@ -532,11 +560,14 @@ describe("resident logical capacity ledger", () => {
     expect(Effect.runSync(ledger.roundId("agent"))).toBe(nextRound)
     expect(Effect.runSync(ledger.observation("agent", oldSource, "startObservation", oldRound))).toBe(false)
     expect(Effect.runSync(ledger.observation("agent", source, "startObservation", oldRound))).toBe(false)
-    expect(Effect.runSync(ledger.beginObservedPreparation("agent", source, 10, oldRound))).toBeUndefined()
+    expect(Effect.runSync(ledger.beginObservedPreparation("agent", source, 10, oldRound))).toEqual({
+      status: "unavailable",
+      reason: "wrong-stage"
+    })
     expect(Effect.runSync(ledger.observation("agent", source, "startObservation", nextRound))).toBe(true)
     const preparation = Effect.runSync(ledger.beginObservedPreparation("agent", source, 10, nextRound))
-    expect(preparation).toBeDefined()
-    if (preparation === undefined) throw new Error("preparation missing")
+    expect(preparation.status).toBe("admitted")
+    if (preparation.status !== "admitted") throw new Error("preparation missing")
     const [unit] = Effect.runSync(
       ledger.completePreparation("agent", preparation.operation, preparation.reservation, [5], nextRound)
     )
@@ -633,8 +664,11 @@ describe("resident logical capacity ledger", () => {
     const workspace = Effect.runSync(ledger.reserve("one", 20, "preparation"))
     expect(workspace).toBeDefined()
     if (workspace === undefined) return
-    expect(Effect.runSync(ledger.resize(workspace, 80))).toBe(true)
-    expect(Effect.runSync(ledger.resize(workspace, 81))).toBe(false)
+    expect(Effect.runSync(ledger.resize(workspace, 80))).toEqual({ status: "resized" })
+    expect(Effect.runSync(ledger.resize(workspace, 81))).toEqual({
+      status: "capacity-refused",
+      constraint: "partitionBytes"
+    })
     const replacements = Effect.runSync(ledger.replace(workspace, [30, 30, 20, 1]))
     expect(replacements.slice(0, 3).every((item) => item !== undefined)).toBe(true)
     expect(replacements[3]).toBeUndefined()
@@ -665,7 +699,7 @@ describe("resident logical capacity ledger", () => {
     expect(Effect.runSync(ledger.release(first))).toBe(false)
     if (one === undefined || three === undefined) return
     expect(Effect.runSync(ledger.release(second))).toBe(true)
-    expect(Effect.runSync(ledger.resize(one, 20, "adviceRecheck"))).toBe(true)
+    expect(Effect.runSync(ledger.resize(one, 20, "adviceRecheck"))).toEqual({ status: "resized" })
     expect(Effect.runSync(ledger.reservationSnapshot(one))?.purpose).toBe("adviceRecheck")
     expect(Effect.runSync(ledger.release(one))).toBe(true)
     expect(Effect.runSync(ledger.release(one))).toBe(false)
@@ -712,7 +746,7 @@ effectIt.effect("reads reservation metadata on execution and fences foreign or r
     const initial = yield* read
     expect(initial).toEqual({ bytes: 10, purpose: "preparation" })
     expect(Object.isFrozen(initial)).toBe(true)
-    expect(yield* owner.resize(reservation, 20)).toBe(true)
+    expect(yield* owner.resize(reservation, 20)).toEqual({ status: "resized" })
     expect(yield* read).toEqual({ bytes: 20, purpose: "preparation" })
     expect(initial?.bytes).toBe(10)
     expect(yield* owner.reservationSnapshot({ ...reservation })).toBeUndefined()
@@ -726,9 +760,9 @@ effectIt.effect("reads reservation metadata on execution and fences foreign or r
         throw new Error("foreign metadata getter")
       }
     }
-    expect(yield* owner.resize(forged, 21)).toBe(false)
-    expect(yield* owner.resize(reservation, 20, "storedResult")).toBe(true)
-    expect(yield* owner.resize(reservation, 21)).toBe(true)
+    expect(yield* owner.resize(forged, 21)).toEqual({ status: "invalid-reservation" })
+    expect(yield* owner.resize(reservation, 20, "storedResult")).toEqual({ status: "resized" })
+    expect(yield* owner.resize(reservation, 21)).toEqual({ status: "resized" })
     expect(yield* read).toEqual({ bytes: 21, purpose: "storedResult" })
     const clear = owner.clear()
     expect(yield* read).toEqual({ bytes: 21, purpose: "storedResult" })

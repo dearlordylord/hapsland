@@ -2,7 +2,6 @@ import {
   captureOptionsForTarget,
   captureFilePolicy,
   captureNativeTarget,
-  observeNativeMetadata,
   type DirectCaptureOptions
 } from "./capture-policy.ts"
 import {
@@ -600,14 +599,14 @@ export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEv
     advicee: claudeAdvicee(event),
     candidates: [{ position: 0, operation: claudeEditOperation(event, response), path: relativePath, selection }]
   }
-  observeNativeMetadata(options, metadata)
+  options.observeNative?.(metadata)
   if (selection.status !== "selected" || selectedOptions === undefined) return undefined
   const content = yield* captureNativeTarget(metadata, relativePath, root.value.absolutePath, selectedOptions, options)
   if (content === undefined) return undefined
 
   const change = verifiedClaudeChange(event, input, response, path, relativePath, content.text)
   if (change === undefined) {
-    observeNativeMetadata(options, {
+    options.observeNative?.({
       ...metadata,
       diagnostic: { stage: "observation", code: "attribution-unavailable", args: {} }
     })

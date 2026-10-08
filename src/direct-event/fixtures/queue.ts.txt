@@ -1,0 +1,100 @@
+import { readFileSync, writeFileSync, renameSync, unlinkSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+
+type Base = { id: string; title: string; attempts: number };
+export type Job = Base & (
+  | { status: 'queued' | 'running' }
+  | { status: 'completed'; result: string }
+  | { status: 'failed'; failureReason: string }
+  | { status: 'cancelled'; cancellationReason: string }
+);
+export type Command = 'add' | 'list' | 'start' | 'succeed' | 'fail' | 'cancel' | 'retry';
+
+function nonempty(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+export function load(path: string): Job[] {
+  let raw: string;
+  try {
+    raw = readFileSync(path, 'utf8');
+  } catch (error) {
+    if ((error as { code?: string }).code === 'ENOENT') return [];
+    throw error;
+  }
+  let data: unknown;
+  try { data = JSON.parse(raw); } catch { throw new Error('Malformed store: invalid JSON'); }
+  const invalid = (): never => { throw new Error('Malformed store: invalid job data'); };
+  if (!Array.isArray(data)) invalid();
+  const ids = new Set<string>();
+  for (const item of data as unknown[]) {
+    if (typeof item !== 'object' || item === null || Array.isArray(item)) invalid();
+    const job = item as Record<string, unknown>;
+    if (!nonempty(job.id) || !nonempty(job.title) ||
+        !Number.isSafeInteger(job.attempts) || (job.attempts as number) < 0) invalid();
+    const id = job.id as string;
+    if (ids.has(id)) throw new Error(`Malformed store: duplicate ID ${id}`);
+    ids.add(id);
+    const fields = ['id', 'title', 'attempts', 'status'];
+    switch (job.status) {
+      case 'queued': case 'running': break;
+      case 'completed': fields.push('result'); if (!nonempty(job.result)) invalid(); break;
+      case 'failed': fields.push('failureReason'); if (!nonempty(job.failureReason)) invalid(); break;
+      case 'cancelled': fields.push('cancellationReason'); if (!nonempty(job.cancellationReason)) invalid(); break;
+      default: invalid();
+    }
+    if (Object.keys(job).length !== fields.length || Object.keys(job).some(key => !fields.includes(key))) invalid();
+    if (['running', 'completed', 'failed'].includes(job.status as string) && job.attempts === 0) invalid();
+  }
+  return data as Job[];
+}
+
+export function save(path: string, jobs: Job[]): void {
+  const temporary = `${path}.${randomUUID()}.tmp`;
+  let created = false;
+  try {
+    writeFileSync(temporary, `${JSON.stringify(jobs, null, 2)}\n`, { flag: 'wx' });
+    created = true;
+    renameSync(temporary, path);
+  } finally {
+    if (created) {
+      try { unlinkSync(temporary); } catch (error) {
+        if ((error as { code?: string }).code !== 'ENOENT') throw error;
+      }
+    }
+  }
+}
+
+export function change(jobs: Job[], command: Exclude<Command, 'list'>, id: string, text?: string): Job {
+  if (!nonempty(id)) throw new Error('ID must be nonempty');
+  if (['add', 'succeed', 'fail', 'cancel'].includes(command) && !nonempty(text)) {
+    throw new Error(`${command} requires nonempty text`);
+  }
+  const index = jobs.findIndex(job => job.id === id);
+  if (command === 'add') {
+    if (index !== -1) throw new Error(`Duplicate ID: ${id}`);
+    const job: Job = { id, title: text!, attempts: 0, status: 'queued' };
+    jobs.push(job);
+    return job;
+  }
+  const old = jobs[index];
+  if (!old) throw new Error(`Missing job: ${id}`);
+  const base: Base = { id: old.id, title: old.title, attempts: old.attempts };
+  let job: Job;
+  if (command === 'start' && old.status === 'queued') {
+    if (old.attempts === Number.MAX_SAFE_INTEGER) throw new Error('Attempt count exhausted');
+    job = { ...base, status: 'running', attempts: old.attempts + 1 };
+  } else if (command === 'succeed' && old.status === 'running') {
+    job = { ...base, status: 'completed', result: text! };
+  } else if (command === 'fail' && old.status === 'running') {
+    job = { ...base, status: 'failed', failureReason: text! };
+  } else if (command === 'retry' && old.status === 'failed') {
+    job = { ...base, status: 'queued' };
+  } else if (command === 'cancel' && (old.status === 'queued' || old.status === 'running')) {
+    job = { ...base, status: 'cancelled', cancellationReason: text! };
+  } else {
+    throw new Error(`Invalid transition: cannot ${command} job ${id} in ${old.status} state`);
+  }
+  jobs[index] = job;
+  return job;
+}

@@ -2,7 +2,6 @@ import {
   captureOptionsForTarget,
   captureFilePolicy,
   captureNativeTarget,
-  observeNativeMetadata,
   type DirectCaptureOptions
 } from "./capture-policy.ts"
 import { relative, resolve, sep } from "node:path"
@@ -120,7 +119,7 @@ export const adaptPiDirectEvent = Effect.fn("DirectEvent.adaptPiDirectEvent")(fu
     advicee: identified.advicee,
     candidates: [{ position: 0, operation: "update", path: relativePath, selection }]
   }
-  observeNativeMetadata(options, metadata)
+  options.observeNative?.(metadata)
   if (selection.status !== "selected" || selectedOptions === undefined) return undefined
   const source = yield* captureNativeTarget(metadata, relativePath, root.value.absolutePath, selectedOptions, options)
   if (source === undefined) return undefined
@@ -129,7 +128,7 @@ export const adaptPiDirectEvent = Effect.fn("DirectEvent.adaptPiDirectEvent")(fu
     ? verifyPiPostEditHunks(input.patch, input.path, source.text, relativePath)
     : undefined
   if (evidence === undefined) {
-    observeNativeMetadata(options, {
+    options.observeNative?.({
       ...metadata,
       diagnostic: { stage: "observation", code: "attribution-unavailable", args: {} }
     })

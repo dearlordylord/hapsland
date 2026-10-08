@@ -79,6 +79,7 @@ import {
   stepCanonical,
   type CanonicalEvent,
   type CapacityPurpose,
+  type CapacityRefusal,
   type JevRequestOutcome
 } from "@hapsland/canonical-policy/canonical/adapter"
 import { randomUUID } from "node:crypto"
@@ -86,9 +87,9 @@ import { monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"
 export type { CapacityPurpose } from "@hapsland/canonical-policy/canonical/adapter"
 
 export const GLOBAL_ITEM_LIMIT = 512
-// A 256 KiB source requires 2 MiB of capture workspace before path overhead.
-// Eight concurrent graph preparations can each reserve the conservative
-// 18+ MiB analyzer fallback. These are logical reservations, not an RSS claim.
+// Capture reserves eight times the bounded source plus metadata; analysis uses
+// measured facts when available. Unknown expansion may exceed a recipient's
+// budget and must remain refused. Logical reservations are not an RSS claim.
 export const GLOBAL_BYTE_LIMIT = 256 * 1024 * 1024
 export const PARTITION_ITEM_LIMIT = 16
 export const PARTITION_BYTE_LIMIT = 32 * 1024 * 1024
@@ -106,6 +107,18 @@ export type CapacityLimits = {
 }
 
 export type CapacityReservation = { readonly id: number; readonly partition: string }
+
+export type PreparationAdmission =
+  | { readonly status: "admitted"; readonly operation: number; readonly reservation: CapacityReservation }
+  | { readonly status: "capacity-refused" }
+  | { readonly status: "unavailable"; readonly reason: "stale-round" | "wrong-stage" }
+  | { readonly status: "invalid-measurement" }
+
+export type CapacityResize =
+  | { readonly status: "resized" }
+  | { readonly status: "capacity-refused"; readonly constraint: CapacityRefusal }
+  | { readonly status: "invalid-reservation" }
+  | { readonly status: "invalid-measurement" }
 
 export type CapacitySnapshot = {
   readonly items: number
@@ -1127,7 +1140,8 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
                   const retained = owner.reservationSnapshot(reservation)
                   if (retained === undefined) return undefined
                   const retainedBytes = retained.bytes
-                  if (!owner.resize(reservation, retainedBytes + workspaceBytes, "adviceRecheck")) return undefined
+                  if (owner.resize(reservation, retainedBytes + workspaceBytes, "adviceRecheck").status !== "resized")
+                    return undefined
                   const capability = Object.freeze({ reservation, revision, retainedBytes })
                   captures.set(reservation.id, Object.freeze({ capability, retired: false }))
                   return capability
@@ -1135,10 +1149,11 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
               )
           ),
           resize: Effect.fn("AdviceCaptures.resize")(
-            (capture: AdviceCapture, workspaceBytes: number): Effect.Effect<boolean> =>
+            (capture: AdviceCapture, workspaceBytes: number): Effect.Effect<CapacityResize> =>
               commitAllEffect(
                 captureChange((captures, owner) => {
-                  if (captures.get(capture.reservation.id)?.capability !== capture) return false
+                  if (captures.get(capture.reservation.id)?.capability !== capture)
+                    return { status: "invalid-reservation" }
                   return owner.resize(capture.reservation, capture.retainedBytes + workspaceBytes, "adviceRecheck")
                 })
               )
@@ -1163,7 +1178,9 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
                   if (record.retired) {
                     owner.release(capture.reservation)
                     revisions.release(capture.revision)
-                  } else if (!owner.resize(capture.reservation, capture.retainedBytes, "storedResult")) {
+                  } else if (
+                    owner.resize(capture.reservation, capture.retainedBytes, "storedResult").status !== "resized"
+                  ) {
                     throw new Error("advice capture could not restore its retained reservation")
                   }
                   captures.delete(capture.reservation.id)
@@ -1747,8 +1764,8 @@ function beginObservedPreparation(
   observation: number,
   bytes: number,
   round: number
-): { readonly operation: number; readonly reservation: CapacityReservation } | undefined {
-  if (!validCapacityBytes(bytes, 1)) return undefined
+): PreparationAdmission {
+  if (!validCapacityBytes(bytes, 1)) return { status: "invalid-measurement" }
   const result = transition(draft, {
     kind: "beginObservedPreparation",
     partition: partitionId(draft, partition),
@@ -1758,12 +1775,14 @@ function beginObservedPreparation(
     bytes
   })
   const command = result.outputs[0]
-  if (result.rejection !== undefined) return undefined
+  if (result.rejection === "StaleRound") return { status: "unavailable", reason: "stale-round" }
+  if (result.rejection === "WrongStage") return { status: "unavailable", reason: "wrong-stage" }
+  if (result.rejection !== undefined) throw new Error("unexpected canonical preparation rejection")
   if (command === undefined) throw new Error("invalid canonical preparation admission")
-  if (command.kind === "preparationRefused") return undefined
+  if (command.kind === "preparationRefused") return { status: "capacity-refused" }
   if (command.kind !== "prepare") throw new Error("unexpected canonical preparation command")
   const reservation = registerReservation(draft, command.reservation, partition, bytes, "preparation")
-  return { operation: command.operation, reservation }
+  return { status: "admitted", operation: command.operation, reservation }
 }
 
 function completePreparation(
@@ -2128,9 +2147,10 @@ function resize(
   reservation: CapacityReservation,
   bytes: number,
   purpose?: CapacityPurpose
-): boolean {
+): CapacityResize {
   const retained = draft.reservations.get(reservation.id)
-  if (retained?.capability !== reservation || !validCapacityBytes(bytes, 0)) return false
+  if (retained?.capability !== reservation) return { status: "invalid-reservation" }
+  if (!validCapacityBytes(bytes, 0)) return { status: "invalid-measurement" }
   const nextPurpose = purpose ?? retained.purpose
   const result = stepCanonical(draft.canonical, {
     kind: "resizeCapacity",
@@ -2139,12 +2159,12 @@ function resize(
     purpose: nextPurpose
   })
   const command = singleCapacityOutput(result, "invalid Bend capacity resize result")
-  if (command.kind === "capacityRefused") return false
+  if (command.kind === "capacityRefused") return { status: "capacity-refused", constraint: command.reason }
   if (command.kind !== "capacityResized" || command.id !== reservation.id)
     throw new Error("unexpected Bend capacity resize command")
   draft.canonical = result.state
   setReservationMetadata(draft, reservation, bytes, nextPurpose)
-  return true
+  return { status: "resized" }
 }
 
 function replace(

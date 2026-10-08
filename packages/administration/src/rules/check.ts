@@ -104,7 +104,7 @@ export const checkRuleAtLine = Effect.fn("Rules.checkAtLine")(function* (
     ...new Set([
       ...base.analysis.flatMap((outcome) =>
         outcome.status === "incomplete"
-          ? [outcome.reason]
+          ? ["diagnostic" in outcome ? outcome.diagnostic.code : outcome.reason]
           : outcome.analysis.status === "incomplete"
             ? outcome.analysis.failures.map((failure) => failure.reason)
             : []
@@ -201,7 +201,8 @@ const selectionDetails = (result: RuleCheckResult): string[] => {
 const ruleResultDetails = (rule: RuleCheckResult["results"][number]): string =>
   `${rule.finding ? "FINDING" : "clear"} ${rule.ruleId}: probability ${rule.probability}, threshold > ${rule.threshold}${rule.finding ? ` — ${rule.message}` : ""}`
 const analysisDetails = (outcome: RuleCheckResult["analysis"][number]): string[] => {
-  if (outcome.status === "incomplete") return [`Selection: ${outcome.reason}`]
+  if (outcome.status === "incomplete")
+    return [`Selection: ${"diagnostic" in outcome ? outcome.diagnostic.code : outcome.reason}`]
   if (outcome.analysis.status !== "incomplete") return []
   return outcome.analysis.failures.map(
     (failure) => `Analysis${failure.root === undefined ? "" : ` (${failure.root})`}: ${failure.reason}`

@@ -125,7 +125,8 @@ hapsland setup
 
 The short command uses npm's configured global prefix and assumes its `bin`
 directory is on PATH. npm selects the stable `latest` tag. Hapsland includes
-Bun 1.3.14 in its standalone executables. `--ignore-scripts` skips dependency installation scripts;
+Bun 1.3.14 in one CLI executable per platform; the other command bundles share
+that runtime. `--ignore-scripts` skips dependency installation scripts;
 the package carries the required prebuilt assets.
 
 Run setup from the Git repository you want reviewed. The first dialog focuses Continue. Use arrows to move and Space to toggle Claude Code, Codex CLI, Pi or Select All; Enter submits the focused action. Continue with an empty selection shows a warning and stays in the dialog. Existing valid registrations are labeled `installed` and checked by default; unchecking a client leaves its hooks intact. Each selected client has its own change preview and confirmation, and default-rule changes require separate approval.

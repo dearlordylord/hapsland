@@ -19,9 +19,8 @@ import { captureCredential, MaskedInputError } from "../credentials/masked-input
 import { credentialSourceGuidance } from "./credential-guidance.ts"
 import { formatOutcome } from "./human-output.ts"
 import type { SetupClient } from "./client-selection.ts"
-import { KEY_CHECK_TIMEOUT_SECONDS, verifyJevKey } from "./credential-verification.ts"
+import { verifyJevKey } from "./credential-verification.ts"
 import {
-  MAX_KEY_CHECKS,
   initialVerification,
   reduceVerification,
   verificationCommand,
@@ -179,7 +178,7 @@ export const runVerificationConversation = Effect.fn("Verification.run")(functio
   })
   const approve = Effect.fn("Verification.approval")(function* () {
     const answer = yield* interaction.confirm({
-      message: `Verify this key with one request to ${JEV_DESTINATION}? Only a built-in greeting is sent, no project code. This may use paid credits. No automatic retries; ${KEY_CHECK_TIMEOUT_SECONDS}-second timeout. [${model.attempts + 1}/${MAX_KEY_CHECKS}]`,
+      message: `Verify this key with one request to ${JEV_DESTINATION}? Only a built-in greeting is sent, no project code. This may use paid credits.`,
       preview:
         "Each request requires fresh consent. A successful key check does not establish agent trust or an observed code review.",
       back: model.attempts > 0

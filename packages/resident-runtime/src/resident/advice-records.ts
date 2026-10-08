@@ -137,7 +137,10 @@ export const adviceRecordOperations = (draft: ReturnType<typeof draftAdviceRecor
   }
   const retainAdviceReservation = (initial: AdviceInitial): void => {
     const reservation = owner.reservationSnapshot(initial.reservation)
-    if (reservation === undefined || !owner.resize(initial.reservation, reservation.bytes, "storedResult"))
+    if (
+      reservation === undefined ||
+      owner.resize(initial.reservation, reservation.bytes, "storedResult").status !== "resized"
+    )
       throw new Error("Bend denied review result retention reservation")
   }
   return {

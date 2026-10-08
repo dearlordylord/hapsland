@@ -49,8 +49,9 @@ describe("checked local graph budget authority", () => {
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root was not eligible")
-      const capture = yield* captureStable(root, selected, {}, observation.rootIdentity)
-      if (capture === undefined) throw new Error("root capture failed")
+      const captureResult = yield* captureStable(root, selected, {}, observation.rootIdentity)
+      if (captureResult.status !== "captured") throw new Error("root capture failed")
+      const capture = captureResult.capture
       const unit = yield* resolveGraphUnit("a.ts", capture, "A", {
         root,
         rootIdentity: observation.rootIdentity,
@@ -71,8 +72,9 @@ describe("checked local graph budget authority", () => {
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root was not eligible")
-      const capture = yield* captureStable(root, selected, {}, observation.rootIdentity)
-      if (capture === undefined) throw new Error("root capture failed")
+      const captureResult = yield* captureStable(root, selected, {}, observation.rootIdentity)
+      if (captureResult.status !== "captured") throw new Error("root capture failed")
+      const capture = captureResult.capture
       const context = {
         root,
         rootIdentity: observation.rootIdentity,
@@ -106,8 +108,9 @@ describe("checked local graph budget authority", () => {
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root was not eligible")
-      const capture = yield* captureStable(root, selected, {}, observation.rootIdentity)
-      if (capture === undefined) throw new Error("root capture failed")
+      const captureResult = yield* captureStable(root, selected, {}, observation.rootIdentity)
+      if (captureResult.status !== "captured") throw new Error("root capture failed")
+      const capture = captureResult.capture
       const reads: string[] = []
       gate.observedWork.length = 0
       gate.observedDepth.length = 0
@@ -144,8 +147,9 @@ describe("checked local graph budget authority", () => {
       if (observation === undefined) throw new Error("fixture adaptation failed")
       const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity)
       if (selected === undefined) throw new Error("root was not eligible")
-      const capture = yield* captureStable(root, selected, {}, observation.rootIdentity)
-      if (capture === undefined) throw new Error("root capture failed")
+      const captureResult = yield* captureStable(root, selected, {}, observation.rootIdentity)
+      if (captureResult.status !== "captured") throw new Error("root capture failed")
+      const capture = captureResult.capture
       const reads: string[] = []
       gate.measuredCaptures.length = 0
       const result = yield* resolveGraphUnit("a.ts", capture, "A", {
@@ -162,12 +166,15 @@ describe("checked local graph budget authority", () => {
           Effect.gen(function* () {
             // Fixture-only capture deliberately bypasses the native configured cap
             // so this test can exercise Bend's measured-overlimit decision.
-            const source = yield* captureStable(args[0], args[1], args[2], args[3])
-            if (source === undefined) return undefined
+            const result = yield* captureStable(args[0], args[1], args[2], args[3])
+            if (result.status === "unavailable") return result
             return {
-              ...source,
-              get text(): string {
-                throw new Error("oversized source was parsed")
+              status: "captured",
+              capture: {
+                ...result.capture,
+                get text(): string {
+                  throw new Error("oversized source was parsed")
+                }
               }
             }
           })) as typeof captureStable

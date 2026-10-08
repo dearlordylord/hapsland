@@ -46,32 +46,15 @@ export const captureNativeTarget = Effect.fn("DirectEvent.captureNativeTarget")(
   selected: DirectCaptureOptions,
   options: DirectCaptureOptions
 ) {
-  let panicked = false
-  const content = yield* captureStable(
+  const captured = yield* captureStable(
     metadata.root,
     { relativePath, absolutePath },
     selected.captureHooks,
     metadata.rootIdentity
-  ).pipe(
-    Effect.catchDefect(() =>
-      Effect.sync(() => {
-        panicked = true
-        observeNativeMetadata(options, {
-          ...metadata,
-          diagnostic: { stage: "capture", code: "panic", args: { boundary: "stable-capture" } }
-        })
-        return undefined
-      })
-    )
   )
-  if (content === undefined && !panicked)
-    observeNativeMetadata(options, {
-      ...metadata,
-      diagnostic: { stage: "capture", code: "capture-unavailable", args: { reason: "unknown" } }
-    })
-  return content
+  if (captured.status === "unavailable") {
+    options.observeNative?.({ ...metadata, diagnostic: captured.diagnostic })
+    return undefined
+  }
+  return captured.capture
 })
-
-export const observeNativeMetadata = (options: DirectCaptureOptions, metadata: NativeEditMetadata): void => {
-  options.observeNative?.(metadata)
-}

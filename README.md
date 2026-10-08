@@ -269,7 +269,7 @@ private code. Installation and setup do not send code to Jev.
 The npm command uses your configured global prefix and assumes its `bin`
 directory is on PATH. If installation fails on permissions or the command is
 missing, use the [user-owned prefix alternative](./docs/installation-workflows.md#user-owned-prefix-alternative).
-The package includes its Bun runtime in the standalone executables.
+The package includes one Bun runtime per platform; command bundles share it.
 
 Public registry availability is not established by this guide. See the
 [installation lanes](./docs/installation-workflows.md#stable-installation-and-ordinary-use)
@@ -384,8 +384,9 @@ npm test
 npm run conformance:package
 ```
 
-`npm pack` builds standalone executables containing Hapsland and pinned Bun 1.3.14
-for the CLI, parser, resident, and package doctor. Agent-loaded Pi extension JavaScript
+`npm pack` builds a CLI executable containing pinned Bun 1.3.14 for each platform.
+The parser, resident, hook, and package doctor use that embedded runtime with
+their own bundled JavaScript and executable launchers. Agent-loaded Pi extension JavaScript
 remains a separate integration asset. The declared build targets are Linux arm64 and
 macOS arm64; cross-compilation alone does not establish execution compatibility.
 The [installed compatibility record](./docs/installed-release-compatibility.md)

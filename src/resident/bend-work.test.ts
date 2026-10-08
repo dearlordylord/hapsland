@@ -37,7 +37,8 @@ describe("canonical work projection", () => {
     expect(oldView().startSource(source)).toBe(false)
     expect(nextView().unfinished()).toBe(1)
     Effect.runSync(ledger.observation("agent", source, "startObservation", nextRound))
-    const preparation = Effect.runSync(ledger.beginObservedPreparation("agent", source, 100, nextRound))!
+    const preparation = Effect.runSync(ledger.beginObservedPreparation("agent", source, 100, nextRound))
+    if (preparation.status !== "admitted") throw new Error("fixture preparation refused")
     const unit = Effect.runSync(
       ledger.completePreparation("agent", preparation.operation, preparation.reservation, [20], nextRound)
     )[0]!
@@ -54,7 +55,8 @@ describe("canonical work projection", () => {
       workView(Effect.runSync(ledger.canonicalProjection()), Effect.runSync(ledger.partitionId("agent")), round)
     const source = Effect.runSync(ledger.admitObservation("agent"))
     Effect.runSync(ledger.observation("agent", source, "startObservation", round))
-    const preparation = Effect.runSync(ledger.beginObservedPreparation("agent", source, 100, round))!
+    const preparation = Effect.runSync(ledger.beginObservedPreparation("agent", source, 100, round))
+    if (preparation.status !== "admitted") throw new Error("fixture preparation refused")
     const unit = Effect.runSync(
       ledger.completePreparation("agent", preparation.operation, preparation.reservation, [20], round)
     )[0]!
