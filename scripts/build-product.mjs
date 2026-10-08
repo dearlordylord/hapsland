@@ -14,6 +14,7 @@ import { checkHostModuleReceipt } from "./assemble-host-modules.mjs"
 import { releaseAssetMappings } from "./release-assets.mjs"
 import { publishProduct, revokePublishedProduct } from "./publish-product.mjs"
 import { fileEvidence } from "./compiler-evidence.mjs"
+import { PRODUCT_COMPILATION_TIMEOUT_MS, PRODUCT_ASSEMBLY_TIMEOUT_MS } from "./build-deadlines.mjs"
 const root = resolve(import.meta.dirname, "..")
 await withBuildLock(root, async (environment) => {
   revokePublishedProduct(root)
@@ -31,6 +32,7 @@ await withBuildLock(root, async (environment) => {
       "packages/administration/src/interaction/flow-registry.ts",
       ...[
         "build-product",
+        "build-deadlines",
         "build-workspaces",
         "publish-product",
         "release-assets",
@@ -43,7 +45,7 @@ await withBuildLock(root, async (environment) => {
       cwd: root,
       env: environment,
       stdio: "inherit",
-      timeout: 300000
+      timeout: PRODUCT_COMPILATION_TIMEOUT_MS
     })
     await runBuildProcess(process.execPath, [resolve(root, "scripts/generate-interaction-diagrams.mts"), "--check"], {
       cwd: root,
@@ -87,7 +89,7 @@ await withBuildLock(root, async (environment) => {
       {
         cwd: root,
         stdio: "inherit",
-        timeout: 300000,
+        timeout: PRODUCT_ASSEMBLY_TIMEOUT_MS,
         env: {
           ...environment,
           TURBO_TELEMETRY_DISABLED: "1",
