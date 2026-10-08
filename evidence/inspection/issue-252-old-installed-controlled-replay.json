@@ -1,0 +1,104 @@
+{
+  "purpose": "Controlled hook replay against the retained old artifact and unchanged source from the second #252 observation.",
+  "snapshot": "snapshot-p0z9Lb",
+  "mode": "synthetic-hook-replay-controlled-offline",
+  "controlledReviewerFlag": true,
+  "sessionId": "08996fbf-9b49-4d14-bb6a-3cfb2af9ac16",
+  "sourceBytes": 27030,
+  "sourceSha256": "d208f7a42811a4d1a4537f19d968bb158c5a29fb790cb7a0628738667e953a4e",
+  "sourceRootSha256": "b9c538c9682c4a86344c80cbed64a0abd78a4ead9b028969bac36ce360aa01ef",
+  "startedAt": "2026-10-08T17:12:54Z",
+  "maximumPaidProviderRequests": 0,
+  "evidenceBoundary": "New replay using exact old binaries and retained source. Does not establish the original historical failure branch or ordinary Codex tool execution.",
+  "hooks": [
+    {
+      "event": "PreToolUse",
+      "exitCode": 0,
+      "stdoutBytes": 3,
+      "stderrBytes": 0
+    },
+    {
+      "event": "PostToolUse",
+      "exitCode": 0,
+      "stdoutBytes": 3,
+      "stderrBytes": 0
+    }
+  ],
+  "stats": [
+    {
+      "status": "stats",
+      "running": 0,
+      "queued": 0,
+      "pendingAdvice": 0,
+      "retainedBytes": 0,
+      "currentWork": 0,
+      "rejectedCapacity": 0
+    },
+    {
+      "status": "stats",
+      "running": 0,
+      "queued": 0,
+      "pendingAdvice": 0,
+      "retainedBytes": 0,
+      "currentWork": 0,
+      "rejectedCapacity": 1
+    }
+  ],
+  "facts": [
+    {
+      "sequence": 2,
+      "kind": "source-registration"
+    },
+    {
+      "sequence": 3,
+      "kind": "edit-received"
+    },
+    {
+      "sequence": 4,
+      "kind": "round-membership"
+    },
+    {
+      "sequence": 5,
+      "kind": "edit-admission",
+      "outcome": "accepted"
+    },
+    {
+      "sequence": 6,
+      "kind": "preparation-read"
+    },
+    {
+      "sequence": 7,
+      "kind": "preparation-read"
+    },
+    {
+      "sequence": 8,
+      "kind": "preparation-skipped"
+    },
+    {
+      "sequence": 9,
+      "kind": "preparation-omission",
+      "reason": "capture-unavailable"
+    }
+  ],
+  "residentExitCode": 0,
+  "controlledRequestCount": 0,
+  "sourceUnchanged": true,
+  "executables": {
+    "hapsland-hook": {
+      "sha256": "121177bf7a3439d7c24a21e36513ae028bf05f29ecf4f8154a55d9a57db723a2",
+      "matchesVerifiedArchiveMember": true
+    },
+    "hapsland-resident": {
+      "sha256": "b90a0c1db5674628b0ea7825ec4d354fb5903ac0dfb8471d93ecf2d7ff3844f2",
+      "matchesVerifiedArchiveMember": true
+    }
+  },
+  "archiveSha256": "78614c802e774f1faa7567c0d76b9207622502dc360a002d76c913ed6e9e7d0e",
+  "observedCapacityCounterDelta": 1,
+  "limitations": [
+    "Synthetic no-op hook payload; no ordinary Codex tool execution or physical edit performed.",
+    "This new isolated replay reproduces accepted admission, two source reads, generic omission and an operational rejection counter increment. It does not recover the original receipt failure branch.",
+    "The old Boolean ledger results do not preserve an authoritative refusal constraint; no exact limiting pool is claimed.",
+    "Earlier probes omitted the controlled-reviewer switch and cannot establish provider-request counts from an absent capture file."
+  ]
+}
