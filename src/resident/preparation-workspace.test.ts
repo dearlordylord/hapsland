@@ -10,6 +10,7 @@ import {
   type AnalyzerMaterializationPreflight
 } from "@hapsland/source-analysis/direct-event/languages/contracts"
 import { canonicalValue } from "@hapsland/review-definition/direct-event/model"
+import { combinedAnalyzerMaterializationPreflight } from "@hapsland/source-analysis/direct-event/analyzer"
 
 const bytes = (value: unknown): number => Buffer.byteLength(canonicalValue(value), "utf8")
 const path = fc
@@ -24,6 +25,17 @@ const preflight = fc.option(
   { nil: undefined }
 )
 const rules = fc.array(fc.record({ question: fc.string({ maxLength: 64 }), enabled: fc.boolean() }), { maxLength: 16 })
+
+it("charges measured empty TypeScript roots without the unknown-declaration fallback", () => {
+  const source = "import './fixture'; const run = () => 1\n" + "// fixture padding\n".repeat(1500)
+  const sourceBytes = Buffer.byteLength(source)
+  const facts = combinedAnalyzerMaterializationPreflight("fixture.ts", source)
+  expect(facts).toEqual({ declarations: 0, expandedUnitBytes: 0, hasImports: true })
+  expect(analysisWorkspaceBytes("fixture.ts", sourceBytes, facts, [])).toBe(
+    captureWorkspaceBytes("fixture.ts", sourceBytes) + 8 * 1024 * 1024
+  )
+  expect(analysisWorkspaceBytes("fixture.ts", sourceBytes, undefined, [])).toBeGreaterThan(32 * 1024 * 1024)
+})
 
 // Accepted pre-migration conservative bound, used only as an optimization oracle.
 const previousAnalysisBound = (
