@@ -1,6 +1,7 @@
 # Review studies and code examples
 
 **Purpose:** Guide readers from comparative results to concrete code, scenario explanations and detailed evidence.
+**Audience:** Prospective users; rule authors; evaluation contributors and reviewers.
 **Status:** Maintained research navigation; linked studies own their measured results.
 **Authority:** Maintained navigation for comparative research advisory and validation evidence, not a product contract or release certification.
 **Expected use:** Choose an example, understand what was tested and inspect the checks behind a result.

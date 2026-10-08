@@ -1,5 +1,7 @@
 # Native Linux background timing and lease contention
 
+**Audience:** Contributors, including coding agents validating runtime behavior; Build and release maintainers; Product and specification owners.
+
 Candidate: `294c3600af220179164e26ae5a385596506d12ed`.
 Pinned runtimes: Codex CLI 0.155.1 and Claude Code 2.1.218.
 The production resident and composed hooks use a controlled Effect reviewer;

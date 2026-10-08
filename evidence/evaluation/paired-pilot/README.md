@@ -1,5 +1,7 @@
 # Paired agent evaluation pilot
 
+**Audience:** Evaluation contributors and reviewers; Product and specification owners.
+
 **Status: closed incomplete on 2026-09-24.** The owner accepted the Stage 1
 [fixture](fixture-acceptance.md) and the frozen Stage 2
 [protocol](protocol.md). The fresh run stopped
@@ -13,3 +15,20 @@ run evidence, [blind artifact scores](blind-artifact-scores-2026-09-24.md),
 and acceptance records. The scores describe final artifacts; they do not prove
 model visibility or causal effect. This directory is an evaluation archive, not
 an installed-release support declaration or a production behavior contract.
+
+## Audience of frozen artifacts
+
+The prompt and captured source-tree README files retain their original bytes.
+Their audience is recorded here rather than inserted into measured artifacts.
+These labels describe intended readers; they do not amend the frozen task,
+evaluation protocol, source scores or access order for blind reviewers.
+
+| Document | Audience |
+| --- | --- |
+| [Accepted prompt](prompt.md) | Coding agents performing the frozen task; evaluation reviewers assessing that task |
+| [Selected fixture README](selected-tree/README.md) | Evaluation reviewers inspecting the accepted source fixture |
+| [Initial Arm A README](runs/pair-1-A/tree/README.md) | Evaluation reviewers inspecting the captured initial source artifact |
+| [Fresh Arm A README](runs/fresh-pair-1-A/tree/README.md) | Evaluation reviewers inspecting the captured fresh source artifact after blind scoring |
+| [Fresh Arm B README](runs/fresh-pair-1-B/tree/README.md) | Evaluation reviewers inspecting the captured interrupted source artifact after blind scoring |
+| [Candidate m7 README](blind-score-2026-09-24/candidate-m7/README.md) | Source-only artifact scorers following the frozen blind-review procedure |
+| [Candidate r4 README](blind-score-2026-09-24/candidate-r4/README.md) | Source-only artifact scorers following the frozen blind-review procedure |

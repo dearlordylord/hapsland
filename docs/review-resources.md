@@ -1,6 +1,7 @@
 # Review resources and limits
 
 **Purpose:** Explain how Hapsland bounds preparation, classifier requests, retained review state, and advice delivery.
+**Audience:** End users assessing resource limits; contributors, including coding agents.
 **Status:** Active maintained implementation guidance.
 **Authority:** Maintained guidance describing the current implementation; accepted review, configuration, and advice contracts own product behavior. Numerical bounds and offline checks are not throughput, latency, process-memory, or platform-support guarantees.
 **Expected use:** Understand which resource refused work, choose configuration controls, and locate the implementation and checks before changing a limit.

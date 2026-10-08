@@ -1,6 +1,7 @@
 # Hapsland testing matrix
 
 **Purpose:** Give contributors one entry point for choosing a test, understanding what it proves, and finding its runner and retained evidence.
+**Audience:** Contributors, including coding agents; Build and release maintainers.
 **Status:** Maintained testing guidance.
 **Authority:** Maintained guidance and implementation or validation evidence; product behavior remains defined by its named contracts.
 **Expected use:** Select the smallest relevant gate before a change, locate the current manual native integration runner, and distinguish source-checkout observations from package or platform support.
@@ -13,6 +14,71 @@ other-root skip without source reads or authority, return to the pinned root,
 recipient-wide closure fences, and delivery across cwd changes. Linked worktrees
 and independent repositories are distinct physical sources. These checks prove
 local behavior; they do not extend declared native-host/platform support.
+
+## Recovering retained build custody
+
+**Audience:** Contributors building from source; build and release maintainers.
+The [build workflow contract](build-workflow-contract.md) owns the required
+behavior. This section owns the current recovery procedure and check selection.
+
+A failed or interrupted producer retains `.test-runs/product-build` when its
+writer shutdown cannot be established. Ordinary acquisition refuses abandoned
+ownership rather than assuming that an exited supervisor stopped its children.
+Removing only `lock` leaves the lease and group registrations behind; acquisition
+now refuses those leftovers before writing a replacement lease.
+
+From the affected checkout, run:
+
+```sh
+node scripts/reconcile-build-custody.mjs
+```
+
+Every build and inherited admission holds a shared kernel lock on the persistent
+private `.test-runs/build-custody-gate` directory. Reconciliation takes that lock
+exclusively, then validates the lock owner, lease, admission owner and every
+registered group. It requires every recorded PID, group leader and process group
+to be absent, including registrations carrying older lease tokens.
+
+The command writes its stopped-writer audit under `.test-runs/build-custody-audits/`
+and atomically renames the entire product-build directory into that audit's
+`custody/` subdirectory. Original records are preserved together. A failed rename
+leaves custody intact for retry; interruption after rename leaves it archived.
+Process exit releases the kernel lock, including after SIGKILL, so recovery has
+no removable ownership marker that can strand the next attempt. Running recovery
+again after a completed archive reports no retained custody. The next build
+receives a fresh lease without stale registrations.
+
+The gate reuses `native/src/inspection-lock.c`, compiled into a private tooling
+cache independently of product outputs. Its first use in a source checkout requires `cc` and Node-API
+headers; subsequent uses select the source/runtime-specific cached binding. Keep
+the gate directory in place while any build or recovery process is running.
+This tooling is not shipped in the installed package and adds no compiler or
+headers prerequisite for end users of ready-made executables.
+
+Live or reused identities, permission errors, missing required ownership,
+malformed or incomplete registrations, symlinks and changing records refuse
+reconciliation. Stop the identified writers and retry; preserve ambiguous records
+for investigation. Do not delete the lock alone or remove records merely because
+the original installation exited. A shared process group that is still live also
+blocks recovery. The command does not repair the source failure that triggered
+the installation failure.
+
+Automatic ownership evidence: `node --test scripts/build-lock.test.mjs
+scripts/build-ownership.test.mjs scripts/build-process.test.mjs`.
+
+The extended recovery regression is **manual only**, because repeated real child
+and fault-injection cases take longer than the short automatic ownership checks:
+
+```sh
+node --test --test-timeout=30000 scripts/manual-build-custody-recovery.mjs
+```
+
+It covers failed children, abrupt supervisor exit, stopped-writer reconciliation,
+lock-only removal, old tokens, live admission exclusion, killed recovery holders,
+failed archive/retry, kills before and after archive, and refusal of live or
+ambiguous writers. Detached child execution and cleanup use the bounded build
+process supervisor. These checks do not qualify a full installation or native
+platform release.
 
 ## Verification profiles
 
@@ -168,8 +234,9 @@ evidence before regenerating the scenario pages.
 | Immutable simulation boundary reuse | `npm run test:focused -- src/canonical/immutable.test.ts src/canonical/simulation-codec.test.ts src/canonical/boundary-schema.test.ts src/canonical/boundary.test.ts src/canonical/simulation-adapter.test.ts src/canonical/constructors-reuse.test.ts` | Transactional constructor reuse with strict public decoding; schema-equivalent scalar fast paths; cyclic/shared/wide freezing; frozen graph reuse; mutable and accessor isolation; list and scalar bounds; emitted Engine equivalence | Boundary correctness and snapshot isolation; no throughput claim |
 | Inspection page development | `npm run dev:inspection`; `npm --prefix packages/agent-flow-viz run test:inspection-dev-browser` | Source page edits reload the real inspector at the same private URL; syntax-error recovery, CSP execution and protected journal routes | Local source development only; no package rebuild, hook update, resident startup or release claim |
 | Inspection dashboard browser | `npm --prefix packages/agent-flow-viz run test:inspection-browser` | Real resident/offline provider → private journal → production HTTP/SSE → Chromium; per-unit request selection and JSON preview and resident messages independent of hook execution, three-edit batch links, keyboard selection, stable live reading, typed payload loss, observed recording disable/re-enable, safe text, 375 px layout | Observed preparation/results/fates and resident messages; preparation does not establish native output or agent receipt. Pi and verified source discovery have separate checks below; full-feature milestone validation remains pending; no agent visibility or repair claim |
+| Native inspection ingress | `npm run test:focused -- src/direct-event/claude-adapter.test.ts src/direct-event/pi-adapter.test.ts src/hooks/direct.test.ts src/resident/protocol.test.ts src/resident/root-routing.test.ts src/inspection/http.test.ts`; `bun scripts/run-native-crossfile-current.mjs --host=codex --provider=openai --model=default --language=typescript --scenario=inspection-exclusions --archive=PATH` | Valid excluded candidates, original ordering and move destinations, root-local consent and receipts, source-free terminal IPC, credential lookup failure, mixed selected/excluded patch; installed Codex hooks → resident → journal → public HTTP/SSE → browser/reload/replay | Accepted [#256](https://github.com/dearlordylord/hapsland/issues/256) seam. Native scenario requires a current production archive and retains its hash plus sanitized outcomes. Controlled model invocations do not establish live Jev calls; no complete audit, other-platform or ordinary interactive trust claim |
 | Inspection evaluation reuse | `npm --prefix packages/agent-flow-viz run test:inspection-reuse-browser` | Actual provider request held while another edit joins, clear result reused from cache, separate controlled DecisionModel call, public API/browser links and filtered retained totals, repeated recovery and physical policy-record loss | Joins/cache add no model or transport calls; controlled model activity remains distinct from live HTTP. Unknown activity after policy loss is explicit. Totals count retained immutable identities and do not claim complete capture |
-| Inspection classifier outcomes | `npm --prefix packages/agent-flow-viz run test:inspection-outcomes-browser` | Real resident and offline production provider transport through private journal and public API/browser; clear/findings, invalid answers, backend failure, timeout, interruption, oversized capture, exact copy and credential/error-body exclusion | Observed outcomes remain distinct from submission. The backend-error fixture exercises the resident error boundary without suppressing the original failure; no live Jev or model-visibility claim |
+| Inspection classifier outcomes | `npm --prefix packages/agent-flow-viz run test:inspection-outcomes-browser` | Real resident and offline production provider transport through private journal and public API/browser; clear/findings, invalid answers, backend failure, timeout, interruption, oversized capture, exact retained bytes and secondary JSON preview, and credential/error-body exclusion | Observed outcomes remain distinct from submission. The backend-error fixture exercises the resident error boundary without suppressing the original failure; no live Jev or model-visibility claim |
 | Pi inspector handoffs | `npm --prefix packages/agent-flow-viz run test:pi-inspection-browser`; [native fixture matrix](../src/pi/inspection-native.test.ts) | Existing native extension fixtures → freshly packed production command/resident → private journal → public HTTP/SSE → Chromium; actual edit and finish offers, general resident messages independent of native output and lost acknowledgement, original edit links, verified multi-source health, retained history after resident exit, identity filters, keyboard focus/button activation and 375 px layout. Native matrix additionally covers session switch, recording disabled, and altered native output with the original native value preserved. | Native handler proposed output and resident replies remain distinct from completed writes or model visibility. One-rule edit fixture permits at most two later eligible comment mutations without starting unrelated classifier work, each with the existing short callback deadline; the extracted package boundary does not establish npm installation or other-platform support; no general latency or repair claim |
 | Repository documentation | `npm run docs:install` once; `npm run docs:check` | Local Markdown links, raw HTML images and links, heading anchors, and generated architecture Mermaid matching the dashboard flow model and module table/graph matching workspace manifests and curated descriptions | Files and headings exist; generated views are current and stale checks preserve prose. No external URL requests, native execution or documentation-truth claim |
 | Code lint and formatting | `npm run lint:code`; `npm run lint:changed`; `npm run format` | Oxlint correctness and shared code rules; dprint/OXC formatting of authored code | Full or changed-file checks; Git pre-commit fixes staged formatting and rejects lint failures. Generated, vendor, fixture and evidence assets remain outside this selection. |
@@ -890,6 +957,7 @@ installation and execution have not been validated in this change.
 
 | Scenario | Reviewer | Agent action and observable assertion | Run command suffix |
 | --- | --- | --- | --- |
+| Installed inspection exclusions | Controlled offline | One real Codex session creates supported TypeScript and unsupported `.mjs`; installed hooks retain distinct selection outcomes; excluded source is absent from public HTTP/SSE and rendered details, including reload/replay | `--host=codex --language=typescript --scenario=inspection-exclusions --archive=PATH` |
 | Unicode Update adoption | Controlled offline or real Jev | Real Codex/Claude edits ASCII in an existing TypeScript file with unchanged Japanese comments; review and repair are observed, both comments survive every edit | `--language=typescript --scenario=adoption --unicode-update` |
 | Advice adoption | Controlled offline or real Jev | Agent makes an edit; review receives cross-file evidence; actionable advice is delivered; agent repairs; compiler and independent invalid-construction checks pass; follow-up result appears | `--scenario=adoption` or `--scenario=adoption --live --execute-paid` |
 | Reviewer unavailable | Controlled offline error | Real agent makes one edit; review is attempted and becomes unavailable; no actionable advice is delivered and the agent leaves the draft alone | `--scenario=reviewer-unavailable` |

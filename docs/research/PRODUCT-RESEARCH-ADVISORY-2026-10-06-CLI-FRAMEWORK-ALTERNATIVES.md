@@ -1,6 +1,7 @@
 # Hapsland CLI framework alternatives advisory
 
 **Purpose:** Compare the newly identified TypeScript terminal frameworks with Hapsland's proposed setup renderer and verify the reported Abide/React example.
+**Audience:** Contributors, including coding agents researching runtime and CLI design; Product and specification owners.
 **Status:** Temporary product-specification advisory; it adopts no product behavior or dependency.
 **Authority:** Primary-source research and source inspection; existing setup, stream, credential, and consent contracts remain authoritative. This report is not a runtime validation.
 **Expected use:** Use this targeted comparison during setup-interaction design acceptance to decide whether to retain the small Effect prompt adapter or prototype a full TUI framework.

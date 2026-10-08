@@ -1,5 +1,7 @@
 # Semantic evaluation commands
 
+**Audience:** Evaluation contributors and reviewers; Product and specification owners.
+
 The separate [paired agent evaluation pilot](../evidence/evaluation/paired-pilot/README.md)
 closed incomplete and makes no Hapsland effect estimate. Its frozen
 [protocol](../evidence/evaluation/paired-pilot/protocol.md) and

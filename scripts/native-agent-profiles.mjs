@@ -12,7 +12,7 @@ export const NATIVE_AGENT_PROFILES = Object.freeze({
   codex: Object.freeze({
     provider: "openai",
     version: "codex-cli 0.155.1",
-    scenarios: Object.freeze([...sharedScenarios])
+    scenarios: Object.freeze([...sharedScenarios, "inspection-exclusions"])
   }),
   claude: Object.freeze({
     provider: "anthropic",

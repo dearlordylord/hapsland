@@ -1,6 +1,7 @@
 # Canonical flow projection
 
 **Purpose:** Describe the package boundary for reducer-derived flow evidence.
+**Audience:** Contributors, including coding agents maintaining this package and its consumers.
 **Status:** Active package documentation.
 **Authority:** Maintained implementation guidance; the canonical reducer and accepted product specifications remain authoritative.
 **Expected use:** Use this package to locate checked records in conceptual flow stages and explain an accepted canonical step.

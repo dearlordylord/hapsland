@@ -69,9 +69,16 @@ export const deriveTurboTaskConfiguration = (graph, root = resolve(import.meta.d
       cache: false,
       inputs: [
         "package.json",
-        ...["clean-compiler-output", "package-graph", "build-lock", "build-groups", "owned-lock"].map((helper) =>
-          rootInput(`scripts/${helper}.mjs`)
-        )
+        ...[
+          "clean-compiler-output",
+          "package-graph",
+          "build-lock",
+          "build-custody-gate",
+          "build-process",
+          "build-groups",
+          "owned-lock"
+        ].map((helper) => rootInput(`scripts/${helper}.mjs`)),
+        rootInput("native/src/inspection-lock.c")
       ],
       outputs: [],
       passThroughEnv: [...leases]

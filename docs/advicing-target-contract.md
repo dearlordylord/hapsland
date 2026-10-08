@@ -1,6 +1,7 @@
 # Advicing target contract
 
 **Purpose:** Define accepted Hapsland behavior at the agent-runtime boundary.
+**Audience:** Contributors, including coding agents; Product and specification owners.
 **Status:** Accepted target; implementation and installed support are separately evidenced.
 **Authority:** Accepted product contract.
 **Expected use:** Resolve intended behavior and assess implementation against the accepted advice, work, and delivery contract.

@@ -1,5 +1,7 @@
 # Issue #95 arm-aware descriptive addendum — 2026-09-24
 
+**Audience:** Evaluation contributors and reviewers; Product and specification owners.
+
 The [initial blind source scores](./blind-artifact-scores-2026-09-24.md) were frozen before the [mapping key](./blind-score-key-2026-09-24.md) was opened. `candidate-r4` is fresh A1, scoring **65/100**; `candidate-m7` is fresh B1, scoring **72/100**. These are two final-source descriptions, not a paired comparison: B1 has no complete sanitized host record, and the planned second pair was not run. No A-minus-B difference, mean, variance, or treatment-effect estimate is reported.
 
 ## A1 final defects and supported-unit eligibility

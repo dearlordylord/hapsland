@@ -1,6 +1,7 @@
 # Rule evaluation and conformance model
 
 **Purpose:** Define the shared model for deterministic composition tests and empirical rule-quality evaluations.
+**Audience:** Rule authors; Evaluation contributors and reviewers; Product and specification owners.
 **Status:** Maintained specification model; rule identity and source policy amended by the 2026-10-05 owner authorization.
 **Authority:** Accepted evaluation-model contract; it does not claim implementation or measured semantic quality. Current input behavior belongs to the [direct-review contract](docs/type-function-review-proposal.md).
 **Expected use:** Design fixtures, scenarios, and bounded live evaluations independently of implementation details.

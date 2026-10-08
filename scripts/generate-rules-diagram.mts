@@ -119,6 +119,7 @@ export const generateRulesDiagram = Effect.gen(function* () {
   const markdown = `# Rules interaction
 
 **Purpose:** Show rule selection, review, approval and outcomes.
+**Audience:** Contributors, including coding agents; Product and specification owners reviewing CLI journeys.
 **Status:** Maintained generated diagram.
 **Authority:** Implementation and controlled validation evidence for #244; the accepted issue and rule owners retain product authority.
 **Expected use:** Inspect navigation and approval boundaries; run \`npm run interaction:diagrams:check\` to check freshness without writing.

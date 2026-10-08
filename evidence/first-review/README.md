@@ -1,5 +1,7 @@
 # Installed-product first-review evidence
 
+**Audience:** Contributors, including coding agents validating runtime behavior; Build and release maintainers; Product and specification owners.
+
 This directory holds sanitized evidence from the explicitly selected paid demo milestone. The
 runner packs the current built release, computes that tarball's SHA-256, installs it into its own
 temporary prefix, verifies that the invoked CLI resolves inside that installation, and queries the

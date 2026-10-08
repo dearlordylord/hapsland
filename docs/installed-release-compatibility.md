@@ -1,5 +1,7 @@
 # Installed release compatibility
 
+**Audience:** End users assessing declared compatibility; build and release maintainers.
+
 The current distribution contains Bun 1.3.14 standalone commands for CLI, hook, parser,
 resident, and package doctor. The declared Linux/macOS arm64 build artifacts are
 separate from actual installed execution evidence. The historical Node records below

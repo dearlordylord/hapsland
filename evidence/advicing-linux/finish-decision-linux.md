@@ -1,5 +1,7 @@
 # Shared resident finish-decision validation
 
+**Audience:** Contributors, including coding agents validating runtime behavior; Build and release maintainers; Product and specification owners.
+
 The owner accepted the timing diagrams and Linux result in the implementation
 conversation on 2026-09-27, and authorized merge and closure. The shared-resident
 implementation waits for all admitted unfinished work or the safe hook deadline,
