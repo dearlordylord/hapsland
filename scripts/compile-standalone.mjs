@@ -79,7 +79,8 @@ await withBuildLock(root, async () => {
         )
       ]
     }
-    const assemble = async (compile) => {
+    const assemble = async (compile, previous) => {
+      const started = performance.now()
       transformations = []
       transformedText = new Map()
       const result = await Bun.build({
@@ -115,22 +116,30 @@ await withBuildLock(root, async () => {
         undefined,
         (specifier, importer) => Bun.resolveSync(specifier, dirname(importer))
       )
-      return {
-        metafile: result.metafile,
-        transformations: transformations.sort((left, right) => left.path.localeCompare(right.path)),
-        inputs,
-        externalRuntime: externalRuntimeEvidence(
-          root,
-          inputs,
-          transformations,
-          transformedText,
-          target,
-          (specifier, directory) => Bun.resolveSync(specifier, directory),
-          entrypoint,
-          analysis,
-          native.assets
-        )
-      }
+      const observedTransformations = transformations.sort((left, right) => left.path.localeCompare(right.path))
+      // Source/manifest/import hashes and native transformations pin this proof.
+      // A second identical bundle does not need another full AST loader walk.
+      const unchanged =
+        previous &&
+        JSON.stringify(previous.inputs) === JSON.stringify(inputs) &&
+        JSON.stringify(previous.transformations) === JSON.stringify(observedTransformations)
+      const externalRuntime = unchanged
+        ? previous.externalRuntime
+        : externalRuntimeEvidence(
+            root,
+            inputs,
+            transformations,
+            transformedText,
+            target,
+            (specifier, directory) => Bun.resolveSync(specifier, directory),
+            entrypoint,
+            analysis,
+            native.assets
+          )
+      console.log(
+        `Assembly ${snapshot.role}/${target}: ${compile ? "produce" : "preview"} ${(performance.now() - started).toFixed(0)}ms`
+      )
+      return { metafile: result.metafile, transformations: observedTransformations, inputs, externalRuntime }
     }
     const preview = await assemble(false)
     const nativeAssets = (inputs) => {
@@ -142,7 +151,7 @@ await withBuildLock(root, async () => {
       })
     }
     const assetsBefore = nativeAssets(preview.inputs)
-    const compiled = await assemble(true)
+    const compiled = await assemble(true, preview)
     if (JSON.stringify(preview.inputs) !== JSON.stringify(compiled.inputs)) {
       const evidence = resolve(root, ".test-runs/assembly-failures", target + "-" + outfile.split("/").at(-1) + ".json")
       mkdirSync(dirname(evidence), { recursive: true })
@@ -170,6 +179,7 @@ await withBuildLock(root, async () => {
       ...(sharedRuntime ? { bundle: fileEvidence(root, stagedBundle) } : {})
     }
     const stagedReceipt = { ...receipt, digest: assemblyReceiptDigest(receipt) }
+    const validationStarted = performance.now()
     checkAssemblyReceipt(
       root,
       stagedReceipt,
@@ -177,6 +187,9 @@ await withBuildLock(root, async () => {
       entrypoint,
       stagedOutput,
       assemblyNativeArtifacts(root, snapshot)
+    )
+    console.log(
+      `Assembly ${snapshot.role}/${target}: receipt validation ${(performance.now() - validationStarted).toFixed(0)}ms`
     )
     receipt.output.path = relative(root, outfile).replaceAll("\\", "/")
     if (receipt.bundle) receipt.bundle.path = `${receipt.output.path}.js`
@@ -186,14 +199,11 @@ await withBuildLock(root, async () => {
     )
     rmSync(dirname(outfile), { recursive: true, force: true })
     renameSync(staging, dirname(outfile))
-    checkAssemblyReceipt(
-      root,
-      JSON.parse(readFileSync(receiptPath, "utf8")),
-      await context(),
-      entrypoint,
-      outfile,
-      assemblyNativeArtifacts(root, snapshot)
-    )
+    // The parent revalidates the published owner artifact after this process
+    // exits. Here the atomic rename only needs to preserve the validated bytes.
+    for (const evidence of [receipt.output, ...(receipt.bundle ? [receipt.bundle] : [])])
+      if (JSON.stringify(fileEvidence(root, resolve(root, evidence.path))) !== JSON.stringify(evidence))
+        throw new Error("Assembly output changed during publication")
   } catch (error) {
     clean()
     rmSync(dirname(outfile) + `.stage-${process.pid}`, { recursive: true, force: true })
