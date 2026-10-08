@@ -1,5 +1,5 @@
 import { resolve } from "node:path"
-import { eligibleNamedPath } from "@hapsland/native-observation/direct-event/selection"
+import { nativeSelection } from "@hapsland/native-observation/direct-event/selection"
 import { candidateRootObservation } from "@hapsland/native-observation/direct-event/target-observation"
 import * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
@@ -10,13 +10,18 @@ import {
   adaptComposedHookIdentity,
   isCodexNativeApplyPatch
 } from "@hapsland/native-observation/direct-event/adapter"
-import type { CodexHostVersion, DirectObservation } from "@hapsland/native-observation/direct-event/observation"
+import type {
+  NativeEditMetadata,
+  CodexHostVersion,
+  DirectObservation
+} from "@hapsland/native-observation/direct-event/observation"
 import type { ClaudeHostOutput } from "@hapsland/delivery-output/direct-event/claude-output"
 import type { ResidentControlledOptions } from "@hapsland/resident-transport/resident/protocol"
 import { hookMonotonicMillis } from "@hapsland/resident-transport/resident/hook-clock"
 import { recordActivity } from "@hapsland/activity-observation/activity/status"
 import { recordDemoTrace } from "@hapsland/activity-observation/activity/demo-trace"
 import {
+  recordNativeMetadataEffect,
   admitObservationEffect,
   admitAndCollectEffect,
   ensureResidentEffect,
@@ -43,7 +48,7 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
     subject: Pick<DirectObservation, "root" | "advicee"> | undefined,
     statePath: string,
     lifetime: string,
-    stage: "unavailable" | "incomplete"
+    stage: "unavailable" | "incomplete" | "skipped"
   ): void => {
     if (subject === undefined) return
     recordActivity({ statePath, root: subject.root, advicee: subject.advicee, lifetime, stage })
@@ -94,48 +99,93 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
     readonly userConfigPath: string | undefined
     readonly controlled: ResidentControlledOptions | undefined
   }
-  const codexCandidateDispatch = Effect.fn("CodexHook.candidateDispatch")(function* (
-    single: DirectObservation,
-    options: CodexDispatchOptions
-  ) {
-    const candidate = single.candidates[0]!
-    const policy = yield* readComposedEditPolicyEffect(single.root, single.advicee, undefined, [
-      resolve(single.root, candidate.path)
-    ]).pipe(Effect.catch(() => Effect.succeed(undefined)))
-    if (policy === undefined) return undefined
-    if (candidate.operation !== "add" && candidate.operation !== "update") return undefined
-    if (!(yield* eligibleNamedPath(single.root, candidate.path, policy.filePolicy, single.rootIdentity)))
-      return undefined
-    return yield* makeResidentDispatchContextEffect(
-      single.root,
-      options.statePath,
-      options.activityPath,
-      options.userConfigPath,
-      options.controlled,
-      policy
-    ).pipe(Effect.catch(() => Effect.succeed(undefined)))
-  })
   const codexSourceDispatch = Effect.fn("CodexHook.sourceDispatch")(function* (
     observation: DirectObservation,
     options: CodexDispatchOptions
   ) {
+    const projections = new Map<string, NativeEditMetadata>()
+    const policies = new Map<
+      string,
+      import("@hapsland/resident-transport/resident/protocol").ResidentEditPolicy | undefined
+    >()
     let dispatch: import("@hapsland/resident-transport/resident/protocol").ResidentDispatchContext | undefined
     const sourceContexts: import("@hapsland/resident-transport/resident/protocol").ResidentSourceDispatchContext[] = []
-    const selectedRoots = new Set<string>()
     for (let index = 0; index < observation.candidates.length; index += 1) {
       const single = candidateRootObservation(observation, index)
-      if (single === undefined || selectedRoots.has(single.root)) continue
-      const selected = yield* codexCandidateDispatch(single, options)
-      if (selected === undefined) continue
+      if (single === undefined) continue
+      if (!projections.has(single.root)) {
+        let admission: "skipped-other-root" | undefined
+        const policy = yield* readComposedEditPolicyEffect(
+          single.root,
+          single.advicee,
+          undefined,
+          observation.candidates.flatMap((candidate, position) =>
+            observation.candidateRoots?.[position]?.root === single.root
+              ? [resolve(observation.root, candidate.path)]
+              : []
+          ),
+          (outcome) => {
+            if (outcome === "skipped-other-root") admission = outcome
+          }
+        ).pipe(Effect.catch(() => Effect.succeed(undefined)))
+        policies.set(single.root, policy)
+        projections.set(single.root, {
+          root: single.root,
+          rootIdentity: single.rootIdentity,
+          advicee: single.advicee,
+          candidates: [],
+          ...(admission === undefined ? {} : { admission })
+        })
+      }
+      const metadata = projections.get(single.root)!
+      const candidate = single.candidates[0]!
+      const selection =
+        metadata.admission === "skipped-other-root"
+          ? { status: "not-evaluated" as const }
+          : yield* nativeSelection(single.root, candidate, policies.get(single.root)?.filePolicy, single.rootIdentity)
+      projections.set(single.root, {
+        ...metadata,
+        candidates: [
+          ...metadata.candidates,
+          {
+            position: index,
+            operation: candidate.operation,
+            path: candidate.path,
+            selection,
+            ...("moveTo" in candidate && typeof candidate.moveTo === "string" ? { moveTo: candidate.moveTo } : {})
+          }
+        ]
+      })
+    }
+    // Resolve review authority only after the source-free selection facts exist.
+    for (const [root, metadata] of projections) {
+      if (!metadata.candidates.some((candidate) => candidate.selection.status === "selected")) continue
+      const selected = yield* makeResidentDispatchContextEffect(
+        root,
+        options.statePath,
+        options.activityPath,
+        options.userConfigPath,
+        options.controlled,
+        policies.get(root)
+      ).pipe(Effect.catch(() => Effect.succeed(undefined)))
+      if (selected === undefined) {
+        projections.set(root, {
+          ...metadata,
+          diagnostic: { stage: "admission", code: "dispatch-unavailable", args: {} }
+        })
+        continue
+      }
       dispatch ??= selected
-      selectedRoots.add(single.root)
       sourceContexts.push({
-        root: single.root,
+        root,
         credential: selected.credential,
         sessionAnalytics: selected.sessionAnalytics === true
       })
     }
-    return dispatch === undefined ? undefined : { ...dispatch, sourceContexts }
+    return {
+      metadata: [...projections.values()],
+      dispatch: dispatch === undefined ? undefined : { ...dispatch, sourceContexts }
+    }
   })
   const runDirectCodexHook = (
     nativeEvent: unknown,
@@ -157,26 +207,44 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
         return { handled: true, output: {} } as const
       }
       const observation = yield* adaptCodexDirectEvent(nativeEvent, hostVersion)
-      const dispatch =
+      const prepared =
         observation === undefined
           ? undefined
           : yield* codexSourceDispatch(observation, { statePath, activityPath, userConfigPath, controlled })
       yield* recordCodexObservationTrace(observation)
       // The direct dispatcher owns every native apply_patch event. Unsupported
       // shapes remain quiet and can never create review work.
-      if (observation === undefined || dispatch === undefined) {
+      if (observation === undefined || prepared?.dispatch === undefined || !isControlledWriter) {
+        if (prepared !== undefined)
+          yield* recordNativeMetadataEffect(prepared.metadata, userConfigPath, activityPath).pipe(
+            Effect.catch(() => Effect.void)
+          )
         yield* retireNativeEditPermits(nativeEvent, "codex-cli", hostVersion)
         recordCodexHookActivity(
           reply,
           activityPath,
           owner.value.lifetime,
-          observation === undefined ? "incomplete" : "unavailable"
+          observation === undefined
+            ? "incomplete"
+            : prepared?.metadata.length &&
+                prepared.metadata.every(
+                  (metadata) =>
+                    metadata.admission === "skipped-other-root" ||
+                    metadata.candidates.every((candidate) => candidate.selection.status === "excluded")
+                )
+              ? "skipped"
+              : "unavailable"
         )
         return { handled: true, output: {} } as const
       }
       // Matching reads are not attribution. The hook command must explicitly be
       // installed with this controlled-writer assertion for the supported Add profile.
-      yield* admitCodexHookObservation(observation, dispatch, activityPath, owner.value.lifetime)
+      yield* admitCodexHookObservation(
+        { ...observation, nativeMetadata: prepared.metadata },
+        prepared.dispatch,
+        activityPath,
+        owner.value.lifetime
+      )
       return { handled: true, output: {} } as const
     })
 
@@ -187,10 +255,10 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
     activityPath: string,
     userConfigPath: string | undefined,
     editPolicy?: import("@hapsland/resident-transport/resident/protocol").ResidentEditPolicy,
-    deliveryCwd?: string
+    deliveryCwd?: string,
+    nativeMetadata?: NativeEditMetadata
   ): Effect.fn.Return<unknown, never, ResidentStartup> {
     const deadline = directHookDeadline
-    if (observation === undefined) return {}
     const bounded = <A, E, R>(task: Effect.Effect<A, E, R>): Effect.Effect<A | undefined, never, R> =>
       Effect.gen(function* () {
         const time = Math.max(0, deadline - (yield* hookMonotonicMillis))
@@ -200,6 +268,11 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
           Effect.catch(() => Effect.succeed(undefined))
         )
       })
+    if (observation === undefined) {
+      if (nativeMetadata !== undefined)
+        yield* bounded(recordNativeMetadataEffect([nativeMetadata], userConfigPath, activityPath))
+      return {}
+    }
     const dispatch = yield* bounded(
       makeResidentDispatchContextEffect(
         observation.root,
@@ -210,7 +283,14 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
         editPolicy
       )
     )
-    if (dispatch === undefined) return {}
+    if (dispatch === undefined) {
+      const metadata = observation.nativeMetadata?.map((metadata) => ({
+        ...metadata,
+        diagnostic: { stage: "admission" as const, code: "dispatch-unavailable" as const, args: {} }
+      }))
+      if (metadata !== undefined) yield* bounded(recordNativeMetadataEffect(metadata, userConfigPath, activityPath))
+      return {}
+    }
     const outcome = yield* bounded(
       admitAndCollectEffect(
         observation,

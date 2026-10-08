@@ -394,7 +394,8 @@ export const readComposedEditPolicyEffect = Effect.fn("ResidentClient.readCompos
   root: string,
   advicee: DirectAdvicee,
   paths: ResidentPaths | undefined = undefined,
-  targetPaths?: ReadonlyArray<string>
+  targetPaths?: ReadonlyArray<string>,
+  onRefusal?: (outcome: "skipped-other-root" | "unavailable") => void
 ) {
   paths ??= yield* resolveResidentPaths()
   const owner = yield* inspectResidentEffect(paths)
@@ -412,7 +413,9 @@ export const readComposedEditPolicyEffect = Effect.fn("ResidentClient.readCompos
     },
     250
   )
-  return response.status === "edit-policy" ? response.policy : undefined
+  if (response.status === "edit-policy") return response.policy
+  onRefusal?.(response.status === "skipped-other-root" ? "skipped-other-root" : "unavailable")
+  return undefined
 })
 
 export const makeResidentDispatchContextEffect = Effect.fn("ResidentClient.makeResidentDispatchContext")(function* (
@@ -871,4 +874,24 @@ export const registerComposedEditEffect = Effect.fn("ResidentClient.registerComp
     ...(userConfigPath === undefined ? {} : { userConfigPath })
   })
   return response.status === "advanced"
+})
+
+/** Metadata publication bypasses credentials, review capacity, and review rounds. */
+export const recordNativeMetadataEffect = Effect.fn("ResidentClient.recordNativeMetadata")(function* (
+  metadata: ReadonlyArray<import("@hapsland/native-observation/direct-event/observation").NativeEditMetadata>,
+  userConfigPath: string | undefined,
+  activityPath: string | undefined,
+  paths: ResidentPaths | undefined = undefined
+) {
+  if (metadata.length === 0) return
+  paths ??= yield* resolveResidentPaths()
+  const owner = yield* ensureResidentEffect(paths)
+  yield* residentRequestEffect(paths, {
+    requestRoute: "shared",
+    operation: "record-native",
+    lifetime: owner.lifetime,
+    metadata,
+    userConfigPath: nullableResolvedPath(userConfigPath),
+    ...(activityPath === undefined ? {} : { activityPath: resolve(activityPath) })
+  })
 })

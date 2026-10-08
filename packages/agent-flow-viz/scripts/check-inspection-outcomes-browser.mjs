@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { revealInspection } from "./inspection-browser-controls.mjs"
+import { revealInspection } from "@hapsland/build-tooling/test-harness/inspection-browser-controls"
 import { writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { chromium } from "playwright"
@@ -13,7 +13,7 @@ import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-supp
 import { makeInspectionStorage } from "@hapsland/inspection-records/inspection/storage"
 import { makeInspectionHttpServer } from "@hapsland/administration/inspection/http"
 import { configuredRules, connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
-import { readCredentialState } from "@hapsland/credential-storage/credentials/owner"
+import { readCredentialState } from "@hapsland/runtime-inputs/credentials/state"
 import { nativeDeferred } from "@hapsland/build-tooling/test-support/native-deferred"
 
 const root = await makeGitFixture()
@@ -66,7 +66,8 @@ try {
             rule.id,
             {
               type: "noul",
-              noul: mode === "invalid-response" ? 2 : rule.id === "r1_inferred_case" && mode !== "clear" ? 0.7 : 0
+              noul:
+                mode === "invalid-response" ? 2 : rule.id === "meaningless_combinations" && mode !== "clear" ? 0.7 : 0
             }
           ])
         )
@@ -88,10 +89,7 @@ try {
     makeInspectionHttpServer(history).pipe(Effect.provideService(Scope.Scope, scope))
   )
   browser = await chromium.launch({ headless: true })
-  const context = await browser.newContext({
-    viewport: { width: 375, height: 812 },
-    permissions: ["clipboard-read", "clipboard-write"]
-  })
+  const context = await browser.newContext({ viewport: { width: 375, height: 812 } })
   const page = await context.newPage()
   const errors = []
   page.on("pageerror", (error) => errors.push(error.message))
@@ -167,16 +165,15 @@ try {
       assert.ok(dispatched[index].byteLength > 16384)
       assert.deepEqual(transport.fact.payload, { status: "missing", reason: "oversized" })
       assert.equal(payload.reason, "oversized")
-      assert.equal(await page.locator("#copy").isDisabled(), true)
+      assert.equal(await page.locator("#copy").count(), 0)
       assert.match(await page.locator("#exact").textContent(), /oversized/)
     } else {
       assert.equal(payload.status, "available")
       assert.ok(Buffer.from(payload.encoded, "base64").equals(dispatched[index]))
-      await revealInspection(page, "#copy")
-      await page.getByRole("button", { name: "Copy exact request", exact: true }).focus()
-      await page.keyboard.press("Enter")
-      await page.waitForFunction(() => document.querySelector("#copy-status").textContent === "Exact request copied")
-      assert.ok(Buffer.from(await page.evaluate(() => navigator.clipboard.readText())).equals(dispatched[index]))
+      await revealInspection(page, "#exact")
+      assert.equal(await page.locator("#exact").isVisible(), true)
+      assert.equal(await page.locator("#exact").textContent(), dispatched[index].toString("utf8"))
+      assert.equal(await page.locator("#copy").count(), 0)
     }
     assert.equal(JSON.stringify(snapshot).includes(secretMarker), false)
     assert.equal(JSON.stringify(snapshot).includes(dispatch.credential.environmentValue), false)
@@ -185,8 +182,11 @@ try {
   assert.deepEqual(errors, [])
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
   console.log(
-    "inspection outcomes browser: real clear/findings, invalid response, backend error, timeout, interruption and oversized request absence; exact transport copies, private error/credential exclusion, keyboard and narrow layout passed"
+    "inspection outcomes browser: real clear/findings, invalid response, backend error, timeout, interruption and oversized request absence; exact transport bytes and JSON preview, private error/credential exclusion, keyboard and narrow layout passed"
   )
+} catch (error) {
+  console.error("inspection outcomes browser failed at", phase)
+  throw error
 } finally {
   clearTimeout(deadline)
   if (browser) await browser.close()

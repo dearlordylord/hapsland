@@ -1,13 +1,19 @@
 import type { DirectFilePolicy } from "@hapsland/native-observation/direct-event/selection"
 import type { CodexDirectEventOutput } from "@hapsland/delivery-output/direct-event/output"
-import { InspectionRecordingRoot } from "@hapsland/inspection-records/inspection/contract"
+import {
+  InspectionCaptureDiagnostic,
+  InspectionNativeCandidate,
+  InspectionRecordingRoot
+} from "@hapsland/inspection-records/inspection/contract"
 import { ROUND_CLOSE_REASONS, type RoundCloseReason } from "@hapsland/activity-observation/activity/status"
 import {
   isCodexHostVersion,
+  type NativeEditMetadata,
   type DirectObservation,
   type DirectAdvicee
 } from "@hapsland/native-observation/direct-event/observation"
 
+import { resolve } from "node:path"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import type { ClaudeHostOutput } from "@hapsland/delivery-output/direct-event/claude-output"
@@ -69,6 +75,14 @@ export const CURRENT_IPC_VERSION = 1 as const
 export type ResidentRequestRoute = "shared" | "edit"
 export type ResidentUnavailableReason = "backend" | "credential" | "capacity" | "stale" | "lost" | "expired"
 export type ResidentRequest =
+  | {
+      readonly requestRoute: "shared"
+      readonly operation: "record-native"
+      readonly lifetime: string
+      readonly metadata: ReadonlyArray<NativeEditMetadata>
+      readonly userConfigPath: string | null
+      readonly activityPath?: string
+    }
   | {
       readonly requestRoute: "edit"
       readonly operation: "admit-and-collect"
@@ -321,7 +335,13 @@ const AddedLines = Schema.Array(Schema.String).check(Schema.isMaxLength(65_536))
 const Candidate = Schema.Union([
   Schema.Struct({ operation: Schema.Literal("add"), path: BoundedString, addedLines: Schema.optionalKey(AddedLines) }),
   Schema.Struct({ operation: Schema.Literal("update"), path: BoundedString, addedLines: AddedLines }),
-  Schema.Struct({ operation: Schema.Literals(["delete", "move"]), path: BoundedString, addedLines: Schema.Tuple([]) })
+  Schema.Struct({
+    operation: Schema.Literal("move"),
+    path: BoundedString,
+    addedLines: Schema.Tuple([]),
+    moveTo: Schema.optionalKey(BoundedString)
+  }),
+  Schema.Struct({ operation: Schema.Literal("delete"), path: BoundedString, addedLines: Schema.Tuple([]) })
 ])
 const Coordinate = SafeNatural.check(Schema.isGreaterThanOrEqualTo(1))
 const Position = Schema.Struct({ line: Coordinate, column: Coordinate })
@@ -336,7 +356,60 @@ const VerifiedHunks = Schema.Struct({
     })
   ).check(Schema.isMinLength(1), Schema.isMaxLength(64))
 }).check(Schema.makeFilter((value) => value.hunks.every((hunk) => hunk.path === value.path)))
+const RootIdentity = Schema.Struct({
+  rootDevice: BoundedString,
+  rootInode: BoundedString,
+  gitDirectory: AbsolutePath,
+  gitDevice: BoundedString,
+  gitInode: BoundedString
+})
+const NativeMetadata = Schema.Struct({
+  root: AbsolutePath,
+  rootIdentity: RootIdentity,
+  advicee: Advicee,
+  candidates: Schema.Array(InspectionNativeCandidate).check(
+    Schema.isMinLength(1),
+    Schema.isMaxLength(16),
+    Schema.makeFilter((value) =>
+      value.every((candidate, index) => index === 0 || candidate.position > value[index - 1]!.position)
+    )
+  ),
+  admission: Schema.optionalKey(Schema.Literal("skipped-other-root")),
+  diagnostic: Schema.optionalKey(
+    Schema.Union([
+      Schema.Struct({
+        stage: Schema.Literal("capture"),
+        code: Schema.Literal("panic"),
+        args: Schema.Struct({ boundary: Schema.Literal("stable-capture") })
+      }),
+      InspectionCaptureDiagnostic,
+      Schema.Struct({
+        stage: Schema.Literal("observation"),
+        code: Schema.Literal("attribution-unavailable"),
+        args: Schema.Struct({})
+      }),
+      Schema.Struct({
+        stage: Schema.Literal("admission"),
+        code: Schema.Literal("dispatch-unavailable"),
+        args: Schema.Struct({})
+      })
+    ])
+  )
+})
+const NativeMetadataArray = Schema.Array(NativeMetadata).check(
+  Schema.isMinLength(1),
+  Schema.isMaxLength(16),
+  Schema.makeFilter(
+    (value) =>
+      value.reduce((count, projection) => count + projection.candidates.length, 0) <= 16 &&
+      new Set(value.map((projection) => projection.root)).size === value.length &&
+      new Set(value.flatMap((projection) => projection.candidates.map((candidate) => candidate.position))).size ===
+        value.reduce((count, projection) => count + projection.candidates.length, 0) &&
+      value.every((projection) => projection.candidates.every((candidate) => candidate.position < 16))
+  )
+)
 const observationFields = {
+  nativeMetadata: Schema.optionalKey(NativeMetadataArray),
   root: BoundedString,
   rootIdentity: Schema.Struct({
     rootDevice: BoundedString,
@@ -365,8 +438,48 @@ const observationFields = {
   nativePatchCommand: Schema.optionalKey(Schema.String),
   verifiedPostEditHunks: Schema.optionalKey(VerifiedHunks)
 }
-const Observation = Schema.Struct({ ...observationFields, advicee: Advicee })
-const ClaudeObservation = Schema.Struct({ ...observationFields, advicee: ClaudeAdvicee })
+const BaseObservation = Schema.Struct({ ...observationFields, advicee: Advicee })
+/** A normal admission can carry only metadata for its own discovered native candidates. */
+const metadataMatchesObservation = (value: typeof BaseObservation.Type): boolean =>
+  (value.candidateRoots === undefined || value.candidateRoots.length === value.candidates.length) &&
+  (value.nativeMetadata === undefined ||
+    (value.nativeMetadata.flatMap((projection) => projection.candidates).length ===
+      value.candidates.filter(
+        (_, position) => value.candidateRoots === undefined || value.candidateRoots[position] !== null
+      ).length &&
+      value.nativeMetadata.every(
+        (projection) =>
+          Object.keys(value.advicee).every(
+            (key) =>
+              projection.advicee[key as keyof typeof value.advicee] === value.advicee[key as keyof typeof value.advicee]
+          ) &&
+          projection.candidates.every((candidate) => {
+            const native = value.candidates[candidate.position]
+            const target =
+              value.candidateRoots?.[candidate.position] ?? (value.candidateRoots === undefined ? value : undefined)
+            return (
+              native !== undefined &&
+              target !== undefined &&
+              target !== null &&
+              target.root === projection.root &&
+              Object.keys(target.rootIdentity).every(
+                (key) =>
+                  target.rootIdentity[key as keyof typeof target.rootIdentity] ===
+                  projection.rootIdentity[key as keyof typeof target.rootIdentity]
+              ) &&
+              candidate.operation === native.operation &&
+              resolve(value.root, native.path) === resolve(projection.root, candidate.path) &&
+              (!("moveTo" in native) || native.moveTo === undefined
+                ? candidate.moveTo === undefined
+                : candidate.moveTo !== undefined &&
+                  resolve(value.root, native.moveTo) === resolve(projection.root, candidate.moveTo))
+            )
+          })
+      )))
+const Observation = BaseObservation.check(Schema.makeFilter(metadataMatchesObservation))
+const ClaudeObservation = Schema.Struct({ ...observationFields, advicee: ClaudeAdvicee }).check(
+  Schema.makeFilter(metadataMatchesObservation)
+)
 const shared = { requestRoute: Schema.Literal("shared") }
 const lifetime = { ...shared, lifetime: BoundedString }
 const owner = { ...lifetime, root: BoundedString, advicee: Advicee }
@@ -381,6 +494,13 @@ const collection = {
 }
 
 const ResidentRequestSchema = Schema.Union([
+  Schema.Struct({
+    ...lifetime,
+    operation: Schema.Literal("record-native"),
+    metadata: NativeMetadataArray,
+    userConfigPath: Schema.NullOr(AbsolutePath),
+    activityPath: Schema.optionalKey(AbsolutePath)
+  }),
   Schema.Struct({
     requestRoute: Schema.Literal("edit"),
     operation: Schema.Literal("admit-and-collect"),

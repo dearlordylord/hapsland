@@ -452,7 +452,12 @@ describe("resident inspection capture", () => {
     expect(records.map((record) => record.fact)).toEqual([
       { kind: "recording-state", state: "enabled" },
       { kind: "source-registration" },
-      { kind: "edit-received", candidates: [{ operation: "add", path: "type.ts" }] },
+      {
+        kind: "edit-received",
+        candidates: [
+          { position: 0, selection: { status: "not-evaluated" as const }, operation: "add", path: "type.ts" }
+        ]
+      },
       { kind: "edit-admission", outcome: "obsolete-lifetime" }
     ])
     expect(await Effect.runPromise(server.stats())).toMatchObject({ pendingAdvice: 0 })
@@ -572,7 +577,10 @@ describe("resident inspection capture", () => {
     const received = records.find((record) => record.fact.kind === "edit-received")!
     expect(received.source.lifetime).toBe(server.lifetime)
     expect(received.scope.runtime).toBe("codex-cli")
-    expect(received.fact).toEqual({ kind: "edit-received", candidates: [{ operation: "add", path: "type.ts" }] })
+    expect(received.fact).toEqual({
+      kind: "edit-received",
+      candidates: [{ position: 0, selection: { status: "not-evaluated" as const }, operation: "add", path: "type.ts" }]
+    })
     expect(JSON.stringify(received)).not.toContain("OrderCount")
     expect(records.find((record) => record.fact.kind === "edit-admission")?.correlation).toEqual(received.correlation)
     await Effect.runPromise(server.whenIdle())
