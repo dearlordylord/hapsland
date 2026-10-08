@@ -101,6 +101,17 @@ test("pin-only commit admits the audited archive without compiler receipts or de
   assert.equal(existsSync(join(f.root, "dist")), false)
 })
 
+test("clean prepared candidate branch warns and reaches npm authentication without rebuilding", async (t) => {
+  const f = await preparedFixture(t)
+  git(f.root, "switch", "-qc", "release-candidate")
+  const result = invokeRelease(f)
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /WARNING: release checkout/u)
+  assert.match(result.stderr, /npm whoami failed/u)
+  assert.equal(existsSync(join(f.root, "invoked")), true)
+  assert.equal(existsSync(join(f.root, "dist")), false)
+})
+
 for (const path of ["package.json", "scripts/new-source.mjs", "README.md", "bun.lock"])
   test(`committed ${path} change rejects publication before npm`, async (t) => {
     const f = await preparedFixture(t)

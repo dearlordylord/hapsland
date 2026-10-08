@@ -8,7 +8,9 @@
 **Lifecycle:** Update with release tooling, package layout, or registry policy; review for each release or change to release host/platform combinations.
 
 The maintainer prepares an audited archive from a clean committed checkout and
-publishes that exact archive from clean `master` equal to `origin/master`. GitHub
+publishes that exact archive from a clean checkout matching the prepared source.
+Clean `master` equal to `origin/master` is recommended; branch or remote-head
+differences emit a warning while source and archive admission remain mandatory. GitHub
 Actions is optional supporting evidence. The source repository remains private;
 this flow provides no npm provenance attestation.
 
@@ -77,8 +79,9 @@ released. Incomplete or failed audits never produce a prepared pin.
 
 ## Publish the prepared candidate
 
-On the npm-authenticated host with the retained archive and audit, use clean
-`master` equal to `origin/master`:
+On the npm-authenticated host with the retained archive and audit, prefer clean
+`master` equal to `origin/master`. A clean candidate worktree with the same
+prepared source can also publish; its branch warning does not stop publication:
 
 ```sh
 git pull --ff-only origin master
