@@ -1,0 +1,24 @@
+{
+  "at": "2026-10-08T06:58:03.521984+00:00",
+  "reviewer": "delegated Astra",
+  "decision": "approved as written",
+  "laws": [
+    "command_exact",
+    "step_exact"
+  ],
+  "hostObligations": [
+    "Exact revision and optional command identity equality; action classification follows typed preview/apply results",
+    "Unique discovery hosts; preserve supplied order, first-occurrence-deduplicate failures, preserve cursor and other unpatched fields",
+    "Exact current host and lowercase 64hex digest facts",
+    "Grouped approvals compare length/order/host/exact digest against all defined digests; no sort, dedup or outcome filter",
+    "Truthy digest for review, skipping, and apply command; defined digest for proposal enumeration and cursor selection",
+    "First apply selects first defined digest regardless of outcome; subsequent apply selects later defined digest with undefined outcome, or -1",
+    "Post-patch agents determine preview proposal presence; preview cursor increments even at completion",
+    "Patch only current agent and indicated fields; preserve other digest/outcome/activation/native model fields",
+    "Entry to activation sets return path; preserve afterward; absent return uses apply continuation",
+    "Hold preserves identity; advance increments revision once; commands use current native IDs and payloads",
+    "Retain grouped full-line consent, owner revalidation, effect execution and administration import boundaries"
+  ],
+  "scope": "conditional command/transition laws; native array queries, fact mapping, patch materialization, consent and IO are separate host evidence",
+  "permits": "proofs, falsification, mutation tests and integration"
+}

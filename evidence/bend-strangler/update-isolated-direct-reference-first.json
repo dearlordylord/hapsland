@@ -1,0 +1,278 @@
+{
+  "at": "2026-10-08T08:41:13.794Z",
+  "baselineRevision": "a071b9b58",
+  "warmupRounds": 20,
+  "samplePairs": 31,
+  "warmupOrder": "reference-first",
+  "timedCases": 192456,
+  "samples": {
+    "typescript": [
+      {
+        "milliseconds": 75.6087120000002,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 73.36419600000045,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 73.84890700000051,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 72.24131200000011,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 69.94650499999989,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 78.6670669999994,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 81.28321199999937,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 74.05270099999962,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 74.88941499999964,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 75.6146289999997,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 75.18425100000059,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 77.11501500000031,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 75.79083899999932,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 75.27170999999998,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 76.99955500000033,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 76.04021600000033,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 80.04261899999983,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 76.16475699999955,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 73.18311099999937,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 76.32375899999988,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 72.14731200000006,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 74.91453999999976,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 73.87165800000002,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 80.93370800000048,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 75.35371000000032,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 76.69738600000164,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 82.93243099999927,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 72.6906489999983,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 73.22544500000004,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 74.59891299999981,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 73.86624099999972,
+        "checksum": 141006208
+      }
+    ],
+    "integratedBend": [
+      {
+        "milliseconds": 78.53648299999986,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 78.54640000000018,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 69.14274899999964,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 70.30950699999994,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 69.07912299999953,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 77.04834699999992,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 69.37154200000077,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 70.53813400000035,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 74.40041099999962,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 76.09088199999951,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 72.59702399999969,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 71.68822600000021,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 81.69846499999949,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 76.22863400000006,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 70.89838700000018,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 72.78252500000053,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 72.39768899999945,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 71.80422599999929,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 70.03729700000076,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 76.68376100000023,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 72.0706450000007,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 73.14386099999956,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 71.97268600000007,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 67.44182,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 73.593073,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 76.24171600000045,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 76.9758469999997,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 74.8014149999999,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 70.35221599999932,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 72.02856100000099,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 71.07651299999998,
+        "checksum": 141006208
+      }
+    ]
+  },
+  "medianRatio": 0.9618180455844495,
+  "executionParity": true,
+  "sha256": {
+    "/workspace/typescript/hapsland-bend-baseline/packages/administration/dist/onboarding/update-model.js": "e4cede2834260b474fe48b738fae4203e411cf3330026cac135c8db97ac0e309",
+    "evidence/bend-strangler/update-reference.ts": "0df8a8c5991ec3942926b3fc44f66dd830b6f511650b2de5aa09d8b17d6d86b8",
+    "packages/agent-flow-bend/update-policy/core.bend": "341fb1d2dbea66de5691802bb6466fa25f364706b4d211a6531e47727e196e1f",
+    "packages/agent-flow-bend/update-policy/LAWS.bend": "6d873792e43a9a57082eddfdd04a919196c5a26d9253d0f7dc020282d7bcc114",
+    "packages/agent-flow-bend/update-policy/PROOF.bend": "2c2dc94b65ebcae74f2e52f0f29fba92264f7e0fbe5c3a1ae869785f80145ae8",
+    "packages/agent-flow-bend/scripts/build-update-policy.mjs": "709a11ede6e4fc3b8956fa51596fece035bc5c89170a76d65b27ec97e701d77e",
+    "packages/canonical-policy/src/canonical/update-adapter.ts": "3da17fc3a077024b9dbaa6140570dcf970af3902c7b1b21f04f8c972fbf63de8",
+    "packages/administration/src/onboarding/update-model.ts": "836910aa19165683b62712048463de220f2195bb8a8a31e9eddbf0310cbee5ef",
+    "packages/agent-flow-bend/dist/update-policy.generated.js": "e629b8d6a0d344fb6ae337e0648973f022be653634981eb909c7372c2278cdcc",
+    "packages/canonical-policy/dist/canonical/update-adapter.js": "468f8aaf48f43b32933cb9c9e439e223ffbdb1b340c1e8e56ca583d33b31f321",
+    "packages/administration/dist/onboarding/update-model.js": "f7e1414058a4c15a8047c58bc5651e36a1c1f0fdf5410abf61adb7a35e6ace24"
+  },
+  "scope": "emitted update reducer/commands from both master and candidate; independent identical harness functions per lane; native current-cursor cases with exact output field consumption; finite array and correlation fixtures; no acquisition, owner IO, startup or platform claim"
+}

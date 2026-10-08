@@ -66,6 +66,9 @@ async function fixture(t) {
     })
   )
   mkdirSync(resolve(directory, "request-content"), { recursive: true })
+  mkdirSync(resolve(directory, "update-policy"), { recursive: true })
+  writeFileSync(resolve(directory, "update-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
+  writeFileSync(resolve(directory, "update-policy/core.bend"), "// Update fixture\n")
   mkdirSync(resolve(directory, "verification-policy"), { recursive: true })
   writeFileSync(resolve(directory, "verification-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
   writeFileSync(resolve(directory, "verification-policy/core.bend"), "// Verification fixture\n")
@@ -85,7 +88,8 @@ async function fixture(t) {
     "build-request-content.mjs",
     "build-credential-policy.mjs",
     "build-login-policy.mjs",
-    "build-verification-policy.mjs"
+    "build-verification-policy.mjs",
+    "build-update-policy.mjs"
   ])
     writeFileSync(resolve(directory, "scripts", name), "// Generator fixture identity\n")
   for (const name of [
@@ -94,7 +98,8 @@ async function fixture(t) {
     "request-content.generated.d.ts",
     "credential-policy.generated.d.ts",
     "login-policy.generated.d.ts",
-    "verification-policy.generated.d.ts"
+    "verification-policy.generated.d.ts",
+    "update-policy.generated.d.ts"
   ]) {
     writeFileSync(resolve(directory, "abi", name), "export declare const fixture: number;\n")
     writeFileSync(resolve(directory, "dist", name), "export declare const fixture: number;\n")
@@ -105,7 +110,8 @@ async function fixture(t) {
     "request-content.generated.js",
     "credential-policy.generated.js",
     "login-policy.generated.js",
-    "verification-policy.generated.js"
+    "verification-policy.generated.js",
+    "update-policy.generated.js"
   ])
     writeFileSync(resolve(directory, "dist", name), "export const fixture=1;\n")
   const node = { path: directory },
@@ -161,13 +167,13 @@ for (const text of [
 ])
   test(`rejects unsupported generated loader ${text}`, () =>
     assert.throws(() => bendGeneratedLoaderEvidence(text, "generated.js"), /Unsupported generated Bend loader/))
-test("valid receipt binds actual compiler/support/input bytes and exact twelve outputs", async (t) => {
+test("valid receipt binds actual compiler/support/input bytes and exact fourteen outputs", async (t) => {
   const f = await fixture(t)
   assert.equal(f.verify().format, 1)
   assert.equal(f.context.toolchain.version, "bend 2.0.36")
   assert.ok(f.context.toolchain.support.inventory.length)
   assert.ok(f.context.toolchain.toolLibraries.length)
-  assert.equal(f.receipt.outputs.length, 12)
+  assert.equal(f.receipt.outputs.length, 14)
 })
 test("Bend-only scheduling replaces a stale PATH task stamp before the scheduler reads it", async (t) => {
   const f = await fixture(t)
@@ -325,6 +331,7 @@ test("Bend producer rejects unconsumed authored input drift and clears owned out
   writeFileSync(resolve(f.directory, "scripts/build-credential-policy.mjs"), generator("credential-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-login-policy.mjs"), generator("login-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-verification-policy.mjs"), generator("verification-policy"))
+  writeFileSync(resolve(f.directory, "scripts/build-update-policy.mjs"), generator("update-policy"))
   let toolchain = await bendProducerToolchain(f.root)
   prepareAuthoredTaskInputs(f.root, { packages: new Map([[manifest.name, owner]]) }, { bendToolchain: toolchain })
   await buildBendProducer(f.root, owner)
@@ -351,9 +358,11 @@ for (const file of [
   "credential-policy.generated.js",
   "login-policy.generated.js",
   "verification-policy.generated.js",
+  "update-policy.generated.js",
   "credential-policy.generated.d.ts",
   "login-policy.generated.d.ts",
-  "verification-policy.generated.d.ts"
+  "verification-policy.generated.d.ts",
+  "update-policy.generated.d.ts"
 ])
   test(`omitted declared producer output ${file} cannot pass a receipt`, async (t) => {
     const f = await fixture(t)
@@ -408,5 +417,12 @@ test("pure artifact extraction edits invalidate producer receipt authority", asy
   const f = await fixture(t)
   f.verify()
   writeFileSync(resolve(f.root, "scripts/pure-bend-artifact.mjs"), "// Changed extraction implementation\n")
+  assert.throws(f.verify, /Stale Bend producer receipt context|caller context is stale/)
+})
+
+test("update proof edits invalidate producer receipt authority", async (t) => {
+  const f = await fixture(t)
+  f.verify()
+  writeFileSync(resolve(f.directory, "update-policy/PROOF.bend"), "import Base\n// Changed proof input\n")
   assert.throws(f.verify, /Stale Bend producer receipt context|caller context is stale/)
 })

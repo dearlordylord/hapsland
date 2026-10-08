@@ -1,3 +1,8 @@
+import {
+  getUpdateNativeCommand,
+  bindUpdateReducers,
+  type UpdatePatch
+} from "@hapsland/canonical-policy/canonical/update-adapter"
 import type { SetupClient } from "./client-selection.ts"
 
 export type UpdateOutcome = "updated" | "already current" | "skipped" | "partial" | "busy" | "indeterminate" | "failed"
@@ -53,17 +58,7 @@ export const initialUpdate = (): UpdateModel => ({
 })
 export const updateProposals = (model: UpdateModel) =>
   model.agents.flatMap((agent) => (agent.digest === undefined ? [] : [{ host: agent.host, digest: agent.digest }]))
-export const updateCommand = (model: UpdateModel): UpdateCommand | undefined => {
-  if (model.phase === "Discovering") return { kind: "discover", id: model.revision }
-  if (model.phase === "Targeting") return { kind: "target", id: model.revision }
-  const agent = model.agents[model.cursor]
-  if (!agent) return undefined
-  if (model.phase === "Previewing") return { kind: "preview", id: model.revision, host: agent.host }
-  if (model.phase === "Activating") return { kind: "activate", id: model.revision, host: agent.host }
-  if (model.phase === "Applying" && agent.digest)
-    return { kind: "apply", id: model.revision, host: agent.host, digest: agent.digest }
-  return undefined
-}
+export const updateCommand: (model: UpdateModel) => UpdateCommand | undefined = getUpdateNativeCommand
 const move = (model: UpdateModel, phase: UpdateModel["phase"], patch: Partial<UpdateModel> = {}): UpdateModel => ({
   ...model,
   ...patch,
@@ -72,48 +67,14 @@ const move = (model: UpdateModel, phase: UpdateModel["phase"], patch: Partial<Up
 })
 const patchAgent = (model: UpdateModel, patch: Partial<UpdateAgent>) =>
   model.agents.map((item, index) => (index === model.cursor ? { ...item, ...patch } : item))
-const nextPreview = (model: UpdateModel, agents: readonly UpdateAgent[]) =>
-  move(
-    model,
-    model.cursor + 1 < agents.length ? "Previewing" : agents.some((item) => item.digest) ? "Review" : "Done",
-    { agents, cursor: model.cursor + 1 }
-  )
-const nextApply = (model: UpdateModel, agents: readonly UpdateAgent[]) => {
-  const cursor = agents.findIndex(
+const nextApplyCursor = (model: UpdateModel) =>
+  model.agents.findIndex(
     (item, index) => index > model.cursor && item.digest !== undefined && item.outcome === undefined
   )
-  return move(model, cursor < 0 ? "Done" : "Applying", { agents, cursor })
-}
 const skipProposals = (model: UpdateModel) =>
   model.agents.map((item) =>
     item.digest && item.outcome === undefined ? { ...item, outcome: "skipped" as const } : item
   )
-const navigate = (model: UpdateModel, action: UpdateAction): UpdateModel => {
-  if (action.kind === "back") return model.phase === "Approval" ? move(model, "Review") : model
-  return model.phase === "Review" || model.phase === "Approval"
-    ? move(model, "Cancelled", { agents: skipProposals(model) })
-    : model
-}
-const discovered = (model: UpdateModel, action: UpdateAction): UpdateModel => {
-  if (action.kind !== "discovered" || new Set(action.hosts).size !== action.hosts.length) return model
-  return move(model, action.hosts.length ? "Targeting" : "Done", {
-    agents: action.hosts.map((host) => ({ host })),
-    discoveryFailures: [...new Set(action.failures)]
-  })
-}
-const previewed = (model: UpdateModel, action: UpdateAction): UpdateModel => {
-  if (action.kind !== "previewed" || action.host !== model.agents[model.cursor]?.host) return model
-  if (action.result.kind === "proposal")
-    return /^[a-f0-9]{64}$/.test(action.result.digest)
-      ? nextPreview(model, patchAgent(model, { digest: action.result.digest }))
-      : model
-  if (action.result.kind === "current")
-    return move(model, "Activating", {
-      agents: patchAgent(model, { outcome: "already current" }),
-      activationReturn: "Previewing"
-    })
-  return nextPreview(model, patchAgent(model, { outcome: action.result.kind }))
-}
 const sameProposals = (model: UpdateModel, approvals: readonly { host: SetupClient; digest: string }[]) => {
   const proposals = updateProposals(model)
   return (
@@ -123,38 +84,111 @@ const sameProposals = (model: UpdateModel, approvals: readonly { host: SetupClie
     )
   )
 }
-const approved = (model: UpdateModel, action: UpdateAction): UpdateModel => {
-  if (action.kind !== "approve" || !sameProposals(model, action.proposals)) return model
-  if (!action.yes) return move(model, "Done", { agents: skipProposals(model) })
-  return move(model, "Applying", { cursor: model.agents.findIndex((item) => item.digest !== undefined) })
+// Bend-derived leaves select a payload materializer and phase directly.
+const materializers = {
+  no: (model: UpdateModel, action: UpdateAction, phase: UpdateModel["phase"]): UpdateModel => {
+    return move(model, phase)
+  },
+  discovered: (model: UpdateModel, action: UpdateAction, phase: UpdateModel["phase"]): UpdateModel => {
+    const discovery = action as Extract<UpdateAction, { kind: "discovered" }>
+    return move(model, phase, {
+      agents: discovery.hosts.map((host) => ({ host })),
+      discoveryFailures: [...new Set(discovery.failures)]
+    })
+  },
+  previewProposal: (model: UpdateModel, action: UpdateAction, phase: UpdateModel["phase"]): UpdateModel => {
+    const proposal = action as { kind: "previewed"; result: { kind: "proposal"; digest: string } }
+    return move(model, phase, {
+      agents: patchAgent(model, { digest: proposal.result.digest }),
+      cursor: model.cursor + 1
+    })
+  },
+  previewOutcome: (model: UpdateModel, action: UpdateAction, phase: UpdateModel["phase"]): UpdateModel => {
+    const preview = action as { kind: "previewed"; result: { kind: "failed" | "busy" | "indeterminate" } }
+    return move(model, phase, { agents: patchAgent(model, { outcome: preview.result.kind }), cursor: model.cursor + 1 })
+  },
+  currentPreview: (model: UpdateModel, action: UpdateAction, phase: UpdateModel["phase"]): UpdateModel => {
+    return move(model, phase, {
+      agents: patchAgent(model, { outcome: "already current" }),
+      activationReturn: "Previewing"
+    })
+  },
+  skipped: (model: UpdateModel, action: UpdateAction, phase: UpdateModel["phase"]): UpdateModel => {
+    return move(model, phase, { agents: skipProposals(model) })
+  },
+  beginApply: (model: UpdateModel, action: UpdateAction, phase: UpdateModel["phase"]): UpdateModel => {
+    return move(model, phase, { cursor: model.agents.findIndex((item) => item.digest !== undefined) })
+  },
+  observedApply: (model: UpdateModel, action: UpdateAction, phase: UpdateModel["phase"]): UpdateModel => {
+    const observation = action as Extract<UpdateAction, { kind: "observed" }>
+    return move(model, phase, {
+      agents: patchAgent(model, { outcome: observation.outcome }),
+      cursor: nextApplyCursor(model)
+    })
+  },
+  observedActivate: (model: UpdateModel, action: UpdateAction, phase: UpdateModel["phase"]): UpdateModel => {
+    const observation = action as Extract<UpdateAction, { kind: "observed" }>
+    return move(model, phase, {
+      agents: patchAgent(model, { outcome: observation.outcome }),
+      activationReturn: "Applying"
+    })
+  },
+  activatedPreview: (model: UpdateModel, action: UpdateAction, phase: UpdateModel["phase"]): UpdateModel => {
+    const activation = action as Extract<UpdateAction, { kind: "activated" }>
+    return move(model, phase, {
+      agents: patchAgent(model, { activation: activation.result }),
+      cursor: model.cursor + 1
+    })
+  },
+  activatedApply: (model: UpdateModel, action: UpdateAction, phase: UpdateModel["phase"]): UpdateModel => {
+    const activation = action as Extract<UpdateAction, { kind: "activated" }>
+    return move(model, phase, {
+      agents: patchAgent(model, { activation: activation.result }),
+      cursor: nextApplyCursor(model)
+    })
+  }
+} satisfies Readonly<
+  Record<UpdatePatch, (model: UpdateModel, action: UpdateAction, phase: UpdateModel["phase"]) => UpdateModel>
+>
+const facts = {
+  unique: (_: UpdateModel, action: UpdateAction) => {
+    const hosts = (action as Extract<UpdateAction, { kind: "discovered" }>).hosts
+    return Number(new Set(hosts).size === hosts.length)
+  },
+  nonempty: (_: UpdateModel, action: UpdateAction) =>
+    Number((action as Extract<UpdateAction, { kind: "discovered" }>).hosts.length > 0),
+  matched: (model: UpdateModel, action: UpdateAction) =>
+    Number((action as { host: SetupClient }).host === model.agents[model.cursor]?.host),
+  validDigest: (_: UpdateModel, action: UpdateAction) =>
+    Number(/^[a-f0-9]{64}$/.test((action as { result: { digest: string } }).result.digest)),
+  more: (model: UpdateModel) => Number(model.cursor + 1 < model.agents.length),
+  proposals: (model: UpdateModel, action: UpdateAction) =>
+    Number(
+      model.agents.some((item, index) =>
+        Boolean(
+          action.kind === "previewed" && action.result.kind === "proposal" && index === model.cursor
+            ? action.result.digest
+            : item.digest
+        )
+      )
+    ),
+  pending: (model: UpdateModel) => Number(nextApplyCursor(model) >= 0),
+  approvalsMatch: (model: UpdateModel, action: UpdateAction) =>
+    Number(sameProposals(model, (action as Extract<UpdateAction, { kind: "approve" }>).proposals)),
+  yes: (_: UpdateModel, action: UpdateAction) => Number((action as Extract<UpdateAction, { kind: "approve" }>).yes),
+  returnPreview: (model: UpdateModel) => Number(model.activationReturn === "Previewing")
 }
-const observed = (model: UpdateModel, action: UpdateAction): UpdateModel => {
-  if (action.kind !== "observed" || action.host !== model.agents[model.cursor]?.host) return model
-  const agents = patchAgent(model, { outcome: action.outcome })
-  return ["updated", "already current", "partial"].includes(action.outcome)
-    ? move(model, "Activating", { agents, activationReturn: "Applying" })
-    : nextApply(model, agents)
-}
-const activated = (model: UpdateModel, action: UpdateAction): UpdateModel => {
-  if (action.kind !== "activated" || action.host !== model.agents[model.cursor]?.host) return model
-  const agents = patchAgent(model, { activation: action.result })
-  return model.activationReturn === "Previewing" ? nextPreview(model, agents) : nextApply(model, agents)
-}
-const terminal = (model: UpdateModel) => model
-const transitions: Record<UpdateModel["phase"], (model: UpdateModel, action: UpdateAction) => UpdateModel> = {
-  Discovering: discovered,
-  Targeting: (model, action) => (action.kind === "targeted" ? move(model, "Previewing") : model),
-  Previewing: previewed,
-  Review: (model, action) => (action.kind === "continue" ? move(model, "Approval") : model),
-  Approval: approved,
-  Applying: observed,
-  Activating: activated,
-  Done: terminal,
-  Cancelled: terminal
-}
-export function reduceUpdate(model: UpdateModel, event: UpdateEvent): UpdateModel {
+const prepareReducers = () =>
+  bindUpdateReducers(
+    facts,
+    (action: UpdateAction) =>
+      action.kind === "previewed" ? action.result.kind : action.kind === "observed" ? action.outcome : undefined,
+    materializers
+  )
+let reducers: ReturnType<typeof prepareReducers> | undefined
+export const reduceUpdate = (model: UpdateModel, event: UpdateEvent): UpdateModel => {
   const action = event.action
   if (event.revision !== model.revision || ("commandId" in action && action.commandId !== model.revision)) return model
-  if (action.kind === "back" || action.kind === "exit") return navigate(model, action)
-  return transitions[model.phase](model, action)
+  reducers ??= prepareReducers()
+  return reducers(model, action)
 }

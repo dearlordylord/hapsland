@@ -1,0 +1,100 @@
+{
+  "at": "2026-10-08T08:26:46.288Z",
+  "baselineRevision": "a071b9b58",
+  "warmupOrder": "reference-first",
+  "timedCases": 192456,
+  "samples": {
+    "typescript": [
+      {
+        "milliseconds": 71.98922799999991,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 76.53063599999996,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 78.22652299999982,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 83.8712300000002,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 83.25997499999994,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 79.77644999999984,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 73.69615699999986,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 83.83727100000033,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 74.22870199999988,
+        "checksum": 141006208
+      }
+    ],
+    "integratedBend": [
+      {
+        "milliseconds": 73.94461700000011,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 76.86363799999981,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 78.52644200000032,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 73.86632499999996,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 79.58540799999992,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 91.35590899999988,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 71.48051600000008,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 77.13738899999998,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 70.90592800000013,
+        "checksum": 141006208
+      }
+    ]
+  },
+  "medianRatio": 0.9825777121654761,
+  "executionParity": true,
+  "sha256": {
+    "/workspace/typescript/hapsland-bend-baseline/packages/administration/dist/onboarding/update-model.js": "e4cede2834260b474fe48b738fae4203e411cf3330026cac135c8db97ac0e309",
+    "evidence/bend-strangler/update-reference.ts": "0df8a8c5991ec3942926b3fc44f66dd830b6f511650b2de5aa09d8b17d6d86b8",
+    "packages/agent-flow-bend/update-policy/core.bend": "341fb1d2dbea66de5691802bb6466fa25f364706b4d211a6531e47727e196e1f",
+    "packages/agent-flow-bend/update-policy/LAWS.bend": "6d873792e43a9a57082eddfdd04a919196c5a26d9253d0f7dc020282d7bcc114",
+    "packages/agent-flow-bend/update-policy/PROOF.bend": "2c2dc94b65ebcae74f2e52f0f29fba92264f7e0fbe5c3a1ae869785f80145ae8",
+    "packages/agent-flow-bend/scripts/build-update-policy.mjs": "8543df1875f8f8fa39675d3a74ec4631e316f10cef1cc1c89018dbe4e2760014",
+    "packages/canonical-policy/src/canonical/update-adapter.ts": "e5f6919260a897b8c64934c55f1efe6805dca7647289ecc88ba96d32a2e62973",
+    "packages/administration/src/onboarding/update-model.ts": "008aaba50bce1a46ab488eeb7c2ddeebfea01b32c660cc94345f23d32fd0dc1c",
+    "packages/agent-flow-bend/dist/update-policy.generated.js": "6a2798afeaaf206912781ebb04fed7338d8b20759d885d807779bbd7c480bf4e",
+    "packages/canonical-policy/dist/canonical/update-adapter.js": "048f296ff399195d7a608ee52a9b88ed53d072015255a7b09d0724b9dd523f0b",
+    "packages/administration/dist/onboarding/update-model.js": "746edb79a9a38b00b5c2b8eeb923091cbedd0759af8b57d803509645e396eae9"
+  },
+  "scope": "emitted update reducer/commands from both master and candidate; independent identical harness functions per lane; native current-cursor cases with exact output field consumption; finite array and correlation fixtures; no acquisition, owner IO, startup or platform claim"
+}

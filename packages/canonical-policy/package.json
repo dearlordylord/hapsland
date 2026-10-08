@@ -59,6 +59,10 @@
     "./canonical/verification-adapter": {
       "types": "./dist/canonical/verification-adapter.d.ts",
       "default": "./dist/canonical/verification-adapter.js"
+    },
+    "./canonical/update-adapter": {
+      "types": "./dist/canonical/update-adapter.d.ts",
+      "default": "./dist/canonical/update-adapter.js"
     }
   },
   "dependencies": {

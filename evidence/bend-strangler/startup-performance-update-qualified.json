@@ -1,0 +1,36 @@
+{
+  "at": "2026-10-08T08:49:09.911346+00:00",
+  "sources": {
+    "startup-performance-update-direct-outer-wall.json": "9e92f81e32226c49692a695d7ee522ef0b41424b099e0274e451ebab2b2c4e09",
+    "startup-performance-update-direct-child-wall.json": "ef1a4cd064d6fd6ce3b49b5fa46e6e3d4be66ca47bd049238cd3afadb6b06841"
+  },
+  "samplePairs": 132,
+  "cpuSeconds": {
+    "typescript": 28.167081999999972,
+    "integratedBend": 28.073230000000013
+  },
+  "cpuRatio": 0.9966680254632,
+  "cpuParity": true,
+  "aggregateOuterWallRatio": 0.9921283455040335,
+  "childWallRatio": 0.988743509263627,
+  "startupParity": true,
+  "sourceSha256": {
+    "/workspace/typescript/hapsland-bend-baseline/packages/administration/dist/onboarding/update-model.js": "e4cede2834260b474fe48b738fae4203e411cf3330026cac135c8db97ac0e309",
+    "evidence/bend-strangler/update-reference.ts": "0df8a8c5991ec3942926b3fc44f66dd830b6f511650b2de5aa09d8b17d6d86b8",
+    "packages/agent-flow-bend/update-policy/core.bend": "341fb1d2dbea66de5691802bb6466fa25f364706b4d211a6531e47727e196e1f",
+    "packages/agent-flow-bend/update-policy/LAWS.bend": "6d873792e43a9a57082eddfdd04a919196c5a26d9253d0f7dc020282d7bcc114",
+    "packages/agent-flow-bend/update-policy/PROOF.bend": "2c2dc94b65ebcae74f2e52f0f29fba92264f7e0fbe5c3a1ae869785f80145ae8",
+    "packages/agent-flow-bend/scripts/build-update-policy.mjs": "709a11ede6e4fc3b8956fa51596fece035bc5c89170a76d65b27ec97e701d77e",
+    "packages/canonical-policy/src/canonical/update-adapter.ts": "3da17fc3a077024b9dbaa6140570dcf970af3902c7b1b21f04f8c972fbf63de8",
+    "packages/administration/src/onboarding/update-model.ts": "836910aa19165683b62712048463de220f2195bb8a8a31e9eddbf0310cbee5ef",
+    "packages/agent-flow-bend/dist/update-policy.generated.js": "e629b8d6a0d344fb6ae337e0648973f022be653634981eb909c7372c2278cdcc",
+    "packages/canonical-policy/dist/canonical/update-adapter.js": "468f8aaf48f43b32933cb9c9e439e223ffbdb1b340c1e8e56ca583d33b31f321",
+    "packages/administration/dist/onboarding/update-model.js": "f7e1414058a4c15a8047c58bc5651e36a1c1f0fdf5410abf61adb7a35e6ace24"
+  },
+  "scope": "same frozen direct-materializer production candidate; resource child CPU is measured identically in both retained runs; 132 CPU pairs and 91 child-wall pairs; identical CLI help output hashes; warm filesystem, nonexclusive CPU 11; no cold filesystem, installed bundle, live Jev or platform claim",
+  "limitations": [
+    "individual outer-wall and CPU sample sets include small failed parity estimates, retained in full",
+    "startup samples do not capture a binary hash per launch; production inputs stayed frozen and current files match the source-bound reducer measurement",
+    "child wall excludes launching the Python measurement helper; aggregate outer wall retains both measurement runs"
+  ]
+}

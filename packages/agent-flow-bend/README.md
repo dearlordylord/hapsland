@@ -75,6 +75,17 @@ limit through a source-bound function dependency closure; the generator still
 compares plans against the full compiled core. Its checked host tables and
 materializers are prepared once on first verification use.
 
+`update-policy/core.bend` owns update command selection and transition plans.
+Its two Astra-approved laws pin grouped-approval, current-host and callback
+fences, preview/apply continuation, activation routing and native patches.
+The generator checks the complete Boolean domain and derives a short-circuit
+phase dispatcher, direct native materializer bindings and command bindings; native
+constructor templates keep command IDs,
+hosts and digests. Array measurements, payload materialization, full-line consent
+and owner revalidation remain native obligations. The [migration checkpoint](../../evidence/bend-strangler/checkpoint.json)
+records current timing qualification and finite consumer evidence separately from
+the laws. These measurements do not establish acquisition, owner IO or platform support.
+
 `Canonical.bend` is the production transition model and drives the main
 visualization through the checked TypeScript adapter.
 The maintained [TypeScript decision boundary ledger](../../docs/typescript-decision-boundary-ledger.md)

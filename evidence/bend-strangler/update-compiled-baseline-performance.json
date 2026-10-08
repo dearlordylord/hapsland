@@ -1,0 +1,99 @@
+{
+  "at": "2026-10-08T07:34:59.539Z",
+  "baselineRevision": "a071b9b58",
+  "timedCases": 192456,
+  "samples": {
+    "typescript": [
+      {
+        "milliseconds": 67.13680199999999,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 75.79732600000034,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 73.26947400000017,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 104.9064229999999,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 113.37294500000007,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 114.8108729999999,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 116.36759299999994,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 74.77669400000013,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 67.75918099999944,
+        "checksum": 141006208
+      }
+    ],
+    "integratedBend": [
+      {
+        "milliseconds": 210.77414399999998,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 214.9658419999996,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 217.85844799999995,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 205.47189600000002,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 235.23916400000007,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 215.06084299999975,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 203.5281719999998,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 221.39109999999982,
+        "checksum": 141006208
+      },
+      {
+        "milliseconds": 207.16694999999982,
+        "checksum": 141006208
+      }
+    ]
+  },
+  "medianRatio": 2.836061024105239,
+  "executionParity": false,
+  "sha256": {
+    "/workspace/typescript/hapsland-bend-baseline/packages/administration/dist/onboarding/update-model.js": "e4cede2834260b474fe48b738fae4203e411cf3330026cac135c8db97ac0e309",
+    "evidence/bend-strangler/update-reference.ts": "0df8a8c5991ec3942926b3fc44f66dd830b6f511650b2de5aa09d8b17d6d86b8",
+    "packages/agent-flow-bend/update-policy/core.bend": "8a8e8cd8fde56ad26c45bd9b79e8d1dd04bfd2a6d7ec1711f12c665cf10e2e2a",
+    "packages/agent-flow-bend/update-policy/LAWS.bend": "adc44203ae4a1ab16dcf105af0a699a6309a60c47ef72f9d882e0735eb9391a9",
+    "packages/agent-flow-bend/update-policy/PROOF.bend": "7b80e517cc0f9fbae60ab0f3c9522f297b0e66b8b718bfafe44fa9d1059e7c31",
+    "packages/agent-flow-bend/scripts/build-update-policy.mjs": "b94312825e6a0ba500031672aabd356899aa8f4ea92c02c473013997391b0a01",
+    "packages/canonical-policy/src/canonical/update-adapter.ts": "e413c462a65a63ff791d5dadf66abd44f871f8fc20675984b4a47c24447d462a",
+    "packages/administration/src/onboarding/update-model.ts": "eb001c4cac90d2c7d79cc63bb59ca5dfd7a125819758c07a9e4cc0afcc2d3eb7",
+    "packages/agent-flow-bend/dist/update-policy.generated.js": "725221622da6e0ba3a6453d67a51c0c9b357359aef1bb580a9d4a3acca0c32b8",
+    "packages/canonical-policy/dist/canonical/update-adapter.js": "6ceb372576f42b9247c45c94cf3510e1622e55d0c3e7d6b0aa2408d0801d45e6",
+    "packages/administration/dist/onboarding/update-model.js": "a158a8fa59649e545db396fea9eb5684d3c5039e9a80c95ed23789a75eed6c3a"
+  },
+  "scope": "diagnostic: emitted update reducer/commands from both baseline master and candidate worktrees; native current-cursor cases with exact output field consumption; finite array and correlation fixtures; no acquisition, owner IO, startup or platform claim"
+}

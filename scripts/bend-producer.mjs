@@ -37,6 +37,8 @@ export const bendProducerOutputs = Object.freeze([
   "login-policy.generated.js",
   "request-content.generated.d.ts",
   "request-content.generated.js",
+  "update-policy.generated.d.ts",
+  "update-policy.generated.js",
   "verification-policy.generated.d.ts",
   "verification-policy.generated.js"
 ])
@@ -254,7 +256,8 @@ function contextInputs(root, node, toolchain) {
     "build-request-content.mjs",
     "build-credential-policy.mjs",
     "build-login-policy.mjs",
-    "build-verification-policy.mjs"
+    "build-verification-policy.mjs",
+    "build-update-policy.mjs"
   ].map((name) => resolve(directory, "scripts", name))
   const declarations = [
     "canonical.generated.d.ts",
@@ -262,7 +265,8 @@ function contextInputs(root, node, toolchain) {
     "request-content.generated.d.ts",
     "credential-policy.generated.d.ts",
     "login-policy.generated.d.ts",
-    "verification-policy.generated.d.ts"
+    "verification-policy.generated.d.ts",
+    "update-policy.generated.d.ts"
   ].map((name) => resolve(directory, "abi", name))
   const sources = bendImportInputs(
     root,
@@ -272,7 +276,8 @@ function contextInputs(root, node, toolchain) {
       resolve(directory, "request-content/Runtime.bend"),
       resolve(directory, "credential-policy/PROOF.bend"),
       resolve(directory, "login-policy/PROOF.bend"),
-      resolve(directory, "verification-policy/PROOF.bend")
+      resolve(directory, "verification-policy/PROOF.bend"),
+      resolve(directory, "update-policy/PROOF.bend")
     ],
     toolchain.base.requested
   )
@@ -489,7 +494,8 @@ export function checkBendProducerReceipt(root, node, currentContext) {
     "request-content.generated.d.ts",
     "credential-policy.generated.d.ts",
     "login-policy.generated.d.ts",
-    "verification-policy.generated.d.ts"
+    "verification-policy.generated.d.ts",
+    "update-policy.generated.d.ts"
   ])
     if (!readFileSync(resolve(directory, "dist", name)).equals(readFileSync(resolve(directory, "abi", name))))
       throw new Error("Generated Bend declarations differ from authored ABI")
@@ -524,7 +530,8 @@ export async function buildBendProducer(root, node) {
         "build-request-content.mjs",
         "build-credential-policy.mjs",
         "build-login-policy.mjs",
-        "build-verification-policy.mjs"
+        "build-verification-policy.mjs",
+        "build-update-policy.mjs"
       ])
         await runBuildProcess(
           resolve(root, before.toolchain.node.path),
@@ -545,7 +552,8 @@ export async function buildBendProducer(root, node) {
         "request-content.generated.d.ts",
         "credential-policy.generated.d.ts",
         "login-policy.generated.d.ts",
-        "verification-policy.generated.d.ts"
+        "verification-policy.generated.d.ts",
+        "update-policy.generated.d.ts"
       ])
         if (!readFileSync(resolve(stage, name)).equals(readFileSync(resolve(directory, "abi", name))))
           throw new Error("Generated Bend declarations differ from authored ABI")

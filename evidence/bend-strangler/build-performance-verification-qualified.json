@@ -1,6 +1,6 @@
 {
-  "startedAt": "2026-10-08T08:44:41.007Z",
-  "at": "2026-10-08T08:45:23.503Z",
+  "startedAt": "2026-10-08T06:50:17.203Z",
+  "at": "2026-10-08T06:51:01.049Z",
   "roots": {
     "typescript": "/workspace/typescript/hapsland-bend-baseline",
     "integratedBend": "/workspace/typescript/hapsland-bend-strangler"
@@ -18,7 +18,7 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 12.949542071,
+        "seconds": 6.2490712209999995,
         "exitCode": 0,
         "signal": null,
         "error": null
@@ -26,7 +26,7 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 12.620119630000005,
+        "seconds": 15.771075949999998,
         "exitCode": 0,
         "signal": null,
         "error": null
@@ -36,7 +36,7 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 12.046626406,
+        "seconds": 15.919606158000002,
         "exitCode": 0,
         "signal": null,
         "error": null
@@ -44,14 +44,14 @@
       {
         "cachedTasks": 23,
         "totalTasks": 46,
-        "seconds": 4.869978423,
+        "seconds": 5.894231049999998,
         "exitCode": 0,
         "signal": null,
         "error": null
       }
     ]
   },
-  "meanRatio": 0.6615889184149202,
+  "meanRatio": 0.990630854489851,
   "buildParity": true,
   "scope": "paired warm workspace builds; baseline master a071b9b58 and current candidate; both separately prepared; native release assembly excluded"
 }
