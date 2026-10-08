@@ -13,12 +13,12 @@ Find the current user instruction or accepted contract/decision through the
 Code, tests, research and reports alone do not create product requirements.
 Missing source: label the assumption; do not promote it to a required guarantee.
 
-Before adding, retaining or optimizing an expensive check, state the accepted
-goal and source, a realistic failure in supported use, its consequences for that
-goal, and the cheapest sufficient evidence. Uniqueness, technical possibility and
-an existing test do not justify retention. Remove or simplify checks without
-substantiated goal relevance. Propose accepted-contract changes with consequences
-before removing their required behavior.
+Before mandating checks or adding/retaining/optimizing expensive checks: state
+accepted goal/source, realistic supported-use failure, goal consequences,
+cheapest sufficient evidence. Uniqueness/technical possibility/existing tests
+don't justify retention. Remove/simplify checks lacking substantiated goal
+relevance. Propose accepted-contract changes/consequences before removing
+required behavior.
 
 Prefer short focused checks. Replace integration checks when cheaper checks
 establish the same goal-relevant behavior; retain real boundaries when needed.
