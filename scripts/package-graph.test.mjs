@@ -194,14 +194,18 @@ test("development resolution follows exact auxiliary APIs while production remai
   assert.equal(resolveDevelopmentWorkspaceSource(graph, "node:fs"), undefined)
 })
 
-test("auxiliary dependency cycles are explicit unscheduled consumer components", (t) => {
-  const root = fixture(t, { hook: {} })
-  addAuxiliary(root, "scripts", "tooling", { dependencies: { "@hapsland/src": "workspace:*" } })
-  addAuxiliary(root, "src", "verification", { dependencies: { "@hapsland/scripts": "workspace:*" } })
-  const graph = readPackageGraph(root)
-  assert.deepEqual(graph.auxiliarySccs, [["@hapsland/scripts", "@hapsland/src"]])
-  assert.deepEqual(graph.order, ["@hapsland/hook"])
-})
+for (const field of ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"]) {
+  test(`rejects auxiliary cycles through ${field}`, (t) => {
+    const root = fixture(t, { hook: {} })
+    addAuxiliary(root, "scripts", "tooling", { dependencies: { "@hapsland/src": "workspace:*" } })
+    addAuxiliary(root, "src", "verification", { [field]: { "@hapsland/scripts": "workspace:*" } })
+    assert.throws(() => readPackageGraph(root), /Package dependency cycle: @hapsland\/scripts, @hapsland\/src/)
+  })
+  test(`rejects a workspace self dependency through ${field}`, (t) => {
+    const root = fixture(t, { hook: { [field]: { "@hapsland/hook": "workspace:*" } } })
+    assert.throws(() => readPackageGraph(root), /Package dependency cycle: @hapsland\/hook/)
+  })
+}
 
 const bendFixture = (t) => {
   const root = fixture(t, {

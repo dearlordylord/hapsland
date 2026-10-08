@@ -34,10 +34,5 @@
   "hapsland": {
     "workspaceRole": "verification"
   },
-  "exports": {
-    "./canonical/simulation-adapter": {
-      "types": "./canonical/simulation-adapter.ts",
-      "default": "./canonical/simulation-adapter.ts"
-    }
-  }
+  "exports": {}
 }

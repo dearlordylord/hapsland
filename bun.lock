@@ -188,13 +188,10 @@
       "version": "0.1.0",
       "dependencies": {
         "@hapsland/agent-flow-bend": "workspace:*",
-        "@hapsland/agent-flow-viz": "workspace:*",
-        "@hapsland/build-tooling": "workspace:*",
         "@hapsland/canonical-policy": "workspace:*",
         "@hapsland/monkey-business-bend": "workspace:*",
         "@hapsland/review-definition": "workspace:*",
         "@hapsland/runtime-inputs": "workspace:*",
-        "@hapsland/verification": "workspace:*",
         "effect": "catalog:",
         "fast-check": "catalog:",
         "vitest": "catalog:",
@@ -206,9 +203,6 @@
     "packages/monkey-business-bend": {
       "name": "@hapsland/monkey-business-bend",
       "version": "0.0.0",
-      "dependencies": {
-        "@hapsland/monkey-business": "workspace:*",
-      },
     },
     "packages/native-observation": {
       "name": "@hapsland/native-observation",
@@ -360,7 +354,7 @@
         "@effect/platform-node": "catalog:",
         "@hapsland/activity-observation": "workspace:*",
         "@hapsland/administration": "workspace:*",
-        "@hapsland/agent-flow-viz": "workspace:*",
+        "@hapsland/agent-flow-projection": "workspace:*",
         "@hapsland/canonical-defense": "workspace:*",
         "@hapsland/canonical-policy": "workspace:*",
         "@hapsland/delivery-output": "workspace:*",

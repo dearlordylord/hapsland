@@ -5,7 +5,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { architectureWithFlowDiagram } from "./generate-architecture-diagram.mjs"
-import { productionFlowMermaid } from "../packages/agent-flow-viz/src/production-flow-mermaid.ts"
+import { productionFlowMermaid } from "../packages/agent-flow-projection/src/production-flow-mermaid.ts"
 
 test("exports admission, request authorization, collection and round paths without native evidence claims", () => {
   const diagram = productionFlowMermaid()

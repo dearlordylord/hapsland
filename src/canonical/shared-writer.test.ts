@@ -11,7 +11,7 @@ import {
   deliverSharedWriterRelease,
   expireSharedResponses,
   type SharedWriterPending
-} from "./simulation-adapter.ts"
+} from "../../packages/monkey-business/src/simulation-adapter.ts"
 import { encodeSharedValue } from "@hapsland/canonical-policy/canonical/simulation-codec"
 import { encodeWriterCapture } from "../../packages/monkey-business/src/writer-controls.ts"
 

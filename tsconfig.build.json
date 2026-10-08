@@ -17,7 +17,6 @@
     "src/test-support/**",
     "src/conformance/**",
     "src/direct-event/test-fixtures.ts",
-    "src/resident/runtime-fixture.ts",
-    "src/canonical/simulation-adapter.ts"
+    "src/resident/runtime-fixture.ts"
   ]
 }

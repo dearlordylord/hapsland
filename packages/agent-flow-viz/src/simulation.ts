@@ -37,7 +37,7 @@ import { locateFlow, numberRecords, projectFlowStep } from "@hapsland/agent-flow
 import { Schema } from "effect"
 import type { HtmlBuilder } from "foldkit/html"
 import type { ReplayStep } from "./canonical-replay"
-import { SQUARES, PLACE_ORDER } from "./production-flow-presentation"
+import { SQUARES, PLACE_ORDER } from "../../agent-flow-projection/src/production-flow-presentation"
 import { productionFlowView } from "./production-flow-view"
 
 export const SimulationModel = Schema.Struct({

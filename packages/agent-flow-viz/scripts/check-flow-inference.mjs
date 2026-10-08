@@ -6,7 +6,7 @@ const server = await createServer({ server: { middlewareMode: true }, appType: "
 try {
   const replay = await server.ssrLoadModule("/src/canonical-replay.ts")
   const flow = await server.ssrLoadModule("@hapsland/agent-flow-projection")
-  const view = await server.ssrLoadModule("/src/production-flow-presentation.ts")
+  const view = await server.ssrLoadModule("@hapsland/agent-flow-projection/production-flow-presentation")
   const history = replay.SHOWCASE_SCENARIO.events.map((event) => ({ event, origin: "guided" }))
   const steps = replay.replayCanonical(history, history.length, replay.SHOWCASE_SCENARIO.limits).steps
   const evidenceAt = (index) => flow.projectFlowStep(steps[index - 1]).evidence

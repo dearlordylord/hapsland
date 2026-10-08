@@ -1,10 +1,6 @@
 import { wakeStopFacts, type StopCapture } from "./stop-codec.ts"
 import type { WriterControl, WriterReport } from "./writer-controls.ts"
-import type {
-  SharedWriterPending,
-  SharedWriterRelease,
-  SharedCacheFact
-} from "../../../src/canonical/simulation-adapter.ts"
+import type { SharedWriterPending, SharedWriterRelease, SharedCacheFact } from "./simulation-adapter.ts"
 import { encodeExpiryProfile, validateInitialExpiryProfile, type ExpiryProfile } from "./expiry-controls.ts"
 import {
   type CollectionResponseControl,

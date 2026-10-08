@@ -15,7 +15,13 @@ import {
   type FlowEvidence,
   type RecordNumbers
 } from "@hapsland/agent-flow-projection"
-import { CONNECTIONS, PLACE_ORDER, SQUARES, squareFacetLine, squareFacetFontSize } from "./production-flow-presentation"
+import {
+  CONNECTIONS,
+  PLACE_ORDER,
+  SQUARES,
+  squareFacetLine,
+  squareFacetFontSize
+} from "../../agent-flow-projection/src/production-flow-presentation"
 
 type ArrowKind = FlowEvidence["source"] | "possible" | "mixed" | "mixed external"
 type Route = (typeof CONNECTIONS)[number] &

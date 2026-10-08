@@ -462,8 +462,8 @@ Shared external versions are declared once in the root manifest's standard Bun
 `catalog`; workspace manifests consume them through `catalog:` and private
 workspace dependencies through `workspace:*`. The manifest graph validates these
 values and derives production references. Seven auxiliary owners remain outside
-the 23-owner production schedule; their six-member test/simulation dependency
-component does not create a production cycle.
+the 23-owner production schedule; all dependency fields must form an acyclic graph, including tooling and
+verification owners. Cycles fail graph validation before build or test preparation.
 
 Compiler callers use [the explicit TypeScript selector](../scripts/pinned-typescript.mjs),
 not the shared `.bin/tsc` link. Its catalog-driven version, selected native

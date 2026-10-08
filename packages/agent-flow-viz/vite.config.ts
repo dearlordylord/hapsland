@@ -17,10 +17,11 @@ export default defineConfig({
     // Configuration schemas and browser decoders must share Effect's runtime
     // identities even when the root and this package have separate installs.
     dedupe: ["effect"],
-    alias: {
-      "@hapsland/agent-flow-projection": fileURLToPath(
-        new URL("../agent-flow-projection/src/index.ts", import.meta.url)
-      )
-    }
+    alias: [
+      {
+        find: /^@hapsland\/agent-flow-projection$/,
+        replacement: fileURLToPath(new URL("../agent-flow-projection/src/index.ts", import.meta.url))
+      }
+    ]
   }
 })

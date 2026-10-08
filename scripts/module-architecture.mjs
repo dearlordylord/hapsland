@@ -72,10 +72,7 @@ export const architectureModuleModel = (graph, annotations) => {
     counts: {
       production: nodes.filter((node) => node.role === "production").length,
       auxiliary: nodes.filter((node) => node.role !== "production").length
-    },
-    auxiliarySccs: (graph.auxiliarySccs ?? [])
-      .map((members) => [...members].sort(compare))
-      .sort((left, right) => compare(left[0], right[0]))
+    }
   }
 }
 
@@ -153,11 +150,10 @@ export const renderModuleArchitecture = (model) => {
   lines.push(
     "```",
     "",
-    "Strongly connected auxiliary components below use only `dependencies` edges, matching the build graph reader; development, peer and optional edges remain visible above.",
+    "All workspace dependency fields must be acyclic; the build graph reader rejects production and auxiliary cycles.",
     ""
   )
-  if (model.auxiliarySccs.length === 0) lines.push("No auxiliary cycle in that edge scope.")
-  else for (const component of model.auxiliarySccs) lines.push(`- ${component.map((name) => `\`${name}\``).join(", ")}`)
+  lines.push("No workspace dependency cycles.")
   return lines.join("\n")
 }
 

@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import { productionFlowMermaid } from "../packages/agent-flow-viz/src/production-flow-mermaid.ts"
+import { productionFlowMermaid } from "../packages/agent-flow-projection/src/production-flow-mermaid.ts"
 
 const start = "<!-- production-flow:start -->"
 const end = "<!-- production-flow:end -->"
