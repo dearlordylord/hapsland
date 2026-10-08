@@ -1,4 +1,4 @@
-import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
+import { BUN_VERSION, bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { ConfigProvider, Effect } from "effect"
 import { createHash } from "node:crypto"
 import { canonicalJson } from "@hapsland/administration/onboarding/hook-reconciliation"
@@ -364,3 +364,39 @@ it.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
     }
   }
 )
+
+it("updates a published Claude implementation without rewriting native settings", async () => {
+  const { root, home, claudeExecutable } = fixture()
+  const standalone = (name: string, marker: string) => {
+    const entrypoint = join(root, name)
+    writeFileSync(entrypoint, `#!/bin/sh\nprintf '%s\\n' '${BUN_VERSION}'\n# ${marker}\n`, { mode: 0o700 })
+    return entrypoint
+  }
+  const select = (entrypoint: string) => {
+    process.env.REVIEW_INSTALL_RUNTIME = entrypoint
+    process.env.REVIEW_INSTALL_ENTRYPOINT = entrypoint
+  }
+  select(standalone("hook-one", "one"))
+  const request = { claudeHome: home, claudeExecutable }
+  const initial = await runPreview(previewClaudeInstallation(request))
+  expect(initial.status).toBe("preview")
+  expect(
+    await runInstallation(installClaudeIntegration({ ...request, proposalDigest: digestOf(initial) }))
+  ).toMatchObject({ status: "complete" })
+  writeFileSync(join(home, "settings.json"), JSON.stringify(settings(home)))
+  const before = readFileSync(join(home, "settings.json"), "utf8")
+  const next = standalone("hook-two", "two")
+  select(next)
+  const preview = await runPreview(previewClaudeUpdate(request))
+  expect(preview).toMatchObject({ status: "preview", trust: { status: "unchanged" } })
+  expect(
+    await runInstallation(updateClaudeIntegration({ ...request, proposalDigest: digestOf(preview) }))
+  ).toMatchObject({ status: "complete", trust: { status: "unchanged" } })
+  expect(readFileSync(join(home, "settings.json"), "utf8")).toBe(before)
+  expect(readFileSync(join(home, ".hapsland/claude-hook-launcher.sh"), "utf8")).toContain("hook-two")
+  select(standalone("hook-identical", "two"))
+  expect(await runPreview(previewClaudeUpdate(request))).toMatchObject({
+    alreadyCurrent: true,
+    proposal: { changes: [] }
+  })
+})

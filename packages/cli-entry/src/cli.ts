@@ -48,7 +48,12 @@ import "node:os"
 import { join } from "node:path"
 import { readFileSync } from "node:fs"
 import { execFileClosedStdin } from "@hapsland/runtime-environment/process/closed-stdin"
-import { currentCommand, runtimeVersion } from "@hapsland/runtime-environment/runtime/package-runtime"
+import {
+  currentCommand,
+  runtimeVersion,
+  packageCommand,
+  packageBuildIdentity
+} from "@hapsland/runtime-environment/runtime/package-runtime"
 import { machineClockLayer } from "@hapsland/runtime-environment/runtime/machine-clock"
 import { discoverWorkingTreeRoot, rootRelativePath } from "@hapsland/native-observation/repository/root"
 import { selectFile } from "@hapsland/runtime-inputs/configuration/decision"
@@ -162,6 +167,17 @@ const installationOperationsFor = <const Fields extends Schema.Struct.Fields>(fi
   ])
 
 const InstallationOperation = Schema.Union([
+  Schema.Struct({
+    version: Schema.Literal(1),
+    operation: Schema.Literal("update-preview"),
+    host: Schema.Literal("resident")
+  }),
+  Schema.Struct({
+    version: Schema.Literal(1),
+    operation: Schema.Literal("update"),
+    host: Schema.Literal("resident"),
+    proposalDigest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))
+  }),
   installationOperationsFor({
     host: Schema.optionalKey(Schema.Literal("codex")),
     codexHome: Schema.optionalKey(Schema.NonEmptyString),
@@ -586,7 +602,7 @@ const dispatchOpencodeInstallation = Effect.fn("Cli.dispatchOpencodeInstallation
   return yield* opencodeInstallationHandlers[operation.operation](opencodeInstallationRequest(operation))
 })
 
-type CodexInstallationOperation = Exclude<InstallationOperation, { host: "claude" | "opencode" | "pi" }>
+type CodexInstallationOperation = Exclude<InstallationOperation, { host: "claude" | "opencode" | "pi" | "resident" }>
 const codexInstallationRequest = (operation: CodexInstallationOperation) => {
   return {
     ...installationReinstall(operation),
@@ -677,6 +693,17 @@ const dispatchInstallation = Effect.fn("Cli.dispatchInstallation")(function* (
   operation: InstallationOperation,
   userConfigPath: string | undefined
 ) {
+  if (operation.host === "resident") {
+    const { previewResidentUpdate, applyResidentUpdate } = yield* Effect.promise(
+      () => import("@hapsland/administration/onboarding/resident-update")
+    )
+    const executable = packageCommand("cli").executable
+    const result =
+      operation.operation === "update-preview"
+        ? yield* previewResidentUpdate(executable)
+        : yield* applyResidentUpdate(executable, operation.proposalDigest)
+    return { version: 1, operation: operation.operation, ...result }
+  }
   if (operation.host === "pi") return yield* dispatchPiInstallation(operation, userConfigPath)
   if (operation.host === "claude") return yield* dispatchClaudeInstallation(operation)
   if (operation.host === "opencode") return yield* dispatchOpencodeInstallation(operation)
@@ -1247,9 +1274,13 @@ const updateExecutable = Effect.fn("InteractiveUpdate.target")(function* () {
   process.stderr.write(`Target ${staged.packageVersion}: ${staged.executable}\n`)
   return staged.executable
 })
-const explicitUpdateHost = (): SetupClient | undefined =>
-  flagValue("--host") !== undefined || positionalHost() !== undefined ? selectedHost() : undefined
-const reportUpdateFailure = (host: SetupClient, cause: unknown): void => {
+const explicitUpdateHost = (): SetupClient | "resident" | undefined =>
+  clientArguments?.flags.has("--resident-only")
+    ? "resident"
+    : flagValue("--host") !== undefined || positionalHost() !== undefined
+      ? selectedHost()
+      : undefined
+const reportUpdateFailure = (host: SetupClient | "resident", cause: unknown): void => {
   process.stderr.write(
     `${formatOutcome("error", `${host}: ${cause instanceof Error ? cause.message : "Update failed"}`)}\n`
   )
@@ -1495,7 +1526,13 @@ const writeIdentityOutput = (): boolean => {
       JSON.stringify({ version: runtimeVersion(), platform: process.platform, architecture: process.arch }) + "\n"
     )
   } else if (cliSwitch("package-identity")) {
-    process.stdout.write(JSON.stringify({ name: "@hapsland/hapsland", ...currentCommand() }) + "\n")
+    process.stdout.write(
+      JSON.stringify({
+        name: "@hapsland/hapsland",
+        ...currentCommand(),
+        resident: { version: 1, build: packageBuildIdentity, command: packageCommand("resident") }
+      }) + "\n"
+    )
   } else return false
   return true
 }

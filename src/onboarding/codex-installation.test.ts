@@ -1,3 +1,4 @@
+import { sameStandaloneImplementation } from "@hapsland/administration/onboarding/hook-binding"
 import {
   emittedReleaseEntrypoints,
   sourceReleaseEntrypoints,
@@ -1074,7 +1075,7 @@ responses_websockets_v2 = true`)
       },
       trust: { modified: false, status: "renewal-required" },
       restart: { required: true, processesStopped: false },
-      preserved: expect.arrayContaining(["old grant files", "credentials", "independent hooks", "in-flight work"])
+      preserved: expect.arrayContaining(["old grant files", "credentials", "independent hooks"])
     })
     expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain(
       "review-tool-1.0.0/packages/hook-entry/dist/hook-main.js"
@@ -1757,3 +1758,101 @@ const runFixtureInstallation = <A, E>(home: string, effect: Effect.Effect<A, E>)
       )
     )
   )
+
+it("keeps published native hook definitions and trust stable across implementation updates", async () => {
+  const { root, home, bin } = fixture()
+  const standalone = (name: string, marker: string) => {
+    const packageRoot = join(root, name)
+    const entrypoint = join(packageRoot, "dist/bin", `${process.platform}-${process.arch}`, "hapsland-hook")
+    mkdirSync(dirname(entrypoint), { recursive: true })
+    writeFileSync(join(packageRoot, "package.json"), JSON.stringify({ version: "0.1.0" }))
+    writeFileSync(
+      join(packageRoot, "package-runtime.json"),
+      JSON.stringify({ ...installationPackageDeclaration(), runtime: { name: "bun", version: BUN_VERSION } })
+    )
+    writeFileSync(
+      entrypoint,
+      `#!/bin/sh\nprintf '%s\\n' '${JSON.stringify({ version: BUN_VERSION, platform: process.platform, architecture: process.arch })}'\n# ${marker}\n`,
+      { mode: 0o700 }
+    )
+    for (const role of ["hapsland-parser", "hapsland-resident"])
+      writeFileSync(join(dirname(entrypoint), role), "fixture", { mode: 0o700 })
+    return entrypoint
+  }
+  const previous = standalone("published-one", "one")
+  const next = standalone("published-two", "two")
+  const environment = (entrypoint: string) => ({
+    ...process.env,
+    REVIEW_INSTALL_RUNTIME: entrypoint,
+    REVIEW_INSTALL_ENTRYPOINT: entrypoint
+  })
+  await previewAndInstall(home, bin, environment(previous))
+  writeFileSync(join(home, "hooks.json"), JSON.stringify(JSON.parse(readFileSync(join(home, "hooks.json"), "utf8"))))
+  const native = readFileSync(join(home, "hooks.json"), "utf8")
+  const config = readFileSync(join(home, "config.toml"), "utf8")
+  const request = { codexHome: home, codexExecutable: bin }
+  const preview = await invoke({ ...request, operation: "update-preview" }, environment(next))
+  expect(preview).toMatchObject({ status: "preview", trust: { status: "unchanged" }, restart: { required: false } })
+  const updated = await invoke(
+    { ...request, operation: "update", proposalDigest: (preview.proposal as { digest: string }).digest },
+    environment(next)
+  )
+  expect(updated).toMatchObject({
+    status: "updated",
+    trust: { status: "unchanged" },
+    restart: { required: false },
+    pending: []
+  })
+  expect(readFileSync(join(home, "hooks.json"), "utf8")).toBe(native)
+  expect(readFileSync(join(home, "config.toml"), "utf8")).toBe(config)
+  expect(readFileSync(join(home, ".hapsland/codex-hook-launcher.sh"), "utf8")).toContain(shellQuote(next))
+  const identical = standalone("published-three", "two")
+  const unchanged = await invoke({ ...request, operation: "update-preview" }, environment(identical))
+  expect(unchanged).toMatchObject({ alreadyCurrent: true, proposal: { changes: [] } })
+})
+
+it("includes Darwin capture assets when comparing otherwise identical standalone hook implementations", () => {
+  const { root } = fixture()
+  const command = (name: string, asset: string) => {
+    const packageRoot = join(root, name)
+    const executable = join(packageRoot, "dist/bin/darwin-arm64/hapsland-hook")
+    const helper = join(packageRoot, "native/prebuilt/darwin-arm64/capture-open")
+    mkdirSync(dirname(executable), { recursive: true })
+    mkdirSync(dirname(helper), { recursive: true })
+    writeFileSync(executable, "same bundled implementation")
+    writeFileSync(helper, asset)
+    return { executable, args: [] }
+  }
+  const first = command("asset-one", "one")
+  const second = command("asset-two", "two")
+  expect(sameStandaloneImplementation(first, second, "darwin")).toBe(false)
+  expect(sameStandaloneImplementation(first, command("asset-identical", "one"), "darwin")).toBe(true)
+})
+
+it("compares shared hook payload and Bun version while preserving hooks across CLI-only changes", () => {
+  const { root } = fixture()
+  const command = (name: string, payload: string, runtime: string, version = "1.3.14") => {
+    const executable = join(root, name, "dist/bin/linux-arm64/hapsland-hook")
+    mkdirSync(dirname(executable), { recursive: true })
+    writeFileSync(executable, "same launcher")
+    writeFileSync(`${executable}.js`, payload)
+    writeFileSync(join(dirname(executable), "hapsland"), runtime)
+    writeFileSync(
+      join(root, name, "package-runtime.json"),
+      JSON.stringify({ runtime: { name: "bun", version, distribution: "shared-embedded-runtime" } })
+    )
+    return { executable, args: [] }
+  }
+  const first = command("shared-one", "hook one", "runtime one")
+  expect(sameStandaloneImplementation(first, command("shared-same", "hook one", "runtime one"), "linux")).toBe(true)
+  expect(sameStandaloneImplementation(first, command("shared-payload", "hook two", "runtime one"), "linux")).toBe(false)
+  expect(
+    sameStandaloneImplementation(first, command("shared-cli", "hook one", "different embedded CLI"), "linux")
+  ).toBe(true)
+  expect(
+    sameStandaloneImplementation(first, command("shared-runtime", "hook one", "runtime two", "1.3.15"), "linux")
+  ).toBe(false)
+  const missing = command("shared-missing", "hook one", "runtime one")
+  rmSync(`${missing.executable}.js`)
+  expect(sameStandaloneImplementation(first, missing, "linux")).toBe(false)
+})

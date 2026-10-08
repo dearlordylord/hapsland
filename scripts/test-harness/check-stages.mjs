@@ -11,7 +11,6 @@ export const qualityPreflight = [
 ]
 export const precheckStages = [
   qualityPreflight,
-  ["documentation", "scripts/generate-documentation.mjs", "--check"],
   ["bend-generation", "scripts/build-bend-producers.mjs"],
   ["bend-artifacts", "scripts/verify-bend-artifacts.mjs"],
   ["canonical-authority", "scripts/check-canonical-authority.mjs"],

@@ -2,6 +2,8 @@ import type { NativeEditMetadata } from "@hapsland/native-observation/direct-eve
 import * as ConfigProvider from "effect/ConfigProvider"
 import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
+import * as Ref from "effect/Ref"
+import { makeUpdateNoticeOutput, UPDATE_REQUIRED_TEXT } from "../resident/update-notice.ts"
 import * as Option from "effect/Option"
 import { readFileSync } from "node:fs"
 import { adaptClaudeDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
@@ -9,7 +11,11 @@ import { isCodexHostVersion } from "@hapsland/native-observation/direct-event/ob
 import { runPiHook } from "../pi/transport.ts"
 import { hookMonotonicMillis } from "@hapsland/resident-transport/resident/hook-clock"
 import type { ResidentEditPolicy } from "@hapsland/resident-transport/resident/protocol"
-import { readComposedEditPolicyEffect, residentStartupLayer } from "@hapsland/resident-transport/resident/client"
+import {
+  readComposedEditPolicyEffect,
+  residentStartupLayer,
+  ResidentUpdateNotice
+} from "@hapsland/resident-transport/resident/client"
 import { HookOutput, hookOutputLayer } from "../resident/hook-output.ts"
 import { directHookSubmissionLayer, submitDirectHookOutput } from "../resident/direct-hook-output.ts"
 import { composedHookRuntimeLayer, runComposedHookEffect, type ComposedHookKind } from "../resident/composed-hook.ts"
@@ -231,8 +237,22 @@ export const runHookProgram = async (options: HookArguments, startedAt: number):
   }).pipe(Effect.catchCause(() => Effect.succeed(invalidInputOutput(options, kind))))
   const run = Effect.gen(function* () {
     const watchdog = yield* startWatchdog(options, startedAt)
-    const output = yield* program
-    const written = yield* writeHookResult(options, kind, output, deadline, dispatch)
+    const granted = yield* Ref.make(false)
+    const event = kind === "before-edit" ? "PreToolUse" : kind === "prompt" ? "UserPromptSubmit" : "PostToolUse"
+    const noticeOutput = makeUpdateNoticeOutput(yield* HookOutput, granted, event)
+    let output = yield* program.pipe(
+      Effect.provideService(ResidentUpdateNotice, {
+        eligible: kind !== "stop",
+        record: kind === "stop" ? Effect.void : Ref.set(granted, true)
+      }),
+      Effect.provideService(HookOutput, noticeOutput)
+    )
+    if (kind === "background" && (yield* Ref.get(granted))) yield* noticeOutput.write({}, deadline)
+    if (options["pi-hook"] && (yield* Ref.getAndSet(granted, false)))
+      output = { status: "update-required", text: UPDATE_REQUIRED_TEXT }
+    const written = yield* writeHookResult(options, kind, output, deadline, dispatch).pipe(
+      Effect.provideService(HookOutput, noticeOutput)
+    )
     if (written === "timed-out" && watchdog !== undefined) yield* Fiber.join(watchdog)
     writePiResult(options, kind, output, dispatch)
   }).pipe(Effect.scoped)

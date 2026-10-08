@@ -4,7 +4,7 @@
 **Audience:** Contributors, including coding agents; Product and specification owners reviewing CLI journeys.
 **Status:** Maintained flow documentation and inventory.
 **Authority:** Maintained implementation documentation. [#244](https://github.com/dearlordylord/hapsland/issues/244) and the linked domain contracts own required behavior; test results establish only their executed scope.
-**Expected use:** Locate command journeys and their diagrams; use the source preflight and replay freshness checks before accepting UI changes.
+**Expected use:** Locate command journeys and their diagrams; use source preflight for UI contracts and manual replay freshness checks when updating their documentation.
 **Lifecycle:** Update when a CLI input surface, owner or generated diagram changes. Review when accepted interaction behavior changes or another interactive command is added.
 
 The [architecture decision](../adr/0004-administration-cli-interactions.md) defines ownership, consent and Effect lifetime. Installation and credential behavior remain governed by [installation workflows](../installation-workflows.md). The [testing matrix](../testing-matrix.md) determines required checks.
@@ -41,4 +41,4 @@ These diagrams describe user-visible navigation, consent and outcomes. Executabl
 
 The diagrams are generated from bounded production replays. They do not establish exhaustive transition coverage, physical terminal readability or installed-platform support. See the [testing matrix](../testing-matrix.md), [installed compatibility contract](../installed-release-compatibility.md) and [interaction architecture](../adr/0004-administration-cli-interactions.md) for those boundaries. Historical #244 acceptance and validation records remain in Git and the issue tracker.
 
-`npm run interaction:diagrams:write` regenerates the flow documents and inventory. `npm run interaction:diagrams:check` checks freshness without writing.
+`npm run interaction:diagrams:write` manually regenerates the flow documents and inventory. `npm run interaction:diagrams:check` manually checks freshness without writing. Builds, gates, Git hooks and CI do not invoke these documentation operations automatically.

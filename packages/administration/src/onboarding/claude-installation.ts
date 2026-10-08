@@ -1,8 +1,10 @@
+import { standaloneHookBinding, bindingDigest, sameStandaloneImplementation } from "./hook-binding.ts"
 import { commandHookGroup } from "@hapsland/runtime-environment/runtime/hook-catalog"
 import {
   packageCommand,
   commandEntrypoint,
   commandTokens,
+  commandFromEntrypoint,
   versionProbeArguments,
   observedRuntimeVersion,
   expectedRuntimeVersion
@@ -50,6 +52,8 @@ interface OwnedRecord {
   readonly home: string
   readonly hookDigest: string
   readonly command: string
+  readonly implementation?: { readonly executable: string; readonly args: ReadonlyArray<string> }
+  readonly bindingDigest?: string
   readonly hookGroups?: Record<string, unknown>
   readonly composed?: {
     readonly stopDigest: string
@@ -68,6 +72,7 @@ const error = (cause: unknown) => (cause instanceof Error ? cause.message : "ins
 
 const paths = (home: string) => ({
   settings: join(home, "settings.json"),
+  binding: join(home, ".hapsland", "claude-hook-launcher.sh"),
   ownership: join(home, ".hapsland", "claude-installation-v1.json"),
   lock: join(home, ".hapsland", "claude-installation.lock")
 })
@@ -115,6 +120,12 @@ const readRecord = (path: string): OwnedRecord | undefined => {
     value.version !== OWNERSHIP_VERSION ||
     value.adapter !== "claude" ||
     !requiredStringFields(value, ["home", "hookDigest", "command"]) ||
+    !optionalStringField(value, "bindingDigest") ||
+    (value.implementation !== undefined &&
+      (!object(value.implementation) ||
+        typeof value.implementation.executable !== "string" ||
+        !Array.isArray(value.implementation.args) ||
+        !value.implementation.args.every((arg) => typeof arg === "string"))) ||
     !validComposedRecord(value.composed)
   ) {
     throw new Error("Claude ownership record has an unsupported shape")
@@ -200,8 +211,9 @@ const inputs = (
   } catch {
     /* readiness reports missing path */
   }
+  const binding = standaloneHookBinding(runtime, entrypoint, home, "claude")
   const options = {
-    command: commandTokens(runtime, entrypoint).map(quote).join(" "),
+    command: binding?.command ?? commandTokens(runtime, entrypoint).map(quote).join(" "),
     editMarker: MARKER,
     composedMarker: COMPOSED_MARKER
   }
@@ -215,6 +227,7 @@ const inputs = (
     home,
     runtime,
     entrypoint,
+    binding,
     command,
     group,
     preGroup,
@@ -385,6 +398,12 @@ const installationOwnedRecord = (input: ClaudeInputs): OwnedRecord => ({
   home: input.home,
   hookDigest: digest(canonical(input.group)),
   command: input.command,
+  ...(input.binding === undefined
+    ? {}
+    : {
+        bindingDigest: input.binding.fingerprint,
+        implementation: commandFromEntrypoint(input.runtime, input.entrypoint)
+      }),
   hookGroups: {
     PostToolUse: input.group,
     PreToolUse: input.preGroup,
@@ -405,10 +424,15 @@ const plannedSettingsContent = (
   record: OwnedRecord | undefined,
   before: string | undefined,
   next: JsonObject
-): string | undefined => (kind === "uninstall" && record === undefined ? before : encode(next))
+): string | undefined =>
+  (kind === "uninstall" && record === undefined) ||
+  (before !== undefined && canonical(parseObject(before, "Claude settings.json")) === canonical(next))
+    ? before
+    : encode(next)
 const plan = (kind: Kind, request: ClaudeInstallationRequest, input: ReturnType<typeof inputs>) => {
   const beforeSettings = file(input.paths.settings)
   const beforeRecord = file(input.paths.ownership)
+  const beforeBinding = file(input.paths.binding)
   const originalSettings = parseObject(beforeSettings, "Claude settings.json")
   const settings = request.reinstall
     ? removeMarkedHandlers(originalSettings, [MARKER, COMPOSED_MARKER])
@@ -422,7 +446,32 @@ const plan = (kind: Kind, request: ClaudeInstallationRequest, input: ReturnType<
   const nextGroups = plannedPostToolGroups(kind, settings, input, current)
   const nextSettings = plannedSettings(kind, settings, nextGroups, input, record)
   const afterSettings = plannedSettingsContent(kind, record, beforeSettings, nextSettings)
-  const afterRecord = kind === "uninstall" ? undefined : encode(installationOwnedRecord(input))
+  if (
+    beforeBinding !== undefined &&
+    !request.reinstall &&
+    (previousRecord?.bindingDigest === undefined || bindingDigest(beforeBinding) !== previousRecord.bindingDigest)
+  )
+    throw new Error("Claude hook launcher was locally modified or is not owned")
+  const equivalent =
+    kind === "update" &&
+    previousRecord?.implementation !== undefined &&
+    previousRecord.bindingDigest !== undefined &&
+    beforeBinding !== undefined &&
+    sameStandaloneImplementation(
+      previousRecord.implementation,
+      commandFromEntrypoint(input.runtime, input.entrypoint)
+    ) &&
+    beforeSettings === afterSettings
+  const afterBinding =
+    kind === "uninstall"
+      ? previousRecord?.bindingDigest === undefined
+        ? beforeBinding
+        : undefined
+      : equivalent
+        ? beforeBinding
+        : (input.binding?.content ?? beforeBinding)
+  const afterRecord =
+    kind === "uninstall" ? undefined : equivalent ? beforeRecord : encode(installationOwnedRecord(input))
   const proposalDigest = digest(
     canonical({
       version: 1,
@@ -431,6 +480,8 @@ const plan = (kind: Kind, request: ClaudeInstallationRequest, input: ReturnType<
       home: input.home,
       beforeSettings: missingContentDigest(beforeSettings),
       beforeRecord: missingContentDigest(beforeRecord),
+      beforeBinding: missingContentDigest(beforeBinding),
+      afterBinding: missingContentDigest(afterBinding),
       afterSettings: missingContentDigest(afterSettings),
       afterRecord: missingContentDigest(afterRecord)
     })
@@ -439,10 +490,12 @@ const plan = (kind: Kind, request: ClaudeInstallationRequest, input: ReturnType<
     input,
     beforeSettings,
     beforeRecord,
+    beforeBinding,
+    afterBinding,
     afterSettings,
     afterRecord,
     proposalDigest,
-    noChange: beforeSettings === afterSettings && beforeRecord === afterRecord
+    noChange: beforeSettings === afterSettings && beforeRecord === afterRecord && beforeBinding === afterBinding
   }
 }
 
@@ -493,7 +546,13 @@ const preview = (kind: Kind, request: ClaudeInstallationRequest, input: ReturnTy
             input.paths.settings,
             "owned PostToolUse, PreToolUse, Stop, SubagentStop and UserPromptSubmit hooks"
           ),
-          ...proposalFileChange(next.beforeRecord, next.afterRecord, input.paths.ownership, "Claude ownership record")
+          ...proposalFileChange(next.beforeRecord, next.afterRecord, input.paths.ownership, "Claude ownership record"),
+          ...proposalFileChange(
+            next.beforeBinding,
+            next.afterBinding,
+            input.paths.binding,
+            "scoped hook implementation"
+          )
         ],
         ownedChanges: {
           hooks: { file: input.paths.settings, groups: previewHookGroups(kind, next, input) },
@@ -503,7 +562,7 @@ const preview = (kind: Kind, request: ClaudeInstallationRequest, input: ReturnTy
       installed: next.noChange && kind !== "uninstall",
       alreadyCurrent: next.noChange,
       trust: {
-        status: "native-confirmation-required",
+        status: next.beforeSettings === next.afterSettings ? "unchanged" : "native-confirmation-required",
         guidance:
           "Claude Code owns workspace trust and hook approval; open the repository normally and review native prompts."
       },
@@ -532,7 +591,7 @@ const rollbackOwnedRecord = (input: ClaudeInputs, next: ReturnType<typeof plan>)
   }
 }
 const commitClaudePlan = (input: ClaudeInputs, next: ReturnType<typeof plan>): void => {
-  // Settings is applied last: a failed record write cannot enable a new hook.
+  // Settings is applied last; each owned file is checked before mutation.
   try {
     assertClaudeFiles(
       input.paths.ownership,
@@ -541,7 +600,8 @@ const commitClaudePlan = (input: ClaudeInputs, next: ReturnType<typeof plan>): v
       next.beforeSettings,
       "Claude configuration changed during apply; obtain a fresh preview"
     )
-    atomicInstallationFile(input.paths.ownership, next.afterRecord)
+    if (file(input.paths.binding) !== next.beforeBinding) throw new Error("Claude hook launcher changed since preview")
+    if (next.beforeRecord !== next.afterRecord) atomicInstallationFile(input.paths.ownership, next.afterRecord)
     assertClaudeFiles(
       input.paths.settings,
       next.beforeSettings,
@@ -549,8 +609,19 @@ const commitClaudePlan = (input: ClaudeInputs, next: ReturnType<typeof plan>): v
       next.afterRecord,
       "Claude configuration changed during apply; current settings were preserved"
     )
-    atomicInstallationFile(input.paths.settings, next.afterSettings)
+    if (next.beforeBinding !== next.afterBinding) atomicInstallationFile(input.paths.binding, next.afterBinding)
+    if (next.beforeSettings !== next.afterSettings) atomicInstallationFile(input.paths.settings, next.afterSettings)
   } catch (cause) {
+    try {
+      if (
+        file(input.paths.settings) === next.beforeSettings &&
+        file(input.paths.binding) === next.afterBinding &&
+        next.beforeBinding !== next.afterBinding
+      )
+        atomicInstallationFile(input.paths.binding, next.beforeBinding)
+    } catch {
+      /* Inspection reports partial state. */
+    }
     rollbackOwnedRecord(input, next)
     throw cause
   }
@@ -584,7 +655,10 @@ const apply = Effect.fn("ClaudeInstallation.apply")(function* (kind: Kind, reque
             version: 1 as const,
             operation,
             status: "complete" as const,
-            trust: { status: "native-confirmation-required" }
+            trust: {
+              status: next.beforeSettings === next.afterSettings ? "unchanged" : "native-confirmation-required"
+            },
+            restart: { required: next.beforeSettings !== next.afterSettings }
           }
         },
         catch: (cause) => new ClaudeInstallationError({ reason: installationFailureReason(cause) })

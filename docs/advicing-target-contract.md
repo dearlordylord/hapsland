@@ -24,6 +24,23 @@ submission to an agent runtime, model visibility, and a repair edit must never b
 inferred from one another. A completed output write establishes submission only.
 An unavailable, interrupted, or discarded evaluation is never reported as clear.
 
+### Correctness and transient work loss
+
+**Owner decision, 2026-10-08:** Corner-case loss of transient review work,
+pending advice, or in-memory round state is acceptable as long as Hapsland
+remains correct. Preserving that work is not a general business requirement.
+Interruption, recovery, and resident replacement may abandon transient state.
+
+Lost or incomplete work is never reported as a clear review or successful
+delivery. Surviving output still requires valid recipient, source, freshness,
+and ownership checks. Obsolete state cannot authorize work or output in a
+replacement lifetime. This principle concerns Hapsland's transient review state,
+not the user's source files, configuration, or credentials.
+
+Prefer simpler correct designs over persistence, replay, migration, or seamless
+handover introduced solely to prevent permitted corner-case loss. Stronger
+continuity guarantees must be explicitly scoped in their owning contract.
+
 For every agent runtime, the normal delivery boundary is Hapsland's submission;
 Hapsland does not wait for an acknowledgment or reply from the agent. Internal
 delivery acknowledgments are Hapsland bookkeeping, not agent replies.
@@ -137,8 +154,10 @@ its originating edit remains the reason it was opened.
 
 Automatic resident retirement must not discard an open virtual round or an
 outstanding pre-edit permit. Resident process inactivity is not evidence that
-the advicee's virtual round has ended. An open round closes without Stop only
-after continuous full quiescence: no unfinished review work, pending advice,
+the advicee's virtual round has ended. This rule governs normal automatic
+retirement for inactivity; it does not establish general transient-state
+preservation across updates, interruption, or recovery. An open round closes
+without Stop only after continuous full quiescence: no unfinished review work, pending advice,
 pending edit permit, active delivery, or Stop hold. The default is five minutes;
 the user can configure the duration, which is captured when the round opens.
 An accepted edit or renewed activity interrupts the quiet interval. Advice

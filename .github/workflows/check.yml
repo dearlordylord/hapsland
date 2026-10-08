@@ -53,10 +53,8 @@ jobs:
           name: ${{ steps.native-linux.outputs.name }}
           path: .test-runs/downloaded-native-linux
       - run: npm run native:inputs -- import linux-arm64 .test-runs/downloaded-native-linux
-      - name: Install checksum-pinned link checker
-        run: npm run docs:install
-      - name: Check repository links and headings offline
-        run: npm run docs:check
+      - name: Install checksum-pinned proof toolchain
+        run: node scripts/install-bend-toolchain.mjs --github-actions
       - name: Check tracked asset policy
         run: node scripts/check-repository-assets.mjs
       - name: Typecheck

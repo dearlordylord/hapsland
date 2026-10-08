@@ -162,7 +162,10 @@ export const createPiExtension =
       const generation = epoch
       const result = await send(id, "edit", { input: event.input, details: event.details, isError: false })
       if (["incomplete", "unavailable"].includes(result.status)) await send(id, "retire")
-      if (result.status !== "advice" || generation !== epoch || typeof result.text !== "string") return
+      if (generation !== epoch || typeof result.text !== "string") return
+      if (result.status === "update-required")
+        return { ...original, content: [...original.content, { type: "text", text: result.text }] }
+      if (result.status !== "advice") return
       const output = { ...original, content: [...original.content, { type: "text", text: result.text }] }
       return acknowledgeOffer(id, result, output, generation)
     }

@@ -1,3 +1,4 @@
+import { ResidentUpdateNotice } from "@hapsland/resident-transport/resident/client"
 import * as Effect from "effect/Effect"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { runHookProgram } from "../../packages/hook-runtime/src/hooks/program.ts"
@@ -18,9 +19,18 @@ const ports = vi.hoisted(() => ({
 vi.mock("node:fs", async (original) => ({ ...(await original<typeof import("node:fs")>()), readFileSync: ports.input }))
 vi.mock("../../packages/hook-runtime/src/pi/transport.ts", () => ({ runPiHook: ports.pi }))
 vi.mock("@hapsland/native-observation/direct-event/adapter", () => ({ adaptClaudeDirectEvent: ports.adaptClaude }))
-vi.mock("@hapsland/resident-transport/resident/client", async () => ({
-  residentStartupLayer: (await import("effect/Layer")).empty
-}))
+vi.mock("@hapsland/resident-transport/resident/client", async () => {
+  const Context = await import("effect/Context")
+  class ResidentUpdateNotice extends Context.Service<
+    ResidentUpdateNotice,
+    { readonly eligible: boolean; readonly record: Effect.Effect<void> }
+  >()("hapsland/ResidentUpdateNotice") {}
+  return {
+    ResidentUpdateNotice,
+    residentStartupLayer: (await import("effect/Layer")).empty,
+    readComposedEditPolicyEffect: () => Effect.succeed(undefined)
+  }
+})
 vi.mock("../../packages/hook-runtime/src/hooks/direct.ts", () => ({
   makeDirectHookDispatch: () => ({
     runDirectCodexHook: ports.codex,
@@ -111,7 +121,11 @@ it("routes direct Claude with its checked observation", async () => {
   await run(["--claude-hook", "--composed-edit-hook"])
   expect(ports.adaptClaude).toHaveBeenCalledWith(
     { fixture: true },
-    { userConfigPath: "/tmp/fixture-user.json", capturePolicy: expect.any(Function) }
+    {
+      userConfigPath: "/tmp/fixture-user.json",
+      capturePolicy: expect.any(Function),
+      observeNative: expect.any(Function)
+    }
   )
   expect(ports.write).toHaveBeenCalledWith('{"channel":"claude"}\n', expect.any(Number))
 })
@@ -190,4 +204,66 @@ it.each(["claude", "codex", "pi"])("preserves the %s malformed input response", 
     expect(stdout).toHaveBeenCalledWith(
       '{"version":1,"error":{"code":"invalid_request","message":"input does not satisfy a supported command contract"}}\n'
     )
+})
+
+it.each(["codex", "claude"])(
+  "renders an authorized incompatibility notice in model-visible %s output",
+  async (host) => {
+    const warning = Effect.gen(function* () {
+      yield* (yield* ResidentUpdateNotice).record
+      return {}
+    })
+    if (host === "codex") ports.codex.mockReturnValue(warning.pipe(Effect.map((output) => ({ handled: true, output }))))
+    else ports.claude.mockReturnValue(warning)
+    await run([`--${host}-hook`, "--composed-edit-hook"])
+    const encoded = ports.write.mock.calls.at(-1)?.[0]
+    expect(JSON.parse(encoded)).toMatchObject({
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext: expect.stringContaining("Update this runtime")
+      }
+    })
+  }
+)
+it("uses a background opportunity without creating a stop continuation for an update notice", async () => {
+  ports.composed.mockReturnValue(
+    Effect.gen(function* () {
+      yield* (yield* ResidentUpdateNotice).record
+    })
+  )
+  await run(["--composed-background-hook", "--composed-host=claude-code"])
+  expect(ports.write).toHaveBeenCalledWith(
+    expect.objectContaining({
+      hookSpecificOutput: expect.objectContaining({ additionalContext: expect.stringContaining("incompatible") })
+    }),
+    expect.any(Number)
+  )
+})
+it("renders Pi update guidance without inventing an advice delivery token", async () => {
+  ports.pi.mockReturnValue(
+    Effect.gen(function* () {
+      yield* (yield* ResidentUpdateNotice).record
+      return { status: "unavailable" }
+    })
+  )
+  const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true)
+  await run(["--pi-hook"])
+  const output = JSON.parse(String(stdout.mock.calls.at(-1)?.[0]))
+  expect(output).toEqual({ status: "update-required", text: expect.stringContaining("Update this runtime") })
+  expect(output).not.toHaveProperty("deliveryToken")
+})
+
+it("suppresses update notices at Stop and child Stop without producing an edit-event projection", async () => {
+  ports.composed.mockReturnValue(
+    Effect.gen(function* () {
+      const notice = yield* ResidentUpdateNotice
+      expect(notice.eligible).toBe(false)
+      yield* notice.record
+    })
+  )
+  for (const event of ["Stop", "SubagentStop"]) {
+    ports.input.mockReturnValue(JSON.stringify({ hook_event_name: event }))
+    await run(["--composed-stop-hook", "--composed-host=codex-cli", "--codex-hook"])
+  }
+  expect(ports.write).not.toHaveBeenCalled()
 })

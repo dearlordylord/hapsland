@@ -1,7 +1,7 @@
 import * as Redacted from "effect/Redacted"
 import { resolveCredentialInput } from "@hapsland/runtime-inputs/credentials/input"
 import type { CodexDirectEventOutput } from "@hapsland/delivery-output/direct-event/output"
-import { packageCommand } from "@hapsland/runtime-environment/runtime/package-runtime"
+import { selectedResidentCommand, readResidentTarget } from "@hapsland/runtime-environment/runtime/package-runtime"
 import { effectiveSessionAnalytics } from "@hapsland/runtime-inputs/configuration/resolve"
 import type { RoundCloseReason } from "@hapsland/activity-observation/activity/status"
 import { spawn, type ChildProcess } from "node:child_process"
@@ -122,6 +122,11 @@ const requestConnected = Effect.fn("ResidentClient.requestConnected")(function* 
   )
 })
 
+export class ResidentUpdateNotice extends Context.Service<
+  ResidentUpdateNotice,
+  { readonly eligible: boolean; readonly record: Effect.Effect<void> }
+>()("hapsland/ResidentUpdateNotice") {}
+
 export const residentRequestEffect = Effect.fn("ResidentClient.request")(function* (
   paths: ResidentPaths,
   request: ResidentRequest,
@@ -136,7 +141,16 @@ export const residentRequestEffect = Effect.fn("ResidentClient.request")(functio
   )
   const remaining = deadline - (yield* monotonicMillis)
   if (remaining <= 0) return yield* Effect.fail(new ResidentIpcError({ message: "resident request deadline exceeded" }))
-  return yield* requestConnected(paths, request, remaining)
+  const notice = yield* Effect.serviceOption(ResidentUpdateNotice)
+  const caller = Option.isSome(notice) && !notice.value.eligible ? { ...request, updateNotice: false } : request
+  const response = yield* requestConnected(paths, caller, remaining)
+  if (response.status === "update-required") {
+    if (response.warn && Option.isSome(notice) && notice.value.eligible) yield* notice.value.record
+    return yield* Effect.fail(
+      new ResidentIpcError({ message: "resident hook contract incompatible; update this runtime's hooks" })
+    )
+  }
+  return response
 })
 
 export interface ResidentStartupOperations {
@@ -171,7 +185,7 @@ const residentLauncherLayer = Layer.sync(ResidentLauncher, () => {
     now: monotonicMillis,
     spawn: Effect.fn("ResidentLauncher.spawn")(function* (paths: ResidentPaths) {
       if (children.has(paths.lock)) return
-      const command = packageCommand("resident")
+      const command = selectedResidentCommand()
       const diagnostic = `${paths.lock}.startup-error`
       return yield* Effect.acquireUseRelease(
         Effect.try({
@@ -282,8 +296,14 @@ export const ensureResidentEffect = Effect.fn("ResidentClient.ensureResident")(f
 ) {
   paths ??= yield* resolveResidentPaths()
   const dependencies = yield* ResidentStartup
+  const selectedBuild = yield* Effect.try({
+    try: () => readResidentTarget()?.build,
+    catch: () => new ResidentIpcError({ message: "selected resident target unavailable" })
+  })
   const ready = (response: Extract<ResidentResponse, { status: "ready" }>) =>
-    dependencies.clearDiagnostic(paths).pipe(Effect.as(response))
+    selectedBuild !== undefined && response.build !== selectedBuild
+      ? Effect.fail(new ResidentIpcError({ message: "selected resident is not serving; run resident update" }))
+      : dependencies.clearDiagnostic(paths).pipe(Effect.as(response))
   const deadline = (yield* dependencies.now) + readinessMs
   const remaining = dependencies.now.pipe(Effect.map((now) => Math.max(0, deadline - now)))
   yield* dependencies
@@ -339,7 +359,7 @@ export const ensureResidentEffect = Effect.fn("ResidentClient.ensureResident")(f
 export const inspectResidentEffect = Effect.fn("ResidentClient.inspectResident")(function* (
   paths: ResidentPaths | undefined = undefined
 ): Effect.fn.Return<
-  { readonly available: boolean; readonly lifetime?: string; readonly pid?: number },
+  { readonly available: boolean; readonly lifetime?: string; readonly pid?: number; readonly build?: string },
   ResidentIpcError | ResidentEndpointError
 > {
   paths ??= yield* resolveResidentPaths()
@@ -349,7 +369,7 @@ export const inspectResidentEffect = Effect.fn("ResidentClient.inspectResident")
     Math.min(250, CLIENT_REQUEST_DEADLINE_MS)
   ).pipe(Effect.catch(() => Effect.succeed(undefined)))
   return response?.status === "ready"
-    ? { available: true, lifetime: response.lifetime, pid: response.pid }
+    ? { available: true, lifetime: response.lifetime, pid: response.pid, build: response.build }
     : { available: false }
 })
 

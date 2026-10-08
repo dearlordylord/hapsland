@@ -35,6 +35,12 @@ For delegated tasks and jointly accepted batches, follow
 [task and batch acceptance](docs/testing-matrix.md#task-and-batch-acceptance)
 for final qualification ownership and timing.
 
+Documentation generation and generated-document drift checks are manual
+documentation operations: use `npm run docs:generate` or
+`npm run docs:generated:check` explicitly when working on documentation.
+Do not invoke them automatically from fast/full gates, Git hooks, product builds,
+or CI. Source and product contract checks remain in their existing owners.
+
 - Before checks over one minute: record risk, cheapest adequate existing check,
   additional evidence, expected duration and absolute stop. Relevant cheap
   prerequisites MUST pass first. Reuse runners; tooling changes need measured

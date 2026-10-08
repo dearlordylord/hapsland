@@ -1,3 +1,4 @@
+import { sameStandaloneImplementation } from "./hook-binding.ts"
 import { BUN_VERSION } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import {
   packageCommand,
@@ -169,8 +170,21 @@ const plan = (input: Input, operation: Operation) => {
   const owner = boundOwner(beforeRecord, input.home)
   checkJournal(journal, input, operation, before, beforeRecord)
   checkOwner(owner, before, journal)
-  const content = ownedContent(input, operation)
-  const ownership = ownedRecord(input, content)
+  let equivalent = false
+  if (
+    operation === "update" &&
+    owner !== undefined &&
+    sameStandaloneImplementation(owner, commandFromEntrypoint(input.runtime, input.entrypoint))
+  ) {
+    try {
+      const previousExtension = join(packageRootFromEntrypoint(owner.executable), "dist/pi/extension.js")
+      equivalent = readFileSync(previousExtension).equals(readFileSync(input.extension))
+    } catch {
+      /* Missing selected assets require an ordinary scoped update. */
+    }
+  }
+  const content = equivalent ? before : ownedContent(input, operation)
+  const ownership = equivalent ? beforeRecord : ownedRecord(input, content)
   const changes = [
     [input.paths.extension, before, content, "owned Pi extension"],
     [input.paths.journal, journalContent, undefined, "retire interrupted Pi installation journal"],

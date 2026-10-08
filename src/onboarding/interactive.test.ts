@@ -1,6 +1,9 @@
 import { offlineSetupAnswers } from "@hapsland/build-tooling/test-harness/offline-setup-answers"
 import { terminalAvailable, terminalArguments, terminalCommand } from "@hapsland/build-tooling/test-harness/terminal"
 import { SHIPPED_DEFAULT_RULES } from "@hapsland/review-definition/rules/shipped"
+import { packageCommand, packageBuildIdentity } from "@hapsland/runtime-environment/runtime/package-runtime"
+import { residentRequestEffect } from "@hapsland/resident-transport/resident/client"
+import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { connectDefaultRuleFixture } from "@hapsland/build-tooling/test-support/default-rules"
 import { ConfigProvider, Effect } from "effect"
@@ -21,8 +24,26 @@ import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { afterEach, expect, it } from "vitest"
 const roots: string[] = []
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
+afterEach(async () => {
+  for (const root of roots.splice(0)) {
+    const paths = residentPaths(join(root, "resident"))
+    if (!existsSync(paths.socket)) {
+      rmSync(root, { recursive: true, force: true })
+      continue
+    }
+    const hello = await Effect.runPromise(
+      residentRequestEffect(paths, { requestRoute: "shared", operation: "hello" }).pipe(Effect.result)
+    )
+    if (hello._tag === "Success" && hello.success.status === "ready")
+      await Effect.runPromise(
+        residentRequestEffect(paths, {
+          requestRoute: "shared",
+          operation: "replace",
+          lifetime: hello.success.lifetime
+        }).pipe(Effect.result)
+      )
+    rmSync(root, { recursive: true, force: true })
+  }
 })
 const fixture = () => {
   const root = mkdtempSync(join(tmpdir(), "hapsland-interactive-"))
@@ -36,6 +57,7 @@ const fixture = () => {
     NO_COLOR: "1",
     REVIEW_INSTALL_ENTRYPOINT: createInstallationPackageFixture(root),
     HOME: root,
+    REVIEW_RESIDENT_DIR: join(root, "resident"),
     TYPESAFE_API_KEY: "interactive-test-key",
     REVIEW_USER_CONFIG_PATH: join(root, "user.jsonc"),
     REVIEW_STATE_PATH: join(root, "state")
@@ -115,7 +137,7 @@ const updaterFixture = (
     target,
     `#!/usr/bin/env node
 const fs=require('node:fs');
-if(process.argv.includes('--package-identity')) { console.log(JSON.stringify({name:'@hapsland/hapsland',executable:${JSON.stringify(bunExecutable())},args:[${JSON.stringify(join(process.cwd(), "packages/cli-entry/src/cli.ts"))}]})); process.exit(0); }
+if(process.argv.includes('--package-identity')) { console.log(JSON.stringify({name:'@hapsland/hapsland',resident:${JSON.stringify({ version: 1, build: packageBuildIdentity, command: packageCommand("resident") })},executable:${JSON.stringify(bunExecutable())},args:[${JSON.stringify(join(process.cwd(), "packages/cli-entry/src/cli.ts"))}]})); process.exit(0); }
 const r=JSON.parse(fs.readFileSync(0,'utf8'));
 fs.appendFileSync(${JSON.stringify(requests)},JSON.stringify(r)+'\\n');
 const options=${JSON.stringify(options)};
@@ -284,7 +306,7 @@ const recordedRequests = (path: string) =>
     .split("\n")
     .map((line) => JSON.parse(line))
 it.skipIf(!terminalAvailable)(
-  "bare update previews both installed clients, then applies both exact digests after one confirmation",
+  "bare update previews installed clients and resident, then applies their exact digests after one confirmation",
   async () => {
     const test = fixture()
     const clients = bothClients(test)
@@ -296,13 +318,16 @@ it.skipIf(!terminalAvailable)(
     expect(requests.map((r) => `${r.host}:${r.operation}`)).toEqual([
       "claude:update-preview",
       "codex:update-preview",
+      "resident:update-preview",
       "claude:update",
-      "codex:update"
+      "codex:update",
+      "resident:update"
     ])
-    expect(requests[2].proposalDigest).toBe("a".repeat(64))
-    expect(requests[3].proposalDigest).toBe("b".repeat(64))
-    expect(requests[2].claudeHome).toBe(clients.claudeHome)
-    expect(requests[3].codexHome).toBe(clients.codexHome)
+    expect(requests[3].proposalDigest).toBe("a".repeat(64))
+    expect(requests[4].proposalDigest).toBe("b".repeat(64))
+    expect(requests[5].proposalDigest).toBe("b".repeat(64))
+    expect(requests[3].claudeHome).toBe(clients.claudeHome)
+    expect(requests[4].codexHome).toBe(clients.codexHome)
     expect(result.confirmationAnswers).toHaveLength(1)
     expect(result.output).toContain("[OK] claude update: updated.")
     expect(result.output).toContain("[OK] codex update: updated.")
@@ -320,14 +345,16 @@ it.skipIf(!terminalAvailable)(
     expect(recordedRequests(target.requests).map((r) => `${r.host}:${r.operation}`)).toEqual([
       "claude:update-preview",
       "codex:update-preview",
+      "resident:update-preview",
       "claude:update",
-      "codex:update"
+      "codex:update",
+      "resident:update"
     ])
     expect(result.output).toContain("[FAIL] claude update: failed.")
     expect(result.output).toContain("[OK] codex update: updated.")
   }
 )
-it.skipIf(!terminalAvailable)("bare update acquires one target for both installed clients", async () => {
+it.skipIf(!terminalAvailable)("bare update acquires one target for installed clients and resident", async () => {
   const test = fixture()
   const clients = bothClients(test)
   await installBothClients(test, clients)
@@ -356,8 +383,10 @@ else if(args[0]==='install'){
   expect(recordedRequests(target.requests).map((r) => `${r.host}:${r.operation}`)).toEqual([
     "claude:update-preview",
     "codex:update-preview",
+    "resident:update-preview",
     "claude:update",
-    "codex:update"
+    "codex:update",
+    "resident:update"
   ])
 })
 
