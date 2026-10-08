@@ -7,6 +7,7 @@ import type { ReviewTarget } from "../rules/targets.ts"
 import type { RuleLanguage } from "../rules/schema.ts"
 import type { PostEditLocation } from "@hapsland/native-observation/direct-event/edit-attribution"
 import type { GraphLimits } from "@hapsland/canonical-policy/canonical/graph-limits"
+import type { CaptureDiagnostic } from "@hapsland/native-observation/direct-event/capture"
 
 import type { ReviewArtifact, ReviewUnit } from "@hapsland/source-artifacts/direct-event/artifact-model"
 
@@ -15,6 +16,31 @@ export type SourceSnapshot = {
   readonly operation: "add" | "update"
   readonly sourceHash: string
 }
+
+export type PreparationDiagnostic =
+  | {
+      readonly stage: "preparation"
+      readonly code: "preparation-resource-refused"
+      readonly args: {
+        readonly phase: "capture-workspace" | "materialization"
+        readonly requestedBytes: number
+        readonly constraint?: "globalItems" | "globalBytes" | "partitionItems" | "partitionBytes"
+      }
+    }
+  | {
+      readonly stage: "preparation"
+      readonly code: "preparation-unavailable"
+      readonly args: { readonly reason: "stale-round" | "wrong-stage" }
+    }
+  | {
+      readonly stage: "preparation"
+      readonly code: "panic"
+      readonly args: { readonly boundary: "review-preparation" }
+    }
+
+export type MaterializationAdmission =
+  | { readonly status: "admitted" }
+  | { readonly status: "refused"; readonly diagnostic: PreparationDiagnostic }
 
 export type PathObservationOutcome =
   | {
@@ -45,7 +71,12 @@ export type PathObservationOutcome =
   | {
       readonly status: "incomplete"
       readonly path: string
-      readonly reason: "unsupported-operation" | "metadata-only" | PathEligibilityReason | "capture-unavailable"
+      readonly reason: "unsupported-operation" | "metadata-only" | PathEligibilityReason
+    }
+  | {
+      readonly status: "incomplete"
+      readonly path: string
+      readonly diagnostic: CaptureDiagnostic | PreparationDiagnostic
     }
 
 export type ChangeSet = {

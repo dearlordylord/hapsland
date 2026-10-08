@@ -104,14 +104,14 @@ it.effect("records transient reservation peaks without a server sampling checkpo
     const owner = yield* makeResidentState()
     const capture = (yield* owner.reserve("capture", 128, "preparation"))!
     expect((yield* owner.runtime.snapshot()).peakLedgerBytes).toBe(128)
-    expect(yield* owner.resize(capture, 5)).toBe(true)
+    expect(yield* owner.resize(capture, 5)).toEqual({ status: "resized" })
     const concurrent = (yield* owner.reserve("other", 200, "preparation"))!
     expect((yield* owner.runtime.snapshot()).peakLedgerBytes).toBe(205)
     yield* owner.release(capture)
     yield* owner.release(concurrent)
     expect((yield* owner.snapshot()).bytes).toBe(0)
     expect(yield* owner.reserve("other", 1_000_000_000, "preparation")).toBeUndefined()
-    expect(yield* owner.resize(concurrent, 1_000)).toBe(false)
+    expect(yield* owner.resize(concurrent, 1_000)).not.toEqual({ status: "resized" })
     yield* owner.clear()
     expect((yield* owner.runtime.snapshot()).peakLedgerBytes).toBe(205)
   })

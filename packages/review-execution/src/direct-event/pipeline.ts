@@ -37,12 +37,16 @@ import {
   inspectGraphFile
 } from "@hapsland/source-analysis/direct-event/analyzer"
 import {
-  MAX_OBSERVATION_GRAPH_FILES,
-  MAX_OBSERVATION_GRAPH_READ_BYTES,
+  observationCaptureBudgetRefusal,
   MAX_OBSERVATION_GRAPH_UNITS,
   resolveGraphUnit
 } from "@hapsland/source-analysis/direct-event/graph-resolver"
-import { captureStable, type CaptureHooks } from "@hapsland/native-observation/direct-event/capture"
+import {
+  captureStable,
+  type CaptureHooks,
+  type CaptureResult,
+  type CaptureDiagnostic
+} from "@hapsland/native-observation/direct-event/capture"
 import {
   canonicalValue,
   freezeInput,
@@ -51,6 +55,8 @@ import {
   type PreparedUnit,
   type ReviewInput,
   type ObservationResult,
+  type MaterializationAdmission,
+  type PreparationDiagnostic,
   type PathObservationOutcome
 } from "@hapsland/review-definition/direct-event/model"
 import { bundledArtifactDomain, type ReviewUnit } from "@hapsland/source-artifacts/direct-event/artifact-model"
@@ -86,6 +92,8 @@ export type DirectReviewContext = {
     declaration: string,
     reason: "missing-evidence" | "no-applicable-rule"
   ) => void
+  /** Supporting capture evidence; observing it never changes partial-graph authority. */
+  readonly observeCaptureDiagnostic?: (candidatePath: string, sourcePath: string, diagnostic: CaptureDiagnostic) => void
   /** Fixture-only source effect; production uses the stable native capture. */
   readonly captureSource?: typeof captureStable
   /** Fixture-only graph clock for deterministic deadline checks. */
@@ -96,7 +104,7 @@ export type DirectReviewContext = {
     path: string,
     sourceBytes: number,
     preflight: AnalyzerMaterializationPreflight | undefined
-  ) => Effect.Effect<boolean>
+  ) => Effect.Effect<MaterializationAdmission>
   readonly beforeDispatch?: Effect.Effect<void>
   readonly beforeHandoff?: Effect.Effect<void>
 }
@@ -275,7 +283,7 @@ type CandidateDeclaration = {
   readonly artifact: ReviewUnit["root"]["artifact"]
   readonly location: NonNullable<ReviewInput["rootLocation"]>
 }
-const graphResolutionOptions = (frame: PreparationFrame) => ({
+const graphResolutionOptions = (frame: PreparationFrame, candidatePath: string) => ({
   root: frame.observation.root,
   rootIdentity: frame.observation.rootIdentity,
   policy: currentPolicy(frame.context),
@@ -284,7 +292,13 @@ const graphResolutionOptions = (frame: PreparationFrame) => ({
   captureCache: frame.supportingCaptures,
   ...(frame.context.graphNow === undefined ? {} : { now: frame.context.graphNow }),
   ...(frame.context.captureHooks === undefined ? {} : { captureHooks: frame.context.captureHooks }),
-  ...(frame.context.captureSource === undefined ? {} : { captureSource: frame.context.captureSource })
+  ...(frame.context.captureSource === undefined ? {} : { captureSource: frame.context.captureSource }),
+  ...(frame.context.observeCaptureDiagnostic === undefined
+    ? {}
+    : {
+        observeCaptureDiagnostic: (sourcePath: string, diagnostic: CaptureDiagnostic) =>
+          frame.context.observeCaptureDiagnostic?.(candidatePath, sourcePath, diagnostic)
+      })
 })
 const resolveSelectedUnits = Effect.fn("DirectEvent.resolveSelectedUnits")(function* (
   selected: readonly UnitAnalysis[],
@@ -302,7 +316,7 @@ const resolveSelectedUnits = Effect.fn("DirectEvent.resolveSelectedUnits")(funct
       continue
     }
     frame.selectedCount.value += 1
-    const unit = yield* resolveGraphUnit(path, captured, root.name, graphResolutionOptions(frame))
+    const unit = yield* resolveGraphUnit(path, captured, root.name, graphResolutionOptions(frame, path))
     if (unit === undefined) {
       graphFailures.push({ root: root.name, reason: missingGraphRootReason(analysis, root.name) })
     } else {
@@ -411,51 +425,46 @@ const captureCandidateRoot = Effect.fn("DirectEvent.captureCandidateRoot")(funct
   eligible: EligiblePreparationPath,
   graphContract: boolean,
   frame: PreparationFrame
-) {
+): Effect.fn.Return<CaptureResult> {
   let captured = frame.supportingCaptures.get(eligible.relativePath)
   if (captured === undefined) {
-    const admittedBytes = [...frame.supportingCaptures.values()].reduce((sum, source) => sum + source.byteLength, 0)
-    if (
-      frame.supportingCaptures.size >= MAX_OBSERVATION_GRAPH_FILES ||
-      admittedBytes + GRAPH_LIMIT_CEILINGS.sourceBytes > MAX_OBSERVATION_GRAPH_READ_BYTES
-    ) {
-      return undefined
-    }
-    captured = yield* (frame.context.captureSource ?? captureStable)(
+    const refusal = observationCaptureBudgetRefusal(frame.supportingCaptures, eligible.relativePath)
+    if (refusal !== undefined) return { status: "unavailable", diagnostic: refusal }
+    const result = yield* (frame.context.captureSource ?? captureStable)(
       frame.observation.root,
       eligible,
       frame.context.captureHooks,
       frame.observation.rootIdentity,
       graphContract ? frame.graphLimits.sourceBytes : undefined
     )
-    if (captured !== undefined) frame.supportingCaptures.set(eligible.relativePath, captured)
+    if (result.status === "unavailable") return result
+    captured = result.capture
+    frame.supportingCaptures.set(eligible.relativePath, captured)
   }
-  return captured
+  return { status: "captured", capture: captured }
 })
 const admitCandidateMaterialization = Effect.fn("DirectEvent.admitCandidateMaterialization")(function* (
   path: string,
   captured: import("@hapsland/native-observation/direct-event/capture").StableCapture,
   context: SourcePreparationContext,
   materializedPaths: Set<string>,
-  rejectedPaths: Set<string>
-) {
-  if (rejectedPaths.has(path)) {
-    return false
-  }
-  if (
-    !materializedPaths.has(path) &&
-    context.beforeAnalyze !== undefined &&
-    !(yield* context.beforeAnalyze(
+  rejectedPaths: Map<string, Extract<MaterializationAdmission, { status: "refused" }>>
+): Effect.fn.Return<MaterializationAdmission> {
+  const prior = rejectedPaths.get(path)
+  if (prior !== undefined) return prior
+  if (!materializedPaths.has(path) && context.beforeAnalyze !== undefined) {
+    const admission = yield* context.beforeAnalyze(
       path,
       captured.byteLength,
       combinedAnalyzerMaterializationPreflight(path, captured.text)
-    ))
-  ) {
-    rejectedPaths.add(path)
-    return false
+    )
+    if (admission.status === "refused") {
+      rejectedPaths.set(path, admission)
+      return admission
+    }
   }
   materializedPaths.add(path)
-  return true
+  return { status: "admitted" }
 })
 const candidatePostEditHunks = (
   observation: PreparationObservation,
@@ -625,11 +634,17 @@ type PreparedCandidate = {
 }
 const skippedCandidate = (
   path: string,
-  reason?: Extract<PathObservationOutcome, { readonly status: "incomplete" }>["reason"]
+  reason?: Extract<PathObservationOutcome, { readonly status: "incomplete"; readonly diagnostic?: never }>["reason"]
 ): PreparedCandidate => ({
   outcomes: [{ status: "skipped", path }],
   units: [],
   pathOutcomes: reason === undefined ? [] : [{ status: "incomplete", path, reason }]
+})
+
+const refusedCandidate = (path: string, diagnostic: CaptureDiagnostic | PreparationDiagnostic): PreparedCandidate => ({
+  units: [],
+  outcomes: [{ status: "skipped", path }],
+  pathOutcomes: [{ status: "incomplete", path, diagnostic }]
 })
 const frozenCandidateNames = (frozenNames: ReadonlyMap<string, ReadonlySet<string>> | undefined, path: string) => {
   const frozen = frozenNames?.get(path)
@@ -701,7 +716,7 @@ const prepareCandidate = Effect.fn("DirectEvent.prepareCandidate")(function* (
   contract: string,
   supportingCaptures: PreparationFrame["supportingCaptures"],
   materializedPaths: Set<string>,
-  rejectedPaths: Set<string>,
+  rejectedPaths: Map<string, Extract<MaterializationAdmission, { status: "refused" }>>,
   selectedCount: PreparationFrame["selectedCount"],
   frozenNames: ReadonlyMap<string, ReadonlySet<string>> | undefined
 ): Effect.fn.Return<PreparedCandidate> {
@@ -714,10 +729,9 @@ const prepareCandidate = Effect.fn("DirectEvent.prepareCandidate")(function* (
       : effectiveGraphLimits(context.settings.configuration.policy)
   const graphContract = isGraphInputContract(contract)
   const frame: PreparationFrame = { observation, context, contract, graphLimits, supportingCaptures, selectedCount }
-  const captured = yield* captureCandidateRoot(eligible, graphContract, frame)
-  if (captured === undefined) {
-    return skippedCandidate(eligible.relativePath, "capture-unavailable")
-  }
+  const captureResult = yield* captureCandidateRoot(eligible, graphContract, frame)
+  if (captureResult.status === "unavailable") return refusedCandidate(eligible.relativePath, captureResult.diagnostic)
+  const captured = captureResult.capture
   if (graphContract) {
     // Stable capture has measured the root. Bend owns the configured source
     // limit; a denied root never reaches parser/preflight materialization.
@@ -733,11 +747,14 @@ const prepareCandidate = Effect.fn("DirectEvent.prepareCandidate")(function* (
       return { outcomes: [{ status: "skipped", path: eligible.relativePath }], pathOutcomes: [denied], units: [] }
     }
   }
-  if (
-    !(yield* admitCandidateMaterialization(eligible.relativePath, captured, context, materializedPaths, rejectedPaths))
-  ) {
-    return skippedCandidate(eligible.relativePath, "capture-unavailable")
-  }
+  const admission = yield* admitCandidateMaterialization(
+    eligible.relativePath,
+    captured,
+    context,
+    materializedPaths,
+    rejectedPaths
+  )
+  if (admission.status === "refused") return refusedCandidate(eligible.relativePath, admission.diagnostic)
   return yield* completedCandidate(operation, eligible.relativePath, captured, frame, frozen)
 })
 
@@ -821,7 +838,7 @@ const prepareObservationForContract = Effect.fn("DirectEvent.prepareObservationF
   contract: string,
   supportingCaptures: Map<string, import("@hapsland/native-observation/direct-event/capture").StableCapture>,
   materializedPaths: Set<string>,
-  rejectedPaths: Set<string>,
+  rejectedPaths: Map<string, Extract<MaterializationAdmission, { status: "refused" }>>,
   selectedCount: { value: number },
   frozenNames: ReadonlyMap<string, ReadonlySet<string>> | undefined = undefined
 ) {
@@ -869,7 +886,7 @@ const prepareSourceObservation = Effect.fn("DirectEvent.prepareSourceObservation
 ) {
   const captures = new Map<string, import("@hapsland/native-observation/direct-event/capture").StableCapture>()
   const materializedPaths = new Set<string>()
-  const rejectedPaths = new Set<string>()
+  const rejectedPaths = new Map<string, Extract<MaterializationAdmission, { status: "refused" }>>()
   const selectedCount = { value: 0 }
   const requested =
     context.inputContract === undefined

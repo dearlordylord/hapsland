@@ -184,11 +184,14 @@ describe("canonical resident capacity", () => {
           captured.push(path.relativePath)
           const bytes = new TextEncoder().encode(text)
           return {
-            text,
-            bytes,
-            byteLength: bytes.byteLength,
-            contentHash: createHash("sha256").update(bytes).digest("hex"),
-            metadata: "rule-fixture"
+            status: "captured" as const,
+            capture: {
+              text,
+              bytes,
+              byteLength: bytes.byteLength,
+              contentHash: createHash("sha256").update(bytes).digest("hex"),
+              metadata: "rule-fixture"
+            }
           }
         }),
       reviewControls: reviewControlsLayer({
@@ -263,11 +266,14 @@ describe("canonical resident capacity", () => {
           const text = "type SafeCount = number\n"
           const bytes = new TextEncoder().encode(text)
           return {
-            text,
-            bytes,
-            byteLength: bytes.byteLength,
-            contentHash: createHash("sha256").update(bytes).digest("hex"),
-            metadata: "fixture"
+            status: "captured" as const,
+            capture: {
+              text,
+              bytes,
+              byteLength: bytes.byteLength,
+              contentHash: createHash("sha256").update(bytes).digest("hex"),
+              metadata: "fixture"
+            }
           }
         }),
       reviewControls: reviewControlsLayer({

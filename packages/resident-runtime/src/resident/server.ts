@@ -62,7 +62,11 @@ import { appendFileSync, statSync, writeFileSync } from "node:fs"
 import { access, appendFile, chmod, rm, writeFile } from "node:fs/promises"
 import { createServer, type Server, type Socket } from "node:net"
 import { join, resolve } from "node:path"
-import { canonicalValue, type PreparedUnit } from "@hapsland/review-definition/direct-event/model"
+import {
+  canonicalValue,
+  type PreparedUnit,
+  type MaterializationAdmission
+} from "@hapsland/review-definition/direct-event/model"
 import {
   isCodexHostVersion,
   type DirectObservation,
@@ -116,7 +120,7 @@ import {
   type ResidentUnavailableReason,
   type CollectionMode
 } from "@hapsland/resident-transport/resident/protocol"
-import { makeResidentState, type CapacityLedger, type CapacityReservation } from "./capacity.ts"
+import { makeResidentState, type CapacityLedger, type CapacityReservation, type CapacityResize } from "./capacity.ts"
 import { makeDispatcher, type Dispatcher } from "./dispatch.ts"
 import { Context, Exit, Layer, Ref, Scope } from "effect"
 import * as Fiber from "effect/Fiber"
@@ -144,6 +148,23 @@ import { readCredentialState } from "@hapsland/runtime-inputs/credentials/state"
 import { claimDemoBudget } from "@hapsland/activity-observation/activity/demo-budget"
 import { findingFromProbability } from "@hapsland/review-definition/rules/decision"
 import { recordDemoTrace } from "@hapsland/activity-observation/activity/demo-trace"
+
+const resizePreparationAdmission = (result: CapacityResize, requestedBytes: number): MaterializationAdmission => {
+  if (result.status === "resized") return { status: "admitted" }
+  if (result.status === "capacity-refused")
+    return {
+      status: "refused",
+      diagnostic: {
+        stage: "preparation",
+        code: "preparation-resource-refused",
+        args: { phase: "materialization", requestedBytes, constraint: result.constraint }
+      }
+    }
+  return {
+    status: "refused",
+    diagnostic: { stage: "preparation", code: "panic", args: { boundary: "review-preparation" } }
+  }
+}
 
 class ResidentAdapterError extends Schema.TaggedError<ResidentAdapterError>()("ResidentAdapterError", {
   operation: Schema.String
@@ -2761,11 +2782,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     receipt: InspectionReceipt
   ): void => {
     if (outcome.status === "incomplete") {
-      inspection.offer(receipt.scope, receipt.correlation, {
-        kind: "preparation-omission",
-        path: outcome.path,
-        reason: outcome.reason
-      })
+      if ("diagnostic" in outcome)
+        return // Connected when the #256 persisted diagnostic foundation is integrated.
+      else
+        inspection.offer(receipt.scope, receipt.correlation, {
+          kind: "preparation-omission",
+          path: outcome.path,
+          reason: outcome.reason
+        })
     } else if (outcome.analysis.status === "incomplete") {
       for (const failure of outcome.analysis.failures) {
         inspection.offer(receipt.scope, receipt.correlation, {
@@ -3165,15 +3189,19 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         candidate: DirectObservation["candidates"][number]
       ) {
         if (!(yield* residentJobActive(job))) return false
+        const requestedBytes = captureWorkspaceBytes(candidate.path)
         const preparation = yield* residentLedger.beginObservedPreparation(
           job.partition,
           job.canonicalObservationId,
-          captureWorkspaceBytes(candidate.path),
+          requestedBytes,
           job.canonicalRound
         )
-        if (preparation === undefined) {
-          yield* residentLedger.runtime.rejectCapacity()
-          yield* residentRecordAnalytics(job, "capacity-rejected")
+        if (preparation.status !== "admitted") {
+          if (preparation.status === "capacity-refused") yield* residentLedger.runtime.rejectCapacity()
+          yield* residentRecordAnalytics(
+            job,
+            preparation.status === "capacity-refused" ? "capacity-rejected" : "preparation-failed"
+          )
           recordActivity({
             statePath: job.dispatch.activityPath,
             root: job.observation.root,
@@ -3198,11 +3226,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                 Effect.gen(function* () {
                   const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules)
                   const resized = yield* residentLedger.resize(workspace, required)
-                  if (!resized) {
+                  if (resized.status === "capacity-refused") {
                     yield* residentLedger.runtime.rejectCapacity()
                     yield* residentRecordAnalytics(job, "capacity-rejected")
                   }
-                  return resized
+                  return resizePreparationAdmission(resized, required)
                 })
             })
           }),
@@ -4659,8 +4687,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                   Effect.gen(function* () {
                     const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules)
                     const resized = yield* residentLedger.adviceCaptures.resize(capture, required)
-                    if (!resized) capacityUnavailable = true
-                    return resized
+                    if (resized.status !== "resized") capacityUnavailable = true
+                    return resizePreparationAdmission(resized, required)
                   })
               },
               { isCurrentWork: (prepared) => residentIsCurrentWork(advice.revision, prepared) }
@@ -5381,7 +5409,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           {},
           advice.observation.rootIdentity
         )
-        current.set(advice.id, advice.sourceHash !== undefined && captured?.contentHash === advice.sourceHash)
+        current.set(
+          advice.id,
+          advice.sourceHash !== undefined &&
+            captured.status === "captured" &&
+            captured.capture.contentHash === advice.sourceHash
+        )
       }
       return current
     })

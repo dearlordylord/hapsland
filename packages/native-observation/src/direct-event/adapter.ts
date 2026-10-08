@@ -573,7 +573,8 @@ const captureSelectedClaudeFile = Effect.fn("DirectEvent.captureSelectedClaudeFi
     rootIdentity
   )
   if (eligible === undefined) return undefined
-  return yield* captureStable(root, eligible, options.captureHooks, rootIdentity)
+  const result = yield* captureStable(root, eligible, options.captureHooks, rootIdentity)
+  return result.status === "captured" ? result.capture : undefined
 })
 /** Claude has no observed turn ID; preserve supplied child identity. */
 export const adaptClaudeDirectEvent = Effect.fn("DirectEvent.adaptClaudeDirectEvent")(function* (

@@ -55,6 +55,102 @@ const enabledReview = (
   }).pipe(Effect.provide(controlledDecisionModelLayer(modelOptions)))
 
 describe("direct-event vertical slice", () => {
+  it.effect("refuses aggregate capture bytes before reading the next candidate", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      const sourceBytes = 2_097_152
+      const paths = Array.from({ length: 9 }, (_, index) => `root-${index}.ts`)
+      const source = `//${"x".repeat(sourceBytes - 2)}`
+      for (const path of paths) yield* Effect.promise(() => put(root, path, source))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, paths))
+      if (observation === undefined) throw new Error("fixture adaptation failed")
+      const reads: string[] = []
+      let admissions = 0
+      const prepared = yield* prepareObservation(observation, {
+        controlledWriter: true,
+        advicee: observation.advicee,
+        settings,
+        rules: configuredRules,
+        captureHooks: { sourceRead: (path) => reads.push(path) },
+        beforeAnalyze: () =>
+          Effect.sync(() => {
+            admissions += 1
+            return {
+              status: "refused" as const,
+              diagnostic: {
+                stage: "preparation" as const,
+                code: "preparation-resource-refused" as const,
+                args: { phase: "materialization" as const, requestedBytes: 40_000_000 }
+              }
+            }
+          })
+      })
+      expect(reads).toHaveLength(16)
+      expect(new Set(reads)).toEqual(new Set(paths.slice(0, 8)))
+      expect(admissions).toBe(8)
+      expect(prepared.observation.outcomes.find((outcome) => outcome.path === paths[8])).toEqual({
+        status: "incomplete",
+        path: paths[8],
+        diagnostic: {
+          stage: "capture",
+          code: "capture-budget-limit",
+          args: { resource: "bytes", used: 8 * sourceBytes, requested: sourceBytes, limit: 8 * sourceBytes }
+        }
+      })
+      expect(prepared.outcomes.every((outcome) => outcome.status === "skipped")).toBe(true)
+    })
+  )
+
+  it.effect("keeps successful capture distinct from materialization refusal without a classifier call", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      yield* Effect.promise(() => put(root, "type.ts", "export interface A { value: string }"))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root))
+      if (observation === undefined) throw new Error("fixture adaptation failed")
+      let reads = 0
+      let admissions = 0
+      let calls = 0
+      const diagnostic = {
+        stage: "preparation",
+        code: "preparation-resource-refused",
+        args: { phase: "materialization", requestedBytes: 40_000_000, constraint: "partitionBytes" }
+      } as const
+      const context: DirectReviewContext = {
+        controlledWriter: true,
+        advicee: observation.advicee,
+        settings,
+        rules: configuredRules,
+        captureHooks: {
+          sourceRead: () => {
+            reads += 1
+          }
+        },
+        beforeAnalyze: () =>
+          Effect.sync(() => {
+            admissions += 1
+            return { status: "refused" as const, diagnostic }
+          })
+      }
+      const prepared = yield* prepareObservation(observation, context)
+      expect(reads).toBe(2)
+      expect(admissions).toBe(1)
+      expect(prepared.observation.outcomes).toEqual([{ status: "incomplete", path: "type.ts", diagnostic }])
+      const result = yield* reviewObservation(observation, context).pipe(
+        Effect.provide(
+          controlledDecisionModelLayer({
+            onRequest: Effect.sync(() => {
+              calls += 1
+            })
+          })
+        )
+      )
+      expect(result.status).toBe("no-advice")
+      expect(reads).toBe(4)
+      expect(admissions).toBe(2)
+      expect(calls).toBe(0)
+    })
+  )
+
   it.effect("charges recursively expanded evidence and rejects over-budget input before dispatch", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)

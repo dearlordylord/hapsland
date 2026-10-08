@@ -115,8 +115,8 @@ const captureSelectedPiFile = Effect.fn("DirectEvent.captureSelectedPiFile")(fun
     root.rootIdentity
   )
   if (eligible === undefined) return undefined
-  const source = yield* captureStable(root.root, eligible, options.captureHooks, root.rootIdentity)
-  return source === undefined || !ascii(source.text) ? undefined : { source, eligible }
+  const result = yield* captureStable(root.root, eligible, options.captureHooks, root.rootIdentity)
+  return result.status !== "captured" || !ascii(result.capture.text) ? undefined : { source: result.capture, eligible }
 })
 export const adaptPiDirectEvent = Effect.fn("DirectEvent.adaptPiDirectEvent")(function* (
   value: unknown,

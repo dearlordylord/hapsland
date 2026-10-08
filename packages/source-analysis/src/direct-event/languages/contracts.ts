@@ -3,6 +3,7 @@ import type { GraphLimits } from "@hapsland/canonical-policy/canonical/graph-lim
 import {
   type captureStable,
   type CaptureHooks,
+  type CaptureDiagnostic,
   type StableCapture
 } from "@hapsland/native-observation/direct-event/capture"
 import type { ReviewArtifact, TypeDeclaration } from "@hapsland/source-artifacts/direct-event/artifact-model"
@@ -59,6 +60,7 @@ export type LanguageGraphHost = {
   readonly captureHooks?: CaptureHooks
   readonly captureSource?: typeof captureStable
   readonly captureCache?: Map<string, StableCapture>
+  readonly observeCaptureDiagnostic?: (sourcePath: string, diagnostic: CaptureDiagnostic) => void
   readonly now?: () => number
 }
 export type GraphSession = {

@@ -69,6 +69,14 @@ conservative workspace estimates and are **not an operating-system RSS cap**.
 Native parser allocations, process overhead, and provider transport have
 separate physical boundaries.
 
+Preparation admission distinguishes a capacity refusal from a stale round,
+work in the wrong stage, and an invalid measurement. Resizing a reservation
+also distinguishes a capacity refusal from an invalid reservation. These
+results describe the existing checked ledger decision; they do not authorize
+another admission attempt. A preparation capacity refusal records the measured
+requested bytes and, when the ledger identifies it, the refusing item or byte
+constraint. An invalid measurement is an internal failure, not saturation.
+
 Pre-edit permits are a different admission resource. User-owned
 `editPermitLimits` defaults to 32 pending permits per advicee and 4096 across
 the resident. These settings do not increase classifier concurrency, review
@@ -99,6 +107,15 @@ The configured graph profile bounds the evidence for one review unit. Projects m
 Every root and supporting file passes file
 selection before source capture. A marked omission can make some rules
 inapplicable without making an independent eligible rule or unit unavailable.
+
+Stable capture applies the effective `sourceBytes` limit to the whole file.
+An oversized file is refused rather than read as a truncated prefix. Root and
+supporting captures also share an observation budget of 64 files and 16 MiB;
+this budget is separate from the graph profile for one review unit. A capture
+refusal retains a closed diagnostic code and bounded facts, such as the
+observed file size or the aggregate resource that refused the next read.
+Supporting capture diagnostics preserve the available partial graph and its
+existing rule-applicability decisions.
 
 Use the [graph settings](configuration.md) to narrow collection within the
 maximum values. Project limits may lower user limits, not raise them.

@@ -12,6 +12,7 @@ import { inspectRustModules, type GraphInspectionOptions } from "./rust.ts"
 import { captureStable, type StableCapture } from "@hapsland/native-observation/direct-event/capture"
 import { contextDirectFilePolicy, eligibleNamedPath } from "@hapsland/native-observation/direct-event/selection"
 import type { LanguageGraphHost } from "./contracts.ts"
+import { observationCaptureBudgetRefusal, observeCaptureDiagnostic } from "../capture-budget.ts"
 
 type Route = {
   readonly path: string
@@ -247,11 +248,6 @@ export const resolveRustModuleContext = Effect.fn("DirectEvent.resolveRustModule
     }
     return pending
   })
-  const captureBudgetAvailable = (selectedPath: string): boolean =>
-    captures.has(selectedPath) ||
-    (captures.size < 64 &&
-      [...captures.values()].reduce((sum, capture) => sum + capture.byteLength, 0) + limits.sourceBytes <=
-        16 * 1024 * 1024)
   const resolveEdge = (edge: number) => {
     active = tasks.get(edge)
     if (active === undefined || !within(active.path)) {
@@ -282,14 +278,19 @@ export const resolveRustModuleContext = Effect.fn("DirectEvent.resolveRustModule
   ) {
     let capture = captures.get(selected.relativePath)
     if (capture === undefined) {
-      capture = yield* (context.captureSource ?? captureStable)(
+      const result = yield* (context.captureSource ?? captureStable)(
         context.root,
         selected,
         context.captureHooks,
         context.rootIdentity,
         limits.sourceBytes
       )
-      if (capture !== undefined) captures.set(selected.relativePath, capture)
+      if (result.status === "unavailable") {
+        observeCaptureDiagnostic(context, selected.relativePath, result.diagnostic)
+        return undefined
+      }
+      capture = result.capture
+      captures.set(selected.relativePath, capture)
     }
     return capture
   })
@@ -303,7 +304,12 @@ export const resolveRustModuleContext = Effect.fn("DirectEvent.resolveRustModule
       contextDirectFilePolicy(context.policy),
       context.rootIdentity
     )
-    if (selected === undefined || !captureBudgetAvailable(selected.relativePath)) return undefined
+    if (selected === undefined) return undefined
+    const refusal = observationCaptureBudgetRefusal(captures, selected.relativePath, limits.sourceBytes)
+    if (refusal !== undefined) {
+      observeCaptureDiagnostic(context, selected.relativePath, refusal)
+      return undefined
+    }
     const capture = yield* captureSelectedModule(selected)
     if (capture === undefined || capture.byteLength > limits.sourceBytes) {
       return undefined

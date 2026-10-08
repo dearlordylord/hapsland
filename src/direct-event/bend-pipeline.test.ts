@@ -576,8 +576,9 @@ describe("Bend cross-file review evidence", () => {
         observation.rootIdentity
       )
       if (!selected) throw new Error("selection failed")
-      const capture = yield* captureStable(root, selected, {}, observation.rootIdentity)
-      if (!capture) throw new Error("capture failed")
+      const captured = yield* captureStable(root, selected, {}, observation.rootIdentity)
+      if (captured.status !== "captured") throw new Error("capture failed")
+      const capture = captured.capture
       const libraryBytes = Buffer.byteLength(
         "type List<a, -A: Kind(a)> is Kind(a):\n  Nil{}\n  Con{head: A, tail: List<a, A>}"
       )
@@ -623,8 +624,9 @@ describe("Bend cross-file review evidence", () => {
         observation.rootIdentity
       )
       if (!selected) throw new Error("selection failed")
-      const capture = yield* captureStable(root, selected, {}, observation.rootIdentity)
-      if (!capture) throw new Error("capture failed")
+      const captured = yield* captureStable(root, selected, {}, observation.rootIdentity)
+      if (captured.status !== "captured") throw new Error("capture failed")
+      const capture = captured.capture
       for (const limits of [
         { ...GRAPH_LIMIT_CEILINGS, files: 1 },
         { ...GRAPH_LIMIT_CEILINGS, readBytes: GRAPH_LIMIT_CEILINGS.sourceBytes },
