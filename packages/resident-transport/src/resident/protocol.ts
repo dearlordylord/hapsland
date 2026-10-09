@@ -20,7 +20,7 @@ import type { ClaudeHostOutput } from "@hapsland/delivery-output/direct-event/cl
 
 export const MAX_IPC_FRAME_BYTES = 262_144
 export const MAX_IPC_CONNECTIONS = 32
-export const CLIENT_REQUEST_DEADLINE_MS = 1_500
+export const CLIENT_REQUEST_DEADLINE_MS = 4_000
 export const STARTUP_READINESS_DEADLINE_MS = 10_000
 export const DELIVERY_LEASE_MS = 5_000
 export type CollectionMode = "ordinary" | "turn-end"

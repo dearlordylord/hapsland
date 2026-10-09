@@ -1,7 +1,7 @@
 import type { Socket } from "node:net"
 import { StringDecoder } from "node:string_decoder"
 import { Effect } from "effect"
-import { MAX_IPC_FRAME_BYTES } from "./protocol.ts"
+import { CLIENT_REQUEST_DEADLINE_MS, MAX_IPC_FRAME_BYTES } from "./protocol.ts"
 
 export type SocketFrame =
   | { readonly _tag: "Frame"; readonly encoded: string }
@@ -24,7 +24,7 @@ export const makeSocketFramePort = Effect.fn("ResidentSocket.make")((socket: Soc
     const ignoreError = () => undefined
     socket.on("error", ignoreError)
     const onTimeout = () => socket.destroy()
-    socket.setTimeout(1_500, onTimeout)
+    socket.setTimeout(CLIENT_REQUEST_DEADLINE_MS, onTimeout)
     const closed = Effect.callback<void>((resume) => {
       if (socket.closed) {
         resume(Effect.void)
