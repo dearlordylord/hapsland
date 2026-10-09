@@ -149,6 +149,13 @@ not establish rule accuracy. See [languages and limits](#languages-and-limits).
 
 ## Installation
 
+> [!TIP]
+> **[Download Hapsland ↗](https://github.com/dearlordylord/hapsland-releases/releases/latest)**
+>
+> macOS arm64 · Linux arm64 · Runtime included.
+>
+> [Installation and checksum verification](./docs/installation-workflows.md#install-a-ready-made-platform-release).
+
 Ask your coding agent to install it:
 
 <!-- agent-setup-instruction:start -->
@@ -163,11 +170,6 @@ Ready-made packages are available for macOS arm64 and Linux arm64:
 brew install dearlordylord/tap/hapsland
 "$(brew --prefix hapsland)/bin/hapsland" setup --target="$(brew --prefix hapsland)/bin/hapsland"
 ```
-
-For direct downloads, checksums and updates, see the
-[platform installation workflow](./docs/installation-workflows.md#install-a-ready-made-platform-release)
-and [public releases](https://github.com/dearlordylord/hapsland-releases/releases).
-These packages include their runtime and require no source build.
 
 The public npm package returned **404 on 2026-10-06**; the npm commands below
 require a separate npm publication. Contributors can still use the

@@ -19,16 +19,16 @@ try {
   await page.getByRole("button", { name: "Copy instruction", exact: true }).click()
   await page.locator("#copy-instruction + .copy-status").getByText("Copied", { exact: true }).waitFor()
   assert.equal(await page.evaluate(() => navigator.clipboard.readText()), instruction)
-  await page.getByText("Install manually", { exact: true }).click()
+  await page.getByText("Install with Homebrew", { exact: true }).click()
   await page.getByRole("button", { name: "Copy installation command", exact: true }).click()
   await page.locator("#copy-install + .copy-status").getByText("Copied", { exact: true }).waitFor()
-  assert.equal(
-    await page.evaluate(() => navigator.clipboard.readText()),
-    "npm install -g --ignore-scripts @hapsland/hapsland"
-  )
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "brew install dearlordylord/tap/hapsland")
   await page.getByRole("button", { name: "Copy setup command", exact: true }).click()
   await page.locator("#copy-setup + .copy-status").getByText("Copied", { exact: true }).waitFor()
-  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "hapsland setup")
+  assert.equal(
+    await page.evaluate(() => navigator.clipboard.readText()),
+    '"$(brew --prefix hapsland)/bin/hapsland" setup --target="$(brew --prefix hapsland)/bin/hapsland"'
+  )
   // Exercise the same selection path used on the HTTP/IP preview.
   await page.evaluate(() => {
     navigator.clipboard.writeText = () => Promise.reject(new Error("unavailable"))
@@ -49,8 +49,8 @@ try {
   await httpPage.close()
 
   assert.deepEqual(await page.locator("#setup .setup-command code").allTextContents(), [
-    "npm install -g --ignore-scripts @hapsland/hapsland",
-    "hapsland setup"
+    "brew install dearlordylord/tap/hapsland",
+    '"$(brew --prefix hapsland)/bin/hapsland" setup --target="$(brew --prefix hapsland)/bin/hapsland"'
   ])
   await page.locator(".lifecycle-collapsed").waitFor()
   assert.equal(await page.locator("#review-loop-canvas").isVisible(), false)

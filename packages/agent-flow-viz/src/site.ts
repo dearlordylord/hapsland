@@ -10,6 +10,7 @@ import { copyText } from "./site-clipboard"
 import productIcon from "./brand/product-icon.svg?url"
 import githubIcon from "./github.svg?url"
 
+const DOWNLOADS = "https://github.com/dearlordylord/hapsland-releases/releases/latest"
 const REPOSITORY = "https://github.com/dearlordylord/hapsland"
 const guide = (name: string) => `${REPOSITORY}/blob/master/docs/${name}.md`
 export const Model = Schema.Struct({
@@ -494,7 +495,10 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
               ),
               h.div(
                 [h.Class("hero-actions")],
-                [h.a([h.Href("#setup"), h.Class("text-link")], ["Read the setup guide ↓"])]
+                [
+                  h.a([h.Href(DOWNLOADS), h.Class("button-primary")], ["Download Hapsland ↗"]),
+                  h.a([h.Href("#setup"), h.Class("text-link")], ["Set up with your agent ↓"])
+                ]
               )
             ]
           ),
@@ -561,7 +565,14 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
         [
           h.p([h.Class("eyebrow")], ["SETUP"]),
           h.h2([], ["Install and set up Hapsland."]),
-          h.p([], ["Requires npm and a supported Claude Code or Codex CLI installation."]),
+          h.p([], ["Ready-made packages for macOS arm64 and Linux arm64. Runtime included; no source build required."]),
+          h.div(
+            [h.Class("download-strip")],
+            [
+              h.a([h.Href(DOWNLOADS), h.Class("download-link")], ["Download a ready-made package ↗"]),
+              h.p([], ["macOS arm64 · Linux arm64 · Archives and checksums"])
+            ]
+          ),
           h.div(
             [h.Class("agent-setup")],
             [
@@ -574,7 +585,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           h.details(
             [h.Class("manual-setup")],
             [
-              h.summary([], ["Install manually"]),
+              h.summary([], ["Install with Homebrew"]),
               h.div(
                 [h.Class("setup-command")],
                 [
@@ -593,7 +604,9 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
               ),
               h.p(
                 [],
-                ["Uses your npm global installation. For permissions or PATH issues, see the installation guide."]
+                [
+                  "Homebrew installs the runtime and commands. Setup previews changes to your agent hooks before applying them."
+                ]
               )
             ]
           ),
