@@ -118,14 +118,15 @@ it.each(["before-edit", "background", "stop", "prompt"])(
   }
 )
 it("routes direct Claude with its checked observation", async () => {
-  await run(["--claude-hook", "--composed-edit-hook"])
+  await run(["--claude-hook", "--composed-edit-hook", "--claude-version=2.1.293"])
   expect(ports.adaptClaude).toHaveBeenCalledWith(
     { fixture: true },
     {
       userConfigPath: "/tmp/fixture-user.json",
       capturePolicy: expect.any(Function),
       observeNative: expect.any(Function)
-    }
+    },
+    "2.1.293"
   )
   expect(ports.write).toHaveBeenCalledWith('{"channel":"claude"}\n', expect.any(Number))
 })

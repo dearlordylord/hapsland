@@ -80,14 +80,16 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
   const retireNativeEditPermits = Effect.fn("NativeHook.retireUnusedPermits")(function* (
     event: unknown,
     host: "codex-cli" | "claude-code",
-    version: CodexHostVersion = "0.155.1"
+    version: CodexHostVersion = "0.155.1",
+    claudeVersion?: string
   ) {
     if (event === null || typeof event !== "object" || Array.isArray(event)) return
     const identity = yield* adaptComposedHookIdentity(
       { ...event, hook_event_name: "PreToolUse" },
       host,
       "PreToolUse",
-      version
+      version,
+      claudeVersion
     ).pipe(Effect.catch(() => Effect.succeed(undefined)))
     if (identity === undefined) return
     for (const root of identity.editRoots ?? [])

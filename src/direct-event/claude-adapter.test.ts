@@ -28,7 +28,7 @@ const base = (root: string, path: string) => ({
   }
 })
 
-describe("Claude Code 2.1.218 direct adapter", () => {
+describe("Claude Code direct adapter", () => {
   it("discovers an edited target in another Git working copy independently of cwd", async () => {
     const cwd = await makeGitFixture()
     const targetRoot = await makeGitFixture()
@@ -186,12 +186,12 @@ describe("Claude Code 2.1.218 direct adapter", () => {
     const path = join(root, "item.ts")
     await writeFile(path, "export interface Item { value: number }\n")
     const event = base(root, path)
-    const observation = await Effect.runPromise(adaptClaudeDirectEvent(event))
+    const observation = await Effect.runPromise(adaptClaudeDirectEvent(event, {}, "2.1.293"))
     expect(observation).toMatchObject({
       root,
       advicee: {
         host: "claude-code",
-        hostVersion: "2.1.218",
+        hostVersion: "2.1.293",
         sessionId: "session-a",
         turnId: null,
         toolUseId: "tool-a",

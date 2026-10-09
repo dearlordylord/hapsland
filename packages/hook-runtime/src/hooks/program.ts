@@ -7,7 +7,7 @@ import { makeUpdateNoticeOutput, UPDATE_REQUIRED_TEXT } from "../resident/update
 import * as Option from "effect/Option"
 import { readFileSync } from "node:fs"
 import { adaptClaudeDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
-import { isCodexHostVersion } from "@hapsland/native-observation/direct-event/observation"
+import { isCodexHostVersion, isClaudeHostVersion } from "@hapsland/native-observation/direct-event/observation"
 import { runPiHook } from "../pi/transport.ts"
 import { hookMonotonicMillis } from "@hapsland/resident-transport/resident/hook-clock"
 import type { ResidentEditPolicy } from "@hapsland/resident-transport/resident/protocol"
@@ -86,6 +86,7 @@ const runComposed = Effect.fn("Hook.runComposed")(function* (
     host: options["composed-host"] === "claude-code" ? "claude-code" : "codex-cli",
     event,
     codexVersion,
+    ...(options["claude-version"] === undefined ? {} : { claudeVersion: options["claude-version"] }),
     ...hookRuntimeOptions(context)
   })
 })
@@ -114,32 +115,37 @@ const runNative = Effect.fn("Hook.runNative")(function* (
     let metadata: NativeEditMetadata | undefined
     let skippedOtherRoot = false
     const callerCwd = hookCallerCwd(event)
-    const observation = yield* adaptClaudeDirectEvent(event, {
-      ...(userConfigPath === undefined ? {} : { userConfigPath }),
-      observeNative: (value) => {
-        metadata = skippedOtherRoot
-          ? {
-              ...value,
-              admission: "skipped-other-root",
-              candidates: value.candidates.map((candidate) => ({
-                ...candidate,
-                selection: { status: "not-evaluated" }
-              }))
-            }
-          : value
+    const observation = yield* adaptClaudeDirectEvent(
+      event,
+      {
+        ...(userConfigPath === undefined ? {} : { userConfigPath }),
+        observeNative: (value) => {
+          metadata = skippedOtherRoot
+            ? {
+                ...value,
+                admission: "skipped-other-root",
+                candidates: value.candidates.map((candidate) => ({
+                  ...candidate,
+                  selection: { status: "not-evaluated" }
+                }))
+              }
+            : value
+        },
+        capturePolicy: (root, advicee, path) =>
+          readComposedEditPolicyEffect(root, advicee, undefined, [path], (outcome) => {
+            skippedOtherRoot = outcome === "skipped-other-root"
+          }).pipe(
+            Effect.catch(() => Effect.succeed(undefined)),
+            Effect.map((policy) => {
+              editPolicy = policy
+              return policy?.filePolicy
+            })
+          )
       },
-      capturePolicy: (root, advicee, path) =>
-        readComposedEditPolicyEffect(root, advicee, undefined, [path], (outcome) => {
-          skippedOtherRoot = outcome === "skipped-other-root"
-        }).pipe(
-          Effect.catch(() => Effect.succeed(undefined)),
-          Effect.map((policy) => {
-            editPolicy = policy
-            return policy?.filePolicy
-          })
-        )
-    })
-    if (observation === undefined) yield* dispatch.retireNativeEditPermits(event, "claude-code")
+      options["claude-version"]
+    )
+    if (observation === undefined)
+      yield* dispatch.retireNativeEditPermits(event, "claude-code", undefined, options["claude-version"])
     return yield* dispatch
       .runDirectBoundedHook(
         observation,
@@ -236,6 +242,7 @@ const attachUpdateNotice = Effect.fn("Hook.attachUpdateNotice")(function* (
 export const runHookProgram = async (options: HookArguments, startedAt: number): Promise<void> => {
   const kind = composedKind(options)
   if (unsupportedCodexVersion(options, kind)) return
+  if (options["claude-version"] !== undefined && !isClaudeHostVersion(options["claude-version"])) return
   const codexVersion = isCodexHostVersion(options["codex-version"]) ? options["codex-version"] : "0.155.1"
   const deadline = startedAt + (options["codex-hook"] && options["composed-edit-hook"] ? 9_000 : 3_900)
   const dispatch = makeDirectHookDispatch({

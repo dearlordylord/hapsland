@@ -1,6 +1,7 @@
 import {
   type NativeEditMetadata,
   isCodexHostVersion,
+  isClaudeHostVersion,
   type DirectObservation,
   type DirectAdvicee
 } from "@hapsland/native-observation/direct-event/observation"
@@ -454,11 +455,13 @@ export const residentUnitWorstOutcomeBytes = (prepared: PreparedUnit): number =>
 
 const logicalBytes = (value: unknown): number => Buffer.byteLength(canonicalValue(value), "utf8")
 
-const exactHostVersions = { "claude-code": "2.1.218", pi: "1.0.0", opencode: "1.14.44" } as const
+const exactHostVersions = { pi: "1.0.0", opencode: "1.14.44" } as const
 const supportedAdviceeVersion = (advicee: DirectAdvicee): boolean =>
   advicee.host === "codex-cli"
     ? isCodexHostVersion(advicee.hostVersion)
-    : advicee.hostVersion === exactHostVersions[advicee.host]
+    : advicee.host === "claude-code"
+      ? isClaudeHostVersion(advicee.hostVersion)
+      : advicee.hostVersion === exactHostVersions[advicee.host]
 const addressableAdvicee = (advicee: DirectAdvicee): boolean =>
   supportedAdviceeVersion(advicee) &&
   advicee.sessionId.length > 0 &&
