@@ -1,0 +1,49 @@
+{
+  "passed": true,
+  "mutants": [
+    {
+      "name": "ignore_uncertain_pattern",
+      "caught": true,
+      "exitCode": 1,
+      "diagnostic": "SOME PROOFS FAIL\nError:\n- expected : False{}\n- observed : True{}\nLocation: Laws.unsupported_assignment_exact\n6 |     case False{} False{} False{}: {==}\n7>|     case False{} False{} True{}: {==}\n  |                                  ^^^^\n8 |     case False{} True{} False{}: {==}\n"
+    },
+    {
+      "name": "ignore_known_callable",
+      "caught": true,
+      "exitCode": 1,
+      "diagnostic": "SOME PROOFS FAIL\nError:\n- expected : False{}\n- observed : True{}\nLocation: Laws.unsupported_assignment_exact\n11 |     case True{} False{} True{}: {==}\n12>|     case True{} True{} False{}: {==}\n   |                                 ^^^^\n13 |     case True{} True{} True{}: {==}\n"
+    },
+    {
+      "name": "remove_early_mark",
+      "caught": true,
+      "exitCode": 1,
+      "diagnostic": "SOME PROOFS FAIL\nError:\n- expected : core.NoAction{}\n- observed : core.Mark{}\nLocation: Laws.binding_actions_exact\n32 |     case False{} True{} True{} True{} True{}: {==}\n33>|     case True{} False{} False{} False{} False{}: {==}\n   |                                                  ^^^^\n34 |     case True{} False{} False{} False{} True{}: {==}\n"
+    },
+    {
+      "name": "deduplicate_marks",
+      "caught": true,
+      "exitCode": 1,
+      "diagnostic": "SOME PROOFS FAIL\nError:\n- expected : core.Mark{}\n- observed : core.MarkMark{}\nLocation: Laws.binding_actions_exact\n30 |     case False{} True{} True{} False{} True{}: {==}\n31>|     case False{} True{} True{} True{} False{}: {==}\n   |                                                ^^^^\n32 |     case False{} True{} True{} True{} True{}: {==}\n"
+    },
+    {
+      "name": "drop_mutation_before_bind",
+      "caught": true,
+      "exitCode": 1,
+      "diagnostic": "SOME PROOFS FAIL\nError:\n- expected : core.Bind{}\n- observed : core.MarkBind{}\nLocation: Laws.binding_actions_exact\n31 |     case False{} True{} True{} True{} False{}: {==}\n32>|     case False{} True{} True{} True{} True{}: {==}\n   |                                               ^^^^\n33 |     case True{} False{} False{} False{} False{}: {==}\n"
+    },
+    {
+      "name": "bind_non_identifier",
+      "caught": true,
+      "exitCode": 1,
+      "diagnostic": "SOME PROOFS FAIL\nError:\n- expected : core.Bind{}\n- observed : core.Mark{}\nLocation: Laws.binding_actions_exact\n18 |     case False{} False{} False{} False{} True{}: {==}\n19>|     case False{} False{} False{} True{} False{}: {==}\n   |                                                  ^^^^\n20 |     case False{} False{} False{} True{} True{}: {==}\n"
+    },
+    {
+      "name": "lexical_initial_arguments",
+      "caught": true,
+      "exitCode": 1,
+      "diagnostic": "SOME PROOFS FAIL\nError:\n- expected : True{}\n- observed : False{}\nLocation: Laws.initial_arguments_exact\n52 |     case False{}: {==}\n53>|     case True{}: {==}\n   |                  ^^^^\n54 | \n"
+    }
+  ],
+  "deadlineSecondsPerBend": 5,
+  "scope": "unchanged approved laws and full universal proofs reject seven behavior mutations; no native host claim"
+}

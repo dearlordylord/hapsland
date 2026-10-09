@@ -1,0 +1,358 @@
+{
+  "startedAt": "2026-10-09T02:25:58.747Z",
+  "at": "2026-10-09T02:27:20.512Z",
+  "roots": {
+    "typescript": "/workspace/typescript/hapsland-bend-baseline-master-5726758e",
+    "integratedBend": "/workspace/typescript/hapsland-bend-selection-ui"
+  },
+  "samples": {
+    "typescript": [
+      {
+        "seconds": 0.34183311300000013,
+        "cpuSeconds": 0.341771,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.29387803899999976,
+        "cpuSeconds": 0.293854,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.259021647,
+        "cpuSeconds": 0.258994,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.23995241899999997,
+        "cpuSeconds": 0.239931,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.2354073840000001,
+        "cpuSeconds": 0.23538399999999998,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.25181017600000016,
+        "cpuSeconds": 0.251768,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.25862560200000007,
+        "cpuSeconds": 0.258605,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.2993247900000001,
+        "cpuSeconds": 0.299295,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.30939803200000005,
+        "cpuSeconds": 0.309374,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.2334367010000003,
+        "cpuSeconds": 0.23341299999999998,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.22988950799999952,
+        "cpuSeconds": 0.22986499999999999,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.2439216560000002,
+        "cpuSeconds": 0.243898,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.26457389799999964,
+        "cpuSeconds": 0.26455300000000004,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.23910499600000001,
+        "cpuSeconds": 0.239076,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.24798702299999992,
+        "cpuSeconds": 0.24796400000000002,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.24490308200000005,
+        "cpuSeconds": 0.244879,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.27037385900000027,
+        "cpuSeconds": 0.27035,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      }
+    ],
+    "integratedBend": [
+      {
+        "seconds": 0.27534772999999996,
+        "cpuSeconds": 0.275323,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.2776234559999998,
+        "cpuSeconds": 0.27759999999999996,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.25126771300000017,
+        "cpuSeconds": 0.251244,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.23333007599999972,
+        "cpuSeconds": 0.233302,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.2512700880000002,
+        "cpuSeconds": 0.2512,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.2440516150000003,
+        "cpuSeconds": 0.244027,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.335517566,
+        "cpuSeconds": 0.335487,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.29785423600000016,
+        "cpuSeconds": 0.297831,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.23367303700000047,
+        "cpuSeconds": 0.23365,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.25753022000000036,
+        "cpuSeconds": 0.257505,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.29446237700000033,
+        "cpuSeconds": 0.294434,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.23739702399999965,
+        "cpuSeconds": 0.23737,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.2381166539999997,
+        "cpuSeconds": 0.23809200000000003,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.24139897099999963,
+        "cpuSeconds": 0.241371,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.2642782709999999,
+        "cpuSeconds": 0.264246,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.24243193699999982,
+        "cpuSeconds": 0.24240699999999998,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      },
+      {
+        "seconds": 0.25110042,
+        "cpuSeconds": 0.251077,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      }
+    ]
+  },
+  "meanRatio": 0.9917573624529685,
+  "executionParity": true,
+  "scope": "diagnostic actual compiled six private reference helpers with exhaustive conditional core comparisons; controlled native fields, no parser; one checkout per isolated Bun worker avoids native wrapper cross-import interference; 227 controlled fixtures and full result/name/offset consumption; five warmups then two caller sites per sample,10000rounds;17alternating paired workers,CPU11nonexclusive; subprocess startup/import/warmup excluded; previous helper failures retained; no cold IPC/platform/whole product claim",
+  "allChecksumsMatch": true
+}

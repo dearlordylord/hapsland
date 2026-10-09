@@ -10,7 +10,7 @@ for (let round = 0; round < 2; round++) {
   const lanes = Object.entries(roots)
   if (round % 2) lanes.reverse()
   for (const [name, root] of lanes) {
-    const timeout = Math.min(150000, stop - performance.now())
+    const timeout = Math.floor(Math.min(150000, stop - performance.now()))
     if (timeout <= 0) throw new Error("Build comparison deadline exhausted")
     const start = performance.now()
     const result = spawnSync("taskset", ["-c", "11", process.execPath, "scripts/build-workspaces.mjs"], { cwd: root, timeout, encoding: "utf8", maxBuffer: 8 * 1024 * 1024 })

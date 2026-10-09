@@ -1,0 +1,223 @@
+{
+  "startedAt": "2026-10-09T02:51:38.041Z",
+  "at": "2026-10-09T02:54:11.218Z",
+  "samples": {
+    "typescript": [
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 7.883404464,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 6.944705025999999,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 6.038936017000004,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.349242657000002,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.885164451999997,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.591636016000004,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.892780761999995,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 6.599559342000008,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.329196287999992,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 7.278287032000008,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 6.041713162999993,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.702160896999994,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.326116841999989,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      }
+    ],
+    "integratedBend": [
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 7.661026807,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 6.370813843000001,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.30869354,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 6.124180574999999,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.913114968000001,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.589136870999996,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.124344188000003,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 4.976189501,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.296635068999996,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.994374035000001,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 4.894277424,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 4.918115823,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.10135033300001,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      }
+    ]
+  },
+  "scope": "paired warm workspace builds; declared frozen baseline and current candidate; both separately prepared; native release assembly excluded",
+  "completed": false,
+  "qualification": false,
+  "failure": "Node spawnSync timeout received fractional remaining deadline after 13 pairs",
+  "retainedLog": "/tmp/hapsland-binding-build-performance.log"
+}

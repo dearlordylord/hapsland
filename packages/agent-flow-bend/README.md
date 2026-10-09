@@ -129,8 +129,20 @@ names and offsets, traversal and duplicate handling, lexical resolution and
 complete review evidence. Ignore materializes as `undefined`; unsupported type
 syntax takes precedence. Conditional proofs do not establish parser correctness,
 installed support or timing parity. [Reference evidence](../../evidence/bend-strangler/reference-draft.json)
-records successful isolated Bun/Node analyzer measurements separately from
-failed controlled helper measurements; qualification is still pending.
+records isolated Bun/Node analyzer and isolated helper measurements separately
+from earlier shared-process helper failures; broader qualification is still pending.
+
+`binding-policy/core.bend` owns unsupported assignment-target decisions, ordered
+per-node binding actions and initial `arguments` membership. Three Astra-approved
+exact laws cover all 42 Boolean tuples; the generator checks 52 scalar and staged
+specializations. Native binders preserve early uncertain-scope return, execute
+mutation marks before binding reads, and retain repeated marks. The host retains
+fresh scope state, child traversal, names/offsets, Set mutations and unsupported
+record materialization. The conditional proofs do not establish lexical-scope or
+parser correctness. [Binding evidence](../../evidence/bend-strangler/binding-policy-validation.json)
+records 40 native trace comparisons, 284 injected exceptions, seven rejected
+mutants, focused consumer checks and bounded warm-build/analyzer measurements.
+These measurements do not establish whole-product or installed platform parity.
 
 `setup-policy/core.bend` owns per-agent setup commands, stage readiness and
 transition plans, including progress ordering, exact approval fences, fresh

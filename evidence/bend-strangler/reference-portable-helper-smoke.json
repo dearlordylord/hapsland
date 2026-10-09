@@ -1,0 +1,39 @@
+{
+  "measuredPairs": 1,
+  "allChecksumsMatch": true,
+  "startedAt": "2026-10-09T02:33:25.623Z",
+  "at": "2026-10-09T02:33:30.745Z",
+  "roots": {
+    "typescript": "/workspace/typescript/hapsland-bend-baseline-master-5726758e",
+    "integratedBend": "/workspace/typescript/hapsland-bend-selection-ui"
+  },
+  "samples": {
+    "typescript": [
+      {
+        "seconds": 0.2514906729999998,
+        "cpuSeconds": 0.251464,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      }
+    ],
+    "integratedBend": [
+      {
+        "seconds": 0.244228701,
+        "cpuSeconds": 0.24418399999999998,
+        "checksum": 2430000,
+        "fixtures": 227,
+        "rounds": 10000,
+        "callers": 2,
+        "warmups": 5,
+        "coreValidated": true
+      }
+    ]
+  },
+  "meanRatio": 0.9711242889711469,
+  "executionParity": true,
+  "scope": "diagnostic actual compiled six private reference helpers with exhaustive conditional core comparisons; controlled native fields, no parser; one checkout per isolated Bun worker avoids native wrapper cross-import interference; 227 controlled fixtures and full result/name/offset consumption; five warmups then two caller sites per sample,10000rounds;17alternating paired workers,CPU11nonexclusive; subprocess startup/import/warmup excluded; previous helper failures retained; no cold IPC/platform/whole product claim"
+}

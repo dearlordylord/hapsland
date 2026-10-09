@@ -103,6 +103,10 @@
     "./canonical/reference-adapter": {
       "types": "./dist/canonical/reference-adapter.d.ts",
       "default": "./dist/canonical/reference-adapter.js"
+    },
+    "./canonical/binding-adapter": {
+      "types": "./dist/canonical/binding-adapter.d.ts",
+      "default": "./dist/canonical/binding-adapter.js"
     }
   },
   "dependencies": {

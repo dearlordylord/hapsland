@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict'
 import {readFileSync,writeFileSync} from 'node:fs'
 import {performance} from 'node:perf_hooks'
-const [root,mode]=process.argv.slice(2),sources=JSON.parse(readFileSync('/tmp/hapsland-reference-isolated-fixtures.json','utf8'))
+const [root,mode,goldenPath]=process.argv.slice(2);assert.ok(goldenPath);const sources=JSON.parse(readFileSync(new URL('./reference-analyzer-node-execution.json',import.meta.url),'utf8')).sources
 const {analyzeFunctionFile}=await import(root+'/packages/source-analysis/dist/direct-event/languages/typescript-functions.js')
 const normalize=value=>JSON.stringify(value,(_,v)=>v instanceof Map?{map:[...v]}:v instanceof Set?{set:[...v]}:v)
 const actual=sources.map(source=>{const value=analyzeFunctionFile('src/example.ts',source);assert.notEqual(value,undefined);return normalize(value)})
-if(mode==='prepare'){writeFileSync('/tmp/hapsland-reference-isolated-golden.json',JSON.stringify(actual));process.exit(0)}
-const expected=JSON.parse(readFileSync('/tmp/hapsland-reference-isolated-golden.json','utf8'));assert.deepEqual(actual,expected)
+if(mode==='prepare'){writeFileSync(goldenPath,JSON.stringify(actual));process.exit(0)}
+const expected=JSON.parse(readFileSync(goldenPath,'utf8'));assert.deepEqual(actual,expected)
 const rounds=20,siteSource='return ()=>{let sum=0;for(let round=0;round<rounds;round++)for(let i=0;i<sources.length;i++){const value=analyze("src/example.ts",sources[i]);if(value===undefined)throw new Error("missing analysis");const result=normalize(value);if(result!==expected[i])throw new Error("analysis drift");sum+=result.length}return sum}'
 const sites=[0,1].map(()=>new Function('sources','expected','normalize','rounds','analyze',siteSource)(sources,expected,normalize,rounds,analyzeFunctionFile))
 let checksum

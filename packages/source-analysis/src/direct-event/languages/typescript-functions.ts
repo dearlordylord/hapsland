@@ -1,4 +1,9 @@
 import {
+  bindingInitialArguments,
+  bindUnsupportedAssignment,
+  bindFunctionBinding
+} from "@hapsland/canonical-policy/canonical/binding-adapter"
+import {
   referenceCallNeedsCallee,
   referenceCallNeedsScope,
   referenceCallNeedsLocal,
@@ -147,34 +152,21 @@ const markUncertainBinding = (child: SyntaxNode, scope: FunctionScope): void => 
   scope.uncertainBinding = true
   scope.unsupportedBindings.push(referenceSite(child, "unsupported"))
 }
-const unsupportedAssignmentTarget = (target: SyntaxNode | undefined, boundFunctions: ReadonlySet<string>): boolean =>
-  (target?.type === "identifier" && boundFunctions.has(target.text)) ||
-  uncertainAssignmentSyntax.has(target?.type ?? "")
-const inspectFunctionBinding = (child: SyntaxNode, scope: FunctionScope, boundFunctions: ReadonlySet<string>): void => {
-  // A function root cannot claim a scope checker for nested declarations,
-  // catch/loop bindings, destructive assignments or destructured local names.
-  if (uncertainScopeSyntax.has(child.type)) {
-    markUncertainBinding(child, scope)
-    return
-  }
-  if (mutationSyntax.has(child.type) && unsupportedAssignmentTarget(child.namedChildren[0], boundFunctions)) {
-    markUncertainBinding(child, scope)
-  }
-  if (!bindingSyntax.has(child.type)) return
-  const binding = child.namedChildren[0]
-  if (binding?.type === "identifier") {
-    scope.localBindings.add(binding.text)
-    return
-  }
-  markUncertainBinding(child, scope)
-}
+const unsupportedAssignmentTarget = bindUnsupportedAssignment<SyntaxNode>(uncertainAssignmentSyntax)
+const inspectFunctionBinding = bindFunctionBinding<SyntaxNode, FunctionScope>(
+  uncertainScopeSyntax,
+  mutationSyntax,
+  bindingSyntax,
+  unsupportedAssignmentTarget,
+  markUncertainBinding
+)
 const functionScope = (
   children: readonly SyntaxNode[],
   boundFunctions: ReadonlySet<string>,
   lexicalArguments: boolean
 ): FunctionScope => {
   const scope: FunctionScope = {
-    localBindings: new Set(lexicalArguments ? [] : ["arguments"]),
+    localBindings: new Set(bindingInitialArguments(lexicalArguments) ? ["arguments"] : []),
     unsupportedBindings: [],
     uncertainBinding: false
   }

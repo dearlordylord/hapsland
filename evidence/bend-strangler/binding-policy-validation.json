@@ -1,0 +1,499 @@
+{
+  "purpose": "record accepted binding laws, host boundaries and current bounded migration evidence",
+  "authority": "implementation and validation evidence; accepted exact laws are owned by binding-policy/LAWS.bend",
+  "status": "qualified for declared focused consumers and bounded warm-build/Bun-analyzer contexts",
+  "sourceOwner": "packages/source-analysis/src/direct-event/languages/typescript-functions.ts",
+  "sourceFunctions": [
+    "unsupportedAssignmentTarget",
+    "inspectFunctionBinding",
+    "functionScope"
+  ],
+  "laws": [
+    {
+      "name": "unsupported_assignment_exact",
+      "facts": [
+        "identifier",
+        "boundFunction",
+        "uncertainPattern"
+      ],
+      "exact": "(identifier and boundFunction) or uncertainPattern",
+      "cases": 8,
+      "reason": "mutation of a known callable and destructive targets cannot be claimed as safe local binding"
+    },
+    {
+      "name": "binding_actions_exact",
+      "facts": [
+        "uncertainScopeSyntax",
+        "mutationSyntax",
+        "unsupportedAssignmentTarget",
+        "bindingSyntax",
+        "identifierBinding"
+      ],
+      "exact": "uncertain scope => [mark]; otherwise append mark iff mutation and unsupported, then for binding append bind iff identifier else mark",
+      "cases": 32,
+      "reason": "preserve early return, native action ordering and duplicate unsupported records; arbitrary contradictory facts remain characterized"
+    },
+    {
+      "name": "initial_arguments_exact",
+      "facts": [
+        "lexicalArguments"
+      ],
+      "exact": "include arguments iff not lexicalArguments",
+      "cases": 2,
+      "reason": "arrow lexical arguments must remain an outbound value unless otherwise locally bound"
+    }
+  ],
+  "bindingActionOracle": [
+    {
+      "facts": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "actions": []
+    },
+    {
+      "facts": [
+        false,
+        false,
+        false,
+        false,
+        true
+      ],
+      "actions": []
+    },
+    {
+      "facts": [
+        false,
+        false,
+        false,
+        true,
+        false
+      ],
+      "actions": [
+        "mark-uncertain"
+      ]
+    },
+    {
+      "facts": [
+        false,
+        false,
+        false,
+        true,
+        true
+      ],
+      "actions": [
+        "bind-local-name"
+      ]
+    },
+    {
+      "facts": [
+        false,
+        false,
+        true,
+        false,
+        false
+      ],
+      "actions": []
+    },
+    {
+      "facts": [
+        false,
+        false,
+        true,
+        false,
+        true
+      ],
+      "actions": []
+    },
+    {
+      "facts": [
+        false,
+        false,
+        true,
+        true,
+        false
+      ],
+      "actions": [
+        "mark-uncertain"
+      ]
+    },
+    {
+      "facts": [
+        false,
+        false,
+        true,
+        true,
+        true
+      ],
+      "actions": [
+        "bind-local-name"
+      ]
+    },
+    {
+      "facts": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ],
+      "actions": []
+    },
+    {
+      "facts": [
+        false,
+        true,
+        false,
+        false,
+        true
+      ],
+      "actions": []
+    },
+    {
+      "facts": [
+        false,
+        true,
+        false,
+        true,
+        false
+      ],
+      "actions": [
+        "mark-uncertain"
+      ]
+    },
+    {
+      "facts": [
+        false,
+        true,
+        false,
+        true,
+        true
+      ],
+      "actions": [
+        "bind-local-name"
+      ]
+    },
+    {
+      "facts": [
+        false,
+        true,
+        true,
+        false,
+        false
+      ],
+      "actions": [
+        "mark-uncertain"
+      ]
+    },
+    {
+      "facts": [
+        false,
+        true,
+        true,
+        false,
+        true
+      ],
+      "actions": [
+        "mark-uncertain"
+      ]
+    },
+    {
+      "facts": [
+        false,
+        true,
+        true,
+        true,
+        false
+      ],
+      "actions": [
+        "mark-uncertain",
+        "mark-uncertain"
+      ]
+    },
+    {
+      "facts": [
+        false,
+        true,
+        true,
+        true,
+        true
+      ],
+      "actions": [
+        "mark-uncertain",
+        "bind-local-name"
+      ]
+    },
+    {
+      "facts": [
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      "actions": [
+        "mark-uncertain"
+      ]
+    },
+    {
+      "facts": [
+        true,
+        false,
+        false,
+        false,
+        true
+      ],
+      "actions": [
+        "mark-uncertain"
+      ]
+    },
+    {
+      "facts": [
+        true,
+        false,
+        false,
+        true,
+        false
+      ],
+      "actions": [
+        "mark-uncertain"
+      ]
+    },
+    {
+      "facts": [
+        true,
+        false,
+        false,
+        true,
+        true
+      ],
+      "actions": [
+        "mark-uncertain"
+      ]
+    },
+    {
+      "facts": [
+        true,
+        false,
+        true,
+        false,
+        false
+      ],
+      "actions": [
+        "mark-uncertain"
+      ]
+    },
+    {
+      "facts": [
+        true,
+        false,
+        true,
+        false,
+        true
+      ],
+      "actions": [
+        "mark-uncertain"
+      ]
+    },
+    {
+      "facts": [
+        true,
+        false,
+        true,
+        true,
+        false
+      ],
+      "actions": [
+        "mark-uncertain"
+      ]
+    },
+    {
+      "facts": [
+        true,
+        false,
+        true,
+        true,
+        true
+      ],
+      "actions": [
+        "mark-uncertain"
+      ]
+    },
+    {
+      "facts": [
+        true,
+        true,
+        false,
+        false,
+        false
+      ],
+      "actions": [
+        "mark-uncertain"
+      ]
+    },
+    {
+      "facts": [
+        true,
+        true,
+        false,
+        false,
+        true
+      ],
+      "actions": [
+        "mark-uncertain"
+      ]
+    },
+    {
+      "facts": [
+        true,
+        true,
+        false,
+        true,
+        false
+      ],
+      "actions": [
+        "mark-uncertain"
+      ]
+    },
+    {
+      "facts": [
+        true,
+        true,
+        false,
+        true,
+        true
+      ],
+      "actions": [
+        "mark-uncertain"
+      ]
+    },
+    {
+      "facts": [
+        true,
+        true,
+        true,
+        false,
+        false
+      ],
+      "actions": [
+        "mark-uncertain"
+      ]
+    },
+    {
+      "facts": [
+        true,
+        true,
+        true,
+        false,
+        true
+      ],
+      "actions": [
+        "mark-uncertain"
+      ]
+    },
+    {
+      "facts": [
+        true,
+        true,
+        true,
+        true,
+        false
+      ],
+      "actions": [
+        "mark-uncertain"
+      ]
+    },
+    {
+      "facts": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "actions": [
+        "mark-uncertain"
+      ]
+    }
+  ],
+  "hostObligations": [
+    "ordered AST reads and Set.has short-circuit",
+    "first-child extraction only when selected",
+    "original node/name/offset materialization",
+    "one mark operation per planned mark, no deduplication",
+    "local Set updates and unsupported array order",
+    "no proof of lexical scope correctness, native parsing, or complete evidence"
+  ],
+  "cleanup": "replace stale validation when source or method changes; approved laws remain in LAWS.bend and current host obligations in package guide",
+  "goalComplete": false,
+  "preliminaryAstraReview": {
+    "laws": "all three approved as proposals",
+    "exactFileApproval": "pending",
+    "hostClarifications": [
+      "mutation mark executes before binding reads",
+      "repeat child.type and namedChildren reads; do not merge",
+      "mark sets uncertainty before materialization and push; preserve exceptions",
+      "fresh scope Set and arrays; original child order"
+    ]
+  },
+  "exactAstraApproval": {
+    "laws": [
+      "unsupported_assignment_exact",
+      "binding_actions_exact",
+      "initial_arguments_exact"
+    ],
+    "coreSha256": "72d6b9f3e031289135c90837e85d5ae296d09f3ee5fe7f4d99a6706ff383cb81",
+    "lawsSha256": "a8e7096d316af69e46bdae1388bf6aee849632ca91c2f46210ba47c5b12cd00f",
+    "scope": "permits proofs only; host and performance require separate validation"
+  },
+  "validation": {
+    "literalCases": 42,
+    "universalLaws": 3,
+    "proofVerdict": "ALL PROOFS CHECK",
+    "caughtMutants": 7,
+    "proofSha256": "d3e7f84abdf6d91e957e05bb8d7175efcbbd466ce93da5530a6b6eeb491fb50d",
+    "bendDeadlineSeconds": 5,
+    "approvedHashesUnchangedAfterFormatting": true,
+    "productionChanged": true,
+    "performanceQualification": true,
+    "producerTests": 71,
+    "fast": "passed",
+    "focusedRun": "20261009024831739-155409-591d30",
+    "focused": "passed",
+    "compilerReceipts": 23,
+    "nativeTraceCases": 40,
+    "exceptionCases": 284,
+    "generatorSpecializations": 52,
+    "performance": {
+      "warmBuildRatio": 0.9416902181370487,
+      "isolatedBunAnalyzerRatio": 0.6079151721021401,
+      "buildPairs": 17,
+      "executionPairs": 17,
+      "scope": "warm workspace builds and seven offline analyzer sources only; no whole-product or platform claim"
+    },
+    "docs": {
+      "documents": 113,
+      "linkErrors": 0,
+      "generated": "passed",
+      "check": "passed"
+    },
+    "format": "three Bend files conforming"
+  },
+  "implementationAstraApproval": {
+    "generatorSha256": "eb3bd2c94ceb2afa7758ae7d8c2d3029ac4bfda35ea4d857a6e619c603dcaaeb",
+    "abiSha256": "97d0603443a5f627d8e8bec65a846eb59f649b4cac5cc438358fa5f80774bc3c",
+    "adapterSha256": "648764117bd4d4edbbe0d5c927e429bb54dc871b3f4ac4e18995d52e410f07b9",
+    "hostSha256": "cee481a361449a171a086786bffbbed3f7c6a5c7fe84e64d8df6c365e04de6a5",
+    "scope": "static stages and host boundary; not performance"
+  },
+  "retainedFailure": {
+    "producerLog": "/tmp/hapsland-binding-producer-tests.log",
+    "cause": "new output inventory was not alphabetically sorted",
+    "fixedResult": "70 pass in /tmp/hapsland-binding-producer-tests-fixed.log",
+    "formatterFailure": "missing newline before inserted authority if; fixed before passing fast"
+  },
+  "qualificationScope": "pure conditional binding frontier, exact approved hashes, focused compiled consumers, host read/effect/exception fixtures, warm workspace build and seven offline Bun analyzer sources; no whole-product, archive/native-agent/platform claim"
+}

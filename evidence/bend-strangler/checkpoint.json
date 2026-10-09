@@ -3449,15 +3449,29 @@
     "nextDirection": "resolve helper vs full-consumer performance scope and dedicated installed reference evidence before broader qualification",
     "implementationReady": true,
     "archiveDigest": "adb9cd4f2fc8cc3fede1541cef79cb242d3b19d63d1ea84241a6c442079e45e7",
-    "installedResidentUpdatePassed": true
+    "installedResidentUpdatePassed": true,
+    "isolatedHelperRatio": 0.9917573624529685,
+    "implementationCommit": "1b1c4a60"
   },
   "referencePerformanceCadence": {
-    "lastExecutionAt": "2026-10-09T01:56:24.827Z",
-    "nextExecutionDue": "2026-10-09T02:26:24.827000Z",
-    "lastBuildStartedAt": "2026-10-09T01:57:05.823Z",
-    "lastBuildCompletedAt": "2026-10-09T02:00:19.233Z",
-    "nextBuildDue": "2026-10-09T02:30:19.233000Z",
+    "lastExecutionAt": "2026-10-09T02:27:20.512Z",
+    "nextExecutionDue": "2026-10-09T02:57:20.512000Z",
+    "lastBuildStartedAt": "2026-10-09T02:28:19.966Z",
+    "lastBuildCompletedAt": "2026-10-09T02:31:59.273Z",
+    "nextBuildDue": "2026-10-09T03:01:59.273000Z",
     "priorBuildCadenceMissSeconds": 154.435,
     "qualification": false
+  },
+  "bindingFrontier": {
+    "status": "qualified for declared focused consumers and bounded parity contexts",
+    "evidence": "binding-policy-validation.json",
+    "wholeGoalComplete": false
+  },
+  "bindingPerformanceCadence": {
+    "lastExecution": "2026-10-09T02:51:18.521Z",
+    "nextExecutionDue": "2026-10-09T03:21:18.521000+00:00",
+    "lastBuild": "2026-10-09T02:58:12.470Z",
+    "nextBuildDue": "2026-10-09T03:28:12.470000+00:00",
+    "failedBuildAttempt": "binding-build-incomplete.json"
   }
 }

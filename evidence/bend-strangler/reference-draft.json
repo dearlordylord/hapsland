@@ -447,5 +447,30 @@
       "BunHelperRatio": 1.0206367634463458
     },
     "scope": "implementation checkpoint; no universal performance or platform claim"
+  },
+  "isolatedHelperDiagnostic": {
+    "ratio": 0.9917573624529685,
+    "passed": true,
+    "evidence": "reference-isolated-helper-execution.json",
+    "allChecksumsMatch": true,
+    "qualification": false,
+    "scope": "diagnostic actual compiled six private reference helpers with exhaustive conditional core comparisons; controlled native fields, no parser; one checkout per isolated Bun worker avoids native wrapper cross-import interference; 227 controlled fixtures and full result/name/offset consumption; five warmups then two caller sites per sample,10000rounds;17alternating paired workers,CPU11nonexclusive; subprocess startup/import/warmup excluded; previous helper failures retained; no cold IPC/platform/whole product claim",
+    "previousSharedCallerFailuresRetained": true
+  },
+  "checkpointBuild": {
+    "passed": true,
+    "ratio": 0.7786526995898386,
+    "evidence": "reference-checkpoint-build.json",
+    "allCacheCriteriaMatch": true
+  },
+  "portableBenchmarkRunners": {
+    "passed": true,
+    "pairsPerSmoke": 1,
+    "qualification": false,
+    "analyzerLog": "/tmp/hapsland-reference-portable-analyzer-smoke.log",
+    "helperLog": "/tmp/hapsland-reference-portable-helper-smoke.log",
+    "standardPairs": 17,
+    "changes": "sibling worker paths, captured fixture sources, per-run golden directory, cleanup, declared root overrides, cross-lane checksum assertion",
+    "productSourcesChanged": false
   }
 }
