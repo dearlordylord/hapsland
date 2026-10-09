@@ -215,6 +215,34 @@ describe("Go active local package review", () => {
       }
     })
   )
+  for (const [name, constants, eligible] of [
+    [
+      "imported iota remains missing evidence",
+      'package payment\nimport iota "example.org/external"\nconst A Status = iota.External\n',
+      false
+    ],
+    [
+      "unrelated boolean constants do not gate the scalar",
+      'package payment\nimport "example.org/external"\nconst A Status = 1\nconst B = A == external.Limit\n',
+      true
+    ]
+  ] as const)
+    it.effect(name, () =>
+      Effect.gen(function* () {
+        const root = yield* Effect.promise(makeGitFixture)
+        try {
+          yield* Effect.promise(() => put(root, "status.go", "package payment\ntype Status int\n"))
+          yield* Effect.promise(() => put(root, "constants.go", constants))
+          const { result } = yield* prepare(addEvent(root, ["status.go"]))
+          const ready = result.outcomes.filter((outcome) => outcome.status === "ready")
+          expect(ready.length).toBe(eligible ? 1 : 0)
+          if (ready[0]?.status === "ready")
+            expect(JSON.stringify(preparedProviderInput(ready[0].prepared))).not.toContain("external.Limit")
+        } finally {
+          yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+        }
+      })
+    )
   it.effect("records constant-only demand without selecting an unchanged type", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)

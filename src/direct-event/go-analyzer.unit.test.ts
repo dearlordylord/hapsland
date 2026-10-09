@@ -103,6 +103,41 @@ describe("Go named type identity and source", () => {
     const dependency = facts?.declarations.get("Buffer")?.references[0]
     expect(facts?.declarations.get(dependency!.name)?.artifact.source).toBe("const (\n Size = 8\n Other = 16\n)")
   })
+  it("does not erase external selectors whose imported qualifier shadows iota", () => {
+    const root = inspectGoFile("root.go", "package p\ntype Status int\n")
+    const constants = inspectGoFile(
+      "constants.go",
+      'package p\nimport iota "example.org/external"\nconst A Status = iota.External\n'
+    )
+    if (root === undefined || constants === undefined) throw new Error("parse")
+    const facts = goGraphFacts([root, constants])
+    const target = facts?.declarations.get("Status")?.references[0]
+    expect(facts?.declarations.get(target!.name)?.references).toContainEqual({
+      kind: "unsupported",
+      name: "iota.External"
+    })
+  })
+  it("infers individual typed aliases and arithmetic without treating comparisons as aliases", () => {
+    const file = inspectGoFile(
+      "root.go",
+      'package p\nimport "external"\ntype Status int\ntype Alias = Status\nconst (\n A Alias = 1\n U = 2\n)\nconst B = A + 1\nconst Comparison = A == external.Limit\nconst Unrelated = U\n'
+    )
+    if (file === undefined) throw new Error("parse")
+    const facts = goGraphFacts([file])
+    const groups = facts?.declarations
+      .get("Status")
+      ?.references.map((reference) => facts?.declarations.get(reference.name)?.artifact.source)
+    expect(groups).toEqual(["const (\n A Alias = 1\n U = 2\n)", "const B = A + 1"])
+  })
+  it("never mistakes initializer-local declarations for package bindings", () => {
+    const file = inspectGoFile(
+      "root.go",
+      "package p\ntype Receipt int\nvar Result = func() int { var Receipt int; return Receipt }()\nvar (\n Other = func() int { var string int; return string }()\n)\n"
+    )
+    if (file === undefined) throw new Error("parse")
+    expect(file.bindings).toEqual(["Receipt", "Result", "Other"])
+    expect(goGraphFacts([file])).toBeDefined()
+  })
   it("does not rewrite the pinned grammar's compact constant block gap", () => {
     const parsed = parseGoTypes("model.go", "package p\ntype Status int\nconst (A Status = iota; B)\n")
     expect(parsed).toEqual({ status: "unsupported", reason: "parse", units: [] })

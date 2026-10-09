@@ -45,11 +45,12 @@ const nodes = (source: string): SyntaxNode | undefined => {
 }
 export type GoConstantGroup = {
   readonly artifact: ReviewArtifact
-  readonly types: readonly string[]
+  readonly members: readonly { readonly name: string; readonly typeName?: string; readonly expression?: SyntaxNode }[]
   readonly names: readonly string[]
   readonly references: readonly GraphReference[]
 }
 export type GoFile = {
+  readonly aliases: ReadonlyMap<string, string>
   readonly packageName: string
   readonly types: readonly GraphDeclaration[]
   readonly constants: readonly GoConstantGroup[]
@@ -116,6 +117,7 @@ export const inspectGoFile = (path: string, source: string): GoFile | undefined 
     return undefined
   const imported = imports(root)
   const types: GraphDeclaration[] = []
+  const aliases = new Map<string, string>()
   const bindings: string[] = []
   const constants: GoConstantGroup[] = []
   for (const declaration of root.namedChildren) {
@@ -126,6 +128,13 @@ export const inspectGoFile = (path: string, source: string): GoFile | undefined 
         const name = spec.childForFieldName("name")
         const type = spec.childForFieldName("type")
         if (name === null || type === null) return undefined
+        if (
+          spec.type === "type_alias" &&
+          type.type === "type_identifier" &&
+          !imported.uncertain &&
+          !imported.names.has(type.text)
+        )
+          aliases.set(name.text, type.text)
         const kind =
           spec.type === "type_alias"
             ? "type-alias"
@@ -154,36 +163,52 @@ export const inspectGoFile = (path: string, source: string): GoFile | undefined 
         bindings.push(name.text)
       }
     } else if (declaration.type === "const_declaration") {
-      const relevant = new Set<string>()
+      const members: GoConstantGroup["members"][number][] = []
       const names: string[] = []
       const references = new Map<string, GraphReference>()
       let implicitType: string | undefined
+      let implicitValues: readonly SyntaxNode[] = []
       for (const spec of declaration.namedChildren.filter((node) => node.type === "const_spec")) {
         const value = spec.childForFieldName("value")
         const type = spec.childForFieldName("type")
         if (type !== null) {
-          implicitType = type.type === "type_identifier" ? type.text : undefined
-          references.set(type.text, {
-            kind: type.type === "type_identifier" ? "named" : "unsupported",
-            name: type.text
-          })
-        } else if (value !== null) implicitType = undefined
-        if (implicitType !== undefined) relevant.add(implicitType)
-        if (value !== null) {
-          for (const call of descendants(value).filter((node) => node.type === "call_expression")) {
-            const target = call.childForFieldName("function")
-            if (target?.type === "identifier") relevant.add(target.text)
+          implicitType =
+            type.type === "type_identifier"
+              ? type.text
+              : type.type === "generic_type"
+                ? type.namedChildren[0]?.text
+                : undefined
+          for (const part of [type, ...descendants(type)]) {
+            if (part.type === "qualified_type") references.set(part.text, { kind: "unsupported", name: part.text })
+            else if (part.type === "type_identifier" && part.parent?.type !== "qualified_type")
+              references.set(part.text, { kind: "named", name: part.text })
           }
-          for (const name of descendants(value).filter((node) => node.type === "identifier" || node.type === "iota")) {
-            references.set(name.text, { kind: "unsupported", name: name.text })
+        } else if (value !== null) implicitType = undefined
+        if (value !== null) {
+          implicitValues = value.type === "expression_list" ? value.namedChildren : [value]
+          for (const part of descendants(value)) {
+            if (part.type === "selector_expression") references.set(part.text, { kind: "unsupported", name: part.text })
+            else if (
+              (part.type === "identifier" || part.type === "iota") &&
+              part.parent?.type !== "selector_expression"
+            )
+              references.set(part.text, { kind: "unsupported", name: part.text })
           }
         }
+        let position = 0
         for (const child of spec.namedChildren)
           if (child.type === "identifier") {
             bindings.push(child.text)
             names.push(child.text)
+            const expression = implicitValues[position++]
+            members.push({
+              name: child.text,
+              ...(implicitType === undefined ? {} : { typeName: implicitType }),
+              ...(expression === undefined ? {} : { expression })
+            })
           }
       }
+      if (imported.uncertain) references.set("GoImportAuthority", { kind: "unsupported", name: "GoImportAuthority" })
       constants.push({
         artifact: artifact(
           path,
@@ -191,12 +216,19 @@ export const inspectGoFile = (path: string, source: string): GoFile | undefined 
           `GoConstants_${hash(path).slice(0, 16)}_${declaration.startIndex}`,
           declaration.text
         ),
-        types: [...relevant],
+        members,
         names,
         references: [...references.values()]
       })
     } else if (declaration.type === "var_declaration") {
-      for (const spec of descendants(declaration).filter((node) => node.type === "var_spec"))
+      const specs = declaration.namedChildren.flatMap((node) =>
+        node.type === "var_spec"
+          ? [node]
+          : node.type === "var_spec_list"
+            ? node.namedChildren.filter((child) => child.type === "var_spec")
+            : []
+      )
+      for (const spec of specs)
         for (const child of spec.namedChildren) if (child.type === "identifier") bindings.push(child.text)
     } else if (declaration.type === "function_declaration") {
       const name = declaration.childForFieldName("name")?.text
@@ -206,6 +238,7 @@ export const inspectGoFile = (path: string, source: string): GoFile | undefined 
   if (types.length > MAX_TYPE_DECLARATIONS) return undefined
   return {
     packageName,
+    aliases,
     types,
     constants,
     bindings,
@@ -239,28 +272,85 @@ export const goGraphFacts = (
   const constants = files.flatMap((file) => file.constants)
   if (constants.some((group) => packageNames.has(group.artifact.name))) return undefined
   const constantBindings = new Map(constants.flatMap((group) => group.names.map((name) => [name, group] as const)))
-  const relevantTypes = new Map(constants.map((group) => [group, new Set(group.types)]))
-  // A constant alias retains its declared type. Discover its original group,
-  // without evaluating values or fabricating isolated enumerators.
-  for (let pass = 0; pass < constants.length; pass++) {
-    let changed = false
-    for (const group of constants) {
-      const types = relevantTypes.get(group)!
-      for (const reference of group.references) {
-        if (++discoveryWork > workLimit) return undefined
-        const dependency = constantBindings.get(reference.name)
-        if (dependency === undefined) continue
-        for (const name of relevantTypes.get(dependency)!) {
-          if (++discoveryWork > workLimit) return undefined
-          if (!types.has(name)) {
-            types.add(name)
-            changed = true
-          }
-        }
-      }
+  const members = constants.flatMap((group) => group.members)
+  const memberBindings = new Map(members.filter((member) => member.name !== "_").map((member) => [member.name, member]))
+  const memberTypes = new Map(members.map((member) => [member, new Set<string>()]))
+  const aliases = new Map(files.flatMap((file) => [...file.aliases]))
+  const declaredTypes = (name: string): readonly string[] => {
+    const names = new Set<string>()
+    let current: string | undefined = name
+    while (current !== undefined && typeNames.has(current) && !names.has(current)) {
+      if (++discoveryWork > workLimit) throw new RangeError("constant-discovery-work")
+      names.add(current)
+      current = aliases.get(current)
     }
-    if (!changed) break
+    return [...names]
   }
+  const typeExpression = (node: SyntaxNode | undefined, imported: ReadonlySet<string>): readonly string[] => {
+    if (node === undefined) return []
+    if (++discoveryWork > workLimit) throw new RangeError("constant-discovery-work")
+    if (node.type === "identifier" || node.type === "iota")
+      return imported.has(node.text)
+        ? []
+        : [...(memberBindings.has(node.text) ? memberTypes.get(memberBindings.get(node.text)!)! : [])]
+    if (node.type === "parenthesized_expression") return typeExpression(node.namedChildren[0], imported)
+    if (node.type === "unary_expression")
+      return typeExpression(node.childForFieldName("operand") ?? undefined, imported)
+    if (node.type === "binary_expression") {
+      const operator = node.childForFieldName("operator")?.text
+      if (["==", "!=", "<", "<=", ">", ">="].includes(operator ?? "")) return []
+      const left = typeExpression(node.childForFieldName("left") ?? undefined, imported)
+      return operator === "<<" || operator === ">>"
+        ? left
+        : [...left, ...typeExpression(node.childForFieldName("right") ?? undefined, imported)]
+    }
+    if (node.type === "call_expression") {
+      const target = node.childForFieldName("function")
+      const name =
+        target?.type === "identifier"
+          ? target.text
+          : target?.type === "type_instantiation_expression"
+            ? target.namedChildren[0]?.text
+            : undefined
+      if (name === undefined || imported.has(name)) return []
+      if (typeNames.has(name)) return declaredTypes(name)
+      if (["min", "max"].includes(name) && !packageNames.has(name))
+        return (node.childForFieldName("arguments")?.namedChildren ?? []).flatMap((argument) =>
+          typeExpression(argument, imported)
+        )
+    }
+    return []
+  }
+  // Infer types per constant binding. Comparisons produce an untyped boolean;
+  // they must not turn an unrelated group into this named type's evidence.
+  try {
+    for (let pass = 0; pass <= members.length; pass++) {
+      let changed = false
+      for (const file of files)
+        for (const group of file.constants)
+          for (const member of group.members) {
+            if (++discoveryWork > workLimit) return undefined
+            const inferred =
+              member.typeName === undefined
+                ? typeExpression(member.expression, file.importedNames)
+                : typeNames.has(member.typeName) && !file.importedNames.has(member.typeName)
+                  ? declaredTypes(member.typeName)
+                  : []
+            const known = memberTypes.get(member)!
+            for (const name of inferred)
+              if (!known.has(name)) {
+                known.add(name)
+                changed = true
+              }
+          }
+      if (!changed) break
+    }
+  } catch {
+    return undefined
+  }
+  const relevantTypes = new Map(
+    constants.map((group) => [group, new Set(group.members.flatMap((member) => [...memberTypes.get(member)!]))])
+  )
   for (const file of files) {
     for (const declaration of file.types) {
       const references = declaration.references
@@ -286,10 +376,11 @@ export const goGraphFacts = (
           .filter(
             (r) =>
               !group.names.includes(r.name) &&
-              !(builtins.has(r.name) && !packageNames.has(r.name)) &&
-              !(r.name === "iota" && !packageNames.has("iota"))
+              !(builtins.has(r.name) && !packageNames.has(r.name) && !file.importedNames.has(r.name)) &&
+              !(r.name === "iota" && !packageNames.has("iota") && !file.importedNames.has("iota"))
           )
           .map((reference) => {
+            if (file.importedNames.has(reference.name)) return { kind: "unsupported" as const, name: reference.name }
             const dependency = constantBindings.get(reference.name)
             return dependency !== undefined
               ? { kind: "named" as const, name: dependency.artifact.name }

@@ -138,9 +138,13 @@ own revision and artifact; none substitutes for validation after a new change.
 ## Real-agent verification
 
 The [native runner](../scripts/run-native-crossfile-current.mjs) contains
-TypeScript, Rust, and Bend cross-file payment-state fixtures and compiler probes.
+TypeScript, Rust, Bend, and Go cross-file payment-state fixtures and compiler probes.
+The partial Go adoption fixture captures sibling defined types and an original
+typed iota group. Its repair uses an open interface: the compiler rejects a
+composite literal of that interface, but this does not establish a closed set
+of implementers or eliminate every invalid runtime state.
 The [testing matrix](testing-matrix.md) owns the commands for its controlled,
-paid, and negative scenarios across both agent runtimes and all three languages.
+paid, and negative scenarios across the declared agent and language profiles.
 Paid runs require a checkout with dependencies, compiler tools, agent
 authentication, and a Jev credential available.
 

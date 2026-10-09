@@ -585,3 +585,5 @@ accuracy, compiler acceptance or installed native validation.
 The pinned `tree-sitter-go` 0.25.0 grammar and existing `tree-sitter` 0.25.0 runtime use the manifest-owned native producer and external loader. Compact semicolon-separated constant blocks are a known parse omission. Leading block-comment headers are unknown in this bounded membership profile. No syntax rewriting or compiler/system dependency traversal fills these gaps.
 
 Named local array bounds retain their defining constant group. Other computed array-bound expressions remain unsupported evidence; the adapter does not evaluate them.
+
+Constant discovery infers types per binding for explicit named types, direct conversions, aliases, parentheses, unary and arithmetic/bitwise/boolean expressions, shifts from their left operand, and builtin min/max. Comparisons yield an untyped boolean and do not bring their groups into scalar evidence. Named alias identity follows only established package bindings. Expression inference and alias steps spend the same work ceiling; no constant values are computed. File-local imported qualifiers and dot-import uncertainty remain explicit omissions in relevant groups.
