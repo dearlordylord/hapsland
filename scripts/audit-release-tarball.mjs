@@ -123,6 +123,7 @@ export async function auditReleaseTarball(
     name === "bin/launch.sh" ||
     ["schemas/review-config-v1.schema.json", "schemas/review-rule-v1.schema.json"].includes(name) ||
     [
+      "docs/README.md",
       "docs/codex-installation.md",
       "docs/claude-installation.md",
       "docs/opencode-installation.md",
