@@ -1,5 +1,7 @@
 set -eu
 
+gitleaks git --pre-commit --staged --redact --no-banner --timeout=60
+
 python3 scripts/bend-format.py check --staged
 
 npm exec --no -- lint-staged

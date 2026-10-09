@@ -11,7 +11,7 @@
 
 1. Read [project instructions](AGENTS.md) and use the [repository map](docs/agents/navigation.md) to locate the accepted contract, implementation owner, and focused tests.
 2. Follow [source prerequisites and dependency installation](docs/installation-workflows.md#install-before-publication). Use its prerequisite and dependency steps for source work; `dev-install` is the optional packaged-client workflow. Installed executables and source builds have different requirements.
-3. Run `npm run hooks:install` once per repository. The shared Git dispatcher invokes the current worktree's maintained [.husky/pre-commit](.husky/pre-commit), including for newly created worktrees.
+3. Install Gitleaks (`brew install gitleaks` on macOS), then run `npm run hooks:install` once per repository. The shared Git dispatcher invokes the current worktree's maintained [.husky/pre-commit](.husky/pre-commit), including for newly created worktrees. Before formatting and type checks, the hook scans staged changes for secrets with redacted output and a 60-second deadline.
 4. Before selecting or changing checks, read [CHECKS.md](CHECKS.md). Use the [testing matrix](docs/testing-matrix.md#which-gate-to-run) for commands and evidence boundaries. For TypeScript changes, the policy requires `check:fast` and focused tests for changed owners and affected consumers; physical boundary changes require their matching integration checks.
 
 The task is complete when its required local checks pass for the acceptance candidate.
