@@ -88,8 +88,10 @@ controls, paused Canvas output, mobile resizing, manual reduced-motion steps, an
 clipboard contents on secure and HTTP/IP origins. The linked captures below show
 the current circular composition.
 
-The setup section offers a copyable agent instruction first, with short manual
-installation and setup commands in a disclosure. Text is owned by `../agent-flow-projection/src/setup-copy.ts`.
+The hero highlights the latest platform download beside the agent setup link,
+with an always-visible, copyable Homebrew command directly below.
+The setup section highlights ready-made archives immediately above the copyable
+agent instruction, with the manual setup command in a disclosure. Text is owned by `../agent-flow-projection/src/setup-copy.ts`.
 The agent instruction also generates marked sections in the root README and
 installation guide through `npm run docs:generate`; `docs:generated:check` rejects drift.
 FoldKit commands call `src/site-clipboard.ts`. Secure origins use Clipboard API,

@@ -1543,3 +1543,69 @@ h3 {
 
 .github-link { display: inline-flex; align-items: center; gap: 8px; padding: 8px; }
 .github-link img { display: block; }
+
+/* Download actions stay beside the agent-led setup path. */
+.hero-actions {
+  flex-wrap: wrap;
+}
+.hero-actions .button-primary {
+  text-decoration: none;
+}
+.download-strip {
+  margin: 24px 0;
+  padding: 20px;
+  border-left: 3px solid #ff9b80;
+  background: #ffffff09;
+}
+.download-strip .download-link {
+  color: #ffb59f;
+  font-weight: 700;
+  text-underline-offset: 4px;
+}
+.download-strip .download-link:hover {
+  color: var(--paper);
+}
+.setup .download-strip p {
+  margin: 10px 0 0;
+  font-size: 14px;
+}
+
+.hero-install {
+  margin-top: 16px;
+  max-width: 620px;
+}
+.hero-install-label {
+  color: #4d5147;
+  font-size: 12px;
+}
+.hero-install-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 7px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: #eeede3;
+}
+.hero-install-row pre {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.hero-install-row .copy-control {
+  margin: 0;
+  flex-shrink: 0;
+}
+.hero-install-row .copy-status {
+  color: #4d5147;
+}
+@media (max-width: 600px) {
+  .hero-install-row pre {
+    flex-basis: 100%;
+  }
+}

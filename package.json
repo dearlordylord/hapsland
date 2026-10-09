@@ -20,6 +20,7 @@
     "bin/launch.sh",
     "native/prebuilt",
     "README.md",
+    "docs/README.md",
     "docs/codex-installation.md",
     "docs/claude-installation.md",
     "docs/opencode-installation.md",
