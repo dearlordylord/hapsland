@@ -10,7 +10,7 @@
 
 <p align="center"><img src="./assets/brand/readme-splash.svg" alt="Hapsland: a human hand correcting a skeletal robot hand" width="900"></p>
 
-Catch design mistakes before your agent builds on them. Immediately slap its hand.
+Catch questionable data and code decisions while your coding agent is still working.
 
 Hapsland lets you apply auto-review your coding agent changes and give it immediate feedback.
 
