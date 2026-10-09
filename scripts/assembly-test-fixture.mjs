@@ -25,7 +25,8 @@ export function assemblyFixture(t) {
       "@effect/ai",
       "tree-sitter",
       "tree-sitter-typescript",
-      "tree-sitter-rust"
+      "tree-sitter-rust",
+      "tree-sitter-go"
     ]
   }
   write(

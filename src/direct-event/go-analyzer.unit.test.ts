@@ -44,6 +44,40 @@ describe("Go named type identity and source", () => {
     expect(goGraphFacts([file])?.declarations.get("Root")?.references).toEqual([])
     expect(file.types[1]?.references).toEqual([{ kind: "unsupported", name: "Exported" }])
   })
+  it("retains builtin min/max and wrapped generic conversions without invented values", () => {
+    for (const expression of ["min(A, 2)", "max(A, 2)", "((Status))(1)"]) {
+      const file = inspectGoFile("root.go", `package p\ntype Status int\nconst A Status = 1\nconst B = ${expression}\n`)
+      if (!file) throw new Error("parse failed")
+      const facts = goGraphFacts([file])
+      expect(facts?.declarations.get("Status")?.references).toHaveLength(2)
+      expect(
+        [...facts!.declarations.values()]
+          .flatMap((declaration) => declaration.references)
+          .some((reference) => reference.kind === "unsupported")
+      ).toBe(false)
+    }
+    const generic = inspectGoFile(
+      "generic.go",
+      "package p\ntype ID int\ntype Status[T any] int\nconst A = ((Status[ID]))(1)\n"
+    )
+    if (!generic) throw new Error("parse failed")
+    const facts = goGraphFacts([generic])
+    const group = facts?.declarations.get("Status")?.references[0]
+    expect(group).toBeDefined()
+    expect(facts?.declarations.get(group!.name)?.references).toContainEqual({ kind: "named", name: "ID" })
+  })
+  it("preserves package shadows of predeclared boolean constants", () => {
+    const file = inspectGoFile("root.go", "package p\ntype Flag bool\nconst true = false\nconst A Flag = true\n")
+    if (!file) throw new Error("parse failed")
+    const facts = goGraphFacts([file])
+    const group = facts?.declarations.get("Flag")?.references[0]
+    const dependencies = facts?.declarations.get(group!.name)?.references ?? []
+    expect(
+      dependencies.some(
+        (reference) => facts?.declarations.get(reference.name)?.artifact.source === "const true = false"
+      )
+    ).toBe(true)
+  })
   it("resolves package shadowing before treating primitive spellings as leaves", () => {
     const root = inspectGoFile("root.go", "package p\ntype Root struct { Value string }\n")
     const sibling = inspectGoFile("string.go", "package p\ntype string int\n")

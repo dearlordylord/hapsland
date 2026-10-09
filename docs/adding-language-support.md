@@ -113,8 +113,8 @@ Test plausible-looking bindings as well as happy paths:
 
 | Coverage | Existing examples |
 | --- | --- |
-| Extraction, references, exact source/ranges, shadowing, syntax omissions | [TypeScript](../src/direct-event/analyzer.test.ts), [Rust](../src/direct-event/rust-analyzer.test.ts), [Bend](../src/direct-event/bend-analyzer.test.ts) |
-| Attribution, rendering, rule admission, supporting captures and freshness | [TypeScript](../src/direct-event/pipeline.test.ts), [Rust](../src/direct-event/rust-pipeline.test.ts), [Bend](../src/direct-event/bend-pipeline.test.ts) |
+| Extraction, references, exact source/ranges, shadowing, syntax omissions | [TypeScript](../src/direct-event/analyzer.test.ts), [Rust](../src/direct-event/rust-analyzer.test.ts), [Bend](../src/direct-event/bend-analyzer.test.ts), [Go](../src/direct-event/go-analyzer.unit.test.ts) |
+| Attribution, rendering, rule admission, supporting captures and freshness | [TypeScript](../src/direct-event/pipeline.test.ts), [Rust](../src/direct-event/rust-pipeline.test.ts), [Bend](../src/direct-event/bend-pipeline.test.ts), [Go](../src/direct-event/go-pipeline.unit.test.ts) |
 | Cohesive adapter ownership | [Architecture guard](../src/direct-event/language-boundary.test.ts) |
 | Shared graph authority and traversal | [Authority tests](../src/direct-event/graph-resolver-authority.test.ts), [resolver tests](../src/direct-event/graph-resolver.test.ts) |
 
@@ -134,6 +134,49 @@ and [macOS arm64](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c18
 the [offline preparation record](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/cross-file-support/adapter-offline-preparation.json)
 covers split-file compiler and freshness checks. Each record identifies its
 own revision and artifact; none substitutes for validation after a new change.
+
+## Go partial-profile qualification
+
+The #271 package slice was qualified on 2026-10-09 with Node 24.20.0,
+Bun 1.3.14, pinned tree-sitter runtime 0.25.0 and Go grammar 0.25.0,
+Claude Code 2.1.218 and Go 1.27.2 on Linux arm64. Analysis target authority
+remains the frozen configuration described in the contract; the installed
+fixture is unconditional, and its compiler used GOOS=linux, GOARCH=arm64,
+CGO_ENABLED=0. No review-host target was inferred.
+
+`npm run typecheck`, `npm run check:fast` (71 unit tests plus source types,
+assets and changed-file lint), the affected shared/language consumer checks,
+120 focused native-owner/receipt/loader/boundary tests and 3 native binding
+probes passed. Product assembly and native-release validation covered Linux
+arm64 and Darwin arm64 assets; only Linux execution was tested. Clean-package
+conformance passed including partial update recovery, exact independently
+selected resident executable/hash/lifetime and controlled review. Earlier
+missing workspace exports, submodule/native-input prerequisites, loader
+allowlists and inherited-home harness failures did not qualify.
+
+The installed controlled Go adoption witness demonstrated native Write/Edit
+attribution, sibling evidence at provider input (3 evidence nodes, 3 expanded
+edges, no omissions), delivered advice, agent acknowledgement, repair,
+compiler acceptance, rejected interface composite literal and completed clear
+follow-up. Archive SHA-256 was
+`baa575a9f8819d0b4cd1a7efbeb5bfd90f773e266c6eb6352bb5534fe9da2677`;
+its 44 runtime assets had digest
+`2763246aa7c06c9d3c30e3f0518fa75c7c3afa939d8a3ea2e1d9abde99b5bbcc`.
+The executable source and harness fixes were present in the worktree while
+HEAD was d8204ffc; the later handoff documentation does not change those
+runtime inputs. Source-free local witness
+`claude-go-adoption-controlled-offline-1791589588864.json` reported
+`demonstrated`, zero Jev requests and no retained source/provider body/raw host
+stream/credentials. Normal interactive trust and live Jev quality were not
+tested. The open-interface repair proves the observed loop and compiler case,
+not a closed hierarchy or exclusion of every invalid runtime state.
+
+This is a parent #267 handoff for the local-package slice, not the #268 coverage
+study. External packages, cgo authority and unknown build constraints remain
+explicit omissions; functions/methods and constant-only review demand remain
+outside this profile. The shared V1 artifact, rule, native and packaging owners
+must merge both Go and Python registrations/pins/assets at integration. These
+checks qualify this slice, not the combined Python/Go candidate.
 
 ## Real-agent verification
 

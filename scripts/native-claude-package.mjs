@@ -7,6 +7,7 @@ import { createHash } from "node:crypto"
 import { readFileSync, mkdirSync } from "node:fs"
 import { join, resolve } from "node:path"
 
+const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`
 const hash = (value) => createHash("sha256").update(value).digest("hex")
 export const validateClaudeArchiveProfile = ({
   host,
@@ -21,26 +22,27 @@ export const validateClaudeArchiveProfile = ({
   if (
     !archivePath ||
     host !== "claude" ||
-    language !== "typescript" ||
+    !["typescript", "go"].includes(language) ||
     scenario !== "adoption" ||
     mode !== "controlled-offline" ||
     coexistence !== undefined ||
     unicodeUpdate
   )
     throw new Error(
-      "Claude archive mode requires controlled TypeScript adoption without coexistence or Unicode mutation"
+      "Claude archive mode requires controlled TypeScript or Go adoption without coexistence or Unicode mutation"
     )
 }
 
-export const claudeRegisteredCommands = (settings, hookExecutable) => {
+export const claudeRegisteredCommands = (settings, hookCommand) => {
   const result = {}
   for (const [kind, definition] of Object.entries(commandHooks.claude)) {
     const groups = settings.hooks?.[definition.event] ?? []
     const handlers = groups.flatMap((group) => group.hooks ?? [])
     const expected = commandHookGroup("claude", definition.event, {
-      command: `'${hookExecutable.replaceAll("'", "'\\''")}'`,
+      command: hookCommand,
       editMarker: "--review-tool-owned=claude-v1",
-      composedMarker: "--review-tool-composed-owned=claude-v1"
+      composedMarker: "--review-tool-composed-owned=claude-v1",
+      versionFlag: "--claude-version=2.1.218"
     }).hooks.find((handler) => definition.flags.every((flag) => handler.command.split(" ").includes(flag)))
     const selected = handlers.filter(
       (handler) =>
@@ -175,7 +177,10 @@ export async function setupClaudeNativeArchive({
     throw new Error("Installed Claude doctor did not validate owned registrations")
   const settingsPath = join(claudeHome, "settings.json")
   const settings = JSON.parse(readFileSync(settingsPath, "utf8"))
-  const commands = claudeRegisteredCommands(settings, installed.hook)
+  const launcher = join(claudeHome, ".hapsland", "claude-hook-launcher.sh")
+  if (readFileSync(launcher, "utf8") !== `#!/bin/sh\nexec ${quote(installed.hook)} "$@"\n`)
+    throw new Error("Installed Claude launcher does not select the exact dedicated package hook")
+  const commands = claudeRegisteredCommands(settings, `${quote("/bin/sh")} ${quote(launcher)}`)
   return {
     settingsPath,
     settings,

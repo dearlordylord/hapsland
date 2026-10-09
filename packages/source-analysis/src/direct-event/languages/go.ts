@@ -189,12 +189,17 @@ export const inspectGoFile = (path: string, source: string): GoFile | undefined 
         if (value !== null) {
           implicitValues = value.type === "expression_list" ? value.namedChildren : [value]
           for (const part of descendants(value)) {
-            if (part.type === "selector_expression") references.set(part.text, { kind: "unsupported", name: part.text })
-            else if (
-              (part.type === "identifier" || part.type === "iota") &&
-              part.parent?.type !== "selector_expression"
-            )
+            if (part.type === "selector_expression" || part.type === "qualified_type")
               references.set(part.text, { kind: "unsupported", name: part.text })
+            else if (
+              ["identifier", "iota", "true", "false", "type_identifier"].includes(part.type) &&
+              part.parent?.type !== "selector_expression" &&
+              part.parent?.type !== "qualified_type"
+            )
+              references.set(part.text, {
+                kind: part.type === "type_identifier" ? "named" : "unsupported",
+                name: part.text
+              })
           }
         }
         let position = 0
@@ -293,7 +298,7 @@ export const goGraphFacts = (
   const typeExpression = (node: SyntaxNode | undefined, imported: ReadonlySet<string>): readonly string[] => {
     if (node === undefined) return []
     if (++discoveryWork > workLimit) throw new RangeError("constant-discovery-work")
-    if (node.type === "identifier" || node.type === "iota")
+    if (["identifier", "iota", "true", "false"].includes(node.type))
       return imported.has(node.text)
         ? []
         : [...(memberBindings.has(node.text) ? memberTypes.get(memberBindings.get(node.text)!)! : [])]
@@ -308,12 +313,16 @@ export const goGraphFacts = (
         ? left
         : [...left, ...typeExpression(node.childForFieldName("right") ?? undefined, imported)]
     }
-    if (node.type === "call_expression") {
-      const target = node.childForFieldName("function")
+    if (node.type === "call_expression" || node.type === "type_conversion_expression") {
+      let target = node.childForFieldName(node.type === "call_expression" ? "function" : "type")
+      while (target?.type === "parenthesized_expression" || target?.type === "parenthesized_type") {
+        if (++discoveryWork > workLimit) throw new RangeError("constant-discovery-work")
+        target = target.namedChildren[0] ?? null
+      }
       const name =
-        target?.type === "identifier"
+        target?.type === "identifier" || target?.type === "type_identifier"
           ? target.text
-          : target?.type === "type_instantiation_expression"
+          : target?.type === "type_instantiation_expression" || target?.type === "generic_type"
             ? target.namedChildren[0]?.text
             : undefined
       if (name === undefined || imported.has(name)) return []
@@ -381,7 +390,11 @@ export const goGraphFacts = (
             (r) =>
               !group.names.includes(r.name) &&
               !(builtins.has(r.name) && !packageNames.has(r.name) && !file.importedNames.has(r.name)) &&
-              !(r.name === "iota" && !packageNames.has("iota") && !file.importedNames.has("iota"))
+              !(
+                ["iota", "true", "false", "min", "max"].includes(r.name) &&
+                !packageNames.has(r.name) &&
+                !file.importedNames.has(r.name)
+              )
           )
           .map((reference) => {
             if (file.importedNames.has(reference.name)) return { kind: "unsupported" as const, name: reference.name }

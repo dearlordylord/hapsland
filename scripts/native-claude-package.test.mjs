@@ -9,16 +9,17 @@ import {
 } from "./native-claude-package.mjs"
 
 const hook = "/tmp/installed-package/dist/bin/linux-arm64/hapsland-hook"
-const settings = () => ({
+const settings = (command = `'${hook}'`) => ({
   userSetting: "preserved",
   hooks: Object.fromEntries(
     Object.values(commandHooks.claude).map((definition) => [
       definition.event,
       [
         commandHookGroup("claude", definition.event, {
-          command: `'${hook}'`,
+          command,
           editMarker: "--review-tool-owned=claude-v1",
-          composedMarker: "--review-tool-composed-owned=claude-v1"
+          composedMarker: "--review-tool-composed-owned=claude-v1",
+          versionFlag: "--claude-version=2.1.218"
         })
       ]
     ])
@@ -35,6 +36,7 @@ const profile = {
 
 test("accepts the installed controlled Claude adoption profile and preserves source mode", () => {
   validateClaudeArchiveProfile(profile)
+  validateClaudeArchiveProfile({ ...profile, language: "go" })
   validateClaudeArchiveProfile({ host: "claude" })
 })
 for (const [field, value] of [
@@ -49,19 +51,19 @@ for (const [field, value] of [
   test(`rejects unsupported installed Claude ${field}`, () => {
     assert.throws(
       () => validateClaudeArchiveProfile({ ...profile, [field]: value }),
-      /requires controlled TypeScript adoption/
+      /requires controlled TypeScript or Go adoption/
     )
   })
 
 test("accounts for every installed Claude catalog variant", () => {
-  const commands = claudeRegisteredCommands(settings(), hook)
+  const commands = claudeRegisteredCommands(settings(), `'${hook}'`)
   assert.deepEqual(Object.keys(commands), ["before-edit", "edit", "stop", "subagentStop", "prompt"])
   assert.equal(commands.stop, commands.subagentStop)
 })
 
 test("preserves catalog timeout, matcher and native event when observing identical stop commands", () => {
   const original = settings(),
-    commands = claudeRegisteredCommands(original, hook)
+    commands = claudeRegisteredCommands(original, `'${hook}'`)
   const observed = instrumentClaudeRegistrations(original, commands, (kind) => `observer ${kind}`)
   assert.equal(observed.hooks.Stop[0].hooks[0].command, "observer stop")
   assert.equal(observed.hooks.SubagentStop[0].hooks[0].command, "observer subagentStop")
@@ -123,18 +125,18 @@ for (const [name, mutate] of [
   test(`rejects ${name} before native execution`, () => {
     const value = settings()
     mutate(value)
-    assert.throws(() => claudeRegisteredCommands(value, hook), /Installed Claude/)
+    assert.throws(() => claudeRegisteredCommands(value, `'${hook}'`), /Installed Claude/)
   })
 
 test("refuses instrumentation of an unaccounted handler", () => {
   const original = settings(),
-    commands = claudeRegisteredCommands(original, hook)
+    commands = claudeRegisteredCommands(original, `'${hook}'`)
   original.hooks.Stop[0].hooks[0].command = "unexpected"
   assert.throws(() => instrumentClaudeRegistrations(original, commands, () => "observer"), /unaccounted/)
 })
 
 test("installed Claude setup approves the exact proposal before observing registrations", async () => {
-  const { mkdtempSync, writeFileSync, rmSync } = await import("node:fs")
+  const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import("node:fs")
   const { tmpdir } = await import("node:os")
   const { join } = await import("node:path")
   const home = mkdtempSync(join(tmpdir(), "hapsland-claude-setup-"))
@@ -152,7 +154,10 @@ test("installed Claude setup approves the exact proposal before observing regist
           stdout: JSON.stringify({ actions: [{ authorization: { installProposalDigest: "approved-proposal" } }] })
         }
       if (requests.length === 2) {
-        writeFileSync(join(home, "settings.json"), JSON.stringify(settings()))
+        const launcher = join(home, ".hapsland", "claude-hook-launcher.sh")
+        mkdirSync(join(home, ".hapsland"))
+        writeFileSync(launcher, `#!/bin/sh\nexec '${hook}' "$@"\n`)
+        writeFileSync(join(home, "settings.json"), JSON.stringify(settings(`'/bin/sh' '${launcher}'`)))
         return { code: 6, stdout: JSON.stringify({ stages: [{ stage: "installation", status: "complete" }] }) }
       }
       return { code: 0, stdout: JSON.stringify({ checks: [{ stage: "configuration-ownership", status: "ready" }] }) }
