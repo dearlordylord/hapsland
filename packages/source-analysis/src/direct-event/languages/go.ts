@@ -100,14 +100,16 @@ const typeReferences = (node: SyntaxNode, name: SyntaxNode, imported: ReturnType
       !parameters.has(child.text)
     ) {
       // Builtin assumptions are resolved against package bindings by prepareGraph.
-      add(imported.names.has(child.text) ? "unsupported" : "named", child.text)
+      add(
+        imported.names.has(child.text) || (imported.uncertain && /^\p{Lu}/u.test(child.text)) ? "unsupported" : "named",
+        child.text
+      )
     } else if (child.type === "array_type") {
       const length = child.childForFieldName("length")
       if (length !== null && length !== undefined && length.type !== "int_literal")
         add(length.type === "identifier" ? "named" : "unsupported", length.text)
     }
   }
-  if (imported.uncertain) add("unsupported", "GoImportAuthority")
   return [...references.values()]
 }
 export const inspectGoFile = (path: string, source: string): GoFile | undefined => {
@@ -208,7 +210,9 @@ export const inspectGoFile = (path: string, source: string): GoFile | undefined 
             })
           }
       }
-      if (imported.uncertain) references.set("GoImportAuthority", { kind: "unsupported", name: "GoImportAuthority" })
+      if (imported.uncertain)
+        for (const [key, reference] of references)
+          if (/^\p{Lu}/u.test(reference.name)) references.set(key, { kind: "unsupported", name: reference.name })
       constants.push({
         artifact: artifact(
           path,
@@ -232,7 +236,7 @@ export const inspectGoFile = (path: string, source: string): GoFile | undefined 
         for (const child of spec.namedChildren) if (child.type === "identifier") bindings.push(child.text)
     } else if (declaration.type === "function_declaration") {
       const name = declaration.childForFieldName("name")?.text
-      if (name !== undefined) bindings.push(name)
+      if (name !== undefined && name !== "init" && name !== "_") bindings.push(name)
     }
   }
   if (types.length > MAX_TYPE_DECLARATIONS) return undefined

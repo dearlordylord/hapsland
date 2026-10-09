@@ -27,6 +27,23 @@ describe("Go named type identity and source", () => {
       { kind: "named", name: "ID" }
     ])
   })
+  it("does not give init functions or blank functions package bindings", () => {
+    const root = inspectGoFile("root.go", "package p\ntype Root struct { ID string }\nfunc init() {}\nfunc _() {}\n")
+    const sibling = inspectGoFile("sibling.go", "package p\nfunc init() {}\nfunc _() {}\n")
+    if (!root || !sibling) throw new Error("parse failed")
+    expect(root.bindings).toEqual(["Root"])
+    expect(sibling.bindings).toEqual([])
+    expect(goGraphFacts([root, sibling])?.declarations.get("Root")?.references).toEqual([])
+  })
+  it("limits dot-import uncertainty to potentially exported references", () => {
+    const file = inspectGoFile(
+      "root.go",
+      'package p\nimport . "math"\ntype Root struct { ID string }\nvar _ = Pi\ntype External struct { Value Exported }\n'
+    )
+    if (!file) throw new Error("parse failed")
+    expect(goGraphFacts([file])?.declarations.get("Root")?.references).toEqual([])
+    expect(file.types[1]?.references).toEqual([{ kind: "unsupported", name: "Exported" }])
+  })
   it("resolves package shadowing before treating primitive spellings as leaves", () => {
     const root = inspectGoFile("root.go", "package p\ntype Root struct { Value string }\n")
     const sibling = inspectGoFile("string.go", "package p\ntype string int\n")
