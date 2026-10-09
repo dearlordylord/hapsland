@@ -4,6 +4,7 @@ import { lstat, mkdir, open, readdir, realpath, statfs, unlink, link } from "nod
 import { isAbsolute, join, resolve } from "node:path"
 import { Effect } from "effect"
 import {
+  INSPECTION_VERSION,
   decodeInspectionRecordText,
   MAX_INSPECTION_RECORD_BYTES,
   decodeInspectionLossText,
@@ -33,6 +34,26 @@ const recordName = (record: InspectionRecord): string =>
   `${record.source.id}-${String(record.sequence).padStart(16, "0")}.json`
 const lossName = (loss: InspectionLoss): string => `${loss.sourceId}-${String(loss.sequence).padStart(16, "0")}.loss`
 const unavailable = (): Error => new Error("inspection storage unavailable")
+class ObsoleteInspectionRecord extends Error {
+  readonly metadata: string
+  constructor(metadata: string) {
+    super("obsolete inspection record")
+    this.metadata = metadata
+  }
+}
+const rejectObsoleteRecord = (encoded: string, stat: Stats): void => {
+  const value: unknown = JSON.parse(encoded)
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    (!("version" in value) ||
+      (typeof value.version === "number" &&
+        Number.isInteger(value.version) &&
+        value.version >= 1 &&
+        value.version < INSPECTION_VERSION))
+  )
+    throw new ObsoleteInspectionRecord(fileMetadata(stat))
+}
 const missing = (error: unknown): boolean =>
   typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT"
 type Stored = {
@@ -129,6 +150,7 @@ export const makeInspectionStorage = (
       assertPrivateRecordFile(stat, MAX_INSPECTION_RECORD_BYTES)
       const encoded = await file.readFile({ encoding: "utf8" })
       controls.payloadRead?.()
+      rejectObsoleteRecord(encoded, stat)
       const record = decodeInspectionRecordText(encoded)
       if (record.source.id !== match[1] || String(record.sequence).padStart(16, "0") !== match[2]) throw unavailable()
       return { name, record, encoded, bytes: inspectionAllocatedBytes(stat), metadata: fileMetadata(stat) }
@@ -143,7 +165,9 @@ export const makeInspectionStorage = (
     try {
       const stat = await file.stat()
       assertPrivateRecordFile(stat, 512)
-      const loss = decodeInspectionLossText(await file.readFile({ encoding: "utf8" }))
+      const encoded = await file.readFile({ encoding: "utf8" })
+      rejectObsoleteRecord(encoded, stat)
+      const loss = decodeInspectionLossText(encoded)
       if (loss.sourceId !== match[1] || String(loss.sequence).padStart(16, "0") !== match[2]) throw unavailable()
       return { name, loss, bytes: inspectionAllocatedBytes(stat), metadata: fileMetadata(stat) }
     } finally {
@@ -213,7 +237,18 @@ export const makeInspectionStorage = (
     const stat = await lstat(join(root, name))
     assertInventoryFile(name, stat)
     if (shared && stat.nlink === 2) return undefined
-    return await cachedInventoryEntry(root, name, stat)
+    try {
+      return await cachedInventoryEntry(root, name, stat)
+    } catch (error) {
+      if (!(error instanceof ObsoleteInspectionRecord)) throw error
+      cached.delete(name)
+      if (!shared) {
+        const current = await lstat(join(root, name))
+        if (!unchangedPrivateFile(current, error.metadata)) throw unavailable()
+        await unlink(join(root, name))
+      }
+      return undefined
+    }
   }
   const cachedInventoryEntry = async (root: string, name: string, stat: Stats): Promise<Stored | StoredLoss> => {
     let entry = cached.get(name)
@@ -293,7 +328,7 @@ export const makeInspectionStorage = (
       await unlink(join(root, record.name))
       bytes -= record.bytes
       removed.push({
-        version: 1,
+        version: INSPECTION_VERSION,
         sourceId: record.record.source.id,
         sequence: record.record.sequence,
         capturedAt: record.record.capturedAt,

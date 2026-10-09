@@ -35,7 +35,7 @@ it("disconnects a stalled public feed while real resident reviews and persistenc
   })
   // Saturation data is only transport load. Review/persistence evidence comes from the real resident below.
   const fill: InspectionRecord[] = Array.from({ length: 24 }, (_, index) => ({
-    version: 1,
+    version: 2,
     source: {
       id: inspectionSourceId("/load/resident.sock", "load"),
       endpoint: "/load/resident.sock",

@@ -4,7 +4,7 @@ import { decodeInspectionRecord, inspectionSourceId } from "@hapsland/inspection
 
 it("bounds general agent messages by UTF-8 bytes and rejects native output envelopes", () => {
   const record = {
-    version: 1,
+    version: 2,
     source: { id: inspectionSourceId("/private/socket", "life"), endpoint: "/private/socket", lifetime: "life" },
     sequence: 1,
     consentEpoch: 1,
@@ -47,7 +47,7 @@ it("preserves captured model JSON bytes and refuses inconsistent payload identit
     sha256: createHash("sha256").update(encoded).digest("hex")
   }
   const record = {
-    version: 1,
+    version: 2,
     source: { id: inspectionSourceId("/private/socket", "life"), endpoint: "/private/socket", lifetime: "life" },
     sequence: 1,
     consentEpoch: 1,
@@ -67,7 +67,7 @@ it("preserves captured model JSON bytes and refuses inconsistent payload identit
 
 it("retains native candidate selection facts together and rejects mismatched diagnostic stages", () => {
   const record = {
-    version: 1,
+    version: 2,
     source: { id: inspectionSourceId("/private/socket", "life"), endpoint: "/private/socket", lifetime: "life" },
     sequence: 1,
     consentEpoch: 1,
@@ -117,7 +117,7 @@ it("retains native candidate selection facts together and rejects mismatched dia
 
 it("enforces the closed diagnostic vocabulary and finite numeric arguments", () => {
   const record = {
-    version: 1,
+    version: 2,
     source: { id: inspectionSourceId("/private/socket", "life"), endpoint: "/private/socket", lifetime: "life" },
     sequence: 1,
     consentEpoch: 1,

@@ -200,7 +200,7 @@ it("bounds registry metadata and reports omitted sources without accepting brows
   const records: InspectionRecord[] = Array.from({ length: 130 }, (_, index) => {
     const endpoint = `/private/${"x".repeat(7800)}/${index}/resident.sock`
     return {
-      version: 1,
+      version: 2,
       source: { id: inspectionSourceId(endpoint, "bounded"), endpoint, lifetime: "bounded" },
       sequence: 1,
       capturedAt: index + 1,

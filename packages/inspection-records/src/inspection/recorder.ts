@@ -1,6 +1,7 @@
 import { Effect, Queue, Schedule } from "effect"
 import { InspectionStorageBusy } from "./native-lock.ts"
 import {
+  INSPECTION_VERSION,
   decodeInspectionRecord,
   decodeInspectionRecordText,
   inspectionSourceId,
@@ -113,7 +114,7 @@ export const makeInspectionRecorder = Effect.fn("InspectionRecorder.make")(funct
     try {
       encoded = JSON.stringify(
         decodeInspectionRecord({
-          version: 1,
+          version: INSPECTION_VERSION,
           source: identity,
           sequence,
           capturedAt: clock(),

@@ -203,6 +203,14 @@ are not evidence of a successful or inactive review. Payload reads return an
 explicit missing result; the dashboard removes edits no longer retained while
 keeping the selected edit open across ordinary live updates.
 
+Inspection records and loss markers use their own persisted format version,
+currently `2`. Incompatible schema changes increment that version independently
+of configuration, rules, and HTTP API versions. Readers ignore records from
+older versions or without a version field without changing files; the next journal write removes them under
+the exclusive journal lock. Old history is discarded rather than migrated.
+Malformed current records and records from a newer version remain explicit
+storage errors and are not deleted by this cleanup.
+
 ## Session status
 
 For ordinary post-setup verification, use the [opt-in inspection dashboard](#opt-in-local-inspection): enable recording, make a new supported agent edit, run `hapsland dashboard`, and open the printed URL. It discovers retained sessions without requiring a raw session ID. Recording contains source; it is separate from the source-free status API below.
