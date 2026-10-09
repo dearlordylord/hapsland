@@ -93,6 +93,7 @@ describe("named TypeScript callable roots", () => {
       'import type { Effect } from "effect"; const run = Effect.fn(function* () { return 1 });',
       'import { Effect } from "effect"; const run = Effect.fn(label)(function* () { return 1 });',
       'import { Effect } from "effect"; const run = Effect.fn<Hidden>(function* () { return 1 });',
+      'import { Effect } from "effect"; const run = Effect.fn<unknown>("run")(function* () { return 1 });',
       'import { Effect } from "effect"; const run = Effect.fn(function* () { return 1 }, transform);'
     ]) {
       const file = analyzeFunctionFile("a.ts", source)
@@ -100,6 +101,12 @@ describe("named TypeScript callable roots", () => {
       expect(file?.excludedFunctions.get("run")?.reason).toBe("unsupported-callable")
     }
     expect(analyzeFunctionFile("a.ts", "const run = () => 1; const run = () => 2;")).toBeUndefined()
+  })
+  it("does not infer callable roots from declarations without an initializer", () => {
+    const file = analyzeFunctionFile("a.ts", "let run;")
+    expect(file).toBeDefined()
+    expect(file?.functions.has("run")).toBe(false)
+    expect(file?.excludedFunctions.has("run")).toBe(false)
   })
   it("does not guess an imported binding from a string-named export", () => {
     expect(

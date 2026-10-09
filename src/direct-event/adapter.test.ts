@@ -33,6 +33,15 @@ describe("direct-event Codex Add adapter", () => {
     expect(
       await Effect.runPromise(
         adaptComposedHookIdentity(
+          { ...event, hook_event_name: "PreToolUse", tool_input: { ...event.tool_input, cwd: caller } },
+          "codex-cli",
+          "PreToolUse"
+        )
+      )
+    ).toBeUndefined()
+    expect(
+      await Effect.runPromise(
+        adaptComposedHookIdentity(
           {
             hook_event_name: "PreToolUse",
             tool_name: "Write",
@@ -261,6 +270,11 @@ describe("direct-event Codex Add adapter", () => {
       })
     ]
     for (const value of cases) expect(await Effect.runPromise(adaptCodexDirectEvent(value))).toBeUndefined()
+  })
+
+  it("rejects NUL-bearing target paths before root discovery", async () => {
+    const root = await makeGitFixture()
+    expect(await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["unsafe\0.ts"])))).toBeUndefined()
   })
 
   it.each([

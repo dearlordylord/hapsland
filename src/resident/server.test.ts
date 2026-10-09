@@ -19,6 +19,7 @@ import * as Effect from "effect/Effect"
 import { makeReviewSettings, settingsSource } from "@hapsland/review-definition/runtime/review-settings"
 import * as Deferred from "effect/Deferred"
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { Socket } from "node:net"
 import { spawn } from "node:child_process"
 import { createHash } from "node:crypto"
 import { join } from "node:path"
@@ -40,6 +41,7 @@ import { residentRequestEffect as residentRequest } from "@hapsland/resident-tra
 import {
   DELIVERY_LEASE_MS,
   decodeResidentRequest,
+  encodeCurrentResidentRequest,
   type ResidentDispatchContext,
   type ResidentRequest
 } from "@hapsland/resident-transport/resident/protocol"
@@ -3301,6 +3303,36 @@ describe("resident delivery lease", () => {
     })
   })
 
+  it("reports the current inspection source and root state through the shared status route", async () => {
+    const root = await makeGitFixture()
+    await put(root, "type.ts", "type OrderCount = number\n")
+    writeFileSync(
+      join(root, ".hapsland.jsonc"),
+      JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+    )
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
+    if (observation === undefined) throw new Error("missing fixture observation")
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+      inspectionPersistence: { write: () => Effect.void }
+    })
+    const dispatch = findingDispatch(join(root, "state"))
+    try {
+      expect((await Effect.runPromise(server.admit(observation, dispatch))).status).toBe("accepted")
+      const status = await Effect.runPromise(
+        server.handle({ requestRoute: "shared", operation: "inspection-status", lifetime: server.lifetime })
+      )
+      expect(status).toMatchObject({
+        status: "inspection-status",
+        sourceId: expect.stringMatching(/^[a-f0-9]{64}$/),
+        observedAt: expect.any(Number),
+        roots: [{ root, state: "enabled", epoch: 1 }],
+        omittedRoots: 0
+      })
+    } finally {
+      await Effect.runPromise(server.close)
+    }
+  })
+
   it("reclaims disconnected collection and unfinalized acknowledgement deterministically", async () => {
     const root = await makeGitFixture()
     await put(root, "type.ts", "type OrderCount = number\n")
@@ -3354,6 +3386,106 @@ describe("resident delivery lease", () => {
       pendingAdvice: 0,
       retainedBytes: (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes
     })
+  })
+
+  it("reoffers disconnected ordinary advice at Stop after releasing its handoff lease", async () => {
+    const root = await makeGitFixture()
+    await put(root, "type.ts", "type OrderCount = number\n")
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
+    if (observation === undefined) throw new Error("missing fixture observation")
+    const paths = residentPaths(join(root, "runtime"))
+    const handoffStarted = deferred()
+    const releaseHandoff = deferred()
+    let holdNextHandoff = true
+    const server = await acquireResidentFixture(paths, undefined, {
+      reviewControls: reviewControlsLayer({
+        beforeResponseHandoff: () =>
+          Effect.gen(function* () {
+            if (!holdNextHandoff) return
+            holdNextHandoff = false
+            yield* handoffStarted.complete()
+            yield* releaseHandoff.wait
+          })
+      })
+    })
+    const dispatch = findingDispatch(join(root, "state"))
+    const request = {
+      requestRoute: "shared" as const,
+      operation: "collect" as const,
+      lifetime: server.lifetime,
+      root,
+      advicee: observation.advicee,
+      dispatch,
+      mode: "ordinary" as const,
+      composed: true as const
+    }
+    const socket = new Socket()
+    socket.on("error", () => undefined)
+    const socketClosed = new Promise<void>((resolve) => socket.once("close", () => resolve()))
+    try {
+      expect((await Effect.runPromise(server.admit(observation, dispatch, true))).status).toBe("accepted")
+      await Effect.runPromise(server.whenIdle())
+      await Effect.runPromise(server.listen())
+      socket.connect(paths.socket, () => socket.write(`${encodeCurrentResidentRequest(request)}\n`))
+      await handoffStarted.promise
+      expect(await Effect.runPromise(server.pendingAdviceMetadata())).toMatchObject([
+        { delivery: "leased-unacknowledged" }
+      ])
+      socket.destroy()
+      await socketClosed
+      await new Promise<void>((resolve) => setTimeout(resolve, 10))
+      releaseHandoff.resolve()
+
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        const metadata = await Effect.runPromise(server.pendingAdviceMetadata())
+        if (metadata[0]?.delivery === "available") break
+        await new Promise<void>((resolve) => setTimeout(resolve, 5))
+      }
+      expect(await Effect.runPromise(server.pendingAdviceMetadata())).toMatchObject([{ delivery: "available" }])
+      expect(
+        await Effect.runPromise(
+          server.handle({
+            requestRoute: "shared",
+            operation: "begin-stop",
+            lifetime: server.lifetime,
+            root,
+            advicee: observation.advicee,
+            token: "disconnected-reoffer"
+          })
+        )
+      ).toEqual({ status: "advanced" })
+      const retry = await Effect.runPromise(
+        server.handle({
+          ...request,
+          mode: "turn-end",
+          finish: { token: "disconnected-reoffer", deadlineReached: true }
+        })
+      )
+      expect(retry.status).toBe("advice")
+      if (retry.status === "advice") {
+        expect(await Effect.runPromise(server.beginComposedSubmission(retry.token, "stop"))).toEqual({
+          status: "submitting"
+        })
+        await Effect.runPromise(server.releaseComposedSubmission(retry.token))
+      }
+      expect(
+        await Effect.runPromise(
+          server.handle({
+            requestRoute: "shared",
+            operation: "finish-stop",
+            lifetime: server.lifetime,
+            root,
+            advicee: observation.advicee,
+            token: "disconnected-reoffer",
+            close: false
+          })
+        )
+      ).toEqual({ status: "advanced" })
+    } finally {
+      socket.destroy()
+      releaseHandoff.resolve()
+      await Effect.runPromise(server.close)
+    }
   })
 
   it("releases promised outcome space after malformed backend output", async () => {

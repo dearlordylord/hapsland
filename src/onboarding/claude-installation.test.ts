@@ -95,6 +95,23 @@ describe("Claude installation lifecycle", () => {
     expect(existsSync(join(home, "settings.json"))).toBe(false)
   })
 
+  it("preserves an unowned Claude launcher instead of adopting it", async () => {
+    const { home, claudeExecutable } = fixture()
+    const launcherDirectory = join(home, ".hapsland")
+    mkdirSync(launcherDirectory)
+    const launcher = join(launcherDirectory, "claude-hook-launcher.sh")
+    const original = "#!/bin/sh\necho user-managed\n"
+    writeFileSync(launcher, original, { mode: 0o600 })
+
+    expect(await runPreview(previewClaudeInstallation({ claudeHome: home, claudeExecutable }))).toMatchObject({
+      status: "conflict",
+      error: { message: "Claude hook launcher was locally modified or is not owned" }
+    })
+    expect(readFileSync(launcher, "utf8")).toBe(original)
+    expect(existsSync(join(home, "settings.json"))).toBe(false)
+    expect(existsSync(join(launcherDirectory, "claude-installation-v1.json"))).toBe(false)
+  })
+
   it("previews a pinned host, preserves unrelated settings, and removes only its owned hook", async () => {
     const { home, claudeExecutable } = fixture()
     const original = {

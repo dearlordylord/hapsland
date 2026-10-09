@@ -10,7 +10,8 @@ import {
   rm,
   statfs,
   realpath,
-  open
+  open,
+  link
 } from "node:fs/promises"
 import { constants } from "node:fs"
 import { execFileSync } from "../../scripts/test-harness/process.mjs"
@@ -238,6 +239,41 @@ it("reuses immutable payloads while observing another writer and isolating retur
 })
 
 describe("private inspection journal", () => {
+  it("rejects a symlink used as a recognized unfinished publication without reading its target", async () => {
+    const directory = await fixture()
+    const external = await fixture()
+    const target = join(external, "private-record.json")
+    const content = JSON.stringify(record(1))
+    const pending = "pending-00000000-0000-0000-0000-000000000000"
+    await writeFile(target, content, { mode: 0o600 })
+    await symlink(target, join(directory, pending))
+    const store = makeInspectionStorage(directory, { retentionMs: 1000, storageBytes: 1048576, now: () => 100 })
+
+    await expect(publish(store, record(2))).rejects.toThrow("inspection storage unavailable")
+    expect((await lstat(join(directory, pending))).isSymbolicLink()).toBe(true)
+    expect(await readFile(target, "utf8")).toBe(content)
+    expect(await readdir(directory)).toEqual([pending])
+  })
+
+  it("rejects multiply linked records without changing either link", async () => {
+    const directory = await fixture()
+    const external = await fixture()
+    const existing = record(1)
+    const name = `${existing.source.id}-${String(existing.sequence).padStart(16, "0")}.json`
+    const externalPath = join(external, "preserved-record.json")
+    const journalPath = join(directory, name)
+    const content = JSON.stringify(existing)
+    await writeFile(externalPath, content, { mode: 0o600 })
+    await link(externalPath, journalPath)
+    const store = makeInspectionStorage(directory, { retentionMs: 1000, storageBytes: 1048576, now: () => 100 })
+
+    await expect(publish(store, record(2))).rejects.toThrow("inspection storage unavailable")
+    expect((await lstat(journalPath)).nlink).toBe(2)
+    expect(await readFile(journalPath, "utf8")).toBe(content)
+    expect(await readFile(externalPath, "utf8")).toBe(content)
+    expect(await readdir(directory)).toEqual([name])
+  })
+
   it.each(["changed", "added", "removed", "permissions"] as const)(
     "refuses a %s file after quota inventory validation",
     async (change) => {

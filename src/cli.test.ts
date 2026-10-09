@@ -1,4 +1,4 @@
-import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
+import { BUN_VERSION, bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { createInstallationPackageFixture } from "@hapsland/build-tooling/test-support/installation-package"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../scripts/test-harness/policy.mjs"
 import { chmodSync, existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs"
@@ -158,6 +158,45 @@ describe("JSON subprocess contract", () => {
     const codex = invoke({ version: 1, operation: "install-preview", codexHome: root })
     expect(JSON.parse(codex.stdout).operation).toBe("install-preview")
     expect(JSON.parse(codex.stdout).error).toBeUndefined()
+  })
+
+  it("routes Codex update preview through the lifecycle command and refuses an unowned home", () => {
+    const root = makeTemporaryDirectory("review-codex-update-preview-")
+    roots.push(root)
+    const codexHome = join(root, "codex-home")
+    const codexExecutable = join(root, "codex")
+    writeFileSync(
+      codexExecutable,
+      "#!/bin/sh\nif [ \"$1\" = features ]; then printf 'hooks stable true\\n'; else printf 'codex-cli 0.155.1\\n'; fi\n",
+      { mode: 0o700 }
+    )
+    chmodSync(codexExecutable, 0o700)
+    const entrypoint = createInstallationPackageFixture(root)
+    const packageRuntimePath = join(root, "installation-package/package-runtime.json")
+    const packageRuntime = JSON.parse(readFileSync(packageRuntimePath, "utf8")) as {
+      runtime: { name: string; version: string }
+    }
+    packageRuntime.runtime = { name: "bun", version: BUN_VERSION }
+    writeFileSync(packageRuntimePath, JSON.stringify(packageRuntime))
+    const result = spawnSync(
+      bunExecutable(),
+      [join(process.cwd(), "packages/cli-entry/src/cli.ts"), "--update-preview"],
+      {
+        cwd: root,
+        env: { ...process.env, REVIEW_INSTALL_ENTRYPOINT: entrypoint, REVIEW_INSTALL_RUNTIME: bunExecutable() },
+        input: JSON.stringify({ version: 1, operation: "update-preview", codexHome, codexExecutable }),
+        encoding: "utf8",
+        timeout: DEFAULT_CHILD_TIMEOUT_MS
+      }
+    )
+    expect(result.stderr).toBe("")
+    expect(result.status).toBe(4)
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      operation: "update-preview",
+      status: "conflict",
+      error: { message: "no owned Codex installation exists; run install first" }
+    })
+    expect(existsSync(codexHome)).toBe(false)
   })
 
   it("rejects the retired whole-file review request without invoking Jev", () => {

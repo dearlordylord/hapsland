@@ -30,6 +30,29 @@ const functionKinds = new Set([
   "method_definition"
 ])
 
+const executableStatementKinds = new Set([
+  "break_statement",
+  "continue_statement",
+  "debugger_statement",
+  "do_statement",
+  "expression_statement",
+  "for_in_statement",
+  "for_statement",
+  "if_statement",
+  "labeled_statement",
+  "lexical_declaration",
+  "return_statement",
+  "switch_statement",
+  "throw_statement",
+  "try_statement",
+  "variable_declaration",
+  "while_statement"
+])
+
+function sourceRangeKey(range) {
+  return `${range.start.line}:${range.start.column}:${range.end.line}:${range.end.column}`
+}
+
 // Source maps describe a declaration differently in native Node and Vite.
 // Bind both descriptions to the same original function body before combining
 // function counters. Distinct bodies remain separate; unmatched entries remain
@@ -45,10 +68,21 @@ function getSourceMetadata(filename, source, sourceBytes, cache) {
   const declarations = new Map()
   const signatures = []
   const sourceFunctions = new Map()
+  const expressionFunctionBodies = new Map()
   for (const node of tree.rootNode.descendantsOfType([...functionKinds])) {
     const body = node.childForFieldName("body")
     if (!body) continue
-    sourceFunctions.set(`${body.startIndex}:${body.endIndex}`, node)
+    const bodyIdentity = `${body.startIndex}:${body.endIndex}`
+    sourceFunctions.set(bodyIdentity, node)
+    if (body.type !== "statement_block") {
+      const range = {
+        start: { line: body.startPosition.row + 1, column: body.startPosition.column },
+        end: { line: body.endPosition.row + 1, column: body.endPosition.column }
+      }
+      const matches = expressionFunctionBodies.get(sourceRangeKey(range)) ?? new Set()
+      matches.add(bodyIdentity)
+      expressionFunctionBodies.set(sourceRangeKey(range), matches)
+    }
     signatures.push({ start: node.startPosition, end: body.startPosition, body })
     const anchors = [node, node.childForFieldName("name")]
     const parameters = node.childForFieldName("parameters")
@@ -85,7 +119,17 @@ function getSourceMetadata(filename, source, sourceBytes, cache) {
     } while (start)
   }
   // Keep the tree alive because cached metadata contains nodes owned by it.
-  const metadata = { tree, bodies, declarations, signatures, sourceFunctions, statementRanges: new Map() }
+  const metadata = {
+    tree,
+    bodies,
+    declarations,
+    signatures,
+    sourceFunctions,
+    expressionFunctionBodies,
+    statementRanges: new Map(),
+    executableStatementRanges: new Map(),
+    statementExpressionRanges: new Map()
+  }
   const pendingNodes = [tree.rootNode]
   while (pendingNodes.length > 0) {
     const node = pendingNodes.pop()
@@ -93,6 +137,25 @@ function getSourceMetadata(filename, source, sourceBytes, cache) {
     const ends = metadata.statementRanges.get(key) ?? new Set()
     ends.add(node.endPosition.column)
     metadata.statementRanges.set(key, ends)
+    const expression =
+      node.type === "variable_declarator"
+        ? node.childForFieldName("value")
+        : node.type === "expression_statement" || node.type === "return_statement" || node.type === "throw_statement"
+          ? node.namedChildren[0]
+          : undefined
+    if (expression && !functionKinds.has(expression.type)) {
+      const expressionKey = `${expression.startPosition.row + 1}:${expression.startPosition.column}:${expression.endPosition.row + 1}`
+      const expressionEnds = metadata.statementExpressionRanges.get(expressionKey) ?? new Set()
+      expressionEnds.add(expression.endPosition.column)
+      metadata.statementExpressionRanges.set(expressionKey, expressionEnds)
+    }
+    if (executableStatementKinds.has(node.type)) {
+      const endColumns = metadata.executableStatementRanges.get(key) ?? new Map()
+      const candidates = endColumns.get(node.endPosition.column) ?? new Set()
+      candidates.add(`${node.type}:${node.startIndex}:${node.endIndex}`)
+      endColumns.set(node.endPosition.column, candidates)
+      metadata.executableStatementRanges.set(key, endColumns)
+    }
     pendingNodes.push(...node.namedChildren)
   }
   cache.set(filename, { sourceBytes, metadata })
@@ -104,53 +167,21 @@ export async function mergeSourceFunctions(coverageMap, sourceMetadataCache = ne
     // Read on every call so a same-path source edit invalidates this run's cache.
     const sourceBytes = await readFile(filename)
     const source = sourceBytes.toString("utf8")
-    const { bodies, declarations, signatures, sourceFunctions, statementRanges } = getSourceMetadata(
-      filename,
-      source,
-      sourceBytes,
-      sourceMetadataCache
-    )
+    const {
+      bodies,
+      declarations,
+      signatures,
+      sourceFunctions,
+      expressionFunctionBodies,
+      statementRanges,
+      executableStatementRanges,
+      statementExpressionRanges
+    } = getSourceMetadata(filename, source, sourceBytes, sourceMetadataCache)
     const data = coverageMap.fileCoverageFor(filename).data
-    // A remapped V8 range can retain its end line but lose its end column.
-    // Resolve that omission only when the authored AST identifies one exact
-    // range. A positive partial range can describe an enclosing execution
-    // extent, so it also needs an independent precise hit in this context.
-    // Keep unsupported, ambiguous and unmatched ranges as separate evidence.
-    const preciseStatementHits = new Set(
-      Object.entries(data.statementMap)
-        .filter(([id, entry]) => Number.isInteger(entry.end.column) && data.s[id] > 0)
-        .map(([, entry]) => JSON.stringify(entry))
-    )
-    const statementMap = {}
-    const statementCounts = {}
-    const statementIdentities = new Map()
-    for (const [id, entry] of Object.entries(data.statementMap)) {
-      const ends = statementRanges.get(`${entry.start.line}:${entry.start.column}:${entry.end.line}`)
-      const candidate =
-        (entry.end.column === null || entry.end.column === Infinity) && ends?.size === 1
-          ? { ...entry, end: { ...entry.end, column: [...ends][0] } }
-          : undefined
-      // Istanbul treats Infinity as a containing source extent and can add
-      // its hits to an unrelated precise zero counter during context merge.
-      // An unresolved source-map end is unknown, never container evidence.
-      const unresolved = entry.end.column === Infinity ? { ...entry, end: { ...entry.end, column: null } } : entry
-      const normalized =
-        candidate && (data.s[id] === 0 || preciseStatementHits.has(JSON.stringify(candidate))) ? candidate : unresolved
-      const identity = JSON.stringify(normalized)
-      const prior = statementIdentities.get(identity)
-      if (prior !== undefined) {
-        statementCounts[prior] = Math.max(statementCounts[prior], data.s[id])
-      } else {
-        statementIdentities.set(identity, id)
-        statementMap[id] = normalized
-        statementCounts[id] = data.s[id]
-      }
-    }
-    data.statementMap = statementMap
-    data.s = statementCounts
     const fnMap = {}
     const counts = {}
     const identities = new Map()
+    const observedExpressionBodies = new Set()
     for (const [id, entry] of Object.entries(data.fnMap)) {
       const point = entry.loc.start
       const declaration = entry.decl.start
@@ -174,8 +205,12 @@ export async function mergeSourceFunctions(coverageMap, sourceMetadataCache = ne
               .map(({ body }) => body)
           : candidates
       const body = signatureMatches?.length === 1 ? signatureMatches[0] : undefined
-      const sourceFunction = body && sourceFunctions.get(`${body.startIndex}:${body.endIndex}`)
-      const identity = body ? `${body.startIndex}:${body.endIndex}` : `unmatched:${id}`
+      const bodyIdentity = body && `${body.startIndex}:${body.endIndex}`
+      const sourceFunction = bodyIdentity && sourceFunctions.get(bodyIdentity)
+      if (body && sourceFunction && body.type !== "statement_block" && data.f[id] > 0) {
+        observedExpressionBodies.add(bodyIdentity)
+      }
+      const identity = bodyIdentity ?? `unmatched:${id}`
       const prior = identities.get(identity)
       if (prior !== undefined) {
         counts[prior] = Math.max(counts[prior], data.f[id])
@@ -199,6 +234,63 @@ export async function mergeSourceFunctions(coverageMap, sourceMetadataCache = ne
     }
     data.fnMap = fnMap
     data.f = counts
+
+    // A remapped V8 range can retain its end line but lose its end column.
+    // Resolve it from a unique executable statement node, or from an exact
+    // expression-bodied function whose own counter hit in this context. A
+    // generic expression still needs an independent precise hit here: its
+    // partial extent may enclose a subexpression that did not execute.
+    const preciseStatementHits = new Set(
+      Object.entries(data.statementMap)
+        .filter(([id, entry]) => Number.isInteger(entry.end.column) && data.s[id] > 0)
+        .map(([, entry]) => JSON.stringify(entry))
+    )
+    const statementMap = {}
+    const statementCounts = {}
+    const statementIdentities = new Map()
+    for (const [id, entry] of Object.entries(data.statementMap)) {
+      const key = `${entry.start.line}:${entry.start.column}:${entry.end.line}`
+      const ends = statementRanges.get(key)
+      const expressionEnds = statementExpressionRanges.get(key)
+      const corroboratedExpression =
+        expressionEnds?.size === 1 ? { ...entry, end: { ...entry.end, column: [...expressionEnds][0] } } : undefined
+      const candidate =
+        entry.end.column === null || entry.end.column === Infinity
+          ? ends?.size === 1
+            ? { ...entry, end: { ...entry.end, column: [...ends][0] } }
+            : corroboratedExpression && preciseStatementHits.has(JSON.stringify(corroboratedExpression))
+              ? corroboratedExpression
+              : undefined
+          : undefined
+      const executableCandidates = candidate && executableStatementRanges.get(key)?.get(candidate.end.column)
+      const expressionBodies = candidate && expressionFunctionBodies.get(sourceRangeKey(candidate))
+      const exactExpressionBodyWasObserved =
+        expressionBodies?.size === 1 && observedExpressionBodies.has([...expressionBodies][0])
+      const uniqueExecutableStatement = executableCandidates?.size === 1
+      // Istanbul treats Infinity as a containing source extent and can add
+      // its hits to an unrelated precise zero counter during context merge.
+      // An unresolved source-map end is unknown, never container evidence.
+      const unresolved = entry.end.column === Infinity ? { ...entry, end: { ...entry.end, column: null } } : entry
+      const normalized =
+        candidate &&
+        (data.s[id] === 0 ||
+          preciseStatementHits.has(JSON.stringify(candidate)) ||
+          uniqueExecutableStatement ||
+          exactExpressionBodyWasObserved)
+          ? candidate
+          : unresolved
+      const identity = JSON.stringify(normalized)
+      const prior = statementIdentities.get(identity)
+      if (prior !== undefined) {
+        statementCounts[prior] = Math.max(statementCounts[prior], data.s[id])
+      } else {
+        statementIdentities.set(identity, id)
+        statementMap[id] = normalized
+        statementCounts[id] = data.s[id]
+      }
+    }
+    data.statementMap = statementMap
+    data.s = statementCounts
   }
 }
 

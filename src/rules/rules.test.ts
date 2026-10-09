@@ -63,6 +63,32 @@ describe("individual rules", () => {
       expect.objectContaining({ reason: expect.stringContaining("unsupported selected input 'typescript:schema'") })
     )
   })
+  it("rejects language restrictions that extend beyond authored inputs", async () => {
+    const root = mkdtempSync(join(tmpdir(), "rules-language-restriction-"))
+    try {
+      const path = join(root, "rule.json")
+      writeFileSync(path, JSON.stringify(rule))
+      const loaded = await Effect.runPromise(
+        loadRules({
+          root,
+          layers: [
+            {
+              name: "project",
+              source: join(root, "project.json"),
+              document: decodeConfigurationDocument({ version: 1, rules: [{ path, languages: ["rust"] }] }, "project")
+            }
+          ]
+        })
+      )
+      expect(() => compileRules({ rules: loaded })).toThrow(
+        expect.objectContaining({
+          reason: expect.stringContaining("language restriction 'rust' cannot extend authored inputs")
+        })
+      )
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
   it("matches language and kind as an authored pair", () => {
     const compiled = compileRule(
       {

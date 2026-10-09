@@ -18,9 +18,17 @@ import {
 } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { afterEach, expect, it } from "vitest"
+import { afterEach, expect, it, vi } from "vitest"
 import { execFileSync, spawnSync } from "../../scripts/test-harness/process.mjs"
-import { makeRuleChangeOwner } from "@hapsland/administration/rules/command"
+import { makeRuleChangeOwner, runRulesCommand } from "@hapsland/administration/rules/command"
+import { scriptedInteraction } from "@hapsland/build-tooling/test-support/scripted-interaction"
+import type { Interaction } from "@hapsland/administration/interaction/interaction"
+
+const rulesSession = vi.hoisted(() => ({ interaction: undefined as unknown }))
+vi.mock("@hapsland/administration/interaction/interaction-session", () => ({
+  withInteractionSession: (use: (interaction: Interaction) => Effect.Effect<unknown, unknown>) =>
+    use(rulesSession.interaction as Interaction)
+}))
 
 const roots: string[] = []
 afterEach(() => {
@@ -259,6 +267,53 @@ it("binds the interactive rule owner to its preview and reports a stale approval
   const applied = await Effect.runPromise(owner.apply(refreshed))
   expect(applied.kind).toBe("applied")
   expect(readFileSync(join(root, ".hapsland/rules/custom/reviewed.jsonc"), "utf8")).toContain('// kind: "type"')
+})
+
+it("runs the terminal rules command through scripted preview, approval, and owner write", async () => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "hapsland-interactive-rules-command-")))
+  roots.push(root)
+  execFileSync("git", ["init", "--quiet", root])
+  const script = scriptedInteraction([
+    { kind: "choose", index: 0 },
+    { kind: "choose", index: 0 },
+    { kind: "confirm", line: "y" }
+  ])
+  const previousConfigPath = process.env.REVIEW_USER_CONFIG_PATH
+  const restoreTty = (stream: typeof process.stdin | typeof process.stderr) => {
+    const descriptor = Object.getOwnPropertyDescriptor(stream, "isTTY")
+    Object.defineProperty(stream, "isTTY", { configurable: true, value: true })
+    return () => {
+      if (descriptor === undefined) Reflect.deleteProperty(stream, "isTTY")
+      else Object.defineProperty(stream, "isTTY", descriptor)
+    }
+  }
+  const restoreStdin = restoreTty(process.stdin)
+  const restoreStderr = restoreTty(process.stderr)
+  const cwd = vi.spyOn(process, "cwd").mockReturnValue(root)
+  let output = ""
+  const stdout = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+    output += String(chunk)
+    return true
+  })
+  rulesSession.interaction = script.interaction
+  process.env.REVIEW_USER_CONFIG_PATH = join(root, "personal/config.jsonc")
+  try {
+    await Effect.runPromise(
+      runRulesCommand({ action: "create", id: "interactive", path: undefined, scope: undefined, json: false })
+    )
+    expect(script.remaining()).toBe(0)
+    expect(script.transcript.join("\n")).toContain("Rule change preview")
+    expect(output).toContain("create completed in project scope.")
+    expect(readFileSync(join(root, ".hapsland/rules/custom/interactive.jsonc"), "utf8")).toContain('// kind: "type"')
+  } finally {
+    rulesSession.interaction = undefined
+    stdout.mockRestore()
+    cwd.mockRestore()
+    restoreStdin()
+    restoreStderr()
+    if (previousConfigPath === undefined) delete process.env.REVIEW_USER_CONFIG_PATH
+    else process.env.REVIEW_USER_CONFIG_PATH = previousConfigPath
+  }
 })
 
 it("preserves an existing authored selection with a retired numbered identity", async () => {

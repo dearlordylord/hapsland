@@ -390,3 +390,182 @@ it.each([null, Infinity])(
     }
   }
 )
+
+it("attributes positive partial ends to a unique executable statement", async () => {
+  const root = mkdtempSync(join(tmpdir(), "hapsland-coverage-statement-provenance-"))
+  try {
+    const filename = join(root, "subject.ts")
+    const source = "function choose(flag: boolean) {\n  if (flag) return true;\n  return false;\n}\n"
+    writeFileSync(filename, source)
+    const statementEnd = source.split("\n")[1]!.length
+    const exact = { start: { line: 2, column: 2 }, end: { line: 2, column: statementEnd } }
+    const partial = { ...exact, end: { ...exact.end, column: null } }
+    const map = provider.getProvider().createCoverageMap()
+    map.addFileCoverage({
+      path: filename,
+      statementMap: { "0": exact, "1": partial },
+      s: { "0": 0, "1": 7 },
+      fnMap: {},
+      f: {},
+      branchMap: {},
+      b: {}
+    })
+
+    await mergeSourceFunctions(map)
+
+    const result = map.fileCoverageFor(filename).data
+    expect(Object.values(result.statementMap)).toEqual([exact])
+    expect(Object.values(result.s)).toEqual([7])
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+it("corroborates an ambiguous expression statement only with a precise hit in the same context", async () => {
+  const root = mkdtempSync(join(tmpdir(), "hapsland-coverage-expression-statement-provenance-"))
+  try {
+    const filename = join(root, "subject.ts")
+    const source = "function choose(receiver: { run: () => boolean }) {\n  receiver.run()\n}\n"
+    writeFileSync(filename, source)
+    const exact = { start: { line: 2, column: 2 }, end: { line: 2, column: source.split("\n")[1]!.length } }
+    const partial = { ...exact, end: { ...exact.end, column: null } }
+    const coverage = (statements: Record<string, typeof exact | typeof partial>, counts: Record<string, number>) => {
+      const map = provider.getProvider().createCoverageMap()
+      map.addFileCoverage({
+        path: filename,
+        statementMap: statements,
+        s: counts,
+        fnMap: {},
+        f: {},
+        branchMap: {},
+        b: {}
+      })
+      return map
+    }
+
+    const corroborated = coverage({ "0": exact, "1": partial }, { "0": 1, "1": 5 })
+    await mergeSourceFunctions(corroborated)
+    expect(Object.values(corroborated.fileCoverageFor(filename).data.statementMap)).toEqual([exact])
+    expect(Object.values(corroborated.fileCoverageFor(filename).data.s)).toEqual([5])
+
+    const partialOnly = coverage({ "0": partial }, { "0": 5 })
+    await mergeSourceFunctions(partialOnly)
+    expect(Object.values(partialOnly.fileCoverageFor(filename).data.statementMap)).toEqual([partial])
+
+    const partialContext = coverage({ "0": partial }, { "0": 5 })
+    const preciseContext = coverage({ "0": exact }, { "0": 1 })
+    await mergeSourceFunctions(partialContext)
+    await mergeSourceFunctions(preciseContext)
+    partialContext.merge(preciseContext)
+    const acrossContexts = partialContext.fileCoverageFor(filename).data
+    expect(Object.values(acrossContexts.statementMap)).toEqual([partial, exact])
+    expect(Object.values(acrossContexts.s)).toEqual([5, 1])
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+it("uses an expression-body function hit only for the whole body range", async () => {
+  const root = mkdtempSync(join(tmpdir(), "hapsland-coverage-expression-body-provenance-"))
+  try {
+    const filename = join(root, "subject.ts")
+    const source = "const choose = (flag: boolean) =>\n  flag &&\n  true;\n"
+    writeFileSync(filename, source)
+    const range = (line: number, column: number, endLine: number, endColumn: number | null) => ({
+      start: { line, column },
+      end: { line: endLine, column: endColumn }
+    })
+    const wholeBody = range(2, 2, 3, 6)
+    const wholeBodyPartial = range(2, 2, 3, null)
+    const shortCircuitedLiteral = range(3, 2, 3, 6)
+    const shortCircuitedLiteralPartial = range(3, 2, 3, null)
+    const functionEntry = {
+      name: "choose",
+      decl: { start: { line: 1, column: 0 }, end: { line: 1, column: null } },
+      loc: { start: { line: 2, column: 2 }, end: { line: 3, column: null } },
+      line: 2
+    }
+    const coverage = (
+      statements: Record<
+        string,
+        typeof wholeBody | typeof wholeBodyPartial | typeof shortCircuitedLiteral | typeof shortCircuitedLiteralPartial
+      >,
+      counts: Record<string, number>,
+      functionCount: number
+    ) => {
+      const map = provider.getProvider().createCoverageMap()
+      map.addFileCoverage({
+        path: filename,
+        statementMap: statements,
+        s: counts,
+        fnMap: { "0": functionEntry },
+        f: { "0": functionCount },
+        branchMap: {},
+        b: {}
+      })
+      return map
+    }
+
+    const executedBody = coverage({ "0": wholeBody, "1": wholeBodyPartial }, { "0": 0, "1": 5 }, 1)
+    await mergeSourceFunctions(executedBody)
+    expect(Object.values(executedBody.fileCoverageFor(filename).data.statementMap)).toEqual([wholeBody])
+    expect(Object.values(executedBody.fileCoverageFor(filename).data.s)).toEqual([5])
+
+    const unexecutedBody = coverage({ "0": wholeBodyPartial }, { "0": 5 }, 0)
+    await mergeSourceFunctions(unexecutedBody)
+    expect(Object.values(unexecutedBody.fileCoverageFor(filename).data.statementMap)).toEqual([wholeBodyPartial])
+    expect(Object.values(unexecutedBody.fileCoverageFor(filename).data.s)).toEqual([5])
+    expect(Object.values(unexecutedBody.fileCoverageFor(filename).data.f)).toEqual([0])
+
+    const partialSubexpression = coverage(
+      { "0": shortCircuitedLiteral, "1": shortCircuitedLiteralPartial },
+      { "0": 0, "1": 5 },
+      1
+    )
+    await mergeSourceFunctions(partialSubexpression)
+    const subexpressionResult = partialSubexpression.fileCoverageFor(filename).data
+    expect(Object.values(subexpressionResult.statementMap)).toEqual([
+      shortCircuitedLiteral,
+      shortCircuitedLiteralPartial
+    ])
+    expect(Object.values(subexpressionResult.s)).toEqual([0, 5])
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+it("does not treat a positive function hit as evidence for an enclosing block", async () => {
+  const root = mkdtempSync(join(tmpdir(), "hapsland-coverage-block-provenance-"))
+  try {
+    const filename = join(root, "subject.ts")
+    const source = "function choose() {\n  return true;\n}\n"
+    writeFileSync(filename, source)
+    const bodyStart = source.split("\n")[0]!.indexOf("{")
+    const partial = { start: { line: 1, column: bodyStart }, end: { line: 3, column: null } }
+    const functionEntry = {
+      name: "choose",
+      decl: { start: { line: 1, column: 0 }, end: { line: 1, column: null } },
+      loc: { start: { line: 1, column: bodyStart }, end: { line: 3, column: null } },
+      line: 1
+    }
+    const map = provider.getProvider().createCoverageMap()
+    map.addFileCoverage({
+      path: filename,
+      statementMap: { "0": partial },
+      s: { "0": 4 },
+      fnMap: { "0": functionEntry },
+      f: { "0": 1 },
+      branchMap: {},
+      b: {}
+    })
+
+    await mergeSourceFunctions(map)
+
+    const result = map.fileCoverageFor(filename).data
+    expect(Object.values(result.statementMap)).toEqual([partial])
+    expect(Object.values(result.s)).toEqual([4])
+    expect(Object.values(result.f)).toEqual([1])
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})

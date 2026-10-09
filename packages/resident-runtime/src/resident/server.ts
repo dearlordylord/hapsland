@@ -3868,6 +3868,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentControlledOutcomeLabel = (count: number): string =>
     count === 0 ? "completed-clear" : "completed-findings"
   const residentEvaluatedOutcome = (count: number): "clear" | "finding" => (count === 0 ? "clear" : "finding")
+  const discardedUnitFate = (disposition: string) =>
+    disposition === "stale"
+      ? { fate: "stale" as const, reason: "resident-stale" as const }
+      : disposition === "ignored"
+        ? { fate: "discarded" as const, reason: "settlement-ignored" as const }
+        : undefined
   const residentEvaluateUnit = Effect.fn("ResidentRuntime.evaluateUnit")((job: UnitJob, sequence: number) =>
     Effect.suspend(() => {
       const server = runtime
@@ -4381,13 +4387,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             result.findings
           )
           const discardSettledUnit = Effect.fn("ResidentRuntime.discardSettledUnit")(function* () {
-            if (disposition !== "ignored" && disposition !== "stale") return false
-            inspectionObserveUnitFate(
-              job,
-              result.findings,
-              disposition === "stale" ? "stale" : "discarded",
-              disposition === "stale" ? "resident-stale" : "settlement-ignored"
-            )
+            const discarded = discardedUnitFate(disposition)
+            if (discarded === undefined) return false
+            inspectionObserveUnitFate(job, result.findings, discarded.fate, discarded.reason)
             yield* residentReleaseReuseClaim(job.evaluationKey)
             yield* residentReleaseUnit(job)
             return true
@@ -5592,6 +5594,21 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         const admitted = members.filter((member) =>
           eligible.some((advice) => advice.id === member.id && owners.has(advice.partition))
         )
+        const reserveSourceCapture = Effect.fn("ResidentRuntime.reserveSourceCapture")(function* (
+          root: Parameters<typeof captureStable>[0],
+          source: Parameters<typeof captureStable>[1]
+        ) {
+          const advice = eligible.find((candidate) => candidate.observation.root === root)
+          const owner = advice === undefined ? undefined : owners.get(advice.partition)
+          if (owner === undefined) return undefined
+          const required = owner.bytes + owner.analysisBytes + captureWorkspaceBytes(source.relativePath)
+          const resized = yield* residentLedger.adviceCaptures.resize(owner.capture, required)
+          if (resized.status !== "resized") {
+            if (advice !== undefined) unavailable.add(advice.partition)
+            return undefined
+          }
+          return owner
+        })
         const result = yield* checkHandoffSources(admitted, {
           verifyMember: (member, captureSource) =>
             Effect.gen(function* () {
@@ -5646,8 +5663,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             }),
           captureSource: (...args) =>
             Effect.gen(function* () {
-              const advice = eligible.find((candidate) => candidate.observation.root === args[0])
-              const owner = advice === undefined ? undefined : owners.get(advice.partition)
+              const owner = yield* reserveSourceCapture(args[0], args[1])
               if (owner === undefined)
                 return {
                   status: "unavailable" as const,
@@ -5657,19 +5673,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                     args: { reason: "unknown" as const }
                   }
                 }
-              const required = owner.bytes + owner.analysisBytes + captureWorkspaceBytes(args[1].relativePath)
-              const resized = yield* residentLedger.adviceCaptures.resize(owner.capture, required)
-              if (resized.status !== "resized") {
-                if (advice !== undefined) unavailable.add(advice.partition)
-                return {
-                  status: "unavailable" as const,
-                  diagnostic: {
-                    stage: "capture" as const,
-                    code: "capture-unavailable" as const,
-                    args: { reason: "unknown" as const }
-                  }
-                }
-              }
               return yield* (residentCaptureSource ?? captureStable)(...args).pipe(
                 Effect.tap((captured) =>
                   Effect.sync(() => {
@@ -6164,6 +6167,18 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const context = yield* Ref.make<ResponseContext>({})
     let responseToken: string | undefined
     let handedToTransport = false
+    const closeCleanedHandoff = Effect.fn("ResidentRuntime.closeCleanedHandoff")(function* (handoff: ResidentResponse) {
+      if (handoff.status === "cleaned") yield* residentScheduleRetirementClose()
+    })
+    const writeHandoff = Effect.fn("ResidentRuntime.writeHandoff")(function* (handoff: ResidentResponse) {
+      if (!port.canWrite()) {
+        if (handoff.status === "advice") yield* server.releaseDelivery(handoff.token)
+        yield* closeCleanedHandoff(handoff)
+        return
+      }
+      handedToTransport = yield* port.write(encodeCurrentResidentResponse(handoff))
+      yield* closeCleanedHandoff(handoff)
+    })
     const respond = Effect.gen(function* () {
       const response = yield* residentHandle(decoded, context)
       if (response.status === "advice") responseToken = response.token
@@ -6181,13 +6196,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           const selected = yield* residentResponseForHandoff(request, response, sourceCurrent, authority)
           const handoff = yield* residentReconcileFinishHandoff(decoded, response, selected, port.canWrite())
           yield* residentPruneCollectionTokenIds()
-          if (!port.canWrite()) {
-            if (handoff.status === "advice") yield* server.releaseDelivery(handoff.token)
-            if (handoff.status === "cleaned") yield* residentScheduleRetirementClose()
-            return
-          }
-          handedToTransport = yield* port.write(encodeCurrentResidentResponse(handoff))
-          if (handoff.status === "cleaned") yield* residentScheduleRetirementClose()
+          yield* writeHandoff(handoff)
         })
       )
       yield* port.closed

@@ -1758,6 +1758,13 @@ function observation(
   )
 }
 
+function acceptedPreparationOutput(result: ReturnType<typeof stepCanonical>) {
+  if (result.rejection !== undefined) throw new Error("unexpected canonical preparation rejection")
+  const command = result.outputs[0]
+  if (command === undefined) throw new Error("invalid canonical preparation admission")
+  return command
+}
+
 function beginObservedPreparation(
   draft: CapacityDraft,
   partition: string,
@@ -1774,11 +1781,9 @@ function beginObservedPreparation(
     observation,
     bytes
   })
-  const command = result.outputs[0]
   if (result.rejection === "StaleRound") return { status: "unavailable", reason: "stale-round" }
   if (result.rejection === "WrongStage") return { status: "unavailable", reason: "wrong-stage" }
-  if (result.rejection !== undefined) throw new Error("unexpected canonical preparation rejection")
-  if (command === undefined) throw new Error("invalid canonical preparation admission")
+  const command = acceptedPreparationOutput(result)
   if (command.kind === "preparationRefused") return { status: "capacity-refused" }
   if (command.kind !== "prepare") throw new Error("unexpected canonical preparation command")
   const reservation = registerReservation(draft, command.reservation, partition, bytes, "preparation")
