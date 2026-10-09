@@ -3369,53 +3369,8 @@
     "nextPerformanceDue": "2026-10-08T22:21:55Z",
     "goalComplete": false
   },
-  "currentFrontier": {
-    "evidence": "resident-request-draft.json",
-    "qualification": {
-      "at": "2026-10-09T00:07:53.918056+00:00",
-      "passed": true,
-      "masterRevision": "fda9ba07db5dcb5c520d06b13fa4c42d7e818b20",
-      "laws": "Astra approved exact hashes; unchanged",
-      "proofs": true,
-      "mutantsDetected": 9,
-      "producerTests": 62,
-      "focusedTests": 249,
-      "fast": true,
-      "documents": 113,
-      "linkErrors": 0,
-      "buildRatio": 0.958221377619124,
-      "sweepSupportRatio": 0.5109956471577343,
-      "lifetimeRatio": 0.9815931951135917,
-      "installedLinux": {
-        "passed": true,
-        "run": "20261009000533855-3892086-6ea948",
-        "seconds": 35.878,
-        "archiveDigest": "49d90e96bfeb619951f08507a443db0e7b7b7fcc5388a0a4eefce81605eb41ce"
-      },
-      "goalComplete": false,
-      "scope": "resident pure entry decisions and typed native host; selected offline owners, Linux installed resident update, paired warm build and controlled-port hot execution; not full suite, Darwin runtime, native agents or physical IPC timing",
-      "sourceSha256": {
-        "packages/agent-flow-bend/resident-request-policy/core.bend": "1f4983b36062ada1705c7ec8bfaebe8360b62efbc2d1e5728b006a648251c915",
-        "packages/agent-flow-bend/resident-request-policy/LAWS.bend": "a6488d8875c46650ca665bdf920ee798025da87af6682484a58295eca43692a8",
-        "packages/agent-flow-bend/resident-request-policy/PROOF.bend": "cb0aba55f87ac42b62242fee586488216951983c293daaf2f6888517b9862937",
-        "packages/agent-flow-bend/scripts/build-resident-request-policy.mjs": "1ff880a0aa8892a37e84432f3f7815a69a5fa9ab00abbe4d231a2b48907c7497",
-        "packages/agent-flow-bend/abi/resident-request-policy.generated.d.ts": "470640a73924f51d73dcc8034df34c14fa2cb48e2e38a00ef8fad48d34599aed",
-        "packages/canonical-policy/src/canonical/resident-request-adapter.ts": "479d92404d70fb67a428b0fc859a2a729310e23a8ca22c4794c615cea62f7c5a",
-        "packages/resident-runtime/src/resident/server.ts": "a8ca22a2599944cfc8a3ccae7fe3466b40cdb1a73ca7ad575693ed2ee8839518",
-        "src/resident/server.test.ts": "a9036a0e32e1283b97040abb072397dbab2aee17bb527611b75555cb5e45116e",
-        "scripts/bend-producer.mjs": "867a937f0c46b5ab53b84b9bd02e54c6d25f566fdcd21f017439cc659c5e6a3d",
-        "scripts/bend-producer.test.mjs": "1d2d1801cba30663c18da16484222d3975814533874e04239963dd270ce758cd",
-        "scripts/check-production-authority.mjs": "b3f62d8bb4213fe2f379a165305e8a146b8acb448b4a2335b7fd27b7e37cbbcc"
-      }
-    },
-    "nextDirection": "callable policy: approved laws and proved core; staged host projection pending approval",
-    "goalComplete": false
-  },
-  "pendingFrontier": {
-    "evidence": "callable-draft.json",
-    "qualified": false,
-    "goalComplete": false
-  },
+  "currentFrontier": "callable-policy",
+  "pendingFrontier": "reference-policy",
   "previousQualifiedFrontier": {
     "evidence": "update-notice-draft.json",
     "qualification": {
@@ -3458,5 +3413,30 @@
     },
     "nextDirection": "resident request sweep/support/lifetime source-free decisions; draft laws before proofs",
     "goalComplete": false
+  },
+  "callableCurrentProgress": {
+    "evidence": "callable-draft.json",
+    "masterRevision": "16047c5e",
+    "lawsApproved": true,
+    "proofPassed": true,
+    "consumerTests": 134,
+    "executionRatio": 0.8654127358417172,
+    "currentBuildComparisonPending": false,
+    "qualification": true,
+    "goalComplete": false,
+    "buildRatio": 0.8360864354704028,
+    "docsPassed": true,
+    "receiptsPassed": true,
+    "archivePending": false
+  },
+  "nextReferenceDraft": {
+    "directory": "/tmp/hapsland-reference-policy-draft",
+    "laws": 6,
+    "literalCases": 220,
+    "approvedBy": "/root/astra_selection_law_review",
+    "coreSha256": "8a3147af8ecad9a12c97c4f9157a29c2d5647154b9d92c988b569f19cdc3e018",
+    "lawsSha256": "ad39b74b9dbe9007528794d8e6225742582dcc10e9227a3a92f7aec9835d7317",
+    "universalProofsPassed": true,
+    "productionApplied": false
   }
 }

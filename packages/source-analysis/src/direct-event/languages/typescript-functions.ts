@@ -1,3 +1,19 @@
+import {
+  callableRuntimeImport,
+  callableWrapperFinish,
+  callableValueBodyAccepted,
+  callableConstDeclaration,
+  callableMethodEligible,
+  callableWrapperNeedsLabel,
+  callableImportNeedsMetadata,
+  callableCalleeNeedsMember,
+  callableValueRoute,
+  callableValueNeedsCallee,
+  callableValueNeedsArity,
+  callableValueNeedsBody,
+  callableConstNeedsDeclarators,
+  callableConstNeedsFields
+} from "@hapsland/canonical-policy/canonical/callable-adapter"
 import { descendants, sameSyntaxNode, typeScriptRoot, type SyntaxNode } from "./native-parser.ts"
 import { createHash } from "node:crypto"
 import { extname } from "node:path"
@@ -361,46 +377,52 @@ type CallableDeclaration = {
   readonly declaration: SyntaxNode
 }
 const effectWrapper = (callee: SyntaxNode, imports: ReadonlyMap<string, ImportBinding>): boolean => {
-  if (callee.namedChildren.some((child) => child.type === "type_arguments")) return false
+  if (!callableCalleeNeedsMember(callee.namedChildren.some((child) => child.type === "type_arguments"))) return false
   const selected = callee.type === "call_expression" ? callee.childForFieldName("function") : callee
   if (selected?.type !== "member_expression") return false
   const object = selected.childForFieldName("object")
   const method = selected.childForFieldName("property")?.text
-  if (object?.type !== "identifier" || (method !== "fn" && method !== "fnUntraced")) return false
+  if (object?.type !== "identifier" || !callableMethodEligible(method)) return false
   const binding = imports.get(object.text)
-  if (binding?.typeOnly || binding === undefined) return false
-  if (
-    !(
-      (binding.path === "effect" && binding.name === "Effect") ||
-      (binding.path === "effect/Effect" && binding.name === "*")
-    )
-  )
-    return false
-  if (callee.type !== "call_expression") return true
+  if (!callableImportNeedsMetadata(Boolean(binding?.typeOnly)) || binding === undefined) return false
+  if (!callableRuntimeImport(binding, false)) return false
+  if (callee.type !== "call_expression") return callableWrapperFinish(method, false, false)
   const labels = callee.childForFieldName("arguments")?.namedChildren
-  return method === "fn" && labels?.length === 1 && labels[0]?.type === "string"
+  return callableWrapperFinish(
+    method,
+    true,
+    callableWrapperNeedsLabel(method) && labels?.length === 1 && labels[0]?.type === "string"
+  )
 }
 const callableValue = (value: SyntaxNode, imports: ReadonlyMap<string, ImportBinding>): SyntaxNode | undefined => {
-  if (value.type === "arrow_function") return value
-  if (value.type !== "call_expression" || value.namedChildren.some((child) => child.type === "type_arguments"))
+  if (callableValueRoute(value.type) === "self") return value
+  if (
+    callableValueRoute(value.type) !== "call" ||
+    !callableValueNeedsCallee(value.namedChildren.some((child) => child.type === "type_arguments"))
+  )
     return undefined
   const callee = value.childForFieldName("function")
   const args = value.childForFieldName("arguments")?.namedChildren
-  if (callee === null || callee === undefined || !effectWrapper(callee, imports) || args?.length !== 1) return undefined
-  const body = args[0]!
-  return ["arrow_function", "function_expression", "generator_function"].includes(body.type) ? body : undefined
+  if (callee === null || callee === undefined || !callableValueNeedsArity(effectWrapper(callee, imports)))
+    return undefined
+  if (!callableValueNeedsBody(args?.length === 1)) return undefined
+  const body = args![0]!
+  return callableValueBodyAccepted(body.type) ? body : undefined
 }
 const constCallable = (
   node: SyntaxNode,
   imports: ReadonlyMap<string, ImportBinding>
 ): CallableDeclaration | undefined => {
-  if (node.type !== "lexical_declaration" || !/^const\b/u.test(node.text)) return undefined
+  if (node.type !== "lexical_declaration" || !callableConstNeedsDeclarators(/^const\b/u.test(node.text)))
+    return undefined
   const declarators = node.namedChildren.filter((child) => child.type === "variable_declarator")
-  if (declarators.length !== 1) return undefined
+  if (!callableConstNeedsFields(declarators.length === 1)) return undefined
   const name = declarators[0]!.childForFieldName("name")
   const value = declarators[0]!.childForFieldName("value")
   const callable = value === null || value === undefined ? undefined : callableValue(value, imports)
-  return name?.type === "identifier" && callable !== undefined ? { name, callable, declaration: node } : undefined
+  return callableConstDeclaration(true, true, name?.type === "identifier", callable !== undefined)
+    ? { name: name!, callable: callable!, declaration: node }
+    : undefined
 }
 /** Same callable classification is used by extraction and bounded materialization preflight. */
 export const functionDeclarationNodes = (

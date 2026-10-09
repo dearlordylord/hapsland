@@ -110,6 +110,16 @@ payloads and incompatibility/lifetime/sweep/support guard ordering. These laws
 do not establish atomic admission or readiness after the snapshot. Current
 consumer and timing qualification is recorded in the migration checkpoint.
 
+`callable-policy/core.bend` owns Effect runtime-import eligibility, wrapper
+selection, inline-body eligibility, callable-value plans and const-declaration
+eligibility. Five Astra-approved exact laws cover the finite fact domain; the
+generator compares 209 core and staged specializations before publishing the ABI.
+The source-analysis host retains AST parsing, exact field-read order and
+short-circuit behavior, original selected node identity, shared preflight,
+shadowing and overload exclusions, and completeness/evidence gates. These laws
+do not establish parser correctness, installed behavior or performance. Current
+qualification and measurement limits are recorded in [callable evidence](../../evidence/bend-strangler/callable-draft.json).
+
 `setup-policy/core.bend` owns per-agent setup commands, stage readiness and
 transition plans, including progress ordering, exact approval fences, fresh
 proposals, exit codes and activation before input cancellation. Five

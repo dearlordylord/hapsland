@@ -1,0 +1,17 @@
+export declare const callableRuntimeImport: (binding: { readonly path: string; readonly name: string }, typeOnly: boolean) => boolean
+export declare const callableWrapper: (method: string | undefined, types: boolean, member: boolean, binding: boolean, invoked: boolean, label: boolean) => boolean
+export declare const callableInlineBody: (kind: string) => boolean
+export declare const callableValuePlan: (kind: string, types: boolean, wrapper: boolean, one: boolean, body: boolean) => "self" | "argument" | "reject"
+export declare const callableConstDeclaration: (lexical: boolean, one: boolean, identifier: boolean, callable: boolean) => boolean
+export declare const callableMethodEligible: (method: string | undefined) => boolean
+export declare const callableWrapperNeedsLabel: (method: string | undefined) => boolean
+export declare const callableImportNeedsMetadata: (typeOnly: boolean) => boolean
+export declare const callableCalleeNeedsMember: (types: boolean) => boolean
+export declare const callableValueRoute: (kind: string) => "self" | "call" | "reject"
+export declare const callableValueNeedsCallee: (types: boolean) => boolean
+export declare const callableValueNeedsArity: (wrapper: boolean) => boolean
+export declare const callableValueNeedsBody: (one: boolean) => boolean
+export declare const callableConstNeedsDeclarators: (lexical: boolean) => boolean
+export declare const callableConstNeedsFields: (one: boolean) => boolean
+export declare const callableWrapperFinish: (method: string | undefined, invoked: boolean, label: boolean) => boolean
+export declare const callableValueBodyAccepted: (kind: string) => boolean

@@ -1,0 +1,7 @@
+{
+  "cases": 170,
+  "passed": true,
+  "scope": "all finite decision-fact combinations: concrete kernel instances compare draft implementation and independent law specifications; not a universal proof or native AST/host validation",
+  "coreSha256": "cfacd14fb890acef7a711cf087db93828897b569d9261a1307236c027e51f3c0",
+  "lawsSha256": "ce4795dae7bee546365507ee3cfbff5dcfb0a9cbffc8948c6db2569208b9a2fe"
+}
