@@ -159,6 +159,20 @@ inspection-v1 master baseline. Prefix traces stop before materialization;
 conditional proofs leave complete collector, parser and numeric-limit correctness
 outside their scope. Performance evidence covers its declared warm contexts.
 
+`import-policy/core.bend` owns import readiness, namespace/named binding
+admission and the union of statement/specifier type-only facts. Four
+Astra-approved laws cover 20 Boolean tuples. Native code retains unconditional
+module/clause and first/last identifier extraction, strict undefined checks,
+lazy Map reads, regex execution and original partial writes. The generated
+binder preserves lazy specifier text reads and repeated statement regex tests;
+Map.set method acquisition still precedes value argument evaluation.
+[Import validation](../../evidence/bend-strangler/import-policy-validation.json)
+records 1,728 controlled native helper cases, 38,440 injected exceptions,
+nine rejected mutants, focused compiled consumers and paired performance.
+Default/side-effect import support, parser and regex correctness and complete
+binding extraction remain outside the conditional proof. Performance claims
+cover the recorded analyzer fixtures and warm build context only.
+
 `setup-policy/core.bend` owns per-agent setup commands, stage readiness and
 transition plans, including progress ordering, exact approval fences, fresh
 proposals, exit codes and activation before input cancellation. Five

@@ -3517,5 +3517,17 @@
     "executionStartDelaySeconds": 44.686,
     "buildStartDelaySeconds": 0,
     "reasonForExecutionDelay": "new matching baseline parser outputs missing; zero-sample preflight failed, official native preparation completed before real comparison; no empty run counted as parity"
+  },
+  "importFrontier": {
+    "status": "qualified finite import frontier; full migration remains active",
+    "evidence": "import-policy-validation.json",
+    "goalComplete": false
+  },
+  "importPerformanceCadence": {
+    "executionCompletedAt": "2026-10-09T03:51:06.769Z",
+    "buildCompletedAt": "2026-10-09T04:02:39.321Z",
+    "scope": "17 alternating pairs each; execution0.5240001184659148; warm build0.8096966902406486; initial failed build retained",
+    "executionNextDueAt": "2026-10-09T04:21:06.769000+00:00",
+    "buildNextDueAt": "2026-10-09T04:32:39.321000+00:00"
   }
 }

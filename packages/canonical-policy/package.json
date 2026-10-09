@@ -111,6 +111,10 @@
     "./canonical/declaration-adapter": {
       "types": "./dist/canonical/declaration-adapter.d.ts",
       "default": "./dist/canonical/declaration-adapter.js"
+    },
+    "./canonical/import-adapter": {
+      "types": "./dist/canonical/import-adapter.d.ts",
+      "default": "./dist/canonical/import-adapter.js"
     }
   },
   "dependencies": {

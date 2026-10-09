@@ -1,0 +1,393 @@
+{
+  "measuredPairs": 17,
+  "allChecksumsMatch": true,
+  "startedAt": "2026-10-09T03:50:36.221Z",
+  "at": "2026-10-09T03:51:06.769Z",
+  "roots": {
+    "typescript": "/workspace/typescript/hapsland-bend-baseline-compatible-4843e8d1",
+    "integratedBend": "/workspace/typescript/hapsland-bend-selection-ui"
+  },
+  "samples": {
+    "typescript": [
+      {
+        "seconds": 0.088638103,
+        "cpuSeconds": 0.088776,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.061561046000000036,
+        "cpuSeconds": 0.061689,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.0919800879999999,
+        "cpuSeconds": 0.092122,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.08751301,
+        "cpuSeconds": 0.087653,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.07662633700000003,
+        "cpuSeconds": 0.076757,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.07949302699999998,
+        "cpuSeconds": 0.079743,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.076201458,
+        "cpuSeconds": 0.076326,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.10760075799999992,
+        "cpuSeconds": 0.107733,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.11992340100000001,
+        "cpuSeconds": 0.120064,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.14047611099999996,
+        "cpuSeconds": 0.140843,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.12744325400000003,
+        "cpuSeconds": 0.127597,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.688662567,
+        "cpuSeconds": 0.688915,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.09026082399999996,
+        "cpuSeconds": 0.090424,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.07298309899999993,
+        "cpuSeconds": 0.073108,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.083136974,
+        "cpuSeconds": 0.083268,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.11293342600000006,
+        "cpuSeconds": 0.113592,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.1506416099999999,
+        "cpuSeconds": 0.150918,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      }
+    ],
+    "integratedBend": [
+      {
+        "seconds": 0.08637212500000009,
+        "cpuSeconds": 0.086509,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.070597579,
+        "cpuSeconds": 0.070722,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.06740342799999996,
+        "cpuSeconds": 0.067526,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.04529957999999999,
+        "cpuSeconds": 0.045426,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.07442836,
+        "cpuSeconds": 0.074553,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.043872068999999896,
+        "cpuSeconds": 0.044011,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.0761172489999999,
+        "cpuSeconds": 0.076257,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.05068154099999993,
+        "cpuSeconds": 0.05081,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.08460269399999992,
+        "cpuSeconds": 0.084741,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.07213754999999993,
+        "cpuSeconds": 0.072266,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.08455273599999998,
+        "cpuSeconds": 0.084688,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.04857644000000005,
+        "cpuSeconds": 0.048693,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.07276009699999997,
+        "cpuSeconds": 0.072926,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.05420365300000003,
+        "cpuSeconds": 0.054328,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.09048078399999997,
+        "cpuSeconds": 0.090614,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.055067826999999965,
+        "cpuSeconds": 0.055427,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.105029904,
+        "cpuSeconds": 0.105172,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      }
+    ]
+  },
+  "meanRatio": 0.5240001184659148,
+  "executionParity": true,
+  "scope": "actual compiled full TypeScript file analyzer with native parse; one checkout per isolated Bun worker avoids native wrapper cross-import interference; seven offline fixtures and full Map/Set serialized equality on every analysis; five warmups then two caller sites per sample,20rounds;17alternating paired workers,CPU11nonexclusive; subprocess startup/import/warmup excluded; previous helper failures retained; no cold IPC/platform/whole product claim"
+}

@@ -122,6 +122,11 @@ const scan = (directory) => {
     )
       obsoleteImports.push(path)
     if (
+      path !== "packages/canonical-policy/src/canonical/import-adapter.ts" &&
+      /from ["'](?:[^"']*import-policy\.generated(?:\.js)?|@hapsland\/agent-flow-bend\/import-policy)["']/.test(source)
+    )
+      obsoleteImports.push(path)
+    if (
       path !== "packages/canonical-policy/src/canonical/resident-request-adapter.ts" &&
       /from ["'](?:[^"']*resident-request-policy\.generated(?:\.js)?|@hapsland\/agent-flow-bend\/resident-request-policy)["']/.test(
         source

@@ -1,4 +1,10 @@
 import {
+  importNativeReady,
+  importNativeNamespaceAdmission,
+  importNativeSpecifierAdmission,
+  importNativeTypeOnly
+} from "@hapsland/canonical-policy/canonical/import-adapter"
+import {
   declarationNativeFunctionAdmission,
   declarationNativeArrowAdmission,
   declarationNativeTypeAdmission,
@@ -319,19 +325,15 @@ const collectImportSpecifiers = (
   const namespace = clause.namedChildren.find((child) => child.type === "namespace_import")
   if (namespace !== undefined) {
     const local = declarationName(namespace, "identifier")
-    if (local === undefined || imports.has(local)) return false
-    imports.set(local, { path: module, name: "*", typeOnly: /^import\s+type\b/u.test(node.text) })
+    if (!importNativeNamespaceAdmission(local, imports)) return false
+    imports.set(local!, { path: module, name: "*", typeOnly: /^import\s+type\b/u.test(node.text) })
   }
   for (const specifier of descendants(clause).filter((child) => child.type === "import_specifier")) {
     const names = specifier.namedChildren.filter((child) => child.type === "identifier")
     const imported = names[0]?.text
     const local = names.at(-1)?.text
-    if (imported === undefined || local === undefined || imports.has(local)) return false
-    imports.set(local, {
-      path: module,
-      name: imported,
-      typeOnly: /^import\s+type\b/u.test(node.text) || /^type\b/u.test(specifier.text)
-    })
+    if (!importNativeSpecifierAdmission(imported, local, imports)) return false
+    imports.set(local!, { path: module, name: imported!, typeOnly: importNativeTypeOnly(node, specifier) })
   }
   return true
 }
@@ -341,8 +343,8 @@ const collectFunctionImports = (top: readonly SyntaxNode[]): ReadonlyMap<string,
     if (node.type !== "import_statement") continue
     const module = importModule(node)
     const clause = node.namedChildren.find((child) => child.type === "import_clause")
-    if (module === undefined || clause === undefined) return undefined
-    if (!collectImportSpecifiers(node, clause, module, imports)) return undefined
+    if (!importNativeReady(module, clause)) return undefined
+    if (!collectImportSpecifiers(node, clause!, module!, imports)) return undefined
   }
   return imports
 }

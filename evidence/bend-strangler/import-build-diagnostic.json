@@ -1,0 +1,129 @@
+{
+  "purpose": "diagnose failed import warm-build parity and reject unhelpful traversal optimization",
+  "authority": "bounded implementation experiment evidence",
+  "status": "diagnostic; no production optimization applied",
+  "buildEvidence": "import-build-performance.json",
+  "buildMeanDeltaSeconds": 0.03181081241175754,
+  "profile": {
+    "file": "/tmp/hapsland-import-preflight.cpuprofile",
+    "selfSeconds": {
+      "walk": 0.421,
+      "garbageCollector": 0.381
+    }
+  },
+  "experiment": [
+    {
+      "round": 0,
+      "lane": "current",
+      "cpu": 1.8567660000000001,
+      "result": "UI flow registry: {\"journeys\":8,\"workflows\":7,\"fragments\":2,\"exceptions\":5}"
+    },
+    {
+      "round": 0,
+      "lane": "no-array",
+      "cpu": 1.75174,
+      "result": "UI flow registry: {\"journeys\":8,\"workflows\":7,\"fragments\":2,\"exceptions\":5}"
+    },
+    {
+      "round": 1,
+      "lane": "no-array",
+      "cpu": 1.963998,
+      "result": "UI flow registry: {\"journeys\":8,\"workflows\":7,\"fragments\":2,\"exceptions\":5}"
+    },
+    {
+      "round": 1,
+      "lane": "current",
+      "cpu": 1.6395590000000002,
+      "result": "UI flow registry: {\"journeys\":8,\"workflows\":7,\"fragments\":2,\"exceptions\":5}"
+    },
+    {
+      "round": 2,
+      "lane": "current",
+      "cpu": 1.713003,
+      "result": "UI flow registry: {\"journeys\":8,\"workflows\":7,\"fragments\":2,\"exceptions\":5}"
+    },
+    {
+      "round": 2,
+      "lane": "no-array",
+      "cpu": 2.080501,
+      "result": "UI flow registry: {\"journeys\":8,\"workflows\":7,\"fragments\":2,\"exceptions\":5}"
+    }
+  ],
+  "meanCpuSeconds": {
+    "current": 1.7364426666666668,
+    "no-array": 1.9320796666666666
+  },
+  "noArrayRatio": 1.1126653956134072,
+  "decision": "Reject for-in/Object.hasOwn substitution: slower average CPU in three alternating pairs; production walker unchanged. Keep original failed build evidence.",
+  "next": "Investigate repeated traversal/allocation in preflight with same source coverage, then measure concrete candidate; do not rerun unchanged qualification until distinguishing evidence.",
+  "objectOnlyExperiment": {
+    "samples": [
+      {
+        "round": 0,
+        "lane": "current",
+        "cpu": 1.92524,
+        "result": "UI flow registry: {\"journeys\":8,\"workflows\":7,\"fragments\":2,\"exceptions\":5}"
+      },
+      {
+        "round": 0,
+        "lane": "objects",
+        "cpu": 1.876766,
+        "result": "UI flow registry: {\"journeys\":8,\"workflows\":7,\"fragments\":2,\"exceptions\":5}"
+      },
+      {
+        "round": 1,
+        "lane": "objects",
+        "cpu": 2.108416,
+        "result": "UI flow registry: {\"journeys\":8,\"workflows\":7,\"fragments\":2,\"exceptions\":5}"
+      },
+      {
+        "round": 1,
+        "lane": "current",
+        "cpu": 2.214044,
+        "result": "UI flow registry: {\"journeys\":8,\"workflows\":7,\"fragments\":2,\"exceptions\":5}"
+      },
+      {
+        "round": 2,
+        "lane": "current",
+        "cpu": 1.8260049999999999,
+        "result": "UI flow registry: {\"journeys\":8,\"workflows\":7,\"fragments\":2,\"exceptions\":5}"
+      },
+      {
+        "round": 2,
+        "lane": "objects",
+        "cpu": 1.6283569999999998,
+        "result": "UI flow registry: {\"journeys\":8,\"workflows\":7,\"fragments\":2,\"exceptions\":5}"
+      },
+      {
+        "round": 3,
+        "lane": "objects",
+        "cpu": 2.04653,
+        "result": "UI flow registry: {\"journeys\":8,\"workflows\":7,\"fragments\":2,\"exceptions\":5}"
+      },
+      {
+        "round": 3,
+        "lane": "current",
+        "cpu": 1.774032,
+        "result": "UI flow registry: {\"journeys\":8,\"workflows\":7,\"fragments\":2,\"exceptions\":5}"
+      },
+      {
+        "round": 4,
+        "lane": "current",
+        "cpu": 1.819921,
+        "result": "UI flow registry: {\"journeys\":8,\"workflows\":7,\"fragments\":2,\"exceptions\":5}"
+      },
+      {
+        "round": 4,
+        "lane": "objects",
+        "cpu": 1.5818469999999998,
+        "result": "UI flow registry: {\"journeys\":8,\"workflows\":7,\"fragments\":2,\"exceptions\":5}"
+      }
+    ],
+    "means": {
+      "current": 1.9118484,
+      "objects": 1.8483832
+    },
+    "ratio": 0.9668042717194523
+  },
+  "objectOnlyDecision": "Applied skip-scalar recursive calls; same key inventory, order and node/parent visit contract; eight existing compiler/replay negative tests and fast passed. Full build parity not yet established."
+}

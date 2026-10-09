@@ -92,14 +92,17 @@ async function fixture(t) {
   mkdirSync(resolve(directory, "reference-policy"), { recursive: true })
   mkdirSync(resolve(directory, "binding-policy"), { recursive: true })
   mkdirSync(resolve(directory, "declaration-policy"), { recursive: true })
+  mkdirSync(resolve(directory, "import-policy"), { recursive: true })
   writeFileSync(resolve(directory, "callable-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
   writeFileSync(resolve(directory, "reference-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
   writeFileSync(resolve(directory, "binding-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
   writeFileSync(resolve(directory, "declaration-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
+  writeFileSync(resolve(directory, "import-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
   writeFileSync(resolve(directory, "callable-policy/core.bend"), "// Callable fixture\n")
   writeFileSync(resolve(directory, "reference-policy/core.bend"), "// Reference fixture\n")
   writeFileSync(resolve(directory, "binding-policy/core.bend"), "// Binding fixture\n")
   writeFileSync(resolve(directory, "declaration-policy/core.bend"), "// Declaration fixture\n")
+  writeFileSync(resolve(directory, "import-policy/core.bend"), "// Declaration fixture\n")
   mkdirSync(resolve(directory, "resident-request-policy"), { recursive: true })
   writeFileSync(resolve(directory, "resident-request-policy/PROOF.bend"), "import Base\nimport ./core.bend as Core\n")
   writeFileSync(resolve(directory, "resident-request-policy/core.bend"), "// Resident request fixture\n")
@@ -135,6 +138,7 @@ async function fixture(t) {
     "build-reference-policy.mjs",
     "build-binding-policy.mjs",
     "build-declaration-policy.mjs",
+    "build-import-policy.mjs",
     "build-resident-request-policy.mjs",
     "build-update-notice-policy.mjs",
     "build-update-policy.mjs",
@@ -157,6 +161,7 @@ async function fixture(t) {
     "reference-policy.generated.d.ts",
     "binding-policy.generated.d.ts",
     "declaration-policy.generated.d.ts",
+    "import-policy.generated.d.ts",
     "resident-request-policy.generated.d.ts",
     "update-notice-policy.generated.d.ts",
     "update-policy.generated.d.ts",
@@ -181,6 +186,7 @@ async function fixture(t) {
     "reference-policy.generated.js",
     "binding-policy.generated.js",
     "declaration-policy.generated.js",
+    "import-policy.generated.js",
     "resident-request-policy.generated.js",
     "update-notice-policy.generated.js",
     "update-policy.generated.js",
@@ -243,13 +249,13 @@ for (const text of [
 ])
   test(`rejects unsupported generated loader ${text}`, () =>
     assert.throws(() => bendGeneratedLoaderEvidence(text, "generated.js"), /Unsupported generated Bend loader/))
-test("valid receipt binds actual compiler/support/input bytes and exact thirty-eight outputs", async (t) => {
+test("valid receipt binds actual compiler/support/input bytes and exact forty outputs", async (t) => {
   const f = await fixture(t)
   assert.equal(f.verify().format, 1)
   assert.equal(f.context.toolchain.version, "bend 2.0.36")
   assert.ok(f.context.toolchain.support.inventory.length)
   assert.ok(f.context.toolchain.toolLibraries.length)
-  assert.equal(f.receipt.outputs.length, 38)
+  assert.equal(f.receipt.outputs.length, 40)
 })
 test("Bend-only scheduling replaces a stale PATH task stamp before the scheduler reads it", async (t) => {
   const f = await fixture(t)
@@ -445,6 +451,7 @@ test("Bend producer rejects unconsumed authored input drift and clears owned out
   writeFileSync(resolve(f.directory, "scripts/build-reference-policy.mjs"), generator("reference-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-binding-policy.mjs"), generator("binding-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-declaration-policy.mjs"), generator("declaration-policy"))
+  writeFileSync(resolve(f.directory, "scripts/build-import-policy.mjs"), generator("import-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-resident-request-policy.mjs"), generator("resident-request-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-update-notice-policy.mjs"), generator("update-notice-policy"))
   writeFileSync(resolve(f.directory, "scripts/build-update-policy.mjs"), generator("update-policy"))
@@ -484,6 +491,7 @@ for (const file of [
   "reference-policy.generated.js",
   "binding-policy.generated.js",
   "declaration-policy.generated.js",
+  "import-policy.generated.js",
   "resident-request-policy.generated.js",
   "update-notice-policy.generated.js",
   "update-policy.generated.js",
@@ -500,6 +508,7 @@ for (const file of [
   "reference-policy.generated.d.ts",
   "binding-policy.generated.d.ts",
   "declaration-policy.generated.d.ts",
+  "import-policy.generated.d.ts",
   "resident-request-policy.generated.d.ts",
   "update-notice-policy.generated.d.ts",
   "update-policy.generated.d.ts",
@@ -637,5 +646,12 @@ test("declaration proof edits invalidate producer receipt authority", async (t) 
   const f = await fixture(t)
   f.verify()
   writeFileSync(resolve(f.directory, "declaration-policy/PROOF.bend"), "import Base\n// Changed proof input\n")
+  assert.throws(f.verify, /Stale Bend producer receipt context|caller context is stale/)
+})
+
+test("import proof edits invalidate producer receipt authority", async (t) => {
+  const f = await fixture(t)
+  f.verify()
+  writeFileSync(resolve(f.directory, "import-policy/PROOF.bend"), "import Base\n// Changed proof input\n")
   assert.throws(f.verify, /Stale Bend producer receipt context|caller context is stale/)
 })

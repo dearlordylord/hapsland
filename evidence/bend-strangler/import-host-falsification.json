@@ -1,0 +1,6 @@
+{
+  "passed": true,
+  "cases": 1728,
+  "exceptionCases": 38440,
+  "scope": "actual compiled native collectImportSpecifiers versus same helper composed with generated admission/type-only binders; controlled AST getters, Map method acquisition/writes, partial state and injected exceptions; empty strings and repeated single-identifier reads; no real parser or complete import extraction proof"
+}
