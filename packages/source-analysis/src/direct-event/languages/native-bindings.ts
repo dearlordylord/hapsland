@@ -42,7 +42,7 @@ export const transformNativeBindingModule = (
   const pattern =
     packageName === "tree-sitter"
       ? /const binding =[\s\S]*?require\('node-gyp-build'\)\(__dirname\);/
-      : /module\.exports =[\s\S]*?require\("node-gyp-build"\)\(root\);/
+      : /const root = require\("path"\)\.join\(__dirname, "\.\.", "\.\."\);[\s\S]*?module\.exports =[\s\S]*?require\("node-gyp-build"\)\(root\);/
   if (!pattern.test(contents)) throw new Error(`Pinned ${packageName} loader differs from the checked binding shape`)
   const binding = `require(require("node:path").resolve(${rootExpression}, ${JSON.stringify(packageName)}, "build/Release", ${JSON.stringify(bindings[packageName])}))`
   const replacement = packageName === "tree-sitter" ? `const binding = ${binding};` : `module.exports = ${binding};`
