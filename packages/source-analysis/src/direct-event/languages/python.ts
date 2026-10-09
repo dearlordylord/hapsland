@@ -42,51 +42,51 @@ const rootFor = (source: string): SyntaxNode => {
   return (parser.parse(source) as unknown as { rootNode: SyntaxNode }).rootNode
 }
 const standard = new Set(["dataclasses", "typing", "typing_extensions", "pydantic"])
-/** Imported identity is invalidated by any competing module-scope binding. */
-const identities = (root: SyntaxNode): Map<string, string> => {
+/** Visit bindings evaluated in this lexical scope, excluding nested bodies. */
+const scopedNodes = (node: SyntaxNode): SyntaxNode[] => {
+  if (node.type === "lambda") return node.childForFieldName("parameters")?.namedChildren.flatMap(scopedNodes) ?? []
+  const nested = ["class_definition", "function_definition"].includes(node.type)
+  return [node, ...node.namedChildren.filter((child) => !(nested && child.type === "block")).flatMap(scopedNodes)]
+}
+const targetNames = (node: SyntaxNode): string[] =>
+  node.type === "identifier"
+    ? [node.text]
+    : ["attribute", "subscript"].includes(node.type)
+      ? node.namedChildren[0]
+        ? targetNames(node.namedChildren[0])
+        : []
+      : node.namedChildren.flatMap(targetNames)
+type Binding = { readonly name: string; readonly identity?: string }
+const scopeBindings = (node: SyntaxNode): Binding[] =>
+  scopedNodes(node).flatMap((child): Binding[] => {
+    if (["import_statement", "import_from_statement"].includes(child.type)) {
+      const module = child.childForFieldName("module_name")?.text
+      return child.namedChildren.flatMap((part): Binding[] => {
+        if (part.text === module || part.type === "wildcard_import") return []
+        const target = part.type === "aliased_import" ? part.childForFieldName("name")?.text : part.text
+        const name = part.type === "aliased_import" ? part.childForFieldName("alias")?.text : target?.split(".")[0]
+        if (!target || !name) return []
+        const identity = module === undefined ? target : `${module}.${target}`
+        return [{ name, ...(standard.has(module ?? target) && child.parent?.type === "module" ? { identity } : {}) }]
+      })
+    }
+    if (["class_definition", "function_definition", "type_alias_statement"].includes(child.type)) {
+      const name = boundName(child)
+      return name === undefined ? [] : [{ name }]
+    }
+    if (["assignment", "augmented_assignment", "named_expression"].includes(child.type)) {
+      const target = child.childForFieldName(child.type === "named_expression" ? "name" : "left")
+      return target === null ? [] : targetNames(target).map((name) => ({ name }))
+    }
+    return child.type === "delete_statement" ? child.namedChildren.flatMap(targetNames).map((name) => ({ name })) : []
+  })
+/** Imported identity is invalidated by every competing lexical binding. */
+const identities = (facts: ReadonlyArray<Binding>): Map<string, string> => {
   const bindings = new Map<string, string>()
   const counts = new Map<string, number>()
-  const bind = (name: string, identity?: string) => {
-    counts.set(name, (counts.get(name) ?? 0) + 1)
-    if (identity !== undefined) bindings.set(name, identity)
-  }
-  const statements = root.namedChildren.flatMap((node) => {
-    if (node.type !== "if_statement") return [node]
-    // Conditional imports cannot establish runtime framework identity.
-    return [
-      node,
-      ...descendants(node).filter(
-        (child) => child.type === "import_statement" || child.type === "import_from_statement"
-      )
-    ]
-  })
-  for (const node of statements) {
-    if (node.type === "import_statement" || node.type === "import_from_statement") {
-      const module = node.childForFieldName("module_name")?.text
-      for (const child of node.namedChildren) {
-        if (child === node.childForFieldName("module_name") || (module !== undefined && child.text === module)) continue
-        const target = child.type === "aliased_import" ? child.childForFieldName("name")?.text : child.text
-        const local = child.type === "aliased_import" ? child.childForFieldName("alias")?.text : target?.split(".")[0]
-        if (!target || !local) continue
-        const identity = module === undefined ? target : `${module}.${target}`
-        bind(local, standard.has(module ?? target) && node.parent?.type === "module" ? identity : undefined)
-      }
-      continue
-    }
-    const name = boundName(node)
-    if (name !== undefined) bind(name)
-    // Compound statements may introduce competing names in the module scope.
-    if (["if_statement", "for_statement", "while_statement", "try_statement", "with_statement"].includes(node.type)) {
-      for (const child of descendants(node)) {
-        const assigned =
-          child.type === "assignment"
-            ? child.childForFieldName("left")?.text
-            : child.type === "class_definition" || child.type === "function_definition"
-              ? child.childForFieldName("name")?.text
-              : undefined
-        if (assigned !== undefined) bind(assigned)
-      }
-    }
+  for (const fact of facts) {
+    counts.set(fact.name, (counts.get(fact.name) ?? 0) + 1)
+    if (fact.identity !== undefined) bindings.set(fact.name, fact.identity)
   }
   for (const [name, count] of counts) if (count !== 1) bindings.delete(name)
   return bindings
@@ -218,36 +218,16 @@ const fieldsFor = (cls: SyntaxNode): SyntaxNode[] =>
 const parsePython = (path: string, source: string): TypeExtractionFailure | readonly GraphDeclaration[] => {
   const root = rootFor(source)
   if (root.hasError) return { status: "unsupported", reason: "parse", units: [] }
-  const bindings = identities(root)
-  const importedNames = root.namedChildren
-    .filter((node) => ["import_statement", "import_from_statement"].includes(node.type))
-    .flatMap((node) =>
-      node.namedChildren
-        .filter((child) => child.text !== node.childForFieldName("module_name")?.text)
-        .map((child) =>
-          child.type === "aliased_import"
-            ? (child.childForFieldName("alias")?.text ?? "")
-            : (child.text.split(".")[0] ?? "")
-        )
-    )
-  const locals = new Set(
-    root.namedChildren.flatMap((node) => {
-      const name = boundName(node)
-      return name === undefined ? [] : [name]
-    })
-  )
-  for (const imported of importedNames) if (!bindings.has(imported)) locals.add(imported)
+  const bindingFacts = root.namedChildren.flatMap(scopeBindings)
+  const bindings = identities(bindingFacts)
+  const locals = new Set(bindingFacts.map((fact) => fact.name))
   const uncertainBindings = root.namedChildren.some(
     (node) =>
       ["if_statement", "for_statement", "while_statement", "try_statement", "with_statement"].includes(node.type) ||
       (assignment(node) !== undefined && assignment(node)?.childForFieldName("left")?.type !== "identifier")
   )
   const counts = new Map<string, number>()
-  for (const node of root.namedChildren) {
-    const name = boundName(node)
-    if (name !== undefined) counts.set(name, (counts.get(name) ?? 0) + 1)
-  }
-  for (const imported of importedNames) counts.set(imported, (counts.get(imported) ?? 0) + 1)
+  for (const fact of bindingFacts) counts.set(fact.name, (counts.get(fact.name) ?? 0) + 1)
   const wildcard = descendants(root).some((node) => node.type === "wildcard_import")
   if (wildcard) bindings.clear()
   const classes = root.namedChildren.flatMap((node) => {
@@ -301,13 +281,21 @@ const parsePython = (path: string, source: string): TypeExtractionFailure | read
     const defining = [] as ReturnType<typeof location>[]
     const extra: GraphReference[] = wildcard || uncertainBindings ? [{ kind: "unsupported", name: "namespace" }] : []
     const parameters = new Set<string>()
-    for (const param of (cls ?? node).childForFieldName("type_parameters")?.namedChildren ?? [])
-      if (param.type === "type") parameters.add(param.text)
+    const collectParameters = (container: SyntaxNode | null | undefined) => {
+      for (const wrapped of container?.namedChildren ?? []) {
+        const parameter = wrapped.type === "type" ? wrapped.namedChildren[0] : wrapped
+        const constrained = parameter?.type === "constrained_type"
+        const binder = constrained ? parameter.namedChildren[0]?.namedChildren[0] : parameter
+        if (binder?.type === "identifier") parameters.add(binder.text)
+        else extra.push({ kind: "unsupported", name: "type-parameter" })
+        if (constrained) expressions.push(...parameter.namedChildren.slice(1))
+      }
+    }
+    collectParameters((cls ?? node).childForFieldName("type_parameters"))
     const classLocals = new Set(locals)
     const classBindings = new Map(bindings)
     for (const member of cls?.childForFieldName("body")?.namedChildren ?? []) {
-      const local = boundName(member)
-      if (local !== undefined) {
+      for (const { name: local } of scopeBindings(member)) {
         classLocals.add(local)
         classBindings.delete(local)
       }
@@ -398,8 +386,7 @@ const parsePython = (path: string, source: string): TypeExtractionFailure | read
         name = left?.namedChildren[0]?.text ?? left?.text
         if (left?.type === "generic_type") {
           name = left.namedChildren[0]?.text
-          for (const parameter of left.namedChildren.slice(1).flatMap((child) => child.namedChildren))
-            parameters.add(parameter.text)
+          for (const container of left.namedChildren.slice(1)) collectParameters(container)
         }
         if (target) expressions.push(target)
       } else continue

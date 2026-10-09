@@ -546,7 +546,8 @@ imports do not establish a framework marker.
 Static type expressions include builtin primitives/containers, same-file model
 references, unions with `|`, supported typing containers, literal alternatives,
 Required/NotRequired, simple literal forward annotations, and generic type
-parameters. Type-parameter defaults unsupported by the pinned grammar remain
+parameters with supported bounds and tuple constraints. Variadic parameters are
+explicitly uncertain. Type-parameter defaults unsupported by the pinned grammar remain
 parse-unavailable. Literal `Annotated` metadata is retained; supported imported
 `Field`, `field`, and `ConfigDict` calls admit literal metadata and traverse
 `default_factory` and ConfigDict `ignored_types` as type references. Unknown executable metadata/defaults,

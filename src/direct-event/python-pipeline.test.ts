@@ -440,6 +440,93 @@ describe("Python same-file shipped review", () => {
       ).toEqual(["Child"])
     })
   )
+  it.effect("lexical rebindings cannot turn fieldless classes into framework review requests", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      for (const rebinding of [
+        "ignored = (dataclass := lambda cls: cls)",
+        "dataclass += helper",
+        "ignored = dataclass = helper",
+        "ignored = lambda value=(dataclass := helper): value",
+        "del dataclass"
+      ]) {
+        yield* Effect.promise(() =>
+          put(root, "model.py", `from dataclasses import dataclass\n${rebinding}\n@dataclass\nclass Empty:\n    pass\n`)
+        )
+        const event = addEvent(root, ["model.py"])
+        const observation = yield* adaptCodexDirectEvent(event)
+        if (!observation) throw new Error("fixture adaptation failed")
+        let requests = 0
+        const result = yield* reviewCodexDirectEvent(event, {
+          controlledWriter: true,
+          advicee: observation.advicee,
+          settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
+          rules: configuredRules,
+          inputContract: TYPE_INPUT_CONTRACT
+        }).pipe(
+          Effect.provide(
+            controlledDecisionModelLayer({
+              onRequest: Effect.sync(() => {
+                requests++
+              })
+            })
+          )
+        )
+        expect(result.output, rebinding).toBeUndefined()
+        expect(requests, rebinding).toBe(0)
+      }
+      expect(
+        analyzeTypeFile(
+          "model.py",
+          "from dataclasses import dataclass\ndef helper():\n    dataclass = other\n@dataclass\nclass Empty:\n    pass\n"
+        )
+      ).toMatchObject({ status: "analyzed", units: [expect.objectContaining({ status: "ready" })] })
+    })
+  )
+  it.effect("generic binders preserve local bounds and omit opaque external bounds for shipped rules", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      yield* Effect.promise(() =>
+        put(
+          root,
+          "model.py",
+          "class Bound:\n    id: str\nclass Model[T: Bound]:\n    value: T\ntype Alias[T: (Bound, str)] = list[T]\nclass Primitive[T: str]:\n    value: T\n"
+        )
+      )
+      const local = yield* prepare(addEvent(root, ["model.py"]))
+      const ready = local.outcomes.filter((outcome) => outcome.status === "ready")
+      expect(ready.map((outcome) => outcome.prepared.input.declaration.name)).toEqual([
+        "Bound",
+        "Model",
+        "Alias",
+        "Primitive"
+      ])
+      for (const name of ["Model", "Alias"]) {
+        const unit = ready.find((outcome) => outcome.prepared.input.declaration.name === name)!.prepared
+        expect(unit.input.rules.map((rule) => rule.id).sort()).toEqual([
+          "absence_confusion",
+          "bare_domain_value",
+          "meaningless_combinations"
+        ])
+        expect(preparedProviderInput(unit)?.evidence?.nodes).toEqual([
+          expect.objectContaining({ name: "Bound", source: "class Bound:\n    id: str" })
+        ])
+      }
+      yield* Effect.promise(() =>
+        put(
+          root,
+          "model.py",
+          "from external import Foreign\nclass Model[T: Foreign]:\n    value: str\ntype Alias[T: Foreign] = str\nclass Good:\n    id: str\n"
+        )
+      )
+      const external = yield* prepare(addEvent(root, ["model.py"]))
+      expect(
+        external.outcomes
+          .filter((outcome) => outcome.status === "ready")
+          .map((outcome) => outcome.prepared.input.declaration.name)
+      ).toEqual(["Good"])
+    })
+  )
   it("does not recognize shadowed markers or infer fields from methods", () => {
     for (const source of [
       "from dataclasses import dataclass\ndataclass = helper\n@dataclass\nclass Empty:\n    pass",
