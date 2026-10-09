@@ -44,6 +44,9 @@ unavailable, Hapsland skips that rule.
 > Python or shell scripts and linter autofixes—are outside that scope and are not
 > automatically reviewed.
 
+For Codex agents: prefer `apply_patch` for source edits when it fits the task,
+so Hapsland can observe and review those edits.
+
 ## Subagents
 
 Hapsland also reviews supported native edits made by Codex CLI and Claude Code
