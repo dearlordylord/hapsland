@@ -197,7 +197,7 @@ describe("resident protocol bounds", () => {
   })
   it("publishes the fixed lifecycle and pre-decode transport limits", () => {
     expect(STARTUP_READINESS_DEADLINE_MS).toBe(10_000)
-    expect(CLIENT_REQUEST_DEADLINE_MS).toBe(1_500)
+    expect(CLIENT_REQUEST_DEADLINE_MS).toBe(4_000)
     expect(MAX_IPC_FRAME_BYTES).toBe(262_144)
     expect(MAX_IPC_CONNECTIONS).toBe(32)
   })

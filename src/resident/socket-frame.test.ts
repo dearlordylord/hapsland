@@ -104,9 +104,9 @@ it.effect("writes one newline-terminated UTF-8 frame through the native socket",
 it.effect("changes the native idle deadline on execution and removes its timeout listener on close", () =>
   Effect.gen(function* () {
     const { accepted, port } = yield* fixture
-    expect(accepted.timeout).toBe(1_500)
+    expect(accepted.timeout).toBe(4_000)
     const editDeadline = port.setIdleTimeout(EDIT_REQUEST_DEADLINE_MS)
-    expect(accepted.timeout).toBe(1_500)
+    expect(accepted.timeout).toBe(4_000)
     yield* editDeadline
     expect(accepted.timeout).toBe(3_900)
     expect(accepted.listenerCount("timeout")).toBe(1)

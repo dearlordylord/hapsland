@@ -65,7 +65,7 @@ secret- or source-bearing fields in the new evidence records.
 | 7 | Resident dispatch and collection | FIFO preparation fills up to 8 slots; review jobs use the separate Jev gate; ordinary advice waits for its edit's work to settle; Stop may use ready partial findings at its deadline; deterministic 10 KiB response with no separate finding-count cap; overflow retained; expiry at 600,000 ms equality | 4 obligations |
 | 8 | Logical capacity and transport | Global 512 items/256 MiB; partition 16 items/32 MiB; accounting through work/cache/outcomes/advice; 256 KiB IPC before decode; explicit rejection and terminal cleanup; no RSS claim | 4 obligations |
 | 9 | Operational failure diagnostics | First capacity/backend failure recorded; same kind/partition suppressed before 60,000 ms and refreshed at equality; 64 length-limited keys; restart reset; never included in agent output | 3 obligations |
-| 10 | Singleton lifecycle | 10 s readiness; 1.5 s client deadline; 100 starters/eight processes converge; timeout/disconnect does not cancel accepted work; kill/restart loses memory; old lifetime rejected; cleanup only idle; worktree roots distinct | 4 obligations |
+| 10 | Singleton lifecycle | 10 s readiness; 4 s client deadline; 100 starters/eight processes converge; timeout/disconnect does not cancel accepted work; kill/restart loses memory; old lifetime rejected; cleanup only idle; worktree roots distinct | 4 obligations |
 | 11 | Effective file settings | Default selection, accumulated exclusions, protected paths, and current settings before dispatch; retired grant operations leave saved files untouched | 3 obligations |
 | 12 | Jev request/evidence boundary | One provider-neutral `DecisionModel` request per unit; 15-second deadline; zero automatic retries; source-free live outcome classification; admission is not a provider-call counter | 3 obligations |
 
@@ -117,7 +117,7 @@ unverified rather than inferred from the packaged hook run.
 | Successful cache | 8 entries and 128 KiB, charged to capacity |
 | Resident job concurrency | 8 shared preparation/evaluation slots; at most 8 Jev calls if every running job is evaluating |
 | Host handoff | 10 KiB encoded response, with no separate finding-count cap; Hapsland's own budget |
-| Readiness / client request | 10 seconds / 1.5 seconds |
+| Readiness / client request | 10 seconds / 4 seconds |
 | Jev request / retries | 15 seconds / zero automatic retries |
 | Collection / relevance / notice | 50 ms / 600,000 ms (expired at equality) / 60,000 ms per kind/partition |
 | IPC | 256 KiB frame, 32 connections |
