@@ -291,7 +291,7 @@ describe("resident inspection capture", () => {
     expect(records.filter((record) => record.fact.kind === "model-input")).toHaveLength(1)
   })
 
-  it("retains incomplete preparation beside a clear independent unit without a request for the failed path", async () => {
+  it("continues the clear type review while recording incomplete and inapplicable paths", async () => {
     const root = await makeGitFixture()
     await put(root, "good.ts", "type GoodCount = number\n")
     await put(root, "bad.ts", 'import { Amount } from "./support";\ntype BadCount = Amount;\n')
@@ -338,15 +338,20 @@ describe("resident inspection capture", () => {
     await Effect.runPromise(server.whenIdle())
     await stored.promise
     const { records } = await Effect.runPromise(store.snapshot())
-    expect(
-      records.filter((record) => record.fact.kind === "evaluation-route").map((record) => record.fact)
-    ).toMatchObject([{ route: "fresh", path: "good.ts", declaration: "GoodCount" }])
+    const routes = records.flatMap(({ fact }) =>
+      fact.kind === "evaluation-route" ? [{ route: fact.route, path: fact.path, declaration: fact.declaration }] : []
+    )
+    expect(routes).toEqual([{ route: "fresh", path: "good.ts", declaration: "GoodCount" }])
     expect(records.filter((record) => record.fact.kind === "preparation-skipped").map((record) => record.fact)).toEqual(
       [{ kind: "preparation-skipped", path: "bad.ts" }]
     )
-    expect(
-      records.filter((record) => record.fact.kind === "preparation-omission").map((record) => record.fact)
-    ).toMatchObject([{ path: "bad.ts", reason: "import" }])
+    const omissions = records
+      .filter((record) => record.fact.kind === "preparation-omission")
+      .map((record) => record.fact)
+    expect(omissions).toEqual([
+      { kind: "preparation-omission", path: "good.ts", reason: "no-supported-function-root" },
+      { kind: "preparation-omission", path: "bad.ts", declaration: "BadCount", reason: "no-applicable-rule" }
+    ])
     expect(records.filter((record) => record.fact.kind === "model-input")).toHaveLength(1)
     expect(records.filter((record) => record.fact.kind === "evaluation-outcome").map((record) => record.fact)).toEqual([
       { kind: "evaluation-outcome", outcome: "clear" }
@@ -669,13 +674,15 @@ describe("resident inspection capture", () => {
     await retired.promise
     expect(await Effect.runPromise(server.pendingAdviceMetadata())).toHaveLength(0)
     const { records: retiredRecords } = await readHistory()
-    const stale = retiredRecords.find((record) => record.fact.kind === "finding-fate" && record.fact.fate === "stale")
-    expect(stale?.fact).toMatchObject({ fate: "stale", reason: "resident-stale" })
-    if (stale?.fact.kind !== "finding-fate" || retained?.fact.kind !== "finding-fate")
+    const retirement = retiredRecords.find(
+      (record) => record.fact.kind === "finding-fate" && record.fact.fate === "discarded"
+    )
+    expect(retirement?.fact).toMatchObject({ fate: "discarded", reason: "publication-retired" })
+    if (retirement?.fact.kind !== "finding-fate" || retained?.fact.kind !== "finding-fate")
       throw new Error("missing fate evidence")
-    expect(stale.fact.adviceId).toBe(retained.fact.adviceId)
-    expect(stale.fact.payload).toEqual(retained.fact.payload)
-    expect(stale.correlation.evaluationId).toBe(retained.correlation.evaluationId)
+    expect(retirement.fact.adviceId).toBe(retained.fact.adviceId)
+    expect(retirement.fact.payload).toEqual(retained.fact.payload)
+    expect(retirement.correlation.evaluationId).toBe(retained.correlation.evaluationId)
     expect(retiredRecords.filter((record) => record.fact.kind === "model-input")).toHaveLength(1)
     await writeFile(
       config,

@@ -2,6 +2,7 @@ import { Effect } from "effect"
 import { parseHookArguments } from "@hapsland/hook-runtime/hooks/command"
 import { BUN_VERSION, bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
 import { SUPPORTED_CLIENTS, CLIENT_NAMES } from "@hapsland/runtime-environment/runtime/agent-clients"
+import { packageBuildIdentity, packageCommand } from "@hapsland/runtime-environment/runtime/package-runtime"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../scripts/test-harness/policy.mjs"
 import { describe, expect, it, vi } from "vitest"
 import { cliCommandReference, parseInvocation as parseInvocationEffect } from "@hapsland/administration/cli-command"
@@ -367,7 +368,8 @@ describe("declarative CLI subprocess contracts", () => {
     expect(JSON.parse(result.stdout)).toEqual({
       name: "@hapsland/hapsland",
       executable: bunExecutable(),
-      args: [join(process.cwd(), "packages/cli-entry/dist/cli.js")]
+      args: [join(process.cwd(), "packages/cli-entry/dist/cli.js")],
+      resident: { version: 1, build: packageBuildIdentity, command: packageCommand("resident") }
     })
     expect(result.stderr).toBe("")
     expect(result.files).toEqual([])

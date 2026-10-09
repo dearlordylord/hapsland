@@ -651,30 +651,31 @@ else if (operation === "probe") console.log('{"status":"available"}');
     )
   })
 
-  it.skipIf(!terminalAvailable)("reports interactive storage outcomes with specific recovery guidance", async () => {
-    const cases = [
-      { helperStatus: "unavailable", input: "", expectedStatus: "invalid", code: "replace-invalid-credential" },
-      {
-        helperStatus: "unavailable",
-        input: "unavailable-secret",
-        expectedStatus: "unavailable",
-        code: "recover-credential-storage"
-      },
-      { helperStatus: "locked", input: "locked-secret", expectedStatus: "locked", code: "recover-credential-storage" },
-      {
-        helperStatus: "interaction-required",
-        input: "approval-secret",
-        expectedStatus: "interaction-required",
-        code: "recover-credential-storage"
-      },
-      {
-        helperStatus: "indeterminate",
-        input: "indeterminate-secret",
-        expectedStatus: "indeterminate",
-        code: "reconcile-credential-lifecycle"
-      }
-    ] as const
-    for (const fixtureCase of cases) {
+  const cases = [
+    { helperStatus: "unavailable", input: "", expectedStatus: "invalid", code: "replace-invalid-credential" },
+    {
+      helperStatus: "unavailable",
+      input: "unavailable-secret",
+      expectedStatus: "unavailable",
+      code: "recover-credential-storage"
+    },
+    { helperStatus: "locked", input: "locked-secret", expectedStatus: "locked", code: "recover-credential-storage" },
+    {
+      helperStatus: "interaction-required",
+      input: "approval-secret",
+      expectedStatus: "interaction-required",
+      code: "recover-credential-storage"
+    },
+    {
+      helperStatus: "indeterminate",
+      input: "indeterminate-secret",
+      expectedStatus: "indeterminate",
+      code: "reconcile-credential-lifecycle"
+    }
+  ] as const
+  it.skipIf(!terminalAvailable).each(cases)(
+    "reports interactive storage recovery guidance for $expectedStatus credentials",
+    async (fixtureCase) => {
       const test = fixture()
       installDisabled(test)
       const environment: NodeJS.ProcessEnv = {
@@ -706,7 +707,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
         expect(recovery?.action).toContain("hapsland --logout")
       }
     }
-  })
+  )
 })
 
 describe("setup repository failures", () => {
@@ -772,7 +773,7 @@ describe("Claude setup shares the resumable credential and repository workflow",
     const test = fixture()
     const claudeHome = join(test.root, "claude-home")
     const claudeExecutable = join(test.root, "claude")
-    writeFileSync(claudeExecutable, "#!/bin/sh\nprintf '1.0.0\\n'\n", { mode: 0o700 })
+    writeFileSync(claudeExecutable, "#!/bin/sh\nprintf 'development\\n'\n", { mode: 0o700 })
     const output = invoke(test, { host: "claude", claudeHome, claudeExecutable })
     expect(output.status).toBe("unsupported")
     expect(existsSync(join(claudeHome, "settings.json"))).toBe(false)
