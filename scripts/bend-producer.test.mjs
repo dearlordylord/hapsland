@@ -1,5 +1,6 @@
 import { authoredTaskInputPath, prepareAuthoredTaskInputs } from "./authored-task-inputs.mjs"
 import { buildBendProducers } from "./build-bend-producers.mjs"
+import { resolveDeclaredDependencyVersion } from "./package-graph.mjs"
 import test from "node:test"
 import assert from "node:assert/strict"
 import {
@@ -143,7 +144,13 @@ test("valid receipt binds actual compiler/support/input bytes and exact six outp
 })
 test("Bend-only scheduling replaces a stale PATH task stamp before the scheduler reads it", async (t) => {
   const f = await fixture(t)
-  writeFileSync(resolve(f.root, "package.json"), JSON.stringify({ private: true }))
+  const release = JSON.parse(readFileSync(resolve(repository, "package.json"), "utf8"))
+  const turboVersion = resolveDeclaredDependencyVersion(release, "turbo", release.devDependencies.turbo)
+  const turboPlatform = `@turbo/${process.platform}-${process.arch === "x64" ? "64" : process.arch}`
+  writeFileSync(
+    resolve(f.root, "package.json"),
+    JSON.stringify({ private: true, devDependencies: { turbo: turboVersion } })
+  )
   const node = {
     ...f.node,
     directory: "packages/agent-flow-bend",
@@ -156,8 +163,17 @@ test("Bend-only scheduling replaces a stale PATH task stamp before the scheduler
   prepareAuthoredTaskInputs(f.root, graph, { bendToolchain: stale })
   const stampPath = authoredTaskInputPath(f.root, node)
   assert.equal(JSON.parse(readFileSync(stampPath)).toolchain.environment.PATH, stale.environment.PATH)
-  mkdirSync(resolve(f.root, "node_modules/.bin"), { recursive: true })
-  const scheduler = resolve(f.root, "node_modules/.bin/turbo")
+  mkdirSync(resolve(f.root, "node_modules/turbo"), { recursive: true })
+  mkdirSync(resolve(f.root, `node_modules/${turboPlatform}/bin`), { recursive: true })
+  writeFileSync(
+    resolve(f.root, "node_modules/turbo/package.json"),
+    JSON.stringify({ version: turboVersion, optionalDependencies: { [turboPlatform]: turboVersion } })
+  )
+  writeFileSync(
+    resolve(f.root, `node_modules/${turboPlatform}/package.json`),
+    JSON.stringify({ version: turboVersion })
+  )
+  const scheduler = resolve(f.root, `node_modules/${turboPlatform}/bin/turbo`)
   writeFileSync(
     scheduler,
     `#!${process.execPath}\nconst fs=require('node:fs');const assert=require('node:assert/strict');const stamp=JSON.parse(fs.readFileSync(${JSON.stringify(stampPath)}));const current=JSON.parse(fs.readFileSync('.test-runs/bend-toolchain.json'));assert.deepEqual(stamp.toolchain,current);assert.equal(stamp.toolchain.environment.PATH,JSON.parse(process.env.HAPSLAND_BEND_PRODUCER_ENV).PATH);fs.writeFileSync('scheduler-observed.json',JSON.stringify(stamp.toolchain));\n`,
