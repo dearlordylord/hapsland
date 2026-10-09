@@ -9,7 +9,7 @@
 
 ## Current implementation
 
-TypeScript, Rust, and Bend use the shared review pipeline. The
+TypeScript, Rust, Bend, and the bounded same-file Python profile use the shared review pipeline. The
 [README language table](../README.md#languages-and-limits) describes user-facing
 support; the [branch contracts](type-function-review-proposal.md#branch-contracts)
 own exact syntax, binding, and omission rules. External crates, Bend hub imports,
@@ -182,3 +182,6 @@ distinguish scope omissions, product defects, harness errors, and unknown causes
 After a harness correction, make a new declared attempt rather than relabeling
 an earlier failed measurement. Keep the current summary in the index, with
 historical details in the records.
+
+Python same-file selection, marker forms, expression limits and shipped rule matrix
+are owned by the [Python amendment](type-function-review-proposal.md#python-same-file-explicit-model-amendment-267). Python performs no cross-file or system traversal.

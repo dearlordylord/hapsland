@@ -3,7 +3,7 @@ import { runCodexInspectionProfile } from "./native-codex-inspection.mjs"
 import { cleanupOwnedResident } from "./test-harness/cleanup-owned-resident.mjs"
 import {
   validateClaudeArchiveProfile,
-  installClaudeNativeArchive,
+  installNativeArchive,
   setupClaudeNativeArchive,
   instrumentClaudeRegistrations
 } from "./native-claude-package.mjs"
@@ -16,8 +16,7 @@ import { spawnSync } from "node:child_process"
 import { executeNative } from "./native-process.mjs"
 import { createHash } from "node:crypto"
 import {
-  chmodSync,
-  copyFileSync,
+  symlinkSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -56,7 +55,7 @@ if (requestedProvider !== undefined && requestedProvider !== (host === "claude" 
 if (host === "pi" && requestedModel !== undefined && requestedModel !== "gpt-6-luna")
   throw new Error("Pi native checks require the existing gpt-6-luna profile")
 const language = process.argv.find((arg) => arg.startsWith("--language="))?.slice(11) ?? "typescript"
-if (!["typescript", "rust", "bend"].includes(language)) throw new Error("Choose a supported source language")
+if (!["typescript", "rust", "bend", "python"].includes(language)) throw new Error("Choose a supported source language")
 const scenario = process.argv.find((arg) => arg.startsWith("--scenario="))?.slice(11) ?? "adoption"
 if (
   ![
@@ -94,7 +93,18 @@ if (suppliedStaleDelay !== undefined && scenario !== "stale-result")
 const staleDelayMs = suppliedStaleDelay === undefined ? 9000 : Number(suppliedStaleDelay)
 if (!Number.isInteger(staleDelayMs) || staleDelayMs < 1000 || staleDelayMs > 14000)
   throw new Error("Controlled stale delay must be 1000–14000 ms")
+const pythonSupport =
+  "from dataclasses import dataclass\nfrom typing import TypeAlias\n@dataclass\nclass Receipt:\n    value: str\n@dataclass\nclass Pending:\n    pass\n@dataclass\nclass Succeeded:\n    receipt: Receipt\n@dataclass\nclass Failed:\n    failure_reason: str\n"
 const fixtures = {
+  python: {
+    entry: "payment.py",
+    support: "support.txt",
+    supportSource: "Same-file Python model evidence; no imported user declarations.\n",
+    initial:
+      pythonSupport +
+      "@dataclass\nclass PaymentState:\n    status: str\n    receipt: Receipt | None\n    failure_reason: str | None\n",
+    good: pythonSupport + "PaymentState: TypeAlias = Pending | Succeeded | Failed\n"
+  },
   typescript: {
     entry: "payment.ts",
     support: "support.ts",
@@ -147,7 +157,9 @@ const initialSourceMarker =
     ? "interface PaymentState"
     : language === "rust"
       ? "struct PaymentState"
-      : "PaymentState{status:"
+      : language === "python"
+        ? "class PaymentState"
+        : "PaymentState{status:"
 const feedbackMessages = Object.fromEntries(configuredRules.map((rule) => [rule.id, rule.message]))
 const mode = process.argv.includes("--live") ? "live-jev" : "controlled-offline"
 const archiveArgument = process.argv.find((argument) => argument.startsWith("--archive="))
@@ -168,8 +180,14 @@ if (scenario === "inspection-exclusions" || scenario === "callable-review") {
   })
   process.exit(0)
 }
-if (archiveArgument !== undefined && (!["pi", "claude"].includes(host) || archiveArgument === "--archive="))
-  throw new Error("--archive=PATH requires a local production tarball and the Pi or Claude profile")
+if (archiveArgument !== undefined && (!["pi", "claude", "codex"].includes(host) || archiveArgument === "--archive="))
+  throw new Error("--archive=PATH requires a local production tarball and a supported native profile")
+if (
+  host === "codex" &&
+  archiveArgument &&
+  (language !== "python" || scenario !== "adoption" || mode !== "controlled-offline" || coexistence || unicodeUpdate)
+)
+  throw new Error("Codex archive adoption requires controlled same-file Python without coexistence or Unicode mutation")
 if (host === "claude")
   validateClaudeArchiveProfile({
     host,
@@ -236,7 +254,7 @@ const declaration = {
   maximumSourceEditCalls: scenario === "stale-result" || scenario === "adoption" ? 2 : 1,
   sourceProfile: "bounded local cross-file types",
   runtimeVersion: version,
-  runtimeSurface: host === "claude" && archiveArgument ? "installed-artifact" : "source-checkout",
+  runtimeSurface: archiveArgument ? "installed-artifact" : "source-checkout",
   ...(coexistence
     ? {
         coexistence,
@@ -324,6 +342,7 @@ const observer = join(temp, "observe-fetch.mjs")
 let owner
 let abide
 let installedClaude
+let installedCodex
 let installedClaudeSetup
 const installedCommandsPath = join(temp, "installed-claude-commands.json")
 const installedClaudeHome = join(temp, "claude-home")
@@ -366,14 +385,23 @@ try {
             ? `${quote(process.execPath)} ${quote(join(project, "node_modules/typescript/bin/tsc"))} -p tsconfig.json`
             : language === "rust"
               ? "rustc --edition=2021 --crate-type=lib src/lib.rs -o fixture.rlib"
-              : "bend payment.bend --check-only"
+              : language === "python"
+                ? "python3 -m py_compile payment.py"
+                : "bend payment.bend --check-only"
       }
     })
   )
   spawnSync("git", ["-C", repo, "add", "README.md", "support.ts", "tsconfig.json", "package.json"])
 
   if (host === "claude" && archiveArgument)
-    installedClaude = await installClaudeNativeArchive({
+    installedClaude = await installNativeArchive({
+      project,
+      archivePath: archiveArgument.slice("--archive=".length),
+      installation: join(temp, "installed-package")
+    })
+
+  if (host === "codex" && archiveArgument)
+    installedCodex = await installNativeArchive({
       project,
       archivePath: archiveArgument.slice("--archive=".length),
       installation: join(temp, "installed-package")
@@ -416,7 +444,9 @@ ${
     ? `const registeredCommands=JSON.parse(readFileSync(${JSON.stringify(installedCommandsPath)},'utf8'));
 if(typeof registeredCommands[kind]!=='string')throw new Error('Unaccounted installed Claude hook kind');
 const result=spawnSync('/bin/sh',['-c',registeredCommands[kind]+' --controlled-reviewer'],`
-    : `const result=spawnSync(${JSON.stringify(resolveBunRuntime().executable)},[${JSON.stringify(join(project, "packages/hook-entry/src/hook-main.ts"))},...flags],`
+    : installedCodex
+      ? `const result=spawnSync(${JSON.stringify(installedCodex.hook)},flags,`
+      : `const result=spawnSync(${JSON.stringify(resolveBunRuntime().executable)},[${JSON.stringify(join(project, "packages/hook-entry/src/hook-main.ts"))},...flags],`
 }
   {input,encoding:'utf8',env:process.env,timeout:30000,maxBuffer:1048576});
 let output; try { output=JSON.parse(result.stdout) } catch {}
@@ -519,8 +549,7 @@ globalThis.fetch=async (...args)=>{
   const home = coexistence ? join(temp, "profile", ".codex") : join(temp, "codex-home")
   if (host === "codex") {
     mkdirSync(home, { mode: 0o700, recursive: true })
-    copyFileSync(join(process.env.CODEX_HOME ?? "/home/node/.codex", "auth.json"), join(home, "auth.json"))
-    chmodSync(join(home, "auth.json"), 0o600)
+    symlinkSync(join(process.env.CODEX_HOME ?? "/home/node/.codex", "auth.json"), join(home, "auth.json"))
     writeFileSync(join(home, "config.toml"), "[features]\nhooks = true\n")
     writeFileSync(join(home, "hooks.json"), JSON.stringify(settings))
   } else if (!installedClaude) {
@@ -532,7 +561,7 @@ globalThis.fetch=async (...args)=>{
     REVIEW_RESIDENT_DIR: runtime,
     REVIEW_ACTIVITY_PATH: activity,
     REVIEW_USER_CONFIG_PATH: config,
-    ...(installedClaude
+    ...(installedClaude || installedCodex
       ? {
           REVIEW_STATE_PATH: join(temp, "setup-state"),
           REVIEW_CREDENTIAL_STATE_PATH: join(temp, "credential-state.json"),
@@ -836,6 +865,22 @@ globalThis.fetch=async (...args)=>{
       timeout: 30000
     })
     invalid = { status: probe.status !== null && probe.status !== 0 && probe.stderr.includes("error[E0063]") ? 0 : 1 }
+  } else if (language === "python") {
+    const probe = spawnSync("python3", ["-c", "from payment import Succeeded; Succeeded()"], {
+      cwd: repo,
+      env,
+      encoding: "utf8",
+      timeout: 30000
+    })
+    invalid = {
+      status:
+        probe.status !== null &&
+        probe.status !== 0 &&
+        probe.stderr.includes("TypeError") &&
+        probe.stderr.includes("receipt")
+          ? 0
+          : 1
+    }
   } else {
     writeFileSync(
       join(repo, "invalid.bend"),
@@ -899,7 +944,7 @@ globalThis.fetch=async (...args)=>{
         }
       : {}),
     initialDraftObserved: native.some((item) => item.initial),
-    crossFileExpanded: requestShapes.some(
+    [language === "python" ? "sameFileSupportingEvidenceExpanded" : "crossFileExpanded"]: requestShapes.some(
       (item) => item.expandedEdges > 0 || (item.expandedEvidence && item.supportDeclarationPresent)
     ),
     findingDelivered: !!finding,
@@ -912,7 +957,10 @@ globalThis.fetch=async (...args)=>{
         ? source.includes("status: 'succeeded'") && !source.includes("receipt: Receipt | null")
         : language === "rust"
           ? source.includes("pub enum PaymentState")
-          : source.includes("Succeeded{receipt: M.Receipt}") && !source.includes("PaymentState{status:"),
+          : language === "python"
+            ? source.includes("PaymentState: TypeAlias = Pending | Succeeded | Failed") &&
+              !source.includes("class PaymentState")
+            : source.includes("Succeeded{receipt: M.Receipt}") && !source.includes("PaymentState{status:"),
     sourceCompiles: check.status === 0,
     missingReceiptRejected: invalid.status === 0,
     followupObserved:
@@ -1025,8 +1073,9 @@ globalThis.fetch=async (...args)=>{
     scenario,
     runnerHash,
     executionProfile: {
-      runtime: installedClaude ? "installed-artifact" : "source-checkout",
-      installedPackageValidated: installedClaudeSetup !== undefined,
+      runtime: installedClaude || installedCodex ? "installed-artifact" : "source-checkout",
+      installedPackageValidated: installedClaudeSetup !== undefined || installedCodex !== undefined,
+      ...(installedCodex ? { installedArchive: installedCodex.evidence } : {}),
       ...(installedClaude
         ? {
             installedArchive: installedClaude.evidence,
@@ -1148,10 +1197,15 @@ globalThis.fetch=async (...args)=>{
 } finally {
   mutationWatcher?.close()
   await abide?.close()
-  if (installedClaude) {
+  if (installedClaude || installedCodex) {
     await cleanupOwnedResident(runtime, [
       {
-        executable: join(installedClaude.root, "dist/bin", `${process.platform}-${process.arch}`, "hapsland-resident"),
+        executable: join(
+          (installedClaude || installedCodex).root,
+          "dist/bin",
+          `${process.platform}-${process.arch}`,
+          "hapsland-resident"
+        ),
         args: []
       }
     ])

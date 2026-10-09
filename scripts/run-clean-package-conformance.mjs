@@ -735,6 +735,30 @@ try {
     throw new Error("packaged Bend extractor did not resolve the same-file constructor payload")
   }
 
+  const pythonParserRun = await mustRun(parser, [], {
+    cwd: temporary,
+    env: launcherEnvironment,
+    input: JSON.stringify({
+      path: "fixture.py",
+      source:
+        "from dataclasses import dataclass\n@dataclass\nclass Receipt:\n    id: str\nclass Delivery:\n    receipt: Receipt\n"
+    })
+  })
+  const pythonParserResult = parseJson(pythonParserRun.stdout, "packaged Python parser")
+  if (
+    pythonParserResult.status !== "analyzed" ||
+    !pythonParserResult.units.some(
+      (unit) =>
+        unit.status === "ready" &&
+        unit.unit.root.artifact.kind === "class" &&
+        unit.unit.root.artifact.name === "Delivery" &&
+        unit.unit.root.references.some(
+          (reference) => reference.kind === "expanded" && reference.node.artifact.name === "Receipt"
+        )
+    )
+  )
+    throw new Error("packaged Python parser did not resolve same-file model evidence")
+
   progress("create-isolated-repository")
   await mustRun("git", ["init", "--quiet", "--initial-branch=master"], { cwd: repository })
   const defaultNames = (await readdir(join(packageDirectory, "dist/rules/defaults")))

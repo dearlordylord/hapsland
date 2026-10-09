@@ -288,6 +288,7 @@ type PreparationFrame = {
 }
 type CandidateDeclaration = {
   readonly artifact: ReviewUnit["root"]["artifact"]
+  readonly selectionLocations?: ReadonlyArray<NonNullable<ReviewInput["rootLocation"]>>
   readonly location: NonNullable<ReviewInput["rootLocation"]>
 }
 const graphResolutionOptions = (frame: PreparationFrame, candidatePath: string) => ({
@@ -352,7 +353,7 @@ const freezePreparedUnitInput = (
   sourceFingerprints: NonNullable<ReviewInput["sourceFingerprints"]>,
   frame: PreparationFrame,
   partial: boolean,
-  language: "typescript" | "rust" | "bend"
+  language: "typescript" | "rust" | "bend" | "python"
 ): ReviewInput => {
   const declaration = unit.root.artifact
   const artifactKind = declaration.kind === "function" ? ("function" as const) : ("typeShape" as const)
@@ -374,8 +375,8 @@ const freezePreparedUnitInput = (
     interpretation: "probability-strictly-greater-than-threshold"
   } satisfies ReviewInput)
 }
-const supportedRuleLanguage = (language: string | undefined): language is "typescript" | "rust" | "bend" =>
-  language === "typescript" || language === "rust" || language === "bend"
+const supportedRuleLanguage = (language: string | undefined): language is "typescript" | "rust" | "bend" | "python" =>
+  language === "typescript" || language === "rust" || language === "bend" || language === "python"
 const missingRequiredRootLocation = (contract: string, location: ReviewInput["rootLocation"]): boolean =>
   isGraphInputContract(contract) && location === undefined
 const prepareResolvedUnit = (
@@ -500,10 +501,11 @@ const selectCandidateRoots = (
 ) => {
   const hunks = candidatePostEditHunks(observation, candidate, path, captured)
   if (hunks === undefined) return { selected: [] as UnitAnalysis[], ambiguous: true }
-  const declarations = candidateDeclarations.map(({ artifact, location }) => ({
+  const declarations = candidateDeclarations.map(({ artifact, location, selectionLocations }) => ({
     path,
     kind: artifact.kind,
     name: artifact.name,
+    ...(selectionLocations === undefined ? {} : { selectionLocations }),
     location
   }))
   try {

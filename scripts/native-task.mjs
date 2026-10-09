@@ -121,7 +121,7 @@ export async function probeNativeParserBindings(root, node, files, env = process
     [
       "--input-type=module",
       "-e",
-      `import{createRequire}from'node:module';const require=createRequire(${JSON.stringify(resolve(node.path, "package.json"))});const b=${JSON.stringify(bindings)};process.env.TREE_SITTER_PREBUILD=b['tree-sitter'];process.env.TREE_SITTER_TYPESCRIPT_PREBUILD=b['tree-sitter-typescript'];process.env.TREE_SITTER_RUST_PREBUILD=b['tree-sitter-rust'];const Parser=require('tree-sitter');const parser=new Parser();parser.setLanguage(require('tree-sitter-typescript').typescript);if(parser.parse('type Probe = string').rootNode.hasError)process.exit(1);parser.setLanguage(require('tree-sitter-rust'));if(parser.parse('struct Probe { value: Option<String> }').rootNode.hasError)process.exit(1);`
+      `import{createRequire}from'node:module';const require=createRequire(${JSON.stringify(resolve(node.path, "package.json"))});const b=${JSON.stringify(bindings)};process.env.TREE_SITTER_PREBUILD=b['tree-sitter'];process.env.TREE_SITTER_TYPESCRIPT_PREBUILD=b['tree-sitter-typescript'];process.env.TREE_SITTER_RUST_PREBUILD=b['tree-sitter-rust'];process.env.TREE_SITTER_PYTHON_PREBUILD=b['tree-sitter-python'];const Parser=require('tree-sitter');const parser=new Parser();parser.setLanguage(require('tree-sitter-typescript').typescript);if(parser.parse('type Probe = string').rootNode.hasError)process.exit(1);parser.setLanguage(require('tree-sitter-rust'));if(parser.parse('struct Probe { value: Option<String> }').rootNode.hasError)process.exit(1);parser.setLanguage(require('tree-sitter-python'));if(parser.parse('class Probe:\\n  value: str').rootNode.hasError)process.exit(1);`
     ],
     { cwd: root, env, stdio: "inherit", timeout: 30000 }
   )

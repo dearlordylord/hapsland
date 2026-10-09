@@ -512,3 +512,63 @@ delivery policy. Coverage is never reported as a clean semantic judgment.
   before live calls. The final #16 outcome remains prior evidence.
 - Continue host-specific advice delivery validation for Claude Code and
   OpenCode, informed by #97 and #94 rather than inferred from Codex.
+
+### Python same-file explicit model amendment (#267)
+
+Python `.py` roots use the version-one type-shape contract. Eligible top-level
+roots are classes declaring class-level annotations, classes inheriting a local
+eligible model, standard dataclasses, class-form TypedDict, statically identified
+Pydantic BaseModel classes, `name: TypeAlias = expression`, supported `type name =
+expression` statements and `name = NewType("name", type)` declarations. Classes
+have kind `class`; aliases and nominal NewType declarations retain exact source
+with kind `type-alias`. Arbitrary classes and method-assigned instance fields are
+outside this profile. Nested declarations are not independent roots.
+
+This amends smallest-enclosing-root selection for Python classes: Add selects
+eligible roots. Verified Update spans must enclose a unique surviving declaration
+and touch its decorators/header/bases, annotated fields, `model_config`, or nested
+`Config` declaration. Mixed field and method edits select the class once.
+Ordinary-method-only and validator-only edits select nothing. Pure removals and
+empty deletion coordinates do not guess a post-edit target. A surviving field
+removal requires nonempty verified post-edit attribution touching model structure.
+Selected source always includes the full declaration, decorators and visible
+methods/validators; the existing 20 KiB canonical tree limit has no field-only
+fallback.
+
+Import identity recognizes named/qualified imports and import aliases from
+`dataclasses`, `typing`, `typing_extensions`, and `pydantic`. Competing module
+bindings invalidate markers. Supported model markers are `@dataclass` and
+`@dataclass(...)` with literal keyword options, `TypedDict` with literal `total`,
+and `BaseModel`. This does not import or execute framework code. Unknown
+or computed decorators/bases produce omissions. Conditional runtime framework
+imports do not establish a framework marker.
+
+Static type expressions include builtin primitives/containers, same-file model
+references, unions with `|`, supported typing containers, literal alternatives,
+Required/NotRequired, simple literal forward annotations, and generic type
+parameters. Type-parameter defaults unsupported by the pinned grammar remain
+parse-unavailable. Literal `Annotated` metadata is retained; supported imported
+`Field`, `field`, and `ConfigDict` calls admit literal metadata and traverse
+`default_factory` and ConfigDict `ignored_types` as type references. Unknown executable metadata/defaults,
+custom constructors and decorated methods are explicit uncertainty, without
+helper/function traversal. Configuration and validator source is evidence of
+what was authored, never complete runtime constraints. Unknown external types
+remain opaque; this slice performs no cross-file or system dependency reads and
+emits no synthetic framework declarations.
+
+| Edited root family | Shipped type rules | Evidence and controls |
+| --- | --- | --- |
+| Annotated class and local inherited model | `meaningless_combinations`, `absence_confusion`, `bare_domain_value` | Declared fields and resolved same-file bases/types; unrelated method source retained |
+| Dataclass | Same three | Imported marker, static options, declared fields; fieldless class is a clear control |
+| Class TypedDict | Same three | Imported marker, field annotations, Required/NotRequired and literal total; empty shape is clear |
+| Static BaseModel | Same three | Authored static field/base/configuration evidence; dynamic behavior is an omission, no runtime schema guarantee |
+| Explicit alias/type statement | Same three | Supported underlying expression and complete reachable same-file declarations; primitive/fieldless expressions are clear controls where criterion is absent |
+| NewType | Same three | Exact nominal wrapper and underlying type; nominal primitive wrapper is a clear control |
+
+All three rules preserve `root-declaration`, `resolved-outbound-types`, and
+`selected-source-type-closure` requirements. Missing required evidence blocks
+these rules for the affected unit; independent complete neighbors proceed.
+Python has no function-review input. The adopted cohort is Tree-sitter runtime
+0.25.1 and Python grammar 0.25.0, using existing manifest-owned native packaging.
+Executed installed/platform claims belong to task validation evidence, not this
+syntax and selection contract.

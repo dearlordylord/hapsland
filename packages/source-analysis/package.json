@@ -91,7 +91,8 @@
     "tree-sitter": "catalog:",
     "tree-sitter-rust": "catalog:",
     "tree-sitter-typescript": "catalog:",
-    "bun": "catalog:"
+    "bun": "catalog:",
+    "tree-sitter-python": "catalog:"
   },
   "scripts": {
     "build": "node ../../scripts/compile-package.mjs",
@@ -118,7 +119,9 @@
           "localBuild": "build/Release/tree_sitter_runtime_binding.node",
           "publishedPrebuild": "prebuilds/{profile}/tree-sitter.node",
           "profiles": {
-            "linux-arm64": { "sourceBuild": true },
+            "linux-arm64": {
+              "sourceBuild": true
+            },
             "darwin-arm64": {}
           }
         }
@@ -132,7 +135,9 @@
           "localBuild": "build/Release/tree_sitter_typescript_binding.node",
           "publishedPrebuild": "prebuilds/{profile}/tree-sitter-typescript.node",
           "profiles": {
-            "linux-arm64": { "sourceBuild": true },
+            "linux-arm64": {
+              "sourceBuild": true
+            },
             "darwin-arm64": {}
           }
         }
@@ -146,7 +151,25 @@
           "localBuild": "build/Release/tree_sitter_rust_binding.node",
           "publishedPrebuild": "prebuilds/{profile}/tree-sitter-rust.node",
           "profiles": {
-            "linux-arm64": { "sourceBuild": true },
+            "linux-arm64": {
+              "sourceBuild": true
+            },
+            "darwin-arm64": {}
+          }
+        }
+      },
+      {
+        "source": "src/direct-event/languages/native-bindings.ts",
+        "path": "native/prebuilt/{profile}/tree-sitter-python/build/Release/tree_sitter_python_binding.node",
+        "producer": {
+          "kind": "package-binding",
+          "package": "tree-sitter-python",
+          "localBuild": "build/Release/tree_sitter_python_binding.node",
+          "publishedPrebuild": "prebuilds/{profile}/tree-sitter-python.node",
+          "profiles": {
+            "linux-arm64": {
+              "sourceBuild": true
+            },
             "darwin-arm64": {}
           }
         }
