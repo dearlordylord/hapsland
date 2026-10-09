@@ -827,6 +827,11 @@ const encodeDeliveryFinalCredentialCheck = (
     invalid_seen: event.invalidSeen
   }
 }
+const encodeSourceCacheCheck = (event: Extract<CanonicalEvent, { kind: "sourceCacheCheck" }>): unknown => ({
+  $: "Canonical.SourceCacheCheck",
+  remaining: event.remaining,
+  aborted: event.aborted
+})
 const encodeValidationRouteCheck = (event: Extract<CanonicalEvent, { kind: "validationRouteCheck" }>): unknown => {
   return {
     $: "Canonical.ValidationRouteCheck",
@@ -1225,11 +1230,7 @@ const eventEncoders: { [Kind in keyof EventByKind]: (event: EventByKind[Kind]) =
   deliverySubmissionBatchCheck: encodeDeliverySubmissionBatchCheck,
   deliveryCredentialObserveCheck: encodeDeliveryCredentialObserveCheck,
   deliveryFinalCredentialCheck: encodeDeliveryFinalCredentialCheck,
-  sourceCacheCheck: (event) => ({
-    $: "Canonical.SourceCacheCheck",
-    remaining: event.remaining,
-    aborted: event.aborted
-  }),
+  sourceCacheCheck: encodeSourceCacheCheck,
   validationRouteCheck: encodeValidationRouteCheck,
   postValidationCheck: encodePostValidationCheck,
   finalCandidateCheck: encodeFinalCandidateCheck,
