@@ -26,10 +26,7 @@ try {
   await page.getByText("Run setup manually after installing", { exact: true }).click()
   await page.getByRole("button", { name: "Copy setup command", exact: true }).click()
   await page.locator("#copy-setup + .copy-status").getByText("Copied", { exact: true }).waitFor()
-  assert.equal(
-    await page.evaluate(() => navigator.clipboard.readText()),
-    '"$(brew --prefix hapsland)/bin/hapsland" setup --target="$(brew --prefix hapsland)/bin/hapsland"'
-  )
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "hapsland setup")
   // Exercise the same selection path used on the HTTP/IP preview.
   await page.evaluate(() => {
     navigator.clipboard.writeText = () => Promise.reject(new Error("unavailable"))
@@ -49,9 +46,7 @@ try {
   assert.equal(await page.evaluate(() => navigator.clipboard.readText()), instruction)
   await httpPage.close()
 
-  assert.deepEqual(await page.locator("#setup .setup-command code").allTextContents(), [
-    '"$(brew --prefix hapsland)/bin/hapsland" setup --target="$(brew --prefix hapsland)/bin/hapsland"'
-  ])
+  assert.deepEqual(await page.locator("#setup .setup-command code").allTextContents(), ["hapsland setup"])
   await page.locator(".lifecycle-collapsed").waitFor()
   assert.equal(await page.locator("#review-loop-canvas").isVisible(), false)
   assert.match(await page.locator("#example-starter").innerText(), /CLICK ME/)

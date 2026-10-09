@@ -113,7 +113,7 @@ With Homebrew installed:
 
 ```sh
 brew install dearlordylord/tap/hapsland
-"$(brew --prefix hapsland)/bin/hapsland" setup --target="$(brew --prefix hapsland)/bin/hapsland"
+hapsland setup
 ```
 
 Homebrew downloads only the matching platform archive. Hapsland includes its
@@ -123,11 +123,11 @@ activation completes, and select the new package explicitly to skip npm acquisit
 
 ```sh
 HOMEBREW_NO_INSTALL_CLEANUP=1 brew upgrade dearlordylord/tap/hapsland
-"$(brew --prefix hapsland)/bin/hapsland" update --target="$(brew --prefix hapsland)/bin/hapsland"
+hapsland update --target="$(command -v hapsland)"
 ```
 
 Do not run cleanup while hooks or running sessions still depend on an old keg.
-The explicit Homebrew path also avoids invoking a different Hapsland earlier on PATH. Offline package checks do not establish every
+The update target uses the installed executable found on PATH. Offline package checks do not establish every
 agent compatibility profile.
 
 For installation without Homebrew, download the matching archive and
