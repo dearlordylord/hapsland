@@ -163,13 +163,25 @@ residents. Unreachable residents have unknown recording state. Configuration
 changes apply on the next edit; enabled capture does not guarantee that every
 event was retained.
 
-Filters are always visible. The default list shows edits with directly correlated,
+Search, recorded-result, project and runtime filters stay visible. Session, child
+and resident filters share a disclosure that reports how many are active.
+The default list shows edits with directly correlated,
 retained transport-invocation facts, including failed attempts and attempts whose
 payload bytes are unavailable. Model input alone does not establish a request
 attempt. The existing filter reveals excluded, reused and other observations
 without retained request evidence, with a count in each hidden span. Missing
 retained evidence does not establish that no request occurred. Clear filters
-restores that default.
+restores that default. **Show all retained edits** also turns off the request-only
+filter. Recorded-result filters use retained findings and outcomes: mixed findings
+and failures appear in both relevant views, while missing evidence is not a clear
+result. A selected edit remains open when filters hide its list row.
+
+The selected edit begins with its recorded review summary. **Inspect reviewed
+code** opens the retained request associated with that finding. Section buttons
+open the request, file selection, agent message or debug history and move keyboard
+focus to the section. With no retained edits, the page explains how to enable
+recording and capture a new edit; it does not change configuration.
+
 Valid native candidates within the supported event bounds retain their original
 position, operation and root-local path, plus any supplied move destination.
 Known selection exclusions are recorded before source capture, with closed codes

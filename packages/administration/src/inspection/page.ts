@@ -1,7 +1,7 @@
 import { inspectionFavicon, inspectionProductIcon } from "./brand.ts"
 import { createHash } from "node:crypto"
 
-export const defaultInspectionFilters = Object.freeze({ search: "", hideUnreviewed: true, identity: "" })
+export const defaultInspectionFilters = Object.freeze({ search: "", hideUnreviewed: true, identity: "", outcome: "" })
 
 const script = `
 const defaultFilters = ${JSON.stringify(defaultInspectionFilters)};
@@ -23,6 +23,7 @@ const exact = document.querySelector('#exact');
 let exactText = null, exactRecord = null, selectedRequest = null, requestReceipt = null;
 const filter = document.querySelector('#filter');
 const hideUnreviewed = document.querySelector('#hide-unreviewed');
+const outcomeFilter = document.querySelector('#outcome-filter');
 let current = null, selected = null;
 const identityFilters = [
   { element: document.querySelector('#resident-filter'), field: record => record.source.endpoint, label: record => record.source.endpoint },
@@ -34,6 +35,7 @@ const identityFilters = [
 function resetFilters() {
   filter.value = defaultFilters.search;
   hideUnreviewed.checked = defaultFilters.hideUnreviewed;
+  outcomeFilter.value = defaultFilters.outcome;
   for (const item of identityFilters) item.element.value = defaultFilters.identity;
   if (current) render(current);
 }
@@ -133,7 +135,7 @@ function renderHandoffs(snapshot, records, evaluationIds, fates) {
     if (focused === identity(record)) button.focus({ preventScroll: true });
   }
   handoffs.scrollTop = position;
-  if (!messages.length) handoffs.textContent = 'No retained resident message for this edit.';
+  if (!messages.length) handoffs.append(requestElement('li', 'No retained resident message for this edit.', 'list-empty'));
   const findingIds = new Set(messages.flatMap(message => message.fact.findingIds));
   const panelSummary = document.querySelector('#handoff-panel-summary');
   panelSummary.replaceChildren(document.createTextNode('To agent · '));
@@ -206,6 +208,7 @@ function classifierRequest(value) {
 }
 function requestElement(tag, text, className) {
   const element = document.createElement(tag);
+  if (tag === 'pre') element.tabIndex = 0;
   if (text !== undefined) element.textContent = text;
   if (className) element.className = className;
   return element;
@@ -406,7 +409,7 @@ function editReviewBadges(records) {
   const count = findings.reduce((sum, record) => sum + (record.fact.payload.status === 'available' ? record.fact.payload.findings.length : 0), 0);
   const missing = findings.some(record => record.fact.payload.status !== 'available') || outcomes.some(record => record.fact.outcome === 'findings') && !count;
   const settled = completed > 0 && completed >= calls && !failed && !missing;
-  const badges = [{ text: 'Decision · ' + calls, tone: calls ? 'decision' : 'muted', title: 'Captured DecisionModel calls; HTTP retries are counted separately.' }];
+  const badges = [{ text: 'Model calls · ' + calls, tone: calls ? 'decision' : 'muted', title: 'Recorded model invocations; HTTP retries are counted separately.' }];
   if (unique.some(record => record.fact.kind === 'edit-admission' && record.fact.outcome === 'skipped-other-root'))
     badges.push({ text: 'Skipped · another working root', tone: 'muted' });
   if (count) badges.push({ text: 'Findings · ' + count, tone: 'findings' });
@@ -417,8 +420,21 @@ function editReviewBadges(records) {
   else if (!completed && !count) badges.push({ text: unique.some(record => record.fact.kind === 'evaluation-route' && record.fact.route !== 'fresh') ? 'Reused review' : 'Not reviewed', tone: 'muted' });
   return badges;
 }
+function matchesOutcome(records, outcome) {
+  if (!outcome) return true;
+  const badges = editReviewBadges(records);
+  return badges.some(badge => outcome === 'findings' ? badge.tone === 'findings' :
+    outcome === 'failed' ? badge.tone === 'failed' :
+    outcome === 'pending' ? badge.text === 'Review pending' :
+    outcome === 'clear' ? badge.tone === 'clear' : false);
+}
+let renderedFindings = null;
 function renderFindings(records) {
+  const signature = JSON.stringify(records.filter(record => ['interpreted-findings', 'transport-invoked'].includes(record.fact.kind)).map(record => [record.source.id, record.sequence, record.correlation.evaluationId, record.fact.kind === 'interpreted-findings' ? record.fact.payload : null]));
+  if (signature === renderedFindings) return;
+  renderedFindings = signature;
   const target = document.querySelector('#finding-summary');
+  const focused = document.activeElement?.dataset.finding;
   target.replaceChildren();
   for (const record of records.filter(item => item.fact.kind === 'interpreted-findings')) {
     if (record.fact.payload.status !== 'available') {
@@ -429,6 +445,19 @@ function renderFindings(records) {
       const item = document.createElement('p');
       const heading = document.createElement('strong'); heading.textContent = finding.declaration + ' · ' + finding.ruleId;
       item.append(heading, document.createElement('br'), document.createTextNode(finding.message)); target.append(item);
+      const invocation = records.find(candidate => record.correlation.evaluationId && candidate.fact.kind === 'transport-invoked' && candidate.source.id === record.source.id && candidate.correlation.evaluationId === record.correlation.evaluationId);
+      if (invocation) {
+        const button = requestElement('button', 'Inspect reviewed code'); button.type = 'button';
+        button.dataset.finding = JSON.stringify([record.source.id, record.sequence, finding.semanticIdentity, finding.ruleId]);
+        button.setAttribute('aria-label', 'Inspect reviewed code for ' + finding.declaration + ' · ' + finding.ruleId);
+        button.addEventListener('click', () => {
+          requestReceipt = selected; selectedRequest = invocation.source.id + ':' + invocation.sequence; render(current);
+          const panel = document.querySelector('#panel-request'); panel.open = true;
+          panel.querySelector('summary').focus({ preventScroll: true }); panel.scrollIntoView({ block: 'start' });
+        });
+        item.append(document.createElement('br'), button);
+        if (focused === button.dataset.finding) button.focus({ preventScroll: true });
+      }
     }
   }
 }
@@ -452,6 +481,8 @@ function render(snapshot) {
   updateFilters(snapshot);
   renderRecording(snapshot);
   status.textContent = snapshot.discovery ? snapshot.discovery.connected + ' sources connected' + (snapshot.discovery.omitted ? ' · ' + snapshot.discovery.omitted + ' omitted' : '') : 'Source discovery unavailable';
+  const advancedCount = identityFilters.filter(item => ['session-filter', 'child-filter', 'resident-filter'].includes(item.element.id) && item.element.value).length;
+  document.querySelector('#advanced-filter-summary').textContent = 'Session, child & resident' + (advancedCount ? ' · ' + advancedCount + ' active' : '');
   const active = document.activeElement?.dataset.key;
   const scroll = list.scrollTop;
   const rows = new Map();
@@ -462,7 +493,7 @@ function render(snapshot) {
     rows.get(identity).push(record);
   }
   list.replaceChildren();
-  let hiddenCount = 0;
+  let hiddenCount = 0, totalHidden = 0;
   const showHiddenGroup = () => {
     if (!hiddenCount) return;
     const marker = document.createElement('li'); marker.className = 'hidden-edits muted';
@@ -474,7 +505,8 @@ function render(snapshot) {
     const label = first.scope.root + ' · ' + (first.scope.runtime || 'runtime unavailable') + ' · ' + (received ? received.fact.candidates.map(item => item.path).join(', ') : 'Receipt data unavailable');
     const searchable = label + ' · ' + first.source.endpoint + ' · ' + first.source.lifetime + ' · ' + (first.scope.sessionId || '') + ' · ' + (first.scope.subagentId || '');
     if (!matchesIdentity(first) || !searchable.toLowerCase().includes(filter.value.toLowerCase())) continue;
-    if (hideUnreviewed.checked && !records.some(record => record.fact.kind === 'transport-invoked')) { hiddenCount += 1; continue; }
+    if (!matchesOutcome(records, outcomeFilter.value)) continue;
+    if (hideUnreviewed.checked && !records.some(record => record.fact.kind === 'transport-invoked')) { hiddenCount += 1; totalHidden += 1; continue; }
     showHiddenGroup();
     const button = document.createElement('button');
     button.type = 'button'; button.dataset.key = identity;
@@ -497,13 +529,23 @@ function render(snapshot) {
   list.scrollTop = scroll;
   const visibleRows = list.querySelectorAll('button');
   document.querySelector('#visible-count').textContent = visibleRows.length + ' of ' + rows.size + ' edits';
+  document.querySelector('#show-unreviewed').hidden = !totalHidden;
+  document.querySelector('#show-unreviewed').textContent = 'Show ' + totalHidden + ' edits without requests';
+  document.querySelector('#recover-filters').hidden = visibleRows.length > 0 || rows.size === 0;
   renderRequestTotals(snapshot, new Set(Array.from(visibleRows).map(button => button.dataset.key)));
   document.querySelector('#selection-status').textContent = selected && !Array.from(visibleRows).some(button => button.dataset.key === selected) ? rows.has(selected) ? 'Selected edit is outside current filters; its retained evidence remains open.' : 'Selected edit is no longer retained.' : '';
-  if (!visibleRows.length && !list.childElementCount) list.textContent = 'No retained edits match these filters.';
+  if (!visibleRows.length && !list.childElementCount) list.append(requestElement('li', rows.size ? 'No retained edits match these filters.' : 'No retained edits yet.', 'list-empty'));
   const records = rows.get(selected) || [];
   document.querySelector('#edit-content').hidden = !records.length;
   document.querySelector('#edit-empty').hidden = records.length > 0;
-  document.querySelector('#edit-empty').textContent = 'Select an edit';
+  document.querySelector('#empty-title').textContent = selected && !rows.has(selected) ? 'This edit is no longer retained' : rows.size ? 'Choose an edit to inspect' : 'Waiting for recorded edits';
+  document.querySelector('#empty-description').textContent = selected && !rows.has(selected) ? 'Its history has expired or is unavailable. Choose another retained edit to continue.' : rows.size ? 'Read the review outcome, inspect the exact code and request, then compare the message prepared for your agent.' : 'Opening this dashboard does not enable recording or start a resident.';
+  document.querySelector('#recording-guide').hidden = rows.size > 0;
+  const selectedBadges = document.querySelector('#selected-badges'); selectedBadges.replaceChildren();
+  for (const badge of editReviewBadges(records)) {
+    const element = requestElement('span', badge.text, 'edit-badge badge-' + badge.tone);
+    if (badge.title) element.title = badge.title; selectedBadges.append(element);
+  }
   const receipt = records.find(record => record.fact.kind === 'edit-received');
   document.querySelector('#edit-title').textContent = receipt ? receipt.fact.candidates.map(item => item.path).join(', ') : 'Captured edit';
   const round = records.find(record => record.fact.kind === 'round-membership');
@@ -609,7 +651,7 @@ function render(snapshot) {
     if (activeRequest === requestKey(record)) button.focus({ preventScroll: true });
   }
   requestList.scrollTop = requestPosition;
-  if (!invocations.length) requestList.textContent = 'No captured HTTP attempt. Model input alone does not establish dispatch.';
+  if (!invocations.length) requestList.append(requestElement('li', 'No captured HTTP attempt. Model input alone does not establish dispatch.', 'list-empty'));
   exactRecord = invocations.find(record => requestKey(record) === selectedRequest) || null;
   const unit = exactRecord ? records.find(record => record.fact.kind === 'unit-prepared' && record.correlation.unitId === exactRecord.correlation.unitId) : null;
   const policy = exactRecord ? records.find(record => record.fact.kind === 'unit-policy' && record.correlation.unitId === exactRecord.correlation.unitId) : null;
@@ -632,9 +674,20 @@ function render(snapshot) {
   if (detail.textContent !== detailText) { const position = detail.scrollTop; detail.textContent = detailText; detail.scrollTop = position; }
 }
 hideUnreviewed.addEventListener('change', () => { if (current) render(current); });
+outcomeFilter.addEventListener('change', () => { if (current) render(current); });
 filter.addEventListener('input', () => { if (current) render(current); });
 for (const item of identityFilters) item.element.addEventListener('change', () => { if (current) render(current); });
 document.querySelector('#clear-filters').addEventListener('click', resetFilters);
+document.querySelector('#recover-filters').addEventListener('click', () => {
+  resetFilters(); hideUnreviewed.checked = false; if (current) render(current); filter.focus();
+});
+document.querySelector('#show-unreviewed').addEventListener('click', () => {
+  hideUnreviewed.checked = false; if (current) render(current);
+});
+for (const button of document.querySelectorAll('[data-panel]')) button.addEventListener('click', () => {
+  const panel = document.getElementById(button.dataset.panel); panel.open = true;
+  panel.querySelector('summary').focus({ preventScroll: true }); panel.scrollIntoView({ block: 'start' });
+});
 let feed = null, latestCursor = null, received = null;
 function connect() {
   feed?.close();
@@ -656,7 +709,7 @@ function connect() {
     if (snapshot.watermark) latestCursor = snapshot.watermark.cursor;
     if (snapshot.status === 'unavailable') {
       status.textContent = received ? 'History temporarily unavailable · retrying' : 'Loading history · retrying';
-      if (!received) document.querySelector('#edit-empty').textContent = 'Loading retained history…';
+      if (!received) document.querySelector('#empty-title').textContent = 'Loading retained history…';
       return;
     }
     render(snapshot);
@@ -670,17 +723,143 @@ connect();
 window.addEventListener('pagehide', () => feed?.close());
 
 `
+
 const style = `
-*{box-sizing:border-box}body{font:14px/1.5 system-ui;margin:0;color:#e6e9ef;background:#11151d}header,.toolbar{padding:1rem 1.5rem;border-bottom:1px solid #303949}header{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}h1,h2,h3,h4,p{margin:0 0 .75rem}h1{font-size:1.1rem;display:flex;align-items:center;gap:.65rem}.brand-icon{display:block;flex:none}h2{font-size:1.2rem}h3{font-size:.95rem}h4{font-size:.85rem;font-weight:600}#request-view{margin-top:1rem;overflow-wrap:anywhere}#request-view h3{margin-top:1.25rem}.request-question{padding:.25rem .8rem;background:#1a2230;border-radius:.4rem;margin:.5rem 0}.captured-text{white-space:pre-wrap}.observation-list{padding:0;list-style:none}.observation-list li{padding:.6rem .8rem;background:#1a2230;border-radius:.4rem}.observation-list time{display:inline-block;color:#a9b5c7;margin-right:.7rem}.observation-list p{margin:.25rem 0 0}.file-group{margin:.8rem 0;overflow-wrap:anywhere}.file-group h3{margin-bottom:.35rem}.file-group li{padding:.4rem .7rem;background:#1a2230;border-radius:.3rem}.file-group small{margin-top:.1rem}#handoff-recipient{overflow-wrap:anywhere;margin-top:.75rem}#request-view dl{margin:0}#request-view dt{font-weight:600}#request-view dd{margin:0 0 .75rem}#request-view pre{margin-top:.4rem}button,input,select{font:inherit;padding:.5rem .7rem;color:inherit;background:#202837;border:1px solid #63718a;border-radius:.4rem;max-width:100%}button{cursor:pointer;white-space:normal;overflow-wrap:anywhere}button:disabled{opacity:.45;cursor:default}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #a9c6ff;outline-offset:2px}small,.muted{color:#a9b5c7}small{display:block}header p{margin:0}.header-actions{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}.toolbar{display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap}.search{flex:1;min-width:12rem}.search input{width:100%}.identity-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr));gap:.75rem}label{display:block}select{display:block;width:100%;min-width:0}#filter-panel{flex:1;min-width:10rem}main{display:grid;grid-template-columns:minmax(14rem,1fr) minmax(0,2.5fr);max-width:1500px;margin:auto}.edit-list{padding:1rem;border-right:1px solid #303949}#selected-evidence{padding:1.5rem;min-width:0}ul{padding:0;list-style:none;margin:0;overflow:auto}#edits{max-height:75vh}li{margin:.35rem 0}li button{width:100%;text-align:left;overflow-wrap:anywhere;padding:.75rem}li button strong{display:block;font-weight:500}[aria-pressed=true]{border-color:#a9c6ff;background:#293c58}pre{font:12px/1.6 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;padding:.8rem;background:#1a2230;max-height:55vh;overflow:auto;border-radius:.4rem}details{min-width:0}summary{cursor:pointer;font-weight:600;padding:.65rem 0}details details{margin:.5rem 0}#edit-content>details{border-top:1px solid #303949;padding:.25rem 0}#review{padding:.5rem 0 1rem}#routes p,#finding-summary p{padding:.65rem .8rem;background:#1a2230;border-radius:.4rem}#edit-context{overflow-wrap:anywhere}.hidden-edits{font-size:12px;text-align:center;padding:.3rem .5rem;border-top:1px dashed #394250;border-bottom:1px dashed #394250}.checkbox-filter{display:flex;align-items:center;gap:.5rem}.checkbox-filter input{width:auto}.edit-unreviewed{background:#191e27;color:#919aa8;border-color:#394250}.edit-unreviewed small{color:#818b9b}.edit-unreviewed[aria-pressed=true]{background:#242c38;border-color:#8995a8}.edit-badges{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.5rem}.edit-badge{font-size:12px;line-height:1.4;padding:.2rem .5rem;border-radius:999px;background:#283140;color:#b6c0d0}.badge-decision{background:#493d1a;color:#ffe08a}.badge-findings{background:#4b2c23;color:#ffb095}.badge-clear{background:#193d2e;color:#96e3b5}.badge-failed{background:#48232b;color:#ffa4af}.empty{padding:3rem 0;color:#a9b5c7}[hidden]{display:none!important}#selection-status:empty{display:none}@media(max-width:650px){header,.toolbar{padding:1rem}main{display:block}.edit-list{border-right:0;border-bottom:1px solid #303949}#edits{max-height:32vh}#selected-evidence{padding:1rem}.toolbar{display:block}#filter-panel{margin-top:.5rem}.header-actions{width:100%}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+:root {
+  color-scheme: dark;
+  --canvas: oklch(18% .015 255);
+  --surface: oklch(22% .018 255);
+  --raised: oklch(27% .024 255);
+  --ink: oklch(94% .008 255);
+  --muted: oklch(74% .025 255);
+  --line: oklch(36% .025 255);
+  --accent: oklch(80% .10 250);
+  --space: clamp(1rem, .7rem + 1vw, 1.75rem);
+  scrollbar-gutter: stable;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+  -webkit-text-size-adjust: 100%;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { font: .875rem/1.6 system-ui, sans-serif; margin: 0; min-block-size: 100svh; color: var(--ink); background: var(--canvas); }
+.skip-link { position: fixed; inset-block-start: .75rem; inset-inline-start: var(--space); z-index: 10; transform: translateY(-200%); padding-block: .65rem; padding-inline: 1rem; background: var(--ink); color: var(--canvas); border-radius: .5rem; }
+.skip-link:focus { transform: none; }
+.skip-link:active { background: var(--accent); }
+h1, h2, h3, h4, p { margin-block: 0 .75rem; }
+h1, h2, h3, h4 { text-wrap: balance; }
+h1 { font-size: 1.15rem; display: flex; align-items: center; gap: .75rem; margin: 0; }
+h2 { font-size: 1.35rem; letter-spacing: -.02em; }
+h3 { font-size: 1rem; } h4 { font-size: .9rem; font-weight: 600; }
+.brand-icon { display: block; flex: none; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding-block: 1.15rem; padding-inline: var(--space); border-block-end: 1px solid var(--line); background: var(--surface); }
+header p { margin: 0; }
+.header-actions { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; font-size: .8rem; color: var(--muted); }
+#status { color: var(--ink); }
+#recording-summary { padding-block: .3rem; padding-inline: .65rem; border: 1px solid var(--line); border-radius: 999px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: var(--space); align-items: start; padding: var(--space); border-block-end: 1px solid var(--line); background: var(--surface); }
+.search { flex: 1 1 15rem; }
+.search input { inline-size: 100%; }
+#filter-panel { flex: 999 1 36rem; min-inline-size: min(100%, 50%); }
+.identity-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: .85rem; align-items: end; }
+label { display: block; font-size: .8rem; font-weight: 600; color: var(--muted); }
+label :is(input, select) { margin-block-start: .35rem; }
+button, input, select { font: inherit; padding-block: .65rem; padding-inline: .8rem; color: var(--ink); background: var(--raised); border: 1px solid var(--line); border-radius: .55rem; max-inline-size: 100%; min-block-size: 44px; }
+input, select { font-size: 1rem; font-weight: 400; }
+select { font-weight: 400; display: block; inline-size: 100%; min-inline-size: 0; }
+input[type=checkbox] { accent-color: var(--accent); min-block-size: auto; inline-size: 1.1rem; block-size: 1.1rem; flex: none; margin: 0; }
+button, summary, a { touch-action: manipulation; }
+button { cursor: pointer; white-space: normal; overflow-wrap: anywhere; user-select: none; }
+button:disabled { opacity: .45; cursor: default; }
+:where(button, input, select, summary, a, pre):focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+button:not(:disabled):active, summary:active { background: color-mix(in oklch, var(--accent) 22%, var(--surface)); }
+.advanced-filters { grid-column: 1 / -1; }
+.advanced-filters summary { font-size: .8rem; color: var(--muted); }
+.advanced-filters .identity-filters { padding-block: .5rem; }
+.checkbox-filter { grid-column: 1 / -1; display: flex; align-items: center; gap: .6rem; min-block-size: 44px; }
+main { container-type: inline-size; display: flex; flex-wrap: wrap; max-inline-size: 100rem; margin-inline: auto; }
+.edit-list { flex: 1 1 21rem; padding: var(--space); border-inline-end: 1px solid var(--line); }
+#selected-evidence { flex: 999 1 0; min-inline-size: 60%; padding: var(--space); }
+small, .muted { color: var(--muted); } small { display: block; }
+.edit-list > .muted { font-size: .8rem; }
+#visible-count { font-weight: 700; color: var(--ink); }
+ul { padding: 0; list-style: none; margin: 0; overflow: auto; }
+#edits { max-block-size: 70svh; scrollbar-gutter: stable; overscroll-behavior: contain; padding: .25rem; }
+li { margin-block: .45rem; }
+li button { inline-size: 100%; text-align: start; padding: .9rem; background: var(--surface); }
+li button strong { display: block; font-weight: 600; }
+[aria-pressed=true] { border-color: var(--accent); background: color-mix(in oklch, var(--accent) 16%, var(--surface)); box-shadow: inset 3px 0 var(--accent); }
+pre { font: .8125rem/1.75 ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; padding: 1rem; background: var(--canvas); border: 1px solid var(--line); max-block-size: 55svh; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; border-radius: .55rem; tab-size: 2; }
+details { min-inline-size: 0; }
+summary { cursor: pointer; font-weight: 600; padding-block: .85rem; padding-inline: .25rem; min-block-size: 44px; border-radius: .35rem; }
+details details { margin-block: .5rem; }
+#edit-content > details { border: 1px solid var(--line); border-radius: .75rem; margin-block-start: .8rem; padding-inline: 1rem; background: var(--surface); }
+#edit-content > details[open] { padding-block-end: 1rem; }
+#review { padding-block: .5rem 1rem; }
+#routes p, #finding-summary p, .request-question, .observation-list li, .file-group li { padding-block: .65rem; padding-inline: .85rem; background: var(--raised); border-radius: .45rem; }
+#finding-summary button { margin-block-start: .75rem; font-size: .8rem; }
+#request-view { margin-block-start: 1rem; overflow-wrap: anywhere; }
+#request-view h3 { margin-block-start: 1.25rem; }
+.request-question { margin-block: .5rem; }
+.captured-text { white-space: pre-wrap; }
+.observation-list { padding: 0; list-style: none; }
+.observation-list time { display: inline-block; color: var(--muted); margin-inline-end: .7rem; font-variant-numeric: tabular-nums; }
+.observation-list p { margin-block: .25rem 0; }
+.file-group { margin-block: .8rem; overflow-wrap: anywhere; }
+.file-group h3 { margin-block-end: .35rem; }
+.file-group small { margin-block-start: .1rem; }
+#handoff-recipient { overflow-wrap: anywhere; margin-block-start: .75rem; }
+#request-view dl { margin: 0; } #request-view dt { font-weight: 600; } #request-view dd { margin-block: 0 .75rem; margin-inline: 0; }
+#request-view pre { margin-block-start: .4rem; }
+#edit-context { overflow-wrap: anywhere; }
+.hidden-edits { font-size: .75rem; text-align: center; padding-block: .4rem; padding-inline: .5rem; border-block: 1px dashed var(--line); }
+.edit-unreviewed { color: var(--muted); border-style: dashed; }
+.edit-badges { display: flex; gap: .4rem; flex-wrap: wrap; margin-block-start: .65rem; }
+.edit-badge { font-size: .75rem; line-height: 1.5; padding-block: .2rem; padding-inline: .55rem; border-radius: 999px; background: var(--raised); color: var(--muted); font-variant-numeric: tabular-nums; }
+.badge-decision { background: oklch(31% .045 85); color: oklch(89% .12 85); }
+.badge-findings { background: oklch(31% .045 40); color: oklch(85% .10 40); }
+.badge-clear { background: oklch(29% .04 155); color: oklch(84% .10 155); }
+.badge-failed { background: oklch(30% .055 15); color: oklch(84% .10 15); }
+.empty { padding: clamp(1.25rem, 4vw, 3rem); color: var(--muted); text-align: center; border: 1px dashed var(--line); border-radius: .75rem; }
+.outcome-filter { margin-block-start: 1rem; }
+.evidence-navigation { display: flex; flex-wrap: wrap; gap: .5rem; margin-block: 1.1rem 1.5rem; }
+.evidence-navigation button { font-size: .8rem; background: var(--surface); }
+.list-recovery { display: flex; flex-wrap: wrap; gap: .5rem; margin-block-end: .75rem; }
+.list-recovery button { font-size: .8rem; }
+.empty p { max-inline-size: 42rem; margin-inline: auto; }
+.empty ol { text-align: start; max-inline-size: 36rem; margin: 1.5rem auto; padding-inline-start: 1.5rem; }
+.empty li { padding-inline-start: .4rem; margin-block: .75rem; }
+.empty code { color: var(--ink); overflow-wrap: anywhere; }
+.empty a { display: inline-block; color: var(--accent); min-block-size: 44px; padding-block: .75rem; }
+#selected-badges .edit-badge { font-size: .8rem; }
+#review { scroll-margin-block-start: 1rem; }
+#edit-content > details { scroll-margin-block-start: 1rem; }
+[hidden] { display: none !important; } #selection-status:empty { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  button:not(:disabled):hover { border-color: var(--accent); background: color-mix(in oklch, var(--accent) 10%, var(--surface)); }
+  summary:hover { color: var(--accent); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  button { transition: background-color 150ms ease-out, border-color 150ms ease-out; }
+}
+@container (width < 54rem) {
+  .edit-list { border-inline-end: 0; border-block-end: 1px solid var(--line); }
+  #edits { max-block-size: 32svh; }
+  #selected-evidence { min-inline-size: 100%; }
+}
+@media (max-width: 650px) {
+  .header-actions { inline-size: 100%; }
+}
 `
+
 const hash = (value: string) => `'sha256-${createHash("sha256").update(value).digest("base64")}'`
 export const inspectionPagePolicy = `default-src 'none'; script-src ${hash(script)}; style-src ${hash(style)}; img-src data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'`
-export const inspectionPage = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hapsland inspection</title><link rel="icon" type="image/svg+xml" href="${inspectionFavicon}"><style>${style}</style><body>
+export const inspectionPage = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>Hapsland inspection</title><link rel="icon" type="image/svg+xml" href="${inspectionFavicon}"><style>${style}</style><body>
+<a class="skip-link" href="#selected-evidence">Skip to selected evidence</a>
 <header><h1><img class="brand-icon" src="${inspectionProductIcon}" alt="" width="32" height="32">Hapsland inspection</h1><div class="header-actions"><p id="status" role="status">Connecting…</p><span id="recording-summary">Recording: Unknown</span></div></header>
-<div class="toolbar"><label class="search">Search edits<input id="filter" type="search" placeholder="Path, project or runtime"></label><div id="filter-panel"><div class="identity-filters"><label>Project<span id="root-filter-count" class="muted"> · 0</span><select id="root-filter"><option value="">All</option></select></label><label>Runtime<span id="runtime-filter-count" class="muted"> · 0</span><select id="runtime-filter"><option value="">All</option></select></label><label>Session<span id="session-filter-count" class="muted"> · 0</span><select id="session-filter"><option value="">All</option></select></label><label>Child<span id="child-filter-count" class="muted"> · 0</span><select id="child-filter"><option value="">All</option></select></label><label>Resident<span id="resident-filter-count" class="muted"> · 0</span><select id="resident-filter"><option value="">All</option></select></label><label class="checkbox-filter"><input id="hide-unreviewed" type="checkbox"${defaultInspectionFilters.hideUnreviewed ? " checked" : ""}>Hide edits without retained requests</label><button id="clear-filters" type="button">Clear filters</button></div></div></div>
-<main><section class="edit-list" aria-label="Captured edits"><p id="visible-count" class="muted" role="status"></p><p id="call-summary" class="muted"></p><p class="muted">Last captured event: <time id="last-event">No retained events</time><br>Last received edit: <time id="last-edit">No retained events</time><small>Across all retained activity, including hidden edits.</small></p><ul id="edits"></ul></section><section id="selected-evidence" aria-label="Selected evidence"><p id="selection-status" role="status"></p><p id="edit-empty" class="empty">Select an edit</p><div id="edit-content" hidden><h2 id="edit-title"></h2><p id="edit-context" class="muted"></p><section id="review"><h3>Review</h3><div id="routes"></div><div id="finding-summary"></div></section>
-<details id="panel-request"><summary id="request-panel-summary">Request</summary><p class="muted">Captured HTTP attempts do not confirm remote receipt.</p><ul id="requests"></ul><div id="request-view"></div><details id="request-raw"><summary>JSON</summary><pre id="exact"></pre></details><details><summary>Request metadata</summary><pre id="request-metadata"></pre></details><details><summary>Model input</summary><pre id="input"></pre></details></details>
-<details id="panel-files"><summary>Files</summary><div id="files"></div><details><summary>Included source</summary><pre id="source"></pre></details></details>
-<details id="panel-handoffs" open><summary id="handoff-panel-summary">To agent</summary><p id="handoff-note" class="muted" hidden>The resident message before runtime formatting. Preparation does not confirm agent receipt.</p><ul id="handoffs"></ul><p id="handoff-recipient" class="muted" hidden></p><div id="handoff-edits"></div><p id="handoff-output-status"></p><pre id="handoff-message" hidden></pre><details id="handoff-metadata" hidden><summary>Message metadata</summary><pre id="handoff-summary"></pre></details></details>
-<details id="panel-evidence"><summary>Debug</summary><details id="finding-history-panel" hidden><summary id="finding-history-title">Finding history</summary><p class="muted">Finding status changes.</p><ol id="finding-history" class="observation-list"></ol></details><details><summary>Answers &amp; rules</summary><pre id="results"></pre></details><details><summary>Raw</summary><pre id="detail"></pre></details></details></div></section></main>
+<div class="toolbar"><div class="search"><label>Search edits<input id="filter" type="search" placeholder="Path, project or runtime"></label><label class="outcome-filter">Recorded result<select id="outcome-filter"><option value="">All results</option><option value="findings">Findings recorded</option><option value="failed">Review failed</option><option value="pending">Review pending</option><option value="clear">Completed · no findings recorded</option></select></label></div><div id="filter-panel"><div class="identity-filters"><label>Project<span id="root-filter-count" class="muted"> · 0</span><select id="root-filter"><option value="">All</option></select></label><label>Runtime<span id="runtime-filter-count" class="muted"> · 0</span><select id="runtime-filter"><option value="">All</option></select></label><details class="advanced-filters"><summary id="advanced-filter-summary">Session, child &amp; resident</summary><div class="identity-filters"><label>Session<span id="session-filter-count" class="muted"> · 0</span><select id="session-filter"><option value="">All</option></select></label><label>Child<span id="child-filter-count" class="muted"> · 0</span><select id="child-filter"><option value="">All</option></select></label><label>Resident<span id="resident-filter-count" class="muted"> · 0</span><select id="resident-filter"><option value="">All</option></select></label></div></details><label class="checkbox-filter"><input id="hide-unreviewed" type="checkbox"${defaultInspectionFilters.hideUnreviewed ? " checked" : ""}>Hide edits without retained requests</label><button id="clear-filters" type="button">Clear filters</button></div></div></div>
+<main><section class="edit-list" aria-label="Captured edits"><p id="visible-count" class="muted" role="status"></p><p id="call-summary" class="muted"></p><div class="list-recovery"><button id="show-unreviewed" type="button" hidden>Show edits without requests</button><button id="recover-filters" type="button" hidden>Show all retained edits</button></div><p class="muted">Last captured event: <time id="last-event">No retained events</time><br>Last received edit: <time id="last-edit">No retained events</time><small>Across all retained activity, including hidden edits.</small></p><ul id="edits"></ul></section><section id="selected-evidence" tabindex="-1" aria-label="Selected evidence"><p id="selection-status" role="status"></p><div id="edit-empty" class="empty"><h2 id="empty-title">Connecting to local history</h2><p id="empty-description">Retained edits will appear here when history is available.</p><div id="recording-guide" hidden><ol><li>Merge <code>"sessionInspection": true</code> into your repository’s <code>.hapsland.jsonc</code>, preserving existing settings.</li><li>Make a new supported edit through your installed agent integration.</li><li>Select the captured edit here to inspect its review.</li></ol><p class="muted">Recording contains source and review messages. Earlier edits are not backfilled.</p><a href="https://github.com/dearlordylord/hapsland/blob/master/docs/status.md#opt-in-local-inspection" target="_blank" rel="noreferrer">Recording and inspection guide ↗</a></div></div><div id="edit-content" hidden><h2 id="edit-title"></h2><p id="edit-context" class="muted"></p><div id="selected-badges" class="edit-badges" aria-label="Recorded review summary"></div><nav class="evidence-navigation" aria-label="Inspect selected edit"><button type="button" data-panel="panel-request">Code &amp; request</button><button type="button" data-panel="panel-files">File selection</button><button type="button" data-panel="panel-handoffs">Message to agent</button><button type="button" data-panel="panel-evidence">Answers &amp; history</button></nav><section id="review"><h3>Recorded review</h3><div id="routes"></div><div id="finding-summary"></div></section>
+<details id="panel-request"><summary id="request-panel-summary">Request</summary><p class="muted">Captured HTTP attempts do not confirm remote receipt.</p><ul id="requests"></ul><div id="request-view"></div><details id="request-raw"><summary>JSON</summary><pre tabindex="0" id="exact"></pre></details><details><summary>Request metadata</summary><pre tabindex="0" id="request-metadata"></pre></details><details><summary>Model input</summary><pre tabindex="0" id="input"></pre></details></details>
+<details id="panel-files"><summary>Files</summary><div id="files"></div><details><summary>Included source</summary><pre tabindex="0" id="source"></pre></details></details>
+<details id="panel-handoffs" open><summary id="handoff-panel-summary">To agent</summary><p id="handoff-note" class="muted" hidden>The resident message before runtime formatting. Preparation does not confirm agent receipt.</p><ul id="handoffs"></ul><p id="handoff-recipient" class="muted" hidden></p><div id="handoff-edits"></div><p id="handoff-output-status"></p><pre tabindex="0" id="handoff-message" hidden></pre><details id="handoff-metadata" hidden><summary>Message metadata</summary><pre tabindex="0" id="handoff-summary"></pre></details></details>
+<details id="panel-evidence"><summary>Debug</summary><details id="finding-history-panel" hidden><summary id="finding-history-title">Finding history</summary><p class="muted">Finding status changes.</p><ol id="finding-history" class="observation-list"></ol></details><details><summary>Answers &amp; rules</summary><pre tabindex="0" id="results"></pre></details><details><summary>Raw</summary><pre tabindex="0" id="detail"></pre></details></details></div></section></main>
 <script>${script}</script></body></html>`

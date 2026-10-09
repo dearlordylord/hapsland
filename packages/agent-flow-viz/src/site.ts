@@ -457,9 +457,17 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
               h.span([h.Class("brand-period")], ["."])
             ]
           ),
-          h.a(
-            [h.Href(REPOSITORY), h.Class("github-link"), h.AriaLabel("Hapsland repository on GitHub")],
-            [h.img([h.Src(githubIcon), h.Alt(""), h.Width("24"), h.Height("24")])]
+          h.nav(
+            [h.AriaLabel("Main navigation")],
+            [
+              h.a([h.Href("#review-example")], ["See an example"]),
+              h.a([h.Href("#control")], ["Your controls"]),
+              h.a([h.Href("#setup"), h.Class("nav-setup")], ["Get started"]),
+              h.a(
+                [h.Href(REPOSITORY), h.Class("github-link"), h.AriaLabel("Hapsland repository on GitHub")],
+                [h.img([h.Src(githubIcon), h.Alt(""), h.Width("24"), h.Height("24")])]
+              )
+            ]
           )
         ]
       ),
@@ -480,17 +488,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
               h.p(
                 [h.Class("hero-intro")],
                 [
-                  "Hapsland expands the agent’s edit diff into changed types, functions, and their related definitions. That gives the review model much richer code context than the diff alone. Your rules are evaluated by ",
-                  h.span([h.Class("blazingly")], ["BLAZINGLY"]),
-                  " fast classifiers such as Jev, so feedback can arrive before more changes build on the decision. ",
-                  h.strong(
-                    [],
-                    [
-                      "Early feedback lets the agent reconsider a data or code decision before building more changes on that ",
-                      h.span([h.Class("necromantic")], ["false"]),
-                      " assumption. The agent decides how to respond."
-                    ]
-                  )
+                  "Catch questionable data and code decisions while your coding agent is still working. Hapsland reviews changed types and functions against your rules and prepares feedback for the agent. ",
+                  h.strong([], ["The agent decides how to respond."])
                 ]
               ),
               h.div(
@@ -513,6 +512,54 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
             ]
           ),
           hero(model, h)
+        ]
+      ),
+      h.section(
+        [h.Class("section review-workflow"), h.AriaLabel("How review works")],
+        [
+          h.p([h.Class("eyebrow")], ["FROM EDIT TO FEEDBACK"]),
+          h.h2([], ["Review the decision before more code depends on it."]),
+          h.ol(
+            [h.Class("workflow-steps")],
+            [
+              h.li(
+                [],
+                [
+                  h.span([h.Class("step-number"), h.AriaHidden(true)], ["01"]),
+                  h.h3([], ["Your agent makes an edit"]),
+                  h.p([], ["Hapsland selects eligible changed declarations using your file settings."])
+                ]
+              ),
+              h.li(
+                [],
+                [
+                  h.span([h.Class("step-number"), h.AriaHidden(true)], ["02"]),
+                  h.h3([], ["Your rules get code context"]),
+                  h.p(
+                    [],
+                    ["Related definitions enrich the diff. Jev classifies the supplied code against your questions."]
+                  )
+                ]
+              ),
+              h.li(
+                [],
+                [
+                  h.span([h.Class("step-number"), h.AriaHidden(true)], ["03"]),
+                  h.h3([], ["Your agent gets feedback"]),
+                  h.p(
+                    [],
+                    [
+                      "Hapsland prepares a message from the result and your settings, so the agent can reconsider its approach."
+                    ]
+                  )
+                ]
+              )
+            ]
+          ),
+          h.p(
+            [h.Class("fine-print")],
+            ["An example illustrates the flow. No feedback does not establish that every rule ran or passed."]
+          )
         ]
       ),
       h.section(
@@ -579,15 +626,26 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           h.div(
             [h.Class("download-strip")],
             [
-              h.a([h.Href(DOWNLOADS), h.Class("download-link")], ["Download a ready-made package ↗"]),
+              h.div(
+                [],
+                [
+                  h.h3([], ["1. Install Hapsland"]),
+                  h.a([h.Href(DOWNLOADS), h.Class("download-link")], ["Download a ready-made package ↗"])
+                ]
+              ),
               h.p([], ["macOS arm64 · Linux arm64 · Archives and checksums"])
             ]
           ),
           h.div(
             [h.Class("agent-setup")],
             [
-              h.h3([], ["Ask your agent to set it up"]),
-              h.p([], ["Copy this instruction into your agent’s conversation."]),
+              h.h3([], ["2. Set up your agent"]),
+              h.p(
+                [],
+                [
+                  "Copy this instruction into your agent’s conversation. Setup previews hook changes and asks before applying them."
+                ]
+              ),
               copyButton(model, h, "instruction", "Copy instruction"),
               h.pre([h.Class("agent-instruction")], [h.code([], [SETUP_COPY.instruction])])
             ]
@@ -628,7 +686,29 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
             [h.Href(guide("installation-workflows")), h.Class("text-link")],
             ["Installation details and development builds ↗"]
           ),
-          h.a([h.Href(guide("status")), h.Class("text-link")], ["Check review activity ↗"])
+          h.div(
+            [h.Class("verify-setup")],
+            [
+              h.h3([], ["3. Check a new edit"]),
+              h.p(
+                [],
+                [
+                  "Restart the selected agent and complete its trust prompts. To inspect a review, enable local recording, make a new supported edit, then run:"
+                ]
+              ),
+              h.pre([], [h.code([], ["hapsland dashboard"])]),
+              h.p(
+                [h.Class("fine-print")],
+                [
+                  "Recording is opt-in and contains source code and review messages. It does not backfill earlier edits. Opening the dashboard does not enable it."
+                ]
+              ),
+              h.a(
+                [h.Href(`${guide("status")}#opt-in-local-inspection`), h.Class("text-link")],
+                ["Enable recording and inspect a review ↗"]
+              )
+            ]
+          )
         ]
       ),
       h.footer(

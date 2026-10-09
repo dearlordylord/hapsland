@@ -36,6 +36,16 @@ Run `npm run dev` in this package and open `/site.html` for the FoldKit public
 site, or `/index.html` for the full dashboard. `npm run build` emits both entries
 with relative asset paths. Building is separate from deploying either page.
 
+The dashboard's entry cards describe four tasks: resident simulation, guided
+replay, import exploration and timing comparison. For a first walkthrough,
+choose **Guided replay**, select a scenario and apply its next event. In the
+resident simulator, start a run, select an advicee and inspect a stage or an
+event. Its inspection navigation jumps to the stage inspector, event history
+and scenario settings. The selected event and its recorded facts precede the
+settings disclosure; changing a live setting does not rewrite historical facts.
+These are development examples with synthetic observations, separate from the
+local inspection dashboard and its recorded agent sessions.
+
 `npm run build:pages` prepares the Cloudflare Pages bundle: the public site at
 `/`, the dashboard at `/dashboard.html`, and favicons at the root. The existing
 `/site.html` address redirects to `/`. `npm run deploy:pages` builds and publishes
@@ -92,8 +102,11 @@ the current circular composition.
 
 The hero highlights the latest platform download beside the agent setup link,
 with an always-visible, copyable Homebrew command directly below.
-The setup section highlights ready-made archives immediately above the copyable
-agent instruction, with the manual setup command in a disclosure. Text is owned by `../agent-flow-projection/src/setup-copy.ts`.
+The setup section follows installation, agent setup and checking a new edit.
+It highlights ready-made archives above the copyable agent instruction, with
+the manual setup command in a disclosure. The final step links to opt-in local
+recording and the inspection dashboard; recording contains source and does not
+backfill older edits. Text is owned by `../agent-flow-projection/src/setup-copy.ts`.
 The agent instruction also generates marked sections in the root README and
 installation guide through `npm run docs:generate`; `docs:generated:check` rejects drift.
 FoldKit commands call `src/site-clipboard.ts`. Secure origins use Clipboard API,

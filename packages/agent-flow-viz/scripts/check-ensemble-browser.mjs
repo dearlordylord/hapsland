@@ -245,7 +245,7 @@ try {
   await click("Return to latest")
   assert.equal(await ensemble.locator(".shared-resident").textContent(), finalResourceText)
   await ensemble.screenshot({ path: "/tmp/hapsland-ensemble-three.png" })
-  await click("Focus selected agent")
+  await click("Focus selected advicee")
   assert.equal(await ensemble.locator(".ensemble-layer").count(), 1)
   assert.equal(await ensemble.locator('.topology-node[role="button"]').count(), 14)
   await ensemble.getByRole("button", { name: "Inspect Ready advice", exact: true }).click()
@@ -269,7 +269,7 @@ try {
   assert.ok(fit, "six-agent default camera should fit all layers")
   await ensemble.screenshot({ path: "/tmp/hapsland-ensemble-six.png" })
   await page.setViewportSize({ width: 390, height: 844 })
-  await click("Focus selected agent")
+  await click("Focus selected advicee")
   assert.ok(await ensemble.getByRole("button", { name: "Select advicee 6", exact: true }).isVisible())
   assert.equal(
     await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
@@ -312,7 +312,7 @@ try {
   if (await ensemble.evaluate((element) => element.classList.contains("is-flat"))) await click("3D layers")
   // Several agents transition in one playback batch. The final event alone
   // must not erase activity from the other agents before the browser paints.
-  await page.getByLabel("Agent count", { exact: true }).fill("3")
+  await page.getByLabel("Advicee count", { exact: true }).fill("3")
   await click("Start resident")
   await inspector.getByLabel("Playback speed (virtual ms / wall ms)", { exact: true }).fill("100")
   await click("Apply playback speed")

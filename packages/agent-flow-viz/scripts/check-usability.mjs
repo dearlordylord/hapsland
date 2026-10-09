@@ -12,6 +12,21 @@ try {
   page.on("pageerror", (error) => errors.push(error.message))
   await page.goto(server.resolvedUrls.local[0])
   await page.locator(".simulation-file-trees summary").waitFor()
+  assert.equal(
+    await page
+      .locator("#resident-scenario-settings")
+      .evaluate((settings) =>
+        Boolean(
+          document.querySelector("#resident-event-history").compareDocumentPosition(settings) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+        )
+      ),
+    true,
+    "event evidence precedes scenario settings"
+  )
+  await page.getByRole("link", { name: "Inspect a stage", exact: true }).focus()
+  await page.keyboard.press("Enter")
+  assert.equal(await page.evaluate(() => document.activeElement?.id), "resident-stage-inspector")
   const summaries = page.locator("summary")
   const count = await summaries.count()
   assert.ok(count >= 12, "audit disclosures across the simulator, replay, diagram and import example")
