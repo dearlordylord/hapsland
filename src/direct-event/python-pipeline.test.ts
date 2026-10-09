@@ -448,7 +448,12 @@ describe("Python same-file shipped review", () => {
         "dataclass += helper",
         "ignored = dataclass = helper",
         "ignored = lambda value=(dataclass := helper): value",
-        "del dataclass"
+        "del dataclass",
+        "match helper:\n    case dataclass:\n        pass",
+        "match helper:\n    case [*dataclass]:\n        pass",
+        "match helper:\n    case Some() as dataclass:\n        pass",
+        "with helper as dataclass:\n    pass",
+        "try:\n    pass\nexcept Exception as dataclass:\n    pass"
       ]) {
         yield* Effect.promise(() =>
           put(root, "model.py", `from dataclasses import dataclass\n${rebinding}\n@dataclass\nclass Empty:\n    pass\n`)
@@ -547,6 +552,43 @@ describe("Python same-file shipped review", () => {
     ).toMatchObject({
       status: "analyzed",
       units: [expect.objectContaining({ status: "ready" }), expect.objectContaining({ status: "ready" })]
+    })
+  })
+  it("class compound bindings cannot establish builtin type evidence", () => {
+    for (const statement of [
+      "for str in [1]:\n        pass",
+      "match helper:\n        case str:\n            pass",
+      "with helper as str:\n        pass",
+      "try:\n        pass\n    except Exception as str:\n        pass"
+    ])
+      expect(
+        analyzeTypeFile("model.py", `class Model:\n    ${statement}\n    value: str\nclass Good:\n    id: str\n`)
+      ).toMatchObject({
+        status: "analyzed",
+        units: [expect.objectContaining({ status: "unsupported" }), expect.objectContaining({ status: "ready" })]
+      })
+  })
+  it("Literal signed operands require actual integers rather than executable behavior", () => {
+    for (const value of ["-make_code()", "+Foreign", "~1", 'f"{make_code()}"'])
+      expect(
+        analyzeTypeFile(
+          "model.py",
+          `from typing import Literal, TypeAlias\nfrom external import make_code, Foreign\nCode: TypeAlias = Literal[${value}]\nclass Good:\n    id: str\n`
+        )
+      ).toMatchObject({
+        status: "analyzed",
+        units: [expect.objectContaining({ status: "unsupported" }), expect.objectContaining({ status: "ready" })]
+      })
+    expect(
+      analyzeTypeFile("model.py", "from typing import Literal, TypeAlias\nCode: TypeAlias = Literal[-1, +0xFF]\n")
+    ).toMatchObject({ status: "analyzed", units: [expect.objectContaining({ status: "ready" })] })
+  })
+  it("interpolated defaults remain opaque executable behavior", () => {
+    expect(
+      analyzeTypeFile("model.py", 'class Model:\n    value: str = f"{helper()}"\nclass Good:\n    id: str\n')
+    ).toMatchObject({
+      status: "analyzed",
+      units: [expect.objectContaining({ status: "unsupported" }), expect.objectContaining({ status: "ready" })]
     })
   })
   it("does not recognize shadowed markers or infer fields from methods", () => {

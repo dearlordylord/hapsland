@@ -74,6 +74,22 @@ const scopeBindings = (node: SyntaxNode): Binding[] =>
       const name = boundName(child)
       return name === undefined ? [] : [{ name }]
     }
+    if (child.type === "for_statement") {
+      const target = child.childForFieldName("left")
+      return target === null ? [] : targetNames(target).map((name) => ({ name }))
+    }
+    if (child.type === "as_pattern") {
+      const target =
+        child.childForFieldName("alias") ??
+        (child.parent?.type === "case_pattern" ? child.namedChildren.at(-1) : undefined)
+      return target === null || target === undefined ? [] : targetNames(target).map((name) => ({ name }))
+    }
+    if (child.type === "splat_pattern") return child.namedChildren.flatMap(targetNames).map((name) => ({ name }))
+    if (child.type === "case_pattern" && child.namedChildren.length === 1) {
+      const pattern = child.namedChildren[0]
+      if (pattern?.type === "dotted_name" && pattern.namedChildren.length === 1)
+        return [{ name: pattern.namedChildren[0]!.text }]
+    }
     if (["assignment", "augmented_assignment", "named_expression"].includes(child.type)) {
       const target = child.childForFieldName(child.type === "named_expression" ? "name" : "left")
       return target === null ? [] : targetNames(target).map((name) => ({ name }))
@@ -179,7 +195,14 @@ const references = (node: SyntaxNode, scope: Scope): GraphReference[] => {
       .flatMap((child) => (child.type === "type_parameter" ? child.namedChildren : [child]))
       .map((child) => (child.type === "type" && child.namedChildren.length === 1 ? child.namedChildren[0]! : child))
     if (typingMarker(identity, "Literal"))
-      return args.every((arg) => ["string", "integer", "true", "false", "none", "unary_operator"].includes(arg.type))
+      return args.every(
+        (arg) =>
+          (arg.type === "string" && staticValue(arg)) ||
+          ["integer", "true", "false", "none"].includes(arg.type) ||
+          (arg.type === "unary_operator" &&
+            /^[+-]/u.test(arg.text) &&
+            arg.childForFieldName("argument")?.type === "integer")
+      )
         ? []
         : [{ kind: "unsupported", name: "Literal" }]
     if (typingMarker(identity, "Annotated")) {
@@ -193,7 +216,8 @@ const references = (node: SyntaxNode, scope: Scope): GraphReference[] => {
   return [{ kind: "unsupported", name: "annotation" }]
 }
 const staticValue = (node: SyntaxNode): boolean =>
-  ["string", "integer", "float", "true", "false", "none"].includes(node.type) ||
+  (node.type === "string" && !node.namedChildren.some((child) => child.type === "interpolation")) ||
+  ["integer", "float", "true", "false", "none"].includes(node.type) ||
   (["list", "tuple", "dictionary", "pair", "unary_operator"].includes(node.type) &&
     node.namedChildren.every(staticValue))
 const metadataReferences = (node: SyntaxNode, scope: Scope): GraphReference[] => {
