@@ -2,7 +2,7 @@ import { execFileSync, spawnSync } from "node:child_process"
 import { writeFileSync } from "node:fs"
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { mkdtemp, mkdir, writeFile, readFile, rm, chmod, symlink } from "node:fs/promises"
+import { mkdtemp, mkdir, writeFile, readFile, rm, chmod, symlink, realpath } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -11,7 +11,7 @@ import { withBuildLock } from "../build-lock.mjs"
 import { workspaceCompilationReason } from "./inventory.mjs"
 
 async function fixture(t) {
-  const root = await mkdtemp(join(tmpdir(), "hapsland-checks-"))
+  const root = await realpath(await mkdtemp(join(tmpdir(), "hapsland-checks-")))
   t.after(() => rm(root, { recursive: true, force: true }))
   await mkdir(join(root, "scripts/test-harness"), { recursive: true })
   for (const file of [
@@ -19,7 +19,8 @@ async function fixture(t) {
     "immediate-errors.test.mjs",
     "verification-plan.test.mjs",
     "verify.test.mjs",
-    "check-complexity.test.mjs"
+    "check-complexity.test.mjs",
+    "standalone-environment.test.mjs"
   ])
     await writeFile(join(root, "scripts/test-harness", file), "// Passing prerequisite fixture\n")
   await writeFile(join(root, "scripts/test-harness/check-complexity.mjs"), "process.exit(0)\n")

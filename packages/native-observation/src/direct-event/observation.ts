@@ -6,6 +6,10 @@ export type CodexHostVersion = string
 export const isCodexHostVersion = (value: unknown): value is CodexHostVersion =>
   typeof value === "string" && /^\d+\.\d+\.\d+$/.test(value)
 
+export type ClaudeHostVersion = string
+export const isClaudeHostVersion = (value: unknown): value is ClaudeHostVersion =>
+  typeof value === "string" && /^\d+\.\d+\.\d+$/.test(value)
+
 export type DirectAdvicee =
   | {
       readonly host: "codex-cli"
@@ -17,9 +21,9 @@ export type DirectAdvicee =
     }
   | {
       readonly host: "claude-code"
-      readonly hostVersion: "2.1.218"
+      readonly hostVersion: ClaudeHostVersion
       readonly sessionId: string
-      /** Claude 2.1.218 PostToolUse does not provide a turn identifier. */
+      /** Claude PostToolUse does not provide a turn identifier. */
       readonly turnId: null
       readonly toolUseId: string
       /** Preserve a supplied subagent identity; main-thread hooks may omit it. */

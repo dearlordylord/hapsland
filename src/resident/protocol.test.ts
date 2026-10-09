@@ -82,6 +82,19 @@ describe("resident protocol bounds", () => {
     expect(wire).not.toHaveProperty("requestRoute")
     expect(wire).not.toHaveProperty("ticket")
     expect(decodeCurrentResidentRequest(JSON.stringify(wire))).toEqual(request)
+    for (const hostVersion of ["2.1.293", "3.0.0"]) {
+      const updated = { ...request, observation: { ...observation, advicee: { ...observation.advicee, hostVersion } } }
+      expect(decodeCurrentResidentRequest(encodeCurrentResidentRequest(updated))).toEqual(updated)
+    }
+    expect(
+      decodeCurrentResidentRequest(
+        JSON.stringify({
+          ...wire,
+          observation: { ...observation, advicee: { ...observation.advicee, hostVersion: "invalid" } }
+        })
+      )
+    ).toBeUndefined()
+
     expect(decodeCurrentResidentRequest(encodeCurrentResidentRequest(lifecycle))).toEqual(lifecycle)
     for (const waitMs of [-1, 3_901, 1.5, null]) {
       expect(decodeCurrentResidentRequest(JSON.stringify({ ...wire, waitMs }))).toBeUndefined()

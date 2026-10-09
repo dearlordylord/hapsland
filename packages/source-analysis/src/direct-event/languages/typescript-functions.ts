@@ -307,6 +307,17 @@ const importModule = (node: SyntaxNode): string | undefined =>
   node.namedChildren
     .find((child) => child.type === "string")
     ?.namedChildren.find((child) => child.type === "string_fragment")?.text
+const collectNamespaceImport = (
+  node: SyntaxNode,
+  namespace: SyntaxNode,
+  module: string,
+  imports: Map<string, ImportBinding>
+): boolean => {
+  const local = declarationName(namespace, "identifier")
+  if (local === undefined || imports.has(local)) return false
+  imports.set(local, { path: module, name: "*", typeOnly: /^import\s+type\b/u.test(node.text) })
+  return true
+}
 const collectImportSpecifiers = (
   node: SyntaxNode,
   clause: SyntaxNode,
@@ -314,11 +325,7 @@ const collectImportSpecifiers = (
   imports: Map<string, ImportBinding>
 ): boolean => {
   const namespace = clause.namedChildren.find((child) => child.type === "namespace_import")
-  if (namespace !== undefined) {
-    const local = declarationName(namespace, "identifier")
-    if (local === undefined || imports.has(local)) return false
-    imports.set(local, { path: module, name: "*", typeOnly: /^import\s+type\b/u.test(node.text) })
-  }
+  if (namespace !== undefined && !collectNamespaceImport(node, namespace, module, imports)) return false
   for (const specifier of descendants(clause).filter((child) => child.type === "import_specifier")) {
     const names = specifier.namedChildren.filter((child) => child.type === "identifier")
     const imported = names[0]?.text
@@ -360,25 +367,29 @@ type CallableDeclaration = {
   readonly callable: SyntaxNode
   readonly declaration: SyntaxNode
 }
+const effectImportBinding = (binding: ImportBinding | undefined): boolean => {
+  if (binding === undefined || binding.typeOnly) return false
+  return (
+    (binding.path === "effect" && binding.name === "Effect") ||
+    (binding.path === "effect/Effect" && binding.name === "*")
+  )
+}
+const effectWrapperLabel = (callee: SyntaxNode, method: string): boolean => {
+  const labels = callee.childForFieldName("arguments")?.namedChildren
+  return method === "fn" && labels?.length === 1 && labels[0]?.type === "string"
+}
+const effectWrapperMethod = (method: string | undefined): method is string => method === "fn" || method === "fnUntraced"
 const effectWrapper = (callee: SyntaxNode, imports: ReadonlyMap<string, ImportBinding>): boolean => {
   if (callee.namedChildren.some((child) => child.type === "type_arguments")) return false
   const selected = callee.type === "call_expression" ? callee.childForFieldName("function") : callee
   if (selected?.type !== "member_expression") return false
   const object = selected.childForFieldName("object")
   const method = selected.childForFieldName("property")?.text
-  if (object?.type !== "identifier" || (method !== "fn" && method !== "fnUntraced")) return false
+  if (object?.type !== "identifier" || !effectWrapperMethod(method)) return false
   const binding = imports.get(object.text)
-  if (binding?.typeOnly || binding === undefined) return false
-  if (
-    !(
-      (binding.path === "effect" && binding.name === "Effect") ||
-      (binding.path === "effect/Effect" && binding.name === "*")
-    )
-  )
-    return false
+  if (!effectImportBinding(binding)) return false
   if (callee.type !== "call_expression") return true
-  const labels = callee.childForFieldName("arguments")?.namedChildren
-  return method === "fn" && labels?.length === 1 && labels[0]?.type === "string"
+  return effectWrapperLabel(callee, method)
 }
 const callableValue = (value: SyntaxNode, imports: ReadonlyMap<string, ImportBinding>): SyntaxNode | undefined => {
   if (value.type === "arrow_function") return value
@@ -386,7 +397,7 @@ const callableValue = (value: SyntaxNode, imports: ReadonlyMap<string, ImportBin
     return undefined
   const callee = value.childForFieldName("function")
   const args = value.childForFieldName("arguments")?.namedChildren
-  if (callee === null || callee === undefined || !effectWrapper(callee, imports) || args?.length !== 1) return undefined
+  if (callee == null || !effectWrapper(callee, imports) || args?.length !== 1) return undefined
   const body = args[0]!
   return ["arrow_function", "function_expression", "generator_function"].includes(body.type) ? body : undefined
 }
@@ -540,17 +551,20 @@ const collectTypeFact = (
   })
   return true
 }
+const collectOverloadExclusion = (node: SyntaxNode, state: FunctionAnalysisState): void => {
+  const name = declarationName(node, "identifier")
+  if (name === undefined) return
+  state.excludedFunctions.set(name, {
+    reason: "function-overload",
+    location: {
+      start: state.excludedFunctions.get(name)?.location.start ?? exportSource(node).location.start,
+      end: exportSource(node).location.end
+    }
+  })
+}
 const collectCallableExclusions = (node: SyntaxNode, state: FunctionAnalysisState): void => {
   if (node.type === "function_signature") {
-    const name = declarationName(node, "identifier")
-    if (name !== undefined)
-      state.excludedFunctions.set(name, {
-        reason: "function-overload",
-        location: {
-          start: state.excludedFunctions.get(name)?.location.start ?? exportSource(node).location.start,
-          end: exportSource(node).location.end
-        }
-      })
+    collectOverloadExclusion(node, state)
     return
   }
   if (node.type !== "lexical_declaration" && node.type !== "variable_declaration") return

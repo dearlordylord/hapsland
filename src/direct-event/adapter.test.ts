@@ -52,12 +52,20 @@ describe("direct-event Codex Add adapter", () => {
           agent_id: "child"
         },
         "claude-code",
-        "PostToolUse"
+        "PostToolUse",
+        undefined,
+        "2.1.293"
       )
     )
     expect(claude).toMatchObject({
       root,
-      advicee: { host: "claude-code", sessionId: "claude", toolUseId: "tool", subagentId: "child" }
+      advicee: {
+        host: "claude-code",
+        hostVersion: "2.1.293",
+        sessionId: "claude",
+        toolUseId: "tool",
+        subagentId: "child"
+      }
     })
     expect(
       await Effect.runPromise(

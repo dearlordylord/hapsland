@@ -8,6 +8,7 @@ import {
 import { ROUND_CLOSE_REASONS, type RoundCloseReason } from "@hapsland/activity-observation/activity/status"
 import {
   isCodexHostVersion,
+  isClaudeHostVersion,
   type NativeEditMetadata,
   type DirectObservation,
   type DirectAdvicee
@@ -282,7 +283,7 @@ const adviceeFields = { sessionId: BoundedString, toolUseId: BoundedString, suba
 const ClaudeAdvicee = Schema.Struct({
   ...adviceeFields,
   host: Schema.Literal("claude-code"),
-  hostVersion: Schema.Literal("2.1.218"),
+  hostVersion: BoundedString.check(Schema.makeFilter(isClaudeHostVersion)),
   turnId: Schema.Null
 })
 const Advicee = Schema.Union([

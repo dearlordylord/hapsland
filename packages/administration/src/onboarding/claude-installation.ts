@@ -9,6 +9,7 @@ import {
   observedRuntimeVersion,
   expectedRuntimeVersion
 } from "@hapsland/runtime-environment/runtime/package-runtime"
+import { isClaudeHostVersion } from "@hapsland/native-observation/direct-event/observation"
 import { Config, Effect, Schema } from "effect"
 import { execFileClosedStdin } from "@hapsland/runtime-environment/process/closed-stdin"
 import { createHash } from "node:crypto"
@@ -35,7 +36,7 @@ export class ClaudeInstallationError extends Schema.TaggedError<ClaudeInstallati
 
 const MARKER = "--review-tool-owned=claude-v1"
 const COMPOSED_MARKER = "--review-tool-composed-owned=claude-v1"
-const PROFILE = "2.1.218"
+const TESTED_VERSION = "2.1.218"
 const OWNERSHIP_VERSION = 1
 type JsonObject = Record<string, unknown>
 
@@ -196,11 +197,17 @@ const withComposedGroup = (
     label: "Claude"
   })
 
-const host = (observed: string) => ({
-  supported: observed === PROFILE || observed === `${PROFILE} (Claude Code)`,
-  observed,
-  required: `Claude Code ${PROFILE}`
-})
+const host = (observed: string) => {
+  const version = /^(\d+\.\d+\.\d+)(?: \(Claude Code\))?$/.exec(observed)?.[1] ?? "unavailable"
+  return {
+    supported: isClaudeHostVersion(version),
+    observed,
+    version,
+    tested: version === TESTED_VERSION,
+    testedVersions: [TESTED_VERSION],
+    required: "Claude Code with a stable semantic version"
+  }
+}
 
 const inputs = (
   request: ClaudeInstallationRequest,
@@ -220,7 +227,8 @@ const inputs = (
   const options = {
     command: binding?.command ?? commandTokens(runtime, entrypoint).map(quote).join(" "),
     editMarker: MARKER,
-    composedMarker: COMPOSED_MARKER
+    composedMarker: COMPOSED_MARKER,
+    versionFlag: `--claude-version=${host(observed).version}`
   }
   const group = commandHookGroup("claude", "PostToolUse", options)
   const command = group.hooks[0]!.command

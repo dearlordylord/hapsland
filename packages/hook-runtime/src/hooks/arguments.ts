@@ -16,6 +16,7 @@ export const hookArgumentFlags = {
   "controlled-writer": switchFlag("controlled-writer"),
   "review-tool-owned": valueFlag("review-tool-owned").pipe(Flag.withHidden),
   "review-tool-composed-owned": valueFlag("review-tool-composed-owned").pipe(Flag.withHidden),
+  "claude-version": valueFlag("claude-version").pipe(Flag.withHidden),
   "codex-version": valueFlag("codex-version").pipe(Flag.withHidden),
   "composed-host": Flag.Literals("composed-host", ["claude-code", "codex-cli"]).pipe(
     Flag.atMost(1),

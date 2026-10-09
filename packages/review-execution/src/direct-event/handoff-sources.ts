@@ -25,6 +25,24 @@ const dropCache = (remaining: number, aborted: boolean) => {
   return decision === "sourceCacheDrop"
 }
 
+const boundedCapturedSource = (
+  result: Extract<CaptureResult, { status: "captured" }>,
+  maximum: number
+): CaptureResult => {
+  if (result.capture.byteLength > maximum)
+    return {
+      status: "unavailable",
+      diagnostic: {
+        stage: "capture",
+        code: "capture-size-limit",
+        args: { observedBytes: result.capture.byteLength, limitBytes: maximum }
+      }
+    }
+  return result
+}
+const reuseCaptureResult = (result: CaptureResult, previousMaximum: number, maximum: number): boolean =>
+  result.status !== "unavailable" || result.diagnostic.code !== "capture-size-limit" || maximum <= previousMaximum
+
 /** The selected delivery is the source verification boundary. */
 export const checkHandoffSources = Effect.fn("DirectEvent.checkHandoffSources")(function* (
   members: readonly HandoffSourceMember[],
@@ -54,25 +72,8 @@ export const checkHandoffSources = Effect.fn("DirectEvent.checkHandoffSources")(
     const maximum = args[4] ?? MAX_SOURCE_BYTES
     const key = canonicalValue([args[0], args[3], args[1].relativePath])
     const cached = captures.get(key)
-    if (cached?.result.status === "captured") {
-      if (cached.result.capture.byteLength > maximum)
-        return {
-          status: "unavailable" as const,
-          diagnostic: {
-            stage: "capture" as const,
-            code: "capture-size-limit" as const,
-            args: { observedBytes: cached.result.capture.byteLength, limitBytes: maximum }
-          }
-        }
-      return cached.result
-    }
-    if (
-      cached !== undefined &&
-      (cached.result.status !== "unavailable" ||
-        cached.result.diagnostic.code !== "capture-size-limit" ||
-        maximum <= cached.maximum)
-    )
-      return cached.result
+    if (cached?.result.status === "captured") return boundedCapturedSource(cached.result, maximum)
+    if (cached !== undefined && reuseCaptureResult(cached.result, cached.maximum, maximum)) return cached.result
     const result = yield* (options.captureSource ?? captureStable)(...args)
     captures.set(key, { result, maximum })
     return result

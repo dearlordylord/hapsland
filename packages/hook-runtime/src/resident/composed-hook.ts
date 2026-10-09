@@ -139,6 +139,7 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
   readonly host: ComposedHookHost
   readonly event: unknown
   readonly codexVersion?: CodexHostVersion
+  readonly claudeVersion?: string
   readonly statePath: string
   readonly activityPath: string
   readonly userConfigPath?: string
@@ -173,7 +174,7 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
     if (event === undefined) return undefined
     const eventName = hookEventName(input.kind, event)
     const identity = yield* runtime
-      .identity(event, input.host, eventName, input.codexVersion)
+      .identity(event, input.host, eventName, input.codexVersion, input.claudeVersion)
       .pipe(Effect.catch(() => Effect.succeed(undefined)))
     if (identity === undefined) return undefined
     return { event, eventName, ...identity }

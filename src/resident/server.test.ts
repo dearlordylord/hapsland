@@ -1938,7 +1938,7 @@ describe("resident delivery lease", () => {
       ...claudeBase,
       advicee: {
         host: "claude-code" as const,
-        hostVersion: "2.1.218" as const,
+        hostVersion: "2.1.293" as const,
         sessionId: "claude-session",
         turnId: null,
         toolUseId: "claude-tool",
