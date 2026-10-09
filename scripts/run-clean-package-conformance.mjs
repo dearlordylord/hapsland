@@ -175,6 +175,10 @@ const installLocalPackageVariant = async ({ sourcePackage, temporary, version, r
     join(packageSource, "package-runtime.json"),
     `${JSON.stringify({ ...runtime, residentProtocol }, null, 2)}\n`
   )
+  // A semver-only repack is already current under implementation identity.
+  // Give the update fixture distinct hook bytes while preserving its behavior.
+  const hookPayload = join(packageSource, "dist/bin", `${process.platform}-${process.arch}`, "hapsland-hook.js")
+  await writeFile(hookPayload, `${await readFile(hookPayload, "utf8")}\n// conformance package ${version}\n`)
   // This is a repack of an installed artifact, which intentionally lacks the
   // TypeScript build inputs. The primary source package below runs prepack.
   await mustRun("npm", ["pack", "--ignore-scripts=true", "--pack-destination", artifacts], { cwd: packageSource })
@@ -192,7 +196,11 @@ const installLocalPackageVariant = async ({ sourcePackage, temporary, version, r
   }
 }
 
-const assertInstalledDedicatedHooks = (configuration, executable) => {
+const assertInstalledDedicatedHooks = async (configuration, executable, codexHome) => {
+  const launcher = join(codexHome, ".hapsland", "codex-hook-launcher.sh")
+  if ((await readFile(launcher, "utf8")) !== `#!/bin/sh\nexec ${quote(executable)} "$@"\n`)
+    throw new Error("installed hook launcher does not select the exact dedicated package command")
+  const prefix = `${quote("/bin/sh")} ${quote(launcher)} `
   const definitions = Object.values(commandHooks.codex)
   for (const event of new Set(definitions.map((definition) => definition.event))) {
     const owned = (configuration.hooks?.[event] ?? [])
@@ -202,23 +210,15 @@ const assertInstalledDedicatedHooks = (configuration, executable) => {
       )
     const expected = definitions.filter((definition) => definition.event === event)
     const expectedCount = expected.length
-    if (
-      owned.length !== expectedCount ||
-      owned.some(
-        (handler) =>
-          handler.type !== "command" ||
-          !handler.command.includes(quote(executable)) ||
-          !handler.command.includes("/hapsland-hook'")
-      )
-    ) {
-      throw new Error(`installed ${event} does not target the complete dedicated hook group from the selected package`)
-    }
+    if (owned.length !== expectedCount || owned.some((handler) => handler.type !== "command"))
+      throw new Error(`installed ${event} does not have the complete dedicated hook group`)
     for (const definition of expected) {
       const matches = owned.filter((handler) =>
         definition.flags.every((flag) => handler.command.split(" ").includes(flag))
       )
       if (
         matches.length !== 1 ||
+        !matches[0].command.startsWith(`${definition.exec ? "exec " : ""}${prefix}`) ||
         matches[0].timeout !== definition.timeout ||
         (matches[0].async === true) !== (definition.async === true)
       )
@@ -641,7 +641,7 @@ try {
 
   const launcherEnvironment = standaloneEnvironment(
     join(temporary, "standalone-path"),
-    process.env,
+    { ...process.env, HOME: join(temporary, "home") },
     executeRealCodex ? ["codex"] : []
   )
   const doctorRun = await mustRun(doctor, ["--json"], { cwd: temporary, env: launcherEnvironment })
@@ -1150,9 +1150,10 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   if (installResult.status !== "installed" || "sourceEgressAuthorized" in installResult) {
     throw new Error("packaged installation retained a retired repository grant field")
   }
-  assertInstalledDedicatedHooks(
+  await assertInstalledDedicatedHooks(
     parseJson(await readFile(join(codexHome, "hooks.json"), "utf8"), "installed registrations"),
-    ownedPreview.runtime.executable
+    ownedPreview.runtime.executable,
+    codexHome
   )
   const installedDoctorRun = await mustRun(cli, ["--doctor"], {
     cwd: temporary,
@@ -1209,11 +1210,11 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     updatePreview.status !== "preview" ||
     updatePreview.proposal?.current?.packageVersion !== installedManifest.version ||
     updatePreview.proposal?.target?.packageVersion !== targetPackage.version ||
-    updatePreview.restart?.required !== true ||
-    updatePreview.trust?.status !== "renewal-required" ||
+    updatePreview.restart?.required !== false ||
+    updatePreview.trust?.status !== "unchanged" ||
     updatePreview.trust?.modified !== false
   ) {
-    throw new Error("local package update preview did not expose runtime, hook, trust, and restart changes")
+    throw new Error("local package update preview did not preserve hook trust while selecting the target package")
   }
   const hooksBeforeUpdate = await readFile(join(codexHome, "hooks.json"), "utf8")
   const partialUpdateRun = await run(targetPackage.cli, ["--update"], {
@@ -1235,7 +1236,9 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     partialUpdate.recovery?.command?.request?.proposalDigest !== updatePreview.proposal.digest ||
     hooksAfterPartial !== hooksBeforeUpdate
   ) {
-    throw new Error("partial local package update did not retain the previous working hook and exact recovery request")
+    throw new Error(
+      `partial local package update mismatch: ${JSON.stringify({ code: partialUpdateRun.code, status: partialUpdate.status, recovery: partialUpdate.recovery, hooksUnchanged: hooksAfterPartial === hooksBeforeUpdate, expectedDigest: updatePreview.proposal.digest })}`
+    )
   }
   const updateRun = await mustRun(targetPackage.cli, ["--update"], {
     cwd: temporary,
@@ -1253,16 +1256,16 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   if (
     updateResult.status !== "updated" ||
     updateResult.resumed !== true ||
-    updateResult.restart?.required !== true ||
+    updateResult.restart?.required !== false ||
     updateResult.restart?.processesStopped !== false ||
-    !hooksAfterUpdate.includes(updatePreview.proposal.target.executable) ||
-    !hooksAfterUpdate.includes("/hapsland-hook")
+    hooksAfterUpdate !== hooksBeforeUpdate
   ) {
     throw new Error("compatible local package update did not complete from the target package")
   }
-  assertInstalledDedicatedHooks(
+  await assertInstalledDedicatedHooks(
     parseJson(hooksAfterUpdate, "updated installed registrations"),
-    updatePreview.proposal.target.executable
+    updatePreview.proposal.target.executable,
+    codexHome
   )
   activeCli = targetPackage.cli
   activeHook = targetPackage.hook
@@ -1342,12 +1345,13 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     { cwd: temporary, env: installedHostEnvironment }
   )
   const reusableOwner = parseJson(await readFile(join(runtime, "owner.json"), "utf8"), "ready resident owner")
-  const selectedResident = ownedResidents.get(runtime)[1].executable
+  // Runtime-hook updates preserve the independently selected shared resident.
+  const selectedResident = ownedResidents.get(runtime)[0].executable
   let residentExecutableIdentity = "unobserved-on-this-platform"
   if (process.platform === "linux") {
     const actualResident = await realpath(`/proc/${reusableOwner.pid}/exe`)
     if (actualResident !== (await realpath(selectedResident)))
-      throw new Error("ready resident is not executing the selected target release")
+      throw new Error("runtime-hook update replaced the independently selected resident")
     residentExecutableIdentity = "linux-proc-executable-path-and-sha256"
   }
   const selectedResidentSha256 = createHash("sha256")
@@ -1359,7 +1363,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
       .update(await readFile(`/proc/${reusableOwner.pid}/exe`))
       .digest("hex") !== selectedResidentSha256
   )
-    throw new Error("ready resident process executable bytes differ from the selected target release")
+    throw new Error("ready resident process executable bytes differ from the independently selected resident")
   const retainedStop = await mustRun(
     hook,
     ["--composed-stop-hook", "--composed-host=codex-cli", "--controlled-reviewer"],
@@ -1389,6 +1393,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   const retainedReleaseResidentReuse = {
     status: "passed",
     previousReleaseHook: true,
+    runtimeHookUpdatePreservedResident: true,
     unchangedPidAndLifetime: true,
     residentExecutableIdentity,
     residentSha256: selectedResidentSha256

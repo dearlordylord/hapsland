@@ -185,3 +185,54 @@ historical details in the records.
 
 Python same-file selection, marker forms, expression limits and shipped rule matrix
 are owned by the [Python amendment](type-function-review-proposal.md#python-same-file-explicit-model-amendment-267). Python performs no cross-file or system traversal.
+
+### Python qualification for parent #267
+
+The same-file Python slice has local implementation evidence from 2026-10-09.
+Keep this qualification current when its grammar, runtime, installed entrypoints,
+or model evidence contract changes; rerun the affected checks before extending it.
+The production-code candidate was `1d3d0f408ca9a0ecc0f5d1e53c7b6a221446b472`.
+Its reviewed Linux arm64 archive SHA-256 was
+`91ec7adc9b62f2e20073eb11eaee06c15eff3328305540334f3a6156a08c746b`.
+Subsequent runner corrections isolate HOME, check the stable hook launcher and
+catalog-defined `exec` prefixes, and exercise a distinct hook-payload update while
+preserving the independently selected resident, as required by the
+[update contract](update-context.md). They do not change installed product bytes.
+
+Executed evidence:
+
+- Twenty focused Python/profile tests passed: eight admitted root families with
+  the three shipped rules, exact root/support source at the controlled provider,
+  finding/clear/failure delivery, defining-edit selection, lexical shadows and
+  generic bounds, independent omissions, exclusions, budgets and stale advice.
+- The fast gate passed; 257 selected existing TS/Rust/Bend, attribution, renderer,
+  rule and format consumer tests passed. Ninety-five native packaging/loader/
+  assembly/distribution tooling tests passed. Documentation generation and
+  documentation checks passed. These are selected checks, not full-suite coverage.
+- The Linux arm64 build verified six native executable assets. Clean installed
+  conformance passed with Node 24.20.0 as harness and packaged Bun 1.3.14,
+  without Node/Bun on the installed PATH. It loaded Python same-file evidence,
+  preserved Rust/Bend preparation, and exercised installed hooks, controlled
+  advice, interrupted update recovery, resident reuse and scoped uninstall.
+- The installed controlled Python adoption scenario passed all eleven assertions
+  with Codex CLI 0.155.1, OpenAI `gpt-6-luna`, Python 3.11.2, Tree-sitter 0.25.1
+  and Python grammar 0.25.0. Six controlled review inputs comprised five added
+  classes and one repaired alias; support expanded at the provider boundary,
+  advice was delivered/quoted, the agent repaired the model, and follow-up was
+  clear. There were zero Jev requests. Python compilation and rejection of a
+  missing constructor argument establish only those exercised runtime boundaries.
+
+Earlier installed attempts failed because inherited HOME selected another
+installed resident and because conformance assumed obsolete direct hook command,
+semver-only update and coupled resident-update behavior. Retained failed fixture
+state was preserved; exact-command resident cleanup passed. Corrected runs passed
+with isolated homes and unchanged custody checks.
+
+Darwin execution and the full two-target archive remain unqualified here: the
+required Darwin arm64 native input bundle was unavailable on this Linux host.
+This evidence does not establish cross-file/system traversal, runtime framework
+validation, ordinary native trust onboarding, other hosts/platforms, or live
+classifier accuracy. Known grammar gaps remain explicit unsupported outcomes.
+No coverage study (#268) was performed. Integration with the parallel Go slice
+must retain both grammar pins/registrations/assets and additive loader/build
+policies, then rerun the affected shared and installed checks on the merged base.

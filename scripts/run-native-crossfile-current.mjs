@@ -563,6 +563,7 @@ globalThis.fetch=async (...args)=>{
     REVIEW_USER_CONFIG_PATH: config,
     ...(installedClaude || installedCodex
       ? {
+          HOME: join(temp, "installed-home"),
           REVIEW_STATE_PATH: join(temp, "setup-state"),
           REVIEW_CREDENTIAL_STATE_PATH: join(temp, "credential-state.json"),
           HAPSLAND_ACTIVE_DISPATCH: "1"
