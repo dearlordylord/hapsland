@@ -3,7 +3,7 @@ import { createHash } from "node:crypto"
 import { dirname, extname, join, normalize } from "node:path"
 import * as Effect from "effect/Effect"
 import { MAX_TYPE_DECLARATIONS, type GraphFile, type LanguageAdapter } from "../contracts.ts"
-import { bundledBendArtifact, bundledBendDeclarations } from "./bundled-evidence.ts"
+import { bundledBendArtifact, bundledBendDeclarations, isBundledBendArtifact } from "./bundled-evidence.ts"
 import { extractBendDeclarations } from "./extractor.ts"
 
 /** Normalize Bend surface facts without imposing another language's parser shape. */
@@ -62,6 +62,7 @@ export const bendAdapter: LanguageAdapter = {
   extensions: LANGUAGE_EXTENSIONS.bend,
   displayName: "Bend",
   probe: { path: "doctor.bend", source: "type DoctorProbe is Data:\n  DoctorProbe{}" },
+  isBundledArtifact: isBundledBendArtifact,
   parseTypes(path, source) {
     const parsed = parseBendDeclarations(path, source, MAX_TYPE_DECLARATIONS)
     return "reason" in parsed ? { status: "unsupported", reason: parsed.reason, units: [] } : parsed.declarations

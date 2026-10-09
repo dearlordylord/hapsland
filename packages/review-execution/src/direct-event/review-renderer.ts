@@ -4,7 +4,7 @@ import {
   bundledArtifactDomain,
   type BundledArtifactOrigin
 } from "@hapsland/source-artifacts/direct-event/artifact-model"
-import { isBundledBendArtifact } from "@hapsland/source-analysis/direct-event/languages/bend/bundled-evidence"
+import { isBundledArtifact } from "@hapsland/source-analysis/direct-event/languages/registry"
 import { canonicalValue } from "@hapsland/review-definition/direct-event/model"
 
 export const CANDIDATE_RENDERER_VERSION = "candidate-semantic-evidence/1"
@@ -114,7 +114,7 @@ const bundledWireArtifactValid = (item: Record<string, unknown>): boolean => {
     return false
   const typed = origin as BundledArtifactOrigin
   return (
-    isBundledBendArtifact({
+    isBundledArtifact({
       id: item.id as string,
       kind: item.kind as "datatype",
       name: item.name as string,

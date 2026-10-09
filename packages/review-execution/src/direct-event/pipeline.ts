@@ -1,5 +1,5 @@
 import { DEFAULT_REVIEW_BACKEND } from "@hapsland/runtime-environment/runtime/backend"
-import { languageForPath } from "@hapsland/source-analysis/direct-event/languages/registry"
+import { isBundledArtifact, languageForPath } from "@hapsland/source-analysis/direct-event/languages/registry"
 import { assertReviewEngineBoundary } from "@hapsland/runtime-environment/runtime/review-engine-boundary"
 import {
   toCodexDirectEventOutput,
@@ -65,7 +65,6 @@ import {
   type PathObservationOutcome
 } from "@hapsland/review-definition/direct-event/model"
 import { bundledArtifactDomain, type ReviewUnit } from "@hapsland/source-artifacts/direct-event/artifact-model"
-import { isBundledBendArtifact } from "@hapsland/source-analysis/direct-event/languages/bend/bundled-evidence"
 import { type DirectObservation, type DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
 import {
   DEFAULT_DIRECT_FILE_POLICY,
@@ -200,7 +199,7 @@ const unitHasOmissions = (unit: ReviewUnit): boolean => {
 }
 
 const addNodeDependency = (unit: ReviewUnit, node: ReviewUnit["root"], paths: Set<string>): boolean => {
-  if (node.artifact.origin !== undefined) return node !== unit.root && isBundledBendArtifact(node.artifact)
+  if (node.artifact.origin !== undefined) return node !== unit.root && isBundledArtifact(node.artifact)
   if (node.artifact.path === undefined) return false
   paths.add(node.artifact.path)
   return true
@@ -1131,7 +1130,7 @@ export const candidateReviewInput = (
   ): typeof root | undefined => {
     const child = reference.node
     const origin = child.artifact.origin
-    if (origin !== undefined && !isBundledBendArtifact(child.artifact)) return invalid("supporting-artifact-invalid")
+    if (origin !== undefined && !isBundledArtifact(child.artifact)) return invalid("supporting-artifact-invalid")
     const domain = origin === undefined ? child.artifact.path : bundledArtifactDomain(origin)
     if (domain === undefined) return invalid("supporting-artifact-invalid")
     if (seen.has(child.artifact.id)) return invalid("duplicate-expanded-target")

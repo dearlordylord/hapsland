@@ -95,7 +95,7 @@ it("adds V8 counters only within compatible execution contexts", () => {
   expect([...scripts.values()].map((value) => value.functions[0].ranges[0].count)).toEqual([3, 3, 4])
 })
 
-it("merges source-map aliases by body, then adds counters across execution contexts", async () => {
+it("reuses source metadata across contexts and refreshes it when source bytes change", async () => {
   const root = mkdtempSync(join(tmpdir(), "hapsland-coverage-contexts-"))
   try {
     const filename = join(root, "subject.ts")
@@ -112,6 +112,7 @@ it("merges source-map aliases by body, then adds counters across execution conte
     const callbackColumn = source.split("\n")[3]!.indexOf("(a.length)")
     const coverage = () => provider.getProvider().createCoverageMap()
     const worker = coverage()
+    const sourceMetadataCache = new Map()
     worker.addFileCoverage({
       path: filename,
       statementMap: {},
@@ -135,14 +136,39 @@ it("merges source-map aliases by body, then adds counters across execution conte
       fnMap: { "0": entry("choose", 1, source.indexOf("function")), "1": entry("sort", 4, callbackColumn + 1) },
       f: { "0": 3, "1": 3 }
     })
-    await mergeSourceFunctions(worker)
-    await mergeSourceFunctions(native)
+    await mergeSourceFunctions(worker, sourceMetadataCache)
+    expect(sourceMetadataCache.size).toBe(1)
+    const cachedMetadata = sourceMetadataCache.get(filename)?.metadata
+    expect(cachedMetadata).toBeDefined()
+    await mergeSourceFunctions(native, sourceMetadataCache)
+    expect(sourceMetadataCache.size).toBe(1)
+    expect(sourceMetadataCache.get(filename)?.metadata).toBe(cachedMetadata)
     expect(Object.values(worker.fileCoverageFor(filename).data.f)).toEqual([2, 2])
     worker.merge(native)
     const result = worker.fileCoverageFor(filename).data
     expect(Object.keys(result.fnMap)).toHaveLength(2)
     expect(Object.values(result.f)).toEqual([5, 5])
     expect(result.fnMap["0"].loc.end).toEqual(position(3, 1))
+
+    const changedSource = '/* moved */\nexport function choose(flag: boolean) {\n  return flag ? "new" : "old";\n}\n'
+    writeFileSync(filename, changedSource)
+    const refreshed = coverage()
+    const functionLine = changedSource.split("\n")[1]!
+    const bodyColumn = functionLine.indexOf("{")
+    refreshed.addFileCoverage({
+      path: filename,
+      statementMap: {},
+      branchMap: {},
+      s: {},
+      b: {},
+      fnMap: { "0": entry("choose", 2, bodyColumn) },
+      f: { "0": 7 }
+    })
+    await mergeSourceFunctions(refreshed, sourceMetadataCache)
+    expect(sourceMetadataCache.size).toBe(1)
+    expect(sourceMetadataCache.get(filename)?.metadata).not.toBe(cachedMetadata)
+    expect(refreshed.fileCoverageFor(filename).data.fnMap["0"].loc.end).toEqual(position(4, 1))
+    expect(refreshed.fileCoverageFor(filename).data.f).toEqual({ "0": 7 })
   } finally {
     rmSync(root, { recursive: true, force: true })
   }

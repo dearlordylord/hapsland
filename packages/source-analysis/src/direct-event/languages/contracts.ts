@@ -77,6 +77,8 @@ export type LanguageAdapter = {
   readonly extensions: readonly string[]
   readonly displayName: string
   readonly probe: { readonly path: string; readonly source: string }
+  /** Validate exact provenance for adapter-owned built-in support artifacts. */
+  isBundledArtifact?(artifact: ReviewArtifact): boolean
   analyzeFunctions?(path: string, source: string): import("./function-facts.ts").FunctionFileAnalysis | undefined
   parseTypes(path: string, source: string, allowImports?: boolean): TypeExtractionFailure | readonly GraphDeclaration[]
   inspect(path: string, source: string): GraphFile | undefined

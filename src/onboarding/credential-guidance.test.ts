@@ -9,7 +9,9 @@ it.each(["claude", "codex", "pi"] as const)("names the actual source and replace
     "linux"
   ).join("\n")
   expect(file).toContain("CUSTOM_KEY in /repo/.env.local")
-  expect(file).toContain("does not overwrite this file")
+  expect(file).toContain(`hapsland setup ${host} --new-key`)
+  expect(file).toContain("review the selected destination")
+  expect(file).toContain("Saving does not change lookup precedence")
   const env = credentialSourceGuidance({ ...common, source: "environment", environmentOnly: true }, host, "linux").join(
     "\n"
   )
