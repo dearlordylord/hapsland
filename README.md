@@ -163,7 +163,7 @@ Ready-made packages are available for macOS arm64 and Linux arm64:
 
 ```sh
 brew install dearlordylord/tap/hapsland
-"$(brew --prefix hapsland)/bin/hapsland" setup --target="$(brew --prefix hapsland)/bin/hapsland"
+hapsland setup
 ```
 
 The public npm package returned **404 on 2026-10-06**; the npm commands below
