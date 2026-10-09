@@ -157,10 +157,22 @@ Ask your coding agent to install it:
 
 <!-- agent-setup-instruction:end -->
 
-The public npm package returned **404 on 2026-10-06**. Until a release is
-published, use the [local checkout installation](./docs/installation-workflows.md#install-before-publication)
-instead of the npm command below. This builds a fixed snapshot and opens guided
-setup; it requires the development toolchain.
+Ready-made packages are available for macOS arm64 and Linux arm64:
+
+```sh
+brew install dearlordylord/tap/hapsland
+"$(brew --prefix hapsland)/bin/hapsland" setup --target="$(brew --prefix hapsland)/bin/hapsland"
+```
+
+For direct downloads, checksums and updates, see the
+[platform installation workflow](./docs/installation-workflows.md#install-a-ready-made-platform-release)
+and [public releases](https://github.com/dearlordylord/hapsland-releases/releases).
+These packages include their runtime and require no source build.
+
+The public npm package returned **404 on 2026-10-06**; the npm commands below
+require a separate npm publication. Contributors can still use the
+[local checkout installation](./docs/installation-workflows.md#install-before-publication),
+which requires the development toolchain.
 
 Before setup, choose your agent and [review file scope](./docs/installation-workflows.md#before-setup).
 Hooks apply to the selected user profile across repositories.

@@ -12,13 +12,14 @@ See the [generated command reference](#command-reference) for help and examples.
 ## Choose your installation path
 
 The public npm package returned **404 on 2026-10-06** when checked with
-`npm view @hapsland/hapsland version`. The published commands below require a
-release; they are not currently a working first-install path.
+`npm view @hapsland/hapsland version`. The npm commands below require a
+release; use the ready-made platform release for installation without npm.
 
 | What you have | Start here |
 | --- | --- |
 | A source checkout, before publication | [Build and install a local snapshot](#install-before-publication) |
-| A published stable package | [Stable installation](#stable-installation-and-ordinary-use) |
+| Homebrew or a downloaded platform archive | [Ready-made platform release](#install-a-ready-made-platform-release) |
+| A published stable npm package | [Stable installation](#stable-installation-and-ordinary-use) |
 | An installed Hapsland integration | [Update it](#client-updates-and-published-candidates) |
 | A failure during setup or review | [Troubleshooting](#setup-troubleshooting) |
 
@@ -103,6 +104,38 @@ and do not need the checkout on PATH.
 Rerun `dev-install` after source changes to activate a new snapshot. See
 [personal development](#personal-development-on-your-own-clients) for cache,
 credential and update details.
+
+## Install a ready-made platform release
+
+**Audience:** End users on macOS arm64 or Linux arm64.
+
+With Homebrew installed:
+
+```sh
+brew install dearlordylord/tap/hapsland
+"$(brew --prefix hapsland)/bin/hapsland" setup --target="$(brew --prefix hapsland)/bin/hapsland"
+```
+
+Homebrew downloads only the matching platform archive. Hapsland includes its
+runtime and native assets; no external Node/Bun or source build is needed.
+Package updates and hook activation are separate actions. Keep old kegs until
+activation completes, and select the new package explicitly to skip npm acquisition:
+
+```sh
+HOMEBREW_NO_INSTALL_CLEANUP=1 brew upgrade dearlordylord/tap/hapsland
+"$(brew --prefix hapsland)/bin/hapsland" update --target="$(brew --prefix hapsland)/bin/hapsland"
+```
+
+Do not run cleanup while hooks or running sessions still depend on an old keg.
+The explicit Homebrew path also avoids invoking a different Hapsland earlier on PATH. Offline package checks do not establish every
+agent compatibility profile.
+
+For installation without Homebrew, download the matching archive and
+`SHA256SUMS` from the [public releases](https://github.com/dearlordylord/hapsland-releases/releases),
+verify its checksum, and extract it. Keep the complete `package/` directory
+intact; launch the CLI with `package/bin/launch.sh`. Run that command with `setup`
+from the repository you want reviewed. Do not copy only the executable: worker
+bundles, rules and native assets are part of the installation.
 
 ## Stable installation and ordinary use
 
