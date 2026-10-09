@@ -76,5 +76,6 @@ jobs:
             .test-runs/**/stages/*.json
             .test-runs/**/failures.jsonl
             .test-runs/**/*.log
+            coverage/coverage-final.json
           if-no-files-found: ignore
           retention-days: 3

@@ -30,6 +30,22 @@ describe("direct-event Codex Add adapter", () => {
     expect(
       await Effect.runPromise(adaptCodexDirectEvent({ ...event, tool_input: { ...event.tool_input, cwd: caller } }))
     ).toBeUndefined()
+    expect(
+      await Effect.runPromise(
+        adaptComposedHookIdentity(
+          {
+            hook_event_name: "PreToolUse",
+            tool_name: "Write",
+            cwd: target,
+            session_id: "claude",
+            tool_use_id: "write",
+            tool_input: { file_path: join(target, "type.ts") }
+          },
+          "claude-code",
+          "PreToolUse"
+        )
+      )
+    ).toMatchObject({ root: target, advicee: { host: "claude-code", sessionId: "claude" }, editRoots: [target] })
   })
   it("maps background and Stop identities for both hosts without inferring a child", async () => {
     const root = await makeGitFixture()
@@ -233,6 +249,7 @@ describe("direct-event Codex Add adapter", () => {
     const cases = [
       addEvent(root, ["a.ts"], { session_id: "" }),
       addEvent(root, ["a.ts"], { tool_response: { success: false } }),
+      addEvent(root, ["../outside.ts"]),
       addEvent(
         root,
         Array.from({ length: MAX_CODEX_CANDIDATES + 1 }, (_, index) => `${index}.ts`)

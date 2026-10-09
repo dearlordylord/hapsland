@@ -307,6 +307,13 @@ const importModule = (node: SyntaxNode): string | undefined =>
   node.namedChildren
     .find((child) => child.type === "string")
     ?.namedChildren.find((child) => child.type === "string_fragment")?.text
+const importedSpecifierNames = (specifier: SyntaxNode): readonly [string, string] | undefined => {
+  if (specifier.namedChildren.some((child) => child.type === "string")) return undefined
+  const names = specifier.namedChildren.filter((child) => child.type === "identifier")
+  const imported = names[0]?.text
+  const local = names.at(-1)?.text
+  return imported === undefined || local === undefined ? undefined : [imported, local]
+}
 const collectNamespaceImport = (
   node: SyntaxNode,
   namespace: SyntaxNode,
@@ -327,10 +334,10 @@ const collectImportSpecifiers = (
   const namespace = clause.namedChildren.find((child) => child.type === "namespace_import")
   if (namespace !== undefined && !collectNamespaceImport(node, namespace, module, imports)) return false
   for (const specifier of descendants(clause).filter((child) => child.type === "import_specifier")) {
-    const names = specifier.namedChildren.filter((child) => child.type === "identifier")
-    const imported = names[0]?.text
-    const local = names.at(-1)?.text
-    if (imported === undefined || local === undefined || imports.has(local)) return false
+    const names = importedSpecifierNames(specifier)
+    if (names === undefined) return false
+    const [imported, local] = names
+    if (imports.has(local)) return false
     imports.set(local, {
       path: module,
       name: imported,

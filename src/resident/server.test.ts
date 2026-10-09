@@ -3604,10 +3604,10 @@ describe("resident delivery lease", () => {
 
   it("rejects adversarial long-ID expansion before recursive unit materialization", async () => {
     const root = await makeGitFixture()
-    const source = mutuallyReferencingTypes(384, 120)
+    const source = mutuallyReferencingTypes(512, 120)
     await put(root, longNestedPath, source)
     const preflight = analyzerMaterializationPreflight(longNestedPath, source)
-    expect(preflight?.declarations).toBe(384)
+    expect(preflight?.declarations).toBe(512)
     expect(preflight?.expandedUnitBytes).toBeGreaterThan(PARTITION_BYTE_LIMIT)
     const statePath = join(root, "consent")
     const capturePath = join(root, "backend-calls")

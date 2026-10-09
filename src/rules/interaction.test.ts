@@ -173,3 +173,55 @@ it.effect("an owner failure is reported as a failure, with safe last-observed st
     expect(script.transcript.join("\n")).not.toContain("Rules: cancelled")
   })
 )
+
+it.effect("rules reducer accepts only phase-appropriate fresh events and keeps terminal states closed", () =>
+  Effect.gen(function* () {
+    const { initialRules, reduceRules } = yield* Effect.promise(
+      () => import("@hapsland/administration/rules/interaction-model")
+    )
+    const plan = {
+      action: "enable" as const,
+      scope: "project" as const,
+      digest: "fresh",
+      configuration: "/project/config",
+      rule: "team",
+      enabled: true
+    }
+    const initial = initialRules("enable")
+    expect(reduceRules(initial, { revision: 0, action: { kind: "continue" } })).toBe(initial)
+    const previewing = reduceRules(initial, { revision: 0, action: { kind: "scope", scope: "project" } })
+    expect(previewing.phase).toBe("Previewing")
+    expect(reduceRules(previewing, { revision: 1, action: { kind: "scope", scope: "personal" } })).toBe(previewing)
+    expect(
+      reduceRules(previewing, {
+        revision: 1,
+        action: { kind: "previewed", commandId: 1, plan: { ...plan, scope: "personal" } }
+      })
+    ).toBe(previewing)
+    const preview = reduceRules(previewing, { revision: 1, action: { kind: "previewed", commandId: 1, plan } })
+    expect(preview).toMatchObject({ phase: "Preview", plan })
+    expect(reduceRules(preview, { revision: 2, action: { kind: "back" } })).toMatchObject({
+      phase: "Scope",
+      plan: undefined,
+      outcome: undefined
+    })
+    const approval = reduceRules(preview, { revision: 2, action: { kind: "continue" } })
+    expect(approval.phase).toBe("Approval")
+    expect(reduceRules(approval, { revision: 3, action: { kind: "approve", yes: true, digest: "other" } })).toBe(
+      approval
+    )
+    expect(reduceRules(approval, { revision: 3, action: { kind: "back" } }).phase).toBe("Preview")
+    const applying = reduceRules(approval, { revision: 3, action: { kind: "approve", yes: true, digest: "fresh" } })
+    expect(applying.phase).toBe("Applying")
+    expect(reduceRules(applying, { revision: 4, action: { kind: "exit" } })).toBe(applying)
+    expect(
+      reduceRules(applying, { revision: 4, action: { kind: "observed", commandId: 4, outcome: "stale" } })
+    ).toMatchObject({ phase: "Previewing", plan: undefined, outcome: "stale" })
+    const done = reduceRules(applying, { revision: 4, action: { kind: "observed", commandId: 4, outcome: "failed" } })
+    expect(done).toMatchObject({ phase: "Done", outcome: "failed" })
+    expect(reduceRules(done, { revision: 5, action: { kind: "exit" } })).toBe(done)
+    const cancelled = reduceRules(initial, { revision: 0, action: { kind: "exit" } })
+    expect(cancelled.phase).toBe("Cancelled")
+    expect(reduceRules(cancelled, { revision: 1, action: { kind: "scope", scope: "personal" } })).toBe(cancelled)
+  })
+)

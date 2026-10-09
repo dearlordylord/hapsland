@@ -170,6 +170,24 @@ describe("Claude installation lifecycle", () => {
     expect((settings(home).hooks as Record<string, unknown>).SubagentStop).toBeDefined()
   })
 
+  it("refuses malformed composed ownership without changing Claude settings", async () => {
+    const { home, claudeExecutable } = fixture()
+    const request = { claudeHome: home, claudeExecutable }
+    const proposal = await runPreview(previewClaudeInstallation(request))
+    await runInstallation(installClaudeIntegration({ ...request, proposalDigest: digestOf(proposal) }))
+    const settingsBefore = readFileSync(join(home, "settings.json"), "utf8")
+    const recordPath = join(home, ".hapsland", "claude-installation-v1.json")
+    const record = JSON.parse(readFileSync(recordPath, "utf8")) as { composed: Record<string, unknown> }
+    record.composed.stopDigest = 42
+    writeFileSync(recordPath, JSON.stringify(record))
+
+    expect(await runPreview(inspectClaudeInstallation(request))).toMatchObject({
+      status: "conflict",
+      error: expect.objectContaining({ message: expect.stringContaining("unsupported shape") })
+    })
+    expect(readFileSync(join(home, "settings.json"), "utf8")).toBe(settingsBefore)
+  })
+
   it("updates an owned asynchronous PostToolUse group to synchronous delivery while preserving Stop", async () => {
     const { home, claudeExecutable } = fixture()
     const request = { claudeHome: home, claudeExecutable }

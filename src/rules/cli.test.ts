@@ -20,6 +20,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, expect, it } from "vitest"
 import { execFileSync, spawnSync } from "../../scripts/test-harness/process.mjs"
+import { makeRuleChangeOwner } from "@hapsland/administration/rules/command"
 
 const roots: string[] = []
 afterEach(() => {
@@ -236,6 +237,28 @@ it("provisions seven separate defaults, preserves edits and binds every authored
     failure: { reason: expect.stringContaining("does not exist") }
   })
   expect(existsSync(last.path)).toBe(false)
+})
+
+it("binds the interactive rule owner to its preview and reports a stale approval", async () => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "hapsland-interactive-rule-")))
+  roots.push(root)
+  execFileSync("git", ["init", "--quiet", root])
+  const userConfigPath = join(root, "personal/config.jsonc")
+  mkdirSync(join(root, "personal"), { recursive: true })
+  const owner = makeRuleChangeOwner(
+    root,
+    "create",
+    { action: "create", id: "reviewed", path: undefined, scope: undefined, json: false },
+    { userConfigPath }
+  )
+  const preview = await Effect.runPromise(owner.preview("project"))
+  expect(preview).toMatchObject({ action: "create", scope: "project", enabled: true })
+  writeFileSync(userConfigPath, '{"version":1,"excludes":["vendor/**"]}\n')
+  expect(await Effect.runPromise(owner.apply(preview))).toEqual({ kind: "stale" })
+  const refreshed = await Effect.runPromise(owner.preview("project"))
+  const applied = await Effect.runPromise(owner.apply(refreshed))
+  expect(applied.kind).toBe("applied")
+  expect(readFileSync(join(root, ".hapsland/rules/custom/reviewed.jsonc"), "utf8")).toContain('// kind: "type"')
 })
 
 it("preserves an existing authored selection with a retired numbered identity", async () => {

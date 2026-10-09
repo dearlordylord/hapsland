@@ -228,6 +228,12 @@ export const makeInspectionStorage = (
       await directoryHandle.close()
     }
   }
+  const removeObsoletePrivateEntry = async (root: string, name: string, metadata: string, shared: boolean) => {
+    if (shared) return
+    const current = await lstat(join(root, name))
+    if (!unchangedPrivateFile(current, metadata)) throw unavailable()
+    await unlink(join(root, name))
+  }
   const inventoryEntry = async (
     root: string,
     name: string,
@@ -242,11 +248,7 @@ export const makeInspectionStorage = (
     } catch (error) {
       if (!(error instanceof ObsoleteInspectionRecord)) throw error
       cached.delete(name)
-      if (!shared) {
-        const current = await lstat(join(root, name))
-        if (!unchangedPrivateFile(current, error.metadata)) throw unavailable()
-        await unlink(join(root, name))
-      }
+      await removeObsoletePrivateEntry(root, name, error.metadata, shared)
       return undefined
     }
   }

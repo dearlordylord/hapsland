@@ -10,7 +10,12 @@ import {
   type UpdateOwner,
   type UpdateTransition
 } from "@hapsland/administration/onboarding/update"
-import { initialUpdate, reduceUpdate, type UpdateScope } from "@hapsland/administration/onboarding/update-model"
+import {
+  initialUpdate,
+  reduceUpdate,
+  updateCommand,
+  type UpdateScope
+} from "@hapsland/administration/onboarding/update-model"
 import { InteractionService } from "@hapsland/administration/interaction/interaction"
 import { scriptedInteraction, type ScriptStep } from "@hapsland/build-tooling/test-support/scripted-interaction"
 
@@ -92,6 +97,34 @@ const fixture = (
   const run = (options: { terminal?: boolean; host?: UpdateScope } = {}) => Effect.runPromise(conversation(options))
   return { owner, run, conversation, calls, failures, transitions, script, output: () => script.transcript.join("") }
 }
+it("derives the current update command only for phases with a valid target", () => {
+  const initial = initialUpdate()
+  expect(updateCommand(initial)).toEqual({ kind: "discover", id: 0 })
+  expect(updateCommand({ ...initial, phase: "Targeting", revision: 1 })).toEqual({ kind: "target", id: 1 })
+  const target = { host: "claude" as const, digest }
+  expect(updateCommand({ ...initial, phase: "Previewing", revision: 2, agents: [target] })).toEqual({
+    kind: "preview",
+    id: 2,
+    host: "claude"
+  })
+  expect(updateCommand({ ...initial, phase: "Activating", revision: 3, agents: [target] })).toEqual({
+    kind: "activate",
+    id: 3,
+    host: "claude"
+  })
+  expect(updateCommand({ ...initial, phase: "Applying", revision: 4, agents: [target] })).toEqual({
+    kind: "apply",
+    id: 4,
+    host: "claude",
+    digest
+  })
+  for (const phase of ["Review", "Approval", "Done", "Cancelled"] as const) {
+    expect(updateCommand({ ...initial, phase, agents: [target] })).toBeUndefined()
+  }
+  expect(updateCommand({ ...initial, phase: "Previewing", agents: [], cursor: 0 })).toBeUndefined()
+  expect(updateCommand({ ...initial, phase: "Activating", agents: [], cursor: 0 })).toBeUndefined()
+  expect(updateCommand({ ...initial, phase: "Applying", agents: [{ host: "claude" }], cursor: 0 })).toBeUndefined()
+})
 it("previews every client before grouped approval and forwards each actual digest once", async () => {
   const f = fixture()
   const model = await f.run()

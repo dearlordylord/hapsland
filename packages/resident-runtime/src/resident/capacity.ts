@@ -2103,16 +2103,24 @@ function isPreparationRelease(
   return command?.kind === "preparationReleased" && command.id === id
 }
 
+function isReplacementResult(
+  result: ReturnType<typeof stepCanonical>,
+  reservation: CapacityReservation,
+  count: number
+): boolean {
+  return (
+    result.rejection === undefined &&
+    isPreparationRelease(result.outputs[0], reservation.id) &&
+    result.outputs.length === count + 1
+  )
+}
+
 function validateReplacementResult(
   result: ReturnType<typeof stepCanonical>,
   reservation: CapacityReservation,
   count: number
 ): void {
-  if (
-    result.rejection !== undefined ||
-    !isPreparationRelease(result.outputs[0], reservation.id) ||
-    result.outputs.length !== count + 1
-  ) {
+  if (!isReplacementResult(result, reservation, count)) {
     throw new Error("invalid Bend capacity replacement result")
   }
 }

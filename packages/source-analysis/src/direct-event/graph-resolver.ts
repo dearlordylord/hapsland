@@ -641,16 +641,11 @@ const attachBundledSource = (
     frame.artifactsByTarget.set(targetId, declaration.artifact.id)
   }
 }
-const readGraphSource = Effect.fn("DirectEvent.readGraphSource")(function* (
+const readSelectedGraphSource = Effect.fn("DirectEvent.readSelectedGraphSource")(function* (
   frame: GraphFrame,
-  targetId: number
+  targetId: number,
+  target: Extract<GraphTarget, { kind: "file" }>
 ): Effect.fn.Return<GraphCommandResult> {
-  const target = frame.pathForTarget.get(targetId)
-  if (target === undefined) return "invalid"
-  if (target.kind === "bundled") {
-    attachBundledSource(frame, targetId, target)
-    return "next"
-  }
   const selected = yield* eligibleNamedPath(
     frame.context.root,
     target.path,
@@ -682,6 +677,18 @@ const readGraphSource = Effect.fn("DirectEvent.readGraphSource")(function* (
   }
   inspectCapturedSource(frame, targetId, target, selected.relativePath, source)
   return "next"
+})
+const readGraphSource = Effect.fn("DirectEvent.readGraphSource")(function* (
+  frame: GraphFrame,
+  targetId: number
+): Effect.fn.Return<GraphCommandResult> {
+  const target = frame.pathForTarget.get(targetId)
+  if (target === undefined) return "invalid"
+  if (target.kind === "bundled") {
+    attachBundledSource(frame, targetId, target)
+    return "next"
+  }
+  return yield* readSelectedGraphSource(frame, targetId, target)
 })
 const executeGraphCommand = (frame: GraphFrame): Effect.Effect<GraphCommandResult> => {
   const command = frame.command

@@ -184,6 +184,46 @@ describe("OpenAI Decisions wire contract", () => {
       expect(calls).toBe(0)
     })
   )
+  it.effect("rejects every non-OpenAI identity field before HTTP", () =>
+    Effect.gen(function* () {
+      for (const invalidIdentity of [
+        { ...identity(), provider: "cloudflare" as const },
+        { ...identity(), model: "clef" as const }
+      ]) {
+        let calls = 0
+        const httpClient = HttpClient.make((request) => {
+          calls++
+          return Effect.succeed(HttpClientResponse.fromWeb(request, Response.json(envelope())))
+        })
+        const result = yield* decide({ state: {}, decisions: { rule: decision } }).pipe(
+          Effect.provide(liveLayer({ identity: invalidIdentity, credentialEnvVar: "OPENAI_API_KEY", httpClient })),
+          Effect.provide(tokenLayer),
+          Effect.result
+        )
+        expect(result._tag).toBe("Failure")
+        expect(calls).toBe(0)
+      }
+    })
+  )
+
+  it.effect("rejects an over-limit question before HTTP", () =>
+    Effect.gen(function* () {
+      let calls = 0
+      const httpClient = HttpClient.make((request) => {
+        calls++
+        return Effect.succeed(HttpClientResponse.fromWeb(request, Response.json(envelope())))
+      })
+      const tooLong = Decision.probability({ instructions: "x".repeat(1_048_577) })
+      const result = yield* decide({ state: {}, decisions: { rule: tooLong } }).pipe(
+        Effect.provide(liveLayer({ identity: identity(), credentialEnvVar: "OPENAI_API_KEY", httpClient })),
+        Effect.provide(tokenLayer),
+        Effect.result
+      )
+      expect(result._tag).toBe("Failure")
+      expect(calls).toBe(0)
+    })
+  )
+
   it.effect("rejects non-probability decisions before HTTP", () =>
     Effect.gen(function* () {
       let calls = 0

@@ -1,6 +1,7 @@
 import { bunExecutable } from "@hapsland/runtime-environment/runtime/bun-runtime"
+import { createInstallationPackageFixture } from "@hapsland/build-tooling/test-support/installation-package"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../scripts/test-harness/policy.mjs"
-import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs"
+import { chmodSync, existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { execFileSync, spawnSync } from "../scripts/test-harness/process.mjs"
@@ -363,5 +364,109 @@ describe("JSON subprocess contract", () => {
       status: "present"
     })
     expect(child.stdout).not.toContain(secret)
+  })
+})
+
+it("human doctor reports an empty registry without requiring a terminal", () => {
+  const root = makeTemporaryDirectory("review-human-doctor-")
+  roots.push(root)
+  const environment: NodeJS.ProcessEnv = { ...process.env, HOME: root, NO_COLOR: "1" }
+  delete environment.CODEX_HOME
+  delete environment.HAPSLAND_ACTIVE_DISPATCH
+  const result = spawnSync(bunExecutable(), [join(process.cwd(), "packages/cli-entry/src/cli.ts"), "doctor"], {
+    cwd: root,
+    env: environment,
+    encoding: "utf8",
+    timeout: DEFAULT_CHILD_TIMEOUT_MS
+  })
+  expect(result.status).toBe(0)
+  expect(result.stderr).toContain("No Hapsland integrations found. Run hapsland setup first.")
+})
+
+it("human doctor runs an explicitly selected host and prints its local checks", () => {
+  const root = makeTemporaryDirectory("review-human-doctor-host-")
+  roots.push(root)
+  execFileSync("git", ["init", "--quiet", root])
+  const home = join(root, "codex-home")
+  const executable = join(root, "codex")
+  writeFileSync(
+    executable,
+    "#!/bin/sh\nif [ \"$1\" = features ]; then printf 'hooks stable true\\n'; else printf 'codex-cli 0.155.1\\n'; fi\n",
+    { mode: 0o700 }
+  )
+  chmodSync(executable, 0o700)
+  const secret = "human-doctor-secret-must-not-appear"
+  const environment = {
+    ...process.env,
+    HOME: root,
+    REVIEW_INSTALL_RUNTIME: bunExecutable(),
+    REVIEW_INSTALL_ENTRYPOINT: createInstallationPackageFixture(root),
+    REVIEW_RESIDENT_DIR: join(root, "resident"),
+    REVIEW_USER_CONFIG_PATH: join(root, "user.jsonc"),
+    TYPESAFE_API_KEY: secret
+  }
+  const result = spawnSync(
+    bunExecutable(),
+    [
+      join(process.cwd(), "packages/cli-entry/src/cli.ts"),
+      "doctor",
+      "codex",
+      `--codex-home=${home}`,
+      `--codex-executable=${executable}`
+    ],
+    { cwd: root, env: environment, encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS }
+  )
+  expect([0, 6]).toContain(result.status)
+  expect(result.stdout).toContain("codex doctor: local checks")
+  expect(result.stdout).not.toContain(secret)
+  expect(result.stderr).not.toContain("No Hapsland integrations found")
+})
+
+it("dispatches structured previews to the Claude, Pi, and OpenCode adapters", () => {
+  const root = makeTemporaryDirectory("review-install-host-routing-")
+  roots.push(root)
+  const home = join(root, "host-home")
+  const executable = join(root, "host")
+  writeFileSync(
+    executable,
+    "#!/bin/sh\nif [ \"$1\" = --version ]; then printf 'Claude Code 2.1.218\\n'; else printf '1.0.0\\n'; fi\n",
+    { mode: 0o700 }
+  )
+  chmodSync(executable, 0o700)
+  const environment = {
+    ...process.env,
+    HOME: root,
+    REVIEW_INSTALL_RUNTIME: bunExecutable(),
+    REVIEW_INSTALL_ENTRYPOINT: createInstallationPackageFixture(root)
+  }
+  const invoke = (request: Record<string, string>) => {
+    const result = spawnSync(
+      bunExecutable(),
+      [join(process.cwd(), "packages/cli-entry/src/cli.ts"), "--install-preview"],
+      {
+        cwd: root,
+        env: environment,
+        input: JSON.stringify({ version: 1, operation: "install-preview", ...request }),
+        encoding: "utf8",
+        timeout: DEFAULT_CHILD_TIMEOUT_MS
+      }
+    )
+    const output = JSON.parse(result.stdout) as { operation: string; status: string; host?: { adapter?: string } }
+    const expectedExit = output.status === "unsupported" ? 3 : output.status === "conflict" ? 4 : 0
+    expect(result.status, result.stderr || result.stdout).toBe(expectedExit)
+    return output
+  }
+  expect(invoke({ host: "claude", claudeHome: join(home, "claude"), claudeExecutable: executable })).toMatchObject({
+    operation: "install-preview",
+    host: { adapter: "claude" }
+  })
+  expect(invoke({ host: "pi", piHome: join(home, "pi"), piExecutable: executable })).toMatchObject({
+    operation: "install",
+    host: { adapter: "pi" }
+  })
+  expect(invoke({ host: "opencode", opencodeConfigHome: join(home, "opencode") })).toMatchObject({
+    operation: "install-preview",
+    status: "unsupported",
+    host: { adapter: "opencode" }
   })
 })

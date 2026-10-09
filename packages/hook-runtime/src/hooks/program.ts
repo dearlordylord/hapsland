@@ -94,6 +94,63 @@ const runComposed = Effect.fn("Hook.runComposed")(function* (
 const hookCallerCwd = (event: unknown): string | undefined =>
   event !== null && typeof event === "object" && "cwd" in event && typeof event.cwd === "string" ? event.cwd : undefined
 
+const runClaudeNative = Effect.fn("Hook.runClaudeNative")(function* (
+  options: HookArguments,
+  context: HookContext,
+  dispatch: DirectDispatch,
+  event: unknown
+) {
+  const { statePath, activityPath, userConfigPath, controlled } = context
+  if (!options["composed-edit-hook"]) return {}
+  let editPolicy: ResidentEditPolicy | undefined
+  let metadata: NativeEditMetadata | undefined
+  let skippedOtherRoot = false
+  const callerCwd = hookCallerCwd(event)
+  const observation = yield* adaptClaudeDirectEvent(
+    event,
+    {
+      ...(userConfigPath === undefined ? {} : { userConfigPath }),
+      observeNative: (value) => {
+        metadata = skippedOtherRoot
+          ? {
+              ...value,
+              admission: "skipped-other-root",
+              candidates: value.candidates.map((candidate) => ({
+                ...candidate,
+                selection: { status: "not-evaluated" }
+              }))
+            }
+          : value
+      },
+      capturePolicy: (root, advicee, path) =>
+        readComposedEditPolicyEffect(root, advicee, undefined, [path], (outcome) => {
+          skippedOtherRoot = outcome === "skipped-other-root"
+        }).pipe(
+          Effect.catch(() => Effect.succeed(undefined)),
+          Effect.map((policy) => {
+            editPolicy = policy
+            return policy?.filePolicy
+          })
+        )
+    },
+    options["claude-version"]
+  )
+  if (observation === undefined)
+    yield* dispatch.retireNativeEditPermits(event, "claude-code", undefined, options["claude-version"])
+  return yield* dispatch
+    .runDirectBoundedHook(
+      observation,
+      controlled,
+      statePath,
+      activityPath,
+      userConfigPath,
+      editPolicy,
+      callerCwd,
+      metadata
+    )
+    .pipe(Effect.catch(() => Effect.succeed({})))
+})
+
 const runNative = Effect.fn("Hook.runNative")(function* (
   options: HookArguments,
   codexVersion: CodexVersion,
@@ -109,56 +166,7 @@ const runNative = Effect.fn("Hook.runNative")(function* (
     return yield* runPiHook(event, hookRuntimeOptions(context)).pipe(
       Effect.catch(() => Effect.succeed({ status: "unavailable" }))
     )
-  if (options["claude-hook"]) {
-    if (!options["composed-edit-hook"]) return {}
-    let editPolicy: ResidentEditPolicy | undefined
-    let metadata: NativeEditMetadata | undefined
-    let skippedOtherRoot = false
-    const callerCwd = hookCallerCwd(event)
-    const observation = yield* adaptClaudeDirectEvent(
-      event,
-      {
-        ...(userConfigPath === undefined ? {} : { userConfigPath }),
-        observeNative: (value) => {
-          metadata = skippedOtherRoot
-            ? {
-                ...value,
-                admission: "skipped-other-root",
-                candidates: value.candidates.map((candidate) => ({
-                  ...candidate,
-                  selection: { status: "not-evaluated" }
-                }))
-              }
-            : value
-        },
-        capturePolicy: (root, advicee, path) =>
-          readComposedEditPolicyEffect(root, advicee, undefined, [path], (outcome) => {
-            skippedOtherRoot = outcome === "skipped-other-root"
-          }).pipe(
-            Effect.catch(() => Effect.succeed(undefined)),
-            Effect.map((policy) => {
-              editPolicy = policy
-              return policy?.filePolicy
-            })
-          )
-      },
-      options["claude-version"]
-    )
-    if (observation === undefined)
-      yield* dispatch.retireNativeEditPermits(event, "claude-code", undefined, options["claude-version"])
-    return yield* dispatch
-      .runDirectBoundedHook(
-        observation,
-        controlled,
-        statePath,
-        activityPath,
-        userConfigPath,
-        editPolicy,
-        callerCwd,
-        metadata
-      )
-      .pipe(Effect.catch(() => Effect.succeed({})))
-  }
+  if (options["claude-hook"]) return yield* runClaudeNative(options, context, dispatch, event)
   if (options["codex-hook"]) {
     const direct = yield* dispatch.runDirectCodexHook(
       event,

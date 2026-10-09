@@ -170,6 +170,27 @@ for (const branch of ["type", "function"] as const) {
 }
 
 describe("candidate wire no-send cases", () => {
+  it("rejects candidate roots whose identity, path, or contract does not match the prepared declaration", () => {
+    const unit = prepared("type")
+    const root = unit.input.unit.root
+    const bundledOrigin = bundledBendArtifact("List")?.origin
+    if (bundledOrigin === undefined) throw new Error("pinned Base.List provenance unavailable")
+    const { path: _path, ...rootWithoutPath } = root.artifact
+    const invalidInputs = [
+      { ...unit.input, candidateProjection: false },
+      { ...unit.input, contract: "direct-event/unknown/v1" },
+      { ...unit.input, unit: { root: node({ ...root.artifact, origin: bundledOrigin }, root.references) } },
+      { ...unit.input, unit: { root: node(rootWithoutPath, root.references) } },
+      { ...unit.input, unit: { root: node({ ...root.artifact, path: "src/elsewhere.ts" }, root.references) } },
+      { ...unit.input, unit: { root: node({ ...root.artifact, id: "src/order.ts:interface:Other" }, root.references) } }
+    ]
+    for (const input of invalidInputs) {
+      const failures: unknown[] = []
+      expect(candidateReviewInput(input, (failure) => failures.push(failure))).toBeUndefined()
+      expect(failures).toEqual([{ code: "review-input-invalid", args: { reason: "root-invalid" } }])
+    }
+  })
+
   it("rejects absolute paths, incomplete graph, extra source, and a tree over the finite bound", () => {
     const unit = prepared("type")
     const candidate = candidateReviewInput(unit.input)

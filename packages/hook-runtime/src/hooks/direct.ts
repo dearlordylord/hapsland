@@ -38,6 +38,36 @@ export interface DirectHookOptions {
   readonly composedEdit: boolean
 }
 
+const nativeCandidateMetadata = (
+  position: number,
+  candidate: DirectObservation["candidates"][number],
+  selection: NativeEditMetadata["candidates"][number]["selection"]
+): NativeEditMetadata["candidates"][number] => ({
+  position,
+  operation: candidate.operation,
+  path: candidate.path,
+  selection,
+  ...("moveTo" in candidate && typeof candidate.moveTo === "string" ? { moveTo: candidate.moveTo } : {})
+})
+
+const recordMissingObservationMetadata = (
+  metadata: NativeEditMetadata | undefined,
+  userConfigPath: string | undefined,
+  activityPath: string
+) => (metadata === undefined ? Effect.void : recordNativeMetadataEffect([metadata], userConfigPath, activityPath))
+
+const recordUnavailableDispatchMetadata = (
+  observation: DirectObservation,
+  userConfigPath: string | undefined,
+  activityPath: string
+) => {
+  const metadata = observation.nativeMetadata?.map((metadata) => ({
+    ...metadata,
+    diagnostic: { stage: "admission" as const, code: "dispatch-unavailable" as const, args: {} }
+  }))
+  return metadata === undefined ? Effect.void : recordNativeMetadataEffect(metadata, userConfigPath, activityPath)
+}
+
 export const makeDirectHookDispatch = (options: DirectHookOptions) => {
   const directHookDeadline = options.deadline
   const isControlledWriter = options.controlledWriter
@@ -182,16 +212,7 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
           : yield* nativeSelection(single.root, candidate, policies.get(single.root)?.filePolicy, single.rootIdentity)
       projections.set(single.root, {
         ...metadata,
-        candidates: [
-          ...metadata.candidates,
-          {
-            position: index,
-            operation: candidate.operation,
-            path: candidate.path,
-            selection,
-            ...("moveTo" in candidate && typeof candidate.moveTo === "string" ? { moveTo: candidate.moveTo } : {})
-          }
-        ]
+        candidates: [...metadata.candidates, nativeCandidateMetadata(index, candidate, selection)]
       })
     }
     return yield* resolveCodexDispatch(projections, policies, options)
@@ -210,6 +231,11 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
           )
         ? "skipped"
         : "unavailable"
+  type CodexPrepared = Effect.Success<ReturnType<typeof codexSourceDispatch>>
+  const codexDispatchReady = (
+    prepared: CodexPrepared | undefined
+  ): prepared is CodexPrepared & { dispatch: NonNullable<CodexPrepared["dispatch"]> } =>
+    prepared?.dispatch !== undefined && isControlledWriter
   const runDirectCodexHook = (
     nativeEvent: unknown,
     hostVersion: CodexHostVersion,
@@ -237,7 +263,7 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
       yield* recordCodexObservationTrace(observation)
       // The direct dispatcher owns every native apply_patch event. Unsupported
       // shapes remain quiet and can never create review work.
-      if (observation === undefined || prepared?.dispatch === undefined || !isControlledWriter) {
+      if (observation === undefined || !codexDispatchReady(prepared)) {
         if (prepared !== undefined)
           yield* recordNativeMetadataEffect(prepared.metadata, userConfigPath, activityPath).pipe(
             Effect.catch(() => Effect.void)
@@ -279,8 +305,7 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
         )
       })
     if (observation === undefined) {
-      if (nativeMetadata !== undefined)
-        yield* bounded(recordNativeMetadataEffect([nativeMetadata], userConfigPath, activityPath))
+      yield* bounded(recordMissingObservationMetadata(nativeMetadata, userConfigPath, activityPath))
       return {}
     }
     const dispatch = yield* bounded(
@@ -294,11 +319,7 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
       )
     )
     if (dispatch === undefined) {
-      const metadata = observation.nativeMetadata?.map((metadata) => ({
-        ...metadata,
-        diagnostic: { stage: "admission" as const, code: "dispatch-unavailable" as const, args: {} }
-      }))
-      if (metadata !== undefined) yield* bounded(recordNativeMetadataEffect(metadata, userConfigPath, activityPath))
+      yield* bounded(recordUnavailableDispatchMetadata(observation, userConfigPath, activityPath))
       return {}
     }
     const outcome = yield* bounded(

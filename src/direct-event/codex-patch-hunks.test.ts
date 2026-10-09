@@ -68,6 +68,8 @@ describe("Codex post-edit hunk verification", () => {
 
   it("rejects unsupported and malformed target patches", () => {
     expect(spans(patch("*** Update File: src/example.ts\n*** Move to: moved.ts\n@@\n+new"), "new")).toBeUndefined()
+    expect(spans(patch("*** Add File: src/example.ts\n*** Move to: moved.ts\n+new"), "new")).toBeUndefined()
+    expect(spans(patch("*** Update File: src/example.ts\n@@\n+new\n*** Rename File: moved.ts"), "new")).toBeUndefined()
     expect(spans(patch("*** Delete File: src/example.ts"), "new")).toBeUndefined()
     expect(spans(patch("*** Update File: src/example.ts\n@@\n new"), "new")).toBeUndefined()
     expect(spans(patch("*** Update File: src/example.ts\n@@@\n+new"), "new")).toBeUndefined()

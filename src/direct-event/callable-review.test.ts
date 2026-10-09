@@ -4,7 +4,11 @@ import { rm } from "node:fs/promises"
 import { addEvent, updateEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
-import { prepareObservation, evaluatePrepared } from "@hapsland/review-execution/direct-event/pipeline"
+import {
+  prepareObservation,
+  prepareSourceLine,
+  evaluatePrepared
+} from "@hapsland/review-execution/direct-event/pipeline"
 import { controlledDecisionModelLayer } from "@hapsland/review-execution/review-execution/controlled-decision-model"
 import { FUNCTION_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "@hapsland/review-definition/runtime/review-config"
@@ -13,6 +17,63 @@ const settings = { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }
 const rules = configuredRules.filter((rule) => rule.id === "body_reaches_undeclared")
 
 describe("bounded const callable review", () => {
+  it.effect("reports an unsupported callable selected directly by source line", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      try {
+        yield* Effect.promise(() =>
+          put(
+            root,
+            "callables.ts",
+            "export const supported = (value: number) => value;\nlet mutable = (value: number) => value;\n"
+          )
+        )
+        const observation = yield* adaptCodexDirectEvent(addEvent(root, ["callables.ts"]))
+        if (observation === undefined) throw new Error("Native add fixture unavailable")
+        const prepared = yield* prepareSourceLine(
+          { root: observation.root, rootIdentity: observation.rootIdentity, path: "callables.ts", line: 2 },
+          { settings, rules, inputContract: FUNCTION_INPUT_CONTRACT }
+        )
+        expect(prepared.ambiguousLine).toBe(false)
+        expect(prepared.outcomes.filter((outcome) => outcome.status === "ready")).toEqual([])
+        expect(
+          prepared.observation.outcomes.flatMap((outcome) =>
+            outcome.status === "observed" && outcome.analysis.status === "incomplete" ? outcome.analysis.failures : []
+          )
+        ).toContainEqual({ root: "mutable", reason: "unsupported-callable" })
+      } finally {
+        yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+      }
+    })
+  )
+
+  it.effect("keeps a changed span overlapping excluded callables ambiguous", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      try {
+        const changed = "let first = (value: number) => value + 2; let second = (value: number) => value + 2;"
+        yield* Effect.promise(() => put(root, "callables.ts", changed))
+        const observation = yield* adaptCodexDirectEvent(updateEvent(root, "callables.ts", [changed]))
+        if (observation === undefined) throw new Error("Native update fixture unavailable")
+        const prepared = yield* prepareObservation(observation, {
+          controlledWriter: true,
+          advicee: observation.advicee,
+          settings,
+          rules,
+          inputContract: FUNCTION_INPUT_CONTRACT
+        })
+        expect(prepared.outcomes.filter((outcome) => outcome.status === "ready")).toEqual([])
+        expect(
+          prepared.observation.outcomes.flatMap((outcome) =>
+            outcome.status === "observed" && outcome.analysis.status === "incomplete" ? outcome.analysis.failures : []
+          )
+        ).toContainEqual({ root: undefined, reason: "unsupported-callable" })
+      } finally {
+        yield* Effect.promise(() => rm(root, { recursive: true, force: true }))
+      }
+    })
+  )
+
   it.effect("keeps a changed span across adjacent callable roots ambiguous", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)

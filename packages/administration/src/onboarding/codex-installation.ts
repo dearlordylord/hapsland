@@ -1785,22 +1785,34 @@ const validateRemovedRecoveryBinding = (
   )
     throw new Error("recovery journal does not remove an owned hook launcher")
 }
+const validateMutatedRecoveryBinding = (
+  journal: Journal,
+  change: Mutation,
+  inputs: ReturnType<typeof buildInputs>,
+  plan: ReturnType<typeof recoveryPlan>
+): void => {
+  if (journal.operation === "uninstall") return validateRemovedRecoveryBinding(change, inputs, plan)
+  if (inputs.binding === undefined || change.afterContent !== inputs.binding.content)
+    throw new Error("recovery journal does not select the target hook launcher")
+}
+
+const validateUnchangedRecoveryBinding = (journal: Journal, inputs: ReturnType<typeof buildInputs>): void => {
+  if (
+    inputs.binding !== undefined &&
+    journal.operation !== "uninstall" &&
+    snapshot(inputs.paths.binding).content !== inputs.binding.content
+  )
+    throw new Error("target hook launcher changed during recovery")
+}
+
 const validateRecoveryBinding = (
   journal: Journal,
   inputs: ReturnType<typeof buildInputs>,
   plan: ReturnType<typeof recoveryPlan>
 ): void => {
   const change = journal.mutations.find((entry) => entry.path === inputs.paths.binding)
-  if (change !== undefined) {
-    if (journal.operation === "uninstall") validateRemovedRecoveryBinding(change, inputs, plan)
-    else if (inputs.binding === undefined || change.afterContent !== inputs.binding.content)
-      throw new Error("recovery journal does not select the target hook launcher")
-  } else if (
-    inputs.binding !== undefined &&
-    journal.operation !== "uninstall" &&
-    snapshot(inputs.paths.binding).content !== inputs.binding.content
-  )
-    throw new Error("target hook launcher changed during recovery")
+  if (change === undefined) return validateUnchangedRecoveryBinding(journal, inputs)
+  validateMutatedRecoveryBinding(journal, change, inputs, plan)
 }
 const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof buildInputs>) => {
   if (new Set(journal.completed).size !== journal.completed.length) {
@@ -2286,6 +2298,42 @@ export const previewCodexUpdate = Effect.fn("CodexInstallation.previewUpdate")(f
   }
 })
 
+const recoveryRequiredResult = (
+  inputs: ReturnType<typeof buildInputs>,
+  existingJournal: Journal
+): InstallationResult => ({
+  version: RESULT_VERSION,
+  operation: "update",
+  status: "partial",
+  host: { adapter: "codex", home: inputs.home },
+  error: {
+    code: "recovery_required",
+    message: "a prior operation is incomplete; recover it with its original operation and proposal digest"
+  },
+  recovery: {
+    proposalDigest: existingJournal.proposalDigest,
+    completedFiles: existingJournal.completed.length,
+    totalFiles: existingJournal.mutations.length,
+    command:
+      existingJournal.operation === "update"
+        ? updateRecoveryCommand(inputs, existingJournal.proposalDigest)
+        : {
+            executable: "hapsland",
+            arguments: [`--${existingJournal.operation}`],
+            request: {
+              version: 1,
+              operation: existingJournal.operation,
+              codexHome: inputs.home,
+              proposalDigest: existingJournal.proposalDigest
+            }
+          }
+  },
+  completed: existingJournal.completed
+    .map((index) => existingJournal.mutations[index]?.description)
+    .filter((value) => value !== undefined),
+  pending: [`resume the journaled ${existingJournal.operation}`]
+})
+
 const resumeUpdateJournal = (
   inputs: ReturnType<typeof buildInputs>,
   request: InstallationRequest,
@@ -2297,38 +2345,7 @@ const resumeUpdateJournal = (
     return recoveryConflictResult("update", inputs, existingJournal, cause)
   }
   if (request.proposalDigest !== existingJournal.proposalDigest || existingJournal.operation !== "update") {
-    return {
-      version: RESULT_VERSION,
-      operation: "update",
-      status: "partial",
-      host: { adapter: "codex", home: inputs.home },
-      error: {
-        code: "recovery_required",
-        message: "a prior operation is incomplete; recover it with its original operation and proposal digest"
-      },
-      recovery: {
-        proposalDigest: existingJournal.proposalDigest,
-        completedFiles: existingJournal.completed.length,
-        totalFiles: existingJournal.mutations.length,
-        command:
-          existingJournal.operation === "update"
-            ? updateRecoveryCommand(inputs, existingJournal.proposalDigest)
-            : {
-                executable: "hapsland",
-                arguments: [`--${existingJournal.operation}`],
-                request: {
-                  version: 1,
-                  operation: existingJournal.operation,
-                  codexHome: inputs.home,
-                  proposalDigest: existingJournal.proposalDigest
-                }
-              }
-      },
-      completed: existingJournal.completed
-        .map((index) => existingJournal.mutations[index]?.description)
-        .filter((value) => value !== undefined),
-      pending: [`resume the journaled ${existingJournal.operation}`]
-    }
+    return recoveryRequiredResult(inputs, existingJournal)
   }
   try {
     applyJournal(inputs.paths.journal, existingJournal, inputs.failAfterWrites)

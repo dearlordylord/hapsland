@@ -127,26 +127,28 @@ export const readResidentTarget = (path = residentTargetPath()): ResidentTarget 
     throw new Error("Selected resident is unavailable; retry the resident update.")
   }
 }
-export const selectedResidentCommand = (): RuntimeCommand => {
-  const selected = readResidentTarget()
+const isExistingTargetError = (cause: unknown): cause is Error & { readonly code: "EEXIST" } =>
+  cause instanceof Error && "code" in cause && cause.code === "EEXIST"
+
+/** Resolve or publish the resident choice using an explicit target file and package command. */
+export const selectResidentCommand = (command: () => RuntimeCommand, path: string, build: string): RuntimeCommand => {
+  const selected = readResidentTarget(path)
   if (selected !== undefined) return selected.command
-  const command = packageCommand("resident")
+  const fallback = command()
   // First published launch fixes the shared selection independently of later hook updates.
   // Source entrypoints retain their existing optional development behavior.
-  if (command.args.length !== 0) return command
-  const path = residentTargetPath()
+  if (fallback.args.length !== 0) return fallback
   mkdirSync(dirname(path), { recursive: true, mode: 0o700 })
   const temporary = `${path}.${process.pid}.${randomUUID()}`
-  writeFileSync(temporary, JSON.stringify({ version: 1, build: packageBuildIdentity, command }) + "\n", {
-    mode: 0o600,
-    flag: "wx"
-  })
+  writeFileSync(temporary, JSON.stringify({ version: 1, build, command: fallback }) + "\n", { mode: 0o600, flag: "wx" })
   try {
     linkSync(temporary, path)
   } catch (cause) {
-    if (!(cause instanceof Error && "code" in cause && cause.code === "EEXIST")) throw cause
+    if (!isExistingTargetError(cause)) throw cause
   } finally {
     unlinkSync(temporary)
   }
-  return readResidentTarget()?.command ?? command
+  return readResidentTarget(path)?.command ?? fallback
 }
+export const selectedResidentCommand = (): RuntimeCommand =>
+  selectResidentCommand(() => packageCommand("resident"), residentTargetPath(), packageBuildIdentity)
