@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process"
-import { existsSync, readFileSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
@@ -13,6 +14,34 @@ import {
   before,
   result
 } from "@hapsland/build-tooling/test-support/pi-installed"
+
+const withForeignAmbientResidentTarget = async (environment: NodeJS.ProcessEnv, run: () => Promise<void>) => {
+  const ambientHome = mkdtempSync(join(tmpdir(), "haps-pi-ambient-"))
+  const environmentKeys = ["HOME", "XDG_DATA_HOME", "XDG_CONFIG_HOME", "XDG_STATE_HOME", "XDG_RUNTIME_DIR"] as const
+  const previousEnvironment = new Map<string, string | undefined>()
+  for (const key of environmentKeys) previousEnvironment.set(key, environment[key])
+  try {
+    environment.HOME = ambientHome
+    for (const key of environmentKeys.slice(1)) environment[key] = join(ambientHome, key.toLowerCase())
+    mkdirSync(join(ambientHome, ".local", "share", "hapsland"), { recursive: true, mode: 0o700 })
+    writeFileSync(
+      join(ambientHome, ".local", "share", "hapsland", "resident-target.json"),
+      `${JSON.stringify({
+        version: 1,
+        build: "foreign-installed-build",
+        command: { executable: join(ambientHome, "foreign-resident-never-run"), args: [] }
+      })}\n`,
+      { mode: 0o600, flag: "wx" }
+    )
+    await run()
+  } finally {
+    for (const [key, value] of previousEnvironment) {
+      if (value === undefined) delete environment[key]
+      else environment[key] = value
+    }
+    rmSync(ambientHome, { recursive: true, force: true })
+  }
+}
 
 describe.each(["source", "installed", ...(process.env.HAPSLAND_TEST_PI_ASSET ? ["candidate" as const] : [])] as const)(
   "Pi %s extension through command and resident",
@@ -203,28 +232,29 @@ describe.each(["source", "installed", ...(process.env.HAPSLAND_TEST_PI_ASSET ? [
 
     // Value/evidence alternatives are owned by the source composition and adapter tests.
     if (mode === "source") {
-      it("reviews a whole declaration replacement spanning omitted context between native hunks", async () => {
-        const { root, capturePath, call, prepareResident } = fixture()
-        await prepareResident()
-        const oldText =
-          'export type OrderCount = {\n  options: {\n    timeoutMs: 1000,\n    cache: true,\n    strict: true,\n    trace: false,\n    debug: false,\n    locale: "en",\n    region: "eu",\n    mode: "safe",\n    format: "json",\n    compress: true,\n    secure: true,\n    retries: 3,\n  };\n};\n'
-        const newText =
-          'export type OrderCount = {\n  options: {\n    timeoutMs: 2000,\n    cache: true,\n    strict: true,\n    trace: false,\n    debug: false,\n    locale: "en",\n    region: "eu",\n    mode: "safe",\n    format: "json",\n    compress: true,\n    secure: true,\n    retries: 5,\n  };\n};\n'
-        const patch =
-          '--- type.ts\n+++ type.ts\n@@ -1,7 +1,7 @@\n export type OrderCount = {\n   options: {\n-    timeoutMs: 1000,\n+    timeoutMs: 2000,\n     cache: true,\n     strict: true,\n     trace: false,\n     debug: false,\n@@ -10,7 +10,7 @@\n     mode: "safe",\n     format: "json",\n     compress: true,\n     secure: true,\n-    retries: 3,\n+    retries: 5,\n   };\n };\n'
-        const edit = { ...before, input: { path: "type.ts", edits: [{ oldText, newText }] } }
-        await call("tool_call", edit)
-        writeFileSync(join(root, "type.ts"), newText)
-        const native = await call("tool_result", { ...result, ...edit, details: { patch } })
-        const finish = await call("agent_before_settle", {
-          entries: [],
-          continue: false,
-          context: { canContinue: true },
-          outcome: "completed"
-        })
-        expect(existsSync(capturePath)).toBe(true)
-        expect(JSON.stringify(native ?? finish)).toContain("type.ts :: OrderCount")
-      })
+      it("reviews a whole declaration replacement spanning omitted context between native hunks despite an ambient foreign resident target", async () =>
+        withForeignAmbientResidentTarget(process.env, async () => {
+          const { root, capturePath, call, prepareResident } = fixture()
+          await prepareResident()
+          const oldText =
+            'export type OrderCount = {\n  options: {\n    timeoutMs: 1000,\n    cache: true,\n    strict: true,\n    trace: false,\n    debug: false,\n    locale: "en",\n    region: "eu",\n    mode: "safe",\n    format: "json",\n    compress: true,\n    secure: true,\n    retries: 3,\n  };\n};\n'
+          const newText =
+            'export type OrderCount = {\n  options: {\n    timeoutMs: 2000,\n    cache: true,\n    strict: true,\n    trace: false,\n    debug: false,\n    locale: "en",\n    region: "eu",\n    mode: "safe",\n    format: "json",\n    compress: true,\n    secure: true,\n    retries: 5,\n  };\n};\n'
+          const patch =
+            '--- type.ts\n+++ type.ts\n@@ -1,7 +1,7 @@\n export type OrderCount = {\n   options: {\n-    timeoutMs: 1000,\n+    timeoutMs: 2000,\n     cache: true,\n     strict: true,\n     trace: false,\n     debug: false,\n@@ -10,7 +10,7 @@\n     mode: "safe",\n     format: "json",\n     compress: true,\n     secure: true,\n-    retries: 3,\n+    retries: 5,\n   };\n };\n'
+          const edit = { ...before, input: { path: "type.ts", edits: [{ oldText, newText }] } }
+          await call("tool_call", edit)
+          writeFileSync(join(root, "type.ts"), newText)
+          const native = await call("tool_result", { ...result, ...edit, details: { patch } })
+          const finish = await call("agent_before_settle", {
+            entries: [],
+            continue: false,
+            context: { canContinue: true },
+            outcome: "completed"
+          })
+          expect(existsSync(capturePath)).toBe(true)
+          expect(JSON.stringify(native ?? finish)).toContain("type.ts :: OrderCount")
+        }))
     }
     it.each(mode === "source" ? [true, false] : [false])(
       "awaits a delayed review at finish with canContinue=%s",

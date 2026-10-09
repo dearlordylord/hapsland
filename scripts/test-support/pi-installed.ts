@@ -191,6 +191,15 @@ export const fixture = (
   const handlers = new Map<string, Handler>()
   const environment = () => ({
     ...(fixtureMode === "source" ? { ...process.env, ...sourceEnvironment } : installedEnvironment),
+    ...(fixtureMode === "source"
+      ? {
+          HOME: join(root, "home"),
+          XDG_DATA_HOME: join(root, "xdg-data"),
+          XDG_CONFIG_HOME: join(root, "xdg-config"),
+          XDG_STATE_HOME: join(root, "xdg-state"),
+          XDG_RUNTIME_DIR: join(root, "xdg-runtime")
+        }
+      : {}),
     REVIEW_RESIDENT_DIR: join(root, "runtime"),
     REVIEW_STATE_PATH: join(root, "state"),
     REVIEW_ACTIVITY_PATH: join(root, "activity"),
