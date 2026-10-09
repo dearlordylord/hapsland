@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "cases": 227,
+  "booleanFamilyCases": 220,
+  "extraNativeCases": 7,
+  "compiledSourceSha256": "44761eb8fcc03a891c340412dc91acbea84d9127d9b746beeaeae4db555a3a9e",
+  "scope": "actual compiled private TypeScript reference helpers versus compiled approved core through controlled AST/Set ports; Boolean families include unreachable native conjunctions whose ignored facts do not affect results; names/offsets checked; no real parser, universal native proof or field-read equivalence claim"
+}

@@ -1,0 +1,300 @@
+{
+  "warmPreparationCriterion": "all 23 package build tasks cached and 23 uncached clean tasks per lane; identical total task counts across all thirty-four samples",
+  "warmPreparationMatched": true,
+  "baselineRevision": "16047c5ebb209377d534852ce169e6ae568bb39f",
+  "startedAt": "2026-10-09T01:57:05.823Z",
+  "at": "2026-10-09T02:00:19.233Z",
+  "roots": {
+    "typescript": "/workspace/typescript/hapsland-bend-baseline-master-5726758e",
+    "integratedBend": "/workspace/typescript/hapsland-bend-selection-ui"
+  },
+  "command": [
+    "taskset",
+    "-c",
+    "11",
+    "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+    "scripts/build-workspaces.mjs"
+  ],
+  "affinity": "CPU 11 for both lanes; not exclusive",
+  "samples": {
+    "typescript": [
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 7.627349862,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.877884997999998,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.788732713000001,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.489966159000003,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.192781784000006,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.5050741109999946,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.531908612999993,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 10.008033598999988,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.41471373399999,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 7.175694688999997,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 6.9142675520000045,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 6.612930477000016,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 6.393664088999998,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.235792912000004,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.428602550999989,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 4.882684929999988,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.211737140000012,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      }
+    ],
+    "integratedBend": [
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.853583223,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 4.824376598999999,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.472452562999999,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 4.956257801,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 4.744329927999999,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.102823202,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.3403397320000074,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.410763952000009,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.2926746090000085,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.997078307000003,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 6.615587540000008,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 4.68675843300001,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.021016100000008,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.562126558000018,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 5.033397530000016,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 4.60860715299999,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      },
+      {
+        "cachedTasks": 23,
+        "totalTasks": 46,
+        "seconds": 4.544454148999997,
+        "exitCode": 0,
+        "signal": null,
+        "error": null
+      }
+    ]
+  },
+  "meanRatio": 0.8540135501835071,
+  "buildParity": true,
+  "scope": "paired warm workspace builds; declared frozen baseline and current candidate; both separately prepared; native release assembly excluded"
+}

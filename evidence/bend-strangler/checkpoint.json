@@ -1990,8 +1990,8 @@
     }
   },
   "nextPerformanceDue": {
-    "build": "2026-10-09T00:27:47Z",
-    "execution": "2026-10-09T00:24:01Z"
+    "execution": "2026-10-09T01:46:17.795Z",
+    "build": "2026-10-09T01:25:16.021Z"
   },
   "sessionRecovery": "selection-ui-session-recovery.json",
   "directExportCandidate": {
@@ -3427,16 +3427,37 @@
     "buildRatio": 0.8360864354704028,
     "docsPassed": true,
     "receiptsPassed": true,
-    "archivePending": false
+    "archivePending": false,
+    "commit": "5d6dfddb"
   },
   "nextReferenceDraft": {
-    "directory": "/tmp/hapsland-reference-policy-draft",
+    "directory": "packages/agent-flow-bend/reference-policy",
     "laws": 6,
     "literalCases": 220,
     "approvedBy": "/root/astra_selection_law_review",
-    "coreSha256": "8a3147af8ecad9a12c97c4f9157a29c2d5647154b9d92c988b569f19cdc3e018",
-    "lawsSha256": "ad39b74b9dbe9007528794d8e6225742582dcc10e9227a3a92f7aec9835d7317",
+    "coreSha256": "64cac70aadfb5bef0f94f1cbf2998701d5beaef31b169a5ff99c3642c7b933da",
+    "lawsSha256": "e7ade9f84c1c788473466b5095a6435276a5493a3c884d85c657871736fd5961",
     "universalProofsPassed": true,
-    "productionApplied": false
+    "productionApplied": true,
+    "evidence": "reference-draft.json",
+    "mutantsDetected": 8,
+    "hostTraceCases": 227,
+    "hostApproved": true,
+    "qualification": false,
+    "executionParity": false,
+    "executionRatio": 1.0420186478702285,
+    "nextDirection": "resolve helper vs full-consumer performance scope and dedicated installed reference evidence before broader qualification",
+    "implementationReady": true,
+    "archiveDigest": "adb9cd4f2fc8cc3fede1541cef79cb242d3b19d63d1ea84241a6c442079e45e7",
+    "installedResidentUpdatePassed": true
+  },
+  "referencePerformanceCadence": {
+    "lastExecutionAt": "2026-10-09T01:56:24.827Z",
+    "nextExecutionDue": "2026-10-09T02:26:24.827000Z",
+    "lastBuildStartedAt": "2026-10-09T01:57:05.823Z",
+    "lastBuildCompletedAt": "2026-10-09T02:00:19.233Z",
+    "nextBuildDue": "2026-10-09T02:30:19.233000Z",
+    "priorBuildCadenceMissSeconds": 154.435,
+    "qualification": false
   }
 }

@@ -1,0 +1,21 @@
+export {
+  bindReferenceReadonly,
+  bindReferenceTypePlan,
+  referenceNativeValuePlan,
+  bindReferenceDeclaredType,
+  referenceCallPlan,
+  referenceIgnoredValue,
+  referenceValuePlan,
+  referenceDeclaredType,
+  referenceReadonlyIntrinsic,
+  referenceTypePlan,
+  referenceCallNeedsCallee,
+  referenceCallNeedsScope,
+  referenceCallNeedsLocal,
+  referenceCallSupported,
+  referenceCallFinish,
+  referenceIgnoreSelf,
+  referenceIgnoreMissingParent,
+  referenceIgnoreNeedsFirst,
+  referenceIgnoreFirst
+} from "@hapsland/agent-flow-bend/reference-policy"

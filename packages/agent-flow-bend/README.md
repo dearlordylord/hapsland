@@ -120,6 +120,18 @@ shadowing and overload exclusions, and completeness/evidence gates. These laws
 do not establish parser correctness, installed behavior or performance. Current
 qualification and measurement limits are recorded in [callable evidence](../../evidence/bend-strangler/callable-draft.json).
 
+`reference-policy/core.bend` owns direct-call, ignored-value, value-reference,
+declared-type, intrinsic Readonly and type-reference classification. Six
+Astra-approved exact laws cover 220 Boolean tuples. The generator checks 237
+scalar specializations and 172 composed native-binding tuples against the core.
+The host retains ordered native AST/Set projections, node identity, original
+names and offsets, traversal and duplicate handling, lexical resolution and
+complete review evidence. Ignore materializes as `undefined`; unsupported type
+syntax takes precedence. Conditional proofs do not establish parser correctness,
+installed support or timing parity. [Reference evidence](../../evidence/bend-strangler/reference-draft.json)
+records successful isolated Bun/Node analyzer measurements separately from
+failed controlled helper measurements; qualification is still pending.
+
 `setup-policy/core.bend` owns per-agent setup commands, stage readiness and
 transition plans, including progress ordering, exact approval fences, fresh
 proposals, exit codes and activation before input cancellation. Five

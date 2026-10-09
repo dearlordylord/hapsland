@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "cases": 227,
+  "booleanFamilyCases": 220,
+  "extraNativeCases": 7,
+  "compiledSourceSha256": "470455ffd8c905ddca57e528cb14236ec7c7c4b0020872ade661ed0fa0e690e9",
+  "traceCases": 227,
+  "candidatePath": "/tmp/hapsland-reference-value-host-draft.ts",
+  "candidateSourceSha256": "d18ae75403fea09c78525d95d2d4b05c7c6b53c0c3245045e3737272fd0e5da5",
+  "scope": "frozen-master actual compiled private helpers versus staged host using actual core-derived artifact through controlled AST/Set/scope ports; exact recorded reads, result names/offsets and missing values; Boolean families include unreachable native conjunctions whose ignored facts do not affect results; no real parser or universal native proof claim"
+}

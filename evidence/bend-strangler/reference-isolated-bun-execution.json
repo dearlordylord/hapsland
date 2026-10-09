@@ -1,0 +1,438 @@
+{
+  "startedAt": "2026-10-09T02:13:16.115Z",
+  "at": "2026-10-09T02:13:52.826Z",
+  "roots": {
+    "typescript": "/workspace/typescript/hapsland-bend-baseline-master-5726758e",
+    "integratedBend": "/workspace/typescript/hapsland-bend-selection-ui"
+  },
+  "samples": {
+    "typescript": [
+      {
+        "seconds": 0.080374823,
+        "cpuSeconds": 0.080528,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.06959503200000006,
+        "cpuSeconds": 0.069758,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.13813589,
+        "cpuSeconds": 0.138255,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.12218960100000004,
+        "cpuSeconds": 0.122319,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.08722316699999999,
+        "cpuSeconds": 0.087345,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.06530108199999995,
+        "cpuSeconds": 0.065422,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.18059588099999996,
+        "cpuSeconds": 0.180768,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.08896847300000002,
+        "cpuSeconds": 0.089102,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.08654745300000002,
+        "cpuSeconds": 0.086748,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.0949605600000001,
+        "cpuSeconds": 0.095095,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.06595467100000019,
+        "cpuSeconds": 0.066096,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.10000113999999996,
+        "cpuSeconds": 0.100137,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.06516395699999998,
+        "cpuSeconds": 0.065296,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.07179467399999999,
+        "cpuSeconds": 0.071921,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.15827841899999986,
+        "cpuSeconds": 0.158404,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.08285342600000001,
+        "cpuSeconds": 0.08298,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.11518171400000006,
+        "cpuSeconds": 0.115316,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      }
+    ],
+    "integratedBend": [
+      {
+        "seconds": 0.046776567,
+        "cpuSeconds": 0.0469,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.06795835299999999,
+        "cpuSeconds": 0.068077,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.04703656799999999,
+        "cpuSeconds": 0.047168,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.04407108800000015,
+        "cpuSeconds": 0.044283,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.07642008499999997,
+        "cpuSeconds": 0.076553,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.06511366500000008,
+        "cpuSeconds": 0.065242,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.07286205700000005,
+        "cpuSeconds": 0.073021,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.07008945300000005,
+        "cpuSeconds": 0.070216,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.04832137,
+        "cpuSeconds": 0.048445,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.0807085340000001,
+        "cpuSeconds": 0.08084,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.07509428300000001,
+        "cpuSeconds": 0.075244,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.07252063800000019,
+        "cpuSeconds": 0.072644,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.04757753100000002,
+        "cpuSeconds": 0.047746,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.07144438000000003,
+        "cpuSeconds": 0.071565,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.04434392200000002,
+        "cpuSeconds": 0.045547,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.04675189899999998,
+        "cpuSeconds": 0.047007,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      },
+      {
+        "seconds": 0.06869435900000008,
+        "cpuSeconds": 0.06882,
+        "checksum": 134920,
+        "fixtures": 7,
+        "rounds": 20,
+        "warmups": 5,
+        "callers": 2,
+        "definedAndEqual": true,
+        "runtime": "1.3.14"
+      }
+    ]
+  },
+  "meanRatio": 0.6250506688861979,
+  "executionParity": true,
+  "scope": "actual compiled full TypeScript file analyzer with native parse; one checkout per isolated Bun worker avoids native wrapper cross-import interference; seven offline fixtures and full Map/Set serialized equality on every analysis; five warmups then two caller sites per sample,20rounds;17alternating paired workers,CPU11nonexclusive; subprocess startup/import/warmup excluded; previous helper failures retained; no cold IPC/platform/whole product claim",
+  "positiveControlCoverage": [
+    {
+      "functions": [
+        "sibling",
+        "run"
+      ],
+      "excludedFunctions": []
+    },
+    {
+      "functions": [
+        "f"
+      ],
+      "excludedFunctions": []
+    },
+    {
+      "functions": [
+        "helper",
+        "run"
+      ],
+      "excludedFunctions": []
+    },
+    {
+      "functions": [
+        "run"
+      ],
+      "excludedFunctions": []
+    },
+    {
+      "functions": [
+        "help",
+        "run"
+      ],
+      "excludedFunctions": []
+    },
+    {
+      "functions": [],
+      "excludedFunctions": [
+        "f"
+      ]
+    },
+    {
+      "functions": [
+        "run"
+      ],
+      "excludedFunctions": []
+    }
+  ]
+}

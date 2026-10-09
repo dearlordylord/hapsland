@@ -1,4 +1,19 @@
 import {
+  referenceCallNeedsCallee,
+  referenceCallNeedsScope,
+  referenceCallNeedsLocal,
+  referenceCallSupported,
+  referenceCallFinish,
+  referenceIgnoreSelf,
+  referenceIgnoreMissingParent,
+  referenceIgnoreNeedsFirst,
+  referenceIgnoreFirst,
+  bindReferenceDeclaredType,
+  bindReferenceTypePlan,
+  referenceNativeValuePlan,
+  bindReferenceReadonly
+} from "@hapsland/canonical-policy/canonical/reference-adapter"
+import {
   callableRuntimeImport,
   callableWrapperFinish,
   callableValueBodyAccepted,
@@ -167,11 +182,14 @@ const functionScope = (
   return scope
 }
 const namedCallReference = (child: SyntaxNode, scope: FunctionScope): ReferenceSite | undefined => {
-  if (child.type !== "call_expression") return undefined
+  if (!referenceCallNeedsCallee(child.type === "call_expression")) return undefined
   const callee = child.namedChildren[0]
   if (callee === undefined) return undefined
-  const supported = callee.type === "identifier" && !scope.uncertainBinding && !scope.localBindings.has(callee.text)
-  return referenceSite(child, supported ? "named-function" : "unsupported", callee.text)
+  const supported =
+    referenceCallNeedsScope(callee.type === "identifier") &&
+    referenceCallNeedsLocal(scope.uncertainBinding) &&
+    referenceCallSupported(scope.localBindings.has(callee.text))
+  return referenceSite(child, referenceCallFinish(supported), callee.text)
 }
 const functionCallSites = (children: readonly SyntaxNode[], scope: FunctionScope): ReferenceSite[] => {
   const calls: ReferenceSite[] = []
@@ -184,22 +202,16 @@ const functionCallSites = (children: readonly SyntaxNode[], scope: FunctionScope
 }
 const declarationIdentifierSyntax = new Set(["call_expression", ...bindingSyntax])
 const ignoredValueIdentifier = (child: SyntaxNode, declarationName: SyntaxNode | undefined): boolean => {
-  if (sameSyntaxNode(child, declarationName)) return true
+  if (referenceIgnoreSelf(sameSyntaxNode(child, declarationName))) return true
   const parent = child.parent
-  if (parent === undefined || parent === null) return true
+  if (parent === undefined || parent === null) return referenceIgnoreMissingParent()
   // Direct callees already have call edges; parameter and variable names are declarations.
-  return declarationIdentifierSyntax.has(parent.type) && sameSyntaxNode(parent.namedChildren[0], child)
+  return (
+    referenceIgnoreNeedsFirst(declarationIdentifierSyntax.has(parent.type)) &&
+    referenceIgnoreFirst(sameSyntaxNode(parent.namedChildren[0], child))
+  )
 }
-const valueReferenceKind = (
-  child: SyntaxNode,
-  scope: FunctionScope,
-  valueFunctions: ReadonlySet<string>
-): FunctionReference["kind"] | undefined =>
-  scope.localBindings.has(child.text)
-    ? undefined
-    : valueFunctions.has(child.text) && !scope.uncertainBinding
-      ? "named-function"
-      : "unsupported"
+const valueReferenceKind = referenceNativeValuePlan
 const unsupportedValueSyntax = new Set(["this", "super", "meta_property"])
 const valueIdentifierSyntax = new Set(["identifier", "shorthand_property_identifier"])
 const functionValueSites = (
@@ -224,39 +236,14 @@ const functionValueSites = (
 }
 const ignoredTypeParents = new Set(["type_parameter", "nested_type_identifier"])
 const namedTypeContext = (child: SyntaxNode): boolean => !ignoredTypeParents.has(child.parent?.type ?? "")
-const declaredTypeName = (name: string, importedNames: ReadonlySet<string>): boolean =>
-  !intrinsicTypes.has(name) || importedNames.has(name)
-const intrinsicReadonly = (node: SyntaxNode, boundTypes: ReadonlySet<string>): boolean => {
-  const parent = node.parent
-  return (
-    node.text === "Readonly" &&
-    !boundTypes.has(node.text) &&
-    parent?.type === "generic_type" &&
-    sameSyntaxNode(parent.namedChildren[0]!, node) &&
-    parent.namedChildren.find((child) => child.type === "type_arguments")?.namedChildren.length === 1
-  )
-}
-const eligibleNamedType = (
-  child: SyntaxNode,
-  ownName: string,
-  parameters: ReadonlySet<string>,
-  importedNames: ReadonlySet<string>
-): boolean =>
-  child.type === "type_identifier" &&
-  child.text !== ownName &&
-  namedTypeContext(child) &&
-  !parameters.has(child.text) &&
-  !intrinsicReadonly(child, importedNames) &&
-  declaredTypeName(child.text, importedNames)
-const typeReferenceKind = (
-  child: SyntaxNode,
-  ownName: string,
-  parameters: ReadonlySet<string>,
-  importedNames: ReadonlySet<string>
-): FunctionReference["kind"] | undefined => {
-  if (unsupportedTypeSyntax.has(child.type)) return "unsupported"
-  return eligibleNamedType(child, ownName, parameters, importedNames) ? "named-type" : undefined
-}
+const declaredTypeName = bindReferenceDeclaredType(intrinsicTypes)
+const intrinsicReadonly = bindReferenceReadonly<SyntaxNode>(sameSyntaxNode)
+const typeReferenceKind = bindReferenceTypePlan(
+  unsupportedTypeSyntax,
+  namedTypeContext,
+  intrinsicReadonly,
+  declaredTypeName
+)
 const namedTypeReferencesWithOffsets = (
   node: SyntaxNode,
   ownName: string,

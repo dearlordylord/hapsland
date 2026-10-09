@@ -99,6 +99,10 @@
     "./canonical/callable-adapter": {
       "types": "./dist/canonical/callable-adapter.d.ts",
       "default": "./dist/canonical/callable-adapter.js"
+    },
+    "./canonical/reference-adapter": {
+      "types": "./dist/canonical/reference-adapter.d.ts",
+      "default": "./dist/canonical/reference-adapter.js"
     }
   },
   "dependencies": {
