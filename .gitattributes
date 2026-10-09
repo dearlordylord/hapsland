@@ -3,3 +3,4 @@
 prototypes/canonical-defense/lab/game.generated.mjs linguist-generated=true
 packages/monkey-business-bend/run.mjs linguist-generated=true
 packages/monkey-business-bend/engine.mjs linguist-generated=true
+packages/agent-flow-bend/lifecycle.generated.js linguist-generated=true
