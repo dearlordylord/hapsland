@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "profile": "linux-arm64",
+  "binaries": [
+    {
+      "path": "packages/source-analysis/artifacts/native/linux-arm64/tree-sitter/build/Release/tree_sitter_runtime_binding.node",
+      "sha256": "d4dbe0dcf6fe46de813fe1b70799c11f9ff76ad61a2e7f870c131ba7ecee5765"
+    },
+    {
+      "path": "packages/source-analysis/artifacts/native/linux-arm64/tree-sitter-rust/build/Release/tree_sitter_rust_binding.node",
+      "sha256": "1987b9321878e7f3e525203dd130cd921933a94bc7b13dfccc90798f1f2459a8"
+    },
+    {
+      "path": "packages/source-analysis/artifacts/native/linux-arm64/tree-sitter-typescript/build/Release/tree_sitter_typescript_binding.node",
+      "sha256": "ffad1458302106be91ac17301f8595dbb04cf83712fd8debfa54f41ef1cbebd8"
+    }
+  ],
+  "scope": "byte identity of source-analysis host parser native addons, not a compiler correctness proof"
+}

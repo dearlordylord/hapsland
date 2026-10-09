@@ -1,4 +1,12 @@
 import {
+  declarationNativeFunctionAdmission,
+  declarationNativeArrowAdmission,
+  declarationNativeTypeAdmission,
+  declarationNativeTypeKind,
+  declarationCollectionFailed,
+  declarationLimitFailure
+} from "@hapsland/canonical-policy/canonical/declaration-adapter"
+import {
   bindingInitialArguments,
   bindUnsupportedAssignment,
   bindFunctionBinding
@@ -474,27 +482,20 @@ const otherTopLevelNames = (
 const collectFunctionFact = (node: SyntaxNode, state: FunctionAnalysisState): boolean => {
   const identifier = node.namedChildren.find((child) => child.type === "identifier")
   const body = node.namedChildren.find((child) => child.type === "statement_block")
-  if (
-    identifier === undefined ||
-    body === undefined ||
-    state.functions.has(identifier.text) ||
-    state.imports.has(identifier.text) ||
-    state.otherTopLevelBindings.has(identifier.text)
-  )
-    return false
+  if (!declarationNativeFunctionAdmission(identifier, body, state)) return false
   const rendered = exportSource(node)
-  if (state.signatures.has(identifier.text)) {
-    state.excludedFunctions.set(identifier.text, {
+  if (state.signatures.has(identifier!.text)) {
+    state.excludedFunctions.set(identifier!.text, {
       reason: "function-overload",
       location: {
-        start: state.excludedFunctions.get(identifier.text)?.location.start ?? rendered.location.start,
+        start: state.excludedFunctions.get(identifier!.text)?.location.start ?? rendered.location.start,
         end: rendered.location.end
       }
     })
     return true
   }
-  state.functions.set(identifier.text, {
-    artifact: artifact(state.path, "function", identifier.text, rendered.source),
+  state.functions.set(identifier!.text, {
+    artifact: artifact(state.path, "function", identifier!.text, rendered.source),
     references: functionReferences(node, state.boundTypes, state.boundFunctions, state.valueFunctions),
     exported: rendered.exported,
     location: rendered.location
@@ -503,7 +504,7 @@ const collectFunctionFact = (node: SyntaxNode, state: FunctionAnalysisState): bo
 }
 const collectArrowFact = (root: CallableDeclaration, state: FunctionAnalysisState): boolean => {
   const name = root.name.text
-  if (state.functions.has(name) || state.imports.has(name) || state.otherTopLevelBindings.has(name)) return false
+  if (!declarationNativeArrowAdmission(name, state)) return false
   const rendered = exportSource(root.declaration)
   state.functions.set(name, {
     artifact: artifact(state.path, "function", name, rendered.source),
@@ -519,23 +520,18 @@ const collectArrowFact = (root: CallableDeclaration, state: FunctionAnalysisStat
   })
   return true
 }
-const typeDeclarationKind = (node: SyntaxNode): TypeDeclarationFact["artifact"]["kind"] | undefined =>
-  node.type === "interface_declaration"
-    ? "interface"
-    : node.type === "type_alias_declaration"
-      ? "type-alias"
-      : undefined
+const typeDeclarationKind = declarationNativeTypeKind
 const collectTypeFact = (
   node: SyntaxNode,
   kind: TypeDeclarationFact["artifact"]["kind"],
   state: FunctionAnalysisState
 ): boolean => {
   const identifier = node.namedChildren.find((child) => child.type === "type_identifier")
-  if (identifier === undefined || state.types.has(identifier.text) || state.imports.has(identifier.text)) return false
+  if (!declarationNativeTypeAdmission(identifier, state)) return false
   const rendered = exportSource(node)
-  state.types.set(identifier.text, {
-    artifact: artifact(state.path, kind, identifier.text, rendered.source),
-    references: namedTypeReferences(node, identifier.text, state.boundTypes),
+  state.types.set(identifier!.text, {
+    artifact: artifact(state.path, kind, identifier!.text, rendered.source),
+    references: namedTypeReferences(node, identifier!.text, state.boundTypes),
     exported: rendered.exported,
     location: rendered.location
   })
@@ -612,8 +608,8 @@ const analyzeFunctionRoot = (path: string, root: SyntaxNode): FunctionFileAnalys
     valueFunctions,
     otherTopLevelBindings
   }
-  if (!collectFunctionFacts(top, state)) {
-    return functions.size + types.size + excludedFunctions.size > MAX_TYPE_DECLARATIONS
+  if (declarationCollectionFailed(collectFunctionFacts(top, state))) {
+    return declarationLimitFailure(functions.size + types.size + excludedFunctions.size > MAX_TYPE_DECLARATIONS)
       ? {
           path,
           failure: "declaration-limit",

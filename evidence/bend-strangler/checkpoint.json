@@ -3465,7 +3465,8 @@
   "bindingFrontier": {
     "status": "qualified for declared focused consumers and bounded parity contexts",
     "evidence": "binding-policy-validation.json",
-    "wholeGoalComplete": false
+    "wholeGoalComplete": false,
+    "commit": "b5b2b691"
   },
   "bindingPerformanceCadence": {
     "lastExecution": "2026-10-09T02:51:18.521Z",
@@ -3473,5 +3474,48 @@
     "lastBuild": "2026-10-09T02:58:12.470Z",
     "nextBuildDue": "2026-10-09T03:28:12.470000+00:00",
     "failedBuildAttempt": "binding-build-incomplete.json"
+  },
+  "compatibleMasterUpdate": {
+    "observedMaster": "4843e8d14841212d85d2a0b554509d9edb43b2a0",
+    "mergedThrough": "ddb401e64e80bc494a76450d7188f19d9730ce49",
+    "mergeCommit": "909e1e30",
+    "importedIPCCommit": "4843e8d14841212d85d2a0b554509d9edb43b2a0",
+    "ipcCherryPick": "0b3f674f",
+    "inspectionVersion": 1,
+    "excludedCommit": "c965cf3ab97657ec8ba35e5b357c8ee0ea833bdb",
+    "exclusionReason": "explicit user AGENTS requires persisted records version 1; clarification pending",
+    "checks": {
+      "fast": "passed",
+      "focusedIPC": {
+        "run": "20261009030637652-224928-2b3fae",
+        "files": 4,
+        "tests": 112,
+        "passed": true
+      },
+      "auditReleaseTarball": "passed",
+      "siteScenarios": "passed",
+      "siteBrowser": "passed",
+      "browserPreparationFailure": "missing libatk and other Chromium host libraries; retained /tmp/hapsland-compatible-master-site.log",
+      "browserRemedy": "existing /tmp/chromium-libs-arm64/root/usr/lib/aarch64-linux-gnu supplied only to chromium.launch env through /tmp/hapsland-browser-library-env.mjs",
+      "siteSnapshots": "master snapshots unchanged; 10 generated captures retained /tmp/hapsland-compatible-master-site-captures"
+    },
+    "performanceScope": "new matching inspection-v1 baseline qualified for declared warm workspace build and seven offline analyzer sources; see declaration measurements",
+    "goalComplete": false
+  },
+  "nextFrontier": {
+    "name": "declaration admission and root-result decisions",
+    "evidence": "declaration-policy-validation.json",
+    "status": "qualified for declared focused consumers and bounded matching-baseline parity contexts"
+  },
+  "declarationPerformanceCadence": {
+    "lastExecution": "2026-10-09T03:22:30.678Z",
+    "executionStartedAt": "2026-10-09T03:22:03.207Z",
+    "nextExecutionDue": "2026-10-09T03:52:30.678000+00:00",
+    "lastBuild": "2026-10-09T03:28:14.908Z",
+    "buildStartedAt": "2026-10-09T03:23:37.818Z",
+    "nextBuildDue": "2026-10-09T03:58:14.908000+00:00",
+    "executionStartDelaySeconds": 44.686,
+    "buildStartDelaySeconds": 0,
+    "reasonForExecutionDelay": "new matching baseline parser outputs missing; zero-sample preflight failed, official native preparation completed before real comparison; no empty run counted as parity"
   }
 }

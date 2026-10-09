@@ -1,0 +1,6 @@
+{
+  "passed": true,
+  "cases": 52,
+  "exceptionCases": 240,
+  "scope": "actual compiled native function/arrow/type admission prefixes against generated binders with exact read traces; source materialization is stopped at first parent read by sentinel; injected exceptions at every prefix event; dynamic type-kind reads cover four conditional cases; no complete collector/root-result/parser/Map-write proof"
+}

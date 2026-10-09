@@ -144,6 +144,21 @@ records 40 native trace comparisons, 284 injected exceptions, seven rejected
 mutants, focused consumer checks and bounded warm-build/analyzer measurements.
 These measurements do not establish whole-product or installed platform parity.
 
+`declaration-policy/core.bend` owns function/arrow/type admission, type-kind
+selection and collection-result decisions. Five Astra-approved exact laws cover
+56 Boolean tuples; the generator checks 60 scalar and staged specializations.
+Admission permits collector continuation, including the separate overload
+exclusion branch. The host retains identifier/body extraction, lazy collision
+reads, original source and locations, Map writes, native count arithmetic and
+collection stopping. Boolean ABI returns preserve runtime decisions; native
+post-admission assertions only provide erased TypeScript narrowing.
+[Declaration validation](../../evidence/bend-strangler/declaration-policy-validation.json)
+records 52 native prefix traces, 240 injected exceptions, eight rejected mutants,
+focused compiled consumers and paired build/analyzer measurements on the matching
+inspection-v1 master baseline. Prefix traces stop before materialization;
+conditional proofs leave complete collector, parser and numeric-limit correctness
+outside their scope. Performance evidence covers its declared warm contexts.
+
 `setup-policy/core.bend` owns per-agent setup commands, stage readiness and
 transition plans, including progress ordering, exact approval fences, fresh
 proposals, exit codes and activation before input cancellation. Five

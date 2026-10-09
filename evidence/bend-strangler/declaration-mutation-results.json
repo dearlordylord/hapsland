@@ -1,0 +1,55 @@
+{
+  "passed": true,
+  "mutants": [
+    {
+      "name": "missing_function_body",
+      "caught": true,
+      "exitCode": 1,
+      "diagnostic": "SOME PROOFS FAIL\nError:\n- expected : True{}\n- observed : False{}\nLocation: Laws.function_admission_exact\n27 |     case False{} True{} True{} True{} True{}: {==}\n28>|     case True{} False{} False{} False{} False{}: {==}\n   |                                                  ^^^^\n29 |     case True{} False{} False{} False{} True{}: {==}\n"
+    },
+    {
+      "name": "function_collision",
+      "caught": true,
+      "exitCode": 1,
+      "diagnostic": "SOME PROOFS FAIL\nError:\n- expected : True{}\n- observed : False{}\nLocation: Laws.function_admission_exact\n39 |     case True{} True{} False{} True{} True{}: {==}\n40>|     case True{} True{} True{} False{} False{}: {==}\n   |                                                ^^^^\n41 |     case True{} True{} True{} False{} True{}: {==}\n"
+    },
+    {
+      "name": "arrow_import_collision",
+      "caught": true,
+      "exitCode": 1,
+      "diagnostic": "SOME PROOFS FAIL\nError:\n- expected : True{}\n- observed : False{}\nLocation: Laws.arrow_admission_exact\n48 |     case False{} False{} True{}: {==}\n49>|     case False{} True{} False{}: {==}\n   |                                  ^^^^\n50 |     case False{} True{} True{}: {==}\n"
+    },
+    {
+      "name": "missing_type_identifier",
+      "caught": true,
+      "exitCode": 1,
+      "diagnostic": "SOME PROOFS FAIL\nError:\n- expected : True{}\n- observed : False{}\nLocation: Laws.type_admission_exact\n57 |   match identifier typeConflict importConflict:\n58>|     case False{} False{} False{}: {==}\n   |                                   ^^^^\n59 |     case False{} False{} True{}: {==}\n"
+    },
+    {
+      "name": "type_import_collision",
+      "caught": true,
+      "exitCode": 1,
+      "diagnostic": "SOME PROOFS FAIL\nError:\n- expected : True{}\n- observed : False{}\nLocation: Laws.type_admission_exact\n62 |     case True{} False{} False{}: {==}\n63>|     case True{} False{} True{}: {==}\n   |                                 ^^^^\n64 |     case True{} True{} False{}: {==}\n"
+    },
+    {
+      "name": "interface_priority",
+      "caught": true,
+      "exitCode": 1,
+      "diagnostic": "SOME PROOFS FAIL\nError:\n- expected : core.TypeAlias{}\n- observed : core.Interface{}\nLocation: Laws.type_kind_exact\n70 |     case False{} True{}: {==}\n71>|     case True{} False{}: {==}\n   |                          ^^^^\n72 |     case True{} True{}: {==}\n"
+    },
+    {
+      "name": "drop_limit_failure",
+      "caught": true,
+      "exitCode": 1,
+      "diagnostic": "SOME PROOFS FAIL\nError:\n- expected : core.Unsupported{}\n- observed : core.DeclarationLimit{}\nLocation: Laws.root_result_exact\n76 |     case False{} False{}: {==}\n77>|     case False{} True{}: {==}\n   |                          ^^^^\n78 |     case True{} False{}: {==}\n"
+    },
+    {
+      "name": "reject_success",
+      "caught": true,
+      "exitCode": 1,
+      "diagnostic": "SOME PROOFS FAIL\nError:\n- expected : core.Unsupported{}\n- observed : core.Complete{}\nLocation: Laws.root_result_exact\n77 |     case False{} True{}: {==}\n78>|     case True{} False{}: {==}\n   |                          ^^^^\n79 |     case True{} True{}: {==}\n"
+    }
+  ],
+  "deadlineSecondsPerBend": 5,
+  "scope": "unchanged approved laws and full universal proofs reject eight behavior mutations; no native host claim"
+}

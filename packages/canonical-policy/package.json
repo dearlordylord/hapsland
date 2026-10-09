@@ -107,6 +107,10 @@
     "./canonical/binding-adapter": {
       "types": "./dist/canonical/binding-adapter.d.ts",
       "default": "./dist/canonical/binding-adapter.js"
+    },
+    "./canonical/declaration-adapter": {
+      "types": "./dist/canonical/declaration-adapter.d.ts",
+      "default": "./dist/canonical/declaration-adapter.js"
     }
   },
   "dependencies": {

@@ -1,0 +1,11 @@
+export declare const declarationFunctionAdmission: (identifier: boolean, body: boolean, functionConflict: boolean, importConflict: boolean, otherConflict: boolean) => boolean
+export declare const declarationArrowAdmission: (functionConflict: boolean, importConflict: boolean, otherConflict: boolean) => boolean
+export declare const declarationTypeAdmission: (identifier: boolean, typeConflict: boolean, importConflict: boolean) => boolean
+export declare const declarationTypeKind: (interfaceSyntax: boolean, aliasSyntax: boolean) => "interface" | "type-alias" | undefined
+export declare const declarationRootResult: (collectionSucceeded: boolean, limitExceeded: boolean) => "Complete" | "DeclarationLimit" | "Unsupported"
+export declare const declarationCollectionFailed: (collectionSucceeded: boolean) => boolean
+export declare const declarationLimitFailure: (limitExceeded: boolean) => boolean
+export declare const declarationNativeFunctionAdmission: (identifier: {readonly text: string} | undefined, body: unknown | undefined, state: {readonly functions: ReadonlyMap<string, unknown>; readonly imports: ReadonlyMap<string, unknown>; readonly otherTopLevelBindings: ReadonlySet<string>}) => boolean
+export declare const declarationNativeArrowAdmission: (name: string, state: {readonly functions: ReadonlyMap<string, unknown>; readonly imports: ReadonlyMap<string, unknown>; readonly otherTopLevelBindings: ReadonlySet<string>}) => boolean
+export declare const declarationNativeTypeAdmission: (identifier: {readonly text: string} | undefined, state: {readonly types: ReadonlyMap<string, unknown>; readonly imports: ReadonlyMap<string, unknown>}) => boolean
+export declare const declarationNativeTypeKind: (node: {readonly type: string}) => "interface" | "type-alias" | undefined
