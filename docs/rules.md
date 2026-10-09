@@ -41,9 +41,9 @@ New setup provisions seven defaults: `meaningless_combinations`,
 Repeated setup preserves existing selections and user-edited files.
 Use `hapsland rules disable --id <authored-id> --scope personal` to disable a rule.
 
-The [compact study](./abide-contextual-review-study.md#results-by-rule) and
-[larger study](./abide-large-declaration-study.md#results) record classifier
-observations for their named definitions and inputs.
+The [historical nine-rule comparison](./abide-contextual-review-study.md) and
+[larger-declaration comparison](./abide-large-declaration-study.md) summarize
+classifier observations for their original rule definitions and inputs.
 
 ## Rule document format
 

@@ -11,8 +11,9 @@
 document says what Hapsland must do at the agent-runtime boundary. The candidate
 production path implements parts of it; the [implementation and evidence
 status](https://github.com/dearlordylord/hapsland/blob/6d6f1617c1942faa56e39781684bf0e6c78f62f5/evidence/advicing-linux/README.md) identifies observed behavior and
-remaining gaps. Exact installed-release support is declared separately in
-[installed release compatibility](installed-release-compatibility.md). Terms have
+remaining gaps. The distribution runtime and platform targets are summarized in
+the [runtime and platform support guide](installed-release-compatibility.md); host-specific
+requirements and observed limits remain in their installation guides. Terms have
 their canonical meanings in the [product vocabulary](../CONTEXT.md).
 
 ## Outcome and observation boundary

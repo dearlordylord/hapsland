@@ -65,9 +65,9 @@ File exclusions are independent. In the tested exclusion cases, Hapsland made no
 
 ## Measured review and repair
 
-The [study navigation](review-studies.md) connects the comparisons to readable code examples. The [large-declaration study](abide-large-declaration-study.md) covers six realistic synthetic domains, compact and larger layouts, valid controls, independent repair checks and the [declared methodology](abide-large-declaration-study.md#methodology). The [contextual and rule-coverage study](abide-contextual-review-study.md) explains the separate matrices across the nine rules.
+The [study navigation](review-studies.md) summarizes two completed comparisons. The [larger-declaration summary](abide-large-declaration-study.md) reports 11/12 Hapsland repairs and 2/12 Abide repairs across twelve selected defect sessions. The [nine-rule summary](abide-contextual-review-study.md) reports 12/12 versus 1/12 on duplicate-fact cases and 6/16 versus 3/16 on the broader rule matrix. Their immutable source reports and artifacts are linked from the summaries.
 
-These studies distinguish detection, feedback delivery, agent repair and preservation of valid behavior. Their input populations and repetitions differ, so their counts must not be combined into a general product ranking. They show selected workflow differences and counterexamples; they do not establish that Hapsland is universally better or that declaration size alone causes a difference.
+These historical studies distinguish detection, feedback delivery, agent repair and preservation of valid behavior. Their input populations and repetitions differ, so their counts must not be combined into a general product ranking. They show selected workflow differences and counterexamples; they do not establish that Hapsland is universally better or that declaration size alone causes a difference.
 
 ## Why a separate product?
 

@@ -80,7 +80,7 @@ if (executeRealCodex) {
 }
 const outputPath = join(
   root,
-  `evidence/package/clean-${process.platform}-bun-${BUN_VERSION}-${process.arch}${executeRealCodex ? `-real-codex-${selectedCodexVersion}` : ""}.json`
+  `.test-runs/package/clean-${process.platform}-bun-${BUN_VERSION}-${process.arch}${executeRealCodex ? `-real-codex-${selectedCodexVersion}` : ""}.json`
 )
 const run = (command, args, options = {}) =>
   new Promise((resolveRun, reject) => {

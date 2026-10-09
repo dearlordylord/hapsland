@@ -267,6 +267,7 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
     deliveryCwd?: string,
     nativeMetadata?: NativeEditMetadata
   ): Effect.fn.Return<unknown, never, ResidentStartup> {
+    if (!isControlledWriter) return {}
     const deadline = directHookDeadline
     const bounded = <A, E, R>(task: Effect.Effect<A, E, R>): Effect.Effect<A | undefined, never, R> =>
       Effect.gen(function* () {

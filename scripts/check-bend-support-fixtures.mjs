@@ -78,7 +78,7 @@ const record = {
   scope:
     "Synthetic fixture syntax, generic binding and quantity arguments, imports and constructor arity only; no proof, review-quality, or native delivery claim."
 }
-await mkdir(new URL("evidence/bend-support/", root), { recursive: true })
-await writeFile(new URL("evidence/bend-support/compiler-fixtures.json", root), JSON.stringify(record, null, 2) + "\n")
+await mkdir(new URL(".test-runs/bend-support/", root), { recursive: true })
+await writeFile(new URL(".test-runs/bend-support/compiler-fixtures.json", root), JSON.stringify(record, null, 2) + "\n")
 console.log(JSON.stringify(record, null, 2))
 if (record.verdict !== "demonstrated") process.exitCode = 1

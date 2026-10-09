@@ -51,7 +51,8 @@ type Observation = {
   readonly headerNames: ReadonlyArray<string>
 }
 
-const fixtureUrl = (name: string): URL => new URL(`../../evidence/issue-138-wire/${name}`, import.meta.url)
+const fixtureRoot = new URL("../test-support/fixtures/issue-138-wire/", import.meta.url)
+const fixtureUrl = (name: string): URL => new URL(name, fixtureRoot)
 const readFixture = async <T>(name: string): Promise<T> => JSON.parse(await readFile(fixtureUrl(name), "utf8")) as T
 const bytes = (value: string): number => Buffer.byteLength(value, "utf8")
 const hash = (value: string): string => createHash("sha256").update(value, "utf8").digest("hex")
@@ -164,10 +165,10 @@ describe("offline provider HTTP framing for proposed #138 study arms", () => {
     }
   })
   it("matches pinned provider request metadata and all 35 sanitized byte observations", async () => {
-    const packageJson = await readFixture<{
+    const packageJson = JSON.parse(await readFile(new URL("../../package.json", import.meta.url), "utf8")) as {
       readonly devDependencies: Readonly<Record<string, string>>
       readonly catalog: Readonly<Record<string, string>>
-    }>("../../package.json")
+    }
     for (const name of ["@effect/ai-typesafe", "effect"]) {
       expect(packageJson.devDependencies[name]).toBe("catalog:")
       expect(packageJson.catalog[name]).toBe("4.0.0")

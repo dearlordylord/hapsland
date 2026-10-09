@@ -1,0 +1,717 @@
+{
+  "schemaVersion": 1,
+  "status": "observed-offline-pinned-client-only",
+  "providerPackage": "@effect/ai-typesafe@4.0.0",
+  "effectPackage": "effect@4.0.0",
+  "endpoint": "https://api.typesafe.ai/v1/systemone",
+  "method": "POST",
+  "bodyFields": [
+    "model",
+    "state",
+    "questions"
+  ],
+  "model": "jev-latest",
+  "authorization": "sentinel-bearer-header-redacted",
+  "observations": [
+    {
+      "id": "type-candidate",
+      "localRequestBytes": 928,
+      "httpBodyBytes": 942,
+      "httpBodySha256": "a71d2e36fbab0884bab0c12366fdd587e1c3cfc5757df04b87791987fe7ce39c",
+      "stateBytes": 777,
+      "questionsBytes": 121,
+      "questionKeys": [
+        "type"
+      ],
+      "inputContract": "direct-event/type-shape/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "function-candidate",
+      "localRequestBytes": 1012,
+      "httpBodyBytes": 1026,
+      "httpBodySha256": "035dd7cf738563c0112284e443b3345b9990114be0d2b7fc5bd10dd334ac5045",
+      "stateBytes": 854,
+      "questionsBytes": 128,
+      "questionKeys": [
+        "function"
+      ],
+      "inputContract": "direct-event/function/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T01/focusedDiff",
+      "localRequestBytes": 1673,
+      "httpBodyBytes": 1687,
+      "httpBodySha256": "1e27078daa32b8a48a254c2ec061092ebdac5bc5cba36b889ddf013982ba97cc",
+      "stateBytes": 322,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/focused-unified-diff/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T01/wholeFile",
+      "localRequestBytes": 1606,
+      "httpBodyBytes": 1620,
+      "httpBodySha256": "9ca21232afcfde571567a969fd54867688f3b727b44fdf3d66ef6b9d43e2668a",
+      "stateBytes": 255,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/whole-post-edit-file/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T01/v1Type",
+      "localRequestBytes": 1848,
+      "httpBodyBytes": 1862,
+      "httpBodySha256": "ad665bb2b9668fb9a3b0afa8311506e81afdb9686bebcc82ac3b524c4740ff3e",
+      "stateBytes": 519,
+      "questionsBytes": 1299,
+      "questionKeys": [
+        "r2_meaningless_combinations"
+      ],
+      "inputContract": "direct-event/same-file-named-types/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T02/focusedDiff",
+      "localRequestBytes": 1687,
+      "httpBodyBytes": 1701,
+      "httpBodySha256": "cab7a5f585eb51aff087340875f7fcf443d923caf87172d1f204e4395adf48b4",
+      "stateBytes": 336,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/focused-unified-diff/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T02/wholeFile",
+      "localRequestBytes": 1620,
+      "httpBodyBytes": 1634,
+      "httpBodySha256": "1fde8ccca89b44cdbd3ab63dd342ecfa80ea14551cf8d5c54afafa17af9694ed",
+      "stateBytes": 269,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/whole-post-edit-file/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T03/focusedDiff",
+      "localRequestBytes": 1685,
+      "httpBodyBytes": 1699,
+      "httpBodySha256": "38c60f913b978127a557204d46ff152065ae996fdd9f4bae2249b64326f15e18",
+      "stateBytes": 334,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/focused-unified-diff/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T03/wholeFile",
+      "localRequestBytes": 1618,
+      "httpBodyBytes": 1632,
+      "httpBodySha256": "55e9dada3eb9c5a9a9cc061a7858cd98e354ca14f9b2db247bedaa0947f92806",
+      "stateBytes": 267,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/whole-post-edit-file/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T04/focusedDiff",
+      "localRequestBytes": 1699,
+      "httpBodyBytes": 1713,
+      "httpBodySha256": "8cfacb9bda01f316e39396f4bfd918caceaeb55333131ff7478741e5d29369c3",
+      "stateBytes": 348,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/focused-unified-diff/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T04/wholeFile",
+      "localRequestBytes": 1610,
+      "httpBodyBytes": 1624,
+      "httpBodySha256": "74be5d2a824607d7669f701d65c478fe9ba1eeceb0cf1b6c4038e7abeaa3efcb",
+      "stateBytes": 259,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/whole-post-edit-file/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T04/v1Type",
+      "localRequestBytes": 1565,
+      "httpBodyBytes": 1579,
+      "httpBodySha256": "40b8cc00435aaf009d7a95c033cd0f6181abd91b28789216a6da8deffa635c4d",
+      "stateBytes": 236,
+      "questionsBytes": 1299,
+      "questionKeys": [
+        "r2_meaningless_combinations"
+      ],
+      "inputContract": "direct-event/same-file-named-types/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T05/focusedDiff",
+      "localRequestBytes": 1657,
+      "httpBodyBytes": 1671,
+      "httpBodySha256": "9c577fad91b569e1b02a893d049f76f374a8ae09a867af2e312b9505e309c20a",
+      "stateBytes": 306,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/focused-unified-diff/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T05/wholeFile",
+      "localRequestBytes": 1591,
+      "httpBodyBytes": 1605,
+      "httpBodySha256": "520df9fe5d94aa44815543c12ae0c0e1db3373b31df0a80f0ec2be3319471b27",
+      "stateBytes": 240,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/whole-post-edit-file/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T05/v1Type",
+      "localRequestBytes": 1590,
+      "httpBodyBytes": 1604,
+      "httpBodySha256": "a9c227604b91e47912fee3ef7ae742b9d2d461664bd5a092c5f71eb154a5edbd",
+      "stateBytes": 261,
+      "questionsBytes": 1299,
+      "questionKeys": [
+        "r2_meaningless_combinations"
+      ],
+      "inputContract": "direct-event/same-file-named-types/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T06/focusedDiff",
+      "localRequestBytes": 1627,
+      "httpBodyBytes": 1641,
+      "httpBodySha256": "bb883f72d1a46e6d2ead8cc73aef329dc73262d828831168c1bf308b8d7cf1a6",
+      "stateBytes": 276,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/focused-unified-diff/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T06/wholeFile",
+      "localRequestBytes": 1561,
+      "httpBodyBytes": 1575,
+      "httpBodySha256": "55623a13242be1e51adbf506e94bcdb0d048182693c460b0b5d587b44dc48097",
+      "stateBytes": 210,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/whole-post-edit-file/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T06/v1Type",
+      "localRequestBytes": 1560,
+      "httpBodyBytes": 1574,
+      "httpBodySha256": "71a5f2f909e943ddc4d58157ba23556bd783805fdcbc0f4055de6e0d25a68cec",
+      "stateBytes": 231,
+      "questionsBytes": 1299,
+      "questionKeys": [
+        "r2_meaningless_combinations"
+      ],
+      "inputContract": "direct-event/same-file-named-types/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T07/focusedDiff",
+      "localRequestBytes": 1658,
+      "httpBodyBytes": 1672,
+      "httpBodySha256": "9ffb343225d8fa49640db70d7781f575b989c29acb96d85d13e1e811bef06bda",
+      "stateBytes": 307,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/focused-unified-diff/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T07/wholeFile",
+      "localRequestBytes": 1614,
+      "httpBodyBytes": 1628,
+      "httpBodySha256": "853fda551dd06e57fb468908f2a4d87e60a0fad1974631be2bb34e960d3e6b71",
+      "stateBytes": 263,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/whole-post-edit-file/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T07/v1Type",
+      "localRequestBytes": 1856,
+      "httpBodyBytes": 1870,
+      "httpBodySha256": "2c9b59b8e8f61a979c9079ab10effdec56d3601265f52cabe6dce61f490cf319",
+      "stateBytes": 527,
+      "questionsBytes": 1299,
+      "questionKeys": [
+        "r2_meaningless_combinations"
+      ],
+      "inputContract": "direct-event/same-file-named-types/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T08/focusedDiff",
+      "localRequestBytes": 1652,
+      "httpBodyBytes": 1666,
+      "httpBodySha256": "d92dfd78fe06cc224bb31d61582abb3b18c7ae412a9c9ad6e6766a9665c02ec5",
+      "stateBytes": 301,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/focused-unified-diff/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T08/wholeFile",
+      "localRequestBytes": 1585,
+      "httpBodyBytes": 1599,
+      "httpBodySha256": "2c3db346d21102a01d54fee0b56b85a26cd4ec24f5a35fefb1bba0cbb3bf9453",
+      "stateBytes": 234,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/whole-post-edit-file/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T09/focusedDiff",
+      "localRequestBytes": 1699,
+      "httpBodyBytes": 1713,
+      "httpBodySha256": "8cfacb9bda01f316e39396f4bfd918caceaeb55333131ff7478741e5d29369c3",
+      "stateBytes": 348,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/focused-unified-diff/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T09/wholeFile",
+      "localRequestBytes": 1566,
+      "httpBodyBytes": 1580,
+      "httpBodySha256": "b21c3454aae2408bd8a4eb2c244138edf1d24a214ce861ebcbb0fe4199cd890f",
+      "stateBytes": 215,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/whole-post-edit-file/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T09/v1Type",
+      "localRequestBytes": 1565,
+      "httpBodyBytes": 1579,
+      "httpBodySha256": "40b8cc00435aaf009d7a95c033cd0f6181abd91b28789216a6da8deffa635c4d",
+      "stateBytes": 236,
+      "questionsBytes": 1299,
+      "questionKeys": [
+        "r2_meaningless_combinations"
+      ],
+      "inputContract": "direct-event/same-file-named-types/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T10/focusedDiff",
+      "localRequestBytes": 1722,
+      "httpBodyBytes": 1736,
+      "httpBodySha256": "f93cd806172d3208a284a704f240fd5ee562468881b8597a33d9c8d440ea26bd",
+      "stateBytes": 371,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/focused-unified-diff/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T10/wholeFile",
+      "localRequestBytes": 1587,
+      "httpBodyBytes": 1601,
+      "httpBodySha256": "641175de8fe9dc6d2a03ee29eacc8f3020792842fb9e0c25b3e3e2705a815a70",
+      "stateBytes": 236,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/whole-post-edit-file/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T10/v1Type",
+      "localRequestBytes": 1586,
+      "httpBodyBytes": 1600,
+      "httpBodySha256": "a4b5d9caec35f15a8d3cc1963ade3fd7989c19f1899643bf31ddfbbf38552087",
+      "stateBytes": 257,
+      "questionsBytes": 1299,
+      "questionKeys": [
+        "r2_meaningless_combinations"
+      ],
+      "inputContract": "direct-event/same-file-named-types/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T11/focusedDiff",
+      "localRequestBytes": 1724,
+      "httpBodyBytes": 1738,
+      "httpBodySha256": "dfda94bab2916e38dce3efac5477ee01e5f07ec866c52f2471354de33df29b2b",
+      "stateBytes": 373,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/focused-unified-diff/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T11/wholeFile",
+      "localRequestBytes": 3221,
+      "httpBodyBytes": 3235,
+      "httpBodySha256": "06707b0f70228b365bbeb12c70e12b737e26f294d087c2f19cd6a9bf3014c029",
+      "stateBytes": 1870,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/whole-post-edit-file/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T11/v1Type",
+      "localRequestBytes": 1565,
+      "httpBodyBytes": 1579,
+      "httpBodySha256": "40b8cc00435aaf009d7a95c033cd0f6181abd91b28789216a6da8deffa635c4d",
+      "stateBytes": 236,
+      "questionsBytes": 1299,
+      "questionKeys": [
+        "r2_meaningless_combinations"
+      ],
+      "inputContract": "direct-event/same-file-named-types/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T12/focusedDiff",
+      "localRequestBytes": 1724,
+      "httpBodyBytes": 1738,
+      "httpBodySha256": "f374bc9e94a8ac3a2426a7dfeab2a5a0a696de5d26e8ecdd7eb5d138e9b4c9e3",
+      "stateBytes": 373,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/focused-unified-diff/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T12/wholeFile",
+      "localRequestBytes": 3242,
+      "httpBodyBytes": 3256,
+      "httpBodySha256": "d708e270980ad14dcd3268fe829bc51380e4ec6db6872e95b1ab86025d497f46",
+      "stateBytes": 1891,
+      "questionsBytes": 1321,
+      "questionKeys": [
+        "noul-type-v2-proposal/r2_meaningless_combinations"
+      ],
+      "inputContract": "proposal/whole-post-edit-file/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "T12/v1Type",
+      "localRequestBytes": 1586,
+      "httpBodyBytes": 1600,
+      "httpBodySha256": "a4b5d9caec35f15a8d3cc1963ade3fd7989c19f1899643bf31ddfbbf38552087",
+      "stateBytes": 257,
+      "questionsBytes": 1299,
+      "questionKeys": [
+        "r2_meaningless_combinations"
+      ],
+      "inputContract": "direct-event/same-file-named-types/v1",
+      "headerNames": [
+        "accept",
+        "authorization",
+        "b3",
+        "content-length",
+        "content-type",
+        "traceparent"
+      ]
+    }
+  ]
+}

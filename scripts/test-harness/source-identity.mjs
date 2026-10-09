@@ -17,7 +17,6 @@ const verificationRoots = new Set([
   "bin",
   "schemas",
   "vendor",
-  "evidence",
   "conformance",
   "assets",
   "prototypes"

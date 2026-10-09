@@ -335,7 +335,7 @@ const evidence = {
 }
 
 if (writeEvidence) {
-  const directory = resolve(projectRoot, "evidence/first-review")
+  const directory = resolve(projectRoot, ".test-runs/first-review")
   await mkdir(directory, { recursive: true })
   const version = /^codex-cli (\d+\.\d+\.\d+)$/.exec(codexVersion ?? "")?.[1]
   if (version === undefined) throw new Error("installed first-review Codex version is unavailable")

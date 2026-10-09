@@ -8,8 +8,7 @@ const generators = [
   { file: "scripts/generate-architecture-diagram.mjs", update: [] },
   { file: "scripts/generate-module-architecture.mjs", update: [] },
   { file: "scripts/generate-decision-boundary-ledger.mts", update: ["--update"] },
-  { file: "scripts/generate-interaction-diagrams.mts", update: ["--write"], timeoutMs: 90_000 },
-  { file: "scripts/generate-abide-scenario-pages.mjs", update: [] }
+  { file: "scripts/generate-interaction-diagrams.mts", update: ["--write"], timeoutMs: 90_000 }
 ]
 
 /** One inventory for updates and read-only drift checks; stop on the first failure. */

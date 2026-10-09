@@ -48,5 +48,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-package-evidence
-          path: evidence/package/clean-darwin-bun-1.3.14-*.json
+          include-hidden-files: true
+          path: .test-runs/package/clean-darwin-bun-1.3.14-*.json
           if-no-files-found: error

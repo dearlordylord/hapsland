@@ -192,7 +192,10 @@ describe("direct-event Codex Add adapter", () => {
 
   it("adapts the pinned Codex 0.155.1 native event fixture", async () => {
     const root = await makeGitFixture()
-    const encoded = await readFile(join(process.cwd(), "evidence/codex/0.155.1/post-tool-use-file-create.json"), "utf8")
+    const encoded = await readFile(
+      new URL("../test-support/fixtures/codex/0.155.1/post-tool-use-file-create.json", import.meta.url),
+      "utf8"
+    )
     const fixture = JSON.parse(encoded) as Record<string, unknown>
     const native = {
       ...fixture,

@@ -49,7 +49,7 @@ test("quality selection includes staged, unstaged and untracked code, excludes d
     write("scripts/new.mts")
     for (const path of [
       "vendor/tool.ts",
-      "evidence/sample.ts",
+      ".test-runs/sample.ts",
       "quint-specs/input.ts",
       "src/x.generated.js",
       "packages/monkey-business-bend/engine.mjs",

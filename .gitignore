@@ -26,4 +26,4 @@ prototypes/canonical-defense/game-recording.bin
 # Native publication outputs and retained source snapshot archives are not source.
 /native/prebuilt/
 /prototypes/bend-*-source.tar.gz
-/evidence/**/source-snapshot.tar.gz
+/evidence/

@@ -118,7 +118,7 @@ const prepared = (branch: "type" | "function"): PreparedUnit => {
 }
 
 const goldenUrl = (branch: "type" | "function"): URL =>
-  new URL(`../../evidence/issue-138-wire/${branch}-candidate.json`, import.meta.url)
+  new URL(`../test-support/fixtures/issue-138-wire/${branch}-candidate.json`, import.meta.url)
 
 const wireRecord = (unit: PreparedUnit) => {
   const candidate = candidateReviewInput(unit.input)

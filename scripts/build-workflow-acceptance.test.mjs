@@ -421,7 +421,7 @@ test("permanent receipts deduplicate content, bound unique bytes and refuse modi
     const second = retainReceiptEvidence(root, "other.json", budget)
     assert.equal(first.path, second.path)
     assert.equal(budget.bytes, bytes.length)
-    assert(first.path.startsWith("evidence/build-243/build-acceptance-receipts/"))
+    assert(first.path.startsWith(".test-runs/build-243/build-acceptance-receipts/"))
     assert.deepEqual(readFileSync(join(root, first.path)), bytes)
     writeFileSync(join(root, "other.json"), '{"inputs":[]}')
     assert.throws(() => retainReceiptEvidence(root, "other.json", budget), /size bound/)

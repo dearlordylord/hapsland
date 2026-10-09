@@ -23,8 +23,7 @@ writeFileSync("compiled-owner", "ready");`
       "generate-architecture-diagram.mjs",
       "generate-module-architecture.mjs",
       "generate-decision-boundary-ledger.mts",
-      "generate-interaction-diagrams.mts",
-      "generate-abide-scenario-pages.mjs"
+      "generate-interaction-diagrams.mts"
     ]
     for (const file of files) {
       writeFileSync(

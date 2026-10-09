@@ -129,9 +129,9 @@ Run focused tests, `npm run typecheck`, and the required repository checks.
 [Clean-package conformance](../scripts/run-clean-package-conformance.mjs) and
 [native artifact verification](../scripts/verify-native-release.mjs) establish
 separate packaging properties. Current adapter-layout package checkpoints are
-recorded for [Linux arm64](../evidence/cross-file-support/adapter-linux-package.json)
-and [macOS arm64](../evidence/cross-file-support/adapter-macos-package.json);
-the [offline preparation record](../evidence/cross-file-support/adapter-offline-preparation.json)
+recorded for [Linux arm64](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/cross-file-support/adapter-linux-package.json)
+and [macOS arm64](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/cross-file-support/adapter-macos-package.json);
+the [offline preparation record](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/cross-file-support/adapter-offline-preparation.json)
 covers split-file compiler and freshness checks. Each record identifies its
 own revision and artifact; none substitutes for validation after a new change.
 
@@ -158,7 +158,7 @@ than admissions. Use the production Effect integration. A completed hook write
 alone does not establish model visibility, and compiler acceptance alone does
 not establish advice delivery.
 
-The [current matrix index](../evidence/native-languages/index.json) points to six
+The [current matrix index](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/native-languages/index.json) points to six
 successful final runs on implementation commit
 `a241eb5f554c112609047df97079bc404580d339`: Codex CLI 0.155.1 and Claude Code
 2.1.218 each exercised all three languages and reached a clear follow-up.
@@ -171,7 +171,7 @@ source-checkout entry points and explicitly configured lifecycle hooks. They do
 not establish normal Codex trust onboarding, installed-package behavior, newer
 runtime compatibility, general review accuracy, or unprompted agent quality.
 Bend compiler checks do not establish formal proofs.
-The [negative matrix](../evidence/native-negative/index.json) separately covers
+The [negative matrix](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/native-negative/index.json) separately covers
 reviewer failure, failed or slow edit hooks, and an older finding after a newer
 edit, all with real agents and a controlled offline reviewer. It makes no Jev
 requests and does not extend the paid adoption claim.

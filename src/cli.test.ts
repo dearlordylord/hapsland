@@ -186,7 +186,10 @@ describe("JSON subprocess contract", () => {
     const path = join(root, "pinned.ts")
     writeFileSync(path, "type OrderCount = number\n")
     const pinned = JSON.parse(
-      readFileSync(join(process.cwd(), "evidence/codex/0.155.1/post-tool-use-file-create.json"), "utf8")
+      readFileSync(
+        join(process.cwd(), "src/test-support/fixtures/codex/0.155.1/post-tool-use-file-create.json"),
+        "utf8"
+      )
     ) as Record<string, unknown>
     const input = {
       ...pinned,

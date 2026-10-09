@@ -251,8 +251,8 @@ try {
     (record.checks.followupClearObserved || record.checks.followupFindingObserved)
       ? "demonstrated"
       : "incomplete"
-  await mkdir(join(root, "evidence/native-136"), { recursive: true })
-  await writeFile(join(root, "evidence/native-136/codex-visibility-2.json"), JSON.stringify(record, null, 2) + "\n")
+  await mkdir(join(root, ".test-runs/native-136"), { recursive: true })
+  await writeFile(join(root, ".test-runs/native-136/codex-visibility-2.json"), JSON.stringify(record, null, 2) + "\n")
   console.log(JSON.stringify(record, null, 2))
 } finally {
   owner ??= json(await readFile(residentPaths(runtime).owner, "utf8").catch(() => ""))

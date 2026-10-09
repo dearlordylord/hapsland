@@ -65,8 +65,8 @@ the original frozen whole-core hash still matches. No new laws were proved.
 Pinned proof-only mathlib remains at `7601039f3fe561cb30e4bb7adefbcfba708c1f6c`.
 Bend is 2.0.34 and every checker invocation uses `bend-check`'s five-second limit.
 `lawcheck`/`bend-falsify` are unavailable; literal substitution is the disclosed
-fallback, not a claimed invocation of those tools. No native PRE fault evidence
-was deleted; the source-free reports remain in `evidence/native-negative/` with their original bounded claims.
+fallback, not a claimed invocation of those tools. Historical native PRE fault
+reports are available in [Git history](https://github.com/dearlordylord/hapsland/tree/e0a071afe/evidence/native-negative), with their original bounded claims.
 
 ## Remaining validation boundary
 

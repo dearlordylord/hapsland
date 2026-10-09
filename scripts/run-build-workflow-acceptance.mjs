@@ -221,7 +221,7 @@ export function retainReceiptEvidence(root, name, budget) {
     budget.bytes += bytes.length
     budget.seen.add(sha256)
   }
-  const destination = resolve(root, "evidence/build-243/build-acceptance-receipts", sha256 + ".json")
+  const destination = resolve(root, ".test-runs/build-243/build-acceptance-receipts", sha256 + ".json")
   mkdirSync(dirname(destination), { recursive: true })
   try {
     writeFileSync(destination, bytes, { flag: "wx", mode: 0o644 })
@@ -317,7 +317,7 @@ export async function runAcceptance(root, options) {
     if (remaining <= 0) throw new Error("Acceptance campaign deadline exceeded")
     return remaining
   }
-  const evidenceDir = resolve(root, "evidence/build-243")
+  const evidenceDir = resolve(root, ".test-runs/build-243")
   mkdirSync(evidenceDir, { recursive: true })
   const runId = `${Date.now()}-${process.pid}`
   const report = {

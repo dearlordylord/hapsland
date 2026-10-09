@@ -57,9 +57,9 @@ const json = (s) => {
 const lines = (s) => s.split("\n").filter(Boolean).map(json).filter(Boolean)
 const _quote = (s) => `'${s.replaceAll("'", "'\\''")}'`
 if (!prepareOnly) {
-  await mkdir(join(root, "evidence/rust-support"), { recursive: true })
+  await mkdir(join(root, ".test-runs/rust-support"), { recursive: true })
   await writeFile(
-    join(root, "evidence/rust-support/native-declaration-3.json"),
+    join(root, ".test-runs/rust-support/native-declaration-3.json"),
     JSON.stringify({ declaredAt: new Date().toISOString(), declaration }, null, 2) + "\n"
   )
 }
@@ -352,8 +352,8 @@ After the initial apply_patch, run npm test as the next tool call before any oth
       (record.checks.followupClearObserved || record.checks.followupFindingObserved)
         ? "demonstrated"
         : "incomplete"
-    await mkdir(join(root, "evidence/rust-support"), { recursive: true })
-    await writeFile(join(root, "evidence/rust-support/native-codex.json"), JSON.stringify(record, null, 2) + "\n")
+    await mkdir(join(root, ".test-runs/rust-support"), { recursive: true })
+    await writeFile(join(root, ".test-runs/rust-support/native-codex.json"), JSON.stringify(record, null, 2) + "\n")
     console.log(JSON.stringify(record, null, 2))
   }
 } finally {

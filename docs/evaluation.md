@@ -2,10 +2,10 @@
 
 **Audience:** Evaluation contributors and reviewers; Product and specification owners.
 
-The separate [paired agent evaluation pilot](../evidence/evaluation/paired-pilot/README.md)
+The separate [paired agent evaluation pilot](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/evaluation/paired-pilot/README.md)
 closed incomplete and makes no Hapsland effect estimate. Its frozen
-[protocol](../evidence/evaluation/paired-pilot/protocol.md) and
-[fixture acceptance](../evidence/evaluation/paired-pilot/fixture-acceptance.md) remain historical records.
+[protocol](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/evaluation/paired-pilot/protocol.md) and
+[fixture acceptance](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/evaluation/paired-pilot/fixture-acceptance.md) remain historical records.
 
 Semantic evaluation is a maintainer milestone operation, separate from ordinary
 tests and review hooks. It uses the bundled production rule pack, the production
@@ -55,7 +55,7 @@ maintainer must provide all of the following before a provider layer can be acqu
    project authorization and no lower than the planned worst-case attempts.
 
 The command accounts for every retry in its preflight plan. The
-[rule-meaning milestone evidence](../evidence/evaluation/README.md) records the
+[rule-meaning milestone evidence](https://github.com/dearlordylord/hapsland/blob/e0a071afea12c1808f54aefba4ff2d44bc825341/evidence/evaluation/README.md) records the
 2026-09-20 plan, outcome, and semantic acceptance limits. Retained reports contain
 sanitized aggregate plans, content identities, timing, coverage, and acceptance
 results; they exclude credentials, fixture source, raw provider responses, advice

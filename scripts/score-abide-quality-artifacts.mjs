@@ -8,8 +8,8 @@ import { tasks } from "./abide-quality-fixtures.mjs"
 // Only blind artifact directories are input. This tool never opens arm ledgers.
 const argument = (name, fallback) =>
   process.argv.find((x) => x.startsWith(`${name}=`))?.slice(name.length + 1) ?? fallback
-const root = path.resolve(argument("--blind-root", "evidence/abide-quality-native/blind"))
-const output = path.resolve(argument("--output", "evidence/abide-quality-native/blind-scores.json"))
+const root = path.resolve(argument("--blind-root", ".test-runs/abide-quality-native/blind"))
+const output = path.resolve(argument("--output", ".test-runs/abide-quality-native/blind-scores.json"))
 const digest = (s) => crypto.createHash("sha256").update(s).digest("hex")
 const options = {
   strict: true,

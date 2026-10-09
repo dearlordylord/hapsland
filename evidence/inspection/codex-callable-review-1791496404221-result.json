@@ -1,9 +1,0 @@
-{
-  "schemaVersion": 1,
-  "observedAt": "2026-10-08T21:54:40.179Z",
-  "scenario": "callable-review",
-  "runtime": "codex-cli 0.155.1",
-  "archiveSha256": "d50cf481c3e0e5d6c53ff6e77070f08f438525e698b9631885ac31e3c0bd4c84",
-  "status": "incomplete",
-  "phase": "callable-outcomes"
-}

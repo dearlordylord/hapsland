@@ -1,5 +1,0 @@
-
-> @hapsland/hapsland@0.1.0 verify:release-native
-> node scripts/verify-native-release.mjs
-
-native release artifacts verified: linux-arm64, darwin-arm64 (11 files)

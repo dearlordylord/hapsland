@@ -1,8 +1,0 @@
-{
-  "schemaVersion": 1,
-  "scenario": "callable-review",
-  "archiveSha256": "d50cf481c3e0e5d6c53ff6e77070f08f438525e698b9631885ac31e3c0bd4c84",
-  "status": "incomplete",
-  "phase": "cleanup",
-  "fixtureRetained": true
-}

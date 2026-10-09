@@ -1,8 +1,0 @@
-RUN 20261007145612564-1338303-f7185e focused; deadline 2026-10-07T14:59:12.565Z; records /workspace/typescript/hapsland-243/.test-runs/20261007145612564-1338303-f7185e
-START coverage-provider-strict-regression; log /workspace/typescript/hapsland-243/.test-runs/20261007145612564-1338303-f7185e/1338303-001-coverage-provider-strict-regression.log
-PASSED coverage-provider-strict-regression 29.34s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007145612564-1338303-f7185e/1338303-001-coverage-provider-strict-regression.log
-START status-owner-strict-coverage; log /workspace/typescript/hapsland-243/.test-runs/20261007145612564-1338303-f7185e/1338303-002-status-owner-strict-coverage.log
-PASSED status-owner-strict-coverage 43.25s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007145612564-1338303-f7185e/1338303-002-status-owner-strict-coverage.log
-START bun-coverage-consumers-strict; log /workspace/typescript/hapsland-243/.test-runs/20261007145612564-1338303-f7185e/1338303-003-bun-coverage-consumers-strict.log
-PASSED bun-coverage-consumers-strict 8.91s; exit 0; log /workspace/typescript/hapsland-243/.test-runs/20261007145612564-1338303-f7185e/1338303-003-bun-coverage-consumers-strict.log
-END passed; 81.541s; 0 failed stages, 0 test failures; results /workspace/typescript/hapsland-243/.test-runs/20261007145612564-1338303-f7185e/results.json

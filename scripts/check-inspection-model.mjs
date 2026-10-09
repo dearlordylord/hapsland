@@ -141,7 +141,7 @@ const result = {
   lifecycle: "Regenerate after model changes; replace this evidence in place"
 }
 if (process.argv.includes("--write-evidence")) {
-  const target = resolve(root, "evidence/inspection/model-sampling.json")
+  const target = resolve(root, ".test-runs/inspection/model-sampling.json")
   mkdirSync(dirname(target), { recursive: true })
   writeFileSync(target, `${JSON.stringify(result, null, 2)}\n`)
 }

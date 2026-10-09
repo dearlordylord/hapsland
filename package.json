@@ -82,7 +82,6 @@
     "conformance:client-lifecycle": "npm run build && node scripts/run-client-lifecycle-conformance.mjs",
     "conformance:setup-package": "node scripts/run-setup-package-conformance.mjs",
     "conformance:first-review-live": "node scripts/run-first-review-live-milestone.mjs",
-    "conformance:installed-release": "node scripts/verify-installed-release.mjs",
     "conformance:live": "node scripts/run-direct-event-live-milestone.mjs",
     "test:coverage": "npm test -- --coverage",
     "quality:check": "node scripts/test-harness/run-checks.mjs quality",

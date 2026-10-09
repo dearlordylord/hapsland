@@ -1,2 +1,0 @@
-START 2026-10-07T10:57:38Z
-{"version":1,"operation":"setup-package-conformance","status":"passed","packageManager":"bun","archiveSha256":"2331142576cd8c6667de8a5c2432989ee7dcf913fa3bf0c41085046a4170a316","inspectedArchiveProfiles":["linux-arm64","darwin-arm64"],"operatingSystem":"linux","architecture":"arm64","providerCalls":0,"journeys":["noninteractive-handoff","interruption-resume","idempotent-repeat","offline-first-review-demo","disabled-completion","interactive-masked-terminal","guided-pilot"]}
