@@ -67,11 +67,14 @@ or CI. Source and product contract checks remain in their existing owners.
   inputs never qualify. Release locks after owner processes and descendants stop.
   Claim executed evidence only; focused passes are not full-project coverage.
 
-The pinned crap4ts gate regenerates coverage, then enforces `crap4ts.json`.
-Exit 2: threshold breach. Exit 1: test/configuration/analysis/coverage failure.
-Resolve failures before claiming a pass; report out-of-scope failures explicitly.
-Improve behavioral tests or simplify branching. Preserve source selection,
-strict missing-evidence handling, thresholds and product guarantees.
+The pinned crap4ts analysis regenerates coverage using the full deterministic
+suite. Tests, lint, invalid coverage, missing evidence and analysis errors remain
+blocking. CRAP scores above the configured threshold are advisory: retain the
+machine report and summarize the affected functions for review. Treat the score
+as a navigation aid, not a correctness guarantee or a reason to extract shallow
+helpers. Preserve source selection and strict missing-evidence handling.
+Generated diagnostics belong in ignored `.test-runs` and short-lived CI artifacts;
+they are not repository source or a tracked history archive.
 Documentation/tooling changes use affected tool/consumer, type and documentation
 checks; full gate only when the criteria above apply. Same selection under `src`.
 

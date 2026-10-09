@@ -38,24 +38,6 @@ export interface DirectHookOptions {
   readonly composedEdit: boolean
 }
 
-const nativeCandidateMetadata = (
-  position: number,
-  candidate: DirectObservation["candidates"][number],
-  selection: NativeEditMetadata["candidates"][number]["selection"]
-): NativeEditMetadata["candidates"][number] => ({
-  position,
-  operation: candidate.operation,
-  path: candidate.path,
-  selection,
-  ...("moveTo" in candidate && typeof candidate.moveTo === "string" ? { moveTo: candidate.moveTo } : {})
-})
-
-const recordMissingObservationMetadata = (
-  metadata: NativeEditMetadata | undefined,
-  userConfigPath: string | undefined,
-  activityPath: string
-) => (metadata === undefined ? Effect.void : recordNativeMetadataEffect([metadata], userConfigPath, activityPath))
-
 const recordUnavailableDispatchMetadata = (
   observation: DirectObservation,
   userConfigPath: string | undefined,
@@ -212,7 +194,16 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
           : yield* nativeSelection(single.root, candidate, policies.get(single.root)?.filePolicy, single.rootIdentity)
       projections.set(single.root, {
         ...metadata,
-        candidates: [...metadata.candidates, nativeCandidateMetadata(index, candidate, selection)]
+        candidates: [
+          ...metadata.candidates,
+          {
+            position: index,
+            operation: candidate.operation,
+            path: candidate.path,
+            selection,
+            ...("moveTo" in candidate && typeof candidate.moveTo === "string" ? { moveTo: candidate.moveTo } : {})
+          }
+        ]
       })
     }
     return yield* resolveCodexDispatch(projections, policies, options)
@@ -305,7 +296,8 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
         )
       })
     if (observation === undefined) {
-      yield* bounded(recordMissingObservationMetadata(nativeMetadata, userConfigPath, activityPath))
+      if (nativeMetadata !== undefined)
+        yield* bounded(recordNativeMetadataEffect([nativeMetadata], userConfigPath, activityPath))
       return {}
     }
     const dispatch = yield* bounded(

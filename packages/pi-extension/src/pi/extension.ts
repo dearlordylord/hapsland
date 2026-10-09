@@ -63,10 +63,6 @@ const identity = (ctx: Context, tool: string, id: string): Identity => ({
   host_version: "1.0.0",
   tool_name: tool
 })
-const targetIdentity = (input: unknown): Pick<Identity, "target_path"> => {
-  const nativeInput = input !== null && typeof input === "object" ? (input as Event) : undefined
-  return typeof nativeInput?.path === "string" ? { target_path: nativeInput.path } : {}
-}
 const partition = (id: Identity): string => id.session_id
 const supported = (event: Event): boolean =>
   event.toolName === piHooks.toolCall.tool &&
@@ -191,7 +187,11 @@ export const createPiExtension =
       if (!supported(event) || calls.size >= 64) return
       const fingerprint = digest(event.input)
       if (fingerprint === undefined) return
-      const id = { ...identity(ctx, event.toolName, event.toolCallId), ...targetIdentity(event.input) }
+      const nativeInput = event.input !== null && typeof event.input === "object" ? event.input : undefined
+      const id = {
+        ...identity(ctx, event.toolName, event.toolCallId),
+        ...(typeof nativeInput?.path === "string" ? { target_path: nativeInput.path } : {})
+      }
       const key = `${partition(id)}\0${id.tool_use_id}`
       if (calls.has(key)) return
       await registerCall(id, key, fingerprint)

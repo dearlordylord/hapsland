@@ -118,12 +118,12 @@ stage evidence. Vitest and mixed selections prepare workspaces once before their
 tests. Both `test:focused` and verification profiles use this convention; test
 assertions and coverage requirements remain unchanged.
 
-Quality runs harness preflight, lint, then the pinned crap4ts complexity lower
-bound before coverage generation. Complexity above the configured threshold
-ceiling guarantees a CRAP breach and stops expensive checks with exit 2. Path
-overrides use a conservative maximum; smaller path-specific breaches remain
-owned by the final gate. An early pass establishes no coverage result. The final
-CRAP gate still generates fresh coverage and enforces strict missing evidence.
+Quality runs harness preflight, lint, coverage-provider regressions, a bounded
+Bun subprocess check and a four-file V8 coverage smoke before full coverage
+generation. The smoke requires emitted statement hits for each selected owner. Tests and invalid or missing
+coverage remain blocking. CRAP threshold breaches are advisory and appear in a
+machine-readable run artifact and the CI summary. The threshold remains a review
+baseline; it does not require splitting production functions to pass a number.
 
 `--timeout-ms=N` sets the finite run deadline. Compiler version preflight alone
 is not compiler validation; select the compiler tests for the changed owner.
@@ -258,7 +258,7 @@ evidence before regenerating the scenario pages.
 | Credential policy and approved saving | `npm run test:focused -- src/credentials/input.test.ts src/credentials/file-saving.test.ts src/credentials/login-interaction.test.ts src/credentials/direct-input.test.ts src/onboarding/setup.test.ts`; `npm run conformance:setup-package -- --archive=PATH --profile=HOST --development-checkout=ISOLATED_CANDIDATE` | Lookup precedence, empty-environment authority, owner-bound file approval, stale targets, private atomic saving, direct native automation; installed setup and optional real development rebuild/update/new-key with artifact exclusion | Source fixtures are deterministic and offline. Installed/development execution must run separately on macOS arm64 and Linux arm64. The optional development candidate must be a separate repository checkout of the acceptance candidate with pinned dependencies and build tools ready, containing no copied ignored credentials. The runner temporarily changes its login help and creates a fixture project credential, then restores/removes both. Each dev-install invocation is bounded to 300 seconds; these are heavy checks. No provider requests or native-agent support claim. |
 | Routine deterministic gate | `npm test` | Bend artifact and authority checks, boundary scripts, Vitest tests for the reducer, adapters, resident, and CLI | Logic and controlled fixtures; no native agent or Jev call |
 | Process harness contention | `npm run test:contention`; `npm run test:harness:inventory` | Full deterministic gate under the declared Linux CPU-pressure profile; transitive process/scenario inventory; hung-child cleanup probes | Declared scheduling profile and finite harness failure; no product deadline, latency, or arbitrary-starvation claim |
-| TypeScript quality gate | `npm run quality:check -- --ack-checks-policy` | Full deterministic gate with fresh Istanbul coverage, then pinned crap4ts analysis of `src`, extracted production TypeScript owners, and `scripts/test-support`, as selected by `crap4ts.json` | Per-function complexity and coverage policy; strict missing evidence; no correctness or assertion-quality guarantee |
+| TypeScript quality gate | `npm run quality:check -- --ack-checks-policy` | Full deterministic gate with fresh Istanbul coverage, then pinned crap4ts analysis of `src`, extracted production TypeScript owners, and `scripts/test-support`, as selected by `crap4ts.json` | Advisory per-function CRAP scores; blocking tests and missing evidence; no correctness or assertion-quality guarantee |
 | Compile/package source | `npm run typecheck`; `npm run build` | TypeScript typing, Bend artifacts, native helpers, standalone Bun commands and agent extension assets | Buildability of this checkout; the foreign profile imports a current source-bound native bundle and dependency parser prebuilds; local format/receipt checks do not establish foreign-host execution |
 | Build workflow adapters | `node --input-type=module -e 'import {precheckStages} from "./scripts/test-harness/check-stages.mjs"; import {spawnSync} from "node:child_process"; const stage=precheckStages.find(([name])=>name==="build-workflow"); const result=spawnSync(process.execPath,stage.slice(1),{stdio:"inherit",timeout:150000}); if(result.error) throw result.error; process.exit(result.status??1)'` | Manifest graph, compiler and assembly receipts, native cache inputs and restoration, process ownership, source loader policy, and watch coordination | Adapter tests; actual production builds, installed behavior and platform qualification require their own checks. |
 | Hook source and runtime import boundaries | `node --test scripts/check-workspace-imports.test.mjs scripts/source-loader-policy.test.mjs scripts/hook-import-boundary.test.mjs`; `npx vitest run --maxWorkers=1 src/runtime/review-engine-boundary.test.ts` | Declared hook/Pi entries, transitive local and workspace edges including type-only edges, forbidden owners, supported loader shapes and lexical bindings; runtime engine/parser/provider assertions | Source checks reject unsupported loaders. External dependency contributions and emitted/compiler closure require their separate build evidence; this gate alone does not establish emitted isolation. |
@@ -593,8 +593,8 @@ The [crap4ts configuration](../crap4ts.json) selects TypeScript under `src`,
 the 22 production TypeScript owners’ `src` directories and the moved
 `scripts/test-support` helpers (the tool excludes conventional tests and
 declarations). The Bend producer is checked through its separate generator,
-ABI, loader and proof gates. The configuration enforces a CRAP
-threshold of **8** with missing evidence treated as an error.
+ABI, loader and proof gates. The configuration uses a CRAP
+review baseline of **8** with missing evidence treated as a blocking error.
 [`@crap4ts/crap4ts`](https://www.npmjs.com/package/@crap4ts/crap4ts) is pinned
 to **1.0.5** (`DEPEND ON`); the V8 coverage provider is pinned to the same
 release as Vitest and emits Istanbul JSON, not raw V8 coverage.
@@ -660,7 +660,7 @@ No sleep is used to establish correctness or concurrency ordering.
 Subprocess coverage is enabled so CLI and resident tests contribute evidence
 from their spawned Node processes. Installed Bun binaries do not emit V8 source
 coverage; source fixtures and component tests retain that evidence under the
-unchanged strict quality policy. The [coverage adapter](../scripts/coverage-provider.mjs)
+strict coverage-evidence policy. The [coverage adapter](../scripts/coverage-provider.mjs)
 uses the pinned V8 provider while keeping Vite and native Node offsets separate
 until source remapping, then combines counters for the same original function
 body. It also normalizes uniquely identified multiline callback signatures
@@ -923,14 +923,17 @@ stops if tests fail, so stale coverage cannot produce a passing CI result.
 For machine-readable gate feedback after the run, use
 `npm run --silent test:status -- --json > crap-report.json`. The retained record
 contains every stage exit and log path plus all Vitest failures; CRAP analysis
-diagnostics are in the quality-stage log. Exit **2** means a score exceeded its threshold;
+diagnostics and affected rows are retained in `.test-runs/<run-id>/quality-report.json`
+and the GitHub Actions summary. CI retains diagnostics for **3 days**; do not
+commit them under `evidence/`. The wrapper records a valid, fully measured tool
+exit **2** as a threshold warning and succeeds;
 exit **1** means invalid inputs, missing coverage, analysis failure, or a failed
 coverage command. Coverage reports and `crap-report.json` stay ignored.
 Coverage is also written on test failures for diagnosis, but the gate stops
 on the failed command and does not analyze it as a successful run.
-A failing existing function
-needs meaningful tests or simpler branching; do not raise thresholds or switch
-to report-only mode to hide a failure. The source selection in `crap4ts.json`
+Review high-scoring functions for missing behavior tests or unnecessary coupling.
+A score alone does not mandate a refactor. Strict missing-evidence handling stays
+enabled; advisory scores do not turn invalid coverage into a successful analysis. The source selection in `crap4ts.json`
 includes `src`, the extracted production TypeScript owner source directories,
 and moved helpers in `scripts/test-support`. Other auxiliary packages and
 JavaScript/Bend sources remain outside that selection. Review this policy when

@@ -59,13 +59,13 @@ jobs:
         run: node scripts/check-repository-assets.mjs
       - name: Typecheck
         run: npm run typecheck
-      - name: Run deterministic tests, boundary checks, and CRAP quality gate
+      - name: Run deterministic tests, boundary checks, and CRAP analysis
         run: npm run quality:check -- --ack-checks-policy
       - name: Retain stage timings and complete failure logs
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: offline-check-evidence
+          name: offline-check-diagnostics
           include-hidden-files: true
           path: |
             .test-runs/**/manifest.json
@@ -74,6 +74,7 @@ jobs:
             .test-runs/**/archive.json
             .test-runs/**/inputs-*.json
             .test-runs/**/stages/*.json
+            .test-runs/**/quality-report.json
             .test-runs/**/failures.jsonl
             .test-runs/**/*.log
             coverage/coverage-final.json

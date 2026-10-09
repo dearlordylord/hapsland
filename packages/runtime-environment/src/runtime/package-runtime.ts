@@ -127,9 +127,6 @@ export const readResidentTarget = (path = residentTargetPath()): ResidentTarget 
     throw new Error("Selected resident is unavailable; retry the resident update.")
   }
 }
-const isExistingTargetError = (cause: unknown): cause is Error & { readonly code: "EEXIST" } =>
-  cause instanceof Error && "code" in cause && cause.code === "EEXIST"
-
 /** Resolve or publish the resident choice using an explicit target file and package command. */
 export const selectResidentCommand = (command: () => RuntimeCommand, path: string, build: string): RuntimeCommand => {
   const selected = readResidentTarget(path)
@@ -144,7 +141,7 @@ export const selectResidentCommand = (command: () => RuntimeCommand, path: strin
   try {
     linkSync(temporary, path)
   } catch (cause) {
-    if (!isExistingTargetError(cause)) throw cause
+    if (!(cause instanceof Error && "code" in cause && cause.code === "EEXIST")) throw cause
   } finally {
     unlinkSync(temporary)
   }

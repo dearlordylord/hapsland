@@ -1501,20 +1501,16 @@ const unattendedRequested = (args: ClientArguments) =>
     !process.stdin.isTTY ||
     !process.stderr.isTTY)
 
-const runSetupLifecycle = Effect.fn("Cli.runSetupLifecycle")(function* (args: ClientArguments) {
-  if (unattendedRequested(args)) return yield* runUnattended(args)
-  const host = args.host
-  if (host === undefined) return yield* cliJourney("setup", () => chooseSetupClients())
-  return yield* cliJourney("setup-agent", () => pilotSetupSession(host))
-})
-
 const runLocalLifecycle = Effect.fn("Cli.localLifecycle")(function* (command: ClientCommand, args: ClientArguments) {
   if (command === "doctor") return yield* runHumanDoctor(args)
   if (command === "update") return yield* cliJourney("update", () => updateInteractive())
   if (command === "repair") return yield* cliJourney("repair", () => maintenanceInteractive(command))
   if (command === "reinstall") return yield* cliJourney("reinstall", () => maintenanceInteractive(command))
   if (command === "uninstall") return yield* cliJourney("uninstall", () => maintenanceInteractive(command))
-  return yield* runSetupLifecycle(args)
+  if (unattendedRequested(args)) return yield* runUnattended(args)
+  const host = args.host
+  if (host === undefined) return yield* cliJourney("setup", () => chooseSetupClients())
+  return yield* cliJourney("setup-agent", () => pilotSetupSession(host))
 })
 
 const runLifecycle = Effect.fn("Cli.lifecycle")(function* (
