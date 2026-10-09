@@ -527,6 +527,28 @@ describe("Python same-file shipped review", () => {
       ).toEqual(["Good"])
     })
   )
+  it("does not resolve class-local values to same-named module models", () => {
+    for (const binding of ["Tag = helper", "def Tag(self): pass"]) {
+      const result = analyzeTypeFile(
+        "model.py",
+        `class Tag:\n    id: str\nclass Model:\n    ${binding}\n    value: Tag\nclass Good:\n    id: str\n`
+      )
+      expect(result).toMatchObject({
+        status: "analyzed",
+        units: [
+          expect.objectContaining({ status: "ready" }),
+          expect.objectContaining({ status: "unsupported" }),
+          expect.objectContaining({ status: "ready" })
+        ]
+      })
+    }
+    expect(
+      analyzeTypeFile("model.py", "class Tag:\n    id: str\nclass Child(Tag):\n    Tag = helper\n    value: str\n")
+    ).toMatchObject({
+      status: "analyzed",
+      units: [expect.objectContaining({ status: "ready" }), expect.objectContaining({ status: "ready" })]
+    })
+  })
   it("does not recognize shadowed markers or infer fields from methods", () => {
     for (const source of [
       "from dataclasses import dataclass\ndataclass = helper\n@dataclass\nclass Empty:\n    pass",

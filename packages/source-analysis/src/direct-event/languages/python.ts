@@ -137,12 +137,14 @@ type Scope = {
   readonly bindings: ReadonlyMap<string, string>
   readonly locals: ReadonlySet<string>
   readonly parameters: ReadonlySet<string>
+  readonly shadowed: ReadonlySet<string>
 }
 const references = (node: SyntaxNode, scope: Scope): GraphReference[] => {
   if (node.type === "type") return node.namedChildren.flatMap((child) => references(child, scope))
   if (["identifier", "attribute"].includes(node.type)) {
     const name = node.text
     if (scope.parameters.has(name)) return []
+    if (scope.shadowed.has(name.split(".")[0]!)) return [{ kind: "unsupported", name: "binding" }]
     const identity = identityFor(name, scope.bindings)
     if (identity === undefined && !scope.locals.has(name) && primitives.has(name)) return []
     if (
@@ -294,13 +296,16 @@ const parsePython = (path: string, source: string): TypeExtractionFailure | read
     collectParameters((cls ?? node).childForFieldName("type_parameters"))
     const classLocals = new Set(locals)
     const classBindings = new Map(bindings)
+    const shadowed = new Set<string>()
     for (const member of cls?.childForFieldName("body")?.namedChildren ?? []) {
+      const bareAnnotation = assignment(member)?.childForFieldName("right") === null
       for (const { name: local } of scopeBindings(member)) {
+        if (!bareAnnotation) shadowed.add(local)
         classLocals.add(local)
         classBindings.delete(local)
       }
     }
-    const scope = { bindings: classBindings, locals: classLocals, parameters }
+    const scope = { bindings: classBindings, locals: classLocals, parameters, shadowed }
     if (cls?.type === "class_definition" && name && admitted.has(name)) {
       const body = cls.childForFieldName("body")
       const header = location(node)
@@ -325,7 +330,7 @@ const parsePython = (path: string, source: string): TypeExtractionFailure | read
             !staticValue(base.childForFieldName("value")!)
           )
             extra.push({ kind: "unsupported", name: "base" })
-        } else expressions.push(base)
+        } else extra.push(...references(base, { bindings, locals, parameters, shadowed: new Set() }))
       }
       for (const decorator of node.namedChildren.filter((child) => child.type === "decorator")) {
         const marker = decorator.namedChildren[0]
