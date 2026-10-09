@@ -72,7 +72,7 @@ export const securityWireExpectedBody = {
       completeness: "complete",
       projectionFingerprint: sha256(canonical(tree)),
       rendererVersion: "candidate-semantic-evidence/1",
-      rendererDigest: "7b4e5b6d01b7f22febad7376a0a1ffa3e9684d4dbb6ac9d94d071bf23a2fa5ca"
+      rendererDigest: "ee56512789625afdd270f92ea3cae1462f4e87848aaa89289c14e119f057b776"
     }
   },
   questions: {

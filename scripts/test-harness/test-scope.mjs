@@ -11,11 +11,12 @@ export const isOptionalDevelopmentTest = (path) => {
   )
 }
 
-export const testDiscovery = (selectedFiles) => ({
+export const testDiscovery = (selectedFiles, nodeTestFiles = []) => ({
   include: selectedFiles ?? ["src/**/*.test.ts", "scripts/**/*.test.mts"],
   exclude: [
     "vendor/**",
     "node_modules/**",
+    ...nodeTestFiles.map((file) => file.replaceAll("\\", "/")),
     ...(selectedFiles === undefined
       ? ["scripts/game-*.test.mts", "packages/monkey-business/**", "src/canonical/session-port.test.ts"]
       : [])

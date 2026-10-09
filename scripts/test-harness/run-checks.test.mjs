@@ -175,6 +175,36 @@ test("focused mode refuses empty and broad selections", async (t) => {
   assert.deepEqual(selection.vitestFiles, ["src/one.test.ts"])
 })
 
+test("focused selection routes native .mts tests to Node and preserves Vitest tests", async (t) => {
+  const root = await fixture(t)
+  await writeFile(join(root, "scripts/native.test.mts"), 'import { test } from "node:test"; test("native", () => {})')
+  await writeFile(join(root, "scripts/vitest.test.mts"), 'import { it } from "vitest"; it("vitest", () => {})')
+  const selection = await focusedSelection(root, ["scripts/native.test.mts", "scripts/vitest.test.mts"])
+  assert.deepEqual(selection.nodeFiles, ["scripts/native.test.mts"])
+  assert.deepEqual(selection.vitestFiles, ["scripts/vitest.test.mts"])
+})
+
+test("focused native TypeScript tests use Node's strip-types loader", async (t) => {
+  const root = await fixture(t)
+  await writeFile(join(root, "scripts/native.test.mts"), 'import { test } from "node:test"; test("native", () => {})')
+  const stages = []
+  await runSelectedTests({ runStage: async (stage) => (stages.push(stage), { state: "passed" }) }, root, {
+    nodeFiles: ["scripts/native.test.mts"],
+    vitestFiles: [],
+    options: []
+  })
+  assert.deepEqual(
+    stages.map(({ name }) => name),
+    ["node-focused"]
+  )
+  assert.deepEqual(stages[0].args, [
+    "--experimental-strip-types",
+    "--test",
+    "--test-concurrency=1",
+    "scripts/native.test.mts"
+  ])
+})
+
 test("source-only Node selection executes without workspace preparation", async (t) => {
   const root = await fixture(t)
   await writeFile(join(root, "package.json"), JSON.stringify({ type: "module", workspaces: ["scripts"] }))

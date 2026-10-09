@@ -146,9 +146,10 @@ describe("edit-owned settings", () => {
       ).status
     ).toBe("accepted")
     await Effect.runPromise(f.server.whenIdle())
+    const { nativeMetadata: _nativeMetadata, ...base } = f.observation
     const collector: DirectObservation = {
-      ...f.observation,
-      advicee: { ...f.observation.advicee, toolUseId: "collector" },
+      ...base,
+      advicee: { ...base.advicee, toolUseId: "collector" },
       candidates: [{ operation: "delete", path: "collector.ts", addedLines: [] }]
     }
     await register(f.server, collector, f.user)
@@ -195,9 +196,10 @@ describe("edit-owned settings", () => {
     await Effect.runPromise(f.server.admit(blocking, f.dispatch, true, true))
     await Effect.runPromise(f.server.whenIdle())
     expect(await Effect.runPromise(f.server.pendingAdviceMetadata())).toHaveLength(2)
+    const { nativeMetadata: _nativeMetadata, ...blockingBase } = blocking
     const collector: DirectObservation = {
-      ...blocking,
-      advicee: { ...blocking.advicee, toolUseId: "collector" },
+      ...blockingBase,
+      advicee: { ...blockingBase.advicee, toolUseId: "collector" },
       candidates: [{ operation: "delete", path: "collector.ts", addedLines: [] }]
     }
     await register(f.server, collector, f.user)

@@ -2713,6 +2713,14 @@ function $$$$047agent$045flow$045bend$047Handoff$058lease$suppresses$(_state_0, 
   return $Bool$and$(($Nat$is_eq$(_owner_0, _round_0)), ($Bool$and$(($Bool$not$(_closed_0)), ($$$$047agent$045flow$045bend$047Handoff$058lease$suppress_phase$(_phase_0, _requested_0)))));
 }
 
+function $$$$047agent$045flow$045bend$047Handoff$058drop_source_cache$(_remaining_0, _aborted_0) {
+  if (_aborted_0) {
+    return true;
+  } else {
+    return $Nat$is_eq$(_remaining_0, 0);
+  }
+}
+
 function $$$$047agent$045flow$045bend$047Ledger$058limits_for$(_purpose_0, _limits_0) {
   if (_purpose_0.$ === "Ledger.ObservationDispatch") {
     return _limits_0;
@@ -13702,6 +13710,10 @@ function $$$$047agent$045flow$045bend$047Canonical$058step_unchecked$(_state_0, 
     const _shared_collect_0 = _event_0["shared_collect"];
     const _invalid_seen_1 = _event_0["invalid_seen"];
     return $$$$047agent$045flow$045bend$047Canonical$058delivery_batch_result$(_state_0, ($$$$047agent$045flow$045bend$047Delivery$058final_credential_gate$(_shared_collect_0, _invalid_seen_1)));
+  } else if (_event_0.$ === "Canonical.SourceCacheCheck") {
+    const _remaining_1 = _event_0["remaining"];
+    const _aborted_0 = _event_0["aborted"];
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Handoff$058drop_source_cache$(_remaining_1, _aborted_0)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.SourceCacheDrop"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.SourceCacheRetain"}})), "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.ValidationRouteCheck") {
     const _owner_current_0 = _event_0["owner_current"];
     const _status_0 = _event_0["status"];
@@ -13877,12 +13889,12 @@ function $$$$047agent$045flow$045bend$047Canonical$058step_unchecked$(_state_0, 
     return $$$$047agent$045flow$045bend$047Canonical$058cache_discard_result$(_state_0, ($$$$047agent$045flow$045bend$047ReuseState$058clear$(($$$$047agent$045flow$045bend$047CollectionState$058reuse_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))))));
   } else if (_event_0.$ === "Canonical.NoticeAdvance") {
     const _key_0 = _event_0["key"];
-    const _remaining_1 = _event_0["remaining"];
+    const _remaining_2 = _event_0["remaining"];
     const _maximum_keys_0 = _event_0["maximum_keys"];
     const _proposed_0 = _event_0["proposed"];
     const _sequence_0 = _event_0["sequence"];
     const _max_count_0 = _event_0["max_count"];
-    return $$$$047agent$045flow$045bend$047Canonical$058notice_advance_result$(_state_0, ($$$$047agent$045flow$045bend$047NoticeState$058advance$(($$$$047agent$045flow$045bend$047CollectionState$058notice_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _key_0, _remaining_1, _maximum_keys_0, _proposed_0, _sequence_0, _max_count_0)));
+    return $$$$047agent$045flow$045bend$047Canonical$058notice_advance_result$(_state_0, ($$$$047agent$045flow$045bend$047NoticeState$058advance$(($$$$047agent$045flow$045bend$047CollectionState$058notice_state$(($$$$047agent$045flow$045bend$047Canonical$058collection_of$(_state_0)))), _key_0, _remaining_2, _maximum_keys_0, _proposed_0, _sequence_0, _max_count_0)));
   } else if (_event_0.$ === "Canonical.NoticeCommit") {
     const _key_1 = _event_0["key"];
     const _partition_34 = _event_0["partition"];
@@ -26094,6 +26106,8 @@ function $AdviceeScope$058event_reference$(_value_0) {
     return {$: "AdviceeScope.Context"};
   } else if (_value_0.$ === "Canonical.DeliveryFinalCredentialCheck") {
     return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.SourceCacheCheck") {
+    return {$: "AdviceeScope.Shared"};
   } else if (_value_0.$ === "Canonical.ValidationRouteCheck") {
     return {$: "AdviceeScope.Context"};
   } else if (_value_0.$ === "Canonical.PostValidationCheck") {
@@ -26567,6 +26581,10 @@ function $AdviceeScope$058command_reference$(_value_0) {
       return {$: "AdviceeScope.Context"};
     } else if (_t_1.$ === "Canonical.DeliveryCredentialValid") {
       return {$: "AdviceeScope.Context"};
+    } else if (_t_1.$ === "Canonical.SourceCacheDrop") {
+      return {$: "AdviceeScope.Shared"};
+    } else if (_t_1.$ === "Canonical.SourceCacheRetain") {
+      return {$: "AdviceeScope.Shared"};
     } else if (_t_1.$ === "Canonical.IgnoreCandidate") {
       return {$: "AdviceeScope.Context"};
     } else if (_t_1.$ === "Canonical.ReleaseCandidate") {
@@ -38120,7 +38138,7 @@ function $List$reverse$go$($0, $1) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-runner-sha256:7fb2e3e7da80f4e13d5d2aad1fb325b8ca576ddc6f3948b9b7a1306daa4b7103";
+export const SOURCE_IDENTITY = "shared-monkey-business-runner-sha256:fbb33c9e9227b048b9183cea3f1346ce041d97663f714de6dd125046440653c7";
 const facts = value => {
   if (typeof value === "bigint") { if (value < 0n || value >= 281474976710656n) throw new RangeError("invalid immediate Nat"); return Number(value); }
   if (typeof value === "number") { if (!Number.isSafeInteger(value) || value < 0 || value >= 281474976710656) throw new RangeError("invalid immediate Nat"); return value; }

@@ -7,6 +7,7 @@ import { randomBytes } from "node:crypto"
 import { resolve, join, relative, sep } from "node:path"
 import { fileURLToPath } from "node:url"
 import { precheckStages, qualityPreflight } from "./check-stages.mjs"
+import { isNodeTestModule, nodeMtsTestFiles } from "./inventory.mjs"
 import { sourceSnapshot } from "./source-identity.mjs"
 
 const executeFile = promisify(execFile)
@@ -637,7 +638,7 @@ export async function runSelectedTests(run, root, selection, environment = {}) {
     await run.runStage({
       name: "node-focused",
       command: process.execPath,
-      args: ["--test", "--test-concurrency=1", ...selection.nodeFiles],
+      args: nodeTestArguments(selection.nodeFiles),
       env: environment
     })
   if (selection.vitestFiles.length)
@@ -659,6 +660,13 @@ export async function runSelectedTests(run, root, selection, environment = {}) {
     })
 }
 
+const nodeTestArguments = (files) => [
+  ...(files.some((file) => file.endsWith(".mts")) ? ["--experimental-strip-types"] : []),
+  "--test",
+  "--test-concurrency=1",
+  ...files
+]
+
 export async function focusedSelection(root, args) {
   const files = [...new Set(args.filter((arg) => !arg.startsWith("-") && /\.test\.(?:m?[jt]sx?|cjs)$/.test(arg)))]
   if (!files.length)
@@ -673,8 +681,18 @@ export async function focusedSelection(root, args) {
   if (other.some((arg) => !arg.startsWith("-") && !/^[0-9]+$/.test(arg)))
     throw new Error("Use explicit test files and --option=value syntax for focused options.")
   return {
-    nodeFiles: files.filter((file) => file.endsWith(".mjs") || file.endsWith(".cjs")),
-    vitestFiles: files.filter((file) => !file.endsWith(".mjs") && !file.endsWith(".cjs")),
+    nodeFiles: files.filter(
+      (file) =>
+        file.endsWith(".mjs") ||
+        file.endsWith(".cjs") ||
+        (file.endsWith(".mts") && isNodeTestModule(resolve(root, file)))
+    ),
+    vitestFiles: files.filter(
+      (file) =>
+        !file.endsWith(".mjs") &&
+        !file.endsWith(".cjs") &&
+        !(file.endsWith(".mts") && isNodeTestModule(resolve(root, file)))
+    ),
     options: other
   }
 }
@@ -779,6 +797,15 @@ export async function main(argv = process.argv.slice(2), root = defaultRoot, pla
         } catch (error) {
           await run.recordFailedStage({ name: "package-archive", error })
           console.error(`FAIL package-archive: ${error instanceof Error ? error.message : String(error)}`)
+        }
+        if (!run.aborted && archive) {
+          const nativeTypeScriptTests = nodeMtsTestFiles(root)
+          if (nativeTypeScriptTests.length)
+            await run.runStage({
+              name: "node-typescript-tests",
+              command: process.execPath,
+              args: nodeTestArguments(nativeTypeScriptTests)
+            })
         }
         if (!run.aborted && archive)
           await run.runStage({

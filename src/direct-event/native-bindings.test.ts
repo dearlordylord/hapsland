@@ -21,7 +21,8 @@ const fixture = (name: string, contents: string) => {
   writeFileSync(path, contents)
   return { root, path }
 }
-const wrapper = 'const root = __dirname; module.exports = require("node-gyp-build")(root);'
+const wrapper =
+  'const root = require("path").join(__dirname, "..", ".."); module.exports = require("node-gyp-build")(root);'
 describe("physical native parser loading", () => {
   it.each(Object.keys(nativeParserBindings) as Array<keyof typeof nativeParserBindings>)(
     "transforms actual installed %s wrapper into a finite native target",

@@ -1,4 +1,4 @@
-import { checkBendCompiler } from "./compiler.mjs"
+import { bendCompilerVersion, checkBendCompiler } from "./compiler.mjs"
 import { createHash } from "node:crypto"
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -10,7 +10,7 @@ const compilationTimeoutMs = Number(process.env.BEND_COMPILATION_TIMEOUT_MS ?? 1
 if (!Number.isSafeInteger(compilationTimeoutMs) || compilationTimeoutMs <= 0) {
   throw new RangeError("BEND_COMPILATION_TIMEOUT_MS must be a positive finite integer")
 }
-const compiler = checkBendCompiler()
+const compiler = bendCompilerVersion()
 const hash = (value) => createHash("sha256").update(value).digest("hex")
 const consumed = new Map()
 const collect = (path) => {
@@ -501,6 +501,7 @@ if (process.argv.includes("--check")) {
   const reused = reusedModule()
   writeArtifact(reused.module, reused.evidence)
 } else {
+  checkBendCompiler()
   const temp = mkdtempSync(join(tmpdir(), "hapsland-monkey-business-"))
   try {
     const run = spawnSync("bend", [join(root, "Engine.bend"), "-o", join(temp, "engine.mjs")], {

@@ -51,6 +51,9 @@ const importsOf = (file, sourceOnly = false) => {
   return modules
 }
 
+/** Recognize native Node tests from their parsed import graph, not filename alone. */
+export const isNodeTestModule = (file) => importsOf(file).includes("node:test")
+
 const localModule = (root, file, specifier) => {
   if (!specifier.startsWith(".")) {
     const manifestPath = resolve(root, "package.json")
@@ -116,6 +119,17 @@ const testFiles = (root) => {
   for (const directory of ["src", "scripts"]) visit(resolve(root, directory))
   return files.sort()
 }
+
+/** Native Node tests written in TypeScript must stay out of Vitest discovery. */
+export const nodeMtsTestFiles = (root) =>
+  testFiles(root)
+    .filter(
+      (file) =>
+        file.endsWith(".test.mts") &&
+        relative(root, file).replaceAll("\\", "/").startsWith("scripts/") &&
+        isNodeTestModule(file)
+    )
+    .map((file) => relative(root, file).replaceAll("\\", "/"))
 
 /** Find package consumers through their actual local import closure. */
 export const requiredTestArtifacts = (root, selectedFiles) => {

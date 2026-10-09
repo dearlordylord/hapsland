@@ -243,6 +243,7 @@ def event_reference(value: Canonical.CanonicalEvent) -> Reference:
     case Canonical.DeliverySubmissionBatchCheck{_, _}: Context{}
     case Canonical.DeliveryCredentialObserveCheck{_, _, _}: Context{}
     case Canonical.DeliveryFinalCredentialCheck{_, _}: Context{}
+    case Canonical.SourceCacheCheck{_, _}: Shared{}
     case Canonical.ValidationRouteCheck{_, _}: Context{}
     case Canonical.PostValidationCheck{_, _, _}: Context{}
     case Canonical.FinalCandidateCheck{_, _, _, _, _, _}: Context{}
@@ -455,6 +456,8 @@ def command_reference(value: Canonical.Output) -> Reference:
     case Canonical.PolicyDecided{Canonical.DeliveryBatchRelease{}}: Context{}
     case Canonical.PolicyDecided{Canonical.DeliveryCredentialInvalid{}}: Context{}
     case Canonical.PolicyDecided{Canonical.DeliveryCredentialValid{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.SourceCacheDrop{}}: Shared{}
+    case Canonical.PolicyDecided{Canonical.SourceCacheRetain{}}: Shared{}
     case Canonical.PolicyDecided{Canonical.IgnoreCandidate{}}: Context{}
     case Canonical.PolicyDecided{Canonical.ReleaseCandidate{}}: Context{}
     case Canonical.PolicyDecided{Canonical.RetireCandidate{}}: Context{}
