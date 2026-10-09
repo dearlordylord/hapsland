@@ -39,7 +39,8 @@ for (const event of [
 if (
   server.includes("revalidationActive") ||
   !server.includes("residentLedger.adviceCaptures.start(") ||
-  !server.includes("residentLedger.adviceCaptures.finish(capture)") ||
+  !server.includes("residentLedger.adviceCaptures.finish(workspace)") ||
+  !server.includes("residentLedger.adviceCaptures.finish(owner.capture)") ||
   !capacity.includes("resident state cannot clear outstanding advice captures")
 ) {
   throw new Error("advice capture lifetime escaped the shared state owner")
