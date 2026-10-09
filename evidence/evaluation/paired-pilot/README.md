@@ -1,6 +1,8 @@
 # Paired agent evaluation pilot
 
+<!--
 **Audience:** Evaluation contributors and reviewers; Product and specification owners.
+-->
 
 **Status: closed incomplete on 2026-09-24.** The owner accepted the Stage 1
 [fixture](fixture-acceptance.md) and the frozen Stage 2

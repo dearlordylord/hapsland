@@ -1,11 +1,13 @@
 # Hapsland production decision visualization
 
+<!--
 **Purpose:** Explain the production decision visualization and how to build and inspect it.
 **Audience:** Contributors, including coding agents maintaining this package and its consumers.
 **Status:** Active visualization documentation.
 **Authority:** Maintained guidance.
 **Expected use:** Run the dashboard and understand the scope of guided/manual replay and its evidence.
 **Lifecycle:** Maintained alongside visualization source, fixtures, and build commands. Review whenever the shared adapter, page sections, replay behavior, or capacity projection changes, and at #137 final authority review.
+-->
 
 ## Public site and shared import replay
 

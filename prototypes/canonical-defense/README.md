@@ -1,11 +1,13 @@
 # Canonical architecture defense
 
+<!--
 **Purpose:** Present the shared continuous Monkey Business engine through an optional native tower game.
 **Audience:** Prototype contributors and evaluators; Product and specification owners.
 **Status:** Gameplay prototype under issue #199; the process-teaching redesign has focused local qualification on Linux ARM64. Earlier receipts cover their identified source only.
 **Authority:** Design proposal and implementation evidence; the product contracts and shared engine own business behavior.
 **Expected use:** Build spatial towers and inspect continuous review activity in a separate engine instance.
 **Lifecycle:** At the owner's game-layout selection, consolidate accepted mechanics into the game owner, update inbound links, and delete rejected variants and obsolete evidence. Review this guide when shared engine controls or native rendering change.
+-->
 
 Current builds, laboratory generation and proof checks use the repository pin,
 **Bend 2.0.36 / Lean 4.34.0**. Install it through

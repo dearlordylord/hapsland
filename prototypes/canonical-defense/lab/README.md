@@ -1,11 +1,13 @@
 # Development-time balance laboratory
 
+<!--
 **Purpose:** Run finite, reproducible comparisons of editable game abilities over the shared Monkey Business engine.
 **Audience:** Prototype contributors and evaluators; Product and specification owners.
 **Status:** Offline foundation implemented and locally qualified for the declared scope of [#203](https://github.com/dearlordylord/hapsland/issues/203) on 2026-10-05. The experimental roster remains provisional; this status does not claim tracker closure or human learning validation.
 **Authority:** Maintained usage guidance and implementation evidence. The issue and accepted business contracts own requirements; experiments do not accept a tower roster or a balance patch.
 **Expected use:** Declare a catalogue, scenario, investment budget and action schedule; compare outcomes and inspect business observations before proposing design changes.
 **Lifecycle:** Update with changes to the laboratory API, game translation, generated artifacts or checks. Review when a mechanism is replaced, an environment capability changes, or #203 reaches acceptance; consolidate accepted decisions into this guide and the [optional game guide](../README.md).
+-->
 
 ## Run and check
 

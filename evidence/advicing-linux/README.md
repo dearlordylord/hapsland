@@ -1,6 +1,8 @@
 # Linux Advicing evidence index
 
+<!--
 **Audience:** Contributors, including coding agents validating runtime behavior; Build and release maintainers; Product and specification owners.
+-->
 
 This directory retains source-free, controlled evidence for the composed
 background and finish-hook candidate. It is an **evidence record, not the

@@ -1,10 +1,12 @@
 # Hapsland
 
+<!--
 **Purpose:** Introduce Hapsland and help users choose, install, and configure it.
 **Status:** Active product introduction.
 **Authority:** Maintained user guidance; linked contracts and evidence own behavior and validation claims.
 **Expected use:** Understand review boundaries, choose an installation path, and find detailed guidance.
 **Lifecycle:** Update with user-facing behavior and distribution changes; review when supported runtimes, source scope, or setup changes.
+-->
 
 <p align="center"><img src="./assets/brand/readme-splash.svg" alt="Hapsland: a human hand correcting a skeletal robot hand" width="900"></p>
 
@@ -36,16 +38,6 @@ Hapsland finds the changed type or function and follows its references to gather
 related definitions, including those in other files. Each rule reviews the
 changed declaration with the related code it needs. If the necessary code is
 unavailable, Hapsland skips that rule.
-
-> [!WARNING]
-> Hapsland focuses automatic review on agent edits made through supported native
-> editing tools, such as [`apply_patch`](https://developers.openai.com/codex/hooks#tool-coverage),
-> Codex’s standard file-editing tool. Changes made through other paths—including
-> Python or shell scripts and linter autofixes—are outside that scope and are not
-> automatically reviewed.
-
-For Codex agents: prefer `apply_patch` for source edits when it fits the task,
-so Hapsland can observe and review those edits.
 
 ## Subagents
 

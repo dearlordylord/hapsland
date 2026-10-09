@@ -1,10 +1,12 @@
 # Reservation window: make the clock explicit
 
+<!--
 **Purpose:** Explain this measured scenario, show its code and route readers to its specific checks.
 **Status:** Completed exploratory scenario; generated from the current frozen comparison.
 **Authority:** Comparative research advisory and validation evidence, not a product contract or release certification.
 **Expected use:** Understand the problem, compare final agent code and inspect the predefined correctness checks.
 **Lifecycle:** Regenerate with scripts/generate-abide-scenario-pages.mjs when the owning fixtures or current evidence change. Review when rule wording, input selection or scoring changes; replace superseded results and update links.
+-->
 
 [Studies](../../../review-studies.md) → Reservation window · [Full methodology](../../../abide-large-declaration-study.md#methodology)
 

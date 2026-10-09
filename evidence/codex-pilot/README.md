@@ -1,6 +1,8 @@
 # First opt-in Codex pilot
 
+<!--
 **Audience:** Pilot owners and participating users; evaluation contributors and reviewers.
+-->
 
 **Historical evidence, 2026-09-23.** Repository enablement and runtime observations
 below describe the retained runs. The [pilot quickstart](quickstart.md) and

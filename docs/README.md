@@ -1,11 +1,13 @@
 # Documentation guide
 
+<!--
 **Purpose:** Route readers to Hapsland documentation by audience and task.
 **Audience:** End users; rule authors; contributors, including coding agents; build and release maintainers; product and specification owners.
 **Status:** Active documentation navigation.
 **Authority:** Maintained navigation; linked documents retain their own contract, guidance, proposal, or evidence authority.
 **Expected use:** Choose the task below, then follow its owning guide rather than treating every document as an installation prerequisite.
 **Lifecycle:** Update when a task's owner moves or a supported workflow changes; review alongside README and repository-map changes and remove obsolete routes.
+-->
 
 ## Use and configure Hapsland
 

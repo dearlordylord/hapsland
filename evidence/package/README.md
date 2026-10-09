@@ -1,6 +1,8 @@
 # Installed package evidence
 
+<!--
 **Audience:** Build and release maintainers; contributors investigating installed-package behavior.
+-->
 
 The [installed release acceptance record](installed-release-acceptance.md) retains the historical outcome narrative extracted from the support declaration.
 

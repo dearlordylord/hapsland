@@ -1,11 +1,13 @@
 # CLI user journeys
 
+<!--
 **Purpose:** Index administration user journeys by the CLI commands that start them and link their generated diagrams.
 **Audience:** Contributors, including coding agents; Product and specification owners reviewing CLI journeys.
 **Status:** Maintained flow documentation and inventory.
 **Authority:** Maintained implementation documentation. [#244](https://github.com/dearlordylord/hapsland/issues/244) and the linked domain contracts own required behavior; test results establish only their executed scope.
 **Expected use:** Locate command journeys and their diagrams; use source preflight for UI contracts and manual replay freshness checks when updating their documentation.
 **Lifecycle:** Update when a CLI input surface, owner or generated diagram changes. Review when accepted interaction behavior changes or another interactive command is added.
+-->
 
 The [architecture decision](../adr/0004-administration-cli-interactions.md) defines ownership, consent and Effect lifetime. Installation and credential behavior remain governed by [installation workflows](../installation-workflows.md). The [testing matrix](../testing-matrix.md) determines required checks.
 

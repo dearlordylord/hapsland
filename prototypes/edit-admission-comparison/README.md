@@ -1,11 +1,13 @@
 # Current edit-admission proof prototype
 
+<!--
 **Purpose:** Preserve three checked Current admission properties and their falsification controls.
 **Audience:** Prototype contributors and evaluators; Product and specification owners.
 **Status:** Temporary model/proof evidence; the rejected post-only A experiments have been deleted.
 **Authority:** Owner-approved model laws and implementation evidence, not a replacement for the accepted product contract.
 **Expected use:** Run the Current gates, inspect their explicit assumptions, and retain useful controls until production-aligned replacement checks exist.
 **Lifecycle:** At the edit-admission design decision milestone, consolidate accepted requirements into `docs/advicing-target-contract.md` and production law/test owners; delete this prototype after replacement checks pass. Unresolved runtime validation remains scoped below until verified or transferred to the replacement checks.
+-->
 
 ## Retained checked properties
 
